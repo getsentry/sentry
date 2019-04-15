@@ -1,95 +1,147 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`Organization Developer Settings when no Apps exist displays empty state 1`] = `
-<OrganizationDeveloperSettings
+<WithOrganizationMockWrapper
+  organization={
+    Object {
+      "access": Array [
+        "org:read",
+        "org:write",
+        "org:admin",
+        "org:integrations",
+        "project:read",
+        "project:write",
+        "project:admin",
+        "team:read",
+        "team:write",
+        "team:admin",
+      ],
+      "features": Array [],
+      "id": "3",
+      "name": "Organization Name",
+      "onboardingTasks": Array [],
+      "projects": Array [],
+      "scrapeJavaScript": true,
+      "slug": "org-slug",
+      "status": Object {
+        "id": "active",
+        "name": "active",
+      },
+      "teams": Array [],
+    }
+  }
   params={
     Object {
       "orgId": "org-slug",
     }
   }
 >
-  <SideEffect(DocumentTitle)
-    title="Sentry"
+  <OrganizationDeveloperSettings
+    organization={
+      Object {
+        "access": Array [
+          "org:read",
+          "org:write",
+          "org:admin",
+          "org:integrations",
+          "project:read",
+          "project:write",
+          "project:admin",
+          "team:read",
+          "team:write",
+          "team:admin",
+        ],
+        "features": Array [],
+        "id": "3",
+        "name": "Organization Name",
+        "onboardingTasks": Array [],
+        "projects": Array [],
+        "scrapeJavaScript": true,
+        "slug": "org-slug",
+        "status": Object {
+          "id": "active",
+          "name": "active",
+        },
+        "teams": Array [],
+      }
+    }
+    params={
+      Object {
+        "orgId": "org-slug",
+      }
+    }
   >
-    <DocumentTitle
+    <SideEffect(DocumentTitle)
       title="Sentry"
     >
-      <div>
-        <SettingsPageHeading
-          action={
-            <Button
-              disabled={false}
-              icon="icon-circle-add"
-              priority="primary"
-              size="small"
-              to="/settings/org-slug/developer-settings/new/"
-            >
-              Create New Application
-            </Button>
-          }
-          noTitleStyles={false}
-          title="Developer Settings"
-        >
-          <Wrapper>
-            <div
-              className="css-1r5ylk7-Wrapper e1kblvez2"
-            >
-              <Flex
-                align="center"
+      <DocumentTitle
+        title="Sentry"
+      >
+        <div>
+          <SettingsPageHeading
+            action={
+              <Button
+                disabled={false}
+                icon="icon-circle-add"
+                priority="primary"
+                size="small"
+                to="/settings/org-slug/developer-settings/new/"
               >
-                <Base
+                Create New Application
+              </Button>
+            }
+            noTitleStyles={false}
+            title="Developer Settings"
+          >
+            <Wrapper>
+              <div
+                className="css-1r5ylk7-Wrapper e1kblvez2"
+              >
+                <Flex
                   align="center"
-                  className="css-5ipae5"
                 >
-                  <div
+                  <Base
+                    align="center"
                     className="css-5ipae5"
-                    is={null}
                   >
-                    <Title
-                      styled={false}
+                    <div
+                      className="css-5ipae5"
+                      is={null}
                     >
-                      <Base
-                        className="css-1ky52ze-Title e1kblvez0"
+                      <Title
+                        styled={false}
                       >
-                        <div
+                        <Base
                           className="css-1ky52ze-Title e1kblvez0"
-                          is={null}
                         >
-                          <HeaderTitle>
-                            <h4
-                              className="css-1w8ttcn-HeaderTitle e6lvex72"
-                            >
-                              Developer Settings
-                            </h4>
-                          </HeaderTitle>
-                        </div>
-                      </Base>
-                    </Title>
-                    <Action>
-                      <div
-                        className="css-18luhfc-Action e1kblvez1"
-                      >
-                        <Button
-                          disabled={false}
-                          icon="icon-circle-add"
-                          priority="primary"
-                          size="small"
-                          to="/settings/org-slug/developer-settings/new/"
+                          <div
+                            className="css-1ky52ze-Title e1kblvez0"
+                            is={null}
+                          >
+                            <HeaderTitle>
+                              <h4
+                                className="css-1w8ttcn-HeaderTitle e6lvex72"
+                              >
+                                Developer Settings
+                              </h4>
+                            </HeaderTitle>
+                          </div>
+                        </Base>
+                      </Title>
+                      <Action>
+                        <div
+                          className="css-18luhfc-Action e1kblvez1"
                         >
-                          <StyledButton
-                            aria-disabled={false}
-                            aria-label="Create New Application"
+                          <Button
                             disabled={false}
-                            onClick={[Function]}
+                            icon="icon-circle-add"
                             priority="primary"
-                            role="button"
                             size="small"
                             to="/settings/org-slug/developer-settings/new/"
                           >
-                            <ForwardRef
+                            <StyledButton
                               aria-disabled={false}
                               aria-label="Create New Application"
-                              className="css-zvpqlo-StyledButton-getColors eqrebog0"
                               disabled={false}
                               onClick={[Function]}
                               priority="primary"
@@ -97,262 +149,326 @@ exports[`Organization Developer Settings when no Apps exist displays empty state
                               size="small"
                               to="/settings/org-slug/developer-settings/new/"
                             >
-                              <Link
+                              <ForwardRef
                                 aria-disabled={false}
                                 aria-label="Create New Application"
                                 className="css-zvpqlo-StyledButton-getColors eqrebog0"
+                                disabled={false}
                                 onClick={[Function]}
-                                onlyActiveOnIndex={false}
+                                priority="primary"
                                 role="button"
                                 size="small"
-                                style={Object {}}
                                 to="/settings/org-slug/developer-settings/new/"
                               >
-                                <a
+                                <Link
                                   aria-disabled={false}
                                   aria-label="Create New Application"
                                   className="css-zvpqlo-StyledButton-getColors eqrebog0"
                                   onClick={[Function]}
+                                  onlyActiveOnIndex={false}
                                   role="button"
                                   size="small"
                                   style={Object {}}
+                                  to="/settings/org-slug/developer-settings/new/"
                                 >
-                                  <ButtonLabel
-                                    priority="primary"
+                                  <a
+                                    aria-disabled={false}
+                                    aria-label="Create New Application"
+                                    className="css-zvpqlo-StyledButton-getColors eqrebog0"
+                                    onClick={[Function]}
+                                    role="button"
                                     size="small"
+                                    style={Object {}}
                                   >
-                                    <Component
-                                      className="css-7ui8bl-ButtonLabel eqrebog1"
+                                    <ButtonLabel
                                       priority="primary"
                                       size="small"
                                     >
-                                      <span
+                                      <Component
                                         className="css-7ui8bl-ButtonLabel eqrebog1"
+                                        priority="primary"
+                                        size="small"
                                       >
-                                        <Icon
-                                          hasChildren={true}
-                                          size="small"
+                                        <span
+                                          className="css-7ui8bl-ButtonLabel eqrebog1"
                                         >
-                                          <Component
-                                            className="css-1vdnsie-Icon eqrebog2"
+                                          <Icon
                                             hasChildren={true}
                                             size="small"
                                           >
-                                            <span
+                                            <Component
                                               className="css-1vdnsie-Icon eqrebog2"
+                                              hasChildren={true}
                                               size="small"
                                             >
-                                              <StyledInlineSvg
-                                                size="12px"
-                                                src="icon-circle-add"
+                                              <span
+                                                className="css-1vdnsie-Icon eqrebog2"
+                                                size="small"
                                               >
-                                                <InlineSvg
-                                                  className="css-1ov3rcq-StyledInlineSvg eqrebog3"
+                                                <StyledInlineSvg
                                                   size="12px"
                                                   src="icon-circle-add"
                                                 >
-                                                  <StyledSvg
+                                                  <InlineSvg
                                                     className="css-1ov3rcq-StyledInlineSvg eqrebog3"
-                                                    height="12px"
-                                                    viewBox={Object {}}
-                                                    width="12px"
+                                                    size="12px"
+                                                    src="icon-circle-add"
                                                   >
-                                                    <svg
-                                                      className="eqrebog3 css-1jjmnki-StyledSvg-StyledInlineSvg e2idor0"
+                                                    <StyledSvg
+                                                      className="css-1ov3rcq-StyledInlineSvg eqrebog3"
                                                       height="12px"
                                                       viewBox={Object {}}
                                                       width="12px"
                                                     >
-                                                      <use
-                                                        href="#test"
-                                                        xlinkHref="#test"
-                                                      />
-                                                    </svg>
-                                                  </StyledSvg>
-                                                </InlineSvg>
-                                              </StyledInlineSvg>
-                                            </span>
-                                          </Component>
-                                        </Icon>
-                                        Create New Application
-                                      </span>
-                                    </Component>
-                                  </ButtonLabel>
-                                </a>
-                              </Link>
-                            </ForwardRef>
-                          </StyledButton>
-                        </Button>
-                      </div>
-                    </Action>
-                  </div>
-                </Base>
-              </Flex>
-            </div>
-          </Wrapper>
-        </SettingsPageHeading>
-        <Panel>
-          <Component
-            className="css-yahxlu-Panel e1laxa7d0"
-          >
-            <div
+                                                      <svg
+                                                        className="eqrebog3 css-1jjmnki-StyledSvg-StyledInlineSvg e2idor0"
+                                                        height="12px"
+                                                        viewBox={Object {}}
+                                                        width="12px"
+                                                      >
+                                                        <use
+                                                          href="#test"
+                                                          xlinkHref="#test"
+                                                        />
+                                                      </svg>
+                                                    </StyledSvg>
+                                                  </InlineSvg>
+                                                </StyledInlineSvg>
+                                              </span>
+                                            </Component>
+                                          </Icon>
+                                          Create New Application
+                                        </span>
+                                      </Component>
+                                    </ButtonLabel>
+                                  </a>
+                                </Link>
+                              </ForwardRef>
+                            </StyledButton>
+                          </Button>
+                        </div>
+                      </Action>
+                    </div>
+                  </Base>
+                </Flex>
+              </div>
+            </Wrapper>
+          </SettingsPageHeading>
+          <Panel>
+            <Component
               className="css-yahxlu-Panel e1laxa7d0"
             >
-              <PanelHeader>
-                <Component
-                  className="css-xhx6pj-PanelHeader-getPadding e1p8v8nv0"
-                >
-                  <Flex
-                    align="center"
+              <div
+                className="css-yahxlu-Panel e1laxa7d0"
+              >
+                <PanelHeader>
+                  <Component
                     className="css-xhx6pj-PanelHeader-getPadding e1p8v8nv0"
-                    justify="space-between"
                   >
-                    <Base
+                    <Flex
                       align="center"
-                      className="e1p8v8nv0 css-b7ices-PanelHeader-getPadding"
+                      className="css-xhx6pj-PanelHeader-getPadding e1p8v8nv0"
                       justify="space-between"
                     >
-                      <div
+                      <Base
+                        align="center"
                         className="e1p8v8nv0 css-b7ices-PanelHeader-getPadding"
-                        is={null}
+                        justify="space-between"
                       >
-                        Applications
-                      </div>
-                    </Base>
-                  </Flex>
-                </Component>
-              </PanelHeader>
-              <PanelBody
-                direction="column"
-                disablePadding={true}
-                flex={false}
-              >
-                <div
-                  className="css-9vq8an-textStyles"
-                >
-                  <EmptyMessage>
-                    <Wrapper>
-                      <div
-                        className="css-ev9qm0-Wrapper eh488yo0"
-                      >
-                        <Description
-                          noMargin={true}
+                        <div
+                          className="e1p8v8nv0 css-b7ices-PanelHeader-getPadding"
+                          is={null}
                         >
-                          <Component
-                            className="css-pwn5v-TextBlock-Description-MarginStyles eh488yo1"
+                          Applications
+                        </div>
+                      </Base>
+                    </Flex>
+                  </Component>
+                </PanelHeader>
+                <PanelBody
+                  direction="column"
+                  disablePadding={true}
+                  flex={false}
+                >
+                  <div
+                    className="css-9vq8an-textStyles"
+                  >
+                    <EmptyMessage>
+                      <Wrapper>
+                        <div
+                          className="css-ev9qm0-Wrapper eh488yo0"
+                        >
+                          <Description
                             noMargin={true}
                           >
-                            <div
+                            <Component
                               className="css-pwn5v-TextBlock-Description-MarginStyles eh488yo1"
+                              noMargin={true}
                             >
-                              No applications have been created yet.
-                            </div>
-                          </Component>
-                        </Description>
-                      </div>
-                    </Wrapper>
-                  </EmptyMessage>
-                </div>
-              </PanelBody>
-            </div>
-          </Component>
-        </Panel>
-      </div>
-    </DocumentTitle>
-  </SideEffect(DocumentTitle)>
-</OrganizationDeveloperSettings>
+                              <div
+                                className="css-pwn5v-TextBlock-Description-MarginStyles eh488yo1"
+                              >
+                                No applications have been created yet.
+                              </div>
+                            </Component>
+                          </Description>
+                        </div>
+                      </Wrapper>
+                    </EmptyMessage>
+                  </div>
+                </PanelBody>
+              </div>
+            </Component>
+          </Panel>
+        </div>
+      </DocumentTitle>
+    </SideEffect(DocumentTitle)>
+  </OrganizationDeveloperSettings>
+</WithOrganizationMockWrapper>
 `;
 
 exports[`Organization Developer Settings with published apps trash button is disabled 1`] = `
-<OrganizationDeveloperSettings
+<WithOrganizationMockWrapper
+  organization={
+    Object {
+      "access": Array [
+        "org:read",
+        "org:write",
+        "org:admin",
+        "org:integrations",
+        "project:read",
+        "project:write",
+        "project:admin",
+        "team:read",
+        "team:write",
+        "team:admin",
+      ],
+      "features": Array [],
+      "id": "3",
+      "name": "Organization Name",
+      "onboardingTasks": Array [],
+      "projects": Array [],
+      "scrapeJavaScript": true,
+      "slug": "org-slug",
+      "status": Object {
+        "id": "active",
+        "name": "active",
+      },
+      "teams": Array [],
+    }
+  }
   params={
     Object {
       "orgId": "org-slug",
     }
   }
 >
-  <SideEffect(DocumentTitle)
-    title="Sentry"
+  <OrganizationDeveloperSettings
+    organization={
+      Object {
+        "access": Array [
+          "org:read",
+          "org:write",
+          "org:admin",
+          "org:integrations",
+          "project:read",
+          "project:write",
+          "project:admin",
+          "team:read",
+          "team:write",
+          "team:admin",
+        ],
+        "features": Array [],
+        "id": "3",
+        "name": "Organization Name",
+        "onboardingTasks": Array [],
+        "projects": Array [],
+        "scrapeJavaScript": true,
+        "slug": "org-slug",
+        "status": Object {
+          "id": "active",
+          "name": "active",
+        },
+        "teams": Array [],
+      }
+    }
+    params={
+      Object {
+        "orgId": "org-slug",
+      }
+    }
   >
-    <DocumentTitle
+    <SideEffect(DocumentTitle)
       title="Sentry"
     >
-      <div>
-        <SettingsPageHeading
-          action={
-            <Button
-              disabled={false}
-              icon="icon-circle-add"
-              priority="primary"
-              size="small"
-              to="/settings/org-slug/developer-settings/new/"
-            >
-              Create New Application
-            </Button>
-          }
-          noTitleStyles={false}
-          title="Developer Settings"
-        >
-          <Wrapper>
-            <div
-              className="css-1r5ylk7-Wrapper e1kblvez2"
-            >
-              <Flex
-                align="center"
+      <DocumentTitle
+        title="Sentry"
+      >
+        <div>
+          <SettingsPageHeading
+            action={
+              <Button
+                disabled={false}
+                icon="icon-circle-add"
+                priority="primary"
+                size="small"
+                to="/settings/org-slug/developer-settings/new/"
               >
-                <Base
+                Create New Application
+              </Button>
+            }
+            noTitleStyles={false}
+            title="Developer Settings"
+          >
+            <Wrapper>
+              <div
+                className="css-1r5ylk7-Wrapper e1kblvez2"
+              >
+                <Flex
                   align="center"
-                  className="css-5ipae5"
                 >
-                  <div
+                  <Base
+                    align="center"
                     className="css-5ipae5"
-                    is={null}
                   >
-                    <Title
-                      styled={false}
+                    <div
+                      className="css-5ipae5"
+                      is={null}
                     >
-                      <Base
-                        className="css-1ky52ze-Title e1kblvez0"
+                      <Title
+                        styled={false}
                       >
-                        <div
+                        <Base
                           className="css-1ky52ze-Title e1kblvez0"
-                          is={null}
                         >
-                          <HeaderTitle>
-                            <h4
-                              className="css-1w8ttcn-HeaderTitle e6lvex72"
-                            >
-                              Developer Settings
-                            </h4>
-                          </HeaderTitle>
-                        </div>
-                      </Base>
-                    </Title>
-                    <Action>
-                      <div
-                        className="css-18luhfc-Action e1kblvez1"
-                      >
-                        <Button
-                          disabled={false}
-                          icon="icon-circle-add"
-                          priority="primary"
-                          size="small"
-                          to="/settings/org-slug/developer-settings/new/"
+                          <div
+                            className="css-1ky52ze-Title e1kblvez0"
+                            is={null}
+                          >
+                            <HeaderTitle>
+                              <h4
+                                className="css-1w8ttcn-HeaderTitle e6lvex72"
+                              >
+                                Developer Settings
+                              </h4>
+                            </HeaderTitle>
+                          </div>
+                        </Base>
+                      </Title>
+                      <Action>
+                        <div
+                          className="css-18luhfc-Action e1kblvez1"
                         >
-                          <StyledButton
-                            aria-disabled={false}
-                            aria-label="Create New Application"
+                          <Button
                             disabled={false}
-                            onClick={[Function]}
+                            icon="icon-circle-add"
                             priority="primary"
-                            role="button"
                             size="small"
                             to="/settings/org-slug/developer-settings/new/"
                           >
-                            <ForwardRef
+                            <StyledButton
                               aria-disabled={false}
                               aria-label="Create New Application"
-                              className="css-zvpqlo-StyledButton-getColors eqrebog0"
                               disabled={false}
                               onClick={[Function]}
                               priority="primary"
@@ -360,304 +476,331 @@ exports[`Organization Developer Settings with published apps trash button is dis
                               size="small"
                               to="/settings/org-slug/developer-settings/new/"
                             >
-                              <Link
+                              <ForwardRef
                                 aria-disabled={false}
                                 aria-label="Create New Application"
                                 className="css-zvpqlo-StyledButton-getColors eqrebog0"
+                                disabled={false}
                                 onClick={[Function]}
-                                onlyActiveOnIndex={false}
+                                priority="primary"
                                 role="button"
                                 size="small"
-                                style={Object {}}
                                 to="/settings/org-slug/developer-settings/new/"
                               >
-                                <a
+                                <Link
                                   aria-disabled={false}
                                   aria-label="Create New Application"
                                   className="css-zvpqlo-StyledButton-getColors eqrebog0"
                                   onClick={[Function]}
+                                  onlyActiveOnIndex={false}
                                   role="button"
                                   size="small"
                                   style={Object {}}
+                                  to="/settings/org-slug/developer-settings/new/"
                                 >
-                                  <ButtonLabel
-                                    priority="primary"
+                                  <a
+                                    aria-disabled={false}
+                                    aria-label="Create New Application"
+                                    className="css-zvpqlo-StyledButton-getColors eqrebog0"
+                                    onClick={[Function]}
+                                    role="button"
                                     size="small"
+                                    style={Object {}}
                                   >
-                                    <Component
-                                      className="css-7ui8bl-ButtonLabel eqrebog1"
+                                    <ButtonLabel
                                       priority="primary"
                                       size="small"
                                     >
-                                      <span
+                                      <Component
                                         className="css-7ui8bl-ButtonLabel eqrebog1"
+                                        priority="primary"
+                                        size="small"
                                       >
-                                        <Icon
-                                          hasChildren={true}
-                                          size="small"
+                                        <span
+                                          className="css-7ui8bl-ButtonLabel eqrebog1"
                                         >
-                                          <Component
-                                            className="css-1vdnsie-Icon eqrebog2"
+                                          <Icon
                                             hasChildren={true}
                                             size="small"
                                           >
-                                            <span
+                                            <Component
                                               className="css-1vdnsie-Icon eqrebog2"
+                                              hasChildren={true}
                                               size="small"
                                             >
-                                              <StyledInlineSvg
-                                                size="12px"
-                                                src="icon-circle-add"
+                                              <span
+                                                className="css-1vdnsie-Icon eqrebog2"
+                                                size="small"
                                               >
-                                                <InlineSvg
-                                                  className="css-1ov3rcq-StyledInlineSvg eqrebog3"
+                                                <StyledInlineSvg
                                                   size="12px"
                                                   src="icon-circle-add"
                                                 >
-                                                  <StyledSvg
+                                                  <InlineSvg
                                                     className="css-1ov3rcq-StyledInlineSvg eqrebog3"
-                                                    height="12px"
-                                                    viewBox={Object {}}
-                                                    width="12px"
+                                                    size="12px"
+                                                    src="icon-circle-add"
                                                   >
-                                                    <svg
-                                                      className="eqrebog3 css-1jjmnki-StyledSvg-StyledInlineSvg e2idor0"
+                                                    <StyledSvg
+                                                      className="css-1ov3rcq-StyledInlineSvg eqrebog3"
                                                       height="12px"
                                                       viewBox={Object {}}
                                                       width="12px"
                                                     >
-                                                      <use
-                                                        href="#test"
-                                                        xlinkHref="#test"
-                                                      />
-                                                    </svg>
-                                                  </StyledSvg>
-                                                </InlineSvg>
-                                              </StyledInlineSvg>
-                                            </span>
-                                          </Component>
-                                        </Icon>
-                                        Create New Application
-                                      </span>
-                                    </Component>
-                                  </ButtonLabel>
-                                </a>
-                              </Link>
-                            </ForwardRef>
-                          </StyledButton>
-                        </Button>
-                      </div>
-                    </Action>
-                  </div>
-                </Base>
-              </Flex>
-            </div>
-          </Wrapper>
-        </SettingsPageHeading>
-        <Panel>
-          <Component
-            className="css-yahxlu-Panel e1laxa7d0"
-          >
-            <div
+                                                      <svg
+                                                        className="eqrebog3 css-1jjmnki-StyledSvg-StyledInlineSvg e2idor0"
+                                                        height="12px"
+                                                        viewBox={Object {}}
+                                                        width="12px"
+                                                      >
+                                                        <use
+                                                          href="#test"
+                                                          xlinkHref="#test"
+                                                        />
+                                                      </svg>
+                                                    </StyledSvg>
+                                                  </InlineSvg>
+                                                </StyledInlineSvg>
+                                              </span>
+                                            </Component>
+                                          </Icon>
+                                          Create New Application
+                                        </span>
+                                      </Component>
+                                    </ButtonLabel>
+                                  </a>
+                                </Link>
+                              </ForwardRef>
+                            </StyledButton>
+                          </Button>
+                        </div>
+                      </Action>
+                    </div>
+                  </Base>
+                </Flex>
+              </div>
+            </Wrapper>
+          </SettingsPageHeading>
+          <Panel>
+            <Component
               className="css-yahxlu-Panel e1laxa7d0"
             >
-              <PanelHeader>
-                <Component
-                  className="css-xhx6pj-PanelHeader-getPadding e1p8v8nv0"
-                >
-                  <Flex
-                    align="center"
+              <div
+                className="css-yahxlu-Panel e1laxa7d0"
+              >
+                <PanelHeader>
+                  <Component
                     className="css-xhx6pj-PanelHeader-getPadding e1p8v8nv0"
-                    justify="space-between"
                   >
-                    <Base
+                    <Flex
                       align="center"
-                      className="e1p8v8nv0 css-b7ices-PanelHeader-getPadding"
+                      className="css-xhx6pj-PanelHeader-getPadding e1p8v8nv0"
                       justify="space-between"
                     >
-                      <div
-                        className="e1p8v8nv0 css-b7ices-PanelHeader-getPadding"
-                        is={null}
-                      >
-                        Applications
-                      </div>
-                    </Base>
-                  </Flex>
-                </Component>
-              </PanelHeader>
-              <PanelBody
-                direction="column"
-                disablePadding={true}
-                flex={false}
-              >
-                <div
-                  className="css-9vq8an-textStyles"
-                >
-                  <SentryApplicationRow
-                    app={
-                      Object {
-                        "author": "Sentry",
-                        "clientId": "client-id",
-                        "clientSecret": "client-secret",
-                        "events": Array [],
-                        "isAlertable": false,
-                        "name": "Sample App",
-                        "overview": "This is an app.",
-                        "redirectUrl": "https://example/com/setup",
-                        "schema": Object {},
-                        "scopes": Array [
-                          "project:read",
-                        ],
-                        "slug": "sample-app",
-                        "status": "published",
-                        "uuid": "123456123456123456123456",
-                        "webhookUrl": "https://example.com/webhook",
-                      }
-                    }
-                    key="123456123456123456123456"
-                    onRemoveApp={[Function]}
-                    orgId="org-slug"
-                    showPublishStatus={true}
-                  >
-                    <SentryAppItem>
                       <Base
-                        className="css-h9gjd5-PanelItem-SentryAppItem eac2pqx0"
+                        align="center"
+                        className="e1p8v8nv0 css-b7ices-PanelHeader-getPadding"
+                        justify="space-between"
                       >
                         <div
-                          className="css-h9gjd5-PanelItem-SentryAppItem eac2pqx0"
+                          className="e1p8v8nv0 css-b7ices-PanelHeader-getPadding"
                           is={null}
                         >
-                          <StyledFlex>
-                            <Base
-                              className="css-14n192s-StyledFlex eac2pqx1"
-                            >
-                              <div
+                          Applications
+                        </div>
+                      </Base>
+                    </Flex>
+                  </Component>
+                </PanelHeader>
+                <PanelBody
+                  direction="column"
+                  disablePadding={true}
+                  flex={false}
+                >
+                  <div
+                    className="css-9vq8an-textStyles"
+                  >
+                    <SentryApplicationRow
+                      app={
+                        Object {
+                          "author": "Sentry",
+                          "clientId": "client-id",
+                          "clientSecret": "client-secret",
+                          "events": Array [],
+                          "isAlertable": false,
+                          "name": "Sample App",
+                          "overview": "This is an app.",
+                          "redirectUrl": "https://example/com/setup",
+                          "schema": Object {},
+                          "scopes": Array [
+                            "project:read",
+                          ],
+                          "slug": "sample-app",
+                          "status": "published",
+                          "uuid": "123456123456123456123456",
+                          "webhookUrl": "https://example.com/webhook",
+                        }
+                      }
+                      key="123456123456123456123456"
+                      onRemoveApp={[Function]}
+                      organization={
+                        Object {
+                          "access": Array [
+                            "org:read",
+                            "org:write",
+                            "org:admin",
+                            "org:integrations",
+                            "project:read",
+                            "project:write",
+                            "project:admin",
+                            "team:read",
+                            "team:write",
+                            "team:admin",
+                          ],
+                          "features": Array [],
+                          "id": "3",
+                          "name": "Organization Name",
+                          "onboardingTasks": Array [],
+                          "projects": Array [],
+                          "scrapeJavaScript": true,
+                          "slug": "org-slug",
+                          "status": Object {
+                            "id": "active",
+                            "name": "active",
+                          },
+                          "teams": Array [],
+                        }
+                      }
+                      showPublishStatus={true}
+                    >
+                      <SentryAppItem>
+                        <Base
+                          className="css-h9gjd5-PanelItem-SentryAppItem eac2pqx0"
+                        >
+                          <div
+                            className="css-h9gjd5-PanelItem-SentryAppItem eac2pqx0"
+                            is={null}
+                          >
+                            <StyledFlex>
+                              <Base
                                 className="css-14n192s-StyledFlex eac2pqx1"
-                                is={null}
                               >
-                                <PluginIcon
-                                  pluginId="sample-app"
-                                  size={36}
+                                <div
+                                  className="css-14n192s-StyledFlex eac2pqx1"
+                                  is={null}
                                 >
-                                  <IntegrationIcon
-                                    image={Object {}}
+                                  <PluginIcon
+                                    pluginId="sample-app"
                                     size={36}
                                   >
-                                    <div
-                                      className="css-5iptpn-IntegrationIcon e1bhjds90"
+                                    <IntegrationIcon
+                                      image={Object {}}
                                       size={36}
-                                    />
-                                  </IntegrationIcon>
-                                </PluginIcon>
-                                <SentryAppBox>
-                                  <Base
-                                    className="css-161g25b-SentryAppBox eac2pqx2"
-                                  >
-                                    <div
-                                      className="css-161g25b-SentryAppBox eac2pqx2"
-                                      is={null}
                                     >
-                                      <SentryAppName>
-                                        <div
-                                          className="css-uiwo8x-SentryAppName eac2pqx4"
-                                        >
-                                          <SentryAppLink
-                                            to="/settings/org-slug/developer-settings/sample-app/"
+                                      <div
+                                        className="css-5iptpn-IntegrationIcon e1bhjds90"
+                                        size={36}
+                                      />
+                                    </IntegrationIcon>
+                                  </PluginIcon>
+                                  <SentryAppBox>
+                                    <Base
+                                      className="css-161g25b-SentryAppBox eac2pqx2"
+                                    >
+                                      <div
+                                        className="css-161g25b-SentryAppBox eac2pqx2"
+                                        is={null}
+                                      >
+                                        <SentryAppName>
+                                          <div
+                                            className="css-uiwo8x-SentryAppName eac2pqx4"
                                           >
-                                            <Link
-                                              className="css-gg019v-SentryAppLink eac2pqx6"
-                                              onlyActiveOnIndex={false}
-                                              style={Object {}}
+                                            <SentryAppLink
                                               to="/settings/org-slug/developer-settings/sample-app/"
                                             >
-                                              <a
+                                              <Link
                                                 className="css-gg019v-SentryAppLink eac2pqx6"
-                                                onClick={[Function]}
+                                                onlyActiveOnIndex={false}
                                                 style={Object {}}
+                                                to="/settings/org-slug/developer-settings/sample-app/"
                                               >
-                                                Sample App
-                                              </a>
-                                            </Link>
-                                          </SentryAppLink>
-                                        </div>
-                                      </SentryAppName>
-                                      <SentryAppDetails>
-                                        <Base
-                                          className="css-f0t6d-SentryAppDetails eac2pqx3"
-                                        >
-                                          <div
+                                                <a
+                                                  className="css-gg019v-SentryAppLink eac2pqx6"
+                                                  onClick={[Function]}
+                                                  style={Object {}}
+                                                >
+                                                  Sample App
+                                                </a>
+                                              </Link>
+                                            </SentryAppLink>
+                                          </div>
+                                        </SentryAppName>
+                                        <SentryAppDetails>
+                                          <Base
                                             className="css-f0t6d-SentryAppDetails eac2pqx3"
-                                            is={null}
                                           >
-                                            <PublishStatus
-                                              published={true}
+                                            <div
+                                              className="css-f0t6d-SentryAppDetails eac2pqx3"
+                                              is={null}
                                             >
-                                              <Component
-                                                className="css-ziyhwp-PublishStatus eac2pqx9"
+                                              <PublishStatus
                                                 published={true}
                                               >
-                                                <Flex
-                                                  align="center"
+                                                <Component
+                                                  className="css-ziyhwp-PublishStatus eac2pqx9"
+                                                  published={true}
                                                 >
-                                                  <Base
+                                                  <Flex
                                                     align="center"
-                                                    className="css-5ipae5"
                                                   >
-                                                    <div
+                                                    <Base
+                                                      align="center"
                                                       className="css-5ipae5"
-                                                      is={null}
                                                     >
                                                       <div
-                                                        className="css-ziyhwp-PublishStatus eac2pqx9"
+                                                        className="css-5ipae5"
+                                                        is={null}
                                                       >
-                                                        published
+                                                        <div
+                                                          className="css-ziyhwp-PublishStatus eac2pqx9"
+                                                        >
+                                                          published
+                                                        </div>
                                                       </div>
-                                                    </div>
-                                                  </Base>
-                                                </Flex>
-                                              </Component>
-                                            </PublishStatus>
-                                          </div>
-                                        </Base>
-                                      </SentryAppDetails>
-                                    </div>
-                                  </Base>
-                                </SentryAppBox>
-                                <Box>
-                                  <Base
-                                    className="css-roynbj"
-                                  >
-                                    <div
+                                                    </Base>
+                                                  </Flex>
+                                                </Component>
+                                              </PublishStatus>
+                                            </div>
+                                          </Base>
+                                        </SentryAppDetails>
+                                      </div>
+                                    </Base>
+                                  </SentryAppBox>
+                                  <Box>
+                                    <Base
                                       className="css-roynbj"
-                                      is={null}
                                     >
-                                      <Tooltip
-                                        title="Published apps cannot be removed."
+                                      <div
+                                        className="css-roynbj"
+                                        is={null}
                                       >
-                                        <Button
-                                          className="tip"
-                                          disabled={true}
-                                          icon="icon-trash"
-                                          size="small"
+                                        <Tooltip
                                           title="Published apps cannot be removed."
                                         >
-                                          <Tooltip
+                                          <Button
+                                            className="tip"
+                                            disabled={true}
+                                            icon="icon-trash"
+                                            size="small"
                                             title="Published apps cannot be removed."
                                           >
-                                            <StyledButton
-                                              aria-disabled={true}
-                                              className="tip tip"
-                                              disabled={true}
-                                              href={null}
-                                              onClick={[Function]}
-                                              role="button"
-                                              size="small"
+                                            <Tooltip
                                               title="Published apps cannot be removed."
-                                              to={null}
                                             >
-                                              <ForwardRef
+                                              <StyledButton
                                                 aria-disabled={true}
-                                                className="tip tip css-1ujzp8g-StyledButton-getColors eqrebog0"
+                                                className="tip tip"
                                                 disabled={true}
                                                 href={null}
                                                 onClick={[Function]}
@@ -666,9 +809,10 @@ exports[`Organization Developer Settings with published apps trash button is dis
                                                 title="Published apps cannot be removed."
                                                 to={null}
                                               >
-                                                <button
+                                                <ForwardRef
                                                   aria-disabled={true}
                                                   className="tip tip css-1ujzp8g-StyledButton-getColors eqrebog0"
+                                                  disabled={true}
                                                   href={null}
                                                   onClick={[Function]}
                                                   role="button"
@@ -676,181 +820,244 @@ exports[`Organization Developer Settings with published apps trash button is dis
                                                   title="Published apps cannot be removed."
                                                   to={null}
                                                 >
-                                                  <ButtonLabel
+                                                  <button
+                                                    aria-disabled={true}
+                                                    className="tip tip css-1ujzp8g-StyledButton-getColors eqrebog0"
+                                                    href={null}
+                                                    onClick={[Function]}
+                                                    role="button"
                                                     size="small"
+                                                    title="Published apps cannot be removed."
+                                                    to={null}
                                                   >
-                                                    <Component
-                                                      className="css-7ui8bl-ButtonLabel eqrebog1"
+                                                    <ButtonLabel
                                                       size="small"
                                                     >
-                                                      <span
+                                                      <Component
                                                         className="css-7ui8bl-ButtonLabel eqrebog1"
+                                                        size="small"
                                                       >
-                                                        <Icon
-                                                          hasChildren={false}
-                                                          size="small"
+                                                        <span
+                                                          className="css-7ui8bl-ButtonLabel eqrebog1"
                                                         >
-                                                          <Component
-                                                            className="css-ljhpxy-Icon eqrebog2"
+                                                          <Icon
                                                             hasChildren={false}
                                                             size="small"
                                                           >
-                                                            <span
+                                                            <Component
                                                               className="css-ljhpxy-Icon eqrebog2"
+                                                              hasChildren={false}
                                                               size="small"
                                                             >
-                                                              <StyledInlineSvg
-                                                                size="12px"
-                                                                src="icon-trash"
+                                                              <span
+                                                                className="css-ljhpxy-Icon eqrebog2"
+                                                                size="small"
                                                               >
-                                                                <InlineSvg
-                                                                  className="css-1ov3rcq-StyledInlineSvg eqrebog3"
+                                                                <StyledInlineSvg
                                                                   size="12px"
                                                                   src="icon-trash"
                                                                 >
-                                                                  <StyledSvg
+                                                                  <InlineSvg
                                                                     className="css-1ov3rcq-StyledInlineSvg eqrebog3"
-                                                                    height="12px"
-                                                                    viewBox={Object {}}
-                                                                    width="12px"
+                                                                    size="12px"
+                                                                    src="icon-trash"
                                                                   >
-                                                                    <svg
-                                                                      className="eqrebog3 css-1jjmnki-StyledSvg-StyledInlineSvg e2idor0"
+                                                                    <StyledSvg
+                                                                      className="css-1ov3rcq-StyledInlineSvg eqrebog3"
                                                                       height="12px"
                                                                       viewBox={Object {}}
                                                                       width="12px"
                                                                     >
-                                                                      <use
-                                                                        href="#test"
-                                                                        xlinkHref="#test"
-                                                                      />
-                                                                    </svg>
-                                                                  </StyledSvg>
-                                                                </InlineSvg>
-                                                              </StyledInlineSvg>
-                                                            </span>
-                                                          </Component>
-                                                        </Icon>
-                                                      </span>
-                                                    </Component>
-                                                  </ButtonLabel>
-                                                </button>
-                                              </ForwardRef>
-                                            </StyledButton>
-                                          </Tooltip>
-                                        </Button>
-                                      </Tooltip>
-                                    </div>
-                                  </Base>
-                                </Box>
-                              </div>
-                            </Base>
-                          </StyledFlex>
-                        </div>
-                      </Base>
-                    </SentryAppItem>
-                  </SentryApplicationRow>
-                </div>
-              </PanelBody>
-            </div>
-          </Component>
-        </Panel>
-      </div>
-    </DocumentTitle>
-  </SideEffect(DocumentTitle)>
-</OrganizationDeveloperSettings>
+                                                                      <svg
+                                                                        className="eqrebog3 css-1jjmnki-StyledSvg-StyledInlineSvg e2idor0"
+                                                                        height="12px"
+                                                                        viewBox={Object {}}
+                                                                        width="12px"
+                                                                      >
+                                                                        <use
+                                                                          href="#test"
+                                                                          xlinkHref="#test"
+                                                                        />
+                                                                      </svg>
+                                                                    </StyledSvg>
+                                                                  </InlineSvg>
+                                                                </StyledInlineSvg>
+                                                              </span>
+                                                            </Component>
+                                                          </Icon>
+                                                        </span>
+                                                      </Component>
+                                                    </ButtonLabel>
+                                                  </button>
+                                                </ForwardRef>
+                                              </StyledButton>
+                                            </Tooltip>
+                                          </Button>
+                                        </Tooltip>
+                                      </div>
+                                    </Base>
+                                  </Box>
+                                </div>
+                              </Base>
+                            </StyledFlex>
+                          </div>
+                        </Base>
+                      </SentryAppItem>
+                    </SentryApplicationRow>
+                  </div>
+                </PanelBody>
+              </div>
+            </Component>
+          </Panel>
+        </div>
+      </DocumentTitle>
+    </SideEffect(DocumentTitle)>
+  </OrganizationDeveloperSettings>
+</WithOrganizationMockWrapper>
 `;
 
 exports[`Organization Developer Settings with unpublished apps displays all Apps owned by the Org 1`] = `
-<OrganizationDeveloperSettings
+<WithOrganizationMockWrapper
+  organization={
+    Object {
+      "access": Array [
+        "org:read",
+        "org:write",
+        "org:admin",
+        "org:integrations",
+        "project:read",
+        "project:write",
+        "project:admin",
+        "team:read",
+        "team:write",
+        "team:admin",
+      ],
+      "features": Array [],
+      "id": "3",
+      "name": "Organization Name",
+      "onboardingTasks": Array [],
+      "projects": Array [],
+      "scrapeJavaScript": true,
+      "slug": "org-slug",
+      "status": Object {
+        "id": "active",
+        "name": "active",
+      },
+      "teams": Array [],
+    }
+  }
   params={
     Object {
       "orgId": "org-slug",
     }
   }
 >
-  <SideEffect(DocumentTitle)
-    title="Sentry"
+  <OrganizationDeveloperSettings
+    organization={
+      Object {
+        "access": Array [
+          "org:read",
+          "org:write",
+          "org:admin",
+          "org:integrations",
+          "project:read",
+          "project:write",
+          "project:admin",
+          "team:read",
+          "team:write",
+          "team:admin",
+        ],
+        "features": Array [],
+        "id": "3",
+        "name": "Organization Name",
+        "onboardingTasks": Array [],
+        "projects": Array [],
+        "scrapeJavaScript": true,
+        "slug": "org-slug",
+        "status": Object {
+          "id": "active",
+          "name": "active",
+        },
+        "teams": Array [],
+      }
+    }
+    params={
+      Object {
+        "orgId": "org-slug",
+      }
+    }
   >
-    <DocumentTitle
+    <SideEffect(DocumentTitle)
       title="Sentry"
     >
-      <div>
-        <SettingsPageHeading
-          action={
-            <Button
-              disabled={false}
-              icon="icon-circle-add"
-              priority="primary"
-              size="small"
-              to="/settings/org-slug/developer-settings/new/"
-            >
-              Create New Application
-            </Button>
-          }
-          noTitleStyles={false}
-          title="Developer Settings"
-        >
-          <Wrapper>
-            <div
-              className="css-1r5ylk7-Wrapper e1kblvez2"
-            >
-              <Flex
-                align="center"
+      <DocumentTitle
+        title="Sentry"
+      >
+        <div>
+          <SettingsPageHeading
+            action={
+              <Button
+                disabled={false}
+                icon="icon-circle-add"
+                priority="primary"
+                size="small"
+                to="/settings/org-slug/developer-settings/new/"
               >
-                <Base
+                Create New Application
+              </Button>
+            }
+            noTitleStyles={false}
+            title="Developer Settings"
+          >
+            <Wrapper>
+              <div
+                className="css-1r5ylk7-Wrapper e1kblvez2"
+              >
+                <Flex
                   align="center"
-                  className="css-5ipae5"
                 >
-                  <div
+                  <Base
+                    align="center"
                     className="css-5ipae5"
-                    is={null}
                   >
-                    <Title
-                      styled={false}
+                    <div
+                      className="css-5ipae5"
+                      is={null}
                     >
-                      <Base
-                        className="css-1ky52ze-Title e1kblvez0"
+                      <Title
+                        styled={false}
                       >
-                        <div
+                        <Base
                           className="css-1ky52ze-Title e1kblvez0"
-                          is={null}
                         >
-                          <HeaderTitle>
-                            <h4
-                              className="css-1w8ttcn-HeaderTitle e6lvex72"
-                            >
-                              Developer Settings
-                            </h4>
-                          </HeaderTitle>
-                        </div>
-                      </Base>
-                    </Title>
-                    <Action>
-                      <div
-                        className="css-18luhfc-Action e1kblvez1"
-                      >
-                        <Button
-                          disabled={false}
-                          icon="icon-circle-add"
-                          priority="primary"
-                          size="small"
-                          to="/settings/org-slug/developer-settings/new/"
+                          <div
+                            className="css-1ky52ze-Title e1kblvez0"
+                            is={null}
+                          >
+                            <HeaderTitle>
+                              <h4
+                                className="css-1w8ttcn-HeaderTitle e6lvex72"
+                              >
+                                Developer Settings
+                              </h4>
+                            </HeaderTitle>
+                          </div>
+                        </Base>
+                      </Title>
+                      <Action>
+                        <div
+                          className="css-18luhfc-Action e1kblvez1"
                         >
-                          <StyledButton
-                            aria-disabled={false}
-                            aria-label="Create New Application"
+                          <Button
                             disabled={false}
-                            onClick={[Function]}
+                            icon="icon-circle-add"
                             priority="primary"
-                            role="button"
                             size="small"
                             to="/settings/org-slug/developer-settings/new/"
                           >
-                            <ForwardRef
+                            <StyledButton
                               aria-disabled={false}
                               aria-label="Create New Application"
-                              className="css-zvpqlo-StyledButton-getColors eqrebog0"
                               disabled={false}
                               onClick={[Function]}
                               priority="primary"
@@ -858,313 +1065,323 @@ exports[`Organization Developer Settings with unpublished apps displays all Apps
                               size="small"
                               to="/settings/org-slug/developer-settings/new/"
                             >
-                              <Link
+                              <ForwardRef
                                 aria-disabled={false}
                                 aria-label="Create New Application"
                                 className="css-zvpqlo-StyledButton-getColors eqrebog0"
+                                disabled={false}
                                 onClick={[Function]}
-                                onlyActiveOnIndex={false}
+                                priority="primary"
                                 role="button"
                                 size="small"
-                                style={Object {}}
                                 to="/settings/org-slug/developer-settings/new/"
                               >
-                                <a
+                                <Link
                                   aria-disabled={false}
                                   aria-label="Create New Application"
                                   className="css-zvpqlo-StyledButton-getColors eqrebog0"
                                   onClick={[Function]}
+                                  onlyActiveOnIndex={false}
                                   role="button"
                                   size="small"
                                   style={Object {}}
+                                  to="/settings/org-slug/developer-settings/new/"
                                 >
-                                  <ButtonLabel
-                                    priority="primary"
+                                  <a
+                                    aria-disabled={false}
+                                    aria-label="Create New Application"
+                                    className="css-zvpqlo-StyledButton-getColors eqrebog0"
+                                    onClick={[Function]}
+                                    role="button"
                                     size="small"
+                                    style={Object {}}
                                   >
-                                    <Component
-                                      className="css-7ui8bl-ButtonLabel eqrebog1"
+                                    <ButtonLabel
                                       priority="primary"
                                       size="small"
                                     >
-                                      <span
+                                      <Component
                                         className="css-7ui8bl-ButtonLabel eqrebog1"
+                                        priority="primary"
+                                        size="small"
                                       >
-                                        <Icon
-                                          hasChildren={true}
-                                          size="small"
+                                        <span
+                                          className="css-7ui8bl-ButtonLabel eqrebog1"
                                         >
-                                          <Component
-                                            className="css-1vdnsie-Icon eqrebog2"
+                                          <Icon
                                             hasChildren={true}
                                             size="small"
                                           >
-                                            <span
+                                            <Component
                                               className="css-1vdnsie-Icon eqrebog2"
+                                              hasChildren={true}
                                               size="small"
                                             >
-                                              <StyledInlineSvg
-                                                size="12px"
-                                                src="icon-circle-add"
+                                              <span
+                                                className="css-1vdnsie-Icon eqrebog2"
+                                                size="small"
                                               >
-                                                <InlineSvg
-                                                  className="css-1ov3rcq-StyledInlineSvg eqrebog3"
+                                                <StyledInlineSvg
                                                   size="12px"
                                                   src="icon-circle-add"
                                                 >
-                                                  <StyledSvg
+                                                  <InlineSvg
                                                     className="css-1ov3rcq-StyledInlineSvg eqrebog3"
-                                                    height="12px"
-                                                    viewBox={Object {}}
-                                                    width="12px"
+                                                    size="12px"
+                                                    src="icon-circle-add"
                                                   >
-                                                    <svg
-                                                      className="eqrebog3 css-1jjmnki-StyledSvg-StyledInlineSvg e2idor0"
+                                                    <StyledSvg
+                                                      className="css-1ov3rcq-StyledInlineSvg eqrebog3"
                                                       height="12px"
                                                       viewBox={Object {}}
                                                       width="12px"
                                                     >
-                                                      <use
-                                                        href="#test"
-                                                        xlinkHref="#test"
-                                                      />
-                                                    </svg>
-                                                  </StyledSvg>
-                                                </InlineSvg>
-                                              </StyledInlineSvg>
-                                            </span>
-                                          </Component>
-                                        </Icon>
-                                        Create New Application
-                                      </span>
-                                    </Component>
-                                  </ButtonLabel>
-                                </a>
-                              </Link>
-                            </ForwardRef>
-                          </StyledButton>
-                        </Button>
-                      </div>
-                    </Action>
-                  </div>
-                </Base>
-              </Flex>
-            </div>
-          </Wrapper>
-        </SettingsPageHeading>
-        <Panel>
-          <Component
-            className="css-yahxlu-Panel e1laxa7d0"
-          >
-            <div
+                                                      <svg
+                                                        className="eqrebog3 css-1jjmnki-StyledSvg-StyledInlineSvg e2idor0"
+                                                        height="12px"
+                                                        viewBox={Object {}}
+                                                        width="12px"
+                                                      >
+                                                        <use
+                                                          href="#test"
+                                                          xlinkHref="#test"
+                                                        />
+                                                      </svg>
+                                                    </StyledSvg>
+                                                  </InlineSvg>
+                                                </StyledInlineSvg>
+                                              </span>
+                                            </Component>
+                                          </Icon>
+                                          Create New Application
+                                        </span>
+                                      </Component>
+                                    </ButtonLabel>
+                                  </a>
+                                </Link>
+                              </ForwardRef>
+                            </StyledButton>
+                          </Button>
+                        </div>
+                      </Action>
+                    </div>
+                  </Base>
+                </Flex>
+              </div>
+            </Wrapper>
+          </SettingsPageHeading>
+          <Panel>
+            <Component
               className="css-yahxlu-Panel e1laxa7d0"
             >
-              <PanelHeader>
-                <Component
-                  className="css-xhx6pj-PanelHeader-getPadding e1p8v8nv0"
-                >
-                  <Flex
-                    align="center"
+              <div
+                className="css-yahxlu-Panel e1laxa7d0"
+              >
+                <PanelHeader>
+                  <Component
                     className="css-xhx6pj-PanelHeader-getPadding e1p8v8nv0"
-                    justify="space-between"
                   >
-                    <Base
+                    <Flex
                       align="center"
-                      className="e1p8v8nv0 css-b7ices-PanelHeader-getPadding"
+                      className="css-xhx6pj-PanelHeader-getPadding e1p8v8nv0"
                       justify="space-between"
                     >
-                      <div
-                        className="e1p8v8nv0 css-b7ices-PanelHeader-getPadding"
-                        is={null}
-                      >
-                        Applications
-                      </div>
-                    </Base>
-                  </Flex>
-                </Component>
-              </PanelHeader>
-              <PanelBody
-                direction="column"
-                disablePadding={true}
-                flex={false}
-              >
-                <div
-                  className="css-9vq8an-textStyles"
-                >
-                  <SentryApplicationRow
-                    app={
-                      Object {
-                        "author": "Sentry",
-                        "clientId": "client-id",
-                        "clientSecret": "client-secret",
-                        "events": Array [],
-                        "isAlertable": false,
-                        "name": "Sample App",
-                        "overview": "This is an app.",
-                        "redirectUrl": "https://example/com/setup",
-                        "schema": Object {},
-                        "scopes": Array [
-                          "project:read",
-                        ],
-                        "slug": "sample-app",
-                        "status": "unpublished",
-                        "uuid": "123456123456123456123456",
-                        "webhookUrl": "https://example.com/webhook",
-                      }
-                    }
-                    key="123456123456123456123456"
-                    onRemoveApp={[Function]}
-                    orgId="org-slug"
-                    showPublishStatus={true}
-                  >
-                    <SentryAppItem>
                       <Base
-                        className="css-h9gjd5-PanelItem-SentryAppItem eac2pqx0"
+                        align="center"
+                        className="e1p8v8nv0 css-b7ices-PanelHeader-getPadding"
+                        justify="space-between"
                       >
                         <div
-                          className="css-h9gjd5-PanelItem-SentryAppItem eac2pqx0"
+                          className="e1p8v8nv0 css-b7ices-PanelHeader-getPadding"
                           is={null}
                         >
-                          <StyledFlex>
-                            <Base
-                              className="css-14n192s-StyledFlex eac2pqx1"
-                            >
-                              <div
+                          Applications
+                        </div>
+                      </Base>
+                    </Flex>
+                  </Component>
+                </PanelHeader>
+                <PanelBody
+                  direction="column"
+                  disablePadding={true}
+                  flex={false}
+                >
+                  <div
+                    className="css-9vq8an-textStyles"
+                  >
+                    <SentryApplicationRow
+                      app={
+                        Object {
+                          "author": "Sentry",
+                          "clientId": "client-id",
+                          "clientSecret": "client-secret",
+                          "events": Array [],
+                          "isAlertable": false,
+                          "name": "Sample App",
+                          "overview": "This is an app.",
+                          "redirectUrl": "https://example/com/setup",
+                          "schema": Object {},
+                          "scopes": Array [
+                            "project:read",
+                          ],
+                          "slug": "sample-app",
+                          "status": "unpublished",
+                          "uuid": "123456123456123456123456",
+                          "webhookUrl": "https://example.com/webhook",
+                        }
+                      }
+                      key="123456123456123456123456"
+                      onRemoveApp={[Function]}
+                      organization={
+                        Object {
+                          "access": Array [
+                            "org:read",
+                            "org:write",
+                            "org:admin",
+                            "org:integrations",
+                            "project:read",
+                            "project:write",
+                            "project:admin",
+                            "team:read",
+                            "team:write",
+                            "team:admin",
+                          ],
+                          "features": Array [],
+                          "id": "3",
+                          "name": "Organization Name",
+                          "onboardingTasks": Array [],
+                          "projects": Array [],
+                          "scrapeJavaScript": true,
+                          "slug": "org-slug",
+                          "status": Object {
+                            "id": "active",
+                            "name": "active",
+                          },
+                          "teams": Array [],
+                        }
+                      }
+                      showPublishStatus={true}
+                    >
+                      <SentryAppItem>
+                        <Base
+                          className="css-h9gjd5-PanelItem-SentryAppItem eac2pqx0"
+                        >
+                          <div
+                            className="css-h9gjd5-PanelItem-SentryAppItem eac2pqx0"
+                            is={null}
+                          >
+                            <StyledFlex>
+                              <Base
                                 className="css-14n192s-StyledFlex eac2pqx1"
-                                is={null}
                               >
-                                <PluginIcon
-                                  pluginId="sample-app"
-                                  size={36}
+                                <div
+                                  className="css-14n192s-StyledFlex eac2pqx1"
+                                  is={null}
                                 >
-                                  <IntegrationIcon
-                                    image={Object {}}
+                                  <PluginIcon
+                                    pluginId="sample-app"
                                     size={36}
                                   >
-                                    <div
-                                      className="css-5iptpn-IntegrationIcon e1bhjds90"
+                                    <IntegrationIcon
+                                      image={Object {}}
                                       size={36}
-                                    />
-                                  </IntegrationIcon>
-                                </PluginIcon>
-                                <SentryAppBox>
-                                  <Base
-                                    className="css-161g25b-SentryAppBox eac2pqx2"
-                                  >
-                                    <div
-                                      className="css-161g25b-SentryAppBox eac2pqx2"
-                                      is={null}
                                     >
-                                      <SentryAppName>
-                                        <div
-                                          className="css-uiwo8x-SentryAppName eac2pqx4"
-                                        >
-                                          <SentryAppLink
-                                            to="/settings/org-slug/developer-settings/sample-app/"
+                                      <div
+                                        className="css-5iptpn-IntegrationIcon e1bhjds90"
+                                        size={36}
+                                      />
+                                    </IntegrationIcon>
+                                  </PluginIcon>
+                                  <SentryAppBox>
+                                    <Base
+                                      className="css-161g25b-SentryAppBox eac2pqx2"
+                                    >
+                                      <div
+                                        className="css-161g25b-SentryAppBox eac2pqx2"
+                                        is={null}
+                                      >
+                                        <SentryAppName>
+                                          <div
+                                            className="css-uiwo8x-SentryAppName eac2pqx4"
                                           >
-                                            <Link
-                                              className="css-gg019v-SentryAppLink eac2pqx6"
-                                              onlyActiveOnIndex={false}
-                                              style={Object {}}
+                                            <SentryAppLink
                                               to="/settings/org-slug/developer-settings/sample-app/"
                                             >
-                                              <a
+                                              <Link
                                                 className="css-gg019v-SentryAppLink eac2pqx6"
-                                                onClick={[Function]}
+                                                onlyActiveOnIndex={false}
                                                 style={Object {}}
+                                                to="/settings/org-slug/developer-settings/sample-app/"
                                               >
-                                                Sample App
-                                              </a>
-                                            </Link>
-                                          </SentryAppLink>
-                                        </div>
-                                      </SentryAppName>
-                                      <SentryAppDetails>
-                                        <Base
-                                          className="css-f0t6d-SentryAppDetails eac2pqx3"
-                                        >
-                                          <div
+                                                <a
+                                                  className="css-gg019v-SentryAppLink eac2pqx6"
+                                                  onClick={[Function]}
+                                                  style={Object {}}
+                                                >
+                                                  Sample App
+                                                </a>
+                                              </Link>
+                                            </SentryAppLink>
+                                          </div>
+                                        </SentryAppName>
+                                        <SentryAppDetails>
+                                          <Base
                                             className="css-f0t6d-SentryAppDetails eac2pqx3"
-                                            is={null}
                                           >
-                                            <PublishStatus
-                                              published={false}
+                                            <div
+                                              className="css-f0t6d-SentryAppDetails eac2pqx3"
+                                              is={null}
                                             >
-                                              <Component
-                                                className="css-1h03aoe-PublishStatus eac2pqx9"
+                                              <PublishStatus
                                                 published={false}
                                               >
-                                                <Flex
-                                                  align="center"
+                                                <Component
+                                                  className="css-1h03aoe-PublishStatus eac2pqx9"
+                                                  published={false}
                                                 >
-                                                  <Base
+                                                  <Flex
                                                     align="center"
-                                                    className="css-5ipae5"
                                                   >
-                                                    <div
+                                                    <Base
+                                                      align="center"
                                                       className="css-5ipae5"
-                                                      is={null}
                                                     >
                                                       <div
-                                                        className="css-1h03aoe-PublishStatus eac2pqx9"
+                                                        className="css-5ipae5"
+                                                        is={null}
                                                       >
-                                                        unpublished
+                                                        <div
+                                                          className="css-1h03aoe-PublishStatus eac2pqx9"
+                                                        >
+                                                          unpublished
+                                                        </div>
                                                       </div>
-                                                    </div>
-                                                  </Base>
-                                                </Flex>
-                                              </Component>
-                                            </PublishStatus>
-                                          </div>
-                                        </Base>
-                                      </SentryAppDetails>
-                                    </div>
-                                  </Base>
-                                </SentryAppBox>
-                                <Box>
-                                  <Base
-                                    className="css-roynbj"
-                                  >
-                                    <div
+                                                    </Base>
+                                                  </Flex>
+                                                </Component>
+                                              </PublishStatus>
+                                            </div>
+                                          </Base>
+                                        </SentryAppDetails>
+                                      </div>
+                                    </Base>
+                                  </SentryAppBox>
+                                  <Box>
+                                    <Base
                                       className="css-roynbj"
-                                      is={null}
                                     >
-                                      <withConfig(AccessContainer)
-                                        access={
-                                          Array [
-                                            "org:admin",
-                                          ]
-                                        }
+                                      <div
+                                        className="css-roynbj"
+                                        is={null}
                                       >
-                                        <AccessContainer
+                                        <withConfig(AccessContainer)
                                           access={
                                             Array [
                                               "org:admin",
                                             ]
                                           }
-                                          config={
-                                            Object {
-                                              "features": Set {},
-                                              "messages": Array [],
-                                              "user": Object {
-                                                "email": "foo@example.com",
-                                                "flags": Object {
-                                                  "newsletter_consent_prompt": false,
-                                                },
-                                                "hasPasswordAuth": true,
-                                                "id": "1",
-                                                "isAuthenticated": true,
-                                                "name": "Foo Bar",
-                                                "options": Object {
-                                                  "timezone": "UTC",
-                                                },
-                                                "permissions": Set {},
-                                                "username": "foo@example.com",
-                                              },
-                                            }
-                                          }
                                         >
-                                          <Access
+                                          <AccessContainer
                                             access={
                                               Array [
                                                 "org:admin",
@@ -1191,226 +1408,230 @@ exports[`Organization Developer Settings with unpublished apps displays all Apps
                                                 },
                                               }
                                             }
-                                            configUser={
-                                              Object {
-                                                "email": "foo@example.com",
-                                                "flags": Object {
-                                                  "newsletter_consent_prompt": false,
-                                                },
-                                                "hasPasswordAuth": true,
-                                                "id": "1",
-                                                "isAuthenticated": true,
-                                                "name": "Foo Bar",
-                                                "options": Object {
-                                                  "timezone": "UTC",
-                                                },
-                                                "permissions": Set {},
-                                                "username": "foo@example.com",
-                                              }
-                                            }
-                                            organization={
-                                              Object {
-                                                "access": Array [
-                                                  "org:read",
-                                                  "org:write",
-                                                  "org:admin",
-                                                  "org:integrations",
-                                                  "project:read",
-                                                  "project:write",
-                                                  "project:admin",
-                                                  "team:read",
-                                                  "team:write",
-                                                  "team:admin",
-                                                ],
-                                                "features": Array [],
-                                                "id": "3",
-                                                "name": "Organization Name",
-                                                "onboardingTasks": Array [],
-                                                "projects": Array [],
-                                                "scrapeJavaScript": true,
-                                                "slug": "org-slug",
-                                                "status": Object {
-                                                  "id": "active",
-                                                  "name": "active",
-                                                },
-                                                "teams": Array [],
-                                              }
-                                            }
-                                            renderNoAccessMessage={false}
-                                            requireAll={true}
                                           >
-                                            <ConfirmDelete
-                                              cancelText="Cancel"
-                                              confirmInput="sample-app"
-                                              confirmText="Confirm"
-                                              message="Deleting sample-app will also delete any and all of its installations.        This is a permanent action. Do you wish to continue?"
-                                              onConfirm={[Function]}
-                                              priority="danger"
-                                            >
-                                              <Confirm
-                                                bypass={false}
-                                                cancelText="Cancel"
-                                                confirmText="Confirm"
-                                                disableConfirmButton={true}
-                                                message={
-                                                  <React.Fragment>
-                                                    <Alert
-                                                      iconSize="24px"
-                                                      type="error"
-                                                    >
-                                                      Deleting sample-app will also delete any and all of its installations.        This is a permanent action. Do you wish to continue?
-                                                    </Alert>
-                                                    <Field
-                                                      alignRight={false}
-                                                      disabled={false}
-                                                      flexibleControlStateSize={true}
-                                                      inline={false}
-                                                      label={
-                                                        <div>
-                                                          Please enter 
-                                                          <code>
-                                                            sample-app
-                                                          </code>
-                                                           to confirm the deletion
-                                                        </div>
-                                                      }
-                                                      p={0}
-                                                      required={false}
-                                                      visible={true}
-                                                    >
-                                                      <Input
-                                                        onChange={[Function]}
-                                                        placeholder="sample-app"
-                                                        type="text"
-                                                        value=""
-                                                      />
-                                                    </Field>
-                                                  </React.Fragment>
+                                            <Access
+                                              access={
+                                                Array [
+                                                  "org:admin",
+                                                ]
+                                              }
+                                              config={
+                                                Object {
+                                                  "features": Set {},
+                                                  "messages": Array [],
+                                                  "user": Object {
+                                                    "email": "foo@example.com",
+                                                    "flags": Object {
+                                                      "newsletter_consent_prompt": false,
+                                                    },
+                                                    "hasPasswordAuth": true,
+                                                    "id": "1",
+                                                    "isAuthenticated": true,
+                                                    "name": "Foo Bar",
+                                                    "options": Object {
+                                                      "timezone": "UTC",
+                                                    },
+                                                    "permissions": Set {},
+                                                    "username": "foo@example.com",
+                                                  },
                                                 }
+                                              }
+                                              configUser={
+                                                Object {
+                                                  "email": "foo@example.com",
+                                                  "flags": Object {
+                                                    "newsletter_consent_prompt": false,
+                                                  },
+                                                  "hasPasswordAuth": true,
+                                                  "id": "1",
+                                                  "isAuthenticated": true,
+                                                  "name": "Foo Bar",
+                                                  "options": Object {
+                                                    "timezone": "UTC",
+                                                  },
+                                                  "permissions": Set {},
+                                                  "username": "foo@example.com",
+                                                }
+                                              }
+                                              organization={
+                                                Object {
+                                                  "access": Array [
+                                                    "org:read",
+                                                    "org:write",
+                                                    "org:admin",
+                                                    "org:integrations",
+                                                    "project:read",
+                                                    "project:write",
+                                                    "project:admin",
+                                                    "team:read",
+                                                    "team:write",
+                                                    "team:admin",
+                                                  ],
+                                                  "features": Array [],
+                                                  "id": "3",
+                                                  "name": "Organization Name",
+                                                  "onboardingTasks": Array [],
+                                                  "projects": Array [],
+                                                  "scrapeJavaScript": true,
+                                                  "slug": "org-slug",
+                                                  "status": Object {
+                                                    "id": "active",
+                                                    "name": "active",
+                                                  },
+                                                  "teams": Array [],
+                                                }
+                                              }
+                                              renderNoAccessMessage={false}
+                                              requireAll={true}
+                                            >
+                                              <ConfirmDelete
+                                                cancelText="Cancel"
+                                                confirmInput="sample-app"
+                                                confirmText="Confirm"
+                                                message="Deleting sample-app will also delete any and all of its installations.        This is a permanent action. Do you wish to continue?"
                                                 onConfirm={[Function]}
                                                 priority="danger"
-                                                stopPropagation={false}
                                               >
-                                                <Button
-                                                  disabled={false}
-                                                  icon="icon-trash"
-                                                  onClick={[Function]}
-                                                  size="small"
+                                                <Confirm
+                                                  bypass={false}
+                                                  cancelText="Cancel"
+                                                  confirmText="Confirm"
+                                                  disableConfirmButton={true}
+                                                  message={
+                                                    <React.Fragment>
+                                                      <Alert
+                                                        iconSize="24px"
+                                                        type="error"
+                                                      >
+                                                        Deleting sample-app will also delete any and all of its installations.        This is a permanent action. Do you wish to continue?
+                                                      </Alert>
+                                                      <Field
+                                                        alignRight={false}
+                                                        disabled={false}
+                                                        flexibleControlStateSize={true}
+                                                        inline={false}
+                                                        label={
+                                                          <div>
+                                                            Please enter 
+                                                            <code>
+                                                              sample-app
+                                                            </code>
+                                                             to confirm the deletion
+                                                          </div>
+                                                        }
+                                                        p={0}
+                                                        required={false}
+                                                        visible={true}
+                                                      >
+                                                        <Input
+                                                          onChange={[Function]}
+                                                          placeholder="sample-app"
+                                                          type="text"
+                                                          value=""
+                                                        />
+                                                      </Field>
+                                                    </React.Fragment>
+                                                  }
+                                                  onConfirm={[Function]}
+                                                  priority="danger"
+                                                  stopPropagation={false}
                                                 >
-                                                  <StyledButton
-                                                    aria-disabled={false}
+                                                  <Button
                                                     disabled={false}
+                                                    icon="icon-trash"
                                                     onClick={[Function]}
-                                                    role="button"
                                                     size="small"
                                                   >
-                                                    <ForwardRef
+                                                    <StyledButton
                                                       aria-disabled={false}
-                                                      className="css-dkprmi-StyledButton-getColors eqrebog0"
                                                       disabled={false}
                                                       onClick={[Function]}
                                                       role="button"
                                                       size="small"
                                                     >
-                                                      <button
+                                                      <ForwardRef
                                                         aria-disabled={false}
                                                         className="css-dkprmi-StyledButton-getColors eqrebog0"
+                                                        disabled={false}
                                                         onClick={[Function]}
                                                         role="button"
                                                         size="small"
                                                       >
-                                                        <ButtonLabel
+                                                        <button
+                                                          aria-disabled={false}
+                                                          className="css-dkprmi-StyledButton-getColors eqrebog0"
+                                                          onClick={[Function]}
+                                                          role="button"
                                                           size="small"
                                                         >
-                                                          <Component
-                                                            className="css-7ui8bl-ButtonLabel eqrebog1"
+                                                          <ButtonLabel
                                                             size="small"
                                                           >
-                                                            <span
+                                                            <Component
                                                               className="css-7ui8bl-ButtonLabel eqrebog1"
+                                                              size="small"
                                                             >
-                                                              <Icon
-                                                                hasChildren={false}
-                                                                size="small"
+                                                              <span
+                                                                className="css-7ui8bl-ButtonLabel eqrebog1"
                                                               >
-                                                                <Component
-                                                                  className="css-ljhpxy-Icon eqrebog2"
+                                                                <Icon
                                                                   hasChildren={false}
                                                                   size="small"
                                                                 >
-                                                                  <span
+                                                                  <Component
                                                                     className="css-ljhpxy-Icon eqrebog2"
+                                                                    hasChildren={false}
                                                                     size="small"
                                                                   >
-                                                                    <StyledInlineSvg
-                                                                      size="12px"
-                                                                      src="icon-trash"
+                                                                    <span
+                                                                      className="css-ljhpxy-Icon eqrebog2"
+                                                                      size="small"
                                                                     >
-                                                                      <InlineSvg
-                                                                        className="css-1ov3rcq-StyledInlineSvg eqrebog3"
+                                                                      <StyledInlineSvg
                                                                         size="12px"
                                                                         src="icon-trash"
                                                                       >
-                                                                        <StyledSvg
+                                                                        <InlineSvg
                                                                           className="css-1ov3rcq-StyledInlineSvg eqrebog3"
-                                                                          height="12px"
-                                                                          viewBox={Object {}}
-                                                                          width="12px"
+                                                                          size="12px"
+                                                                          src="icon-trash"
                                                                         >
-                                                                          <svg
-                                                                            className="eqrebog3 css-1jjmnki-StyledSvg-StyledInlineSvg e2idor0"
+                                                                          <StyledSvg
+                                                                            className="css-1ov3rcq-StyledInlineSvg eqrebog3"
                                                                             height="12px"
                                                                             viewBox={Object {}}
                                                                             width="12px"
                                                                           >
-                                                                            <use
-                                                                              href="#test"
-                                                                              xlinkHref="#test"
-                                                                            />
-                                                                          </svg>
-                                                                        </StyledSvg>
-                                                                      </InlineSvg>
-                                                                    </StyledInlineSvg>
-                                                                  </span>
-                                                                </Component>
-                                                              </Icon>
-                                                            </span>
-                                                          </Component>
-                                                        </ButtonLabel>
-                                                      </button>
-                                                    </ForwardRef>
-                                                  </StyledButton>
-                                                </Button>
-                                                <Modal
-                                                  animation={false}
-                                                  autoFocus={true}
-                                                  backdrop={true}
-                                                  bsClass="modal"
-                                                  dialogComponentClass={[Function]}
-                                                  enforceFocus={true}
-                                                  keyboard={true}
-                                                  manager={
-                                                    ModalManager {
-                                                      "add": [Function],
-                                                      "containers": Array [],
-                                                      "data": Array [],
-                                                      "handleContainerOverflow": true,
-                                                      "hideSiblingNodes": true,
-                                                      "isTopModal": [Function],
-                                                      "modals": Array [],
-                                                      "remove": [Function],
-                                                    }
-                                                  }
-                                                  onHide={[Function]}
-                                                  renderBackdrop={[Function]}
-                                                  restoreFocus={true}
-                                                  show={false}
-                                                >
+                                                                            <svg
+                                                                              className="eqrebog3 css-1jjmnki-StyledSvg-StyledInlineSvg e2idor0"
+                                                                              height="12px"
+                                                                              viewBox={Object {}}
+                                                                              width="12px"
+                                                                            >
+                                                                              <use
+                                                                                href="#test"
+                                                                                xlinkHref="#test"
+                                                                              />
+                                                                            </svg>
+                                                                          </StyledSvg>
+                                                                        </InlineSvg>
+                                                                      </StyledInlineSvg>
+                                                                    </span>
+                                                                  </Component>
+                                                                </Icon>
+                                                              </span>
+                                                            </Component>
+                                                          </ButtonLabel>
+                                                        </button>
+                                                      </ForwardRef>
+                                                    </StyledButton>
+                                                  </Button>
                                                   <Modal
+                                                    animation={false}
                                                     autoFocus={true}
                                                     backdrop={true}
-                                                    backdropClassName="modal-backdrop"
-                                                    containerClassName="modal-open"
+                                                    bsClass="modal"
+                                                    dialogComponentClass={[Function]}
                                                     enforceFocus={true}
                                                     keyboard={true}
                                                     manager={
@@ -1425,130 +1646,189 @@ exports[`Organization Developer Settings with unpublished apps displays all Apps
                                                         "remove": [Function],
                                                       }
                                                     }
-                                                    onEntering={[Function]}
-                                                    onExited={[Function]}
                                                     onHide={[Function]}
                                                     renderBackdrop={[Function]}
                                                     restoreFocus={true}
                                                     show={false}
-                                                  />
-                                                </Modal>
-                                              </Confirm>
-                                            </ConfirmDelete>
-                                          </Access>
-                                        </AccessContainer>
-                                      </withConfig(AccessContainer)>
-                                    </div>
-                                  </Base>
-                                </Box>
-                              </div>
-                            </Base>
-                          </StyledFlex>
-                        </div>
-                      </Base>
-                    </SentryAppItem>
-                  </SentryApplicationRow>
-                </div>
-              </PanelBody>
-            </div>
-          </Component>
-        </Panel>
-      </div>
-    </DocumentTitle>
-  </SideEffect(DocumentTitle)>
-</OrganizationDeveloperSettings>
+                                                  >
+                                                    <Modal
+                                                      autoFocus={true}
+                                                      backdrop={true}
+                                                      backdropClassName="modal-backdrop"
+                                                      containerClassName="modal-open"
+                                                      enforceFocus={true}
+                                                      keyboard={true}
+                                                      manager={
+                                                        ModalManager {
+                                                          "add": [Function],
+                                                          "containers": Array [],
+                                                          "data": Array [],
+                                                          "handleContainerOverflow": true,
+                                                          "hideSiblingNodes": true,
+                                                          "isTopModal": [Function],
+                                                          "modals": Array [],
+                                                          "remove": [Function],
+                                                        }
+                                                      }
+                                                      onEntering={[Function]}
+                                                      onExited={[Function]}
+                                                      onHide={[Function]}
+                                                      renderBackdrop={[Function]}
+                                                      restoreFocus={true}
+                                                      show={false}
+                                                    />
+                                                  </Modal>
+                                                </Confirm>
+                                              </ConfirmDelete>
+                                            </Access>
+                                          </AccessContainer>
+                                        </withConfig(AccessContainer)>
+                                      </div>
+                                    </Base>
+                                  </Box>
+                                </div>
+                              </Base>
+                            </StyledFlex>
+                          </div>
+                        </Base>
+                      </SentryAppItem>
+                    </SentryApplicationRow>
+                  </div>
+                </PanelBody>
+              </div>
+            </Component>
+          </Panel>
+        </div>
+      </DocumentTitle>
+    </SideEffect(DocumentTitle)>
+  </OrganizationDeveloperSettings>
+</WithOrganizationMockWrapper>
 `;
 
 exports[`Organization Developer Settings without Owner permissions trash button is disabled 1`] = `
-<OrganizationDeveloperSettings
+<WithOrganizationMockWrapper
+  organization={
+    Object {
+      "access": Array [
+        "org:read",
+      ],
+      "features": Array [],
+      "id": "3",
+      "name": "Organization Name",
+      "onboardingTasks": Array [],
+      "projects": Array [],
+      "scrapeJavaScript": true,
+      "slug": "org-slug",
+      "status": Object {
+        "id": "active",
+        "name": "active",
+      },
+      "teams": Array [],
+    }
+  }
   params={
     Object {
       "orgId": "org-slug",
     }
   }
 >
-  <SideEffect(DocumentTitle)
-    title="Sentry"
+  <OrganizationDeveloperSettings
+    organization={
+      Object {
+        "access": Array [
+          "org:read",
+        ],
+        "features": Array [],
+        "id": "3",
+        "name": "Organization Name",
+        "onboardingTasks": Array [],
+        "projects": Array [],
+        "scrapeJavaScript": true,
+        "slug": "org-slug",
+        "status": Object {
+          "id": "active",
+          "name": "active",
+        },
+        "teams": Array [],
+      }
+    }
+    params={
+      Object {
+        "orgId": "org-slug",
+      }
+    }
   >
-    <DocumentTitle
+    <SideEffect(DocumentTitle)
       title="Sentry"
     >
-      <div>
-        <SettingsPageHeading
-          action={
-            <Button
-              disabled={false}
-              icon="icon-circle-add"
-              priority="primary"
-              size="small"
-              to="/settings/org-slug/developer-settings/new/"
-            >
-              Create New Application
-            </Button>
-          }
-          noTitleStyles={false}
-          title="Developer Settings"
-        >
-          <Wrapper>
-            <div
-              className="css-1r5ylk7-Wrapper e1kblvez2"
-            >
-              <Flex
-                align="center"
+      <DocumentTitle
+        title="Sentry"
+      >
+        <div>
+          <SettingsPageHeading
+            action={
+              <Button
+                disabled={false}
+                icon="icon-circle-add"
+                priority="primary"
+                size="small"
+                to="/settings/org-slug/developer-settings/new/"
               >
-                <Base
+                Create New Application
+              </Button>
+            }
+            noTitleStyles={false}
+            title="Developer Settings"
+          >
+            <Wrapper>
+              <div
+                className="css-1r5ylk7-Wrapper e1kblvez2"
+              >
+                <Flex
                   align="center"
-                  className="css-5ipae5"
                 >
-                  <div
+                  <Base
+                    align="center"
                     className="css-5ipae5"
-                    is={null}
                   >
-                    <Title
-                      styled={false}
+                    <div
+                      className="css-5ipae5"
+                      is={null}
                     >
-                      <Base
-                        className="css-1ky52ze-Title e1kblvez0"
+                      <Title
+                        styled={false}
                       >
-                        <div
+                        <Base
                           className="css-1ky52ze-Title e1kblvez0"
-                          is={null}
                         >
-                          <HeaderTitle>
-                            <h4
-                              className="css-1w8ttcn-HeaderTitle e6lvex72"
-                            >
-                              Developer Settings
-                            </h4>
-                          </HeaderTitle>
-                        </div>
-                      </Base>
-                    </Title>
-                    <Action>
-                      <div
-                        className="css-18luhfc-Action e1kblvez1"
-                      >
-                        <Button
-                          disabled={false}
-                          icon="icon-circle-add"
-                          priority="primary"
-                          size="small"
-                          to="/settings/org-slug/developer-settings/new/"
+                          <div
+                            className="css-1ky52ze-Title e1kblvez0"
+                            is={null}
+                          >
+                            <HeaderTitle>
+                              <h4
+                                className="css-1w8ttcn-HeaderTitle e6lvex72"
+                              >
+                                Developer Settings
+                              </h4>
+                            </HeaderTitle>
+                          </div>
+                        </Base>
+                      </Title>
+                      <Action>
+                        <div
+                          className="css-18luhfc-Action e1kblvez1"
                         >
-                          <StyledButton
-                            aria-disabled={false}
-                            aria-label="Create New Application"
+                          <Button
                             disabled={false}
-                            onClick={[Function]}
+                            icon="icon-circle-add"
                             priority="primary"
-                            role="button"
                             size="small"
                             to="/settings/org-slug/developer-settings/new/"
                           >
-                            <ForwardRef
+                            <StyledButton
                               aria-disabled={false}
                               aria-label="Create New Application"
-                              className="css-zvpqlo-StyledButton-getColors eqrebog0"
                               disabled={false}
                               onClick={[Function]}
                               priority="primary"
@@ -1556,313 +1836,314 @@ exports[`Organization Developer Settings without Owner permissions trash button 
                               size="small"
                               to="/settings/org-slug/developer-settings/new/"
                             >
-                              <Link
+                              <ForwardRef
                                 aria-disabled={false}
                                 aria-label="Create New Application"
                                 className="css-zvpqlo-StyledButton-getColors eqrebog0"
+                                disabled={false}
                                 onClick={[Function]}
-                                onlyActiveOnIndex={false}
+                                priority="primary"
                                 role="button"
                                 size="small"
-                                style={Object {}}
                                 to="/settings/org-slug/developer-settings/new/"
                               >
-                                <a
+                                <Link
                                   aria-disabled={false}
                                   aria-label="Create New Application"
                                   className="css-zvpqlo-StyledButton-getColors eqrebog0"
                                   onClick={[Function]}
+                                  onlyActiveOnIndex={false}
                                   role="button"
                                   size="small"
                                   style={Object {}}
+                                  to="/settings/org-slug/developer-settings/new/"
                                 >
-                                  <ButtonLabel
-                                    priority="primary"
+                                  <a
+                                    aria-disabled={false}
+                                    aria-label="Create New Application"
+                                    className="css-zvpqlo-StyledButton-getColors eqrebog0"
+                                    onClick={[Function]}
+                                    role="button"
                                     size="small"
+                                    style={Object {}}
                                   >
-                                    <Component
-                                      className="css-7ui8bl-ButtonLabel eqrebog1"
+                                    <ButtonLabel
                                       priority="primary"
                                       size="small"
                                     >
-                                      <span
+                                      <Component
                                         className="css-7ui8bl-ButtonLabel eqrebog1"
+                                        priority="primary"
+                                        size="small"
                                       >
-                                        <Icon
-                                          hasChildren={true}
-                                          size="small"
+                                        <span
+                                          className="css-7ui8bl-ButtonLabel eqrebog1"
                                         >
-                                          <Component
-                                            className="css-1vdnsie-Icon eqrebog2"
+                                          <Icon
                                             hasChildren={true}
                                             size="small"
                                           >
-                                            <span
+                                            <Component
                                               className="css-1vdnsie-Icon eqrebog2"
+                                              hasChildren={true}
                                               size="small"
                                             >
-                                              <StyledInlineSvg
-                                                size="12px"
-                                                src="icon-circle-add"
+                                              <span
+                                                className="css-1vdnsie-Icon eqrebog2"
+                                                size="small"
                                               >
-                                                <InlineSvg
-                                                  className="css-1ov3rcq-StyledInlineSvg eqrebog3"
+                                                <StyledInlineSvg
                                                   size="12px"
                                                   src="icon-circle-add"
                                                 >
-                                                  <StyledSvg
+                                                  <InlineSvg
                                                     className="css-1ov3rcq-StyledInlineSvg eqrebog3"
-                                                    height="12px"
-                                                    viewBox={Object {}}
-                                                    width="12px"
+                                                    size="12px"
+                                                    src="icon-circle-add"
                                                   >
-                                                    <svg
-                                                      className="eqrebog3 css-1jjmnki-StyledSvg-StyledInlineSvg e2idor0"
+                                                    <StyledSvg
+                                                      className="css-1ov3rcq-StyledInlineSvg eqrebog3"
                                                       height="12px"
                                                       viewBox={Object {}}
                                                       width="12px"
                                                     >
-                                                      <use
-                                                        href="#test"
-                                                        xlinkHref="#test"
-                                                      />
-                                                    </svg>
-                                                  </StyledSvg>
-                                                </InlineSvg>
-                                              </StyledInlineSvg>
-                                            </span>
-                                          </Component>
-                                        </Icon>
-                                        Create New Application
-                                      </span>
-                                    </Component>
-                                  </ButtonLabel>
-                                </a>
-                              </Link>
-                            </ForwardRef>
-                          </StyledButton>
-                        </Button>
-                      </div>
-                    </Action>
-                  </div>
-                </Base>
-              </Flex>
-            </div>
-          </Wrapper>
-        </SettingsPageHeading>
-        <Panel>
-          <Component
-            className="css-yahxlu-Panel e1laxa7d0"
-          >
-            <div
+                                                      <svg
+                                                        className="eqrebog3 css-1jjmnki-StyledSvg-StyledInlineSvg e2idor0"
+                                                        height="12px"
+                                                        viewBox={Object {}}
+                                                        width="12px"
+                                                      >
+                                                        <use
+                                                          href="#test"
+                                                          xlinkHref="#test"
+                                                        />
+                                                      </svg>
+                                                    </StyledSvg>
+                                                  </InlineSvg>
+                                                </StyledInlineSvg>
+                                              </span>
+                                            </Component>
+                                          </Icon>
+                                          Create New Application
+                                        </span>
+                                      </Component>
+                                    </ButtonLabel>
+                                  </a>
+                                </Link>
+                              </ForwardRef>
+                            </StyledButton>
+                          </Button>
+                        </div>
+                      </Action>
+                    </div>
+                  </Base>
+                </Flex>
+              </div>
+            </Wrapper>
+          </SettingsPageHeading>
+          <Panel>
+            <Component
               className="css-yahxlu-Panel e1laxa7d0"
             >
-              <PanelHeader>
-                <Component
-                  className="css-xhx6pj-PanelHeader-getPadding e1p8v8nv0"
-                >
-                  <Flex
-                    align="center"
+              <div
+                className="css-yahxlu-Panel e1laxa7d0"
+              >
+                <PanelHeader>
+                  <Component
                     className="css-xhx6pj-PanelHeader-getPadding e1p8v8nv0"
-                    justify="space-between"
                   >
-                    <Base
+                    <Flex
                       align="center"
-                      className="e1p8v8nv0 css-b7ices-PanelHeader-getPadding"
+                      className="css-xhx6pj-PanelHeader-getPadding e1p8v8nv0"
                       justify="space-between"
                     >
-                      <div
-                        className="e1p8v8nv0 css-b7ices-PanelHeader-getPadding"
-                        is={null}
-                      >
-                        Applications
-                      </div>
-                    </Base>
-                  </Flex>
-                </Component>
-              </PanelHeader>
-              <PanelBody
-                direction="column"
-                disablePadding={true}
-                flex={false}
-              >
-                <div
-                  className="css-9vq8an-textStyles"
-                >
-                  <SentryApplicationRow
-                    app={
-                      Object {
-                        "author": "Sentry",
-                        "clientId": "client-id",
-                        "clientSecret": "client-secret",
-                        "events": Array [],
-                        "isAlertable": false,
-                        "name": "Sample App",
-                        "overview": "This is an app.",
-                        "redirectUrl": "https://example/com/setup",
-                        "schema": Object {},
-                        "scopes": Array [
-                          "project:read",
-                        ],
-                        "slug": "sample-app",
-                        "status": "unpublished",
-                        "uuid": "123456123456123456123456",
-                        "webhookUrl": "https://example.com/webhook",
-                      }
-                    }
-                    key="123456123456123456123456"
-                    onRemoveApp={[Function]}
-                    orgId="org-slug"
-                    showPublishStatus={true}
-                  >
-                    <SentryAppItem>
                       <Base
-                        className="css-h9gjd5-PanelItem-SentryAppItem eac2pqx0"
+                        align="center"
+                        className="e1p8v8nv0 css-b7ices-PanelHeader-getPadding"
+                        justify="space-between"
                       >
                         <div
-                          className="css-h9gjd5-PanelItem-SentryAppItem eac2pqx0"
+                          className="e1p8v8nv0 css-b7ices-PanelHeader-getPadding"
                           is={null}
                         >
-                          <StyledFlex>
-                            <Base
-                              className="css-14n192s-StyledFlex eac2pqx1"
-                            >
-                              <div
+                          Applications
+                        </div>
+                      </Base>
+                    </Flex>
+                  </Component>
+                </PanelHeader>
+                <PanelBody
+                  direction="column"
+                  disablePadding={true}
+                  flex={false}
+                >
+                  <div
+                    className="css-9vq8an-textStyles"
+                  >
+                    <SentryApplicationRow
+                      app={
+                        Object {
+                          "author": "Sentry",
+                          "clientId": "client-id",
+                          "clientSecret": "client-secret",
+                          "events": Array [],
+                          "isAlertable": false,
+                          "name": "Sample App",
+                          "overview": "This is an app.",
+                          "redirectUrl": "https://example/com/setup",
+                          "schema": Object {},
+                          "scopes": Array [
+                            "project:read",
+                          ],
+                          "slug": "sample-app",
+                          "status": "unpublished",
+                          "uuid": "123456123456123456123456",
+                          "webhookUrl": "https://example.com/webhook",
+                        }
+                      }
+                      key="123456123456123456123456"
+                      onRemoveApp={[Function]}
+                      organization={
+                        Object {
+                          "access": Array [
+                            "org:read",
+                          ],
+                          "features": Array [],
+                          "id": "3",
+                          "name": "Organization Name",
+                          "onboardingTasks": Array [],
+                          "projects": Array [],
+                          "scrapeJavaScript": true,
+                          "slug": "org-slug",
+                          "status": Object {
+                            "id": "active",
+                            "name": "active",
+                          },
+                          "teams": Array [],
+                        }
+                      }
+                      showPublishStatus={true}
+                    >
+                      <SentryAppItem>
+                        <Base
+                          className="css-h9gjd5-PanelItem-SentryAppItem eac2pqx0"
+                        >
+                          <div
+                            className="css-h9gjd5-PanelItem-SentryAppItem eac2pqx0"
+                            is={null}
+                          >
+                            <StyledFlex>
+                              <Base
                                 className="css-14n192s-StyledFlex eac2pqx1"
-                                is={null}
                               >
-                                <PluginIcon
-                                  pluginId="sample-app"
-                                  size={36}
+                                <div
+                                  className="css-14n192s-StyledFlex eac2pqx1"
+                                  is={null}
                                 >
-                                  <IntegrationIcon
-                                    image={Object {}}
+                                  <PluginIcon
+                                    pluginId="sample-app"
                                     size={36}
                                   >
-                                    <div
-                                      className="css-5iptpn-IntegrationIcon e1bhjds90"
+                                    <IntegrationIcon
+                                      image={Object {}}
                                       size={36}
-                                    />
-                                  </IntegrationIcon>
-                                </PluginIcon>
-                                <SentryAppBox>
-                                  <Base
-                                    className="css-161g25b-SentryAppBox eac2pqx2"
-                                  >
-                                    <div
-                                      className="css-161g25b-SentryAppBox eac2pqx2"
-                                      is={null}
                                     >
-                                      <SentryAppName>
-                                        <div
-                                          className="css-uiwo8x-SentryAppName eac2pqx4"
-                                        >
-                                          <SentryAppLink
-                                            to="/settings/org-slug/developer-settings/sample-app/"
+                                      <div
+                                        className="css-5iptpn-IntegrationIcon e1bhjds90"
+                                        size={36}
+                                      />
+                                    </IntegrationIcon>
+                                  </PluginIcon>
+                                  <SentryAppBox>
+                                    <Base
+                                      className="css-161g25b-SentryAppBox eac2pqx2"
+                                    >
+                                      <div
+                                        className="css-161g25b-SentryAppBox eac2pqx2"
+                                        is={null}
+                                      >
+                                        <SentryAppName>
+                                          <div
+                                            className="css-uiwo8x-SentryAppName eac2pqx4"
                                           >
-                                            <Link
-                                              className="css-gg019v-SentryAppLink eac2pqx6"
-                                              onlyActiveOnIndex={false}
-                                              style={Object {}}
+                                            <SentryAppLink
                                               to="/settings/org-slug/developer-settings/sample-app/"
                                             >
-                                              <a
+                                              <Link
                                                 className="css-gg019v-SentryAppLink eac2pqx6"
-                                                onClick={[Function]}
+                                                onlyActiveOnIndex={false}
                                                 style={Object {}}
+                                                to="/settings/org-slug/developer-settings/sample-app/"
                                               >
-                                                Sample App
-                                              </a>
-                                            </Link>
-                                          </SentryAppLink>
-                                        </div>
-                                      </SentryAppName>
-                                      <SentryAppDetails>
-                                        <Base
-                                          className="css-f0t6d-SentryAppDetails eac2pqx3"
-                                        >
-                                          <div
+                                                <a
+                                                  className="css-gg019v-SentryAppLink eac2pqx6"
+                                                  onClick={[Function]}
+                                                  style={Object {}}
+                                                >
+                                                  Sample App
+                                                </a>
+                                              </Link>
+                                            </SentryAppLink>
+                                          </div>
+                                        </SentryAppName>
+                                        <SentryAppDetails>
+                                          <Base
                                             className="css-f0t6d-SentryAppDetails eac2pqx3"
-                                            is={null}
                                           >
-                                            <PublishStatus
-                                              published={false}
+                                            <div
+                                              className="css-f0t6d-SentryAppDetails eac2pqx3"
+                                              is={null}
                                             >
-                                              <Component
-                                                className="css-1h03aoe-PublishStatus eac2pqx9"
+                                              <PublishStatus
                                                 published={false}
                                               >
-                                                <Flex
-                                                  align="center"
+                                                <Component
+                                                  className="css-1h03aoe-PublishStatus eac2pqx9"
+                                                  published={false}
                                                 >
-                                                  <Base
+                                                  <Flex
                                                     align="center"
-                                                    className="css-5ipae5"
                                                   >
-                                                    <div
+                                                    <Base
+                                                      align="center"
                                                       className="css-5ipae5"
-                                                      is={null}
                                                     >
                                                       <div
-                                                        className="css-1h03aoe-PublishStatus eac2pqx9"
+                                                        className="css-5ipae5"
+                                                        is={null}
                                                       >
-                                                        unpublished
+                                                        <div
+                                                          className="css-1h03aoe-PublishStatus eac2pqx9"
+                                                        >
+                                                          unpublished
+                                                        </div>
                                                       </div>
-                                                    </div>
-                                                  </Base>
-                                                </Flex>
-                                              </Component>
-                                            </PublishStatus>
-                                          </div>
-                                        </Base>
-                                      </SentryAppDetails>
-                                    </div>
-                                  </Base>
-                                </SentryAppBox>
-                                <Box>
-                                  <Base
-                                    className="css-roynbj"
-                                  >
-                                    <div
+                                                    </Base>
+                                                  </Flex>
+                                                </Component>
+                                              </PublishStatus>
+                                            </div>
+                                          </Base>
+                                        </SentryAppDetails>
+                                      </div>
+                                    </Base>
+                                  </SentryAppBox>
+                                  <Box>
+                                    <Base
                                       className="css-roynbj"
-                                      is={null}
                                     >
-                                      <withConfig(AccessContainer)
-                                        access={
-                                          Array [
-                                            "org:admin",
-                                          ]
-                                        }
+                                      <div
+                                        className="css-roynbj"
+                                        is={null}
                                       >
-                                        <AccessContainer
+                                        <withConfig(AccessContainer)
                                           access={
                                             Array [
                                               "org:admin",
                                             ]
                                           }
-                                          config={
-                                            Object {
-                                              "features": Set {},
-                                              "messages": Array [],
-                                              "user": Object {
-                                                "email": "foo@example.com",
-                                                "flags": Object {
-                                                  "newsletter_consent_prompt": false,
-                                                },
-                                                "hasPasswordAuth": true,
-                                                "id": "1",
-                                                "isAuthenticated": true,
-                                                "name": "Foo Bar",
-                                                "options": Object {
-                                                  "timezone": "UTC",
-                                                },
-                                                "permissions": Set {},
-                                                "username": "foo@example.com",
-                                              },
-                                            }
-                                          }
                                         >
-                                          <Access
+                                          <AccessContainer
                                             access={
                                               Array [
                                                 "org:admin",
@@ -1889,72 +2170,89 @@ exports[`Organization Developer Settings without Owner permissions trash button 
                                                 },
                                               }
                                             }
-                                            configUser={
-                                              Object {
-                                                "email": "foo@example.com",
-                                                "flags": Object {
-                                                  "newsletter_consent_prompt": false,
-                                                },
-                                                "hasPasswordAuth": true,
-                                                "id": "1",
-                                                "isAuthenticated": true,
-                                                "name": "Foo Bar",
-                                                "options": Object {
-                                                  "timezone": "UTC",
-                                                },
-                                                "permissions": Set {},
-                                                "username": "foo@example.com",
-                                              }
-                                            }
-                                            organization={
-                                              Object {
-                                                "access": Array [
-                                                  "org:read",
-                                                ],
-                                                "features": Array [],
-                                                "id": "3",
-                                                "name": "Organization Name",
-                                                "onboardingTasks": Array [],
-                                                "projects": Array [],
-                                                "scrapeJavaScript": true,
-                                                "slug": "org-slug",
-                                                "status": Object {
-                                                  "id": "active",
-                                                  "name": "active",
-                                                },
-                                                "teams": Array [],
-                                              }
-                                            }
-                                            renderNoAccessMessage={false}
-                                            requireAll={true}
                                           >
-                                            <Tooltip
-                                              title="Owner permissions are required for this action."
+                                            <Access
+                                              access={
+                                                Array [
+                                                  "org:admin",
+                                                ]
+                                              }
+                                              config={
+                                                Object {
+                                                  "features": Set {},
+                                                  "messages": Array [],
+                                                  "user": Object {
+                                                    "email": "foo@example.com",
+                                                    "flags": Object {
+                                                      "newsletter_consent_prompt": false,
+                                                    },
+                                                    "hasPasswordAuth": true,
+                                                    "id": "1",
+                                                    "isAuthenticated": true,
+                                                    "name": "Foo Bar",
+                                                    "options": Object {
+                                                      "timezone": "UTC",
+                                                    },
+                                                    "permissions": Set {},
+                                                    "username": "foo@example.com",
+                                                  },
+                                                }
+                                              }
+                                              configUser={
+                                                Object {
+                                                  "email": "foo@example.com",
+                                                  "flags": Object {
+                                                    "newsletter_consent_prompt": false,
+                                                  },
+                                                  "hasPasswordAuth": true,
+                                                  "id": "1",
+                                                  "isAuthenticated": true,
+                                                  "name": "Foo Bar",
+                                                  "options": Object {
+                                                    "timezone": "UTC",
+                                                  },
+                                                  "permissions": Set {},
+                                                  "username": "foo@example.com",
+                                                }
+                                              }
+                                              organization={
+                                                Object {
+                                                  "access": Array [
+                                                    "org:read",
+                                                  ],
+                                                  "features": Array [],
+                                                  "id": "3",
+                                                  "name": "Organization Name",
+                                                  "onboardingTasks": Array [],
+                                                  "projects": Array [],
+                                                  "scrapeJavaScript": true,
+                                                  "slug": "org-slug",
+                                                  "status": Object {
+                                                    "id": "active",
+                                                    "name": "active",
+                                                  },
+                                                  "teams": Array [],
+                                                }
+                                              }
+                                              renderNoAccessMessage={false}
+                                              requireAll={true}
                                             >
-                                              <Button
-                                                className="tip"
-                                                disabled={true}
-                                                icon="icon-trash"
-                                                size="small"
+                                              <Tooltip
                                                 title="Owner permissions are required for this action."
                                               >
-                                                <Tooltip
+                                                <Button
+                                                  className="tip"
+                                                  disabled={true}
+                                                  icon="icon-trash"
+                                                  size="small"
                                                   title="Owner permissions are required for this action."
                                                 >
-                                                  <StyledButton
-                                                    aria-disabled={true}
-                                                    className="tip tip"
-                                                    disabled={true}
-                                                    href={null}
-                                                    onClick={[Function]}
-                                                    role="button"
-                                                    size="small"
+                                                  <Tooltip
                                                     title="Owner permissions are required for this action."
-                                                    to={null}
                                                   >
-                                                    <ForwardRef
+                                                    <StyledButton
                                                       aria-disabled={true}
-                                                      className="tip tip css-1ujzp8g-StyledButton-getColors eqrebog0"
+                                                      className="tip tip"
                                                       disabled={true}
                                                       href={null}
                                                       onClick={[Function]}
@@ -1963,9 +2261,10 @@ exports[`Organization Developer Settings without Owner permissions trash button 
                                                       title="Owner permissions are required for this action."
                                                       to={null}
                                                     >
-                                                      <button
+                                                      <ForwardRef
                                                         aria-disabled={true}
                                                         className="tip tip css-1ujzp8g-StyledButton-getColors eqrebog0"
+                                                        disabled={true}
                                                         href={null}
                                                         onClick={[Function]}
                                                         role="button"
@@ -1973,90 +2272,101 @@ exports[`Organization Developer Settings without Owner permissions trash button 
                                                         title="Owner permissions are required for this action."
                                                         to={null}
                                                       >
-                                                        <ButtonLabel
+                                                        <button
+                                                          aria-disabled={true}
+                                                          className="tip tip css-1ujzp8g-StyledButton-getColors eqrebog0"
+                                                          href={null}
+                                                          onClick={[Function]}
+                                                          role="button"
                                                           size="small"
+                                                          title="Owner permissions are required for this action."
+                                                          to={null}
                                                         >
-                                                          <Component
-                                                            className="css-7ui8bl-ButtonLabel eqrebog1"
+                                                          <ButtonLabel
                                                             size="small"
                                                           >
-                                                            <span
+                                                            <Component
                                                               className="css-7ui8bl-ButtonLabel eqrebog1"
+                                                              size="small"
                                                             >
-                                                              <Icon
-                                                                hasChildren={false}
-                                                                size="small"
+                                                              <span
+                                                                className="css-7ui8bl-ButtonLabel eqrebog1"
                                                               >
-                                                                <Component
-                                                                  className="css-ljhpxy-Icon eqrebog2"
+                                                                <Icon
                                                                   hasChildren={false}
                                                                   size="small"
                                                                 >
-                                                                  <span
+                                                                  <Component
                                                                     className="css-ljhpxy-Icon eqrebog2"
+                                                                    hasChildren={false}
                                                                     size="small"
                                                                   >
-                                                                    <StyledInlineSvg
-                                                                      size="12px"
-                                                                      src="icon-trash"
+                                                                    <span
+                                                                      className="css-ljhpxy-Icon eqrebog2"
+                                                                      size="small"
                                                                     >
-                                                                      <InlineSvg
-                                                                        className="css-1ov3rcq-StyledInlineSvg eqrebog3"
+                                                                      <StyledInlineSvg
                                                                         size="12px"
                                                                         src="icon-trash"
                                                                       >
-                                                                        <StyledSvg
+                                                                        <InlineSvg
                                                                           className="css-1ov3rcq-StyledInlineSvg eqrebog3"
-                                                                          height="12px"
-                                                                          viewBox={Object {}}
-                                                                          width="12px"
+                                                                          size="12px"
+                                                                          src="icon-trash"
                                                                         >
-                                                                          <svg
-                                                                            className="eqrebog3 css-1jjmnki-StyledSvg-StyledInlineSvg e2idor0"
+                                                                          <StyledSvg
+                                                                            className="css-1ov3rcq-StyledInlineSvg eqrebog3"
                                                                             height="12px"
                                                                             viewBox={Object {}}
                                                                             width="12px"
                                                                           >
-                                                                            <use
-                                                                              href="#test"
-                                                                              xlinkHref="#test"
-                                                                            />
-                                                                          </svg>
-                                                                        </StyledSvg>
-                                                                      </InlineSvg>
-                                                                    </StyledInlineSvg>
-                                                                  </span>
-                                                                </Component>
-                                                              </Icon>
-                                                            </span>
-                                                          </Component>
-                                                        </ButtonLabel>
-                                                      </button>
-                                                    </ForwardRef>
-                                                  </StyledButton>
-                                                </Tooltip>
-                                              </Button>
-                                            </Tooltip>
-                                          </Access>
-                                        </AccessContainer>
-                                      </withConfig(AccessContainer)>
-                                    </div>
-                                  </Base>
-                                </Box>
-                              </div>
-                            </Base>
-                          </StyledFlex>
-                        </div>
-                      </Base>
-                    </SentryAppItem>
-                  </SentryApplicationRow>
-                </div>
-              </PanelBody>
-            </div>
-          </Component>
-        </Panel>
-      </div>
-    </DocumentTitle>
-  </SideEffect(DocumentTitle)>
-</OrganizationDeveloperSettings>
+                                                                            <svg
+                                                                              className="eqrebog3 css-1jjmnki-StyledSvg-StyledInlineSvg e2idor0"
+                                                                              height="12px"
+                                                                              viewBox={Object {}}
+                                                                              width="12px"
+                                                                            >
+                                                                              <use
+                                                                                href="#test"
+                                                                                xlinkHref="#test"
+                                                                              />
+                                                                            </svg>
+                                                                          </StyledSvg>
+                                                                        </InlineSvg>
+                                                                      </StyledInlineSvg>
+                                                                    </span>
+                                                                  </Component>
+                                                                </Icon>
+                                                              </span>
+                                                            </Component>
+                                                          </ButtonLabel>
+                                                        </button>
+                                                      </ForwardRef>
+                                                    </StyledButton>
+                                                  </Tooltip>
+                                                </Button>
+                                              </Tooltip>
+                                            </Access>
+                                          </AccessContainer>
+                                        </withConfig(AccessContainer)>
+                                      </div>
+                                    </Base>
+                                  </Box>
+                                </div>
+                              </Base>
+                            </StyledFlex>
+                          </div>
+                        </Base>
+                      </SentryAppItem>
+                    </SentryApplicationRow>
+                  </div>
+                </PanelBody>
+              </div>
+            </Component>
+          </Panel>
+        </div>
+      </DocumentTitle>
+    </SideEffect(DocumentTitle)>
+  </OrganizationDeveloperSettings>
+</WithOrganizationMockWrapper>
 `;

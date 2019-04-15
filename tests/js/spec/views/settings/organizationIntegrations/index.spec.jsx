@@ -3,11 +3,15 @@ import React from 'react';
 import {mount} from 'enzyme';
 
 import {Client} from 'app/api';
-import {openIntegrationDetails} from 'app/actionCreators/modal';
+import {
+  openIntegrationDetails,
+  openSentryAppDetailsModal,
+} from 'app/actionCreators/modal';
 import {OrganizationIntegrations} from 'app/views/organizationIntegrations';
 
 jest.mock('app/actionCreators/modal', () => ({
   openIntegrationDetails: jest.fn(),
+  openSentryAppDetailsModal: jest.fn(),
 }));
 
 describe('OrganizationIntegrations', () => {
@@ -198,6 +202,29 @@ describe('OrganizationIntegrations', () => {
 
         expect(sentryAppsRequest).toHaveBeenCalled();
         expect(sentryInstallsRequest).toHaveBeenCalled();
+      });
+
+      it('renders a Learn More modal for Sentry Apps', () => {
+        sentryAppsRequest = Client.addMockResponse({
+          url: `/organizations/${org.slug}/sentry-apps/`,
+          body: [sentryApp],
+        });
+
+        org = {...org, features: ['sentry-apps']};
+
+        wrapper = mount(
+          <OrganizationIntegrations organization={org} params={params} />,
+          routerContext
+        );
+
+        wrapper.find('SentryApplicationRow Link').simulate('click');
+
+        expect(openSentryAppDetailsModal).toHaveBeenCalledWith({
+          sentryApp,
+          isInstalled: false,
+          onInstall: expect.any(Function),
+          organization: org,
+        });
       });
 
       it('Does`t hit sentry apps endpoints when sentry-apps isn`t present', () => {

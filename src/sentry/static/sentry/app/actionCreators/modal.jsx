@@ -151,3 +151,13 @@ export function openSentryAppPermissionModal(options = {}) {
       });
     });
 }
+
+export function openSentryAppDetailsModal(options = {}) {
+  import(/* webpackChunkName: "SentryAppDetailsModal" */ 'app/components/modals/sentryAppDetailsModal')
+    .then(mod => mod.default)
+    .then(Modal => {
+      openModal(deps => <Modal {...deps} {...options} />, {
+        modalClassName: 'sentry-app-details',
+      });
+    });
+}
