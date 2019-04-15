@@ -9,7 +9,7 @@ import Form from 'app/views/settings/components/forms/form';
 import SentryTypes from 'app/sentryTypes';
 import {t} from 'app/locale';
 import ExternalIssueStore from 'app/stores/externalIssueStore';
-import rawStacktraceContent from 'app/components/events/interfaces/rawStacktraceContent';
+import getStacktraceBody from 'app/utils/getStacktraceBody';
 import withApi from 'app/utils/withApi';
 
 class SentryAppExternalIssueForm extends React.Component {
@@ -80,35 +80,10 @@ class SentryAppExternalIssueForm extends React.Component {
 
   getStacktrace() {
     const evt = this.props.event;
-    if (!evt || !evt.entries) {
-      return '';
-    }
-
-    const exc = evt.entries.find(({type}) => type === 'exception');
-
-    if (!exc) {
-      // Look for a message if not an exception
-      const msg = evt.entries.find(({type}) => type === 'message');
-      if (!msg) {
-        return '';
-      }
-
-      return msg.data && msg.data.message && [msg.data.message];
-    }
-
-    if (!exc.data) {
-      return '';
-    }
-
-    const contentArr = exc.data.values
-      .filter(value => !!value.stacktrace)
-      .map(value => rawStacktraceContent(value.stacktrace, evt.platform, value))
-      .reduce((acc, value) => {
-        return acc.concat(value);
-      }, []);
+    const contentArr = getStacktraceBody(evt);
 
     if (contentArr[0]) {
-      return '```\n' + contentArr[0] + '\n```';
+      return '\n\n```\n' + contentArr[0] + '\n```';
     } else {
       return '';
     }
@@ -128,7 +103,7 @@ class SentryAppExternalIssueForm extends React.Component {
         const queryParams = {referrer: this.props.sentryAppInstallation.sentryApp.name};
         const url = addQueryParamsToExistingUrl(group.permalink, queryParams);
         const shortId = group.shortId;
-        return t('Sentry Issue: [%s](%s) \n \n %s', shortId, url, stacktrace);
+        return t('Sentry Issue: [%s](%s)%s', shortId, url, stacktrace);
       default:
         return '';
     }
