@@ -417,10 +417,11 @@ exports[`IntegrationDetailsModal renders simple integration 1`] = `
           role="button"
           size="small"
         >
-          <Component
+          <ForwardRef
             aria-disabled={false}
             aria-label="Cancel"
             className="css-dkprmi-StyledButton-getColors eqrebog0"
+            disabled={false}
             onClick={[Function]}
             role="button"
             size="small"
@@ -448,7 +449,7 @@ exports[`IntegrationDetailsModal renders simple integration 1`] = `
                 </Component>
               </ButtonLabel>
             </button>
-          </Component>
+          </ForwardRef>
         </StyledButton>
       </Button>
       <withConfig(AccessContainer)
@@ -737,11 +738,13 @@ exports[`IntegrationDetailsModal renders simple integration 1`] = `
                             }
                           }
                         >
-                          <Component
+                          <ForwardRef
                             aria-disabled={false}
                             aria-label="Add Installation"
                             className="css-zvpqlo-StyledButton-getColors eqrebog0"
+                            disabled={false}
                             onClick={[Function]}
+                            priority="primary"
                             role="button"
                             size="small"
                             style={
@@ -780,7 +783,7 @@ exports[`IntegrationDetailsModal renders simple integration 1`] = `
                                 </Component>
                               </ButtonLabel>
                             </button>
-                          </Component>
+                          </ForwardRef>
                         </StyledButton>
                       </Button>
                     </AddIntegration>

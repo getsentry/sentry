@@ -69,7 +69,7 @@ class VisualizationsToggle extends React.Component {
           })}
         </ResultViewButtons>
         <ResultViewDropdownButtons>
-          <DropdownLink title={dropdownTitle} className={'btn btn-default btn-sm'}>
+          <DropdownLink title={dropdownTitle} className="btn btn-default btn-sm">
             {options.map(opt => {
               return this.getMenuItem(opt);
             })}

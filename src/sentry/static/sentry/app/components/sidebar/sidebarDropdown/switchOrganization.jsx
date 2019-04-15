@@ -77,7 +77,7 @@ class SwitchOrganization extends React.Component {
                   {canCreateOrganization && (
                     <SidebarMenuItem
                       data-test-id="sidebar-create-org"
-                      to={'/organizations/new/'}
+                      to="/organizations/new/"
                       style={{alignItems: 'center'}}
                     >
                       <MenuItemLabelWithIcon>

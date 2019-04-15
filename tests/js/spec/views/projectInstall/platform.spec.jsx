@@ -1,5 +1,5 @@
 import React from 'react';
-import {shallow} from 'enzyme';
+import {shallow, mount} from 'enzyme';
 
 import {ProjectInstallPlatform} from 'app/views/projectInstall/platform';
 
@@ -48,6 +48,42 @@ describe('ProjectInstallPlatform', function() {
         ],
       },
     };
+
+    it('should redirect to if no matching platform', function() {
+      const props = {
+        ...baseProps,
+        params: {
+          orgId: baseProps.organization.slug,
+          projectId: baseProps.project.slug,
+          platform: 'other',
+        },
+      };
+
+      MockApiClient.addMockResponse({
+        url: '/projects/org-slug/project-slug/docs/other/',
+        body: {},
+      });
+
+      const handleRedirectStub = jest.spyOn(
+        ProjectInstallPlatform.prototype,
+        'redirectToNeutralDocs'
+      );
+
+      // XXX(maxbittker) this is a hack to defeat the method auto binding so we
+      // can fully stub the method. It would not be neccessary with es6 class
+      // components and it relies on react internals so it's fragile
+      const index =
+        ProjectInstallPlatform.prototype.__reactAutoBindPairs.indexOf(
+          'redirectToNeutralDocs'
+        ) + 1;
+      ProjectInstallPlatform.prototype.__reactAutoBindPairs[index] = handleRedirectStub;
+
+      mount(<ProjectInstallPlatform {...props} />, {
+        organization: {id: '1337'},
+      });
+
+      expect(handleRedirectStub).toHaveBeenCalledTimes(1);
+    });
 
     it('should render NotFound if no matching integration/platform', function() {
       const props = {

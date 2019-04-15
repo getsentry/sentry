@@ -1,5 +1,3 @@
-/*eslint no-use-before-define: ["error", { "functions": false }]*/
-
 /**
  * This function is responsible for fetching and storing result data for
  * result tables and visualizations.

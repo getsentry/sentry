@@ -432,7 +432,7 @@ exports[`OrganizationUserFeedback renders 1`] = `
                             "/org-slug/project-slug/issues/1/activity/",
                           ],
                           Array [
-                            "/organizations/org-slug/issues/1/events/1/",
+                            "/organizations/org-slug/issues/1/events/12345678901234567890123456789012/",
                           ],
                         ],
                         "results": Array [
@@ -562,7 +562,7 @@ exports[`OrganizationUserFeedback renders 1`] = `
                               "/org-slug/project-slug/issues/1/activity/",
                             ],
                             Array [
-                              "/organizations/org-slug/issues/1/events/1/",
+                              "/organizations/org-slug/issues/1/events/12345678901234567890123456789012/",
                             ],
                           ],
                           "results": Array [
@@ -625,10 +625,10 @@ exports[`OrganizationUserFeedback renders 1`] = `
                   >
                     <Header>
                       <Base
-                        className="css-14hw0r3-Header e10yv9i90"
+                        className="css-tp5q3x-Header e10yv9i90"
                       >
                         <div
-                          className="css-14hw0r3-Header e10yv9i90"
+                          className="css-tp5q3x-Header e10yv9i90"
                           is={null}
                         >
                           <HeaderItemPosition>
@@ -684,6 +684,7 @@ exports[`OrganizationUserFeedback renders 1`] = `
                                 value={Array []}
                               >
                                 <StyledProjectSelector
+                                  menuFooter={[Function]}
                                   multi={false}
                                   multiProjects={Array []}
                                   onChange={[Function]}
@@ -739,6 +740,7 @@ exports[`OrganizationUserFeedback renders 1`] = `
                                 >
                                   <withProjects(ProjectSelector)
                                     className="css-iw79rr-StyledProjectSelector ewlipse0"
+                                    menuFooter={[Function]}
                                     multi={false}
                                     multiProjects={Array []}
                                     onChange={[Function]}
@@ -794,6 +796,7 @@ exports[`OrganizationUserFeedback renders 1`] = `
                                   >
                                     <ProjectSelector
                                       className="css-iw79rr-StyledProjectSelector ewlipse0"
+                                      menuFooter={[Function]}
                                       multi={false}
                                       multiProjects={Array []}
                                       onChange={[Function]}
@@ -976,7 +979,6 @@ exports[`OrganizationUserFeedback renders 1`] = `
                                                           onKeyDown={[Function]}
                                                           onMouseEnter={[Function]}
                                                           onMouseLeave={[Function]}
-                                                          onSubmit={[Function]}
                                                           style={
                                                             Object {
                                                               "outline": "none",
@@ -1001,7 +1003,6 @@ exports[`OrganizationUserFeedback renders 1`] = `
                                                             onKeyDown={[Function]}
                                                             onMouseEnter={[Function]}
                                                             onMouseLeave={[Function]}
-                                                            onSubmit={[Function]}
                                                             style={
                                                               Object {
                                                                 "outline": "none",
@@ -1027,7 +1028,6 @@ exports[`OrganizationUserFeedback renders 1`] = `
                                                               onKeyDown={[Function]}
                                                               onMouseEnter={[Function]}
                                                               onMouseLeave={[Function]}
-                                                              onSubmit={[Function]}
                                                               style={
                                                                 Object {
                                                                   "outline": "none",
@@ -1038,6 +1038,7 @@ exports[`OrganizationUserFeedback renders 1`] = `
                                                               <StyledHeaderItem
                                                                 active={false}
                                                                 className="css-12jjx2u-StyledHeaderItem ewlipse1"
+                                                                hasChanges={false}
                                                                 hasSelected={false}
                                                                 innerRef={null}
                                                                 isOpen={false}
@@ -1108,13 +1109,10 @@ exports[`OrganizationUserFeedback renders 1`] = `
                                                                     </div>
                                                                   </Content>
                                                                   <StyledChevron
-                                                                    hasChanges={false}
                                                                     isOpen={false}
-                                                                    onClick={[Function]}
                                                                   >
                                                                     <div
-                                                                      className="css-ft4nwy-StyledChevron enk2k7v4"
-                                                                      onClick={[Function]}
+                                                                      className="css-1dsiezd-StyledChevron enk2k7v4"
                                                                     >
                                                                       <InlineSvg
                                                                         src="icon-chevron-down"
@@ -1285,6 +1283,7 @@ exports[`OrganizationUserFeedback renders 1`] = `
                                     }
                                     items={Array []}
                                     maxHeight={500}
+                                    menuFooter={[Function]}
                                     menuProps={
                                       Object {
                                         "style": Object {
@@ -1318,6 +1317,7 @@ exports[`OrganizationUserFeedback renders 1`] = `
                                       }
                                       items={Array []}
                                       maxHeight={500}
+                                      menuFooter={[Function]}
                                       menuProps={
                                         Object {
                                           "style": Object {
@@ -1350,6 +1350,7 @@ exports[`OrganizationUserFeedback renders 1`] = `
                                         }
                                         items={Array []}
                                         maxHeight={500}
+                                        menuFooter={[Function]}
                                         menuProps={
                                           Object {
                                             "style": Object {
@@ -1423,7 +1424,6 @@ exports[`OrganizationUserFeedback renders 1`] = `
                                                       tabIndex={-1}
                                                     >
                                                       <StyledHeaderItem
-                                                        hasChanges={false}
                                                         hasSelected={false}
                                                         icon={
                                                           <StyledInlineSvg
@@ -1437,7 +1437,6 @@ exports[`OrganizationUserFeedback renders 1`] = `
                                                         onKeyDown={[Function]}
                                                         onMouseEnter={[Function]}
                                                         onMouseLeave={[Function]}
-                                                        onSubmit={[Function]}
                                                         style={
                                                           Object {
                                                             "outline": "none",
@@ -1447,7 +1446,6 @@ exports[`OrganizationUserFeedback renders 1`] = `
                                                       >
                                                         <ForwardRef
                                                           className="css-22y332-StyledHeaderItem e1gsuvme0"
-                                                          hasChanges={false}
                                                           hasSelected={false}
                                                           icon={
                                                             <StyledInlineSvg
@@ -1460,7 +1458,6 @@ exports[`OrganizationUserFeedback renders 1`] = `
                                                           onKeyDown={[Function]}
                                                           onMouseEnter={[Function]}
                                                           onMouseLeave={[Function]}
-                                                          onSubmit={[Function]}
                                                           style={
                                                             Object {
                                                               "outline": "none",
@@ -1471,7 +1468,6 @@ exports[`OrganizationUserFeedback renders 1`] = `
                                                           <HeaderItem
                                                             allowClear={true}
                                                             className="css-22y332-StyledHeaderItem e1gsuvme0"
-                                                            hasChanges={false}
                                                             hasSelected={false}
                                                             icon={
                                                               <StyledInlineSvg
@@ -1485,7 +1481,6 @@ exports[`OrganizationUserFeedback renders 1`] = `
                                                             onKeyDown={[Function]}
                                                             onMouseEnter={[Function]}
                                                             onMouseLeave={[Function]}
-                                                            onSubmit={[Function]}
                                                             style={
                                                               Object {
                                                                 "outline": "none",
@@ -1565,13 +1560,10 @@ exports[`OrganizationUserFeedback renders 1`] = `
                                                                   </div>
                                                                 </Content>
                                                                 <StyledChevron
-                                                                  hasChanges={false}
                                                                   isOpen={false}
-                                                                  onClick={[Function]}
                                                                 >
                                                                   <div
-                                                                    className="css-ft4nwy-StyledChevron enk2k7v4"
-                                                                    onClick={[Function]}
+                                                                    className="css-1dsiezd-StyledChevron enk2k7v4"
                                                                   >
                                                                     <InlineSvg
                                                                       src="icon-chevron-down"
@@ -1708,7 +1700,6 @@ exports[`OrganizationUserFeedback renders 1`] = `
                                         onKeyDown={[Function]}
                                         onMouseEnter={[Function]}
                                         onMouseLeave={[Function]}
-                                        onSubmit={[Function]}
                                         style={
                                           Object {
                                             "outline": "none",
@@ -1732,7 +1723,6 @@ exports[`OrganizationUserFeedback renders 1`] = `
                                           onKeyDown={[Function]}
                                           onMouseEnter={[Function]}
                                           onMouseLeave={[Function]}
-                                          onSubmit={[Function]}
                                           style={
                                             Object {
                                               "outline": "none",
@@ -1757,7 +1747,6 @@ exports[`OrganizationUserFeedback renders 1`] = `
                                             onKeyDown={[Function]}
                                             onMouseEnter={[Function]}
                                             onMouseLeave={[Function]}
-                                            onSubmit={[Function]}
                                             style={
                                               Object {
                                                 "outline": "none",
@@ -1767,6 +1756,7 @@ exports[`OrganizationUserFeedback renders 1`] = `
                                           >
                                             <StyledHeaderItem
                                               className="css-22y332-StyledHeaderItem e1u8612l1"
+                                              hasChanges={false}
                                               hasSelected={false}
                                               innerRef={[Function]}
                                               isOpen={false}
@@ -1837,13 +1827,10 @@ exports[`OrganizationUserFeedback renders 1`] = `
                                                   </div>
                                                 </Content>
                                                 <StyledChevron
-                                                  hasChanges={false}
                                                   isOpen={false}
-                                                  onClick={[Function]}
                                                 >
                                                   <div
-                                                    className="css-ft4nwy-StyledChevron enk2k7v4"
-                                                    onClick={[Function]}
+                                                    className="css-1dsiezd-StyledChevron enk2k7v4"
                                                   >
                                                     <InlineSvg
                                                       src="icon-chevron-down"
@@ -2626,12 +2613,12 @@ exports[`OrganizationUserFeedback renders 1`] = `
                                                             </small>
                                                             <small>
                                                               <Link
-                                                                to="/organizations/org-slug/issues/1/events/1/"
+                                                                to="/organizations/org-slug/issues/1/events/12345678901234567890123456789012/"
                                                               >
                                                                 <Link
                                                                   onlyActiveOnIndex={false}
                                                                   style={Object {}}
-                                                                  to="/organizations/org-slug/issues/1/events/1/"
+                                                                  to="/organizations/org-slug/issues/1/events/12345678901234567890123456789012/"
                                                                 >
                                                                   <a
                                                                     onClick={[Function]}

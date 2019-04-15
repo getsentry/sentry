@@ -233,10 +233,14 @@ exports[`ProjectSavedSearches renders 1`] = `
                           "dateCreated": "2017-11-14T02:22:58.026Z",
                           "id": "2",
                           "isDefault": true,
+                          "isGlobal": true,
+                          "isOrgCustom": false,
+                          "isPinned": false,
                           "isPrivate": false,
                           "isUserDefault": false,
                           "name": "Needs Triage",
                           "query": "is:unresolved is:unassigned",
+                          "type": 0,
                         }
                       }
                       key="2"
@@ -386,9 +390,10 @@ exports[`ProjectSavedSearches renders 1`] = `
                                                 role="button"
                                                 size="small"
                                               >
-                                                <Component
+                                                <ForwardRef
                                                   aria-disabled={false}
                                                   className="css-dkprmi-StyledButton-getColors eqrebog0"
+                                                  disabled={false}
                                                   onClick={[Function]}
                                                   role="button"
                                                   size="small"
@@ -459,7 +464,7 @@ exports[`ProjectSavedSearches renders 1`] = `
                                                       </Component>
                                                     </ButtonLabel>
                                                   </button>
-                                                </Component>
+                                                </ForwardRef>
                                               </StyledButton>
                                             </Button>
                                             <Modal
@@ -544,13 +549,17 @@ exports[`ProjectSavedSearches renders 1`] = `
                       canModify={true}
                       data={
                         Object {
-                          "dateCreated": "2017-11-14T02:22:58.022Z",
+                          "dateCreated": "2017-11-14T02:22:58.026Z",
                           "id": "1",
                           "isDefault": false,
+                          "isGlobal": false,
+                          "isOrgCustom": false,
+                          "isPinned": false,
                           "isPrivate": false,
                           "isUserDefault": true,
                           "name": "Unresolved Issues",
                           "query": "is:unresolved",
+                          "type": 0,
                         }
                       }
                       key="1"
@@ -700,9 +709,10 @@ exports[`ProjectSavedSearches renders 1`] = `
                                                 role="button"
                                                 size="small"
                                               >
-                                                <Component
+                                                <ForwardRef
                                                   aria-disabled={false}
                                                   className="css-dkprmi-StyledButton-getColors eqrebog0"
+                                                  disabled={false}
                                                   onClick={[Function]}
                                                   role="button"
                                                   size="small"
@@ -773,7 +783,7 @@ exports[`ProjectSavedSearches renders 1`] = `
                                                       </Component>
                                                     </ButtonLabel>
                                                   </button>
-                                                </Component>
+                                                </ForwardRef>
                                               </StyledButton>
                                             </Button>
                                             <Modal

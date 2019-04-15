@@ -86,11 +86,13 @@ exports[`OrganizationProjects Should render the projects in the store 1`] = `
                             size="small"
                             to="/organizations/org-slug/projects/new/"
                           >
-                            <Component
+                            <ForwardRef
                               aria-disabled={false}
                               aria-label="Create Project"
                               className="css-zvpqlo-StyledButton-getColors eqrebog0"
+                              disabled={false}
                               onClick={[Function]}
+                              priority="primary"
                               role="button"
                               size="small"
                               to="/organizations/org-slug/projects/new/"
@@ -178,7 +180,7 @@ exports[`OrganizationProjects Should render the projects in the store 1`] = `
                                   </ButtonLabel>
                                 </a>
                               </Link>
-                            </Component>
+                            </ForwardRef>
                           </StyledButton>
                         </Button>
                       </div>
@@ -690,10 +692,11 @@ exports[`OrganizationProjects Should render the projects in the store 1`] = `
                                   size="small"
                                   to="/settings/org-slug/projects/project-slug/"
                                 >
-                                  <Component
+                                  <ForwardRef
                                     aria-disabled={false}
                                     aria-label="Settings"
                                     className="css-dkprmi-StyledButton-getColors eqrebog0"
+                                    disabled={false}
                                     onClick={[Function]}
                                     role="button"
                                     size="small"
@@ -780,7 +783,7 @@ exports[`OrganizationProjects Should render the projects in the store 1`] = `
                                         </ButtonLabel>
                                       </a>
                                     </Link>
-                                  </Component>
+                                  </ForwardRef>
                                 </StyledButton>
                               </Button>
                             </div>

@@ -1,7 +1,7 @@
 import React from 'react';
 import {browserHistory} from 'react-router';
 import PropTypes from 'prop-types';
-import {throttle, isEqual} from 'lodash';
+import {throttle} from 'lodash';
 
 import SentryTypes from 'app/sentryTypes';
 import {t} from 'app/locale';
@@ -76,15 +76,6 @@ class Result extends React.Component {
         search,
       });
     }
-  }
-
-  shouldComponentUpdate(nextProps, nextState) {
-    return (
-      (nextProps.location.state === 'fetching' &&
-        nextProps.location.state !== this.props.location.state) ||
-      !isEqual(nextProps, this.props) ||
-      !isEqual(nextState, this.state)
-    );
   }
 
   componentWillUnmount() {
@@ -261,6 +252,7 @@ class Result extends React.Component {
                 legend={{data: [baseQuery.query.aggregations[0][2]], truncate: 80}}
                 xAxis={{truncate: 80}}
                 renderer="canvas"
+                options={{animation: false}}
               />
             </ChartWrapper>
           )}
@@ -289,6 +281,7 @@ class Result extends React.Component {
                 renderer="canvas"
                 isGroupedByDate={true}
                 utc={utc}
+                options={{animation: false}}
               />
               {this.renderNote()}
             </ChartWrapper>

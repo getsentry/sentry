@@ -19,7 +19,7 @@ const NewProject = ({organization}) => (
     )}
     <div className="container">
       <Content>
-        <DocumentTitle title={'Sentry'} />
+        <DocumentTitle title="Sentry" />
         <CreateProject
           nextStepUrl={({slug, projectSlug, platform}) =>
             `/${slug}/${projectSlug}/getting-started/${platform}/`

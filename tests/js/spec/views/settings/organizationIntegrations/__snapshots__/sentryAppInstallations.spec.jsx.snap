@@ -339,6 +339,7 @@ exports[`Sentry App Installations when Apps exist displays all Apps owned by the
                                       "fontSizeLarge": "16px",
                                       "fontSizeMedium": "14px",
                                       "fontSizeSmall": "12px",
+                                      "foreground": "#493E54",
                                       "gray1": "#BDB4C7",
                                       "gray2": "#9585A3",
                                       "gray3": "#645574",
@@ -426,12 +427,12 @@ exports[`Sentry App Installations when Apps exist displays all Apps owned by the
                                           "actor": 1008,
                                           "menu": 1007,
                                         },
-                                        "globalSelectionHeader": 1002,
+                                        "globalSelectionHeader": 1009,
                                         "header": 1000,
                                         "modal": 10000,
-                                        "orgAndUserMenu": 1004,
-                                        "sentryErrorEmbed": 1009,
-                                        "sidebar": 1003,
+                                        "orgAndUserMenu": 1011,
+                                        "sentryErrorEmbed": 1090,
+                                        "sidebar": 1010,
                                         "toast": 10001,
                                       },
                                     }
@@ -607,6 +608,7 @@ exports[`Sentry App Installations when Apps exist displays all Apps owned by the
                                               "fontSizeLarge": "16px",
                                               "fontSizeMedium": "14px",
                                               "fontSizeSmall": "12px",
+                                              "foreground": "#493E54",
                                               "gray1": "#BDB4C7",
                                               "gray2": "#9585A3",
                                               "gray3": "#645574",
@@ -694,12 +696,12 @@ exports[`Sentry App Installations when Apps exist displays all Apps owned by the
                                                   "actor": 1008,
                                                   "menu": 1007,
                                                 },
-                                                "globalSelectionHeader": 1002,
+                                                "globalSelectionHeader": 1009,
                                                 "header": 1000,
                                                 "modal": 10000,
-                                                "orgAndUserMenu": 1004,
-                                                "sentryErrorEmbed": 1009,
-                                                "sidebar": 1003,
+                                                "orgAndUserMenu": 1011,
+                                                "sentryErrorEmbed": 1090,
+                                                "sidebar": 1010,
                                                 "toast": 10001,
                                               },
                                             }
@@ -761,10 +763,11 @@ exports[`Sentry App Installations when Apps exist displays all Apps owned by the
                           role="button"
                           size="small"
                         >
-                          <Component
+                          <ForwardRef
                             aria-disabled={false}
                             aria-label="Install"
                             className="btn btn-default css-dkprmi-StyledButton-getColors eqrebog0"
+                            disabled={false}
                             onClick={[Function]}
                             role="button"
                             size="small"
@@ -837,7 +840,7 @@ exports[`Sentry App Installations when Apps exist displays all Apps owned by the
                                 </Component>
                               </ButtonLabel>
                             </button>
-                          </Component>
+                          </ForwardRef>
                         </StyledButton>
                       </Button>
                     </div>

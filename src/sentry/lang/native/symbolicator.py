@@ -187,7 +187,7 @@ def get_sources_for_project(project):
     builtin_sources = project.get_option('sentry:builtin_symbol_sources') or []
     for key, source in six.iteritems(BUILTIN_SOURCES):
         if key in builtin_sources:
-            sources.push(source)
+            sources.append(source)
 
     return sources
 

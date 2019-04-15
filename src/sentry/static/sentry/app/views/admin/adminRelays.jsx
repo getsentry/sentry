@@ -82,7 +82,7 @@ const AdminRelays = createReactClass({
         <h3>{t('Relays')}</h3>
         <ResultGrid
           path="/manage/relays/"
-          endpoint={'/relays/'}
+          endpoint="/relays/"
           method="GET"
           columns={columns}
           columnsForRow={this.getRow}

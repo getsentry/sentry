@@ -862,11 +862,16 @@
   margin-right: 5px;
   z-index: 1001;
 
+  .dropdown {
+    display: inline-block;
+  }
+
   .dropdown-toggle {
     .btn-default;
     width: 176px;
     font-size: 14px;
-    border: 1px solid lighten(@gray-lighter, 7);
+    // Match colours with theme.jsx
+    border: 1px solid #d8d2de;
     padding: 6px 8px;
     border-radius: 3px;
 
@@ -890,16 +895,14 @@
     overflow: hidden;
   }
 
+  // Hide the caret
   .dropdown-menu {
-    top: 0;
+    top: auto;
     left: 1px;
     width: 163px;
 
+    &:after,
     &:before {
-      display: none;
-    }
-
-    &:after {
       display: none;
     }
   }

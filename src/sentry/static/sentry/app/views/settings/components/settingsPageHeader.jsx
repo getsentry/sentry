@@ -22,7 +22,7 @@ class SettingsPageHeading extends React.Component {
 
   render() {
     return (
-      <Wrapper tabs={this.props.tabs}>
+      <Wrapper>
         <Flex align="center">
           {this.props.icon && <Box pr={1}>{this.props.icon}</Box>}
           {this.props.title && (

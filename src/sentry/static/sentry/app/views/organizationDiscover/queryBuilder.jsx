@@ -1,6 +1,5 @@
-/*eslint no-use-before-define: ["error", { "functions": false }]*/
 import React from 'react';
-import {uniq} from 'lodash';
+import {uniq, partition} from 'lodash';
 import moment from 'moment-timezone';
 
 import {Client} from 'app/api';
@@ -312,22 +311,26 @@ export default function createQueryBuilder(initial = {}, organization) {
    * Resets the query to defaults or the query provided
    * Displays a warning if user does not have access to any project in the query
    *
+   * @param {Object} [q] optional query to reset to
    * @returns {Void}
    */
   function reset(q = {}) {
-    const invalidProjects = (q.projects || []).filter(
-      project => !defaultProjects.includes(project)
+    const [validProjects, invalidProjects] = partition(q.projects || [], project =>
+      defaultProjects.includes(project)
     );
 
     if (invalidProjects.length) {
       openModal(deps => (
         <MissingProjectWarningModal
           organization={organization}
-          projects={invalidProjects}
+          validProjects={validProjects}
+          invalidProjects={invalidProjects}
           {...deps}
         />
       ));
     }
+
+    q.projects = validProjects;
 
     query = applyDefaults(q);
   }

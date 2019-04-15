@@ -9,10 +9,19 @@ import styled from 'react-emotion';
 
 import {NEGATION_OPERATOR, SEARCH_WILDCARD} from 'app/constants';
 import {defined} from 'app/utils';
-import {fetchRecentSearches, saveRecentSearch} from 'app/actionCreators/savedSearches';
+import {
+  fetchRecentSearches,
+  pinSearch,
+  saveRecentSearch,
+  unpinSearch,
+} from 'app/actionCreators/savedSearches';
 import {t} from 'app/locale';
+import Button from 'app/components/button';
+import InlineSvg from 'app/components/inlineSvg';
 import MemberListStore from 'app/stores/memberListStore';
 import SearchDropdown from 'app/views/stream/searchDropdown';
+import SentryTypes from 'app/sentryTypes';
+import space from 'app/styles/space';
 import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
 
@@ -34,6 +43,8 @@ export function removeSpace(query = '') {
 class SmartSearchBar extends React.Component {
   static propTypes = {
     api: PropTypes.object,
+
+    organization: SentryTypes.Organization,
 
     orgId: PropTypes.string,
 
@@ -71,7 +82,17 @@ class SmartSearchBar extends React.Component {
     /**
      * If this is defined, attempt to save search term scoped to the user and the current org
      */
-    recentSearchType: PropTypes.number,
+    savedSearchType: PropTypes.number,
+
+    /**
+     * Has pinned search feature
+     */
+    hasPinnedSearch: PropTypes.bool,
+
+    /**
+     * The pinned search object
+     */
+    pinnedSearch: SentryTypes.SavedSearch,
 
     // Callback that returns a promise of an array of strings
     onGetTagValues: PropTypes.func,
@@ -168,16 +189,16 @@ class SmartSearchBar extends React.Component {
   };
 
   doSearch = async () => {
-    const {onSearch, onSavedRecentSearch, api, orgId, recentSearchType} = this.props;
+    const {onSearch, onSavedRecentSearch, api, orgId, savedSearchType} = this.props;
     this.blur();
     const query = removeSpace(this.state.query);
     onSearch(query);
 
-    // Only save recent search query if we have a recentSearchType (also 0 is a valid value)
+    // Only save recent search query if we have a savedSearchType (also 0 is a valid value)
     // Do not save empty string queries (i.e. if they clear search)
-    if (typeof recentSearchType !== 'undefined' && query) {
+    if (typeof savedSearchType !== 'undefined' && query) {
       try {
-        await saveRecentSearch(api, orgId, recentSearchType, query);
+        await saveRecentSearch(api, orgId, savedSearchType, query);
 
         if (onSavedRecentSearch) {
           onSavedRecentSearch(query);
@@ -296,9 +317,9 @@ class SmartSearchBar extends React.Component {
    */
   getRecentSearches = _.debounce(
     async () => {
-      const {recentSearchType, displayRecentSearches, onGetRecentSearches} = this.props;
-      // `recentSearchType` can be 0
-      if (!defined(recentSearchType) || !displayRecentSearches) {
+      const {savedSearchType, displayRecentSearches, onGetRecentSearches} = this.props;
+      // `savedSearchType` can be 0
+      if (!defined(savedSearchType) || !displayRecentSearches) {
         return [];
       }
 
@@ -310,12 +331,12 @@ class SmartSearchBar extends React.Component {
   );
 
   fetchRecentSearches = async fullQuery => {
-    const {api, orgId, recentSearchType} = this.props;
+    const {api, orgId, savedSearchType} = this.props;
 
     const recentSearches = await fetchRecentSearches(
       api,
       orgId,
-      recentSearchType,
+      savedSearchType,
       fullQuery
     );
 
@@ -494,6 +515,29 @@ class SmartSearchBar extends React.Component {
     });
   };
 
+  onTogglePinnedSearch = evt => {
+    const {
+      api,
+      organization,
+      savedSearchType,
+      hasPinnedSearch,
+      pinnedSearch,
+    } = this.props;
+
+    evt.preventDefault();
+    evt.stopPropagation();
+
+    if (!defined(savedSearchType) || !hasPinnedSearch) {
+      return;
+    }
+
+    if (!!pinnedSearch) {
+      unpinSearch(api, organization.slug, savedSearchType, pinnedSearch);
+    } else {
+      pinSearch(api, organization.slug, savedSearchType, this.state.query);
+    }
+  };
+
   onKeyDown = evt => {
     const state = this.state;
     const searchItems = state.searchItems;
@@ -617,11 +661,21 @@ class SmartSearchBar extends React.Component {
             />
             <span className="icon-search" />
             {this.state.query !== '' && (
-              <div>
+              <React.Fragment>
+                {this.props.hasPinnedSearch && (
+                  <PinButton
+                    type="button"
+                    borderless
+                    size="zero"
+                    onClick={this.onTogglePinnedSearch}
+                  >
+                    <PinIcon isPinned={!!this.props.pinnedSearch} src="icon-pin" />
+                  </PinButton>
+                )}
                 <a className="search-clear-form" onClick={this.clearSearch}>
                   <span className="icon-circle-cross" />
                 </a>
-              </div>
+              </React.Fragment>
             )}
           </div>
 
@@ -671,6 +725,20 @@ const SmartSearchBarContainer = withApi(
     })
   )
 );
+
+const PinButton = styled(Button)`
+  margin-right: ${space(0.5)};
+  position: absolute;
+  right: 26px;
+  top: 10px;
+`;
+
+const PinIcon = styled(InlineSvg)`
+  fill: ${p => (p.isPinned ? p.theme.blueLight : p.theme.gray2)};
+  &:hover {
+    fill: ${p => p.theme.blueLight};
+  }
+`;
 
 const DropdownWrapper = styled('div')`
   display: ${p => (p.visible ? 'block' : 'none')};

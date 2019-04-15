@@ -2,6 +2,7 @@ from __future__ import absolute_import
 
 from rest_framework import serializers
 from rest_framework.response import Response
+from django.db.models import Q
 from django.utils import six
 
 from sentry.api.bases.organization import (
@@ -11,6 +12,9 @@ from sentry.api.bases.organization import (
 from sentry.api.serializers import serialize
 from sentry.models import SavedSearch
 from sentry.models.search_common import SearchType
+
+
+PINNED_SEARCH_NAME = 'My Pinned Search'
 
 
 class OrganizationSearchSerializer(serializers.Serializer):
@@ -35,6 +39,7 @@ class OrganizationPinnedSearchEndpoint(OrganizationEndpoint):
             result = serializer.object
             SavedSearch.objects.create_or_update(
                 organization=organization,
+                name=PINNED_SEARCH_NAME,
                 owner=request.user,
                 type=result['type'],
                 values={'query': result['query']},
@@ -44,6 +49,20 @@ class OrganizationPinnedSearchEndpoint(OrganizationEndpoint):
                 owner=request.user,
                 type=result['type'],
             )
+            try:
+                # If we pinned an existing search, return the details about that
+                # search.
+                existing_search = SavedSearch.objects.filter(
+                    Q(organization=organization, owner__isnull=True) | Q(is_global=True),
+                    type=result['type'],
+                    query=result['query'],
+                )[:1].get()
+            except SavedSearch.DoesNotExist:
+                pass
+            else:
+                pinned_search = existing_search
+                existing_search.is_pinned = True
+
             return Response(serialize(pinned_search, request.user), status=201)
         return Response(serializer.errors, status=400)
 

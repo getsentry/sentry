@@ -169,7 +169,7 @@ exports[`Sidebar SidebarDropdown can open Sidebar org/name dropdown menu 1`] = `
   }
 >
   <div
-    className="css-1ldvedv-OrgAndUserMenu-SidebarDropdownMenu e1fowdfw9"
+    className="css-1edm9sw-OrgAndUserMenu-SidebarDropdownMenu e1fowdfw9"
     onClick={[Function]}
     onMouseEnter={[Function]}
     onMouseLeave={[Function]}
@@ -1255,10 +1255,11 @@ exports[`Sidebar SidebarPanel can show Incidents in Sidebar Panel 1`] = `
               role="button"
               size="small"
             >
-              <Component
+              <ForwardRef
                 aria-disabled={false}
                 aria-label="Learn more"
                 className="css-dkprmi-StyledButton-getColors eqrebog0"
+                disabled={false}
                 external={true}
                 href="https://status.sentry.io"
                 onClick={[Function]}
@@ -1303,7 +1304,7 @@ exports[`Sidebar SidebarPanel can show Incidents in Sidebar Panel 1`] = `
                     </ButtonLabel>
                   </a>
                 </ExternalLink>
-              </Component>
+              </ForwardRef>
             </StyledButton>
           </Button>
         </div>
@@ -1323,11 +1324,11 @@ exports[`Sidebar can have onboarding feature 1`] = `
     collapsed={false}
   >
     <Component
-      className="css-1qwi75e-StyledSidebarPanel-getPositionForOrientation e1cvaskl0"
+      className="css-1k75klj-StyledSidebarPanel-getPositionForOrientation e1cvaskl0"
       collapsed={false}
     >
       <div
-        className="css-1qwi75e-StyledSidebarPanel-getPositionForOrientation e1cvaskl0"
+        className="css-1k75klj-StyledSidebarPanel-getPositionForOrientation e1cvaskl0"
       >
         <SidebarPanelHeader>
           <div
@@ -1750,7 +1751,7 @@ exports[`Sidebar renders without org and router 1`] = `
   org={null}
 >
   <div
-    className="css-1ldvedv-OrgAndUserMenu-SidebarDropdownMenu e1fowdfw9"
+    className="css-1edm9sw-OrgAndUserMenu-SidebarDropdownMenu e1fowdfw9"
     onClick={[Function]}
     onMouseEnter={[Function]}
     onMouseLeave={[Function]}

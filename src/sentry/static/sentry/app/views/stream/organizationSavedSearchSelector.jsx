@@ -8,7 +8,8 @@ import Access from 'app/components/acl/access';
 import Button from 'app/components/button';
 import Confirm from 'app/components/confirm';
 import MenuItem from 'app/components/menuItem';
-import DropdownLink from 'app/components/dropdownLink';
+import DropdownButton from 'app/components/dropdownButton';
+import DropdownMenu from 'app/components/dropdownMenu';
 import InlineSvg from 'app/components/inlineSvg';
 import SentryTypes from 'app/sentryTypes';
 import {TextField} from 'app/components/forms';
@@ -16,6 +17,7 @@ import space from 'app/styles/space';
 import withApi from 'app/utils/withApi';
 import {addLoadingMessage, clearIndicators} from 'app/actionCreators/indicator';
 import {createSavedSearch} from 'app/actionCreators/savedSearches';
+import overflowEllipsis from 'app/styles/overflowEllipsis';
 
 export default class OrganizationSavedSearchSelector extends React.Component {
   static propTypes = {
@@ -55,7 +57,7 @@ export default class OrganizationSavedSearchSelector extends React.Component {
 
     return savedSearchList.map(search => (
       <StyledMenuItem onSelect={() => onSavedSearchSelect(search)} key={search.id}>
-        {search.isPinned && <InlineSvg src={'icon-pin'} />}
+        {search.isPinned && <InlineSvg src="icon-pin" />}
         <SearchTitle>{search.name}</SearchTitle>
         <SearchQuery>{search.query}</SearchQuery>
         {search.isGlobal === false && (
@@ -69,10 +71,11 @@ export default class OrganizationSavedSearchSelector extends React.Component {
               message={t('Are you sure you want to delete this saved search?')}
               stopPropagation
             >
-              <Button
+              <DeleteButton
+                borderless
                 title={t('Delete this saved search')}
                 icon="icon-trash"
-                size="xsmall"
+                size="zero"
               />
             </Confirm>
           </Access>
@@ -86,25 +89,37 @@ export default class OrganizationSavedSearchSelector extends React.Component {
 
     return (
       <Container>
-        <div className="stream-dropdown">
-          <DropdownLink btnGroup={true} title={this.getTitle()}>
-            {this.renderList()}
-            <Access
-              organization={organization}
-              access={['org:write']}
-              renderNoAccessMessage={false}
-            >
-              <StyledMenuItem divider={true} />
-              <ButtonBar>
-                <SaveSearchButton
-                  query={query}
-                  organization={organization}
-                  onSave={onSavedSearchCreate}
-                />
-              </ButtonBar>
-            </Access>
-          </DropdownLink>
-        </div>
+        <DropdownMenu alwaysRenderMenu={true}>
+          {({isOpen, getMenuProps, getActorProps}) => {
+            return (
+              <React.Fragment>
+                <StyledDropdownButton
+                  {...getActorProps({isStyled: true})}
+                  isOpen={isOpen}
+                >
+                  <ButtonTitle>{this.getTitle()}</ButtonTitle>
+                </StyledDropdownButton>
+                <MenuContainer {...getMenuProps({isStyled: true})} isOpen={isOpen}>
+                  {this.renderList()}
+                  <Access
+                    organization={organization}
+                    access={['org:write']}
+                    renderNoAccessMessage={false}
+                  >
+                    <StyledMenuItem divider={true} />
+                    <ButtonBar>
+                      <SaveSearchButton
+                        query={query}
+                        organization={organization}
+                        onSave={onSavedSearchCreate}
+                      />
+                    </ButtonBar>
+                  </Access>
+                </MenuContainer>
+              </React.Fragment>
+            );
+          }}
+        </DropdownMenu>
       </Container>
     );
   }
@@ -162,10 +177,14 @@ const SaveSearchButton = withApi(
         });
     };
 
-    onToggle = () => {
+    onToggle = event => {
       this.setState({
         isModalOpen: !this.state.isModalOpen,
       });
+
+      if (event) {
+        event.stopPropagation();
+      }
     };
 
     handleChangeName = val => {
@@ -240,15 +259,46 @@ const SaveSearchButton = withApi(
 );
 
 const Container = styled.div`
-  & .dropdown-menu {
-    max-width: 350px;
-    min-width: 275px;
+  position: relative;
+  display: block;
+`;
+
+const StyledDropdownButton = styled(DropdownButton)`
+  border-right: 0;
+  z-index: ${p => p.theme.zIndex.dropdownAutocomplete.actor};
+  border-radius: ${p =>
+    p.isOpen
+      ? `${p.theme.borderRadius} 0 0 0`
+      : `${p.theme.borderRadius} 0 0 ${p.theme.borderRadius}`};
+  white-space: nowrap;
+  max-width: 200px;
+
+  &:hover,
+  &:active {
+    border-right: 0;
+  }
+
+  /* Hack but search input, and sort dropdown are not standard size buttons */
+  & > span {
+    padding: 11px 16px;
   }
 `;
 
+const ButtonTitle = styled.span`
+  ${overflowEllipsis}
+`;
+
 const SearchTitle = styled.strong`
-  display: block;
-  max-width: 100%;
+  color: ${p => p.theme.gray5};
+  padding: 0;
+  background: inherit;
+
+  &:after {
+    content: ' \u2022 ';
+  }
+`;
+
+const SearchQuery = styled.code`
   text-overflow: ellipsis;
   white-space: nowrap;
   overflow: hidden;
@@ -257,36 +307,63 @@ const SearchTitle = styled.strong`
   background: inherit;
 `;
 
-const SearchQuery = styled.code`
-  display: block;
-  max-width: 100%;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  overflow: hidden;
-  color: ${p => p.theme.gray5};
-  padding: 0;
-  background: inherit;
+const DeleteButton = styled(Button)`
+  color: ${p => p.theme.gray1};
+  background: ${p => p.theme.offWhite};
+  display: none;
+  position: absolute;
+
+  /* Rows are 20px tall */
+  top: 10px;
+  right: 10px;
+
+  &:hover {
+    color: ${p => p.theme.blueLight};
+  }
 `;
 
 const StyledMenuItem = styled(MenuItem)`
   position: relative;
+  border-bottom: 1px solid ${p => p.theme.borderLight};
+  font-size: ${p => p.theme.fontSizeMedium};
+  padding: 0;
+
+  &:focus ${DeleteButton}, &:hover ${DeleteButton} {
+    display: block;
+  }
+
+  &:last-child {
+    border-bottom: 0;
+  }
 
   & a {
-    /* override shared-components.less */
-    padding: ${space(0.25)} ${space(1)} !important;
-  }
-
-  & button {
-    display: none;
-  }
-
-  &:focus,
-  &:hover button {
     display: block;
-    position: absolute;
-    top: ${space(0.5)};
-    right: ${space(1)};
+    padding: ${space(1)} ${space(1.5)};
+
+    & :hover {
+      background: ${p => p.theme.offWhite};
+    }
   }
+`;
+
+const MenuContainer = styled.ul`
+  list-style: none;
+  width: 375px;
+
+  position: absolute;
+  /* Buttons are 38px tall, this has to be -1 to get button overlapping the menu */
+  top: 37px;
+  padding: 0;
+  margin: 0;
+  z-index: ${p => p.theme.zIndex.dropdownAutocomplete.menu};
+
+  background: ${p => p.theme.background};
+  border-radius: 0 0 ${p => p.theme.borderRadius} ${p => p.theme.borderRadius};
+  box-shadow: 0 1px 3px rgba(70, 82, 98, 0.25);
+  border: 1px solid ${p => p.theme.borderDark};
+  background-clip: padding-box;
+
+  display: ${p => (p.isOpen ? 'block' : 'none')};
 `;
 
 const EmptyItem = styled.li`

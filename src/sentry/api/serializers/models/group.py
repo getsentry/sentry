@@ -104,9 +104,9 @@ class GroupSerializerBase(Serializer):
         }
 
         # This is the user's default value for any projects that don't have
-        # the option value specifically recorded. (The default "all
-        # conversations" value is convention.)
-        global_default_workflow_option = options.get(None, UserOptionValue.all_conversations)
+        # the option value specifically recorded. (The default
+        # "participating_only" value is convention.)
+        global_default_workflow_option = options.get(None, UserOptionValue.participating_only)
 
         results = {}
         for project, groups in projects.items():
@@ -371,6 +371,7 @@ class GroupSerializerBase(Serializer):
             'status': status_label,
             'statusDetails': status_details,
             'isPublic': share_id is not None,
+            'platform': obj.platform,
             'project': {
                 'id': six.text_type(obj.project.id),
                 'name': obj.project.name,

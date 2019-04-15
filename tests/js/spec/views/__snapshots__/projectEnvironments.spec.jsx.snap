@@ -42,30 +42,7 @@ exports[`ProjectEnvironments render active renders empty message 1`] = `
       }
       title="Manage Environments"
     >
-      <Wrapper
-        tabs={
-          <NavTabs
-            underlined={true}
-          >
-            <ListLink
-              activeClassName="active"
-              index={true}
-              isActive={[Function]}
-              to="/org-slug/project-slug/settings/environments/"
-            >
-              Environments
-            </ListLink>
-            <ListLink
-              activeClassName="active"
-              index={true}
-              isActive={[Function]}
-              to="/org-slug/project-slug/settings/environments/hidden/"
-            >
-              Hidden
-            </ListLink>
-          </NavTabs>
-        }
-      >
+      <Wrapper>
         <div
           className="css-1r5ylk7-Wrapper e1kblvez2"
         >
@@ -460,30 +437,7 @@ exports[`ProjectEnvironments render active renders environment list and sets sta
       }
       title="Manage Environments"
     >
-      <Wrapper
-        tabs={
-          <NavTabs
-            underlined={true}
-          >
-            <ListLink
-              activeClassName="active"
-              index={true}
-              isActive={[Function]}
-              to="/org-slug/project-slug/settings/environments/"
-            >
-              Environments
-            </ListLink>
-            <ListLink
-              activeClassName="active"
-              index={true}
-              isActive={[Function]}
-              to="/org-slug/project-slug/settings/environments/hidden/"
-            >
-              Hidden
-            </ListLink>
-          </NavTabs>
-        }
-      >
+      <Wrapper>
         <div
           className="css-1r5ylk7-Wrapper e1kblvez2"
         >
@@ -980,10 +934,11 @@ exports[`ProjectEnvironments render active renders environment list and sets sta
                                     role="button"
                                     size="xsmall"
                                   >
-                                    <Component
+                                    <ForwardRef
                                       aria-disabled={false}
                                       aria-label="Set as default"
                                       className="ezuela50 css-fp1reu-StyledButton-getColors-EnvironmentButton eqrebog0"
+                                      disabled={false}
                                       onClick={[Function]}
                                       role="button"
                                       size="xsmall"
@@ -1011,7 +966,7 @@ exports[`ProjectEnvironments render active renders environment list and sets sta
                                           </Component>
                                         </ButtonLabel>
                                       </button>
-                                    </Component>
+                                    </ForwardRef>
                                   </StyledButton>
                                 </Button>
                               </EnvironmentButton>
@@ -1203,10 +1158,11 @@ exports[`ProjectEnvironments render active renders environment list and sets sta
                                     role="button"
                                     size="xsmall"
                                   >
-                                    <Component
+                                    <ForwardRef
                                       aria-disabled={false}
                                       aria-label="Set as default"
                                       className="ezuela50 css-fp1reu-StyledButton-getColors-EnvironmentButton eqrebog0"
+                                      disabled={false}
                                       onClick={[Function]}
                                       role="button"
                                       size="xsmall"
@@ -1234,7 +1190,7 @@ exports[`ProjectEnvironments render active renders environment list and sets sta
                                           </Component>
                                         </ButtonLabel>
                                       </button>
-                                    </Component>
+                                    </ForwardRef>
                                   </StyledButton>
                                 </Button>
                               </EnvironmentButton>
@@ -1258,10 +1214,11 @@ exports[`ProjectEnvironments render active renders environment list and sets sta
                                     role="button"
                                     size="xsmall"
                                   >
-                                    <Component
+                                    <ForwardRef
                                       aria-disabled={false}
                                       aria-label="Hide"
                                       className="ezuela50 css-fp1reu-StyledButton-getColors-EnvironmentButton eqrebog0"
+                                      disabled={false}
                                       onClick={[Function]}
                                       role="button"
                                       size="xsmall"
@@ -1289,7 +1246,7 @@ exports[`ProjectEnvironments render active renders environment list and sets sta
                                           </Component>
                                         </ButtonLabel>
                                       </button>
-                                    </Component>
+                                    </ForwardRef>
                                   </StyledButton>
                                 </Button>
                               </EnvironmentButton>
@@ -1513,10 +1470,11 @@ exports[`ProjectEnvironments render active renders environment list and sets sta
                                     role="button"
                                     size="xsmall"
                                   >
-                                    <Component
+                                    <ForwardRef
                                       aria-disabled={false}
                                       aria-label="Hide"
                                       className="ezuela50 css-fp1reu-StyledButton-getColors-EnvironmentButton eqrebog0"
+                                      disabled={false}
                                       onClick={[Function]}
                                       role="button"
                                       size="xsmall"
@@ -1544,7 +1502,7 @@ exports[`ProjectEnvironments render active renders environment list and sets sta
                                           </Component>
                                         </ButtonLabel>
                                       </button>
-                                    </Component>
+                                    </ForwardRef>
                                   </StyledButton>
                                 </Button>
                               </EnvironmentButton>
@@ -1607,30 +1565,7 @@ exports[`ProjectEnvironments render hidden renders empty message 1`] = `
       }
       title="Manage Environments"
     >
-      <Wrapper
-        tabs={
-          <NavTabs
-            underlined={true}
-          >
-            <ListLink
-              activeClassName="active"
-              index={true}
-              isActive={[Function]}
-              to="/org-slug/project-slug/settings/environments/"
-            >
-              Environments
-            </ListLink>
-            <ListLink
-              activeClassName="active"
-              index={true}
-              isActive={[Function]}
-              to="/org-slug/project-slug/settings/environments/hidden/"
-            >
-              Hidden
-            </ListLink>
-          </NavTabs>
-        }
-      >
+      <Wrapper>
         <div
           className="css-1r5ylk7-Wrapper e1kblvez2"
         >
@@ -2025,30 +1960,7 @@ exports[`ProjectEnvironments render hidden renders environment list 1`] = `
       }
       title="Manage Environments"
     >
-      <Wrapper
-        tabs={
-          <NavTabs
-            underlined={true}
-          >
-            <ListLink
-              activeClassName="active"
-              index={true}
-              isActive={[Function]}
-              to="/org-slug/project-slug/settings/environments/"
-            >
-              Environments
-            </ListLink>
-            <ListLink
-              activeClassName="active"
-              index={true}
-              isActive={[Function]}
-              to="/org-slug/project-slug/settings/environments/hidden/"
-            >
-              Hidden
-            </ListLink>
-          </NavTabs>
-        }
-      >
+      <Wrapper>
         <div
           className="css-1r5ylk7-Wrapper e1kblvez2"
         >
@@ -2550,10 +2462,11 @@ exports[`ProjectEnvironments render hidden renders environment list 1`] = `
                                     role="button"
                                     size="xsmall"
                                   >
-                                    <Component
+                                    <ForwardRef
                                       aria-disabled={false}
                                       aria-label="Show"
                                       className="ezuela50 css-fp1reu-StyledButton-getColors-EnvironmentButton eqrebog0"
+                                      disabled={false}
                                       onClick={[Function]}
                                       role="button"
                                       size="xsmall"
@@ -2581,7 +2494,7 @@ exports[`ProjectEnvironments render hidden renders environment list 1`] = `
                                           </Component>
                                         </ButtonLabel>
                                       </button>
-                                    </Component>
+                                    </ForwardRef>
                                   </StyledButton>
                                 </Button>
                               </EnvironmentButton>
