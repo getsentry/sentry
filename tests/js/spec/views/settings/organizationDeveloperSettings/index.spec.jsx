@@ -21,7 +21,7 @@ describe('Organization Developer Settings', function() {
     });
 
     const wrapper = mount(
-      <OrganizationDeveloperSettings params={{orgId: org.slug}} />,
+      <OrganizationDeveloperSettings params={{orgId: org.slug}} organization={org} />,
       routerContext
     );
 
@@ -38,7 +38,7 @@ describe('Organization Developer Settings', function() {
     });
 
     const wrapper = mount(
-      <OrganizationDeveloperSettings params={{orgId: org.slug}} />,
+      <OrganizationDeveloperSettings params={{orgId: org.slug}} organization={org} />,
       routerContext
     );
 
@@ -64,7 +64,7 @@ describe('Organization Developer Settings', function() {
         .simulate('click');
       await tick();
       wrapper.update();
-      expect(wrapper.state('applications')).toEqual([]);
+      expect(wrapper.text()).toMatch('No applications have been created yet');
     });
   });
 
@@ -75,7 +75,7 @@ describe('Organization Developer Settings', function() {
       body: [publishedSentryApp],
     });
     const wrapper = mount(
-      <OrganizationDeveloperSettings params={{orgId: org.slug}} />,
+      <OrganizationDeveloperSettings params={{orgId: org.slug}} organization={org} />,
       routerContext
     );
 
@@ -92,7 +92,10 @@ describe('Organization Developer Settings', function() {
       body: [sentryApp],
     });
     const wrapper = mount(
-      <OrganizationDeveloperSettings params={{orgId: newOrg.slug}} />,
+      <OrganizationDeveloperSettings
+        params={{orgId: newOrg.slug}}
+        organization={newOrg}
+      />,
       TestStubs.routerContext([{organization: newOrg}])
     );
 
