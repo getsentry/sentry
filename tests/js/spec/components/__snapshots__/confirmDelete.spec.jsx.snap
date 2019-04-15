@@ -256,10 +256,11 @@ exports[`ConfirmDelete renders 1`] = `
                 }
               }
             >
-              <Component
+              <ForwardRef
                 aria-disabled={false}
                 aria-label="Cancel"
                 className="css-cmo08-StyledButton-getColors eqrebog0"
+                disabled={false}
                 onClick={[Function]}
                 role="button"
                 style={
@@ -292,7 +293,7 @@ exports[`ConfirmDelete renders 1`] = `
                     </Component>
                   </ButtonLabel>
                 </button>
-              </Component>
+              </ForwardRef>
             </StyledButton>
           </Button>
           <Button
@@ -314,14 +315,16 @@ exports[`ConfirmDelete renders 1`] = `
               role="button"
               to={null}
             >
-              <Component
+              <ForwardRef
                 aria-disabled={true}
                 aria-label="Confirm"
                 autoFocus={true}
                 className="css-bo8dlg-StyledButton-getColors eqrebog0"
                 data-test-id="confirm-modal"
+                disabled={true}
                 href={null}
                 onClick={[Function]}
+                priority="primary"
                 role="button"
                 to={null}
               >
@@ -351,7 +354,7 @@ exports[`ConfirmDelete renders 1`] = `
                     </Component>
                   </ButtonLabel>
                 </button>
-              </Component>
+              </ForwardRef>
             </StyledButton>
           </Button>
         </div>

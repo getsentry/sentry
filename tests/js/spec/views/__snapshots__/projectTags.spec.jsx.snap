@@ -486,10 +486,11 @@ exports[`ProjectTags renders 1`] = `
                                               role="button"
                                               size="xsmall"
                                             >
-                                              <Component
+                                              <ForwardRef
                                                 aria-disabled={false}
                                                 className="css-dkprmi-StyledButton-getColors eqrebog0"
                                                 data-test-id="delete"
+                                                disabled={false}
                                                 onClick={[Function]}
                                                 role="button"
                                                 size="xsmall"
@@ -561,7 +562,7 @@ exports[`ProjectTags renders 1`] = `
                                                     </Component>
                                                   </ButtonLabel>
                                                 </button>
-                                              </Component>
+                                              </ForwardRef>
                                             </StyledButton>
                                           </Button>
                                         </a>
@@ -715,10 +716,11 @@ exports[`ProjectTags renders 1`] = `
                                               role="button"
                                               size="xsmall"
                                             >
-                                              <Component
+                                              <ForwardRef
                                                 aria-disabled={false}
                                                 className="css-dkprmi-StyledButton-getColors eqrebog0"
                                                 data-test-id="delete"
+                                                disabled={false}
                                                 onClick={[Function]}
                                                 role="button"
                                                 size="xsmall"
@@ -790,7 +792,7 @@ exports[`ProjectTags renders 1`] = `
                                                     </Component>
                                                   </ButtonLabel>
                                                 </button>
-                                              </Component>
+                                              </ForwardRef>
                                             </StyledButton>
                                           </Button>
                                         </a>
@@ -944,10 +946,11 @@ exports[`ProjectTags renders 1`] = `
                                               role="button"
                                               size="xsmall"
                                             >
-                                              <Component
+                                              <ForwardRef
                                                 aria-disabled={false}
                                                 className="css-dkprmi-StyledButton-getColors eqrebog0"
                                                 data-test-id="delete"
+                                                disabled={false}
                                                 onClick={[Function]}
                                                 role="button"
                                                 size="xsmall"
@@ -1019,7 +1022,7 @@ exports[`ProjectTags renders 1`] = `
                                                     </Component>
                                                   </ButtonLabel>
                                                 </button>
-                                              </Component>
+                                              </ForwardRef>
                                             </StyledButton>
                                           </Button>
                                         </a>
@@ -1176,10 +1179,11 @@ exports[`ProjectTags renders 1`] = `
                                               size="xsmall"
                                               to={null}
                                             >
-                                              <Component
+                                              <ForwardRef
                                                 aria-disabled={true}
                                                 className="css-1ujzp8g-StyledButton-getColors eqrebog0"
                                                 data-test-id="delete"
+                                                disabled={true}
                                                 href={null}
                                                 onClick={[Function]}
                                                 role="button"
@@ -1255,7 +1259,7 @@ exports[`ProjectTags renders 1`] = `
                                                     </Component>
                                                   </ButtonLabel>
                                                 </button>
-                                              </Component>
+                                              </ForwardRef>
                                             </StyledButton>
                                           </Button>
                                         </a>
@@ -1411,10 +1415,11 @@ exports[`ProjectTags renders 1`] = `
                                               size="xsmall"
                                               to={null}
                                             >
-                                              <Component
+                                              <ForwardRef
                                                 aria-disabled={true}
                                                 className="css-1ujzp8g-StyledButton-getColors eqrebog0"
                                                 data-test-id="delete"
+                                                disabled={true}
                                                 href={null}
                                                 onClick={[Function]}
                                                 role="button"
@@ -1490,7 +1495,7 @@ exports[`ProjectTags renders 1`] = `
                                                     </Component>
                                                   </ButtonLabel>
                                                 </button>
-                                              </Component>
+                                              </ForwardRef>
                                             </StyledButton>
                                           </Button>
                                         </a>
