@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+import sys
 import jsonschema
 import logging
 import six
@@ -104,8 +105,13 @@ def get_internal_source(project):
     """
     Returns the source configuration for a Sentry project.
     """
-    internal_url_prefix = options.get('system.internal-url-prefix') \
-        or options.get('system.url-prefix')
+    internal_url_prefix = options.get('system.internal-url-prefix')
+    if not internal_url_prefix:
+        internal_url_prefix = options.get('system.url-prefix')
+        if sys.platform == 'darwin':
+            internal_url_prefix = internal_url_prefix \
+                .replace("localhost", "host.docker.internal") \
+                .replace("127.0.0.1", "host.docker.internal")
 
     assert internal_url_prefix
     sentry_source_url = '%s%s' % (
