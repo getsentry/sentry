@@ -77,6 +77,11 @@ describe('groupEventDetails', () => {
       url: `/organizations/${org.slug}/sentry-app-installations/`,
       body: [],
     });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${org.slug}/sentry-app-components/?projectId=${project.id}`,
+      body: [],
+    });
   });
 
   afterEach(function() {
@@ -156,6 +161,30 @@ describe('groupEventDetails', () => {
   it('loads Sentry Apps when flagged in', () => {
     const request = MockApiClient.addMockResponse({
       url: '/sentry-apps/',
+      body: [],
+    });
+
+    org.features = ['sentry-apps'];
+    project.organization = org;
+
+    mount(
+      <GroupEventDetails
+        group={group}
+        project={project}
+        organization={org}
+        environments={[{id: '1', name: 'dev', displayName: 'Dev'}]}
+        params={{}}
+        location={{}}
+      />,
+      routerContext
+    );
+
+    expect(request).toHaveBeenCalledTimes(1);
+  });
+
+  it('loads sentry app components when flagged in', () => {
+    const request = MockApiClient.addMockResponse({
+      url: `/organizations/${org.slug}/sentry-app-components/?projectId=${project.id}`,
       body: [],
     });
 
