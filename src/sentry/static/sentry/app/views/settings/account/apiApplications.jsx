@@ -12,7 +12,7 @@ import {
   removeIndicator,
 } from 'app/actionCreators/indicator';
 import {t} from 'app/locale';
-import ApiMixin from 'app/mixins/apiMixin';
+import withApi from 'app/utils/withApi';
 import AsyncView from 'app/views/asyncView';
 import Button from 'app/components/button';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
@@ -26,11 +26,10 @@ const ApiApplicationRow = createReactClass({
   displayName: 'ApiApplicationRow',
 
   propTypes: {
+    api: PropTypes.object,
     app: PropTypes.object.isRequired,
     onRemove: PropTypes.func.isRequired,
   },
-
-  mixins: [ApiMixin],
 
   getInitialState() {
     return {
@@ -51,7 +50,7 @@ const ApiApplicationRow = createReactClass({
       },
       () => {
         const loadingIndicator = IndicatorStore.add(t('Saving changes..'));
-        this.api.request(`/api-applications/${app.id}/`, {
+        this.props.api.request(`/api-applications/${app.id}/`, {
           method: 'DELETE',
           success: data => {
             IndicatorStore.remove(loadingIndicator);
@@ -124,7 +123,7 @@ class ApiApplications extends AsyncView {
 
   handleCreateApplication = () => {
     const indicator = addLoadingMessage();
-    this.api.request('/api-applications/', {
+    this.props.api.request('/api-applications/', {
       method: 'POST',
       success: app => {
         addSuccessMessage(t('Created a new API Application'));
@@ -195,4 +194,6 @@ class ApiApplications extends AsyncView {
   }
 }
 
-export default ApiApplications;
+export {ApiApplications};
+
+export default withApi(ApiApplications);

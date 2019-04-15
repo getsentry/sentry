@@ -6,7 +6,7 @@ import Reflux from 'reflux';
 
 import {fetchTeamDetails} from 'app/actionCreators/teams';
 import {t} from 'app/locale';
-import ApiMixin from 'app/mixins/apiMixin';
+import withApi from 'app/utils/withApi';
 import IdBadge from 'app/components/idBadge';
 import ListLink from 'app/components/listLink';
 import LoadingError from 'app/components/loadingError';
@@ -19,10 +19,11 @@ const TeamDetails = createReactClass({
   displayName: 'TeamDetails',
 
   propTypes: {
+    api: PropTypes.object,
     routes: PropTypes.array,
   },
 
-  mixins: [ApiMixin, Reflux.listenTo(TeamStore, 'onTeamStoreUpdate')],
+  mixins: [Reflux.listenTo(TeamStore, 'onTeamStoreUpdate')],
 
   getInitialState() {
     const team = TeamStore.getBySlug(this.props.params.teamId);
@@ -62,7 +63,7 @@ const TeamDetails = createReactClass({
   },
 
   fetchData() {
-    fetchTeamDetails(this.api, this.props.params);
+    fetchTeamDetails(this.props.api, this.props.params);
   },
 
   onTeamChange(data) {
@@ -114,4 +115,6 @@ const TeamDetails = createReactClass({
   },
 });
 
-export default TeamDetails;
+export {TeamDetails};
+
+export default withApi(TeamDetails);

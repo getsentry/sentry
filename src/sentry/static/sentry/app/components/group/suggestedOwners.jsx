@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 import createReactClass from 'create-react-class';
 
@@ -6,7 +7,7 @@ import {openCreateOwnershipRule} from 'app/actionCreators/modal';
 import {t} from 'app/locale';
 import Access from 'app/components/acl/access';
 import ActorAvatar from 'app/components/actorAvatar';
-import ApiMixin from 'app/mixins/apiMixin';
+import withApi from 'app/utils/withApi';
 import Button from 'app/components/button';
 import OrganizationState from 'app/mixins/organizationState';
 import GuideAnchor from 'app/components/assistant/guideAnchor';
@@ -17,12 +18,13 @@ const SuggestedOwners = createReactClass({
   displayName: 'SuggestedOwners',
 
   propTypes: {
+    api: PropTypes.object,
     project: SentryTypes.Project,
     group: SentryTypes.Group,
     event: SentryTypes.Event,
   },
 
-  mixins: [ApiMixin, OrganizationState],
+  mixins: [OrganizationState],
 
   getInitialState() {
     return {
@@ -55,7 +57,7 @@ const SuggestedOwners = createReactClass({
     const org = this.getOrganization();
     const project = this.props.project;
 
-    this.api.request(
+    this.props.api.request(
       `/projects/${org.slug}/${project.slug}/events/${event.id}/committers/`,
       {
         success: (data, _, jqXHR) => {
@@ -70,19 +72,22 @@ const SuggestedOwners = createReactClass({
         },
       }
     );
-    this.api.request(`/projects/${org.slug}/${project.slug}/events/${event.id}/owners/`, {
-      success: (data, _, jqXHR) => {
-        this.setState({
-          owners: data.owners,
-          rules: data.rules,
-        });
-      },
-      error: error => {
-        this.setState({
-          owners: [],
-        });
-      },
-    });
+    this.props.api.request(
+      `/projects/${org.slug}/${project.slug}/events/${event.id}/owners/`,
+      {
+        success: (data, _, jqXHR) => {
+          this.setState({
+            owners: data.owners,
+            rules: data.rules,
+          });
+        },
+        error: error => {
+          this.setState({
+            owners: [],
+          });
+        },
+      }
+    );
   },
 
   assign(actor) {
@@ -204,7 +209,8 @@ const SuggestedOwners = createReactClass({
     );
   },
 });
-export default SuggestedOwners;
+export {SuggestedOwners};
+export default withApi(SuggestedOwners);
 
 /**
  * Given a list of rule objects returned from the API, locate the matching

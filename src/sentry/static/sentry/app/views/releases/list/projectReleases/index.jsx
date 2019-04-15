@@ -8,7 +8,7 @@ import qs from 'query-string';
 
 import {analytics} from 'app/utils/analytics';
 import SentryTypes from 'app/sentryTypes';
-import ApiMixin from 'app/mixins/apiMixin';
+import withApi from 'app/utils/withApi';
 import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import Pagination from 'app/components/pagination';
@@ -31,6 +31,7 @@ const ProjectReleases = createReactClass({
   displayName: 'ProjectReleases',
 
   propTypes: {
+    api: PropTypes.object,
     setProjectNavSection: PropTypes.func,
     environment: SentryTypes.Environment,
   },
@@ -39,8 +40,6 @@ const ProjectReleases = createReactClass({
     organization: SentryTypes.Organization,
     project: SentryTypes.Project,
   },
-
-  mixins: [ApiMixin],
 
   getInitialState() {
     const queryParams = this.props.location.query;
@@ -135,7 +134,7 @@ const ProjectReleases = createReactClass({
       delete query.environment;
     }
 
-    this.api.request(url, {
+    this.props.api.request(url, {
       query,
       success: (data, _, jqXHR) => {
         this.setState({
@@ -250,4 +249,4 @@ const ProjectReleases = createReactClass({
 });
 
 export {ProjectReleases}; // For tests
-export default withEnvironmentInQueryString(ProjectReleases);
+export default withApi(withEnvironmentInQueryString(ProjectReleases));

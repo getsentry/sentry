@@ -18,6 +18,7 @@ describe('groupEvents', function() {
   it('renders', function() {
     const component = shallow(
       <GroupEvents
+        api={new MockApiClient()}
         group={TestStubs.Group()}
         params={{orgId: 'orgId', projectId: 'projectId', groupId: '1'}}
         location={{query: {}}}
@@ -36,6 +37,7 @@ describe('groupEvents', function() {
   it('handles search', function() {
     const component = shallow(
       <GroupEvents
+        api={new MockApiClient()}
         group={TestStubs.Group()}
         params={{orgId: 'orgId', projectId: 'projectId', groupId: '1'}}
         location={{query: {}}}
@@ -69,6 +71,7 @@ describe('groupEvents', function() {
     beforeEach(function() {
       component = shallow(
         <GroupEvents
+          api={new MockApiClient()}
           group={TestStubs.Group()}
           params={{orgId: 'orgId', projectId: 'projectId', groupId: '1'}}
           location={{query: {}}}

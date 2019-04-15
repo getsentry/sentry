@@ -136,7 +136,7 @@ exports[`Stream render() displays the group list 1`] = `
         }
       />
       <Panel>
-        <StreamActions
+        <withApi(StreamActions)
           allResultsVisible={false}
           groupIds={
             Array [
@@ -144,7 +144,6 @@ exports[`Stream render() displays the group list 1`] = `
             ]
           }
           hasReleases={false}
-          latestRelease={null}
           onRealtimeChange={[Function]}
           onSelectStatsPeriod={[Function]}
           orgId="org-slug"
@@ -453,7 +452,7 @@ exports[`Stream toggles environment select all environments 1`] = `
         }
       />
       <Panel>
-        <StreamActions
+        <withApi(StreamActions)
           allResultsVisible={false}
           groupIds={
             Array [
@@ -461,7 +460,6 @@ exports[`Stream toggles environment select all environments 1`] = `
             ]
           }
           hasReleases={false}
-          latestRelease={null}
           onRealtimeChange={[Function]}
           onSelectStatsPeriod={[Function]}
           orgId="org-slug"

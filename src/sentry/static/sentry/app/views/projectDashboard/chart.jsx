@@ -4,7 +4,7 @@ import styled from 'react-emotion';
 import createReactClass from 'create-react-class';
 import moment from 'moment';
 import SentryTypes from 'app/sentryTypes';
-import ApiMixin from 'app/mixins/apiMixin';
+import withApi from 'app/utils/withApi';
 import BarChart from 'app/components/barChart';
 import DynamicWrapper from 'app/components/dynamicWrapper';
 import LoadingError from 'app/components/loadingError';
@@ -15,12 +15,13 @@ const ProjectChart = createReactClass({
   displayName: 'ProjectChart',
 
   propTypes: {
+    api: PropTypes.object,
     dateSince: PropTypes.number.isRequired,
     resolution: PropTypes.string.isRequired,
     environment: SentryTypes.Environment,
   },
 
-  mixins: [ApiMixin, ProjectState],
+  mixins: [ProjectState],
 
   getInitialState() {
     return {
@@ -78,7 +79,7 @@ const ProjectChart = createReactClass({
       statsQuery.environment = this.state.environment.name;
       releasesQuery.environment = this.state.environment.name;
     }
-    this.api.request(this.getStatsEndpoint(), {
+    this.props.api.request(this.getStatsEndpoint(), {
       query: statsQuery,
       success: data => {
         this.setState({
@@ -95,7 +96,7 @@ const ProjectChart = createReactClass({
       },
     });
 
-    this.api.request(this.getProjectReleasesEndpoint(), {
+    this.props.api.request(this.getProjectReleasesEndpoint(), {
       query: releasesQuery,
       success: (data, _, jqXHR) => {
         this.setState({
@@ -157,4 +158,6 @@ const StyledBarChart = styled(BarChart)`
   background: #fff;
 `;
 
-export default ProjectChart;
+export {ProjectChart};
+
+export default withApi(ProjectChart);

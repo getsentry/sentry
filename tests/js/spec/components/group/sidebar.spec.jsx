@@ -1,7 +1,7 @@
 import React from 'react';
 import {mount, shallow} from 'enzyme';
 
-import GroupSidebar from 'app/components/group/sidebar';
+import {GroupSidebar} from 'app/components/group/sidebar';
 
 describe('GroupSidebar', function() {
   let group = TestStubs.Group({tags: TestStubs.Tags()});
@@ -46,6 +46,7 @@ describe('GroupSidebar', function() {
 
     wrapper = mount(
       <GroupSidebar
+        api={new MockApiClient()}
         group={group}
         project={project}
         event={TestStubs.Event()}
@@ -91,6 +92,7 @@ describe('GroupSidebar', function() {
 
       wrapper = shallow(
         <GroupSidebar
+          api={new MockApiClient()}
           group={group}
           project={project}
           event={TestStubs.Event()}

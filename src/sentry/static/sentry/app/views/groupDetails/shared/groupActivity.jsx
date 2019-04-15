@@ -8,7 +8,7 @@ import {
   removeIndicator,
 } from 'app/actionCreators/indicator';
 import {t, tct, tn} from 'app/locale';
-import ApiMixin from 'app/mixins/apiMixin';
+import withApi from 'app/utils/withApi';
 import Avatar from 'app/components/avatar';
 import CommitLink from 'app/components/commitLink';
 import ConfigStore from 'app/stores/configStore';
@@ -213,11 +213,10 @@ const GroupActivity = createReactClass({
 
   // TODO(dcramer): only re-render on group/activity change
   propTypes: {
+    api: PropTypes.object,
     organization: SentryTypes.Organization.isRequired,
     group: SentryTypes.Group,
   },
-
-  mixins: [ApiMixin],
 
   onNoteDelete(item) {
     const {group} = this.props;
@@ -231,7 +230,7 @@ const GroupActivity = createReactClass({
 
     addLoadingMessage(t('Removing comment...'));
 
-    this.api.request('/issues/' + group.id + '/comments/' + item.id + '/', {
+    this.props.api.request('/issues/' + group.id + '/comments/' + item.id + '/', {
       method: 'DELETE',
       success: () => {
         removeIndicator();
@@ -327,4 +326,4 @@ const GroupActivity = createReactClass({
 });
 
 export {GroupActivity};
-export default withOrganization(GroupActivity);
+export default withApi(withOrganization(GroupActivity));

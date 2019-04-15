@@ -4,7 +4,6 @@ import {browserHistory} from 'react-router';
 import styled from 'react-emotion';
 
 import {analytics, amplitude} from 'app/utils/analytics';
-import ApiMixin from 'app/mixins/apiMixin';
 import CreateSampleEvent from 'app/components/createSampleEvent';
 import ProjectContext from 'app/views/projects/projectContext';
 import ProjectDocsContext from 'app/views/projectInstall/docsContext';
@@ -18,7 +17,6 @@ const Configure = createReactClass({
   contextTypes: {
     organization: SentryTypes.Organization,
   },
-  mixins: [ApiMixin],
 
   getInitialState() {
     return {

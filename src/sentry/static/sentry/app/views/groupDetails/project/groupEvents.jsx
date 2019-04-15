@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import {browserHistory} from 'react-router';
 import React from 'react';
 import createReactClass from 'create-react-class';
@@ -12,7 +13,7 @@ import {
 } from 'app/utils/queryString';
 import {setActiveEnvironmentName} from 'app/actionCreators/environments';
 import {t, tct} from 'app/locale';
-import ApiMixin from 'app/mixins/apiMixin';
+import withApi from 'app/utils/withApi';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
 import EventsTable from 'app/components/eventsTable/eventsTable';
 import LoadingError from 'app/components/loadingError';
@@ -27,11 +28,10 @@ const GroupEvents = createReactClass({
   displayName: 'GroupEvents',
 
   propTypes: {
+    api: PropTypes.object,
     group: SentryTypes.Group,
     environment: SentryTypes.Environment,
   },
-
-  mixins: [ApiMixin],
 
   getInitialState() {
     const queryParams = this.props.location.query;
@@ -127,7 +127,7 @@ const GroupEvents = createReactClass({
       delete query.environment;
     }
 
-    this.api.request(`/issues/${this.props.params.groupId}/events/`, {
+    this.props.api.request(`/issues/${this.props.params.groupId}/events/`, {
       query,
       method: 'GET',
       success: (data, _, jqXHR) => {
@@ -228,4 +228,4 @@ const GroupEvents = createReactClass({
 });
 
 export {GroupEvents}; // For tests
-export default withEnvironmentInQueryString(GroupEvents);
+export default withApi(withEnvironmentInQueryString(GroupEvents));

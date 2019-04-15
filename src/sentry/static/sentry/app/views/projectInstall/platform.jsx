@@ -7,7 +7,7 @@ import styled from 'react-emotion';
 
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
 import {t, tct} from 'app/locale';
-import ApiMixin from 'app/mixins/apiMixin';
+import withApi from 'app/utils/withApi';
 import Button from 'app/components/button';
 import Link from 'app/components/link';
 import LoadingError from 'app/components/loadingError';
@@ -21,14 +21,15 @@ const ProjectInstallPlatform = createReactClass({
   displayName: 'ProjectInstallPlatform',
 
   propTypes: {
+    api: PropTypes.object,
     organization: SentryTypes.Organization.isRequired,
     project: SentryTypes.Project.isRequired,
+
     // eslint-disable-next-line react/no-unused-prop-types
     platformData: PropTypes.object.isRequired,
+
     linkPath: PropTypes.func,
   },
-
-  mixins: [ApiMixin],
 
   getDefaultProps() {
     return {
@@ -90,7 +91,7 @@ const ProjectInstallPlatform = createReactClass({
 
   fetchData() {
     const {orgId, projectId, platform} = this.props.params;
-    this.api.request(`/projects/${orgId}/${projectId}/docs/${platform}/`, {
+    this.props.api.request(`/projects/${orgId}/${projectId}/docs/${platform}/`, {
       success: data => {
         this.setState({
           loading: false,
@@ -208,7 +209,7 @@ const ProjectInstallPlatform = createReactClass({
 });
 
 export {ProjectInstallPlatform};
-export default withOrganization(ProjectInstallPlatform);
+export default withApi(withOrganization(ProjectInstallPlatform));
 
 const DocumentationWrapper = styled('div')`
   p {

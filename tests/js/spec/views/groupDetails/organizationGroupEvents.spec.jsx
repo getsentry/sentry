@@ -3,7 +3,9 @@ import PropTypes from 'prop-types';
 import {shallow} from 'enzyme';
 import {browserHistory} from 'react-router';
 
-import OrgnanizationGroupEvents from 'app/views/groupDetails/organization/groupEvents';
+import {GroupEvents} from 'app/views/groupDetails/organization/groupEvents';
+
+const OrgnanizationGroupEvents = GroupEvents;
 
 describe('groupEvents', function() {
   let request;
@@ -19,6 +21,7 @@ describe('groupEvents', function() {
   it('renders', function() {
     const component = shallow(
       <OrgnanizationGroupEvents
+        api={new MockApiClient()}
         group={TestStubs.Group()}
         params={{orgId: 'orgId', projectId: 'projectId', groupId: '1'}}
         location={{query: {}}}
@@ -37,6 +40,7 @@ describe('groupEvents', function() {
   it('handles search', function() {
     const component = shallow(
       <OrgnanizationGroupEvents
+        api={new MockApiClient()}
         params={{orgId: 'orgId', projectId: 'projectId', groupId: '1'}}
         group={TestStubs.Group()}
         location={{query: {}}}
@@ -68,6 +72,7 @@ describe('groupEvents', function() {
   it('handles environment filtering', function() {
     shallow(
       <OrgnanizationGroupEvents
+        api={new MockApiClient()}
         params={{orgId: 'orgId', projectId: 'projectId', groupId: '1'}}
         group={TestStubs.Group()}
         location={{query: {environment: ['prod', 'staging']}}}

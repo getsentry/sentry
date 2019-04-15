@@ -1,11 +1,13 @@
+import {browserHistory} from 'react-router';
 import React from 'react';
-import {shallow, mount} from 'enzyme';
 
+import {shallow, mount} from 'enzyme';
 import {ProjectInstallPlatform} from 'app/views/projectInstall/platform';
 
 describe('ProjectInstallPlatform', function() {
   describe('render()', function() {
     const baseProps = {
+      api: new MockApiClient(),
       organization: TestStubs.Organization(),
       project: TestStubs.Project(),
       location: {query: {}},
@@ -64,28 +66,14 @@ describe('ProjectInstallPlatform', function() {
         body: {},
       });
 
-      const handleRedirectStub = jest.spyOn(
-        ProjectInstallPlatform.prototype,
-        'redirectToNeutralDocs'
-      );
-
-      // XXX(maxbittker) this is a hack to defeat the method auto binding so we
-      // can fully stub the method. It would not be neccessary with es6 class
-      // components and it relies on react internals so it's fragile
-      const index =
-        ProjectInstallPlatform.prototype.__reactAutoBindPairs.indexOf(
-          'redirectToNeutralDocs'
-        ) + 1;
-      ProjectInstallPlatform.prototype.__reactAutoBindPairs[index] = handleRedirectStub;
-
       mount(<ProjectInstallPlatform {...props} />, {
         organization: {id: '1337'},
       });
 
-      expect(handleRedirectStub).toHaveBeenCalledTimes(1);
+      expect(browserHistory.push).toHaveBeenCalledTimes(1);
     });
 
-    it('should render NotFound if no matching integration/platform', function() {
+    it('should render NotFound if no matching integration/platform', async function() {
       const props = {
         ...baseProps,
         params: {
@@ -94,8 +82,12 @@ describe('ProjectInstallPlatform', function() {
       };
 
       const wrapper = shallow(<ProjectInstallPlatform {...props} />, {
+        disableLifeCycleMethods: false,
         organization: {id: '1337'},
       });
+
+      await tick();
+      wrapper.update();
 
       expect(wrapper.find('NotFound')).toHaveLength(1);
     });
@@ -109,6 +101,7 @@ describe('ProjectInstallPlatform', function() {
       };
 
       const wrapper = shallow(<ProjectInstallPlatform {...props} />, {
+        disableLifeCycleMethods: false,
         organization: {id: '1337'},
       });
 

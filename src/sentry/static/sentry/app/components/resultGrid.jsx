@@ -4,7 +4,7 @@ import createReactClass from 'create-react-class';
 import $ from 'jquery';
 import {browserHistory} from 'react-router';
 
-import ApiMixin from 'app/mixins/apiMixin';
+import withApi from 'app/utils/withApi';
 import DropdownLink from 'app/components/dropdownLink';
 import MenuItem from 'app/components/menuItem';
 import Pagination from 'app/components/pagination';
@@ -142,6 +142,7 @@ const ResultGrid = createReactClass({
   displayName: 'ResultGrid',
 
   propTypes: {
+    api: PropTypes.object,
     columns: PropTypes.array,
     columnsForRow: PropTypes.func,
     defaultSort: PropTypes.string,
@@ -157,8 +158,6 @@ const ResultGrid = createReactClass({
     path: PropTypes.string,
     sortOptions: PropTypes.array,
   },
-
-  mixins: [ApiMixin],
 
   getDefaultProps() {
     return {
@@ -238,7 +237,7 @@ const ResultGrid = createReactClass({
       (this.props.location || {}).query || {}
     );
 
-    this.api.request(this.props.endpoint, {
+    this.props.api.request(this.props.endpoint, {
       method: this.props.method,
       data: queryParams,
       success: (data, _, jqXHR) => {
@@ -383,4 +382,6 @@ const ResultGrid = createReactClass({
   },
 });
 
-export default ResultGrid;
+export {ResultGrid};
+
+export default withApi(ResultGrid);

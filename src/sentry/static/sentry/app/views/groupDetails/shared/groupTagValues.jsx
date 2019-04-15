@@ -6,7 +6,7 @@ import createReactClass from 'create-react-class';
 
 import {isUrl, percent} from 'app/utils';
 import {t} from 'app/locale';
-import ApiMixin from 'app/mixins/apiMixin';
+import withApi from 'app/utils/withApi';
 import Avatar from 'app/components/avatar';
 import DeviceName from 'app/components/deviceName';
 import ExternalLink from 'app/components/externalLink';
@@ -21,11 +21,11 @@ const GroupTagValues = createReactClass({
   displayName: 'GroupTagValues',
 
   propTypes: {
+    api: PropTypes.object,
     organization: SentryTypes.Organization.isRequired,
     group: SentryTypes.Group.isRequired,
     query: PropTypes.object,
   },
-  mixins: [ApiMixin],
 
   getInitialState() {
     return {
@@ -57,13 +57,16 @@ const GroupTagValues = createReactClass({
     });
 
     const promises = [
-      this.api.requestPromise(`/issues/${params.groupId}/tags/${params.tagKey}/`, {
+      this.props.api.requestPromise(`/issues/${params.groupId}/tags/${params.tagKey}/`, {
         query,
       }),
-      this.api.requestPromise(`/issues/${params.groupId}/tags/${params.tagKey}/values/`, {
-        query,
-        includeAllArgs: true,
-      }),
+      this.props.api.requestPromise(
+        `/issues/${params.groupId}/tags/${params.tagKey}/values/`,
+        {
+          query,
+          includeAllArgs: true,
+        }
+      ),
     ];
 
     try {
@@ -194,4 +197,4 @@ const GroupTagValues = createReactClass({
 });
 
 export {GroupTagValues};
-export default withOrganization(GroupTagValues);
+export default withApi(withOrganization(GroupTagValues));

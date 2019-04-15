@@ -4,7 +4,7 @@ import createReactClass from 'create-react-class';
 import Reflux from 'reflux';
 import {Flex, Box} from 'grid-emotion';
 
-import ApiMixin from 'app/mixins/apiMixin';
+import withApi from 'app/utils/withApi';
 import IndicatorStore from 'app/stores/indicatorStore';
 import DropdownLink from 'app/components/dropdownLink';
 import SnoozeAction from 'app/components/issues/snoozeAction';
@@ -127,6 +127,7 @@ const CompactIssue = createReactClass({
   displayName: 'CompactIssue',
 
   propTypes: {
+    api: PropTypes.object,
     data: PropTypes.object,
     id: PropTypes.string,
     eventId: PropTypes.string,
@@ -135,7 +136,7 @@ const CompactIssue = createReactClass({
     organization: SentryTypes.Organization.isRequired,
   },
 
-  mixins: [ApiMixin, Reflux.listenTo(GroupStore, 'onGroupChange')],
+  mixins: [Reflux.listenTo(GroupStore, 'onGroupChange')],
 
   getInitialState() {
     return {
@@ -178,7 +179,7 @@ const CompactIssue = createReactClass({
     const issue = this.state.issue;
     const loadingIndicator = IndicatorStore.add(t('Saving changes..'));
 
-    this.api.bulkUpdate(
+    this.props.api.bulkUpdate(
       {
         orgId: this.props.organization.slug,
         projectId: issue.project.slug,
@@ -282,4 +283,4 @@ const CompactIssue = createReactClass({
 });
 
 export {CompactIssue};
-export default withOrganization(CompactIssue);
+export default withApi(withOrganization(CompactIssue));

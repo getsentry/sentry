@@ -9,7 +9,7 @@ import createReactClass from 'create-react-class';
 
 import {PageContent} from 'app/styles/organization';
 import {t} from 'app/locale';
-import ApiMixin from 'app/mixins/apiMixin';
+import withApi from 'app/utils/withApi';
 import Feature from 'app/components/acl/feature';
 import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
 import GroupStore from 'app/stores/groupStore';
@@ -25,10 +25,12 @@ const GroupDetails = createReactClass({
   displayName: 'GroupDetails',
 
   propTypes: {
+    api: PropTypes.object,
+
     // Provided in the project version of group details
     project: SentryTypes.Project,
-    organization: SentryTypes.Organization,
 
+    organization: SentryTypes.Organization,
     environments: PropTypes.arrayOf(PropTypes.string),
     enableSnuba: PropTypes.bool,
     showGlobalHeader: PropTypes.bool,
@@ -39,7 +41,7 @@ const GroupDetails = createReactClass({
     location: PropTypes.object,
   },
 
-  mixins: [ApiMixin, Reflux.listenTo(GroupStore, 'onGroupChange')],
+  mixins: [Reflux.listenTo(GroupStore, 'onGroupChange')],
 
   getDefaultProps() {
     return {
@@ -97,7 +99,7 @@ const GroupDetails = createReactClass({
       query.enable_snuba = '1';
     }
 
-    this.api.request(this.getGroupDetailsEndpoint(), {
+    this.props.api.request(this.getGroupDetailsEndpoint(), {
       query,
       success: data => {
         // TODO: Ideally, this would rebuild the route before parameter
@@ -273,4 +275,6 @@ const GroupDetails = createReactClass({
   },
 });
 
-export default GroupDetails;
+export {GroupDetails};
+
+export default withApi(GroupDetails);

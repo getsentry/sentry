@@ -80,6 +80,7 @@ describe('Configure should render correctly', function() {
 
   describe('render()', function() {
     const baseProps = {
+      api: new MockApiClient(),
       next: () => {},
       params: {
         projectId: 'project-slug',

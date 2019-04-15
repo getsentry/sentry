@@ -2,8 +2,6 @@ import styled from 'react-emotion';
 import React from 'react';
 import createReactClass from 'create-react-class';
 
-import ApiMixin from 'app/mixins/apiMixin';
-
 import BookmarkStar from 'app/components/bookmarkStar';
 import Link from 'app/components/link';
 import ProjectLabel from 'app/components/projectLabel';
@@ -17,8 +15,6 @@ const ProjectItem = createReactClass({
     project: SentryTypes.Project,
     organization: SentryTypes.Organization,
   },
-
-  mixins: [ApiMixin],
 
   getInitialState() {
     return {

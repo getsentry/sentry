@@ -5,7 +5,7 @@ import createReactClass from 'create-react-class';
 
 import {t} from 'app/locale';
 import Alert from 'app/components/alert';
-import ApiMixin from 'app/mixins/apiMixin';
+import withApi from 'app/utils/withApi';
 import Button from 'app/components/button';
 import ConfigStore from 'app/stores/configStore';
 import Form from 'app/views/settings/components/forms/form';
@@ -172,13 +172,12 @@ class SudoModal extends React.Component {
 
 const SudoModalContainer = createReactClass({
   displayName: 'SudoModalContainer',
-  mixins: [ApiMixin],
 
   render() {
     const user = ConfigStore.get('user');
-    return <SudoModal {...this.props} user={user} api={this.api} />;
+    return <SudoModal {...this.props} user={user} />;
   },
 });
 
-export default withRouter(SudoModalContainer);
+export default withApi(withRouter(SudoModalContainer));
 export {SudoModal};

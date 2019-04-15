@@ -9,7 +9,7 @@ import {loadEnvironments} from 'app/actionCreators/environments';
 import {fetchOrgMembers} from 'app/actionCreators/members';
 import {setActiveProject} from 'app/actionCreators/projects';
 import {t} from 'app/locale';
-import ApiMixin from 'app/mixins/apiMixin';
+import withApi from 'app/utils/withApi';
 import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import MemberListStore from 'app/stores/memberListStore';
@@ -36,10 +36,13 @@ const ProjectContext = createReactClass({
   displayName: 'ProjectContext',
 
   propTypes: {
+    api: PropTypes.object,
+
     /**
      * If true, this will not change `state.loading` during `fetchData` phase
      */
     skipReload: PropTypes.bool,
+
     projects: PropTypes.arrayOf(SentryTypes.Project),
     projectId: PropTypes.string,
     orgId: PropTypes.string,
@@ -51,7 +54,6 @@ const ProjectContext = createReactClass({
   },
 
   mixins: [
-    ApiMixin,
     Reflux.connect(MemberListStore, 'memberList'),
     Reflux.listenTo(ProjectsStore, 'onProjectChange'),
     OrganizationState,
@@ -161,9 +163,11 @@ const ProjectContext = createReactClass({
 
     if (activeProject && hasAccess) {
       setActiveProject(null);
-      const projectRequest = this.api.requestPromise(`/projects/${orgId}/${projectId}/`);
+      const projectRequest = this.props.api.requestPromise(
+        `/projects/${orgId}/${projectId}/`
+      );
 
-      const environmentRequest = this.api.requestPromise(
+      const environmentRequest = this.props.api.requestPromise(
         this.getEnvironmentListEndpoint()
       );
 
@@ -195,7 +199,7 @@ const ProjectContext = createReactClass({
         }
       );
 
-      fetchOrgMembers(this.api, orgId, activeProject.id);
+      fetchOrgMembers(this.props.api, orgId, activeProject.id);
     } else if (activeProject && !activeProject.isMember) {
       this.setState({
         loading: false,
@@ -204,7 +208,7 @@ const ProjectContext = createReactClass({
       });
     } else {
       // The request is a 404 or other error
-      this.api.request(`/projects/${orgId}/${projectId}/`, {
+      this.props.api.request(`/projects/${orgId}/${projectId}/`, {
         error: () => {
           this.setState({
             loading: false,
@@ -273,4 +277,4 @@ const ProjectContext = createReactClass({
 
 export {ProjectContext};
 
-export default withProjects(withRouter(ProjectContext));
+export default withApi(withProjects(withRouter(ProjectContext)));

@@ -3,7 +3,7 @@ import PropTypes from 'prop-types';
 
 import {shallow} from 'enzyme';
 
-import GroupMergedView from 'app/views/groupDetails/shared/groupMerged';
+import {GroupMergedView} from 'app/views/groupDetails/shared/groupMerged';
 import {Client} from 'app/api';
 import events from 'app-test/mocks/events';
 

@@ -7,7 +7,7 @@ import createReactClass from 'create-react-class';
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
 import {joinTeam, leaveTeam} from 'app/actionCreators/teams';
 import {t, tct, tn} from 'app/locale';
-import ApiMixin from 'app/mixins/apiMixin';
+import withApi from 'app/utils/withApi';
 import {PanelItem} from 'app/components/panels';
 import IdBadge from 'app/components/idBadge';
 
@@ -17,14 +17,13 @@ const AllTeamsRow = createReactClass({
   displayName: 'AllTeamsRow',
 
   propTypes: {
+    api: PropTypes.object,
     urlPrefix: PropTypes.string.isRequired,
     access: PropTypes.object.isRequired,
     organization: PropTypes.object.isRequired,
     team: PropTypes.object.isRequired,
     openMembership: PropTypes.bool.isRequired,
   },
-
-  mixins: [ApiMixin],
 
   getInitialState() {
     return {
@@ -41,7 +40,7 @@ const AllTeamsRow = createReactClass({
     });
 
     joinTeam(
-      this.api,
+      this.props.api,
       {
         orgId: organization.slug,
         teamId: team.slug,
@@ -81,7 +80,7 @@ const AllTeamsRow = createReactClass({
     });
 
     leaveTeam(
-      this.api,
+      this.props.api,
       {
         orgId: organization.slug,
         teamId: team.slug,
@@ -156,4 +155,6 @@ const AllTeamsRow = createReactClass({
   },
 });
 
-export default AllTeamsRow;
+export {AllTeamsRow};
+
+export default withApi(AllTeamsRow);

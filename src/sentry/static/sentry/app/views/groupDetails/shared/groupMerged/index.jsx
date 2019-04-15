@@ -4,7 +4,6 @@ import createReactClass from 'create-react-class';
 import queryString from 'query-string';
 
 import {t} from 'app/locale';
-import ApiMixin from 'app/mixins/apiMixin';
 import GroupingActions from 'app/actions/groupingActions';
 import GroupingStore from 'app/stores/groupingStore';
 import LoadingError from 'app/components/loadingError';
@@ -18,7 +17,7 @@ const GroupMergedView = createReactClass({
   propTypes: {
     project: SentryTypes.Project,
   },
-  mixins: [ApiMixin, Reflux.listenTo(GroupingStore, 'onGroupingUpdate')],
+  mixins: [Reflux.listenTo(GroupingStore, 'onGroupingUpdate')],
 
   getInitialState() {
     const queryParams = this.props.location.query;
@@ -81,11 +80,11 @@ const GroupMergedView = createReactClass({
     ]);
   },
 
-  handleCollapse(...args) {
+  handleCollapse() {
     GroupingActions.collapseFingerprints();
   },
 
-  handleUnmerge(...args) {
+  handleUnmerge() {
     GroupingActions.unmerge({
       groupId: this.props.params.groupId,
       loadingMessage: `${t('Unmerging events')}...`,
@@ -130,5 +129,7 @@ const GroupMergedView = createReactClass({
     );
   },
 });
+
+export {GroupMergedView};
 
 export default GroupMergedView;

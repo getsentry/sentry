@@ -1,8 +1,9 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 
 import createReactClass from 'create-react-class';
 
-import ApiMixin from 'app/mixins/apiMixin';
+import withApi from 'app/utils/withApi';
 import ProjectState from 'app/mixins/projectState';
 
 import LoadingError from 'app/components/loadingError';
@@ -10,7 +11,10 @@ import LoadingIndicator from 'app/components/loadingIndicator';
 
 const ProjectDocsContext = createReactClass({
   displayName: 'ProjectDocsContext',
-  mixins: [ApiMixin, ProjectState],
+  propTypes: {
+    api: PropTypes.object,
+  },
+  mixins: [ProjectState],
 
   getInitialState() {
     return {
@@ -32,7 +36,7 @@ const ProjectDocsContext = createReactClass({
     const orgId = org.slug;
     const projectId = this.context.project.slug;
 
-    this.api.request(`/projects/${orgId}/${projectId}/docs/`, {
+    this.props.api.request(`/projects/${orgId}/${projectId}/docs/`, {
       success: data => {
         this.setState({
           loading: false,
@@ -57,4 +61,6 @@ const ProjectDocsContext = createReactClass({
   },
 });
 
-export default ProjectDocsContext;
+export {ProjectDocsContext};
+
+export default withApi(ProjectDocsContext);

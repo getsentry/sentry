@@ -3,7 +3,6 @@ import React from 'react';
 import Reflux from 'reflux';
 import createReactClass from 'create-react-class';
 import SentryTypes from 'app/sentryTypes';
-import ApiMixin from 'app/mixins/apiMixin';
 import OrganizationEnvironmentsStore from 'app/stores/organizationEnvironmentsStore';
 import LatestContextStore from 'app/stores/latestContextStore';
 import GlobalSelectionStore from 'app/stores/globalSelectionStore';
@@ -27,7 +26,6 @@ const GroupReleaseStats = createReactClass({
   },
 
   mixins: [
-    ApiMixin,
     OrganizationState,
     Reflux.listenTo(LatestContextStore, 'onLatestContextChange'),
     Reflux.listenTo(GlobalSelectionStore, 'onGlobalSelectionChange'),

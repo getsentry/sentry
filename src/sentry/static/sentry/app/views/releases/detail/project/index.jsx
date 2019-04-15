@@ -4,7 +4,7 @@ import React from 'react';
 import createReactClass from 'create-react-class';
 import {browserHistory} from 'react-router';
 
-import ApiMixin from 'app/mixins/apiMixin';
+import withApi from 'app/utils/withApi';
 
 import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
@@ -19,6 +19,7 @@ const ProjectReleaseDetails = createReactClass({
   displayName: 'ProjectReleaseDetails',
 
   propTypes: {
+    api: PropTypes.object,
     setProjectNavSection: PropTypes.func,
     environment: SentryTypes.Environment,
   },
@@ -31,7 +32,7 @@ const ProjectReleaseDetails = createReactClass({
     release: PropTypes.object,
   },
 
-  mixins: [ApiMixin, ProjectState],
+  mixins: [ProjectState],
 
   getInitialState() {
     return {
@@ -85,7 +86,7 @@ const ProjectReleaseDetails = createReactClass({
     const {environment} = this.props;
     const query = environment ? {environment: environment.name} : {};
 
-    this.api.request(this.getReleaseDetailsEndpoint(), {
+    this.props.api.request(this.getReleaseDetailsEndpoint(), {
       query,
       success: data => {
         this.setState({
@@ -135,4 +136,6 @@ const ProjectReleaseDetails = createReactClass({
   },
 });
 
-export default withEnvironmentInQueryString(ProjectReleaseDetails);
+export {ProjectReleaseDetails};
+
+export default withApi(withEnvironmentInQueryString(ProjectReleaseDetails));

@@ -1,5 +1,5 @@
 import React from 'react';
-import {mount, shallow} from 'enzyme';
+import {mount} from 'enzyme';
 
 import NoteInput from 'app/components/activity/noteInput';
 import {Client} from 'app/api';
@@ -10,23 +10,18 @@ describe('NoteInput', function() {
   let spy;
 
   beforeAll(function() {
-    Client.addMockResponse({
+    spy = Client.addMockResponse({
       url: '/issues/groupId/comments/',
       method: 'POST',
     });
   });
 
   beforeEach(function() {
-    spy = jest.spyOn(Client.prototype, 'request');
-  });
-
-  afterEach(function() {
     spy.mockReset();
-    spy.mockRestore();
   });
 
   it('renders', function() {
-    const wrapper = shallow(
+    const wrapper = mount(
       <NoteInput group={{project: {}}} memberList={[]} sessionUser={{}} />,
       TestStubs.routerContext()
     );
@@ -58,7 +53,7 @@ describe('NoteInput', function() {
   });
 
   it('handles 401 error objects', async function() {
-    Client.addMockResponse({
+    spy = Client.addMockResponse({
       url: '/issues/groupId/comments/',
       method: 'POST',
       body: {detail: {message: '', code: 401, extra: ''}},
@@ -74,5 +69,6 @@ describe('NoteInput', function() {
     input.simulate('keyDown', {key: 'Enter', ctrlKey: true});
     wrapper.update();
     expect(wrapper.find('.activity-actions .error')).toHaveLength(1);
+    expect(spy).toHaveBeenCalled();
   });
 });
