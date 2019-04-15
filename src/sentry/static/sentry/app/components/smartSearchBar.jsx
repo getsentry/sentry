@@ -23,6 +23,7 @@ import SearchDropdown from 'app/views/stream/searchDropdown';
 import CreateSavedSearchButton from 'app/views/stream/createSavedSearchButton';
 import SentryTypes from 'app/sentryTypes';
 import space from 'app/styles/space';
+import Tooltip from 'app/components/tooltip';
 import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
 
@@ -674,14 +675,16 @@ class SmartSearchBar extends React.Component {
             {this.state.query !== '' && (
               <React.Fragment>
                 {this.props.hasPinnedSearch && (
-                  <PinButton
-                    type="button"
-                    borderless
-                    size="zero"
-                    onClick={this.onTogglePinnedSearch}
-                  >
-                    <PinIcon isPinned={!!this.props.pinnedSearch} src="icon-pin" />
-                  </PinButton>
+                  <Tooltip title={t('Pin this search')}>
+                    <PinButton
+                      type="button"
+                      borderless
+                      size="zero"
+                      onClick={this.onTogglePinnedSearch}
+                    >
+                      <PinIcon isPinned={!!this.props.pinnedSearch} src="icon-pin" />
+                    </PinButton>
+                  </Tooltip>
                 )}
                 <a className="search-clear-form" onClick={this.clearSearch}>
                   <span className="icon-circle-cross" />
