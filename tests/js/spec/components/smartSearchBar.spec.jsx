@@ -33,9 +33,8 @@ describe('removeSpace()', function() {
 });
 
 describe('SmartSearchBar', function() {
-  let options;
+  let options, organization, supportedTags;
   let environmentTagValuesMock;
-  let supportedTags;
   const tagValuesMock = jest.fn(() => Promise.resolve([]));
 
   beforeEach(function() {
@@ -43,9 +42,10 @@ describe('SmartSearchBar', function() {
     TagStore.onLoadTagsSuccess(TestStubs.Tags());
     tagValuesMock.mockClear();
     supportedTags = {};
+    organization = TestStubs.Organization({id: '123'});
 
     options = {
-      context: {organization: {id: '123'}},
+      context: {organization},
     };
 
     environmentTagValuesMock = MockApiClient.addMockResponse({
@@ -227,6 +227,7 @@ describe('SmartSearchBar', function() {
       const wrapper = mount(
         <SmartSearchBar
           onSearch={stubbedOnSearch}
+          organization={organization}
           orgId="123"
           projectId="456"
           query="is:unresolved"
@@ -245,6 +246,7 @@ describe('SmartSearchBar', function() {
     it('invokes onSearch() when search is cleared', async function() {
       jest.useRealTimers();
       const props = {
+        organization,
         orgId: '123',
         projectId: '456',
         query: 'is:unresolved',
@@ -266,6 +268,7 @@ describe('SmartSearchBar', function() {
       projectId: '456',
       query: '',
       defaultQuery: 'is:unresolved',
+      organization,
       supportedTags,
     };
     const wrapper = mount(<SmartSearchBar {...props} />, options);
@@ -281,6 +284,7 @@ describe('SmartSearchBar', function() {
         orgId: '123',
         projectId: '456',
         query: '',
+        organization,
         supportedTags,
       };
       const searchBar = mount(<SmartSearchBar {...props} />, options).instance();
@@ -295,6 +299,7 @@ describe('SmartSearchBar', function() {
         orgId: '123',
         projectId: '456',
         query: 'fu',
+        organization,
         supportedTags,
       };
       jest.useRealTimers();
@@ -313,6 +318,7 @@ describe('SmartSearchBar', function() {
         orgId: '123',
         projectId: '456',
         query: '!fu',
+        organization,
         supportedTags,
       };
       jest.useRealTimers();
@@ -331,6 +337,7 @@ describe('SmartSearchBar', function() {
         orgId: '123',
         projectId: '456',
         query: 'is:unresolved fu',
+        organization,
         supportedTags,
       };
       jest.useRealTimers();
@@ -352,6 +359,7 @@ describe('SmartSearchBar', function() {
         projectId: '456',
         query: 'environment:production',
         excludeEnvironment: true,
+        organization,
         supportedTags,
       };
       const searchBar = mount(<SmartSearchBar {...props} />, options).instance();
@@ -370,6 +378,7 @@ describe('SmartSearchBar', function() {
         orgId: '123',
         projectId: '456',
         query: 'timesSeen:',
+        organization,
         supportedTags,
       };
       const searchBar = mount(<SmartSearchBar {...props} />, options).instance();

@@ -4,7 +4,7 @@ import {mount} from 'enzyme';
 import OrganizationSavedSearchSelector from 'app/views/stream/organizationSavedSearchSelector';
 
 describe('OrganizationSavedSearchSelector', function() {
-  let wrapper, onCreate, onSelect, onDelete, organization, savedSearchList, createMock;
+  let wrapper, onCreate, onSelect, onDelete, organization, savedSearchList;
   beforeEach(function() {
     organization = TestStubs.Organization({access: ['org:write']});
     onSelect = jest.fn();
@@ -37,12 +37,6 @@ describe('OrganizationSavedSearchSelector', function() {
       />,
       TestStubs.routerContext()
     );
-
-    createMock = MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/searches/',
-      method: 'POST',
-      body: {id: '1', name: 'test', query: 'is:unresolved assigned:lyn@sentry.io'},
-    });
   });
 
   afterEach(function() {
@@ -131,39 +125,6 @@ describe('OrganizationSavedSearchSelector', function() {
 
       wrapper.find('Modal Button[priority="primary"]').simulate('click');
       expect(onDelete).toHaveBeenCalledWith(savedSearchList[1]);
-    });
-  });
-
-  describe('saves a search', function() {
-    it('clicking save search opens modal', function() {
-      wrapper.find('DropdownButton').simulate('click');
-      expect(wrapper.find('ModalDialog')).toHaveLength(0);
-      wrapper.find('Button[data-test-id="save-current-search"]').simulate('click');
-      expect(wrapper.find('ModalDialog')).toHaveLength(1);
-    });
-
-    it('saves a search', async function() {
-      wrapper.find('DropdownButton').simulate('click');
-      wrapper.find('Button[data-test-id="save-current-search"]').simulate('click');
-      wrapper.find('#id-name').simulate('change', {target: {value: 'test'}});
-      wrapper
-        .find('ModalDialog')
-        .find('Button[priority="primary"]')
-        .simulate('submit');
-
-      await tick();
-      expect(createMock).toHaveBeenCalled();
-      expect(onCreate).toHaveBeenCalled();
-    });
-
-    it('hides save search button if no access', function() {
-      const orgWithoutAccess = TestStubs.Organization({access: ['org:read']});
-
-      wrapper.setProps({organization: orgWithoutAccess});
-
-      const button = wrapper.find('SaveSearchButton');
-
-      expect(button).toHaveLength(0);
     });
   });
 });

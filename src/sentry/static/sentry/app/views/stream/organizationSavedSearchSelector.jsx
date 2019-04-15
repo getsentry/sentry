@@ -1,7 +1,6 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import styled from 'react-emotion';
-import Modal from 'react-bootstrap/lib/Modal';
 
 import {t} from 'app/locale';
 import Access from 'app/components/acl/access';
@@ -12,22 +11,17 @@ import DropdownButton from 'app/components/dropdownButton';
 import DropdownMenu from 'app/components/dropdownMenu';
 import InlineSvg from 'app/components/inlineSvg';
 import SentryTypes from 'app/sentryTypes';
-import {TextField} from 'app/components/forms';
 import space from 'app/styles/space';
-import withApi from 'app/utils/withApi';
-import {addLoadingMessage, clearIndicators} from 'app/actionCreators/indicator';
-import {createSavedSearch} from 'app/actionCreators/savedSearches';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 
 export default class OrganizationSavedSearchSelector extends React.Component {
   static propTypes = {
     organization: SentryTypes.Organization.isRequired,
     savedSearchList: PropTypes.array.isRequired,
-    onSavedSearchCreate: PropTypes.func.isRequired,
     onSavedSearchSelect: PropTypes.func.isRequired,
     onSavedSearchDelete: PropTypes.func.isRequired,
-    query: PropTypes.string.isRequired,
     searchId: PropTypes.string,
+    query: PropTypes.string,
   };
 
   getTitle() {
@@ -85,8 +79,6 @@ export default class OrganizationSavedSearchSelector extends React.Component {
   }
 
   render() {
-    const {organization, query, onSavedSearchCreate} = this.props;
-
     return (
       <Container>
         <DropdownMenu alwaysRenderMenu={true}>
@@ -101,20 +93,6 @@ export default class OrganizationSavedSearchSelector extends React.Component {
                 </StyledDropdownButton>
                 <MenuContainer {...getMenuProps({isStyled: true})} isOpen={isOpen}>
                   {this.renderList()}
-                  <Access
-                    organization={organization}
-                    access={['org:write']}
-                    renderNoAccessMessage={false}
-                  >
-                    <StyledMenuItem divider={true} />
-                    <ButtonBar>
-                      <SaveSearchButton
-                        query={query}
-                        organization={organization}
-                        onSave={onSavedSearchCreate}
-                      />
-                    </ButtonBar>
-                  </Access>
                 </MenuContainer>
               </React.Fragment>
             );
@@ -124,139 +102,6 @@ export default class OrganizationSavedSearchSelector extends React.Component {
     );
   }
 }
-
-const SaveSearchButton = withApi(
-  class SaveSearchButton extends React.Component {
-    static propTypes = {
-      api: PropTypes.object.isRequired,
-      query: PropTypes.string.isRequired,
-      organization: SentryTypes.Organization.isRequired,
-      onSave: PropTypes.func.isRequired,
-    };
-
-    constructor(props) {
-      super(props);
-      this.state = {
-        isModalOpen: false,
-        isSaving: false,
-        query: props.query,
-        name: '',
-        error: null,
-      };
-    }
-
-    onSubmit = e => {
-      const {api, organization, onSave} = this.props;
-
-      e.preventDefault();
-
-      this.setState({isSaving: true});
-
-      addLoadingMessage(t('Saving Changes'));
-
-      createSavedSearch(api, organization.slug, this.state.name, this.state.query)
-        .then(data => {
-          onSave(data);
-          this.onToggle();
-          this.setState({
-            error: null,
-            isSaving: false,
-          });
-          clearIndicators();
-        })
-        .catch(err => {
-          let error = t('Unable to save your changes.');
-          if (err.responseJSON && err.responseJSON.detail) {
-            error = err.responseJSON.detail;
-          }
-          this.setState({
-            error,
-            isSaving: false,
-          });
-          clearIndicators();
-        });
-    };
-
-    onToggle = event => {
-      this.setState({
-        isModalOpen: !this.state.isModalOpen,
-      });
-
-      if (event) {
-        event.stopPropagation();
-      }
-    };
-
-    handleChangeName = val => {
-      this.setState({name: val});
-    };
-
-    handleChangeQuery = val => {
-      this.setState({query: val});
-    };
-
-    render() {
-      const {isSaving, isModalOpen} = this.state;
-
-      return (
-        <React.Fragment>
-          <Button
-            size="xsmall"
-            onClick={this.onToggle}
-            data-test-id="save-current-search"
-          >
-            {t('Save Current Search')}
-          </Button>
-          <Modal show={isModalOpen} animation={false} onHide={this.onToggle}>
-            <form onSubmit={this.onSubmit}>
-              <div className="modal-header">
-                <h4>{t('Save Current Search')}</h4>
-              </div>
-
-              <div className="modal-body">
-                {this.state.error && (
-                  <div className="alert alert-error alert-block">{this.state.error}</div>
-                )}
-
-                <p>{t('All team members will now have access to this search.')}</p>
-                <TextField
-                  key="name"
-                  name="name"
-                  label={t('Name')}
-                  placeholder="e.g. My Search Results"
-                  required={true}
-                  onChange={this.handleChangeName}
-                />
-                <TextField
-                  key="query"
-                  name="query"
-                  label={t('Query')}
-                  value={this.props.query}
-                  required={true}
-                  onChange={this.handleChangeQuery}
-                />
-              </div>
-              <div className="modal-footer">
-                <Button
-                  priority="default"
-                  size="small"
-                  disabled={isSaving}
-                  onClick={this.onToggle}
-                  style={{marginRight: space(1)}}
-                >
-                  {t('Cancel')}
-                </Button>
-                <Button priority="primary" size="small" disabled={isSaving}>
-                  {t('Save')}
-                </Button>
-              </div>
-            </form>
-          </Modal>
-        </React.Fragment>
-      );
-    }
-  }
-);
 
 const Container = styled.div`
   position: relative;
@@ -369,16 +214,4 @@ const MenuContainer = styled.ul`
 const EmptyItem = styled.li`
   padding: 8px 10px 5px;
   font-style: italic;
-`;
-
-const ButtonBar = styled.li`
-  padding: ${space(0.5)} ${space(1)};
-  display: flex;
-  justify-content: space-between;
-
-  & a {
-    /* need to override .dropdown-menu li a in shared-components.less */
-    padding: 0 !important;
-    line-height: 1 !important;
-  }
 `;
