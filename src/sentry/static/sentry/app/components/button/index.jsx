@@ -198,6 +198,8 @@ const getColors = ({priority, disabled, borderless, theme}) => {
 };
 
 const StyledButton = styled(
+  // While props is the conventional name, we're using `prop` to trick
+  // eslint as using `props` results in unfixable 'missing proptypes` warnings.
   React.forwardRef((prop, ref) => {
     const forwardProps = pickBy(
       prop,
