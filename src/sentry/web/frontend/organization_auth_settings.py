@@ -119,6 +119,20 @@ class OrganizationAuthSettingsView(OrganizationView):
             organization.default_role = form.cleaned_data['default_role']
             organization.save()
 
+            if form.initial != form.cleaned_data:
+                changed_data = {}
+                for key, value in form.cleaned_data.items():
+                    if form.initial.get(key) != value:
+                        changed_data[key] = u'to {}'.format(value)
+
+                self.create_audit_entry(
+                    request,
+                    organization=organization,
+                    target_object=auth_provider.id,
+                    event=AuditLogEntryEvent.SSO_EDIT,
+                    data=changed_data,
+                )
+
         view = provider.get_configure_view()
         response = view(request, organization, auth_provider)
         if isinstance(response, HttpResponse):
