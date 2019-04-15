@@ -280,7 +280,8 @@ class AuditLogEntry(Model):
         elif self.event == AuditLogEntryEvent.SSO_DISABLE:
             return 'disabled sso (%s)' % (self.data['provider'], )
         elif self.event == AuditLogEntryEvent.SSO_EDIT:
-            return 'edited sso settings'
+            return 'edited sso settings: ' + (', '.join(u'{} {}'.format(k, v)
+                                                        for k, v in self.data.items()))
         elif self.event == AuditLogEntryEvent.SSO_IDENTITY_LINK:
             return 'linked their account to a new identity'
 
