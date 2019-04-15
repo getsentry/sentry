@@ -3,6 +3,7 @@
 exports[`Frame renderContext() should render context lines 1`] = `
 Array [
   <ContextLine
+    className="css-oxid1h-className"
     isActive={false}
     key="0"
     line={
@@ -13,6 +14,7 @@ Array [
     }
   />,
   <ContextLine
+    className="css-oxid1h-className"
     isActive={false}
     key="1"
     line={
@@ -23,6 +25,7 @@ Array [
     }
   />,
   <ContextLine
+    className="css-oxid1h-className"
     isActive={false}
     key="2"
     line={
