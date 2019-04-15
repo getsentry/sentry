@@ -6,7 +6,7 @@ import createReactClass from 'create-react-class';
 import {analytics} from 'app/utils/analytics';
 import {openModal} from 'app/actionCreators/modal';
 import {t} from 'app/locale';
-import ApiMixin from 'app/mixins/apiMixin';
+import withApi from 'app/utils/withApi';
 import Button from 'app/components/button';
 import DropdownLink from 'app/components/dropdownLink';
 import Feature from 'app/components/acl/feature';
@@ -110,11 +110,12 @@ const GroupDetailsActions = createReactClass({
   displayName: 'GroupDetailsActions',
 
   propTypes: {
+    api: PropTypes.object,
     group: SentryTypes.Group.isRequired,
     project: SentryTypes.Project,
   },
 
-  mixins: [ApiMixin, OrganizationState],
+  mixins: [OrganizationState],
 
   getInitialState() {
     return {ignoreModal: null, shareBusy: false};
@@ -138,7 +139,7 @@ const GroupDetailsActions = createReactClass({
     const org = this.getOrganization();
     const loadingIndicator = IndicatorStore.add(t('Delete event..'));
 
-    this.api.bulkDelete(
+    this.props.api.bulkDelete(
       {
         orgId: org.slug,
         projectId: project.slug,
@@ -159,7 +160,7 @@ const GroupDetailsActions = createReactClass({
     const org = this.getOrganization();
     const loadingIndicator = IndicatorStore.add(t('Saving changes..'));
 
-    this.api.bulkUpdate(
+    this.props.api.bulkUpdate(
       {
         orgId: org.slug,
         projectId: project.slug,
@@ -180,7 +181,7 @@ const GroupDetailsActions = createReactClass({
     this.setState({shareBusy: true});
 
     // not sure why this is a bulkUpdate
-    this.api.bulkUpdate(
+    this.props.api.bulkUpdate(
       {
         orgId: org.slug,
         projectId: project.slug,
@@ -216,7 +217,7 @@ const GroupDetailsActions = createReactClass({
 
     GroupActions.discard(id, group.id);
 
-    this.api.request(`/issues/${group.id}/`, {
+    this.props.api.request(`/issues/${group.id}/`, {
       method: 'PUT',
       data: {discard: true},
       success: response => {
@@ -293,4 +294,6 @@ const GroupDetailsActions = createReactClass({
   },
 });
 
-export default GroupDetailsActions;
+export {GroupDetailsActions};
+
+export default withApi(GroupDetailsActions);

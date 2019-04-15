@@ -1,10 +1,10 @@
 import React from 'react';
 import styled, {css} from 'react-emotion';
 
+import {addErrorMessage} from 'app/actionCreators/indicator';
+import {addTeamToProject, removeTeamFromProject} from 'app/actionCreators/projects';
 import {getOrganizationState} from 'app/mixins/organizationState';
 import {openCreateTeamModal} from 'app/actionCreators/modal';
-import {removeTeamFromProject, addTeamToProject} from 'app/actionCreators/projects';
-import {addErrorMessage} from 'app/actionCreators/indicator';
 import {t} from 'app/locale';
 import AsyncView from 'app/views/asyncView';
 import Link from 'app/components/link';

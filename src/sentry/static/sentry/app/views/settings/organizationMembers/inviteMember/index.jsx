@@ -7,7 +7,7 @@ import * as Sentry from '@sentry/browser';
 
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
 import {t, tct} from 'app/locale';
-import ApiMixin from 'app/mixins/apiMixin';
+import withApi from 'app/utils/withApi';
 import Button from 'app/components/button';
 import ConfigStore from 'app/stores/configStore';
 import LoadingIndicator from 'app/components/loadingIndicator';
@@ -51,9 +51,10 @@ const STATIC_ROLE_LIST = [
 const InviteMember = createReactClass({
   displayName: 'InviteMember',
   propTypes: {
+    api: PropTypes.object,
     router: PropTypes.object,
   },
-  mixins: [ApiMixin, OrganizationState],
+  mixins: [OrganizationState],
 
   getInitialState() {
     const {teams} = this.getOrganization();
@@ -76,7 +77,7 @@ const InviteMember = createReactClass({
     const {slug} = this.getOrganization();
     const {isSuperuser} = ConfigStore.get('user');
 
-    this.api.request(`/organizations/${slug}/members/me/`, {
+    this.props.api.request(`/organizations/${slug}/members/me/`, {
       method: 'GET',
       success: resp => {
         const {roles} = resp || {};
@@ -143,7 +144,7 @@ const InviteMember = createReactClass({
     const {selectedTeams, selectedRole} = this.state;
 
     return new Promise((resolve, reject) => {
-      this.api.request(`/organizations/${slug}/members/`, {
+      this.props.api.request(`/organizations/${slug}/members/`, {
         method: 'POST',
         data: {
           email,
@@ -273,4 +274,4 @@ const InviteMember = createReactClass({
 });
 
 export {InviteMember};
-export default withRouter(InviteMember);
+export default withApi(withRouter(InviteMember));

@@ -4,7 +4,7 @@ import createReactClass from 'create-react-class';
 import PropTypes from 'prop-types';
 import DocumentTitle from 'react-document-title';
 
-import ApiMixin from 'app/mixins/apiMixin';
+import withApi from 'app/utils/withApi';
 import OrganizationState from 'app/mixins/organizationState';
 
 import LazyLoad from 'app/components/lazyLoad';
@@ -12,9 +12,10 @@ import LazyLoad from 'app/components/lazyLoad';
 const OrganizationStatsContainer = createReactClass({
   displayName: 'OrganizationStatsContainer ',
   propTypes: {
+    api: PropTypes.object,
     routes: PropTypes.array,
   },
-  mixins: [ApiMixin, OrganizationState],
+  mixins: [OrganizationState],
 
   getInitialState() {
     const until = Math.floor(new Date().getTime() / 1000);
@@ -82,7 +83,7 @@ const OrganizationStatsContainer = createReactClass({
   },
 
   fetchProjectData() {
-    this.api.request(this.getOrganizationProjectsEndpoint(), {
+    this.props.api.request(this.getOrganizationProjectsEndpoint(), {
       query: this.props.location.query,
       success: (data, textStatus, jqxhr) => {
         const projectMap = {};
@@ -119,7 +120,7 @@ const OrganizationStatsContainer = createReactClass({
     const statEndpoint = this.getOrganizationStatsEndpoint();
 
     $.each(this.state.rawOrgData, statName => {
-      this.api.request(statEndpoint, {
+      this.props.api.request(statEndpoint, {
         query: {
           since: this.state.querySince,
           until: this.state.queryUntil,
@@ -146,7 +147,7 @@ const OrganizationStatsContainer = createReactClass({
     });
 
     $.each(this.state.rawProjectData, statName => {
-      this.api.request(statEndpoint, {
+      this.props.api.request(statEndpoint, {
         query: {
           since: this.state.querySince,
           until: this.state.queryUntil,
@@ -267,4 +268,6 @@ const OrganizationStatsContainer = createReactClass({
   },
 });
 
-export default OrganizationStatsContainer;
+export {OrganizationStatsContainer};
+
+export default withApi(OrganizationStatsContainer);

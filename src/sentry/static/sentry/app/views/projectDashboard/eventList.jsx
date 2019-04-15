@@ -5,7 +5,7 @@ import queryString from 'query-string';
 
 import {Panel, PanelHeader, PanelBody} from 'app/components/panels';
 import {t, tct} from 'app/locale';
-import ApiMixin from 'app/mixins/apiMixin';
+import withApi from 'app/utils/withApi';
 import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import SentryTypes from 'app/sentryTypes';
@@ -16,12 +16,11 @@ const EventList = createReactClass({
   displayName: 'EventList',
 
   propTypes: {
+    api: PropTypes.object,
     type: PropTypes.oneOf(['new', 'priority']).isRequired,
     environment: SentryTypes.Environment,
     dateSince: PropTypes.number,
   },
-
-  mixins: [ApiMixin],
 
   getInitialState() {
     return {
@@ -83,7 +82,7 @@ const EventList = createReactClass({
     const endpoint = this.getEndpoint();
     const minutes = this.getMinutes();
 
-    this.api.request(endpoint, {
+    this.props.api.request(endpoint, {
       query: {
         limit: 5,
         minutes,
@@ -152,4 +151,6 @@ const EventList = createReactClass({
   },
 });
 
-export default EventList;
+export {EventList};
+
+export default withApi(EventList);

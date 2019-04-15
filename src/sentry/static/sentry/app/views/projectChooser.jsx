@@ -10,7 +10,7 @@ import Link from 'app/components/link';
 import OrganizationState from 'app/mixins/organizationState';
 import {sortProjects} from 'app/utils';
 import theme from 'app/utils/theme';
-import TodoList from 'app/components/onboardingWizard/todos';
+import {TASKS} from 'app/components/onboardingWizard/todos';
 import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import ProjectLabel from 'app/components/projectLabel';
@@ -36,7 +36,7 @@ const ProjectChooser = createReactClass({
   redirectNoMultipleProjects() {
     const org = this.getOrganization();
     const projects = org.projects;
-    const tasks = TodoList.TASKS.filter(
+    const tasks = TASKS.filter(
       task_inst => task_inst.task === this.props.location.query.task
     );
 
@@ -50,7 +50,7 @@ const ProjectChooser = createReactClass({
 
   render() {
     const org = this.getOrganization();
-    const task = TodoList.TASKS.filter(
+    const task = TASKS.filter(
       task_inst => task_inst.task == this.props.location.query.task
     )[0];
 

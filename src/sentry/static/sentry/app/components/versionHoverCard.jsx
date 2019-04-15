@@ -16,18 +16,17 @@ import Hovercard from 'app/components/hovercard';
 import {getShortVersion} from 'app/utils';
 import {t, tct} from 'app/locale';
 
-import ApiMixin from 'app/mixins/apiMixin';
+import withApi from 'app/utils/withApi';
 
 const VersionHoverCard = createReactClass({
   displayName: 'VersionHoverCard',
 
   propTypes: {
+    api: PropTypes.object,
     version: PropTypes.string.isRequired,
     orgId: PropTypes.string.isRequired,
     projectId: PropTypes.string.isRequired,
   },
-
-  mixins: [ApiMixin],
 
   getInitialState() {
     return {
@@ -54,7 +53,7 @@ const VersionHoverCard = createReactClass({
     const releasePath = `/projects/${orgId}/${projectId}/releases/${encodeURIComponent(
       version
     )}/`;
-    this.api.request(releasePath, {
+    this.props.api.request(releasePath, {
       method: 'GET',
       success: data => {
         this.setState({
@@ -71,7 +70,7 @@ const VersionHoverCard = createReactClass({
 
     // repos
     const repoPath = `/organizations/${orgId}/repos/`;
-    this.api.request(repoPath, {
+    this.props.api.request(repoPath, {
       method: 'GET',
       success: data => {
         this.setState({
@@ -90,7 +89,7 @@ const VersionHoverCard = createReactClass({
     const deployPath = `/organizations/${orgId}/releases/${encodeURIComponent(
       version
     )}/deploys/`;
-    this.api.request(deployPath, {
+    this.props.api.request(deployPath, {
       method: 'GET',
       success: data => {
         this.setState({
@@ -248,4 +247,6 @@ const VersionHoverCard = createReactClass({
   },
 });
 
-export default VersionHoverCard;
+export {VersionHoverCard};
+
+export default withApi(VersionHoverCard);

@@ -3,7 +3,7 @@ import React from 'react';
 import styled from 'react-emotion';
 import createReactClass from 'create-react-class';
 import {Link} from 'react-router';
-import ApiMixin from 'app/mixins/apiMixin';
+import withApi from 'app/utils/withApi';
 import {fetchOrgMembers} from 'app/actionCreators/members';
 import AssigneeSelector from 'app/components/assigneeSelector';
 import Count from 'app/components/count';
@@ -26,6 +26,7 @@ const GroupHeader = createReactClass({
   displayName: 'GroupHeader',
 
   propTypes: {
+    api: PropTypes.object,
     group: SentryTypes.Group.isRequired,
     project: SentryTypes.Project,
     params: PropTypes.object,
@@ -36,7 +37,7 @@ const GroupHeader = createReactClass({
     organization: SentryTypes.Organization,
   },
 
-  mixins: [ApiMixin, OrganizationState],
+  mixins: [OrganizationState],
 
   getInitialState() {
     return {memberList: null};
@@ -46,7 +47,7 @@ const GroupHeader = createReactClass({
     const {organization} = this.context;
     const {project} = this.props.group;
 
-    fetchOrgMembers(this.api, organization.slug, project.id).then(memberList => {
+    fetchOrgMembers(this.props.api, organization.slug, project.id).then(memberList => {
       const users = memberList.map(member => member.user);
       this.setState({memberList: users});
     });
@@ -57,7 +58,7 @@ const GroupHeader = createReactClass({
     const org = this.context.organization;
     const loadingIndicator = IndicatorStore.add(t('Saving changes..'));
 
-    this.api.bulkUpdate(
+    this.props.api.bulkUpdate(
       {
         orgId: org.slug,
         projectId: group.project.slug,
@@ -267,4 +268,6 @@ const StyledProjectBadge = styled(ProjectBadge)`
   flex-shrink: 0;
 `;
 
-export default GroupHeader;
+export {GroupHeader};
+
+export default withApi(GroupHeader);
