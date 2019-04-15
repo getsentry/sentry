@@ -1,9 +1,9 @@
 ---
-created: '2019-04-02T14:12:17.205926Z'
+created: '2019-04-15T09:43:15.764548Z'
 creator: sentry
 source: tests/symbolicator/test_native_plugin.py
 ---
-culprit: main
+contexts: null
 debug_meta:
   images:
   - arch: x86_64
@@ -36,32 +36,5 @@ exception:
         package: Foo.app/Contents/Foo
     type: Fail
     value: fail
-fingerprint:
-- '{{ default }}'
-grouping_config:
-  id: legacy:2019-03-12
-hashes:
-- 6e2889ec15f82569f56fdba9ffc9b90b
-level: error
-location: hello.c
-logger: ''
-metadata:
-  filename: hello.c
-  function: main
-  type: Fail
-  value: fail
-platform: cocoa
-sdk:
-  name: _postWithHeader
-  version: 0.0.0
-tags:
-- - level
-  - error
-- - sentry:user
-  - ip:127.0.0.1
-title: 'Fail: fail'
-type: error
-use_rust_normalize: true
-user:
-  ip_address: 127.0.0.1
-version: '6'
+stacktrace: null
+threads: null
