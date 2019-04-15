@@ -9,9 +9,10 @@ try:
 except ImportError:
     from django.http import HttpResponse, StreamingHttpResponse
 
+from sentry import options
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
-from sentry.models import Event
+from sentry.models import Event, SnubaEvent
 from sentry.lang.native.applecrashreport import AppleCrashReport
 from sentry.utils.safe import get_path
 
@@ -28,7 +29,12 @@ class EventAppleCrashReportEndpoint(ProjectEndpoint):
         or the event ID that is reported by the client upon submission.
         This works only if the event.platform == cocoa
         """
-        event = Event.objects.from_event_id(event_id, project_id=project.id)
+
+        use_snuba = options.get('snuba.events-queries.enabled')
+
+        event_cls = event_cls = SnubaEvent if use_snuba else Event
+
+        event = event_cls.objects.from_event_id(event_id, project_id=project.id)
         if event is None:
             raise ResourceDoesNotExist
 
