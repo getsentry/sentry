@@ -1,5 +1,8 @@
 import PropTypes from 'prop-types';
 import React from 'react';
+import styled from 'react-emotion';
+
+import overflowEllipsis from 'app/styles/overflowEllipsis';
 
 class Category extends React.Component {
   static propTypes = {
@@ -22,12 +25,18 @@ class Category extends React.Component {
     } else {
       title = value;
     }
-    return (
-      <span className="crumb-category" title={title}>
-        {title}
-      </span>
-    );
+    return <CrumbCategory title={title}>{title}</CrumbCategory>;
   }
 }
 
 export default Category;
+
+const CrumbCategory = styled('span')`
+  font-size: 95%;
+  font-weight: bold;
+  text-transform: none;
+  padding-right: 10px;
+  color: ${p => p.theme.gray5};
+
+  ${overflowEllipsis}
+`;
