@@ -416,10 +416,11 @@ class NativeStacktraceProcessor(StacktraceProcessor):
             new_frame['function'] = sfrm['function']
             if sfrm.get('symbol'):
                 new_frame['symbol'] = sfrm['symbol']
-            new_frame['abs_path'] = sfrm['abs_path']
-            new_frame['filename'] = sfrm.get('filename') or \
-                (sfrm['abs_path'] and posixpath.basename(sfrm['abs_path'])) or \
-                None
+            if sfrm.get('abs_path'):
+                new_frame['abs_path'] = sfrm['abs_path']
+                new_frame['filename'] = posixpath.basename(sfrm['abs_path'])
+            if sfrm.get('filename'):
+                new_frame['filename'] = sfrm['filename']
             if sfrm.get('lineno'):
                 new_frame['lineno'] = sfrm['lineno']
             if sfrm.get('colno'):
