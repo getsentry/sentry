@@ -25,17 +25,21 @@ const withSavedSearches = WrappedComponent =>
       return (
         <Feature features={['org-saved-searches']}>
           {({hasFeature}) => {
-            const {params} = this.props;
+            const {params, location} = this.props;
             const {searchId} = params;
             const {savedSearches, isLoading} = this.state;
             let savedSearch = null;
+
             // Switch to the current saved search or pinned result if available
             if (!isLoading && savedSearches) {
               if (searchId) {
                 const match = savedSearches.find(search => search.id === searchId);
                 savedSearch = match ? match : null;
               }
-              if (hasFeature && !savedSearch) {
+
+              // If there's no direct saved search being requested (via URL route)
+              // *AND* there's no query in URL, then check if there is pinned search
+              if (hasFeature && !savedSearch && !location.query.query) {
                 const pin = savedSearches.find(search => search.isPinned);
                 savedSearch = pin ? pin : null;
               }
