@@ -4,6 +4,8 @@ import styled from 'react-emotion';
 import createReactClass from 'create-react-class';
 import {Link} from 'react-router';
 import withApi from 'app/utils/withApi';
+import {omit} from 'lodash';
+import qs from 'query-string';
 import {fetchOrgMembers} from 'app/actionCreators/members';
 import AssigneeSelector from 'app/components/assigneeSelector';
 import Count from 'app/components/count';
@@ -119,6 +121,8 @@ const GroupHeader = createReactClass({
     const baseUrl = params.projectId
       ? `/${orgId}/${params.projectId}/issues/`
       : `/organizations/${orgId}/issues/`;
+
+    const searchTermWithoutQuery = qs.stringify(omit(location.query, 'query'));
 
     return (
       <div className={className}>
@@ -239,7 +243,7 @@ const GroupHeader = createReactClass({
             {t('Tags')}
           </ListLink>
           <ListLink
-            to={`${baseUrl}${groupId}/events/${location.search}`}
+            to={`${baseUrl}${groupId}/events/${searchTermWithoutQuery}`}
             isActive={() => location.pathname.includes('/events/')}
           >
             {t('Events')}
