@@ -2,6 +2,8 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
 
+import overflowEllipsis from 'app/styles/overflowEllipsis';
+
 class Category extends React.Component {
   static propTypes = {
     value: PropTypes.string,
@@ -35,4 +37,6 @@ const CrumbCategory = styled('span')`
   text-transform: none;
   padding-right: 10px;
   color: ${p => p.theme.gray5};
+
+  ${overflowEllipsis}
 `;
