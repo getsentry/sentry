@@ -229,6 +229,13 @@ KNOWN_DIF_FORMATS = {
 
 NATIVE_UNKNOWN_STRING = '<unknown>'
 
+# Maximum number of release files that can be "skipped" (i.e., maximum paginator offset)
+# inside release files API endpoints.
+# If this number is too large, it may cause problems because of inefficient
+# LIMIT-OFFSET database queries.
+# These problems should be solved after we implement artifact bundles workflow.
+MAX_RELEASE_FILES_OFFSET = 20000
+
 # to go from an integration id (in _platforms.json) to the platform
 # data, such as documentation url or humanized name.
 # example: java-logback -> {"type": "framework",
