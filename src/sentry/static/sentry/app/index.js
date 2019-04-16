@@ -237,8 +237,6 @@ const globals = {
       ajaxCsrfSetup: require('app/utils/ajaxCsrfSetup').default,
       logging: require('app/utils/logging'),
       descopeFeatureName: require('app/utils').descopeFeatureName,
-      onboardingSteps: require('app/views/onboarding/utils').onboardingSteps,
-      stepDescriptions: require('app/views/onboarding/utils').stepDescriptions,
       withApi: require('app/utils/withApi').default,
       getDisplayName: require('app/utils/getDisplayName').default,
     },
