@@ -264,7 +264,11 @@ class NativeStacktraceProcessor(StacktraceProcessor):
             if status in ('found', 'unused'):
                 continue
             elif status == 'missing_debug_file':
-                if is_optional_package(fetched_debug_file.get('code_file')):
+                package = fetched_debug_file.get('code_file')
+                if not package or is_known_third_party(package, sdk_info=self.sdk_info):
+                    continue
+
+                if is_optional_package(package, sdk_info=self.sdk_info):
                     error = SymbolicationFailed(
                         type=EventError.NATIVE_MISSING_OPTIONALLY_BUNDLED_DSYM)
                 else:
