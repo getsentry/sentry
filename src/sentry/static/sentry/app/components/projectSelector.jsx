@@ -401,7 +401,6 @@ const BadgeWrapper = styled('div')`
   ${p => !p.multi && 'flex: 1'};
   white-space: nowrap;
   overflow: hidden;
-  align-items: space-between;
 `;
 
 const SettingsIconLink = styled(Link)`
