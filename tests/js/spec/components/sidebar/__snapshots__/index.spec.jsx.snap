@@ -1258,7 +1258,7 @@ exports[`Sidebar SidebarPanel can show Incidents in Sidebar Panel 1`] = `
               <ForwardRef
                 aria-disabled={false}
                 aria-label="Learn more"
-                className="css-dkprmi-StyledButton-getColors eqrebog0"
+                className="css-dkprmi-StyledButton-getColors e12ma6z0"
                 disabled={false}
                 external={true}
                 href="https://status.sentry.io"
@@ -1269,7 +1269,7 @@ exports[`Sidebar SidebarPanel can show Incidents in Sidebar Panel 1`] = `
                 <ExternalLink
                   aria-disabled={false}
                   aria-label="Learn more"
-                  className="css-dkprmi-StyledButton-getColors eqrebog0"
+                  className="css-dkprmi-StyledButton-getColors e12ma6z0"
                   href="https://status.sentry.io"
                   onClick={[Function]}
                   rel="noreferrer noopener"
@@ -1280,7 +1280,7 @@ exports[`Sidebar SidebarPanel can show Incidents in Sidebar Panel 1`] = `
                   <a
                     aria-disabled={false}
                     aria-label="Learn more"
-                    className="css-dkprmi-StyledButton-getColors eqrebog0"
+                    className="css-dkprmi-StyledButton-getColors e12ma6z0"
                     href="https://status.sentry.io"
                     onClick={[Function]}
                     rel="noreferrer noopener"
@@ -1292,11 +1292,11 @@ exports[`Sidebar SidebarPanel can show Incidents in Sidebar Panel 1`] = `
                       size="small"
                     >
                       <Component
-                        className="css-7ui8bl-ButtonLabel eqrebog1"
+                        className="css-7ui8bl-ButtonLabel e12ma6z1"
                         size="small"
                       >
                         <span
-                          className="css-7ui8bl-ButtonLabel eqrebog1"
+                          className="css-7ui8bl-ButtonLabel e12ma6z1"
                         >
                           Learn more
                         </span>
