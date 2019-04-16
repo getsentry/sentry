@@ -242,6 +242,7 @@ describe('Discover', function() {
     let wrapper;
     beforeEach(function() {
       queryBuilder.fetch = jest.fn(() => Promise.resolve(mockResponse));
+      queryBuilder.fetchWithoutLimit = jest.fn(() => Promise.resolve(mockResponse));
 
       wrapper = mount(
         <Discover
@@ -302,13 +303,13 @@ describe('Discover', function() {
       wrapper.instance().updateField('aggregations', [['count()', null, 'count']]);
       wrapper.instance().runQuery();
       await tick();
-      expect(queryBuilder.fetch).toHaveBeenCalledTimes(2);
-      expect(queryBuilder.fetch).toHaveBeenNthCalledWith(1, queryBuilder.getExternal());
-      expect(queryBuilder.fetch).toHaveBeenNthCalledWith(2, {
+      expect(queryBuilder.fetch).toHaveBeenCalledWith(queryBuilder.getExternal());
+      expect(queryBuilder.fetchWithoutLimit).toHaveBeenCalledWith({
         ...queryBuilder.getExternal(),
         groupby: ['time'],
         rollup: 60 * 60 * 24,
         orderby: '-time',
+        limit: 5000,
       });
     });
   });
@@ -543,9 +544,9 @@ describe('Discover', function() {
         TestStubs.routerContext()
       );
 
-      queryBuilder.fetch = jest.fn(() =>
-        Promise.resolve({timing: {}, data: [], meta: []})
-      );
+      const mockResponse = Promise.resolve({timing: {}, data: [], meta: []});
+      queryBuilder.fetch = jest.fn(() => mockResponse);
+      queryBuilder.fetchWithoutLimit = jest.fn(() => mockResponse);
     });
 
     it('renders example queries', function() {
@@ -566,7 +567,8 @@ describe('Discover', function() {
       expect(query.fields).toEqual(['stack.filename']);
       expect(query.aggregations).toEqual([['count()', null, 'count']]);
       expect(query.conditions).toEqual([]);
-      expect(queryBuilder.fetch).toHaveBeenCalledTimes(2);
+      expect(queryBuilder.fetch).toHaveBeenCalled();
+      expect(queryBuilder.fetchWithoutLimit).toHaveBeenCalled();
     });
   });
 
