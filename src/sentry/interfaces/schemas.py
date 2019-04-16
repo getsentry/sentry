@@ -517,7 +517,10 @@ CSP_SCHEMA = {
                 'script-sample': {},
                 'disposition': {'type': 'string'},
             },
-            'required': ['effective-directive'],
+            'anyOf': [
+                {'required': ['effective-directive']},
+                {'required': ['violated-directive']},
+            ],
             # Allow additional keys as browser vendors are still changing CSP
             # implementations fairly frequently
             'additionalProperties': True,
