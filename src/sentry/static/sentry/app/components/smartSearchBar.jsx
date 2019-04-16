@@ -667,10 +667,13 @@ class SmartSearchBar extends React.Component {
               disabled={disabled}
             />
             <span className="icon-search" />
-            <CreateSavedSearchButton
-              query={this.state.query}
-              organization={organization}
-            />
+
+            {this.props.hasPinnedSearch && (
+              <CreateSavedSearchButton
+                query={this.state.query}
+                organization={organization}
+              />
+            )}
             {this.state.query !== '' && (
               <React.Fragment>
                 {this.props.hasPinnedSearch && (
