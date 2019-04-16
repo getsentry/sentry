@@ -19,13 +19,14 @@ import {t} from 'app/locale';
 import Button from 'app/components/button';
 import InlineSvg from 'app/components/inlineSvg';
 import MemberListStore from 'app/stores/memberListStore';
-import SearchDropdown from 'app/views/stream/searchDropdown';
 import CreateSavedSearchButton from 'app/views/stream/createSavedSearchButton';
 import SentryTypes from 'app/sentryTypes';
 import space from 'app/styles/space';
 import Tooltip from 'app/components/tooltip';
 import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
+
+import SearchDropdown from './searchDropdown';
 
 export function addSpace(query = '') {
   if (query.length !== 0 && query[query.length - 1] !== ' ') {
