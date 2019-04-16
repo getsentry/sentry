@@ -1,6 +1,6 @@
 import rawStacktraceContent from 'app/components/events/interfaces/rawStacktraceContent';
 
-export default function getException(event) {
+export default function getStacktraceBody(event) {
   if (!event || !event.entries) {
     return [];
   }
@@ -17,8 +17,7 @@ export default function getException(event) {
     if (!msg) {
       return [];
     }
-
-    return msg.data && msg.data.message && [msg.data.message];
+    return msg.data && msg.data.formatted && [msg.data.formatted];
   }
 
   if (!exc.data) {

@@ -82,7 +82,7 @@ class SentryAppExternalIssueForm extends React.Component {
     const evt = this.props.event;
     const contentArr = getStacktraceBody(evt);
 
-    if (contentArr[0]) {
+    if (contentArr && contentArr.length > 0) {
       return '\n\n```\n' + contentArr[0] + '\n```';
     } else {
       return '';
