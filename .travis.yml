@@ -209,22 +209,14 @@ matrix:
         - nvm install
         - npm install -g "yarn@${YARN_VERSION}"
 
-    - python: 2.7
+    - <<: *postgres_default
       name: 'Symbolicator Integration'
       env: TEST_SUITE=symbolicator
-      services:
-        - docker
-        - memcached
-        - redis-server
-        - postgresql
       before_install:
+        - docker run -d --network host --name clickhouse-server --ulimit nofile=262144:262144 yandex/clickhouse-server:18.14.9
+        - docker run -d --network host --name snuba --env SNUBA_SETTINGS=test --env CLICKHOUSE_SERVER=localhost:9000 getsentry/snuba
         - docker run -d --network host --name symbolicator us.gcr.io/sentryio/symbolicator:latest run
         - docker ps -a
-      install:
-        - python setup.py install_egg_info
-        - pip install -e ".[dev,tests,optional]"
-      before_script:
-        - psql -c 'create database sentry;' -U postgres
 
     # snuba in testing
     - python: 2.7

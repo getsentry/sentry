@@ -28,7 +28,7 @@ BUILTIN_SOURCES = {
     'microsoft': {
         'type': 'http',
         'id': 'sentry:microsoft',
-        'layout': 'symstore',
+        'layout': {'type': 'symstore'},
         'filetypes': ['pdb', 'pe'],
         'url': 'https://msdl.microsoft.com/download/symbols/',
         'is_public': True,
