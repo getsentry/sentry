@@ -376,7 +376,8 @@ class NativeStacktraceProcessor(StacktraceProcessor):
         # debug_images array in the payload. Grouping and UI can use this path
         # to infer in_app and exclude frames from grouping.
         if raw_frame.get('package') is None:
-            raw_frame['package'] = processable_frame.data['obj'].code_file
+            obj = processable_frame.data['obj']
+            raw_frame['package'] = obj and obj.code_file or None
 
         if processable_frame.cache_value is None:
             # Construct a raw frame that is used by the symbolizer
