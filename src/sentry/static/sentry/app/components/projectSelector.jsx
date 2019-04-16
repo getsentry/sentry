@@ -434,8 +434,6 @@ const BadgeAndActionsWrapper = styled('div')`
   border-style: solid;
   border-width: 1px 0;
   border-color: transparent;
-  margin: 1px -10px;
-  padding: 0 10px;
 
   &:hover ${StyledBookmarkStar}, &:hover ${SettingsIconLink} {
     opacity: 1;
