@@ -243,7 +243,7 @@ const GroupHeader = createReactClass({
             {t('Tags')}
           </ListLink>
           <ListLink
-            to={`${baseUrl}${groupId}/events/${searchTermWithoutQuery}`}
+            to={`${baseUrl}${groupId}/events/?${searchTermWithoutQuery}`}
             isActive={() => location.pathname.includes('/events/')}
           >
             {t('Events')}
