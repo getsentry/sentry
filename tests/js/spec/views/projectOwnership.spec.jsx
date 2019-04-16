@@ -20,7 +20,11 @@ describe('ProjectTeamsSettings', function() {
     Client.addMockResponse({
       url: `/projects/${org.slug}/${project.slug}/ownership/`,
       method: 'GET',
-      body: {raw: 'url:src @dummy@example.com', fallthrough: 'false'},
+      body: {
+        raw: 'url:src @dummy@example.com',
+        fallthrough: 'false',
+        autoAssignment: 'false',
+      },
     });
   });
 
