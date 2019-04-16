@@ -64,7 +64,7 @@ describe('OrganizationSavedSearchSelector', function() {
       wrapper.find('DropdownButton').simulate('click');
       await wrapper.update();
 
-      const item = wrapper.find('StyledMenuItem a').first();
+      const item = wrapper.find('MenuItem a').first();
       expect(item).toHaveLength(1);
 
       item.simulate('click');
@@ -79,7 +79,7 @@ describe('OrganizationSavedSearchSelector', function() {
 
       // Second item should have a delete button as it is not a global search
       const button = wrapper
-        .find('StyledMenuItem')
+        .find('MenuItem')
         .at(1)
         .find('Button[icon="icon-trash"]');
       expect(button).toHaveLength(1);
@@ -93,7 +93,7 @@ describe('OrganizationSavedSearchSelector', function() {
       await wrapper.update();
 
       const button = wrapper
-        .find('StyledMenuItem')
+        .find('MenuItem')
         .at(1)
         .find('Button[icon="icon-trash"]');
       expect(button).toHaveLength(0);
@@ -105,7 +105,7 @@ describe('OrganizationSavedSearchSelector', function() {
 
       // First item should not have a delete button as it is a global search
       const button = wrapper
-        .find('StyledMenuItem')
+        .find('MenuItem')
         .first()
         .find('Button[icon="icon-trash"]');
       expect(button).toHaveLength(0);
@@ -117,7 +117,7 @@ describe('OrganizationSavedSearchSelector', function() {
 
       // Second item should have a delete button as it is not a global search
       const button = wrapper
-        .find('StyledMenuItem')
+        .find('MenuItem')
         .at(1)
         .find('Button[icon="icon-trash"]');
       button.simulate('click');
