@@ -294,9 +294,12 @@ exports[`Organization Developer Settings when no Apps exist displays empty state
                     className="css-9vq8an-textStyles"
                   >
                     <EmptyMessage>
-                      <Wrapper>
+                      <Wrapper
+                        data-test-id="empty-message"
+                      >
                         <div
                           className="css-ev9qm0-Wrapper eh488yo0"
+                          data-test-id="empty-message"
                         >
                           <Description
                             noMargin={true}

@@ -366,9 +366,12 @@ exports[`ProjectEnvironments render active renders empty message 1`] = `
               className="css-9vq8an-textStyles"
             >
               <EmptyMessage>
-                <Wrapper>
+                <Wrapper
+                  data-test-id="empty-message"
+                >
                   <div
                     className="css-ev9qm0-Wrapper eh488yo0"
+                    data-test-id="empty-message"
                   >
                     <Description
                       noMargin={true}
@@ -1891,9 +1894,12 @@ exports[`ProjectEnvironments render hidden renders empty message 1`] = `
               className="css-9vq8an-textStyles"
             >
               <EmptyMessage>
-                <Wrapper>
+                <Wrapper
+                  data-test-id="empty-message"
+                >
                   <div
                     className="css-ev9qm0-Wrapper eh488yo0"
+                    data-test-id="empty-message"
                   >
                     <Description
                       noMargin={true}
