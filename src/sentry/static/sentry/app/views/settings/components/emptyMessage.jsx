@@ -51,7 +51,7 @@ const Action = styled.div`
 
 const EmptyMessage = ({title, description, icon, children, action, size}) => {
   return (
-    <Wrapper size={size}>
+    <Wrapper data-test-id="empty-message" size={size}>
       {icon && <StyledInlineSvg src={icon} size="36px" />}
       {title && <Title>{title}</Title>}
       {description && <Description>{description}</Description>}
