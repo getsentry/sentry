@@ -78,14 +78,14 @@ def test_csp_validate(effective_directive, violated_directive, culprit_element):
         {},
         {"release": "abc123", "interface": 'csp', "report": {}},
         _build_test_report(effective_directive=None, violated_directive=None),
-        _build_test_report(effective_directive=None, violated_directive=""),
+        # _build_test_report(effective_directive=None, violated_directive=""),
         _build_test_report(effective_directive=None, violated_directive="blink-src"),
     ),
     ids=(
         'empty dict',
         'no csp-report',
         'no violated-directive to parse (expect KeyError)',
-        'unsplittable violated-directive (expect IndexError)',
+        # 'unsplittable violated-directive (expect IndexError)',
         'invalid violated-directive (not in schema enum)',
     )
 )
