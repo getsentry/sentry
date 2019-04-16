@@ -102,6 +102,22 @@ class GroupDetailsTest(APITestCase):
         response = self.client.get(url, {'environment': 'invalid'}, format='json')
         assert response.status_code == 404
 
+    def test_platform_external_issue_annotation(self):
+        self.login_as(user=self.user)
+
+        group = self.create_group()
+        self.create_platform_external_issue(
+            group=group,
+            service_type='sentry-app',
+            web_url='https://example.com/issues/2',
+            display_name='Issue#2',
+        )
+        url = u'/api/0/issues/{}/'.format(group.id)
+        response = self.client.get(url, format='json')
+
+        assert response.data['annotations'] == \
+            [u'<a href="https://example.com/issues/2">Issue#2</a>']
+
 
 class GroupUpdateTest(APITestCase):
     def test_resolve(self):

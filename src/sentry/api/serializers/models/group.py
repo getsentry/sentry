@@ -244,6 +244,14 @@ class GroupSerializerBase(Serializer):
                     safe_execute(install.get_annotations, group=item, _with_transaction=False) or ()
                 )
 
+            from sentry.models import PlatformExternalIssue
+            annotations.extend(
+                safe_execute(
+                    PlatformExternalIssue.get_annotations,
+                    group=item,
+                    _with_transaction=False) or ()
+            )
+
             resolution_actor = None
             resolution_type = None
             resolution = release_resolutions.get(item.id)

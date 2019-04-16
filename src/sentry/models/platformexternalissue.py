@@ -22,3 +22,12 @@ class PlatformExternalIssue(Model):
         unique_together = (('group_id', 'service_type'), )
 
     __repr__ = sane_repr('group_id', 'service_type', 'display_name', 'web_url')
+
+    @classmethod
+    def get_annotations(cls, group):
+        external_issues = cls.objects.filter(group_id=group.id)
+        annotations = []
+        for ei in external_issues:
+            annotations.append('<a href="%s">%s</a>' % (ei.web_url, ei.display_name))
+
+        return annotations
