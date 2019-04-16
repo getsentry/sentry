@@ -1,7 +1,6 @@
 from __future__ import absolute_import
 
 import six
-import pytz
 
 from datetime import datetime, timedelta
 from django.core.urlresolvers import reverse
@@ -154,5 +153,5 @@ class TestSentryAppAuthorizations(APITestCase):
         assert response.data['refreshToken'] != refresh_token
         assert response.data['expiresAt'] > datetime.utcnow()
 
-        old_token = ApiToken.objects.get(id=token_id)
-        assert old_token.expires_at < datetime.now(pytz.UTC)
+        old_token = ApiToken.objects.filter(id=token_id)
+        assert not old_token.exists()
