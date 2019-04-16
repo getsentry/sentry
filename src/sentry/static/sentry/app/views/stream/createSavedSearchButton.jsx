@@ -94,6 +94,7 @@ class CreateSavedSearchButton extends React.Component {
             <StyledButton
               size="zero"
               borderless
+              type="button"
               onClick={this.onToggle}
               data-test-id="save-current-search"
               icon="icon-add-to-list"
