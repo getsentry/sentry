@@ -303,37 +303,37 @@ class NormalizeInApptest(TestCase):
                         "stacktrace": {
                             "frames": [
                                 {
-                                    "function": "[RNSentry ]",
+                                    "function": "+[RNSentry ]",
                                     "package": "/var/containers/Bundle/Application/B33C37A8-F933-4B6B-9FFA-152282BFDF13/SentryTest.app/SentryTest",
                                     "instruction_addr": 4295098388,
                                 },
                                 {
-                                    "function": "[SentryClient ]",
+                                    "function": "+[SentryClient ]",
                                     "package": "/var/containers/Bundle/Application/B33C37A8-F933-4B6B-9FFA-152282BFDF13/SentryTest.app/SentryTest",
                                     "instruction_addr": 4295098388,
                                 },
                                 {
-                                    "function": "[kscrash_]",
+                                    "function": "kscrash_foobar",
                                     "package": "/var/containers/Bundle/Application/B33C37A8-F933-4B6B-9FFA-152282BFDF13/SentryTest.app/SentryTest",
                                     "instruction_addr": 4295098388,
                                 },
                                 {
-                                    "function": "[kscm_]",
+                                    "function": "kscm_foobar",
                                     "package": "/var/containers/Bundle/Application/B33C37A8-F933-4B6B-9FFA-152282BFDF13/SentryTest.app/SentryTest",
                                     "instruction_addr": 4295098388,
                                 },
                                 {
-                                    "function": "[KSCrash ]",
+                                    "function": "+[KSCrash ]",
                                     "package": "/var/containers/Bundle/Application/B33C37A8-F933-4B6B-9FFA-152282BFDF13/SentryTest.app/SentryTest",
                                     "instruction_addr": 4295098388,
                                 },
                                 {
-                                    "function": "[KSCrash]",
+                                    "function": "+[KSCrash]",
                                     "package": "/var/containers/Bundle/Application/B33C37A8-F933-4B6B-9FFA-152282BFDF13/SentryTest.app/SentryTest",
                                     "instruction_addr": 4295098388,
                                 },
                                 {
-                                    "function": "[KSCrashy]",
+                                    "function": "+[KSCrashy]",
                                     "package": "/var/containers/Bundle/Application/B33C37A8-F933-4B6B-9FFA-152282BFDF13/SentryTest.app/SentryTest",
                                     "instruction_addr": 4295098388,
                                 },
