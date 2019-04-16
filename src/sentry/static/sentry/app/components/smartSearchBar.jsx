@@ -20,6 +20,7 @@ import Button from 'app/components/button';
 import InlineSvg from 'app/components/inlineSvg';
 import MemberListStore from 'app/stores/memberListStore';
 import SearchDropdown from 'app/views/stream/searchDropdown';
+import CreateSavedSearchButton from 'app/views/stream/createSavedSearchButton';
 import SentryTypes from 'app/sentryTypes';
 import space from 'app/styles/space';
 import withApi from 'app/utils/withApi';
@@ -532,7 +533,7 @@ class SmartSearchBar extends React.Component {
     }
 
     if (!!pinnedSearch) {
-      unpinSearch(api, organization.slug, savedSearchType);
+      unpinSearch(api, organization.slug, savedSearchType, pinnedSearch);
     } else {
       pinSearch(api, organization.slug, savedSearchType, this.state.query);
     }
@@ -629,7 +630,13 @@ class SmartSearchBar extends React.Component {
   };
 
   render() {
-    const {className, dropdownClassName, disabled} = this.props;
+    const {
+      className,
+      dropdownClassName,
+      organization,
+      placeholder,
+      disabled,
+    } = this.props;
 
     return (
       <div
@@ -646,7 +653,7 @@ class SmartSearchBar extends React.Component {
             <input
               type="text"
               className="search-input form-control"
-              placeholder={this.props.placeholder}
+              placeholder={placeholder}
               name="query"
               ref={this.searchInput}
               autoComplete="off"
@@ -657,9 +664,16 @@ class SmartSearchBar extends React.Component {
               onKeyDown={this.onKeyDown}
               onChange={this.onQueryChange}
               onClick={this.onInputClick}
-              disabled={this.props.disabled}
+              disabled={disabled}
             />
             <span className="icon-search" />
+
+            {this.props.hasPinnedSearch && (
+              <CreateSavedSearchButton
+                query={this.state.query}
+                organization={organization}
+              />
+            )}
             {this.state.query !== '' && (
               <React.Fragment>
                 {this.props.hasPinnedSearch && (

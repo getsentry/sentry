@@ -15,6 +15,7 @@ exports[`InviteMember should render loading 1`] = `
 
 exports[`InviteMember should render roles when available and allowed, and handle submitting 1`] = `
 <InviteMember
+  api={Client {}}
   location={
     Object {
       "query": Object {},
@@ -508,34 +509,37 @@ exports[`InviteMember should render roles when available and allowed, and handle
                                                 isOpen={false}
                                                 size="xsmall"
                                               >
-                                                <Component
+                                                <ForwardRef
                                                   aria-label="Add Team"
-                                                  className="css-w99oc4-StyledButton e1yghndz1"
+                                                  className="css-t6oz6z-StyledButton e1yghndz1"
                                                   disabled={true}
                                                   isOpen={false}
                                                   size="xsmall"
                                                 >
                                                   <Button
                                                     aria-label="Add Team"
-                                                    className="css-w99oc4-StyledButton e1yghndz1"
+                                                    className="css-t6oz6z-StyledButton e1yghndz1"
                                                     disabled={true}
+                                                    innerRef={null}
                                                     size="xsmall"
                                                   >
                                                     <StyledButton
                                                       aria-disabled={true}
                                                       aria-label="Add Team"
-                                                      className="css-w99oc4-StyledButton e1yghndz1"
+                                                      className="css-t6oz6z-StyledButton e1yghndz1"
                                                       disabled={true}
                                                       href={null}
+                                                      innerRef={null}
                                                       onClick={[Function]}
                                                       role="button"
                                                       size="xsmall"
                                                       to={null}
                                                     >
-                                                      <Component
+                                                      <ForwardRef
                                                         aria-disabled={true}
                                                         aria-label="Add Team"
-                                                        className="e1yghndz1 css-10lmrhm-StyledButton-getColors-StyledButton eqrebog0"
+                                                        className="e1yghndz1 css-a1a4aj-StyledButton-getColors-StyledButton e12ma6z0"
+                                                        disabled={true}
                                                         href={null}
                                                         onClick={[Function]}
                                                         role="button"
@@ -545,7 +549,7 @@ exports[`InviteMember should render roles when available and allowed, and handle
                                                         <button
                                                           aria-disabled={true}
                                                           aria-label="Add Team"
-                                                          className="e1yghndz1 css-10lmrhm-StyledButton-getColors-StyledButton eqrebog0"
+                                                          className="e1yghndz1 css-a1a4aj-StyledButton-getColors-StyledButton e12ma6z0"
                                                           href={null}
                                                           onClick={[Function]}
                                                           role="button"
@@ -556,11 +560,11 @@ exports[`InviteMember should render roles when available and allowed, and handle
                                                             size="xsmall"
                                                           >
                                                             <Component
-                                                              className="css-uthd1f-ButtonLabel eqrebog1"
+                                                              className="css-uthd1f-ButtonLabel e12ma6z1"
                                                               size="xsmall"
                                                             >
                                                               <span
-                                                                className="css-uthd1f-ButtonLabel eqrebog1"
+                                                                className="css-uthd1f-ButtonLabel e12ma6z1"
                                                               >
                                                                 Add Team
                                                                 <StyledChevronDown>
@@ -596,10 +600,10 @@ exports[`InviteMember should render roles when available and allowed, and handle
                                                             </Component>
                                                           </ButtonLabel>
                                                         </button>
-                                                      </Component>
+                                                      </ForwardRef>
                                                     </StyledButton>
                                                   </Button>
-                                                </Component>
+                                                </ForwardRef>
                                               </StyledButton>
                                             </DropdownButton>
                                           </div>
@@ -670,17 +674,20 @@ exports[`InviteMember should render roles when available and allowed, and handle
           priority="primary"
           role="button"
         >
-          <Component
+          <ForwardRef
             aria-disabled={false}
             aria-label="Add Member"
-            className="invite-member-submit css-1msljz8-StyledButton-getColors eqrebog0"
+            busy={false}
+            className="invite-member-submit css-1msljz8-StyledButton-getColors e12ma6z0"
+            disabled={false}
             onClick={[Function]}
+            priority="primary"
             role="button"
           >
             <button
               aria-disabled={false}
               aria-label="Add Member"
-              className="invite-member-submit css-1msljz8-StyledButton-getColors eqrebog0"
+              className="invite-member-submit css-1msljz8-StyledButton-getColors e12ma6z0"
               onClick={[Function]}
               role="button"
             >
@@ -688,18 +695,18 @@ exports[`InviteMember should render roles when available and allowed, and handle
                 priority="primary"
               >
                 <Component
-                  className="css-ga4b18-ButtonLabel eqrebog1"
+                  className="css-ga4b18-ButtonLabel e12ma6z1"
                   priority="primary"
                 >
                   <span
-                    className="css-ga4b18-ButtonLabel eqrebog1"
+                    className="css-ga4b18-ButtonLabel e12ma6z1"
                   >
                     Add Member
                   </span>
                 </Component>
               </ButtonLabel>
             </button>
-          </Component>
+          </ForwardRef>
         </StyledButton>
       </Button>
     </div>

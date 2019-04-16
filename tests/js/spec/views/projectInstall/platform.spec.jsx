@@ -1,11 +1,13 @@
+import {browserHistory} from 'react-router';
 import React from 'react';
-import {shallow} from 'enzyme';
 
+import {shallow, mount} from 'enzyme';
 import {ProjectInstallPlatform} from 'app/views/projectInstall/platform';
 
 describe('ProjectInstallPlatform', function() {
   describe('render()', function() {
     const baseProps = {
+      api: new MockApiClient(),
       organization: TestStubs.Organization(),
       project: TestStubs.Project(),
       location: {query: {}},
@@ -49,7 +51,29 @@ describe('ProjectInstallPlatform', function() {
       },
     };
 
-    it('should render NotFound if no matching integration/platform', function() {
+    it('should redirect to if no matching platform', function() {
+      const props = {
+        ...baseProps,
+        params: {
+          orgId: baseProps.organization.slug,
+          projectId: baseProps.project.slug,
+          platform: 'other',
+        },
+      };
+
+      MockApiClient.addMockResponse({
+        url: '/projects/org-slug/project-slug/docs/other/',
+        body: {},
+      });
+
+      mount(<ProjectInstallPlatform {...props} />, {
+        organization: {id: '1337'},
+      });
+
+      expect(browserHistory.push).toHaveBeenCalledTimes(1);
+    });
+
+    it('should render NotFound if no matching integration/platform', async function() {
       const props = {
         ...baseProps,
         params: {
@@ -58,8 +82,12 @@ describe('ProjectInstallPlatform', function() {
       };
 
       const wrapper = shallow(<ProjectInstallPlatform {...props} />, {
+        disableLifeCycleMethods: false,
         organization: {id: '1337'},
       });
+
+      await tick();
+      wrapper.update();
 
       expect(wrapper.find('NotFound')).toHaveLength(1);
     });
@@ -73,6 +101,7 @@ describe('ProjectInstallPlatform', function() {
       };
 
       const wrapper = shallow(<ProjectInstallPlatform {...props} />, {
+        disableLifeCycleMethods: false,
         organization: {id: '1337'},
       });
 

@@ -11,7 +11,7 @@ import CommitAuthorStats from 'app/components/commitAuthorStats';
 import ReleaseProjectStatSparkline from 'app/components/releaseProjectStatSparkline';
 import RepositoryFileSummary from 'app/components/repositoryFileSummary';
 
-import ApiMixin from 'app/mixins/apiMixin';
+import withApi from 'app/utils/withApi';
 
 import {t} from 'app/locale';
 import SentryTypes from 'app/sentryTypes';
@@ -26,6 +26,7 @@ const ReleaseOverview = createReactClass({
   displayName: 'ReleaseOverview',
 
   propTypes: {
+    api: PropTypes.object,
     environment: SentryTypes.Environment,
   },
 
@@ -33,7 +34,7 @@ const ReleaseOverview = createReactClass({
     release: PropTypes.object,
   },
 
-  mixins: [ApiMixin, OrganizationState],
+  mixins: [OrganizationState],
 
   getInitialState() {
     return {
@@ -71,7 +72,7 @@ const ReleaseOverview = createReactClass({
     const path = `/organizations/${orgId}/releases/${encodeURIComponent(
       version
     )}/commitfiles/`;
-    this.api.request(path, {
+    this.props.api.request(path, {
       method: 'GET',
       data: query,
       success: (data, _, jqXHR) => {
@@ -97,7 +98,7 @@ const ReleaseOverview = createReactClass({
       : {};
 
     const path = `/organizations/${orgId}/releases/${encodeURIComponent(version)}/`;
-    this.api.request(path, {
+    this.props.api.request(path, {
       query,
       method: 'GET',
       success: (data, _, jqXHR) => {
@@ -119,7 +120,7 @@ const ReleaseOverview = createReactClass({
     const path = `/organizations/${orgId}/releases/${encodeURIComponent(
       version
     )}/deploys/`;
-    this.api.request(path, {
+    this.props.api.request(path, {
       method: 'GET',
       success: (data, _, jqXHR) => {
         this.setState({
@@ -142,7 +143,7 @@ const ReleaseOverview = createReactClass({
       : {};
 
     const path = `/organizations/${orgId}/repos/`;
-    this.api.request(path, {
+    this.props.api.request(path, {
       method: 'GET',
       query,
       success: (data, _, jqXHR) => {
@@ -253,4 +254,6 @@ const ReleaseOverview = createReactClass({
   },
 });
 
-export default withEnvironmentInQueryString(ReleaseOverview);
+export {ReleaseOverview};
+
+export default withApi(withEnvironmentInQueryString(ReleaseOverview));

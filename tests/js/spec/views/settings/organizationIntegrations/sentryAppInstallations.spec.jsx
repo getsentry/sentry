@@ -30,7 +30,7 @@ describe('Sentry App Installations', function() {
     const wrapper = mount(
       <SentryAppInstallations
         api={api}
-        orgId={org.slug}
+        organization={org}
         applications={[]}
         installs={[]}
       />,
@@ -47,7 +47,7 @@ describe('Sentry App Installations', function() {
     let wrapper = mount(
       <SentryAppInstallations
         api={api}
-        orgId={org.slug}
+        organization={org}
         applications={[sentryApp]}
         installs={[]}
       />,
@@ -72,7 +72,7 @@ describe('Sentry App Installations', function() {
         wrapper = mount(
           <SentryAppInstallations
             api={api}
-            orgId={org.slug}
+            organization={org}
             applications={[sentryApp]}
             installs={[install]}
           />,
@@ -85,7 +85,7 @@ describe('Sentry App Installations', function() {
         wrapper = mount(
           <SentryAppInstallations
             api={api}
-            orgId={org.slug}
+            organization={org}
             applications={[sentryApp]}
             installs={[]}
           />,
@@ -102,7 +102,7 @@ describe('Sentry App Installations', function() {
         wrapper = mount(
           <SentryAppInstallations
             api={api}
-            orgId={org.slug}
+            organization={org}
             applications={[app]}
             installs={[]}
           />,
@@ -120,7 +120,7 @@ describe('Sentry App Installations', function() {
         wrapper = mount(
           <SentryAppInstallations
             api={api}
-            orgId={org.slug}
+            organization={org}
             applications={[sentryApp]}
             installs={[]}
           />,
@@ -146,7 +146,7 @@ describe('Sentry App Installations', function() {
         wrapper = mount(
           <SentryAppInstallations
             api={api}
-            orgId={org.slug}
+            organization={org}
             applications={[sentryAppWithQuery]}
             installs={[]}
           />,
@@ -176,7 +176,7 @@ describe('Sentry App Installations', function() {
         wrapper = mount(
           <SentryAppInstallations
             api={api}
-            orgId={org.slug}
+            organization={org}
             applications={[sentryApp]}
             installs={[]}
           />,
@@ -200,7 +200,7 @@ describe('Sentry App Installations', function() {
         wrapper = mount(
           <SentryAppInstallations
             api={api}
-            orgId={org.slug}
+            organization={org}
             applications={[sentryApp]}
             installs={[install]}
           />,

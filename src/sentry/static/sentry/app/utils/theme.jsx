@@ -8,6 +8,7 @@ const theme = {
   offWhite2: '#E7E1EC',
   whiteDark: '#fbfbfc',
   white: '#FFFFFF',
+  foreground: '#493E54',
 
   gray1: '#BDB4C7',
   gray2: '#9585A3',
@@ -72,9 +73,6 @@ const theme = {
   zIndex: {
     header: 1000,
     dropdown: 1001,
-    globalSelectionHeader: 1002,
-    sidebar: 1003,
-    orgAndUserMenu: 1004,
 
     dropdownAutocomplete: {
       // needs to be below actor but above other page elements (e.g. pagination)
@@ -86,8 +84,12 @@ const theme = {
       actor: 1008,
     },
 
+    globalSelectionHeader: 1009,
+    sidebar: 1010,
+    orgAndUserMenu: 1011,
+
     // Sentry user feedback modal
-    sentryErrorEmbed: 1009,
+    sentryErrorEmbed: 1090,
 
     modal: 10000,
     toast: 10001,

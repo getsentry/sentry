@@ -15,6 +15,7 @@ import PermissionAlert from 'app/views/settings/organization/permissionAlert';
 import ProviderRow from 'app/views/organizationIntegrations/providerRow';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import SentryAppInstallations from 'app/views/organizationIntegrations/sentryAppInstallations';
+import SentryTypes from 'app/sentryTypes';
 import withOrganization from 'app/utils/withOrganization';
 
 class OrganizationIntegrations extends AsyncComponent {
@@ -23,6 +24,10 @@ class OrganizationIntegrations extends AsyncComponent {
   shouldReload = true;
   reloadOnVisible = true;
   shouldReloadOnVisible = true;
+
+  static propTypes = {
+    organization: SentryTypes.Organization,
+  };
 
   componentDidMount() {
     analytics('integrations.index_viewed', {
@@ -132,11 +137,9 @@ class OrganizationIntegrations extends AsyncComponent {
 
   // Rendering
 
-  renderBody() {
-    const {reloading, applications, appInstalls} = this.state;
-    const providers = this.providers
-      .sort((a, b) => b.isInstalled - a.isInstalled)
-      .map(provider => (
+  renderProvider(provider) {
+    return (
+      <IntegrationRow key={`row-${provider.key}`}>
         <ProviderRow
           key={provider.key}
           provider={provider}
@@ -148,7 +151,56 @@ class OrganizationIntegrations extends AsyncComponent {
           onReinstall={this.onInstall}
           enabledPlugins={this.enabledPlugins}
         />
-      ));
+      </IntegrationRow>
+    );
+  }
+
+  renderSentryApps(apps, key) {
+    const {organization} = this.props;
+    const {appInstalls} = this.state;
+
+    return (
+      <IntegrationRow key={`row-${key}`}>
+        <SentryAppInstallations
+          key={key}
+          organization={organization}
+          installs={appInstalls}
+          applications={apps}
+        />
+      </IntegrationRow>
+    );
+  }
+
+  renderBody() {
+    const {reloading, applications, appInstalls} = this.state;
+
+    const installedProviders = this.providers
+      .filter(p => p.isInstalled)
+      .map(p => [p.name, this.renderProvider(p)]);
+
+    const uninstalledProviders = this.providers
+      .filter(p => !p.isInstalled)
+      .map(p => [p.name, this.renderProvider(p)]);
+
+    const installedSentryApps = (applications || [])
+      .filter(a => appInstalls.find(i => i.app.slug === a.slug))
+      .map(a => [a.name, this.renderSentryApps([a], a.slug)]);
+
+    const uninstalledSentryApps = (applications || [])
+      .filter(a => !appInstalls.find(i => i.app.slug === a.slug))
+      .map(a => [a.name, this.renderSentryApps([a], a.slug)]);
+
+    // Combine the list of Providers and Sentry Apps that have installations.
+    const installed = installedProviders
+      .concat(installedSentryApps)
+      .sort((a, b) => a[0].localeCompare(b[0]))
+      .map(i => i[1]);
+
+    // Combine the list of Providers and Sentry Apps that have no installations.
+    const uninstalled = uninstalledProviders
+      .concat(uninstalledSentryApps)
+      .sort((a, b) => a[0].localeCompare(b[0]))
+      .map(i => i[1]);
 
     return (
       <React.Fragment>
@@ -169,20 +221,16 @@ class OrganizationIntegrations extends AsyncComponent {
             {reloading && <StyledLoadingIndicator mini />}
           </PanelHeader>
           <PanelBody>
-            {providers}
-            {applications && (
-              <SentryAppInstallations
-                orgId={this.props.params.orgId}
-                installs={appInstalls}
-                applications={applications}
-              />
-            )}
+            {installed}
+            {uninstalled}
           </PanelBody>
         </Panel>
       </React.Fragment>
     );
   }
 }
+
+const IntegrationRow = styled.div``;
 
 const StyledLoadingIndicator = styled(LoadingIndicator)`
   position: absolute;

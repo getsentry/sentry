@@ -1500,3 +1500,10 @@ class ReleaseSerializerWithProjectsTest(TestCase):
             'projects': self.projects,
         })
         assert not serializer.is_valid()
+
+    def test_version_cannot_be_latest(self):
+        serializer = ReleaseSerializerWithProjects(data={
+            'version': 'Latest',
+            'projects': self.projects,
+        })
+        assert not serializer.is_valid()

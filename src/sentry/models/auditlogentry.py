@@ -68,6 +68,7 @@ class AuditLogEntryEvent(object):
     SET_ONDEMAND = 90
     TRIAL_STARTED = 91
     PLAN_CHANGED = 92
+    PLAN_CANCELLED = 93
 
     SERVICEHOOK_ADD = 100
     SERVICEHOOK_EDIT = 101
@@ -162,6 +163,7 @@ class AuditLogEntry(Model):
             (AuditLogEntryEvent.SET_ONDEMAND, 'ondemand.edit'),
             (AuditLogEntryEvent.TRIAL_STARTED, 'trial.started'),
             (AuditLogEntryEvent.PLAN_CHANGED, 'plan.changed'),
+            (AuditLogEntryEvent.PLAN_CANCELLED, 'plan.cancelled'),
         )
     )
     ip_address = models.GenericIPAddressField(null=True, unpack_ipv4=True)
@@ -278,7 +280,8 @@ class AuditLogEntry(Model):
         elif self.event == AuditLogEntryEvent.SSO_DISABLE:
             return 'disabled sso (%s)' % (self.data['provider'], )
         elif self.event == AuditLogEntryEvent.SSO_EDIT:
-            return 'edited sso settings'
+            return 'edited sso settings: ' + (', '.join(u'{} {}'.format(k, v)
+                                                        for k, v in self.data.items()))
         elif self.event == AuditLogEntryEvent.SSO_IDENTITY_LINK:
             return 'linked their account to a new identity'
 
@@ -304,6 +307,8 @@ class AuditLogEntry(Model):
             return 'started trial'
         elif self.event == AuditLogEntryEvent.PLAN_CHANGED:
             return 'changed plan to %s' % (self.data['plan_name'], )
+        elif self.event == AuditLogEntryEvent.PLAN_CANCELLED:
+            return 'cancelled plan'
 
         elif self.event == AuditLogEntryEvent.SERVICEHOOK_ADD:
             return 'added a service hook for "%s"' % (truncatechars(self.data['url'], 64), )

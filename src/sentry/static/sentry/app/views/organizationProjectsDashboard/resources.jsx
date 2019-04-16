@@ -27,26 +27,26 @@ export default class Resources extends React.Component {
         </RobotPanel>
         <ResourcesSection>
           <h4>{t('Resources')}</h4>
-          <Flex justify={'space-between'}>
+          <Flex justify="space-between">
             <Flex width={3 / 10}>
               <ResourceCard
-                link={'https://blog.sentry.io/2018/03/06/the-sentry-workflow'}
-                imgUrl={'images/releases.svg'}
-                title={'The Sentry Workflow'}
+                link="https://blog.sentry.io/2018/03/06/the-sentry-workflow"
+                imgUrl="images/releases.svg"
+                title="The Sentry Workflow"
               />
             </Flex>
             <Flex width={3 / 10}>
               <ResourceCard
-                link={'https://sentry.io/vs/logging/'}
-                imgUrl={'images/breadcrumbs-generic.svg'}
-                title={'Sentry vs Logging'}
+                link="https://sentry.io/vs/logging/"
+                imgUrl="images/breadcrumbs-generic.svg"
+                title="Sentry vs Logging"
               />
             </Flex>
             <Flex width={3 / 10}>
               <ResourceCard
-                link={'https://docs.sentry.io/'}
-                imgUrl={'images/code-arguments-tags-mirrored.svg'}
-                title={'Docs'}
+                link="https://docs.sentry.io/"
+                imgUrl="images/code-arguments-tags-mirrored.svg"
+                title="Docs"
               />
             </Flex>
           </Flex>

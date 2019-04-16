@@ -44,10 +44,6 @@ class Migration(SchemaMigration):
         Project.objects.filter(team__isnull=True).update(team=team)
 
     def forwards(self, orm):
-        # this is shitty, but we dont care
-        if connection.vendor == 'sqlite':
-            transaction.set_autocommit(True)
-
         # ideally we would have done this data migration before this change, but
         # it was an oversight
         if not db.dry_run:

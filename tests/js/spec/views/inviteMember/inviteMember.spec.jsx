@@ -9,6 +9,7 @@ jest.mock('jquery');
 
 describe('InviteMember', function() {
   const baseProps = {
+    api: new MockApiClient(),
     params: {
       orgId: 'testOrg',
     },

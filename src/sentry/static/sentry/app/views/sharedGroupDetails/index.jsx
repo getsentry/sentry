@@ -1,9 +1,10 @@
+import PropTypes from 'prop-types';
 import DocumentTitle from 'react-document-title';
 import React from 'react';
 import createReactClass from 'create-react-class';
 
 import {t} from 'app/locale';
-import ApiMixin from 'app/mixins/apiMixin';
+import withApi from 'app/utils/withApi';
 import EventEntries from 'app/components/events/eventEntries';
 import Footer from 'app/components/footer';
 import LoadingError from 'app/components/loadingError';
@@ -15,11 +16,13 @@ import SharedGroupHeader from 'app/views/sharedGroupDetails/sharedGroupHeader';
 const SharedGroupDetails = createReactClass({
   displayName: 'SharedGroupDetails',
 
+  propTypes: {
+    api: PropTypes.object,
+  },
+
   childContextTypes: {
     group: SentryTypes.Group,
   },
-
-  mixins: [ApiMixin],
 
   getInitialState() {
     return {
@@ -57,7 +60,7 @@ const SharedGroupDetails = createReactClass({
       error: false,
     });
 
-    this.api.request(this.getGroupDetailsEndpoint(), {
+    this.props.api.request(this.getGroupDetailsEndpoint(), {
       success: data => {
         this.setState({
           loading: false,
@@ -133,4 +136,6 @@ const SharedGroupDetails = createReactClass({
   },
 });
 
-export default SharedGroupDetails;
+export {SharedGroupDetails};
+
+export default withApi(SharedGroupDetails);

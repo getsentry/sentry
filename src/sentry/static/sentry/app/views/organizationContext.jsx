@@ -10,7 +10,7 @@ import {openSudo} from 'app/actionCreators/modal';
 import {setActiveOrganization} from 'app/actionCreators/organizations';
 import {t} from 'app/locale';
 import Alert from 'app/components/alert';
-import ApiMixin from 'app/mixins/apiMixin';
+import withApi from 'app/utils/withApi';
 import ConfigStore from 'app/stores/configStore';
 import GlobalSelectionStore from 'app/stores/globalSelectionStore';
 import HookStore from 'app/stores/hookStore';
@@ -33,6 +33,7 @@ const OrganizationContext = createReactClass({
   displayName: 'OrganizationContext',
 
   propTypes: {
+    api: PropTypes.object,
     includeSidebar: PropTypes.bool,
     useLastOrganization: PropTypes.bool,
     organizationsLoading: PropTypes.bool,
@@ -43,7 +44,7 @@ const OrganizationContext = createReactClass({
     organization: SentryTypes.Organization,
   },
 
-  mixins: [ApiMixin, Reflux.listenTo(ProjectActions.createSuccess, 'onProjectCreation')],
+  mixins: [Reflux.listenTo(ProjectActions.createSuccess, 'onProjectCreation')],
 
   getInitialState() {
     return {
@@ -112,8 +113,8 @@ const OrganizationContext = createReactClass({
     }
 
     const promises = [
-      this.api.requestPromise(this.getOrganizationDetailsEndpoint()),
-      fetchOrganizationEnvironments(this.api, this.getOrganizationSlug()),
+      this.props.api.requestPromise(this.getOrganizationDetailsEndpoint()),
+      fetchOrganizationEnvironments(this.props.api, this.getOrganizationSlug()),
     ];
 
     Promise.all(promises)
@@ -229,7 +230,7 @@ const OrganizationContext = createReactClass({
   },
 });
 
-export default withOrganizations(OrganizationContext);
+export default withApi(withOrganizations(OrganizationContext));
 export {OrganizationContext};
 
 const ErrorWrapper = styled('div')`

@@ -79,3 +79,18 @@ class TestRefresher(TestCase):
     def test_sentry_app_must_exist(self, _):
         with self.assertRaises(APIUnauthorized):
             self.refresher.call()
+
+    @patch('sentry.analytics.record')
+    def test_records_analytics(self, record):
+        Refresher.run(
+            install=self.install,
+            client_id=self.client_id,
+            refresh_token=self.token.refresh_token,
+            user=self.user,
+        )
+
+        record.assert_called_with(
+            'sentry_app.token_exchanged',
+            sentry_app_installation_id=self.install.id,
+            exchange_type='refresh',
+        )

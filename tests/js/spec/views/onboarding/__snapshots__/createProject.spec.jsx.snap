@@ -88,6 +88,7 @@ exports[`CreateProject should block if you have access to no teams 1`] = `
 
 exports[`CreateProject should deal with incorrect platform name if its provided by url 1`] = `
 <CreateProject
+  api={Client {}}
   location={
     Object {
       "query": Object {},
@@ -1447,10 +1448,12 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
                       title="Create a team"
                       type="button"
                     >
-                      <Component
+                      <ForwardRef
                         aria-disabled={false}
-                        className="tip tip css-1v8ytf5-StyledButton-getColors eqrebog0"
+                        borderless={true}
+                        className="tip tip css-1v8ytf5-StyledButton-getColors e12ma6z0"
                         data-test-id="create-team"
+                        disabled={false}
                         onClick={[Function]}
                         role="button"
                         title="Create a team"
@@ -1458,7 +1461,7 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
                       >
                         <button
                           aria-disabled={false}
-                          className="tip tip css-1v8ytf5-StyledButton-getColors eqrebog0"
+                          className="tip tip css-1v8ytf5-StyledButton-getColors e12ma6z0"
                           data-test-id="create-team"
                           onClick={[Function]}
                           role="button"
@@ -1470,38 +1473,38 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
                           >
                             <Component
                               borderless={true}
-                              className="css-uthd1f-ButtonLabel eqrebog1"
+                              className="css-uthd1f-ButtonLabel e12ma6z1"
                             >
                               <span
-                                className="css-uthd1f-ButtonLabel eqrebog1"
+                                className="css-uthd1f-ButtonLabel e12ma6z1"
                               >
                                 <Icon
                                   hasChildren={false}
                                 >
                                   <Component
-                                    className="css-ljhpxy-Icon eqrebog2"
+                                    className="css-ljhpxy-Icon e12ma6z2"
                                     hasChildren={false}
                                   >
                                     <span
-                                      className="css-ljhpxy-Icon eqrebog2"
+                                      className="css-ljhpxy-Icon e12ma6z2"
                                     >
                                       <StyledInlineSvg
                                         size="16px"
                                         src="icon-circle-add"
                                       >
                                         <InlineSvg
-                                          className="css-1ov3rcq-StyledInlineSvg eqrebog3"
+                                          className="css-1ov3rcq-StyledInlineSvg e12ma6z3"
                                           size="16px"
                                           src="icon-circle-add"
                                         >
                                           <StyledSvg
-                                            className="css-1ov3rcq-StyledInlineSvg eqrebog3"
+                                            className="css-1ov3rcq-StyledInlineSvg e12ma6z3"
                                             height="16px"
                                             viewBox={Object {}}
                                             width="16px"
                                           >
                                             <svg
-                                              className="eqrebog3 css-1jjmnki-StyledSvg-StyledInlineSvg e2idor0"
+                                              className="e12ma6z3 css-1jjmnki-StyledSvg-StyledInlineSvg e2idor0"
                                               height="16px"
                                               viewBox={Object {}}
                                               width="16px"
@@ -1521,7 +1524,7 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
                             </Component>
                           </ButtonLabel>
                         </button>
-                      </Component>
+                      </ForwardRef>
                     </StyledButton>
                   </Tooltip>
                 </Button>
@@ -1546,20 +1549,22 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
               role="button"
               to={null}
             >
-              <Component
+              <ForwardRef
                 aria-disabled={true}
                 aria-label="Create Project"
-                className="css-bo8dlg-StyledButton-getColors eqrebog0"
+                className="css-bo8dlg-StyledButton-getColors e12ma6z0"
                 data-test-id="create-project"
+                disabled={true}
                 href={null}
                 onClick={[Function]}
+                priority="primary"
                 role="button"
                 to={null}
               >
                 <button
                   aria-disabled={true}
                   aria-label="Create Project"
-                  className="css-bo8dlg-StyledButton-getColors eqrebog0"
+                  className="css-bo8dlg-StyledButton-getColors e12ma6z0"
                   data-test-id="create-project"
                   href={null}
                   onClick={[Function]}
@@ -1570,18 +1575,18 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
                     priority="primary"
                   >
                     <Component
-                      className="css-ga4b18-ButtonLabel eqrebog1"
+                      className="css-ga4b18-ButtonLabel e12ma6z1"
                       priority="primary"
                     >
                       <span
-                        className="css-ga4b18-ButtonLabel eqrebog1"
+                        className="css-ga4b18-ButtonLabel e12ma6z1"
                       >
                         Create Project
                       </span>
                     </Component>
                   </ButtonLabel>
                 </button>
-              </Component>
+              </ForwardRef>
             </StyledButton>
           </Button>
         </div>
@@ -1593,6 +1598,7 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
 
 exports[`CreateProject should fill in platform name if its provided by url 1`] = `
 <CreateProject
+  api={Client {}}
   location={
     Object {
       "query": Object {},
@@ -2046,16 +2052,18 @@ exports[`CreateProject should fill in platform name if its provided by url 1`] =
                         role="button"
                         size="xsmall"
                       >
-                        <Component
+                        <ForwardRef
                           aria-disabled={false}
-                          className="ewlrg795 css-2lxdh0-StyledButton-getColors-ClearButton eqrebog0"
+                          borderless={true}
+                          className="ewlrg795 css-2lxdh0-StyledButton-getColors-ClearButton e12ma6z0"
+                          disabled={false}
                           onClick={[Function]}
                           role="button"
                           size="xsmall"
                         >
                           <button
                             aria-disabled={false}
-                            className="ewlrg795 css-2lxdh0-StyledButton-getColors-ClearButton eqrebog0"
+                            className="ewlrg795 css-2lxdh0-StyledButton-getColors-ClearButton e12ma6z0"
                             onClick={[Function]}
                             role="button"
                             size="xsmall"
@@ -2066,23 +2074,23 @@ exports[`CreateProject should fill in platform name if its provided by url 1`] =
                             >
                               <Component
                                 borderless={true}
-                                className="css-10ltac7-ButtonLabel eqrebog1"
+                                className="css-10ltac7-ButtonLabel e12ma6z1"
                                 size="xsmall"
                               >
                                 <span
-                                  className="css-10ltac7-ButtonLabel eqrebog1"
+                                  className="css-10ltac7-ButtonLabel e12ma6z1"
                                 >
                                   <Icon
                                     hasChildren={false}
                                     size="xsmall"
                                   >
                                     <Component
-                                      className="css-ljhpxy-Icon eqrebog2"
+                                      className="css-ljhpxy-Icon e12ma6z2"
                                       hasChildren={false}
                                       size="xsmall"
                                     >
                                       <span
-                                        className="css-ljhpxy-Icon eqrebog2"
+                                        className="css-ljhpxy-Icon e12ma6z2"
                                         size="xsmall"
                                       >
                                         <StyledInlineSvg
@@ -2090,18 +2098,18 @@ exports[`CreateProject should fill in platform name if its provided by url 1`] =
                                           src="icon-circle-close"
                                         >
                                           <InlineSvg
-                                            className="css-1ov3rcq-StyledInlineSvg eqrebog3"
+                                            className="css-1ov3rcq-StyledInlineSvg e12ma6z3"
                                             size="12px"
                                             src="icon-circle-close"
                                           >
                                             <StyledSvg
-                                              className="css-1ov3rcq-StyledInlineSvg eqrebog3"
+                                              className="css-1ov3rcq-StyledInlineSvg e12ma6z3"
                                               height="12px"
                                               viewBox={Object {}}
                                               width="12px"
                                             >
                                               <svg
-                                                className="eqrebog3 css-1jjmnki-StyledSvg-StyledInlineSvg e2idor0"
+                                                className="e12ma6z3 css-1jjmnki-StyledSvg-StyledInlineSvg e2idor0"
                                                 height="12px"
                                                 viewBox={Object {}}
                                                 width="12px"
@@ -2121,7 +2129,7 @@ exports[`CreateProject should fill in platform name if its provided by url 1`] =
                               </Component>
                             </ButtonLabel>
                           </button>
-                        </Component>
+                        </ForwardRef>
                       </StyledButton>
                     </Button>
                   </Component>
@@ -2406,10 +2414,12 @@ exports[`CreateProject should fill in platform name if its provided by url 1`] =
                       title="Create a team"
                       type="button"
                     >
-                      <Component
+                      <ForwardRef
                         aria-disabled={false}
-                        className="tip tip css-1v8ytf5-StyledButton-getColors eqrebog0"
+                        borderless={true}
+                        className="tip tip css-1v8ytf5-StyledButton-getColors e12ma6z0"
                         data-test-id="create-team"
+                        disabled={false}
                         onClick={[Function]}
                         role="button"
                         title="Create a team"
@@ -2417,7 +2427,7 @@ exports[`CreateProject should fill in platform name if its provided by url 1`] =
                       >
                         <button
                           aria-disabled={false}
-                          className="tip tip css-1v8ytf5-StyledButton-getColors eqrebog0"
+                          className="tip tip css-1v8ytf5-StyledButton-getColors e12ma6z0"
                           data-test-id="create-team"
                           onClick={[Function]}
                           role="button"
@@ -2429,38 +2439,38 @@ exports[`CreateProject should fill in platform name if its provided by url 1`] =
                           >
                             <Component
                               borderless={true}
-                              className="css-uthd1f-ButtonLabel eqrebog1"
+                              className="css-uthd1f-ButtonLabel e12ma6z1"
                             >
                               <span
-                                className="css-uthd1f-ButtonLabel eqrebog1"
+                                className="css-uthd1f-ButtonLabel e12ma6z1"
                               >
                                 <Icon
                                   hasChildren={false}
                                 >
                                   <Component
-                                    className="css-ljhpxy-Icon eqrebog2"
+                                    className="css-ljhpxy-Icon e12ma6z2"
                                     hasChildren={false}
                                   >
                                     <span
-                                      className="css-ljhpxy-Icon eqrebog2"
+                                      className="css-ljhpxy-Icon e12ma6z2"
                                     >
                                       <StyledInlineSvg
                                         size="16px"
                                         src="icon-circle-add"
                                       >
                                         <InlineSvg
-                                          className="css-1ov3rcq-StyledInlineSvg eqrebog3"
+                                          className="css-1ov3rcq-StyledInlineSvg e12ma6z3"
                                           size="16px"
                                           src="icon-circle-add"
                                         >
                                           <StyledSvg
-                                            className="css-1ov3rcq-StyledInlineSvg eqrebog3"
+                                            className="css-1ov3rcq-StyledInlineSvg e12ma6z3"
                                             height="16px"
                                             viewBox={Object {}}
                                             width="16px"
                                           >
                                             <svg
-                                              className="eqrebog3 css-1jjmnki-StyledSvg-StyledInlineSvg e2idor0"
+                                              className="e12ma6z3 css-1jjmnki-StyledSvg-StyledInlineSvg e2idor0"
                                               height="16px"
                                               viewBox={Object {}}
                                               width="16px"
@@ -2480,7 +2490,7 @@ exports[`CreateProject should fill in platform name if its provided by url 1`] =
                             </Component>
                           </ButtonLabel>
                         </button>
-                      </Component>
+                      </ForwardRef>
                     </StyledButton>
                   </Tooltip>
                 </Button>
@@ -2505,20 +2515,22 @@ exports[`CreateProject should fill in platform name if its provided by url 1`] =
               role="button"
               to={null}
             >
-              <Component
+              <ForwardRef
                 aria-disabled={true}
                 aria-label="Create Project"
-                className="css-bo8dlg-StyledButton-getColors eqrebog0"
+                className="css-bo8dlg-StyledButton-getColors e12ma6z0"
                 data-test-id="create-project"
+                disabled={true}
                 href={null}
                 onClick={[Function]}
+                priority="primary"
                 role="button"
                 to={null}
               >
                 <button
                   aria-disabled={true}
                   aria-label="Create Project"
-                  className="css-bo8dlg-StyledButton-getColors eqrebog0"
+                  className="css-bo8dlg-StyledButton-getColors e12ma6z0"
                   data-test-id="create-project"
                   href={null}
                   onClick={[Function]}
@@ -2529,18 +2541,18 @@ exports[`CreateProject should fill in platform name if its provided by url 1`] =
                     priority="primary"
                   >
                     <Component
-                      className="css-ga4b18-ButtonLabel eqrebog1"
+                      className="css-ga4b18-ButtonLabel e12ma6z1"
                       priority="primary"
                     >
                       <span
-                        className="css-ga4b18-ButtonLabel eqrebog1"
+                        className="css-ga4b18-ButtonLabel e12ma6z1"
                       >
                         Create Project
                       </span>
                     </Component>
                   </ButtonLabel>
                 </button>
-              </Component>
+              </ForwardRef>
             </StyledButton>
           </Button>
         </div>
@@ -2552,6 +2564,7 @@ exports[`CreateProject should fill in platform name if its provided by url 1`] =
 
 exports[`CreateProject should fill in project name if its empty when platform is chosen 1`] = `
 <CreateProject
+  api={Client {}}
   location={
     Object {
       "query": Object {},
@@ -2905,16 +2918,18 @@ exports[`CreateProject should fill in project name if its empty when platform is
                         role="button"
                         size="xsmall"
                       >
-                        <Component
+                        <ForwardRef
                           aria-disabled={false}
-                          className="ewlrg795 css-2lxdh0-StyledButton-getColors-ClearButton eqrebog0"
+                          borderless={true}
+                          className="ewlrg795 css-2lxdh0-StyledButton-getColors-ClearButton e12ma6z0"
+                          disabled={false}
                           onClick={[Function]}
                           role="button"
                           size="xsmall"
                         >
                           <button
                             aria-disabled={false}
-                            className="ewlrg795 css-2lxdh0-StyledButton-getColors-ClearButton eqrebog0"
+                            className="ewlrg795 css-2lxdh0-StyledButton-getColors-ClearButton e12ma6z0"
                             onClick={[Function]}
                             role="button"
                             size="xsmall"
@@ -2925,23 +2940,23 @@ exports[`CreateProject should fill in project name if its empty when platform is
                             >
                               <Component
                                 borderless={true}
-                                className="css-10ltac7-ButtonLabel eqrebog1"
+                                className="css-10ltac7-ButtonLabel e12ma6z1"
                                 size="xsmall"
                               >
                                 <span
-                                  className="css-10ltac7-ButtonLabel eqrebog1"
+                                  className="css-10ltac7-ButtonLabel e12ma6z1"
                                 >
                                   <Icon
                                     hasChildren={false}
                                     size="xsmall"
                                   >
                                     <Component
-                                      className="css-ljhpxy-Icon eqrebog2"
+                                      className="css-ljhpxy-Icon e12ma6z2"
                                       hasChildren={false}
                                       size="xsmall"
                                     >
                                       <span
-                                        className="css-ljhpxy-Icon eqrebog2"
+                                        className="css-ljhpxy-Icon e12ma6z2"
                                         size="xsmall"
                                       >
                                         <StyledInlineSvg
@@ -2949,18 +2964,18 @@ exports[`CreateProject should fill in project name if its empty when platform is
                                           src="icon-circle-close"
                                         >
                                           <InlineSvg
-                                            className="css-1ov3rcq-StyledInlineSvg eqrebog3"
+                                            className="css-1ov3rcq-StyledInlineSvg e12ma6z3"
                                             size="12px"
                                             src="icon-circle-close"
                                           >
                                             <StyledSvg
-                                              className="css-1ov3rcq-StyledInlineSvg eqrebog3"
+                                              className="css-1ov3rcq-StyledInlineSvg e12ma6z3"
                                               height="12px"
                                               viewBox={Object {}}
                                               width="12px"
                                             >
                                               <svg
-                                                className="eqrebog3 css-1jjmnki-StyledSvg-StyledInlineSvg e2idor0"
+                                                className="e12ma6z3 css-1jjmnki-StyledSvg-StyledInlineSvg e2idor0"
                                                 height="12px"
                                                 viewBox={Object {}}
                                                 width="12px"
@@ -2980,7 +2995,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
                               </Component>
                             </ButtonLabel>
                           </button>
-                        </Component>
+                        </ForwardRef>
                       </StyledButton>
                     </Button>
                   </Component>
@@ -4015,10 +4030,12 @@ exports[`CreateProject should fill in project name if its empty when platform is
                       title="Create a team"
                       type="button"
                     >
-                      <Component
+                      <ForwardRef
                         aria-disabled={false}
-                        className="tip tip css-1v8ytf5-StyledButton-getColors eqrebog0"
+                        borderless={true}
+                        className="tip tip css-1v8ytf5-StyledButton-getColors e12ma6z0"
                         data-test-id="create-team"
+                        disabled={false}
                         onClick={[Function]}
                         role="button"
                         title="Create a team"
@@ -4026,7 +4043,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
                       >
                         <button
                           aria-disabled={false}
-                          className="tip tip css-1v8ytf5-StyledButton-getColors eqrebog0"
+                          className="tip tip css-1v8ytf5-StyledButton-getColors e12ma6z0"
                           data-test-id="create-team"
                           onClick={[Function]}
                           role="button"
@@ -4038,38 +4055,38 @@ exports[`CreateProject should fill in project name if its empty when platform is
                           >
                             <Component
                               borderless={true}
-                              className="css-uthd1f-ButtonLabel eqrebog1"
+                              className="css-uthd1f-ButtonLabel e12ma6z1"
                             >
                               <span
-                                className="css-uthd1f-ButtonLabel eqrebog1"
+                                className="css-uthd1f-ButtonLabel e12ma6z1"
                               >
                                 <Icon
                                   hasChildren={false}
                                 >
                                   <Component
-                                    className="css-ljhpxy-Icon eqrebog2"
+                                    className="css-ljhpxy-Icon e12ma6z2"
                                     hasChildren={false}
                                   >
                                     <span
-                                      className="css-ljhpxy-Icon eqrebog2"
+                                      className="css-ljhpxy-Icon e12ma6z2"
                                     >
                                       <StyledInlineSvg
                                         size="16px"
                                         src="icon-circle-add"
                                       >
                                         <InlineSvg
-                                          className="css-1ov3rcq-StyledInlineSvg eqrebog3"
+                                          className="css-1ov3rcq-StyledInlineSvg e12ma6z3"
                                           size="16px"
                                           src="icon-circle-add"
                                         >
                                           <StyledSvg
-                                            className="css-1ov3rcq-StyledInlineSvg eqrebog3"
+                                            className="css-1ov3rcq-StyledInlineSvg e12ma6z3"
                                             height="16px"
                                             viewBox={Object {}}
                                             width="16px"
                                           >
                                             <svg
-                                              className="eqrebog3 css-1jjmnki-StyledSvg-StyledInlineSvg e2idor0"
+                                              className="e12ma6z3 css-1jjmnki-StyledSvg-StyledInlineSvg e2idor0"
                                               height="16px"
                                               viewBox={Object {}}
                                               width="16px"
@@ -4089,7 +4106,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
                             </Component>
                           </ButtonLabel>
                         </button>
-                      </Component>
+                      </ForwardRef>
                     </StyledButton>
                   </Tooltip>
                 </Button>
@@ -4114,20 +4131,22 @@ exports[`CreateProject should fill in project name if its empty when platform is
               role="button"
               to={null}
             >
-              <Component
+              <ForwardRef
                 aria-disabled={true}
                 aria-label="Create Project"
-                className="css-bo8dlg-StyledButton-getColors eqrebog0"
+                className="css-bo8dlg-StyledButton-getColors e12ma6z0"
                 data-test-id="create-project"
+                disabled={true}
                 href={null}
                 onClick={[Function]}
+                priority="primary"
                 role="button"
                 to={null}
               >
                 <button
                   aria-disabled={true}
                   aria-label="Create Project"
-                  className="css-bo8dlg-StyledButton-getColors eqrebog0"
+                  className="css-bo8dlg-StyledButton-getColors e12ma6z0"
                   data-test-id="create-project"
                   href={null}
                   onClick={[Function]}
@@ -4138,18 +4157,18 @@ exports[`CreateProject should fill in project name if its empty when platform is
                     priority="primary"
                   >
                     <Component
-                      className="css-ga4b18-ButtonLabel eqrebog1"
+                      className="css-ga4b18-ButtonLabel e12ma6z1"
                       priority="primary"
                     >
                       <span
-                        className="css-ga4b18-ButtonLabel eqrebog1"
+                        className="css-ga4b18-ButtonLabel e12ma6z1"
                       >
                         Create Project
                       </span>
                     </Component>
                   </ButtonLabel>
                 </button>
-              </Component>
+              </ForwardRef>
             </StyledButton>
           </Button>
         </div>

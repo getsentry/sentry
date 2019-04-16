@@ -8,6 +8,7 @@ jest.mock('app/actionCreators/modal');
 
 describe('CreateProject', function() {
   const baseProps = {
+    api: new MockApiClient(),
     location: {query: {}},
     organization: TestStubs.Organization(),
     teams: [],

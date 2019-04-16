@@ -19,7 +19,7 @@ import {
 import {t, tct} from 'app/locale';
 import {update} from 'app/actionCreators/projects';
 import Access from 'app/components/acl/access';
-import ApiMixin from 'app/mixins/apiMixin';
+import withApi from 'app/utils/withApi';
 import Button from 'app/components/button';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
 import EnvironmentStore from 'app/stores/environmentStore';
@@ -37,11 +37,12 @@ import space from 'app/styles/space';
 
 const ProjectEnvironments = createReactClass({
   propTypes: {
+    api: PropTypes.object,
     routes: PropTypes.array,
     params: PropTypes.object,
   },
 
-  mixins: [ApiMixin, Reflux.listenTo(EnvironmentStore, 'onEnvironmentsChange')],
+  mixins: [Reflux.listenTo(EnvironmentStore, 'onEnvironmentsChange')],
 
   getInitialState() {
     const isHidden = this.props.location.pathname.endsWith('hidden/');
@@ -92,7 +93,7 @@ const ProjectEnvironments = createReactClass({
 
   fetchData(hidden) {
     const {orgId, projectId} = this.props.params;
-    this.api.request(`/projects/${orgId}/${projectId}/environments/`, {
+    this.props.api.request(`/projects/${orgId}/${projectId}/environments/`, {
       query: {
         visibility: hidden ? 'hidden' : 'visible',
       },
@@ -105,7 +106,7 @@ const ProjectEnvironments = createReactClass({
 
   fetchProjectDetails() {
     const {orgId, projectId} = this.props.params;
-    this.api.request(`/projects/${orgId}/${projectId}/`, {
+    this.props.api.request(`/projects/${orgId}/${projectId}/`, {
       success: project => {
         this.setState({project});
       },
@@ -126,7 +127,7 @@ const ProjectEnvironments = createReactClass({
   toggleEnv(env, shouldHide) {
     const {orgId, projectId} = this.props.params;
 
-    this.api.request(
+    this.props.api.request(
       `/projects/${orgId}/${projectId}/environments/${env.urlRoutingName}/`,
       {
         method: 'PUT',
@@ -173,7 +174,7 @@ const ProjectEnvironments = createReactClass({
     addLoadingMessage();
 
     // Update project details
-    update(this.api, {
+    update(this.props.api, {
       ...this.props.params,
       data,
     }).then(
@@ -435,4 +436,5 @@ const InvalidDefaultEnvironmentIcon = styled(props => (
 ))`
   color: ${p => p.theme.error};
 `;
-export default ProjectEnvironments;
+export {ProjectEnvironments};
+export default withApi(ProjectEnvironments);

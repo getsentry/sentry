@@ -4,7 +4,6 @@ import {browserHistory} from 'react-router';
 import styled from 'react-emotion';
 
 import {analytics, amplitude} from 'app/utils/analytics';
-import ApiMixin from 'app/mixins/apiMixin';
 import CreateSampleEvent from 'app/components/createSampleEvent';
 import ProjectContext from 'app/views/projects/projectContext';
 import ProjectDocsContext from 'app/views/projectInstall/docsContext';
@@ -18,7 +17,6 @@ const Configure = createReactClass({
   contextTypes: {
     organization: SentryTypes.Organization,
   },
-  mixins: [ApiMixin],
 
   getInitialState() {
     return {
@@ -42,11 +40,6 @@ const Configure = createReactClass({
 
     data.org_id = parseInt(organization.id, 10);
     analytics('onboarding.configure_viewed', data);
-
-    //redirect if platform is not known.
-    if (!params.platform || params.platform === 'other') {
-      this.redirectToNeutralDocs();
-    }
     this.sentRealEvent();
   },
 
@@ -83,17 +76,6 @@ const Configure = createReactClass({
       {projectId}
     );
     this.redirectUrl();
-  },
-
-  redirectToNeutralDocs() {
-    const {orgId, projectId} = this.props.params;
-    const {organization} = this.context;
-
-    const url = new Set(organization.features).has('sentry10')
-      ? `/organizations/${orgId}/projects/${projectId}/getting-started/`
-      : `/${orgId}/${projectId}/getting-started/`;
-
-    browserHistory.push(url);
   },
 
   render() {

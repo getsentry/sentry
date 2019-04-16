@@ -1,11 +1,12 @@
-import React from 'react';
 import {browserHistory} from 'react-router';
-import {shallow} from 'enzyme';
 import {clonedeep} from 'lodash';
+import React from 'react';
 
-import TagStore from 'app/stores/tagStore';
-import GroupStore from 'app/stores/groupStore';
 import {OrganizationStream} from 'app/views/organizationStream/overview';
+import {shallow} from 'enzyme';
+import ErrorRobot from 'app/components/errorRobot';
+import GroupStore from 'app/stores/groupStore';
+import TagStore from 'app/stores/tagStore';
 
 const DEFAULT_LINKS_HEADER =
   '<http://127.0.0.1:8000/api/0/organizations/org-slug/issues/?cursor=1443575731:0:1>; rel="previous"; results="false"; cursor="1443575731:0:1", ' +
@@ -498,7 +499,7 @@ describe('OrganizationStream', function() {
         }),
       });
 
-      expect(wrapper.find('ErrorRobot')).toHaveLength(1);
+      expect(wrapper.find(ErrorRobot)).toHaveLength(1);
     });
 
     it('does not display when no projects selected and any projects have a first event', function() {
@@ -527,7 +528,7 @@ describe('OrganizationStream', function() {
         }),
       });
 
-      expect(wrapper.find('ErrorRobot')).toHaveLength(0);
+      expect(wrapper.find(ErrorRobot)).toHaveLength(0);
     });
 
     it('displays when all selected projects do not have first event', function() {
@@ -561,7 +562,7 @@ describe('OrganizationStream', function() {
         }),
       });
 
-      expect(wrapper.find('ErrorRobot')).toHaveLength(1);
+      expect(wrapper.find(ErrorRobot)).toHaveLength(1);
     });
 
     it('does not display when any selected projects have first event', function() {
@@ -595,7 +596,7 @@ describe('OrganizationStream', function() {
         }),
       });
 
-      expect(wrapper.find('ErrorRobot')).toHaveLength(0);
+      expect(wrapper.find(ErrorRobot)).toHaveLength(0);
     });
   });
 

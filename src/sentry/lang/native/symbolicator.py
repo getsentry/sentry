@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+import sys
 import jsonschema
 import logging
 import six
@@ -104,8 +105,13 @@ def get_internal_source(project):
     """
     Returns the source configuration for a Sentry project.
     """
-    internal_url_prefix = options.get('system.internal-url-prefix') \
-        or options.get('system.url-prefix')
+    internal_url_prefix = options.get('system.internal-url-prefix')
+    if not internal_url_prefix:
+        internal_url_prefix = options.get('system.url-prefix')
+        if sys.platform == 'darwin':
+            internal_url_prefix = internal_url_prefix \
+                .replace("localhost", "host.docker.internal") \
+                .replace("127.0.0.1", "host.docker.internal")
 
     assert internal_url_prefix
     sentry_source_url = '%s%s' % (
@@ -181,7 +187,7 @@ def get_sources_for_project(project):
     builtin_sources = project.get_option('sentry:builtin_symbol_sources') or []
     for key, source in six.iteritems(BUILTIN_SOURCES):
         if key in builtin_sources:
-            sources.push(source)
+            sources.append(source)
 
     return sources
 
@@ -249,6 +255,7 @@ def run_symbolicator(stacktraces, modules, project, arch, signal, request_id_cac
                     return rv.json()
                 else:
                     logger.error("Unexpected status: %s", json['status'])
+
                     default_cache.delete(request_id_cache_key)
                     return
 
@@ -256,6 +263,7 @@ def run_symbolicator(stacktraces, modules, project, arch, signal, request_id_cac
                 attempts += 1
                 if attempts > MAX_ATTEMPTS:
                     logger.error('Failed to contact symbolicator', exc_info=True)
+
                     default_cache.delete(request_id_cache_key)
                     return
 

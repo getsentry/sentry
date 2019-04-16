@@ -2,6 +2,7 @@ from __future__ import absolute_import
 
 from rest_framework.response import Response
 
+from sentry import analytics
 from sentry.api.bases.organization import (
     OrganizationEndpoint,
     OrganizationSearchPermission,
@@ -32,4 +33,11 @@ class OrganizationSearchDetailsEndpoint(OrganizationEndpoint):
             raise ResourceDoesNotExist
 
         search.delete()
+        analytics.record(
+            'organization_saved_search.deleted',
+            search_type=search.type,
+            organization_id=organization.id,
+            id=search_id,
+            user_id=request.user.id,
+        )
         return Response(status=204)

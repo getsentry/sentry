@@ -100,6 +100,7 @@ class DatabaseOperations(object):
     add_check_constraint_fragment = "ADD CONSTRAINT %(constraint)s CHECK (%(check)s)"
     rename_table_sql = "ALTER TABLE %s RENAME TO %s;"
     backend_name = None
+
     default_schema_name = "public"
 
     # Features
@@ -687,7 +688,7 @@ class DatabaseOperations(object):
 
         if sql:
 
-            # Some callers, like the sqlite stuff, just want the extended type.
+            # Some callers just want the extended type.
             if with_name:
                 field_output = [self.quote_name(field.column), sql]
             else:
@@ -720,11 +721,13 @@ class DatabaseOperations(object):
                     # written into the database
                     if callable(default):
                         get_logger().warn(text_type('discarded column default "%r" on "%s"' % (default, table_name)))
+
                         default = None
 
                     # If the default is actually None, don't add a default term
                     if default is not None:
                         default = field.get_db_prep_save(default, connection=self._get_connection())
+
                         default = self._default_value_workaround(default)
                         # Now do some very cheap quoting. TODO: Redesign return values to avoid
                         # this.

@@ -1,7 +1,7 @@
 import React from 'react';
 import {mount, shallow} from 'enzyme';
 
-import StreamActions from 'app/views/stream/actions';
+import {StreamActions} from 'app/views/stream/actions';
 import SelectedGroupStore from 'app/stores/selectedGroupStore';
 
 describe('StreamActions', function() {
@@ -19,6 +19,7 @@ describe('StreamActions', function() {
         SelectedGroupStore.add([1, 2, 3]);
         wrapper = mount(
           <StreamActions
+            api={new MockApiClient()}
             allResultsVisible={false}
             query=""
             queryCount={1500}
@@ -80,6 +81,7 @@ describe('StreamActions', function() {
         SelectedGroupStore.add([1, 2, 3]);
         wrapper = mount(
           <StreamActions
+            api={new MockApiClient()}
             allResultsVisible={false}
             query=""
             queryCount={600}
@@ -145,6 +147,7 @@ describe('StreamActions', function() {
       SelectedGroupStore.deselectAll.mockReset();
       actions = shallow(
         <StreamActions
+          api={new MockApiClient()}
           query=""
           orgId="1337"
           projectId="1"
@@ -204,6 +207,7 @@ describe('StreamActions', function() {
     beforeEach(function() {
       wrapper = mount(
         <StreamActions
+          api={new MockApiClient()}
           query=""
           orgId="1337"
           groupIds={[1, 2, 3]}

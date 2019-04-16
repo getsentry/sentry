@@ -1,10 +1,9 @@
 import PropTypes from 'prop-types';
-import SentryTypes from 'app/sentryTypes';
 import React from 'react';
 import _ from 'lodash';
 import classNames from 'classnames';
 import createReactClass from 'create-react-class';
-import styled from 'react-emotion';
+import styled, {css} from 'react-emotion';
 
 import {defined, objectIsEmpty, isUrl} from 'app/utils';
 import {t} from 'app/locale';
@@ -16,6 +15,8 @@ import FrameVariables from 'app/components/events/interfaces/frameVariables';
 import StrictClick from 'app/components/strictClick';
 import Tooltip from 'app/components/tooltip';
 import Truncate from 'app/components/truncate';
+import OpenInContextLine from 'app/components/events/interfaces/openInContextLine';
+import SentryAppComponentsStore from 'app/stores/sentryAppComponentsStore';
 import space from 'app/styles/space';
 
 export function trimPackage(pkg) {
@@ -37,7 +38,6 @@ const Frame = createReactClass({
     isOnlyFrame: PropTypes.bool,
     timesRepeated: PropTypes.number,
     registers: PropTypes.objectOf(PropTypes.string.isRequired),
-    group: SentryTypes.Group,
   },
 
   getDefaultProps() {
@@ -124,6 +124,10 @@ const Frame = createReactClass({
 
   preventCollapse(evt) {
     evt.stopPropagation();
+  },
+
+  getSentryAppComponents() {
+    return SentryAppComponentsStore.getComponentByType('stacktrace-link');
   },
 
   renderDefaultTitle() {
@@ -236,7 +240,6 @@ const Frame = createReactClass({
 
   renderContext() {
     const data = this.props.data;
-    const group = this.props.group;
     let context = '';
     const {isExpanded} = this.state;
 
@@ -266,14 +269,36 @@ const Frame = createReactClass({
 
           {data.context &&
             contextLines.map((line, index) => {
+              const isActive = data.lineNo === line[0];
+              const components = this.getSentryAppComponents();
+              const hasComponents = isActive && components.length > 0;
+              const className = hasComponents
+                ? css`
+                    background: inherit;
+                    padding: 0;
+                    text-indent: 20px;
+                    z-index: 1000;
+                  `
+                : css`
+                    background: inherit;
+                    padding: 0 20px;
+                  `;
               return (
                 <ContextLine
                   key={index}
                   line={line}
-                  isActive={data.lineNo === line[0]}
-                  filename={data.filename}
-                  group={group}
-                />
+                  isActive={isActive}
+                  className={className}
+                >
+                  {hasComponents && (
+                    <OpenInContextLine
+                      key={index}
+                      lineNo={line[0]}
+                      filename={data.filename}
+                      components={components}
+                    />
+                  )}
+                </ContextLine>
               );
             })}
 

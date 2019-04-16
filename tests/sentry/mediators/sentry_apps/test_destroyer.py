@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 from django.db import connection
+from mock import patch
 
 from sentry.mediators.sentry_apps import Destroyer
 from sentry.models import AuditLogEntry, AuditLogEntryEvent, ApiApplication, User, SentryApp, SentryAppInstallation
@@ -46,6 +47,7 @@ class TestDestroyer(TestCase):
     def test_creates_audit_log_entry(self):
         request = self.make_request(user=self.user, method='GET')
         Destroyer.run(
+            user=self.user,
             sentry_app=self.sentry_app,
             request=request,
         )
@@ -67,3 +69,18 @@ class TestDestroyer(TestCase):
             [self.sentry_app.id])
 
         assert c.fetchone()[0] == 1
+
+    @patch('sentry.analytics.record')
+    def test_records_analytics(self, record):
+        Destroyer.run(
+            user=self.user,
+            sentry_app=self.sentry_app,
+            request=self.make_request(user=self.user, method='GET'),
+        )
+
+        record.assert_called_with(
+            'sentry_app.deleted',
+            user_id=self.user.id,
+            organization_id=self.org.id,
+            sentry_app=self.sentry_app.slug,
+        )

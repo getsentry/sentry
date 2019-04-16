@@ -47,6 +47,7 @@ describe('projectContext component', function() {
 
     const projectContext = (
       <ProjectContext
+        api={new MockApiClient()}
         params={{orgId: org.slug, projectId: project.slug}}
         projects={[]}
         routes={routes}
@@ -81,6 +82,7 @@ describe('projectContext component', function() {
 
     const projectContext = (
       <ProjectContext
+        api={new MockApiClient()}
         params={{orgId: org.slug, projectId: project.slug}}
         projects={[]}
         routes={routes}

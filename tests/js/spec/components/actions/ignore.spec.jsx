@@ -5,6 +5,7 @@ import IgnoreActions from 'app/components/actions/ignore';
 
 describe('IgnoreActions', function() {
   const routerContext = TestStubs.routerContext();
+
   describe('disabled', function() {
     let component, button;
     const spy = jest.fn();
@@ -51,10 +52,6 @@ describe('IgnoreActions', function() {
       component = mount(<IgnoreActions onUpdate={spy} />, routerContext);
     });
 
-    it('renders', function() {
-      expect(component).toMatchSnapshot();
-    });
-
     it('calls spy with ignore details when clicked', function() {
       const button = component.find('a.btn.btn-default').first();
       button.simulate('click');
@@ -69,14 +66,10 @@ describe('IgnoreActions', function() {
 
     beforeEach(function() {
       component = mount(
-        <IgnoreActions onUpdate={spy} shouldConfirm={true} confirmMessage={'Yoooooo'} />,
+        <IgnoreActions onUpdate={spy} shouldConfirm={true} confirmMessage="Yoooooo" />,
         routerContext
       );
       button = component.find('a.btn.btn-default').first();
-    });
-
-    it('renders', function() {
-      expect(component).toMatchSnapshot();
     });
 
     it('displays confirmation modal with message provided', function() {

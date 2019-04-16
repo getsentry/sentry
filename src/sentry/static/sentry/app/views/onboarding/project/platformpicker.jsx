@@ -89,7 +89,7 @@ class PlatformPicker extends React.Component {
                   this.setState({category: id, filter: ''});
                   e.preventDefault();
                 }}
-                to={''}
+                to=""
                 isActive={() => id === (filter ? 'all' : category)}
               >
                 {name}

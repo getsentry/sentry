@@ -3,6 +3,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import styled, {css} from 'react-emotion';
 import isPropValid from '@emotion/is-prop-valid';
+import {pickBy} from 'lodash';
 
 import ExternalLink from 'app/components/externalLink';
 import InlineSvg from 'app/components/inlineSvg';
@@ -196,29 +197,31 @@ const getColors = ({priority, disabled, borderless, theme}) => {
   `;
 };
 
-const customProps = ['external', 'size'];
-const shouldForwardProp = p =>
-  (p !== 'disabled' && isPropValid(p)) || customProps.includes(p);
-
 const StyledButton = styled(
-  ({external, ...props}) => {
+  // While props is the conventional name, we're using `prop` to trick
+  // eslint as using `props` results in unfixable 'missing proptypes` warnings.
+  React.forwardRef((prop, ref) => {
+    const forwardProps = pickBy(
+      prop,
+      (value, key) => key !== 'disabled' && isPropValid(key)
+    );
+
     // Get component to use based on existance of `to` or `href` properties
     // Can be react-router `Link`, `a`, or `button`
-    if (props.to) {
-      return <Link {...props} />;
+    if (prop.to) {
+      return <Link ref={ref} {...forwardProps} />;
     }
 
-    if (!props.href) {
-      return <button {...props} />;
+    if (!prop.href) {
+      return <button ref={ref} {...forwardProps} />;
     }
 
-    if (external) {
-      return <ExternalLink {...props} />;
+    if (prop.external) {
+      return <ExternalLink ref={ref} {...forwardProps} />;
     }
 
-    return <a {...props} />;
-  },
-  {shouldForwardProp}
+    return <a ref={ref} {...forwardProps} />;
+  })
 )`
   display: inline-block;
   line-height: 1;

@@ -3,7 +3,7 @@ import React from 'react';
 import createReactClass from 'create-react-class';
 
 import {t} from 'app/locale';
-import ApiMixin from 'app/mixins/apiMixin';
+import withApi from 'app/utils/withApi';
 import Badge from 'app/components/badge';
 import ListLink from 'app/components/listLink';
 import LoadingError from 'app/components/loadingError';
@@ -16,6 +16,7 @@ const ProjectSettings = createReactClass({
   displayName: 'ProjectSettings',
 
   propTypes: {
+    api: PropTypes.object,
     setProjectNavSection: PropTypes.func,
   },
 
@@ -24,7 +25,7 @@ const ProjectSettings = createReactClass({
     organization: PropTypes.object,
   },
 
-  mixins: [ApiMixin, OrganizationState],
+  mixins: [OrganizationState],
 
   getInitialState() {
     return {
@@ -60,7 +61,7 @@ const ProjectSettings = createReactClass({
   fetchData() {
     const params = this.props.params;
 
-    this.api.request(`/projects/${params.orgId}/${params.projectId}/`, {
+    this.props.api.request(`/projects/${params.orgId}/${params.projectId}/`, {
       success: data => {
         this.setState({
           project: data,
@@ -192,4 +193,6 @@ const ProjectSettings = createReactClass({
   },
 });
 
-export default ProjectSettings;
+export {ProjectSettings};
+
+export default withApi(ProjectSettings);

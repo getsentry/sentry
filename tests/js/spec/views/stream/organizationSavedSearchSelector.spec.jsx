@@ -4,7 +4,7 @@ import {mount} from 'enzyme';
 import OrganizationSavedSearchSelector from 'app/views/stream/organizationSavedSearchSelector';
 
 describe('OrganizationSavedSearchSelector', function() {
-  let wrapper, onCreate, onSelect, onDelete, organization, savedSearchList, createMock;
+  let wrapper, onCreate, onSelect, onDelete, organization, savedSearchList;
   beforeEach(function() {
     organization = TestStubs.Organization({access: ['org:write']});
     onSelect = jest.fn();
@@ -33,16 +33,10 @@ describe('OrganizationSavedSearchSelector', function() {
         onSavedSearchCreate={onCreate}
         onSavedSearchSelect={onSelect}
         onSavedSearchDelete={onDelete}
-        query={'is:unresolved assigned:lyn@sentry.io'}
+        query="is:unresolved assigned:lyn@sentry.io"
       />,
       TestStubs.routerContext()
     );
-
-    createMock = MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/searches/',
-      method: 'POST',
-      body: {id: '1', name: 'test', query: 'is:unresolved assigned:lyn@sentry.io'},
-    });
   });
 
   afterEach(function() {
@@ -67,7 +61,7 @@ describe('OrganizationSavedSearchSelector', function() {
 
   describe('selecting an option', function() {
     it('calls onSelect when clicked', async function() {
-      wrapper.find('DropdownLink').simulate('click');
+      wrapper.find('DropdownButton').simulate('click');
       await wrapper.update();
 
       const item = wrapper.find('StyledMenuItem a').first();
@@ -80,7 +74,7 @@ describe('OrganizationSavedSearchSelector', function() {
 
   describe('removing a saved search', function() {
     it('shows a delete button with access', async function() {
-      wrapper.find('DropdownLink').simulate('click');
+      wrapper.find('DropdownButton').simulate('click');
       await wrapper.update();
 
       // Second item should have a delete button as it is not a global search
@@ -95,7 +89,7 @@ describe('OrganizationSavedSearchSelector', function() {
       organization.access = [];
       wrapper.setProps({organization});
 
-      wrapper.find('DropdownLink').simulate('click');
+      wrapper.find('DropdownButton').simulate('click');
       await wrapper.update();
 
       const button = wrapper
@@ -106,7 +100,7 @@ describe('OrganizationSavedSearchSelector', function() {
     });
 
     it('does not show a delete button for global search', async function() {
-      wrapper.find('DropdownLink').simulate('click');
+      wrapper.find('DropdownButton').simulate('click');
       await wrapper.update();
 
       // First item should not have a delete button as it is a global search
@@ -118,7 +112,7 @@ describe('OrganizationSavedSearchSelector', function() {
     });
 
     it('sends a request when delete button is clicked', async function() {
-      wrapper.find('DropdownLink').simulate('click');
+      wrapper.find('DropdownButton').simulate('click');
       await wrapper.update();
 
       // Second item should have a delete button as it is not a global search
@@ -131,39 +125,6 @@ describe('OrganizationSavedSearchSelector', function() {
 
       wrapper.find('Modal Button[priority="primary"]').simulate('click');
       expect(onDelete).toHaveBeenCalledWith(savedSearchList[1]);
-    });
-  });
-
-  describe('saves a search', function() {
-    it('clicking save search opens modal', function() {
-      wrapper.find('DropdownLink').simulate('click');
-      expect(wrapper.find('ModalDialog')).toHaveLength(0);
-      wrapper.find('Button[data-test-id="save-current-search"]').simulate('click');
-      expect(wrapper.find('ModalDialog')).toHaveLength(1);
-    });
-
-    it('saves a search', async function() {
-      wrapper.find('DropdownLink').simulate('click');
-      wrapper.find('Button[data-test-id="save-current-search"]').simulate('click');
-      wrapper.find('#id-name').simulate('change', {target: {value: 'test'}});
-      wrapper
-        .find('ModalDialog')
-        .find('Button[priority="primary"]')
-        .simulate('submit');
-
-      await tick();
-      expect(createMock).toHaveBeenCalled();
-      expect(onCreate).toHaveBeenCalled();
-    });
-
-    it('hides save search button if no access', function() {
-      const orgWithoutAccess = TestStubs.Organization({access: ['org:read']});
-
-      wrapper.setProps({organization: orgWithoutAccess});
-
-      const button = wrapper.find('button');
-
-      expect(button).toHaveLength(0);
     });
   });
 });

@@ -1,115 +1,235 @@
 /*global global*/
 import React from 'react';
+import {mount} from 'enzyme';
 
 import {Client} from 'app/api';
-import {mount} from 'enzyme';
-import {openIntegrationDetails} from 'app/actionCreators/modal';
+import {
+  openIntegrationDetails,
+  openSentryAppDetailsModal,
+} from 'app/actionCreators/modal';
 import {OrganizationIntegrations} from 'app/views/organizationIntegrations';
 
 jest.mock('app/actionCreators/modal', () => ({
   openIntegrationDetails: jest.fn(),
+  openSentryAppDetailsModal: jest.fn(),
 }));
 
-describe('OrganizationIntegrations', function() {
-  beforeEach(function() {
+describe('OrganizationIntegrations', () => {
+  let wrapper;
+
+  let org;
+  let sentryApp;
+
+  let githubProvider;
+  let jiraProvider;
+  let vstsProvider;
+
+  let githubIntegration;
+  let jiraIntegration;
+
+  let params;
+  let routerContext;
+
+  let sentryAppsRequest;
+  let sentryInstallsRequest;
+
+  let focus;
+  let open;
+
+  beforeEach(() => {
     Client.clearMockResponses();
-  });
 
-  describe('render()', function() {
-    const org = TestStubs.Organization();
+    org = TestStubs.Organization();
+    sentryApp = TestStubs.SentryApp();
 
-    const githubProvider = TestStubs.GitHubIntegrationProvider({
+    githubProvider = TestStubs.GitHubIntegrationProvider({
       integrations: [],
       isInstalled: false,
     });
-    const jiraProvider = TestStubs.JiraIntegrationProvider();
-    const vstsProvider = TestStubs.VstsIntegrationProvider();
 
-    const githubIntegration = TestStubs.GitHubIntegration();
-    const jiraIntegration = TestStubs.JiraIntegration();
+    jiraProvider = TestStubs.JiraIntegrationProvider();
+    vstsProvider = TestStubs.VstsIntegrationProvider();
 
-    const params = {
-      orgId: org.slug,
-    };
+    githubIntegration = TestStubs.GitHubIntegration();
+    jiraIntegration = TestStubs.JiraIntegration();
 
-    const routerContext = TestStubs.routerContext();
+    params = {orgId: org.slug};
 
-    const focus = jest.fn();
-    const open = jest.fn().mockReturnValue({focus});
+    routerContext = TestStubs.routerContext();
+
+    focus = jest.fn();
+    open = jest.fn().mockReturnValue({focus});
     global.open = open;
 
-    describe('without integrations', function() {
-      Client.addMockResponse({
-        url: `/organizations/${org.slug}/integrations/`,
-        body: [],
-      });
-      Client.addMockResponse({
-        url: `/organizations/${org.slug}/config/integrations/`,
-        body: {providers: [githubProvider, jiraProvider]},
-      });
-      Client.addMockResponse({
-        url: `/organizations/${org.slug}/plugins/`,
-        body: [],
-      });
-      Client.addMockResponse({
-        url: `/organizations/${org.slug}/repos/?status=unmigratable`,
-        body: [],
-      });
-      const sentryAppsRequest = Client.addMockResponse({
-        url: `/organizations/${org.slug}/sentry-apps/`,
-        body: [],
-      });
-      const sentryInstallsRequest = Client.addMockResponse({
-        url: `/organizations/${org.slug}/sentry-app-installations/`,
-        body: [],
+    Client.addMockResponse({
+      url: `/organizations/${org.slug}/integrations/`,
+      body: [],
+    });
+
+    Client.addMockResponse({
+      url: `/organizations/${org.slug}/config/integrations/`,
+      body: {providers: [githubProvider, jiraProvider]},
+    });
+
+    Client.addMockResponse({
+      url: `/organizations/${org.slug}/plugins/`,
+      body: [],
+    });
+
+    Client.addMockResponse({
+      url: `/organizations/${org.slug}/repos/?status=unmigratable`,
+      body: [],
+    });
+
+    sentryAppsRequest = Client.addMockResponse({
+      url: `/organizations/${org.slug}/sentry-apps/`,
+      body: [],
+    });
+
+    sentryInstallsRequest = Client.addMockResponse({
+      url: `/organizations/${org.slug}/sentry-app-installations/`,
+      body: [],
+    });
+
+    wrapper = mount(
+      <OrganizationIntegrations organization={org} params={params} />,
+      routerContext
+    );
+  });
+
+  describe('sorting', () => {
+    let installedSentryApp;
+    let sentryAppInstall;
+
+    beforeEach(() => {
+      org = {...org, features: ['sentry-apps']};
+
+      installedSentryApp = TestStubs.SentryApp({
+        name: 'An Integration',
+        slug: 'an-integration',
       });
 
-      const wrapper = mount(
+      sentryAppInstall = TestStubs.SentryAppInstallation({
+        organization: {
+          slug: org.slug,
+        },
+        app: {
+          slug: installedSentryApp.slug,
+          uuid: installedSentryApp.uuid,
+        },
+      });
+
+      Client.addMockResponse({
+        url: `/organizations/${org.slug}/integrations/`,
+        body: [jiraIntegration],
+      });
+
+      Client.addMockResponse({
+        url: `/organizations/${org.slug}/sentry-apps/`,
+        body: [sentryApp, installedSentryApp],
+      });
+
+      Client.addMockResponse({
+        url: `/organizations/${org.slug}/sentry-app-installations/`,
+        body: [sentryAppInstall],
+      });
+
+      wrapper = mount(
         <OrganizationIntegrations organization={org} params={params} />,
         routerContext
       );
+    });
 
-      it('renders with sentry-apps', function() {
-        Client.addMockResponse({
-          url: `/organizations/${org.slug}/integrations/`,
-          body: [],
-        });
-        Client.addMockResponse({
-          url: `/organizations/${org.slug}/config/integrations/`,
-          body: {providers: [githubProvider, jiraProvider]},
-        });
-        Client.addMockResponse({
-          url: `/organizations/${org.slug}/plugins/`,
-          body: [],
-        });
-        Client.addMockResponse({
-          url: `/organizations/${org.slug}/repos/?status=unmigratable`,
-          body: [],
-        });
-        const appsRequest = Client.addMockResponse({
+    it('places installed Integrations above uninstalled ones', () => {
+      // Installed apps are shown at the top of the list
+      const installed = wrapper.find('SentryAppInstallations').at(0);
+      expect(installed.find('Status').prop('enabled')).toBe(true);
+
+      // Uninstalled are shown lower.
+      const uninstalled = wrapper.find('SentryAppInstallations').at(1);
+      expect(uninstalled.find('Status').prop('enabled')).toBeFalsy();
+    });
+
+    it('sorts Sentry App Integrations among Integrations, alphabetically', () => {
+      const rows = wrapper.find('IntegrationRow');
+
+      expect(rows.length).toBe(4);
+
+      // Installed
+      expect(
+        rows
+          .at(0)
+          .find('SentryAppName')
+          .text()
+      ).toMatch(installedSentryApp.name);
+
+      // Uninstalled, alphabetically
+      expect(
+        rows
+          .at(1)
+          .find('ProviderName')
+          .text()
+      ).toMatch('Jira');
+      expect(
+        rows
+          .at(2)
+          .find('ProviderName')
+          .text()
+      ).toMatch('GitHub');
+      expect(
+        rows
+          .at(3)
+          .find('SentryAppName')
+          .text()
+      ).toMatch('Sample App');
+    });
+  });
+
+  describe('render()', () => {
+    describe('without integrations', () => {
+      it('renders with sentry-apps', () => {
+        sentryAppsRequest = Client.addMockResponse({
           url: `/organizations/${org.slug}/sentry-apps/`,
-          body: [],
+          body: [sentryApp],
         });
-        const installsRequest = Client.addMockResponse({
-          url: `/organizations/${org.slug}/sentry-app-installations/`,
-          body: [],
-        });
-        const organization = {...org, features: ['sentry-apps']};
+
+        org = {...org, features: ['sentry-apps']};
+
         mount(
-          <OrganizationIntegrations organization={organization} params={params} />,
-          TestStubs.routerContext([{organization}])
+          <OrganizationIntegrations organization={org} params={params} />,
+          routerContext
         );
-        expect(appsRequest).toHaveBeenCalled();
-        expect(installsRequest).toHaveBeenCalled();
+
+        expect(sentryAppsRequest).toHaveBeenCalled();
+        expect(sentryInstallsRequest).toHaveBeenCalled();
       });
 
-      it('Does`t hit sentry apps endpoints when sentry-apps isn`t present', function() {
+      it('renders a Learn More modal for Sentry Apps', () => {
+        sentryAppsRequest = Client.addMockResponse({
+          url: `/organizations/${org.slug}/sentry-apps/`,
+          body: [sentryApp],
+        });
+
+        org = {...org, features: ['sentry-apps']};
+
+        wrapper = mount(
+          <OrganizationIntegrations organization={org} params={params} />,
+          routerContext
+        );
+
+        wrapper.find('SentryApplicationRow Link').simulate('click');
+
+        expect(openSentryAppDetailsModal).toHaveBeenCalledWith({
+          sentryApp,
+          isInstalled: false,
+          onInstall: expect.any(Function),
+          organization: org,
+        });
+      });
+
+      it('Does`t hit sentry apps endpoints when sentry-apps isn`t present', () => {
         expect(sentryAppsRequest).not.toHaveBeenCalled();
         expect(sentryInstallsRequest).not.toHaveBeenCalled();
-      });
-
-      it('Displays integration providers', function() {
-        expect(wrapper).toMatchSnapshot();
       });
 
       it('Opens the integration dialog on install', function() {
@@ -128,47 +248,43 @@ describe('OrganizationIntegrations', function() {
       });
     });
 
-    describe('with installed integrations', function() {
-      Client.addMockResponse({
-        url: `/organizations/${org.slug}/integrations/`,
-        body: [githubIntegration, jiraIntegration],
-      });
-      Client.addMockResponse({
-        url: `/organizations/${org.slug}/config/integrations/`,
-        body: {providers: [githubProvider, jiraProvider]},
-      });
-      Client.addMockResponse({
-        url: `/organizations/${org.slug}/plugins/`,
-        body: [],
-      });
-      Client.addMockResponse({
-        url: `/organizations/${org.slug}/repos/?status=unmigratable`,
-        body: [],
-      });
+    describe('with installed integrations', () => {
+      let updatedIntegration;
 
-      const wrapper = mount(
-        <OrganizationIntegrations organization={org} params={params} />,
-        routerContext
-      );
+      beforeEach(() => {
+        Client.addMockResponse({
+          url: `/organizations/${org.slug}/integrations/`,
+          body: [githubIntegration, jiraIntegration],
+        });
 
-      const updatedIntegration = Object.assign({}, githubIntegration, {
-        domain_name: 'updated-integration.github.com',
-        icon: 'http://example.com/updated-integration-icon.png',
-        name: 'Updated Integration',
+        wrapper = mount(
+          <OrganizationIntegrations organization={org} params={params} />,
+          routerContext
+        );
+
+        updatedIntegration = Object.assign({}, githubIntegration, {
+          domain_name: 'updated-integration.github.com',
+          icon: 'http://example.com/updated-integration-icon.png',
+          name: 'Updated Integration',
+        });
       });
 
       it('Displays InstalledIntegration', function() {
-        expect(wrapper).toMatchSnapshot();
+        const github = wrapper.find('ProviderRow').first();
+        expect(github.find('ProviderName').text()).toEqual(githubProvider.name);
+        expect(github.find('IntegrationItem IntegrationName').text()).toEqual(
+          githubIntegration.name
+        );
       });
 
-      it('Merges installed integrations', function() {
+      it('Merges installed integrations', () => {
         wrapper.instance().onInstall(updatedIntegration);
 
         expect(wrapper.instance().state.integrations).toHaveLength(2);
         expect(wrapper.instance().state.integrations[1]).toBe(updatedIntegration);
       });
 
-      it('Deletes an integration', function() {
+      it('Deletes an integration', () => {
         Client.addMockResponse({
           url: `/organizations/${org.slug}/integrations/${jiraIntegration.id}/`,
           method: 'DELETE',
@@ -178,55 +294,60 @@ describe('OrganizationIntegrations', function() {
         wrapper.instance().onRemove(jiraIntegration);
 
         expect(wrapper.instance().state.integrations).toHaveLength(1);
-        expect(wrapper.instance().state.integrations[0]).toBe(updatedIntegration);
+        expect(wrapper.instance().state.integrations[0]).toBe(githubIntegration);
       });
     });
 
-    describe('with matching plugins installed', function() {
-      Client.addMockResponse({
-        url: `/organizations/${org.slug}/integrations/`,
-        body: [githubIntegration],
-      });
-      Client.addMockResponse({
-        url: `/organizations/${org.slug}/config/integrations/`,
-        body: {providers: [githubProvider, jiraProvider, vstsProvider]},
-      });
-      Client.addMockResponse({
-        url: `/organizations/${org.slug}/plugins/`,
-        body: [
-          {
-            slug: 'github',
-            enabled: true,
-          },
-          {
-            slug: 'vsts',
-            enabled: true,
-          },
-          {
-            slug: 'jira',
-            enabled: true,
-          },
-        ],
-      });
-      Client.addMockResponse({
-        url: `/organizations/${org.slug}/repos/?status=unmigratable`,
-        body: [
-          {
-            provider: {
-              id: 'github',
-              name: 'GitHub',
+    describe('with matching plugins installed', () => {
+      beforeEach(() => {
+        Client.addMockResponse({
+          url: `/organizations/${org.slug}/integrations/`,
+          body: [githubIntegration],
+        });
+
+        Client.addMockResponse({
+          url: `/organizations/${org.slug}/config/integrations/`,
+          body: {providers: [githubProvider, jiraProvider, vstsProvider]},
+        });
+
+        Client.addMockResponse({
+          url: `/organizations/${org.slug}/plugins/`,
+          body: [
+            {
+              slug: 'github',
+              enabled: true,
             },
-            name: 'Test-Org/foo',
-          },
-        ],
+            {
+              slug: 'vsts',
+              enabled: true,
+            },
+            {
+              slug: 'jira',
+              enabled: true,
+            },
+          ],
+        });
+
+        Client.addMockResponse({
+          url: `/organizations/${org.slug}/repos/?status=unmigratable`,
+          body: [
+            {
+              provider: {
+                id: 'github',
+                name: 'GitHub',
+              },
+              name: 'Test-Org/foo',
+            },
+          ],
+        });
+
+        wrapper = mount(
+          <OrganizationIntegrations organization={org} params={params} />,
+          routerContext
+        );
       });
 
-      const wrapper = mount(
-        <OrganizationIntegrations organization={org} params={params} />,
-        routerContext
-      );
-
-      it('displays an Update when the Plugin is enabled but a new Integration is not', function() {
+      it('displays an Update when the Plugin is enabled but a new Integration is not', () => {
         expect(
           wrapper
             .find('ProviderRow')

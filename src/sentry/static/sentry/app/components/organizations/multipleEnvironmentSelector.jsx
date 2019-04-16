@@ -11,6 +11,7 @@ import GlobalSelectionHeaderRow from 'app/components/globalSelectionHeaderRow';
 import HeaderItem from 'app/components/organizations/headerItem';
 import Highlight from 'app/components/highlight';
 import InlineSvg from 'app/components/inlineSvg';
+import MultipleSelectorSubmitRow from 'app/components/organizations/multipleSelectorSubmitRow';
 import SentryTypes from 'app/sentryTypes';
 import theme from 'app/utils/theme';
 import withApi from 'app/utils/withApi';
@@ -234,6 +235,11 @@ class MultipleEnvironmentSelector extends React.PureComponent {
         virtualizedHeight={theme.headerSelectorRowHeight}
         emptyHidesInput
         menuProps={{style: {position: 'relative'}}}
+        menuFooter={({actions}) =>
+          this.state.hasChanges && (
+            <MultipleSelectorSubmitRow onSubmit={() => this.handleUpdate(actions)} />
+          )
+        }
         items={environments.map(env => ({
           value: env,
           searchKey: env,
@@ -253,8 +259,6 @@ class MultipleEnvironmentSelector extends React.PureComponent {
             icon={<StyledInlineSvg src="icon-window" />}
             isOpen={isOpen}
             hasSelected={value && !!value.length}
-            hasChanges={this.state.hasChanges}
-            onSubmit={() => this.handleUpdate(actions)}
             onClear={this.handleClear}
             {...getActorProps({
               isStyled: true,

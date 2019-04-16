@@ -78,7 +78,7 @@ export const COLUMNS = [
   {name: 'error.type', type: TYPES.STRING},
   {name: 'error.value', type: TYPES.STRING},
   {name: 'error.mechanism', type: TYPES.STRING},
-  {name: 'error.handled', type: TYPES.STRING},
+  {name: 'error.handled', type: TYPES.BOOLEAN},
   {name: 'stack.abs_path', type: TYPES.STRING},
   {name: 'stack.filename', type: TYPES.STRING},
   {name: 'stack.package', type: TYPES.STRING},

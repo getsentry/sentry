@@ -26,8 +26,10 @@ const GroupList = createReactClass({
     query: PropTypes.string.isRequired,
     canSelectGroups: PropTypes.bool,
     orgId: PropTypes.string.isRequired,
+
     // Provided in the project version, not in org version
     projectId: PropTypes.string,
+
     environment: SentryTypes.Environment,
   },
 
@@ -188,5 +190,7 @@ const GroupList = createReactClass({
     );
   },
 });
+
+export {GroupList};
 
 export default withApi(GroupList);

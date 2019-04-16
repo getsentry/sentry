@@ -98,15 +98,12 @@ class StreamFilters extends React.Component {
           </PageHeading>
         </Feature>
         <div className="search-container">
-          <div className="stream-dropdown">
-            <SortOptions sort={sort} onSelect={onSortChange} />
-          </div>
+          <SortOptions sort={sort} onSelect={onSortChange} />
 
           <Feature features={['org-saved-searches']}>
             <OrganizationSavedSearchSelector
               organization={organization}
               savedSearchList={savedSearchList}
-              onSavedSearchCreate={onSavedSearchCreate}
               onSavedSearchSelect={onSavedSearchSelect}
               onSavedSearchDelete={onSavedSearchDelete}
               query={query}

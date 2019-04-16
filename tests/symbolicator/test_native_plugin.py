@@ -815,6 +815,16 @@ class InAppHonoringResolvingIntegrationTest(TestCase):
 
 
 class ResolvingIntegrationTestBase(object):
+    def snapshot_stacktrace_data(self, event):
+        self.insta_snapshot({
+            "stacktrace": event.get('stacktrace'),
+            "exception": event.get('exception'),
+            "threads": event.get('threads'),
+            "debug_meta": event.get('debug_meta'),
+            "contexts": event.get('contexts'),
+            "errors": event.get('errors'),
+        })
+
     def test_real_resolving(self):
         url = reverse(
             'sentry-api-0-dsym-files',
@@ -847,13 +857,7 @@ class ResolvingIntegrationTestBase(object):
 
         event = Event.objects.get()
         assert event.data['culprit'] == 'main'
-        snapshot_data = dict(event.data)
-        del snapshot_data['event_id']
-        del snapshot_data['timestamp']
-        del snapshot_data['received']
-        del snapshot_data['key_id']
-        del snapshot_data['project']
-        self.insta_snapshot(snapshot_data)
+        self.snapshot_stacktrace_data(event.data)
 
     def test_debug_id_resolving(self):
         file = File.objects.create(
@@ -922,13 +926,7 @@ class ResolvingIntegrationTestBase(object):
 
         event = Event.objects.get()
         assert event.data['culprit'] == 'main'
-        snapshot_data = dict(event.data)
-        del snapshot_data['event_id']
-        del snapshot_data['timestamp']
-        del snapshot_data['received']
-        del snapshot_data['key_id']
-        del snapshot_data['project']
-        self.insta_snapshot(snapshot_data)
+        self.snapshot_stacktrace_data(event.data)
 
     def test_missing_dsym(self):
         self.login_as(user=self.user)
@@ -938,13 +936,7 @@ class ResolvingIntegrationTestBase(object):
 
         event = Event.objects.get()
         assert event.data['culprit'] == 'unknown'
-        snapshot_data = dict(event.data)
-        del snapshot_data['event_id']
-        del snapshot_data['timestamp']
-        del snapshot_data['received']
-        del snapshot_data['key_id']
-        del snapshot_data['project']
-        self.insta_snapshot(snapshot_data)
+        self.snapshot_stacktrace_data(event.data)
 
 
 class SymbolicResolvingIntegrationTest(ResolvingIntegrationTestBase, TestCase):
@@ -1044,13 +1036,18 @@ class SymbolicResolvingIntegrationTest(ResolvingIntegrationTestBase, TestCase):
 
 
 class SymbolicatorResolvingIntegrationTest(ResolvingIntegrationTestBase, TransactionTestCase):
+    # For these tests to run, write `symbolicator.enabled: true` into your
+    # `~/.sentry/config.yml` and run `sentry devservices up`
+
     @pytest.fixture(autouse=True)
     def initialize(self, live_server):
+        new_prefix = live_server.url
+
         with patch('sentry.lang.native.symbolizer.Symbolizer._symbolize_app_frame') \
             as symbolize_app_frame, \
                 patch('sentry.lang.native.plugin._is_symbolicator_enabled', return_value=True), \
                 patch('sentry.auth.system.is_internal_ip', return_value=True), \
-                self.options({"system.url-prefix": live_server.url}):
+                self.options({"system.url-prefix": new_prefix}):
 
             # Run test case:
             yield
