@@ -102,6 +102,7 @@ class StreamFilters extends React.Component {
 
           <Feature features={['org-saved-searches']}>
             <OrganizationSavedSearchSelector
+              key={query}
               organization={organization}
               savedSearchList={savedSearchList}
               onSavedSearchSelect={onSavedSearchSelect}
