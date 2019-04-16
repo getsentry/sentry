@@ -510,7 +510,7 @@ CSP_SCHEMA = {
                 'original-policy': {'type': 'string'},
                 'referrer': {'type': 'string', 'default': ''},
                 'status-code': {'type': 'number'},
-                'violated-directive': {'type': 'string', 'default': ''},
+                'violated-directive': {'type': 'string', 'minLength': 1},
                 'source-file': {'type': 'string'},
                 'line-number': {'type': 'number'},
                 'column-number': {'type': 'number'},
