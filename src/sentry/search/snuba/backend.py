@@ -52,7 +52,7 @@ aggregation_defs = {
 }
 issue_only_fields = set([
     'query', 'status', 'bookmarked_by', 'assigned_to', 'unassigned',
-    'subscribed_by', 'active_at', 'first_release',
+    'subscribed_by', 'active_at', 'first_release', 'first_seen',
 ])
 
 
@@ -110,8 +110,9 @@ class ScalarCondition(Condition):
         '<': 'lt',
     }
 
-    def __init__(self, field):
+    def __init__(self, field, extra=None):
         self.field = field
+        self.extra = extra
 
     def _get_operator(self, search_filter):
         django_operator = self.OPERATOR_TO_DJANGO.get(search_filter.operator, '')
@@ -121,12 +122,13 @@ class ScalarCondition(Condition):
 
     def apply(self, queryset, search_filter):
         django_operator = self._get_operator(search_filter)
-
         qs_method = queryset.exclude if search_filter.operator == '!=' else queryset.filter
 
-        return qs_method(
-            **{'{}{}'.format(self.field, django_operator): search_filter.value.raw_value}
-        )
+        q_dict = {'{}{}'.format(self.field, django_operator): search_filter.value.raw_value}
+        if self.extra:
+            q_dict.update(self.extra)
+
+        return qs_method(**q_dict)
 
 
 def assigned_to_filter(actor, projects):
@@ -299,17 +301,21 @@ class SnubaSearchBackend(SearchBackend):
 
         # TODO: It's possible `first_release` could be handled by Snuba.
         if environments is not None:
+            environment_ids = [environment.id for environment in environments]
             group_queryset = group_queryset.filter(
-                groupenvironment__environment_id__in=[
-                    environment.id for environment in environments
-                ],
+                groupenvironment__environment_id__in=environment_ids
             )
             group_queryset = QuerySetBuilder({
                 'first_release': QCallbackCondition(
                     lambda version: Q(
                         groupenvironment__first_release__organization_id=projects[0].organization_id,
                         groupenvironment__first_release__version=version,
+                        groupenvironment__environment_id__in=environment_ids,
                     )
+                ),
+                'first_seen': ScalarCondition(
+                    'groupenvironment__first_seen',
+                    {'groupenvironment__environment_id__in': environment_ids}
                 ),
             }).build(group_queryset, search_filters)
         else:
@@ -320,6 +326,7 @@ class SnubaSearchBackend(SearchBackend):
                         first_release__version=version,
                     ),
                 ),
+                'first_seen': ScalarCondition('first_seen'),
             }).build(group_queryset, search_filters)
 
         now = timezone.now()
