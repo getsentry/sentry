@@ -5,6 +5,7 @@ from django.utils import timezone
 from unittest import TestCase as SimpleTestCase
 
 from sentry.api.paginator import (
+    BadPaginationError,
     Paginator,
     DateTimePaginator,
     OffsetPaginator,
@@ -141,6 +142,21 @@ class OffsetPaginatorTest(TestCase):
         assert result[0] == res1
         assert result.next
         assert result.prev
+
+    def test_max_offset(self):
+        self.create_user('foo@example.com')
+        self.create_user('bar@example.com')
+        self.create_user('baz@example.com')
+
+        queryset = User.objects.all()
+
+        paginator = OffsetPaginator(queryset, max_offset=10)
+        result1 = paginator.get_result(cursor=None)
+        assert len(result1) == 3, result1
+
+        paginator = OffsetPaginator(queryset, max_offset=0)
+        with self.assertRaises(BadPaginationError):
+            paginator.get_result()
 
 
 class DateTimePaginatorTest(TestCase):
