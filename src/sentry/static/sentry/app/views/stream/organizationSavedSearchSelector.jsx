@@ -6,10 +6,8 @@ import {t} from 'app/locale';
 import Access from 'app/components/acl/access';
 import Button from 'app/components/button';
 import Confirm from 'app/components/confirm';
-import MenuItem from 'app/components/menuItem';
 import DropdownButton from 'app/components/dropdownButton';
 import DropdownMenu from 'app/components/dropdownMenu';
-import InlineSvg from 'app/components/inlineSvg';
 import SentryTypes from 'app/sentryTypes';
 import space from 'app/styles/space';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
@@ -50,11 +48,12 @@ export default class OrganizationSavedSearchSelector extends React.Component {
     }
 
     return savedSearchList.map(search => (
-      <StyledMenuItem onSelect={() => onSavedSearchSelect(search)} key={search.id}>
-        {search.isPinned && <InlineSvg src="icon-pin" />}
-        <SearchTitle>{search.name}</SearchTitle>
-        <SearchQuery>{search.query}</SearchQuery>
-        {search.isGlobal === false && (
+      <MenuItem key={search.id}>
+        <a tabIndex="-1" onClick={() => onSavedSearchSelect(search)}>
+          <SearchTitle>{search.name}</SearchTitle>
+          <SearchQuery>{search.query}</SearchQuery>
+        </a>
+        {search.isGlobal === false && search.isPinned === false && (
           <Access
             organization={organization}
             access={['org:write']}
@@ -74,7 +73,7 @@ export default class OrganizationSavedSearchSelector extends React.Component {
             </Confirm>
           </Access>
         )}
-      </StyledMenuItem>
+      </MenuItem>
     ));
   }
 
@@ -144,9 +143,6 @@ const SearchTitle = styled.strong`
 `;
 
 const SearchQuery = styled.code`
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  overflow: hidden;
   color: ${p => p.theme.gray5};
   padding: 0;
   background: inherit;
@@ -154,40 +150,35 @@ const SearchQuery = styled.code`
 
 const DeleteButton = styled(Button)`
   color: ${p => p.theme.gray1};
-  background: ${p => p.theme.offWhite};
-  display: none;
-  position: absolute;
-
-  /* Rows are 20px tall */
-  top: 10px;
-  right: 10px;
+  background: transparent;
+  flex-shrink: 0;
+  padding: ${space(1)} ${space(1.5)} ${space(1)} 0;
 
   &:hover {
+    background: transparent;
     color: ${p => p.theme.blueLight};
   }
 `;
 
-const StyledMenuItem = styled(MenuItem)`
+const MenuItem = styled.li`
+  display: flex;
+
   position: relative;
   border-bottom: 1px solid ${p => p.theme.borderLight};
   font-size: ${p => p.theme.fontSizeMedium};
   padding: 0;
 
-  &:focus ${DeleteButton}, &:hover ${DeleteButton} {
-    display: block;
-  }
-
   &:last-child {
     border-bottom: 0;
+  }
+  & :hover {
+    background: ${p => p.theme.offWhite};
   }
 
   & a {
     display: block;
+    flex-grow: 1;
     padding: ${space(1)} ${space(1.5)};
-
-    & :hover {
-      background: ${p => p.theme.offWhite};
-    }
   }
 `;
 
