@@ -114,6 +114,31 @@ class ProjectOwnership extends AsyncView {
             ]}
           />
         </Form>
+
+        <Form
+          apiEndpoint={`/projects/${organization.slug}/${project.slug}/ownership/`}
+          apiMethod="PUT"
+          saveOnBlur
+          initialData={{autoAssignment: ownership.autoAssignment}}
+          hideFooter
+        >
+          <JsonForm
+            forms={[
+              {
+                title: t('If a new event matches any of the ownership rules...'),
+                fields: [
+                  {
+                    name: 'autoAssignment',
+                    type: 'boolean',
+                    label: t('The issue is assigned to the team or user'),
+                    help: t('Issue owners will be automatically assigned.'),
+                    disabled,
+                  },
+                ],
+              },
+            ]}
+          />
+        </Form>
       </div>
     );
   }

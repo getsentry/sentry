@@ -79,6 +79,18 @@ def check_event_already_post_processed(event):
     return not result
 
 
+def handle_owner_assignment(project, group, event):
+    from sentry.models import GroupAssignee, ProjectOwnership
+
+    # Is the issue already assigned to a team or user?
+    if group.assignee_set.exists():
+        return
+
+    owner = ProjectOwnership.get_autoassign_owner(group.project_id, event.data)
+    if owner is not None:
+        GroupAssignee.objects.assign(group, owner)
+
+
 @instrumented_task(name='sentry.tasks.post_process.post_process_group')
 def post_process_group(event, is_new, is_regression, is_sample, is_new_group_environment, **kwargs):
     """
@@ -118,6 +130,8 @@ def post_process_group(event, is_new, is_regression, is_sample, is_new_group_env
 
         # we process snoozes before rules as it might create a regression
         has_reappeared = process_snoozes(event.group)
+
+        handle_owner_assignment(event.project, event.group, event)
 
         rp = RuleProcessor(event, is_new, is_regression, is_new_group_environment, has_reappeared)
         has_alert = False

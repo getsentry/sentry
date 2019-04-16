@@ -15,4 +15,5 @@ class ProjectOwnershipSerializer(Serializer):
             'dateCreated': obj.date_created,
             'lastUpdated': obj.last_updated,
             'isActive': obj.is_active,
+            'autoAssignment': obj.auto_assignment,
         }

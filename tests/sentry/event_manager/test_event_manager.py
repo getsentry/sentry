@@ -20,7 +20,7 @@ from sentry.models import (
     Activity, Environment, Event, ExternalIssue, Group, GroupEnvironment,
     GroupHash, GroupLink, GroupRelease, GroupResolution, GroupStatus,
     GroupTombstone, EventMapping, Integration, Release,
-    ReleaseProjectEnvironment, OrganizationIntegration, UserReport
+    ReleaseProjectEnvironment, OrganizationIntegration, UserReport,
 )
 from sentry.signals import event_discarded, event_saved
 from sentry.testutils import assert_mock_called_once_with_partial, TestCase

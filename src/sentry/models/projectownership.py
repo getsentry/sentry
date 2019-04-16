@@ -8,11 +8,10 @@ from django.db import models
 from django.db.models import Q
 from django.utils import timezone
 
-from six.moves import reduce
-
 from sentry.db.models import Model, sane_repr
 from sentry.db.models.fields import FlexibleForeignKey
 from sentry.ownership.grammar import load_schema
+from functools import reduce
 
 
 class ProjectOwnership(Model):
@@ -22,6 +21,7 @@ class ProjectOwnership(Model):
     raw = models.TextField(null=True)
     schema = JSONField(null=True)
     fallthrough = models.BooleanField(default=True)
+    auto_assignment = models.BooleanField(default=False)
     date_created = models.DateTimeField(default=timezone.now)
     last_updated = models.DateTimeField(default=timezone.now)
     is_active = models.BooleanField(default=True)
@@ -53,18 +53,52 @@ class ProjectOwnership(Model):
                 project_id=project_id,
             )
 
+        rules = cls._matching_ownership_rules(ownership, project_id, data)
+        if not rules:
+            return cls.Everyone if ownership.fallthrough else [], None
+
+        owners = {o for rule in rules for o in rule.owners}
+        return filter(None, resolve_actors(owners, project_id).values()), rules
+
+    @classmethod
+    def get_autoassign_owner(cls, project_id, data):
+        """
+        Get the auto-assign owner for a project if there are any.
+
+        Will return None if there are no owners, or a list of owners.
+        """
+        try:
+            ownership = cls.objects.get(project_id=project_id)
+        except cls.DoesNotExist:
+            return None
+        if not ownership.auto_assignment:
+            return None
+
+        rules = cls._matching_ownership_rules(ownership, project_id, data)
+        if not rules:
+            return None
+
+        score = 0
+        owners = None
+        # Automatic assignment prefers the owner with the longest
+        # matching pattern as the match is more specific.
+        for rule in rules:
+            candidate = len(rule.matcher.pattern)
+            if candidate > score:
+                score = candidate
+                owners = rule.owners
+        actors = filter(None, resolve_actors(owners, project_id).values())
+        return actors[0].resolve()
+
+    @classmethod
+    def _matching_ownership_rules(cls, ownership, project_id, data):
         rules = []
         if ownership.schema is not None:
             for rule in load_schema(ownership.schema):
                 if rule.test(data):
                     rules.append(rule)
 
-        if not rules:
-            return cls.Everyone if ownership.fallthrough else [], None
-
-        owners = {o for rule in rules for o in rule.owners}
-
-        return filter(None, resolve_actors(owners, project_id).values()), rules
+        return rules
 
 
 def resolve_actors(owners, project_id):
