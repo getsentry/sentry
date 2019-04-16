@@ -280,7 +280,7 @@ export default function createQueryBuilder(initial = {}, organization) {
         groupby: ['time'],
         rollup: 60 * 60 * 24,
         orderby: '-time',
-        limit: API_LIMIT,
+        limit: 5000,
       };
     }
 

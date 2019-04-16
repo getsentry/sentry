@@ -309,7 +309,7 @@ describe('Discover', function() {
         groupby: ['time'],
         rollup: 60 * 60 * 24,
         orderby: '-time',
-        limit: 10000,
+        limit: 5000,
       });
     });
   });
