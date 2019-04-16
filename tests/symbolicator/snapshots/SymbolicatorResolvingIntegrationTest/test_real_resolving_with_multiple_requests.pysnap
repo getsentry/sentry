@@ -27,6 +27,7 @@ exception:
       - function: unknown
         in_app: false
         instruction_addr: '0x100000fa0'
+        package: Foo.app/Contents/Foo
     stacktrace:
       frames:
       - abs_path: /tmp/hello.c

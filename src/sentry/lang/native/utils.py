@@ -12,10 +12,10 @@ from sentry.utils.safe import get_path
 
 logger = logging.getLogger(__name__)
 
-# Regular expression to parse OS versions from a minidump OS string
+# Regex to parse OS versions from a minidump OS string.
 VERSION_RE = re.compile(r'(\d+\.\d+\.\d+)\s+(.*)')
 
-# Regular expression to guess whether we're dealing with Windows or Unix paths
+# Regex to guess whether we're dealing with Windows or Unix paths.
 WINDOWS_PATH_RE = re.compile(r'^([a-z]:\\|\\\\)', re.IGNORECASE)
 
 AppInfo = namedtuple('AppInfo', ['id', 'version', 'build', 'name'])
