@@ -1,6 +1,5 @@
 from __future__ import absolute_import
 
-import re
 import six
 
 from symbolic import SymbolicError, ObjectLookup, LineInfo, parse_addr
@@ -9,52 +8,25 @@ from sentry.utils.safe import trim
 from sentry.utils.compat import implements_to_string
 from sentry.models import EventError, ProjectDebugFile
 from sentry.lang.native.utils import image_name, rebase_addr
-from sentry.constants import MAX_SYM, NATIVE_UNKNOWN_STRING
+from sentry.utils.in_app import is_known_third_party, is_optional_package
+from sentry.constants import MAX_SYM
 
-FATAL_ERRORS = (EventError.NATIVE_MISSING_DSYM, EventError.NATIVE_BAD_DSYM,
-                EventError.NATIVE_SYMBOLICATOR_FAILED)
+FATAL_ERRORS = (
+    EventError.NATIVE_MISSING_DSYM,
+    EventError.NATIVE_BAD_DSYM,
+    EventError.NATIVE_SYMBOLICATOR_FAILED,
+)
+
 USER_FIXABLE_ERRORS = (
-    EventError.NATIVE_MISSING_DSYM, EventError.NATIVE_MISSING_OPTIONALLY_BUNDLED_DSYM,
-    EventError.NATIVE_BAD_DSYM, EventError.NATIVE_MISSING_SYMBOL,
+    EventError.NATIVE_MISSING_DSYM,
+    EventError.NATIVE_MISSING_OPTIONALLY_BUNDLED_DSYM,
+    EventError.NATIVE_BAD_DSYM,
+    EventError.NATIVE_MISSING_SYMBOL,
 
     # XXX: user can't fix this, but they should see it regardless to see it's
     # not their fault. Also better than silently creating an unsymbolicated event
-    EventError.NATIVE_SYMBOLICATOR_FAILED
+    EventError.NATIVE_SYMBOLICATOR_FAILED,
 )
-APP_BUNDLE_PATHS = (
-    '/var/containers/Bundle/Application/', '/private/var/containers/Bundle/Application/',
-)
-_sim_platform_re = re.compile(r'/\w+?Simulator\.platform/')
-_support_framework = re.compile(
-    r'''(?x)
-    /Frameworks/(
-            libswift([a-zA-Z0-9]+)\.dylib$
-        |   (KSCrash|SentrySwift|Sentry)\.framework/
-    )
-'''
-)
-SIM_PATH = '/Developer/CoreSimulator/Devices/'
-SIM_APP_PATH = '/Containers/Bundle/Application/'
-MAC_OS_PATHS = (
-    '.app/Contents/',
-    '/Users/',
-    '/usr/local/',
-)
-LINUX_SYS_PATHS = (
-    '/lib/',
-    '/usr/lib/',
-    'linux-gate.so',
-)
-WINDOWS_SYS_PATH = re.compile(r'^[a-z]:\\windows', re.IGNORECASE)
-
-_internal_function_re = re.compile(
-    r'(kscm_|kscrash_|KSCrash |SentryClient |RNSentry )')
-
-KNOWN_GARBAGE_SYMBOLS = set([
-    '_mh_execute_header',
-    '<redacted>',
-    NATIVE_UNKNOWN_STRING,
-])
 
 
 @implements_to_string
@@ -154,78 +126,6 @@ class Symbolizer(object):
 
         return frame
 
-    def is_image_from_app_bundle(self, obj, sdk_info=None):
-        obj_path = obj.name
-        if not obj_path:
-            return False
-
-        if obj_path.startswith(APP_BUNDLE_PATHS):
-            return True
-
-        if SIM_PATH in obj_path and SIM_APP_PATH in obj_path:
-            return True
-
-        sdk_name = sdk_info['sdk_name'].lower() if sdk_info else ''
-        if sdk_name == 'macos' and any(p in obj_path for p in MAC_OS_PATHS):
-            return True
-        if sdk_name == 'linux' and not obj_path.startswith(LINUX_SYS_PATHS):
-            return True
-        if sdk_name == 'windows' and not WINDOWS_SYS_PATH.match(obj_path):
-            return True
-
-        return False
-
-    def _is_support_framework(self, obj):
-        """True if the frame is from a framework that is known and app
-        bundled.  Those are frameworks which are specifically not frameworks
-        that are ever in_app.
-        """
-        return obj.name and _support_framework.search(obj.name) is not None
-
-    def _is_app_bundled_framework(self, obj):
-        fn = obj.name
-        return fn and fn.startswith(APP_BUNDLE_PATHS) and '/Frameworks/' in fn
-
-    def _is_app_frame(self, instruction_addr, obj, sdk_info=None):
-        """Given a frame derives the value of `in_app` by discarding the
-        original value of the frame.
-        """
-        # Anything that is outside the app bundle is definitely not a
-        # frame from out app.
-        if not self.is_image_from_app_bundle(obj, sdk_info=sdk_info):
-            return False
-
-        # We also do not consider known support frameworks to be part of
-        # the app
-        if self._is_support_framework(obj):
-            return False
-
-        # Otherwise, yeah, let's just say it's in_app
-        return True
-
-    def _is_optional_dif(self, obj, sdk_info=None):
-        """Checks if this is an optional debug information file."""
-        # Frames that are not in the app are not considered optional.  In
-        # theory we should never reach this anyways.
-        if not self.is_image_from_app_bundle(obj, sdk_info=sdk_info):
-            return False
-
-        # If we're dealing with an app bundled framework that is also
-        # considered optional.
-        if self._is_app_bundled_framework(obj):
-            return True
-
-        # Frameworks that are known to sentry and bundled helpers are always
-        # optional for now.  In theory this should always be False here
-        # because we should catch it with the last branch already.
-        if self._is_support_framework(obj):
-            return True
-
-        return False
-
-    def _is_simulator_frame(self, frame, obj):
-        return obj.name and _sim_platform_re.search(obj.name) is not None
-
     def _symbolize_app_frame(self, instruction_addr, obj, sdk_info=None, trust=None):
         symcache = self.symcaches.get(obj.debug_id)
         if symcache is None:
@@ -237,10 +137,12 @@ class Symbolizer(object):
                     type=EventError.NATIVE_BAD_DSYM,
                     obj=obj
                 )
-            if self._is_optional_dif(obj, sdk_info=sdk_info):
+
+            if is_optional_package(obj.code_file, sdk_info=sdk_info):
                 type = EventError.NATIVE_MISSING_OPTIONALLY_BUNDLED_DSYM
             else:
                 type = EventError.NATIVE_MISSING_DSYM
+
             raise SymbolicationFailed(type=type, obj=obj)
 
         try:
@@ -254,7 +156,7 @@ class Symbolizer(object):
             # For some frameworks we are willing to ignore missing symbol
             # errors. Also, ignore scanned stack frames when symbols are
             # available to complete breakpad's stack scanning heuristics.
-            if trust == 'scan' or self._is_optional_dif(obj, sdk_info=sdk_info):
+            if trust == 'scan' or is_optional_package(obj.code_file, sdk_info=sdk_info):
                 return []
             raise SymbolicationFailed(
                 type=EventError.NATIVE_MISSING_SYMBOL, obj=obj)
@@ -335,14 +237,7 @@ class Symbolizer(object):
         # that just did not return any results but without error.
         if app_err is not None \
                 and not match \
-                and self.is_image_from_app_bundle(obj, sdk_info=sdk_info):
+                and not is_known_third_party(obj.code_file, sdk_info=sdk_info):
             raise app_err
 
         return match
-
-    def is_in_app(self, instruction_addr, sdk_info=None):
-        obj = self.object_lookup.find_object(instruction_addr)
-        return obj is not None and self._is_app_frame(instruction_addr, obj, sdk_info=sdk_info)
-
-    def is_internal_function(self, function):
-        return _internal_function_re.search(function) is not None
