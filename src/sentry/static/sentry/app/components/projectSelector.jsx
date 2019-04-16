@@ -431,7 +431,6 @@ const SettingsIcon = styled(InlineSvg)`
 const getNonMemberStyles = p => {
   return `
     color: ${p.theme.gray2};
-    font-style: italic;
   `;
 };
 
