@@ -687,7 +687,6 @@ class SmartSearchBar extends React.Component {
                 type="button"
                 borderless
                 aria-label={t('Pin this search')}
-                data-test-id="pin-search"
                 size="zero"
                 onClick={this.onTogglePinnedSearch}
               >
@@ -698,7 +697,6 @@ class SmartSearchBar extends React.Component {
               borderless
               size="zero"
               aria-label={t('Toggle search builder')}
-              data-test-id="toggle-stream-sidebar"
               icon="icon-sliders"
               onClick={onSidebarToggle}
             />
