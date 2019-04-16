@@ -369,8 +369,8 @@ class NativeStacktraceProcessor(StacktraceProcessor):
         errors = []
 
         # Ensure that package is set in the raw frame, mapped from the
-        # debug_images array in the payload. Grouping and UI can use this code
-        # to
+        # debug_images array in the payload. Grouping and UI can use this path
+        # to infer in_app and exclude frames from grouping.
         if raw_frame.get('package') is None:
             raw_frame['package'] = processable_frame.data['obj'].code_file
 

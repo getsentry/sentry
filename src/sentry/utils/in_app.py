@@ -83,7 +83,7 @@ def is_optional_package(package, sdk_info=None):
     if not package:
         return True
 
-    # Any known thrid party package is considered optional.
+    # Any known third party package is considered optional.
     # TODO(ja): Inline third_party rules here to separate from in_app logic
     if is_known_third_party(package, sdk_info=sdk_info):
         return True
