@@ -1,4 +1,4 @@
-import {pick, isEqual} from 'lodash';
+import {isEqual, pick, partition} from 'lodash';
 import {withRouter} from 'react-router';
 import PropTypes from 'prop-types';
 import React from 'react';
@@ -301,14 +301,19 @@ class GlobalSelectionHeader extends React.Component {
   };
 
   getProjects = () => {
-    const {isSuperuser} = ConfigStore.get('user');
     const {projects} = this.props;
+    const {isSuperuser} = ConfigStore.get('user');
+
+    const [memberProjects, nonMemberProjects] = partition(
+      projects,
+      project => project.isMember
+    );
 
     if (isSuperuser) {
-      return projects;
+      return [...memberProjects, ...nonMemberProjects];
     }
 
-    return projects.filter(project => project.isMember);
+    return memberProjects;
   };
 
   getFirstProject = () => {
