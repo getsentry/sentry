@@ -41,6 +41,7 @@ class SnubaSearchTest(TestCase, SnubaTestCase):
         self.backend = SnubaSearchBackend()
         self.base_datetime = (datetime.utcnow() - timedelta(days=3)).replace(tzinfo=pytz.utc)
 
+        event1_timestamp = (self.base_datetime - timedelta(days=21)).isoformat()[:19]
         self.event1 = self.store_event(
             data={
                 'fingerprint': ['put-me-in-group1'],
@@ -50,7 +51,7 @@ class SnubaSearchTest(TestCase, SnubaTestCase):
                 'tags': {
                     'server': 'example.com',
                 },
-                'timestamp': (self.base_datetime - timedelta(days=21)).isoformat()[:19],
+                'timestamp': event1_timestamp,
                 'stacktrace': {
                     'frames': [{
                         'module': 'group1'
@@ -109,7 +110,6 @@ class SnubaSearchTest(TestCase, SnubaTestCase):
         )
 
         self.group2 = Group.objects.get(id=self.event2.group.id)
-
         assert self.group2.first_seen == self.group2.last_seen == self.event2.datetime
 
         self.group2.status = GroupStatus.RESOLVED
@@ -146,6 +146,17 @@ class SnubaSearchTest(TestCase, SnubaTestCase):
             'production': self.event1.get_environment(),
             'staging': self.event2.get_environment(),
         }
+
+    def store_event(self, data, *args, **kwargs):
+        event = super(SnubaSearchTest, self).store_event(data, *args, **kwargs)
+        environment_name = data.get('environment')
+        if environment_name:
+            GroupEnvironment.objects.filter(
+                group_id=event.group_id,
+                environment__name=environment_name,
+                first_seen__gt=event.datetime,
+            ).update(first_seen=event.datetime)
+        return event
 
     def set_up_multi_project(self):
         self.project2 = self.create_project(organization=self.project.organization)
@@ -705,34 +716,39 @@ class SnubaSearchTest(TestCase, SnubaTestCase):
         assert set(results) == set([self.group1])
 
     def test_age_filter_with_environment(self):
+        # add time instead to make it greater than or less than as needed.
+        group1_first_seen = GroupEnvironment.objects.get(
+            environment=self.environments['production'],
+            group=self.group1,
+        ).first_seen
+
         results = self.make_query(
             environments=[self.environments['production']],
-            age_from=self.group1.first_seen,
+            age_from=group1_first_seen,
             age_from_inclusive=True,
-            search_filter_query='firstSeen:>=%s' % date_to_query_format(self.group1.first_seen),
+            search_filter_query='firstSeen:>=%s' % date_to_query_format(group1_first_seen),
         )
         assert set(results) == set([self.group1])
 
         results = self.make_query(
             environments=[self.environments['production']],
-            age_to=self.group1.first_seen,
+            age_to=group1_first_seen,
             age_to_inclusive=True,
-            search_filter_query='firstSeen:<=%s' % date_to_query_format(self.group1.first_seen),
+            search_filter_query='firstSeen:<=%s' % date_to_query_format(group1_first_seen),
         )
         assert set(results) == set([self.group1])
 
         results = self.make_query(
             environments=[self.environments['production']],
-            age_from=self.group1.first_seen,
+            age_from=group1_first_seen,
             age_from_inclusive=False,
-            search_filter_query='firstSeen:>%s' % date_to_query_format(self.group1.first_seen),
+            search_filter_query='firstSeen:>%s' % date_to_query_format(group1_first_seen),
         )
         assert set(results) == set([])
-
         self.store_event(
             data={
                 'fingerprint': ['put-me-in-group1'],
-                'timestamp': (self.group1.first_seen + timedelta(days=1)).isoformat()[:19],
+                'timestamp': (group1_first_seen + timedelta(days=1)).isoformat()[:19],
                 'message': 'group1',
                 'stacktrace': {
                     'frames': [{
@@ -746,17 +762,17 @@ class SnubaSearchTest(TestCase, SnubaTestCase):
 
         results = self.make_query(
             environments=[self.environments['production']],
-            age_from=self.group1.first_seen,
+            age_from=group1_first_seen,
             age_from_inclusive=False,
-            search_filter_query='firstSeen:>%s' % date_to_query_format(self.group1.first_seen),
+            search_filter_query='firstSeen:>%s' % date_to_query_format(group1_first_seen),
         )
         assert set(results) == set([])
 
         results = self.make_query(
             environments=[Environment.objects.get(name='development')],
-            age_from=self.group1.first_seen,
+            age_from=group1_first_seen,
             age_from_inclusive=False,
-            search_filter_query='firstSeen:>%s' % date_to_query_format(self.group1.first_seen),
+            search_filter_query='firstSeen:>%s' % date_to_query_format(group1_first_seen),
         )
         assert set(results) == set([self.group1])
 
@@ -1149,22 +1165,6 @@ class SnubaSearchTest(TestCase, SnubaTestCase):
                 ['uniq', 'issue', 'total'],
             ],
             having=[['times_seen', '=', 5]],
-            **common_args
-        )
-
-        self.make_query(
-            search_filter_query='age:>=%s foo' % date_to_query_format(timezone.now()),
-            query='foo',
-            age_from=timezone.now(),
-            sort_by='new',
-        )
-        assert query_mock.call_args == mock.call(
-            orderby=['-first_seen', 'issue'],
-            aggregations=[
-                ['toUInt64(min(timestamp)) * 1000', '', 'first_seen'],
-                ['uniq', 'issue', 'total'],
-            ],
-            having=[['first_seen', '>=', Any(int)]],
             **common_args
         )
 
