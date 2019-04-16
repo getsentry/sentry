@@ -50,15 +50,34 @@ VALID_FILE_TYPES = (
     'breakpad',
 )
 
+VALID_CASINGS = (
+    'lowercase',
+    'uppercase',
+    'default'
+)
+
+LAYOUT_SCHEMA = {
+    'type': 'object',
+    'properties': {
+        'type': {
+            'type': 'string',
+            'enum': list(VALID_LAYOUTS),
+        },
+        'casing': {
+            'type': 'string',
+            'enum': list(VALID_CASINGS),
+        },
+    },
+    'required': ['type'],
+    'additionalProperties': False,
+}
+
 COMMON_SOURCE_PROPERTIES = {
     'id': {
         'type': 'string',
         'minLength': 1,
     },
-    'layout': {
-        'type': 'string',
-        'enum': list(VALID_LAYOUTS),
-    },
+    'layout': LAYOUT_SCHEMA,
     'filetypes': {
         'type': 'array',
         'items': {
@@ -67,6 +86,7 @@ COMMON_SOURCE_PROPERTIES = {
         }
     },
 }
+
 
 S3_SOURCE_SCHEMA = {
     'type': 'object',
