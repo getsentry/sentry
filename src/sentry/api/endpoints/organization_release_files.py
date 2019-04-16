@@ -11,6 +11,7 @@ from sentry.api.content_negotiation import ConditionalContentNegotiation
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
+from sentry.constants import MAX_RELEASE_FILES_OFFSET
 from sentry.models import File, Release, ReleaseFile, Distribution
 
 ERR_FILE_EXISTS = 'A file matching this name already exists for the given release'
@@ -73,6 +74,7 @@ class OrganizationReleaseFilesEndpoint(OrganizationReleasesBaseEndpoint):
             queryset=file_list,
             order_by='name',
             paginator_cls=OffsetPaginator,
+            max_offset=MAX_RELEASE_FILES_OFFSET,
             on_results=lambda r: serialize(load_dist(r), request.user),
         )
 

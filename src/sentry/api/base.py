@@ -30,7 +30,7 @@ from sentry.utils import json
 
 
 from .authentication import ApiKeyAuthentication, TokenAuthentication
-from .paginator import Paginator
+from .paginator import BadPaginationError, Paginator
 from .permissions import NoPermission
 
 
@@ -239,10 +239,13 @@ class Endpoint(APIView):
         if not paginator:
             paginator = paginator_cls(**paginator_kwargs)
 
-        cursor_result = paginator.get_result(
-            limit=per_page,
-            cursor=input_cursor,
-        )
+        try:
+            cursor_result = paginator.get_result(
+                limit=per_page,
+                cursor=input_cursor,
+            )
+        except BadPaginationError as e:
+            return Response({'detail': e.message}, status=400)
 
         # map results based on callback
         if on_results:

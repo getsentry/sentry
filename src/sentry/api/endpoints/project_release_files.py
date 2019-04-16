@@ -13,6 +13,7 @@ from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.api.endpoints.organization_release_files import load_dist
+from sentry.constants import MAX_RELEASE_FILES_OFFSET
 from sentry.models import File, Release, ReleaseFile
 from sentry.utils.apidocs import scenario, attach_scenarios
 
@@ -88,6 +89,7 @@ class ProjectReleaseFilesEndpoint(ProjectEndpoint):
             queryset=file_list,
             order_by='name',
             paginator_cls=OffsetPaginator,
+            max_offset=MAX_RELEASE_FILES_OFFSET,
             on_results=lambda r: serialize(load_dist(r), request.user),
         )
 
