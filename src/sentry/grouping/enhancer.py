@@ -26,7 +26,7 @@ rule = _ matchers actions
 
 matchers       = matcher+
 matcher        = _ matcher_type sep argument
-matcher_type   = "path" / "function" / "module" / "family"
+matcher_type   = "path" / "function" / "module" / "family" / "package"
 
 actions        = action+
 action         = _ range? flag action_name
@@ -62,6 +62,7 @@ MATCH_KEYS = {
     'function': 'f',
     'module': 'm',
     'family': 'F',
+    'package': 'P',
 }
 SHORT_MATCH_KEYS = dict((v, k) for k, v in six.iteritems(MATCH_KEYS))
 
@@ -89,8 +90,11 @@ class Match(object):
 
     def matches_frame(self, frame_data, platform):
         # Path matches are always case insensitive
-        if self.key == 'path':
-            value = frame_data.get('abs_path') or frame_data.get('filename') or ''
+        if self.key in ('path', 'package'):
+            if self.key == 'package':
+                value = frame_data.get('package') or ''
+            else:
+                value = frame_data.get('abs_path') or frame_data.get('filename') or ''
             if glob_match(value, self.pattern, ignorecase=True,
                           doublestar=True, path_normalize=True):
                 return True

@@ -97,3 +97,48 @@ def test_family_matching():
     assert bool(native_rule.get_matching_frame_actions({
         'function': 'std::whatever',
     }, 'native'))
+
+
+def test_package_matching():
+    # This tests a bunch of different rules from the default in-app logic that
+    # was ported from the former native plugin.
+    enhancement = Enhancements.from_config_string('''
+        family:native package:/var/**/Frameworks/**                  -app
+        family:native package:**/*.app/Contents/**                   +app
+        family:native package:linux-gate.so                          -app
+        family:native package:?:/Windows/**                          -app
+    ''')
+
+    bundled_rule, macos_rule, linux_rule, windows_rule = enhancement.rules
+
+    assert bool(bundled_rule.get_matching_frame_actions({
+        'package': '/var/containers/MyApp/Frameworks/libsomething',
+    }, 'native'))
+
+    assert bool(macos_rule.get_matching_frame_actions({
+        'package': '/Applications/MyStuff.app/Contents/MacOS/MyStuff',
+    }, 'native'))
+
+    assert bool(linux_rule.get_matching_frame_actions({
+        'package': 'linux-gate.so',
+    }, 'native'))
+
+    assert bool(windows_rule.get_matching_frame_actions({
+        'package': 'D:\\Windows\\System32\\kernel32.dll',
+    }, 'native'))
+
+    assert bool(windows_rule.get_matching_frame_actions({
+        'package': 'd:\\windows\\System32\\kernel32.dll',
+    }, 'native'))
+
+    assert not bool(bundled_rule.get_matching_frame_actions({
+        'package': '/var2/containers/MyApp/Frameworks/libsomething',
+    }, 'native'))
+
+    assert not bool(bundled_rule.get_matching_frame_actions({
+        'package': '/var/containers/MyApp/MacOs/MyApp',
+    }, 'native'))
+
+    assert not bool(bundled_rule.get_matching_frame_actions({
+        'package': '/usr/lib/linux-gate.so',
+    }, 'native'))
