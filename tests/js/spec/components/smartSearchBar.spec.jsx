@@ -293,9 +293,7 @@ describe('SmartSearchBar', function() {
         options
       );
 
-      wrapper.find('form').simulate('submit', {
-        preventDefault() {},
-      });
+      wrapper.find('form').simulate('submit');
 
       expect(stubbedOnSearch).toHaveBeenCalledWith('is:unresolved');
     });
@@ -456,7 +454,7 @@ describe('SmartSearchBar', function() {
         />,
         options
       );
-      wrapper.find('button[data-test-id="pin-search"]').simulate('click');
+      wrapper.find('button[aria-label="Pin this search"]').simulate('click');
       await wrapper.update();
 
       expect(pinRequest).toHaveBeenCalled();
@@ -480,7 +478,7 @@ describe('SmartSearchBar', function() {
         options
       );
 
-      wrapper.find('button[data-test-id="pin-search"]').simulate('click');
+      wrapper.find('button[aria-label="Pin this search"]').simulate('click');
       await wrapper.update();
 
       expect(pinRequest).not.toHaveBeenCalled();

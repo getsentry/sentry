@@ -97,6 +97,7 @@ class CreateSavedSearchButton extends React.Component {
               type="button"
               onClick={this.onToggle}
               data-test-id="save-current-search"
+              aria-label={t('Add to organization filter list')}
               icon="icon-add-to-list"
             />
           </Tooltip>

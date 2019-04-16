@@ -682,20 +682,22 @@ class SmartSearchBar extends React.Component {
               query={this.state.query}
               organization={organization}
             />
-                  <Tooltip title={t('Pin this search')}>
-            <Button
-              type="button"
-              borderless
-              data-test-id="pin-search"
-              size="zero"
-              onClick={this.onTogglePinnedSearch}
-            >
-              <PinIcon isPinned={!!this.props.pinnedSearch} src="icon-pin" />
-            </Button>
-          </Tooltip>
+            <Tooltip title={t('Pin this search')}>
+              <Button
+                type="button"
+                borderless
+                aria-label={t('Pin this search')}
+                data-test-id="pin-search"
+                size="zero"
+                onClick={this.onTogglePinnedSearch}
+              >
+                <PinIcon isPinned={!!this.props.pinnedSearch} src="icon-pin" />
+              </Button>
+            </Tooltip>
             <SidebarButton
               borderless
               size="zero"
+              aria-label={t('Toggle search builder')}
               data-test-id="toggle-stream-sidebar"
               icon="icon-sliders"
               onClick={onSidebarToggle}
