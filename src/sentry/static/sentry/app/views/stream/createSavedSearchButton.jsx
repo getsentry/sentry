@@ -152,10 +152,6 @@ class CreateSavedSearchButton extends React.Component {
 }
 
 const StyledButton = styled(Button)`
-  position: absolute;
-  top: 9px;
-  right: 52px;
-
   & svg {
     color: ${p => p.theme.gray6};
   }

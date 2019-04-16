@@ -65,6 +65,7 @@ class SearchBar extends React.Component {
     savedSearch: SentryTypes.SavedSearch,
     organization: SentryTypes.Organization.isRequired,
     tagValueLoader: PropTypes.func.isRequired,
+    onSidebarToggle: PropTypes.func,
   };
 
   state = {
@@ -149,21 +150,31 @@ class SearchBar extends React.Component {
     const {
       tagValueLoader, // eslint-disable-line no-unused-vars
       savedSearch,
+      onSidebarToggle,
       ...props
     } = this.props;
+    const hasPinnedSearch = this.hasOrgSavedSearches();
 
     return (
-      <SmartSearchBar
-        onGetTagValues={this.getTagValues}
-        defaultSearchItems={this.state.defaultSearchItems}
-        maxSearchItems={5}
-        hasPinnedSearch={this.hasOrgSavedSearches()}
-        savedSearchType={SEARCH_TYPES.ISSUE}
-        displayRecentSearches={this.hasRecentSearches()}
-        onSavedRecentSearch={this.handleSavedRecentSearch}
-        pinnedSearch={savedSearch && savedSearch.isPinned ? savedSearch : null}
-        {...props}
-      />
+      <React.Fragment>
+        <SmartSearchBar
+          onGetTagValues={this.getTagValues}
+          defaultSearchItems={this.state.defaultSearchItems}
+          maxSearchItems={5}
+          hasPinnedSearch={hasPinnedSearch}
+          savedSearchType={SEARCH_TYPES.ISSUE}
+          displayRecentSearches={this.hasRecentSearches()}
+          onSavedRecentSearch={this.handleSavedRecentSearch}
+          onSidebarToggle={onSidebarToggle}
+          pinnedSearch={savedSearch && savedSearch.isPinned ? savedSearch : null}
+          {...props}
+        />
+        {!hasPinnedSearch && onSidebarToggle && (
+          <a className="btn btn-default toggle-stream-sidebar" onClick={onSidebarToggle}>
+            <span className="icon-filter" />
+          </a>
+        )}
+      </React.Fragment>
     );
   }
 }
