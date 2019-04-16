@@ -8,7 +8,7 @@ from sentry.utils.safe import trim
 from sentry.utils.compat import implements_to_string
 from sentry.models import EventError, ProjectDebugFile
 from sentry.lang.native.utils import image_name, rebase_addr
-from sentry.utils.in_app import is_optional_package, is_known_third_party
+from sentry.utils.in_app import is_known_third_party, is_optional_package
 from sentry.constants import MAX_SYM
 
 FATAL_ERRORS = (

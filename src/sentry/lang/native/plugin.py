@@ -19,7 +19,7 @@ from sentry.lang.native.utils import get_sdk_from_event, cpu_name_from_data, \
 from sentry.lang.native.systemsymbols import lookup_system_symbols
 from sentry.models.eventerror import EventError
 from sentry.utils import metrics
-from sentry.utils.in_app import is_known_third_party
+from sentry.utils.in_app import is_known_third_party, is_optional_package
 from sentry.utils.safe import get_path
 from sentry.stacktraces import StacktraceProcessor
 from sentry.reprocessing import report_processing_issue
@@ -264,7 +264,11 @@ class NativeStacktraceProcessor(StacktraceProcessor):
             if status in ('found', 'unused'):
                 continue
             elif status == 'missing_debug_file':
-                error = SymbolicationFailed(type=EventError.NATIVE_MISSING_DSYM)
+                if is_optional_package(fetched_debug_file.get('code_file')):
+                    error = SymbolicationFailed(
+                        type=EventError.NATIVE_MISSING_OPTIONALLY_BUNDLED_DSYM)
+                else:
+                    error = SymbolicationFailed(type=EventError.NATIVE_MISSING_DSYM)
             elif status == 'malformed_debug_file':
                 error = SymbolicationFailed(type=EventError.NATIVE_BAD_DSYM)
             elif status == 'too_large':

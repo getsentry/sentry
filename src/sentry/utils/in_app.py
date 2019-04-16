@@ -37,8 +37,11 @@ SUPPORT_FRAMEWORK_RE = re.compile(
 )
 
 
+def _is_support_framework(package):
+    return SUPPORT_FRAMEWORK_RE.search(package) is not None
+
+
 # TODO(ja): Translate these rules to grouping enhancers
-# TODO(ja): Separate and simplify reprocessing logic
 def is_known_third_party(package, sdk_info=None):
     """
     Checks whether this package matches one of the well-known system image
@@ -46,7 +49,7 @@ def is_known_third_party(package, sdk_info=None):
     """
 
     # Check for common iOS and MacOS support frameworks, like Swift.
-    if SUPPORT_FRAMEWORK_RE.search(package) is not None:
+    if _is_support_framework(package):
         return True
 
     # Check for iOS app bundles in well known locations. These are definitely
@@ -72,6 +75,7 @@ def is_known_third_party(package, sdk_info=None):
     return True
 
 
+# TODO(ja): Improve reprocessing heuristics
 def is_optional_package(package, sdk_info=None):
     """
     Determines whether the given package is considered optional.
@@ -83,9 +87,9 @@ def is_optional_package(package, sdk_info=None):
     if not package:
         return True
 
-    # Any known third party package is considered optional.
-    # TODO(ja): Inline third_party rules here to separate from in_app logic
-    if is_known_third_party(package, sdk_info=sdk_info):
+    # Support frameworks have been bundled with iOS apps at times. These are
+    # considered optional.
+    if _is_support_framework(package):
         return True
 
     # Bundled frameworks on iOS are considered optional, even though they live
@@ -93,4 +97,6 @@ def is_optional_package(package, sdk_info=None):
     if package.startswith(IOS_APP_PATHS) and '/Frameworks/' in package:
         return True
 
+    # All other images, whether from the app bundle or not, are considered
+    # required.
     return False
