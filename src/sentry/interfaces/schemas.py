@@ -518,8 +518,8 @@ CSP_SCHEMA = {
                 'disposition': {'type': 'string'},
             },
             'anyOf': [
-                {'required': ['effective-directive']},
                 {'required': ['violated-directive']},
+                {'required': ['effective-directive']},
             ],
             # Allow additional keys as browser vendors are still changing CSP
             # implementations fairly frequently
