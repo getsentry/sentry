@@ -41,13 +41,9 @@ exports[`groupEvents renders 1`] = `
             },
           ]
         }
-        params={
-          Object {
-            "groupId": "1",
-            "orgId": "orgId",
-            "projectId": "projectId",
-          }
-        }
+        groupId="1"
+        orgId="orgId"
+        projectId="projectId"
         tagList={Array []}
       />
     </PanelBody>

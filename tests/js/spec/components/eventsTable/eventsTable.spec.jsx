@@ -13,7 +13,9 @@ describe('EventsTable', function() {
     const wrapper = shallow(
       <EventsTable
         tagList={[]}
-        params={{orgId: 'orgId', projectId: 'projectId', groupId: 'groupId'}}
+        orgId="orgId"
+        projectId="projectId"
+        groupId="groupId"
         events={events}
       />
     );
