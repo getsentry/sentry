@@ -9,13 +9,15 @@ class EventsTable extends React.Component {
   static propTypes = {
     events: PropTypes.arrayOf(CustomPropTypes.Event),
     tagList: PropTypes.arrayOf(CustomPropTypes.Tag),
+    orgId: PropTypes.string.isRequired,
+    projectId: PropTypes.string.isRequired,
+    groupId: PropTypes.string.isRequired,
   };
 
   render() {
-    const {events, tagList} = this.props;
+    const {events, tagList, orgId, projectId, groupId} = this.props;
 
     const hasUser = !!events.find(event => event.user);
-    const {orgId, projectId, groupId} = this.props.params;
 
     return (
       <table className="table events-table">
