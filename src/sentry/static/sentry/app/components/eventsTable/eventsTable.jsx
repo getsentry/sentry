@@ -1,6 +1,5 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import classNames from 'classnames';
 
 import {t} from 'app/locale';
 import CustomPropTypes from 'app/sentryTypes';
@@ -13,14 +12,13 @@ class EventsTable extends React.Component {
   };
 
   render() {
-    const {className, events, tagList} = this.props;
+    const {events, tagList} = this.props;
 
-    const cx = classNames('table events-table', className);
     const hasUser = !!events.find(event => event.user);
     const {orgId, projectId, groupId} = this.props.params;
 
     return (
-      <table className={cx}>
+      <table className="table events-table">
         <thead>
           <tr>
             <th>{t('ID')}</th>
