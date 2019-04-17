@@ -254,43 +254,23 @@ class NativeStacktraceProcessor(StacktraceProcessor):
         assert len(self.images) == len(rv['modules']), (self.images, rv)
 
         for image, fetched_debug_file in zip(self.images, rv['modules']):
-            status = fetched_debug_file.pop('status')
+            statuses = [
+                fetched_debug_file.pop(k) for k in (
+                    'status',  # TODO(markus): Legacy key. Remove after next deploy
+                    'debug_status',
+                    'unwind_status',
+                )
+                if k in fetched_debug_file
+            ]
+
             # Set image data from symbolicator as symbolicator might know more
             # than the SDK, especially for minidumps
             for k, v in six.iteritems(fetched_debug_file):
                 if not (v is None or (k, v) == ('arch', 'unknown')):
                     image[k] = v
 
-            if status in ('found', 'unused'):
-                continue
-            elif status == 'missing_debug_file':
-                package = fetched_debug_file.get('code_file')
-                if not package or is_known_third_party(package, sdk_info=self.sdk_info):
-                    continue
-
-                if is_optional_package(package, sdk_info=self.sdk_info):
-                    error = SymbolicationFailed(
-                        type=EventError.NATIVE_MISSING_OPTIONALLY_BUNDLED_DSYM)
-                else:
-                    error = SymbolicationFailed(type=EventError.NATIVE_MISSING_DSYM)
-            elif status == 'malformed_debug_file':
-                error = SymbolicationFailed(type=EventError.NATIVE_BAD_DSYM)
-            elif status == 'too_large':
-                error = SymbolicationFailed(type=EventError.FETCH_TOO_LARGE)
-            elif status == 'fetching_failed':
-                error = SymbolicationFailed(type=EventError.FETCH_GENERIC_ERROR)
-            elif status == 'other':
-                error = SymbolicationFailed(type=EventError.UNKNOWN_ERROR)
-            else:
-                logger.error("Unknown status: %s", status)
-                continue
-
-            error.image_arch = image.get('arch')
-            error.image_path = image.get('code_file')
-            error.image_name = image_name(image.get('code_file'))
-            error.image_uuid = image.get('debug_id')
-            self.data.setdefault('errors', []) \
-                .extend(self._handle_symbolication_failed(error))
+            for status in statuses:
+                self.handle_symbolicator_status(status, image)
 
         assert len(stacktraces) == len(rv['stacktraces'])
 
@@ -301,6 +281,38 @@ class NativeStacktraceProcessor(StacktraceProcessor):
             for symbolicated_frame in symbolicated_stacktrace.get('frames') or ():
                 pf = pf_list[symbolicated_frame['original_index']]
                 pf.data['symbolicator_match'].append(symbolicated_frame)
+
+    def handle_symbolicator_status(self, status, image):
+        if status in ('found', 'unused'):
+            return
+        elif status in ('missing_debug_file', 'missing_file'):
+            package = image.get('code_file')
+            if not package or is_known_third_party(package, sdk_info=self.sdk_info):
+                return
+
+            if is_optional_package(package, sdk_info=self.sdk_info):
+                error = SymbolicationFailed(
+                    type=EventError.NATIVE_MISSING_OPTIONALLY_BUNDLED_DSYM)
+            else:
+                error = SymbolicationFailed(type=EventError.NATIVE_MISSING_DSYM)
+        elif status in ('malformed_debug_file', 'malformed_file'):
+            error = SymbolicationFailed(type=EventError.NATIVE_BAD_DSYM)
+        elif status == 'too_large':
+            error = SymbolicationFailed(type=EventError.FETCH_TOO_LARGE)
+        elif status == 'fetching_failed':
+            error = SymbolicationFailed(type=EventError.FETCH_GENERIC_ERROR)
+        elif status == 'other':
+            error = SymbolicationFailed(type=EventError.UNKNOWN_ERROR)
+        else:
+            logger.error("Unknown status: %s", status)
+            return
+
+        error.image_arch = image.get('arch')
+        error.image_path = image.get('code_file')
+        error.image_name = image_name(image.get('code_file'))
+        error.image_uuid = image.get('debug_id')
+        self.data.setdefault('errors', []) \
+            .extend(self._handle_symbolication_failed(error))
 
     def fetch_ios_system_symbols(self, processing_task):
         to_lookup = []
