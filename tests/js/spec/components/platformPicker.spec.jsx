@@ -2,7 +2,7 @@ import React from 'react';
 import {shallow, mount} from 'enzyme';
 
 import {Client} from 'app/api';
-import PlatformPicker from 'app/views/onboarding/project/platformpicker';
+import PlatformPicker from 'app/components/platformPicker';
 
 describe('PlatformPicker', function() {
   beforeEach(function() {

@@ -520,14 +520,14 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
 >
   <NavContainer>
     <div
-      className="css-xl0stt-NavContainer ewlrg790"
+      className="css-xl0stt-NavContainer exv4dm80"
     >
       <CategoryNav>
         <NavTabs
-          className="css-5tazcq-CategoryNav ewlrg792"
+          className="css-5tazcq-CategoryNav exv4dm82"
         >
           <ul
-            className="nav nav-tabs css-5tazcq-CategoryNav ewlrg792"
+            className="nav nav-tabs css-5tazcq-CategoryNav exv4dm82"
           >
             <ListLink
               activeClassName="active"
@@ -690,7 +690,7 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
       </CategoryNav>
       <SearchBar>
         <div
-          className="css-1e5tau1-SearchBar-inputStyles ewlrg791"
+          className="css-1e5tau1-SearchBar-inputStyles exv4dm81"
         >
           <InlineSvg
             src="icon-search"
@@ -726,7 +726,7 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
   </NavContainer>
   <PlatformList>
     <div
-      className="css-545rh6-PlatformList ewlrg793"
+      className="css-545rh6-PlatformList exv4dm83"
     >
       <PlatformCard
         data-test-id="platform-csharp"
@@ -745,7 +745,7 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
         selected={false}
       >
         <Component
-          className="css-16kw2fg-PlatformCard ewlrg796"
+          className="css-16kw2fg-PlatformCard exv4dm86"
           data-test-id="platform-csharp"
           onClear={[Function]}
           onClick={[Function]}
@@ -761,17 +761,17 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
           selected={false}
         >
           <div
-            className="css-16kw2fg-PlatformCard ewlrg796"
+            className="css-16kw2fg-PlatformCard exv4dm86"
             data-test-id="platform-csharp"
             onClick={[Function]}
           >
-            <StyledPlatformiconTile
+            <StyledPlatformIconTile
               platform="csharp"
             >
               <div
-                className="css-tzg8rc-PlatformiconTile-getColorStyles-StyledPlatformiconTile ewlrg794"
+                className="css-i59jyf-PlatformIconTile-getColorStyles-StyledPlatformIconTile exv4dm84"
               />
-            </StyledPlatformiconTile>
+            </StyledPlatformIconTile>
             <h3>
               C#
             </h3>
@@ -795,7 +795,7 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
         selected={false}
       >
         <Component
-          className="css-16kw2fg-PlatformCard ewlrg796"
+          className="css-16kw2fg-PlatformCard exv4dm86"
           data-test-id="platform-cordova"
           onClear={[Function]}
           onClick={[Function]}
@@ -811,17 +811,17 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
           selected={false}
         >
           <div
-            className="css-16kw2fg-PlatformCard ewlrg796"
+            className="css-16kw2fg-PlatformCard exv4dm86"
             data-test-id="platform-cordova"
             onClick={[Function]}
           >
-            <StyledPlatformiconTile
+            <StyledPlatformIconTile
               platform="cordova"
             >
               <div
-                className="css-yhb6wb-PlatformiconTile-getColorStyles-StyledPlatformiconTile ewlrg794"
+                className="css-a5gfdj-PlatformIconTile-getColorStyles-StyledPlatformIconTile exv4dm84"
               />
-            </StyledPlatformiconTile>
+            </StyledPlatformIconTile>
             <h3>
               Cordova
             </h3>
@@ -845,7 +845,7 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
         selected={false}
       >
         <Component
-          className="css-16kw2fg-PlatformCard ewlrg796"
+          className="css-16kw2fg-PlatformCard exv4dm86"
           data-test-id="platform-electron"
           onClear={[Function]}
           onClick={[Function]}
@@ -861,17 +861,17 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
           selected={false}
         >
           <div
-            className="css-16kw2fg-PlatformCard ewlrg796"
+            className="css-16kw2fg-PlatformCard exv4dm86"
             data-test-id="platform-electron"
             onClick={[Function]}
           >
-            <StyledPlatformiconTile
+            <StyledPlatformIconTile
               platform="electron"
             >
               <div
-                className="css-yhb6wb-PlatformiconTile-getColorStyles-StyledPlatformiconTile ewlrg794"
+                className="css-a5gfdj-PlatformIconTile-getColorStyles-StyledPlatformIconTile exv4dm84"
               />
-            </StyledPlatformiconTile>
+            </StyledPlatformIconTile>
             <h3>
               Electron
             </h3>
@@ -895,7 +895,7 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
         selected={false}
       >
         <Component
-          className="css-16kw2fg-PlatformCard ewlrg796"
+          className="css-16kw2fg-PlatformCard exv4dm86"
           data-test-id="platform-elixir"
           onClear={[Function]}
           onClick={[Function]}
@@ -911,17 +911,17 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
           selected={false}
         >
           <div
-            className="css-16kw2fg-PlatformCard ewlrg796"
+            className="css-16kw2fg-PlatformCard exv4dm86"
             data-test-id="platform-elixir"
             onClick={[Function]}
           >
-            <StyledPlatformiconTile
+            <StyledPlatformIconTile
               platform="elixir"
             >
               <div
-                className="css-1mdonx9-PlatformiconTile-getColorStyles-StyledPlatformiconTile ewlrg794"
+                className="css-kjytvr-PlatformIconTile-getColorStyles-StyledPlatformIconTile exv4dm84"
               />
-            </StyledPlatformiconTile>
+            </StyledPlatformIconTile>
             <h3>
               Elixir
             </h3>
@@ -945,7 +945,7 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
         selected={false}
       >
         <Component
-          className="css-16kw2fg-PlatformCard ewlrg796"
+          className="css-16kw2fg-PlatformCard exv4dm86"
           data-test-id="platform-go"
           onClear={[Function]}
           onClick={[Function]}
@@ -961,17 +961,17 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
           selected={false}
         >
           <div
-            className="css-16kw2fg-PlatformCard ewlrg796"
+            className="css-16kw2fg-PlatformCard exv4dm86"
             data-test-id="platform-go"
             onClick={[Function]}
           >
-            <StyledPlatformiconTile
+            <StyledPlatformIconTile
               platform="go"
             >
               <div
-                className="css-ks66kg-PlatformiconTile-getColorStyles-StyledPlatformiconTile ewlrg794"
+                className="css-b4ig28-PlatformIconTile-getColorStyles-StyledPlatformIconTile exv4dm84"
               />
-            </StyledPlatformiconTile>
+            </StyledPlatformIconTile>
             <h3>
               Go
             </h3>
@@ -995,7 +995,7 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
         selected={false}
       >
         <Component
-          className="css-16kw2fg-PlatformCard ewlrg796"
+          className="css-16kw2fg-PlatformCard exv4dm86"
           data-test-id="platform-go-http"
           onClear={[Function]}
           onClick={[Function]}
@@ -1011,17 +1011,17 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
           selected={false}
         >
           <div
-            className="css-16kw2fg-PlatformCard ewlrg796"
+            className="css-16kw2fg-PlatformCard exv4dm86"
             data-test-id="platform-go-http"
             onClick={[Function]}
           >
-            <StyledPlatformiconTile
+            <StyledPlatformIconTile
               platform="go-http"
             >
               <div
-                className="css-ks66kg-PlatformiconTile-getColorStyles-StyledPlatformiconTile ewlrg794"
+                className="css-b4ig28-PlatformIconTile-getColorStyles-StyledPlatformIconTile exv4dm84"
               />
-            </StyledPlatformiconTile>
+            </StyledPlatformIconTile>
             <h3>
               net/http
             </h3>
@@ -1045,7 +1045,7 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
         selected={false}
       >
         <Component
-          className="css-16kw2fg-PlatformCard ewlrg796"
+          className="css-16kw2fg-PlatformCard exv4dm86"
           data-test-id="platform-java-android"
           onClear={[Function]}
           onClick={[Function]}
@@ -1061,17 +1061,17 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
           selected={false}
         >
           <div
-            className="css-16kw2fg-PlatformCard ewlrg796"
+            className="css-16kw2fg-PlatformCard exv4dm86"
             data-test-id="platform-java-android"
             onClick={[Function]}
           >
-            <StyledPlatformiconTile
+            <StyledPlatformIconTile
               platform="java-android"
             >
               <div
-                className="css-lc48x8-PlatformiconTile-getColorStyles-StyledPlatformiconTile ewlrg794"
+                className="css-119q83u-PlatformIconTile-getColorStyles-StyledPlatformIconTile exv4dm84"
               />
-            </StyledPlatformiconTile>
+            </StyledPlatformIconTile>
             <h3>
               Android
             </h3>
@@ -1095,7 +1095,7 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
         selected={false}
       >
         <Component
-          className="css-16kw2fg-PlatformCard ewlrg796"
+          className="css-16kw2fg-PlatformCard exv4dm86"
           data-test-id="platform-java-appengine"
           onClear={[Function]}
           onClick={[Function]}
@@ -1111,17 +1111,17 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
           selected={false}
         >
           <div
-            className="css-16kw2fg-PlatformCard ewlrg796"
+            className="css-16kw2fg-PlatformCard exv4dm86"
             data-test-id="platform-java-appengine"
             onClick={[Function]}
           >
-            <StyledPlatformiconTile
+            <StyledPlatformIconTile
               platform="java-appengine"
             >
               <div
-                className="css-1s03x3z-PlatformiconTile-getColorStyles-StyledPlatformiconTile ewlrg794"
+                className="css-2lx1w0-PlatformIconTile-getColorStyles-StyledPlatformIconTile exv4dm84"
               />
-            </StyledPlatformiconTile>
+            </StyledPlatformIconTile>
             <h3>
               Google App Engine
             </h3>
@@ -1145,7 +1145,7 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
         selected={false}
       >
         <Component
-          className="css-16kw2fg-PlatformCard ewlrg796"
+          className="css-16kw2fg-PlatformCard exv4dm86"
           data-test-id="platform-java"
           onClear={[Function]}
           onClick={[Function]}
@@ -1161,17 +1161,17 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
           selected={false}
         >
           <div
-            className="css-16kw2fg-PlatformCard ewlrg796"
+            className="css-16kw2fg-PlatformCard exv4dm86"
             data-test-id="platform-java"
             onClick={[Function]}
           >
-            <StyledPlatformiconTile
+            <StyledPlatformIconTile
               platform="java"
             >
               <div
-                className="css-lc48x8-PlatformiconTile-getColorStyles-StyledPlatformiconTile ewlrg794"
+                className="css-119q83u-PlatformIconTile-getColorStyles-StyledPlatformIconTile exv4dm84"
               />
-            </StyledPlatformiconTile>
+            </StyledPlatformIconTile>
             <h3>
               Java
             </h3>
@@ -1195,7 +1195,7 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
         selected={false}
       >
         <Component
-          className="css-16kw2fg-PlatformCard ewlrg796"
+          className="css-16kw2fg-PlatformCard exv4dm86"
           data-test-id="platform-java-log4j"
           onClear={[Function]}
           onClick={[Function]}
@@ -1211,17 +1211,17 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
           selected={false}
         >
           <div
-            className="css-16kw2fg-PlatformCard ewlrg796"
+            className="css-16kw2fg-PlatformCard exv4dm86"
             data-test-id="platform-java-log4j"
             onClick={[Function]}
           >
-            <StyledPlatformiconTile
+            <StyledPlatformIconTile
               platform="java-log4j"
             >
               <div
-                className="css-lc48x8-PlatformiconTile-getColorStyles-StyledPlatformiconTile ewlrg794"
+                className="css-119q83u-PlatformIconTile-getColorStyles-StyledPlatformIconTile exv4dm84"
               />
-            </StyledPlatformiconTile>
+            </StyledPlatformIconTile>
             <h3>
               Log4j 1.x
             </h3>
@@ -1245,7 +1245,7 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
         selected={false}
       >
         <Component
-          className="css-16kw2fg-PlatformCard ewlrg796"
+          className="css-16kw2fg-PlatformCard exv4dm86"
           data-test-id="platform-java-log4j2"
           onClear={[Function]}
           onClick={[Function]}
@@ -1261,17 +1261,17 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
           selected={false}
         >
           <div
-            className="css-16kw2fg-PlatformCard ewlrg796"
+            className="css-16kw2fg-PlatformCard exv4dm86"
             data-test-id="platform-java-log4j2"
             onClick={[Function]}
           >
-            <StyledPlatformiconTile
+            <StyledPlatformIconTile
               platform="java-log4j2"
             >
               <div
-                className="css-lc48x8-PlatformiconTile-getColorStyles-StyledPlatformiconTile ewlrg794"
+                className="css-119q83u-PlatformIconTile-getColorStyles-StyledPlatformIconTile exv4dm84"
               />
-            </StyledPlatformiconTile>
+            </StyledPlatformIconTile>
             <h3>
               Log4j 2.x
             </h3>
@@ -1295,7 +1295,7 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
         selected={false}
       >
         <Component
-          className="css-16kw2fg-PlatformCard ewlrg796"
+          className="css-16kw2fg-PlatformCard exv4dm86"
           data-test-id="platform-java-logback"
           onClear={[Function]}
           onClick={[Function]}
@@ -1311,17 +1311,17 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
           selected={false}
         >
           <div
-            className="css-16kw2fg-PlatformCard ewlrg796"
+            className="css-16kw2fg-PlatformCard exv4dm86"
             data-test-id="platform-java-logback"
             onClick={[Function]}
           >
-            <StyledPlatformiconTile
+            <StyledPlatformIconTile
               platform="java-logback"
             >
               <div
-                className="css-lc48x8-PlatformiconTile-getColorStyles-StyledPlatformiconTile ewlrg794"
+                className="css-119q83u-PlatformIconTile-getColorStyles-StyledPlatformIconTile exv4dm84"
               />
-            </StyledPlatformiconTile>
+            </StyledPlatformIconTile>
             <h3>
               Logback
             </h3>
@@ -1345,7 +1345,7 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
         selected={false}
       >
         <Component
-          className="css-16kw2fg-PlatformCard ewlrg796"
+          className="css-16kw2fg-PlatformCard exv4dm86"
           data-test-id="platform-java-logging"
           onClear={[Function]}
           onClick={[Function]}
@@ -1361,17 +1361,17 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
           selected={false}
         >
           <div
-            className="css-16kw2fg-PlatformCard ewlrg796"
+            className="css-16kw2fg-PlatformCard exv4dm86"
             data-test-id="platform-java-logging"
             onClick={[Function]}
           >
-            <StyledPlatformiconTile
+            <StyledPlatformIconTile
               platform="java-logging"
             >
               <div
-                className="css-lc48x8-PlatformiconTile-getColorStyles-StyledPlatformiconTile ewlrg794"
+                className="css-119q83u-PlatformIconTile-getColorStyles-StyledPlatformIconTile exv4dm84"
               />
-            </StyledPlatformiconTile>
+            </StyledPlatformIconTile>
             <h3>
               java.util.logging
             </h3>
@@ -1395,7 +1395,7 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
         selected={false}
       >
         <Component
-          className="css-16kw2fg-PlatformCard ewlrg796"
+          className="css-16kw2fg-PlatformCard exv4dm86"
           data-test-id="platform-javascript-angular"
           onClear={[Function]}
           onClick={[Function]}
@@ -1411,17 +1411,17 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
           selected={false}
         >
           <div
-            className="css-16kw2fg-PlatformCard ewlrg796"
+            className="css-16kw2fg-PlatformCard exv4dm86"
             data-test-id="platform-javascript-angular"
             onClick={[Function]}
           >
-            <StyledPlatformiconTile
+            <StyledPlatformIconTile
               platform="javascript-angular"
             >
               <div
-                className="css-b15x81-PlatformiconTile-getColorStyles-StyledPlatformiconTile ewlrg794"
+                className="css-impgxj-PlatformIconTile-getColorStyles-StyledPlatformIconTile exv4dm84"
               />
-            </StyledPlatformiconTile>
+            </StyledPlatformIconTile>
             <h3>
               Angular
             </h3>
@@ -1445,7 +1445,7 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
         selected={false}
       >
         <Component
-          className="css-16kw2fg-PlatformCard ewlrg796"
+          className="css-16kw2fg-PlatformCard exv4dm86"
           data-test-id="platform-javascript-angularjs"
           onClear={[Function]}
           onClick={[Function]}
@@ -1461,17 +1461,17 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
           selected={false}
         >
           <div
-            className="css-16kw2fg-PlatformCard ewlrg796"
+            className="css-16kw2fg-PlatformCard exv4dm86"
             data-test-id="platform-javascript-angularjs"
             onClick={[Function]}
           >
-            <StyledPlatformiconTile
+            <StyledPlatformIconTile
               platform="javascript-angularjs"
             >
               <div
-                className="css-6586kg-PlatformiconTile-getColorStyles-StyledPlatformiconTile ewlrg794"
+                className="css-9gat90-PlatformIconTile-getColorStyles-StyledPlatformIconTile exv4dm84"
               />
-            </StyledPlatformiconTile>
+            </StyledPlatformIconTile>
             <h3>
               AngularJS
             </h3>
@@ -1495,7 +1495,7 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
         selected={false}
       >
         <Component
-          className="css-16kw2fg-PlatformCard ewlrg796"
+          className="css-16kw2fg-PlatformCard exv4dm86"
           data-test-id="platform-javascript-backbone"
           onClear={[Function]}
           onClick={[Function]}
@@ -1511,17 +1511,17 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
           selected={false}
         >
           <div
-            className="css-16kw2fg-PlatformCard ewlrg796"
+            className="css-16kw2fg-PlatformCard exv4dm86"
             data-test-id="platform-javascript-backbone"
             onClick={[Function]}
           >
-            <StyledPlatformiconTile
+            <StyledPlatformIconTile
               platform="javascript-backbone"
             >
               <div
-                className="css-105qz5e-PlatformiconTile-getColorStyles-StyledPlatformiconTile ewlrg794"
+                className="css-10lppcv-PlatformIconTile-getColorStyles-StyledPlatformIconTile exv4dm84"
               />
-            </StyledPlatformiconTile>
+            </StyledPlatformIconTile>
             <h3>
               Backbone
             </h3>
@@ -1545,7 +1545,7 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
         selected={false}
       >
         <Component
-          className="css-16kw2fg-PlatformCard ewlrg796"
+          className="css-16kw2fg-PlatformCard exv4dm86"
           data-test-id="platform-javascript-ember"
           onClear={[Function]}
           onClick={[Function]}
@@ -1561,17 +1561,17 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
           selected={false}
         >
           <div
-            className="css-16kw2fg-PlatformCard ewlrg796"
+            className="css-16kw2fg-PlatformCard exv4dm86"
             data-test-id="platform-javascript-ember"
             onClick={[Function]}
           >
-            <StyledPlatformiconTile
+            <StyledPlatformIconTile
               platform="javascript-ember"
             >
               <div
-                className="css-1bbhz2-PlatformiconTile-getColorStyles-StyledPlatformiconTile ewlrg794"
+                className="css-aw4agf-PlatformIconTile-getColorStyles-StyledPlatformIconTile exv4dm84"
               />
-            </StyledPlatformiconTile>
+            </StyledPlatformIconTile>
             <h3>
               Ember
             </h3>
@@ -1595,7 +1595,7 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
         selected={false}
       >
         <Component
-          className="css-16kw2fg-PlatformCard ewlrg796"
+          className="css-16kw2fg-PlatformCard exv4dm86"
           data-test-id="platform-javascript"
           onClear={[Function]}
           onClick={[Function]}
@@ -1611,17 +1611,17 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
           selected={false}
         >
           <div
-            className="css-16kw2fg-PlatformCard ewlrg796"
+            className="css-16kw2fg-PlatformCard exv4dm86"
             data-test-id="platform-javascript"
             onClick={[Function]}
           >
-            <StyledPlatformiconTile
+            <StyledPlatformIconTile
               platform="javascript"
             >
               <div
-                className="css-105qz5e-PlatformiconTile-getColorStyles-StyledPlatformiconTile ewlrg794"
+                className="css-10lppcv-PlatformIconTile-getColorStyles-StyledPlatformIconTile exv4dm84"
               />
-            </StyledPlatformiconTile>
+            </StyledPlatformIconTile>
             <h3>
               JavaScript
             </h3>
@@ -1645,7 +1645,7 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
         selected={false}
       >
         <Component
-          className="css-16kw2fg-PlatformCard ewlrg796"
+          className="css-16kw2fg-PlatformCard exv4dm86"
           data-test-id="platform-javascript-react"
           onClear={[Function]}
           onClick={[Function]}
@@ -1661,17 +1661,17 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
           selected={false}
         >
           <div
-            className="css-16kw2fg-PlatformCard ewlrg796"
+            className="css-16kw2fg-PlatformCard exv4dm86"
             data-test-id="platform-javascript-react"
             onClick={[Function]}
           >
-            <StyledPlatformiconTile
+            <StyledPlatformIconTile
               platform="javascript-react"
             >
               <div
-                className="css-fosd7h-PlatformiconTile-getColorStyles-StyledPlatformiconTile ewlrg794"
+                className="css-1a99nd3-PlatformIconTile-getColorStyles-StyledPlatformIconTile exv4dm84"
               />
-            </StyledPlatformiconTile>
+            </StyledPlatformIconTile>
             <h3>
               React
             </h3>
@@ -1695,7 +1695,7 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
         selected={false}
       >
         <Component
-          className="css-16kw2fg-PlatformCard ewlrg796"
+          className="css-16kw2fg-PlatformCard exv4dm86"
           data-test-id="platform-javascript-vue"
           onClear={[Function]}
           onClick={[Function]}
@@ -1711,17 +1711,17 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
           selected={false}
         >
           <div
-            className="css-16kw2fg-PlatformCard ewlrg796"
+            className="css-16kw2fg-PlatformCard exv4dm86"
             data-test-id="platform-javascript-vue"
             onClick={[Function]}
           >
-            <StyledPlatformiconTile
+            <StyledPlatformIconTile
               platform="javascript-vue"
             >
               <div
-                className="css-105qz5e-PlatformiconTile-getColorStyles-StyledPlatformiconTile ewlrg794"
+                className="css-10lppcv-PlatformIconTile-getColorStyles-StyledPlatformIconTile exv4dm84"
               />
-            </StyledPlatformiconTile>
+            </StyledPlatformIconTile>
             <h3>
               Vue
             </h3>
@@ -1745,7 +1745,7 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
         selected={false}
       >
         <Component
-          className="css-16kw2fg-PlatformCard ewlrg796"
+          className="css-16kw2fg-PlatformCard exv4dm86"
           data-test-id="platform-minidump"
           onClear={[Function]}
           onClick={[Function]}
@@ -1761,17 +1761,17 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
           selected={false}
         >
           <div
-            className="css-16kw2fg-PlatformCard ewlrg796"
+            className="css-16kw2fg-PlatformCard exv4dm86"
             data-test-id="platform-minidump"
             onClick={[Function]}
           >
-            <StyledPlatformiconTile
+            <StyledPlatformIconTile
               platform="minidump"
             >
               <div
-                className="css-yhb6wb-PlatformiconTile-getColorStyles-StyledPlatformiconTile ewlrg794"
+                className="css-a5gfdj-PlatformIconTile-getColorStyles-StyledPlatformIconTile exv4dm84"
               />
-            </StyledPlatformiconTile>
+            </StyledPlatformIconTile>
             <h3>
               Minidump
             </h3>
@@ -1795,7 +1795,7 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
         selected={false}
       >
         <Component
-          className="css-16kw2fg-PlatformCard ewlrg796"
+          className="css-16kw2fg-PlatformCard exv4dm86"
           data-test-id="platform-node-connect"
           onClear={[Function]}
           onClick={[Function]}
@@ -1811,17 +1811,17 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
           selected={false}
         >
           <div
-            className="css-16kw2fg-PlatformCard ewlrg796"
+            className="css-16kw2fg-PlatformCard exv4dm86"
             data-test-id="platform-node-connect"
             onClick={[Function]}
           >
-            <StyledPlatformiconTile
+            <StyledPlatformIconTile
               platform="node-connect"
             >
               <div
-                className="css-1wbn021-PlatformiconTile-getColorStyles-StyledPlatformiconTile ewlrg794"
+                className="css-3h9ff5-PlatformIconTile-getColorStyles-StyledPlatformIconTile exv4dm84"
               />
-            </StyledPlatformiconTile>
+            </StyledPlatformIconTile>
             <h3>
               Connect
             </h3>
@@ -1845,7 +1845,7 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
         selected={false}
       >
         <Component
-          className="css-16kw2fg-PlatformCard ewlrg796"
+          className="css-16kw2fg-PlatformCard exv4dm86"
           data-test-id="platform-node-express"
           onClear={[Function]}
           onClick={[Function]}
@@ -1861,17 +1861,17 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
           selected={false}
         >
           <div
-            className="css-16kw2fg-PlatformCard ewlrg796"
+            className="css-16kw2fg-PlatformCard exv4dm86"
             data-test-id="platform-node-express"
             onClick={[Function]}
           >
-            <StyledPlatformiconTile
+            <StyledPlatformIconTile
               platform="node-express"
             >
               <div
-                className="css-1wbn021-PlatformiconTile-getColorStyles-StyledPlatformiconTile ewlrg794"
+                className="css-3h9ff5-PlatformIconTile-getColorStyles-StyledPlatformIconTile exv4dm84"
               />
-            </StyledPlatformiconTile>
+            </StyledPlatformIconTile>
             <h3>
               Express
             </h3>
@@ -1895,7 +1895,7 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
         selected={false}
       >
         <Component
-          className="css-16kw2fg-PlatformCard ewlrg796"
+          className="css-16kw2fg-PlatformCard exv4dm86"
           data-test-id="platform-node-koa"
           onClear={[Function]}
           onClick={[Function]}
@@ -1911,17 +1911,17 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
           selected={false}
         >
           <div
-            className="css-16kw2fg-PlatformCard ewlrg796"
+            className="css-16kw2fg-PlatformCard exv4dm86"
             data-test-id="platform-node-koa"
             onClick={[Function]}
           >
-            <StyledPlatformiconTile
+            <StyledPlatformIconTile
               platform="node-koa"
             >
               <div
-                className="css-1wbn021-PlatformiconTile-getColorStyles-StyledPlatformiconTile ewlrg794"
+                className="css-3h9ff5-PlatformIconTile-getColorStyles-StyledPlatformIconTile exv4dm84"
               />
-            </StyledPlatformiconTile>
+            </StyledPlatformIconTile>
             <h3>
               Koa
             </h3>
@@ -1945,7 +1945,7 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
         selected={false}
       >
         <Component
-          className="css-16kw2fg-PlatformCard ewlrg796"
+          className="css-16kw2fg-PlatformCard exv4dm86"
           data-test-id="platform-node"
           onClear={[Function]}
           onClick={[Function]}
@@ -1961,17 +1961,17 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
           selected={false}
         >
           <div
-            className="css-16kw2fg-PlatformCard ewlrg796"
+            className="css-16kw2fg-PlatformCard exv4dm86"
             data-test-id="platform-node"
             onClick={[Function]}
           >
-            <StyledPlatformiconTile
+            <StyledPlatformIconTile
               platform="node"
             >
               <div
-                className="css-1wbn021-PlatformiconTile-getColorStyles-StyledPlatformiconTile ewlrg794"
+                className="css-3h9ff5-PlatformIconTile-getColorStyles-StyledPlatformIconTile exv4dm84"
               />
-            </StyledPlatformiconTile>
+            </StyledPlatformIconTile>
             <h3>
               Node.js
             </h3>
@@ -1995,7 +1995,7 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
         selected={false}
       >
         <Component
-          className="css-16kw2fg-PlatformCard ewlrg796"
+          className="css-16kw2fg-PlatformCard exv4dm86"
           data-test-id="platform-objc"
           onClear={[Function]}
           onClick={[Function]}
@@ -2011,17 +2011,17 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
           selected={false}
         >
           <div
-            className="css-16kw2fg-PlatformCard ewlrg796"
+            className="css-16kw2fg-PlatformCard exv4dm86"
             data-test-id="platform-objc"
             onClick={[Function]}
           >
-            <StyledPlatformiconTile
+            <StyledPlatformIconTile
               platform="objc"
             >
               <div
-                className="css-1e8vskw-PlatformiconTile-getColorStyles-StyledPlatformiconTile ewlrg794"
+                className="css-fy48hk-PlatformIconTile-getColorStyles-StyledPlatformIconTile exv4dm84"
               />
-            </StyledPlatformiconTile>
+            </StyledPlatformIconTile>
             <h3>
               Objective-C
             </h3>
@@ -2045,7 +2045,7 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
         selected={false}
       >
         <Component
-          className="css-16kw2fg-PlatformCard ewlrg796"
+          className="css-16kw2fg-PlatformCard exv4dm86"
           data-test-id="platform-php-laravel"
           onClear={[Function]}
           onClick={[Function]}
@@ -2061,17 +2061,17 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
           selected={false}
         >
           <div
-            className="css-16kw2fg-PlatformCard ewlrg796"
+            className="css-16kw2fg-PlatformCard exv4dm86"
             data-test-id="platform-php-laravel"
             onClick={[Function]}
           >
-            <StyledPlatformiconTile
+            <StyledPlatformIconTile
               platform="php-laravel"
             >
               <div
-                className="css-jzifau-PlatformiconTile-getColorStyles-StyledPlatformiconTile ewlrg794"
+                className="css-9y1m82-PlatformIconTile-getColorStyles-StyledPlatformIconTile exv4dm84"
               />
-            </StyledPlatformiconTile>
+            </StyledPlatformIconTile>
             <h3>
               Laravel
             </h3>
@@ -2095,7 +2095,7 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
         selected={false}
       >
         <Component
-          className="css-16kw2fg-PlatformCard ewlrg796"
+          className="css-16kw2fg-PlatformCard exv4dm86"
           data-test-id="platform-php-monolog"
           onClear={[Function]}
           onClick={[Function]}
@@ -2111,17 +2111,17 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
           selected={false}
         >
           <div
-            className="css-16kw2fg-PlatformCard ewlrg796"
+            className="css-16kw2fg-PlatformCard exv4dm86"
             data-test-id="platform-php-monolog"
             onClick={[Function]}
           >
-            <StyledPlatformiconTile
+            <StyledPlatformIconTile
               platform="php-monolog"
             >
               <div
-                className="css-f6lc5m-PlatformiconTile-getColorStyles-StyledPlatformiconTile ewlrg794"
+                className="css-6zjiba-PlatformIconTile-getColorStyles-StyledPlatformIconTile exv4dm84"
               />
-            </StyledPlatformiconTile>
+            </StyledPlatformIconTile>
             <h3>
               Monolog
             </h3>
@@ -2145,7 +2145,7 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
         selected={false}
       >
         <Component
-          className="css-16kw2fg-PlatformCard ewlrg796"
+          className="css-16kw2fg-PlatformCard exv4dm86"
           data-test-id="platform-php"
           onClear={[Function]}
           onClick={[Function]}
@@ -2161,17 +2161,17 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
           selected={false}
         >
           <div
-            className="css-16kw2fg-PlatformCard ewlrg796"
+            className="css-16kw2fg-PlatformCard exv4dm86"
             data-test-id="platform-php"
             onClick={[Function]}
           >
-            <StyledPlatformiconTile
+            <StyledPlatformIconTile
               platform="php"
             >
               <div
-                className="css-f6lc5m-PlatformiconTile-getColorStyles-StyledPlatformiconTile ewlrg794"
+                className="css-6zjiba-PlatformIconTile-getColorStyles-StyledPlatformIconTile exv4dm84"
               />
-            </StyledPlatformiconTile>
+            </StyledPlatformIconTile>
             <h3>
               PHP
             </h3>
@@ -2195,7 +2195,7 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
         selected={false}
       >
         <Component
-          className="css-16kw2fg-PlatformCard ewlrg796"
+          className="css-16kw2fg-PlatformCard exv4dm86"
           data-test-id="platform-php-symfony2"
           onClear={[Function]}
           onClick={[Function]}
@@ -2211,17 +2211,17 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
           selected={false}
         >
           <div
-            className="css-16kw2fg-PlatformCard ewlrg796"
+            className="css-16kw2fg-PlatformCard exv4dm86"
             data-test-id="platform-php-symfony2"
             onClick={[Function]}
           >
-            <StyledPlatformiconTile
+            <StyledPlatformIconTile
               platform="php-symfony2"
             >
               <div
-                className="css-f6lc5m-PlatformiconTile-getColorStyles-StyledPlatformiconTile ewlrg794"
+                className="css-6zjiba-PlatformIconTile-getColorStyles-StyledPlatformIconTile exv4dm84"
               />
-            </StyledPlatformiconTile>
+            </StyledPlatformIconTile>
             <h3>
               Symfony2
             </h3>
@@ -2245,7 +2245,7 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
         selected={false}
       >
         <Component
-          className="css-16kw2fg-PlatformCard ewlrg796"
+          className="css-16kw2fg-PlatformCard exv4dm86"
           data-test-id="platform-python-bottle"
           onClear={[Function]}
           onClick={[Function]}
@@ -2261,17 +2261,17 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
           selected={false}
         >
           <div
-            className="css-16kw2fg-PlatformCard ewlrg796"
+            className="css-16kw2fg-PlatformCard exv4dm86"
             data-test-id="platform-python-bottle"
             onClick={[Function]}
           >
-            <StyledPlatformiconTile
+            <StyledPlatformIconTile
               platform="python-bottle"
             >
               <div
-                className="css-jprxon-PlatformiconTile-getColorStyles-StyledPlatformiconTile ewlrg794"
+                className="css-531yyh-PlatformIconTile-getColorStyles-StyledPlatformIconTile exv4dm84"
               />
-            </StyledPlatformiconTile>
+            </StyledPlatformIconTile>
             <h3>
               Bottle
             </h3>
@@ -2295,7 +2295,7 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
         selected={false}
       >
         <Component
-          className="css-16kw2fg-PlatformCard ewlrg796"
+          className="css-16kw2fg-PlatformCard exv4dm86"
           data-test-id="platform-python-celery"
           onClear={[Function]}
           onClick={[Function]}
@@ -2311,17 +2311,17 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
           selected={false}
         >
           <div
-            className="css-16kw2fg-PlatformCard ewlrg796"
+            className="css-16kw2fg-PlatformCard exv4dm86"
             data-test-id="platform-python-celery"
             onClick={[Function]}
           >
-            <StyledPlatformiconTile
+            <StyledPlatformIconTile
               platform="python-celery"
             >
               <div
-                className="css-1vvuenp-PlatformiconTile-getColorStyles-StyledPlatformiconTile ewlrg794"
+                className="css-1490qg9-PlatformIconTile-getColorStyles-StyledPlatformIconTile exv4dm84"
               />
-            </StyledPlatformiconTile>
+            </StyledPlatformIconTile>
             <h3>
               Celery
             </h3>
@@ -2345,7 +2345,7 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
         selected={false}
       >
         <Component
-          className="css-16kw2fg-PlatformCard ewlrg796"
+          className="css-16kw2fg-PlatformCard exv4dm86"
           data-test-id="platform-python-django"
           onClear={[Function]}
           onClick={[Function]}
@@ -2361,17 +2361,17 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
           selected={false}
         >
           <div
-            className="css-16kw2fg-PlatformCard ewlrg796"
+            className="css-16kw2fg-PlatformCard exv4dm86"
             data-test-id="platform-python-django"
             onClick={[Function]}
           >
-            <StyledPlatformiconTile
+            <StyledPlatformIconTile
               platform="python-django"
             >
               <div
-                className="css-13uplim-PlatformiconTile-getColorStyles-StyledPlatformiconTile ewlrg794"
+                className="css-e97qg6-PlatformIconTile-getColorStyles-StyledPlatformIconTile exv4dm84"
               />
-            </StyledPlatformiconTile>
+            </StyledPlatformIconTile>
             <h3>
               Django
             </h3>
@@ -2395,7 +2395,7 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
         selected={false}
       >
         <Component
-          className="css-16kw2fg-PlatformCard ewlrg796"
+          className="css-16kw2fg-PlatformCard exv4dm86"
           data-test-id="platform-python-flask"
           onClear={[Function]}
           onClick={[Function]}
@@ -2411,17 +2411,17 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
           selected={false}
         >
           <div
-            className="css-16kw2fg-PlatformCard ewlrg796"
+            className="css-16kw2fg-PlatformCard exv4dm86"
             data-test-id="platform-python-flask"
             onClick={[Function]}
           >
-            <StyledPlatformiconTile
+            <StyledPlatformIconTile
               platform="python-flask"
             >
               <div
-                className="css-1lbt1li-PlatformiconTile-getColorStyles-StyledPlatformiconTile ewlrg794"
+                className="css-kiuran-PlatformIconTile-getColorStyles-StyledPlatformIconTile exv4dm84"
               />
-            </StyledPlatformiconTile>
+            </StyledPlatformIconTile>
             <h3>
               Flask
             </h3>
@@ -2445,7 +2445,7 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
         selected={false}
       >
         <Component
-          className="css-16kw2fg-PlatformCard ewlrg796"
+          className="css-16kw2fg-PlatformCard exv4dm86"
           data-test-id="platform-python-pylons"
           onClear={[Function]}
           onClick={[Function]}
@@ -2461,17 +2461,17 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
           selected={false}
         >
           <div
-            className="css-16kw2fg-PlatformCard ewlrg796"
+            className="css-16kw2fg-PlatformCard exv4dm86"
             data-test-id="platform-python-pylons"
             onClick={[Function]}
           >
-            <StyledPlatformiconTile
+            <StyledPlatformIconTile
               platform="python-pylons"
             >
               <div
-                className="css-1vvuenp-PlatformiconTile-getColorStyles-StyledPlatformiconTile ewlrg794"
+                className="css-1490qg9-PlatformIconTile-getColorStyles-StyledPlatformIconTile exv4dm84"
               />
-            </StyledPlatformiconTile>
+            </StyledPlatformIconTile>
             <h3>
               Pylons
             </h3>
@@ -2495,7 +2495,7 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
         selected={false}
       >
         <Component
-          className="css-16kw2fg-PlatformCard ewlrg796"
+          className="css-16kw2fg-PlatformCard exv4dm86"
           data-test-id="platform-python-pyramid"
           onClear={[Function]}
           onClick={[Function]}
@@ -2511,17 +2511,17 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
           selected={false}
         >
           <div
-            className="css-16kw2fg-PlatformCard ewlrg796"
+            className="css-16kw2fg-PlatformCard exv4dm86"
             data-test-id="platform-python-pyramid"
             onClick={[Function]}
           >
-            <StyledPlatformiconTile
+            <StyledPlatformIconTile
               platform="python-pyramid"
             >
               <div
-                className="css-1vvuenp-PlatformiconTile-getColorStyles-StyledPlatformiconTile ewlrg794"
+                className="css-1490qg9-PlatformIconTile-getColorStyles-StyledPlatformIconTile exv4dm84"
               />
-            </StyledPlatformiconTile>
+            </StyledPlatformIconTile>
             <h3>
               Pyramid
             </h3>
@@ -2545,7 +2545,7 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
         selected={false}
       >
         <Component
-          className="css-16kw2fg-PlatformCard ewlrg796"
+          className="css-16kw2fg-PlatformCard exv4dm86"
           data-test-id="platform-python"
           onClear={[Function]}
           onClick={[Function]}
@@ -2561,17 +2561,17 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
           selected={false}
         >
           <div
-            className="css-16kw2fg-PlatformCard ewlrg796"
+            className="css-16kw2fg-PlatformCard exv4dm86"
             data-test-id="platform-python"
             onClick={[Function]}
           >
-            <StyledPlatformiconTile
+            <StyledPlatformIconTile
               platform="python"
             >
               <div
-                className="css-1vvuenp-PlatformiconTile-getColorStyles-StyledPlatformiconTile ewlrg794"
+                className="css-1490qg9-PlatformIconTile-getColorStyles-StyledPlatformIconTile exv4dm84"
               />
-            </StyledPlatformiconTile>
+            </StyledPlatformIconTile>
             <h3>
               Python
             </h3>
@@ -2595,7 +2595,7 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
         selected={false}
       >
         <Component
-          className="css-16kw2fg-PlatformCard ewlrg796"
+          className="css-16kw2fg-PlatformCard exv4dm86"
           data-test-id="platform-python-rq"
           onClear={[Function]}
           onClick={[Function]}
@@ -2611,17 +2611,17 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
           selected={false}
         >
           <div
-            className="css-16kw2fg-PlatformCard ewlrg796"
+            className="css-16kw2fg-PlatformCard exv4dm86"
             data-test-id="platform-python-rq"
             onClick={[Function]}
           >
-            <StyledPlatformiconTile
+            <StyledPlatformIconTile
               platform="python-rq"
             >
               <div
-                className="css-1vvuenp-PlatformiconTile-getColorStyles-StyledPlatformiconTile ewlrg794"
+                className="css-1490qg9-PlatformIconTile-getColorStyles-StyledPlatformIconTile exv4dm84"
               />
-            </StyledPlatformiconTile>
+            </StyledPlatformIconTile>
             <h3>
               RQ
             </h3>
@@ -2645,7 +2645,7 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
         selected={false}
       >
         <Component
-          className="css-16kw2fg-PlatformCard ewlrg796"
+          className="css-16kw2fg-PlatformCard exv4dm86"
           data-test-id="platform-python-tornado"
           onClear={[Function]}
           onClick={[Function]}
@@ -2661,17 +2661,17 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
           selected={false}
         >
           <div
-            className="css-16kw2fg-PlatformCard ewlrg796"
+            className="css-16kw2fg-PlatformCard exv4dm86"
             data-test-id="platform-python-tornado"
             onClick={[Function]}
           >
-            <StyledPlatformiconTile
+            <StyledPlatformIconTile
               platform="python-tornado"
             >
               <div
-                className="css-1vvuenp-PlatformiconTile-getColorStyles-StyledPlatformiconTile ewlrg794"
+                className="css-1490qg9-PlatformIconTile-getColorStyles-StyledPlatformIconTile exv4dm84"
               />
-            </StyledPlatformiconTile>
+            </StyledPlatformIconTile>
             <h3>
               Tornado
             </h3>
@@ -2695,7 +2695,7 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
         selected={false}
       >
         <Component
-          className="css-16kw2fg-PlatformCard ewlrg796"
+          className="css-16kw2fg-PlatformCard exv4dm86"
           data-test-id="platform-cocoa"
           onClear={[Function]}
           onClick={[Function]}
@@ -2711,17 +2711,17 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
           selected={false}
         >
           <div
-            className="css-16kw2fg-PlatformCard ewlrg796"
+            className="css-16kw2fg-PlatformCard exv4dm86"
             data-test-id="platform-cocoa"
             onClick={[Function]}
           >
-            <StyledPlatformiconTile
+            <StyledPlatformIconTile
               platform="cocoa"
             >
               <div
-                className="css-yhb6wb-PlatformiconTile-getColorStyles-StyledPlatformiconTile ewlrg794"
+                className="css-a5gfdj-PlatformIconTile-getColorStyles-StyledPlatformIconTile exv4dm84"
               />
-            </StyledPlatformiconTile>
+            </StyledPlatformIconTile>
             <h3>
               React-Native
             </h3>
@@ -2745,7 +2745,7 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
         selected={false}
       >
         <Component
-          className="css-16kw2fg-PlatformCard ewlrg796"
+          className="css-16kw2fg-PlatformCard exv4dm86"
           data-test-id="platform-ruby-rack"
           onClear={[Function]}
           onClick={[Function]}
@@ -2761,17 +2761,17 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
           selected={false}
         >
           <div
-            className="css-16kw2fg-PlatformCard ewlrg796"
+            className="css-16kw2fg-PlatformCard exv4dm86"
             data-test-id="platform-ruby-rack"
             onClick={[Function]}
           >
-            <StyledPlatformiconTile
+            <StyledPlatformIconTile
               platform="ruby-rack"
             >
               <div
-                className="css-ze44n6-PlatformiconTile-getColorStyles-StyledPlatformiconTile ewlrg794"
+                className="css-1cyior6-PlatformIconTile-getColorStyles-StyledPlatformIconTile exv4dm84"
               />
-            </StyledPlatformiconTile>
+            </StyledPlatformIconTile>
             <h3>
               Rack
             </h3>
@@ -2795,7 +2795,7 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
         selected={false}
       >
         <Component
-          className="css-16kw2fg-PlatformCard ewlrg796"
+          className="css-16kw2fg-PlatformCard exv4dm86"
           data-test-id="platform-ruby-rails"
           onClear={[Function]}
           onClick={[Function]}
@@ -2811,17 +2811,17 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
           selected={false}
         >
           <div
-            className="css-16kw2fg-PlatformCard ewlrg796"
+            className="css-16kw2fg-PlatformCard exv4dm86"
             data-test-id="platform-ruby-rails"
             onClick={[Function]}
           >
-            <StyledPlatformiconTile
+            <StyledPlatformIconTile
               platform="ruby-rails"
             >
               <div
-                className="css-15nw1ir-PlatformiconTile-getColorStyles-StyledPlatformiconTile ewlrg794"
+                className="css-tecggu-PlatformIconTile-getColorStyles-StyledPlatformIconTile exv4dm84"
               />
-            </StyledPlatformiconTile>
+            </StyledPlatformIconTile>
             <h3>
               Rails
             </h3>
@@ -2845,7 +2845,7 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
         selected={false}
       >
         <Component
-          className="css-16kw2fg-PlatformCard ewlrg796"
+          className="css-16kw2fg-PlatformCard exv4dm86"
           data-test-id="platform-ruby"
           onClear={[Function]}
           onClick={[Function]}
@@ -2861,17 +2861,17 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
           selected={false}
         >
           <div
-            className="css-16kw2fg-PlatformCard ewlrg796"
+            className="css-16kw2fg-PlatformCard exv4dm86"
             data-test-id="platform-ruby"
             onClick={[Function]}
           >
-            <StyledPlatformiconTile
+            <StyledPlatformIconTile
               platform="ruby"
             >
               <div
-                className="css-ze44n6-PlatformiconTile-getColorStyles-StyledPlatformiconTile ewlrg794"
+                className="css-1cyior6-PlatformIconTile-getColorStyles-StyledPlatformIconTile exv4dm84"
               />
-            </StyledPlatformiconTile>
+            </StyledPlatformIconTile>
             <h3>
               Ruby
             </h3>
@@ -2895,7 +2895,7 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
         selected={false}
       >
         <Component
-          className="css-16kw2fg-PlatformCard ewlrg796"
+          className="css-16kw2fg-PlatformCard exv4dm86"
           data-test-id="platform-rust"
           onClear={[Function]}
           onClick={[Function]}
@@ -2911,17 +2911,17 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
           selected={false}
         >
           <div
-            className="css-16kw2fg-PlatformCard ewlrg796"
+            className="css-16kw2fg-PlatformCard exv4dm86"
             data-test-id="platform-rust"
             onClick={[Function]}
           >
-            <StyledPlatformiconTile
+            <StyledPlatformIconTile
               platform="rust"
             >
               <div
-                className="css-yhb6wb-PlatformiconTile-getColorStyles-StyledPlatformiconTile ewlrg794"
+                className="css-a5gfdj-PlatformIconTile-getColorStyles-StyledPlatformIconTile exv4dm84"
               />
-            </StyledPlatformiconTile>
+            </StyledPlatformIconTile>
             <h3>
               Rust
             </h3>
@@ -2945,7 +2945,7 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
         selected={false}
       >
         <Component
-          className="css-16kw2fg-PlatformCard ewlrg796"
+          className="css-16kw2fg-PlatformCard exv4dm86"
           data-test-id="platform-swift"
           onClear={[Function]}
           onClick={[Function]}
@@ -2961,17 +2961,17 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
           selected={false}
         >
           <div
-            className="css-16kw2fg-PlatformCard ewlrg796"
+            className="css-16kw2fg-PlatformCard exv4dm86"
             data-test-id="platform-swift"
             onClick={[Function]}
           >
-            <StyledPlatformiconTile
+            <StyledPlatformIconTile
               platform="swift"
             >
               <div
-                className="css-1e8vskw-PlatformiconTile-getColorStyles-StyledPlatformiconTile ewlrg794"
+                className="css-fy48hk-PlatformIconTile-getColorStyles-StyledPlatformIconTile exv4dm84"
               />
-            </StyledPlatformiconTile>
+            </StyledPlatformIconTile>
             <h3>
               Swift
             </h3>
@@ -2995,7 +2995,7 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
         selected={false}
       >
         <Component
-          className="css-16kw2fg-PlatformCard ewlrg796"
+          className="css-16kw2fg-PlatformCard exv4dm86"
           data-test-id="platform-mock"
           onClear={[Function]}
           onClick={[Function]}
@@ -3011,17 +3011,17 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
           selected={false}
         >
           <div
-            className="css-16kw2fg-PlatformCard ewlrg796"
+            className="css-16kw2fg-PlatformCard exv4dm86"
             data-test-id="platform-mock"
             onClick={[Function]}
           >
-            <StyledPlatformiconTile
+            <StyledPlatformIconTile
               platform="mock"
             >
               <div
-                className="css-yhb6wb-PlatformiconTile-getColorStyles-StyledPlatformiconTile ewlrg794"
+                className="css-a5gfdj-PlatformIconTile-getColorStyles-StyledPlatformIconTile exv4dm84"
               />
-            </StyledPlatformiconTile>
+            </StyledPlatformIconTile>
             <h3>
               Mock Integration
             </h3>
@@ -3045,7 +3045,7 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
         selected={false}
       >
         <Component
-          className="css-16kw2fg-PlatformCard ewlrg796"
+          className="css-16kw2fg-PlatformCard exv4dm86"
           data-test-id="platform-other"
           onClear={[Function]}
           onClick={[Function]}
@@ -3061,17 +3061,17 @@ exports[`PlatformPicker render() should update State.tab onClick when particular
           selected={false}
         >
           <div
-            className="css-16kw2fg-PlatformCard ewlrg796"
+            className="css-16kw2fg-PlatformCard exv4dm86"
             data-test-id="platform-other"
             onClick={[Function]}
           >
-            <StyledPlatformiconTile
+            <StyledPlatformIconTile
               platform="other"
             >
               <div
-                className="css-yhb6wb-PlatformiconTile-getColorStyles-StyledPlatformiconTile ewlrg794"
+                className="css-a5gfdj-PlatformIconTile-getColorStyles-StyledPlatformIconTile exv4dm84"
               />
-            </StyledPlatformiconTile>
+            </StyledPlatformIconTile>
             <h3>
               Other
             </h3>

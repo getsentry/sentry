@@ -4,7 +4,6 @@ import React from 'react';
 import * as Sentry from '@sentry/browser';
 import styled from 'react-emotion';
 
-import {getPlatformName} from 'app/views/onboarding/utils';
 import {inputStyles} from 'app/styles/input';
 import {openCreateTeamModal} from 'app/actionCreators/modal';
 import {t} from 'app/locale';
@@ -12,12 +11,13 @@ import Alert from 'app/components/alert';
 import Button from 'app/components/button';
 import HookStore from 'app/stores/hookStore';
 import PageHeading from 'app/components/pageHeading';
-import PlatformPicker from 'app/views/onboarding/project/platformpicker';
-import PlatformiconTile from 'app/views/onboarding/project/platformiconTile';
+import PlatformIconTile from 'app/components/platformIconTile';
+import PlatformPicker from 'app/components/platformPicker';
 import ProjectActions from 'app/actions/projectActions';
 import SelectControl from 'app/components/forms/selectControl';
 import SentryTypes from 'app/sentryTypes';
 import Tooltip from 'app/components/tooltip';
+import getPlatformName from 'app/utils/getPlatformName';
 import space from 'app/styles/space';
 import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
@@ -152,7 +152,7 @@ class CreateProject extends React.Component {
             <div>
               <FormLabel>{t('Give your project a name')}</FormLabel>
               <ProjectNameInput>
-                <ProjectPlatformicon monoTone platform={platform} />
+                <ProjectPlatformIcon monoTone platform={platform} />
                 <input
                   type="text"
                   name="name"
@@ -230,7 +230,7 @@ const FormLabel = styled('div')`
   margin-bottom: ${space(1)};
 `;
 
-const ProjectPlatformicon = styled(PlatformiconTile)`
+const ProjectPlatformIcon = styled(PlatformIconTile)`
   font-size: 25px;
 `;
 

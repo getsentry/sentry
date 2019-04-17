@@ -10,7 +10,7 @@ import ProjectContext from 'app/views/projects/projectContext';
 import ProjectDocsContext from 'app/views/projectInstall/docsContext';
 import ProjectInstallPlatform from 'app/views/projectInstall/platform';
 import SentryTypes from 'app/sentryTypes';
-import Waiting from 'app/views/onboarding/configure/waiting';
+import Waiting from 'app/views/onboarding/waiting';
 import {t} from 'app/locale';
 
 const Configure = createReactClass({

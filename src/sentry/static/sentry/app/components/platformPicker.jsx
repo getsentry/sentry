@@ -5,7 +5,6 @@ import keydown from 'react-keydown';
 import styled from 'react-emotion';
 
 import {analytics} from 'app/utils/analytics';
-import {flattenedPlatforms, categoryList} from 'app/views/onboarding/utils';
 import {inputStyles} from 'app/styles/input';
 import {t, tct} from 'app/locale';
 import Button from 'app/components/button';
@@ -14,7 +13,9 @@ import ExternalLink from 'app/components/externalLink';
 import InlineSvg from 'app/components/inlineSvg';
 import ListLink from 'app/components/listLink';
 import NavTabs from 'app/components/navTabs';
-import PlatformiconTile from 'app/views/onboarding/project/platformiconTile';
+import PlatformIconTile from 'app/components/platformIconTile';
+import categoryList from 'app/data/platformCategories';
+import platforms from 'app/data/platforms';
 import space from 'app/styles/space';
 
 const PLATFORM_CATEGORIES = categoryList.concat({id: 'all', name: t('All')});
@@ -46,9 +47,7 @@ class PlatformPicker extends React.Component {
     const categoryMatch = platform =>
       category === 'all' || currentCategory.platforms.includes(platform.id);
 
-    const filtered = flattenedPlatforms.filter(
-      this.state.filter ? subsetMatch : categoryMatch
-    );
+    const filtered = platforms.filter(this.state.filter ? subsetMatch : categoryMatch);
 
     return this.props.showOther ? filtered : filtered.filter(({id}) => id !== 'other');
   }
@@ -189,7 +188,7 @@ const PlatformList = styled('div')`
   grid-template-columns: repeat(auto-fill, 112px);
 `;
 
-const StyledPlatformiconTile = styled(PlatformiconTile)`
+const StyledPlatformIconTile = styled(PlatformIconTile)`
   width: 56px;
   height: 56px;
   font-size: 42px;
@@ -214,7 +213,7 @@ const ClearButton = styled(p => (
 
 const PlatformCard = styled(({platform, selected, onClear, ...props}) => (
   <div {...props}>
-    <StyledPlatformiconTile platform={platform.id} />
+    <StyledPlatformIconTile platform={platform.id} />
     <h3>{platform.name}</h3>
     {selected && <ClearButton onClick={onClear} />}
   </div>

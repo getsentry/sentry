@@ -3,10 +3,10 @@ import React from 'react';
 import styled from 'react-emotion';
 
 import {extractMultilineFields} from 'app/utils';
-import {flattenedPlatforms} from 'app/views/onboarding/utils';
 import {t, tct, tn} from 'app/locale';
-import Platformicon from 'app/components/platformicon';
+import PlatformIcon from 'app/components/platformIcon';
 import getDynamicText from 'app/utils/getDynamicText';
+import platforms from 'app/data/platforms';
 import slugify from 'app/utils/slugify';
 import space from 'app/styles/space';
 
@@ -62,10 +62,10 @@ export const fields = {
     type: 'array',
     label: t('Platform'),
     choices: () =>
-      flattenedPlatforms.map(({id, name}) => [
+      platforms.map(({id, name}) => [
         id,
         <PlatformWrapper key={id}>
-          <StyledPlatformicon platform={id} size="20" />
+          <StyledPlatformIcon platform={id} size="20" />
           {name}
         </PlatformWrapper>,
       ]),
@@ -280,7 +280,7 @@ export const fields = {
 const PlatformWrapper = styled(Flex)`
   align-items: center;
 `;
-const StyledPlatformicon = styled(Platformicon)`
+const StyledPlatformIcon = styled(PlatformIcon)`
   border-radius: 3px;
   margin-right: ${space(1)};
 `;
