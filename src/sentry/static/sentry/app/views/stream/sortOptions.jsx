@@ -1,7 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
-import DropdownButton from 'app/components/dropdownButton';
 import DropdownControl from 'app/components/dropdownControl';
 import MenuItem from 'app/components/menuItem';
 import {t} from 'app/locale';
@@ -63,12 +62,12 @@ class SortOptions extends React.PureComponent {
     return (
       <Container>
         <DropdownControl
-          label={(
+          label={
             <React.Fragment>
               <LabelText>{t('Sort by')}: &nbsp; </LabelText>
               {this.getSortLabel(this.state.sortKey)}
             </React.Fragment>
-          )}
+          }
         >
           {this.getMenuItem('priority')}
           {this.getMenuItem('date')}
@@ -81,7 +80,6 @@ class SortOptions extends React.PureComponent {
 }
 
 const Container = styled.div`
-  position: relative;
   margin-right: ${space(0.5)};
 `;
 

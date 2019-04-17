@@ -47,28 +47,36 @@ class DropdownControl extends React.Component {
   }
 
   render() {
-    const {children, alwaysRenderMenu, menuWidth} = this.props;
+    const {children, alwaysRenderMenu, menuOffset, menuWidth} = this.props;
 
     return (
-      <DropdownMenu alwaysRenderMenu={alwaysRenderMenu}>
-        {({isOpen, getMenuProps, getActorProps}) => {
-          return (
-            <React.Fragment>
-              {this.renderButton(isOpen, getActorProps)}
-              <MenuContainer
-                {...getMenuProps({isStyled: true})}
-                menuWidth={menuWidth}
-                isOpen={isOpen}
-              >
-                {children}
-              </MenuContainer>
-            </React.Fragment>
-          );
-        }}
-      </DropdownMenu>
+      <Container>
+        <DropdownMenu alwaysRenderMenu={alwaysRenderMenu}>
+          {({isOpen, getMenuProps, getActorProps}) => {
+            return (
+              <React.Fragment>
+                {this.renderButton(isOpen, getActorProps)}
+                <MenuContainer
+                  {...getMenuProps({isStyled: true})}
+                  menuWidth={menuWidth}
+                  menuOffset={menuOffset}
+                  isOpen={isOpen}
+                >
+                  {children}
+                </MenuContainer>
+              </React.Fragment>
+            );
+          }}
+        </DropdownMenu>
+      </Container>
     );
   }
 }
+
+const Container = styled.div`
+  display: inline-block;
+  position: relative;
+`;
 
 const StyledDropdownButton = styled(
   React.forwardRef((prop, ref) => <DropdownButton innerRef={ref} {...prop} />)
@@ -83,7 +91,7 @@ const MenuContainer = styled.ul`
   width: ${p => p.menuWidth};
 
   position: absolute;
-  top ${p => p.menuOffset};
+  top: ${p => p.menuOffset};
   padding: 0 0 ${space(0.5)} 0;
   margin: 0;
   z-index: ${p => p.theme.zIndex.dropdownAutocomplete.menu};
