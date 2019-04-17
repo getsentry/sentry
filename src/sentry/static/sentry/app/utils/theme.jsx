@@ -63,6 +63,7 @@ const theme = {
   borderDark: '#D1CAD8',
   borderRadius: '4px',
   headerSelectorRowHeight: 44,
+  headerSelectorLabelHeight: 28,
 
   dropShadowLight: '0 2px 0 rgba(37, 11, 54, 0.04)',
   dropShadowHeavy: '0 1px 4px 1px rgba(47,40,55,0.08), 0 4px 16px 0 rgba(47,40,55,0.12)',

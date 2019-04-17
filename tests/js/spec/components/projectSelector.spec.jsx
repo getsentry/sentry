@@ -280,4 +280,28 @@ describe('ProjectSelector', function() {
       )
     ).toEqual(['test-project']);
   });
+
+  it('displays multi projects', function() {
+    const project = TestStubs.Project();
+    const multiProjectProps = {...props, multiProjects: [project]};
+
+    const wrapper = mount(<ProjectSelector {...multiProjectProps} />, routerContext);
+    openMenu(wrapper);
+    expect(wrapper.find('AutoCompleteItem')).toHaveLength(1);
+  });
+
+  it('displays multi projects with non member projects', function() {
+    const project = TestStubs.Project({id: '1'});
+    const nonMemberProject = TestStubs.Project({id: '2'});
+    const multiProjectProps = {
+      ...props,
+      multiProjects: [project],
+      nonMemberProjects: [nonMemberProject],
+    };
+
+    const wrapper = mount(<ProjectSelector {...multiProjectProps} />, routerContext);
+    openMenu(wrapper);
+    expect(wrapper).toMatchSnapshot();
+    expect(wrapper.find('AutoCompleteItem')).toHaveLength(2);
+  });
 });
