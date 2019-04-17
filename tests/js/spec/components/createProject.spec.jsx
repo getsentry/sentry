@@ -1,7 +1,7 @@
 import React from 'react';
 import {shallow, mount} from 'enzyme';
 
-import {CreateProject} from 'app/views/onboarding/createProject';
+import {CreateProject} from 'app/components/createProject';
 import {openCreateTeamModal} from 'app/actionCreators/modal';
 
 jest.mock('app/actionCreators/modal');

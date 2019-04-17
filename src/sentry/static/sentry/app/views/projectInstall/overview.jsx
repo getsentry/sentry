@@ -5,7 +5,7 @@ import React from 'react';
 import SentryTypes from 'app/sentryTypes';
 import {t, tct} from 'app/locale';
 import AutoSelectText from 'app/components/autoSelectText';
-import PlatformPicker from 'app/views/onboarding/project/platformpicker';
+import PlatformPicker from 'app/components/platformPicker';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import TextBlock from 'app/views/settings/components/text/textBlock';
 import recreateRoute from 'app/utils/recreateRoute';

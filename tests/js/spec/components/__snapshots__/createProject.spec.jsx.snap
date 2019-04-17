@@ -28,7 +28,7 @@ exports[`CreateProject should block if you have access to no teams 1`] = `
           Give your project a name
         </FormLabel>
         <ProjectNameInput>
-          <ProjectPlatformicon
+          <ProjectPlatformIcon
             monoTone={true}
             platform=""
           />
@@ -149,7 +149,7 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
     </PageHeading>
     <HelpText>
       <p
-        className="css-15uvbvk-HelpText eovdm175"
+        className="css-15uvbvk-HelpText e2gtsme5"
       >
         Projects allow you to scope events to a specific application in
                your organization. For example, you might have separate projects
@@ -163,14 +163,14 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
     >
       <NavContainer>
         <div
-          className="css-xl0stt-NavContainer ewlrg790"
+          className="css-xl0stt-NavContainer exv4dm80"
         >
           <CategoryNav>
             <NavTabs
-              className="css-5tazcq-CategoryNav ewlrg792"
+              className="css-5tazcq-CategoryNav exv4dm82"
             >
               <ul
-                className="nav nav-tabs css-5tazcq-CategoryNav ewlrg792"
+                className="nav nav-tabs css-5tazcq-CategoryNav exv4dm82"
               >
                 <ListLink
                   activeClassName="active"
@@ -333,7 +333,7 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
           </CategoryNav>
           <SearchBar>
             <div
-              className="css-otjzwm-SearchBar-inputStyles ewlrg791"
+              className="css-otjzwm-SearchBar-inputStyles exv4dm81"
             >
               <InlineSvg
                 src="icon-search"
@@ -369,7 +369,7 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
       </NavContainer>
       <PlatformList>
         <div
-          className="css-545rh6-PlatformList ewlrg793"
+          className="css-545rh6-PlatformList exv4dm83"
         >
           <PlatformCard
             data-test-id="platform-csharp"
@@ -388,7 +388,7 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
             selected={false}
           >
             <Component
-              className="css-16kw2fg-PlatformCard ewlrg796"
+              className="css-16kw2fg-PlatformCard exv4dm86"
               data-test-id="platform-csharp"
               onClear={[Function]}
               onClick={[Function]}
@@ -404,19 +404,69 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
               selected={false}
             >
               <div
-                className="css-16kw2fg-PlatformCard ewlrg796"
+                className="css-16kw2fg-PlatformCard exv4dm86"
                 data-test-id="platform-csharp"
                 onClick={[Function]}
               >
-                <StyledPlatformiconTile
+                <StyledPlatformIconTile
                   platform="csharp"
                 >
                   <div
-                    className="css-tzg8rc-PlatformiconTile-getColorStyles-StyledPlatformiconTile ewlrg794"
+                    className="css-i59jyf-PlatformIconTile-getColorStyles-StyledPlatformIconTile exv4dm84"
                   />
-                </StyledPlatformiconTile>
+                </StyledPlatformIconTile>
                 <h3>
                   C#
+                </h3>
+              </div>
+            </Component>
+          </PlatformCard>
+          <PlatformCard
+            data-test-id="platform-elixir"
+            key="elixir"
+            onClear={[Function]}
+            onClick={[Function]}
+            platform={
+              Object {
+                "id": "elixir",
+                "language": "elixir",
+                "link": "https://docs.getsentry.com/hosted/clients/elixir/",
+                "name": "Elixir",
+                "type": "language",
+              }
+            }
+            selected={false}
+          >
+            <Component
+              className="css-16kw2fg-PlatformCard exv4dm86"
+              data-test-id="platform-elixir"
+              onClear={[Function]}
+              onClick={[Function]}
+              platform={
+                Object {
+                  "id": "elixir",
+                  "language": "elixir",
+                  "link": "https://docs.getsentry.com/hosted/clients/elixir/",
+                  "name": "Elixir",
+                  "type": "language",
+                }
+              }
+              selected={false}
+            >
+              <div
+                className="css-16kw2fg-PlatformCard exv4dm86"
+                data-test-id="platform-elixir"
+                onClick={[Function]}
+              >
+                <StyledPlatformIconTile
+                  platform="elixir"
+                >
+                  <div
+                    className="css-kjytvr-PlatformIconTile-getColorStyles-StyledPlatformIconTile exv4dm84"
+                  />
+                </StyledPlatformIconTile>
+                <h3>
+                  Elixir
                 </h3>
               </div>
             </Component>
@@ -438,7 +488,7 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
             selected={false}
           >
             <Component
-              className="css-16kw2fg-PlatformCard ewlrg796"
+              className="css-16kw2fg-PlatformCard exv4dm86"
               data-test-id="platform-java"
               onClear={[Function]}
               onClick={[Function]}
@@ -454,17 +504,17 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
               selected={false}
             >
               <div
-                className="css-16kw2fg-PlatformCard ewlrg796"
+                className="css-16kw2fg-PlatformCard exv4dm86"
                 data-test-id="platform-java"
                 onClick={[Function]}
               >
-                <StyledPlatformiconTile
+                <StyledPlatformIconTile
                   platform="java"
                 >
                   <div
-                    className="css-lc48x8-PlatformiconTile-getColorStyles-StyledPlatformiconTile ewlrg794"
+                    className="css-119q83u-PlatformIconTile-getColorStyles-StyledPlatformIconTile exv4dm84"
                   />
-                </StyledPlatformiconTile>
+                </StyledPlatformIconTile>
                 <h3>
                   Java
                 </h3>
@@ -488,7 +538,7 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
             selected={false}
           >
             <Component
-              className="css-16kw2fg-PlatformCard ewlrg796"
+              className="css-16kw2fg-PlatformCard exv4dm86"
               data-test-id="platform-javascript-angular"
               onClear={[Function]}
               onClick={[Function]}
@@ -504,17 +554,17 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
               selected={false}
             >
               <div
-                className="css-16kw2fg-PlatformCard ewlrg796"
+                className="css-16kw2fg-PlatformCard exv4dm86"
                 data-test-id="platform-javascript-angular"
                 onClick={[Function]}
               >
-                <StyledPlatformiconTile
+                <StyledPlatformIconTile
                   platform="javascript-angular"
                 >
                   <div
-                    className="css-b15x81-PlatformiconTile-getColorStyles-StyledPlatformiconTile ewlrg794"
+                    className="css-impgxj-PlatformIconTile-getColorStyles-StyledPlatformIconTile exv4dm84"
                   />
-                </StyledPlatformiconTile>
+                </StyledPlatformIconTile>
                 <h3>
                   Angular
                 </h3>
@@ -538,7 +588,7 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
             selected={false}
           >
             <Component
-              className="css-16kw2fg-PlatformCard ewlrg796"
+              className="css-16kw2fg-PlatformCard exv4dm86"
               data-test-id="platform-javascript"
               onClear={[Function]}
               onClick={[Function]}
@@ -554,17 +604,17 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
               selected={false}
             >
               <div
-                className="css-16kw2fg-PlatformCard ewlrg796"
+                className="css-16kw2fg-PlatformCard exv4dm86"
                 data-test-id="platform-javascript"
                 onClick={[Function]}
               >
-                <StyledPlatformiconTile
+                <StyledPlatformIconTile
                   platform="javascript"
                 >
                   <div
-                    className="css-105qz5e-PlatformiconTile-getColorStyles-StyledPlatformiconTile ewlrg794"
+                    className="css-10lppcv-PlatformIconTile-getColorStyles-StyledPlatformIconTile exv4dm84"
                   />
-                </StyledPlatformiconTile>
+                </StyledPlatformIconTile>
                 <h3>
                   JavaScript
                 </h3>
@@ -588,7 +638,7 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
             selected={false}
           >
             <Component
-              className="css-16kw2fg-PlatformCard ewlrg796"
+              className="css-16kw2fg-PlatformCard exv4dm86"
               data-test-id="platform-javascript-react"
               onClear={[Function]}
               onClick={[Function]}
@@ -604,17 +654,17 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
               selected={false}
             >
               <div
-                className="css-16kw2fg-PlatformCard ewlrg796"
+                className="css-16kw2fg-PlatformCard exv4dm86"
                 data-test-id="platform-javascript-react"
                 onClick={[Function]}
               >
-                <StyledPlatformiconTile
+                <StyledPlatformIconTile
                   platform="javascript-react"
                 >
                   <div
-                    className="css-fosd7h-PlatformiconTile-getColorStyles-StyledPlatformiconTile ewlrg794"
+                    className="css-1a99nd3-PlatformIconTile-getColorStyles-StyledPlatformIconTile exv4dm84"
                   />
-                </StyledPlatformiconTile>
+                </StyledPlatformIconTile>
                 <h3>
                   React
                 </h3>
@@ -638,7 +688,7 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
             selected={false}
           >
             <Component
-              className="css-16kw2fg-PlatformCard ewlrg796"
+              className="css-16kw2fg-PlatformCard exv4dm86"
               data-test-id="platform-node-express"
               onClear={[Function]}
               onClick={[Function]}
@@ -654,17 +704,17 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
               selected={false}
             >
               <div
-                className="css-16kw2fg-PlatformCard ewlrg796"
+                className="css-16kw2fg-PlatformCard exv4dm86"
                 data-test-id="platform-node-express"
                 onClick={[Function]}
               >
-                <StyledPlatformiconTile
+                <StyledPlatformIconTile
                   platform="node-express"
                 >
                   <div
-                    className="css-1wbn021-PlatformiconTile-getColorStyles-StyledPlatformiconTile ewlrg794"
+                    className="css-3h9ff5-PlatformIconTile-getColorStyles-StyledPlatformIconTile exv4dm84"
                   />
-                </StyledPlatformiconTile>
+                </StyledPlatformIconTile>
                 <h3>
                   Express
                 </h3>
@@ -688,7 +738,7 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
             selected={false}
           >
             <Component
-              className="css-16kw2fg-PlatformCard ewlrg796"
+              className="css-16kw2fg-PlatformCard exv4dm86"
               data-test-id="platform-node"
               onClear={[Function]}
               onClick={[Function]}
@@ -704,17 +754,17 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
               selected={false}
             >
               <div
-                className="css-16kw2fg-PlatformCard ewlrg796"
+                className="css-16kw2fg-PlatformCard exv4dm86"
                 data-test-id="platform-node"
                 onClick={[Function]}
               >
-                <StyledPlatformiconTile
+                <StyledPlatformIconTile
                   platform="node"
                 >
                   <div
-                    className="css-1wbn021-PlatformiconTile-getColorStyles-StyledPlatformiconTile ewlrg794"
+                    className="css-3h9ff5-PlatformIconTile-getColorStyles-StyledPlatformIconTile exv4dm84"
                   />
-                </StyledPlatformiconTile>
+                </StyledPlatformIconTile>
                 <h3>
                   Node.js
                 </h3>
@@ -738,7 +788,7 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
             selected={false}
           >
             <Component
-              className="css-16kw2fg-PlatformCard ewlrg796"
+              className="css-16kw2fg-PlatformCard exv4dm86"
               data-test-id="platform-php-laravel"
               onClear={[Function]}
               onClick={[Function]}
@@ -754,17 +804,17 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
               selected={false}
             >
               <div
-                className="css-16kw2fg-PlatformCard ewlrg796"
+                className="css-16kw2fg-PlatformCard exv4dm86"
                 data-test-id="platform-php-laravel"
                 onClick={[Function]}
               >
-                <StyledPlatformiconTile
+                <StyledPlatformIconTile
                   platform="php-laravel"
                 >
                   <div
-                    className="css-jzifau-PlatformiconTile-getColorStyles-StyledPlatformiconTile ewlrg794"
+                    className="css-9y1m82-PlatformIconTile-getColorStyles-StyledPlatformIconTile exv4dm84"
                   />
-                </StyledPlatformiconTile>
+                </StyledPlatformIconTile>
                 <h3>
                   Laravel
                 </h3>
@@ -788,7 +838,7 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
             selected={false}
           >
             <Component
-              className="css-16kw2fg-PlatformCard ewlrg796"
+              className="css-16kw2fg-PlatformCard exv4dm86"
               data-test-id="platform-php"
               onClear={[Function]}
               onClick={[Function]}
@@ -804,17 +854,17 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
               selected={false}
             >
               <div
-                className="css-16kw2fg-PlatformCard ewlrg796"
+                className="css-16kw2fg-PlatformCard exv4dm86"
                 data-test-id="platform-php"
                 onClick={[Function]}
               >
-                <StyledPlatformiconTile
+                <StyledPlatformIconTile
                   platform="php"
                 >
                   <div
-                    className="css-f6lc5m-PlatformiconTile-getColorStyles-StyledPlatformiconTile ewlrg794"
+                    className="css-6zjiba-PlatformIconTile-getColorStyles-StyledPlatformIconTile exv4dm84"
                   />
-                </StyledPlatformiconTile>
+                </StyledPlatformIconTile>
                 <h3>
                   PHP
                 </h3>
@@ -838,7 +888,7 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
             selected={false}
           >
             <Component
-              className="css-16kw2fg-PlatformCard ewlrg796"
+              className="css-16kw2fg-PlatformCard exv4dm86"
               data-test-id="platform-php-symfony2"
               onClear={[Function]}
               onClick={[Function]}
@@ -854,17 +904,17 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
               selected={false}
             >
               <div
-                className="css-16kw2fg-PlatformCard ewlrg796"
+                className="css-16kw2fg-PlatformCard exv4dm86"
                 data-test-id="platform-php-symfony2"
                 onClick={[Function]}
               >
-                <StyledPlatformiconTile
+                <StyledPlatformIconTile
                   platform="php-symfony2"
                 >
                   <div
-                    className="css-f6lc5m-PlatformiconTile-getColorStyles-StyledPlatformiconTile ewlrg794"
+                    className="css-6zjiba-PlatformIconTile-getColorStyles-StyledPlatformIconTile exv4dm84"
                   />
-                </StyledPlatformiconTile>
+                </StyledPlatformIconTile>
                 <h3>
                   Symfony2
                 </h3>
@@ -888,7 +938,7 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
             selected={false}
           >
             <Component
-              className="css-16kw2fg-PlatformCard ewlrg796"
+              className="css-16kw2fg-PlatformCard exv4dm86"
               data-test-id="platform-python-django"
               onClear={[Function]}
               onClick={[Function]}
@@ -904,17 +954,17 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
               selected={false}
             >
               <div
-                className="css-16kw2fg-PlatformCard ewlrg796"
+                className="css-16kw2fg-PlatformCard exv4dm86"
                 data-test-id="platform-python-django"
                 onClick={[Function]}
               >
-                <StyledPlatformiconTile
+                <StyledPlatformIconTile
                   platform="python-django"
                 >
                   <div
-                    className="css-13uplim-PlatformiconTile-getColorStyles-StyledPlatformiconTile ewlrg794"
+                    className="css-e97qg6-PlatformIconTile-getColorStyles-StyledPlatformIconTile exv4dm84"
                   />
-                </StyledPlatformiconTile>
+                </StyledPlatformIconTile>
                 <h3>
                   Django
                 </h3>
@@ -938,7 +988,7 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
             selected={false}
           >
             <Component
-              className="css-16kw2fg-PlatformCard ewlrg796"
+              className="css-16kw2fg-PlatformCard exv4dm86"
               data-test-id="platform-python-flask"
               onClear={[Function]}
               onClick={[Function]}
@@ -954,17 +1004,17 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
               selected={false}
             >
               <div
-                className="css-16kw2fg-PlatformCard ewlrg796"
+                className="css-16kw2fg-PlatformCard exv4dm86"
                 data-test-id="platform-python-flask"
                 onClick={[Function]}
               >
-                <StyledPlatformiconTile
+                <StyledPlatformIconTile
                   platform="python-flask"
                 >
                   <div
-                    className="css-1lbt1li-PlatformiconTile-getColorStyles-StyledPlatformiconTile ewlrg794"
+                    className="css-kiuran-PlatformIconTile-getColorStyles-StyledPlatformIconTile exv4dm84"
                   />
-                </StyledPlatformiconTile>
+                </StyledPlatformIconTile>
                 <h3>
                   Flask
                 </h3>
@@ -988,7 +1038,7 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
             selected={false}
           >
             <Component
-              className="css-16kw2fg-PlatformCard ewlrg796"
+              className="css-16kw2fg-PlatformCard exv4dm86"
               data-test-id="platform-python"
               onClear={[Function]}
               onClick={[Function]}
@@ -1004,17 +1054,17 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
               selected={false}
             >
               <div
-                className="css-16kw2fg-PlatformCard ewlrg796"
+                className="css-16kw2fg-PlatformCard exv4dm86"
                 data-test-id="platform-python"
                 onClick={[Function]}
               >
-                <StyledPlatformiconTile
+                <StyledPlatformIconTile
                   platform="python"
                 >
                   <div
-                    className="css-1vvuenp-PlatformiconTile-getColorStyles-StyledPlatformiconTile ewlrg794"
+                    className="css-1490qg9-PlatformIconTile-getColorStyles-StyledPlatformIconTile exv4dm84"
                   />
-                </StyledPlatformiconTile>
+                </StyledPlatformIconTile>
                 <h3>
                   Python
                 </h3>
@@ -1038,7 +1088,7 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
             selected={false}
           >
             <Component
-              className="css-16kw2fg-PlatformCard ewlrg796"
+              className="css-16kw2fg-PlatformCard exv4dm86"
               data-test-id="platform-cocoa"
               onClear={[Function]}
               onClick={[Function]}
@@ -1054,17 +1104,17 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
               selected={false}
             >
               <div
-                className="css-16kw2fg-PlatformCard ewlrg796"
+                className="css-16kw2fg-PlatformCard exv4dm86"
                 data-test-id="platform-cocoa"
                 onClick={[Function]}
               >
-                <StyledPlatformiconTile
+                <StyledPlatformIconTile
                   platform="cocoa"
                 >
                   <div
-                    className="css-yhb6wb-PlatformiconTile-getColorStyles-StyledPlatformiconTile ewlrg794"
+                    className="css-a5gfdj-PlatformIconTile-getColorStyles-StyledPlatformIconTile exv4dm84"
                   />
-                </StyledPlatformiconTile>
+                </StyledPlatformIconTile>
                 <h3>
                   React-Native
                 </h3>
@@ -1088,7 +1138,7 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
             selected={false}
           >
             <Component
-              className="css-16kw2fg-PlatformCard ewlrg796"
+              className="css-16kw2fg-PlatformCard exv4dm86"
               data-test-id="platform-ruby-rails"
               onClear={[Function]}
               onClick={[Function]}
@@ -1104,17 +1154,17 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
               selected={false}
             >
               <div
-                className="css-16kw2fg-PlatformCard ewlrg796"
+                className="css-16kw2fg-PlatformCard exv4dm86"
                 data-test-id="platform-ruby-rails"
                 onClick={[Function]}
               >
-                <StyledPlatformiconTile
+                <StyledPlatformIconTile
                   platform="ruby-rails"
                 >
                   <div
-                    className="css-15nw1ir-PlatformiconTile-getColorStyles-StyledPlatformiconTile ewlrg794"
+                    className="css-tecggu-PlatformIconTile-getColorStyles-StyledPlatformIconTile exv4dm84"
                   />
-                </StyledPlatformiconTile>
+                </StyledPlatformIconTile>
                 <h3>
                   Rails
                 </h3>
@@ -1138,7 +1188,7 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
             selected={false}
           >
             <Component
-              className="css-16kw2fg-PlatformCard ewlrg796"
+              className="css-16kw2fg-PlatformCard exv4dm86"
               data-test-id="platform-ruby"
               onClear={[Function]}
               onClick={[Function]}
@@ -1154,17 +1204,17 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
               selected={false}
             >
               <div
-                className="css-16kw2fg-PlatformCard ewlrg796"
+                className="css-16kw2fg-PlatformCard exv4dm86"
                 data-test-id="platform-ruby"
                 onClick={[Function]}
               >
-                <StyledPlatformiconTile
+                <StyledPlatformIconTile
                   platform="ruby"
                 >
                   <div
-                    className="css-ze44n6-PlatformiconTile-getColorStyles-StyledPlatformiconTile ewlrg794"
+                    className="css-1cyior6-PlatformIconTile-getColorStyles-StyledPlatformIconTile exv4dm84"
                   />
-                </StyledPlatformiconTile>
+                </StyledPlatformIconTile>
                 <h3>
                   Ruby
                 </h3>
@@ -1178,29 +1228,29 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
       onSubmit={[Function]}
     >
       <form
-        className="css-1ibxl16-CreateProjectForm eovdm170"
+        className="css-1ibxl16-CreateProjectForm e2gtsme0"
         onSubmit={[Function]}
       >
         <div>
           <FormLabel>
             <div
-              className="css-4lvcxw-FormLabel eovdm171"
+              className="css-4lvcxw-FormLabel e2gtsme1"
             >
               Give your project a name
             </div>
           </FormLabel>
           <ProjectNameInput>
             <div
-              className="css-1pwlbw7-ProjectNameInput-inputStyles eovdm173"
+              className="css-1pwlbw7-ProjectNameInput-inputStyles e2gtsme3"
             >
-              <ProjectPlatformicon
+              <ProjectPlatformIcon
                 monoTone={true}
                 platform=""
               >
                 <div
-                  className="css-th4j3q-PlatformiconTile-ProjectPlatformicon eovdm172"
+                  className="css-18ui2mh-PlatformIconTile-ProjectPlatformIcon e2gtsme2"
                 />
-              </ProjectPlatformicon>
+              </ProjectPlatformIcon>
               <input
                 autoComplete="off"
                 label="Project Name"
@@ -1216,14 +1266,14 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
         <div>
           <FormLabel>
             <div
-              className="css-4lvcxw-FormLabel eovdm171"
+              className="css-4lvcxw-FormLabel e2gtsme1"
             >
               Assign a Team
             </div>
           </FormLabel>
           <TeamSelectInput>
             <div
-              className="css-75pel-TeamSelectInput eovdm174"
+              className="css-75pel-TeamSelectInput e2gtsme4"
             >
               <SelectControl
                 clearable={false}
@@ -1659,7 +1709,7 @@ exports[`CreateProject should fill in platform name if its provided by url 1`] =
     </PageHeading>
     <HelpText>
       <p
-        className="css-15uvbvk-HelpText eovdm175"
+        className="css-15uvbvk-HelpText e2gtsme5"
       >
         Projects allow you to scope events to a specific application in
                your organization. For example, you might have separate projects
@@ -1673,14 +1723,14 @@ exports[`CreateProject should fill in platform name if its provided by url 1`] =
     >
       <NavContainer>
         <div
-          className="css-xl0stt-NavContainer ewlrg790"
+          className="css-xl0stt-NavContainer exv4dm80"
         >
           <CategoryNav>
             <NavTabs
-              className="css-5tazcq-CategoryNav ewlrg792"
+              className="css-5tazcq-CategoryNav exv4dm82"
             >
               <ul
-                className="nav nav-tabs css-5tazcq-CategoryNav ewlrg792"
+                className="nav nav-tabs css-5tazcq-CategoryNav exv4dm82"
               >
                 <ListLink
                   activeClassName="active"
@@ -1843,7 +1893,7 @@ exports[`CreateProject should fill in platform name if its provided by url 1`] =
           </CategoryNav>
           <SearchBar>
             <div
-              className="css-otjzwm-SearchBar-inputStyles ewlrg791"
+              className="css-otjzwm-SearchBar-inputStyles exv4dm81"
             >
               <InlineSvg
                 src="icon-search"
@@ -1879,7 +1929,7 @@ exports[`CreateProject should fill in platform name if its provided by url 1`] =
       </NavContainer>
       <PlatformList>
         <div
-          className="css-545rh6-PlatformList ewlrg793"
+          className="css-545rh6-PlatformList exv4dm83"
         >
           <PlatformCard
             data-test-id="platform-ruby-rack"
@@ -1898,7 +1948,7 @@ exports[`CreateProject should fill in platform name if its provided by url 1`] =
             selected={false}
           >
             <Component
-              className="css-16kw2fg-PlatformCard ewlrg796"
+              className="css-16kw2fg-PlatformCard exv4dm86"
               data-test-id="platform-ruby-rack"
               onClear={[Function]}
               onClick={[Function]}
@@ -1914,17 +1964,17 @@ exports[`CreateProject should fill in platform name if its provided by url 1`] =
               selected={false}
             >
               <div
-                className="css-16kw2fg-PlatformCard ewlrg796"
+                className="css-16kw2fg-PlatformCard exv4dm86"
                 data-test-id="platform-ruby-rack"
                 onClick={[Function]}
               >
-                <StyledPlatformiconTile
+                <StyledPlatformIconTile
                   platform="ruby-rack"
                 >
                   <div
-                    className="css-ze44n6-PlatformiconTile-getColorStyles-StyledPlatformiconTile ewlrg794"
+                    className="css-1cyior6-PlatformIconTile-getColorStyles-StyledPlatformIconTile exv4dm84"
                   />
-                </StyledPlatformiconTile>
+                </StyledPlatformIconTile>
                 <h3>
                   Rack
                 </h3>
@@ -1948,7 +1998,7 @@ exports[`CreateProject should fill in platform name if its provided by url 1`] =
             selected={false}
           >
             <Component
-              className="css-16kw2fg-PlatformCard ewlrg796"
+              className="css-16kw2fg-PlatformCard exv4dm86"
               data-test-id="platform-ruby-rails"
               onClear={[Function]}
               onClick={[Function]}
@@ -1964,17 +2014,17 @@ exports[`CreateProject should fill in platform name if its provided by url 1`] =
               selected={false}
             >
               <div
-                className="css-16kw2fg-PlatformCard ewlrg796"
+                className="css-16kw2fg-PlatformCard exv4dm86"
                 data-test-id="platform-ruby-rails"
                 onClick={[Function]}
               >
-                <StyledPlatformiconTile
+                <StyledPlatformIconTile
                   platform="ruby-rails"
                 >
                   <div
-                    className="css-15nw1ir-PlatformiconTile-getColorStyles-StyledPlatformiconTile ewlrg794"
+                    className="css-tecggu-PlatformIconTile-getColorStyles-StyledPlatformIconTile exv4dm84"
                   />
-                </StyledPlatformiconTile>
+                </StyledPlatformIconTile>
                 <h3>
                   Rails
                 </h3>
@@ -1998,7 +2048,7 @@ exports[`CreateProject should fill in platform name if its provided by url 1`] =
             selected={true}
           >
             <Component
-              className="css-1aqwt2p-PlatformCard ewlrg796"
+              className="css-1aqwt2p-PlatformCard exv4dm86"
               data-test-id="platform-ruby"
               onClear={[Function]}
               onClick={[Function]}
@@ -2014,17 +2064,17 @@ exports[`CreateProject should fill in platform name if its provided by url 1`] =
               selected={true}
             >
               <div
-                className="css-1aqwt2p-PlatformCard ewlrg796"
+                className="css-1aqwt2p-PlatformCard exv4dm86"
                 data-test-id="platform-ruby"
                 onClick={[Function]}
               >
-                <StyledPlatformiconTile
+                <StyledPlatformIconTile
                   platform="ruby"
                 >
                   <div
-                    className="css-ze44n6-PlatformiconTile-getColorStyles-StyledPlatformiconTile ewlrg794"
+                    className="css-1cyior6-PlatformIconTile-getColorStyles-StyledPlatformIconTile exv4dm84"
                   />
-                </StyledPlatformiconTile>
+                </StyledPlatformIconTile>
                 <h3>
                   Ruby
                 </h3>
@@ -2032,12 +2082,12 @@ exports[`CreateProject should fill in platform name if its provided by url 1`] =
                   onClick={[Function]}
                 >
                   <Component
-                    className="css-9ldjwa-ClearButton ewlrg795"
+                    className="css-9ldjwa-ClearButton exv4dm85"
                     onClick={[Function]}
                   >
                     <Button
                       borderless={true}
-                      className="css-9ldjwa-ClearButton ewlrg795"
+                      className="css-9ldjwa-ClearButton exv4dm85"
                       disabled={false}
                       icon="icon-circle-close"
                       onClick={[Function]}
@@ -2046,7 +2096,7 @@ exports[`CreateProject should fill in platform name if its provided by url 1`] =
                       <StyledButton
                         aria-disabled={false}
                         borderless={true}
-                        className="css-9ldjwa-ClearButton ewlrg795"
+                        className="css-9ldjwa-ClearButton exv4dm85"
                         disabled={false}
                         onClick={[Function]}
                         role="button"
@@ -2055,7 +2105,7 @@ exports[`CreateProject should fill in platform name if its provided by url 1`] =
                         <ForwardRef
                           aria-disabled={false}
                           borderless={true}
-                          className="ewlrg795 css-2lxdh0-StyledButton-getColors-ClearButton e12ma6z0"
+                          className="exv4dm85 css-2lxdh0-StyledButton-getColors-ClearButton e12ma6z0"
                           disabled={false}
                           onClick={[Function]}
                           role="button"
@@ -2063,7 +2113,7 @@ exports[`CreateProject should fill in platform name if its provided by url 1`] =
                         >
                           <button
                             aria-disabled={false}
-                            className="ewlrg795 css-2lxdh0-StyledButton-getColors-ClearButton e12ma6z0"
+                            className="exv4dm85 css-2lxdh0-StyledButton-getColors-ClearButton e12ma6z0"
                             onClick={[Function]}
                             role="button"
                             size="xsmall"
@@ -2144,29 +2194,29 @@ exports[`CreateProject should fill in platform name if its provided by url 1`] =
       onSubmit={[Function]}
     >
       <form
-        className="css-1ibxl16-CreateProjectForm eovdm170"
+        className="css-1ibxl16-CreateProjectForm e2gtsme0"
         onSubmit={[Function]}
       >
         <div>
           <FormLabel>
             <div
-              className="css-4lvcxw-FormLabel eovdm171"
+              className="css-4lvcxw-FormLabel e2gtsme1"
             >
               Give your project a name
             </div>
           </FormLabel>
           <ProjectNameInput>
             <div
-              className="css-1pwlbw7-ProjectNameInput-inputStyles eovdm173"
+              className="css-1pwlbw7-ProjectNameInput-inputStyles e2gtsme3"
             >
-              <ProjectPlatformicon
+              <ProjectPlatformIcon
                 monoTone={true}
                 platform="ruby"
               >
                 <div
-                  className="css-5kvz9y-PlatformiconTile-ProjectPlatformicon eovdm172"
+                  className="css-2ftqz0-PlatformIconTile-ProjectPlatformIcon e2gtsme2"
                 />
-              </ProjectPlatformicon>
+              </ProjectPlatformIcon>
               <input
                 autoComplete="off"
                 label="Project Name"
@@ -2182,14 +2232,14 @@ exports[`CreateProject should fill in platform name if its provided by url 1`] =
         <div>
           <FormLabel>
             <div
-              className="css-4lvcxw-FormLabel eovdm171"
+              className="css-4lvcxw-FormLabel e2gtsme1"
             >
               Assign a Team
             </div>
           </FormLabel>
           <TeamSelectInput>
             <div
-              className="css-75pel-TeamSelectInput eovdm174"
+              className="css-75pel-TeamSelectInput e2gtsme4"
             >
               <SelectControl
                 clearable={false}
@@ -2625,7 +2675,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
     </PageHeading>
     <HelpText>
       <p
-        className="css-15uvbvk-HelpText eovdm175"
+        className="css-15uvbvk-HelpText e2gtsme5"
       >
         Projects allow you to scope events to a specific application in
                your organization. For example, you might have separate projects
@@ -2639,14 +2689,14 @@ exports[`CreateProject should fill in project name if its empty when platform is
     >
       <NavContainer>
         <div
-          className="css-xl0stt-NavContainer ewlrg790"
+          className="css-xl0stt-NavContainer exv4dm80"
         >
           <CategoryNav>
             <NavTabs
-              className="css-5tazcq-CategoryNav ewlrg792"
+              className="css-5tazcq-CategoryNav exv4dm82"
             >
               <ul
-                className="nav nav-tabs css-5tazcq-CategoryNav ewlrg792"
+                className="nav nav-tabs css-5tazcq-CategoryNav exv4dm82"
               >
                 <ListLink
                   activeClassName="active"
@@ -2809,7 +2859,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
           </CategoryNav>
           <SearchBar>
             <div
-              className="css-otjzwm-SearchBar-inputStyles ewlrg791"
+              className="css-otjzwm-SearchBar-inputStyles exv4dm81"
             >
               <InlineSvg
                 src="icon-search"
@@ -2845,7 +2895,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
       </NavContainer>
       <PlatformList>
         <div
-          className="css-545rh6-PlatformList ewlrg793"
+          className="css-545rh6-PlatformList exv4dm83"
         >
           <PlatformCard
             data-test-id="platform-csharp"
@@ -2864,7 +2914,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
             selected={true}
           >
             <Component
-              className="css-1aqwt2p-PlatformCard ewlrg796"
+              className="css-1aqwt2p-PlatformCard exv4dm86"
               data-test-id="platform-csharp"
               onClear={[Function]}
               onClick={[Function]}
@@ -2880,17 +2930,17 @@ exports[`CreateProject should fill in project name if its empty when platform is
               selected={true}
             >
               <div
-                className="css-1aqwt2p-PlatformCard ewlrg796"
+                className="css-1aqwt2p-PlatformCard exv4dm86"
                 data-test-id="platform-csharp"
                 onClick={[Function]}
               >
-                <StyledPlatformiconTile
+                <StyledPlatformIconTile
                   platform="csharp"
                 >
                   <div
-                    className="css-tzg8rc-PlatformiconTile-getColorStyles-StyledPlatformiconTile ewlrg794"
+                    className="css-i59jyf-PlatformIconTile-getColorStyles-StyledPlatformIconTile exv4dm84"
                   />
-                </StyledPlatformiconTile>
+                </StyledPlatformIconTile>
                 <h3>
                   C#
                 </h3>
@@ -2898,12 +2948,12 @@ exports[`CreateProject should fill in project name if its empty when platform is
                   onClick={[Function]}
                 >
                   <Component
-                    className="css-9ldjwa-ClearButton ewlrg795"
+                    className="css-9ldjwa-ClearButton exv4dm85"
                     onClick={[Function]}
                   >
                     <Button
                       borderless={true}
-                      className="css-9ldjwa-ClearButton ewlrg795"
+                      className="css-9ldjwa-ClearButton exv4dm85"
                       disabled={false}
                       icon="icon-circle-close"
                       onClick={[Function]}
@@ -2912,7 +2962,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
                       <StyledButton
                         aria-disabled={false}
                         borderless={true}
-                        className="css-9ldjwa-ClearButton ewlrg795"
+                        className="css-9ldjwa-ClearButton exv4dm85"
                         disabled={false}
                         onClick={[Function]}
                         role="button"
@@ -2921,7 +2971,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
                         <ForwardRef
                           aria-disabled={false}
                           borderless={true}
-                          className="ewlrg795 css-2lxdh0-StyledButton-getColors-ClearButton e12ma6z0"
+                          className="exv4dm85 css-2lxdh0-StyledButton-getColors-ClearButton e12ma6z0"
                           disabled={false}
                           onClick={[Function]}
                           role="button"
@@ -2929,7 +2979,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
                         >
                           <button
                             aria-disabled={false}
-                            className="ewlrg795 css-2lxdh0-StyledButton-getColors-ClearButton e12ma6z0"
+                            className="exv4dm85 css-2lxdh0-StyledButton-getColors-ClearButton e12ma6z0"
                             onClick={[Function]}
                             role="button"
                             size="xsmall"
@@ -3004,6 +3054,56 @@ exports[`CreateProject should fill in project name if its empty when platform is
             </Component>
           </PlatformCard>
           <PlatformCard
+            data-test-id="platform-elixir"
+            key="elixir"
+            onClear={[Function]}
+            onClick={[Function]}
+            platform={
+              Object {
+                "id": "elixir",
+                "language": "elixir",
+                "link": "https://docs.getsentry.com/hosted/clients/elixir/",
+                "name": "Elixir",
+                "type": "language",
+              }
+            }
+            selected={false}
+          >
+            <Component
+              className="css-16kw2fg-PlatformCard exv4dm86"
+              data-test-id="platform-elixir"
+              onClear={[Function]}
+              onClick={[Function]}
+              platform={
+                Object {
+                  "id": "elixir",
+                  "language": "elixir",
+                  "link": "https://docs.getsentry.com/hosted/clients/elixir/",
+                  "name": "Elixir",
+                  "type": "language",
+                }
+              }
+              selected={false}
+            >
+              <div
+                className="css-16kw2fg-PlatformCard exv4dm86"
+                data-test-id="platform-elixir"
+                onClick={[Function]}
+              >
+                <StyledPlatformIconTile
+                  platform="elixir"
+                >
+                  <div
+                    className="css-kjytvr-PlatformIconTile-getColorStyles-StyledPlatformIconTile exv4dm84"
+                  />
+                </StyledPlatformIconTile>
+                <h3>
+                  Elixir
+                </h3>
+              </div>
+            </Component>
+          </PlatformCard>
+          <PlatformCard
             data-test-id="platform-java"
             key="java"
             onClear={[Function]}
@@ -3020,7 +3120,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
             selected={false}
           >
             <Component
-              className="css-16kw2fg-PlatformCard ewlrg796"
+              className="css-16kw2fg-PlatformCard exv4dm86"
               data-test-id="platform-java"
               onClear={[Function]}
               onClick={[Function]}
@@ -3036,17 +3136,17 @@ exports[`CreateProject should fill in project name if its empty when platform is
               selected={false}
             >
               <div
-                className="css-16kw2fg-PlatformCard ewlrg796"
+                className="css-16kw2fg-PlatformCard exv4dm86"
                 data-test-id="platform-java"
                 onClick={[Function]}
               >
-                <StyledPlatformiconTile
+                <StyledPlatformIconTile
                   platform="java"
                 >
                   <div
-                    className="css-lc48x8-PlatformiconTile-getColorStyles-StyledPlatformiconTile ewlrg794"
+                    className="css-119q83u-PlatformIconTile-getColorStyles-StyledPlatformIconTile exv4dm84"
                   />
-                </StyledPlatformiconTile>
+                </StyledPlatformIconTile>
                 <h3>
                   Java
                 </h3>
@@ -3070,7 +3170,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
             selected={false}
           >
             <Component
-              className="css-16kw2fg-PlatformCard ewlrg796"
+              className="css-16kw2fg-PlatformCard exv4dm86"
               data-test-id="platform-javascript-angular"
               onClear={[Function]}
               onClick={[Function]}
@@ -3086,17 +3186,17 @@ exports[`CreateProject should fill in project name if its empty when platform is
               selected={false}
             >
               <div
-                className="css-16kw2fg-PlatformCard ewlrg796"
+                className="css-16kw2fg-PlatformCard exv4dm86"
                 data-test-id="platform-javascript-angular"
                 onClick={[Function]}
               >
-                <StyledPlatformiconTile
+                <StyledPlatformIconTile
                   platform="javascript-angular"
                 >
                   <div
-                    className="css-b15x81-PlatformiconTile-getColorStyles-StyledPlatformiconTile ewlrg794"
+                    className="css-impgxj-PlatformIconTile-getColorStyles-StyledPlatformIconTile exv4dm84"
                   />
-                </StyledPlatformiconTile>
+                </StyledPlatformIconTile>
                 <h3>
                   Angular
                 </h3>
@@ -3120,7 +3220,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
             selected={false}
           >
             <Component
-              className="css-16kw2fg-PlatformCard ewlrg796"
+              className="css-16kw2fg-PlatformCard exv4dm86"
               data-test-id="platform-javascript"
               onClear={[Function]}
               onClick={[Function]}
@@ -3136,17 +3236,17 @@ exports[`CreateProject should fill in project name if its empty when platform is
               selected={false}
             >
               <div
-                className="css-16kw2fg-PlatformCard ewlrg796"
+                className="css-16kw2fg-PlatformCard exv4dm86"
                 data-test-id="platform-javascript"
                 onClick={[Function]}
               >
-                <StyledPlatformiconTile
+                <StyledPlatformIconTile
                   platform="javascript"
                 >
                   <div
-                    className="css-105qz5e-PlatformiconTile-getColorStyles-StyledPlatformiconTile ewlrg794"
+                    className="css-10lppcv-PlatformIconTile-getColorStyles-StyledPlatformIconTile exv4dm84"
                   />
-                </StyledPlatformiconTile>
+                </StyledPlatformIconTile>
                 <h3>
                   JavaScript
                 </h3>
@@ -3170,7 +3270,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
             selected={false}
           >
             <Component
-              className="css-16kw2fg-PlatformCard ewlrg796"
+              className="css-16kw2fg-PlatformCard exv4dm86"
               data-test-id="platform-javascript-react"
               onClear={[Function]}
               onClick={[Function]}
@@ -3186,17 +3286,17 @@ exports[`CreateProject should fill in project name if its empty when platform is
               selected={false}
             >
               <div
-                className="css-16kw2fg-PlatformCard ewlrg796"
+                className="css-16kw2fg-PlatformCard exv4dm86"
                 data-test-id="platform-javascript-react"
                 onClick={[Function]}
               >
-                <StyledPlatformiconTile
+                <StyledPlatformIconTile
                   platform="javascript-react"
                 >
                   <div
-                    className="css-fosd7h-PlatformiconTile-getColorStyles-StyledPlatformiconTile ewlrg794"
+                    className="css-1a99nd3-PlatformIconTile-getColorStyles-StyledPlatformIconTile exv4dm84"
                   />
-                </StyledPlatformiconTile>
+                </StyledPlatformIconTile>
                 <h3>
                   React
                 </h3>
@@ -3220,7 +3320,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
             selected={false}
           >
             <Component
-              className="css-16kw2fg-PlatformCard ewlrg796"
+              className="css-16kw2fg-PlatformCard exv4dm86"
               data-test-id="platform-node-express"
               onClear={[Function]}
               onClick={[Function]}
@@ -3236,17 +3336,17 @@ exports[`CreateProject should fill in project name if its empty when platform is
               selected={false}
             >
               <div
-                className="css-16kw2fg-PlatformCard ewlrg796"
+                className="css-16kw2fg-PlatformCard exv4dm86"
                 data-test-id="platform-node-express"
                 onClick={[Function]}
               >
-                <StyledPlatformiconTile
+                <StyledPlatformIconTile
                   platform="node-express"
                 >
                   <div
-                    className="css-1wbn021-PlatformiconTile-getColorStyles-StyledPlatformiconTile ewlrg794"
+                    className="css-3h9ff5-PlatformIconTile-getColorStyles-StyledPlatformIconTile exv4dm84"
                   />
-                </StyledPlatformiconTile>
+                </StyledPlatformIconTile>
                 <h3>
                   Express
                 </h3>
@@ -3270,7 +3370,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
             selected={false}
           >
             <Component
-              className="css-16kw2fg-PlatformCard ewlrg796"
+              className="css-16kw2fg-PlatformCard exv4dm86"
               data-test-id="platform-node"
               onClear={[Function]}
               onClick={[Function]}
@@ -3286,17 +3386,17 @@ exports[`CreateProject should fill in project name if its empty when platform is
               selected={false}
             >
               <div
-                className="css-16kw2fg-PlatformCard ewlrg796"
+                className="css-16kw2fg-PlatformCard exv4dm86"
                 data-test-id="platform-node"
                 onClick={[Function]}
               >
-                <StyledPlatformiconTile
+                <StyledPlatformIconTile
                   platform="node"
                 >
                   <div
-                    className="css-1wbn021-PlatformiconTile-getColorStyles-StyledPlatformiconTile ewlrg794"
+                    className="css-3h9ff5-PlatformIconTile-getColorStyles-StyledPlatformIconTile exv4dm84"
                   />
-                </StyledPlatformiconTile>
+                </StyledPlatformIconTile>
                 <h3>
                   Node.js
                 </h3>
@@ -3320,7 +3420,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
             selected={false}
           >
             <Component
-              className="css-16kw2fg-PlatformCard ewlrg796"
+              className="css-16kw2fg-PlatformCard exv4dm86"
               data-test-id="platform-php-laravel"
               onClear={[Function]}
               onClick={[Function]}
@@ -3336,17 +3436,17 @@ exports[`CreateProject should fill in project name if its empty when platform is
               selected={false}
             >
               <div
-                className="css-16kw2fg-PlatformCard ewlrg796"
+                className="css-16kw2fg-PlatformCard exv4dm86"
                 data-test-id="platform-php-laravel"
                 onClick={[Function]}
               >
-                <StyledPlatformiconTile
+                <StyledPlatformIconTile
                   platform="php-laravel"
                 >
                   <div
-                    className="css-jzifau-PlatformiconTile-getColorStyles-StyledPlatformiconTile ewlrg794"
+                    className="css-9y1m82-PlatformIconTile-getColorStyles-StyledPlatformIconTile exv4dm84"
                   />
-                </StyledPlatformiconTile>
+                </StyledPlatformIconTile>
                 <h3>
                   Laravel
                 </h3>
@@ -3370,7 +3470,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
             selected={false}
           >
             <Component
-              className="css-16kw2fg-PlatformCard ewlrg796"
+              className="css-16kw2fg-PlatformCard exv4dm86"
               data-test-id="platform-php"
               onClear={[Function]}
               onClick={[Function]}
@@ -3386,17 +3486,17 @@ exports[`CreateProject should fill in project name if its empty when platform is
               selected={false}
             >
               <div
-                className="css-16kw2fg-PlatformCard ewlrg796"
+                className="css-16kw2fg-PlatformCard exv4dm86"
                 data-test-id="platform-php"
                 onClick={[Function]}
               >
-                <StyledPlatformiconTile
+                <StyledPlatformIconTile
                   platform="php"
                 >
                   <div
-                    className="css-f6lc5m-PlatformiconTile-getColorStyles-StyledPlatformiconTile ewlrg794"
+                    className="css-6zjiba-PlatformIconTile-getColorStyles-StyledPlatformIconTile exv4dm84"
                   />
-                </StyledPlatformiconTile>
+                </StyledPlatformIconTile>
                 <h3>
                   PHP
                 </h3>
@@ -3420,7 +3520,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
             selected={false}
           >
             <Component
-              className="css-16kw2fg-PlatformCard ewlrg796"
+              className="css-16kw2fg-PlatformCard exv4dm86"
               data-test-id="platform-php-symfony2"
               onClear={[Function]}
               onClick={[Function]}
@@ -3436,17 +3536,17 @@ exports[`CreateProject should fill in project name if its empty when platform is
               selected={false}
             >
               <div
-                className="css-16kw2fg-PlatformCard ewlrg796"
+                className="css-16kw2fg-PlatformCard exv4dm86"
                 data-test-id="platform-php-symfony2"
                 onClick={[Function]}
               >
-                <StyledPlatformiconTile
+                <StyledPlatformIconTile
                   platform="php-symfony2"
                 >
                   <div
-                    className="css-f6lc5m-PlatformiconTile-getColorStyles-StyledPlatformiconTile ewlrg794"
+                    className="css-6zjiba-PlatformIconTile-getColorStyles-StyledPlatformIconTile exv4dm84"
                   />
-                </StyledPlatformiconTile>
+                </StyledPlatformIconTile>
                 <h3>
                   Symfony2
                 </h3>
@@ -3470,7 +3570,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
             selected={false}
           >
             <Component
-              className="css-16kw2fg-PlatformCard ewlrg796"
+              className="css-16kw2fg-PlatformCard exv4dm86"
               data-test-id="platform-python-django"
               onClear={[Function]}
               onClick={[Function]}
@@ -3486,17 +3586,17 @@ exports[`CreateProject should fill in project name if its empty when platform is
               selected={false}
             >
               <div
-                className="css-16kw2fg-PlatformCard ewlrg796"
+                className="css-16kw2fg-PlatformCard exv4dm86"
                 data-test-id="platform-python-django"
                 onClick={[Function]}
               >
-                <StyledPlatformiconTile
+                <StyledPlatformIconTile
                   platform="python-django"
                 >
                   <div
-                    className="css-13uplim-PlatformiconTile-getColorStyles-StyledPlatformiconTile ewlrg794"
+                    className="css-e97qg6-PlatformIconTile-getColorStyles-StyledPlatformIconTile exv4dm84"
                   />
-                </StyledPlatformiconTile>
+                </StyledPlatformIconTile>
                 <h3>
                   Django
                 </h3>
@@ -3520,7 +3620,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
             selected={false}
           >
             <Component
-              className="css-16kw2fg-PlatformCard ewlrg796"
+              className="css-16kw2fg-PlatformCard exv4dm86"
               data-test-id="platform-python-flask"
               onClear={[Function]}
               onClick={[Function]}
@@ -3536,17 +3636,17 @@ exports[`CreateProject should fill in project name if its empty when platform is
               selected={false}
             >
               <div
-                className="css-16kw2fg-PlatformCard ewlrg796"
+                className="css-16kw2fg-PlatformCard exv4dm86"
                 data-test-id="platform-python-flask"
                 onClick={[Function]}
               >
-                <StyledPlatformiconTile
+                <StyledPlatformIconTile
                   platform="python-flask"
                 >
                   <div
-                    className="css-1lbt1li-PlatformiconTile-getColorStyles-StyledPlatformiconTile ewlrg794"
+                    className="css-kiuran-PlatformIconTile-getColorStyles-StyledPlatformIconTile exv4dm84"
                   />
-                </StyledPlatformiconTile>
+                </StyledPlatformIconTile>
                 <h3>
                   Flask
                 </h3>
@@ -3570,7 +3670,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
             selected={false}
           >
             <Component
-              className="css-16kw2fg-PlatformCard ewlrg796"
+              className="css-16kw2fg-PlatformCard exv4dm86"
               data-test-id="platform-python"
               onClear={[Function]}
               onClick={[Function]}
@@ -3586,17 +3686,17 @@ exports[`CreateProject should fill in project name if its empty when platform is
               selected={false}
             >
               <div
-                className="css-16kw2fg-PlatformCard ewlrg796"
+                className="css-16kw2fg-PlatformCard exv4dm86"
                 data-test-id="platform-python"
                 onClick={[Function]}
               >
-                <StyledPlatformiconTile
+                <StyledPlatformIconTile
                   platform="python"
                 >
                   <div
-                    className="css-1vvuenp-PlatformiconTile-getColorStyles-StyledPlatformiconTile ewlrg794"
+                    className="css-1490qg9-PlatformIconTile-getColorStyles-StyledPlatformIconTile exv4dm84"
                   />
-                </StyledPlatformiconTile>
+                </StyledPlatformIconTile>
                 <h3>
                   Python
                 </h3>
@@ -3620,7 +3720,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
             selected={false}
           >
             <Component
-              className="css-16kw2fg-PlatformCard ewlrg796"
+              className="css-16kw2fg-PlatformCard exv4dm86"
               data-test-id="platform-cocoa"
               onClear={[Function]}
               onClick={[Function]}
@@ -3636,17 +3736,17 @@ exports[`CreateProject should fill in project name if its empty when platform is
               selected={false}
             >
               <div
-                className="css-16kw2fg-PlatformCard ewlrg796"
+                className="css-16kw2fg-PlatformCard exv4dm86"
                 data-test-id="platform-cocoa"
                 onClick={[Function]}
               >
-                <StyledPlatformiconTile
+                <StyledPlatformIconTile
                   platform="cocoa"
                 >
                   <div
-                    className="css-yhb6wb-PlatformiconTile-getColorStyles-StyledPlatformiconTile ewlrg794"
+                    className="css-a5gfdj-PlatformIconTile-getColorStyles-StyledPlatformIconTile exv4dm84"
                   />
-                </StyledPlatformiconTile>
+                </StyledPlatformIconTile>
                 <h3>
                   React-Native
                 </h3>
@@ -3670,7 +3770,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
             selected={false}
           >
             <Component
-              className="css-16kw2fg-PlatformCard ewlrg796"
+              className="css-16kw2fg-PlatformCard exv4dm86"
               data-test-id="platform-ruby-rails"
               onClear={[Function]}
               onClick={[Function]}
@@ -3686,17 +3786,17 @@ exports[`CreateProject should fill in project name if its empty when platform is
               selected={false}
             >
               <div
-                className="css-16kw2fg-PlatformCard ewlrg796"
+                className="css-16kw2fg-PlatformCard exv4dm86"
                 data-test-id="platform-ruby-rails"
                 onClick={[Function]}
               >
-                <StyledPlatformiconTile
+                <StyledPlatformIconTile
                   platform="ruby-rails"
                 >
                   <div
-                    className="css-15nw1ir-PlatformiconTile-getColorStyles-StyledPlatformiconTile ewlrg794"
+                    className="css-tecggu-PlatformIconTile-getColorStyles-StyledPlatformIconTile exv4dm84"
                   />
-                </StyledPlatformiconTile>
+                </StyledPlatformIconTile>
                 <h3>
                   Rails
                 </h3>
@@ -3720,7 +3820,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
             selected={false}
           >
             <Component
-              className="css-16kw2fg-PlatformCard ewlrg796"
+              className="css-16kw2fg-PlatformCard exv4dm86"
               data-test-id="platform-ruby"
               onClear={[Function]}
               onClick={[Function]}
@@ -3736,17 +3836,17 @@ exports[`CreateProject should fill in project name if its empty when platform is
               selected={false}
             >
               <div
-                className="css-16kw2fg-PlatformCard ewlrg796"
+                className="css-16kw2fg-PlatformCard exv4dm86"
                 data-test-id="platform-ruby"
                 onClick={[Function]}
               >
-                <StyledPlatformiconTile
+                <StyledPlatformIconTile
                   platform="ruby"
                 >
                   <div
-                    className="css-ze44n6-PlatformiconTile-getColorStyles-StyledPlatformiconTile ewlrg794"
+                    className="css-1cyior6-PlatformIconTile-getColorStyles-StyledPlatformIconTile exv4dm84"
                   />
-                </StyledPlatformiconTile>
+                </StyledPlatformIconTile>
                 <h3>
                   Ruby
                 </h3>
@@ -3760,29 +3860,29 @@ exports[`CreateProject should fill in project name if its empty when platform is
       onSubmit={[Function]}
     >
       <form
-        className="css-1ibxl16-CreateProjectForm eovdm170"
+        className="css-1ibxl16-CreateProjectForm e2gtsme0"
         onSubmit={[Function]}
       >
         <div>
           <FormLabel>
             <div
-              className="css-4lvcxw-FormLabel eovdm171"
+              className="css-4lvcxw-FormLabel e2gtsme1"
             >
               Give your project a name
             </div>
           </FormLabel>
           <ProjectNameInput>
             <div
-              className="css-1pwlbw7-ProjectNameInput-inputStyles eovdm173"
+              className="css-1pwlbw7-ProjectNameInput-inputStyles e2gtsme3"
             >
-              <ProjectPlatformicon
+              <ProjectPlatformIcon
                 monoTone={true}
                 platform="csharp"
               >
                 <div
-                  className="css-yuv2jf-PlatformiconTile-ProjectPlatformicon eovdm172"
+                  className="css-1mw2nf5-PlatformIconTile-ProjectPlatformIcon e2gtsme2"
                 />
-              </ProjectPlatformicon>
+              </ProjectPlatformIcon>
               <input
                 autoComplete="off"
                 label="Project Name"
@@ -3798,14 +3898,14 @@ exports[`CreateProject should fill in project name if its empty when platform is
         <div>
           <FormLabel>
             <div
-              className="css-4lvcxw-FormLabel eovdm171"
+              className="css-4lvcxw-FormLabel e2gtsme1"
             >
               Assign a Team
             </div>
           </FormLabel>
           <TeamSelectInput>
             <div
-              className="css-75pel-TeamSelectInput eovdm174"
+              className="css-75pel-TeamSelectInput e2gtsme4"
             >
               <SelectControl
                 clearable={false}

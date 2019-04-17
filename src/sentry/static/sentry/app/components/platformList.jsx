@@ -2,7 +2,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import styled from 'react-emotion';
 
-import Platformicon from 'app/components/platformicon';
+import PlatformIcon from 'app/components/platformIcon';
 
 class PlatformList extends React.Component {
   static propTypes = {
@@ -76,7 +76,7 @@ const PlatformIcons = styled('div')`
 `;
 
 const StyledPlatformIcon = styled(({size, ...props}) => (
-  <Platformicon size={`${size}px`} {...props} />
+  <PlatformIcon size={`${size}px`} {...props} />
 ))`
   border-radius: 3px;
   box-shadow: 0 0 0 1px #fff;

@@ -22,7 +22,7 @@ const PLATFORM_ICONS = {
   csharp: '\\e60f',
   django: '\\e605',
   dotnet: '\\e902',
-  elixir: 'e903',
+  elixir: '\\e903',
   ember: '\\e800',
   flask: '\\e610',
   generic: '\\e60a',
@@ -77,7 +77,7 @@ const getColorStyles = ({monoTone, platform}) => {
   );
 };
 
-const PlatformiconTile = styled('div')`
+const PlatformIconTile = styled('div')`
   /* stylelint-disable-next-line font-family-no-missing-generic-family-keyword */
   font-family: 'platformicons';
   font-weight: normal;
@@ -91,10 +91,10 @@ const PlatformiconTile = styled('div')`
   }
 `;
 
-PlatformiconTile.propTypes = {
+PlatformIconTile.propTypes = {
   platform: PropTypes.string,
   className: PropTypes.string,
   monoTone: PropTypes.bool,
 };
 
-export default PlatformiconTile;
+export default PlatformIconTile;

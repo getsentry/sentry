@@ -4,11 +4,11 @@ import createReactClass from 'create-react-class';
 import styled from 'react-emotion';
 
 import {analytics, amplitude} from 'app/utils/analytics';
+import {onboardingSteps, stepDescriptions} from 'app/views/onboarding/utils';
 import ConfigStore from 'app/stores/configStore';
 import HookStore from 'app/stores/hookStore';
 import InlineSvg from 'app/components/inlineSvg';
 import space from 'app/styles/space';
-import {onboardingSteps, stepDescriptions} from 'app/views/onboarding/utils';
 
 const ProgressNodes = createReactClass({
   displayName: 'ProgressNodes',

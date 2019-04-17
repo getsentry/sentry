@@ -2,12 +2,12 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
 
-import SentryTypes from 'app/sentryTypes';
 import {analytics} from 'app/utils/analytics';
-import Alert from 'app/components/alert';
-import withConfig from 'app/utils/withConfig';
-import {getPlatformName} from 'app/views/onboarding/utils';
 import {t} from 'app/locale';
+import Alert from 'app/components/alert';
+import SentryTypes from 'app/sentryTypes';
+import getPlatformName from 'app/utils/getPlatformName';
+import withConfig from 'app/utils/withConfig';
 
 class InstallPromptBanner extends React.Component {
   static propTypes = {
