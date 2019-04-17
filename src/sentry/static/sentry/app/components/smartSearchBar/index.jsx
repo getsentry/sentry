@@ -470,6 +470,7 @@ class SmartSearchBar extends React.Component {
       const tag = supportedTags[tagName];
 
       if (!tag) {
+        this.updateAutoCompleteState([], [], tagName, 'invalid-tag');
         return;
       }
 
@@ -919,7 +920,7 @@ function createSearchGroups(
 
   const searchGroup = {
     title: getTitleForType(type),
-    type: 'header',
+    type: type === 'invalid-tag' ? type : 'header',
     icon: getIconForTypeAndTag(type, tagName),
     children: [...searchItems],
   };

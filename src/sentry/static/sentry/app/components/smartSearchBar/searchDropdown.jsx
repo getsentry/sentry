@@ -3,6 +3,7 @@ import React from 'react';
 import classNames from 'classnames';
 import styled from 'react-emotion';
 
+import {t} from 'app/locale';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
@@ -85,12 +86,15 @@ class SearchDropdown extends React.PureComponent {
           <SearchItemsList>
             {items.map(item => {
               const isEmpty = item.children && !item.children.length;
+              const invalidTag = item.type === 'invalid-tag';
 
               // Hide header iff `item.children` is defined and an array and is empty
               return (
                 <React.Fragment key={item.title}>
-                  {item.type === 'header' && !isEmpty && this.renderHeaderItem(item)}
+                  {invalidTag && <Info>{t('Invalid tag')}</Info>}
+                  {item.type === 'header' && this.renderHeaderItem(item)}
                   {item.children && item.children.map(this.renderItem)}
+                  {isEmpty && !invalidTag && <Info>{t('No items found')}</Info>}
                 </React.Fragment>
               );
             })}
@@ -120,6 +124,14 @@ const LoadingWrapper = styled('div')`
   display: flex;
   justify-content: center;
   padding: ${space(1)};
+`;
+
+const Info = styled('div')`
+  display: flex;
+  justify-content: center;
+  padding: ${space(1)};
+  font-size: ${p => p.theme.fontSizeLarge};
+  color: ${p => p.theme.gray2};
 `;
 
 const ListItem = styled('li')`
