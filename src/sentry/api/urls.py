@@ -65,7 +65,6 @@ from .endpoints.organization_auth_providers import OrganizationAuthProvidersEndp
 from .endpoints.organization_auth_provider_details import OrganizationAuthProviderDetailsEndpoint
 from .endpoints.organization_auth_provider_send_reminders import OrganizationAuthProviderSendRemindersEndpoint
 from .endpoints.organization_avatar import OrganizationAvatarEndpoint
-from .endpoints.organization_broadcasts import OrganizationBroadcastsEndpoint
 from .endpoints.organization_details import OrganizationDetailsEndpoint
 from .endpoints.organization_discover_query import OrganizationDiscoverQueryEndpoint
 from .endpoints.organization_discover_saved_queries import OrganizationDiscoverSavedQueriesEndpoint
@@ -792,11 +791,6 @@ urlpatterns = patterns(
         r'^organizations/(?P<organization_slug>[^\/]+)/environments/$',
         OrganizationEnvironmentsEndpoint.as_view(),
         name='sentry-api-0-organization-environments',
-    ),
-    url(
-        r'^organizations/(?P<organization_slug>[^\/]+)/broadcasts/$',
-        OrganizationBroadcastsEndpoint.as_view(),
-        name='sentry-api-0-organization-broadcasts'
     ),
 
     # Teams
