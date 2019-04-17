@@ -1,5 +1,5 @@
 ---
-created: '2019-03-21T12:20:37.810590Z'
+created: '2019-04-17T10:59:28.715639Z'
 creator: sentry
 source: tests/sentry/lang/native/test_unreal.py
 ---
@@ -92,44 +92,64 @@ stacktrace:
   frames:
   - instruction_addr: '0x100d1471'
     package: ntdll
+    trust: prewalked
   - instruction_addr: '0xfd53034'
     package: KERNEL32
+    trust: prewalked
   - instruction_addr: '0x589c73c6'
     package: YetAnother
+    trust: prewalked
   - instruction_addr: '0x548229e6'
     package: YetAnother
+    trust: prewalked
   - instruction_addr: '0x54814eaa'
     package: YetAnother
+    trust: prewalked
   - instruction_addr: '0x54814e4c'
     package: YetAnother
+    trust: prewalked
   - instruction_addr: '0x54805258'
     package: YetAnother
+    trust: prewalked
   - instruction_addr: '0x571fcd39'
     package: YetAnother
+    trust: prewalked
   - instruction_addr: '0x5739984f'
     package: YetAnother
+    trust: prewalked
   - instruction_addr: '0x5739082f'
     package: YetAnother
+    trust: prewalked
   - instruction_addr: '0x57aafb58'
     package: YetAnother
+    trust: prewalked
   - instruction_addr: '0x57aa121d'
     package: YetAnother
+    trust: prewalked
   - instruction_addr: '0x54d8cf00'
     package: YetAnother
+    trust: prewalked
   - instruction_addr: '0x54d8cc56'
     package: YetAnother
+    trust: prewalked
   - instruction_addr: '0x57a56186'
     package: YetAnother
+    trust: prewalked
   - instruction_addr: '0x57a3e77e'
     package: YetAnother
+    trust: prewalked
   - instruction_addr: '0x56f2f984'
     package: YetAnother
+    trust: prewalked
   - instruction_addr: '0x56f06dd3'
     package: YetAnother
+    trust: prewalked
   - instruction_addr: '0x56cff2ee'
     package: YetAnother
+    trust: prewalked
   - instruction_addr: '0x54be3394'
     package: YetAnother
+    trust: prewalked
 tags:
   epic_account_id: 2e7d369327054a448be6c8d3601213cb
   machine_id: C52DC39D-DAF3-5E36-A8D3-BF5F53A5D38F
