@@ -61,7 +61,7 @@ const OrganizationContext = createReactClass({
     };
   },
 
-  componentWillMount() {
+  componentDidMount() {
     this.fetchData();
   },
 
@@ -71,9 +71,13 @@ const OrganizationContext = createReactClass({
       this.props.params.orgId &&
       prevProps.params.orgId !== this.props.params.orgId;
 
+    const organizationsLoading =
+      prevProps.organizationsLoading !== this.props.organizationsLoading &&
+      this.props.organizationsLoading === true;
+
     if (
       hasOrgIdAndChanged ||
-      prevProps.organizationsLoading !== this.props.organizationsLoading ||
+      organizationsLoading ||
       (this.props.location.state === 'refresh' && prevProps.location.state !== 'refresh')
     ) {
       this.remountComponent();
