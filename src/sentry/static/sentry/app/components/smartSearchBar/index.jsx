@@ -299,7 +299,8 @@ class SmartSearchBar extends React.Component {
         this.setState({loading: false});
         return values.map(value => {
           // Wrap in quotes if there is a space
-          const escapedValue = value.indexOf(' ') > -1 ? `"${value}"` : value;
+          const escapedValue =
+            value.indexOf(' ') > -1 ? `"${value.replace('"', '\\"')}"` : value;
           return {
             value: escapedValue,
             desc: escapedValue,
