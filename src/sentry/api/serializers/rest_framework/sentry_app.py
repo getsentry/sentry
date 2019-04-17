@@ -42,14 +42,25 @@ class SchemaField(serializers.WritableField):
             raise ValidationError(e.message)
 
 
+class URLField(serializers.URLField):
+    def validate(self, url):
+        # The Django URLField doesn't distinguish between different types of
+        # invalid URLs, so do any manual checks here to give the User a better
+        # error message.
+        if not url.startswith('http'):
+            raise ValidationError('URL must start with http[s]://')
+
+        super(URLField, self).validate(url)
+
+
 class SentryAppSerializer(Serializer):
     name = serializers.CharField()
     author = serializers.CharField()
     scopes = ApiScopesField()
     events = EventListField(required=False)
     schema = SchemaField(required=False)
-    webhookUrl = serializers.URLField()
-    redirectUrl = serializers.URLField(required=False)
+    webhookUrl = URLField()
+    redirectUrl = URLField(required=False)
     isAlertable = serializers.BooleanField(required=False)
     overview = serializers.CharField(required=False)
 

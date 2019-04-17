@@ -147,6 +147,16 @@ class PostSentryAppsTest(SentryAppsTest):
             {"name": ["Name Foo Bar is already taken, please use another."]}
 
     @with_feature('organizations:sentry-apps')
+    def test_invalid_with_missing_webhool_url_scheme(self):
+        self.login_as(user=self.user)
+        kwargs = {'webhookUrl': 'example.com'}
+        response = self._post(**kwargs)
+
+        assert response.status_code == 422
+        assert response.data == \
+            {'webhookUrl': ['URL must start with http[s]://']}
+
+    @with_feature('organizations:sentry-apps')
     def test_cannot_create_app_without_correct_permissions(self):
         self.login_as(user=self.user)
         kwargs = {'scopes': ('project:read',)}
