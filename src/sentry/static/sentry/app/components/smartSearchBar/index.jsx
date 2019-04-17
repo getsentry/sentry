@@ -107,6 +107,8 @@ class SmartSearchBar extends React.Component {
 
     onSavedRecentSearch: PropTypes.func,
 
+    onSidebarToggle: PropTypes.func,
+
     // If true, excludes the environment tag from the autocompletion list
     // This is because we don't want to treat environment as a tag in some places
     // such as the stream view where it is a top level concept
@@ -140,6 +142,7 @@ class SmartSearchBar extends React.Component {
     placeholder: t('Search for events, users, tags, and everything else.'),
     supportedTags: {},
     defaultSearchItems: [],
+    hasPinnedSearch: false,
   };
 
   constructor(props) {
@@ -635,29 +638,23 @@ class SmartSearchBar extends React.Component {
     const {
       className,
       dropdownClassName,
+      hasPinnedSearch,
       organization,
       placeholder,
       disabled,
+      onSidebarToggle,
     } = this.props;
 
-    return (
-      <div
-        className={classNames(
-          'search',
-          {
-            disabled,
-          },
-          className
-        )}
-      >
-        <form className="form-horizontal" onSubmit={this.onSubmit}>
-          <div>
-            <input
+    if (hasPinnedSearch) {
+      return (
+        <Container isDisabled={disabled}>
+          <form onSubmit={this.onSubmit}>
+            <StyledInput
               type="text"
               className="search-input form-control"
               placeholder={placeholder}
               name="query"
-              ref={this.searchInput}
+              innerRef={this.searchInput}
               autoComplete="off"
               value={this.state.query}
               onFocus={this.onQueryFocus}
@@ -668,35 +665,72 @@ class SmartSearchBar extends React.Component {
               onClick={this.onInputClick}
               disabled={disabled}
             />
-            <span className="icon-search" />
-
-            {this.props.hasPinnedSearch && (
-              <CreateSavedSearchButton
-                query={this.state.query}
-                organization={organization}
-              />
+            {(this.state.loading || this.state.searchItems.length > 0) && (
+              <DropdownWrapper visible={this.state.dropdownVisible}>
+                <SearchDropdown
+                  className={dropdownClassName}
+                  items={this.state.searchItems}
+                  onClick={this.onAutoComplete}
+                  loading={this.state.loading}
+                  searchSubstring={this.state.searchTerm}
+                />
+              </DropdownWrapper>
             )}
-            {this.state.query !== '' && (
-              <React.Fragment>
-                {this.props.hasPinnedSearch && (
-                  <Tooltip title={t('Pin this search')}>
-                    <PinButton
-                      type="button"
-                      borderless
-                      size="zero"
-                      onClick={this.onTogglePinnedSearch}
-                    >
-                      <PinIcon isPinned={!!this.props.pinnedSearch} src="icon-pin" />
-                    </PinButton>
-                  </Tooltip>
-                )}
-                <a className="search-clear-form" onClick={this.clearSearch}>
-                  <span className="icon-circle-cross" />
-                </a>
-              </React.Fragment>
-            )}
-          </div>
+          </form>
+          <ButtonBar>
+            <CreateSavedSearchButton
+              query={this.state.query}
+              organization={organization}
+            />
+            <Tooltip title={t('Pin this search')}>
+              <Button
+                type="button"
+                borderless
+                aria-label={t('Pin this search')}
+                size="zero"
+                onClick={this.onTogglePinnedSearch}
+              >
+                <PinIcon isPinned={!!this.props.pinnedSearch} src="icon-pin" />
+              </Button>
+            </Tooltip>
+            <SidebarButton
+              borderless
+              size="zero"
+              aria-label={t('Toggle search builder')}
+              icon="icon-sliders"
+              onClick={onSidebarToggle}
+            />
+          </ButtonBar>
+        </Container>
+      );
+    }
+    const classes = classNames('search', {disabled}, className);
 
+    return (
+      <div className={classes}>
+        <form className="form-horizontal" onSubmit={this.onSubmit}>
+          <input
+            type="text"
+            className="search-input form-control"
+            placeholder={placeholder}
+            name="query"
+            ref={this.searchInput}
+            autoComplete="off"
+            value={this.state.query}
+            onFocus={this.onQueryFocus}
+            onBlur={this.onQueryBlur}
+            onKeyUp={this.onKeyUp}
+            onKeyDown={this.onKeyDown}
+            onChange={this.onQueryChange}
+            onClick={this.onInputClick}
+            disabled={disabled}
+          />
+          <span className="icon-search" />
+          {this.state.query !== '' && (
+            <a className="search-clear-form" onClick={this.clearSearch}>
+              <span className="icon-circle-cross" />
+            </a>
+          )}
           {(this.state.loading || this.state.searchItems.length > 0) && (
             <DropdownWrapper visible={this.state.dropdownVisible}>
               <SearchDropdown
@@ -744,13 +778,6 @@ const SmartSearchBarContainer = withApi(
   )
 );
 
-const PinButton = styled(Button)`
-  margin-right: ${space(0.5)};
-  position: absolute;
-  right: 26px;
-  top: 10px;
-`;
-
 const PinIcon = styled(InlineSvg)`
   fill: ${p => (p.isPinned ? p.theme.blueLight : p.theme.gray2)};
   &:hover {
@@ -758,8 +785,61 @@ const PinIcon = styled(InlineSvg)`
   }
 `;
 
+const Container = styled.div`
+  position: relative;
+  flex-grow: 1;
+  z-index: ${p => p.theme.zIndex.dropdown};
+`;
+
+// Buttons are 18px wide, and we want 3px gutters
+const buttonBarWidth = 18 * 3 + 3 * 3;
+
+const ButtonBar = styled.div`
+  position: absolute;
+  top: 10px;
+  right: ${space(1)};
+  display: flex;
+  justify-content: space-between;
+  width: ${buttonBarWidth}px;
+
+  button {
+    background: transparent;
+  }
+`;
+
 const DropdownWrapper = styled('div')`
   display: ${p => (p.visible ? 'block' : 'none')};
+`;
+
+const StyledInput = styled.input`
+  border: 1px solid ${p => p.theme.borderLight};
+  border-radius: 0 ${p => p.theme.borderRadius} ${p => p.theme.borderRadius} 0;
+  box-shadow: inset ${p => p.theme.dropShadowLight};
+  color: ${p => p.theme.foreground};
+
+  font-size: ${p => p.theme.fontSizeMedium};
+  height: 38px;
+  width: 100%;
+
+  /* pad the right side of the input to accomodate the button bar */
+  padding: ${space(1)} ${buttonBarWidth + 12}px ${space(1)} ${space(1)};
+
+  &::placeholder {
+    color: ${p => p.theme.gray1};
+  }
+  &:focus {
+    border-color: ${p => p.theme.borderDark};
+    border-bottom-right-radius: 0;
+  }
+`;
+
+const SidebarButton = styled(Button)`
+  & svg {
+    color: ${p => p.theme.gray2};
+  }
+  .show-sidebar & svg {
+    color: ${p => p.theme.blueLight};
+  }
 `;
 
 export default SmartSearchBarContainer;

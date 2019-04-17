@@ -97,6 +97,7 @@ class CreateSavedSearchButton extends React.Component {
               type="button"
               onClick={this.onToggle}
               data-test-id="save-current-search"
+              aria-label={t('Add to organization filter list')}
               icon="icon-add-to-list"
             />
           </Tooltip>
@@ -152,10 +153,6 @@ class CreateSavedSearchButton extends React.Component {
 }
 
 const StyledButton = styled(Button)`
-  position: absolute;
-  top: 9px;
-  right: 52px;
-
   & svg {
     color: ${p => p.theme.gray6};
   }
