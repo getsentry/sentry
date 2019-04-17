@@ -539,7 +539,7 @@ table.table.key-value {
 @loader-size: 64px;
 @check-height: 32px;
 @check-width: 16px;
-@check-left: (@loader-size/6 + @loader-size/12);
+@check-left: (@loader-size / 6 + @loader-size / 12);
 @check-thickness: 6px;
 
 .loading {
@@ -746,6 +746,8 @@ table.table.key-value {
   }
 
   .search-input {
+    // Match the height of buttons adjacent to the search input.
+    height: 40px;
     padding: 8px 24px 8px 37px;
     font-size: 14px;
     background: #fff;
@@ -798,7 +800,7 @@ table.table.key-value {
   border: 1px solid darken(@trim, 6) !important;
   border-radius: 0 0 4px 4px;
   position: absolute;
-  top: 37px;
+  top: 39px;
   right: 0;
   left: 0;
   background: #fff;
@@ -1291,7 +1293,7 @@ ul.faces {
     right: 0;
     bottom: 0;
     padding: 40px 0 0;
-    #gradient > .vertical(rgba(255,255,255, 0.15), rgba(255,255,255, 1));
+    #gradient > .vertical(rgba(255, 255, 255, 0.15), rgba(255, 255, 255, 1));
     text-align: center;
     border-bottom: 10px solid #fff;
   }

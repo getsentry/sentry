@@ -7,7 +7,7 @@ import Access from 'app/components/acl/access';
 import Button from 'app/components/button';
 import Confirm from 'app/components/confirm';
 import DropdownButton from 'app/components/dropdownButton';
-import DropdownMenu from 'app/components/dropdownMenu';
+import DropdownControl from 'app/components/dropdownControl';
 import SentryTypes from 'app/sentryTypes';
 import space from 'app/styles/space';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
@@ -80,23 +80,16 @@ export default class OrganizationSavedSearchSelector extends React.Component {
   render() {
     return (
       <Container>
-        <DropdownMenu alwaysRenderMenu={true}>
-          {({isOpen, getMenuProps, getActorProps}) => {
-            return (
-              <React.Fragment>
-                <StyledDropdownButton
-                  {...getActorProps({isStyled: true})}
-                  isOpen={isOpen}
-                >
-                  <ButtonTitle>{this.getTitle()}</ButtonTitle>
-                </StyledDropdownButton>
-                <MenuContainer {...getMenuProps({isStyled: true})} isOpen={isOpen}>
-                  {this.renderList()}
-                </MenuContainer>
-              </React.Fragment>
-            );
-          }}
-        </DropdownMenu>
+        <DropdownControl
+          menuWidth="375px"
+          button={(isOpen, getActorProps) => (
+            <StyledDropdownButton {...getActorProps({isStyled: true})} isOpen={isOpen}>
+              <ButtonTitle>{this.getTitle()}</ButtonTitle>
+            </StyledDropdownButton>
+          )}
+        >
+          {this.renderList()}
+        </DropdownControl>
       </Container>
     );
   }
@@ -120,11 +113,6 @@ const StyledDropdownButton = styled(DropdownButton)`
   &:hover,
   &:active {
     border-right: 0;
-  }
-
-  /* Hack but search input, and sort dropdown are not standard size buttons */
-  & > span {
-    padding: 11px 16px;
   }
 `;
 
@@ -180,26 +168,6 @@ const MenuItem = styled.li`
     flex-grow: 1;
     padding: ${space(1)} ${space(1.5)};
   }
-`;
-
-const MenuContainer = styled.ul`
-  list-style: none;
-  width: 375px;
-
-  position: absolute;
-  /* Buttons are 38px tall, this has to be -1 to get button overlapping the menu */
-  top: 37px;
-  padding: 0;
-  margin: 0;
-  z-index: ${p => p.theme.zIndex.dropdownAutocomplete.menu};
-
-  background: ${p => p.theme.background};
-  border-radius: 0 0 ${p => p.theme.borderRadius} ${p => p.theme.borderRadius};
-  box-shadow: 0 1px 3px rgba(70, 82, 98, 0.25);
-  border: 1px solid ${p => p.theme.borderDark};
-  background-clip: padding-box;
-
-  display: ${p => (p.isOpen ? 'block' : 'none')};
 `;
 
 const EmptyItem = styled.li`
