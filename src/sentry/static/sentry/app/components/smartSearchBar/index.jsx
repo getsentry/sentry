@@ -8,6 +8,7 @@ import createReactClass from 'create-react-class';
 import styled from 'react-emotion';
 
 import {NEGATION_OPERATOR, SEARCH_WILDCARD} from 'app/constants';
+import {analytics} from 'app/utils/analytics';
 import {defined} from 'app/utils';
 import {
   fetchRecentSearches,
@@ -17,12 +18,12 @@ import {
 } from 'app/actionCreators/savedSearches';
 import {t} from 'app/locale';
 import Button from 'app/components/button';
+import CreateSavedSearchButton from 'app/views/stream/createSavedSearchButton';
 import InlineSvg from 'app/components/inlineSvg';
 import MemberListStore from 'app/stores/memberListStore';
-import CreateSavedSearchButton from 'app/views/stream/createSavedSearchButton';
 import SentryTypes from 'app/sentryTypes';
-import space from 'app/styles/space';
 import Tooltip from 'app/components/tooltip';
+import space from 'app/styles/space';
 import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
 
@@ -542,6 +543,13 @@ class SmartSearchBar extends React.Component {
     } else {
       pinSearch(api, organization.slug, savedSearchType, this.state.query);
     }
+
+    analytics('search.pin', {
+      org_id: parseInt(organization.id, 10),
+      action: !!pinnedSearch ? 'unpin' : 'pin',
+      source: savedSearchType,
+      query: pinnedSearch || this.state.query,
+    });
   };
 
   onKeyDown = evt => {
