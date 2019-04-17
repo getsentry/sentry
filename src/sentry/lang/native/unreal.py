@@ -6,8 +6,14 @@ from sentry.utils.safe import set_path, setdefault_path, get_path
 
 import re
 
-_portable_callstack_regexp = re.compile(
-    r'(?P<package>[\w]+) (?P<baseaddr>0x[\da-fA-F]+) \+ (?P<offset>[\da-fA-F]+)')
+_portable_callstack_regexp = re.compile(r'''(?x)
+    (?:^|\s)
+    (?P<package>[^\s]+)
+    \s
+    (?P<baseaddr>0x[\da-fA-F]+)
+    \s\+\s
+    (?P<offset>[\da-fA-F]+)
+''')
 
 
 def process_unreal_crash(payload, user_id, environment, event):
@@ -84,6 +90,40 @@ def merge_apple_crash_report(apple_crash_report, event):
     event.setdefault('debug_meta', {})['images'] = images
 
 
+def parse_portable_callstack(portable_callstack, images):
+    frames = []
+    for match in _portable_callstack_regexp.finditer(portable_callstack):
+        baseaddr = int(match.group('baseaddr'), 16)
+        offset = int(match.group('offset'), 16)
+        # Crashes without PDB in the client report: 0x00000000ffffffff + ffffffff
+        if baseaddr == 0xffffffff and offset == 0xffffffff:
+            continue
+
+        package_re = re.escape(match.group('package')) + r"(\.dll|\.exe)?$"
+        image = next((
+            image for image in images
+            if image.get('code_file')
+            and re.search(package_re, image['code_file'], re.IGNORECASE)
+        ), {})
+
+        # baseaddr reported in the pcallstack missing most relevant bits:
+        # i.e: 0x0000000080db0000
+        # The image address should be used instead with the offset:
+        image_addr = image.get('image_addr')
+        if image_addr:
+            # Rebase with the image address if available.
+            baseaddr = int(image_addr, 16)
+
+        frames.append({
+            'package': image.get('code_file') or match.group('package'),
+            'instruction_addr': hex(baseaddr + offset),
+            'trust': 'prewalked',
+        })
+
+    frames.reverse()
+    return frames
+
+
 def merge_unreal_context_event(unreal_context, event, project):
     """Merges the context from an Unreal Engine 4 crash
     with the given event."""
@@ -130,35 +170,8 @@ def merge_unreal_context_event(unreal_context, event, project):
                for thread in event.get('threads', [])):
         portable_callstack = runtime_prop.pop('portable_call_stack', None)
         if portable_callstack is not None:
-            frames = []
             images = get_path(event, 'debug_meta', 'images', filter=True, default=())
-            for match in _portable_callstack_regexp.finditer(portable_callstack):
-                baseaddr = int(match.group('baseaddr'), 16)
-                offset = int(match.group('offset'), 16)
-                # Crashes without PDB in the client report: 0x00000000ffffffff + ffffffff
-                if baseaddr == 0xffffffff and offset == 0xffffffff:
-                    continue
-
-                my_regex = re.escape(match.group('package')) + r"(\.dll|\.exe)?$"
-
-                # baseaddr reported in the pcallstack missing most relevant bits:
-                # i.e: 0x0000000080db0000
-                # The image address should be used instead with the offset:
-                it = next(
-                    (image for image in images if image.get('code_file') is not None and re.search(
-                        my_regex, image.get('code_file'), re.IGNORECASE)), {})
-
-                image_addr = it.get('image_addr')
-                if image_addr:
-                    # Rebase with the image address if available.
-                    baseaddr = int(image_addr, 16)
-
-                frames.append({
-                    'package': match.group('package'),
-                    'instruction_addr': hex(baseaddr + offset),
-                })
-
-            frames.reverse()
+            frames = parse_portable_callstack(portable_callstack, images)
 
             if len(frames) > 0:
                 event['stacktrace'] = {
