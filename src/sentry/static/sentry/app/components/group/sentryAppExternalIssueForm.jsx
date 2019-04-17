@@ -9,6 +9,7 @@ import Form from 'app/views/settings/components/forms/form';
 import SentryTypes from 'app/sentryTypes';
 import {t} from 'app/locale';
 import ExternalIssueStore from 'app/stores/externalIssueStore';
+import getStacktraceBody from 'app/utils/getStacktraceBody';
 import withApi from 'app/utils/withApi';
 
 class SentryAppExternalIssueForm extends React.Component {
@@ -18,6 +19,7 @@ class SentryAppExternalIssueForm extends React.Component {
     sentryAppInstallation: PropTypes.object,
     config: PropTypes.object.isRequired,
     action: PropTypes.oneOf(['link', 'create']),
+    event: SentryTypes.Event,
     onSubmitSuccess: PropTypes.func,
   };
 
@@ -76,6 +78,17 @@ class SentryAppExternalIssueForm extends React.Component {
       : {};
   };
 
+  getStacktrace() {
+    const evt = this.props.event;
+    const contentArr = getStacktraceBody(evt);
+
+    if (contentArr && contentArr.length > 0) {
+      return '\n\n```\n' + contentArr[0] + '\n```';
+    } else {
+      return '';
+    }
+  }
+
   getFieldDefault(field) {
     const {group} = this.props;
     if (field.type == 'textarea') {
@@ -86,10 +99,11 @@ class SentryAppExternalIssueForm extends React.Component {
       case 'issue.title':
         return group.title;
       case 'issue.description':
+        const stacktrace = this.getStacktrace();
         const queryParams = {referrer: this.props.sentryAppInstallation.sentryApp.name};
         const url = addQueryParamsToExistingUrl(group.permalink, queryParams);
         const shortId = group.shortId;
-        return t('Sentry Issue: [%s](%s)', shortId, url);
+        return t('Sentry Issue: [%s](%s)%s', shortId, url, stacktrace);
       default:
         return '';
     }
