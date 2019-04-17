@@ -1,5 +1,6 @@
 import React from 'react';
 import {shallow, mount} from 'enzyme';
+import {Client} from 'app/api';
 
 import {SmartSearchBar, addSpace, removeSpace} from 'app/components/smartSearchBar';
 import TagStore from 'app/stores/tagStore';
@@ -44,9 +45,7 @@ describe('SmartSearchBar', function() {
     supportedTags = {};
     organization = TestStubs.Organization({id: '123'});
 
-    options = {
-      context: {organization},
-    };
+    options = TestStubs.routerContext([{organization}]);
 
     environmentTagValuesMock = MockApiClient.addMockResponse({
       url: '/projects/123/456/tags/environment/values/',
@@ -184,6 +183,24 @@ describe('SmartSearchBar', function() {
 
       expect(searchBar.state.dropdownVisible).toBe(true);
     });
+
+    it('displays dropdown in hasPinnedSearch mode', function() {
+      const searchBar = shallow(
+        <SmartSearchBar
+          orgId="123"
+          projectId="456"
+          supportedTags={supportedTags}
+          onGetTagValues={tagValuesMock}
+          hasPinnedSearch
+        />,
+        options
+      ).instance();
+      expect(searchBar.state.dropdownVisible).toBe(false);
+
+      searchBar.onQueryFocus();
+
+      expect(searchBar.state.dropdownVisible).toBe(true);
+    });
   });
 
   describe('onQueryBlur()', function() {
@@ -259,6 +276,26 @@ describe('SmartSearchBar', function() {
 
       await tick();
       expect(props.onSearch).toHaveBeenCalledWith('');
+    });
+
+    it('invokes onSearch() on submit in hasPinnedSearch mode', function() {
+      const stubbedOnSearch = jest.fn();
+      const wrapper = mount(
+        <SmartSearchBar
+          onSearch={stubbedOnSearch}
+          organization={organization}
+          orgId="123"
+          projectId="456"
+          query="is:unresolved"
+          supportedTags={supportedTags}
+          hasPinnedSearch
+        />,
+        options
+      );
+
+      wrapper.find('form').simulate('submit');
+
+      expect(stubbedOnSearch).toHaveBeenCalledWith('is:unresolved');
     });
   });
 
@@ -385,6 +422,67 @@ describe('SmartSearchBar', function() {
       searchBar.updateAutoCompleteItems();
       jest.advanceTimersByTime(301);
       expect(mock).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('onTogglePinnedSearch', function() {
+    let pinRequest, unpinRequest;
+    beforeEach(function() {
+      pinRequest = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/pinned-searches/',
+        method: 'PUT',
+        body: [],
+      });
+      unpinRequest = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/pinned-searches/',
+        method: 'DELETE',
+        body: [],
+      });
+    });
+
+    it('adds pins', async function() {
+      const wrapper = mount(
+        <SmartSearchBar
+          api={new Client()}
+          organization={organization}
+          orgId={organization.slug}
+          projectId="456"
+          query="is:unresolved"
+          supportedTags={supportedTags}
+          savedSearchType={0}
+          hasPinnedSearch
+        />,
+        options
+      );
+      wrapper.find('button[aria-label="Pin this search"]').simulate('click');
+      await wrapper.update();
+
+      expect(pinRequest).toHaveBeenCalled();
+      expect(unpinRequest).not.toHaveBeenCalled();
+    });
+
+    it('removes pins', async function() {
+      const pinnedSearch = TestStubs.Search({isPinned: true});
+      const wrapper = mount(
+        <SmartSearchBar
+          api={new Client()}
+          organization={organization}
+          orgId={organization.slug}
+          projectId="456"
+          query="is:unresolved"
+          supportedTags={supportedTags}
+          savedSearchType={0}
+          pinnedSearch={pinnedSearch}
+          hasPinnedSearch
+        />,
+        options
+      );
+
+      wrapper.find('button[aria-label="Pin this search"]').simulate('click');
+      await wrapper.update();
+
+      expect(pinRequest).not.toHaveBeenCalled();
+      expect(unpinRequest).toHaveBeenCalled();
     });
   });
 });

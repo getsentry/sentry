@@ -1,5 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
+import styled from 'react-emotion';
 
 import Feature from 'app/components/acl/feature';
 import SentryTypes from 'app/sentryTypes';
@@ -73,6 +74,7 @@ class StreamFilters extends React.Component {
       tagValueLoader,
       tags,
     } = this.props;
+    const hasOrgSavedSearches = organization.features.includes('org-saved-searches');
 
     return (
       <PageHeader>
@@ -97,7 +99,7 @@ class StreamFilters extends React.Component {
             <QueryCount count={queryCount} max={queryMaxCount} />
           </PageHeading>
         </Feature>
-        <div className="search-container">
+        <SearchContainer isWide={hasOrgSavedSearches}>
           <SortOptions sort={sort} onSelect={onSortChange} />
 
           <Feature features={['org-saved-searches']}>
@@ -120,14 +122,17 @@ class StreamFilters extends React.Component {
             supportedTags={tags}
             tagValueLoader={tagValueLoader}
             savedSearch={savedSearch}
+            onSidebarToggle={onSidebarToggle}
           />
-          <a className="btn btn-default toggle-stream-sidebar" onClick={onSidebarToggle}>
-            <span className="icon-filter" />
-          </a>
-        </div>
+        </SearchContainer>
       </PageHeader>
     );
   }
 }
+
+const SearchContainer = styled.div`
+  display: flex;
+  width: ${p => (p.isWide ? '70%' : '58.3%')};
+`;
 
 export default StreamFilters;
