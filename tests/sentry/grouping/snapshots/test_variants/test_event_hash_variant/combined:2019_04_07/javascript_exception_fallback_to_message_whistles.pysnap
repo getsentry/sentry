@@ -1,0 +1,24 @@
+---
+created: '2019-04-17T20:35:08.612651Z'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app:
+  hash: None
+  component:
+    app (exception of system takes precedence)
+      exception (ignored because hash matches system variant)
+        type*
+          u'Error'
+        value*
+          u'Wed Apr 17 22:31:45 2019: foobar.bazblafasel@example.invalid logged in (error 42) time spent 1234.33 --- correlation id 88ee7c66-29a9-4a4a-bc26-c72d76c5de14, checksum da39a3ee5e6b4b0d3255bfef95601890afd80709 (md5 d41d8cd98f00b204e9800998ecf8427e); payload timestamp 2019-04-17T20:29:05Z'
+--------------------------------------------------------------------------
+system:
+  hash: 'c85f6879dd8e0f34ef9096b93b98d760'
+  component:
+    system*
+      exception*
+        type*
+          u'Error'
+        value*
+          u'Wed Apr 17 22:31:45 2019: foobar.bazblafasel@example.invalid logged in (error 42) time spent 1234.33 --- correlation id 88ee7c66-29a9-4a4a-bc26-c72d76c5de14, checksum da39a3ee5e6b4b0d3255bfef95601890afd80709 (md5 d41d8cd98f00b204e9800998ecf8427e); payload timestamp 2019-04-17T20:29:05Z'

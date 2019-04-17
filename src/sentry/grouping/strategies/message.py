@@ -54,10 +54,12 @@ _irrelevant_re = re.compile(r'''(?x)
         )
     ) |
     (?P<float>
-        -?\d+\.\d+
+        -\d+\.\d+\b |
+        \b\d+\.\d+\b
     ) |
     (?P<int>
-        -?\d+
+        -\d+\b |
+        \b\d+\b
     )
 ''')
 
