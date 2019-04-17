@@ -2,6 +2,7 @@ from __future__ import absolute_import
 
 import re
 import six
+from itertools import islice
 
 from sentry.grouping.component import GroupingComponent
 from sentry.grouping.strategies.base import strategy
@@ -12,7 +13,7 @@ _irrelevant_re = re.compile(r'''(?x)
         [a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)*
     ) |
     (?P<url>
-        (wss?|https?|ftp)://(-\.)?([^\s/?\.#-]+\.?)+(/[^\s]*)?
+        \b(wss?|https?|ftp)://[^\s/$.?#].[^\s]*
     ) |
     (?P<uuid>
         \b
@@ -62,16 +63,16 @@ _irrelevant_re = re.compile(r'''(?x)
 
 
 def trim_message_for_grouping(string):
-    first_line = next(iter(x for x in string.splitlines() if x.strip()), '').strip()
-    if first_line != string:
-        first_line += '...'
+    s = '\n'.join(islice((x for x in string.splitlines() if x.strip()), 2)).strip()
+    if s != string:
+        s += '...'
 
     def _handle_match(match):
         for key, value in six.iteritems(match.groupdict()):
             if value is not None:
                 return '<%s>' % key
         return ''
-    return _irrelevant_re.sub(_handle_match, first_line)
+    return _irrelevant_re.sub(_handle_match, s)
 
 
 @strategy(
