@@ -285,7 +285,10 @@ class NativeStacktraceProcessor(StacktraceProcessor):
     def handle_symbolicator_status(self, status, image):
         if status in ('found', 'unused'):
             return
-        elif status in ('missing_debug_file', 'missing_file'):
+        elif status in (
+            'missing_debug_file',  # TODO(markus): Legacy key. Remove after next deploy
+            'missing_file'
+        ):
             package = image.get('code_file')
             if not package or is_known_third_party(package, sdk_info=self.sdk_info):
                 return
@@ -295,7 +298,10 @@ class NativeStacktraceProcessor(StacktraceProcessor):
                     type=EventError.NATIVE_MISSING_OPTIONALLY_BUNDLED_DSYM)
             else:
                 error = SymbolicationFailed(type=EventError.NATIVE_MISSING_DSYM)
-        elif status in ('malformed_debug_file', 'malformed_file'):
+        elif status in (
+            'malformed_debug_file',  # TODO(markus): Legacy key. Remove after next deploy
+            'malformed_file'
+        ):
             error = SymbolicationFailed(type=EventError.NATIVE_BAD_DSYM)
         elif status == 'too_large':
             error = SymbolicationFailed(type=EventError.FETCH_TOO_LARGE)
