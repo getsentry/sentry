@@ -504,10 +504,16 @@ class SmartSearchBar extends React.Component {
    * @param {String} type Defines the type/state of the dropdown menu items
    */
   updateAutoCompleteState = (searchItems, recentSearchItems, tagName, type) => {
-    const {maxSearchItems} = this.props;
+    const {displayRecentSearches, maxSearchItems} = this.props;
 
     this.setState(
-      createSearchGroups(searchItems, recentSearchItems, tagName, type, maxSearchItems)
+      createSearchGroups(
+        searchItems,
+        displayRecentSearches ? recentSearchItems : null,
+        tagName,
+        type,
+        maxSearchItems
+      )
     );
   };
 
@@ -918,7 +924,7 @@ function createSearchGroups(
     children: [...searchItems],
   };
 
-  const recentSearchGroup = {
+  const recentSearchGroup = recentSearchItems && {
     title: t('Recent Searches'),
     type: 'header',
     icon: 'icon-clock',
@@ -933,8 +939,8 @@ function createSearchGroups(
   }
 
   return {
-    searchItems: [searchGroup, recentSearchGroup],
-    flatSearchItems: [...searchItems, ...recentSearchItems],
+    searchItems: [searchGroup, ...(recentSearchItems ? [recentSearchGroup] : [])],
+    flatSearchItems: [...searchItems, ...(recentSearchItems ? [recentSearchItems] : [])],
     activeSearchItem,
   };
 }
