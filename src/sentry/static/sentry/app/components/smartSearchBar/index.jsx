@@ -547,7 +547,7 @@ class SmartSearchBar extends React.Component {
     analytics('search.pin', {
       org_id: parseInt(organization.id, 10),
       action: !!pinnedSearch ? 'unpin' : 'pin',
-      source: savedSearchType,
+      source: savedSearchType === 0 ? 'issues' : 'events',
       query: pinnedSearch || this.state.query,
     });
   };
