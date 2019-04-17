@@ -8,7 +8,9 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 
 from sentry.testutils import TestCase
 from sentry.lang.native.minidump import MINIDUMP_ATTACHMENT_TYPE
-from sentry.lang.native.unreal import process_unreal_crash, unreal_attachment_type, merge_unreal_context_event, merge_unreal_logs_event, merge_apple_crash_report
+from sentry.lang.native.unreal import process_unreal_crash, unreal_attachment_type, \
+    merge_unreal_context_event, merge_unreal_logs_event, merge_apple_crash_report, \
+    parse_portable_callstack
 from sentry.models import Event, EventAttachment, UserReport
 
 
@@ -212,3 +214,55 @@ class UnrealIntegrationTest(TestCase):
         assert log.name == 'YetAnother.log'  # Log file is named after the project
         assert log.file.type == 'event.attachment'
         assert log.file.checksum == '24d1c5f75334cd0912cc2670168d593d5fe6c081'
+
+
+def test_parse_portable_callstack(insta_snapshot):
+    portable_callstack = (
+        'UE4Editor-ShaderCore 0x0000000081060000 + b6998 '
+        'UE4Editor-Renderer 0x000000004da80000 + 763ee2 '
+        'UE4Editor-Renderer 0x000000004da80000 + 760a28 '
+        'KERNEL32 0x00000000b5a90000 + 13034 '
+        'ntdll 0x00000000b7220000 + 73691'
+    )
+
+    images = [
+        {
+            "code_file": "C:\\Unreal\\UE4Editor-ShaderCore.dll",
+            "code_id": "5CB4A59512a000",
+            "image_addr": "0x7ff881060000",
+            "debug_file": "UE4Editor-ShaderCore.pdb",
+            "image_size": 1220608,
+            "type": "pe",
+            "debug_id": "19978799-526a-4d94-a18d-4a18ea7e989f-1"
+        },
+        {
+            "code_file": "C:\\Unreal\\UE4Editor-Renderer.dll",
+            "code_id": "5CB4A5A6e77000",
+            "image_addr": "0x7ff84da80000",
+            "debug_file": "UE4Editor-Renderer.pdb",
+            "image_size": 15167488,
+            "type": "pe",
+            "debug_id": "70bad0d5-0da7-459c-b854-0bb41a753eac-1"
+        },
+        {
+            "code_file": "C:\\Windows\\System32\\kernel32.dll",
+            "code_id": "5F488A51b2000",
+            "image_addr": "0x7ff8b5a90000",
+            "debug_file": "kernel32.pdb",
+            "image_size": 729088,
+            "type": "pe",
+            "debug_id": "63816243-ec70-4dc0-91bc-31470bac48a3-1"
+        },
+        {
+            "code_file": "C:\\Windows\\System32\\ntdll.dll",
+            "code_id": "7E614C221e1000",
+            "image_addr": "0x7ff8b7220000",
+            "debug_file": "ntdll.pdb",
+            "image_size": 1970176,
+            "type": "pe",
+            "debug_id": "338c83b3-1707-66b1-728d-0b2ff2f39588-1"
+        },
+    ]
+
+    frames = parse_portable_callstack(portable_callstack, images)
+    insta_snapshot(frames)
