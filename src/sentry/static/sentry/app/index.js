@@ -20,6 +20,7 @@ import * as ReactEmotion from 'react-emotion';
 import Reflux from 'reflux';
 import * as Router from 'react-router';
 import * as Sentry from '@sentry/browser';
+import {ExtraErrorData} from '@sentry/integrations';
 import createReactClass from 'create-react-class';
 import jQuery from 'jquery';
 import moment from 'moment';
@@ -35,7 +36,10 @@ import plugins from 'app/plugins';
 
 // SDK INIT  --------------------------------------------------------
 // window.__SENTRY__OPTIONS will be emmited by sdk-config.html before loading this script
-Sentry.init(window.__SENTRY__OPTIONS);
+Sentry.init({
+  ...window.__SENTRY__OPTIONS,
+  integrations: [new ExtraErrorData()],
+});
 
 Sentry.configureScope(scope => {
   if (window.__SENTRY__USER) {
