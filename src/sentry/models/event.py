@@ -426,40 +426,35 @@ class SnubaEvent(EventCommon):
         as a regular Event.
     """
 
-    # The list of columns that we should request from snuba to be able to fill
-    # out the object.
-    selected_columns = [
-        'event_id',
-        'project_id',
-        'message',
-        'title',
-        'type',
-        'location',
-        'culprit',
-        'timestamp',
-        'group_id',
-        'platform',
-
-        # Required to provide snuba-only tags
-        'tags.key',
-        'tags.value',
-
-        # Required to provide snuba-only 'user' interface
-        'user_id',
-        'username',
-        'ip_address',
-        'email',
-    ]
-
     # The minimal list of columns we need to get from snuba to bootstrap an
     # event. If the client is planning on loading the entire event body from
     # nodestore anyway, we may as well only fetch the minimum from snuba to
     # avoid duplicated work.
     minimal_columns = [
         'event_id',
+        'group_id',
         'project_id',
         'timestamp',
-        'group_id',
+    ]
+
+    # A list of all useful columns we can get from snuba.
+    selected_columns = minimal_columns + [
+        'culprit',
+        'location',
+        'message',
+        'platform',
+        'title',
+        'type',
+
+        # Required to provide snuba-only tags
+        'tags.key',
+        'tags.value',
+
+        # Required to provide snuba-only 'user' interface
+        'email',
+        'ip_address',
+        'user_id',
+        'username',
     ]
 
     objects = SnubaEventManager()
