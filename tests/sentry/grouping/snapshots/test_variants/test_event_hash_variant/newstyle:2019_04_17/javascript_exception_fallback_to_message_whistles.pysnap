@@ -1,5 +1,5 @@
 ---
-created: '2019-04-17T20:38:28.065611Z'
+created: '2019-04-18T14:29:10.019528Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -11,14 +11,14 @@ app:
         type*
           u'Error'
         value* (stripped common values)
-          u'<date>: <email> logged in (error <int>) time spent <float> --- correlation id <uuid>, checksum <sha1> (md5 <md5>); payload timestamp <date>'
+          u'<date>: <email> logged in (error <int>) time spent <float> --- correlation id <uuid>, checksum <sha1> (md5 <md5>); payload timestamp <date> (submitted from <ip> via <ip> via <ip>)'
 --------------------------------------------------------------------------
 system:
-  hash: 'cdaa6957afc389fead1c38cc3d64d554'
+  hash: '0bbe78766de9b3b64a5cc115018bec46'
   component:
     system*
       exception*
         type*
           u'Error'
         value* (stripped common values)
-          u'<date>: <email> logged in (error <int>) time spent <float> --- correlation id <uuid>, checksum <sha1> (md5 <md5>); payload timestamp <date>'
+          u'<date>: <email> logged in (error <int>) time spent <float> --- correlation id <uuid>, checksum <sha1> (md5 <md5>); payload timestamp <date> (submitted from <ip> via <ip> via <ip>)'

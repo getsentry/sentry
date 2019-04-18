@@ -102,6 +102,9 @@ register_strategy_config(
     changelog='''
         * messages are now preprocessed to increase change of grouping together
         * exceptions without stacktraces are now grouped by a trimmed message
+
+        *This algorithm is currently work in progress and will continue to
+        evolve based on feedback*
     '''
 )
 
