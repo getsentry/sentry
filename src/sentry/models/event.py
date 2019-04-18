@@ -508,7 +508,7 @@ class SnubaEvent(EventCommon):
     def __getattr__(self, name):
         """
         Depending on what snuba data this event was initialized with, we may
-        have the data availablle to return, or we may have to look in the
+        have the data available to return, or we may have to look in the
         `data` dict (which would force a nodestore load). All unresolved
         self.foo type accesses will come through here.
         """
