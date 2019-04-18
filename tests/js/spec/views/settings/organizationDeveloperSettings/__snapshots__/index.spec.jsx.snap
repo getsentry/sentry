@@ -736,6 +736,62 @@ exports[`Organization Developer Settings with published apps trash button is dis
                                                 </a>
                                               </Link>
                                             </SentryAppLink>
+                                            <BetaTag>
+                                              <Tooltip
+                                                title="This feature is in beta and may change in the future."
+                                                tooltipOptions={
+                                                  Object {
+                                                    "placement": "right",
+                                                  }
+                                                }
+                                              >
+                                                <StyledTag
+                                                  className="tip"
+                                                  priority="beta"
+                                                  size="small"
+                                                  title="This feature is in beta and may change in the future."
+                                                >
+                                                  <Tag
+                                                    className="tip css-f9iwbc-StyledTag e1xs0x250"
+                                                    priority="beta"
+                                                    size="small"
+                                                    title="This feature is in beta and may change in the future."
+                                                  >
+                                                    <TagTextStyled
+                                                      className="tip css-f9iwbc-StyledTag e1xs0x250"
+                                                      priority="beta"
+                                                      size="small"
+                                                      title="This feature is in beta and may change in the future."
+                                                    >
+                                                      <Component
+                                                        className="tip e1xs0x250 css-4og6iv-TagTextStyled-StyledTag e6q9yfr0"
+                                                        priority="beta"
+                                                        size="small"
+                                                        title="This feature is in beta and may change in the future."
+                                                      >
+                                                        <Box
+                                                          className="tip e1xs0x250 css-4og6iv-TagTextStyled-StyledTag e6q9yfr0"
+                                                          title="This feature is in beta and may change in the future."
+                                                        >
+                                                          <Base
+                                                            className="tip e1xs0x250 e6q9yfr0 css-1r8ewb4-TagTextStyled-StyledTag"
+                                                            title="This feature is in beta and may change in the future."
+                                                          >
+                                                            <div
+                                                              className="tip e1xs0x250 e6q9yfr0 css-1r8ewb4-TagTextStyled-StyledTag"
+                                                              is={null}
+                                                              title="This feature is in beta and may change in the future."
+                                                            >
+                                                              beta
+                                                            </div>
+                                                          </Base>
+                                                        </Box>
+                                                      </Component>
+                                                    </TagTextStyled>
+                                                  </Tag>
+                                                </StyledTag>
+                                              </Tooltip>
+                                            </BetaTag>
                                           </div>
                                         </SentryAppName>
                                         <SentryAppDetails>
@@ -1325,6 +1381,62 @@ exports[`Organization Developer Settings with unpublished apps displays all Apps
                                                 </a>
                                               </Link>
                                             </SentryAppLink>
+                                            <BetaTag>
+                                              <Tooltip
+                                                title="This feature is in beta and may change in the future."
+                                                tooltipOptions={
+                                                  Object {
+                                                    "placement": "right",
+                                                  }
+                                                }
+                                              >
+                                                <StyledTag
+                                                  className="tip"
+                                                  priority="beta"
+                                                  size="small"
+                                                  title="This feature is in beta and may change in the future."
+                                                >
+                                                  <Tag
+                                                    className="tip css-f9iwbc-StyledTag e1xs0x250"
+                                                    priority="beta"
+                                                    size="small"
+                                                    title="This feature is in beta and may change in the future."
+                                                  >
+                                                    <TagTextStyled
+                                                      className="tip css-f9iwbc-StyledTag e1xs0x250"
+                                                      priority="beta"
+                                                      size="small"
+                                                      title="This feature is in beta and may change in the future."
+                                                    >
+                                                      <Component
+                                                        className="tip e1xs0x250 css-4og6iv-TagTextStyled-StyledTag e6q9yfr0"
+                                                        priority="beta"
+                                                        size="small"
+                                                        title="This feature is in beta and may change in the future."
+                                                      >
+                                                        <Box
+                                                          className="tip e1xs0x250 css-4og6iv-TagTextStyled-StyledTag e6q9yfr0"
+                                                          title="This feature is in beta and may change in the future."
+                                                        >
+                                                          <Base
+                                                            className="tip e1xs0x250 e6q9yfr0 css-1r8ewb4-TagTextStyled-StyledTag"
+                                                            title="This feature is in beta and may change in the future."
+                                                          >
+                                                            <div
+                                                              className="tip e1xs0x250 e6q9yfr0 css-1r8ewb4-TagTextStyled-StyledTag"
+                                                              is={null}
+                                                              title="This feature is in beta and may change in the future."
+                                                            >
+                                                              beta
+                                                            </div>
+                                                          </Base>
+                                                        </Box>
+                                                      </Component>
+                                                    </TagTextStyled>
+                                                  </Tag>
+                                                </StyledTag>
+                                              </Tooltip>
+                                            </BetaTag>
                                           </div>
                                         </SentryAppName>
                                         <SentryAppDetails>
@@ -2087,6 +2199,62 @@ exports[`Organization Developer Settings without Owner permissions trash button 
                                                 </a>
                                               </Link>
                                             </SentryAppLink>
+                                            <BetaTag>
+                                              <Tooltip
+                                                title="This feature is in beta and may change in the future."
+                                                tooltipOptions={
+                                                  Object {
+                                                    "placement": "right",
+                                                  }
+                                                }
+                                              >
+                                                <StyledTag
+                                                  className="tip"
+                                                  priority="beta"
+                                                  size="small"
+                                                  title="This feature is in beta and may change in the future."
+                                                >
+                                                  <Tag
+                                                    className="tip css-f9iwbc-StyledTag e1xs0x250"
+                                                    priority="beta"
+                                                    size="small"
+                                                    title="This feature is in beta and may change in the future."
+                                                  >
+                                                    <TagTextStyled
+                                                      className="tip css-f9iwbc-StyledTag e1xs0x250"
+                                                      priority="beta"
+                                                      size="small"
+                                                      title="This feature is in beta and may change in the future."
+                                                    >
+                                                      <Component
+                                                        className="tip e1xs0x250 css-4og6iv-TagTextStyled-StyledTag e6q9yfr0"
+                                                        priority="beta"
+                                                        size="small"
+                                                        title="This feature is in beta and may change in the future."
+                                                      >
+                                                        <Box
+                                                          className="tip e1xs0x250 css-4og6iv-TagTextStyled-StyledTag e6q9yfr0"
+                                                          title="This feature is in beta and may change in the future."
+                                                        >
+                                                          <Base
+                                                            className="tip e1xs0x250 e6q9yfr0 css-1r8ewb4-TagTextStyled-StyledTag"
+                                                            title="This feature is in beta and may change in the future."
+                                                          >
+                                                            <div
+                                                              className="tip e1xs0x250 e6q9yfr0 css-1r8ewb4-TagTextStyled-StyledTag"
+                                                              is={null}
+                                                              title="This feature is in beta and may change in the future."
+                                                            >
+                                                              beta
+                                                            </div>
+                                                          </Base>
+                                                        </Box>
+                                                      </Component>
+                                                    </TagTextStyled>
+                                                  </Tag>
+                                                </StyledTag>
+                                              </Tooltip>
+                                            </BetaTag>
                                           </div>
                                         </SentryAppName>
                                         <SentryAppDetails>
