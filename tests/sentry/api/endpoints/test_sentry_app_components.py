@@ -5,6 +5,7 @@ import six
 from django.core.urlresolvers import reverse
 from mock import patch, call
 
+from sentry.coreapi import APIError
 from sentry.testutils import APITestCase
 from sentry.testutils.helpers import with_feature
 
@@ -198,3 +199,25 @@ class OrganizationSentryAppComponentsTest(APITestCase):
         ]
 
         run.assert_has_calls(calls, any_order=True)
+
+    @with_feature('organizations:sentry-apps')
+    @patch('sentry.mediators.sentry_app_components.Preparer.run')
+    def test_component_prep_errors_are_isolated(self, run):
+        run.side_effect = [APIError(), self.component2]
+
+        response = self.client.get(self.url, format='json')
+
+        # Does not include self.component1 data, because it raised an exception
+        # during preparation.
+        assert response.data == [
+            {
+                'uuid': six.binary_type(self.component2.uuid),
+                'type': self.component2.type,
+                'schema': self.component2.schema,
+                'sentryApp': {
+                    'uuid': self.sentry_app2.uuid,
+                    'slug': self.sentry_app2.slug,
+                    'name': self.sentry_app2.name,
+                },
+            }
+        ]

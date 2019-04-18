@@ -5,6 +5,7 @@ from rest_framework.response import Response
 from sentry.api.bases import OrganizationEndpoint, SentryAppBaseEndpoint
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
+from sentry.coreapi import APIError
 from sentry.features.helpers import requires_feature
 from sentry.mediators import sentry_app_components
 from sentry.models import Project, SentryAppComponent
@@ -43,13 +44,15 @@ class OrganizationSentryAppComponentsEndpoint(OrganizationEndpoint):
                 _components = _components.filter(type=request.GET['filter'])
 
             for component in _components:
-                sentry_app_components.Preparer.run(
-                    component=component,
-                    install=install,
-                    project=project,
-                )
-
-            components.extend(_components)
+                try:
+                    sentry_app_components.Preparer.run(
+                        component=component,
+                        install=install,
+                        project=project,
+                    )
+                    components.append(component)
+                except APIError:
+                    continue
 
         return self.paginate(
             request=request,
