@@ -150,7 +150,7 @@ class PostSentryAppsTest(SentryAppsTest):
         )
         sentry_apps.Destroyer.run(sentry_app=sentry_app, user=self.user)
         response = self._post(**{'name': sentry_app.name})
-        assert response.status_code == 422
+        assert response.status_code == 400
         assert response.data == \
             {"name": ["Name Foo Bar is already taken, please use another."]}
 
@@ -160,7 +160,7 @@ class PostSentryAppsTest(SentryAppsTest):
         kwargs = {'webhookUrl': 'example.com'}
         response = self._post(**kwargs)
 
-        assert response.status_code == 422
+        assert response.status_code == 400
         assert response.data == \
             {'webhookUrl': ['URL must start with http[s]://']}
 
@@ -170,7 +170,7 @@ class PostSentryAppsTest(SentryAppsTest):
         kwargs = {'scopes': ('project:read',)}
         response = self._post(**kwargs)
 
-        assert response.status_code == 422
+        assert response.status_code == 400
         assert response.data == \
             {'events': ['issue webhooks require the event:read permission.']}
 
@@ -197,7 +197,7 @@ class PostSentryAppsTest(SentryAppsTest):
             ],
         }}
         response = self._post(**kwargs)
-        assert response.status_code == 422
+        assert response.status_code == 400
         assert response.data == \
             {'schema': ["['#general'] is too short"]}
 
@@ -213,7 +213,7 @@ class PostSentryAppsTest(SentryAppsTest):
         self.login_as(self.user)
         response = self._post(name=None)
 
-        assert response.status_code == 422, response.content
+        assert response.status_code == 400, response.content
         assert 'name' in response.data
 
     @with_feature('organizations:sentry-apps')
@@ -221,7 +221,7 @@ class PostSentryAppsTest(SentryAppsTest):
         self.login_as(self.user)
         response = self._post(events=['project'])
 
-        assert response.status_code == 422, response.content
+        assert response.status_code == 400, response.content
         assert 'events' in response.data
 
     @with_feature('organizations:sentry-apps')
@@ -229,7 +229,7 @@ class PostSentryAppsTest(SentryAppsTest):
         self.login_as(self.user)
         response = self._post(scopes=('not:ascope', ))
 
-        assert response.status_code == 422, response.content
+        assert response.status_code == 400, response.content
         assert 'scopes' in response.data
 
     @with_feature('organizations:sentry-apps')
@@ -237,7 +237,7 @@ class PostSentryAppsTest(SentryAppsTest):
         self.login_as(self.user)
         response = self._post(webhookUrl=None)
 
-        assert response.status_code == 422, response.content
+        assert response.status_code == 400, response.content
         assert 'webhookUrl' in response.data
 
     @with_feature('organizations:sentry-apps')
@@ -253,9 +253,11 @@ class PostSentryAppsTest(SentryAppsTest):
             'name': 'MyApp',
             'organization': self.org.slug,
             'author': 'Sentry',
+            'schema': None,
             'scopes': ('project:read', 'event:read'),
             'events': ('issue',),
             'webhookUrl': 'https://example.com',
+            'redirectUrl': '',
             'isAlertable': False,
         }
 
