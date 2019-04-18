@@ -2,17 +2,18 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
 
-import Feature from 'app/components/acl/feature';
-import SentryTypes from 'app/sentryTypes';
-import QueryCount from 'app/components/queryCount';
 import {PageHeader} from 'app/styles/organization';
-import PageHeading from 'app/components/pageHeading';
+import {analytics} from 'app/utils/analytics';
 import {t} from 'app/locale';
+import Feature from 'app/components/acl/feature';
+import PageHeading from 'app/components/pageHeading';
+import QueryCount from 'app/components/queryCount';
+import SentryTypes from 'app/sentryTypes';
 
+import OrganizationSavedSearchSelector from './organizationSavedSearchSelector';
+import SavedSearchSelector from './savedSearchSelector';
 import SearchBar from './searchBar';
 import SortOptions from './sortOptions';
-import SavedSearchSelector from './savedSearchSelector';
-import OrganizationSavedSearchSelector from './organizationSavedSearchSelector';
 
 class StreamFilters extends React.Component {
   static propTypes = {
@@ -50,6 +51,19 @@ class StreamFilters extends React.Component {
     onSortChange: function() {},
     onSearch: function() {},
     onSidebarToggle: function() {},
+  };
+
+  handleOrganizationSavedSearchSelect = savedSearch => {
+    analytics('organization_saved_search.selected', {
+      org_id: this.props.organization.id,
+      query: savedSearch.query,
+      search_type: 'issues',
+      id: savedSearch.id ? parseInt(savedSearch.id, 10) : -1,
+    });
+
+    if (this.props.onSavedSearchSelect) {
+      this.props.onSavedSearchSelect(savedSearch);
+    }
   };
 
   render() {
@@ -107,7 +121,7 @@ class StreamFilters extends React.Component {
               key={query}
               organization={organization}
               savedSearchList={savedSearchList}
-              onSavedSearchSelect={onSavedSearchSelect}
+              onSavedSearchSelect={this.handleOrganizationSavedSearchSelect}
               onSavedSearchDelete={onSavedSearchDelete}
               query={query}
             />

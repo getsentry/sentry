@@ -8,6 +8,7 @@ import createReactClass from 'create-react-class';
 import styled from 'react-emotion';
 
 import {NEGATION_OPERATOR, SEARCH_WILDCARD} from 'app/constants';
+import {analytics} from 'app/utils/analytics';
 import {defined} from 'app/utils';
 import {
   fetchRecentSearches,
@@ -17,12 +18,12 @@ import {
 } from 'app/actionCreators/savedSearches';
 import {t} from 'app/locale';
 import Button from 'app/components/button';
+import CreateSavedSearchButton from 'app/views/stream/createSavedSearchButton';
 import InlineSvg from 'app/components/inlineSvg';
 import MemberListStore from 'app/stores/memberListStore';
-import CreateSavedSearchButton from 'app/views/stream/createSavedSearchButton';
 import SentryTypes from 'app/sentryTypes';
-import space from 'app/styles/space';
 import Tooltip from 'app/components/tooltip';
+import space from 'app/styles/space';
 import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
 
@@ -190,7 +191,16 @@ class SmartSearchBar extends React.Component {
   };
 
   onSubmit = evt => {
+    const {organization, savedSearchType} = this.props;
     evt.preventDefault();
+
+    analytics('search.searched', {
+      org_id: organization.id,
+      query: removeSpace(this.state.query),
+      source: savedSearchType === 0 ? 'issues' : 'events',
+      search_source: 'main_search',
+    });
+
     this.doSearch();
   };
 
@@ -577,6 +587,13 @@ class SmartSearchBar extends React.Component {
 
   onAutoComplete = (replaceText, item) => {
     if (item.type === 'recent-search') {
+      analytics('search.searched', {
+        org_id: this.props.organization.id,
+        query: replaceText,
+        source: this.props.savedSearchType === 0 ? 'issues' : 'events',
+        search_source: 'recent_search',
+      });
+
       this.setState({query: replaceText}, () => {
         // Propagate onSearch and save to recent searches
         this.doSearch();
