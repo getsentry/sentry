@@ -443,6 +443,45 @@ describe('OrganizationStream', function() {
       );
     });
 
+    it('clears a saved search when a custom one is entered', async function() {
+      savedSearchesRequest = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/searches/',
+        body: [
+          savedSearch,
+          TestStubs.Search({
+            id: '123',
+            name: 'Pinned search',
+            isPinned: true,
+            isGlobal: false,
+            isOrgCustom: true,
+            query: 'is:resolved',
+          }),
+        ],
+      });
+      createWrapper();
+      await tick();
+      await wrapper.update();
+
+      // Update the search input
+      wrapper
+        .find('StreamFilters SmartSearchBar StyledInput input')
+        .simulate('change', {target: {value: 'dogs'}});
+      // Submit the form
+      wrapper.find('StreamFilters SmartSearchBar form').simulate('submit');
+      await wrapper.update();
+
+      expect(browserHistory.push).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          pathname: '/organizations/org-slug/issues/',
+          query: {
+            environment: [],
+            project: [],
+            query: 'dogs',
+          },
+        })
+      );
+    });
+
     it.todo('pins and unpins a custom query');
 
     it.todo('pins and unpins a saved query');
