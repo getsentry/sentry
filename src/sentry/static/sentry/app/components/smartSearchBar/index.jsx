@@ -827,10 +827,13 @@ const ButtonBar = styled.div`
   top: ${space(1.5)};
   right: ${space(1.5)};
   display: flex;
-  justify-content: space-between;
-  width: ${buttonBarWidth}px;
+  justify-content: flex-end;
+  max-width: ${buttonBarWidth}px;
 
   button {
+    margin-left: ${space(0.5)};
+    width: 18px;
+
     background: transparent;
     &:hover {
       background: transparent;
