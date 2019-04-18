@@ -6,12 +6,13 @@ import {t} from 'app/locale';
 const eventsByRelease = {
   name: t('Events by Release'),
   fields: ['release'],
+  constraints: ['recentReleases'],
   conditions: [],
   aggregations: [['count()', null, 'Events']],
-  limit: 2000,
+  limit: 5000,
 
   orderby: '-time',
-  groupby: ['time'],
+  groupby: ['time', 'release'],
   rollup: 86400,
 };
 

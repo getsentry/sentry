@@ -32,6 +32,7 @@ class Widget extends React.Component {
     return (
       <ErrorBoundary customComponent={<ErrorCard>{t('Error loading widget')}</ErrorCard>}>
         <DiscoverQuery
+          releases={releases}
           organization={organization}
           selection={selection}
           queries={widget.queries.discover}
