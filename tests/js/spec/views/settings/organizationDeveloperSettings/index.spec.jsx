@@ -64,7 +64,7 @@ describe('Organization Developer Settings', function() {
         .simulate('click');
       await tick();
       wrapper.update();
-      expect(wrapper.text()).toMatch('No applications have been created yet');
+      expect(wrapper.text()).toMatch('No integrations have been created yet');
     });
   });
 
