@@ -381,7 +381,7 @@ export const SentryApplication = PropTypes.shape({
 });
 
 export const SavedSearch = PropTypes.shape({
-  id: PropTypes.string.isRequired,
+  id: PropTypes.string,
   dateCreated: PropTypes.string,
   isDefault: PropTypes.bool,
   isGlobal: PropTypes.bool,
