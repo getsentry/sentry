@@ -80,6 +80,21 @@ class EventDict(CanonicalKeyDict):
 
 
 class EventCommon(object):
+    """
+    Methods and properties common to both Event and SnubaEvent.
+    """
+
+    # Class-level fallback for lookup of cache attributes, these will be
+    # overriden by instance attributes where needed.
+    #
+    # TODO (alex) We need a better way to cache these properties.  functools32
+    # doesn't quite do the trick as there is a reference bug with unsaved
+    # models. But the current _group_cache thing is also clunky because these
+    # properties need to be stripped out in __getstate__.
+    _group_cache = None
+    _project_cache = None
+    _environment_cache = None
+
     @classmethod
     def generate_node_id(cls, project_id, event_id):
         """
@@ -90,14 +105,10 @@ class EventCommon(object):
         """
         return md5('{}:{}'.format(project_id, event_id)).hexdigest()
 
-    # TODO (alex) We need a better way to cache these properties. functools32
-    # doesn't quite do the trick as there is a reference bug with unsaved
-    # models. But the current _group_cache thing is also clunky because these
-    # properties need to be stripped out in __getstate__.
     @property
     def group(self):
         from sentry.models import Group
-        if not hasattr(self, '_group_cache'):
+        if not self._group_cache:
             self._group_cache = Group.objects.get(id=self.group_id)
         return self._group_cache
 
@@ -109,7 +120,7 @@ class EventCommon(object):
     @property
     def project(self):
         from sentry.models import Project
-        if not hasattr(self, '_project_cache'):
+        if not self._project_cache:
             self._project_cache = Project.objects.get(id=self.project_id)
         return self._project_cache
 
@@ -148,7 +159,7 @@ class EventCommon(object):
 
         See ``sentry.eventtypes``.
         """
-        return self.data.get('type', 'default')
+        return getattr(self, 'type', 'default')
 
     def get_event_metadata(self):
         """
@@ -315,8 +326,7 @@ class EventCommon(object):
 
     def get_environment(self):
         from sentry.models import Environment
-
-        if not hasattr(self, '_environment_cache'):
+        if not self._environment_cache:
             self._environment_cache = Environment.objects.get(
                 organization_id=self.project.organization_id,
                 name=Environment.get_name_or_default(self.get_tag('environment')),
@@ -448,17 +458,28 @@ class SnubaEvent(EventCommon):
         'email',
     ]
 
+    # The minimal list of columns we need to get from snuba to bootstrap an
+    # event. If the client is planning on loading the entire event body from
+    # nodestore anyway, we may as well only fetch the minimum from snuba to
+    # avoid duplicated work.
+    minimal_columns = [
+        'event_id',
+        'project_id',
+        'timestamp',
+        'group_id',
+    ]
+
     objects = SnubaEventManager()
 
     __repr__ = sane_repr('project_id', 'group_id')
 
     @classmethod
-    def get_event(cls, project_id, event_id):
+    def get_event(cls, project_id, event_id, snuba_cols=selected_columns):
         from sentry.utils import snuba
         result = snuba.raw_query(
             start=datetime.utcfromtimestamp(0),  # will be clamped to project retention
             end=datetime.utcnow(),  # will be clamped to project retention
-            selected_columns=cls.selected_columns,
+            selected_columns=snuba_cols,
             filter_keys={
                 'event_id': [event_id],
                 'project_id': [project_id],
@@ -470,14 +491,38 @@ class SnubaEvent(EventCommon):
         return None
 
     def __init__(self, snuba_values):
-        assert set(snuba_values.keys()) == set(self.selected_columns)
+        """
+            When initializing a SnubaEvent, think about the attributes you
+            might need to access on it. If you only need a few properties, and
+            they are all available in snuba, then you should use
+            `SnubaEvent.selected_colums` (or a subset depending on your needs)
+            But if you know you are going to need the entire event body anyway
+            (which requires a nodestore lookup) you may as well just initialize
+            the event with `SnubaEvent.minimal_colums` and let the rest of of
+            the attributes come from nodestore.
+        """
+        assert all(k in snuba_values for k in SnubaEvent.minimal_columns)
 
-        self.__dict__ = snuba_values
+        # self.snuba_data is a dict of all the stuff we got from snuba
+        self.snuba_data = snuba_values
 
-        # This should be lazy loaded and will only be accessed if we access any
-        # properties on self.data
-        node_id = SnubaEvent.generate_node_id(self.project_id, self.event_id)
+        # self.data is a (lazy) dict of everything we got from nodestore
+        node_id = SnubaEvent.generate_node_id(
+            self.snuba_data['project_id'],
+            self.snuba_data['event_id'])
         self.data = NodeData(None, node_id, data=None)
+
+    def __getattr__(self, name):
+        """
+        Depending on what snuba data this event was initialized with, we may
+        have the data availablle to return, or we may have to look in the
+        `data` dict (which would force a nodestore load). All unresolved
+        self.foo type accesses will come through here.
+        """
+        if name in self.snuba_data:
+            return self.snuba_data[name]
+        else:
+            return self.data[name]
 
     # ============================================
     # Snuba-only implementations of properties that
@@ -490,14 +535,15 @@ class SnubaEvent(EventCommon):
         the nodestore event body. This might be useful for implementing
         tag deletions without having to rewrite nodestore blobs.
         """
-        keys = getattr(self, 'tags.key', None)
-        values = getattr(self, 'tags.value', None)
-        if keys and values and len(keys) == len(values):
-            return sorted(zip(keys, values))
-        return []
-
-    def get_event_type(self):
-        return self.__dict__.get('type', 'default')
+        if 'tags.key' in self.snuba_data and 'tags.value' in self.snuba_data:
+            keys = getattr(self, 'tags.key')
+            values = getattr(self, 'tags.value')
+            if keys and values and len(keys) == len(values):
+                return sorted(zip(keys, values))
+            else:
+                return []
+        else:
+            return super(SnubaEvent, self).tags
 
     def get_minimal_user(self):
         from sentry.interfaces.user import User
@@ -508,23 +554,32 @@ class SnubaEvent(EventCommon):
             'ip_address': self.ip_address,
         })
 
-    # These should all have been normalized to the correct values on
-    # the way in to snuba, so we should be able to just use them as is.
+    # If the data for these is availablle from snuba, we asssume
+    # it was already normalized on the way in and we can just return
+    # it, otherwise we defer to EventCommon implementation.
     @property
     def ip_address(self):
-        return self.__dict__['ip_address']
+        if 'ip_address' in self.snuba_data:
+            return self.snuba_data['ip_address']
+        return super(SnubaEvent, self).ip_address
 
     @property
     def title(self):
-        return self.__dict__['title']
+        if 'title' in self.snuba_data:
+            return self.snuba_data['title']
+        return super(SnubaEvent, self).title
 
     @property
     def culprit(self):
-        return self.__dict__['culprit']
+        if 'culprit' in self.snuba_data:
+            return self.snuba_data['culprit']
+        return super(SnubaEvent, self).culprit
 
     @property
     def location(self):
-        return self.__dict__['location']
+        if 'location' in self.snuba_data:
+            return self.snuba_data['location']
+        return super(SnubaEvent, self).location
 
     # ============================================
     # Snuba implementations of django Fields
@@ -656,6 +711,7 @@ class Event(EventCommon, Model):
         # pickle a CanonicalKeyView which old sentry workers do not know
         # about
         state.pop('_project_cache', None)
+        state.pop('_environment_cache', None)
         state.pop('_group_cache', None)
         state.pop('interfaces', None)
 
