@@ -256,7 +256,7 @@ describe('SearchBar', function() {
         expect.objectContaining({
           method: 'PUT',
           data: {
-            query: 'url:"fu" ',
+            query: 'url:"fu"',
             type: 0,
           },
         })
@@ -271,7 +271,7 @@ describe('SearchBar', function() {
         tagValueLoader: () => Promise.resolve([]),
         supportedTags,
         organization,
-        pinnedSearch: {id: '1', query: 'url:"fu" '},
+        pinnedSearch: {id: '1', query: 'url:"fu"'},
       };
       const searchBar = mount(<SearchBar {...props} />, routerContext);
       searchBar.find('button[aria-label="Pin this search"]').simulate('click');
