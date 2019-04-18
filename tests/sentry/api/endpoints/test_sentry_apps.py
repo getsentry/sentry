@@ -256,6 +256,7 @@ class PostSentryAppsTest(SentryAppsTest):
             'scopes': ('project:read', 'event:read'),
             'events': ('issue',),
             'webhookUrl': 'https://example.com',
+            'redirectUrl': '',
             'isAlertable': False,
         }
 

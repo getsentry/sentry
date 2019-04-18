@@ -47,7 +47,7 @@ class URLField(serializers.URLField):
         # The Django URLField doesn't distinguish between different types of
         # invalid URLs, so do any manual checks here to give the User a better
         # error message.
-        if not url.startswith('http'):
+        if url and not url.startswith('http'):
             raise ValidationError('URL must start with http[s]://')
 
         super(URLField, self).validate(url)
