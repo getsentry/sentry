@@ -169,7 +169,7 @@ const SearchItemsList = styled('ul')`
 
 const SearchItem = styled(ListItem)`
   font-size: ${p => p.theme.fontSizeLarge};
-  padding: ${space(1.5)} ${space(2)};
+  padding: ${space(1)} ${space(2)};
   cursor: pointer;
 
   &:hover,
@@ -182,7 +182,8 @@ const SearchItemTitleWrapper = styled('h5')`
   font-weight: normal;
   font-size: ${p => p.theme.fontSizeMedium};
   margin: 0;
-  ${overflowEllipsis}
+  line-height: ${p => p.theme.text.lineHeightHeading};
+  ${overflowEllipsis};
 `;
 
 const Description = styled('span')`
