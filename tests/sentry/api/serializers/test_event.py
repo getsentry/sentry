@@ -228,7 +228,7 @@ class SnubaEventSerializerTest(TestCase):
 
         # Make sure we didn't have to call out to Nodestore to get the data
         # required to serialize this event and the NodeData is still empty.
-        assert event.data._node_data is None, "Node data was populated"
+        assert event.data._node_data is None, "SimpleEventSerializer should not load Nodestore data."
 
         assert result['eventID'] == event.event_id
         assert result['projectID'] == six.text_type(event.project_id)
