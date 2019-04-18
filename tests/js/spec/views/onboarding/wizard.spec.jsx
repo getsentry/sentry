@@ -2,7 +2,7 @@ import React from 'react';
 import {shallow} from 'enzyme';
 
 import {Client} from 'app/api';
-import OnboardingWizard from 'app/views/onboarding/';
+import OnboardingWizard from 'app/views/onboarding/wizard';
 
 describe('OnboardingWizard', function() {
   beforeEach(function() {

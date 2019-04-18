@@ -177,14 +177,16 @@ const GroupEvents = createReactClass({
   },
 
   renderResults() {
-    const group = this.props.group;
+    const {group, params} = this.props;
     const tagList = group.tags.filter(tag => tag.key !== 'user') || [];
 
     return (
       <EventsTable
         tagList={tagList}
         events={this.state.eventList}
-        params={this.props.params}
+        orgId={params.orgId}
+        projectId={params.projectId}
+        groupId={params.groupId}
       />
     );
   },

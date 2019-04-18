@@ -66,6 +66,14 @@ const forms = [
           }
           return schema;
         },
+        validate: ({id, form}) => {
+          try {
+            JSON.parse(form.schema);
+          } catch (e) {
+            return [[id, 'Invalid JSON']];
+          }
+          return [];
+        },
       },
       {
         name: 'overview',
