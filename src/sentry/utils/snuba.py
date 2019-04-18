@@ -26,6 +26,10 @@ from sentry.utils.dates import to_timestamp
 MAX_ISSUES = 500
 MAX_HASHES = 5000
 
+SAFE_FUNCTION_RE = re.compile(r'-?[a-zA-Z_][a-zA-Z0-9_]*$')
+QUOTED_LITERAL_RE = re.compile(r"^'.*'$")
+
+
 # Global Snuba request option override dictionary. Only intended
 # to be used with the `options_override` contextmanager below.
 # NOT THREAD SAFE!
@@ -263,11 +267,91 @@ def zerofill(data, start, end, rollup, orderby):
 def get_snuba_column_name(name):
     """
     Get corresponding Snuba column name from Sentry snuba map, if not found
-    the column is assumed to be a tag. If name is falsy, leave unchanged.
+    the column is assumed to be a tag. If name is falsy or name is a quoted literal
+    (e.g. "'name'"), leave unchanged.
     """
-    if not name:
+    if not name or QUOTED_LITERAL_RE.match(name):
         return name
+
     return SENTRY_SNUBA_MAP.get(name, u'tags[{}]'.format(name))
+
+
+def get_function_index(column_expr, depth=0):
+    """
+    If column_expr list contains a function, returns the index of its function name
+    within column_expr (and assumption is that index + 1 is the list of arguments),
+    otherwise None.
+
+     A function expression is of the form:
+         [func, [arg1, arg2]]  => func(arg1, arg2)
+     If a string argument is followed by list arg, the pair of them is assumed
+    to be a nested function call, with extra args to the outer function afterward.
+         [func1, [func2, [arg1, arg2], arg3]]  => func1(func2(arg1, arg2), arg3)
+     Although at the top level, there is no outer function call, and the optional
+    3rd argument is interpreted as an alias for the entire expression.
+         [func, [arg1], alias] => function(arg1) AS alias
+     You can also have a function part of an argument list:
+         [func1, [arg1, func2, [arg2, arg3]]] => func1(arg1, func2(arg2, arg3))
+     """
+    index = None
+    if isinstance(column_expr, (tuple, list)):
+        i = 0
+        while i < len(column_expr) - 1:
+            # The assumption here is that a list that follows a string means
+            # the string is a function name
+            if isinstance(column_expr[i], six.string_types) and isinstance(
+                    column_expr[i + 1], (tuple, list)):
+                assert SAFE_FUNCTION_RE.match(column_expr[i])
+                index = i
+                break
+            else:
+                i = i + 1
+
+        return index
+    else:
+        return None
+
+
+def parse_columns_in_functions(col, context=None, index=None):
+    """
+    Checks expressions for arguments that should be considered a column while
+    ignoring strings that represent clickhouse function names
+
+    if col is a list, means the expression has functions and we need
+    to parse for arguments that should be considered column names.
+
+    Assumptions here:
+     * strings that represent clickhouse function names are always followed by a list or tuple
+     * strings that are quoted with single quotes are used as string literals for CH
+     * otherwise we should attempt to get the snuba column name (or custom tag)
+    """
+
+    function_name_index = get_function_index(col)
+
+    if function_name_index is not None:
+        # if this is non zero, that means there are strings before this index
+        # that should be converted to snuba column names
+        # e.g. ['func1', ['column', 'func2', ['arg1']]]
+        if function_name_index > 0:
+            for i in xrange(0, function_name_index):
+                if context is not None:
+                    context[i] = get_snuba_column_name(col[i])
+
+        args = col[function_name_index + 1]
+
+        # check for nested functions in args
+        if get_function_index(args):
+            # look for columns
+            return parse_columns_in_functions(args, args)
+
+        # check each argument for column names
+        else:
+            for (i, arg) in enumerate(args):
+                parse_columns_in_functions(arg, args, i)
+    else:
+        # probably a column name
+        if context is not None and index is not None:
+            context[index] = get_snuba_column_name(col)
 
 
 def get_arrayjoin(column):
@@ -299,12 +383,24 @@ def transform_aliases_and_query(**kwargs):
     filter_keys = kwargs['filter_keys']
 
     for (idx, col) in enumerate(selected_columns):
-        name = get_snuba_column_name(col)
-        selected_columns[idx] = name
-        translated_columns[name] = col
+        if isinstance(col, list):
+            # if list, means there are potentially nested functions and need to
+            # iterate and translate potential columns
+            parse_columns_in_functions(col)
+            selected_columns[idx] = col
+            translated_columns[col[2]] = col[2]
+            derived_columns.add(col[2])
+        else:
+            name = get_snuba_column_name(col)
+            selected_columns[idx] = name
+            translated_columns[name] = col
 
     for (idx, col) in enumerate(groupby):
-        name = get_snuba_column_name(col)
+        if col not in derived_columns:
+            name = get_snuba_column_name(col)
+        else:
+            name = col
+
         groupby[idx] = name
         translated_columns[name] = col
 

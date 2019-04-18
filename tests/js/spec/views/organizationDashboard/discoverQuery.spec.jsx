@@ -153,4 +153,62 @@ describe('DiscoverQuery', function() {
       })
     );
   });
+
+  it('queries using "recentReleases" constraint', function() {
+    const release = TestStubs.Release();
+    renderMock.mockClear();
+    wrapper = mount(
+      <DiscoverQuery
+        selection={{datetime: {period: '12h'}}}
+        organization={organization}
+        releases={[release]}
+        queries={[
+          {
+            name: 'Events by Release',
+            fields: ['release'],
+            constraints: ['recentReleases'],
+            conditions: [],
+            aggregations: [['count()', null, 'Events']],
+            limit: 5000,
+
+            orderby: '-time',
+            groupby: ['time', 'release'],
+            rollup: 86400,
+          },
+        ]}
+      >
+        {renderMock}
+      </DiscoverQuery>,
+      routerContext
+    );
+
+    mockRouterPush(wrapper, router);
+
+    expect(discoverMock).toHaveBeenLastCalledWith(
+      '/organizations/org-slug/discover/query/',
+      expect.objectContaining({
+        data: expect.objectContaining({
+          aggregations: [['count()', null, 'Events']],
+          conditionFields: [
+            [
+              'if',
+              [
+                ['in', ['release', 'tuple', [`'${release.version}'`]]],
+                'release',
+                "'other'",
+              ],
+              'release',
+            ],
+          ],
+          fields: [],
+          groupby: ['time', 'release'],
+          conditions: [],
+          limit: 5000,
+          name: 'Events by Release',
+          orderby: '-time',
+        }),
+        method: 'POST',
+      })
+    );
+  });
 });
