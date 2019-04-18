@@ -68,6 +68,10 @@ const forms = [
           return schema;
         },
         validate: ({id, form}) => {
+          if (!form.schema) {
+            return [];
+          }
+
           try {
             JSON.parse(form.schema);
           } catch (e) {

@@ -15,7 +15,7 @@ class ApiScopesField(serializers.WritableField):
     def validate(self, data):
         valid_scopes = ApiScopes()
 
-        if data is None:
+        if not data:
             return
 
         for scope in data:
@@ -25,6 +25,9 @@ class ApiScopesField(serializers.WritableField):
 
 class EventListField(serializers.WritableField):
     def validate(self, data):
+        if not data:
+            return
+
         if not set(data).issubset(VALID_EVENT_RESOURCES):
             raise ValidationError(u'Invalid event subscription: {}'.format(
                 ', '.join(set(data).difference(VALID_EVENT_RESOURCES))
@@ -33,7 +36,7 @@ class EventListField(serializers.WritableField):
 
 class SchemaField(serializers.WritableField):
     def validate(self, data):
-        if data == {}:
+        if not data or data == {}:
             return
 
         try:
