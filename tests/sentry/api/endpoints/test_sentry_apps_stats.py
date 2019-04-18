@@ -36,19 +36,19 @@ class SentryAppsStatsTest(APITestCase):
         response = self.client.get(self.url, format='json')
 
         assert response.status_code == 200
-        assert json.loads(response.content) == \
-            [{
-                'id': self.app_1.id,
-                'slug': self.app_1.slug,
-                'name': self.app_1.name,
-                'installs': 1,
-            },
-            {
-                'id': self.app_2.id,
-                'slug': self.app_2.slug,
-                'name': self.app_2.name,
-                'installs': 1,
-            }]
+        assert {
+            'id': self.app_2.id,
+            'slug': self.app_2.slug,
+            'name': self.app_2.name,
+            'installs': 1,
+        } in json.loads(response.content)
+
+        assert {
+            'id': self.app_1.id,
+            'slug': self.app_1.slug,
+            'name': self.app_1.name,
+            'installs': 1,
+        } in json.loads(response.content)
 
     @with_feature('organizations:sentry-apps')
     def test_nonsuperusers_have_no_access(self):
