@@ -7,6 +7,7 @@ from sentry.grouping.component import GroupingComponent
 from sentry.grouping.strategies.base import strategy
 from sentry.grouping.strategies.utils import replace_enclosed_string, \
     split_func_tokens, remove_non_stacktrace_variants
+from sentry.grouping.strategies.message import trim_message_for_grouping
 
 
 _rust_hash = re.compile(r'::h[a-z0-9]{16}$')
@@ -359,12 +360,7 @@ def stacktrace_v1_variant_processor(variants, config, **meta):
     return remove_non_stacktrace_variants(variants)
 
 
-@strategy(
-    id='single-exception:v1',
-    interfaces=['singleexception'],
-    variants=['!system', 'app'],
-)
-def single_exception_v1(exception, config, **meta):
+def single_exception_common(exception, config, meta, with_value):
     if exception.stacktrace is not None:
         stacktrace_component = config.get_grouping_component(
             exception.stacktrace, **meta)
@@ -382,13 +378,51 @@ def single_exception_v1(exception, config, **meta):
             hint='ignored because exception is synthetic'
         )
 
+    values = [stacktrace_component, type_component]
+
+    if with_value:
+        value_component = GroupingComponent(id='value')
+
+        value_in = exception.value
+        if value_in is not None:
+            value_trimmed = trim_message_for_grouping(value_in)
+            hint = 'stripped common values' if value_in != value_trimmed else None
+            if value_trimmed:
+                value_component.update(
+                    values=[value_trimmed],
+                    hint=hint
+                )
+
+        if stacktrace_component.contributes and value_component.contributes:
+            value_component.update(
+                contributes=False,
+                hint='ignored because stacktrace takes precedence'
+            )
+
+        values.append(value_component)
+
     return GroupingComponent(
         id='exception',
-        values=[
-            stacktrace_component,
-            type_component,
-        ]
+        values=values
     )
+
+
+@strategy(
+    id='single-exception:v1',
+    interfaces=['singleexception'],
+    variants=['!system', 'app'],
+)
+def single_exception_v1(exception, config, **meta):
+    return single_exception_common(exception, config, meta, with_value=False)
+
+
+@strategy(
+    id='single-exception:v2',
+    interfaces=['singleexception'],
+    variants=['!system', 'app'],
+)
+def single_exception_v2(exception, config, **meta):
+    return single_exception_common(exception, config, meta, with_value=True)
 
 
 @strategy(

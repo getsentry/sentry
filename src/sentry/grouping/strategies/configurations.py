@@ -81,6 +81,33 @@ register_strategy_config(
     '''
 )
 
+register_strategy_config(
+    id='newstyle:2019-04-17',
+    strategies=[
+        'expect-ct:v1',
+        'expect-staple:v1',
+        'hpkp:v1',
+        'csp:v1',
+        'threads:v1',
+        'stacktrace:v1',
+        'chained-exception:v1',
+        'template:v1',
+        'message:v2',
+    ],
+    delegates=[
+        'frame:v1',
+        'stacktrace:v1',
+        'single-exception:v2',
+    ],
+    changelog='''
+        * messages are now preprocessed to increase change of grouping together
+        * exceptions without stacktraces are now grouped by a trimmed message
+
+        *This algorithm is currently work in progress and will continue to
+        evolve based on feedback*
+    '''
+)
+
 # This is a combined strategy that dispatches to legacy:2019-03-12 and
 # newstyle:2019-04-05 depending on the platform.
 
