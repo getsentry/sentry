@@ -121,6 +121,13 @@ SOURCES_SCHEMA = {
 }
 
 
+IMAGE_STATUS_FIELDS = frozenset((
+    'status',  # TODO(markus): Legacy key. Remove after next deploy
+    'unwind_status',
+    'debug_status'
+))
+
+
 class InvalidSourcesError(Exception):
     pass
 
@@ -329,13 +336,8 @@ def merge_symbolicator_image(raw_image, complete_image, sdk_info, handle_symboli
     # Set image data from symbolicator as symbolicator might know more
     # than the SDK, especially for minidumps
     for k, v in six.iteritems(complete_image):
-        if k in (
-            'status',  # TODO(markus): Legacy key. Remove after next deploy
-            'debug_status',
-            'unwind_status'
-        ):
+        if k in IMAGE_STATUS_FIELDS:
             statuses.add(v)
-
         elif not (v is None or (k, v) == ('arch', 'unknown')):
             raw_image[k] = v
 
