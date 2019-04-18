@@ -122,7 +122,7 @@ exports[`DropdownAutoCompleteMenu renders with a group 1`] = `
                       data-test-id="autocomplete-list"
                     >
                       <LabelWithBorder
-                        key="countries-undefined"
+                        key="countries"
                       >
                         <div
                           className="css-1lqzols-LabelWithBorder ejumqxq5"
