@@ -45,7 +45,7 @@ storiesOf('UI|Dropdowns/DropdownControl', module)
     withInfo('button prop lets you replace the entire button.')(() => (
       <div className="clearfix">
         <DropdownControl
-          button={(isOpen, getActorProps) => (
+          button={({isOpen, getActorProps}) => (
             <button {...getActorProps()}>click me</button>
           )}
         >

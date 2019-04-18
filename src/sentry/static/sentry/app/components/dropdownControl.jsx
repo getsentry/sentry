@@ -15,7 +15,7 @@ class DropdownControl extends React.Component {
   static propTypes = {
     // String or element for the button contents.
     label: PropTypes.oneOfType([PropTypes.string, PropTypes.element]),
-    // A closure that returns a styled button. Function will get (isOpen, getActorProps)
+    // A closure that returns a styled button. Function will get {isOpen, getActorProps}
     // as arguments. Use this if you need to style/replace the dropdown button.
     button: PropTypes.func,
     // Width of the menu. Defaults to 100% of the button width.
@@ -37,7 +37,7 @@ class DropdownControl extends React.Component {
   renderButton(isOpen, getActorProps) {
     const {label, button} = this.props;
     if (button) {
-      return button(isOpen, getActorProps);
+      return button({isOpen, getActorProps});
     }
     return (
       <StyledDropdownButton {...getActorProps({isStyled: true})} isOpen={isOpen}>

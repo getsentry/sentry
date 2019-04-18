@@ -82,7 +82,7 @@ export default class OrganizationSavedSearchSelector extends React.Component {
       <Container>
         <DropdownControl
           menuWidth="375px"
-          button={(isOpen, getActorProps) => (
+          button={({isOpen, getActorProps}) => (
             <StyledDropdownButton {...getActorProps({isStyled: true})} isOpen={isOpen}>
               <ButtonTitle>{this.getTitle()}</ButtonTitle>
             </StyledDropdownButton>
