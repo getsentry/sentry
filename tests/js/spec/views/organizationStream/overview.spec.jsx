@@ -138,7 +138,7 @@ describe('OrganizationStream', function() {
 
     const getSearchBarValue = w =>
       w
-        .find('SmartSearchBarContainer input')
+        .find('SmartSearchBarContainer StyledInput')
         .prop('value')
         .trim();
 

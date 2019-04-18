@@ -816,8 +816,8 @@ const buttonBarWidth = 18 * 3 + 3 * 3;
 
 const ButtonBar = styled.div`
   position: absolute;
-  top: 10px;
-  right: ${space(1)};
+  top: ${space(1.5)};
+  right: ${space(1.5)};
   display: flex;
   justify-content: space-between;
   width: ${buttonBarWidth}px;
@@ -841,7 +841,8 @@ const StyledInput = styled.input`
   color: ${p => p.theme.foreground};
 
   font-size: ${p => p.theme.fontSizeMedium};
-  height: 38px;
+  /* match the height of buttons */
+  height: 40px;
   width: 100%;
 
   /* pad the right side of the input to accomodate the button bar */
