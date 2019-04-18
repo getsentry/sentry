@@ -24,29 +24,34 @@ class SentryAppsEndpoint(SentryAppsBaseEndpoint):
 
     @requires_feature('organizations:sentry-apps', any_org=True)
     def post(self, request, organization):
-        serializer = SentryAppSerializer(data=request.json_body)
+        data = {
+            'name': request.json_body.get('name'),
+            'user': request.user,
+            'author': request.json_body.get('author'),
+            'organization': self._get_user_org(request),
+            'webhookUrl': request.json_body.get('webhookUrl'),
+            'redirectUrl': request.json_body.get('redirectUrl'),
+            'isAlertable': request.json_body.get('isAlertable'),
+            'scopes': request.json_body.get('scopes', []),
+            'events': request.json_body.get('events', []),
+            'schema': request.json_body.get('schema', {}),
+            'overview': request.json_body.get('overview'),
+        }
+
+        serializer = SentryAppSerializer(data=data)
 
         if serializer.is_valid():
-            result = serializer.object
+            data['redirect_url'] = data['redirectUrl']
+            data['webhook_url'] = data['webhookUrl']
+            data['is_alertable'] = data['isAlertable']
 
             sentry_app = Creator.run(
-                name=result.get('name'),
-                user=request.user,
-                author=result.get('author'),
-                organization=self._get_user_org(request),
-                scopes=result.get('scopes'),
-                events=result.get('events'),
-                webhook_url=result.get('webhookUrl'),
-                redirect_url=result.get('redirectUrl'),
-                is_alertable=result.get('isAlertable'),
-                schema=result.get('schema'),
-                overview=result.get('overview'),
                 request=request,
+                **data
             )
 
             return Response(serialize(sentry_app), status=201)
-
-        return Response(serializer.errors, status=422)
+        return Response(serializer.errors, status=400)
 
     def _get_user_org(self, request):
         return next(
