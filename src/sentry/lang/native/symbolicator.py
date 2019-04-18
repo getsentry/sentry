@@ -31,7 +31,7 @@ BUILTIN_SOURCES = {
         'layout': {'type': 'symstore'},
         'filters': {
             'filetypes': ['pdb', 'pe'],
-            'path_prefixes': ['c:/windows']
+            'path_patterns': ['?:/windows/**']
         },
         'url': 'https://msdl.microsoft.com/download/symbols/',
         'is_public': True,
