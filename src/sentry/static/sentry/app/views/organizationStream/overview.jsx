@@ -379,7 +379,8 @@ const OrganizationStream = createReactClass({
       // if query is the same, just re-fetch data
       this.fetchData();
     } else {
-      this.transitionTo({query});
+      // Clear the saved search as the user wants something else.
+      this.transitionTo({query}, null);
     }
   },
 
