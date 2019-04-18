@@ -278,6 +278,7 @@ class DropdownAutoCompleteMenu extends React.Component {
     item,
     style,
     itemSize,
+    itemCount,
     key,
     highlightedIndex,
     inputValue,
@@ -295,7 +296,7 @@ class DropdownAutoCompleteMenu extends React.Component {
         key={key}
         index={index}
         highlightedIndex={highlightedIndex}
-        {...getItemProps({item, index, style})}
+        {...getItemProps({item, index, style, itemCount})}
       >
         {typeof item.label === 'function' ? item.label({inputValue}) : item.label}
       </AutoCompleteItem>
@@ -359,6 +360,7 @@ class DropdownAutoCompleteMenu extends React.Component {
           const filterValueOrInput =
             typeof filterValue !== 'undefined' ? filterValue : inputValue;
           // Only filter results if menu is open and there are items
+
           const autoCompleteResults =
             (isOpen &&
               items &&
@@ -380,6 +382,8 @@ class DropdownAutoCompleteMenu extends React.Component {
           // emptyHidesInput is set to true.
           const showInput = !hideInput && (hasItems || !emptyHidesInput);
 
+          const itemCount = autoCompleteResults.filter(i => !i.groupLabel).length;
+
           const renderedFooter =
             typeof menuFooter === 'function' ? menuFooter({actions}) : menuFooter;
 
@@ -393,6 +397,7 @@ class DropdownAutoCompleteMenu extends React.Component {
                 getActorProps,
                 actions,
                 isOpen,
+                itemCount,
                 selectedItem,
               })}
 
@@ -404,6 +409,7 @@ class DropdownAutoCompleteMenu extends React.Component {
                     style,
                     isStyled: true,
                     css: this.props.css,
+                    itemCount,
                     blendCorner,
                     alignMenu,
                     menuWithArrow,

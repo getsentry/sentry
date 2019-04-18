@@ -221,11 +221,10 @@ class AutoComplete extends React.Component {
   };
 
   moveHighlightedIndex = (step, e) => {
-    const listSize = this.items.size - 1;
     let newIndex = this.state.highlightedIndex + step;
 
     // Make sure new index is within bounds
-    newIndex = Math.max(0, Math.min(newIndex, listSize));
+    newIndex = Math.max(0, Math.min(newIndex, this.itemCount - 1));
 
     this.setState({
       highlightedIndex: newIndex,
@@ -298,10 +297,14 @@ class AutoComplete extends React.Component {
     };
   };
 
-  getMenuProps = menuProps => ({
-    ...menuProps,
-    onMouseDown: this.handleMenuMouseDown.bind(this, menuProps),
-  });
+  getMenuProps = menuProps => {
+    this.itemCount = menuProps.itemCount;
+
+    return {
+      ...menuProps,
+      onMouseDown: this.handleMenuMouseDown.bind(this, menuProps),
+    };
+  };
 
   render() {
     const {children, onMenuOpen} = this.props;
