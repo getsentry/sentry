@@ -42,7 +42,7 @@ class OrganizationDeveloperSettings extends AsyncView {
         to={`/settings/${orgId}/developer-settings/new/`}
         icon="icon-circle-add"
       >
-        {t('Create New Application')}
+        {t('Create New Integration')}
       </Button>
     );
 
@@ -52,7 +52,7 @@ class OrganizationDeveloperSettings extends AsyncView {
       <div>
         <SettingsPageHeader title={t('Developer Settings')} action={action} />
         <Panel>
-          <PanelHeader>{t('Applications')}</PanelHeader>
+          <PanelHeader>{t('Integrations')}</PanelHeader>
           <PanelBody>
             {!isEmpty ? (
               this.state.applications.map(app => {
@@ -67,7 +67,7 @@ class OrganizationDeveloperSettings extends AsyncView {
                 );
               })
             ) : (
-              <EmptyMessage>{t('No applications have been created yet.')}</EmptyMessage>
+              <EmptyMessage>{t('No integrations have been created yet.')}</EmptyMessage>
             )}
           </PanelBody>
         </Panel>
