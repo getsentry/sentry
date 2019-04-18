@@ -80,7 +80,12 @@ const addTo = name =>
     .add(
       'grouped',
       withInfo('Group labels can receive a component too')(() => (
-        <DropdownAutoComplete items={groupedItems} alignMenu="left">
+        <DropdownAutoComplete
+          items={groupedItems}
+          alignMenu="left"
+          virtualizedHeight={44}
+          virtualizedLabelHeight={28}
+        >
           {({isOpen, selectedItem}) => (selectedItem ? selectedItem.label : 'Click me!')}
         </DropdownAutoComplete>
       ))
