@@ -34,6 +34,7 @@ class BroadcastIndexEndpoint(Endpoint):
         return serialize(items, request.user, serializer=serializer_cls())
 
     def _secondary_filtering(self, request, organization_slug, queryset):
+        # used in the SASS product
         return list(queryset)
 
     def get(self, request, organization_slug=None):
