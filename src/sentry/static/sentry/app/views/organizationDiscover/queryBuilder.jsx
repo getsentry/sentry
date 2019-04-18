@@ -7,6 +7,7 @@ import {DEFAULT_STATS_PERIOD} from 'app/constants';
 import {t} from 'app/locale';
 
 import {openModal} from 'app/actionCreators/modal';
+import ConfigStore from 'app/stores/configStore';
 
 import MissingProjectWarningModal from './missingProjectWarningModal';
 import {COLUMNS, PROMOTED_TAGS, SPECIAL_TAGS, HIDDEN_TAGS} from './data';
@@ -48,6 +49,11 @@ export default function createQueryBuilder(initial = {}, organization) {
   const defaultProjects = organization.projects
     .filter(projects => projects.isMember)
     .map(project => parseInt(project.id, 10));
+
+  const projectsToFetchTags = ConfigStore.get('user').isSuperuser
+    ? organization.projects
+    : defaultProjects;
+
   const columns = COLUMNS.map(col => ({...col, isTag: false}));
   let tags = [];
 
@@ -73,7 +79,7 @@ export default function createQueryBuilder(initial = {}, organization) {
    */
   function load() {
     return fetch({
-      projects: defaultProjects,
+      projects: projectsToFetchTags,
       fields: ['tags_key'],
       aggregations: [['count()', null, 'count']],
       orderby: '-count',
