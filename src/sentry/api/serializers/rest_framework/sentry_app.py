@@ -57,6 +57,7 @@ class SentryAppSerializer(Serializer):
     name = serializers.CharField()
     author = serializers.CharField()
     scopes = ApiScopesField()
+    status = serializers.CharField(required=False)
     events = EventListField(required=False)
     schema = SchemaField(required=False)
     webhookUrl = URLField()
