@@ -824,6 +824,9 @@ const ButtonBar = styled.div`
 
   button {
     background: transparent;
+    &:hover {
+      background: transparent;
+    }
   }
 `;
 
