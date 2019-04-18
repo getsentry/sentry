@@ -3,7 +3,6 @@ from __future__ import absolute_import
 import uuid
 import logging
 import posixpath
-import six
 
 from symbolic import parse_addr, find_best_instruction, arch_get_ip_reg_name, \
     ObjectLookup
@@ -13,13 +12,13 @@ from sentry.plugins import Plugin2
 from sentry.lang.native.cfi import reprocess_minidump_with_cfi
 from sentry.lang.native.minidump import is_minidump_event
 from sentry.lang.native.symbolizer import Symbolizer, SymbolicationFailed
-from sentry.lang.native.symbolicator import run_symbolicator
+from sentry.lang.native.symbolicator import run_symbolicator, merge_symbolicator_image
 from sentry.lang.native.utils import get_sdk_from_event, cpu_name_from_data, \
-    rebase_addr, signal_from_data, image_name
+    rebase_addr, signal_from_data
 from sentry.lang.native.systemsymbols import lookup_system_symbols
 from sentry.models.eventerror import EventError
 from sentry.utils import metrics
-from sentry.utils.in_app import is_known_third_party, is_optional_package
+from sentry.utils.in_app import is_known_third_party
 from sentry.utils.safe import get_path
 from sentry.stacktraces import StacktraceProcessor
 from sentry.reprocessing import report_processing_issue
@@ -253,24 +252,9 @@ class NativeStacktraceProcessor(StacktraceProcessor):
 
         assert len(self.images) == len(rv['modules']), (self.images, rv)
 
-        for image, fetched_debug_file in zip(self.images, rv['modules']):
-            statuses = [
-                fetched_debug_file.pop(k) for k in (
-                    'status',  # TODO(markus): Legacy key. Remove after next deploy
-                    'debug_status',
-                    'unwind_status',
-                )
-                if k in fetched_debug_file
-            ]
-
-            # Set image data from symbolicator as symbolicator might know more
-            # than the SDK, especially for minidumps
-            for k, v in six.iteritems(fetched_debug_file):
-                if not (v is None or (k, v) == ('arch', 'unknown')):
-                    image[k] = v
-
-            for status in statuses:
-                self.handle_symbolicator_status(status, image)
+        for image, complete_image in zip(self.images, rv['modules']):
+            merge_symbolicator_image(image, complete_image, self.sdk_info,
+                                     self._handle_symbolication_failed)
 
         assert len(stacktraces) == len(rv['stacktraces'])
 
@@ -281,44 +265,6 @@ class NativeStacktraceProcessor(StacktraceProcessor):
             for symbolicated_frame in symbolicated_stacktrace.get('frames') or ():
                 pf = pf_list[symbolicated_frame['original_index']]
                 pf.data['symbolicator_match'].append(symbolicated_frame)
-
-    def handle_symbolicator_status(self, status, image):
-        if status in ('found', 'unused'):
-            return
-        elif status in (
-            'missing_debug_file',  # TODO(markus): Legacy key. Remove after next deploy
-            'missing_file'
-        ):
-            package = image.get('code_file')
-            if not package or is_known_third_party(package, sdk_info=self.sdk_info):
-                return
-
-            if is_optional_package(package, sdk_info=self.sdk_info):
-                error = SymbolicationFailed(
-                    type=EventError.NATIVE_MISSING_OPTIONALLY_BUNDLED_DSYM)
-            else:
-                error = SymbolicationFailed(type=EventError.NATIVE_MISSING_DSYM)
-        elif status in (
-            'malformed_debug_file',  # TODO(markus): Legacy key. Remove after next deploy
-            'malformed_file'
-        ):
-            error = SymbolicationFailed(type=EventError.NATIVE_BAD_DSYM)
-        elif status == 'too_large':
-            error = SymbolicationFailed(type=EventError.FETCH_TOO_LARGE)
-        elif status == 'fetching_failed':
-            error = SymbolicationFailed(type=EventError.FETCH_GENERIC_ERROR)
-        elif status == 'other':
-            error = SymbolicationFailed(type=EventError.UNKNOWN_ERROR)
-        else:
-            logger.error("Unknown status: %s", status)
-            return
-
-        error.image_arch = image.get('arch')
-        error.image_path = image.get('code_file')
-        error.image_name = image_name(image.get('code_file'))
-        error.image_uuid = image.get('debug_id')
-        self.data.setdefault('errors', []) \
-            .extend(self._handle_symbolication_failed(error))
 
     def fetch_ios_system_symbols(self, processing_task):
         to_lookup = []
@@ -360,7 +306,7 @@ class NativeStacktraceProcessor(StacktraceProcessor):
                     continue
                 pf.data['symbolserver_match'] = symrv
 
-    def _handle_symbolication_failed(self, e):
+    def _handle_symbolication_failed(self, e, errors=None):
         # User fixable but fatal errors are reported as processing
         # issues
         if e.is_user_fixable and e.is_fatal:
@@ -380,14 +326,14 @@ class NativeStacktraceProcessor(StacktraceProcessor):
         # up at all.  We want to keep this here though in case we
         # do not want to report some processing issues (eg:
         # optional difs)
-        errors = []
+        if errors is None:
+            errors = self.data.setdefault('errors', [])
+
         if e.is_user_fixable or e.is_sdk_failure:
             errors.append(e.get_data())
         else:
             logger.debug('Failed to symbolicate with native backend',
                          exc_info=True)
-
-        return errors
 
     def process_frame(self, processable_frame, processing_task):
         frame = processable_frame.frame
@@ -424,7 +370,8 @@ class NativeStacktraceProcessor(StacktraceProcessor):
                     else:
                         return None, [raw_frame], []
             except SymbolicationFailed as e:
-                errors = self._handle_symbolication_failed(e)
+                errors = []
+                self._handle_symbolication_failed(e, errors=errors)
                 return [raw_frame], [raw_frame], errors
 
             _ignored = None  # Used to be in_app
