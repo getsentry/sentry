@@ -65,7 +65,7 @@ exports[`DropdownAutoCompleteMenu renders with a group 1`] = `
               onMouseLeave={[Function]}
             >
               <div
-                className="css-1fwqu7l-StyledMenu-getMenuBorderRadius ejumqxq8"
+                className="css-fob2sh-StyledMenu-getMenuBorderRadius ejumqxq8"
                 onClick={[Function]}
                 onMouseDown={[Function]}
                 onMouseEnter={[Function]}
@@ -244,7 +244,7 @@ exports[`DropdownAutoCompleteMenu renders without a group 1`] = `
               onMouseLeave={[Function]}
             >
               <div
-                className="css-1fwqu7l-StyledMenu-getMenuBorderRadius ejumqxq8"
+                className="css-fob2sh-StyledMenu-getMenuBorderRadius ejumqxq8"
                 onClick={[Function]}
                 onMouseDown={[Function]}
                 onMouseEnter={[Function]}
