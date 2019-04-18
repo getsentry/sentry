@@ -23,6 +23,20 @@ const items = [
 
 const groupedItems = [
   {
+    value: 'defaults',
+    hideGroupLabel: true,
+    items: [
+      {
+        value: 'recent thing',
+        label: 'recent thing',
+      },
+      {
+        value: 'other recent thing',
+        label: 'other recent thing',
+      },
+    ],
+  },
+  {
     value: 'countries',
     label: (
       <div>

@@ -286,7 +286,7 @@ class DropdownAutoCompleteMenu extends React.Component {
     const {index} = item;
 
     return item.groupLabel ? (
-      <LabelWithBorder style={style} key={item.label || item.id}>
+      <LabelWithBorder style={style} key={key}>
         {item.label && <GroupLabel>{item.label}</GroupLabel>}
       </LabelWithBorder>
     ) : (
