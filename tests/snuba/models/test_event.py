@@ -73,7 +73,14 @@ class SnubaEventTest(TestCase, SnubaTestCase):
         assert event.event_id == self.event_id
         assert event.group.id == self.proj1group1.id
         assert event.project.id == self.proj1.id
-        # And the event data payload from nodestore
+        assert event._project_cache == self.proj1
+        # That shouldn't have triggered a nodestore load yet
+        assert event.data._node_data is None
+        # But after we ask for something that's not in snuba
+        event.get_hashes()
+        # We should have populated the NodeData
+        assert event.data._node_data is not None
+        # And the full user should be in there.
         assert event.data['user']['id'] == u'user1'
 
     def test_same(self):
@@ -92,3 +99,31 @@ class SnubaEventTest(TestCase, SnubaTestCase):
         del django_serialized['id']
         del snuba_serialized['id']
         assert django_serialized == snuba_serialized
+
+    def test_minimal(self):
+        """
+        Test that a SnubaEvent that only loads minimal data from snuba
+        can still be serialized completely by falling back to nodestore data.
+        """
+        django_event = Event.objects.get(project_id=self.proj1.id, event_id=self.event_id)
+        snuba_event = SnubaEvent.get_event(
+            self.proj1.id,
+            self.event_id,
+            snuba_cols=SnubaEvent.minimal_columns)
+
+        django_serialized = serialize(django_event)
+        snuba_serialized = serialize(snuba_event)
+        del django_serialized['id']
+        del snuba_serialized['id']
+        assert django_serialized == snuba_serialized
+
+    def test_bind_nodes(self):
+        """
+        Test that bind_nodes works on snubaevents to populate their
+        NodeDatas.
+        """
+        event = SnubaEvent.get_event(self.proj1.id, self.event_id)
+        assert event.data._node_data is None
+        Event.objects.bind_nodes([event], 'data')
+        assert event.data._node_data is not None
+        assert event.data['user']['id'] == u'user1'
