@@ -72,6 +72,10 @@ class GetSentryAppsTest(SentryAppsTest):
             'clientSecret': self.published_app.application.client_secret,
             'overview': self.published_app.overview,
             'schema': {},
+            'owner': {
+                'id': self.org.id,
+                'slug': self.org.slug,
+            }
         } in json.loads(response.content)
 
     @with_feature('organizations:sentry-apps')
@@ -96,6 +100,10 @@ class GetSentryAppsTest(SentryAppsTest):
             'clientSecret': self.unpublished_app.application.client_secret,
             'overview': self.unpublished_app.overview,
             'schema': {},
+            'owner': {
+                'id': self.org.id,
+                'slug': self.org.slug,
+            }
         } in json.loads(response.content)
 
     @with_feature('organizations:sentry-apps')

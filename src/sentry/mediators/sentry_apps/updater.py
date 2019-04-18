@@ -17,6 +17,7 @@ from sentry.models.sentryapp import REQUIRED_EVENT_PERMISSIONS
 class Updater(Mediator):
     sentry_app = Param('sentry.models.SentryApp')
     name = Param(six.string_types, required=False)
+    status = Param(six.string_types, required=False)
     scopes = Param(Iterable, required=False)
     events = Param(Iterable, required=False)
     webhook_url = Param(six.string_types, required=False)
@@ -29,6 +30,7 @@ class Updater(Mediator):
     def call(self):
         self._update_name()
         self._update_author()
+        self._update_status()
         self._update_scopes()
         self._update_events()
         self._update_webhook_url()
@@ -46,6 +48,14 @@ class Updater(Mediator):
     @if_param('author')
     def _update_author(self):
         self.sentry_app.author = self.author
+
+    @if_param('status')
+    def _update_status(self):
+        if self.user.is_superuser:
+            if self.status == 'published':
+                self.sentry_app.status = SentryAppStatus.PUBLISHED
+            if self.status == 'unpublished':
+                self.sentry_app.status = SentryAppStatus.UNPUBLISHED
 
     @if_param('scopes')
     def _update_scopes(self):

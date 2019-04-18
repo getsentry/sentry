@@ -32,6 +32,10 @@ class SentryAppSerializer(Serializer):
             data.update({
                 'clientId': obj.application.client_id,
                 'clientSecret': obj.application.client_secret,
+                'owner': {
+                    'id': obj.owner.id,
+                    'slug': obj.owner.slug,
+                },
             })
 
         return data
