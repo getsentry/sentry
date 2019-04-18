@@ -327,7 +327,7 @@ describe('SmartSearchBar', function() {
       const searchBar = mount(<SmartSearchBar {...props} />, options).instance();
       searchBar.updateAutoCompleteItems();
       expect(searchBar.state.searchTerm).toEqual('');
-      expect(searchBar.state.searchItems).toEqual(searchBar.props.defaultSearchItems);
+      expect(searchBar.state.searchItems).toEqual([]);
       expect(searchBar.state.activeSearchItem).toEqual(0);
     });
 
@@ -346,7 +346,9 @@ describe('SmartSearchBar', function() {
       await tick();
       wrapper.update();
       expect(searchBar.state.searchTerm).toEqual('fu');
-      expect(searchBar.state.searchItems).toEqual([]);
+      expect(searchBar.state.searchItems).toEqual([
+        expect.objectContaining({children: []}),
+      ]);
       expect(searchBar.state.activeSearchItem).toEqual(0);
     });
 
@@ -365,7 +367,9 @@ describe('SmartSearchBar', function() {
       await tick();
       wrapper.update();
       expect(searchBar.state.searchTerm).toEqual('fu');
-      expect(searchBar.state.searchItems).toEqual([]);
+      expect(searchBar.state.searchItems).toEqual([
+        expect.objectContaining({children: []}),
+      ]);
       expect(searchBar.state.activeSearchItem).toEqual(0);
     });
 
@@ -386,7 +390,8 @@ describe('SmartSearchBar', function() {
       await tick();
       wrapper.update();
       expect(searchBar.state.searchTerm).toEqual('fu');
-      expect(searchBar.state.searchItems).toHaveLength(0);
+      // 1 items because of headers ("Tags")
+      expect(searchBar.state.searchItems).toHaveLength(1);
       expect(searchBar.state.activeSearchItem).toEqual(0);
     });
 
