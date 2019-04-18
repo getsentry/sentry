@@ -412,8 +412,6 @@ class SmartSearchBar extends React.Component {
       // show default "help" search terms
       this.setState({
         searchTerm: '',
-        // searchItems: defaultSearchItems,
-        activeSearchItem: 0,
       });
 
       this.updateAutoCompleteState(defaultSearchItems, defaultRecentItems, '', 'default');

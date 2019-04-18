@@ -88,7 +88,7 @@ class SearchDropdown extends React.PureComponent {
               const isEmpty = item.children && !item.children.length;
               const invalidTag = item.type === 'invalid-tag';
 
-              // Hide header iff `item.children` is defined and an array and is empty
+              // Hide header if `item.children` is defined, an array, and is empty
               return (
                 <React.Fragment key={item.title}>
                   {invalidTag && <Info>{t('Invalid tag')}</Info>}
