@@ -5,7 +5,7 @@ import responses
 from mock import patch
 
 from sentry.mediators.sentry_app_installations import Creator
-from sentry.models import AuditLogEntry, AuditLogEntryEvent, ApiAuthorization, ApiGrant, ServiceHook, ServiceHookProject
+from sentry.models import AuditLogEntry, AuditLogEntryEvent, ApiGrant, ServiceHook, ServiceHookProject
 from sentry.testutils import TestCase
 
 
@@ -31,17 +31,6 @@ class TestCreator(TestCase):
             slug='nulldb',
             user=self.user,
         )
-
-    @responses.activate
-    def test_creates_api_authorization(self):
-        responses.add(responses.POST, 'https://example.com/webhook')
-        self.creator.call()
-
-        assert ApiAuthorization.objects.filter(
-            application=self.sentry_app.application,
-            user=self.sentry_app.proxy_user,
-            scopes=self.sentry_app.scopes,
-        ).exists()
 
     @responses.activate
     def test_creates_installation(self):
@@ -96,7 +85,6 @@ class TestCreator(TestCase):
         install = self.creator.call()
 
         assert install.api_grant is not None
-        assert install.authorization is not None
 
     @patch('sentry.analytics.record')
     def test_records_analytics(self, record):

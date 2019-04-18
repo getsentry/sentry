@@ -5,7 +5,7 @@ import six
 from sentry import analytics
 from sentry.mediators import Mediator, Param, service_hooks
 from sentry.models import (
-    AuditLogEntryEvent, ApiAuthorization, ApiGrant, SentryApp, SentryAppInstallation
+    AuditLogEntryEvent, ApiGrant, SentryApp, SentryAppInstallation
 )
 from sentry.utils.cache import memoize
 from sentry.utils.audit import create_audit_entry
@@ -19,7 +19,6 @@ class Creator(Mediator):
     request = Param('rest_framework.request.Request', required=False)
 
     def call(self):
-        self._create_authorization()
         self._create_api_grant()
         self._create_install()
         self._create_service_hooks()
@@ -27,18 +26,10 @@ class Creator(Mediator):
         self.install.is_new = True
         return self.install
 
-    def _create_authorization(self):
-        self.authorization = ApiAuthorization.objects.create(
-            application_id=self.api_application.id,
-            user_id=self.sentry_app.proxy_user.id,
-            scope_list=self.sentry_app.scope_list,
-        )
-
     def _create_install(self):
         self.install = SentryAppInstallation.objects.create(
             organization_id=self.organization.id,
             sentry_app_id=self.sentry_app.id,
-            authorization_id=self.authorization.id,
             api_grant_id=self.api_grant.id,
         )
 
