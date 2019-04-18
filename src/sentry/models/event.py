@@ -84,17 +84,6 @@ class EventCommon(object):
     Methods and properties common to both Event and SnubaEvent.
     """
 
-    # Class-level fallback for lookup of cache attributes, these will be
-    # overriden by instance attributes where needed.
-    #
-    # TODO (alex) We need a better way to cache these properties.  functools32
-    # doesn't quite do the trick as there is a reference bug with unsaved
-    # models. But the current _group_cache thing is also clunky because these
-    # properties need to be stripped out in __getstate__.
-    _group_cache = None
-    _project_cache = None
-    _environment_cache = None
-
     @classmethod
     def generate_node_id(cls, project_id, event_id):
         """
@@ -105,10 +94,14 @@ class EventCommon(object):
         """
         return md5('{}:{}'.format(project_id, event_id)).hexdigest()
 
+    # TODO (alex) We need a better way to cache these properties.  functools32
+    # doesn't quite do the trick as there is a reference bug with unsaved
+    # models. But the current _group_cache thing is also clunky because these
+    # properties need to be stripped out in __getstate__.
     @property
     def group(self):
         from sentry.models import Group
-        if not self._group_cache:
+        if not hasattr(self, '_group_cache'):
             self._group_cache = Group.objects.get(id=self.group_id)
         return self._group_cache
 
@@ -120,7 +113,7 @@ class EventCommon(object):
     @property
     def project(self):
         from sentry.models import Project
-        if not self._project_cache:
+        if not hasattr(self, '_project_cache'):
             self._project_cache = Project.objects.get(id=self.project_id)
         return self._project_cache
 
@@ -159,7 +152,7 @@ class EventCommon(object):
 
         See ``sentry.eventtypes``.
         """
-        return getattr(self, 'type', 'default')
+        return self.data.get('type', 'default')
 
     def get_event_metadata(self):
         """
@@ -326,7 +319,7 @@ class EventCommon(object):
 
     def get_environment(self):
         from sentry.models import Environment
-        if not self._environment_cache:
+        if not hasattr(self, '_environment_cache'):
             self._environment_cache = Environment.objects.get(
                 organization_id=self.project.organization_id,
                 name=Environment.get_name_or_default(self.get_tag('environment')),
@@ -519,6 +512,9 @@ class SnubaEvent(EventCommon):
         `data` dict (which would force a nodestore load). All unresolved
         self.foo type accesses will come through here.
         """
+        if name in ('_project_cache', '_group_cache', '_environment_cache'):
+            raise AttributeError()
+
         if name in self.snuba_data:
             return self.snuba_data[name]
         else:
@@ -557,6 +553,11 @@ class SnubaEvent(EventCommon):
     # If the data for these is availablle from snuba, we asssume
     # it was already normalized on the way in and we can just return
     # it, otherwise we defer to EventCommon implementation.
+    def get_event_type(self):
+        if 'type' in self.snuba_data:
+            return self.snuba_data['type']
+        return super(SnubaEvent, self).get_event_type()
+
     @property
     def ip_address(self):
         if 'ip_address' in self.snuba_data:

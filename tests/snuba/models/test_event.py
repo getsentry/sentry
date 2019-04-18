@@ -72,7 +72,6 @@ class SnubaEventTest(TestCase, SnubaTestCase):
         # Make sure we get back event properties from snuba
         assert event.event_id == self.event_id
         assert event.group.id == self.proj1group1.id
-        assert event._project_cache is None
         assert event.project.id == self.proj1.id
         assert event._project_cache == self.proj1
         # That shouldn't have triggered a nodestore load yet
