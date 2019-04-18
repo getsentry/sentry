@@ -539,7 +539,7 @@ table.table.key-value {
 @loader-size: 64px;
 @check-height: 32px;
 @check-width: 16px;
-@check-left: (@loader-size/6 + @loader-size/12);
+@check-left: (@loader-size / 6 + @loader-size / 12);
 @check-thickness: 6px;
 
 .loading {
@@ -790,84 +790,6 @@ table.table.key-value {
 
   &:hover {
     color: lighten(@gray, 10);
-  }
-}
-
-.search-dropdown {
-  box-shadow: 0 1px 1px rgba(0, 0, 0, 0.08);
-  border: 1px solid darken(@trim, 6) !important;
-  border-radius: 0 0 4px 4px;
-  position: absolute;
-  top: 37px;
-  right: 0;
-  left: 0;
-  background: #fff;
-  z-index: 100;
-  overflow: hidden;
-}
-
-.search-autocomplete-list {
-  .list-unstyled();
-  margin-bottom: 0;
-
-  li {
-    position: relative;
-    border-top: 1px solid lighten(@trim, 5);
-    padding: 12px 14px 12px 40px;
-    cursor: pointer;
-
-    .icon {
-      position: absolute;
-      left: 9px;
-      top: 7px;
-      color: lighten(@gray-light, 8);
-      font-size: 16px;
-      width: 24px;
-      line-height: 24px;
-      text-align: center;
-
-      &.icon-toggle {
-        font-size: 14px;
-      }
-
-      &.icon-tag {
-        top: 8px;
-      }
-
-      &.icon-hash {
-        font-size: 20px;
-        font-weight: bold;
-        top: 5px;
-      }
-    }
-
-    h4 {
-      margin: 0;
-      font-size: 14px;
-      span {
-        font-weight: normal;
-      }
-    }
-
-    p {
-      margin: 2px 0 0;
-      font-size: 13px;
-      color: @gray-light;
-    }
-
-    &:first-child {
-      border: 0;
-    }
-
-    &:hover,
-    &.active {
-      background: @white-dark;
-      border-color: @trim;
-
-      & + li {
-        border-color: @trim;
-      }
-    }
   }
 }
 
@@ -1291,7 +1213,7 @@ ul.faces {
     right: 0;
     bottom: 0;
     padding: 40px 0 0;
-    #gradient > .vertical(rgba(255,255,255, 0.15), rgba(255,255,255, 1));
+    #gradient > .vertical(rgba(255, 255, 255, 0.15), rgba(255, 255, 255, 1));
     text-align: center;
     border-bottom: 10px solid #fff;
   }

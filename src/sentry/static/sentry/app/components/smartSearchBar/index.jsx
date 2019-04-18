@@ -43,6 +43,7 @@ export function removeSpace(query = '') {
     return query;
   }
 }
+
 class SmartSearchBar extends React.Component {
   static propTypes = {
     api: PropTypes.object,
@@ -64,7 +65,8 @@ class SmartSearchBar extends React.Component {
     prepareQuery: PropTypes.func,
 
     // Search items to display when there's no tag key
-    defaultSearchItems: PropTypes.array.isRequired,
+    // Should be a tuple of [searchItems[], recentSearchItems[]]
+    defaultSearchItems: PropTypes.array,
 
     // Disabled control (e.g. read-only)
     disabled: PropTypes.bool,
@@ -141,7 +143,7 @@ class SmartSearchBar extends React.Component {
     excludeEnvironment: false,
     placeholder: t('Search for events, users, tags, and everything else.'),
     supportedTags: {},
-    defaultSearchItems: [],
+    defaultSearchItems: [[], []],
     hasPinnedSearch: false,
   };
 
@@ -273,10 +275,10 @@ class SmartSearchBar extends React.Component {
     // If the environment feature is active and excludeEnvironment = true
     // then remove the environment key
     if (this.props.excludeEnvironment) {
-      return tagKeys.filter(key => key !== 'environment:');
-    } else {
-      return tagKeys;
+      tagKeys = tagKeys.filter(key => key !== 'environment:');
     }
+
+    return tagKeys.map(value => ({value, desc: value}));
   };
 
   /**
@@ -297,7 +299,12 @@ class SmartSearchBar extends React.Component {
         this.setState({loading: false});
         return values.map(value => {
           // Wrap in quotes if there is a space
-          return value.indexOf(' ') > -1 ? `"${value}"` : value;
+          const escapedValue =
+            value.indexOf(' ') > -1 ? `"${value.replace('"', '\\"')}"` : value;
+          return {
+            value: escapedValue,
+            desc: escapedValue,
+          };
         });
       } catch (err) {
         this.setState({loading: false});
@@ -315,7 +322,12 @@ class SmartSearchBar extends React.Component {
    * with results
    */
   getPredefinedTagValues = function(tag, query) {
-    return tag.values.filter(value => value.indexOf(query) > -1);
+    return tag.values
+      .filter(value => value.indexOf(query) > -1)
+      .map(value => ({
+        value,
+        desc: value,
+      }));
   };
 
   /**
@@ -346,7 +358,14 @@ class SmartSearchBar extends React.Component {
       fullQuery
     );
 
-    return (recentSearches && recentSearches.map(({query}) => ({query}))) || [];
+    return [
+      ...(recentSearches &&
+        recentSearches.map(({query}) => ({
+          desc: query,
+          value: query,
+          type: 'recent-search',
+        }))),
+    ];
   };
 
   onInputClick = () => {
@@ -371,7 +390,9 @@ class SmartSearchBar extends React.Component {
       (terms.length === 1 && terms[0] === this.props.defaultQuery) || // default term
       /^\s+$/.test(query.slice(cursor - 1, cursor + 1))
     ) {
-      const {defaultSearchItems} = this.props;
+      const {
+        defaultSearchItems: [defaultSearchItems, defaultRecentItems],
+      } = this.props;
 
       if (!defaultSearchItems.length) {
         // Update searchTerm, otherwise <SearchDropdown> will have wrong state
@@ -383,7 +404,7 @@ class SmartSearchBar extends React.Component {
 
         const tagKeys = this.getTagKeys('');
         const recentSearches = await this.getRecentSearches();
-        this.updateAutoCompleteState(tagKeys, recentSearches, '');
+        this.updateAutoCompleteState(tagKeys, recentSearches, '', 'tag-key');
         return;
       }
 
@@ -391,10 +412,9 @@ class SmartSearchBar extends React.Component {
       // show default "help" search terms
       this.setState({
         searchTerm: '',
-        searchItems: defaultSearchItems,
-        activeSearchItem: 0,
       });
 
+      this.updateAutoCompleteState(defaultSearchItems, defaultRecentItems, '', 'default');
       return;
     }
 
@@ -412,7 +432,12 @@ class SmartSearchBar extends React.Component {
       const recentSearches = await this.getRecentSearches();
 
       this.setState({searchTerm: matchValue});
-      this.updateAutoCompleteState(autoCompleteItems, recentSearches, matchValue);
+      this.updateAutoCompleteState(
+        autoCompleteItems,
+        recentSearches,
+        matchValue,
+        'tag-key'
+      );
     } else {
       const {supportedTags, prepareQuery} = this.props;
 
@@ -431,7 +456,9 @@ class SmartSearchBar extends React.Component {
       // with actual tag value results
       const filteredSearchItems = !preparedQuery
         ? this.state.searchItems
-        : this.state.searchItems.filter(item => item.value.indexOf(preparedQuery) !== -1);
+        : this.state.searchItems.filter(
+            item => item.value && item.value.indexOf(preparedQuery) !== -1
+          );
 
       this.setState({
         searchTerm: query,
@@ -441,6 +468,7 @@ class SmartSearchBar extends React.Component {
       const tag = supportedTags[tagName];
 
       if (!tag) {
+        this.updateAutoCompleteState([], [], tagName, 'invalid-tag');
         return;
       }
 
@@ -458,7 +486,7 @@ class SmartSearchBar extends React.Component {
         this.getRecentSearches(),
       ]);
 
-      this.updateAutoCompleteState(tagValues, recentSearches, tag.key);
+      this.updateAutoCompleteState(tagValues, recentSearches, tag.key, 'tag-value');
       return;
     }
     return;
@@ -466,59 +494,26 @@ class SmartSearchBar extends React.Component {
 
   isDefaultDropdownItem = item => item.type === 'default';
 
-  updateAutoCompleteState = (searchItems, recentSearchItems, tagName) => {
-    const {maxSearchItems} = this.props;
+  /**
+   * Updates autocomplete dropdown items and autocomplete index state
+   *
+   * @param {Object[]} searchItems List of search item objects with keys: title, desc, value
+   * @param {Object[]} recentSearchItems List of recent search items, same format as searchItem
+   * @param {String} tagName The current tag name in scope
+   * @param {String} type Defines the type/state of the dropdown menu items
+   */
+  updateAutoCompleteState = (searchItems, recentSearchItems, tagName, type) => {
+    const {displayRecentSearches, maxSearchItems} = this.props;
 
-    searchItems = searchItems.map(item => {
-      const out = {
-        desc: item,
-        value: item,
-      };
-
-      // Specify icons according to tag value
-      switch (tagName || item.replace(':', '')) {
-        case 'is':
-          out.className = 'icon-toggle';
-          break;
-        case 'assigned':
-        case 'bookmarks':
-          out.className = 'icon-user';
-          break;
-        case 'firstSeen':
-        case 'lastSeen':
-        case 'event.timestamp':
-          out.className = 'icon-av_timer';
-          break;
-        default:
-          out.className = 'icon-tag';
-      }
-
-      if (item.type === 'recent-search') {
-        out.className = 'icon-clock';
-      }
-
-      return out;
-    });
-
-    if (searchItems.length > 0) {
-      searchItems[0].active = true;
-    }
-
-    if (maxSearchItems && maxSearchItems > 0) {
-      searchItems = searchItems.slice(0, maxSearchItems);
-    }
-
-    const recentItems = recentSearchItems.map(item => ({
-      desc: item.query,
-      value: item.query,
-      className: 'icon-clock',
-      type: 'recent-search',
-    }));
-
-    this.setState({
-      searchItems: [...searchItems, ...recentItems],
-      activeSearchItem: 0,
-    });
+    this.setState(
+      createSearchGroups(
+        searchItems,
+        displayRecentSearches ? recentSearchItems : null,
+        tagName,
+        type,
+        maxSearchItems
+      )
+    );
   };
 
   onTogglePinnedSearch = evt => {
@@ -545,29 +540,54 @@ class SmartSearchBar extends React.Component {
   };
 
   onKeyDown = evt => {
-    const state = this.state;
-    const searchItems = state.searchItems;
-
-    if (!searchItems.length) {
+    if (!this.state.searchItems.length) {
       return;
     }
 
-    if (evt.key === 'ArrowDown' || evt.key === 'ArrowUp') {
+    const {key} = evt;
+
+    if (key === 'ArrowDown' || key === 'ArrowUp') {
       evt.preventDefault();
 
-      // Move active selection up/down
-      delete searchItems[state.activeSearchItem].active;
+      this.setState(state => {
+        const {searchItems, flatSearchItems, activeSearchItem} = state;
+        const [groupIndex, childrenIndex] =
+          findSearchItemByIndex(searchItems, activeSearchItem) || [];
 
-      state.activeSearchItem =
-        evt.key === 'ArrowDown'
-          ? Math.min(state.activeSearchItem + 1, searchItems.length - 1)
-          : Math.max(state.activeSearchItem - 1, 0);
+        if (typeof groupIndex !== 'undefined') {
+          // Move active selection up/down
+          delete searchItems[groupIndex].children[childrenIndex].active;
+        }
 
-      searchItems[state.activeSearchItem].active = true;
-      this.setState({searchItems: searchItems.slice(0)});
-    } else if (evt.key === 'Tab') {
+        const totalItems = flatSearchItems.length;
+
+        const nextActiveSearchItem =
+          key === 'ArrowDown'
+            ? (activeSearchItem + 1) % totalItems
+            : (activeSearchItem - 1 + totalItems) % totalItems;
+
+        const [nextGroupIndex, nextChildrenIndex] =
+          findSearchItemByIndex(searchItems, nextActiveSearchItem) || [];
+
+        searchItems[nextGroupIndex].children[nextChildrenIndex] = {
+          ...searchItems[nextGroupIndex].children[nextChildrenIndex],
+          active: true,
+        };
+
+        return {
+          activeSearchItem: nextActiveSearchItem,
+          searchItems: searchItems.slice(0),
+        };
+      });
+    } else if (key === 'Tab') {
       evt.preventDefault();
-      const item = searchItems[state.activeSearchItem];
+
+      const {activeSearchItem, searchItems} = this.state;
+      const [groupIndex, childrenIndex] = findSearchItemByIndex(
+        searchItems,
+        activeSearchItem
+      );
+      const item = searchItems[groupIndex].children[childrenIndex];
 
       if (!this.isDefaultDropdownItem(item)) {
         this.onAutoComplete(item.value, item);
@@ -841,6 +861,114 @@ const SidebarButton = styled(Button)`
     color: ${p => p.theme.blueLight};
   }
 `;
+
+function getTitleForType(type) {
+  if (type === 'tag-value') {
+    return t('Tag Values');
+  }
+
+  if (type === 'recent-search') {
+    return t('Recent Searches');
+  }
+
+  if (type === 'default') {
+    return t('Common Search Terms');
+  }
+
+  return t('Tags');
+}
+
+function getIconForTypeAndTag(type, tagName) {
+  if (type === 'recent-search') {
+    return 'icon-clock';
+  }
+
+  if (type === 'default') {
+    return 'icon-star-outline';
+  }
+
+  // Change based on tagName and default to "icon-tag"
+  switch (tagName) {
+    case 'is':
+      return 'icon-toggle';
+    case 'assigned':
+    case 'bookmarks':
+      return 'icon-user';
+    case 'firstSeen':
+    case 'lastSeen':
+    case 'event.timestamp':
+      return 'icon-av_timer';
+    default:
+      return 'icon-tag';
+  }
+}
+
+function createSearchGroups(
+  searchItems,
+  recentSearchItems,
+  tagName,
+  type,
+  maxSearchItems
+) {
+  const activeSearchItem = 0;
+
+  if (maxSearchItems && maxSearchItems > 0) {
+    searchItems = searchItems.slice(0, maxSearchItems);
+  }
+
+  const searchGroup = {
+    title: getTitleForType(type),
+    type: type === 'invalid-tag' ? type : 'header',
+    icon: getIconForTypeAndTag(type, tagName),
+    children: [...searchItems],
+  };
+
+  const recentSearchGroup = recentSearchItems && {
+    title: t('Recent Searches'),
+    type: 'header',
+    icon: 'icon-clock',
+    children: [...recentSearchItems],
+  };
+
+  if (searchGroup.children && !!searchGroup.children.length) {
+    searchGroup.children[activeSearchItem] = {
+      ...searchGroup.children[activeSearchItem],
+      active: true,
+    };
+  }
+
+  return {
+    searchItems: [searchGroup, ...(recentSearchItems ? [recentSearchGroup] : [])],
+    flatSearchItems: [...searchItems, ...(recentSearchItems ? [recentSearchItems] : [])],
+    activeSearchItem,
+  };
+}
+
+/**
+ * Items is a list of dropdown groups that have a `children` field.
+ * Only the `children` are selectable, so we need to find which child is selected
+ * given an index that is in range of the sum of all `children` lengths
+ *
+ * @return {Array} Returns a tuple of [groupIndex, childrenIndex]
+ */
+function findSearchItemByIndex(items, index, total) {
+  let _index = index;
+  let foundSearchItem;
+  items.find(({children}, i) => {
+    if (!children || !children.length) {
+      return false;
+    }
+    if (_index < children.length) {
+      foundSearchItem = [i, _index];
+      return true;
+    }
+
+    _index -= children.length;
+    return false;
+  });
+
+  return foundSearchItem;
+}
 
 export default SmartSearchBarContainer;
 export {SmartSearchBar};
