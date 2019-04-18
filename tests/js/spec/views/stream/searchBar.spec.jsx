@@ -10,6 +10,7 @@ describe('SearchBar', function() {
   let tagValuePromise;
   let supportedTags;
   let recentSearchMock;
+
   const clickInput = searchBar => searchBar.find('input[name="query"]').simulate('click');
 
   beforeEach(function() {
@@ -17,9 +18,7 @@ describe('SearchBar', function() {
     TagStore.onLoadTagsSuccess(TestStubs.Tags());
     supportedTags = TagStore.getAllTags();
 
-    options = {
-      context: {organization: {id: '123'}},
-    };
+    options = TestStubs.routerContext([{organization: {id: '123', features: []}}]);
 
     tagValuePromise = Promise.resolve([]);
 
