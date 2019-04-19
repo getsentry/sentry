@@ -137,6 +137,61 @@ describe('groupEventDetails', () => {
     expect(browserHistory.replace).not.toHaveBeenCalled();
   });
 
+  it('next/prev links', async function() {
+    event = TestStubs.Event({
+      size: 1,
+      dateCreated: '2019-03-20T00:00:00.000Z',
+      errors: [],
+      entries: [],
+      tags: [{key: 'environment', value: 'dev'}],
+      previousEventID: 'prev-event-id',
+      nextEventID: 'next-event-id',
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/projects/${org.slug}/${project.slug}/events/1/`,
+      body: event,
+    });
+
+    const wrapper = mount(
+      <GroupEventDetails
+        group={group}
+        project={project}
+        organization={org}
+        environments={[{id: '1', name: 'dev', displayName: 'Dev'}]}
+        params={{orgId: org.slug, groupId: group.id, eventId: '1'}}
+        location={{query: {environment: 'dev'}}}
+      />,
+      routerContext
+    );
+    await tick();
+
+    wrapper.update();
+
+    const buttons = wrapper
+      .find('.event-toolbar')
+      .find('.btn-group')
+      .find('Link');
+
+    expect(buttons.at(0).prop('to')).toEqual({
+      pathname: '/org-slug/project-slug/issues/1/events/oldest/',
+      query: {environment: 'dev'},
+    });
+
+    expect(buttons.at(1).prop('to')).toEqual({
+      pathname: '/org-slug/project-slug/issues/1/events/prev-event-id/',
+      query: {environment: 'dev'},
+    });
+    expect(buttons.at(2).prop('to')).toEqual({
+      pathname: '/org-slug/project-slug/issues/1/events/next-event-id/',
+      query: {environment: 'dev'},
+    });
+    expect(buttons.at(3).prop('to')).toEqual({
+      pathname: '/org-slug/project-slug/issues/1/events/latest/',
+      query: {environment: 'dev'},
+    });
+  });
+
   it('loads Sentry Apps', () => {
     const request = MockApiClient.addMockResponse({
       url: '/sentry-apps/',
