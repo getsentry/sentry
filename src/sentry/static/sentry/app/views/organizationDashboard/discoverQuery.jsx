@@ -9,7 +9,7 @@ import {parsePeriodToHours} from 'app/utils';
 import SentryTypes from 'app/sentryTypes';
 import createQueryBuilder from 'app/views/organizationDiscover/queryBuilder';
 
-// Note: We limit to the last 20 releases
+// Note: Limit max releases so that chart is still a bit readable
 const MAX_RECENT_RELEASES = 20;
 const createReleaseFieldCondition = releases => [
   [
