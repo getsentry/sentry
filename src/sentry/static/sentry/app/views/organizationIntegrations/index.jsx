@@ -43,7 +43,7 @@ class OrganizationIntegrations extends AsyncComponent {
       ['integrations', `/organizations/${orgId}/integrations/`],
       ['plugins', `/organizations/${orgId}/plugins/`, {query}],
       ['orgOwnedApps', `/organizations/${orgId}/sentry-apps/`],
-      ['publishedApps', '/sentry-apps/'],
+      ['publishedApps', `/sentry-apps/?status=${'published'}`],
       ['appInstalls', `/organizations/${orgId}/sentry-app-installations/`],
     ];
   }
@@ -168,7 +168,13 @@ class OrganizationIntegrations extends AsyncComponent {
 
   renderBody() {
     const {reloading, orgOwnedApps, publishedApps, appInstalls} = this.state;
-    const applications = (publishedApps || []).concat(orgOwnedApps || []);
+    const published = publishedApps || [];
+    // we dont want the app to render twice if its the org that created
+    // the published app.
+    const orgOwned = orgOwnedApps.filter(app => {
+      return !published.find(p => p.slug == app.slug);
+    });
+    const applications = published.concat(orgOwned);
 
     const installedProviders = this.providers
       .filter(p => p.isInstalled)

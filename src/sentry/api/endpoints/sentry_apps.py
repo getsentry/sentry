@@ -6,6 +6,7 @@ from sentry.api.bases import SentryAppsBaseEndpoint
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework import SentryAppSerializer
+from sentry.constants import SentryAppStatus
 from sentry.features.helpers import requires_feature
 from sentry.mediators.sentry_apps import Creator
 from sentry.models import SentryApp
@@ -13,9 +14,31 @@ from sentry.models import SentryApp
 
 class SentryAppsEndpoint(SentryAppsBaseEndpoint):
     def get(self, request):
+        status = request.GET.get('status')
+
+        queryset = []
+        if status == 'published':
+            queryset = SentryApp.objects.filter(status=SentryAppStatus.PUBLISHED)
+
+        elif status == 'unpublished':
+            if request.user.is_superuser:
+                queryset = SentryApp.objects.filter(
+                    status=SentryAppStatus.UNPUBLISHED
+                )
+            else:
+                queryset = SentryApp.objects.filter(
+                    status=SentryAppStatus.UNPUBLISHED,
+                    owner__in=request.user.get_orgs(),
+                )
+        else:
+            if request.user.is_superuser:
+                queryset = SentryApp.objects.all()
+
+
+
         return self.paginate(
             request=request,
-            queryset=SentryApp.visible_for_user(request),
+            queryset=queryset,
             order_by='-date_added',
             paginator_cls=OffsetPaginator,
             on_results=lambda x: serialize(x, request.user),
