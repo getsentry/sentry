@@ -577,9 +577,9 @@ class SnubaEvent(EventCommon):
             return self.snuba_data['location']
         return super(SnubaEvent, self).location
 
-    # ============================================
-    # Snuba implementations of django Fields
-    # ============================================
+    # ====================================================
+    # Snuba implementations of the django fields on Event
+    # ====================================================
     @property
     def datetime(self):
         """
@@ -593,6 +593,18 @@ class SnubaEvent(EventCommon):
     @property
     def time_spent(self):
         return None
+
+    @property
+    def message(self):
+        if 'message' in self.snuba_data:
+            return self.snuba_data['message']
+        return self.data.get('message')
+
+    @property
+    def platform(self):
+        if 'platform' in self.snuba_data:
+            return self.snuba_data['platform']
+        return self.data.get('platform')
 
     @property
     def id(self):
