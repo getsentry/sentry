@@ -30,7 +30,8 @@ describe('OrganizationIntegrations', () => {
   let params;
   let routerContext;
 
-  let sentryAppsRequest;
+  let publishedSentryAppsRequest;
+  let orgOwnedSentryAppsRequest;
   let sentryInstallsRequest;
 
   let focus;
@@ -81,7 +82,12 @@ describe('OrganizationIntegrations', () => {
       body: [],
     });
 
-    sentryAppsRequest = Client.addMockResponse({
+    publishedSentryAppsRequest = Client.addMockResponse({
+      url: '/sentry-apps/',
+      body: [],
+    });
+
+    orgOwnedSentryAppsRequest = Client.addMockResponse({
       url: `/organizations/${org.slug}/sentry-apps/`,
       body: [],
     });
@@ -188,7 +194,7 @@ describe('OrganizationIntegrations', () => {
   describe('render()', () => {
     describe('without integrations', () => {
       it('renders with sentry-apps', () => {
-        sentryAppsRequest = Client.addMockResponse({
+        orgOwnedSentryAppsRequest = Client.addMockResponse({
           url: `/organizations/${org.slug}/sentry-apps/`,
           body: [sentryApp],
         });
@@ -200,12 +206,13 @@ describe('OrganizationIntegrations', () => {
           routerContext
         );
 
-        expect(sentryAppsRequest).toHaveBeenCalled();
+        expect(publishedSentryAppsRequest).toHaveBeenCalled();
+        expect(orgOwnedSentryAppsRequest).toHaveBeenCalled();
         expect(sentryInstallsRequest).toHaveBeenCalled();
       });
 
       it('renders a Learn More modal for Sentry Apps', () => {
-        sentryAppsRequest = Client.addMockResponse({
+        orgOwnedSentryAppsRequest = Client.addMockResponse({
           url: `/organizations/${org.slug}/sentry-apps/`,
           body: [sentryApp],
         });
@@ -228,7 +235,8 @@ describe('OrganizationIntegrations', () => {
       });
 
       it('Does`t hit sentry apps endpoints when sentry-apps isn`t present', () => {
-        expect(sentryAppsRequest).not.toHaveBeenCalled();
+        expect(orgOwnedSentryAppsRequest).not.toHaveBeenCalled();
+        expect(publishedSentryAppsRequest).not.toHaveBeenCalled();
         expect(sentryInstallsRequest).not.toHaveBeenCalled();
       });
 

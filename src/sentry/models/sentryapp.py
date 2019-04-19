@@ -6,7 +6,6 @@ import hmac
 import itertools
 
 from django.db import models
-from django.db.models import Q
 from django.utils import timezone
 from django.template.defaultfilters import slugify
 from hashlib import sha256
@@ -119,10 +118,7 @@ class SentryApp(ParanoidModel, HasApiScopes):
         if is_active_superuser(request):
             return cls.objects.all()
 
-        user = request.user
-        return cls.objects.filter(
-            Q(status=SentryAppStatus.PUBLISHED) | Q(owner__in=user.get_orgs()),
-        )
+        return cls.objects.filter(status=SentryAppStatus.PUBLISHED)
 
     @property
     def organizations(self):
