@@ -288,6 +288,7 @@ describe('ProjectSelector', function() {
     const wrapper = mount(<ProjectSelector {...multiProjectProps} />, routerContext);
     openMenu(wrapper);
     expect(wrapper.find('AutoCompleteItem')).toHaveLength(1);
+    expect(wrapper.text()).not.toContain("Projects I don't belong to");
   });
 
   it('displays multi projects with non member projects', function() {
@@ -301,7 +302,7 @@ describe('ProjectSelector', function() {
 
     const wrapper = mount(<ProjectSelector {...multiProjectProps} />, routerContext);
     openMenu(wrapper);
-    expect(wrapper).toMatchSnapshot();
+    expect(wrapper.text()).toContain("Projects I don't belong to");
     expect(wrapper.find('AutoCompleteItem')).toHaveLength(2);
   });
 });
