@@ -19,7 +19,7 @@ class Migration(SchemaMigration):
 
     def backwards(self, orm):
         # Deleting field 'ExternalIssue.metadata'
-        db.delete_column('sentry_externalissue', 'metadata')
+        db.delete_column('sentry_externalissue', 'metadata', safety_lock=False)
 
     models = {
         'sentry.activity': {

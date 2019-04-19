@@ -40,7 +40,7 @@ class Migration(SchemaMigration):
         db.delete_index('sentry_groupenvironment', ['environment_id', 'first_release_id'])
 
         # Deleting field 'GroupEnvironment.first_release_id'
-        db.delete_column('sentry_groupenvironment', 'first_release_id')
+        db.delete_column('sentry_groupenvironment', 'first_release_id', safety_lock=False)
 
     models = {
         'sentry.activity': {

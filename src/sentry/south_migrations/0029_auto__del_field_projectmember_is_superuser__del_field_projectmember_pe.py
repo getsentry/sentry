@@ -9,10 +9,10 @@ class Migration(SchemaMigration):
     def forwards(self, orm):
 
         # Deleting field 'ProjectMember.is_superuser'
-        db.delete_column('sentry_projectmember', 'is_superuser')
+        db.delete_column('sentry_projectmember', 'is_superuser', safety_lock=False)
 
         # Deleting field 'ProjectMember.permissions'
-        db.delete_column('sentry_projectmember', 'permissions')
+        db.delete_column('sentry_projectmember', 'permissions', safety_lock=False)
 
         # Adding field 'ProjectMember.type'
         db.add_column(
@@ -38,7 +38,7 @@ class Migration(SchemaMigration):
         )
 
         # Deleting field 'ProjectMember.type'
-        db.delete_column('sentry_projectmember', 'type')
+        db.delete_column('sentry_projectmember', 'type', safety_lock=False)
 
     models = {
         'sentry.user': {

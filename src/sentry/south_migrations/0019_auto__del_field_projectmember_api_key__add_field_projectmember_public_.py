@@ -9,7 +9,7 @@ class Migration(SchemaMigration):
     def forwards(self, orm):
 
         # Deleting field 'ProjectMember.api_key'
-        db.delete_column('sentry_projectmember', 'api_key')
+        db.delete_column('sentry_projectmember', 'api_key', safety_lock=False)
 
         # Adding field 'ProjectMember.public_key'
         db.add_column(
@@ -38,10 +38,10 @@ class Migration(SchemaMigration):
         )
 
         # Deleting field 'ProjectMember.public_key'
-        db.delete_column('sentry_projectmember', 'public_key')
+        db.delete_column('sentry_projectmember', 'public_key', safety_lock=False)
 
         # Deleting field 'ProjectMember.secret_key'
-        db.delete_column('sentry_projectmember', 'secret_key')
+        db.delete_column('sentry_projectmember', 'secret_key', safety_lock=False)
 
     models = {
         'sentry.user': {

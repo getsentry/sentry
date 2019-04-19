@@ -19,7 +19,7 @@ class Migration(SchemaMigration):
                 'user_id', 'feature', 'organization_id', 'project_id'])
 
         # Deleting field 'PromptsActivity.organization'
-        db.delete_column(u'sentry_promptsactivity', 'organization_id')
+        db.delete_column(u'sentry_promptsactivity', 'organization_id', safety_lock=False)
 
         # Adding field 'PromptsActivity.organization_id'
         db.add_column('sentry_promptsactivity', 'organization_id',
@@ -50,7 +50,7 @@ class Migration(SchemaMigration):
                       keep_default=False)
 
         # Deleting field 'PromptsActivity.organization_id'
-        db.delete_column('sentry_promptsactivity', 'organization_id')
+        db.delete_column('sentry_promptsactivity', 'organization_id', safety_lock=False)
 
         # Changing field 'PromptsActivity.project_id'
         db.alter_column('sentry_promptsactivity', 'project_id', self.gf(

@@ -19,7 +19,7 @@ class Migration(SchemaMigration):
 
     def backwards(self, orm):
         # Deleting field 'Relay.is_internal'
-        db.delete_column('sentry_relay', 'is_internal')
+        db.delete_column('sentry_relay', 'is_internal', safety_lock=False)
 
     models = {
         'sentry.activity': {

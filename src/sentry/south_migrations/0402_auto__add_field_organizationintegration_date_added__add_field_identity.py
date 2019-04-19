@@ -29,13 +29,13 @@ class Migration(SchemaMigration):
 
     def backwards(self, orm):
         # Deleting field 'OrganizationIntegration.date_added'
-        db.delete_column('sentry_organizationintegration', 'date_added')
+        db.delete_column('sentry_organizationintegration', 'date_added', safety_lock=False)
 
         # Deleting field 'IdentityProvider.date_added'
-        db.delete_column('sentry_identityprovider', 'date_added')
+        db.delete_column('sentry_identityprovider', 'date_added', safety_lock=False)
 
         # Deleting field 'Integration.date_added'
-        db.delete_column('sentry_integration', 'date_added')
+        db.delete_column('sentry_integration', 'date_added', safety_lock=False)
 
     models = {
         'sentry.activity': {

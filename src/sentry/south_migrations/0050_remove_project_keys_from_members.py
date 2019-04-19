@@ -9,10 +9,10 @@ class Migration(SchemaMigration):
     def forwards(self, orm):
 
         # Deleting field 'ProjectMember.public_key'
-        db.delete_column('sentry_projectmember', 'public_key')
+        db.delete_column('sentry_projectmember', 'public_key', safety_lock=False)
 
         # Deleting field 'ProjectMember.secret_key'
-        db.delete_column('sentry_projectmember', 'secret_key')
+        db.delete_column('sentry_projectmember', 'secret_key', safety_lock=False)
 
     def backwards(self, orm):
 

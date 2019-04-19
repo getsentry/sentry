@@ -9,19 +9,19 @@ class Migration(SchemaMigration):
     def forwards(self, orm):
 
         # Deleting field 'Group.class_name'
-        db.delete_column('sentry_groupedmessage', 'class_name')
+        db.delete_column('sentry_groupedmessage', 'class_name', safety_lock=False)
 
         # Deleting field 'Group.traceback'
-        db.delete_column('sentry_groupedmessage', 'traceback')
+        db.delete_column('sentry_groupedmessage', 'traceback', safety_lock=False)
 
         # Deleting field 'Event.class_name'
-        db.delete_column('sentry_message', 'class_name')
+        db.delete_column('sentry_message', 'class_name', safety_lock=False)
 
         # Deleting field 'Event.traceback'
-        db.delete_column('sentry_message', 'traceback')
+        db.delete_column('sentry_message', 'traceback', safety_lock=False)
 
         # Deleting field 'Event.url'
-        db.delete_column('sentry_message', 'url')
+        db.delete_column('sentry_message', 'url', safety_lock=False)
 
     def backwards(self, orm):
 

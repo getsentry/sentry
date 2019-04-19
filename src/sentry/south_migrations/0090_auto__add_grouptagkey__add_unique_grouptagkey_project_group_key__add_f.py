@@ -74,16 +74,16 @@ class Migration(SchemaMigration):
         db.delete_table('sentry_grouptagkey')
 
         # Deleting field 'FilterValue.times_seen'
-        db.delete_column('sentry_filtervalue', 'times_seen')
+        db.delete_column('sentry_filtervalue', 'times_seen', safety_lock=False)
 
         # Deleting field 'FilterValue.last_seen'
-        db.delete_column('sentry_filtervalue', 'last_seen')
+        db.delete_column('sentry_filtervalue', 'last_seen', safety_lock=False)
 
         # Deleting field 'FilterValue.first_seen'
-        db.delete_column('sentry_filtervalue', 'first_seen')
+        db.delete_column('sentry_filtervalue', 'first_seen', safety_lock=False)
 
         # Deleting field 'FilterKey.values_seen'
-        db.delete_column('sentry_filterkey', 'values_seen')
+        db.delete_column('sentry_filterkey', 'values_seen', safety_lock=False)
 
     models = {
         'sentry.user': {

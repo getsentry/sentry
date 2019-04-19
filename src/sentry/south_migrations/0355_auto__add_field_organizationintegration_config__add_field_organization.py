@@ -24,10 +24,10 @@ class Migration(SchemaMigration):
                       keep_default=False)
 
         # Deleting field 'Integration.default_auth_id'
-        db.delete_column(u'sentry_integration', 'default_auth_id')
+        db.delete_column(u'sentry_integration', 'default_auth_id', safety_lock=False)
 
         # Deleting field 'Integration.config'
-        db.delete_column(u'sentry_integration', 'config')
+        db.delete_column(u'sentry_integration', 'config', safety_lock=False)
 
         # Adding field 'Integration.metadata'
         db.add_column('sentry_integration', 'metadata',
@@ -40,10 +40,10 @@ class Migration(SchemaMigration):
 
     def backwards(self, orm):
         # Deleting field 'OrganizationIntegration.config'
-        db.delete_column('sentry_organizationintegration', 'config')
+        db.delete_column('sentry_organizationintegration', 'config', safety_lock=False)
 
         # Deleting field 'OrganizationIntegration.default_auth_id'
-        db.delete_column('sentry_organizationintegration', 'default_auth_id')
+        db.delete_column('sentry_organizationintegration', 'default_auth_id', safety_lock=False)
 
         # Adding field 'Integration.default_auth_id'
         db.add_column(u'sentry_integration', 'default_auth_id',
@@ -57,7 +57,7 @@ class Migration(SchemaMigration):
                       keep_default=False)
 
         # Deleting field 'Integration.metadata'
-        db.delete_column('sentry_integration', 'metadata')
+        db.delete_column('sentry_integration', 'metadata', safety_lock=False)
 
         # Changing field 'ProjectIntegration.config'
         db.alter_column('sentry_projectintegration', 'config',

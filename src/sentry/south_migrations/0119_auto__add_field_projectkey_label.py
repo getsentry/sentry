@@ -17,7 +17,7 @@ class Migration(SchemaMigration):
 
     def backwards(self, orm):
         # Deleting field 'ProjectKey.label'
-        db.delete_column('sentry_projectkey', 'label')
+        db.delete_column('sentry_projectkey', 'label', safety_lock=False)
 
     models = {
         'sentry.accessgroup': {

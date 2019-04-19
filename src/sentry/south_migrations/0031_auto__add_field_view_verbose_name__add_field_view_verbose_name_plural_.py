@@ -27,10 +27,10 @@ class Migration(SchemaMigration):
     def backwards(self, orm):
 
         # Deleting field 'View.verbose_name'
-        db.delete_column('sentry_view', 'verbose_name')
+        db.delete_column('sentry_view', 'verbose_name', safety_lock=False)
 
         # Deleting field 'View.verbose_name_plural'
-        db.delete_column('sentry_view', 'verbose_name_plural')
+        db.delete_column('sentry_view', 'verbose_name_plural', safety_lock=False)
 
     models = {
         'sentry.user': {

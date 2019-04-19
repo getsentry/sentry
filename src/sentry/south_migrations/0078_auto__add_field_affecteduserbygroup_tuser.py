@@ -19,7 +19,7 @@ class Migration(SchemaMigration):
 
     def backwards(self, orm):
         # Deleting field 'AffectedUserByGroup.tuser'
-        db.delete_column('sentry_affecteduserbygroup', 'tuser_id')
+        db.delete_column('sentry_affecteduserbygroup', 'tuser_id', safety_lock=False)
 
     models = {
         'sentry.user': {

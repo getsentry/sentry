@@ -21,10 +21,10 @@ class Migration(SchemaMigration):
 
     def backwards(self, orm):
         # Deleting field 'Group.platform'
-        db.delete_column('sentry_groupedmessage', 'platform')
+        db.delete_column('sentry_groupedmessage', 'platform', safety_lock=False)
 
         # Deleting field 'Event.platform'
-        db.delete_column('sentry_message', 'platform')
+        db.delete_column('sentry_message', 'platform', safety_lock=False)
 
     models = {
         'sentry.user': {

@@ -17,7 +17,7 @@ class Migration(SchemaMigration):
 
     def backwards(self, orm):
         # Deleting field 'User.session_nonce'
-        db.delete_column('auth_user', 'session_nonce')
+        db.delete_column('auth_user', 'session_nonce', safety_lock=False)
 
     models = {
         'sentry.activity': {

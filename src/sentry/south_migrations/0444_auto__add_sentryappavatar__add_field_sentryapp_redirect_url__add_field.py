@@ -44,10 +44,10 @@ class Migration(SchemaMigration):
         db.delete_table('sentry_sentryappavatar')
 
         # Deleting field 'SentryApp.redirect_url'
-        db.delete_column('sentry_sentryapp', 'redirect_url')
+        db.delete_column('sentry_sentryapp', 'redirect_url', safety_lock=False)
 
         # Deleting field 'SentryApp.overview'
-        db.delete_column('sentry_sentryapp', 'overview')
+        db.delete_column('sentry_sentryapp', 'overview', safety_lock=False)
 
         # Changing field 'SentryApp.webhook_url'
         db.alter_column(

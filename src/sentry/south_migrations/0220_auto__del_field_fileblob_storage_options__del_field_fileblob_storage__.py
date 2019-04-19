@@ -8,16 +8,16 @@ from django.db import models
 class Migration(SchemaMigration):
     def forwards(self, orm):
         # Deleting field 'FileBlob.storage_options'
-        db.delete_column(u'sentry_fileblob', 'storage_options')
+        db.delete_column(u'sentry_fileblob', 'storage_options', safety_lock=False)
 
         # Deleting field 'FileBlob.storage'
-        db.delete_column(u'sentry_fileblob', 'storage')
+        db.delete_column(u'sentry_fileblob', 'storage', safety_lock=False)
 
         # Deleting field 'File.storage_options'
-        db.delete_column(u'sentry_file', 'storage_options')
+        db.delete_column(u'sentry_file', 'storage_options', safety_lock=False)
 
         # Deleting field 'File.storage'
-        db.delete_column(u'sentry_file', 'storage')
+        db.delete_column(u'sentry_file', 'storage', safety_lock=False)
 
     def backwards(self, orm):
         raise RuntimeError(

@@ -17,15 +17,17 @@ class Migration(SchemaMigration):
                       self.gf('django.db.models.fields.CharField')(max_length=64, null=True),
                       keep_default=False)
 
-        # Adding unique constraint on 'IdentityProvider', fields ['type', 'organization', 'external_id']
+        # Adding unique constraint on 'IdentityProvider', fields ['type',
+        # 'organization', 'external_id']
         db.create_unique('sentry_identityprovider', ['type', 'organization_id', 'external_id'])
 
     def backwards(self, orm):
-        # Removing unique constraint on 'IdentityProvider', fields ['type', 'organization', 'external_id']
+        # Removing unique constraint on 'IdentityProvider', fields ['type',
+        # 'organization', 'external_id']
         db.delete_unique('sentry_identityprovider', ['type', 'organization_id', 'external_id'])
 
         # Deleting field 'IdentityProvider.external_id'
-        db.delete_column('sentry_identityprovider', 'external_id')
+        db.delete_column('sentry_identityprovider', 'external_id', safety_lock=False)
 
     models = {
         'sentry.activity': {

@@ -25,7 +25,7 @@ class Migration(SchemaMigration):
         db.delete_unique('sentry_useroption', ['user_id', 'organization_id', 'key'])
 
         # Deleting field 'UserOption.organization'
-        db.delete_column('sentry_useroption', 'organization_id')
+        db.delete_column('sentry_useroption', 'organization_id', safety_lock=False)
 
     models = {
         'sentry.activity': {

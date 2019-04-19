@@ -33,7 +33,7 @@ class Migration(SchemaMigration):
 
     def backwards(self, orm):
         # Deleting field 'GroupEnvironment.first_seen'
-        db.delete_column('sentry_groupenvironment', 'first_seen')
+        db.delete_column('sentry_groupenvironment', 'first_seen', safety_lock=False)
 
     models = {
         'sentry.activity': {

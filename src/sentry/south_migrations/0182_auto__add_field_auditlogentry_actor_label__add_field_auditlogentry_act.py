@@ -35,10 +35,10 @@ class Migration(SchemaMigration):
 
     def backwards(self, orm):
         # Deleting field 'AuditLogEntry.actor_label'
-        db.delete_column('sentry_auditlogentry', 'actor_label')
+        db.delete_column('sentry_auditlogentry', 'actor_label', safety_lock=False)
 
         # Deleting field 'AuditLogEntry.actor_key'
-        db.delete_column('sentry_auditlogentry', 'actor_key_id')
+        db.delete_column('sentry_auditlogentry', 'actor_key_id', safety_lock=False)
 
         # User chose to not deal with backwards NULL issues for 'AuditLogEntry.actor'
         raise RuntimeError(

@@ -19,7 +19,7 @@ class Migration(SchemaMigration):
 
     def backwards(self, orm):
         # Deleting field 'GroupBookmark.date_added'
-        db.delete_column('sentry_groupbookmark', 'date_added')
+        db.delete_column('sentry_groupbookmark', 'date_added', safety_lock=False)
 
     models = {
         'sentry.activity': {

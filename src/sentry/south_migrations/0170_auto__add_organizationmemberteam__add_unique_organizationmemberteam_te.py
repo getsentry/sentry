@@ -49,10 +49,10 @@ class Migration(SchemaMigration):
         db.create_unique('sentry_organizationaccessrequest', ['team_id', 'member_id'])
 
     def backwards(self, orm):
-        db.delete_column('sentry_organizationmember_teams', 'is_active')
+        db.delete_column('sentry_organizationmember_teams', 'is_active', safety_lock=False)
 
         # Deleting field 'Organization.flags'
-        db.delete_column('sentry_organization', 'flags')
+        db.delete_column('sentry_organization', 'flags', safety_lock=False)
 
         # Removing unique constraint on 'OrganizationAccessRequest', fields ['team', 'member']
         db.delete_unique('sentry_organizationaccessrequest', ['team_id', 'member_id'])

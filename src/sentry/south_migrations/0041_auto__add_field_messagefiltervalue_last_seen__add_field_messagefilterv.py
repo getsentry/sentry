@@ -31,10 +31,10 @@ class Migration(SchemaMigration):
     def backwards(self, orm):
 
         # Deleting field 'MessageFilterValue.last_seen'
-        db.delete_column('sentry_messagefiltervalue', 'last_seen')
+        db.delete_column('sentry_messagefiltervalue', 'last_seen', safety_lock=False)
 
         # Deleting field 'MessageFilterValue.first_seen'
-        db.delete_column('sentry_messagefiltervalue', 'first_seen')
+        db.delete_column('sentry_messagefiltervalue', 'first_seen', safety_lock=False)
 
     models = {
         'sentry.user': {

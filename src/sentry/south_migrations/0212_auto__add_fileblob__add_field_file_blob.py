@@ -47,7 +47,7 @@ class Migration(SchemaMigration):
         db.delete_table('sentry_fileblob')
 
         # Deleting field 'File.blob'
-        db.delete_column('sentry_file', 'blob_id')
+        db.delete_column('sentry_file', 'blob_id', safety_lock=False)
 
     models = {
         'sentry.activity': {

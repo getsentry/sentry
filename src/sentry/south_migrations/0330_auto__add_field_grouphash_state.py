@@ -17,7 +17,7 @@ class Migration(SchemaMigration):
 
     def backwards(self, orm):
         # Deleting field 'GroupHash.state'
-        db.delete_column('sentry_grouphash', 'state')
+        db.delete_column('sentry_grouphash', 'state', safety_lock=False)
 
     models = {
         'sentry.activity': {

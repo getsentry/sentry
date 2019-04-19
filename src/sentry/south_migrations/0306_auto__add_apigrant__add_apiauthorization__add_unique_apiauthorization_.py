@@ -102,7 +102,7 @@ class Migration(SchemaMigration):
         db.send_create_signal('sentry', ['ApiApplication'])
 
         # Deleting field 'ApiToken.key'
-        db.delete_column(u'sentry_apitoken', 'key_id')
+        db.delete_column(u'sentry_apitoken', 'key_id', safety_lock=False)
 
         # Adding field 'ApiToken.application'
         db.add_column(
@@ -154,13 +154,13 @@ class Migration(SchemaMigration):
         )
 
         # Deleting field 'ApiToken.application'
-        db.delete_column('sentry_apitoken', 'application_id')
+        db.delete_column('sentry_apitoken', 'application_id', safety_lock=False)
 
         # Deleting field 'ApiToken.refresh_token'
-        db.delete_column('sentry_apitoken', 'refresh_token')
+        db.delete_column('sentry_apitoken', 'refresh_token', safety_lock=False)
 
         # Deleting field 'ApiToken.expires_at'
-        db.delete_column('sentry_apitoken', 'expires_at')
+        db.delete_column('sentry_apitoken', 'expires_at', safety_lock=False)
 
     models = {
         'sentry.activity': {

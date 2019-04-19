@@ -8,7 +8,7 @@ from django.db import models
 class Migration(SchemaMigration):
     def forwards(self, orm):
         # Deleting field 'TeamMember.is_active'
-        db.delete_column(u'sentry_teammember', 'is_active')
+        db.delete_column(u'sentry_teammember', 'is_active', safety_lock=False)
 
     def backwards(self, orm):
         # Adding field 'TeamMember.is_active'

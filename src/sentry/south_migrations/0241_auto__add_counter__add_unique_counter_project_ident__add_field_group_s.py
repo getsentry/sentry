@@ -42,7 +42,7 @@ class Migration(SchemaMigration):
         db.delete_table('sentry_projectcounter')
 
         # Deleting field 'Group.short_id'
-        db.delete_column('sentry_groupedmessage', 'short_id')
+        db.delete_column('sentry_groupedmessage', 'short_id', safety_lock=False)
 
     models = {
         'sentry.activity': {

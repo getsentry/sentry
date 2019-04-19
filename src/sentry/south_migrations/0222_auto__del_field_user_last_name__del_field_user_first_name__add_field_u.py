@@ -7,7 +7,7 @@ from django.db import models
 
 class Migration(SchemaMigration):
     def forwards(self, orm):
-        db.delete_column('auth_user', 'last_name')
+        db.delete_column('auth_user', 'last_name', safety_lock=False)
 
     def backwards(self, orm):
         # Adding field 'User.last_name'

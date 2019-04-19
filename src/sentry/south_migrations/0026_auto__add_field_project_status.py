@@ -19,7 +19,7 @@ class Migration(SchemaMigration):
     def backwards(self, orm):
 
         # Deleting field 'Project.status'
-        db.delete_column('sentry_project', 'status')
+        db.delete_column('sentry_project', 'status', safety_lock=False)
 
     models = {
         'sentry.user': {

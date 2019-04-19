@@ -11,7 +11,7 @@ class Migration(SchemaMigration):
         db.delete_unique(u'sentry_release', ['project_id', 'version', 'environment'])
 
         # Deleting field 'Release.environment'
-        db.delete_column(u'sentry_release', 'environment')
+        db.delete_column(u'sentry_release', 'environment', safety_lock=False)
 
         # Adding unique constraint on 'Release', fields ['project', 'version']
         db.create_unique('sentry_release', ['project_id', 'version'])

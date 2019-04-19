@@ -40,7 +40,7 @@ class Migration(SchemaMigration):
 
     def backwards(self, orm):
         # Deleting field 'GroupAssignee.team'
-        db.delete_column('sentry_groupasignee', 'team_id')
+        db.delete_column('sentry_groupasignee', 'team_id', safety_lock=False)
 
         # User chose to not deal with backwards NULL issues for 'GroupAssignee.user'
         raise RuntimeError(

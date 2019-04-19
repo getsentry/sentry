@@ -19,7 +19,7 @@ class Migration(SchemaMigration):
     def backwards(self, orm):
 
         # Deleting field 'GroupedMessage.score'
-        db.delete_column('sentry_groupedmessage', 'score')
+        db.delete_column('sentry_groupedmessage', 'score', safety_lock=False)
 
     models = {
         'sentry.filtervalue': {

@@ -34,7 +34,7 @@ class Migration(SchemaMigration):
 
     def backwards(self, orm):
         # Deleting field 'OrganizationMember.has_global_access'
-        db.delete_column('sentry_organizationmember', 'has_global_access')
+        db.delete_column('sentry_organizationmember', 'has_global_access', safety_lock=False)
 
         # Removing M2M table for field teams on 'OrganizationMember'
         db.delete_table(db.shorten_name('sentry_organizationmember_teams'))

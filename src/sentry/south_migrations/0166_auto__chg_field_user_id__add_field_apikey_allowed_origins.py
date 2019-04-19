@@ -17,7 +17,7 @@ class Migration(SchemaMigration):
 
     def backwards(self, orm):
         # Deleting field 'ApiKey.allowed_origins'
-        db.delete_column('sentry_apikey', 'allowed_origins')
+        db.delete_column('sentry_apikey', 'allowed_origins', safety_lock=False)
 
     models = {
         'sentry.accessgroup': {

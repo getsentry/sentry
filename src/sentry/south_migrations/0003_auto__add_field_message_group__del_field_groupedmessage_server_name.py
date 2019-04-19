@@ -19,12 +19,12 @@ class Migration(SchemaMigration):
         )
 
         # Deleting field 'GroupedMessage.server_name'
-        db.delete_column('sentry_groupedmessage', 'server_name')
+        db.delete_column('sentry_groupedmessage', 'server_name', safety_lock=False)
 
     def backwards(self, orm):
 
         # Deleting field 'Message.group'
-        db.delete_column('sentry_message', 'group_id')
+        db.delete_column('sentry_message', 'group_id', safety_lock=False)
 
         # Adding field 'GroupedMessage.server_name'
         db.add_column(

@@ -34,7 +34,7 @@ class Migration(SchemaMigration):
         db.delete_table('sentry_sentryappcomponent')
 
         # Deleting field 'SentryApp.schema'
-        db.delete_column('sentry_sentryapp', 'schema')
+        db.delete_column('sentry_sentryapp', 'schema', safety_lock=False)
 
     models = {
         'sentry.activity': {

@@ -51,19 +51,19 @@ class Migration(SchemaMigration):
 
     def backwards(self, orm):
         # Deleting field 'Release.commit_count'
-        db.delete_column('sentry_release', 'commit_count')
+        db.delete_column('sentry_release', 'commit_count', safety_lock=False)
 
         # Deleting field 'Release.last_commit_id'
-        db.delete_column('sentry_release', 'last_commit_id')
+        db.delete_column('sentry_release', 'last_commit_id', safety_lock=False)
 
         # Deleting field 'Release.authors'
-        db.delete_column('sentry_release', 'authors')
+        db.delete_column('sentry_release', 'authors', safety_lock=False)
 
         # Deleting field 'Release.total_deploys'
-        db.delete_column('sentry_release', 'total_deploys')
+        db.delete_column('sentry_release', 'total_deploys', safety_lock=False)
 
         # Deleting field 'Release.last_deploy_id'
-        db.delete_column('sentry_release', 'last_deploy_id')
+        db.delete_column('sentry_release', 'last_deploy_id', safety_lock=False)
 
     models = {
         'sentry.activity': {

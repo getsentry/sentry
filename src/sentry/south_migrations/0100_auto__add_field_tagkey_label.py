@@ -17,7 +17,7 @@ class Migration(SchemaMigration):
 
     def backwards(self, orm):
         # Deleting field 'TagKey.label'
-        db.delete_column('sentry_filterkey', 'label')
+        db.delete_column('sentry_filterkey', 'label', safety_lock=False)
 
     models = {
         u'auth.group': {

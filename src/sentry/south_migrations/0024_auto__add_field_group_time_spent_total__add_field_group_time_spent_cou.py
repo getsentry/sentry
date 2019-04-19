@@ -27,10 +27,10 @@ class Migration(SchemaMigration):
     def backwards(self, orm):
 
         # Deleting field 'Group.time_spent_total'
-        db.delete_column('sentry_groupedmessage', 'time_spent_total')
+        db.delete_column('sentry_groupedmessage', 'time_spent_total', safety_lock=False)
 
         # Deleting field 'Group.time_spent_count'
-        db.delete_column('sentry_groupedmessage', 'time_spent_count')
+        db.delete_column('sentry_groupedmessage', 'time_spent_count', safety_lock=False)
 
     models = {
         'sentry.user': {

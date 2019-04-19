@@ -17,7 +17,7 @@ class Migration(SchemaMigration):
 
     def backwards(self, orm):
         # Deleting field 'AuthProvider.flags'
-        db.delete_column('sentry_authprovider', 'flags')
+        db.delete_column('sentry_authprovider', 'flags', safety_lock=False)
 
     models = {
         'sentry.accessgroup': {

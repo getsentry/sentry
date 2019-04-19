@@ -19,7 +19,7 @@ class Migration(SchemaMigration):
     def backwards(self, orm):
 
         # Deleting field 'Event.time_spent'
-        db.delete_column('sentry_message', 'time_spent')
+        db.delete_column('sentry_message', 'time_spent', safety_lock=False)
 
     models = {
         'sentry.user': {

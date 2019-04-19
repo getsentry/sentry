@@ -939,10 +939,21 @@ class DatabaseOperations(object):
     drop_index = alias('delete_index')
 
     @delete_column_constraints
-    def delete_column(self, table_name, name):
+    def delete_column(self, table_name, name, safety_lock=True):
         """
         Deletes the column 'column_name' from the table 'table_name'.
         """
+        if safety_lock:
+            raise Exception(
+                'Deleting columns is dangerous. You need to do this in two '
+                'separate commits that must be deployed separately:\n'
+                ' - Remove the column from the django model, and make it '
+                'nullable in the table if it currently is not.\n'
+                ' - After the previous step has deployed, write the migration '
+                'to remove the column from the table itself, and set '
+                '`safety_lock` to False.\n'
+                'If unsure, ask in #engineering.',
+            )
         params = (self.quote_name(table_name), self.quote_name(name))
         self.execute(self.delete_column_string % params, [])
 

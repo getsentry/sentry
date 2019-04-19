@@ -19,7 +19,7 @@ class Migration(SchemaMigration):
 
     def backwards(self, orm):
         # Deleting field 'Group.is_public'
-        db.delete_column('sentry_groupedmessage', 'is_public')
+        db.delete_column('sentry_groupedmessage', 'is_public', safety_lock=False)
 
     models = {
         'sentry.user': {

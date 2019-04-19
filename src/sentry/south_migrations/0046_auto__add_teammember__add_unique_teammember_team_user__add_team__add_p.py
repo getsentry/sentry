@@ -113,10 +113,10 @@ class Migration(SchemaMigration):
         db.delete_table('sentry_projectkey')
 
         # Deleting field 'Project.slug'
-        db.delete_column('sentry_project', 'slug')
+        db.delete_column('sentry_project', 'slug', safety_lock=False)
 
         # Deleting field 'Project.team'
-        db.delete_column('sentry_project', 'team_id')
+        db.delete_column('sentry_project', 'team_id', safety_lock=False)
 
     models = {
         'sentry.user': {

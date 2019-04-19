@@ -25,10 +25,10 @@ class Migration(SchemaMigration):
 
     def backwards(self, orm):
         # Deleting field 'ProjectKey.rate_limit_count'
-        db.delete_column('sentry_projectkey', 'rate_limit_count')
+        db.delete_column('sentry_projectkey', 'rate_limit_count', safety_lock=False)
 
         # Deleting field 'ProjectKey.rate_limit_window'
-        db.delete_column('sentry_projectkey', 'rate_limit_window')
+        db.delete_column('sentry_projectkey', 'rate_limit_window', safety_lock=False)
 
     models = {
         'sentry.activity': {

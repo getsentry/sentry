@@ -16,11 +16,26 @@ class Migration(SchemaMigration):
         db.create_table('sentry_sentryappinstallation', (
             ('id', self.gf('sentry.db.models.fields.bounded.BoundedBigAutoField')(primary_key=True)),
             ('date_deleted', self.gf('django.db.models.fields.DateTimeField')(null=True, blank=True)),
-            ('sentry_app', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(related_name='installations', to=orm['sentry.SentryApp'])),
-            ('organization', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(related_name='sentry_app_installations', to=orm['sentry.Organization'])),
-            ('authorization', self.gf('django.db.models.fields.related.OneToOneField')(related_name='sentry_app_installation', unique=True, null=True, on_delete=models.SET_NULL, to=orm['sentry.ApiAuthorization'])),
-            ('api_grant', self.gf('django.db.models.fields.related.OneToOneField')(related_name='sentry_app_installation', unique=True, null=True, on_delete=models.SET_NULL, to=orm['sentry.ApiGrant'])),
-            ('uuid', self.gf('django.db.models.fields.CharField')(default='b0d8118e-f1fa-4224-a090-28c812ef94e4', max_length=64)),
+            ('sentry_app', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(
+                related_name='installations', to=orm['sentry.SentryApp'])),
+            ('organization', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(
+                related_name='sentry_app_installations', to=orm['sentry.Organization'])),
+            ('authorization',
+             self.gf('django.db.models.fields.related.OneToOneField')(related_name='sentry_app_installation',
+                                                                      unique=True,
+                                                                      null=True,
+                                                                      on_delete=models.SET_NULL,
+                                                                      to=orm['sentry.ApiAuthorization'])),
+            (
+                'api_grant',
+                self.gf('django.db.models.fields.related.OneToOneField')(
+                    related_name='sentry_app_installation',
+                    unique=True,
+                    null=True,
+                    on_delete=models.SET_NULL,
+                    to=orm['sentry.ApiGrant'])),
+            ('uuid', self.gf('django.db.models.fields.CharField')
+             (default='b0d8118e-f1fa-4224-a090-28c812ef94e4', max_length=64)),
             ('date_added', self.gf('django.db.models.fields.DateTimeField')(default=datetime.datetime.now)),
             ('date_updated', self.gf('django.db.models.fields.DateTimeField')(default=datetime.datetime.now)),
         ))
@@ -30,14 +45,19 @@ class Migration(SchemaMigration):
         db.create_table('sentry_sentryapp', (
             ('id', self.gf('sentry.db.models.fields.bounded.BoundedBigAutoField')(primary_key=True)),
             ('date_deleted', self.gf('django.db.models.fields.DateTimeField')(null=True, blank=True)),
-            ('application', self.gf('django.db.models.fields.related.OneToOneField')(related_name='sentry_app', unique=True, to=orm['sentry.ApiApplication'])),
-            ('proxy_user', self.gf('django.db.models.fields.related.OneToOneField')(related_name='sentry_app', unique=True, to=orm['sentry.User'])),
-            ('owner', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(related_name='owned_sentry_apps', to=orm['sentry.User'])),
+            ('application', self.gf('django.db.models.fields.related.OneToOneField')
+             (related_name='sentry_app', unique=True, to=orm['sentry.ApiApplication'])),
+            ('proxy_user', self.gf('django.db.models.fields.related.OneToOneField')(
+                related_name='sentry_app', unique=True, to=orm['sentry.User'])),
+            ('owner', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(
+                related_name='owned_sentry_apps', to=orm['sentry.User'])),
             ('scopes', self.gf('django.db.models.fields.BigIntegerField')(default=None)),
-            ('scope_list', self.gf('sentry.db.models.fields.array.ArrayField')(of=('django.db.models.fields.TextField', [], {}))),
+            ('scope_list', self.gf('sentry.db.models.fields.array.ArrayField')(
+                of=('django.db.models.fields.TextField', [], {}))),
             ('name', self.gf('django.db.models.fields.TextField')()),
             ('slug', self.gf('django.db.models.fields.CharField')(unique=True, max_length=64)),
-            ('uuid', self.gf('django.db.models.fields.CharField')(default='45ab4e12-5a17-461b-8665-bca3fbe00836', max_length=64)),
+            ('uuid', self.gf('django.db.models.fields.CharField')
+             (default='45ab4e12-5a17-461b-8665-bca3fbe00836', max_length=64)),
             ('webhook_url', self.gf('django.db.models.fields.TextField')()),
             ('date_added', self.gf('django.db.models.fields.DateTimeField')(default=datetime.datetime.now)),
             ('date_updated', self.gf('django.db.models.fields.DateTimeField')(default=datetime.datetime.now)),
@@ -46,7 +66,8 @@ class Migration(SchemaMigration):
 
         # Adding field 'User.is_sentry_app'
         db.add_column('auth_user', 'is_sentry_app',
-                      self.gf('django.db.models.fields.NullBooleanField')(default=None, null=True, blank=True),
+                      self.gf('django.db.models.fields.NullBooleanField')(
+                          default=None, null=True, blank=True),
                       keep_default=False)
 
     def backwards(self, orm):
@@ -57,7 +78,7 @@ class Migration(SchemaMigration):
         db.delete_table('sentry_sentryapp')
 
         # Deleting field 'User.is_sentry_app'
-        db.delete_column('auth_user', 'is_sentry_app')
+        db.delete_column('auth_user', 'is_sentry_app', safety_lock=False)
 
     models = {
         'sentry.activity': {

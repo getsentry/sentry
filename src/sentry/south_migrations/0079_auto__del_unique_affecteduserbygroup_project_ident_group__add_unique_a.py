@@ -29,7 +29,7 @@ class Migration(SchemaMigration):
         db.create_unique('sentry_affecteduserbygroup', ['project_id', 'ident', 'group_id'])
 
         # Deleting field 'TrackedUser.num_events'
-        db.delete_column('sentry_trackeduser', 'num_events')
+        db.delete_column('sentry_trackeduser', 'num_events', safety_lock=False)
 
     models = {
         'sentry.user': {

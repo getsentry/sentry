@@ -66,7 +66,8 @@ class Migration(SchemaMigration):
             keep_default=False
         )
 
-        # Adding unique constraint on 'MessageFilterValue', fields ['project', 'group', 'value', 'key']
+        # Adding unique constraint on 'MessageFilterValue', fields ['project',
+        # 'group', 'value', 'key']
         db.create_unique('sentry_messagefiltervalue', ['project_id', 'group_id', 'value', 'key'])
 
         # Adding field 'GroupedMessage.project'
@@ -79,15 +80,18 @@ class Migration(SchemaMigration):
             keep_default=False
         )
 
-        # Adding unique constraint on 'GroupedMessage', fields ['project', 'checksum', 'logger', 'view']
+        # Adding unique constraint on 'GroupedMessage', fields ['project',
+        # 'checksum', 'logger', 'view']
         db.create_unique('sentry_groupedmessage', ['project_id', 'checksum', 'logger', 'view'])
 
     def backwards(self, orm):
 
-        # Removing unique constraint on 'GroupedMessage', fields ['project', 'checksum', 'logger', 'view']
+        # Removing unique constraint on 'GroupedMessage', fields ['project',
+        # 'checksum', 'logger', 'view']
         db.delete_unique('sentry_groupedmessage', ['project_id', 'checksum', 'logger', 'view'])
 
-        # Removing unique constraint on 'MessageFilterValue', fields ['project', 'group', 'value', 'key']
+        # Removing unique constraint on 'MessageFilterValue', fields ['project',
+        # 'group', 'value', 'key']
         db.delete_unique('sentry_messagefiltervalue', ['project_id', 'group_id', 'value', 'key'])
 
         # Removing unique constraint on 'FilterValue', fields ['project', 'value', 'key']
@@ -97,28 +101,28 @@ class Migration(SchemaMigration):
         db.delete_unique('sentry_messagecountbyminute', ['project_id', 'date', 'group_id'])
 
         # Deleting field 'Message.project'
-        db.delete_column('sentry_message', 'project_id')
+        db.delete_column('sentry_message', 'project_id', safety_lock=False)
 
         # Deleting field 'MessageCountByMinute.project'
-        db.delete_column('sentry_messagecountbyminute', 'project_id')
+        db.delete_column('sentry_messagecountbyminute', 'project_id', safety_lock=False)
 
         # Adding unique constraint on 'MessageCountByMinute', fields ['date', 'group']
         db.create_unique('sentry_messagecountbyminute', ['date', 'group_id'])
 
         # Deleting field 'FilterValue.project'
-        db.delete_column('sentry_filtervalue', 'project_id')
+        db.delete_column('sentry_filtervalue', 'project_id', safety_lock=False)
 
         # Adding unique constraint on 'FilterValue', fields ['key', 'value']
         db.create_unique('sentry_filtervalue', ['key', 'value'])
 
         # Deleting field 'MessageFilterValue.project'
-        db.delete_column('sentry_messagefiltervalue', 'project_id')
+        db.delete_column('sentry_messagefiltervalue', 'project_id', safety_lock=False)
 
         # Adding unique constraint on 'MessageFilterValue', fields ['group', 'value', 'key']
         db.create_unique('sentry_messagefiltervalue', ['group_id', 'value', 'key'])
 
         # Deleting field 'GroupedMessage.project'
-        db.delete_column('sentry_groupedmessage', 'project_id')
+        db.delete_column('sentry_groupedmessage', 'project_id', safety_lock=False)
 
         # Adding unique constraint on 'GroupedMessage', fields ['checksum', 'logger', 'view']
         db.create_unique('sentry_groupedmessage', ['checksum', 'logger', 'view'])

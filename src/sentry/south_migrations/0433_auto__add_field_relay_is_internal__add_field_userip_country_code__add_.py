@@ -24,10 +24,10 @@ class Migration(SchemaMigration):
 
     def backwards(self, orm):
         # Deleting field 'UserIP.country_code'
-        db.delete_column('sentry_userip', 'country_code')
+        db.delete_column('sentry_userip', 'country_code', safety_lock=False)
 
         # Deleting field 'UserIP.region_code'
-        db.delete_column('sentry_userip', 'region_code')
+        db.delete_column('sentry_userip', 'region_code', safety_lock=False)
 
     models = {
         'sentry.activity': {

@@ -20,7 +20,7 @@ class Migration(SchemaMigration):
         db.delete_table('sentry_trackeduser')
 
         # Deleting field 'Group.users_seen'
-        db.delete_column('sentry_groupedmessage', 'users_seen')
+        db.delete_column('sentry_groupedmessage', 'users_seen', safety_lock=False)
 
     def backwards(self, orm):
         raise NotImplementedError("This is no time machine bro")

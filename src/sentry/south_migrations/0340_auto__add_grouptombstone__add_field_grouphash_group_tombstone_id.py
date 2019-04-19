@@ -60,7 +60,7 @@ class Migration(SchemaMigration):
         db.delete_table('sentry_grouptombstone')
 
         # Deleting field 'GroupHash.group_tombstone_id'
-        db.delete_column('sentry_grouphash', 'group_tombstone_id')
+        db.delete_column('sentry_grouphash', 'group_tombstone_id', safety_lock=False)
 
     models = {
         'sentry.activity': {

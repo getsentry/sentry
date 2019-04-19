@@ -40,10 +40,10 @@ class Migration(SchemaMigration):
         db.delete_unique('sentry_savedsearch', ['organization_id', 'owner_id', 'type'])
 
         # Deleting field 'SavedSearch.organization'
-        db.delete_column('sentry_savedsearch', 'organization_id')
+        db.delete_column('sentry_savedsearch', 'organization_id', safety_lock=False)
 
         # Deleting field 'SavedSearch.type'
-        db.delete_column('sentry_savedsearch', 'type')
+        db.delete_column('sentry_savedsearch', 'type', safety_lock=False)
 
     models = {
         'sentry.activity': {

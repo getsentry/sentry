@@ -17,7 +17,7 @@ class Migration(SchemaMigration):
 
     def backwards(self, orm):
         # Deleting field 'TagValue.data'
-        db.delete_column('sentry_filtervalue', 'data')
+        db.delete_column('sentry_filtervalue', 'data', safety_lock=False)
 
     models = {
         'sentry.user': {

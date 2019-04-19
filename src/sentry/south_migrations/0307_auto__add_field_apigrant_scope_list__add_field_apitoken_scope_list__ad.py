@@ -49,16 +49,16 @@ class Migration(SchemaMigration):
 
     def backwards(self, orm):
         # Deleting field 'ApiGrant.scope_list'
-        db.delete_column('sentry_apigrant', 'scope_list')
+        db.delete_column('sentry_apigrant', 'scope_list', safety_lock=False)
 
         # Deleting field 'ApiToken.scope_list'
-        db.delete_column('sentry_apitoken', 'scope_list')
+        db.delete_column('sentry_apitoken', 'scope_list', safety_lock=False)
 
         # Deleting field 'ApiAuthorization.scope_list'
-        db.delete_column('sentry_apiauthorization', 'scope_list')
+        db.delete_column('sentry_apiauthorization', 'scope_list', safety_lock=False)
 
         # Deleting field 'ApiKey.scope_list'
-        db.delete_column('sentry_apikey', 'scope_list')
+        db.delete_column('sentry_apikey', 'scope_list', safety_lock=False)
 
     models = {
         'sentry.activity': {

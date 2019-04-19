@@ -74,11 +74,13 @@ class Migration(SchemaMigration):
             keep_default=False
         )
 
-        # Adding unique constraint on 'Repository', fields ['organization_id', 'provider', 'external_id']
+        # Adding unique constraint on 'Repository', fields ['organization_id',
+        # 'provider', 'external_id']
         db.create_unique('sentry_repository', ['organization_id', 'provider', 'external_id'])
 
     def backwards(self, orm):
-        # Removing unique constraint on 'Repository', fields ['organization_id', 'provider', 'external_id']
+        # Removing unique constraint on 'Repository', fields ['organization_id',
+        # 'provider', 'external_id']
         db.delete_unique('sentry_repository', ['organization_id', 'provider', 'external_id'])
 
         # Removing unique constraint on 'CommitFileChange', fields ['commit', 'filename']
@@ -88,19 +90,19 @@ class Migration(SchemaMigration):
         db.delete_table('sentry_commitfilechange')
 
         # Deleting field 'Repository.url'
-        db.delete_column('sentry_repository', 'url')
+        db.delete_column('sentry_repository', 'url', safety_lock=False)
 
         # Deleting field 'Repository.provider'
-        db.delete_column('sentry_repository', 'provider')
+        db.delete_column('sentry_repository', 'provider', safety_lock=False)
 
         # Deleting field 'Repository.external_id'
-        db.delete_column('sentry_repository', 'external_id')
+        db.delete_column('sentry_repository', 'external_id', safety_lock=False)
 
         # Deleting field 'Repository.config'
-        db.delete_column('sentry_repository', 'config')
+        db.delete_column('sentry_repository', 'config', safety_lock=False)
 
         # Deleting field 'Repository.status'
-        db.delete_column('sentry_repository', 'status')
+        db.delete_column('sentry_repository', 'status', safety_lock=False)
 
     models = {
         'sentry.activity': {

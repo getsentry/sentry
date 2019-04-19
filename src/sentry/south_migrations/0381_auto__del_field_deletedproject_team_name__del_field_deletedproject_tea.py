@@ -13,13 +13,13 @@ class Migration(SchemaMigration):
 
     def forwards(self, orm):
         # Deleting field 'DeletedProject.team_name'
-        db.delete_column(u'sentry_deletedproject', 'team_name')
+        db.delete_column(u'sentry_deletedproject', 'team_name', safety_lock=False)
 
         # Deleting field 'DeletedProject.team_slug'
-        db.delete_column(u'sentry_deletedproject', 'team_slug')
+        db.delete_column(u'sentry_deletedproject', 'team_slug', safety_lock=False)
 
         # Deleting field 'DeletedProject.team_id'
-        db.delete_column(u'sentry_deletedproject', 'team_id')
+        db.delete_column(u'sentry_deletedproject', 'team_id', safety_lock=False)
 
     def backwards(self, orm):
         # Adding field 'DeletedProject.team_name'

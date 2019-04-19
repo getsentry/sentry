@@ -60,7 +60,7 @@ class Migration(SchemaMigration):
         db.delete_table('sentry_releasefile')
 
         # Deleting field 'File.headers'
-        db.delete_column('sentry_file', 'headers')
+        db.delete_column('sentry_file', 'headers', safety_lock=False)
 
         # Changing field 'File.storage_options'
         db.alter_column(

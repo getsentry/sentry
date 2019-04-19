@@ -46,7 +46,7 @@ class Migration(SchemaMigration):
         db.delete_table('sentry_environmentproject')
 
         # Deleting field 'Environment.organization_id'
-        db.delete_column('sentry_environment', 'organization_id')
+        db.delete_column('sentry_environment', 'organization_id', safety_lock=False)
 
     models = {
         'sentry.activity': {

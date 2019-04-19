@@ -29,10 +29,10 @@ class Migration(SchemaMigration):
 
     def backwards(self, orm):
         # Deleting field 'ReleaseFile.organization'
-        db.delete_column('sentry_releasefile', 'organization_id')
+        db.delete_column('sentry_releasefile', 'organization_id', safety_lock=False)
 
         # Deleting field 'ReleaseEnvironment.organization_id'
-        db.delete_column('sentry_environmentrelease', 'organization_id')
+        db.delete_column('sentry_environmentrelease', 'organization_id', safety_lock=False)
 
     models = {
         'sentry.activity': {

@@ -17,7 +17,7 @@ class Migration(SchemaMigration):
         db.delete_unique(u'sentry_identityprovider', ['type', 'organization_id', 'external_id'])
 
         # Deleting field 'IdentityProvider.organization_id'
-        db.delete_column(u'sentry_identityprovider', 'organization_id')
+        db.delete_column(u'sentry_identityprovider', 'organization_id', safety_lock=False)
 
     def backwards(self, orm):
         # Adding field 'IdentityProvider.organization_id'

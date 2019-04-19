@@ -29,7 +29,7 @@ class Migration(SchemaMigration):
 
     def backwards(self, orm):
         # Deleting field 'AuthProvider.default_global_access'
-        db.delete_column('sentry_authprovider', 'default_global_access')
+        db.delete_column('sentry_authprovider', 'default_global_access', safety_lock=False)
 
         # Removing M2M table for field default_teams on 'AuthProvider'
         db.delete_table(db.shorten_name('sentry_authprovider_default_teams'))

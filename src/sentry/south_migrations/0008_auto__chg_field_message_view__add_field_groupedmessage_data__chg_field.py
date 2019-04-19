@@ -44,7 +44,7 @@ class Migration(SchemaMigration):
         )
 
         # Deleting field 'GroupedMessage.data'
-        db.delete_column('sentry_groupedmessage', 'data')
+        db.delete_column('sentry_groupedmessage', 'data', safety_lock=False)
 
         # Changing field 'GroupedMessage.view'
         db.alter_column(

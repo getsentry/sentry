@@ -27,7 +27,7 @@ class Migration(SchemaMigration):
         db.delete_unique('sentry_file', ['name', 'checksum'])
 
         # Deleting field 'File.checksum'
-        db.delete_column('sentry_file', 'checksum')
+        db.delete_column('sentry_file', 'checksum', safety_lock=False)
 
         # Changing field 'File.name'
         db.alter_column(

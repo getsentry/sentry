@@ -23,7 +23,7 @@ class Migration(SchemaMigration):
         db.delete_unique('sentry_commitauthor', ['organization_id', 'external_id'])
 
         # Deleting field 'CommitAuthor.external_id'
-        db.delete_column('sentry_commitauthor', 'external_id')
+        db.delete_column('sentry_commitauthor', 'external_id', safety_lock=False)
 
     models = {
         'sentry.activity': {

@@ -17,7 +17,7 @@ class Migration(SchemaMigration):
 
     def backwards(self, orm):
         # Deleting field 'Release.date_released'
-        db.delete_column('sentry_release', 'date_released')
+        db.delete_column('sentry_release', 'date_released', safety_lock=False)
 
     models = {
         'sentry.accessgroup': {

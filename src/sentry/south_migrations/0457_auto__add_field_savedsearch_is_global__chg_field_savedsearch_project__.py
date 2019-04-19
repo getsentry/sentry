@@ -48,7 +48,7 @@ class Migration(SchemaMigration):
         # Removing index on 'SavedSearch', fields ['is_global']
         db.delete_index('sentry_savedsearch', ['is_global'])
         # Deleting field 'SavedSearch.is_global'
-        db.delete_column('sentry_savedsearch', 'is_global')
+        db.delete_column('sentry_savedsearch', 'is_global', safety_lock=False)
 
         # Changing field 'SavedSearch.project'
         # We can make this not null without a default here since we've removed any

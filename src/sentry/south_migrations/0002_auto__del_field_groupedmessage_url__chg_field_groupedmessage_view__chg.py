@@ -9,7 +9,7 @@ class Migration(SchemaMigration):
     def forwards(self, orm):
 
         # Deleting field 'GroupedMessage.url'
-        db.delete_column('sentry_groupedmessage', 'url')
+        db.delete_column('sentry_groupedmessage', 'url', safety_lock=False)
 
         # Changing field 'GroupedMessage.view'
         db.alter_column(

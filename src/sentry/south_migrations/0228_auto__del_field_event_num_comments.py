@@ -8,7 +8,7 @@ from django.db import models
 class Migration(SchemaMigration):
     def forwards(self, orm):
         # Deleting field 'Event.num_comments'
-        db.delete_column('sentry_message', 'num_comments')
+        db.delete_column('sentry_message', 'num_comments', safety_lock=False)
 
     def backwards(self, orm):
         # Adding field 'Event.num_comments'

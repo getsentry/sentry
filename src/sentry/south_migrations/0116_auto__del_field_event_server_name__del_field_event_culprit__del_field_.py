@@ -8,19 +8,19 @@ from django.db import models
 class Migration(SchemaMigration):
     def forwards(self, orm):
         # Deleting field 'Event.server_name'
-        db.delete_column('sentry_message', 'server_name')
+        db.delete_column('sentry_message', 'server_name', safety_lock=False)
 
         # Deleting field 'Event.culprit'
-        db.delete_column('sentry_message', 'view')
+        db.delete_column('sentry_message', 'view', safety_lock=False)
 
         # Deleting field 'Event.level'
-        db.delete_column('sentry_message', 'level')
+        db.delete_column('sentry_message', 'level', safety_lock=False)
 
         # Deleting field 'Event.site'
-        db.delete_column('sentry_message', 'site')
+        db.delete_column('sentry_message', 'site', safety_lock=False)
 
         # Deleting field 'Event.logger'
-        db.delete_column('sentry_message', 'logger')
+        db.delete_column('sentry_message', 'logger', safety_lock=False)
 
     def backwards(self, orm):
         # Adding field 'Event.server_name'

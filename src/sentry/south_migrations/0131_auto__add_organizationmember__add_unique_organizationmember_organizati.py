@@ -65,7 +65,7 @@ class Migration(SchemaMigration):
         db.delete_table('sentry_organization')
 
         # Deleting field 'Team.organization'
-        db.delete_column('sentry_team', 'organization_id')
+        db.delete_column('sentry_team', 'organization_id', safety_lock=False)
 
     models = {
         'sentry.accessgroup': {

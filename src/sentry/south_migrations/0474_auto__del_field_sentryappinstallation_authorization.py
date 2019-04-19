@@ -13,7 +13,7 @@ class Migration(SchemaMigration):
 
     def forwards(self, orm):
         # Deleting field 'SentryAppInstallation.authorization'
-        db.delete_column(u'sentry_sentryappinstallation', 'authorization_id')
+        db.delete_column(u'sentry_sentryappinstallation', 'authorization_id', safety_lock=False)
 
     def backwards(self, orm):
         # Adding field 'SentryAppInstallation.authorization'

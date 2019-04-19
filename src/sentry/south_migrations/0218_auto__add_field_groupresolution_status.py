@@ -17,7 +17,7 @@ class Migration(SchemaMigration):
 
     def backwards(self, orm):
         # Deleting field 'GroupResolution.status'
-        db.delete_column('sentry_groupresolution', 'status')
+        db.delete_column('sentry_groupresolution', 'status', safety_lock=False)
 
     models = {
         'sentry.activity': {

@@ -35,7 +35,7 @@ class Migration(SchemaMigration):
         db.delete_index('sentry_projectdsymfile', ['project_id', 'code_id'])
 
         # Deleting field 'ProjectDebugFile.code_id'
-        db.delete_column('sentry_projectdsymfile', 'code_id')
+        db.delete_column('sentry_projectdsymfile', 'code_id', safety_lock=False)
 
     models = {
         'sentry.activity': {

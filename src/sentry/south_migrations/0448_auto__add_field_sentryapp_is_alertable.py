@@ -19,7 +19,7 @@ class Migration(SchemaMigration):
 
     def backwards(self, orm):
         # Deleting field 'SentryApp.is_alertable'
-        db.delete_column('sentry_sentryapp', 'is_alertable')
+        db.delete_column('sentry_sentryapp', 'is_alertable', safety_lock=False)
 
     models = {
         'sentry.activity': {

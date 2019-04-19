@@ -52,7 +52,7 @@ class Migration(SchemaMigration):
         db.delete_table('sentry_distribution')
 
         # Deleting field 'ReleaseFile.dist'
-        db.delete_column('sentry_releasefile', 'dist_id')
+        db.delete_column('sentry_releasefile', 'dist_id', safety_lock=False)
 
     models = {
         'sentry.activity': {

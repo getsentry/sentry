@@ -19,7 +19,7 @@ class Migration(SchemaMigration):
 
     def backwards(self, orm):
         # Deleting field 'OrganizationMember.token_expires_at'
-        db.delete_column('sentry_organizationmember', 'token_expires_at')
+        db.delete_column('sentry_organizationmember', 'token_expires_at', safety_lock=False)
 
     models = {
         'sentry.activity': {

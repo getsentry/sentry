@@ -17,7 +17,7 @@ class Migration(SchemaMigration):
 
     def backwards(self, orm):
         # Deleting field 'User.is_managed'
-        db.delete_column('auth_user', 'is_managed')
+        db.delete_column('auth_user', 'is_managed', safety_lock=False)
 
     models = {
         'sentry.accessgroup': {

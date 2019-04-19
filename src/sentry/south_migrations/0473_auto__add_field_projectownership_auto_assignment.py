@@ -19,7 +19,7 @@ class Migration(SchemaMigration):
 
     def backwards(self, orm):
         # Deleting field 'ProjectOwnership.auto_assignment'
-        db.delete_column('sentry_projectownership', 'auto_assignment')
+        db.delete_column('sentry_projectownership', 'auto_assignment', safety_lock=True)
 
     models = {
         'sentry.activity': {

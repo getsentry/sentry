@@ -25,10 +25,10 @@ class Migration(SchemaMigration):
 
     def backwards(self, orm):
         # Deleting field 'User.is_password_expired'
-        db.delete_column('auth_user', 'is_password_expired')
+        db.delete_column('auth_user', 'is_password_expired', safety_lock=False)
 
         # Deleting field 'User.last_password_change'
-        db.delete_column('auth_user', 'last_password_change')
+        db.delete_column('auth_user', 'last_password_change', safety_lock=False)
 
     models = {
         'sentry.activity': {

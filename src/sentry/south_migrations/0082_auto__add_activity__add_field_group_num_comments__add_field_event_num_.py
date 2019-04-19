@@ -59,10 +59,10 @@ class Migration(SchemaMigration):
         db.delete_table('sentry_activity')
 
         # Deleting field 'Group.num_comments'
-        db.delete_column('sentry_groupedmessage', 'num_comments')
+        db.delete_column('sentry_groupedmessage', 'num_comments', safety_lock=False)
 
         # Deleting field 'Event.num_comments'
-        db.delete_column('sentry_message', 'num_comments')
+        db.delete_column('sentry_message', 'num_comments', safety_lock=False)
 
     models = {
         'sentry.user': {
