@@ -13,3 +13,4 @@ class AdminBroadcastValidator(BroadcastValidator):
     link = serializers.URLField(required=True)
     isActive = serializers.BooleanField(required=False)
     dateExpires = serializers.DateTimeField(required=False)
+    cta = serializers.CharField(max_length=256, required=True)
