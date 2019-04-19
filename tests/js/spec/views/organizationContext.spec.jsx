@@ -160,7 +160,7 @@ describe('OrganizationContext', function() {
 
     wrapper = createWrapper({
       useLastOrganization: true,
-      params: {},
+      params: {orgId: 'foo'},
       organizationsLoading: true,
       organizations: [],
     });
