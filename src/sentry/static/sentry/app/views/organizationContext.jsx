@@ -71,13 +71,13 @@ const OrganizationContext = createReactClass({
       this.props.params.orgId &&
       prevProps.params.orgId !== this.props.params.orgId;
 
-    const organizationsLoading =
+    const organizationLoadingChanged =
       prevProps.organizationsLoading !== this.props.organizationsLoading &&
-      this.props.organizationsLoading === true;
+      this.props.organizationsLoading === false;
 
     if (
       hasOrgIdAndChanged ||
-      organizationsLoading ||
+      organizationLoadingChanged ||
       (this.props.location.state === 'refresh' && prevProps.location.state !== 'refresh')
     ) {
       this.remountComponent();
