@@ -12,10 +12,12 @@ class SidebarPanelItem extends React.Component {
     message: PropTypes.any,
     link: PropTypes.string,
     hasSeen: PropTypes.bool,
+    cta: PropTypes.string,
   };
 
   render() {
     const {hasSeen, title, image, message, link} = this.props;
+    const cta = this.props.cta || t('Read More');
 
     return (
       <SidebarPanelItemRoot>
@@ -29,7 +31,7 @@ class SidebarPanelItem extends React.Component {
 
         {link && (
           <Text>
-            <ExternalLink href={link}>{t('Read More')}</ExternalLink>
+            <ExternalLink href={link}>{cta}</ExternalLink>
           </Text>
         )}
       </SidebarPanelItemRoot>

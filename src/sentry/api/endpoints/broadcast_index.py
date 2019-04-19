@@ -160,6 +160,7 @@ class BroadcastIndexEndpoint(Endpoint):
                 title=result['title'],
                 message=result['message'],
                 link=result['link'],
+                cta=result['cta'],
                 is_active=result.get('isActive') or False,
                 date_expires=result.get('dateExpires'),
             )

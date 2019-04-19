@@ -166,6 +166,7 @@ class Broadcasts extends React.Component {
                     title={item.title}
                     message={item.message}
                     link={item.link}
+                    cta={item.cta}
                   />
                 );
               })

@@ -32,6 +32,7 @@ class Broadcast(Model):
         blank=True,
     )
     date_added = models.DateTimeField(default=timezone.now)
+    cta = models.CharField(max_length=256, null=True, blank=True)
 
     class Meta:
         app_label = 'sentry'
