@@ -24,8 +24,8 @@ class OverviewDashboard extends AsyncView {
       <Dashboard
         releases={this.state.releases}
         busy={this.state.loading}
-        router={this.props.router}
         {...overviewDashboard}
+        {...this.props}
       />
     );
   }
