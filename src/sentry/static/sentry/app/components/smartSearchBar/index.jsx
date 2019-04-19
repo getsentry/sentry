@@ -1,3 +1,4 @@
+import {browserHistory} from 'react-router';
 import PropTypes from 'prop-types';
 import React from 'react';
 import Reflux from 'reflux';
@@ -534,9 +535,25 @@ class SmartSearchBar extends React.Component {
     }
 
     if (!!pinnedSearch) {
-      unpinSearch(api, organization.slug, savedSearchType, pinnedSearch);
+      unpinSearch(api, organization.slug, savedSearchType, pinnedSearch).then(() => {
+        browserHistory.push({
+          pathname: `/organizations/${organization.slug}/issues/`,
+          query: {query: pinnedSearch.query},
+        });
+      });
     } else {
-      pinSearch(api, organization.slug, savedSearchType, this.state.query);
+      pinSearch(
+        api,
+        organization.slug,
+        savedSearchType,
+        removeSpace(this.state.query)
+      ).then(resp => {
+        if (resp && resp.id) {
+          browserHistory.push(
+            `/organizations/${organization.slug}/issues/searches/${resp.id}/`
+          );
+        }
+      });
     }
 
     analytics('search.pin', {

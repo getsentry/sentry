@@ -482,9 +482,219 @@ describe('OrganizationStream', function() {
       );
     });
 
-    it.todo('pins and unpins a custom query');
+    it('pins and unpins a custom query', async function() {
+      savedSearchesRequest = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/searches/',
+        body: [savedSearch],
+      });
+      createWrapper();
+      await tick();
+      wrapper.update();
 
-    it.todo('pins and unpins a saved query');
+      const createPin = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/pinned-searches/',
+        method: 'PUT',
+        body: {
+          ...savedSearch,
+          id: '666',
+          query: 'assigned:me level:fatal',
+          isPinned: true,
+        },
+      });
+
+      wrapper
+        .find('SmartSearchBar input')
+        .simulate('change', {target: {value: 'assigned:me level:fatal'}});
+      wrapper.find('SmartSearchBar form').simulate('submit');
+
+      expect(browserHistory.push).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          query: expect.objectContaining({
+            query: 'assigned:me level:fatal',
+          }),
+        })
+      );
+
+      wrapper.setProps({
+        location: {
+          ...router.location,
+          query: {
+            query: 'assigned:me level:fatal',
+          },
+        },
+      });
+
+      expect(wrapper.find('OrganizationSavedSearchSelector ButtonTitle').text()).toBe(
+        'Custom Search'
+      );
+
+      wrapper.find('Button[aria-label="Pin this search"]').simulate('click');
+
+      expect(createPin).toHaveBeenCalled();
+
+      await tick();
+      wrapper.update();
+
+      expect(browserHistory.push).toHaveBeenLastCalledWith(
+        '/organizations/org-slug/issues/searches/666/'
+      );
+
+      wrapper.setProps({
+        params: {
+          ...router.params,
+          searchId: '666',
+        },
+      });
+
+      await tick();
+      wrapper.update();
+
+      expect(wrapper.find('OrganizationSavedSearchSelector ButtonTitle').text()).toBe(
+        'My Pinned Search'
+      );
+    });
+
+    it('pins and unpins a saved query', async function() {
+      const assignedToMe = TestStubs.Search({
+        id: '234',
+        name: 'Assigned to Me',
+        isPinned: false,
+        isGlobal: true,
+        query: 'assigned:me',
+        projectId: null,
+        type: 0,
+      });
+
+      savedSearchesRequest = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/searches/',
+        body: [savedSearch, assignedToMe],
+      });
+      createWrapper();
+      await tick();
+      wrapper.update();
+
+      let createPin = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/pinned-searches/',
+        method: 'PUT',
+        body: {
+          ...savedSearch,
+          isPinned: true,
+        },
+      });
+
+      wrapper.find('OrganizationSavedSearchSelector DropdownButton').simulate('click');
+      wrapper
+        .find('OrganizationSavedSearchSelector MenuItem a')
+        .first()
+        .simulate('click');
+
+      expect(browserHistory.push).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          pathname: '/organizations/org-slug/issues/searches/789/',
+          query: {
+            environment: [],
+            project: ['3559'],
+          },
+        })
+      );
+
+      wrapper.setProps({
+        params: {
+          ...router.params,
+          searchId: '789',
+        },
+      });
+
+      expect(wrapper.find('OrganizationSavedSearchSelector ButtonTitle').text()).toBe(
+        'Unresolved Issues'
+      );
+
+      wrapper.find('Button[aria-label="Pin this search"]').simulate('click');
+
+      expect(createPin).toHaveBeenCalled();
+
+      await tick();
+      wrapper.update();
+
+      expect(browserHistory.push).toHaveBeenLastCalledWith(
+        '/organizations/org-slug/issues/searches/789/'
+      );
+
+      wrapper.setProps({
+        params: {
+          ...router.params,
+          searchId: '789',
+        },
+      });
+
+      await tick();
+      wrapper.update();
+
+      expect(wrapper.find('OrganizationSavedSearchSelector ButtonTitle').text()).toBe(
+        'Unresolved Issues'
+      );
+
+      // Select other saved search
+      wrapper.find('OrganizationSavedSearchSelector DropdownButton').simulate('click');
+      wrapper
+        .find('OrganizationSavedSearchSelector MenuItem a')
+        .at(1)
+        .simulate('click');
+
+      expect(browserHistory.push).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          pathname: '/organizations/org-slug/issues/searches/234/',
+          query: {
+            environment: [],
+          },
+        })
+      );
+
+      wrapper.setProps({
+        params: {
+          ...router.params,
+          searchId: '234',
+        },
+      });
+
+      expect(wrapper.find('OrganizationSavedSearchSelector ButtonTitle').text()).toBe(
+        'Assigned to Me'
+      );
+
+      createPin = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/pinned-searches/',
+        method: 'PUT',
+        body: {
+          ...assignedToMe,
+          isPinned: true,
+        },
+      });
+
+      wrapper.find('Button[aria-label="Pin this search"]').simulate('click');
+
+      expect(createPin).toHaveBeenCalled();
+
+      await tick();
+      wrapper.update();
+
+      expect(browserHistory.push).toHaveBeenLastCalledWith(
+        '/organizations/org-slug/issues/searches/234/'
+      );
+
+      wrapper.setProps({
+        params: {
+          ...router.params,
+          searchId: '234',
+        },
+      });
+
+      await tick();
+      wrapper.update();
+
+      expect(wrapper.find('OrganizationSavedSearchSelector ButtonTitle').text()).toBe(
+        'Assigned to Me'
+      );
+    });
 
     it.todo('saves a new query');
 
