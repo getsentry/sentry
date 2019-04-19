@@ -70,7 +70,9 @@ export default class InstallWizard extends AsyncView {
       // TODO(dcramer): we need to rethink this logic as doing multiple "is this value actually set"
       // is problematic
       if (
-        option.value !== undefined && option.value !== "" && option.value !== null &&
+        option.value !== undefined &&
+        option.value !== '' &&
+        option.value !== null &&
         (option.field.isSet || optionName != 'beacon.anonymous')
       ) {
         data[optionName] = option.value;
