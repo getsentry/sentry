@@ -48,7 +48,8 @@ class OrganizationIntegrations extends AsyncComponent {
     }
     return [
       ...endpoints,
-      ['applications', `/organizations/${orgId}/sentry-apps/`],
+      ['orgOwnedApps', `/organizations/${orgId}/sentry-apps/`],
+      ['publishedApps', '/sentry-apps/'],
       ['appInstalls', `/organizations/${orgId}/sentry-app-installations/`],
     ];
   }
@@ -172,7 +173,8 @@ class OrganizationIntegrations extends AsyncComponent {
   }
 
   renderBody() {
-    const {reloading, applications, appInstalls} = this.state;
+    const {reloading, orgOwnedApps, publishedApps, appInstalls} = this.state;
+    const applications = (publishedApps || []).concat(orgOwnedApps || []);
 
     const installedProviders = this.providers
       .filter(p => p.isInstalled)
