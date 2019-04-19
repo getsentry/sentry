@@ -18,6 +18,7 @@ from dateutil.parser import parse as parse_date
 from django.db import models
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
+from functools32 import lru_cache
 from hashlib import md5
 
 from semaphore.processing import StoreNormalizer
@@ -94,28 +95,46 @@ class EventCommon(object):
         """
         return md5('{}:{}'.format(project_id, event_id)).hexdigest()
 
-    # TODO (alex) We need a better way to cache these properties.  functools32
-    # doesn't quite do the trick as there is a reference bug with unsaved
-    # models. But the current _group_cache thing is also clunky because these
-    # properties need to be stripped out in __getstate__.
+    # ============================================
+    # Cached related model lookups
+    # ============================================
+
+    @staticmethod
+    @lru_cache(maxsize=100)
+    def get_project(project_id):
+        from sentry.models import Project
+        return project_id and Project.objects.get(id=project_id)
+
+    @staticmethod
+    @lru_cache(maxsize=100)
+    def get_group(group_id):
+        from sentry.models import Group
+        return group_id and Group.objects.get(id=group_id)
+
+    @staticmethod
+    @lru_cache(maxsize=100)
+    def get_env(org_id, name):
+        from sentry.models import Environment
+        return Environment.objects.get(organization_id=org_id, name=name)
+
+    # ============================================
+    # Instance methods
+    # ============================================
+
     @property
     def group(self):
-        from sentry.models import Group
-        if not hasattr(self, '_group_cache'):
-            self._group_cache = Group.objects.get(id=self.group_id)
-        return self._group_cache
+        return self.get_group(self.group_id)
 
     @group.setter
     def group(self, group):
-        self.group_id = group.id
-        self._group_cache = group
+        if group is None:
+            self.group_id = None
+        else:
+            self.group_id = group.id
 
     @property
     def project(self):
-        from sentry.models import Project
-        if not hasattr(self, '_project_cache'):
-            self._project_cache = Project.objects.get(id=self.project_id)
-        return self._project_cache
+        return self.get_project(self.project_id)
 
     @project.setter
     def project(self, project):
@@ -123,7 +142,14 @@ class EventCommon(object):
             self.project_id = None
         else:
             self.project_id = project.id
-        self._project_cache = project
+
+    # TODO, why is this not a property/attribute like project and group
+    def get_environment(self):
+        from sentry.models import Environment
+        return self.get_env(
+            self.project.organization_id,
+            Environment.get_name_or_default(self.get_tag('environment'))
+        )
 
     def get_interfaces(self):
         was_renormalized = _should_skip_to_python(self.event_id)
@@ -317,16 +343,6 @@ class EventCommon(object):
             128,
         ).encode('utf-8')
 
-    def get_environment(self):
-        from sentry.models import Environment
-        if not hasattr(self, '_environment_cache'):
-            self._environment_cache = Environment.objects.get(
-                organization_id=self.project.organization_id,
-                name=Environment.get_name_or_default(self.get_tag('environment')),
-            )
-
-        return self._environment_cache
-
     def get_minimal_user(self):
         """
         A minimal 'User' interface object that gives us enough information
@@ -507,9 +523,6 @@ class SnubaEvent(EventCommon):
         `data` dict (which would force a nodestore load). All unresolved
         self.foo type accesses will come through here.
         """
-        if name in ('_project_cache', '_group_cache', '_environment_cache'):
-            raise AttributeError()
-
         if name in self.snuba_data:
             return self.snuba_data[name]
         else:
@@ -718,9 +731,6 @@ class Event(EventCommon, Model):
         # again.  In particular if we were to pickle interfaces we would
         # pickle a CanonicalKeyView which old sentry workers do not know
         # about
-        state.pop('_project_cache', None)
-        state.pop('_environment_cache', None)
-        state.pop('_group_cache', None)
         state.pop('interfaces', None)
 
         return state

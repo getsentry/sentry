@@ -40,6 +40,8 @@ class TeamGroupsNewEndpoint(TeamEndpoint, EnvironmentMixin):
             ).order_by('-{}'.format(sort_value), '-first_seen')[:limit]
         )
 
+        # TODO(alex) I'm not sure this does anything. It seems to not be used
+        # anywhere in the Group model to return a cached value.
         for group in group_list:
             group._project_cache = project_dict.get(group.project_id)
 

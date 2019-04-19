@@ -9,6 +9,7 @@ from __future__ import absolute_import
 
 from django.db import models
 from django.utils import timezone
+from functools32 import lru_cache
 
 from sentry.db.models import (BoundedBigIntegerField, Model, sane_repr)
 
@@ -28,28 +29,32 @@ class EventMapping(Model):
 
     __repr__ = sane_repr('project_id', 'group_id', 'event_id')
 
-    # Implement a ForeignKey-like accessor for backwards compat
-    def _set_group(self, group):
-        self.group_id = group.id
-        self._group_cache = group
-
-    def _get_group(self):
-        from sentry.models import Group
-        if not hasattr(self, '_group_cache'):
-            self._group_cache = Group.objects.get(id=self.group_id)
-        return self._group_cache
-
-    group = property(_get_group, _set_group)
-
-    # Implement a ForeignKey-like accessor for backwards compat
-    def _set_project(self, project):
-        self.project_id = project.id
-        self._project_cache = project
-
-    def _get_project(self):
+    @staticmethod
+    @lru_cache(maxsize=100)
+    def get_project(project_id):
         from sentry.models import Project
-        if not hasattr(self, '_project_cache'):
-            self._project_cache = Project.objects.get(id=self.project_id)
-        return self._project_cache
+        return project_id and Project.objects.get(id=project_id)
 
-    project = property(_get_project, _set_project)
+    @staticmethod
+    @lru_cache(maxsize=100)
+    def get_group(group_id):
+        from sentry.models import Group
+        return group_id and Group.objects.get(id=group_id)
+
+    # Implement a ForeignKey-like accessor for backwards compat
+    @property
+    def group(self):
+        return self.get_group(self.group_id)
+
+    @group.setter
+    def group(self, group):
+        self.group_id = group.id
+
+    # Implement a ForeignKey-like accessor for backwards compat
+    @property
+    def project(self):
+        return self.get_project(self.project_id)
+
+    @project.setter
+    def project(self, project):
+        self.project_id = project.id

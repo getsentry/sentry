@@ -601,8 +601,7 @@ class EventManager(object):
         except Event.DoesNotExist:
             pass
         else:
-            # Make sure we cache on the project before returning
-            event._project_cache = project
+            event.project = project
             logger.info(
                 'duplicate.found',
                 exc_info=True,
@@ -639,7 +638,7 @@ class EventManager(object):
         event = self._get_event_instance(project_id=project_id)
         self._data = data = event.data.data
 
-        event._project_cache = project
+        event.project = project
 
         date = event.datetime
         platform = event.platform

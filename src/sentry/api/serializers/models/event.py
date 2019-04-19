@@ -166,7 +166,7 @@ class EventSerializer(Serializer):
         try:
             user_report = UserReport.objects.get(
                 event_id=event.event_id,
-                project=event.project,
+                project_id=event.project_id,
             )
         except UserReport.DoesNotExist:
             user_report = None
