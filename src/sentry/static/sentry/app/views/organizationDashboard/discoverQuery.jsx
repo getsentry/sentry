@@ -19,6 +19,8 @@ const createReleaseFieldCondition = releases => [
 
 class DiscoverQuery extends React.Component {
   static propTypes = {
+    // Busy means a parent component is busy and we should not perform any API requests yet
+    busy: PropTypes.bool,
     compareToPeriod: PropTypes.shape({
       statsPeriodStart: PropTypes.string,
       statsPeriodEnd: PropTypes.string,
@@ -52,7 +54,7 @@ class DiscoverQuery extends React.Component {
       return true;
     }
 
-    if (this.props.releases !== nextProps.releases) {
+    if (!isEqual(this.props.releases, nextProps.releases)) {
       return true;
     }
 
@@ -72,7 +74,7 @@ class DiscoverQuery extends React.Component {
       return;
     }
 
-    if (this.props.releases !== prevProps.releases) {
+    if (!isEqual(this.props.releases, prevProps.releases)) {
       this.createQueryBuilders();
     } else {
       this.fetchData();
@@ -85,6 +87,9 @@ class DiscoverQuery extends React.Component {
 
   createQueryBuilders() {
     const {organization, queries} = this.props;
+
+    this.queryBuilders = [];
+
     queries.forEach(({constraints, ...query}) => {
       if (constraints && constraints.includes('recentReleases')) {
         if (!this.props.releases) {
@@ -147,6 +152,11 @@ class DiscoverQuery extends React.Component {
   }
 
   async fetchData() {
+    // Do not fetch data when parent component is busy
+    if (this.props.busy) {
+      return;
+    }
+
     // Fetch
     this.setState({reloading: true});
     const promises = this.queryBuilders.map(builder => builder.fetchWithoutLimit());

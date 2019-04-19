@@ -8,18 +8,20 @@ import space from 'app/styles/space';
 
 class Dashboard extends React.Component {
   static propTypes = {
+    busy: PropTypes.bool,
     releases: PropTypes.arrayOf(SentryTypes.Release),
     widgets: PropTypes.arrayOf(SentryTypes.Widget),
+    router: PropTypes.object,
   };
 
   render() {
-    const {releases, widgets} = this.props;
+    const {busy, router, releases, widgets} = this.props;
 
     return (
       <Widgets>
         {widgets.map((widget, i) => (
           <WidgetWrapper key={i}>
-            <Widget releases={releases} widget={widget} />
+            <Widget busy={busy} releases={releases} widget={widget} router={router} />
           </WidgetWrapper>
         ))}
       </Widgets>

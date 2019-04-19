@@ -20,7 +20,14 @@ class OverviewDashboard extends AsyncView {
   }
 
   renderBody() {
-    return <Dashboard releases={this.state.releases} {...overviewDashboard} />;
+    return (
+      <Dashboard
+        releases={this.state.releases}
+        busy={this.state.loading}
+        router={this.props.router}
+        {...overviewDashboard}
+      />
+    );
   }
 }
 export default OverviewDashboard;
