@@ -42,13 +42,15 @@ const PLATFORM_TO_ICON = {
   'python-pyramid': 'python',
   'python-rq': 'python',
   'python-tornado': 'python',
-  'python-awslambda': 'python',
+  'python-pythonawslambda': 'python',
   'react-native': 'apple',
   ruby: 'ruby',
   'ruby-rack': 'ruby',
   'ruby-rails': 'rails',
   rust: 'rust',
   swift: 'swift',
+  // TODO: AWS used to be python-awslambda but the displayed generic icon
+  // We need to figure out what is causing it to be python-pythonawslambda
 };
 
 export function getIcon(platform) {
