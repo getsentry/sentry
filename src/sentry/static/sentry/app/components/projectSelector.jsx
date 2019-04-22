@@ -196,7 +196,9 @@ class ProjectSelector extends React.Component {
 
     const [projects, nonMemberProjects] = this.getProjects();
 
-    const hasProjects = projects && !!projects.length;
+    const hasProjects =
+      (projects && !!projects.length) ||
+      (nonMemberProjects && !!nonMemberProjects.length);
     const hasProjectWrite = access.has('project:write');
 
     const getProjectItem = project => ({
