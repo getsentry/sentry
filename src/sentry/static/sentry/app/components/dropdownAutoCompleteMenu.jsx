@@ -359,7 +359,6 @@ class DropdownAutoCompleteMenu extends React.Component {
           const filterValueOrInput =
             typeof filterValue !== 'undefined' ? filterValue : inputValue;
           // Only filter results if menu is open and there are items
-
           const autoCompleteResults =
             (isOpen &&
               items &&
