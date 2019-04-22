@@ -2,7 +2,6 @@ from __future__ import absolute_import
 
 from rest_framework.response import Response
 
-from sentry import features
 from sentry.api.bases import SentryAppInstallationBaseEndpoint
 from sentry.mediators import external_requests
 from sentry.models import Project
@@ -10,11 +9,6 @@ from sentry.models import Project
 
 class SentryAppInstallationExternalRequestsEndpoint(SentryAppInstallationBaseEndpoint):
     def get(self, request, installation):
-        if not features.has('organizations:sentry-apps',
-                            installation.organization,
-                            actor=request.user):
-            return Response(status=404)
-
         try:
             project = Project.objects.get(
                 id=request.GET.get('projectId'),

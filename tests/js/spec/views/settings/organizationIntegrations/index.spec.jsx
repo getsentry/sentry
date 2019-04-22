@@ -193,13 +193,11 @@ describe('OrganizationIntegrations', () => {
 
   describe('render()', () => {
     describe('without integrations', () => {
-      it('renders with sentry-apps', () => {
+      it('renders sentry apps', () => {
         orgOwnedSentryAppsRequest = Client.addMockResponse({
           url: `/organizations/${org.slug}/sentry-apps/`,
           body: [sentryApp],
         });
-
-        org = {...org, features: ['sentry-apps']};
 
         mount(
           <OrganizationIntegrations organization={org} params={params} />,
@@ -217,8 +215,6 @@ describe('OrganizationIntegrations', () => {
           body: [sentryApp],
         });
 
-        org = {...org, features: ['sentry-apps']};
-
         wrapper = mount(
           <OrganizationIntegrations organization={org} params={params} />,
           routerContext
@@ -232,12 +228,6 @@ describe('OrganizationIntegrations', () => {
           onInstall: expect.any(Function),
           organization: org,
         });
-      });
-
-      it('Does`t hit sentry apps endpoints when sentry-apps isn`t present', () => {
-        expect(orgOwnedSentryAppsRequest).not.toHaveBeenCalled();
-        expect(publishedSentryAppsRequest).not.toHaveBeenCalled();
-        expect(sentryInstallsRequest).not.toHaveBeenCalled();
       });
 
       it('Opens the integration dialog on install', function() {

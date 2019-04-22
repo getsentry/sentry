@@ -137,34 +137,12 @@ describe('groupEventDetails', () => {
     expect(browserHistory.replace).not.toHaveBeenCalled();
   });
 
-  it("doesn't load Sentry Apps without being flagged in", () => {
+  it('loads Sentry Apps', () => {
     const request = MockApiClient.addMockResponse({
       url: '/sentry-apps/',
       body: [],
     });
 
-    mount(
-      <GroupEventDetails
-        group={group}
-        project={project}
-        organization={org}
-        environments={[{id: '1', name: 'dev', displayName: 'Dev'}]}
-        params={{}}
-        location={{}}
-      />,
-      routerContext
-    );
-
-    expect(request).not.toHaveBeenCalled();
-  });
-
-  it('loads Sentry Apps when flagged in', () => {
-    const request = MockApiClient.addMockResponse({
-      url: '/sentry-apps/',
-      body: [],
-    });
-
-    org.features = ['sentry-apps'];
     project.organization = org;
 
     mount(
@@ -188,7 +166,6 @@ describe('groupEventDetails', () => {
       body: [],
     });
 
-    org.features = ['sentry-apps'];
     project.organization = org;
 
     mount(

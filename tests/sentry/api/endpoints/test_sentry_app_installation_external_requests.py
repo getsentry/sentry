@@ -4,7 +4,6 @@ import responses
 
 from django.core.urlresolvers import reverse
 from sentry.testutils import APITestCase
-from sentry.testutils.helpers import with_feature
 
 
 class SentryAppInstallationExternalRequestsEndpointTest(APITestCase):
@@ -31,7 +30,6 @@ class SentryAppInstallationExternalRequestsEndpointTest(APITestCase):
         )
 
     @responses.activate
-    @with_feature('organizations:sentry-apps')
     def test_makes_external_request(self):
         self.login_as(user=self.user)
         options = [{
@@ -57,7 +55,6 @@ class SentryAppInstallationExternalRequestsEndpointTest(APITestCase):
         }
 
     @responses.activate
-    @with_feature('organizations:sentry-apps')
     def test_external_request_fails(self):
         self.login_as(user=self.user)
         responses.add(
