@@ -20,12 +20,16 @@ class OverviewDashboard extends AsyncView {
   }
 
   renderBody() {
+    // Passing the rest of `this.props` to `<Dashboard>` for tests
+    const {router, ...props} = this.props;
+
     return (
       <Dashboard
         releases={this.state.releases}
         busy={this.state.loading}
+        router={router}
         {...overviewDashboard}
-        {...this.props}
+        {...props}
       />
     );
   }
