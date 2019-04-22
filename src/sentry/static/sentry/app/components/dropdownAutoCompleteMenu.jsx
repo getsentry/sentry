@@ -278,7 +278,6 @@ class DropdownAutoCompleteMenu extends React.Component {
     item,
     style,
     itemSize,
-    itemCount,
     key,
     highlightedIndex,
     inputValue,
@@ -296,7 +295,7 @@ class DropdownAutoCompleteMenu extends React.Component {
         key={key}
         index={index}
         highlightedIndex={highlightedIndex}
-        {...getItemProps({item, index, style, itemCount})}
+        {...getItemProps({item, index, style})}
       >
         {typeof item.label === 'function' ? item.label({inputValue}) : item.label}
       </AutoCompleteItem>
@@ -397,7 +396,6 @@ class DropdownAutoCompleteMenu extends React.Component {
                 getActorProps,
                 actions,
                 isOpen,
-                itemCount,
                 selectedItem,
               })}
 

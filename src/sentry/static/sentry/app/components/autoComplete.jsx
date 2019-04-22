@@ -222,9 +222,10 @@ class AutoComplete extends React.Component {
 
   moveHighlightedIndex = (step, e) => {
     let newIndex = this.state.highlightedIndex + step;
+    const listSize = this.itemCount || this.items.size;
 
     // Make sure new index is within bounds
-    newIndex = Math.max(0, Math.min(newIndex, this.itemCount - 1));
+    newIndex = Math.max(0, Math.min(newIndex, listSize - 1));
 
     this.setState({
       highlightedIndex: newIndex,
@@ -298,7 +299,9 @@ class AutoComplete extends React.Component {
   };
 
   getMenuProps = menuProps => {
-    this.itemCount = menuProps.itemCount;
+    this.seState({
+      itemCount: menuProps.itemCount
+    });
 
     return {
       ...menuProps,
