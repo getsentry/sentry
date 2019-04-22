@@ -194,7 +194,16 @@ class SmartSearchBar extends React.Component {
   };
 
   onSubmit = evt => {
+    const {organization, savedSearchType} = this.props;
     evt.preventDefault();
+
+    analytics('search.searched', {
+      org_id: organization.id,
+      query: removeSpace(this.state.query),
+      source: savedSearchType === 0 ? 'issues' : 'events',
+      search_source: 'main_search',
+    });
+
     this.doSearch();
   };
 
@@ -622,6 +631,13 @@ class SmartSearchBar extends React.Component {
 
   onAutoComplete = (replaceText, item) => {
     if (item.type === 'recent-search') {
+      analytics('search.searched', {
+        org_id: this.props.organization.id,
+        query: replaceText,
+        source: this.props.savedSearchType === 0 ? 'issues' : 'events',
+        search_source: 'recent_search',
+      });
+
       this.setState({query: replaceText}, () => {
         // Propagate onSearch and save to recent searches
         this.doSearch();

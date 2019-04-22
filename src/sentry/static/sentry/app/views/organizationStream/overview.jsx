@@ -374,6 +374,17 @@ const OrganizationStream = createReactClass({
     }
   },
 
+  onStreamSidebarSearch(query) {
+    analytics('search.searched', {
+      org_id: this.props.organization.id,
+      query,
+      source: 'issues',
+      search_source: 'search_builder',
+    });
+
+    this.onSearch(query);
+  },
+
   onSearch(query) {
     if (query === this.state.query) {
       // if query is the same, just re-fetch data
@@ -699,7 +710,7 @@ const OrganizationStream = createReactClass({
           loading={this.state.tagsLoading}
           tags={this.state.tags}
           query={query}
-          onQueryChange={this.onSearch}
+          onQueryChange={this.onStreamSidebarSearch}
           orgId={organization.slug}
           tagValueLoader={this.tagValueLoader}
         />
