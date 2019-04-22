@@ -580,12 +580,18 @@ class SmartSearchBar extends React.Component {
           findSearchItemByIndex(searchItems, activeSearchItem) || [];
 
         if (typeof groupIndex !== 'undefined') {
-          // Move active selection up/down
-          delete searchItems[groupIndex].children[childrenIndex].active;
+          if (
+            searchItems[groupIndex] &&
+            searchItems[groupIndex].children &&
+            searchItems[groupIndex].children[childrenIndex]
+          ) {
+            delete searchItems[groupIndex].children[childrenIndex].active;
+          }
         }
 
         const totalItems = flatSearchItems.length;
 
+        // Move active selection up/down
         const nextActiveSearchItem =
           key === 'ArrowDown'
             ? (activeSearchItem + 1) % totalItems
@@ -968,7 +974,7 @@ function createSearchGroups(
 
   return {
     searchItems: [searchGroup, ...(recentSearchItems ? [recentSearchGroup] : [])],
-    flatSearchItems: [...searchItems, ...(recentSearchItems ? [recentSearchItems] : [])],
+    flatSearchItems: [...searchItems, ...(recentSearchItems ? recentSearchItems : [])],
     activeSearchItem,
   };
 }
