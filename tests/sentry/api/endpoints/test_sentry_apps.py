@@ -38,7 +38,6 @@ class SentryAppsTest(APITestCase):
 
 
 class GetSentryAppsTest(SentryAppsTest):
-    @with_feature('organizations:sentry-apps')
     def test_superuser_sees_all_apps(self):
         self.login_as(user=self.superuser, superuser=True)
 
@@ -50,7 +49,6 @@ class GetSentryAppsTest(SentryAppsTest):
         assert self.unpublished_app.uuid in response_uuids
         assert self.unowned_unpublished_app.uuid in response_uuids
 
-    @with_feature('organizations:sentry-apps')
     def test_users_see_published_apps(self):
         self.login_as(user=self.user)
 
@@ -78,7 +76,6 @@ class GetSentryAppsTest(SentryAppsTest):
             }
         } in json.loads(response.content)
 
-    @with_feature('organizations:sentry-apps')
     def test_users_dont_see_unpublished_apps_their_org_owns(self):
         self.login_as(user=self.user)
 
@@ -89,7 +86,6 @@ class GetSentryAppsTest(SentryAppsTest):
             a['uuid'] for a in response.data
         ]
 
-    @with_feature('organizations:sentry-apps')
     def test_users_dont_see_unpublished_apps_outside_their_orgs(self):
         self.login_as(user=self.user)
 
@@ -99,12 +95,6 @@ class GetSentryAppsTest(SentryAppsTest):
         assert self.unowned_unpublished_app.uuid not in [
             a['uuid'] for a in response.data
         ]
-
-    def test_no_access_without_internal_catchall(self):
-        self.login_as(user=self.user)
-
-        response = self.client.get(self.url, format='json')
-        assert response.status_code == 404
 
 
 class PostSentryAppsTest(SentryAppsTest):

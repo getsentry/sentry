@@ -12,7 +12,6 @@ from sentry.models import SentryApp
 
 
 class SentryAppsEndpoint(SentryAppsBaseEndpoint):
-    @requires_feature('organizations:sentry-apps', any_org=True)
     def get(self, request):
         return self.paginate(
             request=request,

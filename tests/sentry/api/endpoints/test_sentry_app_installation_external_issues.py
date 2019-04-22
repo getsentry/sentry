@@ -6,7 +6,6 @@ import responses
 from django.core.urlresolvers import reverse
 from sentry.models import PlatformExternalIssue
 from sentry.testutils import APITestCase
-from sentry.testutils.helpers import with_feature
 
 
 class SentryAppInstallationExternalIssuesEndpointTest(APITestCase):
@@ -35,7 +34,6 @@ class SentryAppInstallationExternalIssuesEndpointTest(APITestCase):
         )
 
     @responses.activate
-    @with_feature('organizations:sentry-apps')
     def test_creates_external_issue(self):
         self.login_as(user=self.superuser, superuser=True)
         data = {
@@ -69,7 +67,6 @@ class SentryAppInstallationExternalIssuesEndpointTest(APITestCase):
         }
 
     @responses.activate
-    @with_feature('organizations:sentry-apps')
     def test_external_issue_doesnt_get_created(self):
         self.login_as(user=self.superuser, superuser=True)
         data = {

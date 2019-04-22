@@ -7,7 +7,6 @@ from mock import patch, call
 
 from sentry.coreapi import APIError
 from sentry.testutils import APITestCase
-from sentry.testutils.helpers import with_feature
 
 
 class SentryAppComponentsTest(APITestCase):
@@ -34,7 +33,6 @@ class SentryAppComponentsTest(APITestCase):
 
         self.login_as(user=self.user)
 
-    @with_feature('organizations:sentry-apps')
     def test_retrieves_all_components(self):
         response = self.client.get(self.url, format='json')
 
@@ -99,7 +97,6 @@ class OrganizationSentryAppComponentsTest(APITestCase):
 
         self.login_as(user=self.user)
 
-    @with_feature('organizations:sentry-apps')
     @patch('sentry.mediators.sentry_app_components.Preparer.run')
     def test_retrieves_all_components_for_installed_apps(self, run):
         response = self.client.get(self.url, format='json')
@@ -129,7 +126,6 @@ class OrganizationSentryAppComponentsTest(APITestCase):
             },
         ]
 
-    @with_feature('organizations:sentry-apps')
     @patch('sentry.mediators.sentry_app_components.Preparer.run')
     def test_project_not_owned_by_org(self, run):
         org = self.create_organization(owner=self.create_user())
@@ -146,7 +142,6 @@ class OrganizationSentryAppComponentsTest(APITestCase):
         assert response.status_code == 404
         assert response.data == []
 
-    @with_feature('organizations:sentry-apps')
     @patch('sentry.mediators.sentry_app_components.Preparer.run')
     def test_filter_by_type(self, run):
         sentry_app = self.create_sentry_app(
@@ -180,7 +175,6 @@ class OrganizationSentryAppComponentsTest(APITestCase):
             }
         ]
 
-    @with_feature('organizations:sentry-apps')
     @patch('sentry.mediators.sentry_app_components.Preparer.run')
     def test_prepares_each_component(self, run):
         self.client.get(self.url, format='json')
@@ -200,7 +194,6 @@ class OrganizationSentryAppComponentsTest(APITestCase):
 
         run.assert_has_calls(calls, any_order=True)
 
-    @with_feature('organizations:sentry-apps')
     @patch('sentry.mediators.sentry_app_components.Preparer.run')
     def test_component_prep_errors_are_isolated(self, run):
         run.side_effect = [APIError(), self.component2]

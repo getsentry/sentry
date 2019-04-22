@@ -82,12 +82,6 @@ class ExternalIssueList extends AsyncComponent {
     const {api, group, project, organization} = this.props;
 
     if (project && project.id && organization) {
-      const features = new Set(organization.features);
-
-      if (!features.has('sentry-apps')) {
-        return;
-      }
-
       api
         .requestPromise(`/groups/${group.id}/external-issues/`)
         .then(data => {
