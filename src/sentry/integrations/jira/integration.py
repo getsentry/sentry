@@ -252,7 +252,7 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
         return '%s/browse/%s' % (self.model.metadata['base_url'], key)
 
     def get_persisted_default_config_fields(self):
-        return ['project', 'issuetype', 'priority']
+        return ['project', 'issuetype', 'priority', 'labels']
 
     def get_group_description(self, group, event, **kwargs):
         output = [
@@ -530,6 +530,8 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
                 field['default'] = defaults.get('priority', '')
             elif field['name'] == 'fixVersions':
                 field['choices'] = self.make_choices(client.get_versions(meta['key']))
+            elif field['name'] == 'labels':
+                field['default'] = defaults.get('labels', '')
 
         return fields
 
