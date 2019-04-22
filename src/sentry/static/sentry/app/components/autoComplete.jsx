@@ -299,9 +299,7 @@ class AutoComplete extends React.Component {
   };
 
   getMenuProps = menuProps => {
-    this.seState({
-      itemCount: menuProps.itemCount
-    });
+    this.itemCount = menuProps.itemCount;
 
     return {
       ...menuProps,
