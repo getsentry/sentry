@@ -156,6 +156,7 @@ class StreamTagFilter extends React.Component {
 
         {!tag.isInput && (
           <SelectControl
+            clearable
             filterOptions={(options, filter, currentValues) => options}
             placeholder="--"
             value={this.state.value}
