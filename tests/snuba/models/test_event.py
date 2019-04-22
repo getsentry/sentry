@@ -127,3 +127,22 @@ class SnubaEventTest(TestCase, SnubaTestCase):
         Event.objects.bind_nodes([event], 'data')
         assert event.data._node_data is not None
         assert event.data['user']['id'] == u'user1'
+
+    def test_event_with_no_body(self):
+        # remove the event from nodestore to simulate an event with no body.
+        node_id = SnubaEvent.generate_node_id(self.proj1.id, self.event_id)
+        nodestore.delete(node_id)
+        assert nodestore.get(node_id) is None
+
+        # Check that we can still serialize it
+        event = SnubaEvent.get_event(self.proj1.id, self.event_id)
+        serialized = serialize(event)
+        assert event.data == {}
+
+        # Check that the regular serializer still gives us back tags
+        assert serialized['tags'] == [
+            {'_meta': None, 'key': 'baz', 'value': 'quux'},
+            {'_meta': None, 'key': 'foo', 'value': 'bar'},
+            {'_meta': None, 'key': 'release', 'value': 'release1'},
+            {'_meta': None, 'key': 'user', 'query': 'user.id:user1', 'value': 'id:user1'}
+        ]
