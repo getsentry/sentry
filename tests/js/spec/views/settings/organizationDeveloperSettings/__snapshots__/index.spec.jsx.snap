@@ -16,7 +16,9 @@ exports[`Organization Developer Settings when no Apps exist displays empty state
         "team:write",
         "team:admin",
       ],
-      "features": Array [],
+      "features": Array [
+        "sentry-apps",
+      ],
       "id": "3",
       "name": "Organization Name",
       "onboardingTasks": Array [],
@@ -51,7 +53,9 @@ exports[`Organization Developer Settings when no Apps exist displays empty state
           "team:write",
           "team:admin",
         ],
-        "features": Array [],
+        "features": Array [
+          "sentry-apps",
+        ],
         "id": "3",
         "name": "Organization Name",
         "onboardingTasks": Array [],
@@ -330,7 +334,7 @@ exports[`Organization Developer Settings when no Apps exist displays empty state
 </WithOrganizationMockWrapper>
 `;
 
-exports[`Organization Developer Settings with published apps trash button is disabled 1`] = `
+exports[`Organization Developer Settings when not flagged in to sentry-apps displays contact us info 1`] = `
 <WithOrganizationMockWrapper
   organization={
     Object {
@@ -346,7 +350,9 @@ exports[`Organization Developer Settings with published apps trash button is dis
         "team:write",
         "team:admin",
       ],
-      "features": Array [],
+      "features": Array [
+        "sentry-apps",
+      ],
       "id": "3",
       "name": "Organization Name",
       "onboardingTasks": Array [],
@@ -381,7 +387,188 @@ exports[`Organization Developer Settings with published apps trash button is dis
           "team:write",
           "team:admin",
         ],
-        "features": Array [],
+        "features": Array [
+          "sentry-apps",
+        ],
+        "id": "3",
+        "name": "Organization Name",
+        "onboardingTasks": Array [],
+        "projects": Array [],
+        "scrapeJavaScript": true,
+        "slug": "org-slug",
+        "status": Object {
+          "id": "active",
+          "name": "active",
+        },
+        "teams": Array [],
+      }
+    }
+    params={
+      Object {
+        "orgId": "org-slug",
+      }
+    }
+  >
+    <SideEffect(DocumentTitle)
+      title="Sentry"
+    >
+      <DocumentTitle
+        title="Sentry"
+      >
+        <div>
+          <SettingsPageHeading
+            noTitleStyles={false}
+            title="Developer Settings"
+          >
+            <Wrapper>
+              <div
+                className="css-1r5ylk7-Wrapper e1kblvez2"
+              >
+                <Flex
+                  align="center"
+                >
+                  <Base
+                    align="center"
+                    className="css-5ipae5"
+                  >
+                    <div
+                      className="css-5ipae5"
+                      is={null}
+                    >
+                      <Title
+                        styled={false}
+                      >
+                        <Base
+                          className="css-1ky52ze-Title e1kblvez0"
+                        >
+                          <div
+                            className="css-1ky52ze-Title e1kblvez0"
+                            is={null}
+                          >
+                            <HeaderTitle>
+                              <h4
+                                className="css-1w8ttcn-HeaderTitle e6lvex72"
+                              >
+                                Developer Settings
+                              </h4>
+                            </HeaderTitle>
+                          </div>
+                        </Base>
+                      </Title>
+                    </div>
+                  </Base>
+                </Flex>
+              </div>
+            </Wrapper>
+          </SettingsPageHeading>
+          <Panel>
+            <Component
+              className="css-yahxlu-Panel e1laxa7d0"
+            >
+              <div
+                className="css-yahxlu-Panel e1laxa7d0"
+              >
+                <PanelBody
+                  direction="column"
+                  disablePadding={true}
+                  flex={false}
+                >
+                  <div
+                    className="css-9vq8an-textStyles"
+                  >
+                    <EmptyMessage>
+                      <Wrapper
+                        data-test-id="empty-message"
+                      >
+                        <div
+                          className="css-ev9qm0-Wrapper eh488yo0"
+                          data-test-id="empty-message"
+                        >
+                          <Description
+                            noMargin={true}
+                          >
+                            <Component
+                              className="css-pwn5v-TextBlock-Description-MarginStyles eh488yo1"
+                              noMargin={true}
+                            >
+                              <div
+                                className="css-pwn5v-TextBlock-Description-MarginStyles eh488yo1"
+                              >
+                                Want to build on top of the Sentry Integration Platform? We're working closely with early adopters. Please reach out to us by contacting partners@sentry.io
+                              </div>
+                            </Component>
+                          </Description>
+                        </div>
+                      </Wrapper>
+                    </EmptyMessage>
+                  </div>
+                </PanelBody>
+              </div>
+            </Component>
+          </Panel>
+        </div>
+      </DocumentTitle>
+    </SideEffect(DocumentTitle)>
+  </OrganizationDeveloperSettings>
+</WithOrganizationMockWrapper>
+`;
+
+exports[`Organization Developer Settings with published apps trash button is disabled 1`] = `
+<WithOrganizationMockWrapper
+  organization={
+    Object {
+      "access": Array [
+        "org:read",
+        "org:write",
+        "org:admin",
+        "org:integrations",
+        "project:read",
+        "project:write",
+        "project:admin",
+        "team:read",
+        "team:write",
+        "team:admin",
+      ],
+      "features": Array [
+        "sentry-apps",
+      ],
+      "id": "3",
+      "name": "Organization Name",
+      "onboardingTasks": Array [],
+      "projects": Array [],
+      "scrapeJavaScript": true,
+      "slug": "org-slug",
+      "status": Object {
+        "id": "active",
+        "name": "active",
+      },
+      "teams": Array [],
+    }
+  }
+  params={
+    Object {
+      "orgId": "org-slug",
+    }
+  }
+>
+  <OrganizationDeveloperSettings
+    organization={
+      Object {
+        "access": Array [
+          "org:read",
+          "org:write",
+          "org:admin",
+          "org:integrations",
+          "project:read",
+          "project:write",
+          "project:admin",
+          "team:read",
+          "team:write",
+          "team:admin",
+        ],
+        "features": Array [
+          "sentry-apps",
+        ],
         "id": "3",
         "name": "Organization Name",
         "onboardingTasks": Array [],
@@ -660,7 +847,9 @@ exports[`Organization Developer Settings with published apps trash button is dis
                             "team:write",
                             "team:admin",
                           ],
-                          "features": Array [],
+                          "features": Array [
+                            "sentry-apps",
+                          ],
                           "id": "3",
                           "name": "Organization Name",
                           "onboardingTasks": Array [],
@@ -991,7 +1180,9 @@ exports[`Organization Developer Settings with unpublished apps displays all Apps
         "team:write",
         "team:admin",
       ],
-      "features": Array [],
+      "features": Array [
+        "sentry-apps",
+      ],
       "id": "3",
       "name": "Organization Name",
       "onboardingTasks": Array [],
@@ -1026,7 +1217,9 @@ exports[`Organization Developer Settings with unpublished apps displays all Apps
           "team:write",
           "team:admin",
         ],
-        "features": Array [],
+        "features": Array [
+          "sentry-apps",
+        ],
         "id": "3",
         "name": "Organization Name",
         "onboardingTasks": Array [],
@@ -1305,7 +1498,9 @@ exports[`Organization Developer Settings with unpublished apps displays all Apps
                             "team:write",
                             "team:admin",
                           ],
-                          "features": Array [],
+                          "features": Array [
+                            "sentry-apps",
+                          ],
                           "id": "3",
                           "name": "Organization Name",
                           "onboardingTasks": Array [],
@@ -1827,7 +2022,9 @@ exports[`Organization Developer Settings without Owner permissions trash button 
       "access": Array [
         "org:read",
       ],
-      "features": Array [],
+      "features": Array [
+        "sentry-apps",
+      ],
       "id": "3",
       "name": "Organization Name",
       "onboardingTasks": Array [],
@@ -1853,7 +2050,9 @@ exports[`Organization Developer Settings without Owner permissions trash button 
         "access": Array [
           "org:read",
         ],
-        "features": Array [],
+        "features": Array [
+          "sentry-apps",
+        ],
         "id": "3",
         "name": "Organization Name",
         "onboardingTasks": Array [],
@@ -2123,7 +2322,9 @@ exports[`Organization Developer Settings without Owner permissions trash button 
                           "access": Array [
                             "org:read",
                           ],
-                          "features": Array [],
+                          "features": Array [
+                            "sentry-apps",
+                          ],
                           "id": "3",
                           "name": "Organization Name",
                           "onboardingTasks": Array [],
@@ -2391,7 +2592,9 @@ exports[`Organization Developer Settings without Owner permissions trash button 
                                                   "access": Array [
                                                     "org:read",
                                                   ],
-                                                  "features": Array [],
+                                                  "features": Array [
+                                                    "sentry-apps",
+                                                  ],
                                                   "id": "3",
                                                   "name": "Organization Name",
                                                   "onboardingTasks": Array [],
