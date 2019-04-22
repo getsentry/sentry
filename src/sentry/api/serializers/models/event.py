@@ -97,6 +97,14 @@ class EventSerializer(Serializer):
     def _get_tags_with_meta(self, event):
         meta = get_path(event.data, '_meta', 'tags') or {}
 
+        # If we have meta, we need to get the tags in their original order
+        # from the raw event body as the indexes need to line up with the
+        # metadata indexes. In other cases we can use event.tags
+        if meta:
+            raw_tags = event.data.get('tags') or []
+        else:
+            raw_tags = event.tags
+
         tags = sorted(
             [
                 {
@@ -104,11 +112,7 @@ class EventSerializer(Serializer):
                     'value': kv[1],
                     '_meta': meta.get(kv[0]) or get_path(meta, six.text_type(i), '1') or None,
                 }
-                # TODO this should be using event.tags but there are some weird
-                # issues around that because event.tags re-sorts the tags and
-                # this function relies on them being in the original order to
-                # look up meta.
-                for i, kv in enumerate(event.data.get('tags') or ())
+                for i, kv in enumerate(raw_tags)
                 if kv is not None and kv[0] is not None and kv[1] is not None],
             key=lambda x: x['key']
         )
