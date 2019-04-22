@@ -119,6 +119,15 @@ class Broadcasts extends React.Component {
     });
   };
 
+  processLink = link => {
+    if (link.indexOf('{orgSlug}') > 0) {
+      const processedLink = link.replace('{orgSlug}', this.props.organization.slug);
+      return processedLink;
+    }
+
+    return link;
+  };
+
   get unseenIds() {
     return this.state.broadcasts
       ? this.state.broadcasts.filter(item => !item.hasSeen).map(item => item.id)
@@ -167,7 +176,7 @@ class Broadcasts extends React.Component {
                     hasSeen={item.hasSeen}
                     title={item.title}
                     message={item.message}
-                    link={item.link}
+                    link={this.processLink(item.link)}
                     cta={item.cta}
                   />
                 );
