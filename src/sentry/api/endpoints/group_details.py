@@ -8,7 +8,7 @@ from uuid import uuid4
 from django.utils import timezone
 from rest_framework.response import Response
 
-from sentry import eventstream, tsdb, tagstore
+from sentry import eventstream, tsdb, tagstore, options
 from sentry.api import client
 from sentry.api.base import DocSection, EnvironmentMixin
 from sentry.api.bases import GroupEndpoint
@@ -181,7 +181,8 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
         # TODO(dcramer): handle unauthenticated/public response
 
         # TODO(jess): This can be removed when tagstore v2 is deprecated
-        use_snuba = request.GET.get('enable_snuba') == '1'
+        use_snuba = options.get('snuba.events-queries.enabled')
+
         environments = get_environments(request, group.project.organization)
         environment_ids = [e.id for e in environments]
 

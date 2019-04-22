@@ -2,7 +2,7 @@ from __future__ import absolute_import
 
 from rest_framework.response import Response
 
-from sentry import tagstore
+from sentry import tagstore, options
 from sentry.api.bases.group import GroupEndpoint
 from sentry.api.helpers.environments import get_environments
 from sentry.api.serializers import serialize
@@ -24,7 +24,7 @@ class GroupTagsEndpoint(GroupEndpoint):
         else:
             value_limit = 10
 
-        use_snuba = request.GET.get('enable_snuba') == '1'
+        use_snuba = use_snuba = options.get('snuba.events-queries.enabled')
 
         environment_ids = [e.id for e in get_environments(request, group.project.organization)]
 

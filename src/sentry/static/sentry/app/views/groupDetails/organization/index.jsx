@@ -27,7 +27,6 @@ class OrganizationGroupDetails extends React.Component {
     return (
       <GroupDetails
         environments={selection.environments}
-        enableSnuba={true}
         showGlobalHeader={true}
         {...props}
       />

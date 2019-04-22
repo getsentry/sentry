@@ -66,10 +66,7 @@ class GroupEventsEndpoint(GroupEndpoint, EnvironmentMixin):
         except (NoResults, ResourceDoesNotExist):
             return Response([])
 
-        use_snuba = (
-            request.GET.get('enable_snuba') == '1'
-            or options.get('snuba.events-queries.enabled')
-        )
+        use_snuba = options.get('snuba.events-queries.enabled')
         backend = self._get_events_snuba if use_snuba else self._get_events_legacy
         start, end = get_date_range_from_params(request.GET, optional=True)
         return backend(request, group, environments, query, tags, start, end)
