@@ -83,7 +83,7 @@ describe('OrganizationIntegrations', () => {
     });
 
     publishedSentryAppsRequest = Client.addMockResponse({
-      url: '/sentry-apps/',
+      url: `/sentry-apps/?status=${'published'}`,
       body: [],
     });
 
@@ -243,6 +243,25 @@ describe('OrganizationIntegrations', () => {
           .simulate('click');
 
         expect(openIntegrationDetails).toHaveBeenCalledWith(options);
+      });
+    });
+
+    describe('published and org-owned apps are consolidated', () => {
+      it('renders sentry app once', () => {
+        const publishedApp = {...sentryApp, status: 'published'};
+        Client.addMockResponse({
+          url: `/organizations/${org.slug}/sentry-apps/`,
+          body: [publishedApp],
+        });
+        Client.addMockResponse({
+          url: `/sentry-apps/?status=${'published'}`,
+          body: [publishedApp],
+        });
+        wrapper = mount(
+          <OrganizationIntegrations organization={org} params={params} />,
+          routerContext
+        );
+        expect(wrapper.find('SentryAppInstallations').length).toBe(1);
       });
     });
 
