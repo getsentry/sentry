@@ -26,7 +26,7 @@ describe('Sidebar', function() {
 
   beforeEach(function() {
     apiMocks.broadcasts = MockApiClient.addMockResponse({
-      url: '/broadcasts/',
+      url: `/organizations/${organization.slug}/broadcasts/`,
       body: [TestStubs.Broadcast()],
     });
     apiMocks.broadcastsMarkAsSeen = MockApiClient.addMockResponse({
@@ -175,7 +175,7 @@ describe('Sidebar', function() {
   describe('SidebarPanel', function() {
     it('displays empty panel when there are no Broadcasts', async function() {
       MockApiClient.addMockResponse({
-        url: '/broadcasts/',
+        url: `/organizations/${organization.slug}/broadcasts/`,
         body: [],
       });
       wrapper = createWrapper();

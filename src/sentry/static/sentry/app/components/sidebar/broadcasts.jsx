@@ -5,6 +5,7 @@ import {getAllBroadcasts, markBroadcastsAsSeen} from 'app/actionCreators/broadca
 import {t} from 'app/locale';
 import InlineSvg from 'app/components/inlineSvg';
 import LoadingIndicator from 'app/components/loadingIndicator';
+import SentryTypes from 'app/sentryTypes';
 import SidebarItem from 'app/components/sidebar/sidebarItem';
 import SidebarPanel from 'app/components/sidebar/sidebarPanel';
 import SidebarPanelEmpty from 'app/components/sidebar/sidebarPanelEmpty';
@@ -23,6 +24,7 @@ class Broadcasts extends React.Component {
     hidePanel: PropTypes.func,
     onShowPanel: PropTypes.func.isRequired,
     api: PropTypes.object.isRequired,
+    organization: SentryTypes.Organization.isRequired,
   };
 
   state = {
@@ -67,7 +69,7 @@ class Broadcasts extends React.Component {
       this.stopPoll();
     }
 
-    return getAllBroadcasts(this.props.api)
+    return getAllBroadcasts(this.props.api, this.props.organization.slug)
       .then(data => {
         this.setState({
           broadcasts: data || [],

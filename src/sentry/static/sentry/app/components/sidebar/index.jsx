@@ -474,6 +474,7 @@ class Sidebar extends React.Component {
                 currentPanel={currentPanel}
                 onShowPanel={() => this.togglePanel('broadcasts')}
                 hidePanel={this.hidePanel}
+                organization={organization}
               />
               <Incidents
                 orientation={orientation}
