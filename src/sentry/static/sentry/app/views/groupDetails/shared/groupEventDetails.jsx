@@ -114,7 +114,7 @@ class GroupEventDetails extends React.Component {
   };
 
   render() {
-    const {group, project, organization, environments} = this.props;
+    const {group, project, organization, environments, location} = this.props;
     const evt = withMeta(this.state.event);
 
     return (
@@ -128,6 +128,7 @@ class GroupEventDetails extends React.Component {
                 event={evt}
                 orgId={organization.slug}
                 projectId={project.slug}
+                location={location}
               />
             )}
             {group.status != 'unresolved' && (
