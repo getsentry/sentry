@@ -7,10 +7,9 @@ class OrganizationSavedSearchCreatedEvent(analytics.Event):
     type = 'organization_saved_search.created'
 
     attributes = (
-        analytics.Attribute('organization_id'),
+        analytics.Attribute('org_id'),
         analytics.Attribute('search_type'),
-        analytics.Attribute('id'),
-        analytics.Attribute('user_id'),
+        analytics.Attribute('query'),
     )
 
 
@@ -18,10 +17,9 @@ class OrganizationSavedSearchDeletedEvent(analytics.Event):
     type = 'organization_saved_search.deleted'
 
     attributes = (
-        analytics.Attribute('organization_id'),
+        analytics.Attribute('org_id'),
         analytics.Attribute('search_type'),
-        analytics.Attribute('id'),
-        analytics.Attribute('user_id'),
+        analytics.Attribute('query'),
     )
 
 
