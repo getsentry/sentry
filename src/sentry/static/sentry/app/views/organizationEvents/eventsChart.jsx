@@ -85,7 +85,7 @@ class EventsChart extends React.Component {
   render() {
     const {api, period, utc, query, router, start, end, ...props} = this.props;
     // Include previous only on relative dates (defaults to relative if no start and end)
-    const includePrevious = !!period || (!start && !end);
+    const includePrevious = !start && !end;
 
     return (
       <ChartZoom router={router} period={period} utc={utc} {...props}>
