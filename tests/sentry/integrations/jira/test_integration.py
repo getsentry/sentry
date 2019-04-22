@@ -452,6 +452,7 @@ class JiraIntegrationTest(APITestCase):
                 'type': 'text',
                 'name': 'labels',
                 'label': 'Labels',
+                'default': '',
             }]
 
     def test_get_create_issue_config_with_default_and_param(self):
@@ -512,6 +513,37 @@ class JiraIntegrationTest(APITestCase):
                 'name': 'project',
                 'label': 'Jira Project',
                 'updatesForm': True,
+            }
+
+    def test_get_create_issue_config_with_label_default(self):
+        org = self.organization
+        self.login_as(self.user)
+        group = self.create_group()
+        self.create_event(group=group)
+
+        label_default = 'hi'
+
+        installation = self.integration.get_installation(org.id)
+        installation.org_integration.config = {
+            'project_issue_defaults': {
+                six.text_type(group.project_id): {'labels': label_default}
+            }
+        }
+        installation.org_integration.save()
+
+        def get_client():
+            return MockJiraApiClient()
+
+        with mock.patch.object(installation, 'get_client', get_client):
+            fields = installation.get_create_issue_config(group)
+            label_field = [field for field in fields if field['name'] == 'labels'][0]
+
+            assert label_field == {
+                'required': False,
+                'type': 'text',
+                'name': 'labels',
+                'label': 'Labels',
+                'default': label_default,
             }
 
     def test_get_link_issue_config(self):
