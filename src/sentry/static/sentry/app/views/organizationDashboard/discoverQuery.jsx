@@ -28,8 +28,9 @@ const createReleaseFieldCondition = releases => [
 
 class DiscoverQuery extends React.Component {
   static propTypes = {
-    // Busy means a parent component is busy and we should not perform any API requests yet
-    busy: PropTypes.bool,
+    // means a parent component is still loading releases
+    // and we should not perform any API requests yet (if we depend on releases)
+    releasesLoading: PropTypes.bool,
     compareToPeriod: PropTypes.shape({
       statsPeriodStart: PropTypes.string,
       statsPeriodEnd: PropTypes.string,
@@ -64,13 +65,16 @@ class DiscoverQuery extends React.Component {
     }
 
     // Allow component to update if queries are dependent on releases
-    // and if releases change, or busy prop changes
+    // and if releases change, or releasesLoading prop changes
     if (this.doesRequireReleases(nextProps.queries)) {
       if (!isEqual(this.props.releases, nextProps.releases)) {
         return true;
       }
 
-      if (!nextProps.busy && this.props.busy !== nextProps.busy) {
+      if (
+        !nextProps.releasesLoading &&
+        this.props.releasesLoading !== nextProps.releasesLoading
+      ) {
         return true;
       }
     }
@@ -88,11 +92,11 @@ class DiscoverQuery extends React.Component {
   componentDidUpdate(prevProps) {
     const keysToIgnore = ['children'];
 
-    // Ignore "busy" and "releases" props if we are not waiting for releases
-    // Otherwise we can potentially make an extra request if busy !== nextBusy and
+    // Ignore "releasesLoading" and "releases" props if we are not waiting for releases
+    // Otherwise we can potentially make an extra request if releasesLoading !== nextBusy and
     // globalSelection === nextGlobalSelection
     if (!this.doesRequireReleases(this.props.queries)) {
-      keysToIgnore.push('busy');
+      keysToIgnore.push('releasesLoading');
       keysToIgnore.push('releases');
     }
 
@@ -189,7 +193,7 @@ class DiscoverQuery extends React.Component {
     this.setState({reloading: true});
 
     // Do not fetch data if dependent on releases and parent component is busy fetching releases
-    if (this.doesRequireReleases(this.props.queries) && this.props.busy) {
+    if (this.doesRequireReleases(this.props.queries) && this.props.releasesLoading) {
       return;
     }
 

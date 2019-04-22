@@ -17,7 +17,7 @@ import WidgetChart from './widgetChart';
 
 class Widget extends React.Component {
   static propTypes = {
-    busy: PropTypes.bool,
+    releasesLoading: PropTypes.bool,
     releases: PropTypes.arrayOf(SentryTypes.Release),
     widget: SentryTypes.Widget,
     organization: SentryTypes.Organization,
@@ -26,13 +26,20 @@ class Widget extends React.Component {
   };
 
   render() {
-    const {organization, busy, router, widget, releases, selection} = this.props;
+    const {
+      organization,
+      releasesLoading,
+      router,
+      widget,
+      releases,
+      selection,
+    } = this.props;
     const {title, includePreviousPeriod, compareToPeriod} = widget;
 
     return (
       <ErrorBoundary customComponent={<ErrorCard>{t('Error loading widget')}</ErrorCard>}>
         <DiscoverQuery
-          busy={busy}
+          releasesLoading={releasesLoading}
           releases={releases}
           organization={organization}
           selection={selection}
