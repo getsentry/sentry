@@ -9,8 +9,6 @@ export default class RequestError extends Error {
    * Updates Error with XHR response
    */
   setResponse(resp) {
-    this.resp = resp;
-
     if (resp) {
       this.setMessage(
         `${this.message} ${resp.status !== 'undefined' ? resp.status : 'n/a'}`
@@ -19,13 +17,23 @@ export default class RequestError extends Error {
       // Some callback handlers expect these properties on the error object
       if (resp.responseJSON) {
         this.responseJSON = resp.responseJSON;
-        this.status = resp.status;
       }
+
+      this.status = resp.status;
+      this.statusText = resp.statusText;
     }
   }
 
   setMessage(message) {
     this.message = message;
+  }
+
+  setStack(newStack) {
+    this.stack = newStack;
+  }
+
+  setName(name) {
+    this.name = name;
   }
 
   removeFrames(numLinesToRemove) {
