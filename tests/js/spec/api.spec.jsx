@@ -223,19 +223,24 @@ describe('api', function() {
     beforeEach(function() {
       jest.spyOn($, 'ajax');
 
-      $.ajax.mockClear();
+      $.ajax.mockReset();
+      Sentry.captureException.mockClear();
 
-      $.ajax.mockImplementation(({error}) => {
+      $.ajax.mockImplementation(async ({error}) => {
+        await tick();
         error({
           status: 404,
           statusText: 'Not Found',
-          responseJSON: {details: 'Item was not found'},
+          responseJSON: {detail: 'Item was not found'},
         });
+
+        return {};
       });
     });
 
-    it('reports correct error and stacktrace to Sentry', function() {
+    it('reports correct error and stacktrace to Sentry', async function() {
       api.request('/some/url/');
+      await tick();
 
       const errorObjectSentryCalled = Sentry.captureException.mock.calls[0][0];
       expect(errorObjectSentryCalled.name).toBe('NotFoundError');
@@ -245,18 +250,10 @@ describe('api', function() {
       expect(errorObjectSentryCalled.stack.split('\n')[1]).toContain('api.spec.jsx');
     });
 
-    it('reports correct error and stacktrace to Sentry when using promises', function() {
-      Sentry.captureException.mockClear();
-
-      $.ajax.mockImplementation(({error}) => {
-        error({
-          status: 404,
-          statusText: 'Not Found',
-          responseJSON: {details: 'Item was not found'},
-        });
-      });
-
-      expect(api.requestPromise('/some/url/')).rejects.toThrowErrorMatchingSnapshot();
+    it('reports correct error and stacktrace to Sentry when using promises', async function() {
+      await expect(
+        api.requestPromise('/some/url/')
+      ).rejects.toThrowErrorMatchingInlineSnapshot('"GET /some/url/ 404"');
       expect(Sentry.captureException).toHaveBeenCalled();
     });
   });
