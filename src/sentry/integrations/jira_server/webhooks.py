@@ -6,6 +6,7 @@ import six
 from django.views.decorators.csrf import csrf_exempt
 
 from sentry.api.base import Endpoint
+from sentry.integrations.exceptions import ApiError
 from sentry.integrations.jira.webhooks import (
     handle_assignee_change,
     handle_status_change
@@ -69,7 +70,14 @@ class JiraIssueUpdatedWebhook(Endpoint):
             logger.info('missing-changelog', extra={'integration_id': integration.id})
             return self.respond()
 
-        handle_assignee_change(integration, data)
-        handle_status_change(integration, data)
-
-        return self.respond()
+        try:
+            handle_assignee_change(integration, data)
+            handle_status_change(integration, data)
+        except ApiError as err:
+            logger.info('sync-failed', extra={
+                'token': token,
+                'error': six.text_type(err)
+            })
+            return self.respond(status=400)
+        else:
+            return self.respond()
