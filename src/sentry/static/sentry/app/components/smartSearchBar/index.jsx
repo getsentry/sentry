@@ -675,11 +675,10 @@ class SmartSearchBar extends React.Component {
 
     if (hasPinnedSearch) {
       return (
-        <Container isDisabled={disabled}>
-          <form onSubmit={this.onSubmit}>
+        <Container isDisabled={disabled} isOpen={this.state.dropdownVisible}>
+          <StyledForm onSubmit={this.onSubmit}>
             <StyledInput
               type="text"
-              className="search-input form-control"
               placeholder={placeholder}
               name="query"
               innerRef={this.searchInput}
@@ -704,7 +703,7 @@ class SmartSearchBar extends React.Component {
                 />
               </DropdownWrapper>
             )}
-          </form>
+          </StyledForm>
           <ButtonBar>
             <CreateSavedSearchButton
               query={this.state.query}
@@ -814,21 +813,27 @@ const PinIcon = styled(InlineSvg)`
 `;
 
 const Container = styled.div`
-  position: relative;
+  border: 1px solid ${p => p.theme.borderLight};
+  border-radius: ${p =>
+    p.isOpen
+      ? `0 ${p.theme.borderRadius} 0 0`
+      : `0 ${p.theme.borderRadius} ${p.theme.borderRadius} 0`};
+  /* match button height */
+  height: 40px;
+  box-shadow: inset ${p => p.theme.dropShadowLight};
+  background: #fff;
+
   flex-grow: 1;
+  position: relative;
+
   z-index: ${p => p.theme.zIndex.dropdown};
+  display: flex;
 `;
 
-// Buttons are 18px wide, and we want 3px gutters
-const buttonBarWidth = 18 * 3 + 3 * 3;
-
 const ButtonBar = styled.div`
-  position: absolute;
-  top: ${space(1.5)};
-  right: ${space(1.5)};
   display: flex;
   justify-content: flex-end;
-  max-width: ${buttonBarWidth}px;
+  margin-right: ${space(1)};
 
   button {
     margin-left: ${space(0.5)};
@@ -845,19 +850,20 @@ const DropdownWrapper = styled('div')`
   display: ${p => (p.visible ? 'block' : 'none')};
 `;
 
+const StyledForm = styled.form`
+  flex-grow: 1;
+`;
+
 const StyledInput = styled.input`
-  border: 1px solid ${p => p.theme.borderLight};
-  border-radius: 0 ${p => p.theme.borderRadius} ${p => p.theme.borderRadius} 0;
-  box-shadow: inset ${p => p.theme.dropShadowLight};
   color: ${p => p.theme.foreground};
+  background: transparent;
+  border: 0;
+  outline: none;
 
   font-size: ${p => p.theme.fontSizeMedium};
-  /* match the height of buttons */
-  height: 40px;
   width: 100%;
-
-  /* pad the right side of the input to accomodate the button bar */
-  padding: ${space(1)} ${buttonBarWidth + 12}px ${space(1)} ${space(1)};
+  height: 100%;
+  padding: 0 0 0 ${space(1)};
 
   &::placeholder {
     color: ${p => p.theme.gray1};
