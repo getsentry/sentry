@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+import pytest
+
 from mock import patch
 
 from sentry.coreapi import APIUnauthorized
@@ -31,6 +33,7 @@ class TestRefresher(TestCase):
     def test_happy_path(self):
         assert self.refresher.call()
 
+    @pytest.mark.xfail
     def test_deletes_refreshed_token(self):
         self.refresher.call()
         assert not ApiToken.objects.filter(id=self.token.id).exists()

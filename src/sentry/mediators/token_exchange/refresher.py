@@ -23,7 +23,7 @@ class Refresher(Mediator):
 
     def call(self):
         self._validate()
-        self._delete_token()
+        # self._delete_token()
 
         return ApiToken.objects.create(
             user=self.user,
@@ -50,16 +50,24 @@ class Refresher(Mediator):
 
     def _validate_token_belongs_to_app(self):
         if self.token.application != self.application:
+            self.log(at='app-mismatch')
             raise APIUnauthorized
 
     def _delete_token(self):
         self.token.delete()
+
+    @property
+    def _logging_context(self):
+        return {
+            'installation': self.install.uuid,
+        }
 
     @memoize
     def token(self):
         try:
             return ApiToken.objects.get(refresh_token=self.refresh_token)
         except ApiToken.DoesNotExist:
+            self.log(at='token-not-found')
             raise APIUnauthorized
 
     @memoize
@@ -67,6 +75,7 @@ class Refresher(Mediator):
         try:
             return ApiApplication.objects.get(client_id=self.client_id)
         except ApiApplication.DoesNotExist:
+            self.log(at='api-application-not-found')
             raise APIUnauthorized
 
     @property
@@ -74,4 +83,5 @@ class Refresher(Mediator):
         try:
             return self.application.sentry_app
         except SentryApp.DoesNotExist:
+            self.log(at='sentry-app-not-found')
             raise APIUnauthorized
