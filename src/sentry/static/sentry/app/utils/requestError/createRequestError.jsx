@@ -1,4 +1,4 @@
-import RequestError from 'app/utils/requestError';
+import RequestError from './requestError';
 
 const ERROR_MAP = {
   0: 'CancelledError',
