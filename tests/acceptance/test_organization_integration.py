@@ -90,7 +90,8 @@ class OrganizationIntegrationSettingsTest(OrganizationIntegrationAcceptanceTestC
             {'name': self.provider.name}
         )
 
-        self.browser.wait_until(provider_element.integration_name_selector)
+        # provider_element might be rerendered
+        provider_element = org_settings_page.get_provider(self.provider)
         installation_element = provider_element.get_installation_with_name(self.provider.name)
         assert installation_element
         assert Integration.objects.filter(
