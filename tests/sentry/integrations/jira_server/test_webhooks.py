@@ -1,10 +1,12 @@
 from __future__ import absolute_import
 
 import jwt
+import responses
 
 from django.core.urlresolvers import reverse
 from exam import fixture
 from mock import patch
+from requests.exceptions import ConnectionError
 
 from sentry.integrations.jira_server.integration import JiraServerIntegration
 from sentry.models import (
@@ -17,7 +19,7 @@ from sentry.testutils import APITestCase
 from .testutils import EXAMPLE_PRIVATE_KEY
 
 
-class JiraWebhookEndpointTest(APITestCase):
+class JiraServerWebhookEndpointTest(APITestCase):
 
     @fixture
     def integration(self):
@@ -172,3 +174,45 @@ class JiraWebhookEndpointTest(APITestCase):
                 'issue': payload['issue'],
             }
         )
+
+    @responses.activate
+    def test_post_update_status_token_error(self):
+        responses.add(
+            method=responses.GET,
+            url='https://jira.example.org/rest/api/2/status',
+            body=ConnectionError()
+        )
+        project = self.create_project()
+        self.create_group(project=project)
+        integration = self.integration
+        installation = integration.get_installation(self.organization.id)
+        installation.update_organization_config({'sync_status_reverse': True})
+
+        payload = {
+            'changelog': {
+                'items': [
+                    {
+                        'from': '10101',
+                        'field': 'status',
+                        'fromString': 'In Progress',
+                        'to': '10102',
+                        'toString': 'Done',
+                        'fieldtype': 'jira',
+                        'fieldId': 'status'
+                    }
+                ],
+                'id': 12345
+            },
+            'issue': {
+                'project': {
+                    'key': 'APP',
+                    'id': '10000',
+                },
+                'key': 'APP-1'
+            }
+        }
+        token = self.jwt_token
+        path = reverse('sentry-extensions-jiraserver-issue-updated', args=[token])
+        resp = self.client.post(path, data=payload)
+
+        assert resp.status_code == 400
