@@ -18,7 +18,6 @@ from dateutil.parser import parse as parse_date
 from django.db import models
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
-from functools32 import lru_cache
 from hashlib import md5
 
 from semaphore.processing import StoreNormalizer
@@ -95,35 +94,10 @@ class EventCommon(object):
         """
         return md5('{}:{}'.format(project_id, event_id)).hexdigest()
 
-    # ============================================
-    # Cached related model lookups
-    # ============================================
-
-    @staticmethod
-    @lru_cache(maxsize=100)
-    def get_project(project_id):
-        from sentry.models import Project
-        return project_id and Project.objects.get(id=project_id)
-
-    @staticmethod
-    @lru_cache(maxsize=100)
-    def get_group(group_id):
-        from sentry.models import Group
-        return group_id and Group.objects.get(id=group_id)
-
-    @staticmethod
-    @lru_cache(maxsize=100)
-    def get_env(org_id, name):
-        from sentry.models import Environment
-        return Environment.objects.get(organization_id=org_id, name=name)
-
-    # ============================================
-    # Instance methods
-    # ============================================
-
     @property
     def group(self):
-        return self.get_group(self.group_id)
+        from sentry.models import Group
+        return self.group_id and Group.objects.get_from_cache(id=self.group_id)
 
     @group.setter
     def group(self, group):
@@ -134,7 +108,8 @@ class EventCommon(object):
 
     @property
     def project(self):
-        return self.get_project(self.project_id)
+        from sentry.models import Project
+        return self.project_id and Project.objects.get_from_cache(id=self.project_id)
 
     @project.setter
     def project(self, project):
@@ -143,13 +118,17 @@ class EventCommon(object):
         else:
             self.project_id = project.id
 
-    # TODO, why is this not a property/attribute like project and group
-    def get_environment(self):
+    @memoize
+    def environment(self):
         from sentry.models import Environment
-        return self.get_env(
-            self.project.organization_id,
-            Environment.get_name_or_default(self.get_tag('environment'))
+        return Environment.objects.get(
+            organization_id=self.project.organization_id,
+            name=Environment.get_name_or_default(self.get_tag('environment'))
         )
+
+    def get_environment(self):
+        # For compatibility
+        return self.environment
 
     def get_interfaces(self):
         was_renormalized = _should_skip_to_python(self.event_id)

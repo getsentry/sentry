@@ -129,6 +129,17 @@ class EventTest(TestCase):
         with self.assertNumQueries(0):
             event.get_environment() == environment
 
+    def test_project_cache(self):
+        event = self.store_event(
+            data={},
+            project_id=self.project.id
+        )
+
+        assert event.project == self.project
+
+        with self.assertNumQueries(0):
+            event.project == self.project
+
     def test_ip_address(self):
         event = self.create_event(data={
             'user': {'ip_address': '127.0.0.1'},

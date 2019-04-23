@@ -9,7 +9,6 @@ from __future__ import absolute_import
 
 from django.db import models
 from django.utils import timezone
-from functools32 import lru_cache
 
 from sentry.db.models import (BoundedBigIntegerField, Model, sane_repr)
 
@@ -29,31 +28,20 @@ class EventMapping(Model):
 
     __repr__ = sane_repr('project_id', 'group_id', 'event_id')
 
-    @staticmethod
-    @lru_cache(maxsize=100)
-    def get_project(project_id):
-        from sentry.models import Project
-        return project_id and Project.objects.get(id=project_id)
-
-    @staticmethod
-    @lru_cache(maxsize=100)
-    def get_group(group_id):
-        from sentry.models import Group
-        return group_id and Group.objects.get(id=group_id)
-
-    # Implement a ForeignKey-like accessor for backwards compat
+    # Implement ForeignKey-like accessors for backwards compat
     @property
     def group(self):
-        return self.get_group(self.group_id)
+        from sentry.models import Group
+        return self.group_id and Group.objects.get_from_cache(id=self.group_id)
 
     @group.setter
     def group(self, group):
         self.group_id = group.id
 
-    # Implement a ForeignKey-like accessor for backwards compat
     @property
     def project(self):
-        return self.get_project(self.project_id)
+        from sentry.models import Project
+        return self.project_id and Project.objects.get_from_cache(id=self.project_id)
 
     @project.setter
     def project(self, project):
