@@ -88,16 +88,12 @@ export class Client {
   }
 
   wrapCallback(id, func, cleanup) {
-    /*eslint consistent-return:0*/
-    if (isUndefined(func)) {
-      return;
-    }
-
     return (...args) => {
       const req = this.activeRequests[id];
       if (cleanup === true) {
         delete this.activeRequests[id];
       }
+
       if (req && req.alive) {
         // Check if API response is a 302 -- means project slug was renamed and user
         // needs to be redirected
@@ -105,8 +101,12 @@ export class Client {
           return;
         }
 
+        if (isUndefined(func)) {
+          return;
+        }
+
         // Call success callback
-        return func.apply(req, args);
+        return func.apply(req, args); // eslint-disable-line
       }
     };
   }
