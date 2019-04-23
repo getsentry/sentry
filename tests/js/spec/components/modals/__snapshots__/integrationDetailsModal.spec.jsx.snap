@@ -428,7 +428,7 @@ exports[`IntegrationDetailsModal renders simple integration 1`] = `
           <ForwardRef
             aria-disabled={false}
             aria-label="Cancel"
-            className="css-dkprmi-StyledButton-getColors e12ma6z0"
+            className="css-dkprmi-StyledButton-getColors eqrebog0"
             data-testid="cancel-button"
             disabled={false}
             onClick={[Function]}
