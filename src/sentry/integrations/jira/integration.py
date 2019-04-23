@@ -762,7 +762,7 @@ class JiraIntegrationProvider(IntegrationProvider):
         return []
 
     def build_integration(self, state):
-        # Most information is not availabe during integration install time,
+        # Most information is not available during integration installation,
         # since the integration won't have been fully configired on JIRA's side
         # yet, we can't make API calls for more details like the server name or
         # Icon.

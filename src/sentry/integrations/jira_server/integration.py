@@ -180,7 +180,7 @@ class OAuthLoginView(PipelineView):
             return self.redirect(authorize_url)
         except ApiError as error:
             logger.info('identity.jira-server.request-token', extra={'error': error})
-            return pipeline.error('Could not fetch a request token from Jira')
+            return pipeline.error('Could not fetch a request token from Jira. %s' % error)
 
 
 class OAuthCallbackView(PipelineView):

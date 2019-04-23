@@ -9,13 +9,19 @@ from time import time
 
 from BeautifulSoup import BeautifulStoneSoup
 from django.utils.functional import cached_property
-from requests.exceptions import ConnectionError, HTTPError
+from requests.exceptions import ConnectionError, Timeout, HTTPError
 from sentry.exceptions import InvalidIdentity
 from sentry.http import build_session
 from sentry.utils import metrics
 from six.moves.urllib.parse import urlparse
 
-from .exceptions import ApiHostError, ApiError, ApiUnauthorized, UnsupportedResponseType
+from .exceptions import (
+    ApiHostError,
+    ApiTimeoutError,
+    ApiError,
+    ApiUnauthorized,
+    UnsupportedResponseType
+)
 
 
 class BaseApiResponse(object):
@@ -173,6 +179,12 @@ class ApiClient(object):
                 'status': 'connection_error'
             })
             raise ApiHostError.from_exception(e)
+        except Timeout as e:
+            metrics.incr('integrations.http_response', tags={
+                'host': host,
+                'status': 'timeout'
+            })
+            raise ApiTimeoutError.from_exception(e)
         except HTTPError as e:
             resp = e.response
             if resp is None:
