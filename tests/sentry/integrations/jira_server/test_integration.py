@@ -1,7 +1,9 @@
 from __future__ import absolute_import
 
 import jwt
+import responses
 
+from requests.exceptions import ReadTimeout
 from sentry.integrations.jira_server import JiraServerIntegrationProvider
 from sentry.models import (
     Identity,
@@ -12,8 +14,6 @@ from sentry.models import (
 from sentry.testutils import IntegrationTestCase
 from sentry.utils import json
 from .testutils import EXAMPLE_PRIVATE_KEY
-
-import responses
 
 
 class JiraServerIntegrationTest(IntegrationTestCase):
@@ -65,6 +65,30 @@ class JiraServerIntegrationTest(IntegrationTestCase):
         assert resp.status_code == 200
         self.assertContains(
             resp, 'Private key must be a valid SSH private key encoded in a PEM format.')
+
+    @responses.activate
+    def test_authentication_request_token_timeout(self):
+        timeout = ReadTimeout('Read timed out. (read timeout=30)')
+        responses.add(
+            responses.POST,
+            'https://jira.example.com/plugins/servlet/oauth/request-token',
+            body=timeout)
+
+        # Start pipeline and go to setup page.
+        self.client.get(self.setup_path)
+
+        # Submit credentials
+        data = {
+            'url': 'https://jira.example.com/',
+            'verify_ssl': False,
+            'consumer_key': 'sentry-bot',
+            'private_key': EXAMPLE_PRIVATE_KEY
+        }
+        resp = self.client.post(self.setup_path, data=data)
+        assert resp.status_code == 200
+        self.assertContains(resp, 'Setup Error')
+        self.assertContains(resp, 'request token from Jira')
+        self.assertContains(resp, 'Timed out')
 
     @responses.activate
     def test_authentication_request_token_fails(self):
