@@ -35,9 +35,7 @@ class ProjectSelector extends React.Component {
     multiProjects: PropTypes.arrayOf(
       PropTypes.oneOfType([PropTypes.string, SentryTypes.Project])
     ),
-    nonMemberProjects: PropTypes.arrayOf(
-      PropTypes.oneOfType([PropTypes.string, SentryTypes.Project])
-    ),
+    nonMemberProjects: PropTypes.arrayOf(SentryTypes.Project),
 
     // Render a footer at the bottom of the list
     // render function that is passed an `actions` object with `close` and `open` properties.
