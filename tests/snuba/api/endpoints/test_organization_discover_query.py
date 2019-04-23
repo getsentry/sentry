@@ -30,7 +30,7 @@ class OrganizationDiscoverQueryTest(APITestCase, SnubaTestCase):
             group=self.group,
             platform="python",
             datetime=one_second_ago,
-            tags={'environment': 'production'},
+            tags={'environment': 'production', 'sentry:release': 'foo'},
             data={
                 'message': 'message!',
                 'exception': {
@@ -120,6 +120,71 @@ class OrganizationDiscoverQueryTest(APITestCase, SnubaTestCase):
             })
 
         assert response.status_code == 400, response.content
+
+    def test_conditional_fields(self):
+        with self.feature('organizations:discover'):
+            one_second_ago = self.now - timedelta(seconds=1)
+            self.create_event(
+                group=self.group,
+                platform="javascript",
+                datetime=one_second_ago,
+                tags={'environment': 'production', 'sentry:release': 'bar'},
+                data={
+                },
+            )
+
+            self.create_event(
+                group=self.group,
+                platform="javascript",
+                datetime=one_second_ago,
+                tags={'environment': 'production', 'sentry:release': 'baz'},
+                data={
+                },
+            )
+
+            url = reverse('sentry-api-0-organization-discover-query', args=[self.org.slug])
+            response = self.client.post(url, {
+                'projects': [self.project.id],
+                'aggregations': [['count()', None, 'count']],
+                'conditionFields': [
+                    [
+                        'if',
+                        [
+                            [
+                                'in',
+                                [
+                                    'release',
+                                    'tuple',
+                                    ["'foo'"],
+                                ],
+                            ],
+                            'release',
+                            "'other'",
+                        ],
+                        'release',
+                    ],
+                ],
+                'start': (datetime.now() - timedelta(seconds=10)).strftime('%Y-%m-%dT%H:%M:%S'),
+                'end': (datetime.now()).strftime('%Y-%m-%dT%H:%M:%S'),
+                'groupby': ['time', 'release'],
+                'rollup': 86400,
+                'limit': 1000,
+                'orderby': '-time',
+                'range': None,
+            })
+
+        assert response.status_code == 200, response.content
+
+        # rollup is by one day and diff of start/end is 10 seconds, so we only have one day
+        assert len(response.data['data']) == 2
+
+        for data in response.data['data']:
+            # note this "release" key represents the alias for the column condition
+            # and is also used in `groupby`, it is NOT the release tag
+            if data['release'] == 'foo':
+                assert data['count'] == 1
+            elif data['release'] == 'other':
+                assert data['count'] == 2
 
     def test_invalid_range_value(self):
         with self.feature('organizations:discover'):

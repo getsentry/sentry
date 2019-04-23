@@ -125,7 +125,7 @@ exports[`DropdownAutoCompleteMenu renders with a group 1`] = `
                         key="countries"
                       >
                         <div
-                          className="css-o8s6pc-LabelWithBorder ejumqxq5"
+                          className="css-1lqzols-LabelWithBorder ejumqxq5"
                         >
                           <GroupLabel>
                             <div

@@ -36,6 +36,7 @@ env:
     # node's version is pinned by .nvmrc and is autodetected by `nvm install`.
     - NODE_DIR="${HOME}/.nvm/versions/node/v$(< .nvmrc)"
     - YARN_VERSION="1.13.0"
+    - NODE_OPTIONS=--max-old-space-size=4096
 
 script:
   # certain commands require sentry init to be run, but this is only true for

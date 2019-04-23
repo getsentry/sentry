@@ -183,6 +183,7 @@ from .endpoints.release_deploys import ReleaseDeploysEndpoint
 from .endpoints.debug_files import DebugFilesEndpoint, DifAssembleEndpoint, \
     UnknownDebugFilesEndpoint, AssociateDSymFilesEndpoint
 from .endpoints.sentry_apps import SentryAppsEndpoint
+from .endpoints.sentry_apps_stats import SentryAppsStatsEndpoint
 from .endpoints.sentry_app_components import SentryAppComponentsEndpoint, \
     OrganizationSentryAppComponentsEndpoint
 from .endpoints.sentry_app_details import SentryAppDetailsEndpoint
@@ -792,6 +793,11 @@ urlpatterns = patterns(
         OrganizationEnvironmentsEndpoint.as_view(),
         name='sentry-api-0-organization-environments',
     ),
+    url(
+        r'^organizations/(?P<organization_slug>[^\/]+)/broadcasts/$',
+        BroadcastIndexEndpoint.as_view(),
+        name='sentry-api-0-organization-broadcasts'
+    ),
 
     # Teams
     url(
@@ -1272,6 +1278,11 @@ urlpatterns = patterns(
         r'^sentry-apps/$',
         SentryAppsEndpoint.as_view(),
         name='sentry-api-0-sentry-apps'
+    ),
+    url(
+        r'^sentry-apps-stats/$',
+        SentryAppsStatsEndpoint.as_view(),
+        name='sentry-api-0-sentry-apps-stats'
     ),
     url(
         r'^sentry-apps/(?P<sentry_app_slug>[^\/]+)/$',

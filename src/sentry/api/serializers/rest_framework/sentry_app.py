@@ -15,7 +15,7 @@ class ApiScopesField(serializers.WritableField):
     def validate(self, data):
         valid_scopes = ApiScopes()
 
-        if data is None:
+        if not data:
             return
 
         for scope in data:
@@ -25,6 +25,9 @@ class ApiScopesField(serializers.WritableField):
 
 class EventListField(serializers.WritableField):
     def validate(self, data):
+        if not data:
+            return
+
         if not set(data).issubset(VALID_EVENT_RESOURCES):
             raise ValidationError(u'Invalid event subscription: {}'.format(
                 ', '.join(set(data).difference(VALID_EVENT_RESOURCES))
@@ -33,7 +36,7 @@ class EventListField(serializers.WritableField):
 
 class SchemaField(serializers.WritableField):
     def validate(self, data):
-        if data == {}:
+        if not data or data == {}:
             return
 
         try:
@@ -47,7 +50,7 @@ class URLField(serializers.URLField):
         # The Django URLField doesn't distinguish between different types of
         # invalid URLs, so do any manual checks here to give the User a better
         # error message.
-        if not url.startswith('http'):
+        if url and not url.startswith('http'):
             raise ValidationError('URL must start with http[s]://')
 
         super(URLField, self).validate(url)
@@ -57,6 +60,7 @@ class SentryAppSerializer(Serializer):
     name = serializers.CharField()
     author = serializers.CharField()
     scopes = ApiScopesField()
+    status = serializers.CharField(required=False)
     events = EventListField(required=False)
     schema = SchemaField(required=False)
     webhookUrl = URLField()

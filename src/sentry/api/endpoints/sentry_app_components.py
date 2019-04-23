@@ -6,13 +6,11 @@ from sentry.api.bases import OrganizationEndpoint, SentryAppBaseEndpoint
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.coreapi import APIError
-from sentry.features.helpers import requires_feature
 from sentry.mediators import sentry_app_components
 from sentry.models import Project, SentryAppComponent
 
 
 class SentryAppComponentsEndpoint(SentryAppBaseEndpoint):
-    @requires_feature('organizations:sentry-apps', any_org=True)
     def get(self, request, sentry_app):
         return self.paginate(
             request=request,
@@ -23,7 +21,6 @@ class SentryAppComponentsEndpoint(SentryAppBaseEndpoint):
 
 
 class OrganizationSentryAppComponentsEndpoint(OrganizationEndpoint):
-    @requires_feature('organizations:sentry-apps')
     def get(self, request, organization):
         try:
             project = Project.objects.get(

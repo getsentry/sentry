@@ -109,18 +109,12 @@ class GroupEventDetails extends React.Component {
         });
       });
 
-    if (organization) {
-      const features = new Set(organization.features);
-
-      if (features.has('sentry-apps')) {
-        fetchSentryAppInstallations(api, orgSlug);
-        fetchSentryAppComponents(api, orgSlug, projectId);
-      }
-    }
+    fetchSentryAppInstallations(api, orgSlug);
+    fetchSentryAppComponents(api, orgSlug, projectId);
   };
 
   render() {
-    const {group, project, organization, environments} = this.props;
+    const {group, project, organization, environments, location} = this.props;
     const evt = withMeta(this.state.event);
 
     return (
@@ -134,6 +128,7 @@ class GroupEventDetails extends React.Component {
                 event={evt}
                 orgId={organization.slug}
                 projectId={project.slug}
+                location={location}
               />
             )}
             {group.status != 'unresolved' && (

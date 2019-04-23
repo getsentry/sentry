@@ -47,6 +47,9 @@ def _needs_upgrade():
 
     # Check all required options to see if they've been set
     for key in options.filter(flag=options.FLAG_REQUIRED):
+        # ignore required flags which can be empty
+        if key.flags & options.FLAG_ALLOW_EMPTY:
+            continue
         # Ignore mail.* keys if smtp is disabled
         if smtp_disabled and key.name[:5] == 'mail.':
             continue

@@ -43,9 +43,10 @@ const GroupEventToolbar = createReactClass({
     projectId: PropTypes.string.isRequired,
     group: SentryTypes.Group.isRequired,
     event: SentryTypes.Event.isRequired,
+    location: PropTypes.object.isRequired,
   },
 
-  shouldComponentUpdate(nextProps, nextState) {
+  shouldComponentUpdate(nextProps) {
     return this.props.event.id !== nextProps.event.id;
   },
 
@@ -83,7 +84,7 @@ const GroupEventToolbar = createReactClass({
   render() {
     const evt = this.props.event;
 
-    const {organization, orgId, projectId} = this.props;
+    const {organization, orgId, projectId, location} = this.props;
     const groupId = this.props.group.id;
 
     const hasSentry10 = new Set(organization.features).has('sentry10');
@@ -95,7 +96,7 @@ const GroupEventToolbar = createReactClass({
       evt.previousEventID ? (
         <Link
           key="oldest"
-          to={`${baseEventsPath}oldest/`}
+          to={{pathname: `${baseEventsPath}oldest/`, query: location.query}}
           className="btn btn-default"
           title={t('Oldest')}
         >
@@ -109,7 +110,10 @@ const GroupEventToolbar = createReactClass({
       evt.previousEventID ? (
         <Link
           key="prev"
-          to={`${baseEventsPath}${evt.previousEventID}/`}
+          to={{
+            pathname: `${baseEventsPath}${evt.previousEventID}/`,
+            query: location.query,
+          }}
           className="btn btn-default"
         >
           {t('Older')}
@@ -122,7 +126,7 @@ const GroupEventToolbar = createReactClass({
       evt.nextEventID ? (
         <Link
           key="next"
-          to={`${baseEventsPath}${evt.nextEventID}/`}
+          to={{pathname: `${baseEventsPath}${evt.nextEventID}/`, query: location.query}}
           className="btn btn-default"
         >
           {t('Newer')}
@@ -135,7 +139,7 @@ const GroupEventToolbar = createReactClass({
       evt.nextEventID ? (
         <Link
           key="latest"
-          to={`${baseEventsPath}latest/`}
+          to={{pathname: `${baseEventsPath}latest/`, query: location.query}}
           className="btn btn-default"
           title={t('Newest')}
         >
