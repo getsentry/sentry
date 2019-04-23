@@ -110,3 +110,25 @@ class PullRequestSerializerTest(TestCase):
         assert result['title'] == 'cool pr'
         assert result['repository']['name'] == 'test/test'
         assert result['author'] == {'name': 'stebe', 'email': 'stebe@sentry.io'}
+
+    def test_deleted_repository(self):
+        commit_author = CommitAuthor.objects.create(
+            name='stebe',
+            email='stebe@sentry.io',
+            organization_id=self.project.organization_id,
+        )
+        pull_request = PullRequest.objects.create(
+            organization_id=self.project.organization_id,
+            repository_id=12345,
+            key='9',
+            author=commit_author,
+            message='waddap',
+            title="cool pr"
+        )
+        result = serialize(pull_request, self.user)
+
+        assert result['message'] == pull_request.message
+        assert result['title'] == pull_request.title
+        assert result['repository'] == {}
+        assert result['author'] == {'name': commit_author.name, 'email': commit_author.email}
+        assert result['externalUrl'] == ''
