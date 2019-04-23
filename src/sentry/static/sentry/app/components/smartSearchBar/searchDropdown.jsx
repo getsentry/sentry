@@ -112,9 +112,10 @@ const StyledSearchDropdown = styled('div')`
   border: 1px solid ${p => p.theme.borderLight};
   border-radius: 0 0 4px 4px;
   position: absolute;
-  top: 37px;
-  right: 0;
-  left: 0;
+  top: 38px;
+  /* Container has a border that we need to account for */
+  right: -1px;
+  left: -1px;
   background: #fff;
   z-index: ${p => p.theme.zIndex.dropdown};
   overflow: hidden;
