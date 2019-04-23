@@ -1,4 +1,3 @@
-import {withRouter} from 'react-router';
 import React from 'react';
 
 import {PageContent, PageHeader} from 'app/styles/organization';
@@ -38,5 +37,5 @@ class OrganizationDashboardContainer extends React.Component {
     );
   }
 }
-export default withRouter(withOrganization(OrganizationDashboardContainer));
+export default withOrganization(OrganizationDashboardContainer);
 export {OrganizationDashboardContainer};

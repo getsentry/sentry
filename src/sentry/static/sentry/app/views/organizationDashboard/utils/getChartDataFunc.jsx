@@ -14,6 +14,7 @@ export function getChartDataFunc({queries, type, fieldLabelMap}) {
       getChartDataByDay,
       [
         {
+          allSeries: true,
           fieldLabelMap,
         },
       ],

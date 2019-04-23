@@ -103,7 +103,9 @@ describe('DiscoverQuery', function() {
     wrapper.update();
     expect(renderMock).toHaveBeenCalledTimes(0);
 
-    wrapper.setProps({organization: TestStubs.Organization()});
+    wrapper.setProps({
+      organization: TestStubs.Organization({projects: [TestStubs.Project()]}),
+    });
     wrapper.update();
 
     // Called twice because of fetchData (state.reloading)
