@@ -72,6 +72,7 @@ class BroadcastCreateTest(APITestCase):
             'title': 'bar',
             'message': 'foo',
             'link': 'http://example.com',
+            'cta': 'Read More',
         })
 
         assert response.status_code == 401
@@ -84,6 +85,7 @@ class BroadcastCreateTest(APITestCase):
             'title': 'bar',
             'message': 'foo',
             'link': 'http://example.com',
+            'cta': 'Read More',
         })
 
         assert response.status_code == 200, response.data

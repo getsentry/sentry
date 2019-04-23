@@ -71,6 +71,8 @@ class BroadcastDetailsEndpoint(Endpoint):
             update_kwargs['is_active'] = result['isActive']
         if result.get('dateExpires', -1) != -1:
             update_kwargs['date_expires'] = result['dateExpires']
+        if result.get('cta'):
+            update_kwargs['cta'] = result['cta']
         if update_kwargs:
             with transaction.atomic():
                 broadcast.update(**update_kwargs)

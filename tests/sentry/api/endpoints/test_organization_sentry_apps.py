@@ -4,7 +4,6 @@ from django.core.urlresolvers import reverse
 
 from sentry.utils import json
 from sentry.testutils import APITestCase
-from sentry.testutils.helpers import with_feature
 
 
 def assert_response_json(response, data):
@@ -33,7 +32,6 @@ class OrganizationSentryAppsTest(APITestCase):
 
 
 class GetOrganizationSentryAppsTest(OrganizationSentryAppsTest):
-    @with_feature('organizations:sentry-apps')
     def test_gets_all_apps_in_own_org(self):
         self.login_as(user=self.user)
         response = self.client.get(self.url, format='json')
@@ -61,16 +59,9 @@ class GetOrganizationSentryAppsTest(OrganizationSentryAppsTest):
             }
         }])
 
-    @with_feature('organizations:sentry-apps')
     def test_cannot_see_apps_in_other_orgs(self):
         self.login_as(user=self.user)
         url = reverse('sentry-api-0-organization-sentry-apps', args=[self.super_org.slug])
         response = self.client.get(url, format='json')
 
         assert response.status_code == 403
-
-    def test_no_access_without_internal_catchall(self):
-        self.login_as(user=self.user)
-
-        response = self.client.get(self.url, format='json')
-        assert response.status_code == 404

@@ -6,7 +6,7 @@ from django.db import connection
 from mock import patch
 
 from sentry.mediators.sentry_app_installations import Creator, Destroyer
-from sentry.models import AuditLogEntry, AuditLogEntryEvent, ApiAuthorization, ApiGrant, SentryAppInstallation, ServiceHook
+from sentry.models import AuditLogEntry, AuditLogEntryEvent, ApiGrant, SentryAppInstallation, ServiceHook
 from sentry.testutils import TestCase
 
 
@@ -36,15 +36,6 @@ class TestDestroyer(TestCase):
             install=self.install,
             user=self.user,
         )
-
-    @responses.activate
-    def test_deletes_authorization(self):
-        auth = self.install.authorization
-
-        responses.add(responses.POST, 'https://example.com/webhook')
-        self.destroyer.call()
-
-        assert not ApiAuthorization.objects.filter(pk=auth.id).exists()
 
     @responses.activate
     def test_deletes_grant(self):

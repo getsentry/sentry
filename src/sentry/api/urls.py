@@ -793,6 +793,11 @@ urlpatterns = patterns(
         OrganizationEnvironmentsEndpoint.as_view(),
         name='sentry-api-0-organization-environments',
     ),
+    url(
+        r'^organizations/(?P<organization_slug>[^\/]+)/broadcasts/$',
+        BroadcastIndexEndpoint.as_view(),
+        name='sentry-api-0-organization-broadcasts'
+    ),
 
     # Teams
     url(

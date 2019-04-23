@@ -196,6 +196,41 @@ describe('SearchBar', function() {
         })
       );
     });
+
+    it('cycles through keyboard navigation for selection', async function() {
+      const props = {
+        orgId: '123',
+        query: 'timesSeen:',
+        tagValueLoader: () => {},
+        recentSearchType: 0,
+        displayRecentSearches: true,
+        supportedTags,
+      };
+      jest.useRealTimers();
+      const wrapper = mount(<SearchBar {...props} />, options);
+
+      wrapper.find('input').simulate('change', {target: {value: 'is:'}});
+      await tick();
+      wrapper.update();
+
+      expect(
+        wrapper
+          .find('SearchItem')
+          .at(0)
+          .find('li')
+          .prop('className')
+      ).toContain('active');
+
+      wrapper.find('input').simulate('keyDown', {key: 'ArrowUp'});
+
+      expect(
+        wrapper
+          .find('SearchItem')
+          .last()
+          .find('li')
+          .prop('className')
+      ).toContain('active');
+    });
   });
 
   describe('Pinned Searches', function() {
@@ -256,7 +291,7 @@ describe('SearchBar', function() {
         expect.objectContaining({
           method: 'PUT',
           data: {
-            query: 'url:"fu" ',
+            query: 'url:"fu"',
             type: 0,
           },
         })
@@ -271,7 +306,7 @@ describe('SearchBar', function() {
         tagValueLoader: () => Promise.resolve([]),
         supportedTags,
         organization,
-        pinnedSearch: {id: '1', query: 'url:"fu" '},
+        pinnedSearch: {id: '1', query: 'url:"fu"'},
       };
       const searchBar = mount(<SearchBar {...props} />, routerContext);
       searchBar.find('button[aria-label="Pin this search"]').simulate('click');

@@ -4,7 +4,8 @@ from django.http import HttpResponseRedirect, Http404
 from django.core.urlresolvers import reverse
 from sentry import features
 
-from sentry.models import Event
+from sentry import options
+from sentry.models import Event, SnubaEvent
 from sentry.web.frontend.base import ProjectView
 
 
@@ -15,12 +16,12 @@ class ProjectEventRedirect(ProjectView):
         """
         Given a client event id and project, redirects to the event page
         """
-        try:
-            event = Event.objects.get(
-                event_id=client_event_id,
-                project_id=project.id)
-        except Event.DoesNotExist:
-            raise Http404()
+        use_snuba = options.get('snuba.events-queries.enabled')
+        event_cls = SnubaEvent if use_snuba else Event
+        event = event_cls.objects.from_event_id(client_event_id, project.id)
+
+        if event is None:
+            raise Http404
 
         if features.has('organizations:sentry10', organization, actor=request.user):
             return HttpResponseRedirect(

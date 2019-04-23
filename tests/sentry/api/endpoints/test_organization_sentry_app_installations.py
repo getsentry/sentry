@@ -5,7 +5,6 @@ import six
 from django.core.urlresolvers import reverse
 
 from sentry.testutils import APITestCase
-from sentry.testutils.helpers import with_feature
 
 
 class SentryAppInstallationsTest(APITestCase):
@@ -44,7 +43,6 @@ class SentryAppInstallationsTest(APITestCase):
 
 
 class GetSentryAppInstallationsTest(SentryAppInstallationsTest):
-    @with_feature('organizations:sentry-apps')
     def test_superuser_sees_all_installs(self):
         self.login_as(user=self.superuser, superuser=True)
         response = self.client.get(self.url, format='json')
@@ -82,7 +80,6 @@ class GetSentryAppInstallationsTest(SentryAppInstallationsTest):
             'code': self.installation.api_grant.code,
         }]
 
-    @with_feature('organizations:sentry-apps')
     def test_users_only_sees_installs_on_their_org(self):
         self.login_as(user=self.user)
         response = self.client.get(self.url, format='json')
@@ -109,15 +106,8 @@ class GetSentryAppInstallationsTest(SentryAppInstallationsTest):
         response = self.client.get(url, format='json')
         assert response.status_code == 404
 
-    def test_no_access_without_internal_catchall(self):
-        self.login_as(user=self.user)
-
-        response = self.client.get(self.url, format='json')
-        assert response.status_code == 404
-
 
 class PostSentryAppInstallationsTest(SentryAppInstallationsTest):
-    @with_feature('organizations:sentry-apps')
     def test_install_unpublished_app(self):
         self.login_as(user=self.user)
         app = self.create_sentry_app(
@@ -142,7 +132,6 @@ class PostSentryAppInstallationsTest(SentryAppInstallationsTest):
         assert response.status_code == 200, response.content
         assert six.viewitems(expected) <= six.viewitems(response.data)
 
-    @with_feature('organizations:sentry-apps')
     def test_install_published_app(self):
         self.login_as(user=self.user)
         app = self.create_sentry_app(
@@ -168,7 +157,6 @@ class PostSentryAppInstallationsTest(SentryAppInstallationsTest):
         assert response.status_code == 200, response.content
         assert six.viewitems(expected) <= six.viewitems(response.data)
 
-    @with_feature('organizations:sentry-apps')
     def test_members_cannot_install_apps(self):
         user = self.create_user('bar@example.com')
         self.create_member(
@@ -188,9 +176,3 @@ class PostSentryAppInstallationsTest(SentryAppInstallationsTest):
             format='json',
         )
         assert response.status_code == 403
-
-    def test_no_access_without_internal_catchall(self):
-        self.login_as(user=self.user)
-
-        response = self.client.get(self.url, format='json')
-        assert response.status_code == 404

@@ -38,17 +38,12 @@ class OrganizationIntegrations extends AsyncComponent {
   getEndpoints() {
     const {orgId} = this.props.params;
     const query = {plugins: ['vsts', 'github', 'bitbucket']};
-    const endpoints = [
+    return [
       ['config', `/organizations/${orgId}/config/integrations/`],
       ['integrations', `/organizations/${orgId}/integrations/`],
       ['plugins', `/organizations/${orgId}/plugins/`, {query}],
-    ];
-    if (!this.props.organization.features.includes('sentry-apps')) {
-      return endpoints;
-    }
-    return [
-      ...endpoints,
-      ['applications', `/organizations/${orgId}/sentry-apps/`],
+      ['orgOwnedApps', `/organizations/${orgId}/sentry-apps/`],
+      ['publishedApps', '/sentry-apps/'],
       ['appInstalls', `/organizations/${orgId}/sentry-app-installations/`],
     ];
   }
@@ -172,7 +167,8 @@ class OrganizationIntegrations extends AsyncComponent {
   }
 
   renderBody() {
-    const {reloading, applications, appInstalls} = this.state;
+    const {reloading, orgOwnedApps, publishedApps, appInstalls} = this.state;
+    const applications = (publishedApps || []).concat(orgOwnedApps || []);
 
     const installedProviders = this.providers
       .filter(p => p.isInstalled)
