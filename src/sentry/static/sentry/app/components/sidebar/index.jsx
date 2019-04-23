@@ -175,7 +175,7 @@ class Sidebar extends React.Component {
     ].map(route => `/organizations/${this.props.organization.slug}/${route}/`);
 
     // Only keep the querystring if the current route matches one of the above
-    if (globalSelectionRoutes.includes(this.props.location.pathname)) {
+    if (globalSelectionRoutes.includes(pathname)) {
       const query = extractSelectionParameters(this.props.location.query);
 
       // Handle cmd-click (mac) and meta-click (linux)
