@@ -32,7 +32,7 @@ class GitHubSearchEndpoint(IntegrationEndpoint):
                 return Response({'detail': 'repo is a required parameter'}, status=400)
 
             try:
-                response = installation.get_client().search_issues(
+                response = installation.search_issues(
                     query=(u'repo:%s %s' % (repo, query)).encode('utf-8'),
                 )
             except ApiError as err:

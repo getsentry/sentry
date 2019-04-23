@@ -111,6 +111,9 @@ class GitHubEnterpriseIntegration(IntegrationInstallation, GitHubIssueBasic, Rep
             data.append({'name': repo['name'], 'identifier': repo['full_name']})
         return data
 
+    def search_issues(self, query):
+        return self.get_client().search_issues(query)
+
     def reinstall(self):
         installation_id = self.model.external_id.split(':')[1]
         metadata = self.model.metadata
