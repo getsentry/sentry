@@ -89,7 +89,7 @@ RESERVED_ORGANIZATION_SLUGS = frozenset(
         'teams', 'projects', 'help', 'docs', 'logout', '404', '500', '_static', 'out', 'debug',
         'remote', 'get-cli', 'blog', 'welcome', 'features', 'customers', 'integrations', 'signup',
         'pricing', 'subscribe', 'enterprise', 'about', 'jobs', 'thanks', 'guide', 'privacy',
-        'security', 'terms', 'from', 'sponsorship', 'for', 'at', 'platforms', 'branding', 'vs',
+        'security', 'terms', 'from', 'sponsorship', 'for', 'at', 'integration-platform', 'platforms', 'branding', 'vs',
         'answers', '_admin', 'support', 'contact', 'onboarding', 'ext', 'extension', 'extensions',
         'plugins', 'themonitor', 'settings', 'legal', 'avatar', 'organization-avatar',
         'project-avatar', 'team-avatar', 'careers', '_experiment', 'sentry-apps',
