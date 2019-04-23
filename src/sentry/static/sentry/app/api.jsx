@@ -1,3 +1,5 @@
+import createRequestError from 'app/utils/requestError/createRequestError';
+
 import $ from 'jquery';
 import {isUndefined, isNil} from 'lodash';
 import * as Sentry from '@sentry/browser';
@@ -236,10 +238,16 @@ export class Client {
 
           Sentry.withScope(scope => {
             // `requestPromise` can pass its error object
-            const errorObjectToUse = options.requestError || errorObject;
+            const preservedError = options.requestError || errorObject;
 
-            errorObjectToUse.setResponse(resp);
-            errorObjectToUse.removeFrames(4);
+            const errorObjectToUse = createRequestError(
+              resp,
+              preservedError.stack,
+              options.method,
+              path
+            );
+
+            errorObjectToUse.removeFrames(2);
 
             // Setting this to warning because we are going to capture all failed requests
             scope.setLevel('warning');
