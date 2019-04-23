@@ -286,9 +286,17 @@ export class Client {
           includeAllArgs ? resolve([data, ...args]) : resolve(data);
         },
         error: (resp, ...args) => {
-          // Since this method calls `this.request`, and its error handler
-          // modifies the error object, we don't update it
-          reject(preservedError);
+          const errorObjectToUse = createRequestError(
+            resp,
+            preservedError.stack,
+            options.method,
+            path
+          );
+          errorObjectToUse.removeFrames(2);
+
+          // Although `this.request` logs all error responses, this error object can
+          // potentially be logged by Sentry's unhandled rejection handler
+          reject(errorObjectToUse);
         },
       });
     });

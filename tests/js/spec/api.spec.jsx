@@ -3,6 +3,7 @@ import $ from 'jquery';
 import {Client, Request, paramsToQueryArgs} from 'app/api';
 import GroupActions from 'app/actions/groupActions';
 import {PROJECT_MOVED} from 'app/constants/apiErrorCodes';
+import * as Sentry from '@sentry/browser';
 
 jest.unmock('app/api');
 
@@ -215,6 +216,48 @@ describe('api', function() {
         expect.objectContaining({query: {query: 'is:resolved'}}),
         undefined
       );
+    });
+  });
+
+  describe('Sentry reporting', function() {
+    beforeEach(function() {
+      jest.spyOn($, 'ajax');
+
+      $.ajax.mockClear();
+
+      $.ajax.mockImplementation(({error}) => {
+        error({
+          status: 404,
+          statusText: 'Not Found',
+          responseJSON: {details: 'Item was not found'},
+        });
+      });
+    });
+
+    it('reports correct error and stacktrace to Sentry', function() {
+      api.request('/some/url/');
+
+      const errorObjectSentryCalled = Sentry.captureException.mock.calls[0][0];
+      expect(errorObjectSentryCalled.name).toBe('NotFoundError');
+      expect(errorObjectSentryCalled.message).toBe('GET /some/url/ 404');
+
+      // First line of stack should be this test case
+      expect(errorObjectSentryCalled.stack.split('\n')[1]).toContain('api.spec.jsx');
+    });
+
+    it('reports correct error and stacktrace to Sentry when using promises', function() {
+      Sentry.captureException.mockClear();
+
+      $.ajax.mockImplementation(({error}) => {
+        error({
+          status: 404,
+          statusText: 'Not Found',
+          responseJSON: {details: 'Item was not found'},
+        });
+      });
+
+      expect(api.requestPromise('/some/url/')).rejects.toThrowErrorMatchingSnapshot();
+      expect(Sentry.captureException).toHaveBeenCalled();
     });
   });
 });
