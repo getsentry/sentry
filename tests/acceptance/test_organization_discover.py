@@ -1,33 +1,57 @@
 from __future__ import absolute_import
 
+from datetime import datetime, timedelta
+
 from sentry.testutils import AcceptanceTestCase
 
 
 class OrganizationDiscoverTest(AcceptanceTestCase):
     def setUp(self):
         super(OrganizationDiscoverTest, self).setUp()
-        self.user = self.create_user('foo@example.com')
-        self.org = self.create_organization(owner=None, name='Rowdy Tiger')
-        self.team = self.create_team(organization=self.org, name='Mariachi Band')
-        self.create_member(
-            user=self.user,
-            organization=self.org,
-            role='owner',
-            teams=[self.team],
-        )
+
+        self.login_as(user=self.user, superuser=False)
+
+        self.org = self.create_organization(owner=self.user, name='foo')
+
         self.project = self.create_project(
             organization=self.org,
-            teams=[self.team],
             name='Bengal',
         )
-        self.group = self.create_group(project=self.project)
-        self.event = self.create_event(
-            group=self.group,
-            message="message!",
-            platform="python",
-        )
+        sec_ago = (datetime.utcnow() - timedelta(seconds=1)).isoformat()[:19]
 
-        self.login_as(self.user)
+        self.event = self.store_event(
+            data={
+                'event_id': 'a' * 32,
+                'platform': 'python',
+                'environment': 'staging',
+                'fingerprint': ['group_1'],
+                'message': 'message!',
+                'tags': {'sentry:release': 'foo'},
+                'exception': {
+                    'values': [
+                        {
+                            'type': 'ValidationError',
+                            'value': 'Bad request',
+                            'mechanism': {
+                                'type': '1',
+                                'value': '1',
+                            },
+                            'stacktrace': {
+                                'frames': [{
+                                    'function': '?',
+                                    'filename': 'http://localhost:1337/error.js',
+                                    'lineno': 29,
+                                    'colno': 3,
+                                    'in_app': False
+                                }],
+                            },
+                        }
+                    ]
+                },
+                'timestamp': sec_ago
+            },
+            project_id=self.project.id,
+        )
         self.path = u'/organizations/{}/discover/'.format(self.org.slug)
 
     def test_no_access(self):
