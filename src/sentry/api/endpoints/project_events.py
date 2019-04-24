@@ -7,7 +7,7 @@ from functools import partial
 from sentry import options
 from sentry.api.base import DocSection
 from sentry.api.bases.project import ProjectEndpoint
-from sentry.api.serializers import serialize
+from sentry.api.serializers import EventSerializer, serialize, SimpleEventSerializer
 from sentry.utils.apidocs import scenario, attach_scenarios
 
 
@@ -76,10 +76,12 @@ class ProjectEventsEndpoint(ProjectEndpoint):
             referrer='api.project-events',
         )
 
+        full = request.GET.get('full', False)
+        serializer = EventSerializer() if full else SimpleEventSerializer()
         return self.paginate(
             request=request,
             on_results=lambda results: serialize(
-                [SnubaEvent(row) for row in results], request.user),
+                [SnubaEvent(row) for row in results], request.user, serializer),
             paginator=GenericOffsetPaginator(data_fn=data_fn)
         )
 

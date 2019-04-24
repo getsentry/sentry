@@ -16,7 +16,7 @@ from sentry.api.event_search import get_snuba_query_args
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.helpers.environments import get_environments
 from sentry.api.helpers.events import get_direct_hit_response
-from sentry.api.serializers import serialize, SimpleEventSerializer
+from sentry.api.serializers import EventSerializer, serialize, SimpleEventSerializer
 from sentry.api.paginator import DateTimePaginator, GenericOffsetPaginator
 from sentry.api.utils import get_date_range_from_params
 from sentry.models import Event, Group, SnubaEvent
@@ -101,7 +101,8 @@ class GroupEventsEndpoint(GroupEndpoint, EnvironmentMixin):
             **snuba_args
         )
 
-        serializer = SimpleEventSerializer()
+        full = request.GET.get('full', False)
+        serializer = EventSerializer() if full else SimpleEventSerializer()
         return self.paginate(
             request=request,
             on_results=lambda results: serialize(
