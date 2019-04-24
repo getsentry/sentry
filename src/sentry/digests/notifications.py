@@ -1,13 +1,11 @@
 from __future__ import absolute_import
 
-import functools
 import itertools
 import logging
 import six
 
 from collections import (
     OrderedDict,
-    defaultdict,
     namedtuple,
 )
 from six.moves import reduce
@@ -62,24 +60,14 @@ def fetch_state(project, records):
     end = records[0].datetime
 
     groups = Group.objects.in_bulk(record.value.event.group_id for record in records)
-    return {
-        'project':
-        project,
-        'groups':
-        groups,
-        'rules':
-        Rule.objects.
-        in_bulk(itertools.chain.from_iterable(record.value.rules for record in records)),
-        'event_counts':
-        tsdb.get_sums(tsdb.models.group, groups.keys(), start, end),
-        'user_counts':
-        tsdb.get_distinct_counts_totals(
-            tsdb.models.users_affected_by_group, groups.keys(), start, end
-        ),
-    }
+    rules = Rule.objects.in_bulk(
+        itertools.chain.from_iterable(record.value.rules for record in records)
+    )
+    event_counts = tsdb.get_sums(tsdb.models.group, groups.keys(), start, end)
+    user_counts = tsdb.get_distinct_counts_totals(
+        tsdb.models.users_affected_by_group, groups.keys(), start, end
+    )
 
-
-def attach_state(project, groups, rules, event_counts, user_counts):
     for id, group in six.iteritems(groups):
         assert group.project_id == project.id, 'Group must belong to Project'
         group.project = project
@@ -94,11 +82,7 @@ def attach_state(project, groups, rules, event_counts, user_counts):
     for id, user_count in six.iteritems(user_counts):
         groups[id].user_count = user_count
 
-    return {
-        'project': project,
-        'groups': groups,
-        'rules': rules,
-    }
+    return groups, rules
 
 
 class Pipeline(object):
@@ -137,7 +121,7 @@ class Pipeline(object):
 
     def reduce(self, function, initializer):
         def operation(sequence):
-            result = reduce(function, sequence, initializer(sequence))
+            result = reduce(function, sequence, initializer)
             logger.debug('%r reduced %s items to %s.', function, len(sequence), len(result))
             return result
 
@@ -145,37 +129,16 @@ class Pipeline(object):
         return self
 
 
-def rewrite_record(record, project, groups, rules):
-    event = record.value.event
-
-    # Reattach the group to the event.
-    group = groups.get(event.group_id)
-    if group is not None:
-        event.group = group
-    else:
-        logger.debug('%r could not be associated with a group.', record)
-        return
-
-    return Record(
-        record.key,
-        Notification(
-            event,
-            filter(None, [rules.get(id) for id in record.value.rules]),
-        ),
-        record.timestamp,
-    )
-
-
-def group_records(groups, record):
-    group = record.value.event.group
-    rules = record.value.rules
-    if not rules:
+def group_record(groups, rules, memo, record):
+    group = groups.get(record.value.event.group_id)
+    record_rules = [rules.get(id) for id in record.value.rules if id in rules]
+    if not record_rules:
         logger.debug('%r has no associated rules, and will not be added to any groups.', record)
 
-    for rule in rules:
-        groups[rule][group].append(record)
+    for rule in record_rules:
+        memo.setdefault(rule, {}).setdefault(group, []).append(record)
 
-    return groups
+    return memo
 
 
 def sort_group_contents(rules):
@@ -202,26 +165,17 @@ def sort_rule_groups(rules):
     )
 
 
-def build_digest(project, records, state=None):
+def build_digest(project, records):
     records = list(records)
     if not records:
         return
 
-    # XXX: This is a hack to allow generating a mock digest without actually
-    # doing any real IO!
-    if state is None:
-        state = fetch_state(project, records)
-
-    state = attach_state(**state)
-
-    def check_group_state(record):
-        return record.value.event.group.get_status() == GroupStatus.UNRESOLVED
+    groups, rules = fetch_state(project, records)
 
     pipeline = Pipeline(). \
-        map(functools.partial(rewrite_record, **state)). \
-        filter(bool). \
-        filter(check_group_state). \
-        reduce(group_records, lambda sequence: defaultdict(lambda: defaultdict(list))). \
+        filter(lambda r: r.value.event.group_id in groups). \
+        filter(lambda r: groups[r.value.event.group_id].get_status() == GroupStatus.UNRESOLVED). \
+        reduce(lambda memo, record: group_record(groups, rules, memo, record), {}). \
         apply(sort_group_contents). \
         apply(sort_rule_groups)
 
