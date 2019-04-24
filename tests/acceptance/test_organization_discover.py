@@ -2,10 +2,10 @@ from __future__ import absolute_import
 
 from datetime import datetime, timedelta
 
-from sentry.testutils import AcceptanceTestCase
+from sentry.testutils import AcceptanceTestCase, SnubaTestCase
 
 
-class OrganizationDiscoverTest(AcceptanceTestCase):
+class OrganizationDiscoverTest(AcceptanceTestCase, SnubaTestCase):
     def setUp(self):
         super(OrganizationDiscoverTest, self).setUp()
 
