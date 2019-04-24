@@ -340,7 +340,7 @@ class GroupSerializerBase(Serializer):
 
         # If user is not logged in and member of the organization,
         # do not return the permalink which contains private information i.e. org name.
-        if user.is_authenticated() and user.get_orgs().filter(id=obj.organization.id).exists():
+        if user.is_superuser or user.is_authenticated() and user.get_orgs().filter(id=obj.organization.id).exists():
             permalink = obj.get_absolute_url()
         else:
             permalink = None

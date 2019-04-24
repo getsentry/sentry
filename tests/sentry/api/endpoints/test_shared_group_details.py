@@ -82,3 +82,10 @@ class SharedGroupDetailsTest(APITestCase):
 
         assert response.status_code == 200, response.content
         assert response.data['permalink']  # show permalink when logged in
+
+        superuser = self.create_user(email='foo@example.com', is_superuser=True)
+        self.login_as(user=superuser, superuser=True)
+        response = self.client.get(url, format='json')
+
+        assert response.status_code == 200, response.content
+        assert response.data['permalink']  # show permalink when superuser
