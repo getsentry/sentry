@@ -61,6 +61,7 @@ default_manager.add('organizations:event-attachments', OrganizationFeature)  # N
 default_manager.add('organizations:symbol-sources', OrganizationFeature)  # NOQA
 default_manager.add('organizations:gitlab-integration', OrganizationFeature)  # NOQA
 default_manager.add('organizations:global-views', OrganizationFeature)  # NOQA
+default_manager.add('organizations:incidents', OrganizationFeature)  # NOQA
 default_manager.add('organizations:integrations-issue-basic', OrganizationFeature)  # NOQA
 default_manager.add('organizations:integrations-issue-sync', OrganizationFeature)  # NOQA
 default_manager.add('organizations:internal-catchall', OrganizationFeature)  # NOQA
@@ -108,6 +109,7 @@ requires_snuba = (
     'organizations:discover',
     'organizations:events',
     'organizations:global-views',
+    'organizations:incidents',
     'organizations:sentry10',
 )
 
