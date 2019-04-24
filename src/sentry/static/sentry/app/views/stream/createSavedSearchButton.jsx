@@ -154,7 +154,7 @@ class CreateSavedSearchButton extends React.Component {
 
 const StyledButton = styled(Button)`
   & svg {
-    color: ${p => p.theme.gray6};
+    color: ${p => p.theme.gray2};
   }
   &:hover svg {
     color: ${p => p.theme.gray3};
