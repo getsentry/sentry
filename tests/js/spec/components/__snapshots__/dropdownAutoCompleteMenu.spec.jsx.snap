@@ -8,6 +8,7 @@ exports[`DropdownAutoCompleteMenu renders with a group 1`] = `
   items={
     Array [
       Object {
+        "id": "countries",
         "items": Array [
           Object {
             "label": <div>
