@@ -12,6 +12,7 @@ const SavedSearchesStore = Reflux.createStore({
       createSavedSearchSuccess,
       deleteSavedSearchSuccess,
       pinSearch,
+      pinSearchSuccess,
       unpinSearch,
     } = SavedSearchesActions;
 
@@ -21,6 +22,7 @@ const SavedSearchesStore = Reflux.createStore({
     this.listenTo(createSavedSearchSuccess, this.onCreateSavedSearchSuccess);
     this.listenTo(deleteSavedSearchSuccess, this.onDeleteSavedSearchSuccess);
     this.listenTo(pinSearch, this.onPinSearch);
+    this.listenTo(pinSearchSuccess, this.onPinSearchSuccess);
     this.listenTo(unpinSearch, this.onUnpinSearch);
 
     this.reset();
@@ -167,6 +169,16 @@ const SavedSearchesStore = Reflux.createStore({
         ...this.getFilteredSearches(type, existingSearch && existingSearch.id),
       ],
     };
+    this.trigger(this.state);
+  },
+
+  onPinSearchSuccess(resp) {
+    const existingSearch = this.findByQuery(resp.query);
+
+    if (existingSearch) {
+      this.updateExistingSearch(existingSearch.id, resp);
+    }
+
     this.trigger(this.state);
   },
 

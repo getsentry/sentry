@@ -530,6 +530,7 @@ describe('OrganizationStream', function() {
         body: {
           ...savedSearch,
           id: '666',
+          name: 'My Pinned Search',
           query: 'assigned:me level:fatal',
           isPinned: true,
         },

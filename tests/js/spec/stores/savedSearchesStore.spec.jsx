@@ -22,6 +22,7 @@ describe('SavedSearchesStore', function() {
     Client.addMockResponse({
       url: '/organizations/org-1/pinned-searches/',
       method: 'PUT',
+      body: {},
     });
     Client.addMockResponse({
       url: '/organizations/org-1/pinned-searches/',
@@ -54,13 +55,22 @@ describe('SavedSearchesStore', function() {
     await fetchSavedSearches(api, 'org-1', {});
     await tick();
 
+    Client.addMockResponse({
+      url: '/organizations/org-1/pinned-searches/',
+      method: 'PUT',
+      body: {
+        id: '123',
+        query: 'level:info',
+        isPinned: true,
+      },
+    });
     pinSearch(api, 'org-1', 0, 'level:info');
     await tick();
 
     expect(SavedSearchesStore.get().savedSearches).toHaveLength(3);
     expect(SavedSearchesStore.get().savedSearches[0]).toEqual(
       expect.objectContaining({
-        id: null,
+        id: '123',
         isPinned: true,
         type: 0,
         query: 'level:info',
@@ -84,6 +94,22 @@ describe('SavedSearchesStore', function() {
         ...searches,
       ],
     });
+
+    Client.addMockResponse({
+      url: '/organizations/org-1/pinned-searches/',
+      method: 'PUT',
+      body: {
+        id: '1',
+        isDefault: false,
+        isGlobal: true,
+        isOrgCustom: false,
+        isPinned: true,
+        query: 'is:unresolved',
+        name: 'Unresolved Issues',
+        type: 0,
+      },
+    });
+
     await fetchSavedSearches(api, 'org-1', {});
     await tick();
 
@@ -94,6 +120,9 @@ describe('SavedSearchesStore', function() {
     expect(SavedSearchesStore.get().savedSearches[1]).toEqual(
       expect.objectContaining({
         id: '1',
+        isDefault: false,
+        isGlobal: true,
+        isOrgCustom: false,
         isPinned: true,
         type: 0,
         name: 'Unresolved Issues',
@@ -111,6 +140,21 @@ describe('SavedSearchesStore', function() {
     Client.addMockResponse({
       url: '/organizations/org-1/searches/',
       body: [{...searches[0], isPinned: true}, searches[1]],
+    });
+
+    Client.addMockResponse({
+      url: '/organizations/org-1/pinned-searches/',
+      method: 'PUT',
+      body: {
+        id: '1',
+        isDefault: false,
+        isGlobal: true,
+        isOrgCustom: false,
+        isPinned: true,
+        query: 'is:unresolved',
+        name: 'Unresolved Issues',
+        type: 0,
+      },
     });
     await fetchSavedSearches(api, 'org-1', {});
     await tick();
@@ -133,6 +177,9 @@ describe('SavedSearchesStore', function() {
     expect(SavedSearchesStore.get().savedSearches[1]).toEqual(
       expect.objectContaining({
         id: '1',
+        isDefault: false,
+        isGlobal: true,
+        isOrgCustom: false,
         isPinned: true,
         type: 0,
         name: 'Unresolved Issues',
