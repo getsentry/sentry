@@ -69,7 +69,7 @@ export function openCreateIncidentModal(options = {}) {
     .then(mod => mod.default)
     .then(Modal => {
       openModal(deps => <Modal {...deps} {...options} />, {
-        modalClassName: 'create-team-modal',
+        modalClassName: 'create-incident-modal',
       });
     });
 }
