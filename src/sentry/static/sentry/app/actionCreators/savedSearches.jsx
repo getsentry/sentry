@@ -141,6 +141,8 @@ export function pinSearch(api, orgId, type, query) {
     },
   });
 
+  promise.then(SavedSearchesActions.pinSearchSuccess);
+
   promise.catch(handleXhrErrorResponse('Unable to pin search'));
 
   promise.catch(err => {

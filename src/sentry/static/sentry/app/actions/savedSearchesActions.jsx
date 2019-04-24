@@ -7,5 +7,6 @@ export default Reflux.createActions([
   'createSavedSearchSuccess',
   'deleteSavedSearchSuccess',
   'pinSearch',
+  'pinSearchSuccess',
   'unpinSearch',
 ]);
