@@ -37,7 +37,7 @@ describe('CreateSavedSearchButton', function() {
       expect(wrapper.find('ModalDialog')).toHaveLength(1);
     });
 
-    it('saves a search', async function() {
+    it('saves a search when query is not changed', async function() {
       wrapper.find('button[data-test-id="save-current-search"]').simulate('click');
       wrapper.find('#id-name').simulate('change', {target: {value: 'new search name'}});
       wrapper
@@ -52,6 +52,28 @@ describe('CreateSavedSearchButton', function() {
           data: {
             name: 'new search name',
             query: 'is:unresolved assigned:lyn@sentry.io',
+            type: 0,
+          },
+        })
+      );
+    });
+
+    it('saves a search when query is changed', async function() {
+      wrapper.find('button[data-test-id="save-current-search"]').simulate('click');
+      wrapper.find('#id-name').simulate('change', {target: {value: 'new search name'}});
+      wrapper.find('#id-query').simulate('change', {target: {value: 'is:resolved'}});
+      wrapper
+        .find('ModalDialog')
+        .find('Button[priority="primary"]')
+        .simulate('submit');
+
+      await tick();
+      expect(createMock).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          data: {
+            name: 'new search name',
+            query: 'is:resolved',
             type: 0,
           },
         })
