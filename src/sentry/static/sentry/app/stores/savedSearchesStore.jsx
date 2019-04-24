@@ -129,6 +129,15 @@ const SavedSearchesStore = Reflux.createStore({
     this.trigger(this.state);
   },
 
+  onDeleteSavedSearchSuccess(search) {
+    this.state = {
+      ...this.state,
+      savedSearches: this.state.savedSearches.filter(item => item.id !== search.id),
+    };
+
+    this.trigger(this.state);
+  },
+
   onPinSearch(type, query, ...args) {
     const existingSearch = this.findByQuery(query);
 
