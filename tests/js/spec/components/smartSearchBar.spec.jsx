@@ -483,7 +483,7 @@ describe('SmartSearchBar', function() {
         options
       );
 
-      wrapper.find('button[aria-label="Pin this search"]').simulate('click');
+      wrapper.find('button[aria-label="Unpin this search"]').simulate('click');
       await wrapper.update();
 
       expect(pinRequest).not.toHaveBeenCalled();

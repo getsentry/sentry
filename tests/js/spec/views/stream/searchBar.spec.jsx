@@ -309,7 +309,7 @@ describe('SearchBar', function() {
         pinnedSearch: {id: '1', query: 'url:"fu"'},
       };
       const searchBar = mount(<SearchBar {...props} />, routerContext);
-      searchBar.find('button[aria-label="Pin this search"]').simulate('click');
+      searchBar.find('button[aria-label="Unpin this search"]').simulate('click');
 
       expect(unpinSearch).toHaveBeenLastCalledWith(
         expect.anything(),
