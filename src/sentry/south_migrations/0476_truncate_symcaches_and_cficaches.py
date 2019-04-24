@@ -18,15 +18,15 @@ class Migration(SchemaMigration):
             last_symcache_id = ProjectSymCacheFile.objects \
                 .values_list('cache_file_id') \
                 .latest('id')[0]
-        except ProjectSymCacheFile.DoesNotExit:
+        except ProjectSymCacheFile.DoesNotExist:
             last_symcache_id = None
 
         try:
             last_cficache_id = ProjectCfiCacheFile.objects \
                 .values_list('cache_file_id') \
                 .latest('id')[0]
-        except ProjectCfiCacheFile.DoesNotExit:
-            last_symcache_id = None
+        except ProjectCfiCacheFile.DoesNotExist:
+            last_cficache_id = None
 
         if last_symcache_id is not None:
             ProjectSymCacheFile.objects.all().delete()
