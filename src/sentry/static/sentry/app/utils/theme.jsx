@@ -62,6 +62,7 @@ const theme = {
   borderLight: '#E2DBE8',
   borderDark: '#D1CAD8',
   borderRadius: '4px',
+  borderRadiusBottom: '0 0 4px 4px',
   headerSelectorRowHeight: 44,
 
   dropShadowLight: '0 2px 0 rgba(37, 11, 54, 0.04)',

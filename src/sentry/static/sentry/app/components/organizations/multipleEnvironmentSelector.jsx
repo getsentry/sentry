@@ -286,11 +286,11 @@ const StyledInlineSvg = styled(InlineSvg)`
 
 const StyledDropdownAutoComplete = styled(DropdownAutoComplete)`
   background: #fff;
-  border: 1px solid ${p => p.theme.borderLight};
+  border: 1px solid ${p => p.theme.borderDark};
   position: absolute;
   top: 100%;
   box-shadow: ${p => p.theme.dropShadowLight};
-  border-radius: 0;
+  border-radius: ${p => p.theme.borderRadiusBottom};
   margin-top: 0;
   min-width: 120%;
 `;
