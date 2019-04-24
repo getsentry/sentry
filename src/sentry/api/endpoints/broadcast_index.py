@@ -7,10 +7,9 @@ from django.db import IntegrityError, transaction
 from django.db.models import Q
 from django.utils import timezone
 from operator import or_
-from rest_framework.permissions import IsAuthenticated
 
 from sentry.api.bases.organization import (
-    OrganizationEndpoint
+    OrganizationEndpoint, OrganizationPermission
 )
 from sentry.api.paginator import DateTimePaginator
 from sentry.api.serializers import serialize, AdminBroadcastSerializer, BroadcastSerializer
@@ -24,7 +23,7 @@ logger = logging.getLogger('sentry')
 
 
 class BroadcastIndexEndpoint(OrganizationEndpoint):
-    permission_classes = (IsAuthenticated, )
+    permission_classes = (OrganizationPermission, )
 
     def _get_serializer(self, request):
         if is_active_superuser(request):
@@ -39,12 +38,10 @@ class BroadcastIndexEndpoint(OrganizationEndpoint):
         # used in the SASS product
         return list(queryset)
 
-    def convert_args(self, request, organization_slug=None):
-        if not organization_slug:
-            kwargs = {'organization': None}
-            return ({}, kwargs)
-        args, kwargs = super(BroadcastIndexEndpoint,
-                             self).convert_args(request, organization_slug)
+    def convert_args(self, request, organization_slug=None, *args, **kwargs):
+        if organization_slug:
+            args, kwargs = super(BroadcastIndexEndpoint,
+                                 self).convert_args(request, organization_slug)
 
         return (args, kwargs)
 
