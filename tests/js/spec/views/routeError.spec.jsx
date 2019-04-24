@@ -7,7 +7,10 @@ import {RouteError} from 'app/views/routeError';
 jest.mock('jquery');
 
 describe('RouteError', function() {
-  beforeEach(function() {});
+  afterEach(function() {
+    Sentry.captureException.mockClear();
+    Sentry.showReportDialog.mockClear();
+  });
 
   it('captures errors with raven', async function() {
     const error = new Error('Big Bad Error');
@@ -18,7 +21,7 @@ describe('RouteError', function() {
 
     expect(Sentry.captureException).toHaveBeenCalledWith(
       expect.objectContaining({
-        message: 'Big Bad Error: /:orgId/organizations/:orgId/api-keys/',
+        message: 'Big Bad Error: /organizations/:orgId/api-keys/',
       })
     );
 
