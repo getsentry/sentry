@@ -1,7 +1,10 @@
+import {findLastIndex} from 'lodash';
+
 /**
  * Creates a route string from an array of `routes` from react-router
- * Note this is currently only used for error context logging. It does
- * not attempt to do anything smart (e.g. absolute vs relative paths in the list)
+ *
+ * It will look for the last route path that begins with a `/` and
+ * concatenate all of the following routes. Skips any routes without a path
  *
  * @param {Array<{}>} routes An array of route objects from react-router
  * @return String Returns a route path
@@ -11,13 +14,15 @@ export default function getRouteStringFromRoutes(routes) {
     return '';
   }
 
-  // Strip the first route (path: '/') since the subsequent children routes
-  // are all absolute paths
-  return (
-    '/' +
-    routes
-      .filter(r => r.path)
-      .map(r => r.path.replace(/^\//, ''))
-      .join('')
+  const routesWithPaths = routes.filter(({path}) => !!path);
+
+  const lastAbsolutePathIndex = findLastIndex(routesWithPaths, ({path}) =>
+    path.startsWith('/')
   );
+
+  return routesWithPaths
+    .slice(lastAbsolutePathIndex)
+    .filter(({path}) => !!path)
+    .map(({path}) => path)
+    .join('');
 }

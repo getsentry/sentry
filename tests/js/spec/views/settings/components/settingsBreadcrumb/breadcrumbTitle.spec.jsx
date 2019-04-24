@@ -51,6 +51,6 @@ describe('BreadcrumbTitle', function() {
     // Simulate navigating up a level, trimming the last title
     breadcrumbs.setProps({routes: upOneRoutes});
     await tick();
-    expect(SettingsBreadcrumbStore.pathMap).toEqual({'/one/two/': 'Second Title'});
+    expect(SettingsBreadcrumbStore.pathMap).toEqual({'/two/': 'Second Title'});
   });
 });
