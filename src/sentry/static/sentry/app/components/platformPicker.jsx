@@ -171,6 +171,8 @@ const SearchBar = styled('div')`
     background: none;
     padding: 2px 4px;
     width: 100%;
+    /* Ensure a consistent line height to keep the input the desired height */
+    line-height: 24px;
 
     &:focus {
       outline: none;
