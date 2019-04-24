@@ -22,19 +22,17 @@ class CreateSavedSearchButton extends React.Component {
     organization: SentryTypes.Organization.isRequired,
   };
 
-  constructor(props) {
-    super(props);
-    this.state = {
-      isModalOpen: false,
-      isSaving: false,
-      query: props.query,
-      name: '',
-      error: null,
-    };
-  }
+  state = {
+    isModalOpen: false,
+    isSaving: false,
+    name: '',
+    error: null,
+    query: null,
+  };
 
   onSubmit = e => {
     const {api, organization} = this.props;
+    const query = this.state.query || this.props.query;
 
     e.preventDefault();
 
@@ -42,7 +40,7 @@ class CreateSavedSearchButton extends React.Component {
 
     addLoadingMessage(t('Saving Changes'));
 
-    createSavedSearch(api, organization.slug, this.state.name, this.state.query)
+    createSavedSearch(api, organization.slug, this.state.name, query)
       .then(data => {
         this.onToggle();
         this.setState({
