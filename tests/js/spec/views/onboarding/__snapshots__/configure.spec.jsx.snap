@@ -210,12 +210,64 @@ exports[`Configure should render correctly render() should render platform docs 
                 <DocumentTitle
                   title="project-slug"
                 >
-                  <withApi(ProjectDocsContext)>
-                    <ProjectDocsContext
+                  <withApi(WithOrganizationMockWrapper)
+                    params={
+                      Object {
+                        "orgId": "testOrg",
+                        "platform": "node",
+                        "projectId": "project-slug",
+                      }
+                    }
+                  >
+                    <WithOrganizationMockWrapper
                       api={Client {}}
+                      params={
+                        Object {
+                          "orgId": "testOrg",
+                          "platform": "node",
+                          "projectId": "project-slug",
+                        }
+                      }
                     >
-                      <withApi(WithOrganizationMockWrapper)
-                        linkPath={[Function]}
+                      <withProject(ProjectInstallPlatform)
+                        api={Client {}}
+                        organization={
+                          Object {
+                            "id": "1337",
+                            "projects": Array [
+                              Object {
+                                "hasAccess": true,
+                                "id": "testProject",
+                                "isBookmarked": false,
+                                "isMember": true,
+                                "name": "Test Project",
+                                "slug": "project-slug",
+                                "teams": Array [
+                                  Object {
+                                    "hasAccess": true,
+                                    "id": "coolteam",
+                                    "slug": "coolteam",
+                                  },
+                                ],
+                              },
+                            ],
+                            "slug": "testOrg",
+                            "teams": Array [
+                              Object {
+                                "hasAccess": true,
+                                "id": "coolteam",
+                                "projects": Array [
+                                  Object {
+                                    "id": "testProject",
+                                    "name": "Test Project",
+                                    "slug": "project-slug",
+                                  },
+                                ],
+                                "slug": "coolteam",
+                              },
+                            ],
+                          }
+                        }
                         params={
                           Object {
                             "orgId": "testOrg",
@@ -223,67 +275,51 @@ exports[`Configure should render correctly render() should render platform docs 
                             "projectId": "project-slug",
                           }
                         }
-                        platformData={
-                          Object {
-                            "dsn": "https://9ed7cdc60:20e868d7b@sentry.io/300733",
-                            "dsnPublic": "https://9ed7cdc6581145bcb46044b77bd82aa0@sentry.io/300733",
-                            "platforms": Array [
-                              Object {
-                                "id": "javascript",
-                                "integrations": Array [
-                                  Object {
-                                    "id": "node",
-                                    "link": "https://docs.getsentry.com/hosted/clients/csharp/",
-                                    "name": "node",
-                                    "type": "language",
-                                  },
-                                ],
-                                "name": "js",
-                              },
-                            ],
-                          }
-                        }
-                        project={
-                          Object {
-                            "environments": Array [],
-                            "hasAccess": true,
-                            "id": "2",
-                            "isBookmarked": false,
-                            "isMember": true,
-                            "name": "Project Name",
-                            "slug": "project-slug",
-                            "teams": Array [],
-                          }
-                        }
                       >
-                        <WithOrganizationMockWrapper
+                        <ProjectInstallPlatform
                           api={Client {}}
-                          linkPath={[Function]}
+                          organization={
+                            Object {
+                              "id": "1337",
+                              "projects": Array [
+                                Object {
+                                  "hasAccess": true,
+                                  "id": "testProject",
+                                  "isBookmarked": false,
+                                  "isMember": true,
+                                  "name": "Test Project",
+                                  "slug": "project-slug",
+                                  "teams": Array [
+                                    Object {
+                                      "hasAccess": true,
+                                      "id": "coolteam",
+                                      "slug": "coolteam",
+                                    },
+                                  ],
+                                },
+                              ],
+                              "slug": "testOrg",
+                              "teams": Array [
+                                Object {
+                                  "hasAccess": true,
+                                  "id": "coolteam",
+                                  "projects": Array [
+                                    Object {
+                                      "id": "testProject",
+                                      "name": "Test Project",
+                                      "slug": "project-slug",
+                                    },
+                                  ],
+                                  "slug": "coolteam",
+                                },
+                              ],
+                            }
+                          }
                           params={
                             Object {
                               "orgId": "testOrg",
                               "platform": "node",
                               "projectId": "project-slug",
-                            }
-                          }
-                          platformData={
-                            Object {
-                              "dsn": "https://9ed7cdc60:20e868d7b@sentry.io/300733",
-                              "dsnPublic": "https://9ed7cdc6581145bcb46044b77bd82aa0@sentry.io/300733",
-                              "platforms": Array [
-                                Object {
-                                  "id": "javascript",
-                                  "integrations": Array [
-                                    Object {
-                                      "id": "node",
-                                      "link": "https://docs.getsentry.com/hosted/clients/csharp/",
-                                      "name": "node",
-                                      "type": "language",
-                                    },
-                                  ],
-                                  "name": "js",
-                                },
-                              ],
                             }
                           }
                           project={
@@ -299,166 +335,167 @@ exports[`Configure should render correctly render() should render platform docs 
                             }
                           }
                         >
-                          <ProjectInstallPlatform
-                            api={Client {}}
-                            linkPath={[Function]}
-                            organization={
-                              Object {
-                                "id": "1337",
-                                "projects": Array [
-                                  Object {
-                                    "hasAccess": true,
-                                    "id": "testProject",
-                                    "isBookmarked": false,
-                                    "isMember": true,
-                                    "name": "Test Project",
-                                    "slug": "project-slug",
-                                    "teams": Array [
-                                      Object {
-                                        "hasAccess": true,
-                                        "id": "coolteam",
-                                        "slug": "coolteam",
-                                      },
-                                    ],
-                                  },
-                                ],
-                                "slug": "testOrg",
-                                "teams": Array [
-                                  Object {
-                                    "hasAccess": true,
-                                    "id": "coolteam",
-                                    "projects": Array [
-                                      Object {
-                                        "id": "testProject",
-                                        "name": "Test Project",
-                                        "slug": "project-slug",
-                                      },
-                                    ],
-                                    "slug": "coolteam",
-                                  },
-                                ],
-                              }
-                            }
-                            params={
-                              Object {
-                                "orgId": "testOrg",
-                                "platform": "node",
-                                "projectId": "project-slug",
-                              }
-                            }
-                            platformData={
-                              Object {
-                                "dsn": "https://9ed7cdc60:20e868d7b@sentry.io/300733",
-                                "dsnPublic": "https://9ed7cdc6581145bcb46044b77bd82aa0@sentry.io/300733",
-                                "platforms": Array [
-                                  Object {
-                                    "id": "javascript",
-                                    "integrations": Array [
-                                      Object {
-                                        "id": "node",
-                                        "link": "https://docs.getsentry.com/hosted/clients/csharp/",
-                                        "name": "node",
-                                        "type": "language",
-                                      },
-                                    ],
-                                    "name": "js",
-                                  },
-                                ],
-                              }
-                            }
-                            project={
-                              Object {
-                                "environments": Array [],
-                                "hasAccess": true,
-                                "id": "2",
-                                "isBookmarked": false,
-                                "isMember": true,
-                                "name": "Project Name",
-                                "slug": "project-slug",
-                                "teams": Array [],
-                              }
-                            }
-                          >
-                            <Panel>
-                              <Component
+                          <Panel>
+                            <Component
+                              className="css-yahxlu-Panel e1laxa7d0"
+                            >
+                              <div
                                 className="css-yahxlu-Panel e1laxa7d0"
                               >
-                                <div
-                                  className="css-yahxlu-Panel e1laxa7d0"
+                                <PanelHeader
+                                  hasButtons={true}
                                 >
-                                  <PanelHeader
+                                  <Component
+                                    className="css-jmvceg-PanelHeader-getPadding e1p8v8nv0"
                                     hasButtons={true}
                                   >
-                                    <Component
+                                    <Flex
+                                      align="center"
                                       className="css-jmvceg-PanelHeader-getPadding e1p8v8nv0"
-                                      hasButtons={true}
+                                      justify="space-between"
                                     >
-                                      <Flex
+                                      <Base
                                         align="center"
-                                        className="css-jmvceg-PanelHeader-getPadding e1p8v8nv0"
+                                        className="e1p8v8nv0 css-19i62qd-PanelHeader-getPadding"
                                         justify="space-between"
                                       >
-                                        <Base
-                                          align="center"
+                                        <div
                                           className="e1p8v8nv0 css-19i62qd-PanelHeader-getPadding"
-                                          justify="space-between"
+                                          is={null}
                                         >
-                                          <div
-                                            className="e1p8v8nv0 css-19i62qd-PanelHeader-getPadding"
-                                            is={null}
-                                          >
-                                            Configure node
-                                            <Flex>
-                                              <Base
+                                          Configure Node.js
+                                          <Flex>
+                                            <Base
+                                              className="css-sncxrr"
+                                            >
+                                              <div
                                                 className="css-sncxrr"
+                                                is={null}
                                               >
-                                                <div
-                                                  className="css-sncxrr"
-                                                  is={null}
+                                                <Box
+                                                  ml={1}
                                                 >
-                                                  <Box
+                                                  <Base
+                                                    className="css-re0chm"
                                                     ml={1}
                                                   >
-                                                    <Base
+                                                    <div
                                                       className="css-re0chm"
-                                                      ml={1}
+                                                      is={null}
                                                     >
-                                                      <div
-                                                        className="css-re0chm"
-                                                        is={null}
+                                                      <Button
+                                                        disabled={false}
+                                                        href="/testOrg/project-slug/getting-started/"
+                                                        size="small"
                                                       >
-                                                        <Button
+                                                        <StyledButton
+                                                          aria-disabled={false}
+                                                          aria-label="< Back"
                                                           disabled={false}
                                                           href="/testOrg/project-slug/getting-started/"
+                                                          onClick={[Function]}
+                                                          role="button"
                                                           size="small"
                                                         >
-                                                          <StyledButton
+                                                          <ForwardRef
                                                             aria-disabled={false}
                                                             aria-label="< Back"
+                                                            className="css-dkprmi-StyledButton-getColors e12ma6z0"
                                                             disabled={false}
                                                             href="/testOrg/project-slug/getting-started/"
                                                             onClick={[Function]}
                                                             role="button"
                                                             size="small"
                                                           >
-                                                            <ForwardRef
+                                                            <a
                                                               aria-disabled={false}
                                                               aria-label="< Back"
                                                               className="css-dkprmi-StyledButton-getColors e12ma6z0"
-                                                              disabled={false}
                                                               href="/testOrg/project-slug/getting-started/"
                                                               onClick={[Function]}
                                                               role="button"
                                                               size="small"
                                                             >
+                                                              <ButtonLabel
+                                                                size="small"
+                                                              >
+                                                                <Component
+                                                                  className="css-7ui8bl-ButtonLabel e12ma6z1"
+                                                                  size="small"
+                                                                >
+                                                                  <span
+                                                                    className="css-7ui8bl-ButtonLabel e12ma6z1"
+                                                                  >
+                                                                    &lt; Back
+                                                                  </span>
+                                                                </Component>
+                                                              </ButtonLabel>
+                                                            </a>
+                                                          </ForwardRef>
+                                                        </StyledButton>
+                                                      </Button>
+                                                    </div>
+                                                  </Base>
+                                                </Box>
+                                                <Box
+                                                  ml={1}
+                                                >
+                                                  <Base
+                                                    className="css-re0chm"
+                                                    ml={1}
+                                                  >
+                                                    <div
+                                                      className="css-re0chm"
+                                                      is={null}
+                                                    >
+                                                      <Button
+                                                        disabled={false}
+                                                        external={true}
+                                                        href="https://docs.getsentry.com/hosted/clients/node/"
+                                                        size="small"
+                                                      >
+                                                        <StyledButton
+                                                          aria-disabled={false}
+                                                          aria-label="Full Documentation"
+                                                          disabled={false}
+                                                          external={true}
+                                                          href="https://docs.getsentry.com/hosted/clients/node/"
+                                                          onClick={[Function]}
+                                                          role="button"
+                                                          size="small"
+                                                        >
+                                                          <ForwardRef
+                                                            aria-disabled={false}
+                                                            aria-label="Full Documentation"
+                                                            className="css-dkprmi-StyledButton-getColors e12ma6z0"
+                                                            disabled={false}
+                                                            external={true}
+                                                            href="https://docs.getsentry.com/hosted/clients/node/"
+                                                            onClick={[Function]}
+                                                            role="button"
+                                                            size="small"
+                                                          >
+                                                            <ExternalLink
+                                                              aria-disabled={false}
+                                                              aria-label="Full Documentation"
+                                                              className="css-dkprmi-StyledButton-getColors e12ma6z0"
+                                                              href="https://docs.getsentry.com/hosted/clients/node/"
+                                                              onClick={[Function]}
+                                                              rel="noreferrer noopener"
+                                                              role="button"
+                                                              size="small"
+                                                              target="_blank"
+                                                            >
                                                               <a
                                                                 aria-disabled={false}
-                                                                aria-label="< Back"
+                                                                aria-label="Full Documentation"
                                                                 className="css-dkprmi-StyledButton-getColors e12ma6z0"
-                                                                href="/testOrg/project-slug/getting-started/"
+                                                                href="https://docs.getsentry.com/hosted/clients/node/"
                                                                 onClick={[Function]}
+                                                                rel="noreferrer noopener"
                                                                 role="button"
                                                                 size="small"
+                                                                target="_blank"
                                                               >
                                                                 <ButtonLabel
                                                                   size="small"
@@ -470,189 +507,164 @@ exports[`Configure should render correctly render() should render platform docs 
                                                                     <span
                                                                       className="css-7ui8bl-ButtonLabel e12ma6z1"
                                                                     >
-                                                                      &lt; Back
+                                                                      Full Documentation
                                                                     </span>
                                                                   </Component>
                                                                 </ButtonLabel>
                                                               </a>
-                                                            </ForwardRef>
-                                                          </StyledButton>
-                                                        </Button>
-                                                      </div>
-                                                    </Base>
-                                                  </Box>
-                                                  <Box
-                                                    ml={1}
-                                                  >
-                                                    <Base
-                                                      className="css-re0chm"
-                                                      ml={1}
-                                                    >
-                                                      <div
-                                                        className="css-re0chm"
-                                                        is={null}
-                                                      >
-                                                        <Button
-                                                          disabled={false}
-                                                          external={true}
-                                                          href="https://docs.getsentry.com/hosted/clients/csharp/"
-                                                          size="small"
-                                                        >
-                                                          <StyledButton
-                                                            aria-disabled={false}
-                                                            aria-label="Full Documentation"
-                                                            disabled={false}
-                                                            external={true}
-                                                            href="https://docs.getsentry.com/hosted/clients/csharp/"
-                                                            onClick={[Function]}
-                                                            role="button"
-                                                            size="small"
-                                                          >
-                                                            <ForwardRef
-                                                              aria-disabled={false}
-                                                              aria-label="Full Documentation"
-                                                              className="css-dkprmi-StyledButton-getColors e12ma6z0"
-                                                              disabled={false}
-                                                              external={true}
-                                                              href="https://docs.getsentry.com/hosted/clients/csharp/"
-                                                              onClick={[Function]}
-                                                              role="button"
-                                                              size="small"
-                                                            >
-                                                              <ExternalLink
-                                                                aria-disabled={false}
-                                                                aria-label="Full Documentation"
-                                                                className="css-dkprmi-StyledButton-getColors e12ma6z0"
-                                                                href="https://docs.getsentry.com/hosted/clients/csharp/"
-                                                                onClick={[Function]}
-                                                                rel="noreferrer noopener"
-                                                                role="button"
-                                                                size="small"
-                                                                target="_blank"
-                                                              >
-                                                                <a
-                                                                  aria-disabled={false}
-                                                                  aria-label="Full Documentation"
-                                                                  className="css-dkprmi-StyledButton-getColors e12ma6z0"
-                                                                  href="https://docs.getsentry.com/hosted/clients/csharp/"
-                                                                  onClick={[Function]}
-                                                                  rel="noreferrer noopener"
-                                                                  role="button"
-                                                                  size="small"
-                                                                  target="_blank"
-                                                                >
-                                                                  <ButtonLabel
-                                                                    size="small"
-                                                                  >
-                                                                    <Component
-                                                                      className="css-7ui8bl-ButtonLabel e12ma6z1"
-                                                                      size="small"
-                                                                    >
-                                                                      <span
-                                                                        className="css-7ui8bl-ButtonLabel e12ma6z1"
-                                                                      >
-                                                                        Full Documentation
-                                                                      </span>
-                                                                    </Component>
-                                                                  </ButtonLabel>
-                                                                </a>
-                                                              </ExternalLink>
-                                                            </ForwardRef>
-                                                          </StyledButton>
-                                                        </Button>
-                                                      </div>
-                                                    </Base>
-                                                  </Box>
-                                                </div>
-                                              </Base>
-                                            </Flex>
-                                          </div>
-                                        </Base>
-                                      </Flex>
-                                    </Component>
-                                  </PanelHeader>
-                                  <PanelBody
-                                    direction="column"
-                                    disablePadding={false}
-                                    flex={false}
+                                                            </ExternalLink>
+                                                          </ForwardRef>
+                                                        </StyledButton>
+                                                      </Button>
+                                                    </div>
+                                                  </Base>
+                                                </Box>
+                                              </div>
+                                            </Base>
+                                          </Flex>
+                                        </div>
+                                      </Base>
+                                    </Flex>
+                                  </Component>
+                                </PanelHeader>
+                                <PanelAlert
+                                  type="info"
+                                >
+                                  <Component
+                                    className="css-e1otmf-PanelAlert e1wrupv90"
+                                    type="info"
                                   >
-                                    <div
-                                      className="css-zhfi4l-padding-textStyles"
+                                    <Alert
+                                      className="css-e1otmf-PanelAlert e1wrupv90"
+                                      icon="icon-circle-info"
+                                      iconSize="24px"
+                                      system={true}
+                                      type="info"
                                     >
-                                      <TextBlock>
-                                        <Component
-                                          className="css-1geyb25-TextBlock ec8ep340"
+                                      <AlertWrapper
+                                        className="ref-info css-e1otmf-PanelAlert e1wrupv90"
+                                        system={true}
+                                        type="info"
+                                      >
+                                        <div
+                                          className="ref-info e1wrupv90 css-10s45hg-AlertWrapper-PanelAlert e1xb5l7j1"
+                                          type="info"
                                         >
-                                          <div
-                                            className="css-1geyb25-TextBlock ec8ep340"
+                                          <StyledInlineSvg
+                                            size="24px"
+                                            src="icon-circle-info"
                                           >
-                                            <span
-                                              key="8"
+                                            <InlineSvg
+                                              className="css-1e3iblq-StyledInlineSvg e1xb5l7j0"
+                                              size="24px"
+                                              src="icon-circle-info"
                                             >
-                                              <span
-                                                key="0"
+                                              <StyledSvg
+                                                className="css-1e3iblq-StyledInlineSvg e1xb5l7j0"
+                                                height="24px"
+                                                viewBox={Object {}}
+                                                width="24px"
                                               >
-                                                
-             This is a quick getting started guide. For in-depth instructions
-             on integrating Sentry with 
-                                              </span>
-                                              <span
-                                                key="2"
-                                              >
-                                                node
-                                              </span>
-                                              <span
-                                                key="3"
-                                              >
-                                                , view
-             
-                                              </span>
-                                              <a
-                                                href="https://docs.getsentry.com/hosted/clients/csharp/"
-                                                key="5"
+                                                <svg
+                                                  className="e1xb5l7j0 css-lbx2sj-StyledSvg-StyledInlineSvg e2idor0"
+                                                  height="24px"
+                                                  viewBox={Object {}}
+                                                  width="24px"
+                                                >
+                                                  <use
+                                                    href="#test"
+                                                    xlinkHref="#test"
+                                                  />
+                                                </svg>
+                                              </StyledSvg>
+                                            </InlineSvg>
+                                          </StyledInlineSvg>
+                                          <StyledTextBlock>
+                                            <Component
+                                              className="css-1h3n7tg-TextBlock-StyledTextBlock e1xb5l7j2"
+                                            >
+                                              <div
+                                                className="css-1h3n7tg-TextBlock-StyledTextBlock e1xb5l7j2"
                                               >
                                                 <span
-                                                  key="4"
+                                                  key="8"
                                                 >
-                                                  our complete documentation
-                                                </span>
-                                              </a>
-                                              <span
-                                                key="6"
-                                              >
-                                                .
+                                                  <span
+                                                    key="0"
+                                                  >
+                                                    
+             This is a quick getting started guide. For in-depth instructions
+             on integrating Sentry with 
+                                                  </span>
+                                                  <span
+                                                    key="2"
+                                                  >
+                                                    Node.js
+                                                  </span>
+                                                  <span
+                                                    key="3"
+                                                  >
+                                                    , view
+             
+                                                  </span>
+                                                  <a
+                                                    href="https://docs.getsentry.com/hosted/clients/node/"
+                                                    key="5"
+                                                  >
+                                                    <span
+                                                      key="4"
+                                                    >
+                                                      our complete documentation
+                                                    </span>
+                                                  </a>
+                                                  <span
+                                                    key="6"
+                                                  >
+                                                    .
             
-                                              </span>
-                                            </span>
-                                          </div>
-                                        </Component>
-                                      </TextBlock>
-                                      <DocumentationWrapper
+                                                  </span>
+                                                </span>
+                                              </div>
+                                            </Component>
+                                          </StyledTextBlock>
+                                        </div>
+                                      </AlertWrapper>
+                                    </Alert>
+                                  </Component>
+                                </PanelAlert>
+                                <PanelBody
+                                  direction="column"
+                                  disablePadding={false}
+                                  flex={false}
+                                >
+                                  <div
+                                    className="css-zhfi4l-padding-textStyles"
+                                  >
+                                    <DocumentationWrapper
+                                      dangerouslySetInnerHTML={
+                                        Object {
+                                          "__html": undefined,
+                                        }
+                                      }
+                                    >
+                                      <div
+                                        className="css-1y7l4t-DocumentationWrapper e1w9lqpk0"
                                         dangerouslySetInnerHTML={
                                           Object {
                                             "__html": undefined,
                                           }
                                         }
-                                      >
-                                        <div
-                                          className="css-1y7l4t-DocumentationWrapper e1w9lqpk0"
-                                          dangerouslySetInnerHTML={
-                                            Object {
-                                              "__html": undefined,
-                                            }
-                                          }
-                                        />
-                                      </DocumentationWrapper>
-                                    </div>
-                                  </PanelBody>
-                                </div>
-                              </Component>
-                            </Panel>
-                          </ProjectInstallPlatform>
-                        </WithOrganizationMockWrapper>
-                      </withApi(WithOrganizationMockWrapper)>
-                    </ProjectDocsContext>
-                  </withApi(ProjectDocsContext)>
+                                      />
+                                    </DocumentationWrapper>
+                                  </div>
+                                </PanelBody>
+                              </div>
+                            </Component>
+                          </Panel>
+                        </ProjectInstallPlatform>
+                      </withProject(ProjectInstallPlatform)>
+                    </WithOrganizationMockWrapper>
+                  </withApi(WithOrganizationMockWrapper)>
                 </DocumentTitle>
               </SideEffect(DocumentTitle)>
             </ProjectContext>
