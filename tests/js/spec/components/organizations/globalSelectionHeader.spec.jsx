@@ -349,6 +349,9 @@ describe('GlobalSelectionHeader', function() {
 
       expect(wrapper.find('MultipleProjectSelector').prop('projects')).toEqual([
         memberProject,
+      ]);
+
+      expect(wrapper.find('MultipleProjectSelector').prop('nonMemberProjects')).toEqual([
         nonMemberProject,
       ]);
     });

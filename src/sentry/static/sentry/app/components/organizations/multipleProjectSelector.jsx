@@ -21,6 +21,7 @@ export default class MultipleProjectSelector extends React.PureComponent {
     organization: SentryTypes.Organization.isRequired,
     value: PropTypes.array,
     projects: PropTypes.array.isRequired,
+    nonMemberProjects: PropTypes.array.isRequired,
     onChange: PropTypes.func,
     onUpdate: PropTypes.func,
     multi: PropTypes.bool,
@@ -128,10 +129,19 @@ export default class MultipleProjectSelector extends React.PureComponent {
   };
 
   render() {
-    const {value, projects, multi, organization, forceProject} = this.props;
+    const {
+      value,
+      projects,
+      nonMemberProjects,
+      multi,
+      organization,
+      forceProject,
+    } = this.props;
     const selectedProjectIds = new Set(value);
 
-    const selected = projects.filter(project =>
+    const allProjects = [...projects, ...nonMemberProjects];
+
+    const selected = allProjects.filter(project =>
       selectedProjectIds.has(parseInt(project.id, 10))
     );
 
