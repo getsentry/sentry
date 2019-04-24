@@ -831,8 +831,6 @@ SENTRY_FEATURES = {
     'organizations:invite-members': True,
     # Enable org-wide saved searches and user pinned search
     'organizations:org-saved-searches': False,
-    # Enable user recent searches
-    'organizations:recent-searches': False,
     # Enable organizations to create and utilize Sentry Apps.
     'organizations:sentry-apps': False,
 
