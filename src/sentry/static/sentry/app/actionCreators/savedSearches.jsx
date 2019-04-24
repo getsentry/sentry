@@ -187,6 +187,7 @@ export function deleteSavedSearch(api, orgId, search) {
     .requestPromise(url, {
       method: 'DELETE',
     })
+    .then(() => SavedSearchesActions.deleteSavedSearchSuccess(search))
     .catch(handleXhrErrorResponse('Unable to delete a saved search'));
 
   return promise;

@@ -1,6 +1,7 @@
 import SavedSearchesStore from 'app/stores/savedSearchesStore';
 import {
   fetchSavedSearches,
+  deleteSavedSearch,
   pinSearch,
   unpinSearch,
 } from 'app/actionCreators/savedSearches';
@@ -258,5 +259,23 @@ describe('SavedSearchesStore', function() {
         query: 'is:unresolved',
       })
     );
+  });
+
+  it('removes deleted saved searches', async function() {
+    await fetchSavedSearches(api, 'org-1', {});
+    await tick();
+
+    const searches = SavedSearchesStore.get().savedSearches;
+    Client.addMockResponse({
+      url: `/organizations/org-1/searches/${searches[0].id}/`,
+      method: 'DELETE',
+      body: {},
+    });
+    await deleteSavedSearch(api, 'org-1', searches[0]);
+    await tick();
+
+    const newSearches = SavedSearchesStore.get().savedSearches;
+    expect(newSearches.length).toBeLessThan(searches.length);
+    expect(newSearches[0].id).not.toBe(searches[0].id);
   });
 });
