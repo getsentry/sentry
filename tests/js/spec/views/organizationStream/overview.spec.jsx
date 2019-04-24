@@ -69,6 +69,10 @@ describe('OrganizationStream', function() {
       body: [savedSearch],
     });
     MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/recent-searches/',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
       url: '/organizations/org-slug/processingissues/',
       method: 'GET',
       body: [

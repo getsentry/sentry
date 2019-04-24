@@ -23,7 +23,8 @@ describe('SearchBar', function() {
     tagValuePromise = Promise.resolve([]);
 
     recentSearchMock = MockApiClient.addMockResponse({
-      url: '/organizations/123/recent-searches/',
+      url: '/organizations/org-slug/recent-searches/',
+      method: 'GET',
       body: [],
     });
   });
@@ -48,7 +49,7 @@ describe('SearchBar', function() {
         return tagValuePromise;
       };
       const props = {
-        orgId: '123',
+        orgId: 'org-slug',
         query: 'url:"fu"',
         tagValueLoader: loader,
         supportedTags,
@@ -69,7 +70,7 @@ describe('SearchBar', function() {
       };
 
       const props = {
-        orgId: '123',
+        orgId: 'org-slug',
         projectId: '456',
         query: 'url:"http://example.com"',
         tagValueLoader: loader,
@@ -92,7 +93,7 @@ describe('SearchBar', function() {
       const loader = jest.fn(x => x);
 
       const props = {
-        orgId: '123',
+        orgId: 'org-slug',
         projectId: '456',
         query: 'timesSeen:',
         tagValueLoader: loader,
@@ -110,7 +111,7 @@ describe('SearchBar', function() {
     it('saves search query as a recent search', async function() {
       jest.useFakeTimers();
       const saveRecentSearch = MockApiClient.addMockResponse({
-        url: '/organizations/123/recent-searches/',
+        url: '/organizations/org-slug/recent-searches/',
         method: 'POST',
         body: {},
       });
@@ -121,7 +122,7 @@ describe('SearchBar', function() {
       };
       const onSearch = jest.fn();
       const props = {
-        orgId: '123',
+        orgId: 'org-slug',
         query: 'url:"fu"',
         onSearch,
         tagValueLoader: loader,
@@ -151,7 +152,7 @@ describe('SearchBar', function() {
     });
     it('does not query for recent searches if `displayRecentSearches` is `false`', async function() {
       const props = {
-        orgId: '123',
+        orgId: 'org-slug',
         query: 'timesSeen:',
         tagValueLoader: () => {},
         recentSearchType: 0,
@@ -171,7 +172,7 @@ describe('SearchBar', function() {
 
     it('queries for recent searches if `displayRecentSearches` is `true`', async function() {
       const props = {
-        orgId: '123',
+        orgId: 'org-slug',
         query: 'timesSeen:',
         tagValueLoader: () => {},
         recentSearchType: 0,
@@ -199,7 +200,7 @@ describe('SearchBar', function() {
 
     it('cycles through keyboard navigation for selection', async function() {
       const props = {
-        orgId: '123',
+        orgId: 'org-slug',
         query: 'timesSeen:',
         tagValueLoader: () => {},
         recentSearchType: 0,
@@ -251,6 +252,11 @@ describe('SearchBar', function() {
         url: '/organizations/org-slug/pinned-searches/',
         method: 'DELETE',
         body: {},
+      });
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/recent-searches/',
+        method: 'GET',
+        body: [],
       });
     });
 

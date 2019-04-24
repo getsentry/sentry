@@ -443,6 +443,11 @@ describe('SmartSearchBar', function() {
         method: 'DELETE',
         body: [],
       });
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/recent-searches/',
+        method: 'POST',
+        body: {},
+      });
     });
 
     it('adds pins', async function() {
