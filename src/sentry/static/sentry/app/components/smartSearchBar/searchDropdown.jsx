@@ -108,9 +108,9 @@ class SearchDropdown extends React.PureComponent {
 export default SearchDropdown;
 
 const StyledSearchDropdown = styled('div')`
-  box-shadow: 0 1px 1px rgba(0, 0, 0, 0.08);
-  border: 1px solid ${p => p.theme.borderLight};
-  border-radius: 0 0 4px 4px;
+  box-shadow: ${p => p.theme.dropShadowLight};
+  border: 1px solid ${p => p.theme.borderDark};
+  border-radius: ${p => p.theme.borderRadiusBottom};
   position: absolute;
   top: 38px;
   /* Container has a border that we need to account for */

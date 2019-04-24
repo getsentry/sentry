@@ -195,7 +195,7 @@ export default class MultipleProjectSelector extends React.PureComponent {
 
 const StyledProjectSelector = styled(ProjectSelector)`
   margin: 1px 0 0 -1px;
-  border-radius: 0 0 4px 4px;
+  border-radius: ${p => p.theme.borderRadiusBottom};
   width: 110%;
 `;
 

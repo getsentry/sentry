@@ -633,6 +633,7 @@ const StyledMenu = styled('div')`
       .menu}; /* This is needed to be able to cover e.g. pagination buttons, but also be below dropdown actor button's zindex */
   right: 0;
   box-shadow: ${p => p.theme.dropShadowLight};
+  overflow: hidden;
 
   ${getMenuBorderRadius};
   ${({alignMenu}) => (alignMenu === 'left' ? 'left: 0;' : '')};

@@ -276,6 +276,7 @@ exports[`Sentry App Installations when Apps exist displays all Apps owned by the
                                       "borderLight": "#E2DBE8",
                                       "borderLighter": "#f9f6fd",
                                       "borderRadius": "4px",
+                                      "borderRadiusBottom": "0 0 4px 4px",
                                       "breakpoints": Array [
                                         "768px",
                                         "992px",
@@ -545,6 +546,7 @@ exports[`Sentry App Installations when Apps exist displays all Apps owned by the
                                               "borderLight": "#E2DBE8",
                                               "borderLighter": "#f9f6fd",
                                               "borderRadius": "4px",
+                                              "borderRadiusBottom": "0 0 4px 4px",
                                               "breakpoints": Array [
                                                 "768px",
                                                 "992px",

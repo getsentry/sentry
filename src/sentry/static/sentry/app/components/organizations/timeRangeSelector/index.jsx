@@ -393,14 +393,15 @@ const Menu = styled('div')`
 
   display: flex;
   background: #fff;
-  border: 1px solid ${p => p.theme.borderLight};
+  border: 1px solid ${p => p.theme.borderDark};
   position: absolute;
   top: 100%;
   min-width: 120%;
   z-index: ${p => p.theme.zIndex.dropdown};
   box-shadow: ${p => p.theme.dropShadowLight};
-  border-radius: 0 0 ${p => p.theme.borderRadius} ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.borderRadiusBottom};
   font-size: 0.8em;
+  overflow: hidden;
 `;
 
 const SelectorList = styled(({isAbsoluteSelected, ...props}) => <Flex {...props} />)`

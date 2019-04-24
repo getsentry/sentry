@@ -4,7 +4,6 @@ import React from 'react';
 import styled from 'react-emotion';
 import DropdownButton from 'app/components/dropdownButton';
 import DropdownMenu from 'app/components/dropdownMenu';
-import space from 'app/styles/space';
 
 /*
  * A higher level dropdown component that helps with building complete dropdowns
@@ -92,15 +91,15 @@ const MenuContainer = styled.ul`
 
   position: absolute;
   top: ${p => p.menuOffset};
-  padding: 0 0 ${space(0.5)} 0;
+  padding: 0;
   margin: 0;
   z-index: ${p => p.theme.zIndex.dropdownAutocomplete.menu};
 
   background: ${p => p.theme.background};
-  border-radius: 0 0 ${p => p.theme.borderRadius} ${p => p.theme.borderRadius};
-  box-shadow: 0 1px 3px rgba(70, 82, 98, 0.25);
+  border-radius: ${p => p.theme.borderRadiusBottom};
+  box-shadow: ${p => p.theme.dropShadowLight};
   border: 1px solid ${p => p.theme.borderDark};
-  background-clip: padding-box;
+  overflow: hidden;
 
   display: ${p => (p.isOpen ? 'block' : 'none')};
 `;
