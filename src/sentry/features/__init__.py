@@ -65,6 +65,7 @@ default_manager.add('organizations:incidents', OrganizationFeature)  # NOQA
 default_manager.add('organizations:integrations-issue-basic', OrganizationFeature)  # NOQA
 default_manager.add('organizations:integrations-issue-sync', OrganizationFeature)  # NOQA
 default_manager.add('organizations:internal-catchall', OrganizationFeature)  # NOQA
+default_manager.add('organizations:incidents', OrganizationFeature)  # NOQA
 default_manager.add('organizations:sentry-apps', OrganizationFeature)  # NOQA
 default_manager.add('organizations:invite-members', OrganizationFeature)  # NOQA
 default_manager.add('organizations:large-debug-files', OrganizationFeature)  # NOQA

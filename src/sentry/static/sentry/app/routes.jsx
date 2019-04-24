@@ -909,6 +909,21 @@ function routes() {
             />
           </Route>
           <Route
+            path="/organizations/:orgId/incidents/"
+            componentPromise={() =>
+              import(/* webpackChunkName: "OrganizationIncidentsContainer" */ './views/organizationIncidents')
+            }
+            component={errorHandler(LazyLoad)}
+          >
+            <IndexRoute
+              componentPromise={() =>
+                import(/* webpackChunkName: "OrganizationIncidents" */ './views/organizationIncidents/list')
+              }
+              component={errorHandler(LazyLoad)}
+            />
+          </Route>
+
+          <Route
             path="/organizations/:orgId/projects/:projectId/getting-started/"
             component={errorHandler(ProjectGettingStarted)}
           >
