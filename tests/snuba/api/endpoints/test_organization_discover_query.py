@@ -30,7 +30,7 @@ class OrganizationDiscoverQueryTest(APITestCase, SnubaTestCase):
             group=self.group,
             platform="python",
             datetime=one_second_ago,
-            tags={'environment': 'production', 'sentry:release': 'foo'},
+            tags={'environment': 'production', 'sentry:release': 'foo', 'error.custom': 'custom'},
             data={
                 'message': 'message!',
                 'exception': {
@@ -284,6 +284,22 @@ class OrganizationDiscoverQueryTest(APITestCase, SnubaTestCase):
             response = self.client.post(url, {
                 'projects': [self.project.id],
                 'conditions': [['error.type', '!=', 'ValidationError']],
+                'fields': ['message'],
+                'start': (datetime.now() - timedelta(seconds=10)).strftime('%Y-%m-%dT%H:%M:%S'),
+                'end': (datetime.now()).strftime('%Y-%m-%dT%H:%M:%S'),
+                'orderby': '-timestamp',
+                'range': None,
+            })
+
+        assert response.status_code == 200, response.content
+        assert len(response.data['data']) == 0
+
+    def test_array_condition_custom_tag(self):
+        with self.feature('organizations:discover'):
+            url = reverse('sentry-api-0-organization-discover-query', args=[self.org.slug])
+            response = self.client.post(url, {
+                'projects': [self.project.id],
+                'conditions': [['error.custom', '!=', 'custom']],
                 'fields': ['message'],
                 'start': (datetime.now() - timedelta(seconds=10)).strftime('%Y-%m-%dT%H:%M:%S'),
                 'end': (datetime.now()).strftime('%Y-%m-%dT%H:%M:%S'),

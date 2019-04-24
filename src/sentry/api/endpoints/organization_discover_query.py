@@ -15,6 +15,7 @@ from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.utils import get_date_range_from_params, InvalidParams
 from sentry.models import Project, ProjectStatus
 from sentry.utils import snuba
+from sentry.utils.snuba import SENTRY_SNUBA_MAP
 from sentry import features
 
 
@@ -141,7 +142,10 @@ class DiscoverQuerySerializer(serializers.Serializer):
 
     def get_array_field(self, field):
         pattern = r"^(error|stack)\..+"
-        return re.search(pattern, field)
+        term = re.search(pattern, field)
+        if term and SENTRY_SNUBA_MAP.get(field):
+            return term
+        return None
 
     def get_condition(self, condition):
         array_field = self.get_array_field(condition[0])
