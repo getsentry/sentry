@@ -129,7 +129,7 @@ class ActivityItem extends React.Component {
           issue: issueLink,
         });
       case 'set_resolved_in_commit':
-        return tct('[author] marked [issue] as fixed in [version]', {
+        return tct('[author] marked [issue] as resolved in [version]', {
           author,
           version: (
             <CommitLink
@@ -141,7 +141,7 @@ class ActivityItem extends React.Component {
           issue: issueLink,
         });
       case 'set_resolved_in_pull_request':
-        return tct('[author] marked [issue] as fixed in [version]', {
+        return tct('[author] marked [issue] as resolved in [version]', {
           author,
           version: (
             <PullRequestLink
