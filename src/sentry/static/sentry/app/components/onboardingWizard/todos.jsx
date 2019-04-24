@@ -124,7 +124,7 @@ const TASKS = [
   {
     task: 10,
     title: t('Set up an alerts service'),
-    description: t('Receive Sentry alerts in Slack or HipChat'),
+    description: t('Receive Sentry alerts in Slack'),
     skippable: true,
     prereq: [1, 2],
     featureLocation: 'project',
