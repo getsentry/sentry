@@ -391,6 +391,39 @@ describe('OrganizationStream', function() {
       expect(getSavedSearchTitle(wrapper)).toBe('Custom Search');
     });
 
+    it('loads with an empty query in URL', async function() {
+      savedSearchesRequest = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/searches/',
+        body: [
+          TestStubs.Search({
+            id: '123',
+            name: 'My Pinned Search',
+            isPinned: true,
+            isGlobal: false,
+            isOrgCustom: false,
+            query: 'is:resolved',
+          }),
+        ],
+      });
+      createWrapper({location: {query: {query: ''}}});
+
+      await tick();
+      wrapper.update();
+
+      expect(issuesRequest).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          // Should be called with empty query
+          data: expect.stringContaining(''),
+        })
+      );
+
+      expect(getSearchBarValue(wrapper)).toBe('');
+
+      // Organization saved search selector should have default saved search selected
+      expect(getSavedSearchTitle(wrapper)).toBe('Custom Search');
+    });
+
     it('selects a saved search and changes sort', async function() {
       const localSavedSearch = {...savedSearch, projectId: null};
       savedSearchesRequest = MockApiClient.addMockResponse({

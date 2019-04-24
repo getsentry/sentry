@@ -39,7 +39,13 @@ const withSavedSearches = WrappedComponent =>
 
               // If there's no direct saved search being requested (via URL route)
               // *AND* there's no query in URL, then check if there is pinned search
-              if (hasFeature && !savedSearch && !location.query.query) {
+              //
+              // Note: Don't use pinned searches when there is an empty query (query == empty string)
+              if (
+                hasFeature &&
+                !savedSearch &&
+                typeof location.query.query === 'undefined'
+              ) {
                 const pin = savedSearches.find(search => search.isPinned);
                 savedSearch = pin ? pin : null;
               }
