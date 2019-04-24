@@ -707,10 +707,13 @@ class SmartSearchBar extends React.Component {
       dropdownClassName,
       hasPinnedSearch,
       organization,
+      pinnedSearch,
       placeholder,
       disabled,
       onSidebarToggle,
     } = this.props;
+
+    const pinTooltip = !!pinnedSearch ? t('Unpin this search') : t('Pin this search');
 
     if (hasPinnedSearch) {
       return (
@@ -748,15 +751,15 @@ class SmartSearchBar extends React.Component {
               query={this.state.query}
               organization={organization}
             />
-            <Tooltip title={t('Pin this search')}>
+            <Tooltip title={pinTooltip}>
               <Button
                 type="button"
                 borderless
-                aria-label={t('Pin this search')}
+                aria-label={pinTooltip}
                 size="zero"
                 onClick={this.onTogglePinnedSearch}
               >
-                <PinIcon isPinned={!!this.props.pinnedSearch} src="icon-pin" />
+                <PinIcon isPinned={!!pinnedSearch} src="icon-pin" />
               </Button>
             </Tooltip>
             <SidebarButton
@@ -847,7 +850,7 @@ const SmartSearchBarContainer = withApi(
 const PinIcon = styled(InlineSvg)`
   fill: ${p => (p.isPinned ? p.theme.blueLight : p.theme.gray2)};
   &:hover {
-    fill: ${p => p.theme.blueLight};
+    fill: ${p => p.theme.gray3};
   }
 `;
 
@@ -916,6 +919,9 @@ const StyledInput = styled.input`
 const SidebarButton = styled(Button)`
   & svg {
     color: ${p => p.theme.gray2};
+  }
+  &:hover svg {
+    color: ${p => p.theme.gray3};
   }
   .show-sidebar & svg {
     color: ${p => p.theme.blueLight};
