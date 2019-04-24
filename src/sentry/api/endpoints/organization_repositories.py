@@ -20,13 +20,6 @@ class OrganizationRepositoriesEndpoint(OrganizationEndpoint):
     doc_section = DocSection.ORGANIZATIONS
     permission_classes = (OrganizationRepositoryPermission,)
 
-    def has_feature(self, request, organization):
-        return features.has(
-            'organizations:repos',
-            organization=organization,
-            actor=request.user,
-        )
-
     def get(self, request, organization):
         """
         List an Organization's Repositories
