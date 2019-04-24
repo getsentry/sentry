@@ -129,13 +129,23 @@ class Pipeline(object):
         return self
 
 
+def rewrite_record(record, rules):
+    return Record(
+        record.key,
+        Notification(
+            record.value.event,
+            filter(None, [rules.get(id) for id in record.value.rules]),
+        ),
+        record.timestamp,
+    )
+
+
 def group_record(groups, rules, memo, record):
     group = groups.get(record.value.event.group_id)
-    record_rules = [rules.get(id) for id in record.value.rules if id in rules]
-    if not record_rules:
+    if not record.value.rules:
         logger.debug('%r has no associated rules, and will not be added to any groups.', record)
 
-    for rule in record_rules:
+    for rule in record.value.rules:
         memo.setdefault(rule, {}).setdefault(group, []).append(record)
 
     return memo
@@ -165,16 +175,17 @@ def sort_rule_groups(rules):
     )
 
 
-def build_digest(project, records):
+def build_digest(project, records, state=None):
     records = list(records)
     if not records:
         return
 
-    groups, rules = fetch_state(project, records)
+    groups, rules = state or fetch_state(project, records)
 
     pipeline = Pipeline(). \
         filter(lambda r: r.value.event.group_id in groups). \
         filter(lambda r: groups[r.value.event.group_id].get_status() == GroupStatus.UNRESOLVED). \
+        map(lambda r: rewrite_record(r, rules)). \
         reduce(lambda memo, record: group_record(groups, rules, memo, record), {}). \
         apply(sort_group_contents). \
         apply(sort_rule_groups)

@@ -340,14 +340,7 @@ def digest(request):
         ) for i in range(1, random.randint(2, 4))
     }
 
-    state = {
-        'project': project,
-        'groups': {},
-        'rules': rules,
-        'event_counts': {},
-        'user_counts': {},
-    }
-
+    groups = {}
     records = []
 
     event_sequence = itertools.count(1)
@@ -355,7 +348,9 @@ def digest(request):
 
     for i in range(random.randint(1, 30)):
         group = next(group_generator)
-        state['groups'][group.id] = group
+        group.event_count = random.randint(10, 1e4)
+        group.user_count = random.randint(10, 1e4)
+        groups[group.id] = group
 
         offset = timedelta(seconds=0)
         for i in range(random.randint(1, 10)):
@@ -380,16 +375,13 @@ def digest(request):
                     event.event_id,
                     Notification(
                         event,
-                        random.sample(state['rules'], random.randint(1, len(state['rules']))),
+                        random.sample(rules, random.randint(1, len(rules))),
                     ),
                     to_timestamp(event.datetime),
                 )
             )
 
-            state['event_counts'][group.id] = random.randint(10, 1e4)
-            state['user_counts'][group.id] = random.randint(10, 1e4)
-
-    digest = build_digest(project, records, state)
+    digest = build_digest(project, records, (groups, rules))
     start, end, counts = get_digest_metadata(digest)
 
     context = {

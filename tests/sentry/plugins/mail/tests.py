@@ -118,6 +118,7 @@ class MailPluginTest(TestCase):
                 'metadata': event_type.get_metadata(event_data),
             }
         )
+        group.save()
 
         event = Event(
             group=group,
@@ -126,6 +127,7 @@ class MailPluginTest(TestCase):
             datetime=group.last_seen,
             data=event_data
         )
+        event.save()
 
         notification = Notification(event=event)
 
@@ -163,6 +165,7 @@ class MailPluginTest(TestCase):
                 'metadata': event_type.get_metadata(event_data),
             }
         )
+        group.save()
 
         event = Event(
             group=group,
@@ -171,6 +174,7 @@ class MailPluginTest(TestCase):
             datetime=group.last_seen,
             data=event_data,
         )
+        event.save()
 
         notification = Notification(event=event)
 

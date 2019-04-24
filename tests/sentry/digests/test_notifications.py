@@ -1,18 +1,15 @@
 from __future__ import absolute_import
 
-from collections import (
-    OrderedDict,
-    defaultdict,
-)
+from collections import OrderedDict
 from exam import fixture
 from six.moves import reduce
 
 from sentry.digests import Record
 from sentry.digests.notifications import (
     Notification,
-    event_to_record,
     rewrite_record,
-    group_records,
+    event_to_record,
+    group_record,
     sort_group_contents,
     sort_rule_groups,
 )
@@ -32,10 +29,6 @@ class RewriteRecordTestCase(TestCase):
     def test_success(self):
         assert rewrite_record(
             self.record,
-            project=self.event.project,
-            groups={
-                self.event.group.id: self.event.group,
-            },
             rules={
                 self.rule.id: self.rule,
             },
@@ -48,44 +41,28 @@ class RewriteRecordTestCase(TestCase):
             self.record.timestamp,
         )
 
-    def test_without_group(self):
-        # If the record can't be associated with a group, it should be returned as None.
-        assert rewrite_record(
-            self.record,
-            project=self.event.project,
-            groups={},
-            rules={
-                self.rule.id: self.rule,
-            },
-        ) is None
-
     def test_filters_invalid_rules(self):
         # If the record can't be associated with a group, it should be returned as None.
-        assert rewrite_record(
-            self.record,
-            project=self.event.project,
-            groups={
-                self.event.group.id: self.event.group,
-            },
-            rules={},
-        ) == Record(
+        assert rewrite_record(self.record, rules={}) == Record(
             self.record.key,
             Notification(self.event, []),
             self.record.timestamp,
         )
 
 
-class GroupRecordsTestCase(TestCase):
+class GroupRecordTestCase(TestCase):
     @fixture
     def rule(self):
         return self.project.rule_set.all()[0]
 
     def test_success(self):
+        groups = {self.group.id: self.group}
+        rules = {self.rule.id: self.rule}
         events = [self.create_event(group=self.group) for _ in range(3)]
         records = [
             Record(event.id, Notification(event, [self.rule]), event.datetime) for event in events
         ]
-        assert reduce(group_records, records, defaultdict(lambda: defaultdict(list))) == {
+        assert reduce(lambda memo, record: group_record(groups, rules, memo, record), records, {}) == {
             self.rule: {
                 self.group: records,
             },
