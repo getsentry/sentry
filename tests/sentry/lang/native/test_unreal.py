@@ -180,17 +180,18 @@ class UnrealIntegrationTest(TestCase):
 
         # attachments feature has to be on for the files extract stick around
         with self.feature('organizations:event-attachments'):
-            with open(os.path.join(os.path.dirname(__file__), 'fixtures', 'unreal_crash'), 'rb') as f:
+            with open(get_unreal_crash_file(), 'rb') as f:
                 resp = self._postUnrealWithHeader(f.read())
                 assert resp.status_code == 200
 
         event = Event.objects.get()
-
-        bt = event.interfaces['exception'].values[0].stacktrace
-        frames = bt.frames
-        main = frames[-1]
-        assert main.errors is None
-        assert main.instruction_addr == '0x7ff754be3394'
+        self.insta_snapshot({
+            'contexts': event.data.get('contexts'),
+            'exception': event.data.get('exception'),
+            'stacktrace': event.data.get('stacktrace'),
+            'threads': event.data.get('threads'),
+            'extra': event.data.get('extra')
+        })
 
         attachments = sorted(
             EventAttachment.objects.filter(
