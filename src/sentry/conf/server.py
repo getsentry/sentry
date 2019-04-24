@@ -816,6 +816,8 @@ SENTRY_FEATURES = {
     'organizations:grouping-info': False,
     # Lets organizations manage grouping configs
     'organizations:set-grouping-config': False,
+    # Enable incidents feature
+    'organizations:incidents': False,
     # Enable integration functionality to create and link groups to issues on
     # external services.
     'organizations:integrations-issue-basic': True,
