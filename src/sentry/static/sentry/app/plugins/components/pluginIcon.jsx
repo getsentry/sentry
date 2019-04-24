@@ -13,7 +13,6 @@ import github from 'app/../images/integrations/github-logo.png';
 import githubEnterprise from 'app/../images/integrations/github-enterprise-logo.png';
 import gitlab from 'app/../images/integrations/gitlab-logo.png';
 import heroku from 'app/../images/integrations/heroku-logo.png';
-import hipchat from 'app/../images/integrations/hipchat-logo.png';
 import jira from 'app/../images/integrations/jira-logo.png';
 import jiraserver from 'app/../images/integrations/jira-server-logo.png';
 import lighthouse from 'app/../images/integrations/lighthouse-logo.png';
@@ -53,8 +52,6 @@ export const ICON_PATHS = {
   github_enterprise: githubEnterprise,
   gitlab,
   heroku,
-  hipchat,
-  'hipchat-ac': hipchat,
   jira,
   'jira-atlassian-connect': jira,
   'jira-ac': jira,
