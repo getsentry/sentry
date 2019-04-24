@@ -63,9 +63,15 @@ class CreateSavedSearchButton extends React.Component {
   };
 
   onToggle = event => {
-    this.setState({
+    const newState = {
       isModalOpen: !this.state.isModalOpen,
-    });
+    };
+    if (newState.isModalOpen === false) {
+      newState.name = '';
+      newState.error = null;
+      newState.query = null;
+    }
+    this.setState(newState);
 
     if (event) {
       event.preventDefault();
