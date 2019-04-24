@@ -911,13 +911,13 @@ function routes() {
           <Route
             path="/organizations/:orgId/incidents/"
             componentPromise={() =>
-              import(/* webpackChunkName: "OrganizationIncidentsContainer" */ './views/organizationIncidents/index')
+              import(/* webpackChunkName: "OrganizationIncidentsContainer" */ './views/organizationIncidents')
             }
             component={errorHandler(LazyLoad)}
           >
             <IndexRoute
               componentPromise={() =>
-                import(/* webpackChunkName: "OrganizationIncidents" */ './views/organizationIncidents/list/index')
+                import(/* webpackChunkName: "OrganizationIncidents" */ './views/organizationIncidents/list')
               }
               component={errorHandler(LazyLoad)}
             />
