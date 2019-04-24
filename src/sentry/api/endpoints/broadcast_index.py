@@ -9,7 +9,9 @@ from django.utils import timezone
 from operator import or_
 from rest_framework.permissions import IsAuthenticated
 
-from sentry.api.base import Endpoint
+from sentry.api.bases.organization import (
+    OrganizationEndpoint
+)
 from sentry.api.paginator import DateTimePaginator
 from sentry.api.serializers import serialize, AdminBroadcastSerializer, BroadcastSerializer
 from sentry.api.validators import AdminBroadcastValidator, BroadcastValidator
@@ -21,7 +23,7 @@ from sentry.search.utils import tokenize_query
 logger = logging.getLogger('sentry')
 
 
-class BroadcastIndexEndpoint(Endpoint):
+class BroadcastIndexEndpoint(OrganizationEndpoint):
     permission_classes = (IsAuthenticated, )
 
     def _get_serializer(self, request):
@@ -37,7 +39,16 @@ class BroadcastIndexEndpoint(Endpoint):
         # used in the SASS product
         return list(queryset)
 
-    def get(self, request, organization_slug=None):
+    def convert_args(self, request, organization_slug=None):
+        if not organization_slug:
+            kwargs = {'organization': None}
+            return ({}, kwargs)
+        args, kwargs = super(BroadcastIndexEndpoint,
+                             self).convert_args(request, organization_slug)
+
+        return (args, kwargs)
+
+    def get(self, request, organization=None):
         if request.GET.get('show') == 'all' and is_active_superuser(
                 request) and request.access.has_permission('broadcasts.admin'):
             # superusers can slice and dice
@@ -83,8 +94,8 @@ class BroadcastIndexEndpoint(Endpoint):
                 else:
                     queryset = queryset.none()
 
-        if organization_slug:
-            data = self._secondary_filtering(request, organization_slug, queryset)
+        if organization:
+            data = self._secondary_filtering(request, organization, queryset)
             return self.respond(self._serialize_objects(data, request))
 
         sort_by = request.GET.get('sortBy')
