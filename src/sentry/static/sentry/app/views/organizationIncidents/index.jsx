@@ -1,5 +1,4 @@
 import React from 'react';
-import DocumentTitle from 'react-document-title';
 
 import SentryTypes from 'app/sentryTypes';
 import Feature from 'app/components/acl/feature';
@@ -23,22 +22,20 @@ class OrganizationIncidentsContainer extends React.Component {
     const {organization, children} = this.props;
 
     return (
-      <DocumentTitle title={`Incidents - ${organization.slug} - Sentry`}>
-        <PageContent>
-          <Feature
-            features={['organizations:incidents']}
-            organization={organization}
-            renderDisabled={this.renderNoAccess}
-          >
-            <PageHeader>
-              <PageHeading withMargins>
-                {t('Incidents')} <BetaTag />
-              </PageHeading>
-            </PageHeader>
-            {children}
-          </Feature>
-        </PageContent>
-      </DocumentTitle>
+      <PageContent>
+        <Feature
+          features={['organizations:incidents']}
+          organization={organization}
+          renderDisabled={this.renderNoAccess}
+        >
+          <PageHeader>
+            <PageHeading withMargins>
+              {t('Incidents')} <BetaTag />
+            </PageHeading>
+          </PageHeader>
+          {children}
+        </Feature>
+      </PageContent>
     );
   }
 }
