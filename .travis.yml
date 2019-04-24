@@ -99,7 +99,7 @@ base_acceptance: &acceptance_default
     - yarn install --pure-lockfile
     - python setup.py install_egg_info
     - pip install -e ".[dev,tests,optional]"
-    - wget -N "https://chromedriver.storage.googleapis.com/2.45/chromedriver_linux64.zip" -P ~/
+    - wget -N "https://chromedriver.storage.googleapis.com/$(curl https://chromedriver.storage.googleapis.com/LATEST_RELEASE_74)/chromedriver_linux64.zip" -P ~/
     - unzip ~/chromedriver_linux64.zip -d ~/
     - rm ~/chromedriver_linux64.zip
     - sudo install -m755 ~/chromedriver /usr/local/bin/

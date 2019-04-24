@@ -221,7 +221,9 @@ def cleanup(days, project, concurrency, silent, model, router, timed):
             if not silent:
                 click.echo(u'>> Skipping {}'.format(model.__name__))
         else:
-            model.objects.filter(expires_at__lt=timezone.now()).delete()
+            model.objects.filter(
+                expires_at__lt=(timezone.now() - timedelta(days=days)),
+            ).delete()
 
     project_id = None
     if project:
