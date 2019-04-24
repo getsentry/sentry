@@ -151,7 +151,8 @@ const StyledHovercard = styled('div')`
   text-align: left;
   padding: 0;
   line-height: 1;
-  z-index: 1000;
+  /* Some hovercards overlap the toplevel header, so we need the same zindex to appear on top */
+  z-index: ${p => p.theme.zIndex.globalSelectionHeader};
   white-space: initial;
   color: ${p => p.theme.gray5};
   border: 1px solid ${p => p.theme.borderLight};
