@@ -228,7 +228,7 @@ class ProjectSelector extends React.Component {
           {
             hideGroupLabel: nonMemberProjects.length === 0,
             itemSize: 'small',
-            value: 'no-membership-header', // needed for tests for non-virtualized lists
+            id: 'no-membership-header', // needed for tests for non-virtualized lists
             label: <Label>{t("Projects I don't belong to")}</Label>,
             items: nonMemberProjects.map(getProjectItem),
           },
