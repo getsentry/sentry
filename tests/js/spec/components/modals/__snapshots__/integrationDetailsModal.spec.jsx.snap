@@ -428,7 +428,7 @@ exports[`IntegrationDetailsModal renders simple integration 1`] = `
           <ForwardRef
             aria-disabled={false}
             aria-label="Cancel"
-            className="css-dkprmi-StyledButton-getColors eqrebog0"
+            className="css-dkprmi-StyledButton-getColors e12ma6z0"
             data-testid="cancel-button"
             disabled={false}
             onClick={[Function]}
@@ -438,7 +438,7 @@ exports[`IntegrationDetailsModal renders simple integration 1`] = `
             <button
               aria-disabled={false}
               aria-label="Cancel"
-              className="css-dkprmi-StyledButton-getColors eqrebog0"
+              className="css-dkprmi-StyledButton-getColors e12ma6z0"
               data-testid="cancel-button"
               onClick={[Function]}
               role="button"
@@ -771,7 +771,7 @@ exports[`IntegrationDetailsModal renders simple integration 1`] = `
                             <button
                               aria-disabled={false}
                               aria-label="Add Installation"
-                              className="css-zvpqlo-StyledButton-getColors eqrebog0"
+                              className="css-zvpqlo-StyledButton-getColors e12ma6z0"
                               data-testid="add-button"
                               onClick={[Function]}
                               role="button"
