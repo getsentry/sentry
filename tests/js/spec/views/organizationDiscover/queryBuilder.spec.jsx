@@ -51,6 +51,7 @@ describe('Query Builder', function() {
             TestStubs.Project({id: 1, isMember: false}),
             TestStubs.Project({id: 2}),
           ],
+          access: ['org:read', 'org:write'],
         })
       );
 
@@ -128,6 +129,35 @@ describe('Query Builder', function() {
         type: 'string',
         isTag: true,
       });
+    });
+
+    it("loads all project's tags for org admins", async function() {
+      ConfigStore.set('user', TestStubs.User());
+      const queryBuilder = createQueryBuilder(
+        {},
+        TestStubs.Organization({
+          projects: [
+            TestStubs.Project({id: 1, isMember: false}),
+            TestStubs.Project({id: 2}),
+          ],
+          access: ['org:admin'],
+        })
+      );
+
+      await queryBuilder.load();
+
+      expect(discoverMock).toHaveBeenCalledWith(
+        '/organizations/org-slug/discover/query/?per_page=1000&cursor=0:0:1',
+        expect.objectContaining({
+          data: expect.objectContaining({
+            fields: ['tags_key'],
+            aggregations: [['count()', null, 'count']],
+            orderby: '-count',
+            projects: [1, 2],
+            range: '90d',
+          }),
+        })
+      );
     });
 
     it('loads hardcoded tags when API request fails', async function() {
