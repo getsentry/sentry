@@ -9,7 +9,7 @@ from parsimonious.exceptions import IncompleteParseError
 
 from sentry.api.event_search import (
     convert_endpoint_params, event_search_grammar, get_snuba_query_args,
-    parse_search_query, InvalidSearchQuery, SearchFilter, SearchKey,
+    parse_search_query, InvalidSearchQuery, SearchBoolean, SearchFilter, SearchKey,
     SearchValue, SearchVisitor,
 )
 from sentry.testutils import TestCase
@@ -18,41 +18,49 @@ from sentry.testutils import TestCase
 class ParseSearchQueryTest(TestCase):
     def test_simple(self):
         # test with raw search query at the end
-        assert parse_search_query('user.email:foo@example.com release:1.2.1 hello') == [
-            SearchFilter(
-                key=SearchKey(name='user.email'),
-                operator="=",
-                value=SearchValue(raw_value='foo@example.com'),
+        assert parse_search_query('user.email:foo@example.com release:1.2.1 hello') == SearchBoolean(
+            term1=SearchBoolean(
+                term1=SearchFilter(
+                    key=SearchKey(name='user.email'),
+                    operator="=",
+                    value=SearchValue(raw_value='foo@example.com'),
+                ),
+                operator="AND",
+                term2=SearchFilter(
+                    key=SearchKey(name='release'),
+                    operator="=",
+                    value=SearchValue(raw_value='1.2.1'),
+                ),
             ),
-            SearchFilter(
-                key=SearchKey(name='release'),
-                operator="=",
-                value=SearchValue(raw_value='1.2.1'),
-            ),
-            SearchFilter(
+            operator="AND",
+            term2=SearchFilter(
                 key=SearchKey(name='message'),
                 operator='=',
                 value=SearchValue(raw_value='hello'),
-            )
-        ]
+            ),
+        )
 
-        assert parse_search_query('hello user.email:foo@example.com release:1.2.1') == [
-            SearchFilter(
-                key=SearchKey(name='message'),
-                operator='=',
-                value=SearchValue(raw_value='hello'),
+        assert parse_search_query('hello user.email:foo@example.com release:1.2.1') == SearchBoolean(
+            term1=SearchBoolean(
+                term1=SearchFilter(
+                    key=SearchKey(name='message'),
+                    operator='=',
+                    value=SearchValue(raw_value='hello'),
+                ),
+                operator="AND",
+                term2=SearchFilter(
+                    key=SearchKey(name='user.email'),
+                    operator="=",
+                    value=SearchValue(raw_value='foo@example.com'),
+                ),
             ),
-            SearchFilter(
-                key=SearchKey(name='user.email'),
-                operator="=",
-                value=SearchValue(raw_value='foo@example.com'),
-            ),
-            SearchFilter(
+            operator="AND",
+            term2=SearchFilter(
                 key=SearchKey(name='release'),
                 operator="=",
                 value=SearchValue(raw_value='1.2.1'),
             ),
-        ]
+        )
 
     def test_raw_search_anywhere(self):
         assert parse_search_query('hello what user.email:foo@example.com where release:1.2.1 when') == [
@@ -684,6 +692,132 @@ class ParseSearchQueryTest(TestCase):
         ]
         for query, expected in queries:
             assert parse_search_query(query) == [expected]
+
+
+class ParseBooleanSearchQueryTest(TestCase):
+    def setUp(self):
+        super(ParseBooleanSearchQueryTest, self).setUp()
+        self.term1 = SearchFilter(
+            key=SearchKey(name='user.email'),
+            operator="=",
+            value=SearchValue(raw_value='foo@example.com'),
+        )
+        self.term2 = SearchFilter(
+            key=SearchKey(name='user.email'),
+            operator="=",
+            value=SearchValue(raw_value='bar@example.com'),
+        )
+        self.term3 = SearchFilter(
+            key=SearchKey(name='user.email'),
+            operator="=",
+            value=SearchValue(raw_value='foobar@example.com'),
+        )
+
+    def test_simple(self):
+        assert parse_search_query(
+            'user.email:foo@example.com OR user.email:bar@example.com'
+        ) == SearchBoolean(term1=self.term1, operator="OR", term2=self.term2)
+        # implicit AND
+        assert parse_search_query(
+            'user.email:foo@example.com user.email:bar@example.com'
+        ) == SearchBoolean(term1=self.term1, operator="AND", term2=self.term2)
+
+        assert parse_search_query(
+            'user.email:foo@example.com AND user.email:bar@example.com'
+        ) == SearchBoolean(term1=self.term1, operator="AND", term2=self.term2)
+
+    def test_single_term(self):
+        assert parse_search_query('user.email:foo@example.com') == self.term1
+
+    def test_multiple_statements(self):
+        assert parse_search_query(
+            'user.email:foo@example.com OR user.email:bar@example.com OR user.email:foobar@example.com'
+        ) == SearchBoolean(
+            term1=SearchBoolean(term1=self.term1, operator="OR", term2=self.term2),
+            operator="OR",
+            term2=self.term3
+        )
+        # implicit AND
+        assert parse_search_query(
+            'user.email:foo@example.com user.email:bar@example.com user.email:foobar@example.com'
+        ) == SearchBoolean(
+            term1=SearchBoolean(term1=self.term1, operator="AND", term2=self.term2),
+            operator="AND",
+            term2=self.term3
+        )
+
+        assert parse_search_query(
+            'user.email:foo@example.com AND user.email:bar@example.com AND user.email:foobar@example.com'
+        ) == SearchBoolean(
+            term1=SearchBoolean(term1=self.term1, operator="AND", term2=self.term2),
+            operator="AND",
+            term2=self.term3
+        )
+
+    def test_parenthesis_simple(self):
+        assert parse_search_query('(user.email:foo@example.com OR user.email:bar@example.com)') == [
+            SearchBoolean(paren1="(", term1=self.term1, operator="OR", term2=self.term2, paren2=")")
+        ]
+        # impilit AND
+        assert parse_search_query('(user.email:foo@example.com user.email:bar@example.com)') == [
+            SearchBoolean(
+                paren1="(",
+                term1=self.term1,
+                operator="AND",
+                term2=self.term2,
+                paren2=")")
+        ]
+        assert parse_search_query('(user.email:foo@example.com AND user.email:bar@example.com)') == [
+            SearchBoolean(
+                paren1="(",
+                term1=self.term1,
+                operator="AND",
+                term2=self.term2,
+                paren2=")")
+        ]
+
+    def test_parenthesis_chained(self):
+        assert parse_search_query('(user.email:foo@example.com OR user.email:bar@example.com) ') == [
+            SearchBoolean(paren1="(", term1=self.term1, operator="OR", term2=self.term2, paren2=")")
+        ]
+        # impilit AND
+        assert parse_search_query('(user.email:foo@example.com user.email:bar@example.com)') == [
+            SearchBoolean(
+                paren1="(",
+                term1=self.term1,
+                operator="AND",
+                term2=self.term2,
+                paren2=")")
+        ]
+        assert parse_search_query('(user.email:foo@example.com AND user.email:bar@example.com)') == [
+            SearchBoolean(
+                paren1="(",
+                term1=self.term1,
+                operator="AND",
+                term2=self.term2,
+                paren2=")")
+        ]
+
+    def test_nested_parenthesis(self):
+        assert parse_search_query('(user.email:foo@example.com OR user.email:bar@example.com) (title:apple OR title:pear) ') == [
+            SearchBoolean(
+                term1=SearchBoolean(
+                    paren1="(",
+                    term1=self.term1,
+                    operator="OR",
+                    term2=self.term2,
+                    paren2=")"),
+                operator="AND",
+
+            ),
+
+            SearchBoolean(
+                paren1="(",
+                term1=self.term1,
+                operator="OR",
+                term2=self.term2,
+                paren2=")"),
+        ]
 
 
 class GetSnubaQueryArgsTest(TestCase):
