@@ -400,8 +400,7 @@ export const Incident = PropTypes.shape({
   name: PropTypes.string.isRequired,
   status: PropTypes.string.isRequired,
   query: PropTypes.string,
-  projects: PropTypes.arrayOf(PropTypes.number),
-  dateCreated: PropTypes.string.isRequired,
+  projects: PropTypes.array.isRequired,
 });
 
 export const GlobalSelection = PropTypes.shape({
