@@ -86,8 +86,13 @@
 
   .count {
     &.short-id-box span {
-      font-size: 19px;
-      line-height: 1.4;
+      font-size: 18px;
+      line-height: 1.45;
+      display: block;
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+      direction: rtl;
     }
 
     span {
