@@ -284,7 +284,7 @@ class Http(Interface):
     def get_title(self):
         return _('Request')
 
-    def get_api_context(self, is_public=False):
+    def get_api_context(self, is_public=False, platform=None):
         if is_public:
             return {}
 
@@ -309,7 +309,7 @@ class Http(Interface):
         }
         return data
 
-    def get_api_meta(self, meta, is_public=False):
+    def get_api_meta(self, meta, is_public=False, platform=None):
         if is_public:
             return None
 

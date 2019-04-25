@@ -90,7 +90,7 @@ class Sdk(Interface):
             'packages': self.packages or None
         })
 
-    def get_api_context(self, is_public=False):
+    def get_api_context(self, is_public=False, platform=None):
         newest_version = get_with_prefix(settings.SDK_VERSIONS, self.name)
         newest_name = get_with_prefix(settings.DEPRECATED_SDKS, self.name, self.name)
 
@@ -117,7 +117,7 @@ class Sdk(Interface):
             },
         }
 
-    def get_api_meta(self, meta, is_public=False):
+    def get_api_meta(self, meta, is_public=False, platform=None):
         return {
             '': meta.get(''),
             'name': meta.get('name'),
