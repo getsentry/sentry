@@ -134,7 +134,7 @@ class Breadcrumbs(Interface):
             'data': data
         }
 
-    def get_api_context(self, is_public=False):
+    def get_api_context(self, is_public=False, platform=None):
         def _convert(x):
             return {
                 'type': x['type'],
@@ -150,7 +150,7 @@ class Breadcrumbs(Interface):
             'values': [_convert(v) for v in self.values],
         }
 
-    def get_api_meta(self, meta, is_public=False):
+    def get_api_meta(self, meta, is_public=False, platform=None):
         if meta and 'values' not in meta:
             return {'values': meta}
         else:
