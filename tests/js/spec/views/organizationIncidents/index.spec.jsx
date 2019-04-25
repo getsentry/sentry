@@ -5,7 +5,7 @@ import OrganizationIncidentsContainer from 'app/views/organizationIncidents/inde
 
 describe('OrganizationIncidentsContainer', function() {
   describe('no access without feature flag', function() {
-    it('display no access message', async function() {
+    it('display no access message', function() {
       const organization = TestStubs.Organization({projects: [TestStubs.Project()]});
       const wrapper = mount(
         <OrganizationIncidentsContainer />,
