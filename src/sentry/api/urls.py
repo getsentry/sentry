@@ -129,7 +129,6 @@ from .endpoints.project_avatar import ProjectAvatarEndpoint
 from .endpoints.project_details import ProjectDetailsEndpoint
 from .endpoints.project_transfer import ProjectTransferEndpoint
 from .endpoints.project_create_sample import ProjectCreateSampleEndpoint
-from .endpoints.project_docs import ProjectDocsEndpoint
 from .endpoints.project_docs_platform import ProjectDocsPlatformEndpoint
 from .endpoints.project_environments import ProjectEnvironmentsEndpoint
 from .endpoints.project_environment_details import ProjectEnvironmentDetailsEndpoint
@@ -853,11 +852,6 @@ urlpatterns = patterns(
         r'^projects/(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/create-sample/$',
         ProjectCreateSampleEndpoint.as_view(),
         name='sentry-api-0-project-create-sample'
-    ),
-    url(
-        r'^projects/(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/docs/$',
-        ProjectDocsEndpoint.as_view(),
-        name='sentry-api-0-project-docs'
     ),
     url(
         r'^projects/(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/docs/(?P<platform>[\w-]+)/$',

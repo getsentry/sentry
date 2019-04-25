@@ -5,6 +5,8 @@ import Configure from 'app/views/onboarding/configure';
 import ProjectsStore from 'app/stores/projectsStore';
 
 describe('Configure should render correctly', function() {
+  let organization, project, team;
+
   beforeEach(function() {
     MockApiClient.addMockResponse({
       url: '/projects/testOrg/project-slug/',
@@ -21,27 +23,6 @@ describe('Configure should render correctly', function() {
     MockApiClient.addMockResponse({
       url: '/projects/testOrg/project-slug/environments/',
       body: [],
-    });
-    MockApiClient.addMockResponse({
-      url: '/projects/testOrg/project-slug/docs/',
-      body: {
-        dsn: 'https://9ed7cdc60:20e868d7b@sentry.io/300733',
-        platforms: [
-          {
-            integrations: [
-              {
-                type: 'language',
-                link: 'https://docs.getsentry.com/hosted/clients/csharp/',
-                id: 'node',
-                name: 'node',
-              },
-            ],
-            name: 'js',
-            id: 'javascript',
-          },
-        ],
-        dsnPublic: 'https://9ed7cdc6581145bcb46044b77bd82aa0@sentry.io/300733',
-      },
     });
     MockApiClient.addMockResponse({
       url: '/projects/testOrg/project-slug/docs/node/',
@@ -68,6 +49,42 @@ describe('Configure should render correctly', function() {
         ],
       },
     ]);
+
+    project = {
+      name: 'Test Project',
+      slug: 'project-slug',
+      id: 'testProject',
+      hasAccess: true,
+      isBookmarked: false,
+      isMember: true,
+      teams: [
+        {
+          id: 'coolteam',
+          slug: 'coolteam',
+          hasAccess: true,
+        },
+      ],
+    };
+
+    team = {
+      id: 'coolteam',
+      slug: 'coolteam',
+      hasAccess: true,
+      projects: [
+        {
+          name: 'Test Project',
+          slug: 'project-slug',
+          id: 'testProject',
+        },
+      ],
+    };
+
+    organization = {
+      id: '1337',
+      slug: 'testOrg',
+      projects: [project],
+      teams: [team],
+    };
   });
 
   afterEach(function() {
@@ -89,56 +106,14 @@ describe('Configure should render correctly', function() {
     };
 
     it('should render platform docs', async function() {
-      const props = {
-        ...baseProps,
-      };
+      const props = {...baseProps};
       props.params.platform = 'node';
 
       const wrapper = mount(
         <Configure {...props} />,
-        TestStubs.routerContext([
-          {
-            organization: {
-              id: '1337',
-              slug: 'testOrg',
-              projects: [
-                {
-                  name: 'Test Project',
-                  slug: 'project-slug',
-                  id: 'testProject',
-                  hasAccess: true,
-                  isBookmarked: false,
-                  isMember: true,
-                  teams: [
-                    {
-                      id: 'coolteam',
-                      slug: 'coolteam',
-                      hasAccess: true,
-                    },
-                  ],
-                },
-              ],
-              teams: [
-                {
-                  id: 'coolteam',
-                  slug: 'coolteam',
-                  hasAccess: true,
-                  projects: [
-                    {
-                      name: 'Test Project',
-                      slug: 'project-slug',
-                      id: 'testProject',
-                    },
-                  ],
-                },
-              ],
-            },
-          },
-        ])
+        TestStubs.routerContext([{organization}])
       );
 
-      await tick();
-      // Not sure exactly why but without a second tick, test is flakey and can cause false positives
       await tick();
       wrapper.update();
       expect(wrapper).toMatchSnapshot();

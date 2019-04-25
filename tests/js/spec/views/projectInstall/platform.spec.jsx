@@ -11,44 +11,6 @@ describe('ProjectInstallPlatform', function() {
       organization: TestStubs.Organization(),
       project: TestStubs.Project(),
       location: {query: {}},
-      platformData: {
-        platforms: [
-          {
-            id: 'csharp',
-            name: 'C#',
-            integrations: [
-              {
-                id: 'csharp',
-                type: 'language',
-              },
-            ],
-          },
-          {
-            id: 'javascript',
-            name: 'JavaScript',
-            integrations: [
-              {
-                id: 'javascript-react',
-                type: 'framework',
-              },
-            ],
-          },
-          {
-            id: 'node',
-            name: 'Node.js',
-            integrations: [
-              {
-                id: 'node',
-                type: 'language',
-              },
-              {
-                id: 'node-connect',
-                type: 'framework',
-              },
-            ],
-          },
-        ],
-      },
     };
 
     it('should redirect to if no matching platform', function() {
@@ -66,9 +28,10 @@ describe('ProjectInstallPlatform', function() {
         body: {},
       });
 
-      mount(<ProjectInstallPlatform {...props} />, {
-        organization: {id: '1337'},
-      });
+      mount(
+        <ProjectInstallPlatform {...props} />,
+        TestStubs.routerContext([{organization: {id: '1337'}}])
+      );
 
       expect(browserHistory.push).toHaveBeenCalledTimes(1);
     });
@@ -81,10 +44,10 @@ describe('ProjectInstallPlatform', function() {
         },
       };
 
-      const wrapper = shallow(<ProjectInstallPlatform {...props} />, {
-        disableLifeCycleMethods: false,
-        organization: {id: '1337'},
-      });
+      const wrapper = shallow(
+        <ProjectInstallPlatform {...props} />,
+        TestStubs.routerContext([{organization: {id: '1337'}}])
+      );
 
       await tick();
       wrapper.update();
@@ -100,12 +63,39 @@ describe('ProjectInstallPlatform', function() {
         },
       };
 
-      const wrapper = shallow(<ProjectInstallPlatform {...props} />, {
-        disableLifeCycleMethods: false,
-        organization: {id: '1337'},
-      });
+      const wrapper = shallow(
+        <ProjectInstallPlatform {...props} />,
+        TestStubs.routerContext([{organization: {id: '1337'}}])
+      );
 
       expect(wrapper.find('LoadingIndicator')).toHaveLength(1);
+    });
+
+    it('should render documentation', async function() {
+      const props = {
+        ...baseProps,
+        params: {
+          orgId: baseProps.organization.slug,
+          projectId: baseProps.project.slug,
+          platform: 'node',
+        },
+      };
+
+      MockApiClient.addMockResponse({
+        url: '/projects/org-slug/project-slug/docs/node/',
+        body: {html: '<h1>Documentation here</h1>'},
+      });
+
+      const wrapper = mount(
+        <ProjectInstallPlatform {...props} />,
+        TestStubs.routerContext([{organization: {id: '1337'}}])
+      );
+
+      await tick();
+      wrapper.update();
+
+      expect(wrapper.find('DocumentationWrapper')).toHaveLength(1);
+      expect(wrapper.find('DocumentationWrapper').text()).toBe('Documentation here');
     });
   });
 });
