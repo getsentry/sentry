@@ -1252,8 +1252,7 @@ class ExceptionMechanismIntegrationTest(TestCase):
         assert mechanism.meta['mach_exception']['name'] == 'EXC_CRASH'
 
 
-class MinidumpIntegrationTest(TestCase):
-
+class MinidumpIntegrationTestBase(object):
     def upload_symbols(self):
         url = reverse(
             'sentry-api-0-dsym-files',
@@ -1313,6 +1312,8 @@ class MinidumpIntegrationTest(TestCase):
         assert minidump.file.type == 'event.minidump'
         assert minidump.file.checksum == '74bb01c850e8d65d3ffbc5bad5cabc4668fce247'
 
+
+class SymbolicMinidumpIntegrationTest(MinidumpIntegrationTestBase, TestCase):
     def test_attachments_only_minidumps(self):
         self.project.update_option('sentry:store_crash_reports', False)
         self.upload_symbols()
@@ -1378,3 +1379,24 @@ class MinidumpIntegrationTest(TestCase):
         response = self._postMinidumpWithHeader(f)
         assert response.status_code == 400
         assert response.content == '{"error":"Empty minidump upload received"}'
+
+
+class SymbolicatorMinidumpIntegrationTest(MinidumpIntegrationTestBase, TransactionTestCase):
+    # For these tests to run, write `symbolicator.enabled: true` into your
+    # `~/.sentry/config.yml` and run `sentry devservices up`
+
+    @pytest.fixture(autouse=True)
+    def initialize(self, live_server):
+        new_prefix = live_server.url
+
+        with patch('sentry.lang.native.symbolizer.Symbolizer._symbolize_app_frame') \
+            as symbolize_app_frame, \
+                patch('sentry.lang.native.plugin._is_symbolicator_enabled', return_value=True), \
+                patch('sentry.auth.system.is_internal_ip', return_value=True), \
+                self.options({"system.url-prefix": new_prefix}):
+
+            # Run test case:
+            yield
+
+            # Teardown:
+            assert not symbolize_app_frame.called
