@@ -99,7 +99,7 @@ const ProjectContext = createReactClass({
     // added. Re-fetch project details in case that the new project is the active
     // project.
     //
-    // For now, only compare lengths. It is possible that proeject slugs within
+    // For now, only compare lengths. It is possible that project slugs within
     // the list could change, but it doesn't seem to be broken anywhere else at
     // the moment that would require deeper checks.
     if (prevProps.projects.length !== this.props.projects.length) {
