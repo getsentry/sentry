@@ -198,7 +198,7 @@ class SmartSearchBar extends React.Component {
     evt.preventDefault();
 
     analytics('search.searched', {
-      org_id: organization.id,
+      org_id: parseInt(organization.id, 10),
       query: removeSpace(this.state.query),
       source: savedSearchType === 0 ? 'issues' : 'events',
       search_source: 'main_search',
@@ -638,7 +638,7 @@ class SmartSearchBar extends React.Component {
   onAutoComplete = (replaceText, item) => {
     if (item.type === 'recent-search') {
       analytics('search.searched', {
-        org_id: this.props.organization.id,
+        org_id: parseInt(this.props.organization.id, 10),
         query: replaceText,
         source: this.props.savedSearchType === 0 ? 'issues' : 'events',
         search_source: 'recent_search',
