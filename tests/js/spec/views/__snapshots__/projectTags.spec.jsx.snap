@@ -486,17 +486,18 @@ exports[`ProjectTags renders 1`] = `
                                               role="button"
                                               size="xsmall"
                                             >
-                                              <Component
+                                              <ForwardRef
                                                 aria-disabled={false}
-                                                className="css-dkprmi-StyledButton-getColors eqrebog0"
+                                                className="css-dkprmi-StyledButton-getColors e12ma6z0"
                                                 data-test-id="delete"
+                                                disabled={false}
                                                 onClick={[Function]}
                                                 role="button"
                                                 size="xsmall"
                                               >
                                                 <button
                                                   aria-disabled={false}
-                                                  className="css-dkprmi-StyledButton-getColors eqrebog0"
+                                                  className="css-dkprmi-StyledButton-getColors e12ma6z0"
                                                   data-test-id="delete"
                                                   onClick={[Function]}
                                                   role="button"
@@ -506,23 +507,23 @@ exports[`ProjectTags renders 1`] = `
                                                     size="xsmall"
                                                   >
                                                     <Component
-                                                      className="css-uthd1f-ButtonLabel eqrebog1"
+                                                      className="css-uthd1f-ButtonLabel e12ma6z1"
                                                       size="xsmall"
                                                     >
                                                       <span
-                                                        className="css-uthd1f-ButtonLabel eqrebog1"
+                                                        className="css-uthd1f-ButtonLabel e12ma6z1"
                                                       >
                                                         <Icon
                                                           hasChildren={false}
                                                           size="xsmall"
                                                         >
                                                           <Component
-                                                            className="css-ljhpxy-Icon eqrebog2"
+                                                            className="css-ljhpxy-Icon e12ma6z2"
                                                             hasChildren={false}
                                                             size="xsmall"
                                                           >
                                                             <span
-                                                              className="css-ljhpxy-Icon eqrebog2"
+                                                              className="css-ljhpxy-Icon e12ma6z2"
                                                               size="xsmall"
                                                             >
                                                               <StyledInlineSvg
@@ -530,18 +531,18 @@ exports[`ProjectTags renders 1`] = `
                                                                 src="icon-trash"
                                                               >
                                                                 <InlineSvg
-                                                                  className="css-1ov3rcq-StyledInlineSvg eqrebog3"
+                                                                  className="css-1ov3rcq-StyledInlineSvg e12ma6z3"
                                                                   size="12px"
                                                                   src="icon-trash"
                                                                 >
                                                                   <StyledSvg
-                                                                    className="css-1ov3rcq-StyledInlineSvg eqrebog3"
+                                                                    className="css-1ov3rcq-StyledInlineSvg e12ma6z3"
                                                                     height="12px"
                                                                     viewBox={Object {}}
                                                                     width="12px"
                                                                   >
                                                                     <svg
-                                                                      className="eqrebog3 css-1jjmnki-StyledSvg-StyledInlineSvg e2idor0"
+                                                                      className="e12ma6z3 css-1jjmnki-StyledSvg-StyledInlineSvg e2idor0"
                                                                       height="12px"
                                                                       viewBox={Object {}}
                                                                       width="12px"
@@ -561,7 +562,7 @@ exports[`ProjectTags renders 1`] = `
                                                     </Component>
                                                   </ButtonLabel>
                                                 </button>
-                                              </Component>
+                                              </ForwardRef>
                                             </StyledButton>
                                           </Button>
                                         </a>
@@ -715,17 +716,18 @@ exports[`ProjectTags renders 1`] = `
                                               role="button"
                                               size="xsmall"
                                             >
-                                              <Component
+                                              <ForwardRef
                                                 aria-disabled={false}
-                                                className="css-dkprmi-StyledButton-getColors eqrebog0"
+                                                className="css-dkprmi-StyledButton-getColors e12ma6z0"
                                                 data-test-id="delete"
+                                                disabled={false}
                                                 onClick={[Function]}
                                                 role="button"
                                                 size="xsmall"
                                               >
                                                 <button
                                                   aria-disabled={false}
-                                                  className="css-dkprmi-StyledButton-getColors eqrebog0"
+                                                  className="css-dkprmi-StyledButton-getColors e12ma6z0"
                                                   data-test-id="delete"
                                                   onClick={[Function]}
                                                   role="button"
@@ -735,23 +737,23 @@ exports[`ProjectTags renders 1`] = `
                                                     size="xsmall"
                                                   >
                                                     <Component
-                                                      className="css-uthd1f-ButtonLabel eqrebog1"
+                                                      className="css-uthd1f-ButtonLabel e12ma6z1"
                                                       size="xsmall"
                                                     >
                                                       <span
-                                                        className="css-uthd1f-ButtonLabel eqrebog1"
+                                                        className="css-uthd1f-ButtonLabel e12ma6z1"
                                                       >
                                                         <Icon
                                                           hasChildren={false}
                                                           size="xsmall"
                                                         >
                                                           <Component
-                                                            className="css-ljhpxy-Icon eqrebog2"
+                                                            className="css-ljhpxy-Icon e12ma6z2"
                                                             hasChildren={false}
                                                             size="xsmall"
                                                           >
                                                             <span
-                                                              className="css-ljhpxy-Icon eqrebog2"
+                                                              className="css-ljhpxy-Icon e12ma6z2"
                                                               size="xsmall"
                                                             >
                                                               <StyledInlineSvg
@@ -759,18 +761,18 @@ exports[`ProjectTags renders 1`] = `
                                                                 src="icon-trash"
                                                               >
                                                                 <InlineSvg
-                                                                  className="css-1ov3rcq-StyledInlineSvg eqrebog3"
+                                                                  className="css-1ov3rcq-StyledInlineSvg e12ma6z3"
                                                                   size="12px"
                                                                   src="icon-trash"
                                                                 >
                                                                   <StyledSvg
-                                                                    className="css-1ov3rcq-StyledInlineSvg eqrebog3"
+                                                                    className="css-1ov3rcq-StyledInlineSvg e12ma6z3"
                                                                     height="12px"
                                                                     viewBox={Object {}}
                                                                     width="12px"
                                                                   >
                                                                     <svg
-                                                                      className="eqrebog3 css-1jjmnki-StyledSvg-StyledInlineSvg e2idor0"
+                                                                      className="e12ma6z3 css-1jjmnki-StyledSvg-StyledInlineSvg e2idor0"
                                                                       height="12px"
                                                                       viewBox={Object {}}
                                                                       width="12px"
@@ -790,7 +792,7 @@ exports[`ProjectTags renders 1`] = `
                                                     </Component>
                                                   </ButtonLabel>
                                                 </button>
-                                              </Component>
+                                              </ForwardRef>
                                             </StyledButton>
                                           </Button>
                                         </a>
@@ -944,17 +946,18 @@ exports[`ProjectTags renders 1`] = `
                                               role="button"
                                               size="xsmall"
                                             >
-                                              <Component
+                                              <ForwardRef
                                                 aria-disabled={false}
-                                                className="css-dkprmi-StyledButton-getColors eqrebog0"
+                                                className="css-dkprmi-StyledButton-getColors e12ma6z0"
                                                 data-test-id="delete"
+                                                disabled={false}
                                                 onClick={[Function]}
                                                 role="button"
                                                 size="xsmall"
                                               >
                                                 <button
                                                   aria-disabled={false}
-                                                  className="css-dkprmi-StyledButton-getColors eqrebog0"
+                                                  className="css-dkprmi-StyledButton-getColors e12ma6z0"
                                                   data-test-id="delete"
                                                   onClick={[Function]}
                                                   role="button"
@@ -964,23 +967,23 @@ exports[`ProjectTags renders 1`] = `
                                                     size="xsmall"
                                                   >
                                                     <Component
-                                                      className="css-uthd1f-ButtonLabel eqrebog1"
+                                                      className="css-uthd1f-ButtonLabel e12ma6z1"
                                                       size="xsmall"
                                                     >
                                                       <span
-                                                        className="css-uthd1f-ButtonLabel eqrebog1"
+                                                        className="css-uthd1f-ButtonLabel e12ma6z1"
                                                       >
                                                         <Icon
                                                           hasChildren={false}
                                                           size="xsmall"
                                                         >
                                                           <Component
-                                                            className="css-ljhpxy-Icon eqrebog2"
+                                                            className="css-ljhpxy-Icon e12ma6z2"
                                                             hasChildren={false}
                                                             size="xsmall"
                                                           >
                                                             <span
-                                                              className="css-ljhpxy-Icon eqrebog2"
+                                                              className="css-ljhpxy-Icon e12ma6z2"
                                                               size="xsmall"
                                                             >
                                                               <StyledInlineSvg
@@ -988,18 +991,18 @@ exports[`ProjectTags renders 1`] = `
                                                                 src="icon-trash"
                                                               >
                                                                 <InlineSvg
-                                                                  className="css-1ov3rcq-StyledInlineSvg eqrebog3"
+                                                                  className="css-1ov3rcq-StyledInlineSvg e12ma6z3"
                                                                   size="12px"
                                                                   src="icon-trash"
                                                                 >
                                                                   <StyledSvg
-                                                                    className="css-1ov3rcq-StyledInlineSvg eqrebog3"
+                                                                    className="css-1ov3rcq-StyledInlineSvg e12ma6z3"
                                                                     height="12px"
                                                                     viewBox={Object {}}
                                                                     width="12px"
                                                                   >
                                                                     <svg
-                                                                      className="eqrebog3 css-1jjmnki-StyledSvg-StyledInlineSvg e2idor0"
+                                                                      className="e12ma6z3 css-1jjmnki-StyledSvg-StyledInlineSvg e2idor0"
                                                                       height="12px"
                                                                       viewBox={Object {}}
                                                                       width="12px"
@@ -1019,7 +1022,7 @@ exports[`ProjectTags renders 1`] = `
                                                     </Component>
                                                   </ButtonLabel>
                                                 </button>
-                                              </Component>
+                                              </ForwardRef>
                                             </StyledButton>
                                           </Button>
                                         </a>
@@ -1176,10 +1179,11 @@ exports[`ProjectTags renders 1`] = `
                                               size="xsmall"
                                               to={null}
                                             >
-                                              <Component
+                                              <ForwardRef
                                                 aria-disabled={true}
-                                                className="css-1ujzp8g-StyledButton-getColors eqrebog0"
+                                                className="css-1ujzp8g-StyledButton-getColors e12ma6z0"
                                                 data-test-id="delete"
+                                                disabled={true}
                                                 href={null}
                                                 onClick={[Function]}
                                                 role="button"
@@ -1188,7 +1192,7 @@ exports[`ProjectTags renders 1`] = `
                                               >
                                                 <button
                                                   aria-disabled={true}
-                                                  className="css-1ujzp8g-StyledButton-getColors eqrebog0"
+                                                  className="css-1ujzp8g-StyledButton-getColors e12ma6z0"
                                                   data-test-id="delete"
                                                   href={null}
                                                   onClick={[Function]}
@@ -1200,23 +1204,23 @@ exports[`ProjectTags renders 1`] = `
                                                     size="xsmall"
                                                   >
                                                     <Component
-                                                      className="css-uthd1f-ButtonLabel eqrebog1"
+                                                      className="css-uthd1f-ButtonLabel e12ma6z1"
                                                       size="xsmall"
                                                     >
                                                       <span
-                                                        className="css-uthd1f-ButtonLabel eqrebog1"
+                                                        className="css-uthd1f-ButtonLabel e12ma6z1"
                                                       >
                                                         <Icon
                                                           hasChildren={false}
                                                           size="xsmall"
                                                         >
                                                           <Component
-                                                            className="css-ljhpxy-Icon eqrebog2"
+                                                            className="css-ljhpxy-Icon e12ma6z2"
                                                             hasChildren={false}
                                                             size="xsmall"
                                                           >
                                                             <span
-                                                              className="css-ljhpxy-Icon eqrebog2"
+                                                              className="css-ljhpxy-Icon e12ma6z2"
                                                               size="xsmall"
                                                             >
                                                               <StyledInlineSvg
@@ -1224,18 +1228,18 @@ exports[`ProjectTags renders 1`] = `
                                                                 src="icon-trash"
                                                               >
                                                                 <InlineSvg
-                                                                  className="css-1ov3rcq-StyledInlineSvg eqrebog3"
+                                                                  className="css-1ov3rcq-StyledInlineSvg e12ma6z3"
                                                                   size="12px"
                                                                   src="icon-trash"
                                                                 >
                                                                   <StyledSvg
-                                                                    className="css-1ov3rcq-StyledInlineSvg eqrebog3"
+                                                                    className="css-1ov3rcq-StyledInlineSvg e12ma6z3"
                                                                     height="12px"
                                                                     viewBox={Object {}}
                                                                     width="12px"
                                                                   >
                                                                     <svg
-                                                                      className="eqrebog3 css-1jjmnki-StyledSvg-StyledInlineSvg e2idor0"
+                                                                      className="e12ma6z3 css-1jjmnki-StyledSvg-StyledInlineSvg e2idor0"
                                                                       height="12px"
                                                                       viewBox={Object {}}
                                                                       width="12px"
@@ -1255,7 +1259,7 @@ exports[`ProjectTags renders 1`] = `
                                                     </Component>
                                                   </ButtonLabel>
                                                 </button>
-                                              </Component>
+                                              </ForwardRef>
                                             </StyledButton>
                                           </Button>
                                         </a>
@@ -1411,10 +1415,11 @@ exports[`ProjectTags renders 1`] = `
                                               size="xsmall"
                                               to={null}
                                             >
-                                              <Component
+                                              <ForwardRef
                                                 aria-disabled={true}
-                                                className="css-1ujzp8g-StyledButton-getColors eqrebog0"
+                                                className="css-1ujzp8g-StyledButton-getColors e12ma6z0"
                                                 data-test-id="delete"
+                                                disabled={true}
                                                 href={null}
                                                 onClick={[Function]}
                                                 role="button"
@@ -1423,7 +1428,7 @@ exports[`ProjectTags renders 1`] = `
                                               >
                                                 <button
                                                   aria-disabled={true}
-                                                  className="css-1ujzp8g-StyledButton-getColors eqrebog0"
+                                                  className="css-1ujzp8g-StyledButton-getColors e12ma6z0"
                                                   data-test-id="delete"
                                                   href={null}
                                                   onClick={[Function]}
@@ -1435,23 +1440,23 @@ exports[`ProjectTags renders 1`] = `
                                                     size="xsmall"
                                                   >
                                                     <Component
-                                                      className="css-uthd1f-ButtonLabel eqrebog1"
+                                                      className="css-uthd1f-ButtonLabel e12ma6z1"
                                                       size="xsmall"
                                                     >
                                                       <span
-                                                        className="css-uthd1f-ButtonLabel eqrebog1"
+                                                        className="css-uthd1f-ButtonLabel e12ma6z1"
                                                       >
                                                         <Icon
                                                           hasChildren={false}
                                                           size="xsmall"
                                                         >
                                                           <Component
-                                                            className="css-ljhpxy-Icon eqrebog2"
+                                                            className="css-ljhpxy-Icon e12ma6z2"
                                                             hasChildren={false}
                                                             size="xsmall"
                                                           >
                                                             <span
-                                                              className="css-ljhpxy-Icon eqrebog2"
+                                                              className="css-ljhpxy-Icon e12ma6z2"
                                                               size="xsmall"
                                                             >
                                                               <StyledInlineSvg
@@ -1459,18 +1464,18 @@ exports[`ProjectTags renders 1`] = `
                                                                 src="icon-trash"
                                                               >
                                                                 <InlineSvg
-                                                                  className="css-1ov3rcq-StyledInlineSvg eqrebog3"
+                                                                  className="css-1ov3rcq-StyledInlineSvg e12ma6z3"
                                                                   size="12px"
                                                                   src="icon-trash"
                                                                 >
                                                                   <StyledSvg
-                                                                    className="css-1ov3rcq-StyledInlineSvg eqrebog3"
+                                                                    className="css-1ov3rcq-StyledInlineSvg e12ma6z3"
                                                                     height="12px"
                                                                     viewBox={Object {}}
                                                                     width="12px"
                                                                   >
                                                                     <svg
-                                                                      className="eqrebog3 css-1jjmnki-StyledSvg-StyledInlineSvg e2idor0"
+                                                                      className="e12ma6z3 css-1jjmnki-StyledSvg-StyledInlineSvg e2idor0"
                                                                       height="12px"
                                                                       viewBox={Object {}}
                                                                       width="12px"
@@ -1490,7 +1495,7 @@ exports[`ProjectTags renders 1`] = `
                                                     </Component>
                                                   </ButtonLabel>
                                                 </button>
-                                              </Component>
+                                              </ForwardRef>
                                             </StyledButton>
                                           </Button>
                                         </a>

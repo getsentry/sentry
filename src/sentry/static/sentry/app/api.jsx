@@ -1,5 +1,5 @@
-import $ from 'jquery';
 import {isUndefined, isNil} from 'lodash';
+import $ from 'jquery';
 import * as Sentry from '@sentry/browser';
 
 import {
@@ -9,9 +9,9 @@ import {
 } from 'app/constants/apiErrorCodes';
 import {metric} from 'app/utils/analytics';
 import {openSudo, redirectToProject} from 'app/actionCreators/modal';
-import GroupActions from 'app/actions/groupActions';
-import RequestError from 'app/utils/requestError';
 import {uniqueId} from 'app/utils/guid';
+import GroupActions from 'app/actions/groupActions';
+import createRequestError from 'app/utils/requestError/createRequestError';
 import * as tracing from 'app/utils/tracing';
 
 export class Request {
@@ -88,16 +88,12 @@ export class Client {
   }
 
   wrapCallback(id, func, cleanup) {
-    /*eslint consistent-return:0*/
-    if (isUndefined(func)) {
-      return;
-    }
-
     return (...args) => {
       const req = this.activeRequests[id];
       if (cleanup === true) {
         delete this.activeRequests[id];
       }
+
       if (req && req.alive) {
         // Check if API response is a 302 -- means project slug was renamed and user
         // needs to be redirected
@@ -105,8 +101,12 @@ export class Client {
           return;
         }
 
+        if (isUndefined(func)) {
+          return;
+        }
+
         // Call success callback
-        return func.apply(req, args);
+        return func.apply(req, args); // eslint-disable-line
       }
     };
   }
@@ -198,7 +198,7 @@ export class Client {
       }
     }
 
-    const errorObject = new RequestError(options.method, path);
+    const errorObject = new Error();
 
     this.activeRequests[id] = new Request(
       $.ajax({
@@ -236,10 +236,16 @@ export class Client {
 
           Sentry.withScope(scope => {
             // `requestPromise` can pass its error object
-            const errorObjectToUse = options.requestError || errorObject;
+            const preservedError = options.preservedError || errorObject;
 
-            errorObjectToUse.setResponse(resp);
-            errorObjectToUse.removeFrames(4);
+            const errorObjectToUse = createRequestError(
+              resp,
+              preservedError.stack,
+              options.method,
+              path
+            );
+
+            errorObjectToUse.removeFrames(2);
 
             // Setting this to warning because we are going to capture all failed requests
             scope.setLevel('warning');
@@ -270,19 +276,27 @@ export class Client {
     // This *should* get logged to Sentry only if the promise rejection is not handled
     // (since SDK captures unhandled rejections). Ideally we explicitly ignore rejection
     // or handle with a user friendly error message
-    const requestError = new RequestError(options.method, path);
+    const preservedError = new Error();
 
     return new Promise((resolve, reject) => {
       this.request(path, {
         ...options,
-        requestError,
+        preservedError,
         success: (data, ...args) => {
           includeAllArgs ? resolve([data, ...args]) : resolve(data);
         },
         error: (resp, ...args) => {
-          // Since this method calls `this.request`, and its error handler
-          // modifies the error object, we don't update it
-          reject(requestError);
+          const errorObjectToUse = createRequestError(
+            resp,
+            preservedError.stack,
+            options.method,
+            path
+          );
+          errorObjectToUse.removeFrames(2);
+
+          // Although `this.request` logs all error responses, this error object can
+          // potentially be logged by Sentry's unhandled rejection handler
+          reject(errorObjectToUse);
         },
       });
     });

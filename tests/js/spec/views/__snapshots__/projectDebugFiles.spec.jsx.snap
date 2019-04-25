@@ -62,9 +62,21 @@ exports[`ProjectDebugFiles renders 1`] = `
         className="css-1geyb25-TextBlock ec8ep340"
       >
         
-          Here you can find all your uploaded debug information files (dSYMs, ProGuard, Breakpad ...).
-          This is used to convert addresses and minified function names from crash dumps
-          into function names and locations.
+            Debug information files are used to convert addresses and minified
+            function names from native crash reports into function names and
+            locations.
+          
+      </div>
+    </Component>
+  </TextBlock>
+  <TextBlock>
+    <Component
+      className="css-1geyb25-TextBlock ec8ep340"
+    >
+      <div
+        className="css-1geyb25-TextBlock ec8ep340"
+      >
+        This list contains all uploaded debug information files:
       </div>
     </Component>
   </TextBlock>
@@ -140,9 +152,9 @@ exports[`ProjectDebugFiles renders 1`] = `
                           onError={[Function]}
                           onSuccess={[Function]}
                           placeholder="Search DIFs"
-                          stateKey="debugFiles"
+                          stateKey="project"
                           updateRoute={true}
-                          url="/projects/org/project/files/dsyms/"
+                          url="/projects/org/project/"
                         >
                           <AsyncComponentSearchInput
                             api={Client {}}
@@ -172,9 +184,9 @@ exports[`ProjectDebugFiles renders 1`] = `
                                 "setRouteLeaveHook": [MockFunction],
                               }
                             }
-                            stateKey="debugFiles"
+                            stateKey="project"
                             updateRoute={true}
-                            url="/projects/org/project/files/dsyms/"
+                            url="/projects/org/project/"
                           >
                             <Form
                               onSubmit={[Function]}
@@ -190,7 +202,7 @@ exports[`ProjectDebugFiles renders 1`] = `
                                   value=""
                                 >
                                   <input
-                                    className="search css-pzg7em-Input-inputStyles e1xej46s0"
+                                    className="search css-13yodx8-Input-inputStyles e1xej46s0"
                                     onChange={[Function]}
                                     placeholder="Search DIFs"
                                     value=""
@@ -287,9 +299,13 @@ exports[`ProjectDebugFiles renders empty 1`] = `
   />
   <TextBlock>
     
-          Here you can find all your uploaded debug information files (dSYMs, ProGuard, Breakpad ...).
-          This is used to convert addresses and minified function names from crash dumps
-          into function names and locations.
+            Debug information files are used to convert addresses and minified
+            function names from native crash reports into function names and
+            locations.
+          
+  </TextBlock>
+  <TextBlock>
+    This list contains all uploaded debug information files:
   </TextBlock>
   <Panel>
     <PanelHeader
@@ -312,9 +328,9 @@ exports[`ProjectDebugFiles renders empty 1`] = `
           onError={[Function]}
           onSuccess={[Function]}
           placeholder="Search DIFs"
-          stateKey="debugFiles"
+          stateKey="project"
           updateRoute={true}
-          url="/projects/org/project/files/dsyms/"
+          url="/projects/org/project/"
         />
       </Box>
     </PanelHeader>

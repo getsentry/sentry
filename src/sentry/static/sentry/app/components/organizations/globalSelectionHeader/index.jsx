@@ -1,4 +1,4 @@
-import {pick, isEqual} from 'lodash';
+import {flatten, isEqual, pick, partition} from 'lodash';
 import {withRouter} from 'react-router';
 import PropTypes from 'prop-types';
 import React from 'react';
@@ -10,7 +10,6 @@ import {
 } from 'app/components/organizations/globalSelectionHeader/constants';
 import {DEFAULT_STATS_PERIOD} from 'app/constants';
 import {callIfFunction} from 'app/utils/callIfFunction';
-import {defined} from 'app/utils';
 import {isEqualWithDates} from 'app/utils/isEqualWithDates';
 import {t} from 'app/locale';
 import {
@@ -43,7 +42,7 @@ class GlobalSelectionHeader extends React.Component {
     /**
      * List of projects to display in project selector
      */
-    projects: PropTypes.arrayOf(SentryTypes.Project),
+    projects: PropTypes.arrayOf(SentryTypes.Project).isRequired,
     /**
      * If a forced project is passed, selection is disabled
      */
@@ -221,7 +220,7 @@ class GlobalSelectionHeader extends React.Component {
     const nextQuery = pick(nextProps.location.query, urlParamKeys);
 
     // If no next query is specified keep the previous global selection values
-    if (Object.keys(nextQuery).length === 0) {
+    if (Object.keys(prevQuery).length === 0 && Object.keys(nextQuery).length === 0) {
       return false;
     }
 
@@ -241,11 +240,7 @@ class GlobalSelectionHeader extends React.Component {
       nextProps.location.query
     );
 
-    if (start || end || period || utc) {
-      // Don't attempt to update date if all of these values are empty
-      updateDateTime({start, end, period, utc});
-    }
-
+    updateDateTime({start, end, period, utc});
     updateEnvironments(environment || []);
     updateProjects(project || []);
   };
@@ -281,7 +276,9 @@ class GlobalSelectionHeader extends React.Component {
 
   handleUpdateTime = ({relative: period, start, end, utc} = {}) => {
     const newValueObj = {
-      ...(defined(period) ? {period} : {start, end}),
+      period,
+      start,
+      end,
       utc,
     };
 
@@ -304,19 +301,23 @@ class GlobalSelectionHeader extends React.Component {
   };
 
   getProjects = () => {
+    const {projects} = this.props;
     const {isSuperuser} = ConfigStore.get('user');
-    const {projects, organization} = this.props;
-    const unfilteredProjects = projects || organization.projects;
+
+    const [memberProjects, nonMemberProjects] = partition(
+      projects,
+      project => project.isMember
+    );
 
     if (isSuperuser) {
-      return unfilteredProjects;
+      return [memberProjects, nonMemberProjects];
     }
 
-    return unfilteredProjects.filter(project => project.isMember);
+    return [memberProjects, []];
   };
 
   getFirstProject = () => {
-    return this.getProjects()
+    return flatten(this.getProjects())
       .map(p => parseInt(p.id, 10))
       .slice(0, 1);
   };
@@ -355,6 +356,8 @@ class GlobalSelectionHeader extends React.Component {
       ? [parseInt(forceProject.id, 10)]
       : this.props.selection.projects;
 
+    const [projects, nonMemberProjects] = this.getProjects();
+
     return (
       <Header className={className}>
         <HeaderItemPosition>
@@ -362,7 +365,8 @@ class GlobalSelectionHeader extends React.Component {
           <MultipleProjectSelector
             organization={organization}
             forceProject={forceProject}
-            projects={this.getProjects()}
+            projects={projects}
+            nonMemberProjects={nonMemberProjects}
             value={this.state.projects || this.props.selection.projects}
             onChange={this.handleChangeProjects}
             onUpdate={this.handleUpdateProjects}

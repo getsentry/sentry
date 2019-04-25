@@ -1,7 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import createReactClass from 'create-react-class';
-import ApiMixin from 'app/mixins/apiMixin';
 import Tooltip from 'app/components/tooltip';
 import TimeSince from 'app/components/timeSince';
 import {t} from 'app/locale';
@@ -12,8 +11,6 @@ const LatestDeployOrReleaseTime = createReactClass({
   propTypes: {
     release: PropTypes.object.isRequired,
   },
-
-  mixins: [ApiMixin],
 
   render() {
     const {release} = this.props;

@@ -82,6 +82,10 @@ exports[`ResolveActions with confirmation step renders 1`] = `
     <div
       className="btn-group"
     >
+      <GuideAnchor
+        target="resolve"
+        type="text"
+      />
       <ActionLink
         className="btn btn-default btn-sm"
         confirmLabel="Resolve"
@@ -114,35 +118,6 @@ exports[`ResolveActions with confirmation step renders 1`] = `
                 }
               }
             />
-            <GuideAnchor
-              target="resolve"
-              type="text"
-            >
-              <GuideAnchorContainer
-                innerRef={[Function]}
-                type="text"
-              >
-                <div
-                  className="css-9u5for-GuideAnchorContainer e130o4350"
-                  type="text"
-                >
-                  <StyledGuideAnchor
-                    active={false}
-                    className="guide-anchor-ping resolve"
-                  >
-                    <div
-                      className="guide-anchor-ping resolve css-1yndvnf-StyledGuideAnchor e130o4351"
-                    >
-                      <StyledGuideAnchorRipples>
-                        <div
-                          className="css-3zj3g7-StyledGuideAnchorRipples e130o4352"
-                        />
-                      </StyledGuideAnchorRipples>
-                    </div>
-                  </StyledGuideAnchor>
-                </div>
-              </GuideAnchorContainer>
-            </GuideAnchor>
             Resolve
           </a>
           <Modal
@@ -447,6 +422,7 @@ exports[`ResolveActions with confirmation step renders 1`] = `
                     >
                       <a
                         className="tip"
+                        data-test-id="action-link-set-up-release-tracking-in-order-to-use-this-feature."
                         disabled={false}
                         onClick={[Function]}
                       >
@@ -545,6 +521,10 @@ exports[`ResolveActions without confirmation renders 1`] = `
     <div
       className="btn-group"
     >
+      <GuideAnchor
+        target="resolve"
+        type="text"
+      />
       <ActionLink
         className="btn btn-default btn-sm"
         confirmLabel="Resolve"
@@ -555,6 +535,7 @@ exports[`ResolveActions without confirmation renders 1`] = `
       >
         <a
           className="btn btn-default btn-sm"
+          data-test-id="action-link-resolve"
           disabled={false}
           onClick={[Function]}
         >
@@ -566,35 +547,6 @@ exports[`ResolveActions without confirmation renders 1`] = `
               }
             }
           />
-          <GuideAnchor
-            target="resolve"
-            type="text"
-          >
-            <GuideAnchorContainer
-              innerRef={[Function]}
-              type="text"
-            >
-              <div
-                className="css-9u5for-GuideAnchorContainer e130o4350"
-                type="text"
-              >
-                <StyledGuideAnchor
-                  active={false}
-                  className="guide-anchor-ping resolve"
-                >
-                  <div
-                    className="guide-anchor-ping resolve css-1yndvnf-StyledGuideAnchor e130o4351"
-                  >
-                    <StyledGuideAnchorRipples>
-                      <div
-                        className="css-3zj3g7-StyledGuideAnchorRipples e130o4352"
-                      />
-                    </StyledGuideAnchorRipples>
-                  </div>
-                </StyledGuideAnchor>
-              </div>
-            </GuideAnchorContainer>
-          </GuideAnchor>
           Resolve
         </a>
       </ActionLink>
@@ -677,6 +629,7 @@ exports[`ResolveActions without confirmation renders 1`] = `
                     >
                       <a
                         className="tip"
+                        data-test-id="action-link-set-up-release-tracking-in-order-to-use-this-feature."
                         disabled={false}
                         onClick={[Function]}
                       >
@@ -697,6 +650,7 @@ exports[`ResolveActions without confirmation renders 1`] = `
                     >
                       <a
                         className="tip"
+                        data-test-id="action-link-set-up-release-tracking-in-order-to-use-this-feature."
                         disabled={false}
                         onClick={[Function]}
                       >
@@ -717,6 +671,7 @@ exports[`ResolveActions without confirmation renders 1`] = `
                     >
                       <a
                         className="tip"
+                        data-test-id="action-link-set-up-release-tracking-in-order-to-use-this-feature."
                         disabled={false}
                         onClick={[Function]}
                       >

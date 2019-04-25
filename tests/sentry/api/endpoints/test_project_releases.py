@@ -5,7 +5,7 @@ from django.utils import timezone
 from django.core.urlresolvers import reverse
 from exam import fixture
 
-from sentry.api.endpoints.project_releases import ReleaseSerializer
+from sentry.api.endpoints.project_releases import ReleaseWithVersionSerializer
 from sentry.constants import VERSION_LENGTH
 from sentry.models import (
     BAD_RELEASE_CHARS,
@@ -707,7 +707,7 @@ class ReleaseSerializerTest(TestCase):
         self.dateReleased = '1000-10-10T06:06'
 
     def test_simple(self):
-        serializer = ReleaseSerializer(data={
+        serializer = ReleaseWithVersionSerializer(data={
             'version': self.version,
             'owner': self.user.username,
             'ref': self.ref,
@@ -730,61 +730,67 @@ class ReleaseSerializerTest(TestCase):
         assert result['commits'] == self.commits
 
     def test_fields_not_required(self):
-        serializer = ReleaseSerializer(data={'version': self.version})
+        serializer = ReleaseWithVersionSerializer(data={'version': self.version})
         assert serializer.is_valid()
 
     def test_do_not_allow_null_commits(self):
-        serializer = ReleaseSerializer(data={
+        serializer = ReleaseWithVersionSerializer(data={
             'version': self.version,
             'commits': None,
         })
         assert not serializer.is_valid()
 
     def test_ref_limited_by_max_version_length(self):
-        serializer = ReleaseSerializer(data={
+        serializer = ReleaseWithVersionSerializer(data={
             'version': self.version,
             'ref': 'a' * VERSION_LENGTH,
         })
         assert serializer.is_valid()
-        serializer = ReleaseSerializer(data={
+        serializer = ReleaseWithVersionSerializer(data={
             'version': self.version,
             'ref': 'a' * (VERSION_LENGTH + 1),
         })
         assert not serializer.is_valid()
 
     def test_version_limited_by_max_version_length(self):
-        serializer = ReleaseSerializer(data={
+        serializer = ReleaseWithVersionSerializer(data={
             'version': 'a' * VERSION_LENGTH,
         })
         assert serializer.is_valid()
-        serializer = ReleaseSerializer(data={
+        serializer = ReleaseWithVersionSerializer(data={
             'version': 'a' * (VERSION_LENGTH + 1),
         })
         assert not serializer.is_valid()
 
     def test_version_does_not_allow_whitespace(self):
         for char in BAD_RELEASE_CHARS:
-            serializer = ReleaseSerializer(data={
+            serializer = ReleaseWithVersionSerializer(data={
                 'version': char,
             })
             assert not serializer.is_valid()
 
     def test_version_does_not_allow_current_dir_path(self):
-        serializer = ReleaseSerializer(data={
+        serializer = ReleaseWithVersionSerializer(data={
             'version': '.',
         })
         assert not serializer.is_valid()
-        serializer = ReleaseSerializer(data={
+        serializer = ReleaseWithVersionSerializer(data={
             'version': '..',
         })
         assert not serializer.is_valid()
 
     def test_version_does_not_allow_null_or_empty_value(self):
-        serializer = ReleaseSerializer(data={
+        serializer = ReleaseWithVersionSerializer(data={
             'version': None,
         })
         assert not serializer.is_valid()
-        serializer = ReleaseSerializer(data={
+        serializer = ReleaseWithVersionSerializer(data={
             'version': '',
+        })
+        assert not serializer.is_valid()
+
+    def test_version_cannot_be_latest(self):
+        serializer = ReleaseWithVersionSerializer(data={
+            'version': 'Latest',
         })
         assert not serializer.is_valid()

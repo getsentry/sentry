@@ -15,6 +15,7 @@ from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.utils import get_date_range_from_params, InvalidParams
 from sentry.models import Project, ProjectStatus
 from sentry.utils import snuba
+from sentry.utils.snuba import SENTRY_SNUBA_MAP
 from sentry import features
 
 
@@ -40,10 +41,16 @@ class DiscoverQuerySerializer(serializers.Serializer):
         child=serializers.CharField(),
         required=False,
         allow_null=True,
+        default=[],
+    )
+    conditionFields = ListField(
+        child=ListField(),
+        required=False,
+        allow_null=True,
     )
     limit = serializers.IntegerField(min_value=0, max_value=10000, required=False)
     rollup = serializers.IntegerField(required=False)
-    orderby = serializers.CharField(required=False)
+    orderby = serializers.CharField(required=False, default="")
     conditions = ListField(
         child=ListField(),
         required=False,
@@ -91,6 +98,9 @@ class DiscoverQuerySerializer(serializers.Serializer):
         elif date_fields_provided > 1:
             raise serializers.ValidationError('Conflicting date filters supplied')
 
+        if not data.get('fields') and not data.get('aggregations'):
+            raise serializers.ValidationError('Specify at least one field or aggregation')
+
         try:
             start, end = get_date_range_from_params({
                 'start': data.get('start'),
@@ -132,7 +142,10 @@ class DiscoverQuerySerializer(serializers.Serializer):
 
     def get_array_field(self, field):
         pattern = r"^(error|stack)\..+"
-        return re.search(pattern, field)
+        term = re.search(pattern, field)
+        if term and SENTRY_SNUBA_MAP.get(field):
+            return term
+        return None
 
     def get_condition(self, condition):
         array_field = self.get_array_field(condition[0])
@@ -303,7 +316,8 @@ class OrganizationDiscoverQueryEndpoint(OrganizationEndpoint):
 
         has_aggregations = len(serialized.get('aggregations')) > 0
 
-        selected_columns = [] if has_aggregations else serialized.get('fields')
+        selected_columns = serialized.get(
+            'conditionFields', []) + [] if has_aggregations else serialized.get('fields', [])
 
         projects_map = {}
         for project in projects:

@@ -233,10 +233,14 @@ exports[`ProjectSavedSearches renders 1`] = `
                           "dateCreated": "2017-11-14T02:22:58.026Z",
                           "id": "2",
                           "isDefault": true,
+                          "isGlobal": true,
+                          "isOrgCustom": false,
+                          "isPinned": false,
                           "isPrivate": false,
                           "isUserDefault": false,
                           "name": "Needs Triage",
                           "query": "is:unresolved is:unassigned",
+                          "type": 0,
                         }
                       }
                       key="2"
@@ -386,16 +390,17 @@ exports[`ProjectSavedSearches renders 1`] = `
                                                 role="button"
                                                 size="small"
                                               >
-                                                <Component
+                                                <ForwardRef
                                                   aria-disabled={false}
-                                                  className="css-dkprmi-StyledButton-getColors eqrebog0"
+                                                  className="css-dkprmi-StyledButton-getColors e12ma6z0"
+                                                  disabled={false}
                                                   onClick={[Function]}
                                                   role="button"
                                                   size="small"
                                                 >
                                                   <button
                                                     aria-disabled={false}
-                                                    className="css-dkprmi-StyledButton-getColors eqrebog0"
+                                                    className="css-dkprmi-StyledButton-getColors e12ma6z0"
                                                     onClick={[Function]}
                                                     role="button"
                                                     size="small"
@@ -404,23 +409,23 @@ exports[`ProjectSavedSearches renders 1`] = `
                                                       size="small"
                                                     >
                                                       <Component
-                                                        className="css-7ui8bl-ButtonLabel eqrebog1"
+                                                        className="css-7ui8bl-ButtonLabel e12ma6z1"
                                                         size="small"
                                                       >
                                                         <span
-                                                          className="css-7ui8bl-ButtonLabel eqrebog1"
+                                                          className="css-7ui8bl-ButtonLabel e12ma6z1"
                                                         >
                                                           <Icon
                                                             hasChildren={false}
                                                             size="small"
                                                           >
                                                             <Component
-                                                              className="css-ljhpxy-Icon eqrebog2"
+                                                              className="css-ljhpxy-Icon e12ma6z2"
                                                               hasChildren={false}
                                                               size="small"
                                                             >
                                                               <span
-                                                                className="css-ljhpxy-Icon eqrebog2"
+                                                                className="css-ljhpxy-Icon e12ma6z2"
                                                                 size="small"
                                                               >
                                                                 <StyledInlineSvg
@@ -428,18 +433,18 @@ exports[`ProjectSavedSearches renders 1`] = `
                                                                   src="icon-trash"
                                                                 >
                                                                   <InlineSvg
-                                                                    className="css-1ov3rcq-StyledInlineSvg eqrebog3"
+                                                                    className="css-1ov3rcq-StyledInlineSvg e12ma6z3"
                                                                     size="12px"
                                                                     src="icon-trash"
                                                                   >
                                                                     <StyledSvg
-                                                                      className="css-1ov3rcq-StyledInlineSvg eqrebog3"
+                                                                      className="css-1ov3rcq-StyledInlineSvg e12ma6z3"
                                                                       height="12px"
                                                                       viewBox={Object {}}
                                                                       width="12px"
                                                                     >
                                                                       <svg
-                                                                        className="eqrebog3 css-1jjmnki-StyledSvg-StyledInlineSvg e2idor0"
+                                                                        className="e12ma6z3 css-1jjmnki-StyledSvg-StyledInlineSvg e2idor0"
                                                                         height="12px"
                                                                         viewBox={Object {}}
                                                                         width="12px"
@@ -459,7 +464,7 @@ exports[`ProjectSavedSearches renders 1`] = `
                                                       </Component>
                                                     </ButtonLabel>
                                                   </button>
-                                                </Component>
+                                                </ForwardRef>
                                               </StyledButton>
                                             </Button>
                                             <Modal
@@ -544,13 +549,17 @@ exports[`ProjectSavedSearches renders 1`] = `
                       canModify={true}
                       data={
                         Object {
-                          "dateCreated": "2017-11-14T02:22:58.022Z",
+                          "dateCreated": "2017-11-14T02:22:58.026Z",
                           "id": "1",
                           "isDefault": false,
+                          "isGlobal": false,
+                          "isOrgCustom": false,
+                          "isPinned": false,
                           "isPrivate": false,
                           "isUserDefault": true,
                           "name": "Unresolved Issues",
                           "query": "is:unresolved",
+                          "type": 0,
                         }
                       }
                       key="1"
@@ -700,16 +709,17 @@ exports[`ProjectSavedSearches renders 1`] = `
                                                 role="button"
                                                 size="small"
                                               >
-                                                <Component
+                                                <ForwardRef
                                                   aria-disabled={false}
-                                                  className="css-dkprmi-StyledButton-getColors eqrebog0"
+                                                  className="css-dkprmi-StyledButton-getColors e12ma6z0"
+                                                  disabled={false}
                                                   onClick={[Function]}
                                                   role="button"
                                                   size="small"
                                                 >
                                                   <button
                                                     aria-disabled={false}
-                                                    className="css-dkprmi-StyledButton-getColors eqrebog0"
+                                                    className="css-dkprmi-StyledButton-getColors e12ma6z0"
                                                     onClick={[Function]}
                                                     role="button"
                                                     size="small"
@@ -718,23 +728,23 @@ exports[`ProjectSavedSearches renders 1`] = `
                                                       size="small"
                                                     >
                                                       <Component
-                                                        className="css-7ui8bl-ButtonLabel eqrebog1"
+                                                        className="css-7ui8bl-ButtonLabel e12ma6z1"
                                                         size="small"
                                                       >
                                                         <span
-                                                          className="css-7ui8bl-ButtonLabel eqrebog1"
+                                                          className="css-7ui8bl-ButtonLabel e12ma6z1"
                                                         >
                                                           <Icon
                                                             hasChildren={false}
                                                             size="small"
                                                           >
                                                             <Component
-                                                              className="css-ljhpxy-Icon eqrebog2"
+                                                              className="css-ljhpxy-Icon e12ma6z2"
                                                               hasChildren={false}
                                                               size="small"
                                                             >
                                                               <span
-                                                                className="css-ljhpxy-Icon eqrebog2"
+                                                                className="css-ljhpxy-Icon e12ma6z2"
                                                                 size="small"
                                                               >
                                                                 <StyledInlineSvg
@@ -742,18 +752,18 @@ exports[`ProjectSavedSearches renders 1`] = `
                                                                   src="icon-trash"
                                                                 >
                                                                   <InlineSvg
-                                                                    className="css-1ov3rcq-StyledInlineSvg eqrebog3"
+                                                                    className="css-1ov3rcq-StyledInlineSvg e12ma6z3"
                                                                     size="12px"
                                                                     src="icon-trash"
                                                                   >
                                                                     <StyledSvg
-                                                                      className="css-1ov3rcq-StyledInlineSvg eqrebog3"
+                                                                      className="css-1ov3rcq-StyledInlineSvg e12ma6z3"
                                                                       height="12px"
                                                                       viewBox={Object {}}
                                                                       width="12px"
                                                                     >
                                                                       <svg
-                                                                        className="eqrebog3 css-1jjmnki-StyledSvg-StyledInlineSvg e2idor0"
+                                                                        className="e12ma6z3 css-1jjmnki-StyledSvg-StyledInlineSvg e2idor0"
                                                                         height="12px"
                                                                         viewBox={Object {}}
                                                                         width="12px"
@@ -773,7 +783,7 @@ exports[`ProjectSavedSearches renders 1`] = `
                                                       </Component>
                                                     </ButtonLabel>
                                                   </button>
-                                                </Component>
+                                                </ForwardRef>
                                               </StyledButton>
                                             </Button>
                                             <Modal

@@ -123,7 +123,6 @@ const StyledRow = styled(SpreadLayout)`
   /* shorter top padding because of title lineheight */
   padding: ${space(1)} ${space(2)} ${space(2)};
   flex: 1;
-  align-items: space-between;
 
   ${p =>
     p.status === 'disabled' &&

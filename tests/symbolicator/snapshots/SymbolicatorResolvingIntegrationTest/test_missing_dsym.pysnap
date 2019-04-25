@@ -1,15 +1,13 @@
 ---
-created: '2019-04-02T14:12:18.601497Z'
+created: '2019-04-16T08:02:55.584738Z'
 creator: sentry
 source: tests/symbolicator/test_native_plugin.py
 ---
-culprit: unknown
+contexts: null
 debug_meta:
   images:
   - arch: x86_64
     code_file: Foo.app/Contents/Foo
-    code_id: null
-    debug_file: null
     debug_id: 502fc0a5-1ec1-3e47-9998-684fa139dca7
     image_addr: '0x100000000'
     image_size: 4096
@@ -30,51 +28,15 @@ exception:
   values:
   - raw_stacktrace:
       frames:
-      - function: unknown
+      - &id001
+        function: unknown
         in_app: false
         instruction_addr: '0x100000fa0'
+        package: Foo.app/Contents/Foo
     stacktrace:
       frames:
-      - function: unknown
-        in_app: false
-        instruction_addr: '0x100000fa0'
+      - *id001
     type: Fail
     value: fail
-fingerprint:
-- '{{ default }}'
-grouping_config:
-  id: legacy:2019-03-12
-hashes:
-- efca000ff6704f25e5434e9ed7eff02f
-level: error
-location: null
-logger: ''
-metadata:
-  type: Fail
-  value: fail
-platform: cocoa
-processing_issues:
-  native:dsym:502fc0a5-1ec1-3e47-9998-684fa139dca7:
-    data:
-      image_arch: x86_64
-      image_path: Foo.app/Contents/Foo
-      image_uuid: 502fc0a5-1ec1-3e47-9998-684fa139dca7
-      message: None
-      type: native_missing_dsym
-    object: dsym:502fc0a5-1ec1-3e47-9998-684fa139dca7
-    scope: native
-    type: native_missing_dsym
-sdk:
-  name: _postWithHeader
-  version: 0.0.0
-tags:
-- - level
-  - error
-- - sentry:user
-  - ip:127.0.0.1
-title: 'Fail: fail'
-type: error
-use_rust_normalize: true
-user:
-  ip_address: 127.0.0.1
-version: '6'
+stacktrace: null
+threads: null

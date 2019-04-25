@@ -1,5 +1,5 @@
 ---
-created: '2019-04-02T14:12:16.040240Z'
+created: '2019-04-16T08:02:50.732813Z'
 creator: sentry
 source: tests/symbolicator/test_native_plugin.py
 ---
@@ -12,7 +12,6 @@ contexts:
     name: Windows
     type: os
     version: 10.0.14393
-culprit: main
 debug_meta:
   images:
   - code_file: C:\projects\breakpad-tools\windows\Release\crash.exe
@@ -20,6 +19,7 @@ debug_meta:
     image_addr: '0x2a0000'
     image_size: 36864
     type: symbolic
+errors: null
 exception:
   values:
   - raw_stacktrace:
@@ -40,36 +40,5 @@ exception:
     thread_id: 1636
     type: EXCEPTION_ACCESS_VIOLATION_WRITE
     value: 'Fatal Error: EXCEPTION_ACCESS_VIOLATION_WRITE'
-fingerprint:
-- '{{ default }}'
-grouping_config:
-  id: legacy:2019-03-12
-hashes:
-- ffe48bfc93b1bf86ffb750d5d2bdc51a
-level: error
-location: main.cpp
-logger: ''
-metadata:
-  filename: main.cpp
-  function: main
-  type: EXCEPTION_ACCESS_VIOLATION_WRITE
-  value: 'Fatal Error: EXCEPTION_ACCESS_VIOLATION_WRITE'
-platform: native
-sdk:
-  name: _postWithHeader
-  version: 0.0.0
-tags:
-- - level
-  - error
-- - sentry:user
-  - ip:127.0.0.1
-- - os
-  - Windows 10.0.14393
-- - os.name
-  - Windows
-title: 'EXCEPTION_ACCESS_VIOLATION_WRITE: Fatal Error: EXCEPTION_ACCESS_VIOLATION_WRITE'
-type: error
-use_rust_normalize: true
-user:
-  ip_address: 127.0.0.1
-version: '6'
+stacktrace: null
+threads: null

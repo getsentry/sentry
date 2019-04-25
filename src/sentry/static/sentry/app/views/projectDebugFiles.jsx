@@ -1,4 +1,5 @@
 import {Box, Flex} from 'grid-emotion';
+import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
 
@@ -8,6 +9,9 @@ import Access from 'app/components/acl/access';
 import AsyncComponent from 'app/components/asyncComponent';
 import Button from 'app/components/button';
 import Confirm from 'app/components/confirm';
+import Form from 'app/views/settings/components/forms/form';
+import JsonForm from 'app/views/settings/components/forms/jsonForm';
+import PermissionAlert from 'app/views/settings/project/permissionAlert';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
 import FileSize from 'app/components/fileSize';
 import Pagination from 'app/components/pagination';
@@ -54,11 +58,57 @@ const DebugSymbolDetails = styled.div`
   margin-top: 4px;
 `;
 
+const formFields = [
+  {
+    name: 'builtinSymbolSources',
+    type: 'select',
+    multiple: true,
+    label: t('Built-in Repositories'),
+    help: t(
+      'Configures which built-in repositories Sentry should use to resolve debug files.'
+    ),
+    choices: [['microsoft', t('Microsoft Symbol Server')]],
+  },
+  {
+    name: 'symbolSources',
+    type: 'string',
+    label: t('Custom Repositories'),
+    placeholder: t('Paste JSON here.'),
+    multiline: true,
+    monospace: true,
+    autosize: true,
+    inline: false,
+    maxRows: 10,
+    saveOnBlur: false,
+    saveMessageAlertType: 'info',
+    saveMessage: t('Updates will apply to future events only.'),
+    formatMessageValue: false,
+    help: t(
+      'Configures custom repositories containing debug files. At the moment, only Amazon S3 buckets are supported.'
+    ),
+    validate: ({id, form}) => {
+      try {
+        if (form[id].trim()) {
+          JSON.parse(form[id]);
+        }
+      } catch (e) {
+        return [[id, e.toString().replace(/^SyntaxError: JSON.parse: /, '')]];
+      }
+      return [];
+    },
+  },
+];
+
 class ProjectDebugSymbols extends AsyncComponent {
+  static contextTypes = {
+    organization: PropTypes.object.isRequired,
+  };
+
   getEndpoints() {
     const {orgId, projectId} = this.props.params;
 
     return [
+      ['project', `/projects/${orgId}/${projectId}/`],
       [
         'debugFiles',
         `/projects/${orgId}/${projectId}/files/dsyms/`,
@@ -193,15 +243,50 @@ class ProjectDebugSymbols extends AsyncComponent {
   }
 
   renderBody() {
+    const {orgId, projectId} = this.props.params;
+    const {organization} = this.context;
+    const {project} = this.state;
+    const features = new Set(organization.features);
+    const access = new Set(organization.access);
+
     return (
       <React.Fragment>
         <SettingsPageHeader title={t('Debug Information Files')} />
+
         <TextBlock>
           {t(`
-          Here you can find all your uploaded debug information files (dSYMs, ProGuard, Breakpad ...).
-          This is used to convert addresses and minified function names from crash dumps
-          into function names and locations.`)}
+            Debug information files are used to convert addresses and minified
+            function names from native crash reports into function names and
+            locations.
+          `)}
         </TextBlock>
+
+        {features.has('symbol-sources') && (
+          <>
+            <PermissionAlert />
+
+            <Form
+              saveOnBlur
+              allowUndo
+              initialData={project}
+              apiMethod="PUT"
+              apiEndpoint={`/projects/${orgId}/${projectId}/`}
+            >
+              <JsonForm
+                access={access}
+                features={features}
+                title={t('External Sources')}
+                disabled={!access.has('project:write')}
+                fields={formFields}
+              />
+            </Form>
+          </>
+        )}
+
+        <TextBlock>
+          {t('This list contains all uploaded debug information files:')}
+        </TextBlock>
+
         <Panel>
           <PanelHeader hasButtons>
             <Box w={4.5 / 12}>{t('Debug ID')}</Box>

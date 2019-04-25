@@ -1,11 +1,12 @@
 import React from 'react';
 import {Box, Flex} from 'grid-emotion';
 import {Link} from 'react-router';
+
 import Access from 'app/components/acl/access';
+import BetaTag from 'app/components/betaTag';
 import Button from 'app/components/button';
 import Confirm from 'app/components/confirm';
 import ConfirmDelete from 'app/components/confirmDelete';
-import SentryAppAvatar from 'app/components/avatar/sentryAppAvatar';
 import PropTypes from 'prop-types';
 import SentryTypes from 'app/sentryTypes';
 import Tooltip from 'app/components/tooltip';
@@ -15,11 +16,13 @@ import styled from 'react-emotion';
 import space from 'app/styles/space';
 import {withTheme} from 'emotion-theming';
 import CircleIndicator from 'app/components/circleIndicator';
+import PluginIcon from 'app/plugins/components/pluginIcon';
+import {openSentryAppDetailsModal} from 'app/actionCreators/modal';
 
 export default class SentryApplicationRow extends React.PureComponent {
   static propTypes = {
     app: SentryTypes.SentryApplication,
-    orgId: PropTypes.string.isRequired,
+    organization: SentryTypes.Organization.isRequired,
     installs: PropTypes.array,
     onInstall: PropTypes.func,
     onUninstall: PropTypes.func,
@@ -59,29 +62,48 @@ export default class SentryApplicationRow extends React.PureComponent {
         onConfirm={() => this.props.onUninstall(install)}
       >
         <StyledButton borderless icon="icon-trash" data-test-id="sentry-app-uninstall">
-          {t('Remove')}
+          {t('Uninstall')}
         </StyledButton>
       </Confirm>
     );
   }
 
+  get isInstalled() {
+    return this.props.installs && this.props.installs.length > 0;
+  }
+
+  openLearnMore = () => {
+    const {app, onInstall, organization} = this.props;
+    const isInstalled = !!this.isInstalled;
+
+    openSentryAppDetailsModal({
+      sentryApp: app,
+      isInstalled,
+      onInstall,
+      organization,
+    });
+  };
+
   render() {
-    const {app, orgId, installs, showPublishStatus} = this.props;
-    const isInstalled = installs && installs.length > 0;
+    const {app, organization, installs, showPublishStatus} = this.props;
+    const isInstalled = this.isInstalled;
 
     return (
       <SentryAppItem>
         <StyledFlex>
-          <SentryAppAvatar size={36} sentryApp={app} />
+          <PluginIcon size={36} pluginId={app.slug} />
           <SentryAppBox>
             <SentryAppName>
               {showPublishStatus ? (
-                <SentryAppLink to={`/settings/${orgId}/developer-settings/${app.slug}/`}>
+                <SentryAppLink
+                  to={`/settings/${organization.slug}/developer-settings/${app.slug}/`}
+                >
                   {app.name}
                 </SentryAppLink>
               ) : (
                 app.name
               )}
+              <BetaTag />
             </SentryAppName>
             <SentryAppDetails>
               {showPublishStatus ? (
@@ -89,11 +111,12 @@ export default class SentryApplicationRow extends React.PureComponent {
               ) : (
                 <React.Fragment>
                   <Status enabled={isInstalled} />
-                  <StyledLink onClick={() => {}}>{t('Learn More')}</StyledLink>
+                  <StyledLink onClick={this.openLearnMore}>{t('Learn More')}</StyledLink>
                 </React.Fragment>
               )}
             </SentryAppDetails>
           </SentryAppBox>
+
           {!showPublishStatus ? (
             <Box>
               {!isInstalled ? (

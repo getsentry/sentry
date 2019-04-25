@@ -137,7 +137,17 @@ test-python:
 	sentry init
 	make build-platform-assets
 	@echo "--> Running Python tests"
+ifndef TEST_GROUP
 	py.test tests/integration tests/sentry --cov . --cov-report="xml:.artifacts/python.coverage.xml" --junit-xml=".artifacts/python.junit.xml" || exit 1
+else
+	py.test tests/integration tests/sentry -m group_$(TEST_GROUP) --cov . --cov-report="xml:.artifacts/python.coverage.xml" --junit-xml=".artifacts/python.junit.xml" || exit 1
+endif
+	@echo ""
+
+test-riak:
+	sentry init
+	@echo "--> Running Riak tests"
+	py.test tests/sentry/nodestore/riak/backend --cov . --cov-report="xml:.artifacts/riak.coverage.xml" --junit-xml=".artifacts/riak.junit.xml" || exit 1
 	@echo ""
 
 test-snuba:
@@ -156,7 +166,12 @@ test-acceptance: node-version-check
 	@echo "--> Building static assets"
 	@$(WEBPACK) --display errors-only
 	@echo "--> Running acceptance tests"
+ifndef TEST_GROUP
 	py.test tests/acceptance --cov . --cov-report="xml:.artifacts/acceptance.coverage.xml" --junit-xml=".artifacts/acceptance.junit.xml" --html=".artifacts/acceptance.pytest.html"
+else
+	py.test tests/acceptance -m group_$(TEST_GROUP) --cov . --cov-report="xml:.artifacts/acceptance.coverage.xml" --junit-xml=".artifacts/acceptance.junit.xml" --html=".artifacts/acceptance.pytest.html"
+endif
+
 	@echo ""
 
 lint: lint-python lint-js
@@ -201,10 +216,8 @@ travis-noop:
 .PHONY: travis-test-lint
 travis-test-lint: lint-python lint-js
 
-.PHONY: travis-test-sqlite travis-test-postgres travis-test-mysql travis-test-acceptance travis-test-snuba travis-test-symbolicator travis-test-js travis-test-cli travis-test-dist
-travis-test-sqlite: test-python
+.PHONY: travis-test-postgres travis-test-acceptance travis-test-snuba travis-test-symbolicator travis-test-js travis-test-cli travis-test-dist travis-test-riak
 travis-test-postgres: test-python
-travis-test-mysql: test-python
 travis-test-acceptance: test-acceptance
 travis-test-snuba: test-snuba
 travis-test-symbolicator: test-symbolicator
@@ -217,17 +230,16 @@ travis-test-dist:
 	# See: https://github.com/travis-ci/travis-ci/issues/4704
 	SENTRY_BUILD=$(TRAVIS_COMMIT) SENTRY_LIGHT_BUILD=0 python setup.py -q sdist bdist_wheel
 	@ls -lh dist/
+travis-test-riak: test-riak
 
-.PHONY: scan-python travis-scan-sqlite travis-scan-postgres travis-scan-mysql travis-scan-acceptance travis-scan-snuba travis-scan-symbolicator travis-scan-js travis-scan-cli travis-scan-dist travis-scan-lint
+.PHONY: scan-python travis-scan-postgres travis-scan-acceptance travis-scan-snuba travis-scan-symbolicator travis-scan-js travis-scan-cli travis-scan-dist travis-scan-lint travis-scan-riak
 scan-python:
 	@echo "--> Running Python vulnerability scanner"
 	$(PIP) install safety
 	bin/scan
 	@echo ""
 
-travis-scan-sqlite: scan-python
 travis-scan-postgres: scan-python
-travis-scan-mysql: scan-python
 travis-scan-acceptance: travis-noop
 travis-scan-snuba: scan-python
 travis-scan-symbolicator: travis-noop
@@ -235,3 +247,4 @@ travis-scan-js: travis-noop
 travis-scan-cli: travis-noop
 travis-scan-dist: travis-noop
 travis-scan-lint: travis-noop
+travis-scan-riak: scan-python

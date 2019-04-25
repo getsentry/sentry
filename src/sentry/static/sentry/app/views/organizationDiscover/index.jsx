@@ -96,8 +96,9 @@ class OrganizationDiscoverContainer extends React.Component {
       this.setState({savedQuery: null});
       // Reset querybuilder if we're switching from a saved query
       if (this.props.params.savedQueryId) {
-        const projects = nextProps.selection.projects;
-        this.queryBuilder.reset({projects});
+        const {datetime, projects} = nextProps.selection;
+        const {start, end, period: range} = datetime;
+        this.queryBuilder.reset({projects, range, start, end});
       }
       return;
     }

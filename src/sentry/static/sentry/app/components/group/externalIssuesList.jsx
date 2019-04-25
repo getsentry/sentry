@@ -13,6 +13,7 @@ import PluginActions from 'app/components/group/pluginActions';
 import {Box} from 'grid-emotion';
 import {t} from 'app/locale';
 import SentryAppInstallationStore from 'app/stores/sentryAppInstallationsStore';
+import SentryAppComponentsStore from 'app/stores/sentryAppComponentsStore';
 import ExternalIssueStore from 'app/stores/externalIssueStore';
 
 class ExternalIssueList extends AsyncComponent {
@@ -21,6 +22,7 @@ class ExternalIssueList extends AsyncComponent {
     group: SentryTypes.Group.isRequired,
     project: SentryTypes.Project.isRequired,
     organization: SentryTypes.Organization.isRequired,
+    event: SentryTypes.Event,
     orgId: PropTypes.string,
   };
 
@@ -45,6 +47,7 @@ class ExternalIssueList extends AsyncComponent {
     this.unsubscribables = [
       SentryAppInstallationStore.listen(this.onSentryAppInstallationChange),
       ExternalIssueStore.listen(this.onExternalIssueChange),
+      SentryAppComponentsStore.listen(this.onSentryAppComponentsChange),
     ];
 
     this.fetchSentryAppData();
@@ -63,6 +66,11 @@ class ExternalIssueList extends AsyncComponent {
     this.setState({externalIssues});
   };
 
+  onSentryAppComponentsChange = sentryAppComponents => {
+    const components = sentryAppComponents.filter(c => c.type == 'issue-link');
+    this.setState({components});
+  };
+
   // We want to do this explicitly so that we can handle errors gracefully,
   // instead of the entire component not rendering.
   //
@@ -71,28 +79,9 @@ class ExternalIssueList extends AsyncComponent {
   // control over those services.
   //
   fetchSentryAppData() {
-    const {api, orgId, group, project, organization} = this.props;
+    const {api, group, project, organization} = this.props;
 
     if (project && project.id && organization) {
-      const features = new Set(organization.features);
-
-      if (!features.has('sentry-apps')) {
-        return;
-      }
-
-      api
-        .requestPromise(
-          `/organizations/${orgId}/sentry-app-components/?filter=issue-link&projectId=${
-            project.id
-          }`
-        )
-        .then(data => {
-          this.setState({components: data});
-        })
-        .catch(error => {
-          return;
-        });
-
       api
         .requestPromise(`/groups/${group.id}/external-issues/`)
         .then(data => {
@@ -126,13 +115,12 @@ class ExternalIssueList extends AsyncComponent {
   renderSentryAppIssues() {
     const {externalIssues, sentryAppInstallations, components} = this.state;
     const {group} = this.props;
-    const issueLinkComponents = components.filter(c => c.type === 'issue-link');
 
-    if (issueLinkComponents.length == 0) {
+    if (components.length == 0) {
       return null;
     }
 
-    return issueLinkComponents.map(component => {
+    return components.map(component => {
       const {sentryApp} = component;
 
       const installation = sentryAppInstallations.find(
@@ -145,6 +133,7 @@ class ExternalIssueList extends AsyncComponent {
         <SentryAppExternalIssueActions
           key={sentryApp.slug}
           group={group}
+          event={this.props.event}
           sentryAppComponent={component}
           sentryAppInstallation={installation}
           externalIssue={issue}

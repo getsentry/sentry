@@ -7,7 +7,6 @@ import styled from 'react-emotion';
 import space from 'app/styles/space';
 
 import {openCreateTeamModal} from 'app/actionCreators/modal';
-import ApiMixin from 'app/mixins/apiMixin';
 import OrganizationState from 'app/mixins/organizationState';
 import DropdownLink from 'app/components/dropdownLink';
 import MenuItem from 'app/components/menuItem';
@@ -17,7 +16,7 @@ import ProjectSelector from 'app/components/projectHeader/projectSelector';
 import Tooltip from 'app/components/tooltip';
 
 const ProjectNav = createReactClass({
-  mixins: [ApiMixin, OrganizationState],
+  mixins: [OrganizationState],
 
   render() {
     const org = this.getOrganization();

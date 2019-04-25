@@ -784,162 +784,6 @@ class InAppHonoringResolvingIntegrationTest(TestCase):
         assert long_frames[1]['instructionAddr'] == '0x100020014'
         assert long_frames[2]['instructionAddr'] == '0x10002001c'
 
-    @patch.object(Symbolizer, '_symbolize_app_frame', sym_app_frame)
-    def test_in_app_function_name(self):
-        object_name = (
-            "/var/containers/Bundle/Application/"
-            "B33C37A8-F933-4B6B-9FFA-152282BFDF13/"
-            "SentryTest.app/SentryTest"
-        )
-        # '/var/containers/Bundle/Application/',
-        # '/private/var/containers/Bundle/Application/',
-        # (kscm_|kscrash_|KSCrash |SentryClient |RNSentry )
-        event_data = {
-            "user": {
-                "ip_address": "31.172.207.97"
-            },
-            "extra": {},
-            "project": self.project.id,
-            "platform": "cocoa",
-            "debug_meta": {
-                "images": [
-                    {
-                        "type": "apple",
-                        "cpu_subtype": 0,
-                        "uuid": "C05B4DDD-69A7-3840-A649-32180D341587",
-                        "image_vmaddr": 4294967296,
-                        "image_addr": 4295098368,
-                        "cpu_type": 16777228,
-                        "image_size": 32768,
-                        "name": object_name,
-                    }
-                ]
-            },
-            "exception": {
-                "values": [
-                    {
-                        "stacktrace": {
-                            "frames": [
-                                {
-                                    "function": "[RNSentry ]",
-                                    "abs_path": None,
-                                    "package": "/usr/lib/system/libdyld.dylib",
-                                    "filename": None,
-                                    "symbol_addr": "0x002ac28b4",
-                                    "lineno": None,
-                                    "instruction_addr": 4295098388,
-                                },
-                                {
-                                    "function": "[SentryClient ]",
-                                    "abs_path": None,
-                                    "package": "/usr/lib/system/libdyld.dylib",
-                                    "filename": None,
-                                    "symbol_addr": "0x002ac28b4",
-                                    "lineno": None,
-                                    "instruction_addr": 4295098388,
-                                },
-                                {
-                                    "function": "[kscrash_]",
-                                    "abs_path": None,
-                                    "package": "/usr/lib/system/libdyld.dylib",
-                                    "filename": None,
-                                    "symbol_addr": "0x002ac28b4",
-                                    "lineno": None,
-                                    "instruction_addr": 4295098388,
-                                },
-                                {
-                                    "function": "[kscm_]",
-                                    "abs_path": None,
-                                    "package": "/usr/lib/system/libdyld.dylib",
-                                    "filename": None,
-                                    "symbol_addr": "0x002ac28b4",
-                                    "lineno": None,
-                                    "instruction_addr": 4295098388,
-                                },
-                                {
-                                    "function": "[KSCrash ]",
-                                    "abs_path": None,
-                                    "package": "/usr/lib/system/libdyld.dylib",
-                                    "filename": None,
-                                    "symbol_addr": "0x002ac28b4",
-                                    "lineno": None,
-                                    "instruction_addr": 4295098388,
-                                },
-                                {
-                                    "function": "[KSCrash]",
-                                    "abs_path": None,
-                                    "package": "/usr/lib/system/libdyld.dylib",
-                                    "filename": None,
-                                    "symbol_addr": "0x002ac28b4",
-                                    "lineno": None,
-                                    "instruction_addr": 4295098388,
-                                },
-                                {
-                                    "function": "[KSCrashy]",
-                                    "abs_path": None,
-                                    "package": "/usr/lib/system/libdyld.dylib",
-                                    "filename": None,
-                                    "symbol_addr": "0x002ac28b4",
-                                    "lineno": None,
-                                    "instruction_addr": 4295098388,
-                                },
-                            ]
-                        },
-                        "type": "NSRangeException",
-                        "mechanism": {
-                            "type": "mach",
-                            "meta": {
-                                "signal": {
-                                    "number": 6,
-                                    "code": 0,
-                                    "name": "SIGABRT",
-                                    "code_name": None
-                                },
-                                "mach_exception": {
-                                    "subcode": 0,
-                                    "code": 0,
-                                    "exception": 10,
-                                    "name": "EXC_CRASH"
-                                }
-                            }
-                        },
-                        "value": (
-                            "*** -[__NSArray0 objectAtIndex:]: index 3 "
-                            "beyond bounds for empty NSArray"
-                        )
-                    }
-                ]
-            },
-            "contexts": {
-                "device": {
-                    "model_id": "N102AP",
-                    "model": "iPod7,1",
-                    "arch": "arm64",
-                    "family": "iPod"
-                },
-                "os": {
-                    "version": "9.3.2",
-                    "rooted": False,
-                    "build": "13F69",
-                    "name": "iOS"
-                }
-            }
-        }
-        resp = self._postWithHeader(event_data)
-        assert resp.status_code == 200
-
-        event = Event.objects.get()
-
-        bt = event.interfaces['exception'].values[0].stacktrace
-        frames = bt.frames
-        assert not frames[0].in_app
-        assert not frames[1].in_app
-        assert not frames[2].in_app
-        assert not frames[3].in_app
-        assert not frames[4].in_app
-        assert frames[5].in_app
-        assert frames[6].in_app
-
     def sym_mac_app_frame(self, instruction_addr, img, sdk_info=None, trust=None):
         object_name = (
             "/Users/haza/Library/Developer/Xcode/Archives/2017-06-19/"
@@ -969,128 +813,18 @@ class InAppHonoringResolvingIntegrationTest(TestCase):
             "instruction_addr": '0x100026330',
         }]
 
-    @patch.object(Symbolizer, '_symbolize_app_frame', sym_mac_app_frame)
-    def test_in_app_macos(self):
-        object_name = (
-            "/Users/haza/Library/Developer/Xcode/Archives/2017-06-19/"
-            "CrashProbe 19-06-2017, 08.53.xcarchive/Products/Applications/"
-            "CrashProbe.app/Contents/Frameworks/"
-            "CrashLib.framework/Versions/A/CrashLib"
-        )
-        event_data = {
-            "user": {
-                "ip_address": "31.172.207.97"
-            },
-            "extra": {},
-            "project": self.project.id,
-            "platform": "cocoa",
-            "debug_meta": {
-                "images": [
-                    {
-                        "type": "apple",
-                        "cpu_subtype": 0,
-                        "uuid": "C05B4DDD-69A7-3840-A649-32180D341587",
-                        "image_vmaddr": 4294967296,
-                        "image_addr": 4295098368,
-                        "cpu_type": 16777228,
-                        "image_size": 32768,
-                        "name": object_name,
-                    }
-                ]
-            },
-            "exception": {
-                "values": [
-                    {
-                        "stacktrace": {
-                            "frames": [
-                                {
-                                    "function": "-[CRLCrashAsyncSafeThread crash]",
-                                    "abs_path": "/Users/haza/Projects/getsentry-CrashProbe/CrashProbe/CRLCrashAsyncSafeThread.m",
-                                    "package": "/Users/haza/Library/Developer/Xcode/Archives/2017-06-19/CrashProbe 19-06-2017, 08.53.xcarchive/Products/Applications/CrashProbe.app/Contents/Frameworks/CrashLib.framework/Versions/A/CrashLib",
-                                    "image_addr": "0x110121000",
-                                    "symbol_addr": "0x110122303",
-                                    "instruction_addr": 4295098388
-                                },
-                                {
-                                    "function": "[KSCrash ]",
-                                    "abs_path": None,
-                                    "package": "/usr/lib/system/libdyld.dylib",
-                                    "filename": None,
-                                    "symbol_addr": "0x002ac28b4",
-                                    "lineno": None,
-                                    "instruction_addr": 4295098388,
-                                },
-                            ]
-                        },
-                        "type": "NSRangeException",
-                        "mechanism": {
-                            "type": "mach",
-                            "meta": {
-                                "signal": {
-                                    "number": 6,
-                                    "code": 0,
-                                    "name": "SIGABRT",
-                                    "code_name": None
-                                },
-                                "mach_exception": {
-                                    "subcode": 0,
-                                    "code": 0,
-                                    "exception": 10,
-                                    "name": "EXC_CRASH"
-                                }
-                            }
-                        },
-                        "value": (
-                            "*** -[__NSArray0 objectAtIndex:]: index 3 "
-                            "beyond bounds for empty NSArray"
-                        )
-                    }
-                ]
-            },
-            "contexts": {
-                "device": {
-                    "family": "macOS",
-                    "type": "device",
-                    "storage_size": 498954403840,
-                    "free_memory": 415174656,
-                    "memory_size": 17179869184,
-                    "boot_time": "2017-06-18T07:10:05Z",
-                    "model": "MacBookPro13,1",
-                    "usable_memory": 15204716544,
-                    "arch": "x86"
-                },
-                "app": {
-                    "app_version": "1.0",
-                    "app_name": "CrashProbe",
-                    "device_app_hash": "75e22adcce6cb4c81db7c7e623c2f2721616d2c8",
-                    "executable_path": "/Users/haza/Library/Developer/Xcode/Archives/2017-06-19/CrashProbe 19-06-2017, 08.53.xcarchive/Products/Applications/CrashProbe.app/CrashProbe",
-                    "build_type": "unknown",
-                    "app_start_time": "2017-06-19T07:19:02Z",
-                    "app_identifier": "net.hockeyapp.CrashProbe",
-                    "type": "app",
-                    "app_build": "1"
-                },
-                "os": {
-                    "rooted": False,
-                    "kernel_version": "Darwin Kernel Version 16.6.0: Fri Apr 14 16:21:16 PDT 2017; root:xnu-3789.60.24~6/RELEASE_X86_64",
-                    "version": "10.12.5",
-                    "build": "16F73",
-                    "type": "os",
-                    "name": "macOS"
-                }
-            },
-        }
-        resp = self._postWithHeader(event_data)
-        assert resp.status_code == 200
-
-        event = Event.objects.get()
-
-        bt = event.interfaces['exception'].values[0].stacktrace
-        frames = bt.frames
-        assert frames[0].in_app
-
 
 class ResolvingIntegrationTestBase(object):
+    def snapshot_stacktrace_data(self, event):
+        self.insta_snapshot({
+            "stacktrace": event.get('stacktrace'),
+            "exception": event.get('exception'),
+            "threads": event.get('threads'),
+            "debug_meta": event.get('debug_meta'),
+            "contexts": event.get('contexts'),
+            "errors": event.get('errors'),
+        })
+
     def test_real_resolving(self):
         url = reverse(
             'sentry-api-0-dsym-files',
@@ -1123,13 +857,7 @@ class ResolvingIntegrationTestBase(object):
 
         event = Event.objects.get()
         assert event.data['culprit'] == 'main'
-        snapshot_data = dict(event.data)
-        del snapshot_data['event_id']
-        del snapshot_data['timestamp']
-        del snapshot_data['received']
-        del snapshot_data['key_id']
-        del snapshot_data['project']
-        self.insta_snapshot(snapshot_data)
+        self.snapshot_stacktrace_data(event.data)
 
     def test_debug_id_resolving(self):
         file = File.objects.create(
@@ -1198,13 +926,7 @@ class ResolvingIntegrationTestBase(object):
 
         event = Event.objects.get()
         assert event.data['culprit'] == 'main'
-        snapshot_data = dict(event.data)
-        del snapshot_data['event_id']
-        del snapshot_data['timestamp']
-        del snapshot_data['received']
-        del snapshot_data['key_id']
-        del snapshot_data['project']
-        self.insta_snapshot(snapshot_data)
+        self.snapshot_stacktrace_data(event.data)
 
     def test_missing_dsym(self):
         self.login_as(user=self.user)
@@ -1214,13 +936,7 @@ class ResolvingIntegrationTestBase(object):
 
         event = Event.objects.get()
         assert event.data['culprit'] == 'unknown'
-        snapshot_data = dict(event.data)
-        del snapshot_data['event_id']
-        del snapshot_data['timestamp']
-        del snapshot_data['received']
-        del snapshot_data['key_id']
-        del snapshot_data['project']
-        self.insta_snapshot(snapshot_data)
+        self.snapshot_stacktrace_data(event.data)
 
 
 class SymbolicResolvingIntegrationTest(ResolvingIntegrationTestBase, TestCase):
@@ -1320,13 +1036,18 @@ class SymbolicResolvingIntegrationTest(ResolvingIntegrationTestBase, TestCase):
 
 
 class SymbolicatorResolvingIntegrationTest(ResolvingIntegrationTestBase, TransactionTestCase):
+    # For these tests to run, write `symbolicator.enabled: true` into your
+    # `~/.sentry/config.yml` and run `sentry devservices up`
+
     @pytest.fixture(autouse=True)
     def initialize(self, live_server):
+        new_prefix = live_server.url
+
         with patch('sentry.lang.native.symbolizer.Symbolizer._symbolize_app_frame') \
             as symbolize_app_frame, \
                 patch('sentry.lang.native.plugin._is_symbolicator_enabled', return_value=True), \
                 patch('sentry.auth.system.is_internal_ip', return_value=True), \
-                self.options({"system.url-prefix": live_server.url}):
+                self.options({"system.url-prefix": new_prefix}):
 
             # Run test case:
             yield

@@ -3,8 +3,9 @@ from __future__ import absolute_import
 import six
 
 from collections import Iterable
-from sentry.coreapi import APIError
 
+from sentry import analytics
+from sentry.coreapi import APIError
 from sentry.constants import SentryAppStatus
 from sentry.mediators import Mediator, Param
 from sentry.mediators import service_hooks
@@ -16,6 +17,7 @@ from sentry.models.sentryapp import REQUIRED_EVENT_PERMISSIONS
 class Updater(Mediator):
     sentry_app = Param('sentry.models.SentryApp')
     name = Param(six.string_types, required=False)
+    status = Param(six.string_types, required=False)
     scopes = Param(Iterable, required=False)
     events = Param(Iterable, required=False)
     webhook_url = Param(six.string_types, required=False)
@@ -23,9 +25,12 @@ class Updater(Mediator):
     is_alertable = Param(bool, required=False)
     schema = Param(dict, required=False)
     overview = Param(six.string_types, required=False)
+    user = Param('sentry.models.User')
 
     def call(self):
         self._update_name()
+        self._update_author()
+        self._update_status()
         self._update_scopes()
         self._update_events()
         self._update_webhook_url()
@@ -39,6 +44,18 @@ class Updater(Mediator):
     @if_param('name')
     def _update_name(self):
         self.sentry_app.name = self.name
+
+    @if_param('author')
+    def _update_author(self):
+        self.sentry_app.author = self.author
+
+    @if_param('status')
+    def _update_status(self):
+        if self.user.is_superuser:
+            if self.status == 'published':
+                self.sentry_app.status = SentryAppStatus.PUBLISHED
+            if self.status == 'unpublished':
+                self.sentry_app.status = SentryAppStatus.UNPUBLISHED
 
     @if_param('scopes')
     def _update_scopes(self):
@@ -98,3 +115,10 @@ class Updater(Mediator):
                 sentry_app_id=self.sentry_app.id,
                 schema=element,
             )
+
+    def record_analytics(self):
+        analytics.record(
+            'sentry_app.updated',
+            user_id=self.user.id,
+            sentry_app=self.sentry_app.slug,
+        )

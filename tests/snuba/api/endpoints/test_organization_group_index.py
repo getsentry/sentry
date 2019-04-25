@@ -81,10 +81,10 @@ class GroupListTest(APITestCase, SnubaTestCase):
 
         response = self.get_response(sort_by='date', query='timesSeen:>1k')
         assert response.status_code == 400
-        assert 'could not' in response.data['detail']
+        assert 'Invalid format for numeric search' in response.data['detail']
 
     def test_simple_pagination(self):
-        now = timezone.now().replace(microsecond=0)
+        now = timezone.now()
         group1 = self.create_group(
             project=self.project,
             last_seen=now - timedelta(seconds=2),
@@ -1191,10 +1191,9 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
             ignoreDuration=30,
         )
         snooze = GroupSnooze.objects.get(group=group)
-        snooze.until = snooze.until.replace(microsecond=0)
+        snooze.until = snooze.until
 
-        # Drop microsecond value for MySQL
-        now = timezone.now().replace(microsecond=0)
+        now = timezone.now()
 
         assert snooze.count is None
         assert snooze.until > now + timedelta(minutes=29)
@@ -1203,11 +1202,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         assert snooze.user_window is None
         assert snooze.window is None
 
-        # Drop microsecond value for MySQL
-        response.data['statusDetails']['ignoreUntil'] = response.data['statusDetails'
-                                                                      ]['ignoreUntil'].replace(
-                                                                          microsecond=0
-                                                                      )  # noqa
+        response.data['statusDetails']['ignoreUntil'] = response.data['statusDetails']['ignoreUntil']
 
         assert response.data['status'] == 'ignored'
         assert response.data['statusDetails']['ignoreCount'] == snooze.count
@@ -1248,7 +1243,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         assert response.data['statusDetails']['actor']['id'] == six.text_type(self.user.id)
 
     def test_snooze_user_count(self):
-        for i in range(100):
+        for i in range(10):
             event = self.store_event(
                 data={
                     'fingerprint': ['put-me-in-group-1'],
@@ -1267,15 +1262,15 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         response = self.get_valid_response(
             qs_params={'id': group.id},
             status='ignored',
-            ignoreUserCount=100,
+            ignoreUserCount=10,
         )
         snooze = GroupSnooze.objects.get(group=group)
         assert snooze.count is None
         assert snooze.until is None
-        assert snooze.user_count == 100
+        assert snooze.user_count == 10
         assert snooze.user_window is None
         assert snooze.window is None
-        assert snooze.state['users_seen'] == 100
+        assert snooze.state['users_seen'] == 10
 
         assert response.data['status'] == 'ignored'
         assert response.data['statusDetails']['ignoreCount'] == snooze.count

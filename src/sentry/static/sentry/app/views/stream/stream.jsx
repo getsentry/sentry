@@ -16,12 +16,12 @@ import {
   setActiveEnvironmentName,
 } from 'app/actionCreators/environments';
 import {t, tct} from 'app/locale';
-import ApiMixin from 'app/mixins/apiMixin';
+import withApi from 'app/utils/withApi';
 import ConfigStore from 'app/stores/configStore';
 import EnvironmentStore from 'app/stores/environmentStore';
 import ErrorRobot from 'app/components/errorRobot';
 import {fetchProjectSavedSearches} from 'app/actionCreators/savedSearches';
-import {fetchTagValues} from 'app/actionCreators/tags';
+import {fetchProjectTagValues} from 'app/actionCreators/tags';
 import GroupStore from 'app/stores/groupStore';
 import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
@@ -48,12 +48,13 @@ const Stream = createReactClass({
   displayName: 'Stream',
 
   propTypes: {
+    api: PropTypes.object,
     environment: SentryTypes.Environment,
     tags: PropTypes.object,
     tagsLoading: PropTypes.bool,
   },
 
-  mixins: [Reflux.listenTo(GroupStore, 'onGroupChange'), ApiMixin, ProjectState],
+  mixins: [Reflux.listenTo(GroupStore, 'onGroupChange'), ProjectState],
 
   getInitialState() {
     const searchId = this.props.params.searchId || null;
@@ -179,7 +180,7 @@ const Stream = createReactClass({
     const {orgId, projectId} = this.props.params;
     const {searchId} = this.state;
 
-    fetchProjectSavedSearches(this.api, orgId, projectId).then(
+    fetchProjectSavedSearches(this.props.api, orgId, projectId).then(
       data => {
         const newState = {
           isDefaultSearch: false,
@@ -368,7 +369,7 @@ const Stream = createReactClass({
 
     this._poller.disable();
 
-    this.lastRequest = this.api.request(url, {
+    this.lastRequest = this.props.api.request(url, {
       method: 'GET',
       data: requestParams,
       success: (data, ignore, jqXHR) => {
@@ -662,7 +663,7 @@ const Stream = createReactClass({
   tagValueLoader(key, search) {
     const {orgId} = this.props.params;
     const project = this.getProject();
-    return fetchTagValues(this.api, orgId, key, search, project.id);
+    return fetchProjectTagValues(this.props.api, orgId, project.slug, key, search);
   },
 
   render() {
@@ -752,4 +753,5 @@ const Stream = createReactClass({
     );
   },
 });
-export default Stream;
+export {Stream};
+export default withApi(Stream);

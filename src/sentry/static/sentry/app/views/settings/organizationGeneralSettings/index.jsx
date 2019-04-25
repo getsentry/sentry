@@ -11,7 +11,7 @@ import {
   updateOrganization,
 } from 'app/actionCreators/organizations';
 import {t, tct} from 'app/locale';
-import ApiMixin from 'app/mixins/apiMixin';
+import withApi from 'app/utils/withApi';
 import Field from 'app/views/settings/components/forms/field';
 import LinkWithConfirmation from 'app/components/linkWithConfirmation';
 import LoadingError from 'app/components/loadingError';
@@ -25,10 +25,9 @@ const OrganizationGeneralSettings = createReactClass({
   displayName: 'OrganizationGeneralSettings',
 
   propTypes: {
+    api: PropTypes.object,
     routes: PropTypes.arrayOf(PropTypes.object),
   },
-
-  mixins: [ApiMixin],
 
   getInitialState() {
     return {
@@ -51,7 +50,7 @@ const OrganizationGeneralSettings = createReactClass({
 
   fetchData() {
     return new Promise((resolve, reject) => {
-      this.api.request(`/organizations/${this.props.params.orgId}/`, {
+      this.props.api.request(`/organizations/${this.props.params.orgId}/`, {
         method: 'GET',
         success: data => {
           resolve(data);
@@ -70,7 +69,7 @@ const OrganizationGeneralSettings = createReactClass({
     }
 
     addLoadingMessage();
-    removeAndRedirectToRemainingOrganization(this.api, {
+    removeAndRedirectToRemainingOrganization(this.props.api, {
       orgId: this.props.params.orgId,
       successMessage: `${data.name} is queued for deletion.`,
       errorMessage: `Error removing the ${data && data.name} organization`,
@@ -169,4 +168,6 @@ const OrganizationGeneralSettings = createReactClass({
   },
 });
 
-export default OrganizationGeneralSettings;
+export {OrganizationGeneralSettings};
+
+export default withApi(OrganizationGeneralSettings);

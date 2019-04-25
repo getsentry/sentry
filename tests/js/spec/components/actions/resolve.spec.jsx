@@ -14,8 +14,8 @@ describe('ResolveActions', function() {
           onUpdate={spy}
           disabled={true}
           hasRelease={false}
-          orgId={'org-1'}
-          projectId={'proj-1'}
+          orgId="org-1"
+          projectId="proj-1"
         />,
         TestStubs.routerContext()
       );
@@ -42,8 +42,8 @@ describe('ResolveActions', function() {
           onUpdate={spy}
           disableDropdown={true}
           hasRelease={false}
-          orgId={'org-1'}
-          projectId={'proj-1'}
+          orgId="org-1"
+          projectId="proj-1"
         />,
         TestStubs.routerContext()
       );
@@ -75,8 +75,8 @@ describe('ResolveActions', function() {
           onUpdate={spy}
           disabled={true}
           hasRelease={false}
-          orgId={'org-1'}
-          projectId={'proj-1'}
+          orgId="org-1"
+          projectId="proj-1"
           isResolved={true}
         />,
         TestStubs.routerContext()
@@ -103,8 +103,8 @@ describe('ResolveActions', function() {
           onUpdate={spy}
           disabled={true}
           hasRelease={false}
-          orgId={'org-1'}
-          projectId={'proj-1'}
+          orgId="org-1"
+          projectId="proj-1"
           isResolved={true}
           isAutoResolved={true}
         />,
@@ -124,8 +124,8 @@ describe('ResolveActions', function() {
         <ResolveActions
           onUpdate={spy}
           hasRelease={false}
-          orgId={'org-1'}
-          projectId={'proj-1'}
+          orgId="org-1"
+          projectId="proj-1"
         />,
         TestStubs.routerContext()
       );
@@ -152,10 +152,10 @@ describe('ResolveActions', function() {
         <ResolveActions
           onUpdate={spy}
           hasRelease={false}
-          orgId={'org-1'}
-          projectId={'proj-1'}
+          orgId="org-1"
+          projectId="proj-1"
           shouldConfirm={true}
-          confirmMessage={'Are you sure???'}
+          confirmMessage="Are you sure???"
         />,
         TestStubs.routerContext()
       );

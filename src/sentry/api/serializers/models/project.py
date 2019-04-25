@@ -21,6 +21,7 @@ from sentry.models import (
     ProjectStatus, ProjectTeam, Release, ReleaseProjectEnvironment, Deploy, UserOption, DEFAULT_SUBJECT_TEMPLATE
 )
 from sentry.grouping.strategies.configurations import DEFAULT_CONFIG as DEFAULT_GROUPING_CONFIG
+from sentry.grouping.enhancer import DEFAULT_ENHANCEMENT_BASE
 from sentry.utils.data_filters import FilterTypes
 from sentry.utils.db import is_postgres
 
@@ -411,6 +412,8 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
             'sentry:scrub_defaults',
             'sentry:safe_fields',
             'sentry:store_crash_reports',
+            'sentry:builtin_symbol_sources',
+            'sentry:symbol_sources',
             'sentry:sensitive_fields',
             'sentry:csp_ignored_sources_defaults',
             'sentry:csp_ignored_sources',
@@ -425,6 +428,9 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
             'sentry:verify_ssl',
             'sentry:scrub_ip_address',
             'sentry:grouping_config',
+            'sentry:grouping_enhancements',
+            'sentry:grouping_enhancements_base',
+            'sentry:fingerprinting_rules',
             'sentry:relay_pii_config',
             'feedback:branding',
             'digests:mail:minimum_delay',
@@ -543,6 +549,9 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
                 'scrubIPAddresses': bool(attrs['options'].get('sentry:scrub_ip_address', False)),
                 'scrapeJavaScript': bool(attrs['options'].get('sentry:scrape_javascript', True)),
                 'groupingConfig': attrs['options'].get('sentry:grouping_config') or DEFAULT_GROUPING_CONFIG,
+                'groupingEnhancements': attrs['options'].get('sentry:grouping_enhancements') or u'',
+                'groupingEnhancementsBase': attrs['options'].get('sentry:grouping_enhancements_base') or DEFAULT_ENHANCEMENT_BASE,
+                'fingerprintingRules': attrs['options'].get('sentry:fingerprinting_rules') or u'',
                 'organization':
                 attrs['org'],
                 'plugins':
@@ -556,6 +565,8 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
                 'processingIssues': attrs['processing_issues'],
                 'defaultEnvironment': attrs['options'].get('sentry:default_environment'),
                 'relayPiiConfig': attrs['options'].get('sentry:relay_pii_config'),
+                'builtinSymbolSources': attrs['options'].get('sentry:builtin_symbol_sources'),
+                'symbolSources': attrs['options'].get('sentry:symbol_sources'),
             }
         )
         return data

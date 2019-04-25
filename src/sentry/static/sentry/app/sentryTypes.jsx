@@ -1,5 +1,7 @@
 import PropTypes from 'prop-types';
 
+import {SEARCH_TYPES} from 'app/constants';
+
 export const Metadata = PropTypes.shape({
   value: PropTypes.string,
   message: PropTypes.string,
@@ -376,6 +378,21 @@ export const SentryApplication = PropTypes.shape({
   uuid: PropTypes.string,
   scopes: PropTypes.arrayOf(PropTypes.string),
   status: PropTypes.string,
+});
+
+export const SavedSearch = PropTypes.shape({
+  id: PropTypes.string,
+  dateCreated: PropTypes.string,
+  isDefault: PropTypes.bool,
+  isGlobal: PropTypes.bool,
+  isOrgCustom: PropTypes.bool,
+  isPinned: PropTypes.bool,
+  isPrivate: PropTypes.bool,
+  isUserDefault: PropTypes.bool,
+  name: PropTypes.string,
+  projectId: PropTypes.string,
+  query: PropTypes.string,
+  type: PropTypes.oneOf([SEARCH_TYPES.ISSUE, SEARCH_TYPES.EVENTS]),
 });
 
 export const GlobalSelection = PropTypes.shape({
@@ -928,6 +945,7 @@ const SentryTypes = {
   Release,
   Repository,
   User,
+  SavedSearch,
   SentryApplication,
   Widget,
 

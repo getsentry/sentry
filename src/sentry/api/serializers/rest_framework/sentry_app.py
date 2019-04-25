@@ -14,8 +14,9 @@ from sentry.models.sentryapp import VALID_EVENT_RESOURCES, REQUIRED_EVENT_PERMIS
 class ApiScopesField(serializers.WritableField):
     def validate(self, data):
         valid_scopes = ApiScopes()
-        if data is None:
-            raise ValidationError('Must provide scopes')
+
+        if not data:
+            return
 
         for scope in data:
             if scope not in valid_scopes:
@@ -24,6 +25,9 @@ class ApiScopesField(serializers.WritableField):
 
 class EventListField(serializers.WritableField):
     def validate(self, data):
+        if not data:
+            return
+
         if not set(data).issubset(VALID_EVENT_RESOURCES):
             raise ValidationError(u'Invalid event subscription: {}'.format(
                 ', '.join(set(data).difference(VALID_EVENT_RESOURCES))
@@ -32,7 +36,7 @@ class EventListField(serializers.WritableField):
 
 class SchemaField(serializers.WritableField):
     def validate(self, data):
-        if data == {}:
+        if not data or data == {}:
             return
 
         try:
@@ -41,14 +45,26 @@ class SchemaField(serializers.WritableField):
             raise ValidationError(e.message)
 
 
+class URLField(serializers.URLField):
+    def validate(self, url):
+        # The Django URLField doesn't distinguish between different types of
+        # invalid URLs, so do any manual checks here to give the User a better
+        # error message.
+        if url and not url.startswith('http'):
+            raise ValidationError('URL must start with http[s]://')
+
+        super(URLField, self).validate(url)
+
+
 class SentryAppSerializer(Serializer):
     name = serializers.CharField()
     author = serializers.CharField()
     scopes = ApiScopesField()
+    status = serializers.CharField(required=False)
     events = EventListField(required=False)
     schema = SchemaField(required=False)
-    webhookUrl = serializers.URLField()
-    redirectUrl = serializers.URLField(required=False)
+    webhookUrl = URLField()
+    redirectUrl = URLField(required=False)
     isAlertable = serializers.BooleanField(required=False)
     overview = serializers.CharField(required=False)
 

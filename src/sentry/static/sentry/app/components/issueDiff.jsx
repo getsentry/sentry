@@ -1,13 +1,12 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import createReactClass from 'create-react-class';
 import styled, {css} from 'react-emotion';
 
 import {addErrorMessage} from 'app/actionCreators/indicator';
 import {t} from 'app/locale';
-import ApiMixin from 'app/mixins/apiMixin';
+import withApi from 'app/utils/withApi';
 import LoadingIndicator from 'app/components/loadingIndicator';
-import rawStacktraceContent from 'app/components/events/interfaces/rawStacktraceContent';
+import getStacktraceBody from 'app/utils/getStacktraceBody';
 
 class IssueDiff extends React.Component {
   static propTypes = {
@@ -50,47 +49,14 @@ class IssueDiff extends React.Component {
       .then(([{default: SplitDiffAsync}, baseEvent, targetEvent]) => {
         this.setState({
           SplitDiffAsync,
-          baseEvent: this.getException(baseEvent),
-          targetEvent: this.getException(targetEvent),
+          baseEvent: getStacktraceBody(baseEvent),
+          targetEvent: getStacktraceBody(targetEvent),
           loading: false,
         });
       })
       .catch(() => {
         addErrorMessage(t('Error loading events'));
       });
-  }
-
-  getException(event) {
-    if (!event || !event.entries) {
-      return [];
-    }
-
-    // TODO(billyvg): This only accounts for the first exception, will need navigation to be able to
-    // diff multiple exceptions
-    //
-    // See: https://github.com/getsentry/sentry/issues/6055
-    const exc = event.entries.find(({type}) => type === 'exception');
-
-    if (!exc) {
-      // Look for a message if not an exception
-      const msg = event.entries.find(({type}) => type === 'message');
-      if (!msg) {
-        return [];
-      }
-
-      return msg.data && msg.data.message && [msg.data.message];
-    }
-
-    if (!exc.data) {
-      return [];
-    }
-
-    return exc.data.values
-      .filter(value => !!value.stacktrace)
-      .map(value => rawStacktraceContent(value.stacktrace, event.platform, value))
-      .reduce((acc, value) => {
-        return acc.concat(value);
-      }, []);
   }
 
   getEndpoint(issueId, eventId) {
@@ -129,15 +95,7 @@ class IssueDiff extends React.Component {
   }
 }
 
-const IssueDiffContainer = createReactClass({
-  displayName: 'IssueDiffContainer',
-  mixins: [ApiMixin],
-  render() {
-    return <IssueDiff {...this.props} api={this.api} />;
-  },
-});
-
-export default IssueDiffContainer;
+export default withApi(IssueDiff);
 export {IssueDiff};
 
 const getLoadingStyle = p =>

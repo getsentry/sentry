@@ -60,6 +60,7 @@
   > .btn {
     color: inherit;
     background: rgba(255, 255, 255, 0.85);
+
     &.dropdown-toggle {
       background: none;
     }
@@ -156,6 +157,7 @@
     &.hoverable {
       cursor: pointer;
       .transition(all 0s ease-in-out);
+
       &:hover {
         background-color: @white-dark;
       }
@@ -269,12 +271,15 @@
     &:last-child {
       border-bottom-color: transparent;
       border-radius: 0 0 3px 3px;
+
       .event-cell {
         border-bottom: 1px solid #e9ebec;
       }
+
       .event-details {
         border-radius: 0 0 0 4px;
       }
+
       .event-users {
         border-radius: 0 0 4px 0;
       }
@@ -309,6 +314,7 @@
       color: @gray-dark;
       word-wrap: break-word;
     }
+
     .event-extra {
       color: @gray;
     }
@@ -431,6 +437,7 @@
 
     .event-details {
       padding-left: 20px;
+
       &:after {
         left: -1px;
       }
@@ -478,6 +485,7 @@
       font-size: 12px;
       text-transform: uppercase;
       margin-left: -5px;
+
       &.debug-symbols {
         text-transform: none;
         padding-left: 12px;
@@ -498,6 +506,7 @@
 
 .awaiting-events {
   padding: 10px 20px 30px;
+
   .wrap {
     position: relative;
     max-width: 740px;
@@ -542,52 +551,63 @@
     background: @red;
     box-shadow: 0 0 10px @red;
   }
+
   50% {
     background: #4a4d67;
     box-shadow: none;
   }
+
   100% {
     background: @red;
     box-shadow: 0 0 10px @red;
   }
 }
+
 @-moz-keyframes blink-eye {
   0% {
     background: @red;
     box-shadow: 0 0 10px @red;
   }
+
   50% {
     background: #4a4d67;
     box-shadow: none;
   }
+
   100% {
     background: @red;
     box-shadow: 0 0 10px @red;
   }
 }
+
 @-o-keyframes blink-eye {
   0% {
     background: @red;
     box-shadow: 0 0 10px @red;
   }
+
   50% {
     background: #4a4d67;
     box-shadow: none;
   }
+
   100% {
     background: @red;
     box-shadow: 0 0 10px @red;
   }
 }
+
 @keyframes blink-eye {
   0% {
     background: @red;
     box-shadow: 0 0 10px @red;
   }
+
   50% {
     background: #4a4d67;
     box-shadow: none;
   }
+
   100% {
     background: @red;
     box-shadow: 0 0 10px @red;
@@ -604,6 +624,7 @@
 
 .issue-list {
   padding: 0;
+
   .issue {
     h3 {
       .icon-star-solid,
@@ -763,6 +784,7 @@
             &:after {
               display: none;
             }
+
             a {
               border-radius: 0 2px 2px 0;
             }
@@ -836,15 +858,20 @@
   font-size: 20px;
 }
 
-.stream-sort {
+.stream-dropdown {
   margin-right: 5px;
   z-index: 1001;
+
+  .dropdown {
+    display: inline-block;
+  }
 
   .dropdown-toggle {
     .btn-default;
     width: 176px;
     font-size: 14px;
-    border: 1px solid lighten(@gray-lighter, 7);
+    // Match colours with theme.jsx
+    border: 1px solid #d8d2de;
     padding: 6px 8px;
     border-radius: 3px;
 
@@ -852,6 +879,7 @@
     text-align: center;
 
     color: inherit;
+
     .icon-arrow-down {
       margin-left: 5px;
       margin-right: -2px;
@@ -867,15 +895,14 @@
     overflow: hidden;
   }
 
+  // Hide the caret
   .dropdown-menu {
-    top: 0;
+    top: auto;
     left: 1px;
     width: 163px;
 
+    &:after,
     &:before {
-      display: none;
-    }
-    &:after {
       display: none;
     }
   }
@@ -890,15 +917,12 @@
 * ============================================================================
 */
 
-.stream-header {
-  margin-bottom: 15px;
-}
-
 .stream-row {
   .clearfix();
 
   .search-container {
     display: flex;
+    width: 58.3%;
   }
 
   .search {
@@ -909,7 +933,7 @@
   .toggle-stream-sidebar {
     width: 50px;
     margin-left: 5px;
-    height: 38px;
+    height: 40px;
     text-align: center;
     padding: 8px;
 
@@ -961,6 +985,7 @@
       .btn-primary;
       box-shadow: inset 0 2px 0 rgba(0, 0, 0, 0.12);
     }
+
     .stream-content {
       width: 75%;
     }
@@ -1009,6 +1034,7 @@
   p {
     line-height: 1.2;
     margin: 0 auto 20px;
+
     &:last-child {
       margin-bottom: 0;
     }
@@ -1030,6 +1056,7 @@
 .stream-content .assignee-selector .dropdown-toggle {
   color: rgb(74, 62, 86); // gray4
 }
+
 /**
 * Responsive small screen
 * ============================================================================
@@ -1057,7 +1084,7 @@
     top: 10px !important;
   }
 
-  .stream-sort {
+  .stream-dropdown {
     line-height: 25px;
   }
 
@@ -1072,6 +1099,7 @@
   .stream-content {
     width: 100% !important;
   }
+
   .stream-sidebar {
     display: none;
   }
@@ -1083,6 +1111,7 @@
   .stream-actions .stream-actions-left,
   .group .event-details {
     padding-left: 36px;
+
     .checkbox {
       left: 33px;
     }
@@ -1165,7 +1194,7 @@
 }
 
 @media (max-width: 400px) {
-  .stream-sort {
+  .stream-dropdown {
     display: none;
   }
 

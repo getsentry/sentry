@@ -121,6 +121,11 @@ class DropdownAutoCompleteMenu extends React.Component {
     virtualizedHeight: PropTypes.number,
 
     /**
+     * If you use grouping with virtualizedHeight, the labels will be that height unless specified here
+     */
+    virtualizedLabelHeight: PropTypes.number,
+
+    /**
      * Search input's placeholder text
      */
     searchPlaceholder: PropTypes.string,
@@ -217,8 +222,19 @@ class DropdownAutoCompleteMenu extends React.Component {
     return this.filterItems(items, inputValue).map((item, index) => ({...item, index}));
   };
 
+  getHeight = items => {
+    const {maxHeight, virtualizedHeight, virtualizedLabelHeight} = this.props;
+    const minHeight = virtualizedLabelHeight
+      ? items.reduce(
+          (a, r) => a + (r.groupLabel ? virtualizedLabelHeight : virtualizedHeight),
+          0
+        )
+      : items.length * virtualizedHeight;
+    return Math.min(minHeight, maxHeight);
+  };
+
   renderList = ({items, ...otherProps}) => {
-    const {maxHeight, virtualizedHeight} = this.props;
+    const {virtualizedHeight, virtualizedLabelHeight} = this.props;
 
     // If `virtualizedHeight` is defined, use a virtualized list
     if (typeof virtualizedHeight !== 'undefined') {
@@ -227,9 +243,14 @@ class DropdownAutoCompleteMenu extends React.Component {
           {({width}) => (
             <List
               width={width}
-              height={Math.min(items.length * virtualizedHeight, maxHeight)}
+              style={{outline: 'none'}}
+              height={this.getHeight(items)}
               rowCount={items.length}
-              rowHeight={virtualizedHeight}
+              rowHeight={({index}) => {
+                return items[index].groupLabel && virtualizedLabelHeight
+                  ? virtualizedLabelHeight
+                  : virtualizedHeight;
+              }}
               rowRenderer={({key, index, style}) => {
                 const item = items[index];
                 return this.renderRow({
@@ -265,7 +286,7 @@ class DropdownAutoCompleteMenu extends React.Component {
     const {index} = item;
 
     return item.groupLabel ? (
-      <LabelWithBorder style={style} key={item.label || item.id}>
+      <LabelWithBorder style={style} key={item.value}>
         {item.label && <GroupLabel>{item.label}</GroupLabel>}
       </LabelWithBorder>
     ) : (
@@ -405,7 +426,10 @@ class DropdownAutoCompleteMenu extends React.Component {
                   <div>
                     {menuHeader && <LabelWithPadding>{menuHeader}</LabelWithPadding>}
 
-                    <StyledItemList maxHeight={maxHeight}>
+                    <StyledItemList
+                      data-test-id="autocomplete-list"
+                      maxHeight={maxHeight}
+                    >
                       {showNoItems && <EmptyMessage>{emptyMessage}</EmptyMessage>}
                       {showNoResultsMessage && (
                         <EmptyMessage>
@@ -577,8 +601,10 @@ const AutoCompleteItem = styled('div')`
 
 const LabelWithBorder = styled('div')`
   background-color: ${p => p.theme.offWhite};
-  border: 1px solid ${p => p.theme.borderLight};
+  border-bottom: 1px solid ${p => p.theme.borderLight};
   border-width: 1px 0;
+  color: ${p => p.theme.gray3};
+  font-size: ${p => p.theme.fontSizeMedium};
 
   &:first-child {
     border-top: none;
@@ -607,6 +633,7 @@ const StyledMenu = styled('div')`
       .menu}; /* This is needed to be able to cover e.g. pagination buttons, but also be below dropdown actor button's zindex */
   right: 0;
   box-shadow: ${p => p.theme.dropShadowLight};
+  overflow: hidden;
 
   ${getMenuBorderRadius};
   ${({alignMenu}) => (alignMenu === 'left' ? 'left: 0;' : '')};

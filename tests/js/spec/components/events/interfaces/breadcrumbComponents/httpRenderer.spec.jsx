@@ -41,7 +41,24 @@ describe('HttpRenderer', function() {
         />
       );
 
-      expect(httpRendererWrapper.find('.crumb-category').text()).toEqual('xhr');
+      expect(httpRendererWrapper.find('CrumbCategory').text()).toEqual('xhr');
+    });
+
+    it("shouldn't blow up if url is not a string", function() {
+      const httpRendererWrapper = mount(
+        <HttpRenderer
+          crumb={{
+            category: 'xhr',
+            type: 'http',
+            data: {
+              method: 'GET',
+              url: {},
+            },
+          }}
+        />
+      );
+
+      expect(httpRendererWrapper.find('CrumbCategory').text()).toEqual('xhr');
     });
   });
 });

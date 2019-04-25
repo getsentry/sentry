@@ -1,6 +1,5 @@
-/*eslint no-use-before-define: ["error", { "functions": false }]*/
 import React from 'react';
-import {uniq} from 'lodash';
+import {uniq, partition} from 'lodash';
 import moment from 'moment-timezone';
 
 import {Client} from 'app/api';
@@ -8,6 +7,7 @@ import {DEFAULT_STATS_PERIOD} from 'app/constants';
 import {t} from 'app/locale';
 
 import {openModal} from 'app/actionCreators/modal';
+import ConfigStore from 'app/stores/configStore';
 
 import MissingProjectWarningModal from './missingProjectWarningModal';
 import {COLUMNS, PROMOTED_TAGS, SPECIAL_TAGS, HIDDEN_TAGS} from './data';
@@ -20,7 +20,6 @@ const DEFAULTS = {
   fields: ['id', 'issue.id', 'project.name', 'platform', 'timestamp'],
   conditions: [],
   aggregations: [],
-  range: DEFAULT_STATS_PERIOD,
   orderby: '-timestamp',
   limit: 1000,
 };
@@ -42,9 +41,19 @@ function applyDefaults(query) {
 export default function createQueryBuilder(initial = {}, organization) {
   const api = new Client();
   let query = applyDefaults(initial);
-  const defaultProjects = organization.projects
-    .filter(projects => projects.isMember)
-    .map(project => parseInt(project.id, 10));
+
+  if (!query.start && !query.end && !query.range) {
+    query.range = DEFAULT_STATS_PERIOD;
+  }
+
+  const defaultProjects = organization.projects.filter(projects => projects.isMember);
+
+  const defaultProjectIds = getProjectIds(defaultProjects);
+
+  const projectsToFetchTags = getProjectIds(
+    ConfigStore.get('user').isSuperuser ? organization.projects : defaultProjects
+  );
+
   const columns = COLUMNS.map(col => ({...col, isTag: false}));
   let tags = [];
 
@@ -70,7 +79,7 @@ export default function createQueryBuilder(initial = {}, organization) {
    */
   function load() {
     return fetch({
-      projects: defaultProjects,
+      projects: projectsToFetchTags,
       fields: ['tags_key'],
       aggregations: [['count()', null, 'count']],
       orderby: '-count',
@@ -111,7 +120,15 @@ export default function createQueryBuilder(initial = {}, organization) {
    */
   function getExternal() {
     // Default to all projects if none is selected
-    const projects = query.projects.length ? query.projects : defaultProjects;
+    const projects = query.projects.length ? query.projects : defaultProjectIds;
+
+    // Default to DEFAULT_STATS_PERIOD when no date range selected (either relative or absolute)
+    const {range, start, end} = query;
+    const hasAbsolute = start && end;
+    const daterange = {
+      ...(hasAbsolute && {start, end}),
+      ...(range ? {range} : !hasAbsolute && {range: DEFAULT_STATS_PERIOD}),
+    };
 
     // Default to all fields if there are none selected, and no aggregation is
     // specified
@@ -126,6 +143,7 @@ export default function createQueryBuilder(initial = {}, organization) {
 
     return {
       ...query,
+      ...daterange,
       projects,
       fields,
     };
@@ -268,7 +286,7 @@ export default function createQueryBuilder(initial = {}, organization) {
         groupby: ['time'],
         rollup: 60 * 60 * 24,
         orderby: '-time',
-        limit: 1000,
+        limit: 5000,
       };
     }
 
@@ -299,23 +317,31 @@ export default function createQueryBuilder(initial = {}, organization) {
    * Resets the query to defaults or the query provided
    * Displays a warning if user does not have access to any project in the query
    *
+   * @param {Object} [q] optional query to reset to
    * @returns {Void}
    */
   function reset(q = {}) {
-    const invalidProjects = (q.projects || []).filter(
-      project => !defaultProjects.includes(project)
+    const [validProjects, invalidProjects] = partition(q.projects || [], project =>
+      defaultProjectIds.includes(project)
     );
 
     if (invalidProjects.length) {
       openModal(deps => (
         <MissingProjectWarningModal
           organization={organization}
-          projects={invalidProjects}
+          validProjects={validProjects}
+          invalidProjects={invalidProjects}
           {...deps}
         />
       ));
     }
 
+    q.projects = validProjects;
+
     query = applyDefaults(q);
   }
+}
+
+function getProjectIds(projects) {
+  return projects.map(project => parseInt(project.id, 10));
 }

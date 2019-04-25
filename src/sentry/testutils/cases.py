@@ -351,9 +351,7 @@ class BaseTestCase(Fixtures, Exam):
             assert deleted_log.organization_name == original_object.organization.name
             assert deleted_log.organization_slug == original_object.organization.slug
 
-        # Truncating datetime for mysql compatibility
-        assert deleted_log.date_created.replace(
-            microsecond=0) == original_object.date_added.replace(microsecond=0)
+        assert deleted_log.date_created == original_object.date_added
         assert deleted_log.date_deleted >= deleted_log.date_created
 
     def assertWriteQueries(self, queries, debug=False, *args, **kwargs):
@@ -798,6 +796,8 @@ class AcceptanceTestCase(TransactionTestCase):
             name=settings.SESSION_COOKIE_NAME,
             value=self.session.session_key,
         )
+        # Forward session cookie to django client.
+        self.client.cookies[settings.SESSION_COOKIE_NAME] = self.session.session_key
 
 
 class IntegrationTestCase(TestCase):

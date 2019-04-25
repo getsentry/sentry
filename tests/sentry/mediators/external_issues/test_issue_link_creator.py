@@ -56,6 +56,7 @@ class TestIssueLinkCreator(TestCase):
             action='create',
             uri='/link-issue',
             fields=fields,
+            user=self.user,
         )
 
         external_issue = PlatformExternalIssue.objects.all()[0]
@@ -72,4 +73,5 @@ class TestIssueLinkCreator(TestCase):
                 action='doop',
                 uri='/link-issue',
                 fields={},
+                user=self.user,
             )

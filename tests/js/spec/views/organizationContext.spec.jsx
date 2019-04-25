@@ -26,7 +26,12 @@ describe('OrganizationContext', function() {
 
   const createWrapper = props =>
     mount(
-      <OrganizationContext params={{orgId: 'org-slug'}} location={{query: {}}} {...props}>
+      <OrganizationContext
+        api={new MockApiClient()}
+        params={{orgId: 'org-slug'}}
+        location={{query: {}}}
+        {...props}
+      >
         <div />
       </OrganizationContext>
     );
@@ -155,7 +160,7 @@ describe('OrganizationContext', function() {
 
     wrapper = createWrapper({
       useLastOrganization: true,
-      params: {},
+      params: {orgId: 'foo'},
       organizationsLoading: true,
       organizations: [],
     });

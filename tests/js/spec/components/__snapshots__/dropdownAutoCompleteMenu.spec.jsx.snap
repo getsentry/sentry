@@ -65,7 +65,7 @@ exports[`DropdownAutoCompleteMenu renders with a group 1`] = `
               onMouseLeave={[Function]}
             >
               <div
-                className="css-1fwqu7l-StyledMenu-getMenuBorderRadius ejumqxq8"
+                className="css-fob2sh-StyledMenu-getMenuBorderRadius ejumqxq8"
                 onClick={[Function]}
                 onMouseDown={[Function]}
                 onMouseEnter={[Function]}
@@ -90,7 +90,7 @@ exports[`DropdownAutoCompleteMenu renders with a group 1`] = `
                       >
                         <input
                           autoFocus={true}
-                          className="css-dqpq6t-Input-inputStyles-StyledInput ejumqxq3"
+                          className="css-1rdiewf-Input-inputStyles-StyledInput ejumqxq3"
                           onBlur={[Function]}
                           onChange={[Function]}
                           onFocus={[Function]}
@@ -114,16 +114,18 @@ exports[`DropdownAutoCompleteMenu renders with a group 1`] = `
                 </StyledInputWrapper>
                 <div>
                   <StyledItemList
+                    data-test-id="autocomplete-list"
                     maxHeight={300}
                   >
                     <div
                       className="css-5kh8cy-StyledItemList ejumqxq9"
+                      data-test-id="autocomplete-list"
                     >
                       <LabelWithBorder
                         key="countries"
                       >
                         <div
-                          className="css-o8s6pc-LabelWithBorder ejumqxq5"
+                          className="css-1lqzols-LabelWithBorder ejumqxq5"
                         >
                           <GroupLabel>
                             <div
@@ -242,7 +244,7 @@ exports[`DropdownAutoCompleteMenu renders without a group 1`] = `
               onMouseLeave={[Function]}
             >
               <div
-                className="css-1fwqu7l-StyledMenu-getMenuBorderRadius ejumqxq8"
+                className="css-fob2sh-StyledMenu-getMenuBorderRadius ejumqxq8"
                 onClick={[Function]}
                 onMouseDown={[Function]}
                 onMouseEnter={[Function]}
@@ -267,7 +269,7 @@ exports[`DropdownAutoCompleteMenu renders without a group 1`] = `
                       >
                         <input
                           autoFocus={true}
-                          className="css-dqpq6t-Input-inputStyles-StyledInput ejumqxq3"
+                          className="css-1rdiewf-Input-inputStyles-StyledInput ejumqxq3"
                           onBlur={[Function]}
                           onChange={[Function]}
                           onFocus={[Function]}
@@ -291,10 +293,12 @@ exports[`DropdownAutoCompleteMenu renders without a group 1`] = `
                 </StyledInputWrapper>
                 <div>
                   <StyledItemList
+                    data-test-id="autocomplete-list"
                     maxHeight={300}
                   >
                     <div
                       className="css-5kh8cy-StyledItemList ejumqxq9"
+                      data-test-id="autocomplete-list"
                     >
                       <AutoCompleteItem
                         highlightedIndex={0}

@@ -7,7 +7,6 @@ import isPropValid from '@emotion/is-prop-valid';
 
 import {escape, percent} from 'app/utils';
 import {t} from 'app/locale';
-import ApiMixin from 'app/mixins/apiMixin';
 import DeviceName, {
   deviceNameMapper,
   loadDeviceListModule,
@@ -29,8 +28,6 @@ const TagDistributionMeter = createReactClass({
     totalValues: PropTypes.number,
     topValues: PropTypes.array,
   },
-
-  mixins: [ApiMixin],
 
   getInitialState() {
     return {

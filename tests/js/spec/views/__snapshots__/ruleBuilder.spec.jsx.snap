@@ -460,7 +460,7 @@ exports[`RuleBuilder renders 1`] = `
         value=""
       >
         <input
-          className="css-1enrgn8-Input-inputStyles-BuilderInput e1hyuoc77"
+          className="css-exo5e5-Input-inputStyles-BuilderInput e1hyuoc77"
           onChange={[Function]}
           placeholder="src/example/*"
           value=""
@@ -1001,18 +1001,20 @@ exports[`RuleBuilder renders 1`] = `
             size="small"
             to={null}
           >
-            <Component
+            <ForwardRef
               aria-disabled={true}
-              className="e1hyuoc79 css-ogw40-StyledButton-getColors-AddButton eqrebog0"
+              className="e1hyuoc79 css-ogw40-StyledButton-getColors-AddButton e12ma6z0"
+              disabled={true}
               href={null}
               onClick={[Function]}
+              priority="primary"
               role="button"
               size="small"
               to={null}
             >
               <button
                 aria-disabled={true}
-                className="e1hyuoc79 css-ogw40-StyledButton-getColors-AddButton eqrebog0"
+                className="e1hyuoc79 css-ogw40-StyledButton-getColors-AddButton e12ma6z0"
                 href={null}
                 onClick={[Function]}
                 role="button"
@@ -1024,24 +1026,24 @@ exports[`RuleBuilder renders 1`] = `
                   size="small"
                 >
                   <Component
-                    className="css-7ui8bl-ButtonLabel eqrebog1"
+                    className="css-7ui8bl-ButtonLabel e12ma6z1"
                     priority="primary"
                     size="small"
                   >
                     <span
-                      className="css-7ui8bl-ButtonLabel eqrebog1"
+                      className="css-7ui8bl-ButtonLabel e12ma6z1"
                     >
                       <Icon
                         hasChildren={false}
                         size="small"
                       >
                         <Component
-                          className="css-ljhpxy-Icon eqrebog2"
+                          className="css-ljhpxy-Icon e12ma6z2"
                           hasChildren={false}
                           size="small"
                         >
                           <span
-                            className="css-ljhpxy-Icon eqrebog2"
+                            className="css-ljhpxy-Icon e12ma6z2"
                             size="small"
                           >
                             <StyledInlineSvg
@@ -1049,18 +1051,18 @@ exports[`RuleBuilder renders 1`] = `
                               src="icon-circle-add"
                             >
                               <InlineSvg
-                                className="css-1ov3rcq-StyledInlineSvg eqrebog3"
+                                className="css-1ov3rcq-StyledInlineSvg e12ma6z3"
                                 size="12px"
                                 src="icon-circle-add"
                               >
                                 <StyledSvg
-                                  className="css-1ov3rcq-StyledInlineSvg eqrebog3"
+                                  className="css-1ov3rcq-StyledInlineSvg e12ma6z3"
                                   height="12px"
                                   viewBox={Object {}}
                                   width="12px"
                                 >
                                   <svg
-                                    className="eqrebog3 css-1jjmnki-StyledSvg-StyledInlineSvg e2idor0"
+                                    className="e12ma6z3 css-1jjmnki-StyledSvg-StyledInlineSvg e2idor0"
                                     height="12px"
                                     viewBox={Object {}}
                                     width="12px"
@@ -1080,7 +1082,7 @@ exports[`RuleBuilder renders 1`] = `
                   </Component>
                 </ButtonLabel>
               </button>
-            </Component>
+            </ForwardRef>
           </StyledButton>
         </Button>
       </AddButton>
@@ -1757,7 +1759,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
         value="a/bar"
       >
         <input
-          className="css-1enrgn8-Input-inputStyles-BuilderInput e1hyuoc77"
+          className="css-exo5e5-Input-inputStyles-BuilderInput e1hyuoc77"
           onChange={[Function]}
           placeholder="src/example/*"
           value="a/bar"
@@ -2816,16 +2818,18 @@ exports[`RuleBuilder renders with suggestions 1`] = `
             role="button"
             size="small"
           >
-            <Component
+            <ForwardRef
               aria-disabled={false}
-              className="e1hyuoc79 css-1q9tuf6-StyledButton-getColors-AddButton eqrebog0"
+              className="e1hyuoc79 css-1q9tuf6-StyledButton-getColors-AddButton e12ma6z0"
+              disabled={false}
               onClick={[Function]}
+              priority="primary"
               role="button"
               size="small"
             >
               <button
                 aria-disabled={false}
-                className="e1hyuoc79 css-1q9tuf6-StyledButton-getColors-AddButton eqrebog0"
+                className="e1hyuoc79 css-1q9tuf6-StyledButton-getColors-AddButton e12ma6z0"
                 onClick={[Function]}
                 role="button"
                 size="small"
@@ -2835,24 +2839,24 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                   size="small"
                 >
                   <Component
-                    className="css-7ui8bl-ButtonLabel eqrebog1"
+                    className="css-7ui8bl-ButtonLabel e12ma6z1"
                     priority="primary"
                     size="small"
                   >
                     <span
-                      className="css-7ui8bl-ButtonLabel eqrebog1"
+                      className="css-7ui8bl-ButtonLabel e12ma6z1"
                     >
                       <Icon
                         hasChildren={false}
                         size="small"
                       >
                         <Component
-                          className="css-ljhpxy-Icon eqrebog2"
+                          className="css-ljhpxy-Icon e12ma6z2"
                           hasChildren={false}
                           size="small"
                         >
                           <span
-                            className="css-ljhpxy-Icon eqrebog2"
+                            className="css-ljhpxy-Icon e12ma6z2"
                             size="small"
                           >
                             <StyledInlineSvg
@@ -2860,18 +2864,18 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                               src="icon-circle-add"
                             >
                               <InlineSvg
-                                className="css-1ov3rcq-StyledInlineSvg eqrebog3"
+                                className="css-1ov3rcq-StyledInlineSvg e12ma6z3"
                                 size="12px"
                                 src="icon-circle-add"
                               >
                                 <StyledSvg
-                                  className="css-1ov3rcq-StyledInlineSvg eqrebog3"
+                                  className="css-1ov3rcq-StyledInlineSvg e12ma6z3"
                                   height="12px"
                                   viewBox={Object {}}
                                   width="12px"
                                 >
                                   <svg
-                                    className="eqrebog3 css-1jjmnki-StyledSvg-StyledInlineSvg e2idor0"
+                                    className="e12ma6z3 css-1jjmnki-StyledSvg-StyledInlineSvg e2idor0"
                                     height="12px"
                                     viewBox={Object {}}
                                     width="12px"
@@ -2891,7 +2895,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                   </Component>
                 </ButtonLabel>
               </button>
-            </Component>
+            </ForwardRef>
           </StyledButton>
         </Button>
       </AddButton>

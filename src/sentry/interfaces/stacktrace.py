@@ -10,7 +10,6 @@ from __future__ import absolute_import
 
 __all__ = ('Stacktrace', )
 
-import re
 import six
 from itertools import islice, chain
 
@@ -24,11 +23,6 @@ from sentry.interfaces.schemas import validate_and_default_interface
 from sentry.models import UserOption
 from sentry.utils.safe import trim, trim_dict
 from sentry.web.helpers import render_to_string
-
-
-# Native function trim re.  For now this is a simple hack until we have the
-# language hints in which will let us trim this down better.
-_native_function_trim_re = re.compile(r'^(.[^(]*)\(')
 
 
 def max_addr(cur, addr):
@@ -53,20 +47,6 @@ def trim_package(pkg):
     if pkg.endswith(('.dylib', '.so', '.a')):
         pkg = pkg.rsplit('.', 1)[0]
     return pkg
-
-
-def trim_function_name(func, platform):
-    # TODO(mitsuhiko): we actually want to use the language information here
-    # but we don't have that yet.
-    if platform in ('objc', 'cocoa', 'native'):
-        # objc function
-        if func.startswith(('[', '+[', '-[')):
-            return func
-        # c/c++ function hopefully
-        match = _native_function_trim_re.match(func.strip())
-        if match is not None:
-            return match.group(1).strip()
-    return func
 
 
 def to_hex_addr(addr):
@@ -376,7 +356,7 @@ class Frame(Interface):
             'colno': self.colno
         })
 
-    def get_api_context(self, is_public=False, pad_addr=None):
+    def get_api_context(self, is_public=False, pad_addr=None, platform=None):
         data = {
             'filename': self.filename,
             'absPath': self.abs_path,
@@ -418,7 +398,7 @@ class Frame(Interface):
 
         return data
 
-    def get_meta_context(self, meta, is_public=False):
+    def get_meta_context(self, meta, is_public=False, platform=None):
         if not meta:
             return
 
@@ -663,7 +643,8 @@ class Stacktrace(Interface):
         # This is a simplified logic from how the normalizer works.
         # Because this always works on normalized data we do not have to
         # consider the "all frames are in_app" case.  The normalizer lives
-        # in stacktraces.normalize_in_app which will take care of that.
+        # in stacktraces.normalize_stacktraces_for_grouping which will take
+        # care of that.
         return any(frame.in_app for frame in self.frames)
 
     def get_longest_address(self):
@@ -673,11 +654,12 @@ class Stacktrace(Interface):
             rv = max_addr(rv, frame.symbol_addr)
         return rv
 
-    def get_api_context(self, is_public=False):
+    def get_api_context(self, is_public=False, platform=None):
         longest_addr = self.get_longest_address()
 
         frame_list = [
-            f.get_api_context(is_public=is_public, pad_addr=longest_addr) for f in self.frames
+            f.get_api_context(is_public=is_public, pad_addr=longest_addr,
+                              platform=platform) for f in self.frames
         ]
 
         return {
@@ -687,7 +669,7 @@ class Stacktrace(Interface):
             'hasSystemFrames': self.get_has_system_frames(),
         }
 
-    def get_api_meta(self, meta, is_public=False):
+    def get_api_meta(self, meta, is_public=False, platform=None):
         if not meta:
             return meta
 
@@ -696,7 +678,8 @@ class Stacktrace(Interface):
             if index == '':
                 continue
             frame = self.frames[int(index)]
-            frame_meta[index] = frame.get_api_meta(value, is_public=is_public)
+            frame_meta[index] = frame.get_api_meta(value, is_public=is_public,
+                                                   platform=platform)
 
         return {
             '': meta.get(''),

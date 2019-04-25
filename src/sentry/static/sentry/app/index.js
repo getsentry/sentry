@@ -20,6 +20,7 @@ import * as ReactEmotion from 'react-emotion';
 import Reflux from 'reflux';
 import * as Router from 'react-router';
 import * as Sentry from '@sentry/browser';
+import {ExtraErrorData} from '@sentry/integrations';
 import createReactClass from 'create-react-class';
 import jQuery from 'jquery';
 import moment from 'moment';
@@ -35,7 +36,10 @@ import plugins from 'app/plugins';
 
 // SDK INIT  --------------------------------------------------------
 // window.__SENTRY__OPTIONS will be emmited by sdk-config.html before loading this script
-Sentry.init(window.__SENTRY__OPTIONS);
+Sentry.init({
+  ...window.__SENTRY__OPTIONS,
+  integrations: [new ExtraErrorData()],
+});
 
 Sentry.configureScope(scope => {
   if (window.__SENTRY__USER) {
@@ -222,7 +226,6 @@ const globals = {
     Tooltip: require('app/components/tooltip').default,
     U2fEnrollment: require('app/components/u2fenrollment').default,
     U2fSign: require('app/components/u2fsign').default,
-    Waiting: require('app/views/onboarding/configure/waiting').default,
     Badge: require('app/components/badge').default,
     Tag: require('app/views/settings/components/tag').default,
     Switch: require('app/components/switch').default,
@@ -238,8 +241,6 @@ const globals = {
       ajaxCsrfSetup: require('app/utils/ajaxCsrfSetup').default,
       logging: require('app/utils/logging'),
       descopeFeatureName: require('app/utils').descopeFeatureName,
-      onboardingSteps: require('app/views/onboarding/utils').onboardingSteps,
-      stepDescriptions: require('app/views/onboarding/utils').stepDescriptions,
       withApi: require('app/utils/withApi').default,
       getDisplayName: require('app/utils/getDisplayName').default,
     },

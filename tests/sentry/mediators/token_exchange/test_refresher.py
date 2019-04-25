@@ -1,9 +1,6 @@
 from __future__ import absolute_import
 
-import pytz
-
 from mock import patch
-from datetime import datetime, timedelta
 
 from sentry.coreapi import APIUnauthorized
 from sentry.models import ApiApplication, ApiToken, SentryApp
@@ -34,9 +31,9 @@ class TestRefresher(TestCase):
     def test_happy_path(self):
         assert self.refresher.call()
 
-    def test_expires_active_token(self):
+    def test_deletes_refreshed_token(self):
         self.refresher.call()
-        assert ApiToken.objects.get(id=self.token.id).expires_at < datetime.now(pytz.UTC)
+        assert not ApiToken.objects.filter(id=self.token.id).exists()
 
     @patch('sentry.mediators.token_exchange.Validator.run')
     def test_validates_generic_token_exchange_requirements(self, validator):
@@ -59,12 +56,6 @@ class TestRefresher(TestCase):
         with self.assertRaises(APIUnauthorized):
             self.refresher.call()
 
-    def test_cannot_exchange_expired_token(self):
-        self.token.update(expires_at=(datetime.utcnow() - timedelta(hours=1)))
-
-        with self.assertRaises(APIUnauthorized):
-            self.refresher.call()
-
     @patch('sentry.models.ApiToken.objects.get', side_effect=ApiToken.DoesNotExist)
     def test_token_must_exist(self, _):
         with self.assertRaises(APIUnauthorized):
@@ -79,3 +70,18 @@ class TestRefresher(TestCase):
     def test_sentry_app_must_exist(self, _):
         with self.assertRaises(APIUnauthorized):
             self.refresher.call()
+
+    @patch('sentry.analytics.record')
+    def test_records_analytics(self, record):
+        Refresher.run(
+            install=self.install,
+            client_id=self.client_id,
+            refresh_token=self.token.refresh_token,
+            user=self.user,
+        )
+
+        record.assert_called_with(
+            'sentry_app.token_exchanged',
+            sentry_app_installation_id=self.install.id,
+            exchange_type='refresh',
+        )

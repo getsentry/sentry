@@ -20,7 +20,7 @@ from sentry.models import (
     Activity, Environment, Event, ExternalIssue, Group, GroupEnvironment,
     GroupHash, GroupLink, GroupRelease, GroupResolution, GroupStatus,
     GroupTombstone, EventMapping, Integration, Release,
-    ReleaseProjectEnvironment, OrganizationIntegration, UserReport
+    ReleaseProjectEnvironment, OrganizationIntegration, UserReport,
 )
 from sentry.signals import event_discarded, event_saved
 from sentry.testutils import assert_mock_called_once_with_partial, TestCase
@@ -151,7 +151,7 @@ class EventManagerTest(TestCase):
         group = Group.objects.get(id=event.group_id)
 
         assert group.times_seen == 2
-        assert group.last_seen.replace(microsecond=0) == event2.datetime.replace(microsecond=0)
+        assert group.last_seen == event2.datetime
         assert group.message == event2.message
         assert group.data.get('type') == 'default'
         assert group.data.get('metadata') == {
@@ -185,7 +185,7 @@ class EventManagerTest(TestCase):
         group = Group.objects.get(id=event.group_id)
 
         assert group.times_seen == 2
-        assert group.last_seen.replace(microsecond=0) == event.datetime.replace(microsecond=0)
+        assert group.last_seen == event.datetime
         assert group.message == event2.message
 
     def test_differentiates_with_fingerprint(self):
@@ -217,7 +217,7 @@ class EventManagerTest(TestCase):
         ts = time() - 300
 
         # N.B. EventManager won't unresolve the group unless the event2 has a
-        # later timestamp than event1. MySQL doesn't support microseconds.
+        # later timestamp than event1.
         manager = EventManager(
             make_event(
                 event_id='a' * 32,
@@ -249,7 +249,7 @@ class EventManagerTest(TestCase):
     @mock.patch('sentry.event_manager.plugin_is_regression')
     def test_does_not_unresolve_group(self, plugin_is_regression):
         # N.B. EventManager won't unresolve the group unless the event2 has a
-        # later timestamp than event1. MySQL doesn't support microseconds.
+        # later timestamp than event1.
         plugin_is_regression.return_value = False
 
         manager = EventManager(
@@ -611,13 +611,8 @@ class EventManagerTest(TestCase):
         assert event.group_id == event2.group_id
 
         group = Group.objects.get(id=event.group.id)
-        # MySQL removes sub-second portion
-        assert group.active_at.replace(
-            second=0, microsecond=0) == event2.datetime.replace(
-            second=0, microsecond=0)
-        assert group.active_at.replace(
-            second=0, microsecond=0) != event.datetime.replace(
-            second=0, microsecond=0)
+        assert group.active_at.replace(second=0) == event2.datetime.replace(second=0)
+        assert group.active_at.replace(second=0) != event.datetime.replace(second=0)
 
     def test_invalid_transaction(self):
         dict_input = {'messages': 'foo'}

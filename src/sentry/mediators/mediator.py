@@ -160,6 +160,7 @@ class Mediator(object):
         with obj.log():
             result = obj.call()
             obj.audit()
+            obj.record_analytics()
             return result
 
     def __init__(self, *args, **kwargs):
@@ -170,6 +171,10 @@ class Mediator(object):
 
     def audit(self):
         # used for creating audit log entries
+        pass
+
+    def record_analytics(self):
+        # used to record data to Amplitude
         pass
 
     def call(self):

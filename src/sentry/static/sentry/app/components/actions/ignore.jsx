@@ -83,7 +83,11 @@ export default class IgnoreActions extends React.Component {
       return (
         <div className="btn-group">
           <Tooltip title={t('Change status to unresolved')}>
-            <a className={linkClassName} onClick={() => onUpdate({status: 'unresolved'})}>
+            <a
+              className={linkClassName}
+              data-test-id="button-unresolve"
+              onClick={() => onUpdate({status: 'unresolved'})}
+            >
               <span className="icon-ban" />
             </a>
           </Tooltip>
@@ -119,13 +123,14 @@ export default class IgnoreActions extends React.Component {
           windowChoices={this.getIgnoreWindows()}
         />
         <div className="btn-group">
+          <GuideAnchor target="ignore_delete_discard" type="text" />
           <ActionLink
             {...actionLinkProps}
+            title="Ignore"
             className={linkClassName}
             onAction={() => onUpdate({status: 'ignored'})}
           >
             <span className="icon-ban hidden-xs" style={{marginRight: 5}} />
-            <GuideAnchor target="ignore_delete_discard" type="text" />
             {t('Ignore')}
           </ActionLink>
 

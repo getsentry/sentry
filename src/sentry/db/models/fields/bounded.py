@@ -71,15 +71,8 @@ if settings.SENTRY_USE_BIG_INTS:
 
         def db_type(self, connection):
             engine = connection.settings_dict['ENGINE']
-            if 'mysql' in engine:
-                return "bigint AUTO_INCREMENT"
-            elif 'oracle' in engine:
-                return "NUMBER(19)"
-            elif 'postgres' in engine:
+            if 'postgres' in engine:
                 return "bigserial"
-            # SQLite doesnt actually support bigints with auto incr
-            elif 'sqlite' in engine:
-                return 'integer'
             else:
                 raise NotImplemented
 

@@ -64,6 +64,10 @@ const GuideAnchor = createReactClass({
 
   render() {
     const {target, type} = this.props;
+    const {active} = this.state;
+    if (!active) {
+      return this.props.children ? this.props.children : null;
+    }
 
     return (
       <GuideAnchorContainer innerRef={el => (this.anchorElement = el)} type={type}>

@@ -6,6 +6,7 @@ from sentry.coreapi import APIUnauthorized
 from sentry.mediators import Mediator, Param, external_requests
 from sentry.models import PlatformExternalIssue
 from sentry.utils.cache import memoize
+from sentry.utils.html import escape
 
 
 class IssueLinkCreator(Mediator):
@@ -14,6 +15,7 @@ class IssueLinkCreator(Mediator):
     action = Param(six.string_types)
     fields = Param(object)
     uri = Param(six.string_types)
+    user = Param('sentry.models.User')
 
     def call(self):
         self._verify_action()
@@ -31,14 +33,15 @@ class IssueLinkCreator(Mediator):
             uri=self.uri,
             group=self.group,
             fields=self.fields,
+            user=self.user,
         )
 
     def _format_response_data(self):
         web_url = self.response['webUrl']
 
         display_name = u'{}#{}'.format(
-            self.response['project'],
-            self.response['identifier'],
+            escape(self.response['project']),
+            escape(self.response['identifier']),
         )
 
         return [web_url, display_name]

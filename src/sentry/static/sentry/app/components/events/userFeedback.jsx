@@ -1,11 +1,15 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import Avatar from 'app/components/avatar';
-import TimeSince from 'app/components/timeSince';
-import utils from 'app/utils';
-import Link from 'app/components/link';
+import styled from 'react-emotion';
 
 import {t} from 'app/locale';
+import Avatar from 'app/components/avatar';
+import Clipboard from 'app/components/clipboard';
+import InlineSvg from 'app/components/inlineSvg';
+import Link from 'app/components/link';
+import TimeSince from 'app/components/timeSince';
+import space from 'app/styles/space';
+import utils from 'app/utils';
 
 class EventUserFeedback extends React.Component {
   static propTypes = {
@@ -20,8 +24,8 @@ class EventUserFeedback extends React.Component {
     const {report, orgId, projectId, issueId} = this.props;
 
     return projectId
-      ? `/${orgId}/${projectId}/issues/${issueId}/events/${report.event.id}/`
-      : `/organizations/${orgId}/issues/${issueId}/events/${report.event.id}/`;
+      ? `/${orgId}/${projectId}/issues/${issueId}/events/${report.event.eventID}/`
+      : `/organizations/${orgId}/issues/${issueId}/events/${report.event.eventID}/`;
   }
 
   render() {
@@ -38,9 +42,14 @@ class EventUserFeedback extends React.Component {
                   <TimeSince date={report.dateCreated} />
                   <div className="activity-author">
                     {report.name}
-                    <small>{report.email}</small>
-                    {/* event_id might be undefined for legacy accounts */}
-                    {report.event.id && (
+                    <Clipboard value={report.email}>
+                      <Email>
+                        {report.email}
+                        <CopyIcon src="icon-copy" />
+                      </Email>
+                    </Clipboard>
+                    {/* event.eventID might be undefined for legacy accounts */}
+                    {report.event.eventID && (
                       <small>
                         <Link to={this.getUrl()}>{t('View event')}</Link>
                       </small>
@@ -62,3 +71,14 @@ class EventUserFeedback extends React.Component {
 }
 
 export default EventUserFeedback;
+
+const Email = styled('span')`
+  font-size: ${p => p.theme.fontSizeSmall};
+  font-weight: normal;
+  cursor: pointer;
+  margin-left: ${space(1)};
+`;
+
+const CopyIcon = styled(InlineSvg)`
+  margin-left: ${space(0.25)};
+`;

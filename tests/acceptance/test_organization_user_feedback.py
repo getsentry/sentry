@@ -27,13 +27,13 @@ class OrganizationUserFeedbackTest(AcceptanceTestCase):
 
     def test(self):
         with self.feature('organizations:sentry10'):
-            self.create_group(
-                project=self.project,
-                message='Foo bar',
-            )
-            self.create_userreport(group=self.group, project=self.project, event=self.event)
+            self.create_userreport(
+                date_added=timezone.now(),
+                group=self.group,
+                project=self.project)
             self.browser.get(self.path)
             self.browser.wait_until_not('.loading-indicator')
+            self.browser.wait_until('[data-test-id="user-feedback-list"]')
             self.browser.snapshot('organization user feedback')
 
     def test_empty(self):
@@ -44,4 +44,5 @@ class OrganizationUserFeedbackTest(AcceptanceTestCase):
 
     def test_no_access(self):
         self.browser.get(self.path)
+        self.browser.wait_until_not('.loading-indicator')
         self.browser.snapshot('organization user feedback - no access')

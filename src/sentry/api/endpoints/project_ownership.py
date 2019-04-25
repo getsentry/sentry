@@ -17,6 +17,7 @@ from sentry.ownership.grammar import parse_rules, dump_schema, ParseError
 class ProjectOwnershipSerializer(serializers.Serializer):
     raw = serializers.CharField()
     fallthrough = serializers.BooleanField()
+    autoAssignment = serializers.BooleanField()
 
     def validate_raw(self, attrs, source):
         if not attrs[source].strip():
@@ -70,6 +71,8 @@ class ProjectOwnershipSerializer(serializers.Serializer):
                 ownership.fallthrough = fallthrough
                 changed = True
 
+        changed = self.__modify_auto_assignment(ownership) or changed
+
         if changed:
             now = timezone.now()
             if ownership.date_created is None:
@@ -78,6 +81,19 @@ class ProjectOwnershipSerializer(serializers.Serializer):
             ownership.save()
 
         return ownership
+
+    def __modify_auto_assignment(self, ownership):
+        auto_assignment = self.object.get('autoAssignment')
+
+        if auto_assignment is None:
+            return False
+
+        changed = ownership.auto_assignment != auto_assignment
+
+        if changed:
+            ownership.auto_assignment = auto_assignment
+
+        return changed
 
 
 class ProjectOwnershipEndpoint(ProjectEndpoint):

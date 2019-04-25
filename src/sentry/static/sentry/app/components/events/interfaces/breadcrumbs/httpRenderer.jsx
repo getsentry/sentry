@@ -1,6 +1,7 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 
+import {t} from 'app/locale';
 import CrumbTable from 'app/components/events/interfaces/breadcrumbs/crumbTable';
 import SummaryLine from 'app/components/events/interfaces/breadcrumbs/summaryLine';
 
@@ -10,11 +11,15 @@ class HttpRenderer extends React.Component {
   };
 
   renderUrl = url => {
-    return typeof url === 'string' && url.match(/^https?:\/\//) ? (
-      <a href={url}>{url}</a>
-    ) : (
-      <em>{url}</em>
-    );
+    if (typeof url === 'string') {
+      return url.match(/^https?:\/\//) ? <a href={url}>{url}</a> : <em>{url}</em>;
+    }
+
+    try {
+      return JSON.stringify(url);
+    } catch (e) {
+      return t('Invalid URL');
+    }
   };
 
   render() {

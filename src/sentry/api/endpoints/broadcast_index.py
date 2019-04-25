@@ -24,19 +24,24 @@ logger = logging.getLogger('sentry')
 class BroadcastIndexEndpoint(Endpoint):
     permission_classes = (IsAuthenticated, )
 
-    def _serialize_objects(self, items, request):
+    def _get_serializer(self, request):
         if is_active_superuser(request):
-            serializer_cls = AdminBroadcastSerializer
-        else:
-            serializer_cls = BroadcastSerializer
+            return AdminBroadcastSerializer
+        return BroadcastSerializer
 
+    def _serialize_objects(self, items, request):
+        serializer_cls = self._get_serializer(request)
         return serialize(items, request.user, serializer=serializer_cls())
 
-    def get(self, request):
+    def _secondary_filtering(self, request, organization_slug, queryset):
+        # used in the SASS product
+        return list(queryset)
+
+    def get(self, request, organization_slug=None):
         if request.GET.get('show') == 'all' and is_active_superuser(
                 request) and request.access.has_permission('broadcasts.admin'):
             # superusers can slice and dice
-            queryset = Broadcast.objects.all()
+            queryset = Broadcast.objects.all().order_by('-date_added')
         else:
             # only allow active broadcasts if they're not a superuser
             queryset = Broadcast.objects.filter(
@@ -77,6 +82,10 @@ class BroadcastIndexEndpoint(Endpoint):
                         queryset = queryset.filter(six.moves.reduce(or_, filters))
                 else:
                     queryset = queryset.none()
+
+        if organization_slug:
+            data = self._secondary_filtering(request, organization_slug, queryset)
+            return self.respond(self._serialize_objects(data, request))
 
         sort_by = request.GET.get('sortBy')
         if sort_by == 'expires':
@@ -151,6 +160,7 @@ class BroadcastIndexEndpoint(Endpoint):
                 title=result['title'],
                 message=result['message'],
                 link=result['link'],
+                cta=result['cta'],
                 is_active=result.get('isActive') or False,
                 date_expires=result.get('dateExpires'),
             )

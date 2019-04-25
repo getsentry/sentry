@@ -2,16 +2,16 @@ import {Redirect, Route, IndexRoute, IndexRedirect} from 'react-router';
 import React from 'react';
 
 import App from 'app/views/app';
-import CreateProject from 'app/views/onboarding/createProject';
-import HookStore from 'app/stores/hookStore';
 import HookOrDefault from 'app/components/hookOrDefault';
+import HookStore from 'app/stores/hookStore';
 import LazyLoad from 'app/components/lazyLoad';
 import MyIssuesAssignedToMe from 'app/views/myIssues/assignedToMe';
 import MyIssuesBookmarked from 'app/views/myIssues/bookmarked';
 import MyIssuesViewed from 'app/views/myIssues/viewed';
 import NewProject from 'app/views/projectInstall/newProject';
-import OnboardingConfigure from 'app/views/onboarding/configure/index';
-import OnboardingWizard from 'app/views/onboarding/index';
+import OnboardingConfigure from 'app/views/onboarding/configure';
+import OnboardingNewProject from 'app/views/onboarding/newProject';
+import OnboardingWizard from 'app/views/onboarding/wizard';
 import OrganizationActivity from 'app/views/organizationActivity';
 import OrganizationContext from 'app/views/organizationContext';
 import OrganizationCreate from 'app/views/organizationCreate';
@@ -27,11 +27,10 @@ import ProjectChooser from 'app/views/projectChooser';
 import ProjectDataForwarding from 'app/views/projectDataForwarding';
 import ProjectDebugFiles from 'app/views/projectDebugFiles';
 import ProjectDetails from 'app/views/projectDetails';
-import ProjectDocsContext from 'app/views/projectInstall/docsContext';
 import ProjectEnvironments from 'app/views/projectEnvironments';
 import ProjectEventRedirect from 'app/views/projectEventRedirect';
 import ProjectGettingStarted from 'app/views/projectInstall/gettingStarted';
-import ProjectGroupDetails from 'app/views/groupDetails/project/index';
+import ProjectGroupDetails from 'app/views/groupDetails/project';
 import ProjectGroupEventDetails from 'app/views/groupDetails/project/groupEventDetails';
 import ProjectGroupEvents from 'app/views/groupDetails/project/groupEvents';
 import ProjectGroupMergedView from 'app/views/groupDetails/shared/groupMerged';
@@ -129,7 +128,7 @@ function routes() {
         >
           <IndexRoute
             componentPromise={() =>
-              import(/* webpackChunkName: "AccountSecurity" */ './views/settings/account/accountSecurity/index')
+              import(/* webpackChunkName: "AccountSecurity" */ './views/settings/account/accountSecurity')
             }
             component={errorHandler(LazyLoad)}
           />
@@ -246,7 +245,10 @@ function routes() {
         component={errorHandler(LazyLoad)}
       />
       <Route name="Alerts" path="alerts/">
-        <IndexRoute
+        <IndexRedirect to="rules/" />
+        <Route
+          path="settings/"
+          name="Settings"
           component={errorHandler(LazyLoad)}
           componentPromise={() =>
             import(/* webpackChunkName: "ProjectAlertSettings" */ './views/settings/projectAlerts/projectAlertSettings')
@@ -430,11 +432,7 @@ function routes() {
           component={errorHandler(ProjectPluginDetails)}
         />
       </Route>
-      <Route
-        path="install/"
-        name="Configuration"
-        component={errorHandler(ProjectDocsContext)}
-      >
+      <Route path="install/" name="Configuration">
         <IndexRoute component={errorHandler(ProjectInstallOverview)} />
         <Route
           path=":platform/"
@@ -618,7 +616,7 @@ function routes() {
           component={errorHandler(LazyLoad)}
         />
         <Route
-          name="New Application"
+          name="New Integration"
           path="new/"
           componentPromise={() =>
             import(/* webpackChunkName: "sentryApplicationDetails" */ './views/settings/organizationDeveloperSettings/sentryApplicationDetails')
@@ -626,7 +624,7 @@ function routes() {
           component={errorHandler(LazyLoad)}
         />
         <Route
-          name="Edit Application"
+          name="Edit Integration"
           path=":appSlug/"
           componentPromise={() =>
             import(/* webpackChunkName: "sentryApplicationDetails" */ './views/settings/organizationDeveloperSettings/sentryApplicationDetails')
@@ -747,7 +745,7 @@ function routes() {
       <Route path="/organizations/new/" component={errorHandler(OrganizationCreate)} />
       <Route path="/onboarding/:orgId/" component={errorHandler(OrganizationContext)}>
         <Route component={errorHandler(OnboardingWizard)}>
-          <IndexRoute component={errorHandler(CreateProject)} />
+          <IndexRoute component={errorHandler(OnboardingNewProject)} />
           <Route
             path=":projectId/configure/:platform/"
             component={errorHandler(OnboardingConfigure)}
@@ -849,7 +847,7 @@ function routes() {
           <Route
             path="/organizations/:orgId/discover/"
             componentPromise={() =>
-              import(/* webpackChunkName: "OrganizationDiscover" */ './views/organizationDiscover/index')
+              import(/* webpackChunkName: "OrganizationDiscover" */ './views/organizationDiscover')
             }
             component={errorHandler(LazyLoad)}
           >
@@ -906,6 +904,21 @@ function routes() {
             />
           </Route>
           <Route
+            path="/organizations/:orgId/incidents/"
+            componentPromise={() =>
+              import(/* webpackChunkName: "OrganizationIncidentsContainer" */ './views/organizationIncidents')
+            }
+            component={errorHandler(LazyLoad)}
+          >
+            <IndexRoute
+              componentPromise={() =>
+                import(/* webpackChunkName: "OrganizationIncidents" */ './views/organizationIncidents/list')
+              }
+              component={errorHandler(LazyLoad)}
+            />
+          </Route>
+
+          <Route
             path="/organizations/:orgId/projects/:projectId/getting-started/"
             component={errorHandler(ProjectGettingStarted)}
           >
@@ -946,7 +959,7 @@ function routes() {
           <Route
             path="/organizations/:orgId/issues/:groupId/"
             componentPromise={() =>
-              import(/* webpackChunkName: "OrganizationGroupDetails" */ './views/groupDetails/organization/index')
+              import(/* webpackChunkName: "OrganizationGroupDetails" */ './views/groupDetails/organization')
             }
             component={errorHandler(LazyLoad)}
           >

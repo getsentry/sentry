@@ -1,21 +1,28 @@
 from __future__ import absolute_import
 
-from hashlib import md5
+import functools
 import logging
 import time
 from datetime import timedelta
+from hashlib import md5
 
 from django.db.models import Q
 from django.utils import timezone
 
-from sentry import options
-from sentry.api.event_search import convert_search_filter_to_snuba_query
+from sentry import (
+    options,
+    quotas,
+)
+from sentry.api.event_search import (
+    convert_search_filter_to_snuba_query,
+    InvalidSearchQuery,
+)
 from sentry.api.paginator import DateTimePaginator, SequencePaginator, Paginator
 from sentry.event_manager import ALLOWED_FUTURE_DELTA
 from sentry.models import Group
-from sentry.search.django import backend as ds
+from sentry.search.base import SearchBackend
 from sentry.utils import snuba, metrics
-
+from sentry.utils.db import is_postgres
 
 logger = logging.getLogger('sentry.search.snuba')
 datetime_format = '%Y-%m-%dT%H:%M:%S+00:00'
@@ -45,8 +52,130 @@ aggregation_defs = {
 }
 issue_only_fields = set([
     'query', 'status', 'bookmarked_by', 'assigned_to', 'unassigned',
-    'subscribed_by', 'active_at', 'first_release',
+    'subscribed_by', 'active_at', 'first_release', 'first_seen',
 ])
+
+
+class QuerySetBuilder(object):
+    def __init__(self, conditions):
+        self.conditions = conditions
+
+    def build(self, queryset, search_filters):
+        for search_filter in search_filters:
+            name = search_filter.key.name
+            if name in self.conditions:
+                condition = self.conditions[name]
+                queryset = condition.apply(queryset, search_filter)
+        return queryset
+
+
+class Condition(object):
+    """\
+    Adds a single filter to a ``QuerySet`` object. Used with
+    ``QuerySetBuilder``.
+    """
+
+    def apply(self, queryset, name, parameters):
+        raise NotImplementedError
+
+
+class QCallbackCondition(Condition):
+    def __init__(self, callback):
+        self.callback = callback
+
+    def apply(self, queryset, search_filter):
+        value = search_filter.value.raw_value
+        q = self.callback(value)
+        if search_filter.operator not in ('=', '!='):
+            raise InvalidSearchQuery(
+                u'Operator {} not valid for search {}'.format(
+                    search_filter.operator,
+                    search_filter,
+                ),
+            )
+        queryset_method = queryset.filter if search_filter.operator == '=' else queryset.exclude
+        queryset = queryset_method(q)
+        return queryset
+
+
+class ScalarCondition(Condition):
+    """
+    Adds a scalar filter to a ``QuerySet`` object. Only accepts `SearchFilter`
+    instances
+    """
+    OPERATOR_TO_DJANGO = {
+        '>=': 'gte',
+        '<=': 'lte',
+        '>': 'gt',
+        '<': 'lt',
+    }
+
+    def __init__(self, field, extra=None):
+        self.field = field
+        self.extra = extra
+
+    def _get_operator(self, search_filter):
+        django_operator = self.OPERATOR_TO_DJANGO.get(search_filter.operator, '')
+        if django_operator:
+            django_operator = '__{}'.format(django_operator)
+        return django_operator
+
+    def apply(self, queryset, search_filter):
+        django_operator = self._get_operator(search_filter)
+        qs_method = queryset.exclude if search_filter.operator == '!=' else queryset.filter
+
+        q_dict = {'{}{}'.format(self.field, django_operator): search_filter.value.raw_value}
+        if self.extra:
+            q_dict.update(self.extra)
+
+        return qs_method(**q_dict)
+
+
+def assigned_to_filter(actor, projects):
+    from sentry.models import OrganizationMember, OrganizationMemberTeam, Team
+
+    if isinstance(actor, Team):
+        return Q(assignee_set__team=actor)
+
+    teams = Team.objects.filter(
+        id__in=OrganizationMemberTeam.objects.filter(
+            organizationmember__in=OrganizationMember.objects.filter(
+                user=actor,
+                organization_id=projects[0].organization_id,
+            ),
+            is_active=True,
+        ).values('team')
+    )
+
+    return Q(
+        Q(assignee_set__user=actor, assignee_set__project__in=projects) |
+        Q(assignee_set__team__in=teams)
+    )
+
+
+def unassigned_filter(unassigned, projects):
+    from sentry.models.groupassignee import GroupAssignee
+    query = Q(
+        id__in=GroupAssignee.objects.filter(
+            project_id__in=[p.id for p in projects],
+        ).values_list('group_id', flat=True),
+    )
+    if unassigned:
+        query = ~query
+    return query
+
+
+def message_regex_filter(queryset, message):
+    operator = ('!' if message.operator == '!=' else '') + '~*'
+
+    # XXX: We translate these to a regex like '^<pattern>$'. Since we want to
+    # search anywhere in the string, drop those characters.
+    message_value = message.value.value[1:-1]
+
+    return queryset.extra(
+        where=['message {0} %s OR view {0} %s'.format(operator)],
+        params=[message_value, message_value],
+    )
 
 
 def get_search_filter(search_filters, name, operator):
@@ -70,46 +199,139 @@ def get_search_filter(search_filters, name, operator):
     return found_val
 
 
-class SnubaSearchBackend(ds.DjangoSearchBackend):
-    def _query(self, projects, retention_window_start, group_queryset, tags, environments,
-               sort_by, limit, cursor, count_hits, paginator_options, search_filters,
-               **parameters):
+class SnubaSearchBackend(SearchBackend):
+    def query(
+        self, projects, environments=None, sort_by='date', limit=100,
+        cursor=None, count_hits=False, paginator_options=None,
+        search_filters=None, date_from=None, date_to=None,
+    ):
+        from sentry.models import Group, GroupStatus, GroupSubscription
 
-        # TODO: Product decision: we currently search Group.message to handle
-        # the `query` parameter, because that's what we've always done. We could
-        # do that search against every event in Snuba instead, but results may
-        # differ.
+        search_filters = search_filters if search_filters is not None else []
+
+        # ensure projects are from same org
+        if len({p.organization_id for p in projects}) != 1:
+            raise RuntimeError('Cross organization search not supported')
+
+        if paginator_options is None:
+            paginator_options = {}
+
+        group_queryset = Group.objects.filter(project__in=projects).exclude(status__in=[
+            GroupStatus.PENDING_DELETION,
+            GroupStatus.DELETION_IN_PROGRESS,
+            GroupStatus.PENDING_MERGE,
+        ])
+
+        qs_builder_conditions = {
+            'status': QCallbackCondition(
+                lambda status: Q(status=status),
+            ),
+            'bookmarked_by': QCallbackCondition(
+                lambda user: Q(
+                    bookmark_set__project__in=projects,
+                    bookmark_set__user=user,
+                ),
+            ),
+            'assigned_to': QCallbackCondition(
+                functools.partial(assigned_to_filter, projects=projects),
+            ),
+            'unassigned': QCallbackCondition(
+                functools.partial(unassigned_filter, projects=projects),
+            ),
+            'subscribed_by': QCallbackCondition(
+                lambda user: Q(
+                    id__in=GroupSubscription.objects.filter(
+                        project__in=projects,
+                        user=user,
+                        is_active=True,
+                    ).values_list('group'),
+                ),
+            ),
+            'active_at': ScalarCondition('active_at'),
+        }
+
+        message = [
+            search_filter for search_filter in search_filters
+            if search_filter.key.name == 'message'
+        ]
+        if message and message[0].value.raw_value:
+            message = message[0]
+            # We only support full wildcard matching in postgres
+            if is_postgres() and message.value.is_wildcard():
+                group_queryset = message_regex_filter(group_queryset, message)
+            else:
+                # Otherwise, use the standard LIKE query
+                qs_builder_conditions['message'] = QCallbackCondition(
+                    lambda message: Q(
+                        Q(message__icontains=message) | Q(culprit__icontains=message),
+                    ),
+                )
+
+        group_queryset = QuerySetBuilder(qs_builder_conditions).build(
+            group_queryset,
+            search_filters,
+        )
+        # filter out groups which are beyond the retention period
+        retention = quotas.get_event_retention(organization=projects[0].organization)
+        if retention:
+            retention_window_start = timezone.now() - timedelta(days=retention)
+        else:
+            retention_window_start = None
+        # TODO: This could be optimized when building querysets to identify
+        # criteria that are logically impossible (e.g. if the upper bound
+        # for last seen is before the retention window starts, no results
+        # exist.)
+        if retention_window_start:
+            group_queryset = group_queryset.filter(last_seen__gte=retention_window_start)
+
+        # This is a punt because the SnubaSearchBackend (a subclass) shares so much that it
+        # seemed better to handle all the shared initialization and then handoff to the
+        # actual backend.
+        return self._query(
+            projects, retention_window_start, group_queryset, environments,
+            sort_by, limit, cursor, count_hits, paginator_options,
+            search_filters, date_from, date_to,
+        )
+
+    def _query(self, projects, retention_window_start, group_queryset, environments,
+               sort_by, limit, cursor, count_hits, paginator_options, search_filters,
+               date_from, date_to):
 
         # TODO: It's possible `first_release` could be handled by Snuba.
         if environments is not None:
+            environment_ids = [environment.id for environment in environments]
             group_queryset = group_queryset.filter(
-                groupenvironment__environment_id__in=[
-                    environment.id for environment in environments
-                ],
+                groupenvironment__environment_id__in=environment_ids
             )
-            group_queryset = ds.SearchFilterQuerySetBuilder({
-                'first_release': ds.QCallbackCondition(
+            group_queryset = QuerySetBuilder({
+                'first_release': QCallbackCondition(
                     lambda version: Q(
                         groupenvironment__first_release__organization_id=projects[0].organization_id,
                         groupenvironment__first_release__version=version,
+                        groupenvironment__environment_id__in=environment_ids,
                     )
+                ),
+                'first_seen': ScalarCondition(
+                    'groupenvironment__first_seen',
+                    {'groupenvironment__environment_id__in': environment_ids}
                 ),
             }).build(group_queryset, search_filters)
         else:
-            group_queryset = ds.SearchFilterQuerySetBuilder({
-                'first_release': ds.QCallbackCondition(
+            group_queryset = QuerySetBuilder({
+                'first_release': QCallbackCondition(
                     lambda version: Q(
                         first_release__organization_id=projects[0].organization_id,
                         first_release__version=version,
                     ),
                 ),
+                'first_seen': ScalarCondition('first_seen'),
             }).build(group_queryset, search_filters)
 
         now = timezone.now()
         end = None
         end_params = filter(
             None,
-            [parameters.get('date_to'), get_search_filter(search_filters, 'date', '<')],
+            [date_to, get_search_filter(search_filters, 'date', '<')],
         )
         if end_params:
             end = min(end_params)
@@ -151,7 +373,7 @@ class SnubaSearchBackend(ds.DjangoSearchBackend):
         # better, maybe outside the backend. Should be easier once we're on
         # just the new search filters
         start_params = [
-            parameters.get('date_from'),
+            date_from,
             retention_date,
             get_search_filter(search_filters, 'date', '>'),
         ]

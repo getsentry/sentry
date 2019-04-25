@@ -14,14 +14,34 @@ describe('Organization Developer Settings', function() {
     Client.clearMockResponses();
   });
 
-  describe('when no Apps exist', () => {
+  describe('when not flagged in to sentry-apps', () => {
     Client.addMockResponse({
       url: `/organizations/${org.slug}/sentry-apps/`,
       body: [],
     });
 
     const wrapper = mount(
-      <OrganizationDeveloperSettings params={{orgId: org.slug}} />,
+      <OrganizationDeveloperSettings params={{orgId: org.slug}} organization={org} />,
+      routerContext
+    );
+
+    it('displays contact us info', () => {
+      expect(wrapper).toMatchSnapshot();
+      expect(wrapper.find('[icon="icon-circle-add"]').exists()).toBe(false);
+      expect(wrapper.exists('EmptyMessage')).toBe(true);
+    });
+  });
+
+  describe('when no Apps exist', () => {
+    Client.addMockResponse({
+      url: `/organizations/${org.slug}/sentry-apps/`,
+      body: [],
+    });
+
+    org.features = ['sentry-apps'];
+
+    const wrapper = mount(
+      <OrganizationDeveloperSettings params={{orgId: org.slug}} organization={org} />,
       routerContext
     );
 
@@ -37,8 +57,10 @@ describe('Organization Developer Settings', function() {
       body: [sentryApp],
     });
 
+    org.features = ['sentry-apps'];
+
     const wrapper = mount(
-      <OrganizationDeveloperSettings params={{orgId: org.slug}} />,
+      <OrganizationDeveloperSettings params={{orgId: org.slug}} organization={org} />,
       routerContext
     );
 
@@ -54,6 +76,8 @@ describe('Organization Developer Settings', function() {
         method: 'DELETE',
         body: [],
       });
+      org.features = ['sentry-apps'];
+
       expect(wrapper.find('[icon="icon-trash"]').prop('disabled')).toEqual(false);
       wrapper.find('[icon="icon-trash"]').simulate('click');
       // confirm deletion by entering in app slug
@@ -64,7 +88,7 @@ describe('Organization Developer Settings', function() {
         .simulate('click');
       await tick();
       wrapper.update();
-      expect(wrapper.state('applications')).toEqual([]);
+      expect(wrapper.text()).toMatch('No integrations have been created yet');
     });
   });
 
@@ -74,8 +98,11 @@ describe('Organization Developer Settings', function() {
       url: `/organizations/${org.slug}/sentry-apps/`,
       body: [publishedSentryApp],
     });
+
+    org.features = ['sentry-apps'];
+
     const wrapper = mount(
-      <OrganizationDeveloperSettings params={{orgId: org.slug}} />,
+      <OrganizationDeveloperSettings params={{orgId: org.slug}} organization={org} />,
       routerContext
     );
 
@@ -91,8 +118,14 @@ describe('Organization Developer Settings', function() {
       url: `/organizations/${newOrg.slug}/sentry-apps/`,
       body: [sentryApp],
     });
+
+    newOrg.features = ['sentry-apps'];
+
     const wrapper = mount(
-      <OrganizationDeveloperSettings params={{orgId: newOrg.slug}} />,
+      <OrganizationDeveloperSettings
+        params={{orgId: newOrg.slug}}
+        organization={newOrg}
+      />,
       TestStubs.routerContext([{organization: newOrg}])
     );
 

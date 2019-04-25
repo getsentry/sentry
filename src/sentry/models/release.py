@@ -24,7 +24,7 @@ from sentry.db.models import (
 )
 
 from sentry.models import CommitFileChange
-from sentry.signals import resolved_with_commit
+from sentry.signals import issue_resolved
 
 from sentry.utils import metrics
 from sentry.utils.cache import cache
@@ -97,7 +97,8 @@ class Release(Model):
     @staticmethod
     def is_valid_version(value):
         return not (any(c in value for c in BAD_RELEASE_CHARS)
-                    or value in ('.', '..') or not value)
+                    or value in ('.', '..') or not value
+                    or value.lower() == 'latest')
 
     @classmethod
     def get_cache_key(cls, organization_id, version):
@@ -574,10 +575,12 @@ class Release(Model):
                 group.update(status=GroupStatus.RESOLVED)
                 metrics.incr('group.resolved', instance='in_commit', skip_internal=True)
 
-            resolved_with_commit.send_robust(
+            issue_resolved.send_robust(
                 organization_id=self.organization_id,
                 user=actor,
                 group=group,
+                project=group.project,
+                resolution_type='with_commit',
                 sender=type(self),
             )
 

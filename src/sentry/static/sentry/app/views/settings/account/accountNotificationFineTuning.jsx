@@ -271,7 +271,7 @@ export default class AccountNotificationFineTuning extends AsyncView {
             <Form
               saveOnBlur
               apiMethod="PUT"
-              apiEndpoint={'/users/me/notifications/'}
+              apiEndpoint="/users/me/notifications/"
               initialData={this.state.notifications}
             >
               <JsonForm

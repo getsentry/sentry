@@ -2,11 +2,11 @@ from __future__ import absolute_import, print_function
 
 import os
 import struct
-from itertools import izip
 from threading import Lock
 from zlib import compress as zlib_compress, decompress as zlib_decompress
 
 from google.cloud import bigtable
+from google.cloud.bigtable.row_set import RowSet
 from simplejson import JSONEncoder, _default_decoder
 from django.utils import timezone
 
@@ -76,7 +76,8 @@ class BigtableNodeStorage(NodeStorage):
 
     def __init__(self, project=None, instance='sentry', table='nodestore',
                  automatic_expiry=False, default_ttl=None, compression=False,
-                 thread_pool_size=5, **kwargs):
+                 thread_pool_size=5,  # TODO(mattrobenolt): Remove this
+                 **kwargs):
         self.project = project
         self.instance = instance
         self.table = table
@@ -84,27 +85,32 @@ class BigtableNodeStorage(NodeStorage):
         self.automatic_expiry = automatic_expiry
         self.default_ttl = default_ttl
         self.compression = compression
-        if thread_pool_size > 1:
-            from concurrent.futures import ThreadPoolExecutor
-            self.thread_pool = ThreadPoolExecutor(max_workers=thread_pool_size)
-        else:
-            self.thread_pool = None
         self.skip_deletes = automatic_expiry and '_SENTRY_CLEANUP' in os.environ
 
     @property
     def connection(self):
         return get_connection(self.project, self.instance, self.table, self.options)
 
-    def delete(self, id):
-        if self.skip_deletes:
-            return
-
-        row = self.connection.row(id)
-        row.delete()
-        self.connection.mutate_rows([row])
-
     def get(self, id):
-        row = self.connection.read_row(id)
+        return self.decode_row(self.connection.read_row(id))
+
+    def get_multi(self, id_list):
+        if len(id_list) == 1:
+            id = id_list[0]
+            return {id: self.get(id)}
+
+        rv = {}
+        rows = RowSet()
+        for id in id_list:
+            rows.add_row_key(id)
+            rv[id] = None
+
+        for row in self.connection.read_rows(row_set=rows):
+            rv[row.row_key] = self.decode_row(row)
+
+        return rv
+
+    def decode_row(self, row):
         if row is None:
             return None
 
@@ -141,6 +147,10 @@ class BigtableNodeStorage(NodeStorage):
         return json_loads(data)
 
     def set(self, id, data, ttl=None):
+        row = self.encode_row(id, data, ttl)
+        row.commit()
+
+    def encode_row(self, id, data, ttl=None):
         data = json_dumps(data)
 
         row = self.connection.row(id)
@@ -199,37 +209,31 @@ class BigtableNodeStorage(NodeStorage):
             data,
             timestamp=ts,
         )
-        self.connection.mutate_rows([row])
+        return row
 
-    def get_multi(self, id_list):
-        if self.thread_pool is None:
-            return super(BigtableNodeStorage, self).get_multi(id_list)
+    def delete(self, id):
+        if self.skip_deletes:
+            return
 
-        if len(id_list) == 1:
-            id = id_list[0]
-            return {id: self.get(id)}
-
-        return {
-            id: data
-            for id, data in izip(
-                id_list,
-                self.thread_pool.map(self.get, id_list)
-            )
-        }
+        row = self.connection.row(id)
+        row.delete()
+        row.commit()
 
     def delete_multi(self, id_list):
         if self.skip_deletes:
             return
 
-        if self.thread_pool is None:
-            return super(BigtableNodeStorage, self).delete_multi(id_list)
-
         if len(id_list) == 1:
             self.delete(id_list[0])
             return
 
-        for _ in self.thread_pool.map(self.delete, id_list):
-            pass
+        rows = []
+        for id in id_list:
+            row = self.connection.row(id)
+            row.delete()
+            rows.append(row)
+
+        self.connection.mutate_rows(rows)
 
     def cleanup(self, cutoff_timestamp):
         raise NotImplementedError

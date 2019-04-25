@@ -20,12 +20,16 @@ from sentry.api.serializers import serialize
 from sentry.api.serializers.models.project import DetailedProjectSerializer
 from sentry.api.serializers.rest_framework import ListField, OriginField
 from sentry.constants import RESERVED_PROJECT_SLUGS
+from sentry.lang.native.symbolicator import parse_sources, InvalidSourcesError
 from sentry.models import (
     AuditLogEntryEvent, Group, GroupStatus, Project, ProjectBookmark, ProjectRedirect,
     ProjectStatus, ProjectTeam, UserOption,
 )
+from sentry.grouping.enhancer import Enhancements, InvalidEnhancerConfig
+from sentry.grouping.fingerprinting import FingerprintingRules, InvalidFingerprintingConfig
 from sentry.tasks.deletion import delete_project
 from sentry.utils.apidocs import scenario, attach_scenarios
+from sentry.utils import json
 
 delete_logger = logging.getLogger('sentry.deletions.api')
 
@@ -96,8 +100,13 @@ class ProjectAdminSerializer(ProjectMemberSerializer):
     safeFields = ListField(child=serializers.CharField(), required=False)
     storeCrashReports = serializers.BooleanField(required=False)
     relayPiiConfig = serializers.CharField(required=False)
+    builtinSymbolSources = ListField(child=serializers.CharField(), required=False)
+    symbolSources = serializers.CharField(required=False)
     scrubIPAddresses = serializers.BooleanField(required=False)
     groupingConfig = serializers.CharField(required=False)
+    groupingEnhancements = serializers.CharField(required=False)
+    groupingEnhancementsBase = serializers.CharField(required=False)
+    fingerprintingRules = serializers.CharField(required=False)
     scrapeJavaScript = serializers.BooleanField(required=False)
     allowedDomains = ListField(child=OriginField(), required=False)
     resolveAge = serializers.IntegerField(required=False)
@@ -166,6 +175,71 @@ class ProjectAdminSerializer(ProjectMemberSerializer):
             raise serializers.ValidationError(
                 'Organization does not have the relay feature enabled'
             )
+        return attrs
+
+    def validate_builtinSymbolSources(self, attrs, source):
+        if not attrs[source]:
+            return attrs
+
+        from sentry import features
+        organization = self.context['project'].organization
+        request = self.context["request"]
+        has_sources = features.has('organizations:symbol-sources',
+                                   organization,
+                                   actor=request.user)
+
+        if not has_sources:
+            raise serializers.ValidationError(
+                'Organization is not allowed to set symbol sources'
+            )
+
+        return attrs
+
+    def validate_symbolSources(self, attrs, source):
+        sources_json = attrs[source]
+        if not sources_json:
+            return attrs
+
+        from sentry import features
+        organization = self.context['project'].organization
+        request = self.context["request"]
+        has_sources = features.has('organizations:symbol-sources',
+                                   organization,
+                                   actor=request.user)
+
+        if not has_sources:
+            raise serializers.ValidationError(
+                'Organization is not allowed to set symbol sources'
+            )
+
+        try:
+            sources = parse_sources(sources_json.strip())
+            attrs[source] = json.dumps(sources) if sources else ''
+        except InvalidSourcesError as e:
+            raise serializers.ValidationError(e.message)
+
+        return attrs
+
+    def validate_groupingEnhancements(self, attrs, source):
+        if not attrs[source]:
+            return attrs
+
+        try:
+            Enhancements.from_config_string(attrs[source])
+        except InvalidEnhancerConfig as e:
+            raise serializers.ValidationError(e.message)
+
+        return attrs
+
+    def validate_fingerprintingRules(self, attrs, source):
+        if not attrs[source]:
+            return attrs
+
+        try:
+            FingerprintingRules.from_config_string(attrs[source])
+        except InvalidFingerprintingConfig as e:
+            raise serializers.ValidationError(e.message)
+
         return attrs
 
     def validate_copy_from_project(self, attrs, source):
@@ -380,6 +454,17 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         if result.get('groupingConfig') is not None:
             if project.update_option('sentry:grouping_config', result['groupingConfig']):
                 changed_proj_settings['sentry:grouping_config'] = result['groupingConfig']
+        if result.get('groupingEnhancements') is not None:
+            if project.update_option('sentry:grouping_enhancements',
+                                     result['groupingEnhancements']):
+                changed_proj_settings['sentry:grouping_enhancements'] = result['groupingEnhancements']
+        if result.get('groupingEnhancementsBase') is not None:
+            if project.update_option('sentry:grouping_enhancements_base',
+                                     result['groupingEnhancementsBase']):
+                changed_proj_settings['sentry:grouping_enhancements_base'] = result['groupingEnhancementsBase']
+        if result.get('fingerprintingRules') is not None:
+            if project.update_option('sentry:fingerprinting_rules', result['fingerprintingRules']):
+                changed_proj_settings['sentry:fingerprinting_rules'] = result['fingerprintingRules']
         if result.get('securityToken') is not None:
             if project.update_option('sentry:token', result['securityToken']):
                 changed_proj_settings['sentry:token'] = result['securityToken']
@@ -408,6 +493,13 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
             if project.update_option('sentry:relay_pii_config', result['relayPiiConfig']):
                 changed_proj_settings['sentry:relay_pii_config'] = result['relayPiiConfig'].strip(
                 ) or None
+        if result.get('builtinSymbolSources') is not None:
+            if project.update_option('sentry:builtin_symbol_sources',
+                                     result['builtinSymbolSources']):
+                changed_proj_settings['sentry:builtin_symbol_sources'] = result['builtinSymbolSources']
+        if result.get('symbolSources') is not None:
+            if project.update_option('sentry:symbol_sources', result['symbolSources']):
+                changed_proj_settings['sentry:symbol_sources'] = result['symbolSources'] or None
         if 'defaultEnvironment' in result:
             if result['defaultEnvironment'] is None:
                 project.delete_option('sentry:default_environment')
@@ -481,6 +573,11 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                 project.update_option(
                     'sentry:grouping_config',
                     options['sentry:grouping_config'],
+                )
+            if 'sentry:fingerprinting_rules' in options:
+                project.update_option(
+                    'sentry:fingerprinting_rules',
+                    options['sentry:fingerprinting_rules'],
                 )
             if 'mail:subject_prefix' in options:
                 project.update_option(

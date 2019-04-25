@@ -116,6 +116,7 @@ from .endpoints.organization_tagkey_values import OrganizationTagKeyValuesEndpoi
 from .endpoints.organization_tags import OrganizationTagsEndpoint
 from .endpoints.organization_user_reports import OrganizationUserReportsEndpoint
 from .endpoints.organization_users import OrganizationUsersEndpoint
+from .endpoints.organization_user_details import OrganizationUserDetailsEndpoint
 from .endpoints.sentry_app_installations import SentryAppInstallationsEndpoint
 from .endpoints.sentry_app_installation_details import SentryAppInstallationDetailsEndpoint
 from .endpoints.sentry_app_installation_external_requests import SentryAppInstallationExternalRequestsEndpoint
@@ -128,7 +129,6 @@ from .endpoints.project_avatar import ProjectAvatarEndpoint
 from .endpoints.project_details import ProjectDetailsEndpoint
 from .endpoints.project_transfer import ProjectTransferEndpoint
 from .endpoints.project_create_sample import ProjectCreateSampleEndpoint
-from .endpoints.project_docs import ProjectDocsEndpoint
 from .endpoints.project_docs_platform import ProjectDocsPlatformEndpoint
 from .endpoints.project_environments import ProjectEnvironmentsEndpoint
 from .endpoints.project_environment_details import ProjectEnvironmentDetailsEndpoint
@@ -182,6 +182,7 @@ from .endpoints.release_deploys import ReleaseDeploysEndpoint
 from .endpoints.debug_files import DebugFilesEndpoint, DifAssembleEndpoint, \
     UnknownDebugFilesEndpoint, AssociateDSymFilesEndpoint
 from .endpoints.sentry_apps import SentryAppsEndpoint
+from .endpoints.sentry_apps_stats import SentryAppsStatsEndpoint
 from .endpoints.sentry_app_components import SentryAppComponentsEndpoint, \
     OrganizationSentryAppComponentsEndpoint
 from .endpoints.sentry_app_details import SentryAppDetailsEndpoint
@@ -217,6 +218,7 @@ from .endpoints.user_subscriptions import UserSubscriptionsEndpoint
 from .endpoints.event_file_committers import EventFileCommittersEndpoint
 from .endpoints.setup_wizard import SetupWizard
 from .endpoints.grouping_configs import GroupingConfigsEndpoint
+from .endpoints.grouping_enhancements import GroupingEnhancementsEndpoint
 
 
 urlpatterns = patterns(
@@ -731,6 +733,11 @@ urlpatterns = patterns(
         name='sentry-api-0-organization-users'
     ),
     url(
+        r'^organizations/(?P<organization_slug>[^\/]+)/users/(?P<user_id>[^\/]+)/$',
+        OrganizationUserDetailsEndpoint.as_view(),
+        name='sentry-api-0-organization-user-details'
+    ),
+    url(
         r'^organizations/(?P<organization_slug>[^\/]+)/sentry-app-installations/$',
         SentryAppInstallationsEndpoint.as_view(),
         name='sentry-api-0-sentry-app-installations'
@@ -784,6 +791,11 @@ urlpatterns = patterns(
         r'^organizations/(?P<organization_slug>[^\/]+)/environments/$',
         OrganizationEnvironmentsEndpoint.as_view(),
         name='sentry-api-0-organization-environments',
+    ),
+    url(
+        r'^organizations/(?P<organization_slug>[^\/]+)/broadcasts/$',
+        BroadcastIndexEndpoint.as_view(),
+        name='sentry-api-0-organization-broadcasts'
     ),
 
     # Teams
@@ -840,11 +852,6 @@ urlpatterns = patterns(
         r'^projects/(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/create-sample/$',
         ProjectCreateSampleEndpoint.as_view(),
         name='sentry-api-0-project-create-sample'
-    ),
-    url(
-        r'^projects/(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/docs/$',
-        ProjectDocsEndpoint.as_view(),
-        name='sentry-api-0-project-docs'
     ),
     url(
         r'^projects/(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/docs/(?P<platform>[\w-]+)/$',
@@ -1267,6 +1274,11 @@ urlpatterns = patterns(
         name='sentry-api-0-sentry-apps'
     ),
     url(
+        r'^sentry-apps-stats/$',
+        SentryAppsStatsEndpoint.as_view(),
+        name='sentry-api-0-sentry-apps-stats'
+    ),
+    url(
         r'^sentry-apps/(?P<sentry_app_slug>[^\/]+)/$',
         SentryAppDetailsEndpoint.as_view(),
         name='sentry-api-0-sentry-app-details'
@@ -1291,6 +1303,10 @@ urlpatterns = patterns(
     url(
         r'^grouping-configs/$', GroupingConfigsEndpoint.as_view(),
         name='sentry-api-0-grouping-configs'
+    ),
+    url(
+        r'^grouping-enhancements/$', GroupingEnhancementsEndpoint.as_view(),
+        name='sentry-api-0-grouping-enhancements'
     ),
 
     # Internal

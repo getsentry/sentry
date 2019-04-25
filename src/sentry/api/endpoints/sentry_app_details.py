@@ -27,30 +27,39 @@ class SentryAppDetailsEndpoint(SentryAppBaseEndpoint):
 
             return Response(status=404)
 
+        data = {
+            'user': request.user,
+            'sentry_app': sentry_app,
+            'name': request.json_body.get('name'),
+            'status': request.json_body.get('status'),
+            'author': request.json_body.get('author'),
+            'webhookUrl': request.json_body.get('webhookUrl'),
+            'redirectUrl': request.json_body.get('redirectUrl'),
+            'isAlertable': request.json_body.get('isAlertable'),
+            'scopes': request.json_body.get('scopes'),
+            'events': request.json_body.get('events'),
+            'schema': request.json_body.get('schema'),
+            'overview': request.json_body.get('overview'),
+        }
+
         serializer = SentryAppSerializer(
             instance=sentry_app,
-            data=request.DATA,
+            data=data,
             partial=True,
         )
 
         if serializer.is_valid():
             result = serializer.object
 
-            updated_app = Updater.run(
-                sentry_app=sentry_app,
-                name=result.get('name'),
-                author=result.get('author'),
-                webhook_url=result.get('webhookUrl'),
-                redirect_url=result.get('redirectUrl'),
-                is_alertable=result.get('isAlertable'),
-                scopes=result.get('scopes'),
-                events=result.get('events'),
-                schema=result.get('schema'),
-                overview=result.get('overview'),
-            )
+            data['redirect_url'] = data['redirectUrl']
+            data['webhook_url'] = data['webhookUrl']
+            data['is_alertable'] = data['isAlertable']
+            data['scopes'] = result.get('scopes')
+            data['events'] = result.get('events')
+
+            updated_app = Updater.run(**data)
 
             return Response(serialize(updated_app, request.user))
-
         return Response(serializer.errors, status=400)
 
     def delete(self, request, sentry_app):
@@ -61,6 +70,7 @@ class SentryAppDetailsEndpoint(SentryAppBaseEndpoint):
 
         if sentry_app.status == SentryAppStatus.UNPUBLISHED:
             Destroyer.run(
+                user=request.user,
                 sentry_app=sentry_app,
                 request=request,
             )

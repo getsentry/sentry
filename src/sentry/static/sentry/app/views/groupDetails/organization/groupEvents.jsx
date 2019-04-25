@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import {browserHistory} from 'react-router';
 import React from 'react';
 import createReactClass from 'create-react-class';
@@ -6,7 +7,7 @@ import {pick} from 'lodash';
 import SentryTypes from 'app/sentryTypes';
 import {Panel, PanelBody} from 'app/components/panels';
 import {t} from 'app/locale';
-import ApiMixin from 'app/mixins/apiMixin';
+import withApi from 'app/utils/withApi';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
 import EventsTable from 'app/components/eventsTable/eventsTable';
 import OrganizationState from 'app/mixins/organizationState';
@@ -20,10 +21,11 @@ const GroupEvents = createReactClass({
   displayName: 'GroupEvents',
 
   propTypes: {
+    api: PropTypes.object,
     group: SentryTypes.Group.isRequired,
   },
 
-  mixins: [ApiMixin, OrganizationState],
+  mixins: [OrganizationState],
 
   getInitialState() {
     const queryParams = this.props.location.query;
@@ -79,7 +81,7 @@ const GroupEvents = createReactClass({
       query: this.state.query,
     };
 
-    this.api.request(`/issues/${this.props.params.groupId}/events/`, {
+    this.props.api.request(`/issues/${this.props.params.groupId}/events/`, {
       query,
       method: 'GET',
       success: (data, _, jqXHR) => {
@@ -116,14 +118,16 @@ const GroupEvents = createReactClass({
   },
 
   renderResults() {
-    const group = this.props.group;
+    const {group, params} = this.props;
     const tagList = group.tags.filter(tag => tag.key !== 'user') || [];
 
     return (
       <EventsTable
         tagList={tagList}
         events={this.state.eventList}
-        params={this.props.params}
+        orgId={params.orgId}
+        projectId={group.project.slug}
+        groupId={params.groupId}
       />
     );
   },
@@ -166,4 +170,6 @@ const GroupEvents = createReactClass({
   },
 });
 
-export default GroupEvents;
+export {GroupEvents};
+
+export default withApi(GroupEvents);

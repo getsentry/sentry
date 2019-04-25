@@ -181,7 +181,7 @@ exports[`ConfirmDelete renders 1`] = `
                                                         value=""
                                                       >
                                                         <input
-                                                          className="css-pzg7em-Input-inputStyles e1xej46s0"
+                                                          className="css-13yodx8-Input-inputStyles e1xej46s0"
                                                           onChange={[Function]}
                                                           placeholder="CoolOrg"
                                                           type="text"
@@ -256,10 +256,11 @@ exports[`ConfirmDelete renders 1`] = `
                 }
               }
             >
-              <Component
+              <ForwardRef
                 aria-disabled={false}
                 aria-label="Cancel"
-                className="css-cmo08-StyledButton-getColors eqrebog0"
+                className="css-cmo08-StyledButton-getColors e12ma6z0"
+                disabled={false}
                 onClick={[Function]}
                 role="button"
                 style={
@@ -271,7 +272,7 @@ exports[`ConfirmDelete renders 1`] = `
                 <button
                   aria-disabled={false}
                   aria-label="Cancel"
-                  className="css-cmo08-StyledButton-getColors eqrebog0"
+                  className="css-cmo08-StyledButton-getColors e12ma6z0"
                   onClick={[Function]}
                   role="button"
                   style={
@@ -282,17 +283,17 @@ exports[`ConfirmDelete renders 1`] = `
                 >
                   <ButtonLabel>
                     <Component
-                      className="css-ga4b18-ButtonLabel eqrebog1"
+                      className="css-ga4b18-ButtonLabel e12ma6z1"
                     >
                       <span
-                        className="css-ga4b18-ButtonLabel eqrebog1"
+                        className="css-ga4b18-ButtonLabel e12ma6z1"
                       >
                         Cancel
                       </span>
                     </Component>
                   </ButtonLabel>
                 </button>
-              </Component>
+              </ForwardRef>
             </StyledButton>
           </Button>
           <Button
@@ -314,14 +315,16 @@ exports[`ConfirmDelete renders 1`] = `
               role="button"
               to={null}
             >
-              <Component
+              <ForwardRef
                 aria-disabled={true}
                 aria-label="Confirm"
                 autoFocus={true}
-                className="css-bo8dlg-StyledButton-getColors eqrebog0"
+                className="css-bo8dlg-StyledButton-getColors e12ma6z0"
                 data-test-id="confirm-modal"
+                disabled={true}
                 href={null}
                 onClick={[Function]}
+                priority="primary"
                 role="button"
                 to={null}
               >
@@ -329,7 +332,7 @@ exports[`ConfirmDelete renders 1`] = `
                   aria-disabled={true}
                   aria-label="Confirm"
                   autoFocus={true}
-                  className="css-bo8dlg-StyledButton-getColors eqrebog0"
+                  className="css-bo8dlg-StyledButton-getColors e12ma6z0"
                   data-test-id="confirm-modal"
                   href={null}
                   onClick={[Function]}
@@ -340,18 +343,18 @@ exports[`ConfirmDelete renders 1`] = `
                     priority="primary"
                   >
                     <Component
-                      className="css-ga4b18-ButtonLabel eqrebog1"
+                      className="css-ga4b18-ButtonLabel e12ma6z1"
                       priority="primary"
                     >
                       <span
-                        className="css-ga4b18-ButtonLabel eqrebog1"
+                        className="css-ga4b18-ButtonLabel e12ma6z1"
                       >
                         Confirm
                       </span>
                     </Component>
                   </ButtonLabel>
                 </button>
-              </Component>
+              </ForwardRef>
             </StyledButton>
           </Button>
         </div>

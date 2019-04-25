@@ -9,7 +9,7 @@ import {loadEnvironments} from 'app/actionCreators/environments';
 import {fetchOrgMembers} from 'app/actionCreators/members';
 import {setActiveProject} from 'app/actionCreators/projects';
 import {t} from 'app/locale';
-import ApiMixin from 'app/mixins/apiMixin';
+import withApi from 'app/utils/withApi';
 import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import MemberListStore from 'app/stores/memberListStore';
@@ -36,10 +36,13 @@ const ProjectContext = createReactClass({
   displayName: 'ProjectContext',
 
   propTypes: {
+    api: PropTypes.object,
+
     /**
      * If true, this will not change `state.loading` during `fetchData` phase
      */
     skipReload: PropTypes.bool,
+
     projects: PropTypes.arrayOf(SentryTypes.Project),
     projectId: PropTypes.string,
     orgId: PropTypes.string,
@@ -51,7 +54,6 @@ const ProjectContext = createReactClass({
   },
 
   mixins: [
-    ApiMixin,
     Reflux.connect(MemberListStore, 'memberList'),
     Reflux.listenTo(ProjectsStore, 'onProjectChange'),
     OrganizationState,
@@ -90,6 +92,17 @@ const ProjectContext = createReactClass({
 
   componentDidUpdate(prevProps, prevState) {
     if (prevProps.projectId !== this.props.projectId) {
+      this.fetchData();
+    }
+
+    // Project list has changed. Likely indicating that a new project has been
+    // added. Re-fetch project details in case that the new project is the active
+    // project.
+    //
+    // For now, only compare lengths. It is possible that project slugs within
+    // the list could change, but it doesn't seem to be broken anywhere else at
+    // the moment that would require deeper checks.
+    if (prevProps.projects.length !== this.props.projects.length) {
       this.fetchData();
     }
 
@@ -146,7 +159,7 @@ const ProjectContext = createReactClass({
     return projects.find(({slug}) => slug === projectSlug) || null;
   },
 
-  fetchData() {
+  async fetchData() {
     const {orgId, projectId, location, skipReload} = this.props;
     // we fetch core access/information from the global organization data
     const activeProject = this.identifyProject();
@@ -161,64 +174,68 @@ const ProjectContext = createReactClass({
 
     if (activeProject && hasAccess) {
       setActiveProject(null);
-      const projectRequest = this.api.requestPromise(`/projects/${orgId}/${projectId}/`);
-
-      const environmentRequest = this.api.requestPromise(
-        this.getEnvironmentListEndpoint()
+      const projectRequest = this.props.api.requestPromise(
+        `/projects/${orgId}/${projectId}/`
       );
 
-      Promise.all([projectRequest, environmentRequest]).then(
-        ([project, envs]) => {
-          this.setState({
-            loading: false,
-            project,
-            error: false,
-            errorType: null,
-          });
-
-          // assuming here that this means the project is considered the active project
-          setActiveProject(project);
-
-          // If an environment is specified in the query string, load it instead of default
-          const queryEnv = location.query.environment;
-          // The default environment cannot be "" (No Environment)
-          const {defaultEnvironment} = project;
-          const envName = typeof queryEnv === 'undefined' ? defaultEnvironment : queryEnv;
-          loadEnvironments(envs, envName);
-        },
-        () => {
-          this.setState({
-            loading: false,
-            error: false,
-            errorType: ERROR_TYPES.UNKNOWN,
-          });
-        }
+      const environmentRequest = this.props.api.requestPromise(
+        `/projects/${orgId}/${projectId}/environments/`
       );
 
-      fetchOrgMembers(this.api, orgId, activeProject.id);
-    } else if (activeProject && !activeProject.isMember) {
+      try {
+        const [project, envs] = await Promise.all([projectRequest, environmentRequest]);
+        this.setState({
+          loading: false,
+          project,
+          error: false,
+          errorType: null,
+        });
+
+        // assuming here that this means the project is considered the active project
+        setActiveProject(project);
+
+        // If an environment is specified in the query string, load it instead of default
+        const queryEnv = location.query.environment;
+        // The default environment cannot be "" (No Environment)
+        const {defaultEnvironment} = project;
+        const envName = typeof queryEnv === 'undefined' ? defaultEnvironment : queryEnv;
+        loadEnvironments(envs, envName);
+      } catch (error) {
+        this.setState({
+          loading: false,
+          error: false,
+          errorType: ERROR_TYPES.UNKNOWN,
+        });
+      }
+
+      fetchOrgMembers(this.props.api, orgId, activeProject.id);
+
+      return;
+    }
+
+    // User is not a memberof the active project
+    if (activeProject && !activeProject.isMember) {
       this.setState({
         loading: false,
         error: true,
         errorType: ERROR_TYPES.MISSING_MEMBERSHIP,
       });
-    } else {
-      // The request is a 404 or other error
-      this.api.request(`/projects/${orgId}/${projectId}/`, {
-        error: () => {
-          this.setState({
-            loading: false,
-            error: true,
-            errorType: ERROR_TYPES.PROJECT_NOT_FOUND,
-          });
-        },
+
+      return;
+    }
+
+    // There is no active project. This likely indicates either the project
+    // *does not exist* or the project has not yet been added to the store.
+    // Either way, make a request to check for existence of the project.
+    try {
+      await this.props.api.requestPromise(`/projects/${orgId}/${projectId}/`);
+    } catch (error) {
+      this.setState({
+        loading: false,
+        error: true,
+        errorType: ERROR_TYPES.PROJECT_NOT_FOUND,
       });
     }
-  },
-
-  getEnvironmentListEndpoint() {
-    const {orgId, projectId} = this.props;
-    return `/projects/${orgId}/${projectId}/environments/`;
   },
 
   setProjectNavSection(section) {
@@ -273,4 +290,4 @@ const ProjectContext = createReactClass({
 
 export {ProjectContext};
 
-export default withProjects(withRouter(ProjectContext));
+export default withApi(withProjects(withRouter(ProjectContext)));

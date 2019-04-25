@@ -337,7 +337,7 @@ class DifAssembleEndpoint(ProjectEndpoint):
 
             # We don't have a state yet, this means we can now start
             # an assemble job in the background.
-            set_assemble_status(project, checksum, state)
+            set_assemble_status(project, checksum, ChunkFileState.CREATED)
             assemble_dif.apply_async(
                 kwargs={
                     'project_id': project.id,

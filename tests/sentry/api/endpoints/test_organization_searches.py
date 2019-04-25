@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+import django
 from django.utils import timezone
 from exam import fixture
 
@@ -23,6 +24,11 @@ class OrganizationSearchesListTest(APITestCase):
         project1 = self.create_project(teams=[team], name='foo')
         project2 = self.create_project(teams=[team], name='bar')
 
+        if django.VERSION[:2] >= (1, 8):
+            # Depending on test we run migrations in Django 1.8. This causes
+            # extra rows to be created, so remove them to keep this test working
+            SavedSearch.objects.filter(is_global=True).delete()
+
         SavedSearch.objects.create(
             project=project1,
             name='bar',
@@ -33,25 +39,25 @@ class OrganizationSearchesListTest(APITestCase):
                 name='Global Query',
                 query=DEFAULT_SAVED_SEARCHES[0]['query'],
                 is_global=True,
-                date_added=timezone.now().replace(microsecond=0)
+                date_added=timezone.now(),
             ),
             SavedSearch.objects.create(
                 project=project1,
                 name='foo',
                 query='some test',
-                date_added=timezone.now().replace(microsecond=0)
+                date_added=timezone.now(),
             ),
             SavedSearch.objects.create(
                 project=project1,
                 name='wat',
                 query='is:unassigned is:unresolved',
-                date_added=timezone.now().replace(microsecond=0)
+                date_added=timezone.now(),
             ),
             SavedSearch.objects.create(
                 project=project2,
                 name='foo',
                 query='some test',
-                date_added=timezone.now().replace(microsecond=0)
+                date_added=timezone.now(),
             ),
         ]
 
@@ -76,38 +82,43 @@ class OrgLevelOrganizationSearchesListTest(APITestCase):
         )
 
     def create_base_data(self):
+        if django.VERSION[:2] >= (1, 8):
+            # Depending on test we run migrations in Django 1.8. This causes
+            # extra rows to be created, so remove them to keep this test working
+            SavedSearch.objects.filter(is_global=True).delete()
+
         team = self.create_team(members=[self.user])
         SavedSearch.objects.create(
             project=self.create_project(teams=[team], name='foo'),
             name='foo',
             query='some test',
-            date_added=timezone.now().replace(microsecond=0)
+            date_added=timezone.now(),
         )
         SavedSearch.objects.create(
             organization=self.organization,
             owner=self.create_user(),
             name='foo',
             query='some other user\'s query',
-            date_added=timezone.now().replace(microsecond=0)
+            date_added=timezone.now(),
         )
         included = [
             SavedSearch.objects.create(
                 name='Global Query',
                 query=DEFAULT_SAVED_SEARCHES[0]['query'],
                 is_global=True,
-                date_added=timezone.now().replace(microsecond=0)
+                date_added=timezone.now(),
             ),
             SavedSearch.objects.create(
                 organization=self.organization,
                 name='foo',
                 query='some test',
-                date_added=timezone.now().replace(microsecond=0)
+                date_added=timezone.now(),
             ),
             SavedSearch.objects.create(
                 organization=self.organization,
                 name='wat',
                 query='is:unassigned is:unresolved',
-                date_added=timezone.now().replace(microsecond=0)
+                date_added=timezone.now(),
             ),
         ]
         return included
@@ -129,7 +140,7 @@ class OrgLevelOrganizationSearchesListTest(APITestCase):
             owner=self.user,
             name='My Pinned Query',
             query='pinned junk',
-            date_added=timezone.now().replace(microsecond=0)
+            date_added=timezone.now(),
         )
         included.append(pinned_query)
         self.check_results(included)

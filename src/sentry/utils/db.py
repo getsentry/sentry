@@ -8,7 +8,6 @@ sentry.utils.db
 from __future__ import absolute_import
 
 import six
-from contextlib import contextmanager, closing
 
 from django.conf import settings
 from django.db import connections, DEFAULT_DB_ALIAS
@@ -17,30 +16,12 @@ from django.db.models.fields.related import SingleRelatedObjectDescriptor
 
 def get_db_engine(alias='default'):
     value = settings.DATABASES[alias]['ENGINE']
-    if value == 'mysql.connector.django':
-        return 'mysql'
     return value.rsplit('.', 1)[-1]
 
 
 def is_postgres(alias='default'):
     engine = get_db_engine(alias)
     return 'postgres' in engine
-
-
-def is_mysql(alias='default'):
-    engine = get_db_engine(alias)
-    return 'mysql' in engine
-
-
-def is_sqlite(alias='default'):
-    engine = get_db_engine(alias)
-    return 'sqlite' in engine
-
-
-def has_charts(db):
-    if is_sqlite(db):
-        return False
-    return True
 
 
 def attach_foreignkey(objects, field, related=[], database=None):
@@ -105,19 +86,3 @@ def attach_foreignkey(objects, field, related=[], database=None):
 
 def table_exists(name, using=DEFAULT_DB_ALIAS):
     return name in connections[using].introspection.table_names()
-
-
-def _set_mysql_foreign_key_checks(flag, using=DEFAULT_DB_ALIAS):
-    if is_mysql():
-        query = 'SET FOREIGN_KEY_CHECKS=%s' % (1 if flag else 0)
-        with closing(connections[using].cursor()) as cursor:
-            cursor.execute(query)
-
-
-@contextmanager
-def mysql_disabled_integrity(db=DEFAULT_DB_ALIAS):
-    try:
-        _set_mysql_foreign_key_checks(False, using=db)
-        yield
-    finally:
-        _set_mysql_foreign_key_checks(True, using=db)

@@ -83,13 +83,13 @@ def translate(pat):
 
 
 event_search_grammar = Grammar(r"""
-# raw_search must come at the end, otherwise other
-# search_terms will be treated as a raw query
-search          = search_term* raw_search?
-search_term     = space? (time_filter / rel_time_filter / specific_time_filter
+search          = search_term*
+search_term     = key_val_term / quoted_raw_search / raw_search
+key_val_term    = space? (time_filter / rel_time_filter / specific_time_filter
                   / numeric_filter / has_filter / is_filter / basic_filter)
                   space?
-raw_search      = ~r".+$"
+raw_search      = ~r"\ *([^\ ^\n]+)\ *"
+quoted_raw_search = spaces quoted_value spaces
 
 # standard key:val filter
 basic_filter    = negation? search_key sep search_value
@@ -124,6 +124,7 @@ operator        = ">=" / "<=" / ">" / "<" / "=" / "!="
 sep             = ":"
 space           = " "
 negation        = "!"
+spaces          = ~r"\ *"
 """)
 
 
@@ -217,10 +218,6 @@ class SearchVisitor(NodeVisitor):
     def visit_search(self, node, children):
         # there is a list from search_term and one from raw_search, so flatten them.
         # Flatten each group in the list, since nodes can return multiple items
-        #
-        # XXX(mitsuhiko): I do not comprehend why this is not just
-        # _flatten(children) but when I do that nothing works.  I only
-        # inherited this code.
         def _flatten(seq):
             for item in seq:
                 if isinstance(item, list):
@@ -229,18 +226,33 @@ class SearchVisitor(NodeVisitor):
                 else:
                     yield item
         children = [child for group in children for child in _flatten(group)]
-        return filter(None, _flatten(children))
+        children = filter(None, _flatten(children))
 
-    def visit_search_term(self, node, children):
-        _, search_term, _ = children
-        # search_term is a list because of group
-        return search_term[0]
+        # Now collapse all adjacent `message` filters together. The assumption
+        # being that any messages next to each other are part of the same term,
+        # but if they're separated by a tag then they're a separate term.
+        def merge_messages(search_filters, item):
+            if not search_filters:
+                search_filters.append(item)
+                return search_filters
+
+            prev_filter = search_filters[-1]
+            if prev_filter.key.name == 'message' and item.key.name == 'message':
+                new_message = u'%s %s' % (prev_filter.value.raw_value, item.value.raw_value)
+                search_filters[-1] = prev_filter._replace(value=SearchValue(new_message))
+            else:
+                search_filters.append(item)
+            return search_filters
+
+        return reduce(merge_messages, children, [])
+
+    def visit_key_val_term(self, node, children):
+        _, key_val_term, _ = children
+        # key_val_term is a list because of group
+        return key_val_term[0]
 
     def visit_raw_search(self, node, children):
-        value = node.text
-
-        while value.startswith('"') and value.endswith('"') and value != '"':
-            value = value[1:-1]
+        value = node.match.groups()[0]
 
         if not value:
             return None
@@ -250,6 +262,12 @@ class SearchVisitor(NodeVisitor):
             "=",
             SearchValue(value),
         )
+
+    def visit_quoted_raw_search(self, node, children):
+        value = children[1]
+        if not value:
+            return None
+        return SearchFilter(SearchKey('message'), "=", SearchValue(value))
 
     def visit_numeric_filter(self, node, (search_key, _, operator, search_value)):
         operator = operator[0] if not isinstance(operator, Node) else '='
@@ -513,7 +531,7 @@ def get_snuba_query_args(query=None, params=None):
 
         if snuba_name in ('start', 'end'):
             kwargs[snuba_name] = _filter.value.value
-        elif snuba_name == 'project_id':
+        elif snuba_name in ('project_id', 'issue'):
             kwargs['filter_keys'][snuba_name] = _filter.value.value
         else:
             converted_filter = convert_search_filter_to_snuba_query(_filter)

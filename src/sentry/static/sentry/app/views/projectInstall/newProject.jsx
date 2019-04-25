@@ -2,7 +2,7 @@ import DocumentTitle from 'react-document-title';
 import React from 'react';
 import styled from 'react-emotion';
 
-import CreateProject from 'app/views/onboarding/createProject';
+import CreateProject from 'app/components/createProject';
 import ProjectSelector from 'app/components/projectHeader/projectSelector';
 import SentryTypes from 'app/sentryTypes';
 import space from 'app/styles/space';
@@ -19,7 +19,7 @@ const NewProject = ({organization}) => (
     )}
     <div className="container">
       <Content>
-        <DocumentTitle title={'Sentry'} />
+        <DocumentTitle title="Sentry" />
         <CreateProject
           nextStepUrl={({slug, projectSlug, platform}) =>
             `/${slug}/${projectSlug}/getting-started/${platform}/`

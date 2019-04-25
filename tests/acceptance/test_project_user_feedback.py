@@ -28,7 +28,7 @@ class ProjectUserFeedbackTest(AcceptanceTestCase):
             project=self.project,
             message='Foo bar',
         )
-        self.create_userreport(group=self.group, project=self.project, event=self.event)
+        self.create_userreport(group=self.group, project=self.project, event_id=self.event.id)
         self.browser.get(self.path)
         self.browser.wait_until_not('.loading')
         self.browser.snapshot('project user feedback')

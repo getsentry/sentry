@@ -19,14 +19,13 @@ import Confirm from 'app/components/confirm';
 import Duration from 'app/components/duration';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
 import EnvironmentStore from 'app/stores/environmentStore';
-import ListLink from 'app/components/listLink';
-import NavTabs from 'app/components/navTabs';
 import PermissionAlert from 'app/views/settings/project/permissionAlert';
 import SentryTypes from 'app/sentryTypes';
-import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import Tooltip from 'app/components/tooltip';
 import recreateRoute from 'app/utils/recreateRoute';
 import withApi from 'app/utils/withApi';
+
+import ProjectAlertHeader from './projectAlertHeader';
 
 const TextColorLink = styled(Link)`
   color: ${p => p.theme.gray3};
@@ -258,38 +257,11 @@ class ProjectAlertRules extends AsyncView {
 
   renderBody() {
     const {ruleList} = this.state;
-    const {organization} = this.context;
-    const canEditRule = organization.access.includes('project:write');
+    const {projectId} = this.props.params;
 
     return (
       <React.Fragment>
-        <SettingsPageHeader
-          title={t('Alerts')}
-          action={
-            <Tooltip
-              disabled={canEditRule}
-              title={t('You do not have permission to edit alert rules.')}
-            >
-              <Button
-                disabled={!canEditRule}
-                to={recreateRoute('new/', this.props)}
-                priority="primary"
-                size="small"
-                icon="icon-circle-add"
-              >
-                {t('New Alert Rule')}
-              </Button>
-            </Tooltip>
-          }
-          tabs={
-            <NavTabs underlined={true}>
-              <ListLink to={recreateRoute('alerts', {...this.props, stepBack: -4})}>
-                {t('Settings')}
-              </ListLink>
-              <ListLink to={recreateRoute('', this.props)}>{t('Rules')}</ListLink>
-            </NavTabs>
-          }
-        />
+        <ProjectAlertHeader projectId={projectId} />
         <PermissionAlert />
         {!!ruleList.length && this.renderResults()}
         {!ruleList.length && this.renderEmpty()}

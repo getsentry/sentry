@@ -265,7 +265,7 @@ class Factories(object):
             version = os.urandom(20).encode('hex')
 
         if date_added is None:
-            date_added = timezone.now().replace(microsecond=0)
+            date_added = timezone.now()
 
         release = Release.objects.create(
             version=version,
@@ -673,7 +673,7 @@ class Factories(object):
 
     @staticmethod
     def create_sentry_app(name=None, author='Sentry', organization=None, published=False, scopes=(),
-                          webhook_url=None, **kwargs):
+                          webhook_url=None, user=None, **kwargs):
         if not name:
             name = petname.Generate(2, ' ', letters=10).title()
         if not organization:
@@ -682,6 +682,7 @@ class Factories(object):
             webhook_url = 'https://example.com/webhook'
 
         _kwargs = {
+            'user': (user or Factories.create_user()),
             'name': name,
             'organization': organization,
             'author': author,
@@ -805,14 +806,15 @@ class Factories(object):
         return service_hooks.Creator.run(**_kwargs)
 
     @staticmethod
-    def create_userreport(group, project=None, **kwargs):
+    def create_userreport(group, project=None, event_id=None, **kwargs):
         return UserReport.objects.create(
             group=group,
-            event_id='a' * 32,
+            event_id=event_id or 'a' * 32,
             project=project or group.project,
             name='Jane Doe',
             email='jane@example.com',
-            comments="the application crashed"
+            comments="the application crashed",
+            **kwargs
         )
 
     @staticmethod

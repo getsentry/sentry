@@ -1,6 +1,8 @@
 from __future__ import absolute_import
 
 from django.core.urlresolvers import reverse
+from sentry.constants import SentryAppStatus
+from sentry.models import SentryApp
 from sentry.testutils import APITestCase
 from sentry.testutils.helpers import with_feature
 from sentry.utils import json
@@ -102,6 +104,7 @@ class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
             self.url,
             data={
                 'name': self.published_app.name,
+                'author': 'A Company',
                 'webhookUrl': 'https://newurl.com',
                 'redirectUrl': 'https://newredirecturl.com',
                 'isAlertable': True,
@@ -110,7 +113,7 @@ class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
         )
         assert json.loads(response.content) == {
             'name': self.published_app.name,
-            'author': self.published_app.author,
+            'author': 'A Company',
             'slug': self.published_app.slug,
             'scopes': [],
             'events': [],
@@ -123,6 +126,10 @@ class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
             'clientSecret': self.published_app.application.client_secret,
             'overview': self.published_app.overview,
             'schema': {},
+            'owner': {
+                'id': self.org.id,
+                'slug': self.org.slug,
+            }
         }
 
     @with_feature('organizations:sentry-apps')
@@ -157,7 +164,7 @@ class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
             organization=self.org,
         )
 
-        sentry_apps.Destroyer.run(sentry_app=sentry_app)
+        sentry_apps.Destroyer.run(sentry_app=sentry_app, user=self.user)
 
         response = self.client.put(
             self.url,
@@ -220,6 +227,42 @@ class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
             format='json',
         )
         assert response.status_code == 404
+
+    @with_feature('organizations:sentry-apps')
+    def test_superusers_can_publish_apps(self):
+        self.login_as(user=self.superuser, superuser=True)
+        app = self.create_sentry_app(
+            name='SampleApp',
+            organization=self.org,
+        )
+        url = reverse('sentry-api-0-sentry-app-details', args=[app.slug])
+        response = self.client.put(
+            url,
+            data={
+                'status': 'published',
+            },
+            format='json',
+        )
+        assert response.status_code == 200
+        assert SentryApp.objects.get(id=app.id).status == SentryAppStatus.PUBLISHED
+
+    @with_feature('organizations:sentry-apps')
+    def test_nonsuperusers_cannot_publish_apps(self):
+        self.login_as(user=self.user)
+        app = self.create_sentry_app(
+            name='SampleApp',
+            organization=self.org,
+        )
+        url = reverse('sentry-api-0-sentry-app-details', args=[app.slug])
+        response = self.client.put(
+            url,
+            data={
+                'status': 'published',
+            },
+            format='json',
+        )
+        assert response.status_code == 200
+        assert SentryApp.objects.get(id=app.id).status == SentryAppStatus.UNPUBLISHED
 
 
 class DeleteSentryAppDetailsTest(SentryAppDetailsTest):

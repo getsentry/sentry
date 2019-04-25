@@ -902,10 +902,11 @@ exports[`ProjectCard renders 1`] = `
                                 role="button"
                                 size="xsmall"
                               >
-                                <Component
+                                <ForwardRef
                                   aria-disabled={false}
                                   aria-label="Track deploys"
-                                  className="css-dkprmi-StyledButton-getColors eqrebog0"
+                                  className="css-dkprmi-StyledButton-getColors e12ma6z0"
+                                  disabled={false}
                                   external={true}
                                   href="https://docs.sentry.io/learn/releases/"
                                   onClick={[Function]}
@@ -915,7 +916,7 @@ exports[`ProjectCard renders 1`] = `
                                   <ExternalLink
                                     aria-disabled={false}
                                     aria-label="Track deploys"
-                                    className="css-dkprmi-StyledButton-getColors eqrebog0"
+                                    className="css-dkprmi-StyledButton-getColors e12ma6z0"
                                     href="https://docs.sentry.io/learn/releases/"
                                     onClick={[Function]}
                                     rel="noreferrer noopener"
@@ -926,7 +927,7 @@ exports[`ProjectCard renders 1`] = `
                                     <a
                                       aria-disabled={false}
                                       aria-label="Track deploys"
-                                      className="css-dkprmi-StyledButton-getColors eqrebog0"
+                                      className="css-dkprmi-StyledButton-getColors e12ma6z0"
                                       href="https://docs.sentry.io/learn/releases/"
                                       onClick={[Function]}
                                       rel="noreferrer noopener"
@@ -938,11 +939,11 @@ exports[`ProjectCard renders 1`] = `
                                         size="xsmall"
                                       >
                                         <Component
-                                          className="css-uthd1f-ButtonLabel eqrebog1"
+                                          className="css-uthd1f-ButtonLabel e12ma6z1"
                                           size="xsmall"
                                         >
                                           <span
-                                            className="css-uthd1f-ButtonLabel eqrebog1"
+                                            className="css-uthd1f-ButtonLabel e12ma6z1"
                                           >
                                             Track deploys
                                           </span>
@@ -950,7 +951,7 @@ exports[`ProjectCard renders 1`] = `
                                       </ButtonLabel>
                                     </a>
                                   </ExternalLink>
-                                </Component>
+                                </ForwardRef>
                               </StyledButton>
                             </Button>
                           </div>

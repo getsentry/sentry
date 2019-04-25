@@ -1,7 +1,7 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 
-import {RECENT_SEARCH_TYPES} from 'app/constants';
+import {SEARCH_TYPES} from 'app/constants';
 import {fetchRecentSearches} from 'app/actionCreators/savedSearches';
 import {t} from 'app/locale';
 import SentryTypes from 'app/sentryTypes';
@@ -12,48 +12,32 @@ import withOrganization from 'app/utils/withOrganization';
 const SEARCH_ITEMS = [
   {
     title: t('Tag'),
-    desc: t('key/value pair associated to an issue'),
-    example: 'browser:"Chrome 34", has:browser',
-    className: 'icon-tag',
+    desc: 'browser:"Chrome 34", has:browser',
     value: 'browser:',
     type: 'default',
   },
   {
     title: t('Status'),
-    desc: t('State of an issue'),
-    example: 'is:resolved, unresolved, ignored, assigned, unassigned',
-    className: 'icon-toggle',
+    desc: 'is:resolved, unresolved, ignored, assigned, unassigned',
     value: 'is:',
     type: 'default',
   },
   {
     title: t('Time or Count'),
-    desc: t('Time or Count related search'),
-    example: 'firstSeen, lastSeen, event.timestamp, timesSeen',
-    className: 'icon-av_timer',
+    desc: 'firstSeen, lastSeen, event.timestamp, timesSeen',
     value: '',
     type: 'default',
   },
   {
     title: t('Assigned'),
-    desc: t('team member assigned to an issue'),
-    example: 'assigned:[me|user@example.com]',
-    className: 'icon-user',
+    desc: 'assigned:[me|user@example.com]',
     value: 'assigned:',
     type: 'default',
   },
   {
     title: t('Bookmarked By'),
-    desc: t('team member who bookmarked an issue'),
-    example: 'bookmarks:[me|user@example.com]',
-    className: 'icon-user',
+    desc: 'bookmarks:[me|user@example.com]',
     value: 'bookmarks:',
-    type: 'default',
-  },
-  {
-    desc: t('or paste an event id to jump straight to it'),
-    className: 'icon-hash',
-    value: '',
     type: 'default',
   },
 ];
@@ -62,12 +46,14 @@ class SearchBar extends React.Component {
   static propTypes = {
     ...SmartSearchBar.propTypes,
 
+    savedSearch: SentryTypes.SavedSearch,
     organization: SentryTypes.Organization.isRequired,
     tagValueLoader: PropTypes.func.isRequired,
+    onSidebarToggle: PropTypes.func,
   };
 
   state = {
-    defaultSearchItems: SEARCH_ITEMS,
+    defaultSearchItems: [SEARCH_ITEMS, []],
     recentSearches: [],
   };
 
@@ -77,15 +63,15 @@ class SearchBar extends React.Component {
     this.fetchData();
   }
 
-  hasRecentSearches = () => {
+  hasOrgSavedSearches = () => {
     const {organization} = this.props;
-    return organization && organization.features.includes('recent-searches');
+    return organization && organization.features.includes('org-saved-searches');
   };
 
   fetchData = async () => {
-    if (!this.hasRecentSearches()) {
+    if (!this.hasOrgSavedSearches()) {
       this.setState({
-        defaultSearchItems: SEARCH_ITEMS,
+        defaultSearchItems: [SEARCH_ITEMS, []],
       });
 
       return;
@@ -95,14 +81,15 @@ class SearchBar extends React.Component {
 
     this.setState({
       defaultSearchItems: [
-        ...(resp &&
-          resp.map(query => ({
-            desc: query,
-            value: query,
-            className: 'icon-clock',
-            type: 'recent-search',
-          }))),
-        ...SEARCH_ITEMS,
+        SEARCH_ITEMS,
+        resp
+          ? resp.map(query => ({
+              desc: query,
+              value: query,
+              className: 'icon-clock',
+              type: 'recent-search',
+            }))
+          : [],
       ],
       recentSearches: resp,
     });
@@ -125,18 +112,13 @@ class SearchBar extends React.Component {
 
   getRecentSearches = async fullQuery => {
     const {api, orgId} = this.props;
-    const recent = await fetchRecentSearches(
-      api,
-      orgId,
-      RECENT_SEARCH_TYPES.ISSUE,
-      fullQuery
-    );
+    const recent = await fetchRecentSearches(api, orgId, SEARCH_TYPES.ISSUE, fullQuery);
     return (recent && recent.map(({query}) => query)) || [];
   };
 
   handleSavedRecentSearch = () => {
     // No need to refetch if recent searches feature is not enabled
-    if (!this.hasRecentSearches()) {
+    if (!this.hasOrgSavedSearches()) {
       return;
     }
 
@@ -147,19 +129,32 @@ class SearchBar extends React.Component {
   render() {
     const {
       tagValueLoader, // eslint-disable-line no-unused-vars
+      savedSearch,
+      onSidebarToggle,
       ...props
     } = this.props;
+    const hasPinnedSearch = this.hasOrgSavedSearches();
 
     return (
-      <SmartSearchBar
-        onGetTagValues={this.getTagValues}
-        defaultSearchItems={this.state.defaultSearchItems}
-        maxSearchItems={5}
-        recentSearchType={RECENT_SEARCH_TYPES.ISSUE}
-        displayRecentSearches={this.hasRecentSearches()}
-        onSavedRecentSearch={this.handleSavedRecentSearch}
-        {...props}
-      />
+      <React.Fragment>
+        <SmartSearchBar
+          onGetTagValues={this.getTagValues}
+          defaultSearchItems={this.state.defaultSearchItems}
+          maxSearchItems={5}
+          hasPinnedSearch={hasPinnedSearch}
+          savedSearchType={SEARCH_TYPES.ISSUE}
+          displayRecentSearches={this.hasOrgSavedSearches()}
+          onSavedRecentSearch={this.handleSavedRecentSearch}
+          onSidebarToggle={onSidebarToggle}
+          pinnedSearch={savedSearch && savedSearch.isPinned ? savedSearch : null}
+          {...props}
+        />
+        {!hasPinnedSearch && onSidebarToggle && (
+          <a className="btn btn-default toggle-stream-sidebar" onClick={onSidebarToggle}>
+            <span className="icon-filter" />
+          </a>
+        )}
+      </React.Fragment>
     );
   }
 }

@@ -39,7 +39,7 @@ def get_highest_browser_sdk_version(versions):
 
 
 def get_browser_sdk_version_versions():
-    return ['latest', DEFAULT_VERSION]
+    return ['latest', '5.x', DEFAULT_VERSION]
 
 
 def get_browser_sdk_version_choices():

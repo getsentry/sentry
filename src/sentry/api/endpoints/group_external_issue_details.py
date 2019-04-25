@@ -2,7 +2,6 @@ from __future__ import absolute_import
 
 from rest_framework.response import Response
 
-from sentry import features
 from sentry.api.bases.group import GroupEndpoint
 from sentry.mediators import external_issues
 from sentry.models import PlatformExternalIssue
@@ -10,11 +9,6 @@ from sentry.models import PlatformExternalIssue
 
 class GroupExternalIssueDetailsEndpoint(GroupEndpoint):
     def delete(self, request, external_issue_id, group):
-        if not features.has('organizations:sentry-apps',
-                            group.organization,
-                            actor=request.user):
-            return Response(status=404)
-
         try:
             external_issue = PlatformExternalIssue.objects.get(
                 id=external_issue_id,

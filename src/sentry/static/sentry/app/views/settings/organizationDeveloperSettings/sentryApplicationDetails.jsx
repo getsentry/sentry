@@ -68,7 +68,7 @@ export default class SentryApplicationDetails extends AsyncView {
   }
 
   getTitle() {
-    return t('Sentry Application Details');
+    return t('Sentry Integration Details');
   }
 
   // Events may come from the API as "issue.created" when we just want "issue" here.
@@ -102,7 +102,13 @@ export default class SentryApplicationDetails extends AsyncView {
           apiMethod={method}
           apiEndpoint={endpoint}
           allowUndo
-          initialData={{organization: orgId, isAlertable: false, schema: {}, ...app}}
+          initialData={{
+            organization: orgId,
+            isAlertable: false,
+            schema: {},
+            scopes: [],
+            ...app,
+          }}
           model={this.form}
           onSubmitSuccess={this.onSubmitSuccess}
         >

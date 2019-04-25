@@ -4,15 +4,15 @@ import {tct} from 'app/locale';
 const forms = [
   {
     // Form "section"/"panel"
-    title: 'Application Details',
+    title: 'Integration Details',
     fields: [
       {
         name: 'name',
         type: 'string',
         required: true,
-        placeholder: 'e.g. My Application',
+        placeholder: 'e.g. My Integration',
         label: 'Name',
-        help: 'Human readable name of your application.',
+        help: 'Human readable name of your Integration.',
       },
       {
         name: 'author',
@@ -28,7 +28,8 @@ const forms = [
         required: true,
         label: 'Webhook URL',
         placeholder: 'e.g. https://example.com/sentry/webhook/',
-        help: 'The URL Sentry will send requests to on installation changes.',
+        help:
+          'The URL Sentry will send requests to for events such as installation changes and any Resource Subscriptions the Integration subscribes to.',
       },
       {
         name: 'redirectUrl',
@@ -66,13 +67,25 @@ const forms = [
           }
           return schema;
         },
+        validate: ({id, form}) => {
+          if (!form.schema) {
+            return [];
+          }
+
+          try {
+            JSON.parse(form.schema);
+          } catch (e) {
+            return [[id, 'Invalid JSON']];
+          }
+          return [];
+        },
       },
       {
         name: 'overview',
         type: 'textarea',
         label: 'Overview',
         autosize: true,
-        help: 'Description of your application and its functionality.',
+        help: 'Description of your Integration and its functionality.',
       },
     ],
   },

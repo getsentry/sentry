@@ -7,24 +7,20 @@ import {
   LOCAL_STORAGE_KEY,
 } from 'app/components/organizations/globalSelectionHeader/constants';
 import {getStateFromQuery} from 'app/components/organizations/globalSelectionHeader/utils';
-import {DEFAULT_STATS_PERIOD} from 'app/constants';
 import {isEqualWithDates} from 'app/utils/isEqualWithDates';
-import ConfigStore from 'app/stores/configStore';
 import OrganizationsStore from 'app/stores/organizationsStore';
 import GlobalSelectionActions from 'app/actions/globalSelectionActions';
 import localStorage from 'app/utils/localStorage';
 
 const getDefaultSelection = () => {
-  const user = ConfigStore.get('user');
-
   return {
     projects: [],
     environments: [],
     datetime: {
       [DATE_TIME.START]: null,
       [DATE_TIME.END]: null,
-      [DATE_TIME.PERIOD]: DEFAULT_STATS_PERIOD,
-      [DATE_TIME.UTC]: user?.options?.timezone === 'UTC' ? true : null,
+      [DATE_TIME.PERIOD]: null,
+      [DATE_TIME.UTC]: null,
     },
   };
 };
@@ -81,9 +77,13 @@ const GlobalSelectionStore = Reflux.createStore({
     } else {
       try {
         const localStorageKey = `${LOCAL_STORAGE_KEY}:${organization.slug}`;
-        const storedValue = JSON.parse(localStorage.getItem(localStorageKey));
+
+        const storedValue = localStorage.getItem(localStorageKey);
+
+        const defaultDateTime = getDefaultSelection().datetime;
+
         if (storedValue) {
-          globalSelection = storedValue;
+          globalSelection = {datetime: defaultDateTime, ...JSON.parse(storedValue)};
         }
       } catch (ex) {
         // use default if invalid
@@ -149,7 +149,11 @@ const GlobalSelectionStore = Reflux.createStore({
 
     try {
       const localStorageKey = `${LOCAL_STORAGE_KEY}:${this.organization.slug}`;
-      localStorage.setItem(localStorageKey, JSON.stringify(this.selection));
+      const dataToSave = {
+        projects: this.selection.projects,
+        environments: this.selection.environments,
+      };
+      localStorage.setItem(localStorageKey, JSON.stringify(dataToSave));
     } catch (ex) {
       // Do nothing
     }

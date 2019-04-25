@@ -6,10 +6,12 @@ import styled from 'react-emotion';
 import withApi from 'app/utils/withApi';
 import InlineSvg from 'app/components/inlineSvg';
 import {addSuccessMessage, addErrorMessage} from 'app/actionCreators/indicator';
-import {IntegrationLink, IntegrationIcon} from 'app/components/issueSyncListElement';
+import {IntegrationLink} from 'app/components/issueSyncListElement';
+import SentryAppIcon from 'app/components/sentryAppIcon';
 import SentryAppExternalIssueForm from 'app/components/group/sentryAppExternalIssueForm';
 import NavTabs from 'app/components/navTabs';
 import {t, tct} from 'app/locale';
+import SentryTypes from 'app/sentryTypes';
 import space from 'app/styles/space';
 import {deleteExternalIssue} from 'app/actionCreators/platformExternalIssues';
 
@@ -20,6 +22,7 @@ class SentryAppExternalIssueActions extends React.Component {
     sentryAppComponent: PropTypes.object.isRequired,
     sentryAppInstallation: PropTypes.object,
     externalIssue: PropTypes.object,
+    event: SentryTypes.Event,
   };
 
   constructor(props) {
@@ -88,22 +91,12 @@ class SentryAppExternalIssueActions extends React.Component {
     this.hideModal();
   };
 
-  iconExists() {
-    try {
-      require(`../../icons/icon-${this.props.sentryAppComponent.sentryApp.slug}.svg`);
-      return true;
-    } catch (err) {
-      return false;
-    }
-  }
-
   get link() {
     const {sentryAppComponent} = this.props;
     const {externalIssue} = this.state;
     const name = sentryAppComponent.sentryApp.name;
 
     let url = '#';
-    let icon = 'icon-generic-box';
     let displayName = tct('Link [name] Issue', {name});
 
     if (externalIssue) {
@@ -111,14 +104,10 @@ class SentryAppExternalIssueActions extends React.Component {
       displayName = externalIssue.displayName;
     }
 
-    if (this.iconExists()) {
-      icon = `icon-${sentryAppComponent.sentryApp.slug}`;
-    }
-
     return (
       <IssueLinkContainer>
         <IssueLink>
-          <IntegrationIcon src={icon} />
+          <StyledSentryAppIcon slug={sentryAppComponent.sentryApp.slug} />
           <IntegrationLink onClick={this.showModal} href={url}>
             {displayName}
           </IntegrationLink>
@@ -157,6 +146,7 @@ class SentryAppExternalIssueActions extends React.Component {
             config={sentryAppComponent.schema}
             action={action}
             onSubmitSuccess={this.onSubmitSuccess}
+            event={this.props.event}
           />
         </Modal.Body>
       </Modal>
@@ -172,6 +162,14 @@ class SentryAppExternalIssueActions extends React.Component {
     );
   }
 }
+
+const StyledSentryAppIcon = styled(SentryAppIcon)`
+  color: ${p => p.theme.gray4};
+  width: ${space(3)};
+  height: ${space(3)};
+  cursor: pointer;
+  flex-shrink: 0;
+`;
 
 const IssueLink = styled('div')`
   display: flex;

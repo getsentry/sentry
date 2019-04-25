@@ -36,7 +36,7 @@ class ApiApplicationTest(AcceptanceTestCase):
         self.browser.wait_until_not('.loading')
         self.browser.snapshot('api applications - no applications')
 
-        self.browser.click_when_visible('.ref-create-application')
+        self.browser.click_when_visible('[aria-label="Create New Application"]')
         self.browser.wait_until_not('.loading')
         self.browser.snapshot('api applications - new application')
 
@@ -45,3 +45,9 @@ class ApiApplicationTest(AcceptanceTestCase):
         self.browser.click_when_visible('.ref-toast')
         self.browser.wait_until_not('.ref-toast')
         self.browser.snapshot('api applications - single application')
+
+        self.browser.get(self.path)
+        self.browser.wait_until_not('.loading')
+        self.browser.click_when_visible('[aria-label="Remove"]')
+        self.browser.wait_until_not('.ref-toast')
+        self.browser.wait_until_test_id('empty-message')

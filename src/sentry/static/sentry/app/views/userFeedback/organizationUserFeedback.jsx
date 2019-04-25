@@ -46,27 +46,23 @@ class OrganizationUserFeedback extends AsyncView {
   renderResults() {
     const {orgId} = this.props.params;
 
-    return this.state.reportList.map(item => {
-      const issue = item.issue;
-      return (
-        <CompactIssue
-          key={item.id}
-          id={issue.id}
-          data={issue}
-          eventId={item.event.eventID}
-        >
-          <EventUserFeedback report={item} orgId={orgId} issueId={issue.id} />
-        </CompactIssue>
-      );
-    });
-  }
-
-  renderList() {
-    if (this.state.reportList.length === 0) {
-      return this.renderEmpty();
-    }
-
-    return this.renderResults();
+    return (
+      <div data-test-id="user-feedback-list">
+        {this.state.reportList.map(item => {
+          const issue = item.issue;
+          return (
+            <CompactIssue
+              key={item.id}
+              id={issue.id}
+              data={issue}
+              eventId={item.event.eventID}
+            >
+              <EventUserFeedback report={item} orgId={orgId} issueId={issue.id} />
+            </CompactIssue>
+          );
+        })}
+      </div>
+    );
   }
 
   renderEmpty() {

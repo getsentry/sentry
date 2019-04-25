@@ -100,6 +100,7 @@ class DatabaseOperations(object):
     add_check_constraint_fragment = "ADD CONSTRAINT %(constraint)s CHECK (%(check)s)"
     rename_table_sql = "ALTER TABLE %s RENAME TO %s;"
     backend_name = None
+
     default_schema_name = "public"
 
     # Features
@@ -119,13 +120,6 @@ class DatabaseOperations(object):
         connection = self._get_connection()
         if hasattr(connection.features, "confirm") and not connection.features._confirmed:
             connection.features.confirm()
-        # Django 1.3's MySQLdb backend doesn't raise DatabaseError
-        exceptions = (DatabaseError, )
-        try:
-            from MySQLdb import OperationalError
-            exceptions += (OperationalError, )
-        except ImportError:
-            pass
         # Now do the test
         if getattr(connection.features, 'supports_transactions', True):
             cursor = connection.cursor()
@@ -135,7 +129,7 @@ class DatabaseOperations(object):
             try:
                 try:
                     cursor.execute('CREATE TABLE DDL_TRANSACTION_TEST (X INT)')
-                except exceptions:
+                except DatabaseError:
                     return False
                 else:
                     return True
@@ -253,7 +247,7 @@ class DatabaseOperations(object):
     def connection_init(self):
         """
         Run before any SQL to let database-specific config be sent as a command,
-        e.g. which storage engine (MySQL) or transaction serialisability level.
+        e.g. which storage engine or transaction serialisability level.
         """
         pass
 
@@ -353,7 +347,7 @@ class DatabaseOperations(object):
         """
 
         if len(table_name) > 63:
-            print("   ! WARNING: You have a table name longer than 63 characters; this will not fully work on PostgreSQL or MySQL.")
+            print("   ! WARNING: You have a table name longer than 63 characters; this will not fully work on PostgreSQL.")
 
         # avoid default values in CREATE TABLE statements (#925)
         for field_name, field in fields:
@@ -550,7 +544,7 @@ class DatabaseOperations(object):
                 flatten(values),
             )
         else:
-            # Databases like e.g. MySQL don't like more than one alter at once.
+            # Some databases don't like more than one alter at once.
             for sql, values in sqls:
                 self.execute("ALTER TABLE %s %s;" % (self.quote_name(table_name), sql), values)
 
@@ -684,7 +678,7 @@ class DatabaseOperations(object):
         if hasattr(field, 'south_init'):
             field.south_init()
 
-        # Possible hook to fiddle with the fields (e.g. defaults & TEXT on MySQL)
+        # Possible hook to fiddle with the fields
         field = self._field_sanity(field)
 
         try:
@@ -694,7 +688,7 @@ class DatabaseOperations(object):
 
         if sql:
 
-            # Some callers, like the sqlite stuff, just want the extended type.
+            # Some callers just want the extended type.
             if with_name:
                 field_output = [self.quote_name(field.column), sql]
             else:
@@ -727,11 +721,13 @@ class DatabaseOperations(object):
                     # written into the database
                     if callable(default):
                         get_logger().warn(text_type('discarded column default "%r" on "%s"' % (default, table_name)))
+
                         default = None
 
                     # If the default is actually None, don't add a default term
                     if default is not None:
                         default = field.get_db_prep_save(default, connection=self._get_connection())
+
                         default = self._default_value_workaround(default)
                         # Now do some very cheap quoting. TODO: Redesign return values to avoid
                         # this.
@@ -780,8 +776,7 @@ class DatabaseOperations(object):
 
     def _field_sanity(self, field):
         """
-        Placeholder for DBMS-specific field alterations (some combos aren't valid,
-        e.g. DEFAULT and TEXT on MySQL)
+        Placeholder for DBMS-specific field alterations (some combos aren't valid)
         """
         return field
 

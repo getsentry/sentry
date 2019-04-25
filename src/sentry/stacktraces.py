@@ -8,6 +8,8 @@ from django.utils import timezone
 from collections import namedtuple, OrderedDict
 
 from sentry.models import Project, Release
+from sentry.grouping.utils import get_grouping_family_for_platform
+from sentry.utils.in_app import is_known_third_party
 from sentry.utils.cache import cache
 from sentry.utils.hashlib import hash_values
 from sentry.utils.safe import get_path, safe_execute
@@ -197,22 +199,71 @@ def find_stacktraces_in_data(data, include_raw=False):
     return rv
 
 
-def normalize_in_app(data):
-    def _has_system_frames(frames):
-        system_frames = 0
-        for frame in frames:
-            if not frame.get('in_app'):
-                system_frames += 1
-        return bool(system_frames) and len(frames) != system_frames
+def _has_system_frames(frames):
+    """
+    Determines whether there are any frames in the stacktrace with in_app=false.
+    """
+
+    system_frames = 0
+    for frame in frames:
+        if not frame.get('in_app'):
+            system_frames += 1
+    return bool(system_frames) and len(frames) != system_frames
+
+
+def _normalize_in_app(stacktrace, platform=None, sdk_info=None):
+    """
+    Ensures consistent values of in_app across a stacktrace.
+    """
+    # Native frames have special rules regarding in_app. Apply them before other
+    # normalization, just like grouping enhancers.
+    # TODO(ja): Clean up those rules and put them in enhancers instead
+    for frame in stacktrace:
+        if frame.get('in_app') is not None:
+            continue
+
+        family = get_grouping_family_for_platform(frame.get('platform') or platform)
+        if family == 'native':
+            frame_package = frame.get('package')
+            frame['in_app'] = bool(frame_package) and \
+                not is_known_third_party(frame_package, sdk_info=sdk_info)
+
+    has_system_frames = _has_system_frames(stacktrace)
+    for frame in stacktrace:
+        # If all frames are in_app, flip all of them. This is expected by the UI
+        if not has_system_frames:
+            frame['in_app'] = False
+
+        # Default to false in all cases where processors or grouping enhancers
+        # have not yet set in_app.
+        elif frame.get('in_app') is None:
+            frame['in_app'] = False
+
+
+def normalize_stacktraces_for_grouping(data, grouping_config=None):
+    """
+    Applies grouping enhancement rules and ensure in_app is set on all frames.
+    """
+
+    stacktraces = []
 
     for stacktrace_info in find_stacktraces_in_data(data, include_raw=True):
         frames = get_path(stacktrace_info.stacktrace, 'frames', filter=True, default=())
-        has_system_frames = _has_system_frames(frames)
-        for frame in frames:
-            if not has_system_frames:
-                frame['in_app'] = False
-            elif frame.get('in_app') is None:
-                frame['in_app'] = False
+        if frames:
+            stacktraces.append(frames)
+
+    if not stacktraces:
+        return
+
+    # If a grouping config is available, run grouping enhancers
+    platform = data.get('platform')
+    if grouping_config is not None:
+        for frames in stacktraces:
+            grouping_config.enhancements.apply_modifications_to_frame(frames, platform)
+
+    # normalize in-app
+    for stacktrace in stacktraces:
+        _normalize_in_app(stacktrace, platform=platform)
 
 
 def should_process_for_stacktraces(data):
@@ -295,6 +346,9 @@ def process_single_stacktrace(processing_task, stacktrace_info, processable_fram
         if expand_processed is not None:
             processed_frames.extend(expand_processed)
             changed_processed = True
+        elif expand_raw:  # is not empty
+            processed_frames.extend(expand_raw)
+            changed_processed = True
         else:
             processed_frames.append(processable_frame.frame)
 
@@ -360,7 +414,7 @@ def dedup_errors(errors):
     return rv
 
 
-def process_stacktraces(data, make_processors=None):
+def process_stacktraces(data, make_processors=None, set_raw_stacktrace=True):
     infos = find_stacktraces_in_data(data)
     if make_processors is None:
         processors = get_processors_for_stacktraces(data, infos)
@@ -391,7 +445,8 @@ def process_stacktraces(data, make_processors=None):
             if new_frames is not None:
                 stacktrace_info.stacktrace['frames'] = new_frames
                 changed = True
-            if new_raw_frames is not None and \
+            if set_raw_stacktrace and \
+               new_raw_frames is not None and \
                stacktrace_info.container is not None:
                 stacktrace_info.container['raw_stacktrace'] = dict(
                     stacktrace_info.stacktrace, frames=new_raw_frames

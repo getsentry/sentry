@@ -1,15 +1,13 @@
 ---
-created: '2019-04-02T14:12:19.202363Z'
+created: '2019-04-15T11:04:06.116525Z'
 creator: sentry
 source: tests/symbolicator/test_native_plugin.py
 ---
-culprit: main
+contexts: null
 debug_meta:
   images:
   - arch: x86_64
     code_file: Foo.app/Contents/Foo
-    code_id: null
-    debug_file: null
     debug_id: 502fc0a5-1ec1-3e47-9998-684fa139dca7
     image_addr: '0x100000000'
     image_size: 4096
@@ -20,6 +18,7 @@ debug_meta:
     version_major: 10
     version_minor: 12
     version_patchlevel: 4
+errors: null
 exception:
   values:
   - raw_stacktrace:
@@ -27,6 +26,7 @@ exception:
       - function: unknown
         in_app: false
         instruction_addr: '0x100000fa0'
+        package: Foo.app/Contents/Foo
     stacktrace:
       frames:
       - abs_path: /tmp/hello.c
@@ -39,32 +39,5 @@ exception:
         symbol: main
     type: Fail
     value: fail
-fingerprint:
-- '{{ default }}'
-grouping_config:
-  id: legacy:2019-03-12
-hashes:
-- 6e2889ec15f82569f56fdba9ffc9b90b
-level: error
-location: hello.c
-logger: ''
-metadata:
-  filename: hello.c
-  function: main
-  type: Fail
-  value: fail
-platform: cocoa
-sdk:
-  name: _postWithHeader
-  version: 0.0.0
-tags:
-- - level
-  - error
-- - sentry:user
-  - ip:127.0.0.1
-title: 'Fail: fail'
-type: error
-use_rust_normalize: true
-user:
-  ip_address: 127.0.0.1
-version: '6'
+stacktrace: null
+threads: null

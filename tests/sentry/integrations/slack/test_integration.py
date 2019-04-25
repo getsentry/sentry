@@ -108,7 +108,9 @@ class SlackIntegrationTest(IntegrationTestCase):
         self.assert_setup_flow()
         self.assert_setup_flow(team_id='TXXXXXXX2', authorizing_user_id='UXXXXXXX2')
 
-        integrations = Integration.objects.filter(provider=self.provider.key)
+        integrations = Integration.objects.filter(
+            provider=self.provider.key,
+        ).order_by('external_id')
 
         assert integrations.count() == 2
         assert integrations[0].external_id == 'TXXXXXXX1'

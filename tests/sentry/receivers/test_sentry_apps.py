@@ -44,7 +44,7 @@ class TestIssueWorkflowNotifications(APITestCase):
             issue_id=self.issue.id,
             type='resolved',
             user_id=self.user.id,
-            data={'resolution_type': 'resolved'},
+            data={'resolution_type': 'now'},
         )
 
     def test_notify_after_resolve_in_commit(self, delay):
@@ -65,7 +65,7 @@ class TestIssueWorkflowNotifications(APITestCase):
             issue_id=self.issue.id,
             type='resolved',
             user_id=self.user.id,
-            data={'resolution_type': 'resolved_in_commit'},
+            data={'resolution_type': 'in_commit'},
         )
 
     def test_notify_after_resolve_in_specific_release(self, delay):
@@ -82,7 +82,7 @@ class TestIssueWorkflowNotifications(APITestCase):
             issue_id=self.issue.id,
             type='resolved',
             user_id=self.user.id,
-            data={'resolution_type': 'resolved_in_release'},
+            data={'resolution_type': 'in_release'},
         )
 
     def test_notify_after_resolve_in_latest_release(self, delay):
@@ -99,7 +99,7 @@ class TestIssueWorkflowNotifications(APITestCase):
             issue_id=self.issue.id,
             type='resolved',
             user_id=self.user.id,
-            data={'resolution_type': 'resolved_in_release'},
+            data={'resolution_type': 'in_release'},
         )
 
     def test_notify_after_resolve_in_next_release(self, delay):
@@ -116,7 +116,7 @@ class TestIssueWorkflowNotifications(APITestCase):
             issue_id=self.issue.id,
             type='resolved',
             user_id=self.user.id,
-            data={'resolution_type': 'resolved_in_release'},
+            data={'resolution_type': 'in_next_release'},
         )
 
     def test_notify_after_resolve_from_set_commits(self, delay):
@@ -161,7 +161,7 @@ class TestIssueWorkflowNotifications(APITestCase):
             issue_id=self.issue.id,
             type='resolved',
             user_id=None,
-            data={'resolution_type': 'resolved_in_commit'},
+            data={'resolution_type': 'with_commit'},
         )
 
     def test_notify_after_issue_ignored(self, delay):
