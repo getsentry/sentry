@@ -204,7 +204,6 @@ class ProjectSelector extends React.Component {
       searchKey: project.slug,
       label: ({inputValue}) => (
         <ProjectSelectorItem
-          something="test"
           project={project}
           organization={org}
           multi={multi}
@@ -229,6 +228,7 @@ class ProjectSelector extends React.Component {
           {
             hideGroupLabel: nonMemberProjects.length === 0,
             itemSize: 'small',
+            id: 'no-membership-header', // needed for tests for non-virtualized lists
             label: <Label>{t("Projects I don't belong to")}</Label>,
             items: nonMemberProjects.map(getProjectItem),
           },

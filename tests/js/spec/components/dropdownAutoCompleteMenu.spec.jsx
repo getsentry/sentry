@@ -35,6 +35,7 @@ describe('DropdownAutoCompleteMenu', function() {
         isOpen={true}
         items={[
           {
+            id: 'countries',
             value: 'countries',
             label: 'countries',
             items: [
@@ -65,6 +66,7 @@ describe('DropdownAutoCompleteMenu', function() {
         isOpen={true}
         items={[
           {
+            id: 'countries',
             value: 'countries',
             label: 'countries',
             items: [
