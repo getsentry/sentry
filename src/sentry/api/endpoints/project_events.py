@@ -63,6 +63,8 @@ class ProjectEventsEndpoint(ProjectEndpoint):
             conditions.append(
                 [['positionCaseInsensitive', ['message', "'%s'" % (query,)]], '!=', 0])
 
+        full = request.GET.get('full', False)
+        snuba_cols = SnubaEvent.minimal_columns if full else SnubaEvent.selected_columns
         now = timezone.now()
         data_fn = partial(
             # extract 'data' from raw_query result
@@ -71,12 +73,11 @@ class ProjectEventsEndpoint(ProjectEndpoint):
             end=now,
             conditions=conditions,
             filter_keys={'project_id': [project.id]},
-            selected_columns=SnubaEvent.minimal_columns,
+            selected_columns=snuba_cols,
             orderby='-timestamp',
             referrer='api.project-events',
         )
 
-        full = request.GET.get('full', False)
         serializer = EventSerializer() if full else SimpleEventSerializer()
         return self.paginate(
             request=request,

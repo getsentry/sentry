@@ -90,18 +90,19 @@ class GroupEventsEndpoint(GroupEndpoint, EnvironmentMixin):
         if environments:
             params['environment'] = [env.name for env in environments]
 
+        full = request.GET.get('full', False)
         snuba_args = get_snuba_query_args(request.GET.get('query', None), params)
+        snuba_cols = SnubaEvent.minimal_columns if full else SnubaEvent.selected_columns
 
         data_fn = partial(
             # extract 'data' from raw_query result
             lambda *args, **kwargs: raw_query(*args, **kwargs)['data'],
-            selected_columns=SnubaEvent.selected_columns,
+            selected_columns=snuba_cols,
             orderby='-timestamp',
             referrer='api.group-events',
             **snuba_args
         )
 
-        full = request.GET.get('full', False)
         serializer = EventSerializer() if full else SimpleEventSerializer()
         return self.paginate(
             request=request,

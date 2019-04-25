@@ -37,6 +37,7 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
             if direct_hit_resp:
                 return direct_hit_resp
 
+        full = request.GET.get('full', False)
         try:
             snuba_args = self.get_snuba_query_args(request, organization)
         except OrganizationEventsError as exc:
@@ -46,16 +47,16 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
             # or user doesn't have access to projects in org
             data_fn = lambda *args, **kwargs: []
         else:
+            snuba_cols = SnubaEvent.minimal_columns if full else SnubaEvent.selected_columns
             data_fn = partial(
                 # extract 'data' from raw_query result
                 lambda *args, **kwargs: raw_query(*args, **kwargs)['data'],
-                selected_columns=SnubaEvent.selected_columns,
+                selected_columns=snuba_cols,
                 orderby='-timestamp',
                 referrer='api.organization-events',
                 **snuba_args
             )
 
-        full = request.GET.get('full', False)
         serializer = EventSerializer() if full else SimpleEventSerializer()
         return self.paginate(
             request=request,
