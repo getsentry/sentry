@@ -1607,7 +1607,7 @@ SOUTH_TESTS_MIGRATE = os.environ.get('SOUTH_TESTS_MIGRATE', '0') == '1'
 
 SOUTH_MIGRATION_CONVERSIONS = (
     # app_name, migration, new_app_name, new_migration_label
-    ('sentry', '0472_auto__add_field_sentryapp_author', 'sentry', '0001_initial'),
+    ('sentry', '0475_auto__add_field_broadcast_cta', 'sentry', '0001_initial'),
     ('sentry.nodestore', '0001_initial', 'nodestore', '0001_initial'),
     # ('sentry.search', '0002_auto__del_searchtoken__del_unique_searchtoken_document_field_token__de'),
     # ('sentry.tagstore', '0008_auto__chg_field_tagkey_environment_id'),

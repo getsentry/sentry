@@ -595,6 +595,7 @@ class Migration(migrations.Migration):
                 ('date_expires', models.DateTimeField(
                     default=sentry.models.broadcast.default_expiration, null=True, blank=True)),
                 ('date_added', models.DateTimeField(default=django.utils.timezone.now)),
+                ('cta', models.CharField(max_length=256, null=True, blank=True)),
             ],
             options={
                 'db_table': 'sentry_broadcast',
@@ -1946,6 +1947,7 @@ class Migration(migrations.Migration):
                 ('date_created', models.DateTimeField(default=django.utils.timezone.now)),
                 ('last_updated', models.DateTimeField(default=django.utils.timezone.now)),
                 ('is_active', models.BooleanField(default=True)),
+                ('auto_assignment', models.BooleanField(default=False)),
                 ('project', sentry.db.models.fields.foreignkey.FlexibleForeignKey(
                     to='sentry.Project', unique=True)),
             ],
@@ -2464,8 +2466,6 @@ class Migration(migrations.Migration):
                 ('date_updated', models.DateTimeField(default=django.utils.timezone.now)),
                 ('api_grant', models.OneToOneField(related_name='sentry_app_installation',
                                                    null=True, on_delete=django.db.models.deletion.SET_NULL, to='sentry.ApiGrant')),
-                ('authorization', models.OneToOneField(related_name='sentry_app_installation',
-                                                       null=True, on_delete=django.db.models.deletion.SET_NULL, to='sentry.ApiAuthorization')),
                 ('organization', sentry.db.models.fields.foreignkey.FlexibleForeignKey(
                     related_name='sentry_app_installations', to='sentry.Organization')),
                 ('sentry_app', sentry.db.models.fields.foreignkey.FlexibleForeignKey(
