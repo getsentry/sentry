@@ -1,17 +1,13 @@
 from __future__ import absolute_import
 import os
-import zipfile
 
-from six import BytesIO
-from django.core.urlresolvers import reverse
-from django.core.files.uploadedfile import SimpleUploadedFile
 
 from sentry.testutils import TestCase
 from sentry.lang.native.minidump import MINIDUMP_ATTACHMENT_TYPE
 from sentry.lang.native.unreal import process_unreal_crash, unreal_attachment_type, \
     merge_unreal_context_event, merge_unreal_logs_event, merge_apple_crash_report, \
     parse_portable_callstack
-from sentry.models import Event, EventAttachment, UserReport
+from sentry.models import UserReport
 
 
 MOCK_EVENT_ID = '12852a74acc943a790c8f1cd23907caa'
@@ -146,75 +142,6 @@ class UnrealIntegrationTest(TestCase):
             unreal_crash = process_unreal_crash(f.read(), None, None, event)
             merge_apple_crash_report(unreal_crash.get_apple_crash_report(), event)
             self.insta_snapshot(event)
-
-    def upload_symbols(self):
-        url = reverse(
-            'sentry-api-0-dsym-files',
-            kwargs={
-                'organization_slug': self.project.organization.slug,
-                'project_slug': self.project.slug,
-            }
-        )
-
-        self.login_as(user=self.user)
-
-        out = BytesIO()
-        f = zipfile.ZipFile(out, 'w')
-        f.write(os.path.join(os.path.dirname(__file__), 'fixtures', 'unreal_crash.sym'),
-                'crash.sym')
-        f.close()
-
-        response = self.client.post(
-            url, {
-                'file':
-                SimpleUploadedFile('symbols.zip', out.getvalue(), content_type='application/zip'),
-            },
-            format='multipart'
-        )
-        assert response.status_code == 201, response.content
-        assert len(response.data) == 1
-
-    def test_unreal_crash_with_attachments(self):
-        self.project.update_option('sentry:store_crash_reports', True)
-        self.upload_symbols()
-
-        # attachments feature has to be on for the files extract stick around
-        with self.feature('organizations:event-attachments'):
-            with open(get_unreal_crash_file(), 'rb') as f:
-                resp = self._postUnrealWithHeader(f.read())
-                assert resp.status_code == 200
-
-        event = Event.objects.get()
-        self.insta_snapshot({
-            'contexts': event.data.get('contexts'),
-            'exception': event.data.get('exception'),
-            'stacktrace': event.data.get('stacktrace'),
-            'threads': event.data.get('threads'),
-            'extra': event.data.get('extra')
-        })
-
-        attachments = sorted(
-            EventAttachment.objects.filter(
-                event_id=event.event_id),
-            key=lambda x: x.name)
-        assert len(attachments) == 4
-        context, config, minidump, log = attachments
-
-        assert context.name == 'CrashContext.runtime-xml'
-        assert context.file.type == 'event.attachment'
-        assert context.file.checksum == '835d3e10db5d1799dc625132c819c047261ddcfb'
-
-        assert config.name == 'CrashReportClient.ini'
-        assert config.file.type == 'event.attachment'
-        assert config.file.checksum == '5839c750bdde8cba4d2a979ea857b8154cffdab5'
-
-        assert minidump.name == 'UE4Minidump.dmp'
-        assert minidump.file.type == 'event.minidump'
-        assert minidump.file.checksum == '089d9fd3b5c0cc4426339ab46ec3835e4be83c0f'
-
-        assert log.name == 'YetAnother.log'  # Log file is named after the project
-        assert log.file.type == 'event.attachment'
-        assert log.file.checksum == '24d1c5f75334cd0912cc2670168d593d5fe6c081'
 
 
 def test_parse_portable_callstack(insta_snapshot):

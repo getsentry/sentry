@@ -1,7 +1,7 @@
 ---
-created: '2019-04-24T21:24:32.556352Z'
+created: '2019-04-25T13:53:47.803264Z'
 creator: sentry
-source: tests/sentry/lang/native/test_unreal.py
+source: tests/symbolicator/test_unreal_full.py
 ---
 contexts:
   device:
@@ -186,6 +186,7 @@ exception:
         in_app: false
         instruction_addr: '0x7ff754be3394'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        symbol: AActor::IsPendingKillPending()
         trust: prewalked
     thread_id: 6900
     type: EXCEPTION_ACCESS_VIOLATION_READ
