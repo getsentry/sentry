@@ -120,7 +120,7 @@ class User(Interface):
             'data': self.data or None
         })
 
-    def get_api_context(self, is_public=False):
+    def get_api_context(self, is_public=False, platform=None):
         return {
             'id': self.id,
             'email': self.email,
@@ -130,7 +130,7 @@ class User(Interface):
             'data': self.data,
         }
 
-    def get_api_meta(self, meta, is_public=False):
+    def get_api_meta(self, meta, is_public=False, platform=None):
         return {
             '': meta.get(''),
             'id': meta.get('id'),

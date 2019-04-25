@@ -63,7 +63,7 @@ class Threads(Interface):
             'values': [export_thread(x) for x in self.values],
         })
 
-    def get_api_context(self, is_public=False):
+    def get_api_context(self, is_public=False, platform=None):
         def export_thread(data):
             rv = {
                 'id': data['id'],
@@ -83,7 +83,7 @@ class Threads(Interface):
             'values': [export_thread(x) for x in self.values],
         }
 
-    def get_meta_context(self, meta, is_public=False):
+    def get_meta_context(self, meta, is_public=False, platform=None):
         if meta and 'values' not in meta:
             return {'values': meta}
         else:

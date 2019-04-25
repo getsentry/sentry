@@ -44,6 +44,7 @@ class EventSerializer(Serializer):
     def _get_entries(self, event, user, is_public=False):
         # XXX(dcramer): These are called entries for future-proofing
 
+        platform = event.platform
         meta = event.data.get('_meta') or {}
         interface_list = []
 
@@ -52,7 +53,7 @@ class EventSerializer(Serializer):
             if key in self._reserved_keys:
                 continue
 
-            data = interface.get_api_context(is_public=is_public)
+            data = interface.get_api_context(is_public=is_public, platform=platform)
             # data might not be returned for e.g. a public HTTP repr
             if not data:
                 continue
@@ -64,7 +65,8 @@ class EventSerializer(Serializer):
 
             api_meta = None
             if meta.get(key):
-                api_meta = interface.get_api_meta(meta[key], is_public=is_public)
+                api_meta = interface.get_api_meta(meta[key], is_public=is_public,
+                                                  platform=platform)
                 api_meta = meta_with_chunks(data, api_meta)
 
             interface_list.append((interface, entry, api_meta))
@@ -82,12 +84,14 @@ class EventSerializer(Serializer):
         if not interface:
             return (None, None)
 
-        data = interface.get_api_context(is_public=is_public)
+        platform = event.platform
+        data = interface.get_api_context(is_public=is_public, platform=platform)
         event_meta = event.data.get('_meta') or {}
         if not data or not event_meta.get(name):
             return (data, None)
 
-        api_meta = interface.get_api_meta(event_meta[name], is_public=is_public)
+        api_meta = interface.get_api_meta(event_meta[name], is_public=is_public,
+                                          platform=platform)
         # data might not be returned for e.g. a public HTTP repr
         if not api_meta:
             return (data, None)

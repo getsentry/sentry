@@ -365,18 +365,19 @@ class SingleException(Interface):
             'raw_stacktrace': raw_stacktrace,
         })
 
-    def get_api_context(self, is_public=False):
+    def get_api_context(self, is_public=False, platform=None):
         mechanism = isinstance(self.mechanism, Mechanism) and \
-            self.mechanism.get_api_context(is_public=is_public) or \
+            self.mechanism.get_api_context(is_public=is_public, platform=platform) or \
             self.mechanism or None
 
         if self.stacktrace:
-            stacktrace = self.stacktrace.get_api_context(is_public=is_public)
+            stacktrace = self.stacktrace.get_api_context(is_public=is_public, platform=platform)
         else:
             stacktrace = None
 
         if self.raw_stacktrace:
-            raw_stacktrace = self.raw_stacktrace.get_api_context(is_public=is_public)
+            raw_stacktrace = self.raw_stacktrace.get_api_context(
+                is_public=is_public, platform=platform)
         else:
             raw_stacktrace = None
 
@@ -390,12 +391,13 @@ class SingleException(Interface):
             'rawStacktrace': raw_stacktrace,
         }
 
-    def get_api_meta(self, meta, is_public=False):
-        mechanism_meta = self.mechanism.get_api_meta(meta['mechanism'], is_public=is_public) \
+    def get_api_meta(self, meta, is_public=False, platform=None):
+        mechanism_meta = self.mechanism.get_api_meta(
+            meta['mechanism'], is_public=is_public, platform=platform) \
             if isinstance(self.mechanism, Mechanism) and meta.get('mechanism') \
             else None
 
-        stacktrace_meta = self.stacktrace.get_api_meta(meta, is_public=is_public) \
+        stacktrace_meta = self.stacktrace.get_api_meta(meta, is_public=is_public, platform=platform) \
             if self.stacktrace and meta.get('stacktrace') \
             else None
 
@@ -505,16 +507,17 @@ class Exception(Interface):
             'exc_omitted': self.exc_omitted,
         })
 
-    def get_api_context(self, is_public=False):
+    def get_api_context(self, is_public=False, platform=None):
         return {
-            'values': [v.get_api_context(is_public=is_public) for v in self.values if v],
+            'values': [v.get_api_context(is_public=is_public, platform=platform)
+                       for v in self.values if v],
             'hasSystemFrames':
             any(v.stacktrace.get_has_system_frames() for v in self.values if v and v.stacktrace),
             'excOmitted':
             self.exc_omitted,
         }
 
-    def get_api_meta(self, meta, is_public=False):
+    def get_api_meta(self, meta, is_public=False, platform=None):
         if not meta:
             return meta
 
@@ -523,7 +526,8 @@ class Exception(Interface):
         for index, value in six.iteritems(values):
             exc = self.values[int(index)]
             if exc is not None:
-                result[index] = exc.get_api_meta(value, is_public=is_public)
+                result[index] = exc.get_api_meta(value, is_public=is_public,
+                                                 platform=platform)
 
         return {'values': result}
 

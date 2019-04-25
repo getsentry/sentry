@@ -356,7 +356,7 @@ class Frame(Interface):
             'colno': self.colno
         })
 
-    def get_api_context(self, is_public=False, pad_addr=None):
+    def get_api_context(self, is_public=False, pad_addr=None, platform=None):
         data = {
             'filename': self.filename,
             'absPath': self.abs_path,
@@ -398,7 +398,7 @@ class Frame(Interface):
 
         return data
 
-    def get_meta_context(self, meta, is_public=False):
+    def get_meta_context(self, meta, is_public=False, platform=None):
         if not meta:
             return
 
@@ -654,11 +654,12 @@ class Stacktrace(Interface):
             rv = max_addr(rv, frame.symbol_addr)
         return rv
 
-    def get_api_context(self, is_public=False):
+    def get_api_context(self, is_public=False, platform=None):
         longest_addr = self.get_longest_address()
 
         frame_list = [
-            f.get_api_context(is_public=is_public, pad_addr=longest_addr) for f in self.frames
+            f.get_api_context(is_public=is_public, pad_addr=longest_addr,
+                              platform=platform) for f in self.frames
         ]
 
         return {
@@ -668,7 +669,7 @@ class Stacktrace(Interface):
             'hasSystemFrames': self.get_has_system_frames(),
         }
 
-    def get_api_meta(self, meta, is_public=False):
+    def get_api_meta(self, meta, is_public=False, platform=None):
         if not meta:
             return meta
 
@@ -677,7 +678,8 @@ class Stacktrace(Interface):
             if index == '':
                 continue
             frame = self.frames[int(index)]
-            frame_meta[index] = frame.get_api_meta(value, is_public=is_public)
+            frame_meta[index] = frame.get_api_meta(value, is_public=is_public,
+                                                   platform=platform)
 
         return {
             '': meta.get(''),

@@ -93,7 +93,7 @@ class Template(Interface):
 
         return '\n'.join(result)
 
-    def get_api_context(self, is_public=False):
+    def get_api_context(self, is_public=False, platform=None):
         return {
             'lineNo': self.lineno,
             'filename': self.filename,
@@ -105,7 +105,7 @@ class Template(Interface):
             ),
         }
 
-    def get_api_meta(self, meta, is_public=False):
+    def get_api_meta(self, meta, is_public=False, platform=None):
         return {
             '': meta.get(''),
             'lineNo': meta.get('lineno'),
