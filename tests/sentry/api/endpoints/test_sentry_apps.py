@@ -106,6 +106,37 @@ class GetSentryAppsTest(SentryAppsTest):
         assert self.unpublished_app.uuid not in response_uuids
         assert self.unowned_unpublished_app.uuid not in response_uuids
 
+    def test_user_can_filter_apps_on_status(self):
+        self.login_as(user=self.user)
+        url = u'{}?status=unpublished'.format(self.url)
+        response = self.client.get(url, format='json')
+
+        assert response.status_code == 200
+        assert {
+            'name': self.unpublished_app.name,
+            'author': self.unpublished_app.author,
+            'slug': self.unpublished_app.slug,
+            'scopes': [],
+            'events': [],
+            'status': self.unpublished_app.get_status_display(),
+            'uuid': self.unpublished_app.uuid,
+            'webhookUrl': self.unpublished_app.webhook_url,
+            'redirectUrl': self.unpublished_app.redirect_url,
+            'isAlertable': self.unpublished_app.is_alertable,
+            'clientId': self.unpublished_app.application.client_id,
+            'clientSecret': self.unpublished_app.application.client_secret,
+            'overview': self.unpublished_app.overview,
+            'schema': {},
+            'owner': {
+                'id': self.org.id,
+                'slug': self.org.slug,
+            }
+        } in json.loads(response.content)
+
+        response_uuids = set(o['uuid'] for o in response.data)
+        assert self.published_app.uuid not in response_uuids
+        assert self.unowned_unpublished_app.uuid not in response_uuids
+
     def test_users_dont_see_unpublished_apps_their_org_owns(self):
         self.login_as(user=self.user)
 

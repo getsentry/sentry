@@ -83,7 +83,7 @@ describe('OrganizationIntegrations', () => {
     });
 
     publishedSentryAppsRequest = Client.addMockResponse({
-      url: `/sentry-apps/?status=${'published'}`,
+      url: '/sentry-apps/',
       body: [],
     });
 
@@ -254,7 +254,7 @@ describe('OrganizationIntegrations', () => {
           body: [publishedApp],
         });
         Client.addMockResponse({
-          url: `/sentry-apps/?status=${'published'}`,
+          url: '/sentry-apps/',
           body: [publishedApp],
         });
         wrapper = mount(

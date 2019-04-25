@@ -43,7 +43,7 @@ class OrganizationIntegrations extends AsyncComponent {
       ['integrations', `/organizations/${orgId}/integrations/`],
       ['plugins', `/organizations/${orgId}/plugins/`, {query}],
       ['orgOwnedApps', `/organizations/${orgId}/sentry-apps/`],
-      ['publishedApps', `/sentry-apps/?status=${'published'}`],
+      ['publishedApps', '/sentry-apps/', {status: 'published'}],
       ['appInstalls', `/organizations/${orgId}/sentry-app-installations/`],
     ];
   }
