@@ -18,6 +18,17 @@ from sentry.models import Event, EventAttachment, File, ProjectDebugFile
 from symbolic import parse_addr, SymbolicError, SymCache
 
 
+def snapshot_stacktrace_data(self, event):
+    self.insta_snapshot({
+        "stacktrace": event.get('stacktrace'),
+        "exception": event.get('exception'),
+        "threads": event.get('threads'),
+        "debug_meta": event.get('debug_meta'),
+        "contexts": event.get('contexts'),
+        "errors": event.get('errors'),
+    })
+
+
 REAL_RESOLVING_EVENT_DATA = {
     "platform": "cocoa",
     "debug_meta": {
@@ -815,16 +826,6 @@ class InAppHonoringResolvingIntegrationTest(TestCase):
 
 
 class ResolvingIntegrationTestBase(object):
-    def snapshot_stacktrace_data(self, event):
-        self.insta_snapshot({
-            "stacktrace": event.get('stacktrace'),
-            "exception": event.get('exception'),
-            "threads": event.get('threads'),
-            "debug_meta": event.get('debug_meta'),
-            "contexts": event.get('contexts'),
-            "errors": event.get('errors'),
-        })
-
     def test_real_resolving(self):
         url = reverse(
             'sentry-api-0-dsym-files',
@@ -857,7 +858,7 @@ class ResolvingIntegrationTestBase(object):
 
         event = Event.objects.get()
         assert event.data['culprit'] == 'main'
-        self.snapshot_stacktrace_data(event.data)
+        snapshot_stacktrace_data(self, event.data)
 
     def test_debug_id_resolving(self):
         file = File.objects.create(
@@ -926,7 +927,7 @@ class ResolvingIntegrationTestBase(object):
 
         event = Event.objects.get()
         assert event.data['culprit'] == 'main'
-        self.snapshot_stacktrace_data(event.data)
+        snapshot_stacktrace_data(self, event.data)
 
     def test_missing_dsym(self):
         self.login_as(user=self.user)
@@ -936,7 +937,7 @@ class ResolvingIntegrationTestBase(object):
 
         event = Event.objects.get()
         assert event.data['culprit'] == 'unknown'
-        self.snapshot_stacktrace_data(event.data)
+        snapshot_stacktrace_data(self, event.data)
 
 
 class SymbolicResolvingIntegrationTest(ResolvingIntegrationTestBase, TestCase):
@@ -1296,13 +1297,7 @@ class MinidumpIntegrationTest(TestCase):
 
         event = Event.objects.get()
 
-        bt = event.interfaces['exception'].values[0].stacktrace
-        frames = bt.frames
-        main = frames[-1]
-        assert main.function == 'main'
-        assert main.abs_path == 'c:\\projects\\breakpad-tools\\windows\\crash\\main.cpp'
-        assert main.errors is None
-        assert main.instruction_addr == '0x2a2a3d'
+        snapshot_stacktrace_data(self, event.data)
 
         attachments = sorted(
             EventAttachment.objects.filter(
