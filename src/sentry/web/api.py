@@ -76,6 +76,13 @@ kafka_publisher = QueuedPublisherService(
         asynchronous=False)
 ) if getattr(settings, 'KAFKA_RAW_EVENTS_PUBLISHER_ENABLED', False) else None
 
+kafka_metrics = settings.KAFKA_TOPICS[settings.KAFKA_METRICS]
+kafka_metrics_publisher = QueuedPublisherService(
+    KafkaPublisher(
+        settings.KAFKA_CLUSTERS[kafka_metrics['cluster']]
+    )
+)
+
 
 def api(func):
     @wraps(func)
@@ -94,35 +101,54 @@ def api(func):
     return wrapped
 
 
+def count_stats(org_id, project_id, key_id, outcome, reason=None):
+    # First increment all the legacy TSDB counters.
+    increment_list = [
+        (tsdb.models.project_total_received, project_id),
+        (tsdb.models.organization_total_received, org_id),
+        (tsdb.models.key_total_received, key_id),
+    ]
+    if outcome == 'filtered':
+        increment_list.extend([
+            (tsdb.models.project_total_blacklisted, project_id),
+            (tsdb.models.organization_total_blacklisted, org_id),
+            (tsdb.models.key_total_blacklisted, key_id),
+        ])
+        if reason in FILTER_STAT_KEYS_TO_VALUES:
+            increment_list.append((FILTER_STAT_KEYS_TO_VALUES[reason], project_id))
+
+    elif outcome == 'rate_limited':
+        increment_list.extend([
+            (tsdb.models.project_total_rejected, project_id),
+            (tsdb.models.organization_total_rejected, org_id),
+            (tsdb.models.key_total_rejected, key_id),
+        ])
+
+    tsdb.incr_multi(
+        increment_list,
+        timestamp=to_datetime(time()),
+    )
+
+    # Send a snuba metrics payload.
+    kafka_metrics_publisher.publish(
+        kafka_metrics['topic'],
+        {
+            'org_id': org_id,
+            'project_id': project_id,
+            'key_id': key_id,
+            'outcome': outcome,
+            'reason': reason,
+        }
+    )
+
+
 def process_event(event_manager, project, key, remote_addr, helper, attachments):
     event_received.send_robust(ip=remote_addr, project=project, sender=process_event)
 
     start_time = time()
-    tsdb_start_time = to_datetime(start_time)
     should_filter, filter_reason = event_manager.should_filter()
     if should_filter:
-        increment_list = [
-            (tsdb.models.project_total_received, project.id),
-            (tsdb.models.project_total_blacklisted, project.id),
-            (tsdb.models.organization_total_received,
-                project.organization_id),
-            (tsdb.models.organization_total_blacklisted,
-                project.organization_id),
-            (tsdb.models.key_total_received, key.id),
-            (tsdb.models.key_total_blacklisted, key.id),
-        ]
-        try:
-            increment_list.append(
-                (FILTER_STAT_KEYS_TO_VALUES[filter_reason], project.id))
-        # should error when filter_reason does not match a key in FILTER_STAT_KEYS_TO_VALUES
-        except KeyError:
-            pass
-
-        tsdb.incr_multi(
-            increment_list,
-            timestamp=tsdb_start_time,
-        )
-
+        count_stats(project.organization_id, project.id, key.id, 'filtered', filter_reason)
         metrics.incr(
             'events.blacklisted', tags={'reason': filter_reason}, skip_internal=False
         )
@@ -145,19 +171,7 @@ def process_event(event_manager, project, key, remote_addr, helper, attachments)
     if rate_limit is None or rate_limit.is_limited:
         if rate_limit is None:
             api_logger.debug('Dropped event due to error with rate limiter')
-        tsdb.incr_multi(
-            [
-                (tsdb.models.project_total_received, project.id),
-                (tsdb.models.project_total_rejected, project.id),
-                (tsdb.models.organization_total_received,
-                    project.organization_id),
-                (tsdb.models.organization_total_rejected,
-                    project.organization_id),
-                (tsdb.models.key_total_received, key.id),
-                (tsdb.models.key_total_rejected, key.id),
-            ],
-            timestamp=tsdb_start_time,
-        )
+        count_stats(project.organization_id, project.id, key.id, 'rate_limited', None)
         metrics.incr(
             'events.dropped',
             tags={
@@ -174,15 +188,7 @@ def process_event(event_manager, project, key, remote_addr, helper, attachments)
         if rate_limit is not None:
             raise APIRateLimited(rate_limit.retry_after)
     else:
-        tsdb.incr_multi(
-            [
-                (tsdb.models.project_total_received, project.id),
-                (tsdb.models.organization_total_received,
-                    project.organization_id),
-                (tsdb.models.key_total_received, key.id),
-            ],
-            timestamp=tsdb_start_time,
-        )
+        count_stats(project.organization_id, project.id, key.id, 'accepted', None)
 
     org_options = OrganizationOption.objects.get_all_values(
         project.organization_id)
