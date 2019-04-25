@@ -26,9 +26,7 @@ export default class ShortId extends React.Component {
     return (
       <StyledShortId onClick={this.preventPropagation} {...this.props}>
         {avatar}
-        <StyledAutoSelectText avatar={!!avatar}>
-          {shortId}
-        </StyledAutoSelectText>
+        <StyledAutoSelectText avatar={!!avatar}>{shortId}</StyledAutoSelectText>
       </StyledShortId>
     );
   }
