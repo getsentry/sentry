@@ -16,7 +16,7 @@ from sentry.api.event_search import get_snuba_query_args
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.helpers.environments import get_environments
 from sentry.api.helpers.events import get_direct_hit_response
-from sentry.api.serializers import serialize, SimpleEventSerializer
+from sentry.api.serializers import EventSerializer, serialize, SimpleEventSerializer
 from sentry.api.paginator import DateTimePaginator, GenericOffsetPaginator
 from sentry.api.utils import get_date_range_from_params
 from sentry.models import Event, Group, SnubaEvent
@@ -90,18 +90,20 @@ class GroupEventsEndpoint(GroupEndpoint, EnvironmentMixin):
         if environments:
             params['environment'] = [env.name for env in environments]
 
+        full = request.GET.get('full', False)
         snuba_args = get_snuba_query_args(request.GET.get('query', None), params)
+        snuba_cols = SnubaEvent.minimal_columns if full else SnubaEvent.selected_columns
 
         data_fn = partial(
             # extract 'data' from raw_query result
             lambda *args, **kwargs: raw_query(*args, **kwargs)['data'],
-            selected_columns=SnubaEvent.selected_columns,
+            selected_columns=snuba_cols,
             orderby='-timestamp',
             referrer='api.group-events',
             **snuba_args
         )
 
-        serializer = SimpleEventSerializer()
+        serializer = EventSerializer() if full else SimpleEventSerializer()
         return self.paginate(
             request=request,
             on_results=lambda results: serialize(
