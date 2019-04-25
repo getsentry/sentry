@@ -9,7 +9,7 @@ from rest_framework.response import Response
 from sentry.api.bases import OrganizationEventsEndpointBase, OrganizationEventsError, NoProjects
 from sentry.api.helpers.events import get_direct_hit_response
 from sentry.api.paginator import GenericOffsetPaginator
-from sentry.api.serializers import serialize, SimpleEventSerializer
+from sentry.api.serializers import EventSerializer, serialize, SimpleEventSerializer
 from sentry.api.serializers.snuba import SnubaTSResultSerializer
 from sentry.models import SnubaEvent
 from sentry.utils.dates import parse_stats_period
@@ -37,6 +37,7 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
             if direct_hit_resp:
                 return direct_hit_resp
 
+        full = request.GET.get('full', False)
         try:
             snuba_args = self.get_snuba_query_args(request, organization)
         except OrganizationEventsError as exc:
@@ -46,16 +47,17 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
             # or user doesn't have access to projects in org
             data_fn = lambda *args, **kwargs: []
         else:
+            snuba_cols = SnubaEvent.minimal_columns if full else SnubaEvent.selected_columns
             data_fn = partial(
                 # extract 'data' from raw_query result
                 lambda *args, **kwargs: raw_query(*args, **kwargs)['data'],
-                selected_columns=SnubaEvent.selected_columns,
+                selected_columns=snuba_cols,
                 orderby='-timestamp',
                 referrer='api.organization-events',
                 **snuba_args
             )
 
-        serializer = SimpleEventSerializer()
+        serializer = EventSerializer() if full else SimpleEventSerializer()
         return self.paginate(
             request=request,
             on_results=lambda results: serialize(
