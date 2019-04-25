@@ -871,6 +871,10 @@ const Container = styled.div`
 
   z-index: ${p => p.theme.zIndex.dropdown};
   display: flex;
+
+  .show-sidebar & {
+    background: ${p => p.theme.offWhite};
+  }
 `;
 
 const ButtonBar = styled.div`
@@ -914,6 +918,10 @@ const StyledInput = styled.input`
   &:focus {
     border-color: ${p => p.theme.borderDark};
     border-bottom-right-radius: 0;
+  }
+
+  .show-sidebar & {
+    color: ${p => p.theme.disabled};
   }
 `;
 
