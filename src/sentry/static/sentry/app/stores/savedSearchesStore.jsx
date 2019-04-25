@@ -13,12 +13,14 @@ const SavedSearchesStore = Reflux.createStore({
       deleteSavedSearchSuccess,
       pinSearch,
       pinSearchSuccess,
+      resetSavedSearches,
       unpinSearch,
     } = SavedSearchesActions;
 
     this.listenTo(startFetchSavedSearches, this.onStartFetchSavedSearches);
     this.listenTo(fetchSavedSearchesSuccess, this.onFetchSavedSearchesSuccess);
     this.listenTo(fetchSavedSearchesError, this.onFetchSavedSearchesError);
+    this.listenTo(resetSavedSearches, this.onReset);
     this.listenTo(createSavedSearchSuccess, this.onCreateSavedSearchSuccess);
     this.listenTo(deleteSavedSearchSuccess, this.onDeleteSavedSearchSuccess);
     this.listenTo(pinSearch, this.onPinSearch);
@@ -93,6 +95,14 @@ const SavedSearchesStore = Reflux.createStore({
    */
   findByQuery(query) {
     return this.state.savedSearches.find(savedSearch => query === savedSearch.query);
+  },
+
+  /**
+   * Reset store to initial state
+   */
+  onReset() {
+    this.reset();
+    this.trigger(this.state);
   },
 
   onStartFetchSavedSearches() {
