@@ -3,7 +3,6 @@ import React from 'react';
 import styled from 'react-emotion';
 
 import ProjectContext from 'app/views/projects/projectContext';
-import ProjectDocsContext from 'app/views/projectInstall/docsContext';
 import ProjectSelector from 'app/components/projectHeader/projectSelector';
 import space from 'app/styles/space';
 
@@ -15,7 +14,7 @@ class GettingStartedBody extends React.Component {
 
   render() {
     const {project, organization} = this.context;
-    const hasSentry10 = new Set(organization.features).has('sentry10');
+    const hasSentry10 = organization.features.includes('sentry10');
 
     return (
       <Container>
@@ -27,14 +26,7 @@ class GettingStartedBody extends React.Component {
           </div>
         )}
         <div className="container">
-          <Content>
-            <ProjectDocsContext>
-              {React.cloneElement(this.props.children, {
-                linkPath: (orgId, projectId, platform) =>
-                  `/${orgId}/${projectId}/getting-started/${platform}/`,
-              })}
-            </ProjectDocsContext>
-          </Content>
+          <Content>{this.props.children}</Content>
         </div>
       </Container>
     );
