@@ -75,6 +75,7 @@ from .endpoints.organization_dashboard_details import OrganizationDashboardDetai
 from .endpoints.organization_dashboard_widget_details import OrganizationDashboardWidgetDetailsEndpoint
 from .endpoints.organization_dashboard_widgets import OrganizationDashboardWidgetsEndpoint
 from .endpoints.organization_health import OrganizationHealthTopEndpoint, OrganizationHealthGraphEndpoint
+from .endpoints.organization_incidents import OrganizationIncidentsIndexEndpoint
 from .endpoints.organization_shortid import ShortIdLookupEndpoint
 from .endpoints.organization_environments import OrganizationEnvironmentsEndpoint
 from .endpoints.organization_eventid import EventIdLookupEndpoint
@@ -129,7 +130,6 @@ from .endpoints.project_avatar import ProjectAvatarEndpoint
 from .endpoints.project_details import ProjectDetailsEndpoint
 from .endpoints.project_transfer import ProjectTransferEndpoint
 from .endpoints.project_create_sample import ProjectCreateSampleEndpoint
-from .endpoints.project_docs import ProjectDocsEndpoint
 from .endpoints.project_docs_platform import ProjectDocsPlatformEndpoint
 from .endpoints.project_environments import ProjectEnvironmentsEndpoint
 from .endpoints.project_environment_details import ProjectEnvironmentDetailsEndpoint
@@ -472,6 +472,12 @@ urlpatterns = patterns(
         OrganizationHealthGraphEndpoint.as_view(),
         name='sentry-api-0-organization-health-graph',
     ),
+    url(
+        r'^organizations/(?P<organization_slug>[^\/]+)/incidents/$',
+        OrganizationIncidentsIndexEndpoint.as_view(),
+        name='sentry-api-0-organization-incidents',
+    ),
+
     url(
         r'^organizations/(?P<organization_slug>[^\/]+)/shortids/(?P<short_id>[^\/]+)/$',
         ShortIdLookupEndpoint.as_view(),
@@ -853,11 +859,6 @@ urlpatterns = patterns(
         r'^projects/(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/create-sample/$',
         ProjectCreateSampleEndpoint.as_view(),
         name='sentry-api-0-project-create-sample'
-    ),
-    url(
-        r'^projects/(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/docs/$',
-        ProjectDocsEndpoint.as_view(),
-        name='sentry-api-0-project-docs'
     ),
     url(
         r'^projects/(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/docs/(?P<platform>[\w-]+)/$',

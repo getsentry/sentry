@@ -27,7 +27,6 @@ import ProjectChooser from 'app/views/projectChooser';
 import ProjectDataForwarding from 'app/views/projectDataForwarding';
 import ProjectDebugFiles from 'app/views/projectDebugFiles';
 import ProjectDetails from 'app/views/projectDetails';
-import ProjectDocsContext from 'app/views/projectInstall/docsContext';
 import ProjectEnvironments from 'app/views/projectEnvironments';
 import ProjectEventRedirect from 'app/views/projectEventRedirect';
 import ProjectGettingStarted from 'app/views/projectInstall/gettingStarted';
@@ -433,11 +432,7 @@ function routes() {
           component={errorHandler(ProjectPluginDetails)}
         />
       </Route>
-      <Route
-        path="install/"
-        name="Configuration"
-        component={errorHandler(ProjectDocsContext)}
-      >
+      <Route path="install/" name="Configuration">
         <IndexRoute component={errorHandler(ProjectInstallOverview)} />
         <Route
           path=":platform/"

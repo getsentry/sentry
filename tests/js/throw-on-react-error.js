@@ -5,6 +5,7 @@ const originalConsoleError = console.error;
 const BAD_ERRORS = [
   'Failed prop type',
   'Failed child context type',
+  'Warning: Each child in an array or iterator should have a unique "key" prop',
   'React does not recognize the `[^`]+` prop on a DOM element',
 ];
 

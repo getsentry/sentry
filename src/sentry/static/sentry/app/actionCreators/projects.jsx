@@ -277,3 +277,15 @@ export function sendSampleEvent(api, orgSlug, projectSlug) {
     method: 'POST',
   });
 }
+
+/**
+ * Load platform documentation specific to the project. The DSN and various
+ * other project specific secrets will be included in the documentation.
+ *
+ * @param {Client} api API Client
+ * @param {String} orgSlug Organization Slug
+ * @param {String} projectSlug Project Slug
+ */
+export function loadDocs(api, orgSlug, projectSlug, platform) {
+  return api.requestPromise(`/projects/${orgSlug}/${projectSlug}/docs/${platform}/`);
+}

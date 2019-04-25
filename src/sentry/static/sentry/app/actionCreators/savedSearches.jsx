@@ -4,6 +4,10 @@ import {t} from 'app/locale';
 import SavedSearchesActions from 'app/actions/savedSearchesActions';
 import handleXhrErrorResponse from 'app/utils/handleXhrErrorResponse';
 
+export function resetSavedSearches() {
+  SavedSearchesActions.resetSavedSearches();
+}
+
 export function fetchSavedSearches(api, orgId, projectMap, useOrgSavedSearches = false) {
   const url = `/organizations/${orgId}/searches/`;
 

@@ -118,4 +118,47 @@ describe('projectContext component', function() {
 
     expect(fetchMock).toHaveBeenCalled();
   });
+
+  it('fetches data again if projects list changes', function() {
+    const router = TestStubs.router();
+    const fetchMock = MockApiClient.addMockResponse({
+      url: `/projects/${org.slug}/${project.slug}/`,
+      method: 'GET',
+      statusCode: 200,
+      body: project,
+    });
+
+    const projectContext = (
+      <ProjectContext
+        api={new MockApiClient()}
+        params={{orgId: org.slug, projectId: project.slug}}
+        projects={[]}
+        routes={routes}
+        router={router}
+        location={location}
+        orgId={org.slug}
+        projectId={project.slug}
+      />
+    );
+
+    const wrapper = mount(projectContext, {
+      context: {organization: org},
+      childContextTypes: {organization: SentryTypes.Organization},
+    });
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+
+    // The project will become active, thus requesting org members
+    MockApiClient.addMockResponse({
+      url: `/organizations/${org.slug}/users/`,
+      method: 'GET',
+      statusCode: 200,
+      body: [],
+    });
+
+    wrapper.setProps({projects: [project]});
+    wrapper.update();
+
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
 });

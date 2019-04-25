@@ -6,7 +6,6 @@ import styled from 'react-emotion';
 import {analytics, amplitude} from 'app/utils/analytics';
 import CreateSampleEvent from 'app/components/createSampleEvent';
 import ProjectContext from 'app/views/projects/projectContext';
-import ProjectDocsContext from 'app/views/projectInstall/docsContext';
 import ProjectInstallPlatform from 'app/views/projectInstall/platform';
 import SentryTypes from 'app/sentryTypes';
 import {t} from 'app/locale';
@@ -92,18 +91,7 @@ const Configure = createReactClass({
             )}
           </h2>
           <ProjectContext projectId={projectId} orgId={orgId} style={{marginBottom: 30}}>
-            <ProjectDocsContext>
-              <ProjectInstallPlatform
-                platformData={{
-                  hack:
-                    'actually set by ProjectDocsContext, this object is here to avoid proptypes warnings',
-                }}
-                params={this.props.params}
-                linkPath={(_orgId, _projectId, _platform) =>
-                  `/onboarding/${_orgId}/${_projectId}/configure/${_platform}/`
-                }
-              />
-            </ProjectDocsContext>
+            <ProjectInstallPlatform params={this.props.params} />
           </ProjectContext>
           <DoneButton>
             <Button
