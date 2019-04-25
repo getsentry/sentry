@@ -26,7 +26,7 @@ export default class ShortId extends React.Component {
     return (
       <StyledShortId onClick={this.preventPropagation} {...this.props}>
         {avatar}
-        <StyledAutoSelectText avatar={!!avatar} overflow>
+        <StyledAutoSelectText avatar={!!avatar}>
           {shortId}
         </StyledAutoSelectText>
       </StyledShortId>
@@ -36,8 +36,9 @@ export default class ShortId extends React.Component {
 
 const StyledShortId = styled.div`
   font-family: ${p => p.theme.text.familyMono};
-  display: inline-flex;
+  display: flex;
   align-items: center;
+  justify-content: flex-end;
 `;
 
 const StyledAutoSelectText = styled(AutoSelectText, {shouldForwardProp: isPropValid})`
