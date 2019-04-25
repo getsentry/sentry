@@ -74,6 +74,31 @@ class OrganizationMemberListTest(APITestCase):
         assert len(response.data) == 1
         assert response.data[0]['email'] == self.owner_user.email
 
+    def test_scope_query(self):
+        response = self.client.get(self.url + "?query=scope:\"invalid:scope\"")
+
+        assert response.status_code == 200
+        assert len(response.data) == 0
+
+        response = self.client.get(self.url + "?query=scope:\"org:admin\"")
+
+        assert response.status_code == 200
+        assert len(response.data) == 1
+        assert response.data[0]['email'] == self.owner_user.email
+
+    def test_role_query(self):
+        response = self.client.get(self.url + "?query=role:member")
+
+        assert response.status_code == 200
+        assert len(response.data) == 1
+        assert response.data[0]['email'] == self.user_2.email
+
+        response = self.client.get(self.url + "?query=role:owner")
+
+        assert response.status_code == 200
+        assert len(response.data) == 1
+        assert response.data[0]['email'] == self.owner_user.email
+
     def test_owner_invites(self):
         self.login_as(user=self.owner_user)
         response = self.client.post(
