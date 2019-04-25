@@ -65,7 +65,7 @@ export function openDiffModal(options) {
  * @param Object options.organization The organization to create a team for
  */
 export function openCreateIncidentModal(options = {}) {
-  import(/* webpackChunkName: "CreateIncidentModal" */ '../components/modals/createIncidentModal')
+  import(/* webpackChunkName: "CreateIncidentModal" */ 'app/components/modals/createIncidentModal')
     .then(mod => mod.default)
     .then(Modal => {
       openModal(deps => <Modal {...deps} {...options} />, {
