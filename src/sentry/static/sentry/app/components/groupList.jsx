@@ -170,10 +170,10 @@ const GroupList = createReactClass({
         <GroupListHeader />
         <PanelBody>
           {this.state.groups.map(({id, project}) => {
-            let members = null;
-            if (this.state.memberList) {
-              members = this.state.memberList[project.slug] || null;
-            }
+            const members =
+              this.state.memberList && this.state.memberList.hasOwnProperty(project.slug)
+                ? this.state.memberList[project.slug]
+                : null;
 
             return (
               <StreamGroup
