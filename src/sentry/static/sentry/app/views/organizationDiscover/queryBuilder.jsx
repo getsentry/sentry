@@ -50,8 +50,11 @@ export default function createQueryBuilder(initial = {}, organization) {
 
   const defaultProjectIds = getProjectIds(defaultProjects);
 
+  const hasGlobalProjectAccess =
+    ConfigStore.get('user').isSuperuser || organization.access.includes('org:admin');
+
   const projectsToFetchTags = getProjectIds(
-    ConfigStore.get('user').isSuperuser ? organization.projects : defaultProjects
+    hasGlobalProjectAccess ? organization.projects : defaultProjects
   );
 
   const columns = COLUMNS.map(col => ({...col, isTag: false}));
