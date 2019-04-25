@@ -18,7 +18,7 @@ from django.utils import dateformat
 from django.utils.encoding import force_text
 from django.utils.safestring import mark_safe
 
-from sentry import features, options
+from sentry import options
 from sentry.models import ProjectOwnership, User
 
 from sentry.digests.utilities import get_digest_metadata, get_personalized_digests
