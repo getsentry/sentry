@@ -237,7 +237,7 @@ class Symbolizer(object):
         # that just did not return any results but without error.
         if app_err is not None \
                 and not match \
-                and not is_known_third_party(obj.code_file, sdk_info=sdk_info):
+                and (not obj.code_file or not is_known_third_party(obj.code_file, sdk_info=sdk_info)):
             raise app_err
 
         return match
