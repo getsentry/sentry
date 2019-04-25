@@ -714,6 +714,7 @@ class SmartSearchBar extends React.Component {
     } = this.props;
 
     const pinTooltip = !!pinnedSearch ? t('Unpin this search') : t('Pin this search');
+    const pinIconSrc = !!pinnedSearch ? 'icon-pin-filled' : 'icon-pin';
 
     if (hasPinnedSearch) {
       return (
@@ -759,7 +760,7 @@ class SmartSearchBar extends React.Component {
                 size="zero"
                 onClick={this.onTogglePinnedSearch}
               >
-                <PinIcon isPinned={!!pinnedSearch} src="icon-pin" />
+                <PinIcon isPinned={!!pinnedSearch} src={pinIconSrc} />
               </Button>
             </Tooltip>
             <SidebarButton
@@ -848,9 +849,9 @@ const SmartSearchBarContainer = withApi(
 );
 
 const PinIcon = styled(InlineSvg)`
-  fill: ${p => (p.isPinned ? p.theme.blueLight : p.theme.gray2)};
+  color: ${p => (p.isPinned ? p.theme.blueLight : p.theme.gray2)};
   &:hover {
-    fill: ${p => p.theme.gray3};
+    color: ${p => p.theme.gray3};
   }
 `;
 
@@ -870,6 +871,10 @@ const Container = styled.div`
 
   z-index: ${p => p.theme.zIndex.dropdown};
   display: flex;
+
+  .show-sidebar & {
+    background: ${p => p.theme.offWhite};
+  }
 `;
 
 const ButtonBar = styled.div`
@@ -913,6 +918,10 @@ const StyledInput = styled.input`
   &:focus {
     border-color: ${p => p.theme.borderDark};
     border-bottom-right-radius: 0;
+  }
+
+  .show-sidebar & {
+    color: ${p => p.theme.disabled};
   }
 `;
 
