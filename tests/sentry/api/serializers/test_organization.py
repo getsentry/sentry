@@ -20,15 +20,12 @@ class OrganizationSerializerTest(TestCase):
         assert result['id'] == six.text_type(organization.id)
         assert result['features'] == set([
             'advanced-search',
-            'new-teams',
             'shared-issues',
-            'repos',
             'open-membership',
             'integrations-issue-basic',
             'integrations-issue-sync',
             'invite-members',
             'sso-saml2',
             'sso-basic',
-            'suggested-commits'
         ])
         assert result['disableNewVisibilityFeatures']

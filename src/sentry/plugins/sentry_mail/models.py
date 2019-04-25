@@ -18,7 +18,7 @@ from django.utils import dateformat
 from django.utils.encoding import force_text
 from django.utils.safestring import mark_safe
 
-from sentry import features, options
+from sentry import options
 from sentry.models import ProjectOwnership, User
 
 from sentry.digests.utilities import get_digest_metadata, get_personalized_digests
@@ -228,22 +228,21 @@ class MailPlugin(NotificationPlugin):
 
         # lets identify possibly suspect commits and owners
         commits = {}
-        if features.has('organizations:suggested-commits', org):
-            try:
-                committers = get_event_file_committers(project, event)
-            except (Commit.DoesNotExist, Release.DoesNotExist):
-                pass
-            except Exception as exc:
-                logging.exception(six.text_type(exc))
-            else:
-                for committer in committers:
-                    for commit in committer['commits']:
-                        if commit['id'] not in commits:
-                            commit_data = commit.copy()
-                            commit_data['shortId'] = commit_data['id'][:7]
-                            commit_data['author'] = committer['author']
-                            commit_data['subject'] = commit_data['message'].split('\n', 1)[0]
-                            commits[commit['id']] = commit_data
+        try:
+            committers = get_event_file_committers(project, event)
+        except (Commit.DoesNotExist, Release.DoesNotExist):
+            pass
+        except Exception as exc:
+            logging.exception(six.text_type(exc))
+        else:
+            for committer in committers:
+                for commit in committer['commits']:
+                    if commit['id'] not in commits:
+                        commit_data = commit.copy()
+                        commit_data['shortId'] = commit_data['id'][:7]
+                        commit_data['author'] = committer['author']
+                        commit_data['subject'] = commit_data['message'].split('\n', 1)[0]
+                        commits[commit['id']] = commit_data
 
         context = {
             'project_label': project.get_full_name(),
