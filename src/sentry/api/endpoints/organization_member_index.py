@@ -67,6 +67,13 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
                     queryset = queryset.filter(Q(email__in=value) |
                                                Q(user__email__in=value) |
                                                Q(user__emails__email__in=value))
+
+                elif key == 'scope':
+                    queryset = queryset.filter(role__in=[r.id for r in roles.with_any_scope(value)])
+
+                elif key == 'role':
+                    queryset = queryset.filter(role__in=value)
+
                 elif key == 'query':
                     value = ' '.join(value)
                     queryset = queryset.filter(Q(email__icontains=value) |
