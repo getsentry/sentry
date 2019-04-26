@@ -1580,7 +1580,7 @@ KAFKA_PREPROCESS = 'events-preprocess'
 KAFKA_PROCESS = 'events-process'
 KAFKA_SAVE = 'events-save'
 KAFKA_EVENTS = 'events'
-KAFKA_METRICS = 'metrics'
+KAFKA_OUTCOMES = 'outcomes'
 
 KAFKA_TOPICS = {
     KAFKA_PREPROCESS: {
@@ -1599,8 +1599,8 @@ KAFKA_TOPICS = {
         'cluster': 'default',
         'topic': KAFKA_EVENTS,
     },
-    KAFKA_METRICS: {
+    KAFKA_OUTCOMES: {
         'cluster': 'default',
-        'topic': KAFKA_METRICS,
+        'topic': KAFKA_OUTCOMES,
     },
 }

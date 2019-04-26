@@ -76,10 +76,10 @@ kafka_publisher = QueuedPublisherService(
         asynchronous=False)
 ) if getattr(settings, 'KAFKA_RAW_EVENTS_PUBLISHER_ENABLED', False) else None
 
-kafka_metrics = settings.KAFKA_TOPICS[settings.KAFKA_METRICS]
-kafka_metrics_publisher = QueuedPublisherService(
+kafka_outcomes = settings.KAFKA_TOPICS[settings.KAFKA_OUTCOMES]
+kafka_outcomes_publisher = QueuedPublisherService(
     KafkaPublisher(
-        settings.KAFKA_CLUSTERS[kafka_metrics['cluster']]
+        settings.KAFKA_CLUSTERS[kafka_outcomes['cluster']]
     )
 )
 
@@ -101,7 +101,7 @@ def api(func):
     return wrapped
 
 
-def count_stats(org_id, project_id, key_id, outcome, reason=None):
+def track_outcome(org_id, project_id, key_id, outcome, reason=None):
     """
     This is a central point to track org/project counters per incoming event.
     It should be called only once per request, either when we are about to
@@ -146,8 +146,8 @@ def count_stats(org_id, project_id, key_id, outcome, reason=None):
     )
 
     # Send a snuba metrics payload.
-    kafka_metrics_publisher.publish(
-        kafka_metrics['topic'],
+    kafka_outcomes_publisher.publish(
+        kafka_outcomes['topic'],
         {
             'org_id': org_id,
             'project_id': project_id,
@@ -164,7 +164,7 @@ def process_event(event_manager, project, key, remote_addr, helper, attachments)
     start_time = time()
     should_filter, filter_reason = event_manager.should_filter()
     if should_filter:
-        count_stats(project.organization_id, project.id, key.id, 'filtered', filter_reason)
+        track_outcome(project.organization_id, project.id, key.id, 'filtered', filter_reason)
         metrics.incr(
             'events.blacklisted', tags={'reason': filter_reason}, skip_internal=False
         )
@@ -187,7 +187,7 @@ def process_event(event_manager, project, key, remote_addr, helper, attachments)
     if rate_limit is None or rate_limit.is_limited:
         if rate_limit is None:
             api_logger.debug('Dropped event due to error with rate limiter')
-        count_stats(project.organization_id, project.id, key.id, 'rate_limited', None)
+        track_outcome(project.organization_id, project.id, key.id, 'rate_limited', None)
         metrics.incr(
             'events.dropped',
             tags={
@@ -217,7 +217,7 @@ def process_event(event_manager, project, key, remote_addr, helper, attachments)
     cache_key = 'ev:%s:%s' % (project.id, event_id, )
 
     if cache.get(cache_key) is not None:
-        count_stats(project.organization_id, project.id, key.id, 'invalid', 'duplicate')
+        track_outcome(project.organization_id, project.id, key.id, 'invalid', 'duplicate')
         raise APIForbidden(
             'An event with the same ID already exists (%s)' % (event_id, ))
 
@@ -260,7 +260,7 @@ def process_event(event_manager, project, key, remote_addr, helper, attachments)
 
     api_logger.debug('New event received (%s)', event_id)
 
-    count_stats(project.organization_id, project.id, key.id, 'accepted', None)
+    track_outcome(project.organization_id, project.id, key.id, 'accepted', None)
     event_accepted.send_robust(
         ip=remote_addr,
         data=data,
@@ -429,7 +429,7 @@ class APIView(BaseView):
             if not project:
                 raise APIError('Client must be upgraded for CORS support')
             if not is_valid_origin(origin, project):
-                count_stats(project.organization_id, project.id, None, 'invalid', 'cors')
+                track_outcome(project.organization_id, project.id, None, 'invalid', 'cors')
                 raise APIForbidden('Invalid origin: %s' % (origin, ))
 
         # XXX: It seems that the OPTIONS call does not always include custom headers
@@ -578,7 +578,7 @@ class StoreView(APIView):
 
         if data_size > 10000000:
             metrics.timing('events.size.rejected', data_size)
-            count_stats(project.organization_id, project.id, key.id, 'invalid', 'too_large')
+            track_outcome(project.organization_id, project.id, key.id, 'invalid', 'too_large')
             raise APIForbidden("Event size exceeded 10MB after normalization.")
 
         metrics.timing(
@@ -931,7 +931,7 @@ class SecurityReportView(StoreView):
         origin = instance.get_origin()
         if not is_valid_origin(origin, project):
             if project:
-                count_stats(project.organization_id, project.id, None, 'invalid', 'cors')
+                track_outcome(project.organization_id, project.id, None, 'invalid', 'cors')
             raise APIForbidden('Invalid origin')
 
         data = {
