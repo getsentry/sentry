@@ -18,49 +18,41 @@ from sentry.testutils import TestCase
 class ParseSearchQueryTest(TestCase):
     def test_simple(self):
         # test with raw search query at the end
-        assert parse_search_query('user.email:foo@example.com release:1.2.1 hello') == SearchBoolean(
-            term1=SearchBoolean(
-                term1=SearchFilter(
-                    key=SearchKey(name='user.email'),
-                    operator="=",
-                    value=SearchValue(raw_value='foo@example.com'),
-                ),
-                operator="AND",
-                term2=SearchFilter(
-                    key=SearchKey(name='release'),
-                    operator="=",
-                    value=SearchValue(raw_value='1.2.1'),
-                ),
+        assert parse_search_query('user.email:foo@example.com release:1.2.1 hello') == [
+            SearchFilter(
+                key=SearchKey(name='user.email'),
+                operator="=",
+                value=SearchValue(raw_value='foo@example.com'),
             ),
-            operator="AND",
-            term2=SearchFilter(
-                key=SearchKey(name='message'),
-                operator='=',
-                value=SearchValue(raw_value='hello'),
-            ),
-        )
-
-        assert parse_search_query('hello user.email:foo@example.com release:1.2.1') == SearchBoolean(
-            term1=SearchBoolean(
-                term1=SearchFilter(
-                    key=SearchKey(name='message'),
-                    operator='=',
-                    value=SearchValue(raw_value='hello'),
-                ),
-                operator="AND",
-                term2=SearchFilter(
-                    key=SearchKey(name='user.email'),
-                    operator="=",
-                    value=SearchValue(raw_value='foo@example.com'),
-                ),
-            ),
-            operator="AND",
-            term2=SearchFilter(
+            SearchFilter(
                 key=SearchKey(name='release'),
                 operator="=",
                 value=SearchValue(raw_value='1.2.1'),
             ),
-        )
+            SearchFilter(
+                key=SearchKey(name='message'),
+                operator='=',
+                value=SearchValue(raw_value='hello'),
+            )
+        ]
+
+        assert parse_search_query('hello user.email:foo@example.com release:1.2.1') == [
+            SearchFilter(
+                key=SearchKey(name='message'),
+                operator='=',
+                value=SearchValue(raw_value='hello'),
+            ),
+            SearchFilter(
+                key=SearchKey(name='user.email'),
+                operator="=",
+                value=SearchValue(raw_value='foo@example.com'),
+            ),
+            SearchFilter(
+                key=SearchKey(name='release'),
+                operator="=",
+                value=SearchValue(raw_value='1.2.1'),
+            ),
+        ]
 
     def test_raw_search_anywhere(self):
         assert parse_search_query('hello what user.email:foo@example.com where release:1.2.1 when') == [
