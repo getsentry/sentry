@@ -95,7 +95,7 @@ register_strategy_config(
         'message:v2',
     ],
     delegates=[
-        'frame:v1',
+        'frame:v2',
         'stacktrace:v1',
         'single-exception:v2',
     ],

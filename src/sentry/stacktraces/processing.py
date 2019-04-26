@@ -8,11 +8,12 @@ from django.utils import timezone
 from collections import namedtuple, OrderedDict
 
 from sentry.models import Project, Release
-from sentry.stacktraces.platform import get_behavior_family_for_platform
 from sentry.utils.in_app import is_known_third_party
 from sentry.utils.cache import cache
 from sentry.utils.hashlib import hash_values
 from sentry.utils.safe import get_path, safe_execute
+from sentry.stacktraces.platform import get_behavior_family_for_platform
+from sentry.stacktraces.functions import trim_function_name
 
 
 logger = logging.getLogger(__name__)
@@ -243,6 +244,8 @@ def _normalize_in_app(stacktrace, platform=None, sdk_info=None):
 def normalize_stacktraces_for_grouping(data, grouping_config=None):
     """
     Applies grouping enhancement rules and ensure in_app is set on all frames.
+    This also adds the default `function_name` value if it has not been set
+    yet by something else in the processing pipeline.
     """
 
     stacktraces = []
@@ -255,8 +258,19 @@ def normalize_stacktraces_for_grouping(data, grouping_config=None):
     if not stacktraces:
         return
 
-    # If a grouping config is available, run grouping enhancers
     platform = data.get('platform')
+
+    # Put the trimmed function names into the frames.
+    for frames in stacktraces:
+        for frame in frames:
+            if frame.get('function_name') is not None:
+                continue
+            func = frame.get('function')
+            if func:
+                frame['function_name'] = trim_function_name(
+                    func, frame.get('platform') or platform)
+
+    # If a grouping config is available, run grouping enhancers
     if grouping_config is not None:
         for frames in stacktraces:
             grouping_config.enhancements.apply_modifications_to_frame(frames, platform)

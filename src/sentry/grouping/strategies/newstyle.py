@@ -7,6 +7,7 @@ from sentry.grouping.component import GroupingComponent
 from sentry.grouping.strategies.base import strategy
 from sentry.grouping.strategies.utils import remove_non_stacktrace_variants
 from sentry.grouping.strategies.message import trim_message_for_grouping
+from sentry.stacktraces.platform import get_behavior_family_for_platform
 
 
 _ruby_erb_func = re.compile(r'__\d{4,}_\d{4,}$')
@@ -149,7 +150,8 @@ def get_module_component_v1(abs_path, module, platform):
     return module_component
 
 
-def get_function_component_v1(function, platform):
+def get_function_component(function, platform, use_function_name=None,
+                           function_name=None):
     """
     Attempt to normalize functions by removing common platform outliers.
 
@@ -160,52 +162,66 @@ def get_function_component_v1(function, platform):
     The v1 implementation always uses the `function` attribute, never the newer
     `function_name` attribute.
     """
-    if not function:
+    from sentry.stacktraces.functions import trim_function_name
+
+    # Depending on if we want to use the function name a different value
+    # is the input value to the cleanup functionality.  This is the
+    # defining difference between frame:v1 and frame:v2
+    if use_function_name:
+        if not function_name and function:
+            func = trim_function_name(function, platform)
+        else:
+            func = function
+        trim_function_for_native = False
+    else:
+        func = function
+        trim_function_for_native = True
+
+    if not func:
         return GroupingComponent(id='function')
 
     function_component = GroupingComponent(
         id='function',
-        values=[function],
+        values=[func],
     )
 
     if platform == 'ruby':
-        if function.startswith('block '):
+        if func.startswith('block '):
             function_component.update(
                 values=['block'],
                 hint='ruby block'
             )
         else:
-            new_function = _ruby_erb_func.sub('', function)
-            if new_function != function:
+            new_function = _ruby_erb_func.sub('', func)
+            if new_function != func:
                 function_component.update(
                     values=[new_function],
                     hint='removed generated erb template suffix'
                 )
 
     elif platform == 'php':
-        if function.startswith('[Anonymous'):
+        if func.startswith('[Anonymous'):
             function_component.update(
                 contributes=False,
                 hint='ignored anonymous function'
             )
 
     elif platform == 'java':
-        if function.startswith('lambda$'):
+        if func.startswith('lambda$'):
             function_component.update(
                 contributes=False,
                 hint='ignored lambda function'
             )
 
-    elif platform in ('objc', 'cocoa', 'native'):
-        if function in ('<redacted>', '<unknown>'):
+    elif get_behavior_family_for_platform(platform) == 'native':
+        if func in ('<redacted>', '<unknown>'):
             function_component.update(
                 contributes=False,
                 hint='ignored unknown function'
             )
-        else:
-            from sentry.stacktraces.functions import trim_function_name
-            new_function = trim_function_name(function, platform)
-            if new_function != function:
+        elif trim_function_for_native:
+            new_function = trim_function_name(func, platform)
+            if new_function != func:
                 function_component.update(
                     values=[new_function],
                     hint='isolated function'
@@ -220,6 +236,21 @@ def get_function_component_v1(function, platform):
     variants=['!system', 'app'],
 )
 def frame_v1(frame, event, **meta):
+    return get_frame_component(frame, event, meta,
+                               use_function_name=False)
+
+
+@strategy(
+    id='frame:v2',
+    interfaces=['frame'],
+    variants=['!system', 'app'],
+)
+def frame_v2(frame, event, **meta):
+    return get_frame_component(frame, event, meta,
+                               use_function_name=True)
+
+
+def get_frame_component(frame, event, meta, use_function_name=False):
     platform = frame.platform or event.platform
 
     # Safari throws [native code] frames in for calls like ``forEach``
@@ -238,8 +269,12 @@ def frame_v1(frame, event, **meta):
             hint='module takes precedence'
         )
 
-    function_component = get_function_component_v1(
-        frame.function, platform)
+    function_component = get_function_component(
+        function=frame.function,
+        function_name=frame.function_name,
+        platform=platform,
+        use_function_name=use_function_name,
+    )
 
     return GroupingComponent(
         id='frame',
