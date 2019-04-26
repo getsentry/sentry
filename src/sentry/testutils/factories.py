@@ -20,6 +20,10 @@ from uuid import uuid4
 
 from sentry.event_manager import EventManager
 from sentry.constants import SentryAppStatus
+from sentry.incidents.models import (
+    Incident,
+    IncidentProject,
+)
 from sentry.mediators import sentry_apps, sentry_app_installations, service_hooks
 from sentry.models import (
     Activity, Environment, Event, EventError, EventMapping, Group, Organization, OrganizationMember,
@@ -834,3 +838,34 @@ class Factories(object):
             display_name=display_name,
             web_url=web_url,
         )
+
+    @staticmethod
+    def create_incident(
+        organization, projects, identifier=None, detection_uuid=None, status=0,
+        title=None, query='test query', date_started=None, date_detected=None,
+        date_closed=None,
+    ):
+        # TODO: Remove this once we handle creating this as part of the object
+        if identifier is None:
+            identifier = Incident.objects.filter(organization=organization).count() + 1
+
+        if not detection_uuid:
+            detection_uuid = uuid4()
+        if not title:
+            title = petname.Generate(2, ' ', letters=10).title()
+
+        incident = Incident.objects.create(
+            organization=organization,
+            identifier=identifier,
+            detection_uuid=detection_uuid,
+            status=status,
+            title=title,
+            query=query,
+            date_started=date_started or timezone.now(),
+            date_detected=date_detected or timezone.now(),
+            date_closed=date_closed or timezone.now(),
+        )
+        for project in projects:
+            IncidentProject.objects.create(incident=incident, project=project)
+
+        return incident

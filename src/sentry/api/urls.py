@@ -75,11 +75,11 @@ from .endpoints.organization_dashboard_details import OrganizationDashboardDetai
 from .endpoints.organization_dashboard_widget_details import OrganizationDashboardWidgetDetailsEndpoint
 from .endpoints.organization_dashboard_widgets import OrganizationDashboardWidgetsEndpoint
 from .endpoints.organization_health import OrganizationHealthTopEndpoint, OrganizationHealthGraphEndpoint
-from .endpoints.organization_incidents import OrganizationIncidentsIndexEndpoint
 from .endpoints.organization_shortid import ShortIdLookupEndpoint
 from .endpoints.organization_environments import OrganizationEnvironmentsEndpoint
 from .endpoints.organization_eventid import EventIdLookupEndpoint
 from .endpoints.organization_slugs import SlugsUpdateEndpoint
+from .endpoints.organization_incident_index import OrganizationIncidentIndexEndpoint
 from .endpoints.organization_issues_new import OrganizationIssuesNewEndpoint
 from .endpoints.organization_issues_resolved_in_release import OrganizationIssuesResolvedInReleaseEndpoint
 from .endpoints.organization_member_details import OrganizationMemberDetailsEndpoint
@@ -473,12 +473,6 @@ urlpatterns = patterns(
         name='sentry-api-0-organization-health-graph',
     ),
     url(
-        r'^organizations/(?P<organization_slug>[^\/]+)/incidents/$',
-        OrganizationIncidentsIndexEndpoint.as_view(),
-        name='sentry-api-0-organization-incidents',
-    ),
-
-    url(
         r'^organizations/(?P<organization_slug>[^\/]+)/shortids/(?P<short_id>[^\/]+)/$',
         ShortIdLookupEndpoint.as_view(),
         name='sentry-api-0-short-id-lookup'
@@ -576,6 +570,11 @@ urlpatterns = patterns(
         r'^organizations/(?P<organization_slug>[^\/]+)/issues/$',
         OrganizationGroupIndexEndpoint.as_view(),
         name='sentry-api-0-organization-group-index'
+    ),
+    url(
+        r'^organizations/(?P<organization_slug>[^\/]+)/incidents/$',
+        OrganizationIncidentIndexEndpoint.as_view(),
+        name='sentry-api-0-organization-incident-index'
     ),
     url(
         r'^organizations/(?P<organization_slug>[^\/]+)/integrations/$',
