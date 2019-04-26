@@ -111,10 +111,9 @@ class OrganizationSearchesEndpoint(OrganizationEndpoint):
             )
             analytics.record(
                 'organization_saved_search.created',
-                search_type=saved_search.type,
-                organization_id=organization.id,
-                id=saved_search.id,
-                user_id=request.user.id,
+                search_type=SearchType(saved_search.type).name,
+                org_id=organization.id,
+                query=saved_search.query,
             )
             return Response(serialize(saved_search, request.user))
         return Response(serializer.errors, status=400)
