@@ -155,9 +155,7 @@ class EventEntries extends React.Component {
         {!utils.objectIsEmpty(event.errors) && (
           <EventErrors group={group} event={event} />
         )}{' '}
-        {!isShare && features.has('suggested-commits') && (
-          <EventCause event={event} orgId={orgId} projectId={project.slug} />
-        )}
+        {!isShare && <EventCause event={event} orgId={orgId} projectId={project.slug} />}
         {event.userReport && (
           <EventUserFeedback
             report={event.userReport}

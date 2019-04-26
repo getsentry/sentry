@@ -301,15 +301,16 @@ class GlobalSelectionHeader extends React.Component {
   };
 
   getProjects = () => {
-    const {projects} = this.props;
+    const {organization, projects} = this.props;
     const {isSuperuser} = ConfigStore.get('user');
+    const isOrgAdmin = new Set(organization.access).has('org:admin');
 
     const [memberProjects, nonMemberProjects] = partition(
       projects,
       project => project.isMember
     );
 
-    if (isSuperuser) {
+    if (isSuperuser || isOrgAdmin) {
       return [memberProjects, nonMemberProjects];
     }
 

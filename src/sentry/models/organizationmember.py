@@ -23,8 +23,10 @@ from six.moves.urllib.parse import urlencode
 
 from sentry import roles
 from sentry.db.models import (
-    BaseModel, BoundedAutoField, BoundedPositiveIntegerField, FlexibleForeignKey, Model, sane_repr
+    BaseModel, BoundedAutoField, BoundedPositiveIntegerField, FlexibleForeignKey,
+    Model, sane_repr
 )
+from sentry.models.team import TeamStatus
 from sentry.utils.http import absolute_uri
 
 INVITE_DAYS_VALID = 30
@@ -298,6 +300,7 @@ class OrganizationMember(Model):
         from sentry.models import Team
 
         return Team.objects.filter(
+            status=TeamStatus.VISIBLE,
             id__in=OrganizationMemberTeam.objects.filter(
                 organizationmember=self,
                 is_active=True,
