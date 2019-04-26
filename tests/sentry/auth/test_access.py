@@ -4,7 +4,7 @@ from django.contrib.auth.models import AnonymousUser
 from mock import Mock
 
 from sentry.auth import access
-from sentry.models import AuthProvider, AuthIdentity, Organization
+from sentry.models import AuthProvider, AuthIdentity, Organization, ObjectStatus
 from sentry.testutils import TestCase
 
 
@@ -25,6 +25,27 @@ class FromUserTest(TestCase):
         assert not result.has_projects_access([project])
         assert not result.has_project_scope(project, 'project:read')
         assert not result.has_project_membership(project)
+
+    def test_no_deleted_projects(self):
+        user = self.create_user()
+        organization = self.create_organization(owner=self.user)
+
+        team = self.create_team(organization=organization)
+        self.create_member(
+            organization=organization,
+            user=user,
+            role='owner',
+            teams=[team]
+        )
+        project = self.create_project(
+            organization=organization,
+            status=ObjectStatus.PENDING_DELETION,
+            teams=[team])
+
+        result = access.from_user(user, organization)
+        assert result.has_project_access(project) is True
+        assert result.has_project_membership(project) is False
+        assert len(result.projects) == 0
 
     def test_unique_projects(self):
         user = self.create_user()
@@ -251,6 +272,23 @@ class FromSentryAppTest(TestCase):
     def test_no_access(self):
         result = access.from_sentry_app(self.proxy_user, self.out_of_scope_org)
         assert not result.has_team_access(self.out_of_scope_team)
+
+    def test_no_deleted_projects(self):
+        self.create_member(
+            organization=self.org,
+            user=self.user,
+            role='owner',
+            teams=[self.team]
+        )
+        project = self.create_project(
+            organization=self.org,
+            status=ObjectStatus.PENDING_DELETION,
+            teams=[self.team])
+
+        result = access.from_sentry_app(self.proxy_user, self.org)
+        assert result.has_project_access(project) is False
+        assert result.has_project_membership(project) is False
+        assert len(result.projects) == 0
 
 
 class DefaultAccessTest(TestCase):

@@ -11,7 +11,8 @@ from sentry import roles
 from sentry.auth.superuser import is_active_superuser
 from sentry.auth.system import is_system_auth
 from sentry.models import (
-    AuthIdentity, AuthProvider, OrganizationMember, Project, SentryApp, UserPermission
+    AuthIdentity, AuthProvider, OrganizationMember, Project, ProjectStatus,
+    SentryApp, UserPermission
 )
 
 
@@ -301,7 +302,10 @@ def from_sentry_app(user, organization=None):
         return NoAccess()
 
     team_list = list(sentry_app.teams.all())
-    project_list = list(Project.objects.filter(teams__in=team_list).distinct())
+    project_list = list(Project.objects.filter(
+        status=ProjectStatus.VISIBLE,
+        teams__in=team_list
+    ).distinct())
 
     return Access(
         scopes=sentry_app.scope_list,
@@ -347,7 +351,10 @@ def from_member(member, scopes=None):
     requires_sso, sso_is_valid = _sso_params(member)
 
     team_list = member.get_teams()
-    project_list = list(Project.objects.filter(teams__in=team_list).distinct())
+    project_list = list(Project.objects.filter(
+        status=ProjectStatus.VISIBLE,
+        teams__in=team_list
+    ).distinct())
 
     if scopes is not None:
         scopes = set(scopes) & member.get_scopes()
