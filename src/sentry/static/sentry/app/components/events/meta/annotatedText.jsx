@@ -37,7 +37,7 @@ const ErrorIcon = styled(InlineSvg)`
 const REMARKS = {
   a: 'Annotated',
   x: 'Removed',
-  s: 'Substitued',
+  s: 'Substituted',
   m: 'Masked',
   p: 'Pseudonymized',
   e: 'Encrypted',
