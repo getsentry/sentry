@@ -119,13 +119,8 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
         return super(DetailedOrganizationSerializer, self).get_attrs(item_list, user)
 
     def _project_list(self, organization, access):
-        member_project_ids = []
-        member_projects = []
-        for project in access.projects:
-            if project.status == ProjectStatus.VISIBLE:
-                member_project_ids.append(project.id)
-                member_projects.append(project)
-
+        member_projects = list(access.projects)
+        member_project_ids = [p.id for p in member_projects]
         other_projects = list(Project.objects.filter(
             organization=organization,
             status=ProjectStatus.VISIBLE,
@@ -137,13 +132,8 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
         return project_list
 
     def _team_list(self, organization, access):
-        member_team_ids = []
-        member_teams = []
-        for team in access.teams:
-            if team.status == TeamStatus.VISIBLE:
-                member_team_ids.append(team.id)
-                member_teams.append(team)
-
+        member_teams = list(access.teams)
+        member_team_ids = [p.id for p in member_teams]
         other_teams = list(Team.objects.filter(
             organization=organization,
             status=TeamStatus.VISIBLE,
