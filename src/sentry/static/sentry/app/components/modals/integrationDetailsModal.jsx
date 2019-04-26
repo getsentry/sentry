@@ -137,7 +137,7 @@ class IntegrationDetailsModal extends React.Component {
         <Flex align="center" mb={2}>
           <PluginIcon pluginId={provider.key} size={50} />
           <Flex pl={1} align="flex-start" direction="column" justify="center">
-            <ProviderName data-testid="provider-name">
+            <ProviderName data-test-id="provider-name">
               {t('%s Integration', provider.name)}
             </ProviderName>
             <Flex>
@@ -167,7 +167,7 @@ class IntegrationDetailsModal extends React.Component {
           {({disabled, disabledReason}) => (
             <div className="modal-footer">
               {disabled && <DisabledNotice reason={disabledReason} />}
-              <Button data-testid="cancel-button" size="small" onClick={closeModal}>
+              <Button data-test-id="cancel-button" size="small" onClick={closeModal}>
                 {t('Cancel')}
               </Button>
               <Access organization={organization} access={['org:integrations']}>
@@ -177,7 +177,7 @@ class IntegrationDetailsModal extends React.Component {
                     disabled={hasAccess}
                   >
                     <AddButton
-                      data-testid="add-button"
+                      data-test-id="add-button"
                       disabled={disabled || !hasAccess}
                     />
                   </Tooltip>

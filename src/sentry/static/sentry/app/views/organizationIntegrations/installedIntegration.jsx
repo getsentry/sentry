@@ -140,7 +140,7 @@ export default class InstalledIntegration extends React.Component {
                     to={`/settings/${orgId}/integrations/${provider.key}/${
                       integration.id
                     }/`}
-                    data-testid="integration-configure-button"
+                    data-test-id="integration-configure-button"
                   >
                     Configure
                   </StyledButton>
@@ -153,7 +153,7 @@ export default class InstalledIntegration extends React.Component {
                   disabled={!hasAccess}
                   borderless
                   icon="icon-trash"
-                  data-testid="integration-remove-button"
+                  data-test-id="integration-remove-button"
                 >
                   Uninstall
                 </StyledButton>

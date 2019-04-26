@@ -3,7 +3,7 @@ from .base import BaseElement, BasePage, ButtonElement, ButtonWithIconElement, M
 
 
 class IntegrationProviderRowElement(BaseElement):
-    integration_name_selector = '[data-testid="integration-name"]'
+    integration_name_selector = '[data-test-id="integration-name"]'
 
     def __init__(self, provider, *args, **kwargs):
         super(IntegrationProviderRowElement, self).__init__(
@@ -17,7 +17,7 @@ class IntegrationProviderRowElement(BaseElement):
 
     @classmethod
     def get_selector(cls, provider_key):
-        return '[data-testid="%s"]' % provider_key
+        return '[data-test-id="%s"]' % provider_key
 
     @property
     def installations(self):
@@ -33,8 +33,8 @@ class IntegrationProviderRowElement(BaseElement):
 
 
 class InstallationElement(BaseElement):
-    configure_button_selector = '[data-testid="integration-configure-button"]'
-    remove_button_selector = '[data-testid="integration-remove-button"]'
+    configure_button_selector = '[data-test-id="integration-configure-button"]'
+    remove_button_selector = '[data-test-id="integration-remove-button"]'
 
     def __init__(self, integration, *args, **kwargs):
         super(InstallationElement, self).__init__(
@@ -50,9 +50,9 @@ class InstallationElement(BaseElement):
 
 
 class IntegrationDetailsModal(ModalElement):
-    title_selector = '[data-testid="provider-name"]'
-    cancel_button_selector = '[data-testid="cancel-button"]'
-    add_button_selector = '[data-testid="add-button"]'
+    title_selector = '[data-test-id="provider-name"]'
+    cancel_button_selector = '[data-test-id="cancel-button"]'
+    add_button_selector = '[data-test-id="add-button"]'
 
     def __init__(self, provider, *args, **kwargs):
         super(IntegrationDetailsModal, self).__init__(*args, **kwargs)
