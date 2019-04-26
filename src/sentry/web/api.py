@@ -76,10 +76,10 @@ kafka_publisher = QueuedPublisherService(
         asynchronous=False)
 ) if getattr(settings, 'KAFKA_RAW_EVENTS_PUBLISHER_ENABLED', False) else None
 
-kafka_outcomes = settings.KAFKA_TOPICS[settings.KAFKA_OUTCOMES]
-kafka_outcomes_publisher = QueuedPublisherService(
+outcomes = settings.KAFKA_TOPICS[settings.KAFKA_OUTCOMES]
+outcomes_publisher = QueuedPublisherService(
     KafkaPublisher(
-        settings.KAFKA_CLUSTERS[kafka_outcomes['cluster']]
+        settings.KAFKA_CLUSTERS[outcomes['cluster']]
     )
 )
 
@@ -147,15 +147,15 @@ def track_outcome(org_id, project_id, key_id, outcome, reason=None):
 
     # Send a snuba metrics payload.
     if random.random() <= options.get('snuba.track-outcomes-sample-rate'):
-        kafka_outcomes_publisher.publish(
-            kafka_outcomes['topic'],
-            {
+        outcomes_publisher.publish(
+            outcomes['topic'],
+            json.dumps({
                 'org_id': org_id,
                 'project_id': project_id,
                 'key_id': key_id,
                 'outcome': outcome,
                 'reason': reason,
-            }
+            })
         )
 
 
