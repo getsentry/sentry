@@ -708,43 +708,31 @@ class ParseBooleanSearchQueryTest(TestCase):
     def test_simple(self):
         assert parse_search_query(
             'user.email:foo@example.com OR user.email:bar@example.com'
-        ) == SearchBoolean(term1=self.term1, operator="OR", term2=self.term2)
-        # implicit AND
-        assert parse_search_query(
-            'user.email:foo@example.com user.email:bar@example.com'
-        ) == SearchBoolean(term1=self.term1, operator="AND", term2=self.term2)
+        ) == [SearchBoolean(term1=self.term1, operator="OR", term2=self.term2)]
 
         assert parse_search_query(
             'user.email:foo@example.com AND user.email:bar@example.com'
-        ) == SearchBoolean(term1=self.term1, operator="AND", term2=self.term2)
+        ) == [SearchBoolean(term1=self.term1, operator="AND", term2=self.term2)]
 
     def test_single_term(self):
-        assert parse_search_query('user.email:foo@example.com') == self.term1
+        assert parse_search_query('user.email:foo@example.com') == [self.term1]
 
     def test_multiple_statements(self):
         assert parse_search_query(
             'user.email:foo@example.com OR user.email:bar@example.com OR user.email:foobar@example.com'
-        ) == SearchBoolean(
+        ) == [SearchBoolean(
             term1=SearchBoolean(term1=self.term1, operator="OR", term2=self.term2),
             operator="OR",
             term2=self.term3
-        )
-        # implicit AND
-        assert parse_search_query(
-            'user.email:foo@example.com user.email:bar@example.com user.email:foobar@example.com'
-        ) == SearchBoolean(
-            term1=SearchBoolean(term1=self.term1, operator="AND", term2=self.term2),
-            operator="AND",
-            term2=self.term3
-        )
+        )]
 
         assert parse_search_query(
             'user.email:foo@example.com AND user.email:bar@example.com AND user.email:foobar@example.com'
-        ) == SearchBoolean(
+        ) == [SearchBoolean(
             term1=SearchBoolean(term1=self.term1, operator="AND", term2=self.term2),
             operator="AND",
             term2=self.term3
-        )
+        )]
 
     def test_parenthesis_simple(self):
         assert parse_search_query('(user.email:foo@example.com OR user.email:bar@example.com)') == [

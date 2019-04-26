@@ -280,8 +280,7 @@ class SearchVisitor(NodeVisitor):
         operator = children[1]
         if isinstance(operator, Node) and isinstance(operator.expr, Optional):
             operator = "AND"
-        else:
-            operator = operator[0]
+
         return [SearchBoolean(term1, operator, term2)]
 
     def visit_nested_boolean_term(self, node, children):
