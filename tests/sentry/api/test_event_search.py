@@ -689,12 +689,12 @@ class ParseSearchQueryTest(TestCase):
 class ParseBooleanSearchQueryTest(TestCase):
     def setUp(self):
         super(ParseBooleanSearchQueryTest, self).setUp()
-        self.term1 = SearchFilter(
+        self.left_term = SearchFilter(
             key=SearchKey(name='user.email'),
             operator="=",
             value=SearchValue(raw_value='foo@example.com'),
         )
-        self.term2 = SearchFilter(
+        self.right_term = SearchFilter(
             key=SearchKey(name='user.email'),
             operator="=",
             value=SearchValue(raw_value='bar@example.com'),
@@ -708,30 +708,36 @@ class ParseBooleanSearchQueryTest(TestCase):
     def test_simple(self):
         assert parse_search_query(
             'user.email:foo@example.com OR user.email:bar@example.com'
-        ) == [SearchBoolean(term1=self.term1, operator="OR", term2=self.term2)]
+        ) == [SearchBoolean(left_term=self.left_term, operator="OR", right_term=self.right_term)]
 
         assert parse_search_query(
             'user.email:foo@example.com AND user.email:bar@example.com'
-        ) == [SearchBoolean(term1=self.term1, operator="AND", term2=self.term2)]
+        ) == [SearchBoolean(left_term=self.left_term, operator="AND", right_term=self.right_term)]
 
     def test_single_term(self):
-        assert parse_search_query('user.email:foo@example.com') == [self.term1]
+        assert parse_search_query('user.email:foo@example.com') == [self.left_term]
 
     def test_multiple_statements(self):
         assert parse_search_query(
             'user.email:foo@example.com OR user.email:bar@example.com OR user.email:foobar@example.com'
         ) == [SearchBoolean(
-            term1=SearchBoolean(term1=self.term1, operator="OR", term2=self.term2),
+            left_term=SearchBoolean(
+                left_term=self.left_term,
+                operator="OR",
+                right_term=self.right_term),
             operator="OR",
-            term2=self.term3
+            right_term=self.term3
         )]
 
         assert parse_search_query(
             'user.email:foo@example.com AND user.email:bar@example.com AND user.email:foobar@example.com'
         ) == [SearchBoolean(
-            term1=SearchBoolean(term1=self.term1, operator="AND", term2=self.term2),
+            left_term=SearchBoolean(
+                left_term=self.left_term,
+                operator="AND",
+                right_term=self.right_term),
             operator="AND",
-            term2=self.term3
+            right_term=self.term3
         )]
 
 
