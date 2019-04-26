@@ -86,8 +86,8 @@ def translate(pat):
 
 event_search_grammar = Grammar(r"""
 search          = (nested_boolean_term / boolean_term / search_term)*
-nested_boolean_term = boolean_term boolean_operator? search_term
-boolean_term          = search_term boolean_operator? search_term
+nested_boolean_term = boolean_term boolean_operator search_term
+boolean_term          = search_term boolean_operator search_term
 search_term     = key_val_term / quoted_raw_search / raw_search
 key_val_term    = space? (time_filter / rel_time_filter / specific_time_filter
                   / numeric_filter / has_filter / is_filter / basic_filter)
@@ -161,7 +161,7 @@ class SearchBoolean(namedtuple('SearchBoolean', 'left_term operator right_term')
     pass
 
 
-class SearchBoolean(namedtuple('BooleanSearchTerm', 'term1 operator term2')):
+class SearchBoolean(namedtuple('SearchBoolean', 'term1 operator term2')):
     pass
 
 
