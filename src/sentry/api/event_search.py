@@ -127,7 +127,6 @@ rel_date_format = ~r"[\+\-][0-9]+[wdhm](?=\s|$)"
 # even if the operator is <=
 boolean_operator = "OR" / "or" / "AND" / "and"
 operator        = ">=" / "<=" / ">" / "<" / "=" / "!="
-group_sep = "(" / ")"
 sep             = ":"
 space           = " "
 negation        = "!"
