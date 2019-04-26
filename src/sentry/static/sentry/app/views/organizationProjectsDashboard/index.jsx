@@ -32,8 +32,6 @@ class Dashboard extends React.Component {
   };
 
   componentDidMount() {
-    document.body.classList.add('org-dashboard');
-
     const {organization, routes} = this.props;
     const hasSentry10 = new Set(organization.features).has('sentry10');
     const isOldRoute = getRouteStringFromRoutes(routes) === '/:orgId/';
@@ -43,7 +41,6 @@ class Dashboard extends React.Component {
     }
   }
   componentWillUnmount() {
-    document.body.classList.remove('org-dashboard');
     ProjectsStatsStore.reset();
   }
 
