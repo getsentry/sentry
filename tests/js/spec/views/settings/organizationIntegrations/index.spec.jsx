@@ -246,6 +246,25 @@ describe('OrganizationIntegrations', () => {
       });
     });
 
+    describe('published and org-owned apps are consolidated', () => {
+      it('renders sentry app once', () => {
+        const publishedApp = {...sentryApp, status: 'published'};
+        Client.addMockResponse({
+          url: `/organizations/${org.slug}/sentry-apps/`,
+          body: [publishedApp],
+        });
+        Client.addMockResponse({
+          url: '/sentry-apps/',
+          body: [publishedApp],
+        });
+        wrapper = mount(
+          <OrganizationIntegrations organization={org} params={params} />,
+          routerContext
+        );
+        expect(wrapper.find('SentryAppInstallations').length).toBe(1);
+      });
+    });
+
     describe('with installed integrations', () => {
       let updatedIntegration;
 
