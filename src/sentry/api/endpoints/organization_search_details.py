@@ -9,6 +9,7 @@ from sentry.api.bases.organization import (
 )
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.models import SavedSearch
+from sentry.models.search_common import SearchType
 
 
 class OrganizationSearchDetailsEndpoint(OrganizationEndpoint):
@@ -35,9 +36,8 @@ class OrganizationSearchDetailsEndpoint(OrganizationEndpoint):
         search.delete()
         analytics.record(
             'organization_saved_search.deleted',
-            search_type=search.type,
-            organization_id=organization.id,
-            id=search_id,
-            user_id=request.user.id,
+            search_type=SearchType(search.type).name,
+            org_id=organization.id,
+            query=search.query,
         )
         return Response(status=204)
