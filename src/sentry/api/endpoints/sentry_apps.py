@@ -2,6 +2,7 @@ from __future__ import absolute_import
 
 from rest_framework.response import Response
 
+from sentry.auth.superuser import is_active_superuser
 from sentry.api.bases import SentryAppsBaseEndpoint
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
@@ -20,7 +21,7 @@ class SentryAppsEndpoint(SentryAppsBaseEndpoint):
             queryset = SentryApp.objects.filter(status=SentryAppStatus.PUBLISHED)
 
         elif status == 'unpublished':
-            if request.user.is_superuser:
+            if is_active_superuser(request):
                 queryset = SentryApp.objects.filter(
                     status=SentryAppStatus.UNPUBLISHED
                 )
@@ -30,7 +31,7 @@ class SentryAppsEndpoint(SentryAppsBaseEndpoint):
                     owner__in=request.user.get_orgs(),
                 )
         else:
-            if request.user.is_superuser:
+            if is_active_superuser(request):
                 queryset = SentryApp.objects.all()
             else:
                 queryset = SentryApp.objects.filter(status=SentryAppStatus.PUBLISHED)

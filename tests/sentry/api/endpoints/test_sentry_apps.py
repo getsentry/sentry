@@ -75,7 +75,7 @@ class GetSentryAppsTest(SentryAppsTest):
             }
         } in json.loads(response.content)
 
-    def test_superuser_can_filter_apps_on_status(self):
+    def test_superuser_filter_on_published(self):
         self.login_as(user=self.superuser, superuser=True)
         url = u'{}?status=published'.format(self.url)
         response = self.client.get(url, format='json')
@@ -106,7 +106,18 @@ class GetSentryAppsTest(SentryAppsTest):
         assert self.unpublished_app.uuid not in response_uuids
         assert self.unowned_unpublished_app.uuid not in response_uuids
 
-    def test_user_can_filter_apps_on_status(self):
+    def test_superuser_filter_on_unpublished(self):
+        self.login_as(user=self.superuser, superuser=True)
+        url = u'{}?status=unpublished'.format(self.url)
+        response = self.client.get(url, format='json')
+
+        assert response.status_code == 200
+        response_uuids = set(o['uuid'] for o in response.data)
+        assert self.unpublished_app.uuid in response_uuids
+        assert self.unowned_unpublished_app.uuid in response_uuids
+        assert self.published_app.uuid not in response_uuids
+
+    def test_user_filter_on_unpublished(self):
         self.login_as(user=self.user)
         url = u'{}?status=unpublished'.format(self.url)
         response = self.client.get(url, format='json')
@@ -136,6 +147,17 @@ class GetSentryAppsTest(SentryAppsTest):
         response_uuids = set(o['uuid'] for o in response.data)
         assert self.published_app.uuid not in response_uuids
         assert self.unowned_unpublished_app.uuid not in response_uuids
+
+        def test_user_filter_on_published(self):
+            self.login_as(user=self.user)
+            url = u'{}?status=published'.format(self.url)
+            response = self.client.get(url, format='json')
+
+            assert response.status_code == 200
+            response_uuids = set(o['uuid'] for o in response.data)
+            assert self.published_app.uuid in response_uuids
+            assert self.unpublished_app not in response_uuids
+            assert self.unowned_unpublished_app.uuid not in response_uuids
 
     def test_users_dont_see_unpublished_apps_their_org_owns(self):
         self.login_as(user=self.user)
