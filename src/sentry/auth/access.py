@@ -10,8 +10,8 @@ from django.utils.functional import cached_property
 from sentry import roles
 from sentry.auth.superuser import is_active_superuser
 from sentry.models import (
-    AuthIdentity, AuthProvider, OrganizationMember, Project, SentryApp, UserPermission,
-    ProjectStatus
+    AuthIdentity, AuthProvider, OrganizationMember, Project, ProjectStatus,
+    SentryApp, UserPermission
 )
 
 
