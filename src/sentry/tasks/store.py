@@ -22,7 +22,7 @@ from sentry.cache import default_cache
 from sentry.tasks.base import instrumented_task
 from sentry.utils import json, kafka, metrics
 from sentry.utils.safe import safe_execute
-from sentry.stacktraces import process_stacktraces, \
+from sentry.stacktraces.processing import process_stacktraces, \
     should_process_for_stacktraces
 from sentry.utils.canonical import CanonicalKeyDict, CANONICAL_TYPES
 from sentry.utils.dates import to_datetime

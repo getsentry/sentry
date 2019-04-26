@@ -1,5 +1,5 @@
 ---
-created: '2019-03-14T17:12:36.728580Z'
+created: '2019-04-26T13:24:44.338895Z'
 creator: sentry
 source: tests/sentry/event_manager/interfaces/test_threads.py
 ---
@@ -17,6 +17,7 @@ api_context:
         errors: null
         filename: null
         function: <redacted>
+        functionName: <redacted>
         inApp: true
         instructionAddr: null
         lineNo: 1
@@ -38,6 +39,7 @@ api_context:
         errors: null
         filename: foo/baz.c
         function: main
+        functionName: main
         inApp: true
         instructionAddr: null
         lineNo: 1

@@ -5,16 +5,12 @@ import re
 
 from sentry.grouping.component import GroupingComponent
 from sentry.grouping.strategies.base import strategy
-from sentry.grouping.strategies.utils import replace_enclosed_string, \
-    split_func_tokens, remove_non_stacktrace_variants
+from sentry.grouping.strategies.utils import remove_non_stacktrace_variants
 from sentry.grouping.strategies.message import trim_message_for_grouping
 
 
-_rust_hash = re.compile(r'::h[a-z0-9]{16}$')
-_windecl_hash = re.compile(r'^@?(.*?)@[0-9]+$')
 _ruby_erb_func = re.compile(r'__\d{4,}_\d{4,}$')
 _basename_re = re.compile(r'[/\\]')
-_cpp_trailer_re = re.compile(r'(\bconst\b|&)$')
 
 # OpenJDK auto-generated classes for reflection access:
 #   sun.reflect.GeneratedSerializationConstructorAccessor123
@@ -39,10 +35,6 @@ _java_assist_enhancer_re = re.compile(r'''(\$\$_javassist)(?:_seam)?(?:_[0-9]+)?
 
 # Clojure anon functions are compiled down to myapp.mymodule$fn__12345
 _clojure_enhancer_re = re.compile(r'''(\$fn__)\d+''', re.X)
-
-# Native function trim re.  For now this is a simple hack until we have the
-# language hints in which will let us trim this down better.
-_native_function_trim_re = re.compile(r'^(.[^(]*)\(')
 
 # fields that need to be the same between frames for them to be considered
 # recursive calls
@@ -157,62 +149,6 @@ def get_module_component_v1(abs_path, module, platform):
     return module_component
 
 
-def isolate_native_function_v1(function):
-    original_function = function
-    function = function.strip()
-
-    # Ensure we don't operated on objc functions
-    if function.startswith(('[', '+[', '-[')):
-        return function
-
-    # Chop off C++ trailers
-    while 1:
-        match = _cpp_trailer_re.search(function)
-        if match is None:
-            break
-        function = function[:match.start()].rstrip()
-
-    # Because operator<< really screws with our balancing, so let's work
-    # around that by replacing it with a character we do not observe in
-    # `split_func_tokens` or `replace_enclosed_string`.
-    function = function \
-        .replace('operator<<', u'operator⟨⟨') \
-        .replace('operator<', u'operator⟨') \
-        .replace('operator()', u'operator◯')
-
-    # Remove the arguments if there is one.
-    def process_args(value, start):
-        value = value.strip()
-        if value in ('anonymous namespace', 'operator'):
-            return '(%s)' % value
-        return ''
-    function = replace_enclosed_string(function, '(', ')', process_args)
-
-    # Resolve generic types, but special case rust which uses things like
-    # <Foo as Bar>::baz to denote traits.
-    def process_generics(value, start):
-        # Rust special case
-        if start == 0:
-            return '<%s>' % replace_enclosed_string(value, '<', '>', process_generics)
-        return '<T>'
-    function = replace_enclosed_string(function, '<', '>', process_generics)
-
-    # The last token is the function name.
-    tokens = split_func_tokens(function)
-    if tokens:
-        function = tokens[-1].replace(u'⟨', '<').replace(u'◯', '()')
-
-    # This really should never happen
-    else:
-        function = original_function
-
-    # trim off rust markers
-    function = _rust_hash.sub('', function)
-
-    # trim off windows decl markers
-    return _windecl_hash.sub('\\1', function)
-
-
 def get_function_component_v1(function, platform):
     """
     Attempt to normalize functions by removing common platform outliers.
@@ -220,6 +156,9 @@ def get_function_component_v1(function, platform):
     - Ruby generates (random?) integers for various anonymous style functions
       such as in erb and the active_support library.
     - Block functions have metadata that we don't care about.
+
+    The v1 implementation always uses the `function` attribute, never the newer
+    `function_name` attribute.
     """
     if not function:
         return GroupingComponent(id='function')
@@ -264,7 +203,8 @@ def get_function_component_v1(function, platform):
                 hint='ignored unknown function'
             )
         else:
-            new_function = isolate_native_function_v1(function)
+            from sentry.stacktraces.functions import trim_function_name
+            new_function = trim_function_name(function, platform)
             if new_function != function:
                 function_component.update(
                     values=[new_function],

@@ -7,7 +7,7 @@ import json
 import pytest
 
 from sentry.models import Event
-from sentry.stacktraces import normalize_stacktraces_for_grouping
+from sentry.stacktraces.processing import normalize_stacktraces_for_grouping
 from sentry.event_manager import EventManager
 from sentry.grouping.component import GroupingComponent
 from sentry.grouping.strategies.configurations import CONFIGURATIONS

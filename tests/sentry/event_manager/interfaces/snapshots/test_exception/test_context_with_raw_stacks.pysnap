@@ -1,5 +1,5 @@
 ---
-created: '2019-03-14T17:12:35.402480Z'
+created: '2019-04-26T13:24:43.149309Z'
 creator: sentry
 source: tests/sentry/event_manager/interfaces/test_exception.py
 ---
@@ -18,6 +18,7 @@ get_api_context:
         errors: null
         filename: null
         function: <redacted>
+        functionName: <redacted>
         inApp: true
         instructionAddr: null
         lineNo: 1
@@ -39,6 +40,7 @@ get_api_context:
         errors: null
         filename: foo/baz.c
         function: main
+        functionName: main
         inApp: true
         instructionAddr: null
         lineNo: 1

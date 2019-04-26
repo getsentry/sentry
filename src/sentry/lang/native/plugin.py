@@ -20,7 +20,7 @@ from sentry.models.eventerror import EventError
 from sentry.utils import metrics
 from sentry.utils.in_app import is_known_third_party
 from sentry.utils.safe import get_path
-from sentry.stacktraces import StacktraceProcessor
+from sentry.stacktraces.processing import StacktraceProcessor
 from sentry.reprocessing import report_processing_issue
 
 logger = logging.getLogger(__name__)

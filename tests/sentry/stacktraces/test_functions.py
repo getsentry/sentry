@@ -2,8 +2,7 @@ from __future__ import absolute_import
 
 import pytest
 
-from sentry.grouping.strategies.newstyle import isolate_native_function_v1
-from sentry.grouping.strategies.utils import replace_enclosed_string, split_func_tokens, trim_function_name
+from sentry.stacktraces.functions import replace_enclosed_string, split_func_tokens, trim_function_name
 
 
 @pytest.mark.parametrize(
@@ -87,8 +86,7 @@ from sentry.grouping.strategies.utils import replace_enclosed_string, split_func
         ],
     ]
 )
-def test_isolate_native_function_v1(input, output):
-    assert isolate_native_function_v1(input) == output
+def test_trim_function_name(input, output):
     assert trim_function_name(input, 'native') == output
 
 
@@ -126,7 +124,7 @@ def test_split_func_tokens(input, output):
     assert split_func_tokens(input) == output
 
 
-def test_trim_function_name():
+def test_trim_function_name_cocoa():
     assert trim_function_name('+[foo:(bar)]', 'objc') == '+[foo:(bar)]'
     assert trim_function_name('[foo:(bar)]', 'objc') == '[foo:(bar)]'
     assert trim_function_name('-[foo:(bar)]', 'objc') == '-[foo:(bar)]'

@@ -113,10 +113,8 @@ class Match(object):
 
         # all other matches are case sensitive
         if self.key == 'function':
-            from sentry.grouping.strategies.utils import trim_function_name
-            value = trim_function_name(
-                frame_data.get('function') or '<unknown>',
-                frame_data.get('platform') or platform)
+            from sentry.stacktraces.functions import get_function_name_for_frame
+            value = get_function_name_for_frame(frame_data, platform) or '<unknown>'
         elif self.key == 'module':
             value = frame_data.get('module') or '<unknown>'
         else:
