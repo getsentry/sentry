@@ -19,6 +19,7 @@ from sentry.search.utils import (
 )
 from sentry.utils.dates import to_timestamp
 from sentry.utils.snuba import SENTRY_SNUBA_MAP
+from functools import reduce
 
 WILDCARD_CHARS = re.compile(r'[\*]')
 BOOLEAN_OPERATORS = ('AND', 'OR')
@@ -92,7 +93,7 @@ search_term     = key_val_term / quoted_raw_search / raw_search
 key_val_term    = space? (time_filter / rel_time_filter / specific_time_filter
                   / numeric_filter / has_filter / is_filter / basic_filter)
                   space?
-raw_search      = (!key_val_term ~r"\ *([^\ ^\n]+)\ *" )*
+raw_search      = ~r"\ *([^\ ^\n]+)\ *"
 quoted_raw_search = spaces quoted_value spaces
 
 # standard key:val filter
