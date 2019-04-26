@@ -6,9 +6,11 @@ sentry.event_manager
 """
 from __future__ import absolute_import, print_function
 
-import logging
-import six
 import jsonschema
+import logging
+import random
+import six
+import time
 
 from datetime import datetime, timedelta
 from django.conf import settings
@@ -16,7 +18,7 @@ from django.db import connection, IntegrityError, router, transaction
 from django.utils import timezone
 from django.utils.encoding import force_text
 
-from sentry import buffer, eventtypes, eventstream, features, tagstore, tsdb, filters
+from sentry import buffer, eventtypes, eventstream, features, tagstore, tsdb, filters, options
 from sentry.constants import (
     LOG_LEVELS, LOG_LEVELS_MAP, VALID_PLATFORMS, MAX_TAG_VALUE_LENGTH,
 )
@@ -42,21 +44,23 @@ from sentry.models import (
 from sentry.plugins import plugins
 from sentry.signals import event_discarded, event_saved, first_event_received
 from sentry.tasks.integrations import kick_off_status_syncs
-from sentry.utils import metrics
+from sentry.utils import json, metrics
 from sentry.utils.cache import default_cache
 from sentry.utils.canonical import CanonicalKeyDict
+from sentry.utils.contexts_normalization import normalize_user_agent
 from sentry.utils.data_filters import (
     is_valid_ip,
     is_valid_release,
     is_valid_error_message,
     FilterStatKeys,
+    FILTER_STAT_KEYS_TO_VALUES
 )
-from sentry.utils.dates import to_timestamp
+from sentry.utils.dates import to_timestamp, to_datetime
 from sentry.utils.db import is_postgres
-from sentry.utils.safe import safe_execute, trim, get_path, setdefault_path
 from sentry.utils.geo import rust_geoip
+from sentry.utils.pubsub import QueuedPublisherService, KafkaPublisher
+from sentry.utils.safe import safe_execute, trim, get_path, setdefault_path
 from sentry.utils.validators import is_float
-from sentry.utils.contexts_normalization import normalize_user_agent
 from sentry.stacktraces import normalize_stacktraces_for_grouping
 from sentry.culprit import generate_culprit
 
@@ -323,6 +327,72 @@ def _decode_event(data, content_encoding):
         data = safely_load_json_string(data)
 
     return CanonicalKeyDict(data)
+
+
+outcomes = settings.KAFKA_TOPICS[settings.KAFKA_OUTCOMES]
+outcomes_publisher = QueuedPublisherService(
+    KafkaPublisher(
+        settings.KAFKA_CLUSTERS[outcomes['cluster']]
+    )
+)
+
+
+def track_outcome(org_id, project_id, key_id, outcome, reason=None, timestamp=None):
+    """
+    This is a central point to track org/project counters per incoming event.
+    NB: This should only ever be called once per incoming event, which means
+    it should only be called at the point we know the final outcome for the
+    event (invalid, rate_limited, accepted, discarded, etc.)
+
+    This increments all the relevant legacy RedisTSDB counters, as well as
+    sending a single metric event to Kafka which can be used to reconstruct the
+    counters with SnubaTSDB.
+    """
+    timestamp = timestamp or to_datetime(time())
+    increment_list = []
+    if outcome != 'invalid':
+        # This simply preserves old behavior. We never counted invalid events
+        # (too large, duplicate, CORS) toward regular `received` counts.
+        increment_list.extend([
+            (tsdb.models.project_total_received, project_id),
+            (tsdb.models.organization_total_received, org_id),
+            (tsdb.models.key_total_received, key_id),
+        ])
+
+    if outcome == 'filtered':
+        increment_list.extend([
+            (tsdb.models.project_total_blacklisted, project_id),
+            (tsdb.models.organization_total_blacklisted, org_id),
+            (tsdb.models.key_total_blacklisted, key_id),
+        ])
+    elif outcome == 'rate_limited':
+        increment_list.extend([
+            (tsdb.models.project_total_rejected, project_id),
+            (tsdb.models.organization_total_rejected, org_id),
+            (tsdb.models.key_total_rejected, key_id),
+        ])
+
+    if reason in FILTER_STAT_KEYS_TO_VALUES:
+        increment_list.append((FILTER_STAT_KEYS_TO_VALUES[reason], project_id))
+
+    tsdb.incr_multi(
+        [(model, key) for model, key in increment_list if key is not None],
+        timestamp=timestamp,
+    )
+
+    # Send a snuba metrics payload.
+    if random.random() <= options.get('snuba.track-outcomes-sample-rate'):
+        outcomes_publisher.publish(
+            outcomes['topic'],
+            json.dumps({
+                'timestamp': timestamp,
+                'org_id': org_id,
+                'project_id': project_id,
+                'key_id': key_id,
+                'outcome': outcome,
+                'reason': reason,
+            })
+        )
 
 
 class EventManager(object):

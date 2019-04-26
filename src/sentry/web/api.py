@@ -28,13 +28,13 @@ from functools import wraps
 from querystring_parser import parser
 from symbolic import ProcessMinidumpError, Unreal4Error
 
-from sentry import features, quotas, tsdb, options
+from sentry import features, quotas, options
 from sentry.attachments import CachedAttachment
 from sentry.coreapi import (
     Auth, APIError, APIForbidden, APIRateLimited, ClientApiHelper, ClientAuthHelper,
     SecurityAuthHelper, MinidumpAuthHelper, safely_load_json_string, logger as api_logger
 )
-from sentry.event_manager import EventManager
+from sentry.event_manager import EventManager, track_outcome
 from sentry.interfaces import schemas
 from sentry.interfaces.base import get_interface
 from sentry.lang.native.unreal import process_unreal_crash, merge_apple_crash_report, \
@@ -46,9 +46,8 @@ from sentry.signals import (
     event_accepted, event_dropped, event_filtered, event_received)
 from sentry.quotas.base import RateLimit
 from sentry.utils import json, metrics
-from sentry.utils.data_filters import FILTER_STAT_KEYS_TO_VALUES
+from sentry.utils.data_filters import FilterStatKeys
 from sentry.utils.data_scrubber import SensitiveDataFilter
-from sentry.utils.dates import to_datetime
 from sentry.utils.http import (
     is_valid_origin,
     get_origins,
@@ -76,13 +75,6 @@ kafka_publisher = QueuedPublisherService(
         asynchronous=False)
 ) if getattr(settings, 'KAFKA_RAW_EVENTS_PUBLISHER_ENABLED', False) else None
 
-outcomes = settings.KAFKA_TOPICS[settings.KAFKA_OUTCOMES]
-outcomes_publisher = QueuedPublisherService(
-    KafkaPublisher(
-        settings.KAFKA_CLUSTERS[outcomes['cluster']]
-    )
-)
-
 
 def api(func):
     @wraps(func)
@@ -99,66 +91,6 @@ def api(func):
         return response
 
     return wrapped
-
-
-def track_outcome(org_id, project_id, key_id, outcome, reason=None):
-    """
-    This is a central point to track org/project counters per incoming event.
-    It should be called only once per request, either when we are about to
-    raise some kind of API Error, or when the event is finally accepted.
-
-    This increments all the relevant legacy RedisTSDB counters, as well as
-    sending a single metric event to Kafka which can be used to reconstruct the
-    counters with SnubaTSDB.
-    """
-    timestamp = to_datetime(time())
-    increment_list = []
-    if outcome != 'invalid':
-        # This simply preserves old behavior. We never counted invalid events
-        # (too large, duplicate, CORS) toward regular `received` counts.
-        increment_list.extend([
-            (tsdb.models.project_total_received, project_id),
-            (tsdb.models.organization_total_received, org_id),
-            (tsdb.models.key_total_received, key_id),
-        ])
-
-    if outcome == 'invalid':
-        if reason == 'cors':
-            increment_list.append((tsdb.models.project_total_received_cors, project_id))
-    elif outcome == 'filtered':
-        increment_list.extend([
-            (tsdb.models.project_total_blacklisted, project_id),
-            (tsdb.models.organization_total_blacklisted, org_id),
-            (tsdb.models.key_total_blacklisted, key_id),
-        ])
-        if reason in FILTER_STAT_KEYS_TO_VALUES:
-            increment_list.append((FILTER_STAT_KEYS_TO_VALUES[reason], project_id))
-
-    elif outcome == 'rate_limited':
-        increment_list.extend([
-            (tsdb.models.project_total_rejected, project_id),
-            (tsdb.models.organization_total_rejected, org_id),
-            (tsdb.models.key_total_rejected, key_id),
-        ])
-
-    tsdb.incr_multi(
-        increment_list,
-        timestamp=timestamp,
-    )
-
-    # Send a snuba metrics payload.
-    if random.random() <= options.get('snuba.track-outcomes-sample-rate'):
-        outcomes_publisher.publish(
-            outcomes['topic'],
-            json.dumps({
-                'timestamp': timestamp,
-                'org_id': org_id,
-                'project_id': project_id,
-                'key_id': key_id,
-                'outcome': outcome,
-                'reason': reason,
-            })
-        )
 
 
 def process_event(event_manager, project, key, remote_addr, helper, attachments):
@@ -265,7 +197,6 @@ def process_event(event_manager, project, key, remote_addr, helper, attachments)
 
     api_logger.debug('New event received (%s)', event_id)
 
-    track_outcome(project.organization_id, project.id, key.id, 'accepted', None)
     event_accepted.send_robust(
         ip=remote_addr,
         data=data,
@@ -434,7 +365,12 @@ class APIView(BaseView):
             if not project:
                 raise APIError('Client must be upgraded for CORS support')
             if not is_valid_origin(origin, project):
-                track_outcome(project.organization_id, project.id, None, 'invalid', 'cors')
+                track_outcome(
+                    project.organization_id,
+                    project.id,
+                    None,
+                    'invalid',
+                    FilterStatKeys.CORS)
                 raise APIForbidden('Invalid origin: %s' % (origin, ))
 
         # XXX: It seems that the OPTIONS call does not always include custom headers
@@ -936,7 +872,12 @@ class SecurityReportView(StoreView):
         origin = instance.get_origin()
         if not is_valid_origin(origin, project):
             if project:
-                track_outcome(project.organization_id, project.id, key.id, 'invalid', 'cors')
+                track_outcome(
+                    project.organization_id,
+                    project.id,
+                    key.id,
+                    'invalid',
+                    FilterStatKeys.CORS)
             raise APIForbidden('Invalid origin')
 
         data = {
