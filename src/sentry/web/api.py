@@ -146,16 +146,17 @@ def track_outcome(org_id, project_id, key_id, outcome, reason=None):
     )
 
     # Send a snuba metrics payload.
-    kafka_outcomes_publisher.publish(
-        kafka_outcomes['topic'],
-        {
-            'org_id': org_id,
-            'project_id': project_id,
-            'key_id': key_id,
-            'outcome': outcome,
-            'reason': reason,
-        }
-    )
+    if random.random() <= options.get('snuba.track-outcomes-sample-rate'):
+        kafka_outcomes_publisher.publish(
+            kafka_outcomes['topic'],
+            {
+                'org_id': org_id,
+                'project_id': project_id,
+                'key_id': key_id,
+                'outcome': outcome,
+                'reason': reason,
+            }
+        )
 
 
 def process_event(event_manager, project, key, remote_addr, helper, attachments):
@@ -915,7 +916,7 @@ class SecurityReportView(StoreView):
             request=request, project=project, auth=auth, helper=helper, key=key, **kwargs
         )
 
-    def post(self, request, project, helper, **kwargs):
+    def post(self, request, project, helper, key, **kwargs):
         json_body = safely_load_json_string(request.body)
         report_type = self.security_report_type(json_body)
         if report_type is None:
@@ -931,7 +932,7 @@ class SecurityReportView(StoreView):
         origin = instance.get_origin()
         if not is_valid_origin(origin, project):
             if project:
-                track_outcome(project.organization_id, project.id, None, 'invalid', 'cors')
+                track_outcome(project.organization_id, project.id, key.id, 'invalid', 'cors')
             raise APIForbidden('Invalid origin')
 
         data = {
@@ -941,7 +942,7 @@ class SecurityReportView(StoreView):
             'environment': request.GET.get('sentry_environment'),
         }
 
-        self.process(request, project=project, helper=helper, data=data, **kwargs)
+        self.process(request, project=project, helper=helper, data=data, key=key, **kwargs)
         return HttpResponse(content_type='application/javascript', status=201)
 
     def security_report_type(self, body):
