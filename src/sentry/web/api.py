@@ -111,6 +111,7 @@ def track_outcome(org_id, project_id, key_id, outcome, reason=None):
     sending a single metric event to Kafka which can be used to reconstruct the
     counters with SnubaTSDB.
     """
+    timestamp = to_datetime(time())
     increment_list = []
     if outcome != 'invalid':
         # This simply preserves old behavior. We never counted invalid events
@@ -142,7 +143,7 @@ def track_outcome(org_id, project_id, key_id, outcome, reason=None):
 
     tsdb.incr_multi(
         increment_list,
-        timestamp=to_datetime(time()),
+        timestamp=timestamp,
     )
 
     # Send a snuba metrics payload.
@@ -150,6 +151,7 @@ def track_outcome(org_id, project_id, key_id, outcome, reason=None):
         outcomes_publisher.publish(
             outcomes['topic'],
             json.dumps({
+                'timestamp': timestamp,
                 'org_id': org_id,
                 'project_id': project_id,
                 'key_id': key_id,
