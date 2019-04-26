@@ -8,7 +8,7 @@ from django.utils import timezone
 from collections import namedtuple, OrderedDict
 
 from sentry.models import Project, Release
-from sentry.grouping.utils import get_grouping_family_for_platform
+from sentry.stacktraces.platform import get_behavior_family_for_platform
 from sentry.utils.in_app import is_known_third_party
 from sentry.utils.cache import cache
 from sentry.utils.hashlib import hash_values
@@ -222,7 +222,7 @@ def _normalize_in_app(stacktrace, platform=None, sdk_info=None):
         if frame.get('in_app') is not None:
             continue
 
-        family = get_grouping_family_for_platform(frame.get('platform') or platform)
+        family = get_behavior_family_for_platform(frame.get('platform') or platform)
         if family == 'native':
             frame_package = frame.get('package')
             frame['in_app'] = bool(frame_package) and \

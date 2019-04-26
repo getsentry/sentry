@@ -3,6 +3,8 @@ from __future__ import absolute_import
 
 import re
 
+from sentry.stacktraces.platform import get_behavior_family_for_platform
+
 
 _windecl_hash = re.compile(r'^@?(.*?)@[0-9]+$')
 _rust_hash = re.compile(r'::h[a-z0-9]{16}$')
@@ -78,7 +80,7 @@ def trim_function_name(function, platform):
     a trimmed version that can be stored in `function_name`.  This is only used
     if the client did not supply a value itself already.
     """
-    if platform not in ('objc', 'cocoa', 'swift', 'native', 'c'):
+    if get_behavior_family_for_platform(platform) != 'native':
         return function
     if function in ('<redacted>', '<unknown>'):
         return function

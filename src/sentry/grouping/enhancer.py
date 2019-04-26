@@ -10,7 +10,7 @@ from itertools import izip
 from parsimonious.grammar import Grammar, NodeVisitor
 from parsimonious.exceptions import ParseError
 
-from sentry.grouping.utils import get_grouping_family_for_platform
+from sentry.stacktraces.platform import get_behavior_family_for_platform
 from sentry.utils.compat import implements_to_string
 from sentry.utils.glob import glob_match
 
@@ -108,7 +108,7 @@ class Match(object):
             flags = self.pattern.split(',')
             if 'all' in flags:
                 return True
-            family = get_grouping_family_for_platform(frame_data.get('platform') or platform)
+            family = get_behavior_family_for_platform(frame_data.get('platform') or platform)
             return family in flags
 
         # all other matches are case sensitive

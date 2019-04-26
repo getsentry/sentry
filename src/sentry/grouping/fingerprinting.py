@@ -6,7 +6,7 @@ import inspect
 from parsimonious.grammar import Grammar, NodeVisitor
 from parsimonious.exceptions import ParseError
 
-from sentry.grouping.utils import get_grouping_family_for_platform
+from sentry.stacktraces.platform import get_behavior_family_for_platform
 from sentry.utils.safe import get_path
 from sentry.utils.glob import glob_match
 
@@ -67,7 +67,7 @@ class EventAccess(object):
             if message:
                 self._messages.append({
                     'message': message,
-                    'family': get_grouping_family_for_platform(self.event.get('platform')),
+                    'family': get_behavior_family_for_platform(self.event.get('platform')),
                 })
         return self._messages
 
@@ -78,7 +78,7 @@ class EventAccess(object):
                 self._exceptions.append({
                     'type': exc.get('type'),
                     'value': exc.get('value'),
-                    'family': get_grouping_family_for_platform(self.event.get('platform')),
+                    'family': get_behavior_family_for_platform(self.event.get('platform')),
                 })
         return self._exceptions
 
@@ -94,7 +94,7 @@ class EventAccess(object):
                     'function': func or '<unknown>',
                     'path': frame.get('abs_path') or frame.get('filename'),
                     'module': frame.get('module'),
-                    'family': get_grouping_family_for_platform(platform),
+                    'family': get_behavior_family_for_platform(platform),
                     'package': frame.get('package'),
                 })
 
