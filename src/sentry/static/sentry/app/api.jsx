@@ -12,7 +12,6 @@ import {openSudo, redirectToProject} from 'app/actionCreators/modal';
 import {uniqueId} from 'app/utils/guid';
 import GroupActions from 'app/actions/groupActions';
 import createRequestError from 'app/utils/requestError/createRequestError';
-import * as tracing from 'app/utils/tracing';
 
 export class Request {
   constructor(xhr) {
@@ -208,8 +207,6 @@ export class Client {
         contentType: 'application/json',
         headers: {
           Accept: 'application/json; charset=utf-8',
-          'X-Transaction-ID': tracing.getTransactionId(),
-          'X-Span-ID': tracing.getSpanId(),
         },
         success: (...args) => {
           const [resp] = args || [];
