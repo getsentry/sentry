@@ -102,13 +102,29 @@ def api(func):
 
 
 def count_stats(org_id, project_id, key_id, outcome, reason=None):
-    # First increment all the legacy TSDB counters.
-    increment_list = [
-        (tsdb.models.project_total_received, project_id),
-        (tsdb.models.organization_total_received, org_id),
-        (tsdb.models.key_total_received, key_id),
-    ]
-    if outcome == 'filtered':
+    """
+    This is a central point to track org/project counters per incoming event.
+    It should be called only once per request, either when we are about to
+    raise some kind of API Error, or when the event is finally accepted.
+
+    This increments all the relevant legacy RedisTSDB counters, as well as
+    sending a single metric event to Kafka which can be used to reconstruct the
+    counters with SnubaTSDB.
+    """
+    increment_list = []
+    if outcome != 'invalid':
+        # This simply preserves old behavior. We never counted invalid events
+        # (too large, duplicate, CORS) toward regular `received` counts.
+        increment_list.extend([
+            (tsdb.models.project_total_received, project_id),
+            (tsdb.models.organization_total_received, org_id),
+            (tsdb.models.key_total_received, key_id),
+        ])
+
+    if outcome == 'invalid':
+        if reason == 'cors':
+            increment_list.append((tsdb.models.project_total_received_cors, project_id))
+    elif outcome == 'filtered':
         increment_list.extend([
             (tsdb.models.project_total_blacklisted, project_id),
             (tsdb.models.organization_total_blacklisted, org_id),
@@ -187,8 +203,6 @@ def process_event(event_manager, project, key, remote_addr, helper, attachments)
         )
         if rate_limit is not None:
             raise APIRateLimited(rate_limit.retry_after)
-    else:
-        count_stats(project.organization_id, project.id, key.id, 'accepted', None)
 
     org_options = OrganizationOption.objects.get_all_values(
         project.organization_id)
@@ -203,6 +217,7 @@ def process_event(event_manager, project, key, remote_addr, helper, attachments)
     cache_key = 'ev:%s:%s' % (project.id, event_id, )
 
     if cache.get(cache_key) is not None:
+        count_stats(project.organization_id, project.id, key.id, 'invalid', 'duplicate')
         raise APIForbidden(
             'An event with the same ID already exists (%s)' % (event_id, ))
 
@@ -245,6 +260,7 @@ def process_event(event_manager, project, key, remote_addr, helper, attachments)
 
     api_logger.debug('New event received (%s)', event_id)
 
+    count_stats(project.organization_id, project.id, key.id, 'accepted', None)
     event_accepted.send_robust(
         ip=remote_addr,
         data=data,
@@ -413,8 +429,7 @@ class APIView(BaseView):
             if not project:
                 raise APIError('Client must be upgraded for CORS support')
             if not is_valid_origin(origin, project):
-                tsdb.incr(tsdb.models.project_total_received_cors,
-                          project.id)
+                count_stats(project.organization_id, project.id, None, 'invalid', 'cors')
                 raise APIForbidden('Invalid origin: %s' % (origin, ))
 
         # XXX: It seems that the OPTIONS call does not always include custom headers
@@ -563,6 +578,7 @@ class StoreView(APIView):
 
         if data_size > 10000000:
             metrics.timing('events.size.rejected', data_size)
+            count_stats(project.organization_id, project.id, key.id, 'invalid', 'too_large')
             raise APIForbidden("Event size exceeded 10MB after normalization.")
 
         metrics.timing(
@@ -915,7 +931,7 @@ class SecurityReportView(StoreView):
         origin = instance.get_origin()
         if not is_valid_origin(origin, project):
             if project:
-                tsdb.incr(tsdb.models.project_total_received_cors, project.id)
+                count_stats(project.organization_id, project.id, None, 'invalid', 'cors')
             raise APIForbidden('Invalid origin')
 
         data = {
