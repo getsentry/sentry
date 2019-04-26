@@ -333,7 +333,7 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
           </CategoryNav>
           <SearchBar>
             <div
-              className="css-otjzwm-SearchBar-inputStyles exv4dm81"
+              className="css-1tdbwvk-SearchBar-inputStyles exv4dm81"
             >
               <InlineSvg
                 src="icon-search"
@@ -1893,7 +1893,7 @@ exports[`CreateProject should fill in platform name if its provided by url 1`] =
           </CategoryNav>
           <SearchBar>
             <div
-              className="css-otjzwm-SearchBar-inputStyles exv4dm81"
+              className="css-1tdbwvk-SearchBar-inputStyles exv4dm81"
             >
               <InlineSvg
                 src="icon-search"
@@ -2859,7 +2859,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
           </CategoryNav>
           <SearchBar>
             <div
-              className="css-otjzwm-SearchBar-inputStyles exv4dm81"
+              className="css-1tdbwvk-SearchBar-inputStyles exv4dm81"
             >
               <InlineSvg
                 src="icon-search"
