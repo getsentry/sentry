@@ -71,6 +71,16 @@ class GroupListTest(APITestCase, SnubaTestCase):
             response = self.get_response()
             assert response.status_code == 200
 
+    def test_boolean_search_feature_flag(self):
+        self.login_as(user=self.user)
+        response = self.get_response(sort_by='date', query='title:hello OR title:goodbye')
+        assert response.status_code == 400
+        assert response.data['detail'] == 'Boolean search operator OR not allowed in this search.'
+
+        response = self.get_response(sort_by='date', query='title:hello AND title:goodbye')
+        assert response.status_code == 400
+        assert response.data['detail'] == 'Boolean search operator AND not allowed in this search.'
+
     def test_invalid_query(self):
         now = timezone.now()
         self.create_group(
