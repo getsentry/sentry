@@ -188,18 +188,20 @@ def process_event(event_manager, project, key, remote_addr, helper, attachments)
     if rate_limit is None or rate_limit.is_limited:
         if rate_limit is None:
             api_logger.debug('Dropped event due to error with rate limiter')
-        track_outcome(project.organization_id, project.id, key.id, 'rate_limited', None)
+
+        reason = rate_limit.reason_code if rate_limit else None
+        track_outcome(project.organization_id, project.id, key.id, 'rate_limited', reason)
         metrics.incr(
             'events.dropped',
             tags={
-                'reason': rate_limit.reason_code if rate_limit else 'unknown',
+                'reason': reason or 'unknown',
             },
             skip_internal=False,
         )
         event_dropped.send_robust(
             ip=remote_addr,
             project=project,
-            reason_code=rate_limit.reason_code if rate_limit else None,
+            reason_code=reason,
             sender=process_event,
         )
         if rate_limit is not None:
