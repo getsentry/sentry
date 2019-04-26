@@ -6,20 +6,23 @@ import Reflux from 'reflux';
 import createReactClass from 'create-react-class';
 import styled from 'react-emotion';
 
+import {openCreateIncidentModal} from 'app/actionCreators/modal';
 import {t, tct, tn} from 'app/locale';
 import ActionLink from 'app/components/actions/actionLink';
-import withApi from 'app/utils/withApi';
 import Checkbox from 'app/components/checkbox';
 import DropdownLink from 'app/components/dropdownLink';
 import ExternalLink from 'app/components/externalLink';
+import Feature from 'app/components/acl/feature';
 import IgnoreActions from 'app/components/actions/ignore';
 import IndicatorStore from 'app/stores/indicatorStore';
+import InlineSvg from 'app/components/inlineSvg';
 import MenuItem from 'app/components/menuItem';
 import ResolveActions from 'app/components/actions/resolve';
 import SelectedGroupStore from 'app/stores/selectedGroupStore';
 import SentryTypes from 'app/sentryTypes';
 import ToolbarHeader from 'app/components/toolbarHeader';
 import Tooltip from 'app/components/tooltip';
+import withApi from 'app/utils/withApi';
 
 const BULK_LIMIT = 1000;
 const BULK_LIMIT_STR = BULK_LIMIT.toLocaleString();
@@ -152,6 +155,7 @@ const StreamActions = createReactClass({
     queryCount: PropTypes.number,
     hasReleases: PropTypes.bool,
     latestRelease: PropTypes.object,
+    organization: SentryTypes.Organization,
   },
 
   mixins: [Reflux.listenTo(SelectedGroupStore, 'onSelectedGroupChange')],
@@ -320,6 +324,7 @@ const StreamActions = createReactClass({
       query,
       realtimeActive,
       statsPeriod,
+      organization,
     } = this.props;
     const issues = this.state.selectedIds;
     const numIssues = issues.size;
@@ -385,6 +390,20 @@ const StreamActions = createReactClass({
                 <i aria-hidden="true" className="icon-star-solid" />
               </ActionLink>
             </div>
+
+            <Feature features={['incidents']}>
+              <div className="btn-group hidden-xs">
+                <ActionLink
+                  className="btn btn-default btn-sm hidden-sm hidden-xs"
+                  title={t('Create new incident')}
+                  disabled={!anySelected}
+                  onAction={() => openCreateIncidentModal({organization})}
+                >
+                  <InlineSvg src="icon-circle-add" />
+                </ActionLink>
+              </div>
+            </Feature>
+
             <div className="btn-group">
               <DropdownLink
                 key="actions"
