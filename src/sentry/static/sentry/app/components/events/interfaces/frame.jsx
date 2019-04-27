@@ -48,7 +48,7 @@ class FunctionName extends React.Component {
     const {frame, ...props} = this.props;
     const func = frame.function;
     const funcName = frame.functionName;
-    const canToggle = func !== funcName;
+    const canToggle = func && funcName && func !== funcName;
 
     if (!canToggle) {
       return <code {...props}>{funcName || func || '<unknown>'}</code>;
