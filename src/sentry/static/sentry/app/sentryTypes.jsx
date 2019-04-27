@@ -395,6 +395,14 @@ export const SavedSearch = PropTypes.shape({
   type: PropTypes.oneOf([SEARCH_TYPES.ISSUE, SEARCH_TYPES.EVENTS]),
 });
 
+export const Incident = PropTypes.shape({
+  id: PropTypes.string.isRequired,
+  name: PropTypes.string.isRequired,
+  status: PropTypes.string.isRequired,
+  query: PropTypes.string,
+  projects: PropTypes.array.isRequired,
+});
+
 export const GlobalSelection = PropTypes.shape({
   projects: PropTypes.arrayOf(PropTypes.number),
   environments: PropTypes.arrayOf(PropTypes.string),
@@ -926,6 +934,7 @@ const SentryTypes = {
   }),
   GlobalSelection,
   Group,
+  Incident,
   Tag,
   Monitor,
   PageLinks,
