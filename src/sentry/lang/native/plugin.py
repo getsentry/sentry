@@ -21,6 +21,8 @@ from sentry.utils import metrics
 from sentry.utils.in_app import is_known_third_party
 from sentry.utils.safe import get_path
 from sentry.stacktraces.processing import StacktraceProcessor
+from sentry.stacktraces.functions import trim_function_name
+from sentry.utils.safe import trim
 from sentry.reprocessing import report_processing_issue
 
 logger = logging.getLogger(__name__)
@@ -380,10 +382,12 @@ class NativeStacktraceProcessor(StacktraceProcessor):
         else:  # processable_frame.cache_value is present
             _ignored, symbolicated_frames = processable_frame.cache_value
 
+        platform = raw_frame.get('platform') or self.data.get('platform')
         new_frames = []
         for sfrm in symbolicated_frames:
             new_frame = dict(raw_frame)
-            new_frame['function'] = sfrm['function']
+            new_frame['function'] = trim(sfrm['function'], 256)
+            new_frame['function_name'] = trim(trim_function_name(sfrm['function'], platform), 256)
             if sfrm.get('symbol'):
                 new_frame['symbol'] = sfrm['symbol']
             if sfrm.get('abs_path'):
