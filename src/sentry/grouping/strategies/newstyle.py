@@ -171,7 +171,7 @@ def get_function_component(function, platform, use_function_name=None,
         if not function_name and function:
             func = trim_function_name(function, platform)
         else:
-            func = function
+            func = function_name
         trim_function_for_native = False
     else:
         func = function
