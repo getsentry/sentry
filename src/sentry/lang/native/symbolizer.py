@@ -111,7 +111,7 @@ class Symbolizer(object):
             'lineno': sym.line,
         }
         symbol = trim(sym.symbol, MAX_SYM)
-        function = trim(sym.function_name, MAX_SYM)
+        function = sym.function_name
 
         frame['function'] = function
         if function != symbol:

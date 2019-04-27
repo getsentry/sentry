@@ -204,6 +204,7 @@ class Frame(Interface):
                 'errors',
                 'filename',
                 'function',
+                'function_name',
                 'image_addr',
                 'in_app',
                 'instruction_addr',

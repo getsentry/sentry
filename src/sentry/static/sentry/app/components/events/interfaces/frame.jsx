@@ -25,6 +25,43 @@ export function trimPackage(pkg) {
   return filename.replace(/\.(dylib|so|a|dll|exe)$/, '');
 }
 
+class FunctionName extends React.Component {
+  static propTypes = {
+    frame: PropTypes.object,
+  };
+
+  constructor(props) {
+    super(props);
+    this.state = {
+      fullFunction: false,
+    };
+  }
+
+  toggle() {
+    this.setState({
+      fullFunction: !this.state.fullFunction,
+    });
+  }
+
+  render() {
+    const {frame, ...props} = this.props;
+    const func = frame.function;
+    const funcName = frame.functionName;
+    const canToggle = func !== funcName;
+
+    if (!canToggle) {
+      return <code {...props}>{funcName || func || '<unknown>'}</code>;
+    }
+
+    const current = this.state.fullFunction ? func : funcName;
+    return (
+      <code {...props}>
+        <a onClick={() => this.toggle()}>{current || '<unknown>'}</a>
+      </code>
+    );
+  }
+}
+
 const Frame = createReactClass({
   displayName: 'Frame',
 
@@ -172,7 +209,7 @@ const Frame = createReactClass({
           />
         );
       }
-      if (defined(data.function)) {
+      if (defined(data.function) || defined(data.functionName)) {
         title.push(
           <span className="in-at" key="in">
             {' '}
@@ -182,12 +219,8 @@ const Frame = createReactClass({
       }
     }
 
-    if (defined(data.function)) {
-      title.push(
-        <code key="function" className="function">
-          {data.function}
-        </code>
-      );
+    if (defined(data.function) || defined(data.functionName)) {
+      title.push(<FunctionName frame={data} key="function" className="function" />);
     }
 
     // we don't want to render out zero line numbers which are used to
@@ -433,7 +466,7 @@ const Frame = createReactClass({
             )}
             <span className="address">{data.instructionAddr}</span>
             <span className="symbol">
-              <code>{data.function || '<unknown>'}</code>{' '}
+              <FunctionName frame={data} />{' '}
               {data.filename && (
                 <span className="filename">
                   {data.filename}
