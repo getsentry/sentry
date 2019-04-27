@@ -84,6 +84,22 @@ from sentry.stacktraces.functions import replace_enclosed_string, split_func_tok
             '@ThreadStartWhatever@16',
             'ThreadStartWhatever',
         ],
+        [
+            '@objc ViewController.causeCrash(Any) -> ()',
+            'ViewController.causeCrash',
+        ],
+        [
+            'ViewController.causeCrash(Any) -> ()',
+            'ViewController.causeCrash',
+        ],
+        [
+            '@objc ViewController.causeCrash(Any, Foo -> Bar) -> SomeObject',
+            'ViewController.causeCrash',
+        ],
+        [
+            'ViewController.causeCrash(Any) -> SomeObject',
+            'ViewController.causeCrash',
+        ],
     ]
 )
 def test_trim_function_name(input, output):

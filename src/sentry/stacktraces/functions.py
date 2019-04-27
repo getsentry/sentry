@@ -105,7 +105,8 @@ def trim_function_name(function, platform):
     function = function \
         .replace('operator<<', u'operator⟨⟨') \
         .replace('operator<', u'operator⟨') \
-        .replace('operator()', u'operator◯')
+        .replace('operator()', u'operator◯')\
+        .replace(' -> ', u' ⟿ ')
 
     # Remove the arguments if there is one.
     def process_args(value, start):
@@ -124,10 +125,27 @@ def trim_function_name(function, platform):
         return '<T>'
     function = replace_enclosed_string(function, '<', '>', process_generics)
 
-    # The last token is the function name.
     tokens = split_func_tokens(function)
-    if tokens:
-        function = tokens[-1].replace(u'⟨', '<').replace(u'◯', '()')
+
+    # find the token which is the function name.  Since we chopped of C++
+    # trailers there are only two cases we care about: the token left to
+    # the -> return marker which is for instance used in Swift and if that
+    # is not found, the last token in the last.
+    #
+    # ["unsigned", "int", "whatever"] -> whatever
+    # ["@objc", "whatever", "->", "int"] -> whatever
+    try:
+        func_token = tokens[tokens.index(u'⟿') - 1]
+    except ValueError:
+        if tokens:
+            func_token = tokens[-1]
+        else:
+            func_token = None
+
+    if func_token:
+        function = func_token.replace(u'⟨', '<') \
+            .replace(u'◯', '()') \
+            .replace(u' ⟿ ', ' -> ')
 
     # This really should never happen
     else:
