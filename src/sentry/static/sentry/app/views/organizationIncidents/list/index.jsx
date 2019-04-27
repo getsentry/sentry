@@ -1,18 +1,18 @@
 import React from 'react';
 import {withRouter} from 'react-router';
+import DocumentTitle from 'react-document-title';
 
 import {t} from 'app/locale';
-import AsyncView from 'app/views/asyncView';
+import AsyncComponent from 'app/components/asyncComponent';
 import {Panel, PanelBody, PanelItem} from 'app/components/panels';
 import Link from 'app/components/links/link';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
 import Pagination from 'app/components/pagination';
+import {PageContent, PageHeader} from 'app/styles/organization';
+import PageHeading from 'app/components/pageHeading';
+import BetaTag from 'app/components/betaTag';
 
-class OrganizationIncidents extends AsyncView {
-  getTitle() {
-    return `Incidents - ${this.props.params.orgId}`;
-  }
-
+class OrganizationIncidentsBody extends AsyncComponent {
   getEndpoints() {
     const {params, location} = this.props;
     return [
@@ -59,6 +59,23 @@ class OrganizationIncidents extends AsyncView {
         </Panel>
         <Pagination pageLinks={incidentListPageLinks} />
       </React.Fragment>
+    );
+  }
+}
+
+class OrganizationIncidents extends React.Component {
+  render() {
+    return (
+      <DocumentTitle title={`Incidents - ${this.props.params.orgId} - Sentry`}>
+        <PageContent>
+          <PageHeader>
+            <PageHeading withMargins>
+              {t('Incidents')} <BetaTag />
+            </PageHeading>
+          </PageHeader>
+          <OrganizationIncidentsBody {...this.props} />
+        </PageContent>
+      </DocumentTitle>
     );
   }
 }

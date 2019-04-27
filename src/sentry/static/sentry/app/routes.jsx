@@ -916,6 +916,14 @@ function routes() {
               }
               component={errorHandler(LazyLoad)}
             />
+
+            <Route
+              path=":incidentId/"
+              componentPromise={() =>
+                import(/* webpackChunkName: "OrganizationIncidentDetails" */ './views/organizationIncidents/detail')
+              }
+              component={errorHandler(LazyLoad)}
+            />
           </Route>
 
           <Route

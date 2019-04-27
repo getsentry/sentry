@@ -39,6 +39,6 @@ describe('OrganizationIncidentsList', function() {
     });
     const wrapper = mount(<OrganizationIncidentsList />, routerContext);
     expect(wrapper.find('PanelItem')).toHaveLength(0);
-    expect(wrapper.text()).toBe("You don't have any incidents yet!");
+    expect(wrapper.text()).toContain("You don't have any incidents yet!");
   });
 });
