@@ -1430,6 +1430,10 @@ div.traceback > ul {
 
           a {
             color: inherit;
+
+            &:hover {
+              text-decoration: underline;
+            }
           }
         }
 
@@ -1440,6 +1444,7 @@ div.traceback > ul {
 
         span.filename {
           color: @purple;
+          margin-right: 3px;
 
           &:before {
             content: '(';
