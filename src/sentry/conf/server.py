@@ -1580,6 +1580,7 @@ KAFKA_PREPROCESS = 'events-preprocess'
 KAFKA_PROCESS = 'events-process'
 KAFKA_SAVE = 'events-save'
 KAFKA_EVENTS = 'events'
+KAFKA_OUTCOMES = 'outcomes'
 
 KAFKA_TOPICS = {
     KAFKA_PREPROCESS: {
