@@ -2288,9 +2288,9 @@ asynckit@^0.4.0:
   integrity sha1-x57Zf380y48robyXkLzDZkdLS3k=
 
 atob@^2.0.0:
-  version "2.0.3"
-  resolved "https://registry.yarnpkg.com/atob/-/atob-2.0.3.tgz#19c7a760473774468f20b2d2d03372ad7d4cbf5d"
-  integrity sha1-GcenYEc3dEaPILLS0DNyrX1Mv10=
+  version "2.1.2"
+  resolved "https://registry.yarnpkg.com/atob/-/atob-2.1.2.tgz#6d9517eb9e030d2436666651e86bd9f6f13533c9"
+  integrity sha512-Wm6ukoaOGJi/73p/cl2GvLjTI5JM1k/O14isD73YML8StrH/7/lRFgmg8nICZgD3bZZvjwCGxtMOD3wWNAu8cg==
 
 autoprefixer@^8.0.0:
   version "8.3.0"
@@ -2980,10 +2980,10 @@ boolbase@^1.0.0, boolbase@~1.0.0:
   resolved "https://registry.yarnpkg.com/boolbase/-/boolbase-1.0.0.tgz#68dff5fbe60c51eb37725ea9e3ed310dcc1e776e"
   integrity sha1-aN/1++YMUes3cl6p4+0xDcwed24=
 
-bootstrap@3.4.0:
-  version "3.4.0"
-  resolved "https://registry.yarnpkg.com/bootstrap/-/bootstrap-3.4.0.tgz#f8d77540dd3062283d2ae7687e21c1e691961640"
-  integrity sha512-F1yTDO9OHKH0xjl03DsOe8Nu1OWBIeAugGMhy3UTIYDdbbIPesQIhCEbj+HEr6wqlwweGAlP8F3OBC6kEuhFuw==
+bootstrap@3.4.1:
+  version "3.4.1"
+  resolved "https://registry.yarnpkg.com/bootstrap/-/bootstrap-3.4.1.tgz#c3a347d419e289ad11f4033e3c4132b87c081d72"
+  integrity sha512-yN5oZVmRCwe5aKwzRj6736nSmKDX7pLYwsXiCj/EYmo16hODaBiT4En5btW/jhBF/seV+XMx3aYwukYC3A49DA==
 
 boxen@^2.0.0:
   version "2.1.0"
@@ -3015,24 +3015,7 @@ braces@^1.8.2:
     preserve "^0.2.0"
     repeat-element "^1.1.2"
 
-braces@^2.2.2:
-  version "2.3.0"
-  resolved "https://registry.yarnpkg.com/braces/-/braces-2.3.0.tgz#a46941cb5fb492156b3d6a656e06c35364e3e66e"
-  integrity sha512-P4O8UQRdGiMLWSizsApmXVQDBS6KCt7dSexgLKBmH5Hr1CZq7vsnscFh8oR1sP1ab1Zj0uCHCEzZeV6SfUf3rA==
-  dependencies:
-    arr-flatten "^1.1.0"
-    array-unique "^0.3.2"
-    define-property "^1.0.0"
-    extend-shallow "^2.0.1"
-    fill-range "^4.0.0"
-    isobject "^3.0.1"
-    repeat-element "^1.1.2"
-    snapdragon "^0.8.1"
-    snapdragon-node "^2.0.1"
-    split-string "^3.0.2"
-    to-regex "^3.0.1"
-
-braces@^2.3.0, braces@^2.3.1:
+braces@^2.2.2, braces@^2.3.0, braces@^2.3.1:
   version "2.3.2"
   resolved "https://registry.yarnpkg.com/braces/-/braces-2.3.2.tgz#5979fd3f14cd531565e5fa2df1abfff1dfaee729"
   integrity sha512-aNdbnj9P8PjdXU4ybaWLK2IF3jc/EoDYbC7AazW6to3TRsfXxscC9UXOB5iDiEQrkyIbWp2SLQda4+QAa7nc3w==
@@ -6078,12 +6061,13 @@ getpass@^0.1.1:
   dependencies:
     assert-plus "^1.0.0"
 
-gettext-parser@1.1.1:
-  version "1.1.1"
-  resolved "https://registry.yarnpkg.com/gettext-parser/-/gettext-parser-1.1.1.tgz#84047024e0955480b256df97606d95ca42d2fdf7"
-  integrity sha1-hARwJOCVVICyVt+XYG2VykLS/fc=
+gettext-parser@1.3.1:
+  version "1.3.1"
+  resolved "https://registry.yarnpkg.com/gettext-parser/-/gettext-parser-1.3.1.tgz#74b7a99e4b5fa8daab11fa515e8a582480448a12"
+  integrity sha512-W4t55eB/c7WrH0gbCHFiHuaEnJ1WiPJVnbFFiNEoh2QkOmuSLxs0PmJDGAmCQuTJCU740Fmb6D+2D/2xECWZGQ==
   dependencies:
-    encoding "^0.1.11"
+    encoding "^0.1.12"
+    safe-buffer "^5.1.1"
 
 gettext-parser@^1.1.2:
   version "1.3.0"
@@ -8409,10 +8393,10 @@ markdown-table@^1.1.0:
   resolved "https://registry.yarnpkg.com/markdown-table/-/markdown-table-1.1.2.tgz#c78db948fa879903a41bce522e3b96f801c63786"
   integrity sha512-NcWuJFHDA8V3wkDgR/j4+gZx+YQwstPgfQDV8ndUeWWzta3dnDTBxpVzqS9lkmJAuV5YX35lmyojl6HO5JXAgw==
 
-marked@0.3.17:
-  version "0.3.17"
-  resolved "https://registry.yarnpkg.com/marked/-/marked-0.3.17.tgz#607f06668b3c6b1246b28f13da76116ac1aa2d2b"
-  integrity sha512-+AKbNsjZl6jFfLPwHhWmGTqE009wTKn3RTmn9K8oUKHrX/abPJjtcRtXpYB/FFrwPJRUA86LX/de3T0knkPCmQ==
+marked@0.6.2:
+  version "0.6.2"
+  resolved "https://registry.yarnpkg.com/marked/-/marked-0.6.2.tgz#c574be8b545a8b48641456ca1dbe0e37b6dccc1a"
+  integrity sha512-LqxwVH3P/rqKX4EKGz7+c2G9r98WeM/SW34ybhgNGhUQNKtf1GmmSkJ6cDGJ/t6tiyae49qRkpyTw2B9HOrgUA==
 
 marked@^0.3.12:
   version "0.3.19"
@@ -8514,13 +8498,6 @@ merge-descriptors@1.0.1:
   version "1.0.1"
   resolved "https://registry.yarnpkg.com/merge-descriptors/-/merge-descriptors-1.0.1.tgz#b00aaa556dd8b44568150ec9d1b953f3f90cbb61"
   integrity sha1-sAqqVW3YtEVoFQ7J0blT8/kMu2E=
-
-merge-options@0.0.64:
-  version "0.0.64"
-  resolved "https://registry.yarnpkg.com/merge-options/-/merge-options-0.0.64.tgz#cbe04f594a6985eaf27f7f8f0b2a3acf6f9d562d"
-  integrity sha1-y+BPWUppheryf3+PCyo6z2+dVi0=
-  dependencies:
-    is-plain-obj "^1.1.0"
 
 merge-options@1.0.1:
   version "1.0.1"
@@ -8774,9 +8751,9 @@ mitt@1.1.2:
   integrity sha1-OA5hSA1qYVtmDwertg1R4KTkvtY=
 
 mixin-deep@^1.2.0:
-  version "1.3.0"
-  resolved "https://registry.yarnpkg.com/mixin-deep/-/mixin-deep-1.3.0.tgz#47a8732ba97799457c8c1eca28f95132d7e8150a"
-  integrity sha512-dgaCvoh6i1nosAUBKb0l0pfJ78K8+S9fluyIR2YvAeUD/QuMahnFnF3xYty5eYXMjhGSsB0DsW6A0uAZyetoAg==
+  version "1.3.1"
+  resolved "https://registry.yarnpkg.com/mixin-deep/-/mixin-deep-1.3.1.tgz#a49e7268dce1a0d9698e45326c5626df3543d0fe"
+  integrity sha512-8ZItLHeEgaqEvd5lYBXfm4EZSFCX29Jb9K+lAHhDKzReKBQKj3R+7NOF6tjqYi9t4oI8VUfaWITJQm86wnXGNQ==
   dependencies:
     for-in "^1.0.2"
     is-extendable "^1.0.1"
@@ -10346,16 +10323,6 @@ posthtml-render@^1.0.5, posthtml-render@^1.0.6:
   version "1.0.6"
   resolved "https://registry.yarnpkg.com/posthtml-render/-/posthtml-render-1.0.6.tgz#1b88b8e7860a8ebdfe2f2a1310a4642a55cf5bda"
   integrity sha1-G4i454YKjr3+LyoTEKRkKlXPW9o=
-
-posthtml-svg-mode@^1.0:
-  version "1.0.2"
-  resolved "https://registry.yarnpkg.com/posthtml-svg-mode/-/posthtml-svg-mode-1.0.2.tgz#133efbf543e1bab8c0408f6ac0eac987772820b8"
-  integrity sha512-yH4w0CULTg6v3YW5hVUY2z14R+11XWvtxMRqk30FDgxg0JWv+BhS9FLtKNIu858/1mrO1NcIC4heb6IezLAfHw==
-  dependencies:
-    merge-options "0.0.64"
-    posthtml "^0.9.2"
-    posthtml-parser "^0.2.1"
-    posthtml-render "^1.0.6"
 
 posthtml-svg-mode@^1.0.3:
   version "1.0.3"
@@ -12819,37 +12786,18 @@ supports-color@^6.0.0, supports-color@^6.1.0:
     has-flag "^3.0.0"
 
 svg-baker-runtime@^1.3.3:
-  version "1.3.3"
-  resolved "https://registry.yarnpkg.com/svg-baker-runtime/-/svg-baker-runtime-1.3.3.tgz#077c21baceb45424928883b3343d298b19edd8ef"
-  integrity sha512-yDnHhVM+nGxLu+Oj/zG07yUPXmJ7XLmekU2XQqL0jaLUazLjxj61uO8IMyww2roUjdMQo4x+J+KIlAp37qIbZQ==
+  version "1.4.2"
+  resolved "https://registry.yarnpkg.com/svg-baker-runtime/-/svg-baker-runtime-1.4.2.tgz#e7535cb365185f47e94728f9e49a46302c885516"
+  integrity sha512-0KyliC5ZDJ4oe+Nfsnthnl6yUafY4SxvA0kWgQuJf6MLH65wLsDbhPDtiPFg5lu+KwG1hUam6O8f1ZsqiX14vQ==
   dependencies:
     deepmerge "1.3.2"
     mitt "1.1.2"
-    svg-baker "^1.2.0"
+    svg-baker "^1.4.1"
 
-svg-baker@^1.2.0:
-  version "1.2.16"
-  resolved "https://registry.yarnpkg.com/svg-baker/-/svg-baker-1.2.16.tgz#675853ac37da6bf02bee4a643ec1c444489b5e36"
-  integrity sha512-L8ftwzm9ig4TjWrzp1/fZ9j8qo6oDD+COUHmNhhhvb5/FjIT+X0f+1Id9BsQ7eCAmRimFWI72Nzk5etnuLc5hg==
-  dependencies:
-    bluebird "^3.5.0"
-    clone "^2.1.1"
-    he "^1.1.1"
-    image-size "^0.5.1"
-    loader-utils "^1.1.0"
-    merge-options "0.0.64"
-    micromatch "3.1.0"
-    postcss "^5.2.17"
-    postcss-prefix-selector "^1.6.0"
-    posthtml-rename-id "^1.0"
-    posthtml-svg-mode "^1.0"
-    query-string "^4.3.2"
-    traverse "^0.6.6"
-
-svg-baker@^1.2.17:
-  version "1.4.0"
-  resolved "https://registry.yarnpkg.com/svg-baker/-/svg-baker-1.4.0.tgz#ace03ca59aa4fd00aa0ee8b4749de2906fcf7d87"
-  integrity sha512-VDI530erEOb1E8kbl2fMOCWBMnk9kz7RyjE0JtcvcAyhofSyqd0Oj7mL9MGvECexyZJn+rX6Isk6Hk21ApRcJg==
+svg-baker@^1.2.17, svg-baker@^1.4.1:
+  version "1.4.1"
+  resolved "https://registry.yarnpkg.com/svg-baker/-/svg-baker-1.4.1.tgz#6071edef6e99b12af87e655024c154d066e1ad2f"
+  integrity sha512-Y14nrVtN8IMYZ5K8yNlepdGwfAi0GClqaoSMTtYsQxFfaobtyDTM816lTWMA5tbbXDbih1frv7AGil54dtX6YA==
   dependencies:
     bluebird "^3.5.0"
     clone "^2.1.1"
