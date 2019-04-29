@@ -348,7 +348,7 @@ def track_outcome(org_id, project_id, key_id, outcome, reason=None, timestamp=No
     sending a single metric event to Kafka which can be used to reconstruct the
     counters with SnubaTSDB.
     """
-    timestamp = timestamp or to_datetime(time())
+    timestamp = timestamp or to_datetime(time.time())
     increment_list = []
     if outcome != 'invalid':
         # This simply preserves old behavior. We never counted invalid events
