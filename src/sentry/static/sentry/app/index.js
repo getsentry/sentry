@@ -194,7 +194,7 @@ const globals = {
     InviteMember: require('app/views/settings/organizationMembers/inviteMember').default,
     LoadingError: require('app/components/loadingError').default,
     LoadingIndicator: require('app/components/loadingIndicator').default,
-    ListLink: require('app/components/listLink').default,
+    ListLink: require('app/components/links/listLink').default,
     MenuItem: require('app/components/menuItem').default,
     NarrowLayout: require('app/components/narrowLayout').default,
     NavTabs: require('app/components/navTabs').default,
@@ -244,7 +244,9 @@ const globals = {
       withApi: require('app/utils/withApi').default,
       getDisplayName: require('app/utils/getDisplayName').default,
     },
-    passwordStrength: {load: loadPasswordStrength},
+    passwordStrength: {
+      load: loadPasswordStrength,
+    },
   },
 };
 

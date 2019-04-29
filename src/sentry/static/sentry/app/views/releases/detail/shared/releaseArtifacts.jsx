@@ -9,7 +9,7 @@ import {t} from 'app/locale';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
 import FileSize from 'app/components/fileSize';
 import IndicatorStore from 'app/stores/indicatorStore';
-import LinkWithConfirmation from 'app/components/linkWithConfirmation';
+import LinkWithConfirmation from 'app/components/links/linkWithConfirmation';
 import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import Pagination from 'app/components/pagination';

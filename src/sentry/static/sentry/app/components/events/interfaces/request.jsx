@@ -6,7 +6,7 @@ import RichHttpContent from 'app/components/events/interfaces/richHttpContent';
 import {getFullUrl, getCurlCommand} from 'app/components/events/interfaces/utils';
 import {isUrl} from 'app/utils';
 import {t} from 'app/locale';
-import ExternalLink from 'app/components/externalLink';
+import ExternalLink from 'app/components/links/externalLink';
 
 import Truncate from 'app/components/truncate';
 

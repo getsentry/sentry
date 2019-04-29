@@ -10,7 +10,7 @@ import {t} from 'app/locale';
 import Button from 'app/components/button';
 import CircleIndicator from 'app/components/circleIndicator';
 import InstalledIntegration from 'app/views/organizationIntegrations/installedIntegration';
-import Link from 'app/components/link';
+import Link from 'app/components/links/link';
 import PluginIcon from 'app/plugins/components/pluginIcon';
 import SentryTypes from 'app/sentryTypes';
 import space from 'app/styles/space';
