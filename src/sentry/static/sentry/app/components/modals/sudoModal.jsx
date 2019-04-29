@@ -11,7 +11,7 @@ import ConfigStore from 'app/stores/configStore';
 import Form from 'app/views/settings/components/forms/form';
 import InputField from 'app/views/settings/components/forms/inputField';
 import TextBlock from 'app/views/settings/components/text/textBlock';
-import U2fContainer from 'app/components/u2fContainer';
+import U2fContainer from 'app/components/u2f/u2fContainer';
 import space from 'app/styles/space';
 
 class SudoModal extends React.Component {

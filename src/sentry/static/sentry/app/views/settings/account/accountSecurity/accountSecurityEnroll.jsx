@@ -23,7 +23,7 @@ import Qrcode from 'app/components/qrcode';
 import RemoveConfirm from 'app/views/settings/account/accountSecurity/components/removeConfirm';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import TextBlock from 'app/views/settings/components/text/textBlock';
-import U2fsign from 'app/components/u2fsign';
+import U2fsign from 'app/components/u2f/u2fsign';
 
 const ENDPOINT = '/users/me/authenticators/';
 const PENDING_INVITE = 'pending-invite';
