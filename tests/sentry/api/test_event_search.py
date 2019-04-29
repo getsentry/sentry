@@ -103,7 +103,7 @@ class ParseSearchQueryTest(TestCase):
             SearchFilter(
                 key=SearchKey(name='message'),
                 operator='=',
-                value=SearchValue(raw_value='hello there'),
+                value=SearchValue(raw_value='hello   there'),
             ),
         ]
 
