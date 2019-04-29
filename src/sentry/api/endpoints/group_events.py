@@ -180,7 +180,9 @@ class GroupEventsEndpoint(GroupEndpoint, EnvironmentMixin):
                 'organizations:boolean-search',
                 group.project.organization,
                 actor=request.user)
-            if BOOLEAN_OPERATORS in raw_query and not has_boolean_operators:
+
+            query_has_boolean_ops = [True for op in BOOLEAN_OPERATORS if op in raw_query]
+            if query_has_boolean_ops and not has_boolean_operators:
                 raise GroupEventsError(
                     'Boolean search operator OR and AND not allowed in this search.')
 

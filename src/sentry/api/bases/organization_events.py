@@ -12,10 +12,12 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
         query = request.GET.get('query')
 
         # TODO(lb): remove once boolean search is fully functional
-        if BOOLEAN_OPERATORS in query and not features.has(
-                'organizations:boolean-search', organization, actor=request.user):
-            raise OrganizationEventsError(
-                'Boolean search operator OR and AND not allowed in this search.')
+        if query:
+            query_has_boolean_ops = [True for op in BOOLEAN_OPERATORS if op in query]
+            if query_has_boolean_ops and not features.has(
+                    'organizations:boolean-search', organization, actor=request.user):
+                raise OrganizationEventsError(
+                    'Boolean search operator OR and AND not allowed in this search.')
 
         try:
             return get_snuba_query_args(query=query, params=params)
