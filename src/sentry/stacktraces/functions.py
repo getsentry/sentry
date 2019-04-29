@@ -88,7 +88,7 @@ def trim_function_name(function, platform):
     original_function = function
     function = function.strip()
 
-    # Ensure we don't operated on objc functions
+    # Ensure we don't operate on objc functions
     if function.startswith(('[', '+[', '-[')):
         return function
 
