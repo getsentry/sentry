@@ -379,10 +379,9 @@ def track_outcome(org_id, project_id, key_id, outcome, reason=None, timestamp=No
     if reason in FILTER_STAT_KEYS_TO_VALUES:
         increment_list.append((FILTER_STAT_KEYS_TO_VALUES[reason], project_id))
 
-    tsdb.incr_multi(
-        [(model, key) for model, key in increment_list if key is not None],
-        timestamp=timestamp,
-    )
+    increment_list = [(model, key) for model, key in increment_list if key is not None]
+    if increment_list:
+        tsdb.incr_multi(increment_list, timestamp=timestamp)
 
     # Send a snuba metrics payload.
     if random.random() <= options.get('snuba.track-outcomes-sample-rate'):
