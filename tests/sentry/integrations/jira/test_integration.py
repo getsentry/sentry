@@ -58,6 +58,21 @@ SAMPLE_CREATE_META_RESPONSE = """
               },
               "name": "Labels",
               "key": "labels"
+            },
+            "customfield_10200": {
+              "operations": ["set"],
+              "required": false,
+              "schema": {
+                "type": "option",
+                "custom": "com.codebarrel.jira.iconselectlist:icon-select-cf",
+                "customId": 10200
+              },
+              "name": "Mood",
+              "hasDefaultValue": false,
+              "allowedValues": [
+                {"id": 10100, "label": "sad"},
+                {"id": 10101, "label": "happy"}
+              ]
             }
           }
         }
@@ -66,6 +81,7 @@ SAMPLE_CREATE_META_RESPONSE = """
   ]
 }
 """
+
 
 SAMPLE_PROJECT_LIST_RESPONSE = """
 [
@@ -453,6 +469,13 @@ class JiraIntegrationTest(APITestCase):
                 'name': 'labels',
                 'label': 'Labels',
                 'default': '',
+            }, {
+                'required': False,
+                'type': 'select',
+                'name': 'customfield_10200',
+                'label': 'Mood',
+                'default': '',
+                'choices': [('sad', 'sad'), ('happy', 'happy')],
             }]
 
     def test_get_create_issue_config_with_default_and_param(self):
@@ -588,7 +611,7 @@ class JiraIntegrationTest(APITestCase):
             }
 
     @responses.activate
-    def test_create_issue_labels(self):
+    def test_create_issue_labels_and_option(self):
         org = self.organization
         self.login_as(self.user)
 
@@ -612,6 +635,7 @@ class JiraIntegrationTest(APITestCase):
         def responder(request):
             body = json.loads(request.body)
             assert body['fields']['labels'] == ['fuzzy', 'bunnies']
+            assert body['fields']['customfield_10200'] == {'value': 'sad'}
             return (200, {'content-type': 'application/json'}, '{"key":"APP-123"}')
 
         responses.add_callback(
@@ -626,6 +650,7 @@ class JiraIntegrationTest(APITestCase):
             'description': 'example bug report',
             'issuetype': '1',
             'project': '10000',
+            'customfield_10200': 'sad',
             'labels': 'fuzzy , ,  bunnies'
         })
         assert result['key'] == 'APP-123'

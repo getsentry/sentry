@@ -310,8 +310,24 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
         except ApiError as e:
             self.raise_error(e)
 
-    def make_choices(self, x):
-        return [(y['id'], y['name'] if 'name' in y else y['value']) for y in x] if x else []
+    def make_choices(self, values):
+        if not values:
+            return []
+        results = []
+        for item in values:
+            key = item.get('id', None)
+            if 'name' in item:
+                value = item['name']
+            elif 'value' in item:
+                value = item['value']
+            elif 'label' in item:
+                # Label based options are appear to prefer the value on submit.
+                key = item['label']
+                value = item['label']
+            else:
+                continue
+            results.append((key, value))
+        return results
 
     def error_message_from_json(self, data):
         message = ''
@@ -371,6 +387,14 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
             fkwargs.update(
                 {
                     'multiple': True,
+                    'choices': self.make_choices(field_meta.get('allowedValues')),
+                    'default': ''
+                }
+            )
+        elif schema['type'] == 'option' and len(field_meta.get('allowedValues', [])):
+            fieldtype = 'select'
+            fkwargs.update(
+                {
                     'choices': self.make_choices(field_meta.get('allowedValues')),
                     'default': ''
                 }
@@ -585,10 +609,14 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
                     elif schema.get('custom') == JIRA_CUSTOM_FIELD_TYPES.get('multiuserpicker'):
                         # custom multi-picker
                         v = [{'name': v}]
-                    elif schema['type'] == 'array' and schema.get('items') != 'string':
-                        v = [{'id': vx} for vx in v]
+                    elif schema['type'] == 'array' and schema.get('items') == 'option':
+                        v = [{'value': vx} for vx in v]
                     elif schema['type'] == 'array' and schema.get('items') == 'string':
                         v = [v]
+                    elif schema['type'] == 'array' and schema.get('items') != 'string':
+                        v = [{'id': vx} for vx in v]
+                    elif schema['type'] == 'option':
+                        v = {'value': v}
                     elif schema.get('custom') == JIRA_CUSTOM_FIELD_TYPES.get('textarea'):
                         v = v
                     elif (schema['type'] == 'number' or
