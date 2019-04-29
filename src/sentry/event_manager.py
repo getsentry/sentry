@@ -330,11 +330,7 @@ def _decode_event(data, content_encoding):
 
 
 outcomes = settings.KAFKA_TOPICS[settings.KAFKA_OUTCOMES]
-outcomes_publisher = QueuedPublisherService(
-    KafkaPublisher(
-        settings.KAFKA_CLUSTERS[outcomes['cluster']]
-    )
-)
+outcomes_publisher = None
 
 
 def track_outcome(org_id, project_id, key_id, outcome, reason=None, timestamp=None):
@@ -348,6 +344,14 @@ def track_outcome(org_id, project_id, key_id, outcome, reason=None, timestamp=No
     sending a single metric event to Kafka which can be used to reconstruct the
     counters with SnubaTSDB.
     """
+    global outcomes_publisher
+    if outcomes_publisher is None:
+        outcomes_publisher = QueuedPublisherService(
+            KafkaPublisher(
+                settings.KAFKA_CLUSTERS[outcomes['cluster']]
+            )
+        )
+
     timestamp = timestamp or to_datetime(time.time())
     increment_list = []
     if outcome != 'invalid':
