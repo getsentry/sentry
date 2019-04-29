@@ -1,23 +1,24 @@
+import {MentionsInput, Mention} from 'react-mentions';
 import PropTypes from 'prop-types';
 import React from 'react';
+import _ from 'lodash';
 import createReactClass from 'create-react-class';
 import marked from 'marked';
-import classNames from 'classnames';
+import styled, {css} from 'react-emotion';
 
-import {MentionsInput, Mention} from 'react-mentions';
-import _ from 'lodash';
-
-import withApi from 'app/utils/withApi';
-import OrganizationState from 'app/mixins/organizationState';
-
-import GroupStore from 'app/stores/groupStore';
-import ProjectsStore from 'app/stores/projectsStore';
-import IndicatorStore from 'app/stores/indicatorStore';
 import {logException} from 'app/utils/logging';
-import localStorage from 'app/utils/localStorage';
-import NavTabs from 'app/components/navTabs';
 import {t} from 'app/locale';
+import Button from 'app/components/button';
+import GroupStore from 'app/stores/groupStore';
+import IndicatorStore from 'app/stores/indicatorStore';
+import NavTabs from 'app/components/navTabs';
+import OrganizationState from 'app/mixins/organizationState';
+import ProjectsStore from 'app/stores/projectsStore';
+import localStorage from 'app/utils/localStorage';
 import mentionsStyle from 'app/../styles/mentions-styles';
+import space from 'app/styles/space';
+import textStyles from 'app/styles/text';
+import withApi from 'app/utils/withApi';
 
 const localStorageKey = 'noteinput:latest';
 
@@ -317,31 +318,29 @@ const NoteInput = createReactClass({
           : (errorJSON.detail && errorJSON.detail.message) ||
             t('Unable to post comment'))) ||
       null;
+
     return (
-      <form
-        noValidate
-        className={classNames('activity-field', {
-          error,
-          loading,
-        })}
-        onSubmit={this.onSubmit}
-      >
-        <div className="activity-notes">
-          <NavTabs>
-            <li className={!preview ? 'active' : ''}>
-              <a onClick={this.toggleEdit}>{updating ? t('Edit') : t('Write')}</a>
-            </li>
-            <li className={preview ? 'active' : ''}>
-              <a onClick={this.togglePreview}>{t('Preview')}</a>
-            </li>
-            <li className="markdown">
-              <span className="icon-markdown" />
-              <span className="supported">{t('Markdown supported')}</span>
-            </li>
-          </NavTabs>
+      <NoteInputForm noValidate error={error} onSubmit={this.onSubmit}>
+        <NoteInputNavTabs>
+          <NoteInputNavTab className={!preview ? 'active' : ''}>
+            <NoteInputNavTabLink onClick={this.toggleEdit}>
+              {updating ? t('Edit') : t('Write')}
+            </NoteInputNavTabLink>
+          </NoteInputNavTab>
+          <NoteInputNavTab className={preview ? 'active' : ''}>
+            <NoteInputNavTabLink onClick={this.togglePreview}>
+              {t('Preview')}
+            </NoteInputNavTabLink>
+          </NoteInputNavTab>
+          <MarkdownTab>
+            <MarkdownIcon className="icon-markdown" />
+            <MarkdownSupported>{t('Markdown supported')}</MarkdownSupported>
+          </MarkdownTab>
+        </NoteInputNavTabs>
+
+        <NoteInputBody>
           {preview ? (
-            <div
-              className="note-preview"
+            <NotePreview
               dangerouslySetInnerHTML={{__html: marked(this.cleanMarkdown(value))}}
             />
           ) : (
@@ -375,19 +374,22 @@ const NoteInput = createReactClass({
               />
             </MentionsInput>
           )}
-          <div className="activity-actions">
-            {errorMessage && <small className="error">{errorMessage}</small>}
-            <button className="btn btn-default" type="submit" disabled={loading}>
-              {btnText}
-            </button>
+        </NoteInputBody>
+
+        <Footer>
+          <div>{errorMessage && <ErrorMessage>{errorMessage}</ErrorMessage>}</div>
+          <div>
             {updating && (
-              <button className="btn btn-danger" onClick={this.onCancel}>
+              <FooterButton priority="danger" type="button" onClick={this.onCancel}>
                 {t('Cancel')}
-              </button>
+              </FooterButton>
             )}
+            <FooterButton error={errorMessage} type="submit" disabled={loading}>
+              {btnText}
+            </FooterButton>
           </div>
-        </div>
-      </form>
+        </Footer>
+      </NoteInputForm>
     );
   },
 });
@@ -395,3 +397,143 @@ const NoteInput = createReactClass({
 export {NoteInput};
 
 export default withApi(NoteInput);
+
+const notePreviewCss = css`
+  display: block;
+  width: 100%;
+  min-height: 140px;
+  max-height: 1000px;
+  max-width: 100%;
+  margin: 0;
+  border: 0;
+  padding: 15px 20px 0;
+  overflow: auto;
+`;
+
+const getNoteInputErrorStyles = p => {
+  if (!p.error) {
+    return '';
+  }
+
+  return `
+  color: ${p.theme.error};
+  margin: -1px;
+  border: 1px solid ${p.theme.error};
+  border-radius: 3px;
+
+    &:before {
+      display: block;
+      content: '';
+      width: 0;
+      height: 0;
+      border-top: 7px solid transparent;
+      border-bottom: 7px solid transparent;
+      border-right: 7px solid ${p.theme.red};
+      position: absolute;
+      left: -7px;
+      top: 12px;
+    }
+
+    &:after {
+      display: block;
+      content: '';
+      width: 0;
+      height: 0;
+      border-top: 6px solid transparent;
+      border-bottom: 6px solid transparent;
+      border-right: 6px solid #fff;
+      position: absolute;
+      left: -5px;
+      top: 12px;
+    }
+  `;
+};
+
+const NoteInputForm = styled('form')`
+  font-size: 15px;
+  line-height: 22px;
+  transition: padding 0.2s ease-in-out;
+
+  ${getNoteInputErrorStyles}
+
+  textarea {
+    ${notePreviewCss};
+  }
+`;
+
+const NoteInputBody = styled('div')`
+  ${textStyles}
+`;
+
+const Footer = styled('div')`
+  display: flex;
+  border-top: 1px solid ${p => p.theme.borderLight};
+  justify-content: space-between;
+  transition: opacity 0.2s ease-in-out;
+  padding-left: 15px;
+`;
+
+const FooterButton = styled(Button)`
+  font-size: 13px;
+  margin: -1px -1px -1px;
+  border-radius: 0 0 3px;
+
+  ${p =>
+    p.error &&
+    `
+  &, &:active, &:focus, &:hover {
+  border-bottom-color: ${p.theme.error};
+  border-right-color: ${p.theme.error};
+  }
+  `}
+`;
+
+const ErrorMessage = styled('span')`
+  display: flex;
+  align-items: center;
+  height: 100%;
+  color: ${p => p.theme.error};
+  font-size: 0.9em;
+`;
+
+const NoteInputNavTabs = styled(NavTabs)`
+  padding: 7px 20px 0;
+  border-bottom: 1px solid ${p => p.theme.borderLight};
+  margin-bottom: 0;
+`;
+
+const NoteInputNavTab = styled('li')`
+  margin-right: 13px;
+`;
+
+const NoteInputNavTabLink = styled('a')`
+  .nav-tabs > li > & {
+    font-size: 15px;
+    padding-bottom: 5px;
+  }
+`;
+const MarkdownTab = styled(NoteInputNavTab)`
+  .nav-tabs > & {
+    display: flex;
+    align-items: center;
+    margin-right: 0;
+    color: ${p => p.theme.gray3};
+
+    float: right;
+  }
+`;
+
+const MarkdownSupported = styled('span')`
+  margin-left: ${space(0.5)};
+  font-size: 14px;
+`;
+
+const MarkdownIcon = styled('span')`
+  font-size: 20px;
+`;
+
+const NotePreview = styled('div')`
+  ${notePreviewCss};
+
+  padding-bottom: ${space(1)};
+`;

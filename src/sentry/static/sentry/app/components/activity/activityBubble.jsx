@@ -1,28 +1,11 @@
 import PropTypes from 'prop-types';
-import React from 'react';
 import styled from 'react-emotion';
 
-class ActivityBubble extends React.Component {
-  static propTypes = {
-    background: PropTypes.string,
-  };
-
-  static defaultProps = {
-    background: '#fff',
-  };
-
-  render() {
-    const {className, background, children} = this.props;
-
-    return (
-      <StyledActivityBubble background={background} className={className}>
-        {children}
-      </StyledActivityBubble>
-    );
-  }
-}
-
-const StyledActivityBubble = styled('div')`
+/**
+ * This creates a bordered box that has a left pointing arrow
+ * on the left-side at the top.
+ */
+const ActivityBubble = styled('div')`
   flex: 1;
   background: ${p => p.background};
   border: 1px solid ${p => p.theme.borderLight};
@@ -55,5 +38,13 @@ const StyledActivityBubble = styled('div')`
     top: 13px;
   }
 `;
+
+ActivityBubble.propTypes = {
+  background: PropTypes.string,
+};
+
+ActivityBubble.defaultProps = {
+  background: '#fff',
+};
 
 export default ActivityBubble;

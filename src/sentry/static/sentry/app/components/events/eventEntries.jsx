@@ -1,37 +1,37 @@
 import PropTypes from 'prop-types';
 import React from 'react';
+import styled from 'react-emotion';
 
 import {analytics} from 'app/utils/analytics';
 import {logException} from 'app/utils/logging';
+import {t} from 'app/locale';
+import BreadcrumbsInterface from 'app/components/events/interfaces/breadcrumbs';
+import CspInterface from 'app/components/events/interfaces/csp';
+import DebugMetaInterface from 'app/components/events/interfaces/debugmeta';
 import EventAttachments from 'app/components/events/eventAttachments';
 import EventCause from 'app/components/events/eventCause';
-import EventContexts from 'app/components/events/contexts';
 import EventContextSummary from 'app/components/events/contextSummary';
+import EventContexts from 'app/components/events/contexts';
 import EventDataSection from 'app/components/events/eventDataSection';
-import EventErrors from 'app/components/events/errors';
-import EventGroupingInfo from 'app/components/events/groupingInfo';
-import EventExtraData from 'app/components/events/extraData';
-import EventPackageData from 'app/components/events/packageData';
-import EventTags from 'app/components/events/eventTags';
-import EventSdk from 'app/components/events/sdk';
 import EventDevice from 'app/components/events/device';
+import EventErrors from 'app/components/events/errors';
+import EventExtraData from 'app/components/events/extraData';
+import EventGroupingInfo from 'app/components/events/groupingInfo';
+import EventPackageData from 'app/components/events/packageData';
+import EventSdk from 'app/components/events/sdk';
+import EventTags from 'app/components/events/eventTags';
 import EventUserFeedback from 'app/components/events/userFeedback';
+import ExceptionInterface from 'app/components/events/interfaces/exception';
+import GenericInterface from 'app/components/events/interfaces/generic';
+import MessageInterface from 'app/components/events/interfaces/message';
+import RequestInterface from 'app/components/events/interfaces/request';
 import SentryTypes from 'app/sentryTypes';
+import StacktraceInterface from 'app/components/events/interfaces/stacktrace';
+import TemplateInterface from 'app/components/events/interfaces/template';
+import ThreadsInterface from 'app/components/events/interfaces/threads';
 import utils from 'app/utils';
 import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
-import {t} from 'app/locale';
-
-import ExceptionInterface from 'app/components/events/interfaces/exception';
-import MessageInterface from 'app/components/events/interfaces/message';
-import RequestInterface from 'app/components/events/interfaces/request';
-import StacktraceInterface from 'app/components/events/interfaces/stacktrace';
-import TemplateInterface from 'app/components/events/interfaces/template';
-import CspInterface from 'app/components/events/interfaces/csp';
-import BreadcrumbsInterface from 'app/components/events/interfaces/breadcrumbs';
-import GenericInterface from 'app/components/events/interfaces/generic';
-import ThreadsInterface from 'app/components/events/interfaces/threads';
-import DebugMetaInterface from 'app/components/events/interfaces/debugmeta';
 
 export const INTERFACES = {
   exception: ExceptionInterface,
@@ -158,7 +158,7 @@ class EventEntries extends React.Component {
         )}{' '}
         {!isShare && <EventCause event={event} orgId={orgId} projectId={project.slug} />}
         {event.userReport && (
-          <EventUserFeedback
+          <StyledEventUserFeedback
             report={event.userReport}
             orgId={orgId}
             projectId={project.slug}
@@ -211,3 +211,12 @@ class EventEntries extends React.Component {
 }
 
 export default withOrganization(withApi(EventEntries));
+
+const StyledEventUserFeedback = styled(EventUserFeedback)`
+  border-radius: 0;
+  box-shadow: none;
+  padding: 20px 30px 0 40px;
+  border: 0;
+  border-top: 1px solid ${p => p.theme.borderLight};
+  margin: 0;
+`;

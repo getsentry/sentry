@@ -1,8 +1,13 @@
 import PropTypes from 'prop-types';
 import React from 'react';
+import styled from 'react-emotion';
 
-import Note from 'app/components/activity/note';
+import ActivityItem from 'app/components/activity/activityItem';
+import EditorTools from 'app/components/activity/editorTools';
+import NoteBody from 'app/components/activity/noteBody';
+import NoteHeader from 'app/components/activity/noteHeader';
 import NoteInput from 'app/components/activity/noteInput';
+import space from 'app/styles/space';
 
 class NoteContainer extends React.Component {
   static propTypes = {
@@ -36,30 +41,95 @@ class NoteContainer extends React.Component {
   render() {
     const {group, item, author, sessionUser, memberList} = this.props;
 
-    return (
-      <li className="activity-note">
-        {author.avatar}
-        <div className="activity-bubble">
-          {this.state.editing ? (
-            <NoteInput
-              group={group}
-              item={item}
-              onFinish={this.onFinish}
-              sessionUser={sessionUser}
-              memberList={memberList}
-            />
-          ) : (
-            <Note
-              item={item}
+    const activityItemProps = {
+      id: `activity-item-${item.id}`,
+      author: {type: 'user', user: item.user},
+      date: item.dateCreated,
+    };
+
+    if (!this.state.editing) {
+      return (
+        <ActivityItemWithEditing
+          {...activityItemProps}
+          header={
+            <NoteHeader
               author={author}
+              user={item.user}
               onEdit={this.onEdit}
               onDelete={this.onDelete}
             />
-          )}
-        </div>
-      </li>
+          }
+        >
+          <NoteBody item={item} />
+        </ActivityItemWithEditing>
+      );
+    }
+
+    // When editing, `NoteInput` has its own header, pass render func
+    // to control rendering of bubble body
+    return (
+      <StyledActivityItem {...activityItemProps}>
+        {() => (
+          <NoteInput
+            group={group}
+            item={item}
+            onFinish={this.onFinish}
+            sessionUser={sessionUser}
+            memberList={memberList}
+          />
+        )}
+      </StyledActivityItem>
     );
   }
 }
+
+const StyledActivityItem = styled(ActivityItem)`
+  /* this was nested under ".activity-note.activity-bubble" */
+  ul {
+    list-style: disc;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  p,
+  ul:not(.nav),
+  ol,
+  pre,
+  hr,
+  blockquote {
+    margin-bottom: ${space(2)};
+  }
+
+  ul:not(.nav),
+  ol {
+    padding-left: 20px;
+  }
+
+  p {
+    a {
+      word-wrap: break-word;
+    }
+  }
+
+  blockquote {
+    font-size: 15px;
+    background: ${p => p.theme.offWhite2};
+
+    p:last-child {
+      margin-bottom: 0;
+    }
+  }
+`;
+
+const ActivityItemWithEditing = styled(StyledActivityItem)`
+  &:hover {
+    /* stylelint-disable-next-line no-duplicate-selectors:0 */
+    ${EditorTools} {
+      display: inline-block;
+    }
+  }
+`;
 
 export default NoteContainer;
