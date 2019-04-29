@@ -90,7 +90,7 @@ exports[`IntegrationDetailsModal renders simple integration 1`] = `
             size={50}
           >
             <div
-              className="css-duaev8-IntegrationIcon e1bhjds90"
+              className="css-1x3ikxe-IntegrationIcon e1bhjds90"
               size={50}
             />
           </IntegrationIcon>
@@ -420,7 +420,7 @@ exports[`IntegrationDetailsModal renders simple integration 1`] = `
           <ForwardRef
             aria-disabled={false}
             aria-label="Cancel"
-            className="css-dkprmi-StyledButton-getColors e12ma6z0"
+            className="css-o6814l-StyledButton-getColors e12ma6z0"
             disabled={false}
             onClick={[Function]}
             role="button"
@@ -429,7 +429,7 @@ exports[`IntegrationDetailsModal renders simple integration 1`] = `
             <button
               aria-disabled={false}
               aria-label="Cancel"
-              className="css-dkprmi-StyledButton-getColors e12ma6z0"
+              className="css-o6814l-StyledButton-getColors e12ma6z0"
               onClick={[Function]}
               role="button"
               size="small"
@@ -741,7 +741,7 @@ exports[`IntegrationDetailsModal renders simple integration 1`] = `
                           <ForwardRef
                             aria-disabled={false}
                             aria-label="Add Installation"
-                            className="css-zvpqlo-StyledButton-getColors e12ma6z0"
+                            className="css-1oc9q3a-StyledButton-getColors e12ma6z0"
                             disabled={false}
                             onClick={[Function]}
                             priority="primary"
@@ -756,7 +756,7 @@ exports[`IntegrationDetailsModal renders simple integration 1`] = `
                             <button
                               aria-disabled={false}
                               aria-label="Add Installation"
-                              className="css-zvpqlo-StyledButton-getColors e12ma6z0"
+                              className="css-1oc9q3a-StyledButton-getColors e12ma6z0"
                               onClick={[Function]}
                               role="button"
                               size="small"
