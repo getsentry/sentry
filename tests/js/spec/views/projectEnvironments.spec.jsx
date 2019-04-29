@@ -247,6 +247,27 @@ describe('ProjectEnvironments', function() {
       );
     });
 
+    it('hides names requiring encoding', function() {
+      hideMock = MockApiClient.addMockResponse({
+        url: `${baseUrl}%25app_env%25/`,
+        method: 'PUT',
+      });
+
+      const environments = [{id: '1', name: '%app_env%', isHidden: false}];
+      EnvironmentStore.loadInitialData(environments);
+
+      const wrapper = mountComponent(false);
+      wrapper
+        .find('EnvironmentRow[name="%app_env%"] button[aria-label="Hide"]')
+        .simulate('click');
+      expect(hideMock).toHaveBeenCalledWith(
+        `${baseUrl}%25app_env%25/`,
+        expect.objectContaining({
+          data: expect.objectContaining({isHidden: true}),
+        })
+      );
+    });
+
     it('shows', function() {
       EnvironmentStore.loadHiddenData(TestStubs.Environments(true));
       const wrapper = mountComponent(true);
