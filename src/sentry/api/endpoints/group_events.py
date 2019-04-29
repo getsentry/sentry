@@ -9,10 +9,10 @@ from rest_framework.response import Response
 from functools import partial
 
 
-from sentry import options, quotas, tagstore
+from sentry import features, options, quotas, tagstore
 from sentry.api.base import DocSection, EnvironmentMixin
 from sentry.api.bases import GroupEndpoint
-from sentry.api.event_search import get_snuba_query_args
+from sentry.api.event_search import BOOLEAN_OPERATORS, get_snuba_query_args
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.helpers.environments import get_environments
 from sentry.api.helpers.events import get_direct_hit_response
@@ -30,6 +30,10 @@ from sentry.utils.snuba import raw_query
 
 
 class NoResults(Exception):
+    pass
+
+
+class GroupEventsError(Exception):
     pass
 
 
@@ -61,7 +65,7 @@ class GroupEventsEndpoint(GroupEndpoint, EnvironmentMixin):
                 group,
                 environments,
             )
-        except InvalidQuery as exc:
+        except (InvalidQuery, GroupEventsError) as exc:
             return Response({'detail': six.text_type(exc)}, status=400)
         except (NoResults, ResourceDoesNotExist):
             return Response([])
@@ -171,6 +175,15 @@ class GroupEventsEndpoint(GroupEndpoint, EnvironmentMixin):
         raw_query = request.GET.get('query')
 
         if raw_query:
+            # TODO(lb): remove once boolean search is fully functional
+            has_boolean_operators = features.has(
+                'organizations:boolean-search',
+                group.project.organization,
+                actor=request.user)
+            if BOOLEAN_OPERATORS in raw_query and not has_boolean_operators:
+                raise GroupEventsError(
+                    'Boolean search operator OR and AND not allowed in this search.')
+
             query_kwargs = parse_query([group.project], raw_query, request.user, environments)
             query = query_kwargs.pop('query', None)
             tags = query_kwargs.pop('tags', {})

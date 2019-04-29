@@ -18,8 +18,10 @@ from sentry.search.utils import (
 )
 from sentry.utils.dates import to_timestamp
 from sentry.utils.snuba import SENTRY_SNUBA_MAP
+from functools import reduce
 
 WILDCARD_CHARS = re.compile(r'[\*]')
+BOOLEAN_OPERATORS = ('AND', 'OR')
 
 
 def translate(pat):
