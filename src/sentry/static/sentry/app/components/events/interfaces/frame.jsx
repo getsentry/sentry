@@ -37,7 +37,7 @@ class FunctionName extends React.Component {
     };
   }
 
-  toggle(event) {
+  toggle = (event) => {
     event.stopPropagation();
     this.setState({
       fullFunction: !this.state.fullFunction,
