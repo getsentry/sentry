@@ -1332,6 +1332,7 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                                                     >
                                                       <StyledAvatar
                                                         className="css-0"
+                                                        hasTooltip={false}
                                                         hideName={true}
                                                         project={
                                                           Object {
@@ -1464,7 +1465,7 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                                     </GroupShortId>
                                     <Times>
                                       <div
-                                        className="css-139skj2-Times eec9orn3"
+                                        className="css-5uof9j-Times eec9orn3"
                                       >
                                         <div
                                           className="css-77t6iv"
@@ -1629,7 +1630,18 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                           onMouseLeave={[Function]}
                         >
                           <StyledScoreBar
+                            palette={
+                              Array [
+                                "#ec5e44",
+                                "#f38259",
+                                "#f9a66d",
+                                "#98b480",
+                                "#57be8c",
+                              ]
+                            }
                             score={4}
+                            size={40}
+                            thickness={4}
                             vertical={true}
                           >
                             <ScoreBar
@@ -1772,7 +1784,18 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                           onMouseLeave={[Function]}
                         >
                           <StyledScoreBar
+                            palette={
+                              Array [
+                                "#ec5e44",
+                                "#f38259",
+                                "#f9a66d",
+                                "#98b480",
+                                "#57be8c",
+                              ]
+                            }
                             score={0}
+                            size={40}
+                            thickness={4}
                             vertical={true}
                           >
                             <ScoreBar

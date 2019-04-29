@@ -81,10 +81,10 @@ exports[`SentryAppPermissionsModal installs the application 1`] = `
       </Title>
       <Panel>
         <Component
-          className="css-yahxlu-Panel e1laxa7d0"
+          className="css-10qfvek-Panel e1laxa7d0"
         >
           <div
-            className="css-yahxlu-Panel e1laxa7d0"
+            className="css-10qfvek-Panel e1laxa7d0"
           >
             <PanelItem
               key="read"
@@ -123,6 +123,7 @@ exports[`SentryAppPermissionsModal installs the application 1`] = `
       </div>
     </RedirectionInfo>
     <StyledButton
+      disabled={false}
       onClick={[Function]}
       priority="success"
     >
@@ -144,7 +145,7 @@ exports[`SentryAppPermissionsModal installs the application 1`] = `
           <ForwardRef
             aria-disabled={false}
             aria-label="Install"
-            className="ey7jt0i0 css-17kpa0r-StyledButton-getColors-StyledButton e12ma6z0"
+            className="ey7jt0i0 css-1t90v46-StyledButton-getColors-StyledButton e12ma6z0"
             disabled={false}
             onClick={[Function]}
             priority="success"
@@ -153,7 +154,7 @@ exports[`SentryAppPermissionsModal installs the application 1`] = `
             <button
               aria-disabled={false}
               aria-label="Install"
-              className="ey7jt0i0 css-17kpa0r-StyledButton-getColors-StyledButton e12ma6z0"
+              className="ey7jt0i0 css-1t90v46-StyledButton-getColors-StyledButton e12ma6z0"
               onClick={[Function]}
               role="button"
             >
@@ -177,6 +178,7 @@ exports[`SentryAppPermissionsModal installs the application 1`] = `
       </Button>
     </StyledButton>
     <StyledButton
+      disabled={false}
       onClick={[MockFunction]}
     >
       <Button
@@ -195,7 +197,7 @@ exports[`SentryAppPermissionsModal installs the application 1`] = `
           <ForwardRef
             aria-disabled={false}
             aria-label="Cancel"
-            className="ey7jt0i0 css-1xref87-StyledButton-getColors-StyledButton e12ma6z0"
+            className="ey7jt0i0 css-1n1eahj-StyledButton-getColors-StyledButton e12ma6z0"
             disabled={false}
             onClick={[Function]}
             role="button"
@@ -203,7 +205,7 @@ exports[`SentryAppPermissionsModal installs the application 1`] = `
             <button
               aria-disabled={false}
               aria-label="Cancel"
-              className="ey7jt0i0 css-1xref87-StyledButton-getColors-StyledButton e12ma6z0"
+              className="ey7jt0i0 css-1n1eahj-StyledButton-getColors-StyledButton e12ma6z0"
               onClick={[Function]}
               role="button"
             >
@@ -308,10 +310,10 @@ exports[`SentryAppPermissionsModal renders permissions modal 1`] = `
       </Title>
       <Panel>
         <Component
-          className="css-yahxlu-Panel e1laxa7d0"
+          className="css-10qfvek-Panel e1laxa7d0"
         >
           <div
-            className="css-yahxlu-Panel e1laxa7d0"
+            className="css-10qfvek-Panel e1laxa7d0"
           >
             <PanelItem
               key="read"
@@ -350,6 +352,7 @@ exports[`SentryAppPermissionsModal renders permissions modal 1`] = `
       </div>
     </RedirectionInfo>
     <StyledButton
+      disabled={false}
       onClick={[Function]}
       priority="success"
     >
@@ -371,7 +374,7 @@ exports[`SentryAppPermissionsModal renders permissions modal 1`] = `
           <ForwardRef
             aria-disabled={false}
             aria-label="Install"
-            className="ey7jt0i0 css-17kpa0r-StyledButton-getColors-StyledButton e12ma6z0"
+            className="ey7jt0i0 css-1t90v46-StyledButton-getColors-StyledButton e12ma6z0"
             disabled={false}
             onClick={[Function]}
             priority="success"
@@ -380,7 +383,7 @@ exports[`SentryAppPermissionsModal renders permissions modal 1`] = `
             <button
               aria-disabled={false}
               aria-label="Install"
-              className="ey7jt0i0 css-17kpa0r-StyledButton-getColors-StyledButton e12ma6z0"
+              className="ey7jt0i0 css-1t90v46-StyledButton-getColors-StyledButton e12ma6z0"
               onClick={[Function]}
               role="button"
             >
@@ -404,6 +407,7 @@ exports[`SentryAppPermissionsModal renders permissions modal 1`] = `
       </Button>
     </StyledButton>
     <StyledButton
+      disabled={false}
       onClick={[MockFunction]}
     >
       <Button
@@ -422,7 +426,7 @@ exports[`SentryAppPermissionsModal renders permissions modal 1`] = `
           <ForwardRef
             aria-disabled={false}
             aria-label="Cancel"
-            className="ey7jt0i0 css-1xref87-StyledButton-getColors-StyledButton e12ma6z0"
+            className="ey7jt0i0 css-1n1eahj-StyledButton-getColors-StyledButton e12ma6z0"
             disabled={false}
             onClick={[Function]}
             role="button"
@@ -430,7 +434,7 @@ exports[`SentryAppPermissionsModal renders permissions modal 1`] = `
             <button
               aria-disabled={false}
               aria-label="Cancel"
-              className="ey7jt0i0 css-1xref87-StyledButton-getColors-StyledButton e12ma6z0"
+              className="ey7jt0i0 css-1n1eahj-StyledButton-getColors-StyledButton e12ma6z0"
               onClick={[Function]}
               role="button"
             >

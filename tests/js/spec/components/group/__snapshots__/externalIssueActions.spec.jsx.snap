@@ -152,16 +152,16 @@ exports[`ExternalIssueActions with no external issues linked renders 1`] = `
               }
             />
           }
-          containerClassName="css-1kx7hlk-hoverCardContainer"
+          containerClassName="css-2jp7uo-hoverCardContainer"
           displayTimeout={100}
           header="Linked GitHub Integration"
         >
           <Container
-            className="css-1kx7hlk-hoverCardContainer"
+            className="css-2jp7uo-hoverCardContainer"
             innerRef={
               Object {
                 "current": <span
-                  class="css-86d5c-Container-hoverCardContainer e38w1je1"
+                  class="css-9q2tea-Container-hoverCardContainer e38w1je1"
                 >
                   <svg
                     class="e1vaar1z1 css-ihls3x-StyledSvg-IntegrationIcon e2idor0"
@@ -186,7 +186,7 @@ exports[`ExternalIssueActions with no external issues linked renders 1`] = `
             onMouseLeave={[Function]}
           >
             <span
-              className="css-86d5c-Container-hoverCardContainer e38w1je1"
+              className="css-9q2tea-Container-hoverCardContainer e38w1je1"
               onMouseEnter={[Function]}
               onMouseLeave={[Function]}
             >

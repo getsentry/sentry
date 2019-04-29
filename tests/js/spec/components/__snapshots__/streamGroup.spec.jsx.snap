@@ -4,6 +4,7 @@ exports[`StreamGroup renders with anchors 1`] = `
 <Group
   align="center"
   onClick={[Function]}
+  p={2}
   px={0}
   py={1}
 >
@@ -298,6 +299,7 @@ exports[`StreamGroup renders with anchors 1`] = `
   >
     <AssigneeSelector
       id="1337"
+      size={20}
     />
   </Box>
 </Group>

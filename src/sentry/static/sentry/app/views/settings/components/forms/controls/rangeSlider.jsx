@@ -135,7 +135,7 @@ class RangeSlider extends React.Component {
 
     return (
       <div>
-        <Label for={name}>{displayValue}</Label>
+        <Label htmlFor={name}>{displayValue}</Label>
         <Slider
           type="range"
           name={name}

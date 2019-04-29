@@ -99,6 +99,9 @@ exports[`Project Ownership Input renders 1`] = `
       >
         <BuilderSelect
           clearable={false}
+          disabled={false}
+          hideErrorMessage={false}
+          multiple={false}
           name="select-type"
           onChange={[Function]}
           options={
@@ -113,6 +116,7 @@ exports[`Project Ownership Input renders 1`] = `
               },
             ]
           }
+          required={false}
           showSearch={false}
           style={
             Object {
@@ -164,6 +168,7 @@ exports[`Project Ownership Input renders 1`] = `
                 <StyledSelectControl
                   clearable={false}
                   disabled={false}
+                  height={36}
                   id="id-select-type"
                   multiple={false}
                   name="select-type"
@@ -867,7 +872,7 @@ exports[`Project Ownership Input renders 1`] = `
           size="small"
         >
           <Button
-            className="css-po7kq7-AddButton e1hyuoc79"
+            className="css-8nraqh-AddButton e1hyuoc79"
             disabled={true}
             icon="icon-circle-add"
             onClick={[Function]}
@@ -876,7 +881,7 @@ exports[`Project Ownership Input renders 1`] = `
           >
             <StyledButton
               aria-disabled={true}
-              className="css-po7kq7-AddButton e1hyuoc79"
+              className="css-8nraqh-AddButton e1hyuoc79"
               disabled={true}
               href={null}
               onClick={[Function]}
@@ -887,7 +892,7 @@ exports[`Project Ownership Input renders 1`] = `
             >
               <ForwardRef
                 aria-disabled={true}
-                className="e1hyuoc79 css-ogw40-StyledButton-getColors-AddButton e12ma6z0"
+                className="e1hyuoc79 css-1fas0c7-StyledButton-getColors-AddButton e12ma6z0"
                 disabled={true}
                 href={null}
                 onClick={[Function]}
@@ -898,7 +903,7 @@ exports[`Project Ownership Input renders 1`] = `
               >
                 <button
                   aria-disabled={true}
-                  className="e1hyuoc79 css-ogw40-StyledButton-getColors-AddButton e12ma6z0"
+                  className="e1hyuoc79 css-1fas0c7-StyledButton-getColors-AddButton e12ma6z0"
                   href={null}
                   onClick={[Function]}
                   role="button"
@@ -982,6 +987,7 @@ exports[`Project Ownership Input renders 1`] = `
     }
   >
     <StyledTextArea
+      async={false}
       autoCapitalize="off"
       autoComplete="off"
       autoCorrect="off"
@@ -989,6 +995,7 @@ exports[`Project Ownership Input renders 1`] = `
       placeholder="#example usage
 path:src/example/pipeline/* person@sentry.io #infra
 url:http://example.com/settings/* #product"
+      rows={1}
       spellCheck="false"
       value="new"
     >
@@ -1058,7 +1065,7 @@ url:http://example.com/settings/* #product"
                   <ForwardRef
                     aria-disabled={false}
                     aria-label="Save Changes"
-                    className="css-zvpqlo-StyledButton-getColors e12ma6z0"
+                    className="css-1oc9q3a-StyledButton-getColors e12ma6z0"
                     disabled={false}
                     onClick={[Function]}
                     priority="primary"
@@ -1068,7 +1075,7 @@ url:http://example.com/settings/* #product"
                     <button
                       aria-disabled={false}
                       aria-label="Save Changes"
-                      className="css-zvpqlo-StyledButton-getColors e12ma6z0"
+                      className="css-1oc9q3a-StyledButton-getColors e12ma6z0"
                       onClick={[Function]}
                       role="button"
                       size="small"

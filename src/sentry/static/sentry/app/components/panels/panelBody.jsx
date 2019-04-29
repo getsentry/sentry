@@ -17,7 +17,7 @@ const PanelBody = ({className, disablePadding, flex, direction, ...props}) => {
 
   return (
     <Comp
-      className={cx(padding, textStyles, className)}
+      className={cx(padding, textStyles(), className)}
       {...props}
       direction={flexDirection}
     />

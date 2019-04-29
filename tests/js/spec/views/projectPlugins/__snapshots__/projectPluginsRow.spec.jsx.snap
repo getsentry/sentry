@@ -155,7 +155,7 @@ exports[`ProjectPluginRow renders 1`] = `
                         size={48}
                       >
                         <div
-                          className="ectqpp2 css-lxugym-IntegrationIcon-StyledPluginIcon e1bhjds90"
+                          className="ectqpp2 css-vzj3gb-IntegrationIcon-StyledPluginIcon e1bhjds90"
                           size={48}
                         />
                       </IntegrationIcon>

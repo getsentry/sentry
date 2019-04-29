@@ -18,6 +18,7 @@ exports[`TextCopyInput renders 1`] = `
     value="Text to Copy"
   >
     <StyledCopyButton
+      disabled={false}
       onClick={[Function]}
       size="xsmall"
       type="button"

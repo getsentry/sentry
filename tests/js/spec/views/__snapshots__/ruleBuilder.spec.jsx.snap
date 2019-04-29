@@ -72,6 +72,9 @@ exports[`RuleBuilder renders 1`] = `
     >
       <BuilderSelect
         clearable={false}
+        disabled={false}
+        hideErrorMessage={false}
+        multiple={false}
         name="select-type"
         onChange={[Function]}
         options={
@@ -86,6 +89,7 @@ exports[`RuleBuilder renders 1`] = `
             },
           ]
         }
+        required={false}
         showSearch={false}
         style={
           Object {
@@ -137,6 +141,7 @@ exports[`RuleBuilder renders 1`] = `
               <StyledSelectControl
                 clearable={false}
                 disabled={false}
+                height={36}
                 id="id-select-type"
                 multiple={false}
                 name="select-type"
@@ -983,7 +988,7 @@ exports[`RuleBuilder renders 1`] = `
         size="small"
       >
         <Button
-          className="css-po7kq7-AddButton e1hyuoc79"
+          className="css-8nraqh-AddButton e1hyuoc79"
           disabled={true}
           icon="icon-circle-add"
           onClick={[Function]}
@@ -992,7 +997,7 @@ exports[`RuleBuilder renders 1`] = `
         >
           <StyledButton
             aria-disabled={true}
-            className="css-po7kq7-AddButton e1hyuoc79"
+            className="css-8nraqh-AddButton e1hyuoc79"
             disabled={true}
             href={null}
             onClick={[Function]}
@@ -1003,7 +1008,7 @@ exports[`RuleBuilder renders 1`] = `
           >
             <ForwardRef
               aria-disabled={true}
-              className="e1hyuoc79 css-ogw40-StyledButton-getColors-AddButton e12ma6z0"
+              className="e1hyuoc79 css-1fas0c7-StyledButton-getColors-AddButton e12ma6z0"
               disabled={true}
               href={null}
               onClick={[Function]}
@@ -1014,7 +1019,7 @@ exports[`RuleBuilder renders 1`] = `
             >
               <button
                 aria-disabled={true}
-                className="e1hyuoc79 css-ogw40-StyledButton-getColors-AddButton e12ma6z0"
+                className="e1hyuoc79 css-1fas0c7-StyledButton-getColors-AddButton e12ma6z0"
                 href={null}
                 onClick={[Function]}
                 role="button"
@@ -1371,6 +1376,9 @@ exports[`RuleBuilder renders with suggestions 1`] = `
     >
       <BuilderSelect
         clearable={false}
+        disabled={false}
+        hideErrorMessage={false}
+        multiple={false}
         name="select-type"
         onChange={[Function]}
         options={
@@ -1385,6 +1393,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
             },
           ]
         }
+        required={false}
         showSearch={false}
         style={
           Object {
@@ -1436,6 +1445,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
               <StyledSelectControl
                 clearable={false}
                 disabled={false}
+                height={36}
                 id="id-select-type"
                 multiple={false}
                 name="select-type"
@@ -2802,7 +2812,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
         size="small"
       >
         <Button
-          className="css-po7kq7-AddButton e1hyuoc79"
+          className="css-8nraqh-AddButton e1hyuoc79"
           disabled={false}
           icon="icon-circle-add"
           onClick={[Function]}
@@ -2811,7 +2821,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
         >
           <StyledButton
             aria-disabled={false}
-            className="css-po7kq7-AddButton e1hyuoc79"
+            className="css-8nraqh-AddButton e1hyuoc79"
             disabled={false}
             onClick={[Function]}
             priority="primary"
@@ -2820,7 +2830,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
           >
             <ForwardRef
               aria-disabled={false}
-              className="e1hyuoc79 css-1q9tuf6-StyledButton-getColors-AddButton e12ma6z0"
+              className="e1hyuoc79 css-1bmevz4-StyledButton-getColors-AddButton e12ma6z0"
               disabled={false}
               onClick={[Function]}
               priority="primary"
@@ -2829,7 +2839,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
             >
               <button
                 aria-disabled={false}
-                className="e1hyuoc79 css-1q9tuf6-StyledButton-getColors-AddButton e12ma6z0"
+                className="e1hyuoc79 css-1bmevz4-StyledButton-getColors-AddButton e12ma6z0"
                 onClick={[Function]}
                 role="button"
                 size="small"

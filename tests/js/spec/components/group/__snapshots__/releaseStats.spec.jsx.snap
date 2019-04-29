@@ -385,7 +385,7 @@ exports[`GroupReleaseStats renders 1`] = `
                         viewBox="0 0 100 400"
                       >
                         <svg
-                          className="css-1vaz76z-StyledSvg e5t71580"
+                          className="css-e6bn68-StyledSvg e5t71580"
                           overflow="visible"
                           preserveAspectRatio="none"
                           viewBox="0 0 100 400"
@@ -806,7 +806,7 @@ exports[`GroupReleaseStats renders 1`] = `
                         viewBox="0 0 100 400"
                       >
                         <svg
-                          className="css-1vaz76z-StyledSvg e5t71580"
+                          className="css-e6bn68-StyledSvg e5t71580"
                           overflow="visible"
                           preserveAspectRatio="none"
                           viewBox="0 0 100 400"
