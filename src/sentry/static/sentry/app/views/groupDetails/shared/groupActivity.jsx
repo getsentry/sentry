@@ -63,7 +63,7 @@ class GroupActivityItem extends React.Component {
             })
           : t('%s marked this issue as resolved in the upcoming release', author);
       case 'set_resolved_in_commit':
-        return t('%(author)s marked this issue as fixed in %(version)s', {
+        return t('%(author)s marked this issue as resolved in %(version)s', {
           author,
           version: (
             <CommitLink
@@ -74,7 +74,7 @@ class GroupActivityItem extends React.Component {
           ),
         });
       case 'set_resolved_in_pull_request':
-        return t('%(author)s marked this issue as fixed in %(version)s', {
+        return t('%(author)s marked this issue as resolved in %(version)s', {
           author,
           version: (
             <PullRequestLink
