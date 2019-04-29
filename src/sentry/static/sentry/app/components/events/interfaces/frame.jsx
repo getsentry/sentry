@@ -37,12 +37,12 @@ class FunctionName extends React.Component {
     };
   }
 
-  toggle = (event) => {
+  toggle = event => {
     event.stopPropagation();
     this.setState({
       fullFunction: !this.state.fullFunction,
     });
-  }
+  };
 
   render() {
     const {frame, ...props} = this.props;
@@ -57,7 +57,7 @@ class FunctionName extends React.Component {
     const current = this.state.fullFunction ? func : funcName;
     return (
       <code {...props}>
-        <a onClick={this.toggle.bind(this)}>{current || '<unknown>'}</a>
+        <a onClick={this.toggle}>{current || '<unknown>'}</a>
       </code>
     );
   }
