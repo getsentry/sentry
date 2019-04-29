@@ -90,7 +90,7 @@ exports[`IntegrationDetailsModal renders simple integration 1`] = `
             size={50}
           >
             <div
-              className="css-1x3ikxe-IntegrationIcon e1bhjds90"
+              className="css-duaev8-IntegrationIcon e1bhjds90"
               size={50}
             />
           </IntegrationIcon>
