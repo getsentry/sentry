@@ -50,7 +50,7 @@ const EnvironmentStore = Reflux.createStore({
         return toTitleCase(item.name) || DEFAULT_EMPTY_ENV_NAME;
       },
       get urlRoutingName() {
-        return item.name || DEFAULT_EMPTY_ROUTING_NAME;
+        return encodeURIComponent(item.name) || DEFAULT_EMPTY_ROUTING_NAME;
       },
     }));
     this.trigger(this.items);
