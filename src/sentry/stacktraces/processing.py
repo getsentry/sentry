@@ -260,15 +260,20 @@ def normalize_stacktraces_for_grouping(data, grouping_config=None):
 
     platform = data.get('platform')
 
-    # Put the trimmed function names into the frames.
+    # Put the trimmed function names into the frames.  We only do this if
+    # the trimming produces a different function than the function we have
+    # otherwise stored in `function` to not make the payload larger
+    # unnecessarily.
     for frames in stacktraces:
         for frame in frames:
             if frame.get('function_name') is not None:
                 continue
             func = frame.get('function')
             if func:
-                frame['function_name'] = trim_function_name(
+                function_name = trim_function_name(
                     func, frame.get('platform') or platform)
+                if function_name != func:
+                    frame['function_name'] = function_name
 
     # If a grouping config is available, run grouping enhancers
     if grouping_config is not None:
