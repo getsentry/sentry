@@ -124,7 +124,7 @@ describe('GroupSidebar', function() {
     });
 
     it('can subscribe', function() {
-      const btn = wrapper.find('.btn-subscribe');
+      const btn = wrapper.find('SubscribeButton');
 
       btn.simulate('click');
 
