@@ -23,10 +23,6 @@ class IncidentDetails extends React.Component {
     this.fetchData();
   }
 
-  componentWillUnmount() {
-    this.props.api.clear();
-  }
-
   fetchData() {
     this.setState({isLoading: true, hasError: false});
     const {

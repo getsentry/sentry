@@ -1,5 +1,4 @@
 import React from 'react';
-import {withRouter} from 'react-router';
 import DocumentTitle from 'react-document-title';
 
 import {t} from 'app/locale';
@@ -80,4 +79,4 @@ class OrganizationIncidents extends React.Component {
   }
 }
 
-export default withRouter(OrganizationIncidents);
+export default OrganizationIncidents;
