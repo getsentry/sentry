@@ -348,7 +348,7 @@ class ActivityItem extends React.Component {
     if (item.type === 'note') {
       const noteBody = marked(item.data.text);
       return (
-        <div className="activity-item activity-item-compact">
+        <div data-test-id="activity-item" className="activity-item activity-item-compact">
           <div className="activity-item-content">
             {this.formatProjectActivity(
               <span>
@@ -372,7 +372,7 @@ class ActivityItem extends React.Component {
       );
     } else if (item.type === 'create_issue') {
       return (
-        <div className="activity-item activity-item-compact">
+        <div data-test-id="activity-item" className="activity-item activity-item-compact">
           <div className="activity-item-content">
             {this.formatProjectActivity(
               <span>
@@ -394,7 +394,7 @@ class ActivityItem extends React.Component {
       );
     } else {
       return (
-        <div className="activity-item activity-item-compact">
+        <div data-test-id="activity-item" className="activity-item activity-item-compact">
           <div className="activity-item-content">
             {this.formatProjectActivity(
               <span>
