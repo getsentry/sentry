@@ -5,9 +5,7 @@ import Feature from 'app/components/acl/feature';
 import Alert from 'app/components/alert';
 import withOrganization from 'app/utils/withOrganization';
 import {t} from 'app/locale';
-import {PageContent, PageHeader} from 'app/styles/organization';
-import PageHeading from 'app/components/pageHeading';
-import BetaTag from 'app/components/betaTag';
+import {PageContent} from 'app/styles/organization';
 
 class OrganizationIncidentsContainer extends React.Component {
   static propTypes = {
@@ -15,27 +13,24 @@ class OrganizationIncidentsContainer extends React.Component {
   };
 
   renderNoAccess() {
-    return <Alert type="warning">{t("You don't have access to this feature")}</Alert>;
+    return (
+      <PageContent>
+        <Alert type="warning">{t("You don't have access to this feature")}</Alert>
+      </PageContent>
+    );
   }
 
   render() {
     const {organization, children} = this.props;
 
     return (
-      <PageContent>
-        <Feature
-          features={['organizations:incidents']}
-          organization={organization}
-          renderDisabled={this.renderNoAccess}
-        >
-          <PageHeader>
-            <PageHeading withMargins>
-              {t('Incidents')} <BetaTag />
-            </PageHeading>
-          </PageHeader>
-          {children}
-        </Feature>
-      </PageContent>
+      <Feature
+        features={['organizations:incidents']}
+        organization={organization}
+        renderDisabled={this.renderNoAccess}
+      >
+        {children}
+      </Feature>
     );
   }
 }
