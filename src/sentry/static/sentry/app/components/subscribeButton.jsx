@@ -1,9 +1,8 @@
-import classNames from 'classnames';
 import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
 
-import Link from 'app/components/link';
+import Button from 'app/components/button';
 
 import {t} from 'app/locale';
 
@@ -15,26 +14,22 @@ export default class SubscribeButton extends React.Component {
 
   render() {
     const {isSubscribed, onClick} = this.props;
-    const subscribeBtnClass = classNames('btn btn-default', {
-      subscribed: isSubscribed,
-    });
 
     return (
-      <Button className={subscribeBtnClass} onClick={onClick}>
+      <StyledButton size="small" onClick={onClick}>
         <Content>
           <SignalIcon className="icon-signal" isSubscribed={isSubscribed} />
           {isSubscribed ? t('Unsubscribe') : t('Subscribe')}
         </Content>
-      </Button>
+      </StyledButton>
     );
   }
 }
 
-const Button = styled(Link)`
-  padding: 4px 10px;
-`;
+const StyledButton = styled(Button)``;
 
 const Content = styled('span')`
+  font-size: 14px;
   display: flex;
   align-items: center;
 `;
