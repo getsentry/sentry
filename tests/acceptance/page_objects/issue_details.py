@@ -2,16 +2,7 @@ from __future__ import absolute_import
 
 import json
 
-
-class BasePage(object):
-    """Base class for PageObjects"""
-
-    def __init__(self, browser):
-        self.browser = browser
-
-    @property
-    def driver(self):
-        return self.browser.driver
+from .base import BasePage
 
 
 class IssueDetailsPage(BasePage):

@@ -5,7 +5,7 @@ from django.utils import timezone
 
 from sentry.testutils import AcceptanceTestCase, SnubaTestCase
 from sentry.utils.samples import load_data
-from .pages import IssueDetailsPage
+from tests.acceptance.page_objects.issue_details import IssueDetailsPage
 
 
 class IssueDetailsWorkflowTest(AcceptanceTestCase, SnubaTestCase):

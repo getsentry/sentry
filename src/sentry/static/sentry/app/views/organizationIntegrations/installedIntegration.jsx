@@ -140,6 +140,7 @@ export default class InstalledIntegration extends React.Component {
                     to={`/settings/${orgId}/integrations/${provider.key}/${
                       integration.id
                     }/`}
+                    data-test-id="integration-configure-button"
                   >
                     Configure
                   </StyledButton>
@@ -148,7 +149,12 @@ export default class InstalledIntegration extends React.Component {
             </Box>
             <Box>
               <Confirm priority="danger" disabled={!hasAccess} {...removeConfirmProps}>
-                <StyledButton disabled={!hasAccess} borderless icon="icon-trash">
+                <StyledButton
+                  disabled={!hasAccess}
+                  borderless
+                  icon="icon-trash"
+                  data-test-id="integration-remove-button"
+                >
                   Uninstall
                 </StyledButton>
               </Confirm>
