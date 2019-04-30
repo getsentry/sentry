@@ -22,8 +22,15 @@ all = default_manager.all
 isset = default_manager.isset
 lookup_well_known_key = default_manager.lookup_well_known_key
 
-# epochs
-OLDEST_EPOCH = 1
+
+def get_well_known_default(key, project=None, epoch=None):
+    """Utility function to return the default for a well known key."""
+    well_known_key = lookup_well_known_key(key)
+    if well_known_key is not None:
+        return well_known_key.get_default(project=project, epoch=epoch)
+
+
+# latest epoch
 LATEST_EPOCH = 2
 
 from . import defaults  # NOQA

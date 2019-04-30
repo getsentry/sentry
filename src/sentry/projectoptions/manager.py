@@ -22,10 +22,14 @@ class WellKnownProjectOption(object):
         self.default = default
         self.epoch_defaults = sorted((epoch_defaults or {}).items())
 
-    def get_default(self, project):
+    def get_default(self, project=None, epoch=None):
         if self.epoch_defaults:
             from sentry.models import ProjectOption
-            epoch = ProjectOption.objects.get_option_epoch(project)
+            if epoch is None:
+                if project is None:
+                    epoch = 1
+                else:
+                    epoch = ProjectOption.objects.get_option_epoch(project)
             idx = bisect.bisect(self.epoch_defaults, (epoch, None))
             try:
                 return self.epoch_defaults[idx][1]
@@ -53,9 +57,10 @@ class ProjectOptionsManager(object):
     def isset(self, project, key):
         return project.get_option(project, key, Ellipsis) is not Ellipsis
 
-    def get(self, project, key, default=None):
+    def get(self, project, key, default=None, validate=None):
         from sentry.models import ProjectOption
-        return ProjectOption.objects.get_value(project, key, default)
+        return ProjectOption.objects.get_value(
+            project, key, default=default, validate=validate)
 
     def delete(self, project, key):
         from sentry.models import ProjectOption

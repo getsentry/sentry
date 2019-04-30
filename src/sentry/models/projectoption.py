@@ -48,10 +48,11 @@ class ProjectOptionManager(BaseManager):
             result[instance_map[obj.project_id]] = obj.value
         return result
 
-    def get_value(self, project, key, default=None):
+    def get_value(self, project, key, default=None, validate=None):
         result = self.get_all_values(project)
         if key in result:
-            return result[key]
+            if validate is None or validate(result[key]):
+                return result[key]
         if default is None:
             well_known_key = projectoptions.lookup_well_known_key(key)
             if well_known_key is not None:
@@ -64,7 +65,7 @@ class ProjectOptionManager(BaseManager):
 
     def get_option_epoch(self, project):
         # if no epoch is set, then the oldest epoch is used
-        return self.get_value(project, 'sentry:option-epoch') or self.OLDEST_EPOCH
+        return self.get_value(project, 'sentry:option-epoch') or 1
 
     def set_value(self, project, key, value):
         inst, created = self.create_or_update(
@@ -112,9 +113,6 @@ class ProjectOptionManager(BaseManager):
         super(ProjectOptionManager, self).contribute_to_class(model, name)
         task_postrun.connect(self.clear_local_cache)
         request_finished.connect(self.clear_local_cache)
-
-    OLDEST_EPOCH = 1
-    CURRENT_EPOCH = 1
 
 
 class ProjectOption(Model):

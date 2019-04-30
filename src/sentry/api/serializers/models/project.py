@@ -8,7 +8,7 @@ from django.db.models import Q
 from django.db.models.aggregates import Count
 from django.utils import timezone
 
-from sentry import options, roles, tsdb
+from sentry import options, roles, tsdb, projectoptions
 from sentry.api.serializers import register, serialize, Serializer
 from sentry.api.serializers.models.plugin import PluginSerializer
 from sentry.api.serializers.models.team import get_org_roles, get_team_memberships
@@ -20,8 +20,6 @@ from sentry.models import (
     EnvironmentProject, Project, ProjectAvatar, ProjectBookmark, ProjectOption, ProjectPlatform,
     ProjectStatus, ProjectTeam, Release, ReleaseProjectEnvironment, Deploy, UserOption, DEFAULT_SUBJECT_TEMPLATE
 )
-from sentry.grouping.strategies.configurations import DEFAULT_CONFIG as DEFAULT_GROUPING_CONFIG
-from sentry.grouping.enhancer import DEFAULT_ENHANCEMENT_BASE
 from sentry.utils.data_filters import FilterTypes
 from sentry.utils.db import is_postgres
 
@@ -406,6 +404,8 @@ def bulk_fetch_project_latest_releases(projects):
 class DetailedProjectSerializer(ProjectWithTeamSerializer):
     OPTION_KEYS = frozenset(
         [
+            # we need the epoch to fill in the defaults correctly
+            'sentry:option-epoch',
             'sentry:origins',
             'sentry:resolve_age',
             'sentry:scrub_data',
@@ -486,6 +486,13 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
     def serialize(self, obj, attrs, user):
         from sentry.plugins import plugins
 
+        def get_value_with_default(key):
+            value = attrs['options'].get(key)
+            if value is not None:
+                return value
+            return projectoptions.get_well_known_default(
+                key, epoch=attrs['options'].get('sentry:option-epoch'))
+
         data = super(DetailedProjectSerializer,
                      self).serialize(obj, attrs, user)
         data.update(
@@ -548,9 +555,9 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
                 'verifySSL': bool(attrs['options'].get('sentry:verify_ssl', False)),
                 'scrubIPAddresses': bool(attrs['options'].get('sentry:scrub_ip_address', False)),
                 'scrapeJavaScript': bool(attrs['options'].get('sentry:scrape_javascript', True)),
-                'groupingConfig': attrs['options'].get('sentry:grouping_config') or DEFAULT_GROUPING_CONFIG,
+                'groupingConfig': get_value_with_default('sentry:grouping_config'),
                 'groupingEnhancements': attrs['options'].get('sentry:grouping_enhancements') or u'',
-                'groupingEnhancementsBase': attrs['options'].get('sentry:grouping_enhancements_base') or DEFAULT_ENHANCEMENT_BASE,
+                'groupingEnhancementsBase': get_value_with_default('sentry:grouping_enhancements_base'),
                 'fingerprintingRules': attrs['options'].get('sentry:fingerprinting_rules') or u'',
                 'organization':
                 attrs['org'],

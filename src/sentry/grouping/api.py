@@ -3,19 +3,18 @@ from __future__ import absolute_import
 import re
 import six
 
-from sentry.grouping.strategies.configurations import CONFIGURATIONS, DEFAULT_CONFIG
+from sentry.grouping.strategies.configurations import CONFIGURATIONS
 from sentry.grouping.component import GroupingComponent
 from sentry.grouping.variants import ChecksumVariant, FallbackVariant, \
     ComponentVariant, CustomFingerprintVariant, SaltedComponentVariant
-from sentry.grouping.enhancer import Enhancements, InvalidEnhancerConfig, \
-    DEFAULT_ENHANCEMENTS_CONFIG, DEFAULT_ENHANCEMENT_BASE, ENHANCEMENT_BASES
+from sentry.grouping.enhancer import Enhancements, InvalidEnhancerConfig, ENHANCEMENT_BASES
 from sentry.grouping.utils import DEFAULT_FINGERPRINT_VALUES, hash_from_values
 
 
 HASH_RE = re.compile(r'^[0-9a-f]{32}$')
 
 
-class ConfigNotFoundException(LookupError):
+class GroupingConfigNotFound(LookupError):
     pass
 
 
@@ -27,14 +26,8 @@ def get_grouping_config_dict_for_project(project, silent=True):
     This is called early on in normalization so that everything that is needed
     to group the project is pulled into the event.
     """
-    config_id = project.get_option('sentry:grouping_config')
-    if config_id is None:
-        config_id = DEFAULT_CONFIG
-    else:
-        if config_id not in CONFIGURATIONS:
-            if not silent:
-                raise ConfigNotFoundException(config_id)
-            config_id = DEFAULT_CONFIG
+    config_id = project.get_option('sentry:grouping_config',
+                                   validate=lambda x: x in CONFIGURATIONS)
 
     # At a later point we might want to store additional information here
     # such as frames that mark the end of a stacktrace and more.
@@ -52,12 +45,8 @@ def get_grouping_config_dict_for_event_data(data, project):
 
 def _get_project_enhancements_config(project):
     enhancements = project.get_option('sentry:grouping_enhancements')
-    enhancements_base = project.get_option('sentry:grouping_enhancements_base')
-    if not enhancements and not enhancements_base:
-        return DEFAULT_ENHANCEMENTS_CONFIG
-
-    if enhancements_base is None or enhancements_base not in ENHANCEMENT_BASES:
-        enhancements_base = DEFAULT_ENHANCEMENT_BASE
+    enhancements_base = project.get_option('sentry:grouping_enhancements_base',
+                                           validate=lambda x: x in ENHANCEMENT_BASES)
 
     # Instead of parsing and dumping out config here, we can make a
     # shortcut
@@ -73,18 +62,25 @@ def _get_project_enhancements_config(project):
         rv = Enhancements.from_config_string(
             enhancements or '', bases=[enhancements_base]).dumps()
     except InvalidEnhancerConfig:
-        rv = DEFAULT_ENHANCEMENTS_CONFIG
+        rv = get_default_enhancements()
     cache.set(cache_key, rv)
     return rv
+
+
+def get_default_enhancements():
+    from sentry.projectoptions.defaults import DEFAULT_GROUPING_ENHANCEMENTS_BASE
+    return Enhancements(
+        rules=[], bases=[DEFAULT_GROUPING_ENHANCEMENTS_BASE]).dumps()
 
 
 def get_default_grouping_config_dict(id=None):
     """Returns the default grouping config."""
     if id is None:
-        id = DEFAULT_CONFIG
+        from sentry.projectoptions.defaults import DEFAULT_GROUPING_CONFIG
+        id = DEFAULT_GROUPING_CONFIG
     return {
         'id': id,
-        'enhancements': DEFAULT_ENHANCEMENTS_CONFIG,
+        'enhancements': get_default_enhancements(),
     }
 
 
@@ -97,7 +93,7 @@ def load_grouping_config(config_dict=None):
     config_dict = dict(config_dict)
     config_id = config_dict.pop('id')
     if config_id not in CONFIGURATIONS:
-        raise ConfigNotFoundException(config_id)
+        raise GroupingConfigNotFound(config_id)
     return CONFIGURATIONS[config_id](**config_dict)
 
 

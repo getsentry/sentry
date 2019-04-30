@@ -24,7 +24,8 @@ from sentry.constants import (
 )
 from sentry.grouping.api import get_grouping_config_dict_for_project, \
     get_grouping_config_dict_for_event_data, load_grouping_config, \
-    apply_server_fingerprinting, get_fingerprinting_config_for_project
+    apply_server_fingerprinting, get_fingerprinting_config_for_project, \
+    GroupingConfigNotFound
 from sentry.coreapi import (
     APIError,
     APIForbidden,
@@ -786,7 +787,16 @@ class EventManager(object):
         # look at `grouping_config` to pick the right paramters.
         data['fingerprint'] = data.get('fingerprint') or ['{{ default }}']
         apply_server_fingerprinting(data, get_fingerprinting_config_for_project(project))
-        hashes = event.get_hashes()
+
+        # Here we try to use the grouping config that was requested in the
+        # event.  If that config has since been deleted (because it was an
+        # experimental grouping config) we fall back to the default.
+        try:
+            hashes = event.get_hashes()
+        except GroupingConfigNotFound:
+            data['grouping_config'] = get_grouping_config_dict_for_project(project)
+            hashes = event.get_hashes()
+
         data['hashes'] = hashes
 
         # we want to freeze not just the metadata and type in but also the
