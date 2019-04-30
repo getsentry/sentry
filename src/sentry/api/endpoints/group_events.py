@@ -12,7 +12,7 @@ from functools import partial
 from sentry import features, options, quotas, tagstore
 from sentry.api.base import DocSection, EnvironmentMixin
 from sentry.api.bases import GroupEndpoint
-from sentry.api.event_search import BOOLEAN_OPERATORS, get_snuba_query_args
+from sentry.api.event_search import get_snuba_query_args
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.helpers.environments import get_environments
 from sentry.api.helpers.events import get_direct_hit_response
@@ -96,6 +96,18 @@ class GroupEventsEndpoint(GroupEndpoint, EnvironmentMixin):
 
         full = request.GET.get('full', False)
         snuba_args = get_snuba_query_args(request.GET.get('query', None), params)
+
+        # TODO(lb): remove once boolean search is fully functional
+        if snuba_args:
+            has_boolean_op_flag = features.has(
+                'organizations:boolean-search',
+                group.project.organization,
+                actor=request.user
+            )
+            if snuba_args.pop('has_boolean_terms', False) and not has_boolean_op_flag:
+                raise GroupEventsError(
+                    'Boolean search operator OR and AND not allowed in this search.')
+
         snuba_cols = SnubaEvent.minimal_columns if full else SnubaEvent.selected_columns
 
         data_fn = partial(
@@ -175,17 +187,6 @@ class GroupEventsEndpoint(GroupEndpoint, EnvironmentMixin):
         raw_query = request.GET.get('query')
 
         if raw_query:
-            # TODO(lb): remove once boolean search is fully functional
-            has_boolean_operators = features.has(
-                'organizations:boolean-search',
-                group.project.organization,
-                actor=request.user)
-
-            query_has_boolean_ops = [True for op in BOOLEAN_OPERATORS if op in raw_query]
-            if query_has_boolean_ops and not has_boolean_operators:
-                raise GroupEventsError(
-                    'Boolean search operator OR and AND not allowed in this search.')
-
             query_kwargs = parse_query([group.project], raw_query, request.user, environments)
             query = query_kwargs.pop('query', None)
             tags = query_kwargs.pop('tags', {})

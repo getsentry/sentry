@@ -145,6 +145,17 @@ class InvalidSearchQuery(Exception):
     pass
 
 
+def has_boolean_search_terms(search_terms):
+    for term in search_terms:
+        if isinstance(term, SearchBoolean):
+            return True
+    return False
+
+
+class SearchBoolean(namedtuple('SearchBoolean', 'left_term operator right_term')):
+    pass
+
+
 class SearchFilter(namedtuple('SearchFilter', 'key operator value')):
 
     def __str__(self):
@@ -515,6 +526,8 @@ def get_snuba_query_args(query=None, params=None):
     kwargs = {
         'conditions': [],
         'filter_keys': {},
+        # TODO(lb): remove when boolean terms fully functional
+        'has_boolean_terms': has_boolean_search_terms(parsed_filters),
     }
     for _filter in parsed_filters:
         snuba_name = _filter.key.snuba_name
