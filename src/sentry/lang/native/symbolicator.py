@@ -226,7 +226,44 @@ def get_sources_for_project(project):
     return sources
 
 
-def run_symbolicator(stacktraces, modules, project, arch, signal, request_id_cache_key):
+def create_minidump_task(sess, base_url, project_id, sources, minidump):
+    files = {
+        'upload_file_minidump': minidump,
+    }
+
+    data = {
+        'sources': json.dumps(sources)
+    }
+
+    url = '{base_url}/minidump?timeout={timeout}&scope={scope}'.format(
+        base_url=base_url,
+        timeout=SYMBOLICATOR_TIMEOUT,
+        scope=project_id
+    )
+
+    return sess.post(url, data=data, files=files)
+
+
+def create_payload_task(sess, base_url, project_id, sources, signal,
+                        stacktraces, modules):
+    request = {
+        'signal': signal,
+        'sources': sources,
+        'request': {
+            'timeout': SYMBOLICATOR_TIMEOUT,
+        },
+        'stacktraces': stacktraces,
+        'modules': modules,
+    }
+    url = '{base_url}/symbolicate?timeout={timeout}&scope={scope}'.format(
+        base_url=base_url,
+        timeout=SYMBOLICATOR_TIMEOUT,
+        scope=project_id,
+    )
+    return sess.post(url, json=request)
+
+
+def run_symbolicator(project, request_id_cache_key, create_task=create_payload_task, **kwargs):
     symbolicator_options = options.get('symbolicator.options')
     base_url = symbolicator_options['url'].rstrip('/')
     assert base_url
@@ -253,10 +290,11 @@ def run_symbolicator(stacktraces, modules, project, arch, signal, request_id_cac
                     if sources is None:
                         sources = get_sources_for_project(project)
 
-                    rv = _create_symbolication_task(
+                    rv = create_task(
                         sess=sess, base_url=base_url,
-                        project_id=project_id, sources=sources,
-                        signal=signal, stacktraces=stacktraces, modules=modules
+                        project_id=project_id,
+                        sources=sources,
+                        **kwargs
                     )
 
                 metrics.incr('events.symbolicator.status_code', tags={
@@ -312,25 +350,6 @@ def _poll_symbolication_task(sess, base_url, request_id):
         timeout=SYMBOLICATOR_TIMEOUT,
     )
     return sess.get(url)
-
-
-def _create_symbolication_task(sess, base_url, project_id, sources,
-                               signal, stacktraces, modules):
-    request = {
-        'signal': signal,
-        'sources': sources,
-        'request': {
-            'timeout': SYMBOLICATOR_TIMEOUT,
-        },
-        'stacktraces': stacktraces,
-        'modules': modules,
-    }
-    url = '{base_url}/symbolicate?timeout={timeout}&scope={scope}'.format(
-        base_url=base_url,
-        timeout=SYMBOLICATOR_TIMEOUT,
-        scope=project_id,
-    )
-    return sess.post(url, json=request)
 
 
 def merge_symbolicator_image(raw_image, complete_image, sdk_info, handle_symbolication_failed):

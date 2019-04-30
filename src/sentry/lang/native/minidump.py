@@ -1,12 +1,17 @@
 from __future__ import absolute_import
 
+import logging
+
 from django.core.files.uploadedfile import InMemoryUploadedFile, TemporaryUploadedFile
 
 import dateutil.parser as dp
-import logging
 from msgpack import unpack, Unpacker, UnpackException, ExtraData
 from symbolic import normalize_arch, ProcessState, id_from_breakpad
 
+from sentry.lang.native.utils import get_sdk_from_event, handle_symbolication_failed, merge_symbolicated_frame
+from sentry.lang.native.symbolicator import merge_symbolicator_image
+from sentry.attachments import attachment_cache
+from sentry.coreapi import cache_key_for_event
 from sentry.utils.safe import get_path
 
 minidumps_logger = logging.getLogger('sentry.minidumps')
@@ -180,3 +185,74 @@ def frames_from_minidump_thread(thread):
         'package': frame.module.code_file if frame.module else None,
         'trust': frame.trust,
     } for frame in reversed(list(thread.frames()))]
+
+
+def get_attached_minidump(data):
+    cache_key = cache_key_for_event(data)
+    attachments = attachment_cache.get(cache_key) or []
+    return next((a for a in attachments if a.type == MINIDUMP_ATTACHMENT_TYPE), None)
+
+
+def merge_symbolicator_minidump_response(data, response):
+    sdk_info = get_sdk_from_event(data)
+
+    # TODO(markus): Add OS context here when `merge_process_state_event` is no
+    # longer called for symbolicator projects
+
+    data.setdefault('debug_meta', {})['images'] = images = []
+
+    for complete_image in response['modules']:
+        image = {}
+        merge_symbolicator_image(
+            image, complete_image, sdk_info,
+            lambda e: handle_symbolication_failed(
+                e, data=data,
+                errors=data.setdefault('errors', [])
+            )
+        )
+        images.append(image)
+
+    data['threads'] = threads = {'values': []}
+
+    crashed_thread = {}
+
+    for complete_stacktrace in response.get('stacktraces') or ():
+        thread = {
+            'id': complete_stacktrace.get('thread_id'),
+            'crashed': complete_stacktrace.get('is_requesting'),
+            'stacktrace': {
+                'frames': [],
+                'registers': complete_stacktrace.get('registers')
+            },
+        }
+
+        if thread['crashed']:
+            crashed_thread = thread
+
+        for complete_frame in complete_stacktrace.get('frames') or ():
+            new_frame = {}
+            merge_symbolicated_frame(new_frame, complete_frame)
+            thread['stacktrace']['frames'].append(new_frame)
+
+        thread['stacktrace']['frames'].reverse()
+
+        threads['values'].append(thread)
+
+    exc_value = 'Assertion Error: %s' % response['assertion'] if response.get('assertion')\
+        else 'Fatal Error: %s' % response.get('crash_reason')
+
+    data['exception'] = {'values': [{
+        'value': exc_value,
+        'thread_id': crashed_thread.get('id'),
+        'type': response.get('crash_reason'),
+        # Move stacktrace here from crashed_thread (mutating!)
+        'stacktrace': crashed_thread.pop('stacktrace', None),
+        'mechanism': {
+            'type': 'minidump',
+            'handled': False,
+            'synthetic': True,
+            # We cannot extract exception codes or signals with the breakpad
+            # extractor just yet. Once these capabilities are added to symbolic,
+            # these values should go in the mechanism here.
+        }
+    }]}
