@@ -138,6 +138,9 @@ class EventCommon(object):
     def get_interfaces(self):
         was_renormalized = _should_skip_to_python(self.event_id)
 
+        metrics.incr('event.get_interfaces',
+                     tags={'rust_renormalized': was_renormalized})
+
         return CanonicalKeyView(get_interfaces(self.data, rust_renormalized=was_renormalized))
 
     @memoize
