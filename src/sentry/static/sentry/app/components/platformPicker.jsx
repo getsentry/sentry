@@ -189,6 +189,7 @@ const PlatformList = styled('div')`
   display: grid;
   grid-gap: ${space(1)};
   grid-template-columns: repeat(auto-fill, 112px);
+  margin-bottom: ${space(2)};
 `;
 
 const StyledPlatformIconTile = styled(PlatformIconTile)`
