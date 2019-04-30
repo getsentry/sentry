@@ -75,11 +75,11 @@ class GroupListTest(APITestCase, SnubaTestCase):
         self.login_as(user=self.user)
         response = self.get_response(sort_by='date', query='title:hello OR title:goodbye')
         assert response.status_code == 400
-        assert response.data['detail'] == 'Boolean search operator OR not allowed in this search.'
+        assert response.data['detail'] == 'Your search query could not be parsed: Boolean statements containing "OR" or "AND" are not supported in this search'
 
         response = self.get_response(sort_by='date', query='title:hello AND title:goodbye')
         assert response.status_code == 400
-        assert response.data['detail'] == 'Boolean search operator AND not allowed in this search.'
+        assert response.data['detail'] == 'Your search query could not be parsed: Boolean statements containing "OR" or "AND" are not supported in this search'
 
     def test_invalid_query(self):
         now = timezone.now()
