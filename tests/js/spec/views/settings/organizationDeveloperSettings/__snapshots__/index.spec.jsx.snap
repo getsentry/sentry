@@ -156,7 +156,7 @@ exports[`Organization Developer Settings when no Apps exist displays empty state
                               <ForwardRef
                                 aria-disabled={false}
                                 aria-label="Create New Integration"
-                                className="css-1oc9q3a-StyledButton-getColors e12ma6z0"
+                                className="css-zvpqlo-StyledButton-getColors e12ma6z0"
                                 disabled={false}
                                 onClick={[Function]}
                                 priority="primary"
@@ -167,7 +167,7 @@ exports[`Organization Developer Settings when no Apps exist displays empty state
                                 <Link
                                   aria-disabled={false}
                                   aria-label="Create New Integration"
-                                  className="css-1oc9q3a-StyledButton-getColors e12ma6z0"
+                                  className="css-zvpqlo-StyledButton-getColors e12ma6z0"
                                   onClick={[Function]}
                                   onlyActiveOnIndex={false}
                                   role="button"
@@ -178,7 +178,7 @@ exports[`Organization Developer Settings when no Apps exist displays empty state
                                   <a
                                     aria-disabled={false}
                                     aria-label="Create New Integration"
-                                    className="css-1oc9q3a-StyledButton-getColors e12ma6z0"
+                                    className="css-zvpqlo-StyledButton-getColors e12ma6z0"
                                     onClick={[Function]}
                                     role="button"
                                     size="small"
@@ -258,29 +258,89 @@ exports[`Organization Developer Settings when no Apps exist displays empty state
               </div>
             </Wrapper>
           </SettingsPageHeading>
+          <AlertLink
+            priority="warning"
+            to="https://docs.sentry.io/workflow/integrations/integration-platform/"
+          >
+            <StyledLink
+              priority="warning"
+              to="https://docs.sentry.io/workflow/integrations/integration-platform/"
+            >
+              <Link
+                className="css-1285l17-StyledLink e1fthm6j0"
+                priority="warning"
+                to="https://docs.sentry.io/workflow/integrations/integration-platform/"
+              >
+                <Link
+                  className="css-1285l17-StyledLink e1fthm6j0"
+                  onlyActiveOnIndex={false}
+                  priority="warning"
+                  style={Object {}}
+                  to="https://docs.sentry.io/workflow/integrations/integration-platform/"
+                >
+                  <a
+                    className="css-1285l17-StyledLink e1fthm6j0"
+                    onClick={[Function]}
+                    priority="warning"
+                    style={Object {}}
+                  >
+                    <AlertLinkText>
+                      <div
+                        className="css-19z7wog-AlertLinkText e1fthm6j1"
+                      >
+                        Have questions about the Integration Platform? Learn more about it in our docs.
+                      </div>
+                    </AlertLinkText>
+                    <InlineSvg
+                      size="1em"
+                      src="icon-chevron-right"
+                    >
+                      <StyledSvg
+                        height="1em"
+                        viewBox={Object {}}
+                        width="1em"
+                      >
+                        <svg
+                          className="css-ryh69w-StyledSvg e2idor0"
+                          height="1em"
+                          viewBox={Object {}}
+                          width="1em"
+                        >
+                          <use
+                            href="#test"
+                            xlinkHref="#test"
+                          />
+                        </svg>
+                      </StyledSvg>
+                    </InlineSvg>
+                  </a>
+                </Link>
+              </Link>
+            </StyledLink>
+          </AlertLink>
           <Panel>
             <Component
-              className="css-10qfvek-Panel e1laxa7d0"
+              className="css-yahxlu-Panel e1laxa7d0"
             >
               <div
-                className="css-10qfvek-Panel e1laxa7d0"
+                className="css-yahxlu-Panel e1laxa7d0"
               >
                 <PanelHeader>
                   <Component
-                    className="css-7odsll-PanelHeader-getPadding e1p8v8nv0"
+                    className="css-xhx6pj-PanelHeader-getPadding e1p8v8nv0"
                   >
                     <Flex
                       align="center"
-                      className="css-7odsll-PanelHeader-getPadding e1p8v8nv0"
+                      className="css-xhx6pj-PanelHeader-getPadding e1p8v8nv0"
                       justify="space-between"
                     >
                       <Base
                         align="center"
-                        className="e1p8v8nv0 css-1fivf9w-PanelHeader-getPadding"
+                        className="e1p8v8nv0 css-b7ices-PanelHeader-getPadding"
                         justify="space-between"
                       >
                         <div
-                          className="e1p8v8nv0 css-1fivf9w-PanelHeader-getPadding"
+                          className="e1p8v8nv0 css-b7ices-PanelHeader-getPadding"
                           is={null}
                         >
                           Integrations
@@ -295,7 +355,7 @@ exports[`Organization Developer Settings when no Apps exist displays empty state
                   flex={false}
                 >
                   <div
-                    className="css-a4ya23-textStyles"
+                    className="css-9vq8an-textStyles"
                   >
                     <EmptyMessage>
                       <Wrapper
@@ -463,10 +523,10 @@ exports[`Organization Developer Settings when not flagged in to sentry-apps disp
           </SettingsPageHeading>
           <Panel>
             <Component
-              className="css-10qfvek-Panel e1laxa7d0"
+              className="css-yahxlu-Panel e1laxa7d0"
             >
               <div
-                className="css-10qfvek-Panel e1laxa7d0"
+                className="css-yahxlu-Panel e1laxa7d0"
               >
                 <PanelBody
                   direction="column"
@@ -474,7 +534,7 @@ exports[`Organization Developer Settings when not flagged in to sentry-apps disp
                   flex={false}
                 >
                   <div
-                    className="css-a4ya23-textStyles"
+                    className="css-9vq8an-textStyles"
                   >
                     <EmptyMessage>
                       <Wrapper
@@ -669,7 +729,7 @@ exports[`Organization Developer Settings with published apps trash button is dis
                               <ForwardRef
                                 aria-disabled={false}
                                 aria-label="Create New Integration"
-                                className="css-1oc9q3a-StyledButton-getColors e12ma6z0"
+                                className="css-zvpqlo-StyledButton-getColors e12ma6z0"
                                 disabled={false}
                                 onClick={[Function]}
                                 priority="primary"
@@ -680,7 +740,7 @@ exports[`Organization Developer Settings with published apps trash button is dis
                                 <Link
                                   aria-disabled={false}
                                   aria-label="Create New Integration"
-                                  className="css-1oc9q3a-StyledButton-getColors e12ma6z0"
+                                  className="css-zvpqlo-StyledButton-getColors e12ma6z0"
                                   onClick={[Function]}
                                   onlyActiveOnIndex={false}
                                   role="button"
@@ -691,7 +751,7 @@ exports[`Organization Developer Settings with published apps trash button is dis
                                   <a
                                     aria-disabled={false}
                                     aria-label="Create New Integration"
-                                    className="css-1oc9q3a-StyledButton-getColors e12ma6z0"
+                                    className="css-zvpqlo-StyledButton-getColors e12ma6z0"
                                     onClick={[Function]}
                                     role="button"
                                     size="small"
@@ -771,29 +831,89 @@ exports[`Organization Developer Settings with published apps trash button is dis
               </div>
             </Wrapper>
           </SettingsPageHeading>
+          <AlertLink
+            priority="warning"
+            to="https://docs.sentry.io/workflow/integrations/integration-platform/"
+          >
+            <StyledLink
+              priority="warning"
+              to="https://docs.sentry.io/workflow/integrations/integration-platform/"
+            >
+              <Link
+                className="css-1285l17-StyledLink e1fthm6j0"
+                priority="warning"
+                to="https://docs.sentry.io/workflow/integrations/integration-platform/"
+              >
+                <Link
+                  className="css-1285l17-StyledLink e1fthm6j0"
+                  onlyActiveOnIndex={false}
+                  priority="warning"
+                  style={Object {}}
+                  to="https://docs.sentry.io/workflow/integrations/integration-platform/"
+                >
+                  <a
+                    className="css-1285l17-StyledLink e1fthm6j0"
+                    onClick={[Function]}
+                    priority="warning"
+                    style={Object {}}
+                  >
+                    <AlertLinkText>
+                      <div
+                        className="css-19z7wog-AlertLinkText e1fthm6j1"
+                      >
+                        Have questions about the Integration Platform? Learn more about it in our docs.
+                      </div>
+                    </AlertLinkText>
+                    <InlineSvg
+                      size="1em"
+                      src="icon-chevron-right"
+                    >
+                      <StyledSvg
+                        height="1em"
+                        viewBox={Object {}}
+                        width="1em"
+                      >
+                        <svg
+                          className="css-ryh69w-StyledSvg e2idor0"
+                          height="1em"
+                          viewBox={Object {}}
+                          width="1em"
+                        >
+                          <use
+                            href="#test"
+                            xlinkHref="#test"
+                          />
+                        </svg>
+                      </StyledSvg>
+                    </InlineSvg>
+                  </a>
+                </Link>
+              </Link>
+            </StyledLink>
+          </AlertLink>
           <Panel>
             <Component
-              className="css-10qfvek-Panel e1laxa7d0"
+              className="css-yahxlu-Panel e1laxa7d0"
             >
               <div
-                className="css-10qfvek-Panel e1laxa7d0"
+                className="css-yahxlu-Panel e1laxa7d0"
               >
                 <PanelHeader>
                   <Component
-                    className="css-7odsll-PanelHeader-getPadding e1p8v8nv0"
+                    className="css-xhx6pj-PanelHeader-getPadding e1p8v8nv0"
                   >
                     <Flex
                       align="center"
-                      className="css-7odsll-PanelHeader-getPadding e1p8v8nv0"
+                      className="css-xhx6pj-PanelHeader-getPadding e1p8v8nv0"
                       justify="space-between"
                     >
                       <Base
                         align="center"
-                        className="e1p8v8nv0 css-1fivf9w-PanelHeader-getPadding"
+                        className="e1p8v8nv0 css-b7ices-PanelHeader-getPadding"
                         justify="space-between"
                       >
                         <div
-                          className="e1p8v8nv0 css-1fivf9w-PanelHeader-getPadding"
+                          className="e1p8v8nv0 css-b7ices-PanelHeader-getPadding"
                           is={null}
                         >
                           Integrations
@@ -808,7 +928,7 @@ exports[`Organization Developer Settings with published apps trash button is dis
                   flex={false}
                 >
                   <div
-                    className="css-a4ya23-textStyles"
+                    className="css-9vq8an-textStyles"
                   >
                     <SentryApplicationRow
                       app={
@@ -865,15 +985,12 @@ exports[`Organization Developer Settings with published apps trash button is dis
                       }
                       showPublishStatus={true}
                     >
-                      <SentryAppItem
-                        p={2}
-                      >
+                      <SentryAppItem>
                         <Base
-                          className="css-13p7dw9-PanelItem-SentryAppItem eac2pqx0"
-                          p={2}
+                          className="css-h9gjd5-PanelItem-SentryAppItem eac2pqx0"
                         >
                           <div
-                            className="css-13p7dw9-PanelItem-SentryAppItem eac2pqx0"
+                            className="css-h9gjd5-PanelItem-SentryAppItem eac2pqx0"
                             is={null}
                           >
                             <StyledFlex>
@@ -893,7 +1010,7 @@ exports[`Organization Developer Settings with published apps trash button is dis
                                       size={36}
                                     >
                                       <div
-                                        className="css-1c5rb9q-IntegrationIcon e1bhjds90"
+                                        className="css-5iptpn-IntegrationIcon e1bhjds90"
                                         size={36}
                                       />
                                     </IntegrationIcon>
@@ -911,8 +1028,6 @@ exports[`Organization Developer Settings with published apps trash button is dis
                                             className="css-uiwo8x-SentryAppName eac2pqx4"
                                           >
                                             <SentryAppLink
-                                              onlyActiveOnIndex={false}
-                                              style={Object {}}
                                               to="/settings/org-slug/developer-settings/sample-app/"
                                             >
                                               <Link
@@ -1064,7 +1179,7 @@ exports[`Organization Developer Settings with published apps trash button is dis
                                               >
                                                 <ForwardRef
                                                   aria-disabled={true}
-                                                  className="tip tip css-bzxnfi-StyledButton-getColors e12ma6z0"
+                                                  className="tip tip css-1ujzp8g-StyledButton-getColors e12ma6z0"
                                                   disabled={true}
                                                   href={null}
                                                   onClick={[Function]}
@@ -1075,7 +1190,7 @@ exports[`Organization Developer Settings with published apps trash button is dis
                                                 >
                                                   <button
                                                     aria-disabled={true}
-                                                    className="tip tip css-bzxnfi-StyledButton-getColors e12ma6z0"
+                                                    className="tip tip css-1ujzp8g-StyledButton-getColors e12ma6z0"
                                                     href={null}
                                                     onClick={[Function]}
                                                     role="button"
@@ -1325,7 +1440,7 @@ exports[`Organization Developer Settings with unpublished apps displays all Apps
                               <ForwardRef
                                 aria-disabled={false}
                                 aria-label="Create New Integration"
-                                className="css-1oc9q3a-StyledButton-getColors e12ma6z0"
+                                className="css-zvpqlo-StyledButton-getColors e12ma6z0"
                                 disabled={false}
                                 onClick={[Function]}
                                 priority="primary"
@@ -1336,7 +1451,7 @@ exports[`Organization Developer Settings with unpublished apps displays all Apps
                                 <Link
                                   aria-disabled={false}
                                   aria-label="Create New Integration"
-                                  className="css-1oc9q3a-StyledButton-getColors e12ma6z0"
+                                  className="css-zvpqlo-StyledButton-getColors e12ma6z0"
                                   onClick={[Function]}
                                   onlyActiveOnIndex={false}
                                   role="button"
@@ -1347,7 +1462,7 @@ exports[`Organization Developer Settings with unpublished apps displays all Apps
                                   <a
                                     aria-disabled={false}
                                     aria-label="Create New Integration"
-                                    className="css-1oc9q3a-StyledButton-getColors e12ma6z0"
+                                    className="css-zvpqlo-StyledButton-getColors e12ma6z0"
                                     onClick={[Function]}
                                     role="button"
                                     size="small"
@@ -1427,29 +1542,89 @@ exports[`Organization Developer Settings with unpublished apps displays all Apps
               </div>
             </Wrapper>
           </SettingsPageHeading>
+          <AlertLink
+            priority="warning"
+            to="https://docs.sentry.io/workflow/integrations/integration-platform/"
+          >
+            <StyledLink
+              priority="warning"
+              to="https://docs.sentry.io/workflow/integrations/integration-platform/"
+            >
+              <Link
+                className="css-1285l17-StyledLink e1fthm6j0"
+                priority="warning"
+                to="https://docs.sentry.io/workflow/integrations/integration-platform/"
+              >
+                <Link
+                  className="css-1285l17-StyledLink e1fthm6j0"
+                  onlyActiveOnIndex={false}
+                  priority="warning"
+                  style={Object {}}
+                  to="https://docs.sentry.io/workflow/integrations/integration-platform/"
+                >
+                  <a
+                    className="css-1285l17-StyledLink e1fthm6j0"
+                    onClick={[Function]}
+                    priority="warning"
+                    style={Object {}}
+                  >
+                    <AlertLinkText>
+                      <div
+                        className="css-19z7wog-AlertLinkText e1fthm6j1"
+                      >
+                        Have questions about the Integration Platform? Learn more about it in our docs.
+                      </div>
+                    </AlertLinkText>
+                    <InlineSvg
+                      size="1em"
+                      src="icon-chevron-right"
+                    >
+                      <StyledSvg
+                        height="1em"
+                        viewBox={Object {}}
+                        width="1em"
+                      >
+                        <svg
+                          className="css-ryh69w-StyledSvg e2idor0"
+                          height="1em"
+                          viewBox={Object {}}
+                          width="1em"
+                        >
+                          <use
+                            href="#test"
+                            xlinkHref="#test"
+                          />
+                        </svg>
+                      </StyledSvg>
+                    </InlineSvg>
+                  </a>
+                </Link>
+              </Link>
+            </StyledLink>
+          </AlertLink>
           <Panel>
             <Component
-              className="css-10qfvek-Panel e1laxa7d0"
+              className="css-yahxlu-Panel e1laxa7d0"
             >
               <div
-                className="css-10qfvek-Panel e1laxa7d0"
+                className="css-yahxlu-Panel e1laxa7d0"
               >
                 <PanelHeader>
                   <Component
-                    className="css-7odsll-PanelHeader-getPadding e1p8v8nv0"
+                    className="css-xhx6pj-PanelHeader-getPadding e1p8v8nv0"
                   >
                     <Flex
                       align="center"
-                      className="css-7odsll-PanelHeader-getPadding e1p8v8nv0"
+                      className="css-xhx6pj-PanelHeader-getPadding e1p8v8nv0"
                       justify="space-between"
                     >
                       <Base
                         align="center"
-                        className="e1p8v8nv0 css-1fivf9w-PanelHeader-getPadding"
+                        className="e1p8v8nv0 css-b7ices-PanelHeader-getPadding"
                         justify="space-between"
                       >
                         <div
-                          className="e1p8v8nv0 css-1fivf9w-PanelHeader-getPadding"
+                          className="e1p8v8nv0 css-b7ices-PanelHeader-getPadding"
                           is={null}
                         >
                           Integrations
@@ -1464,7 +1639,7 @@ exports[`Organization Developer Settings with unpublished apps displays all Apps
                   flex={false}
                 >
                   <div
-                    className="css-a4ya23-textStyles"
+                    className="css-9vq8an-textStyles"
                   >
                     <SentryApplicationRow
                       app={
@@ -1521,15 +1696,12 @@ exports[`Organization Developer Settings with unpublished apps displays all Apps
                       }
                       showPublishStatus={true}
                     >
-                      <SentryAppItem
-                        p={2}
-                      >
+                      <SentryAppItem>
                         <Base
-                          className="css-13p7dw9-PanelItem-SentryAppItem eac2pqx0"
-                          p={2}
+                          className="css-h9gjd5-PanelItem-SentryAppItem eac2pqx0"
                         >
                           <div
-                            className="css-13p7dw9-PanelItem-SentryAppItem eac2pqx0"
+                            className="css-h9gjd5-PanelItem-SentryAppItem eac2pqx0"
                             is={null}
                           >
                             <StyledFlex>
@@ -1549,7 +1721,7 @@ exports[`Organization Developer Settings with unpublished apps displays all Apps
                                       size={36}
                                     >
                                       <div
-                                        className="css-1c5rb9q-IntegrationIcon e1bhjds90"
+                                        className="css-5iptpn-IntegrationIcon e1bhjds90"
                                         size={36}
                                       />
                                     </IntegrationIcon>
@@ -1567,8 +1739,6 @@ exports[`Organization Developer Settings with unpublished apps displays all Apps
                                             className="css-uiwo8x-SentryAppName eac2pqx4"
                                           >
                                             <SentryAppLink
-                                              onlyActiveOnIndex={false}
-                                              style={Object {}}
                                               to="/settings/org-slug/developer-settings/sample-app/"
                                             >
                                               <Link
@@ -1871,7 +2041,7 @@ exports[`Organization Developer Settings with unpublished apps displays all Apps
                                                     >
                                                       <ForwardRef
                                                         aria-disabled={false}
-                                                        className="css-o6814l-StyledButton-getColors e12ma6z0"
+                                                        className="css-dkprmi-StyledButton-getColors e12ma6z0"
                                                         disabled={false}
                                                         onClick={[Function]}
                                                         role="button"
@@ -1879,7 +2049,7 @@ exports[`Organization Developer Settings with unpublished apps displays all Apps
                                                       >
                                                         <button
                                                           aria-disabled={false}
-                                                          className="css-o6814l-StyledButton-getColors e12ma6z0"
+                                                          className="css-dkprmi-StyledButton-getColors e12ma6z0"
                                                           onClick={[Function]}
                                                           role="button"
                                                           size="small"
@@ -2163,7 +2333,7 @@ exports[`Organization Developer Settings without Owner permissions trash button 
                               <ForwardRef
                                 aria-disabled={false}
                                 aria-label="Create New Integration"
-                                className="css-1oc9q3a-StyledButton-getColors e12ma6z0"
+                                className="css-zvpqlo-StyledButton-getColors e12ma6z0"
                                 disabled={false}
                                 onClick={[Function]}
                                 priority="primary"
@@ -2174,7 +2344,7 @@ exports[`Organization Developer Settings without Owner permissions trash button 
                                 <Link
                                   aria-disabled={false}
                                   aria-label="Create New Integration"
-                                  className="css-1oc9q3a-StyledButton-getColors e12ma6z0"
+                                  className="css-zvpqlo-StyledButton-getColors e12ma6z0"
                                   onClick={[Function]}
                                   onlyActiveOnIndex={false}
                                   role="button"
@@ -2185,7 +2355,7 @@ exports[`Organization Developer Settings without Owner permissions trash button 
                                   <a
                                     aria-disabled={false}
                                     aria-label="Create New Integration"
-                                    className="css-1oc9q3a-StyledButton-getColors e12ma6z0"
+                                    className="css-zvpqlo-StyledButton-getColors e12ma6z0"
                                     onClick={[Function]}
                                     role="button"
                                     size="small"
@@ -2265,29 +2435,89 @@ exports[`Organization Developer Settings without Owner permissions trash button 
               </div>
             </Wrapper>
           </SettingsPageHeading>
+          <AlertLink
+            priority="warning"
+            to="https://docs.sentry.io/workflow/integrations/integration-platform/"
+          >
+            <StyledLink
+              priority="warning"
+              to="https://docs.sentry.io/workflow/integrations/integration-platform/"
+            >
+              <Link
+                className="css-1285l17-StyledLink e1fthm6j0"
+                priority="warning"
+                to="https://docs.sentry.io/workflow/integrations/integration-platform/"
+              >
+                <Link
+                  className="css-1285l17-StyledLink e1fthm6j0"
+                  onlyActiveOnIndex={false}
+                  priority="warning"
+                  style={Object {}}
+                  to="https://docs.sentry.io/workflow/integrations/integration-platform/"
+                >
+                  <a
+                    className="css-1285l17-StyledLink e1fthm6j0"
+                    onClick={[Function]}
+                    priority="warning"
+                    style={Object {}}
+                  >
+                    <AlertLinkText>
+                      <div
+                        className="css-19z7wog-AlertLinkText e1fthm6j1"
+                      >
+                        Have questions about the Integration Platform? Learn more about it in our docs.
+                      </div>
+                    </AlertLinkText>
+                    <InlineSvg
+                      size="1em"
+                      src="icon-chevron-right"
+                    >
+                      <StyledSvg
+                        height="1em"
+                        viewBox={Object {}}
+                        width="1em"
+                      >
+                        <svg
+                          className="css-ryh69w-StyledSvg e2idor0"
+                          height="1em"
+                          viewBox={Object {}}
+                          width="1em"
+                        >
+                          <use
+                            href="#test"
+                            xlinkHref="#test"
+                          />
+                        </svg>
+                      </StyledSvg>
+                    </InlineSvg>
+                  </a>
+                </Link>
+              </Link>
+            </StyledLink>
+          </AlertLink>
           <Panel>
             <Component
-              className="css-10qfvek-Panel e1laxa7d0"
+              className="css-yahxlu-Panel e1laxa7d0"
             >
               <div
-                className="css-10qfvek-Panel e1laxa7d0"
+                className="css-yahxlu-Panel e1laxa7d0"
               >
                 <PanelHeader>
                   <Component
-                    className="css-7odsll-PanelHeader-getPadding e1p8v8nv0"
+                    className="css-xhx6pj-PanelHeader-getPadding e1p8v8nv0"
                   >
                     <Flex
                       align="center"
-                      className="css-7odsll-PanelHeader-getPadding e1p8v8nv0"
+                      className="css-xhx6pj-PanelHeader-getPadding e1p8v8nv0"
                       justify="space-between"
                     >
                       <Base
                         align="center"
-                        className="e1p8v8nv0 css-1fivf9w-PanelHeader-getPadding"
+                        className="e1p8v8nv0 css-b7ices-PanelHeader-getPadding"
                         justify="space-between"
                       >
                         <div
-                          className="e1p8v8nv0 css-1fivf9w-PanelHeader-getPadding"
+                          className="e1p8v8nv0 css-b7ices-PanelHeader-getPadding"
                           is={null}
                         >
                           Integrations
@@ -2302,7 +2532,7 @@ exports[`Organization Developer Settings without Owner permissions trash button 
                   flex={false}
                 >
                   <div
-                    className="css-a4ya23-textStyles"
+                    className="css-9vq8an-textStyles"
                   >
                     <SentryApplicationRow
                       app={
@@ -2350,15 +2580,12 @@ exports[`Organization Developer Settings without Owner permissions trash button 
                       }
                       showPublishStatus={true}
                     >
-                      <SentryAppItem
-                        p={2}
-                      >
+                      <SentryAppItem>
                         <Base
-                          className="css-13p7dw9-PanelItem-SentryAppItem eac2pqx0"
-                          p={2}
+                          className="css-h9gjd5-PanelItem-SentryAppItem eac2pqx0"
                         >
                           <div
-                            className="css-13p7dw9-PanelItem-SentryAppItem eac2pqx0"
+                            className="css-h9gjd5-PanelItem-SentryAppItem eac2pqx0"
                             is={null}
                           >
                             <StyledFlex>
@@ -2378,7 +2605,7 @@ exports[`Organization Developer Settings without Owner permissions trash button 
                                       size={36}
                                     >
                                       <div
-                                        className="css-1c5rb9q-IntegrationIcon e1bhjds90"
+                                        className="css-5iptpn-IntegrationIcon e1bhjds90"
                                         size={36}
                                       />
                                     </IntegrationIcon>
@@ -2396,8 +2623,6 @@ exports[`Organization Developer Settings without Owner permissions trash button 
                                             className="css-uiwo8x-SentryAppName eac2pqx4"
                                           >
                                             <SentryAppLink
-                                              onlyActiveOnIndex={false}
-                                              style={Object {}}
                                               to="/settings/org-slug/developer-settings/sample-app/"
                                             >
                                               <Link
@@ -2652,7 +2877,7 @@ exports[`Organization Developer Settings without Owner permissions trash button 
                                                     >
                                                       <ForwardRef
                                                         aria-disabled={true}
-                                                        className="tip tip css-bzxnfi-StyledButton-getColors e12ma6z0"
+                                                        className="tip tip css-1ujzp8g-StyledButton-getColors e12ma6z0"
                                                         disabled={true}
                                                         href={null}
                                                         onClick={[Function]}
@@ -2663,7 +2888,7 @@ exports[`Organization Developer Settings without Owner permissions trash button 
                                                       >
                                                         <button
                                                           aria-disabled={true}
-                                                          className="tip tip css-bzxnfi-StyledButton-getColors e12ma6z0"
+                                                          className="tip tip css-1ujzp8g-StyledButton-getColors e12ma6z0"
                                                           href={null}
                                                           onClick={[Function]}
                                                           role="button"
