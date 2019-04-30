@@ -5,7 +5,7 @@ import {tct} from 'app/locale';
 import Alert from 'app/components/alert';
 import AsyncComponent from 'app/components/asyncComponent';
 import Cookies from 'js-cookie';
-import ExternalLink from 'app/components/externalLink';
+import ExternalLink from 'app/components/links/externalLink';
 import space from 'app/styles/space';
 
 const PENDING_INVITE = 'pending-invite';

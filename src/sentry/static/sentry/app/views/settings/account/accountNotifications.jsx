@@ -9,7 +9,7 @@ import AsyncView from 'app/views/asyncView';
 import Form from 'app/views/settings/components/forms/form';
 import InlineSvg from 'app/components/inlineSvg';
 import JsonForm from 'app/views/settings/components/forms/jsonForm';
-import Link from 'app/components/link';
+import Link from 'app/components/links/link';
 import {PanelFooter} from 'app/components/panels';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import accountNotificationFields from 'app/data/forms/accountNotificationSettings';

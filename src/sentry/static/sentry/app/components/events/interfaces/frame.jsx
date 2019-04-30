@@ -9,7 +9,7 @@ import {defined, objectIsEmpty, isUrl} from 'app/utils';
 import {t} from 'app/locale';
 import ClippedBox from 'app/components/clippedBox';
 import ContextLine from 'app/components/events/interfaces/contextLine';
-import ExternalLink from 'app/components/externalLink';
+import ExternalLink from 'app/components/links/externalLink';
 import FrameRegisters from 'app/components/events/interfaces/frameRegisters';
 import FrameVariables from 'app/components/events/interfaces/frameVariables';
 import StrictClick from 'app/components/strictClick';

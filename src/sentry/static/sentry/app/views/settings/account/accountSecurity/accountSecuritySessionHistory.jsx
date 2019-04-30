@@ -5,7 +5,7 @@ import React from 'react';
 
 import {t} from 'app/locale';
 import AsyncView from 'app/views/asyncView';
-import ListLink from 'app/components/listLink';
+import ListLink from 'app/components/links/listLink';
 import NavTabs from 'app/components/navTabs';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';

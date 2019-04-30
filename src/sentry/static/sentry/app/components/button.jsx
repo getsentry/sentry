@@ -5,7 +5,7 @@ import styled, {css} from 'react-emotion';
 import isPropValid from '@emotion/is-prop-valid';
 import {pickBy} from 'lodash';
 
-import ExternalLink from 'app/components/externalLink';
+import ExternalLink from 'app/components/links/externalLink';
 import InlineSvg from 'app/components/inlineSvg';
 import Tooltip from 'app/components/tooltip';
 
