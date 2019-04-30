@@ -4,12 +4,13 @@ import {browserHistory} from 'react-router';
 import styled from 'react-emotion';
 
 import {analytics, amplitude} from 'app/utils/analytics';
-import CreateSampleEvent from 'app/components/createSampleEvent';
 import ProjectContext from 'app/views/projects/projectContext';
 import ProjectInstallPlatform from 'app/views/projectInstall/platform';
 import SentryTypes from 'app/sentryTypes';
 import {t} from 'app/locale';
 import Button from 'app/components/button';
+
+import CreateSampleEvent from './createSampleEvent';
 
 const Configure = createReactClass({
   displayName: 'Configure',
