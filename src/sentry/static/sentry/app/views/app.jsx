@@ -1,4 +1,5 @@
 import $ from 'jquery';
+import {injectGlobal} from 'emotion';
 import {ThemeProvider} from 'emotion-theming';
 import Cookies from 'js-cookie';
 import PropTypes from 'prop-types';
@@ -248,3 +249,11 @@ const App = createReactClass({
 });
 
 export default App;
+
+injectGlobal`
+body {
+  .sentry-error-embed-wrapper {
+    z-index: ${theme.zIndex.sentryErrorEmbed};
+  }
+}
+`;
