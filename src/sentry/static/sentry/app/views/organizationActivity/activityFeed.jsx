@@ -94,7 +94,7 @@ class ActivityFeed extends React.Component {
       body = <LoadingError onRetry={this.fetchData} />;
     } else if (this.state.itemList.length > 0) {
       body = (
-        <div className="activity">
+        <div data-test-id="activity-feed-list" className="activity">
           {this.state.itemList.map(item => {
             return (
               <ErrorBoundary
