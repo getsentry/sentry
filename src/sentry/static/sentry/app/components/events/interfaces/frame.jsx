@@ -39,9 +39,7 @@ class FunctionName extends React.Component {
 
   toggle = event => {
     event.stopPropagation();
-    this.setState({
-      rawFunction: !this.state.rawFunction,
-    });
+    this.setState(({rawFunction}) => ({rawFunction: !rawFunction}));
   };
 
   render() {
