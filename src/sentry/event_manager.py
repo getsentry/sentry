@@ -32,7 +32,7 @@ from sentry.coreapi import (
 )
 from sentry.interfaces.base import get_interface
 from sentry.models import (
-    Activity, Environment, Event, EventError, EventMapping, EventUser, Group,
+    Activity, Environment, Event, EventDict, EventError, EventMapping, EventUser, Group,
     GroupEnvironment, GroupHash, GroupLink, GroupRelease, GroupResolution, GroupStatus,
     Project, Release, ReleaseEnvironment, ReleaseProject,
     ReleaseProjectEnvironment, UserReport, Organization,
@@ -515,7 +515,7 @@ class EventManager(object):
         return Event(
             project_id=project_id or self._project.id,
             event_id=event_id,
-            data=data,
+            data=EventDict(data, skip_renormalization=True),
             time_spent=time_spent,
             datetime=date,
             platform=platform
