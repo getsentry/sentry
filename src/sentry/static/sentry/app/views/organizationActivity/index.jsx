@@ -4,11 +4,12 @@ import React from 'react';
 
 import {PageContent} from 'app/styles/organization';
 import {t} from 'app/locale';
-import ActivityFeed from 'app/views/organizationActivity/activityFeed';
 import OrganizationHomeContainer from 'app/components/organizations/homeContainer';
 import PageHeading from 'app/components/pageHeading';
 import SentryTypes from 'app/sentryTypes';
 import withOrganization from 'app/utils/withOrganization';
+
+import ActivityFeed from './activityFeed';
 
 class OrganizationActivityContainer extends React.Component {
   static propTypes = {

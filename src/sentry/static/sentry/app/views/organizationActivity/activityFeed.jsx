@@ -1,9 +1,9 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 
-import {logException} from 'app/utils/logging';
+import {Panel} from 'app/components/panels';
 import {t} from 'app/locale';
-import ActivityItem from 'app/components/activity/item';
+import EmptyMessage from 'app/views/settings/components/emptyMessage';
 import ErrorBoundary from 'app/components/errorBoundary';
 import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
@@ -11,6 +11,8 @@ import Pagination from 'app/components/pagination';
 import SentryTypes from 'app/sentryTypes';
 import space from 'app/styles/space';
 import withApi from 'app/utils/withApi';
+
+import ActivityFeedItem from './activityFeedItem';
 
 class ActivityFeed extends React.Component {
   static propTypes = {
@@ -95,22 +97,15 @@ class ActivityFeed extends React.Component {
         <div className="activity-container">
           <ul className="activity">
             {this.state.itemList.map(item => {
-              try {
-                return (
-                  <ErrorBoundary
-                    mini
-                    css={{marginBottom: space(1), borderRadius: 0}}
-                    key={item.id}
-                  >
-                    <ActivityItem organization={this.props.organization} item={item} />
-                  </ErrorBoundary>
-                );
-              } catch (ex) {
-                logException(ex, {
-                  itemId: item.id,
-                });
-                return null;
-              }
+              return (
+                <ErrorBoundary
+                  mini
+                  css={{marginBottom: space(1), borderRadius: 0}}
+                  key={item.id}
+                >
+                  <ActivityFeedItem organization={this.props.organization} item={item} />
+                </ErrorBoundary>
+              );
             })}
           </ul>
         </div>
@@ -123,25 +118,25 @@ class ActivityFeed extends React.Component {
   }
 
   renderLoading() {
-    return (
-      <div className="box">
-        <LoadingIndicator />
-      </div>
-    );
+    return <LoadingIndicator />;
   }
 
   renderEmpty() {
-    return <div className="box empty">{t('Nothing to show here, move along.')}</div>;
+    return (
+      <EmptyMessage icon="icon-circle-exclamation">
+        {t('Nothing to show here, move along.')}
+      </EmptyMessage>
+    );
   }
 
   render() {
     return (
-      <div>
-        {this.renderResults()}
+      <React.Fragment>
+        <Panel>{this.renderResults()}</Panel>
         {this.props.pagination && this.state.pageLinks && (
           <Pagination pageLinks={this.state.pageLinks} {...this.props} />
         )}
-      </div>
+      </React.Fragment>
     );
   }
 }
