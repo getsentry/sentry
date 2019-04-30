@@ -8,6 +8,7 @@ import withApi from 'app/utils/withApi';
 
 import IncidentHeader from './header';
 import Incidents from './incidents';
+import {fetchIncident} from '../utils';
 
 class OrganizationIncidentDetails extends React.Component {
   static propTypes = {
@@ -30,8 +31,7 @@ class OrganizationIncidentDetails extends React.Component {
       params: {orgId, incidentId},
     } = this.props;
 
-    api
-      .requestPromise(`/organizations/${orgId}/incidents/${incidentId}/`)
+    fetchIncident(api, orgId, incidentId)
       .then(incident => {
         this.setState({incident, isLoading: false, hasError: false});
       })
