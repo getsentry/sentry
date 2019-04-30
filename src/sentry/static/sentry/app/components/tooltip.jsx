@@ -56,6 +56,12 @@ class Tooltip extends React.Component {
         ? tooltipOptions.call(this)
         : tooltipOptions || {};
 
+    // XXX: If we are sending HTML into the tooltip
+    // we want to turn off sanitization as it breaks
+    // our rich tooltips.
+    if (options.html) {
+      options.sanitize = false;
+    }
     this.$ref.tooltip({
       title,
       delay: 100,

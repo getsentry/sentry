@@ -711,6 +711,7 @@ exports[`ProjectCard renders 1`] = `
                                             "container": "body",
                                             "html": true,
                                             "placement": "bottom",
+                                            "sanitize": false,
                                           }
                                         }
                                       >
@@ -745,6 +746,7 @@ exports[`ProjectCard renders 1`] = `
                                             "container": "body",
                                             "html": true,
                                             "placement": "bottom",
+                                            "sanitize": false,
                                           }
                                         }
                                       >
