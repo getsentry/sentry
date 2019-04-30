@@ -7,9 +7,9 @@ import {PageContent} from 'app/styles/organization';
 import withApi from 'app/utils/withApi';
 
 import IncidentHeader from './header';
-import IncidentDetailsBody from './body';
+import Incidents from './incidents';
 
-class IncidentDetails extends React.Component {
+class OrganizationIncidentDetails extends React.Component {
   static propTypes = {
     api: PropTypes.object.isRequired,
   };
@@ -45,7 +45,7 @@ class IncidentDetails extends React.Component {
     return (
       <React.Fragment>
         <IncidentHeader params={this.props.params} incident={incident} />
-        {incident && <IncidentDetailsBody incident={incident} />}
+        {incident && <Incidents incident={incident} />}
         {isLoading && (
           <PageContent>
             <LoadingIndicator />
@@ -61,5 +61,5 @@ class IncidentDetails extends React.Component {
   }
 }
 
-export {IncidentDetails};
-export default withApi(IncidentDetails);
+export {OrganizationIncidentDetails};
+export default withApi(OrganizationIncidentDetails);

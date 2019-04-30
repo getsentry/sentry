@@ -1,7 +1,7 @@
 import React from 'react';
 import {mount} from 'enzyme';
 
-import IncidentDetails from 'app/views/organizationIncidents/detail';
+import IncidentDetails from 'app/views/organizationIncidents/details';
 
 describe('IncidentDetails', function() {
   const mockIncident = {
@@ -10,6 +10,8 @@ describe('IncidentDetails', function() {
     status: 'resolved',
     projects: [],
     suspects: [],
+    eventCount: 100,
+    usersAffected: 20,
   };
 
   beforeAll(function() {

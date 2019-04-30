@@ -18,7 +18,7 @@ const TABS = {
   related: {name: t('Related incidents'), component: RelatedIncidents},
 };
 
-export default class IncidentDetailsBody extends React.Component {
+export default class Incidents extends React.Component {
   static propTypes = {
     incident: SentryTypes.Incident,
   };

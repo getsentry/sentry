@@ -6,7 +6,7 @@ import SentryTypes from 'app/sentryTypes';
 import {Panel, PanelBody, PanelItem} from 'app/components/panels';
 import space from 'app/styles/space';
 
-export default class IncidentsSuspects extends React.Component {
+export default class Suspects extends React.Component {
   static propTypes = {
     incident: SentryTypes.Incident.isRequired,
   };
@@ -19,7 +19,7 @@ export default class IncidentsSuspects extends React.Component {
     const {suspects} = this.props.incident;
 
     return (
-      <Suspects>
+      <Container>
         <h6>{t('Suspects')}</h6>
         {suspects.length > 0 && (
           <Panel>
@@ -33,11 +33,11 @@ export default class IncidentsSuspects extends React.Component {
           </Panel>
         )}
         {suspects.length === 0 && this.renderEmpty()}
-      </Suspects>
+      </Container>
     );
   }
 }
 
-const Suspects = styled('div')`
+const Container = styled('div')`
   margin-top: ${space(1)};
 `;
