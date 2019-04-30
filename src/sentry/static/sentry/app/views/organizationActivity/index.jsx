@@ -1,15 +1,15 @@
-import React from 'react';
-import PropTypes from 'prop-types';
 import DocumentTitle from 'react-document-title';
+import PropTypes from 'prop-types';
+import React from 'react';
 
-import ActivityFeed from 'app/components/activity/feed';
+import {PageContent} from 'app/styles/organization';
+import {t} from 'app/locale';
 import OrganizationHomeContainer from 'app/components/organizations/homeContainer';
 import PageHeading from 'app/components/pageHeading';
-
-import {t} from 'app/locale';
 import SentryTypes from 'app/sentryTypes';
-import {PageContent} from 'app/styles/organization';
 import withOrganization from 'app/utils/withOrganization';
+
+import ActivityFeed from './activityFeed';
 
 class OrganizationActivityContainer extends React.Component {
   static propTypes = {
