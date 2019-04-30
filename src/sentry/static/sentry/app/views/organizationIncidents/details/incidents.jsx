@@ -4,7 +4,7 @@ import styled from 'react-emotion';
 import {t} from 'app/locale';
 import SentryTypes from 'app/sentryTypes';
 import NavTabs from 'app/components/navTabs';
-import Link from 'app/components/link';
+import Link from 'app/components/links/link';
 
 import {PageContent} from 'app/styles/organization';
 import theme from 'app/utils/theme';

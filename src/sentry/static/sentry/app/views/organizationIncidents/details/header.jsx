@@ -5,7 +5,7 @@ import styled from 'react-emotion';
 import {t} from 'app/locale';
 import SentryTypes from 'app/sentryTypes';
 import PageHeading from 'app/components/pageHeading';
-import Link from 'app/components/link';
+import Link from 'app/components/links/link';
 import InlineSvg from 'app/components/inlineSvg';
 import {PageHeader} from 'app/styles/organization';
 import space from 'app/styles/space';
