@@ -164,9 +164,12 @@ def get_function_name_for_frame(frame, platform=None):
     """
     if hasattr(frame, 'get_raw_data'):
         frame = frame.get_raw_data()
-    rv = frame.get('function_name')
-    if rv:
-        return rv
+
+    # if there is a raw function, prioritize the function unchanged
+    if frame.get('raw_function'):
+        return frame.get('function')
+
+    # otherwise trim the function on demand
     rv = frame.get('function')
     if rv:
         return trim_function_name(rv, frame.get('platform') or platform)

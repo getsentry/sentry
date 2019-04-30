@@ -386,8 +386,19 @@ class NativeStacktraceProcessor(StacktraceProcessor):
         new_frames = []
         for sfrm in symbolicated_frames:
             new_frame = dict(raw_frame)
-            new_frame['function'] = trim(sfrm['function'], 256)
-            new_frame['function_name'] = trim(trim_function_name(sfrm['function'], platform), 256)
+
+            raw_func = trim(sfrm['function'], 256)
+            func = trim(trim_function_name(sfrm['function'], platform), 256)
+
+            # if function and raw function match, we can get away without
+            # storing a raw function
+            if func == raw_func:
+                new_frame['function'] = raw_func
+            # otherwise we store both
+            else:
+                new_frame['raw_function'] = raw_func
+                new_frame['function'] = func
+
             if sfrm.get('symbol'):
                 new_frame['symbol'] = sfrm['symbol']
             if sfrm.get('abs_path'):

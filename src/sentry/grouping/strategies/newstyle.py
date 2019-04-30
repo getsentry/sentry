@@ -150,8 +150,8 @@ def get_module_component_v1(abs_path, module, platform):
     return module_component
 
 
-def get_function_component(function, platform, use_function_name=None,
-                           function_name=None):
+def get_function_component(function, platform, legacy_function_logic,
+                           raw_function=None):
     """
     Attempt to normalize functions by removing common platform outliers.
 
@@ -164,18 +164,12 @@ def get_function_component(function, platform, use_function_name=None,
     """
     from sentry.stacktraces.functions import trim_function_name
 
-    # Depending on if we want to use the function name a different value
-    # is the input value to the cleanup functionality.  This is the
-    # defining difference between frame:v1 and frame:v2
-    if use_function_name:
-        if not function_name and function:
-            func = trim_function_name(function, platform)
-        else:
-            func = function_name
-        trim_function_for_native = False
+    if legacy_function_logic:
+        func = raw_function or function
     else:
-        func = function
-        trim_function_for_native = True
+        func = function or raw_function
+        if not raw_function and function:
+            func = trim_function_name(func, platform)
 
     if not func:
         return GroupingComponent(id='function')
@@ -219,7 +213,7 @@ def get_function_component(function, platform, use_function_name=None,
                 contributes=False,
                 hint='ignored unknown function'
             )
-        elif trim_function_for_native:
+        elif legacy_function_logic:
             new_function = trim_function_name(func, platform)
             if new_function != func:
                 function_component.update(
@@ -237,7 +231,7 @@ def get_function_component(function, platform, use_function_name=None,
 )
 def frame_v1(frame, event, **meta):
     return get_frame_component(frame, event, meta,
-                               use_function_name=False)
+                               legacy_function_logic=True)
 
 
 @strategy(
@@ -247,10 +241,10 @@ def frame_v1(frame, event, **meta):
 )
 def frame_v2(frame, event, **meta):
     return get_frame_component(frame, event, meta,
-                               use_function_name=True)
+                               legacy_function_logic=False)
 
 
-def get_frame_component(frame, event, meta, use_function_name=False):
+def get_frame_component(frame, event, meta, legacy_function_logic=False):
     platform = frame.platform or event.platform
 
     # Safari throws [native code] frames in for calls like ``forEach``
@@ -271,9 +265,9 @@ def get_frame_component(frame, event, meta, use_function_name=False):
 
     function_component = get_function_component(
         function=frame.function,
-        function_name=frame.function_name,
+        raw_function=frame.raw_function,
         platform=platform,
-        use_function_name=use_function_name,
+        legacy_function_logic=legacy_function_logic
     )
 
     return GroupingComponent(

@@ -244,8 +244,7 @@ def _normalize_in_app(stacktrace, platform=None, sdk_info=None):
 def normalize_stacktraces_for_grouping(data, grouping_config=None):
     """
     Applies grouping enhancement rules and ensure in_app is set on all frames.
-    This also adds the default `function_name` value if it has not been set
-    yet by something else in the processing pipeline.
+    This also trims functions if necessary.
     """
 
     stacktraces = []
@@ -266,14 +265,16 @@ def normalize_stacktraces_for_grouping(data, grouping_config=None):
     # unnecessarily.
     for frames in stacktraces:
         for frame in frames:
-            if frame.get('function_name') is not None:
+            if frame.get('raw_function') is not None:
                 continue
-            func = frame.get('function')
-            if func:
-                function_name = trim_function_name(
-                    func, frame.get('platform') or platform)
-                if function_name != func:
-                    frame['function_name'] = function_name
+            raw_func = frame.get('function')
+            if not raw_func:
+                continue
+            function_name = trim_function_name(
+                raw_func, frame.get('platform') or platform)
+            if function_name != raw_func:
+                frame['raw_function'] = raw_func
+                frame['function'] = function_name
 
     # If a grouping config is available, run grouping enhancers
     if grouping_config is not None:

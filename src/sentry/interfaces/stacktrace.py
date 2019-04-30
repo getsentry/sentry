@@ -204,7 +204,7 @@ class Frame(Interface):
                 'errors',
                 'filename',
                 'function',
-                'function_name',
+                'raw_function',
                 'image_addr',
                 'in_app',
                 'instruction_addr',
@@ -230,7 +230,7 @@ class Frame(Interface):
         filename = data.get('filename')
         symbol = data.get('symbol')
         function = data.get('function')
-        function_name = data.get('function_name')
+        raw_function = data.get('raw_function')
         module = data.get('module')
         package = data.get('package')
 
@@ -300,7 +300,7 @@ class Frame(Interface):
             'platform': platform,
             'module': trim(module, 256),
             'function': trim(function, 256),
-            'function_name': trim(function_name, 256),
+            'raw_function': trim(raw_function, 256),
             'package': package,
             'image_addr': to_hex_addr(data.get('image_addr')),
             'symbol': trim(symbol, 256),
@@ -342,7 +342,7 @@ class Frame(Interface):
             'platform': self.platform or None,
             'module': self.module or None,
             'function': self.function or None,
-            'function_name': self.function_name or None,
+            'raw_function': self.raw_function or None,
             'package': self.package or None,
             'image_addr': self.image_addr,
             'symbol': self.symbol,
@@ -362,6 +362,7 @@ class Frame(Interface):
 
     def get_api_context(self, is_public=False, pad_addr=None, platform=None):
         from sentry.stacktraces.functions import get_function_name_for_frame
+        function = get_function_name_for_frame(self, platform)
         data = {
             'filename': self.filename,
             'absPath': self.abs_path,
@@ -370,8 +371,8 @@ class Frame(Interface):
             'platform': self.platform,
             'instructionAddr': pad_hex_addr(self.instruction_addr, pad_addr),
             'symbolAddr': pad_hex_addr(self.symbol_addr, pad_addr),
-            'function': self.function,
-            'functionName': get_function_name_for_frame(self, platform),
+            'function': function,
+            'rawFunction': self.raw_function,
             'symbol': self.symbol,
             'context': get_context(
                 lineno=self.lineno,

@@ -33,28 +33,28 @@ class FunctionName extends React.Component {
   constructor(props) {
     super(props);
     this.state = {
-      fullFunction: false,
+      rawFunction: false,
     };
   }
 
   toggle = event => {
     event.stopPropagation();
     this.setState({
-      fullFunction: !this.state.fullFunction,
+      rawFunction: !this.state.rawFunction,
     });
   };
 
   render() {
     const {frame, ...props} = this.props;
     const func = frame.function;
-    const funcName = frame.functionName;
-    const canToggle = func && funcName && func !== funcName;
+    const rawFunc = frame.rawFunction;
+    const canToggle = rawFunc && func && func !== rawFunc;
 
     if (!canToggle) {
-      return <code {...props}>{funcName || func || '<unknown>'}</code>;
+      return <code {...props}>{func || rawFunc || '<unknown>'}</code>;
     }
 
-    const current = this.state.fullFunction ? func : funcName;
+    const current = this.state.rawFunction ? rawFunc : func;
     return (
       <code {...props}>
         <a onClick={this.toggle}>{current || '<unknown>'}</a>
@@ -210,7 +210,7 @@ const Frame = createReactClass({
           />
         );
       }
-      if (defined(data.function) || defined(data.functionName)) {
+      if (defined(data.function) || defined(data.rawFunction)) {
         title.push(
           <span className="in-at" key="in">
             {' '}
@@ -220,7 +220,7 @@ const Frame = createReactClass({
       }
     }
 
-    if (defined(data.function) || defined(data.functionName)) {
+    if (defined(data.function) || defined(data.rawFunction)) {
       title.push(<FunctionName frame={data} key="function" className="function" />);
     }
 

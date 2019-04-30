@@ -28,7 +28,7 @@
               "lineno": 47,
               "trust": "context",
               "instruction_addr": "0x10cb29243",
-              "function_name": "main"
+              "raw_function": "main"
             },
             {
               "function": "(anonymous namespace)::start()",
@@ -39,11 +39,10 @@
               "filename": "../macos/main.cpp",
               "lineno": 40,
               "trust": "context",
-              "instruction_addr": "0x10cb29243",
-              "function_name": "(anonymous namespace)::start"
+              "instruction_addr": "0x10cb29243"
             },
             {
-              "function": "(anonymous namespace)::crash(int, int)",
+              "raw_function": "(anonymous namespace)::crash(int, int)",
               "abs_path": "../macos/main.cpp",
               "in_app": false,
               "package": "/private/tmp/breakpad-tools/macos/./build/crash",
@@ -52,10 +51,10 @@
               "lineno": 36,
               "trust": "context",
               "instruction_addr": "0x10cb29243",
-              "function_name": "(anonymous namespace)::crash"
+              "function": "(anonymous namespace)::crash"
             },
             {
-              "function": "(anonymous namespace)::something::nested::Foo<std::__1::map<std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char> >, std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char> >, std::__1::less<std:...",
+              "raw_function": "(anonymous namespace)::something::nested::Foo<std::__1::map<std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char> >, std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char> >, std::__1::less<std:...",
               "abs_path": "../macos/main.cpp",
               "in_app": false,
               "package": "/private/tmp/breakpad-tools/macos/./build/crash",
@@ -64,7 +63,7 @@
               "lineno": 28,
               "trust": "context",
               "instruction_addr": "0x10cb29243",
-              "function_name": "(anonymous namespace)::something::nested::Foo<T>::crash"
+              "function": "(anonymous namespace)::something::nested::Foo<T>::crash"
             }
           ],
           "registers": {
