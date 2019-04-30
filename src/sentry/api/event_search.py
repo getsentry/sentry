@@ -159,10 +159,6 @@ class SearchBoolean(namedtuple('SearchBoolean', 'left_term operator right_term')
     pass
 
 
-class SearchBoolean(namedtuple('SearchBoolean', 'left_term operator right_term')):
-    pass
-
-
 class SearchFilter(namedtuple('SearchFilter', 'key operator value')):
 
     def __str__(self):
@@ -544,10 +540,17 @@ def get_snuba_query_args(query=None, params=None):
     kwargs = {
         'conditions': [],
         'filter_keys': {},
-        # TODO(lb): remove when boolean terms fully functional
-        'has_boolean_terms': has_boolean_search_terms(parsed_filters),
     }
+
+    # TODO(lb): remove when boolean terms fully functional
+    if has_boolean_search_terms(parsed_filters):
+        kwargs['has_boolean_terms'] = True
+
     for _filter in parsed_filters:
+        # TODO(lb): remove when boolean terms fully functional
+        if isinstance(_filter, SearchBoolean):
+            continue
+
         snuba_name = _filter.key.snuba_name
 
         if snuba_name in ('start', 'end'):

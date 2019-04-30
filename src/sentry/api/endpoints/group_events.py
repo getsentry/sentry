@@ -65,7 +65,7 @@ class GroupEventsEndpoint(GroupEndpoint, EnvironmentMixin):
                 group,
                 environments,
             )
-        except (InvalidQuery, GroupEventsError) as exc:
+        except InvalidQuery as exc:
             return Response({'detail': six.text_type(exc)}, status=400)
         except (NoResults, ResourceDoesNotExist):
             return Response([])
@@ -74,9 +74,14 @@ class GroupEventsEndpoint(GroupEndpoint, EnvironmentMixin):
             request.GET.get('enable_snuba') == '1'
             or options.get('snuba.events-queries.enabled')
         )
+
         backend = self._get_events_snuba if use_snuba else self._get_events_legacy
         start, end = get_date_range_from_params(request.GET, optional=True)
-        return backend(request, group, environments, query, tags, start, end)
+
+        try:
+            return backend(request, group, environments, query, tags, start, end)
+        except GroupEventsError as exc:
+            return Response({'detail': six.text_type(exc)}, status=400)
 
     def _get_events_snuba(self, request, group, environments, query, tags, start, end):
         default_end = timezone.now()
