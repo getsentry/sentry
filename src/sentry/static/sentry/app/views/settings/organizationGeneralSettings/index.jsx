@@ -13,7 +13,7 @@ import {
 import {t, tct} from 'app/locale';
 import withApi from 'app/utils/withApi';
 import Field from 'app/views/settings/components/forms/field';
-import LinkWithConfirmation from 'app/components/linkWithConfirmation';
+import LinkWithConfirmation from 'app/components/links/linkWithConfirmation';
 import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';

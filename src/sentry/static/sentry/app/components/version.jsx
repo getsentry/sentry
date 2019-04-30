@@ -3,7 +3,7 @@ import React from 'react';
 
 import SentryTypes from 'app/sentryTypes';
 import ProjectLink from 'app/components/projectLink';
-import Link from 'app/components/link';
+import Link from 'app/components/links/link';
 import {getShortVersion} from 'app/utils';
 import withOrganization from 'app/utils/withOrganization';
 

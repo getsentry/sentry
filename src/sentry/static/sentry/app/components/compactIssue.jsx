@@ -10,7 +10,7 @@ import DropdownLink from 'app/components/dropdownLink';
 import SnoozeAction from 'app/components/issues/snoozeAction';
 import GroupChart from 'app/components/stream/groupChart';
 import GroupStore from 'app/stores/groupStore';
-import Link from 'app/components/link';
+import Link from 'app/components/links/link';
 import ProjectLink from 'app/components/projectLink';
 import {t} from 'app/locale';
 import {PanelItem} from 'app/components/panels';

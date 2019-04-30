@@ -9,7 +9,7 @@ import {openDiffModal} from 'app/actionCreators/modal';
 import {t} from 'app/locale';
 import Button from 'app/components/button';
 import GroupingStore from 'app/stores/groupingStore';
-import LinkWithConfirmation from 'app/components/linkWithConfirmation';
+import LinkWithConfirmation from 'app/components/links/linkWithConfirmation';
 import SpreadLayout from 'app/components/spreadLayout';
 import Toolbar from 'app/components/toolbar';
 import space from 'app/styles/space';

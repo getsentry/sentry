@@ -7,7 +7,7 @@ import moment from 'moment-timezone';
 import {t} from 'app/locale';
 import ConfigStore from 'app/stores/configStore';
 import DateTime from 'app/components/dateTime';
-import ExternalLink from 'app/components/externalLink';
+import ExternalLink from 'app/components/links/externalLink';
 import FileSize from 'app/components/fileSize';
 import SentryTypes from 'app/sentryTypes';
 import Tooltip from 'app/components/tooltip';

@@ -3,7 +3,7 @@ import PropTypes from 'prop-types';
 
 import InlineSvg from 'app/components/inlineSvg';
 import TimeSince from 'app/components/timeSince';
-import Link from 'app/components/link';
+import Link from 'app/components/links/link';
 import {t} from 'app/locale';
 
 export default class ReleaseDeploys extends React.Component {

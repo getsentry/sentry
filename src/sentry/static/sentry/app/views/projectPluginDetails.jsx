@@ -4,7 +4,7 @@ import {disablePlugin, enablePlugin} from 'app/actionCreators/plugins';
 import {t} from 'app/locale';
 import AsyncView from 'app/views/asyncView';
 import Button from 'app/components/button';
-import ExternalLink from 'app/components/externalLink';
+import ExternalLink from 'app/components/links/externalLink';
 import IndicatorStore from 'app/stores/indicatorStore';
 import PluginConfig from 'app/components/pluginConfig';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';

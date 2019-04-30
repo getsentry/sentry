@@ -4,7 +4,7 @@ import {withRouter} from 'react-router';
 import {t} from 'app/locale';
 import AsyncView from 'app/views/asyncView';
 import {Panel, PanelBody, PanelItem} from 'app/components/panels';
-import Link from 'app/components/link';
+import Link from 'app/components/links/link';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
 import Pagination from 'app/components/pagination';
 

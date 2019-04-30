@@ -10,7 +10,7 @@ import {fetchOrgMembers} from 'app/actionCreators/members';
 import AssigneeSelector from 'app/components/assigneeSelector';
 import Count from 'app/components/count';
 import IndicatorStore from 'app/stores/indicatorStore';
-import ListLink from 'app/components/listLink';
+import ListLink from 'app/components/links/listLink';
 import NavTabs from 'app/components/navTabs';
 import ShortId from 'app/components/shortId';
 import EventOrGroupTitle from 'app/components/eventOrGroupTitle';

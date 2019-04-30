@@ -11,7 +11,7 @@ import {Panel, PanelBody, PanelHeader} from './panels';
 import Avatar from './avatar';
 import AvatarCropper from './avatarCropper';
 import Button from './button';
-import ExternalLink from './externalLink';
+import ExternalLink from './links/externalLink';
 import LoadingError from './loadingError';
 import LoadingIndicator from './loadingIndicator';
 

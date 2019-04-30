@@ -9,7 +9,7 @@ import {t} from 'app/locale';
 import withApi from 'app/utils/withApi';
 import Avatar from 'app/components/avatar';
 import DeviceName from 'app/components/deviceName';
-import ExternalLink from 'app/components/externalLink';
+import ExternalLink from 'app/components/links/externalLink';
 import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import Pagination from 'app/components/pagination';

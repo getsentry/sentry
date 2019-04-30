@@ -4,7 +4,7 @@ import PropTypes from 'prop-types';
 import {t} from 'app/locale';
 import SentryTypes from 'app/sentryTypes';
 import Button from 'app/components/button';
-import ListLink from 'app/components/listLink';
+import ListLink from 'app/components/links/listLink';
 import NavTabs from 'app/components/navTabs';
 
 import Tooltip from 'app/components/tooltip';

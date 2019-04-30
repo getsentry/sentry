@@ -10,7 +10,7 @@ import {
 } from 'app/components/panels';
 import {t, tct} from 'app/locale';
 import Access from 'app/components/acl/access';
-import Link from 'app/components/link';
+import Link from 'app/components/links/link';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import ProjectPluginRow from 'app/views/projectPlugins/projectPluginRow';
 import RouteError from 'app/views/routeError';

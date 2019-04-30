@@ -5,7 +5,7 @@ import styled, {css} from 'react-emotion';
 
 import HookOrDefault from 'app/components/hookOrDefault';
 
-import Link from '../link';
+import Link from '../links/link';
 import TextOverflow from '../textOverflow';
 import Tooltip from '../tooltip';
 

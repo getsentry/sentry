@@ -11,7 +11,7 @@ import {t, tct, tn} from 'app/locale';
 import ActionLink from 'app/components/actions/actionLink';
 import Checkbox from 'app/components/checkbox';
 import DropdownLink from 'app/components/dropdownLink';
-import ExternalLink from 'app/components/externalLink';
+import ExternalLink from 'app/components/links/externalLink';
 import Feature from 'app/components/acl/feature';
 import IgnoreActions from 'app/components/actions/ignore';
 import IndicatorStore from 'app/stores/indicatorStore';

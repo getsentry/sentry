@@ -4,8 +4,8 @@ import React from 'react';
 import {t} from 'app/locale';
 
 import Count from 'app/components/count';
-import ExternalLink from 'app/components/externalLink';
-import ListLink from 'app/components/listLink';
+import ExternalLink from 'app/components/links/externalLink';
+import ListLink from 'app/components/links/listLink';
 import NavTabs from 'app/components/navTabs';
 import ReleaseStats from 'app/components/releaseStats';
 import TextOverflow from 'app/components/textOverflow';

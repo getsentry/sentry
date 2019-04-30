@@ -6,7 +6,7 @@ import {t} from 'app/locale';
 import Avatar from 'app/components/avatar';
 import Clipboard from 'app/components/clipboard';
 import InlineSvg from 'app/components/inlineSvg';
-import Link from 'app/components/link';
+import Link from 'app/components/links/link';
 import TimeSince from 'app/components/timeSince';
 import space from 'app/styles/space';
 import utils from 'app/utils';

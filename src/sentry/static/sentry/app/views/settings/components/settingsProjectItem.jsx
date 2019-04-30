@@ -3,7 +3,7 @@ import React from 'react';
 import createReactClass from 'create-react-class';
 
 import BookmarkStar from 'app/components/bookmarkStar';
-import Link from 'app/components/link';
+import Link from 'app/components/links/link';
 import ProjectLabel from 'app/components/projectLabel';
 import SentryTypes from 'app/sentryTypes';
 import space from 'app/styles/space';

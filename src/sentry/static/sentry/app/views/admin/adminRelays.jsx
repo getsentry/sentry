@@ -10,7 +10,7 @@ import withApi from 'app/utils/withApi';
 import withEnvironment from 'app/utils/withEnvironment';
 
 import ResultGrid from 'app/components/resultGrid';
-import LinkWithConfirmation from 'app/components/linkWithConfirmation';
+import LinkWithConfirmation from 'app/components/links/linkWithConfirmation';
 
 const prettyDate = function(x) {
   return moment(x).format('ll LTS');

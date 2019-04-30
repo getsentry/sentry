@@ -7,12 +7,12 @@ import {Panel, PanelItem} from 'app/components/panels';
 import {slideInLeft} from 'app/styles/animations';
 import Button from 'app/components/button';
 import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
-import Link from 'app/components/link';
+import Link from 'app/components/links/link';
 import NavTabs from 'app/components/navTabs';
 import space from 'app/styles/space';
 import theme from 'app/utils/theme';
 import InlineSvg from 'app/components/inlineSvg';
-import ExternalLink from 'app/components/externalLink';
+import ExternalLink from 'app/components/links/externalLink';
 
 const HEADER_HEIGHT = 60;
 
