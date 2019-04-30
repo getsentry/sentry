@@ -128,7 +128,7 @@ const ProjectSettings = createReactClass({
             <ListLink to={`${pathPrefix}/data-forwarding/`}>
               {t('Data Forwarding')}
             </ListLink>
-            {organization.features.includes('org-saved-searches') === false && (
+            {organization.features.includes('sentry10') === false && (
               <ListLink to={`${pathPrefix}/saved-searches/`}>
                 {t('Saved Searches')}
               </ListLink>

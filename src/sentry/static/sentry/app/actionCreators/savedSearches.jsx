@@ -8,13 +8,9 @@ export function resetSavedSearches() {
   SavedSearchesActions.resetSavedSearches();
 }
 
-export function fetchSavedSearches(api, orgId, projectMap, useOrgSavedSearches = false) {
+export function fetchSavedSearches(api, orgId) {
   const url = `/organizations/${orgId}/searches/`;
-
-  const data = {};
-  if (useOrgSavedSearches) {
-    data.use_org_level = '1';
-  }
+  const data = {use_org_level: 1};
 
   SavedSearchesActions.startFetchSavedSearches();
 
@@ -25,14 +21,7 @@ export function fetchSavedSearches(api, orgId, projectMap, useOrgSavedSearches =
 
   promise
     .then(resp => {
-      // Add in project slugs so that we can display them in the picker bars.
-      // TODO(billyvg): #org-saved-searches -- cleanup when removing project saved searches
-      const savedSearchList = resp.map(search => ({
-        ...search,
-        projectSlug: projectMap[search.projectId],
-      }));
-
-      SavedSearchesActions.fetchSavedSearchesSuccess(savedSearchList);
+      SavedSearchesActions.fetchSavedSearchesSuccess(resp);
     })
     .catch(err => {
       SavedSearchesActions.fetchSavedSearchesError(err);

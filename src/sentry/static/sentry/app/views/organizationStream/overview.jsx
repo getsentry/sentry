@@ -58,7 +58,6 @@ const OrganizationStream = createReactClass({
     savedSearch: SentryTypes.SavedSearch,
     savedSearches: PropTypes.arrayOf(SentryTypes.SavedSearch),
     savedSearchLoading: PropTypes.bool.isRequired,
-    useOrgSavedSearches: PropTypes.bool.isRequired,
   },
 
   mixins: [
@@ -583,17 +582,8 @@ const OrganizationStream = createReactClass({
   },
 
   fetchSavedSearches() {
-    const {orgId} = this.props.params;
-    const {organization, useOrgSavedSearches} = this.props;
-    const projectMap = organization.projects.reduce((acc, project) => {
-      acc[project.id] = project.slug;
-      return acc;
-    }, {});
-
-    fetchSavedSearches(this.api, orgId, projectMap, useOrgSavedSearches).then(
-      data => {},
-      error => {}
-    );
+    const {organization} = this.props;
+    fetchSavedSearches(this.api, organization.slug).then(data => {}, error => {});
   },
 
   onSavedSearchCreate(newSavedSearch) {
