@@ -1,8 +1,8 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 
-import U2fInterface from 'app/components/u2finterface';
 import {t} from 'app/locale';
+import U2fInterface from './u2finterface';
 
 const MESSAGES = {
   signin: t(

@@ -224,8 +224,8 @@ const globals = {
     TimeSince: require('app/components/timeSince').default,
     TodoList: require('app/components/onboardingWizard/todos').default,
     Tooltip: require('app/components/tooltip').default,
-    U2fEnrollment: require('app/components/u2fenrollment').default,
-    U2fSign: require('app/components/u2fsign').default,
+    U2fEnrollment: require('app/components/u2f/u2fenrollment').default,
+    U2fSign: require('app/components/u2f/u2fsign').default,
     Badge: require('app/components/badge').default,
     Tag: require('app/views/settings/components/tag').default,
     Switch: require('app/components/switch').default,
@@ -244,7 +244,9 @@ const globals = {
       withApi: require('app/utils/withApi').default,
       getDisplayName: require('app/utils/getDisplayName').default,
     },
-    passwordStrength: {load: loadPasswordStrength},
+    passwordStrength: {
+      load: loadPasswordStrength,
+    },
   },
 };
 
