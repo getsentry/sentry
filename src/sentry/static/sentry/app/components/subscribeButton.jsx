@@ -16,17 +16,15 @@ export default class SubscribeButton extends React.Component {
     const {isSubscribed, onClick} = this.props;
 
     return (
-      <StyledButton size="small" onClick={onClick}>
+      <Button size="small" onClick={onClick}>
         <Content>
           <SignalIcon className="icon-signal" isSubscribed={isSubscribed} />
           {isSubscribed ? t('Unsubscribe') : t('Subscribe')}
         </Content>
-      </StyledButton>
+      </Button>
     );
   }
 }
-
-const StyledButton = styled(Button)``;
 
 const Content = styled('span')`
   font-size: 14px;
