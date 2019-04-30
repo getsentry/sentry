@@ -52,6 +52,9 @@ class JiraDescriptorEndpoint(Endpoint):
                         'excludeBody': False,
                     }],
                 },
+                'apiMigrations': {
+                    'gdpr': False,
+                },
                 'scopes': [
                     'read',
                     'write',
