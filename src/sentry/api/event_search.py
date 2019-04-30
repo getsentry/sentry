@@ -84,51 +84,51 @@ def translate(pat):
 
 
 event_search_grammar = Grammar(r"""
-search          = (nested_boolean_term / boolean_term / search_term)*
-nested_boolean_term = boolean_term boolean_operator search_term
-boolean_term          = search_term boolean_operator search_term
-search_term     = key_val_term / quoted_raw_search / raw_search
-key_val_term    = space? (time_filter / rel_time_filter / specific_time_filter
-                  / numeric_filter / has_filter / is_filter / basic_filter)
-                  space?
-raw_search      = (!key_val_term ~r"\ *([^\ ^\n]+)\ *" )*
-quoted_raw_search = spaces quoted_value spaces
+search               = (nested_boolean_term / boolean_term / search_term)*
+nested_boolean_term  = boolean_term boolean_operator (boolean_term / search_term)
+boolean_term         = search_term boolean_operator (boolean_term / search_term)
+search_term          = key_val_term / quoted_raw_search / raw_search
+key_val_term         = space? (time_filter / rel_time_filter / specific_time_filter
+                       / numeric_filter / has_filter / is_filter / basic_filter)
+                       space?
+raw_search           = (!key_val_term ~r"\ *([^\ ^\n]+)\ *" )*
+quoted_raw_search    = spaces quoted_value spaces
 
 # standard key:val filter
-basic_filter    = negation? search_key sep search_value
+basic_filter         = negation? search_key sep search_value
 # filter for dates
-time_filter     = search_key sep? operator date_format
+time_filter          = search_key sep? operator date_format
 # filter for relative dates
-rel_time_filter = search_key sep rel_date_format
+rel_time_filter      = search_key sep rel_date_format
 # exact time filter for dates
 specific_time_filter = search_key sep date_format
 # Numeric comparison filter
-numeric_filter  = search_key sep operator? ~r"[0-9]+(?=\s|$)"
+numeric_filter       = search_key sep operator? ~r"[0-9]+(?=\s|$)"
 
 # has filter for not null type checks
-has_filter      = negation? "has" sep (search_key / search_value)
-is_filter       = negation? "is" sep search_value
+has_filter           = negation? "has" sep (search_key / search_value)
+is_filter            = negation? "is" sep search_value
 
-search_key      = key / quoted_key
-search_value    = quoted_value / value
-value           = ~r"\S*"
-quoted_value    = ~r"\"((?:[^\"]|(?<=\\)[\"])*)?\""s
-key             = ~r"[a-zA-Z0-9_\.-]+"
+search_key           = key / quoted_key
+search_value         = quoted_value / value
+value                = ~r"\S*"
+quoted_value         = ~r"\"((?:[^\"]|(?<=\\)[\"])*)?\""s
+key                  = ~r"[a-zA-Z0-9_\.-]+"
 # only allow colons in quoted keys
-quoted_key      = ~r"\"([a-zA-Z0-9_\.:-]+)\""
+quoted_key           = ~r"\"([a-zA-Z0-9_\.:-]+)\""
 
-date_format     = ~r"\d{4}-\d{2}-\d{2}(T\d{2}:\d{2}:\d{2}(\.\d{1,6})?)?Z?(?=\s|$)"
-rel_date_format = ~r"[\+\-][0-9]+[wdhm](?=\s|$)"
+date_format          = ~r"\d{4}-\d{2}-\d{2}(T\d{2}:\d{2}:\d{2}(\.\d{1,6})?)?Z?(?=\s|$)"
+rel_date_format      = ~r"[\+\-][0-9]+[wdhm](?=\s|$)"
 
 # NOTE: the order in which these operators are listed matters
 # because for example, if < comes before <= it will match that
 # even if the operator is <=
-boolean_operator = "OR" / "or" / "AND" / "and"
-operator        = ">=" / "<=" / ">" / "<" / "=" / "!="
-sep             = ":"
-space           = " "
-negation        = "!"
-spaces          = ~r"\ *"
+boolean_operator     = "OR" / "or" / "AND" / "and"
+operator             = ">=" / "<=" / ">" / "<" / "=" / "!="
+sep                  = ":"
+space                = " "
+negation             = "!"
+spaces               = ~r"\ *"
 """)
 
 
@@ -230,20 +230,27 @@ class SearchVisitor(NodeVisitor):
                 lookup[source_field] = target_field
         return lookup
 
-    def visit_search(self, node, children):
-        # there is a list from search_term and one from raw_search, so flatten them.
-        # Flatten each group in the list, since nodes can return multiple items
+    def flatten(self, children):
         def _flatten(seq):
+            # there is a list from search_term and one from raw_search, so flatten them.
+            # Flatten each group in the list, since nodes can return multiple items
             for item in seq:
                 if isinstance(item, list):
                     for sub in _flatten(item):
                         yield sub
                 else:
                     yield item
+
+        if not (isinstance(children, list) and isinstance(children[0], list)):
+            return children
+
         children = [child for group in children for child in _flatten(group)]
         children = filter(None, _flatten(children))
 
         return children
+
+    def visit_search(self, node, children):
+        return self.flatten(children)
 
     def visit_key_val_term(self, node, children):
         _, key_val_term, _ = children
@@ -269,7 +276,7 @@ class SearchVisitor(NodeVisitor):
         return SearchFilter(SearchKey('message'), "=", SearchValue(value))
 
     def visit_boolean_term(self, node, children):
-        left_term, right_term = children[0][0], children[2][0]
+        left_term, right_term = self.flatten(children[0])[0], self.flatten(children[2])[0]
         operator = children[1]
         return [SearchBoolean(left_term, operator, right_term)]
 
