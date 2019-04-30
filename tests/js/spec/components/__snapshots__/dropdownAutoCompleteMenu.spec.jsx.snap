@@ -66,7 +66,7 @@ exports[`DropdownAutoCompleteMenu renders with a group 1`] = `
               onMouseLeave={[Function]}
             >
               <div
-                className="css-fob2sh-StyledMenu-getMenuBorderRadius ejumqxq8"
+                className="css-awg01w-StyledMenu-getMenuBorderRadius ejumqxq8"
                 onClick={[Function]}
                 onMouseDown={[Function]}
                 onMouseEnter={[Function]}
@@ -144,7 +144,7 @@ exports[`DropdownAutoCompleteMenu renders with a group 1`] = `
                         onClick={[Function]}
                       >
                         <div
-                          className="css-1dzvpw9-AutoCompleteItem ejumqxq4"
+                          className="css-ahi473-AutoCompleteItem ejumqxq4"
                           onClick={[Function]}
                         >
                           <div>
@@ -159,7 +159,7 @@ exports[`DropdownAutoCompleteMenu renders with a group 1`] = `
                         onClick={[Function]}
                       >
                         <div
-                          className="css-1sp52yo-AutoCompleteItem ejumqxq4"
+                          className="css-4bvl26-AutoCompleteItem ejumqxq4"
                           onClick={[Function]}
                         >
                           <div>
@@ -245,7 +245,7 @@ exports[`DropdownAutoCompleteMenu renders without a group 1`] = `
               onMouseLeave={[Function]}
             >
               <div
-                className="css-fob2sh-StyledMenu-getMenuBorderRadius ejumqxq8"
+                className="css-awg01w-StyledMenu-getMenuBorderRadius ejumqxq8"
                 onClick={[Function]}
                 onMouseDown={[Function]}
                 onMouseEnter={[Function]}
@@ -308,7 +308,7 @@ exports[`DropdownAutoCompleteMenu renders without a group 1`] = `
                         onClick={[Function]}
                       >
                         <div
-                          className="css-1dzvpw9-AutoCompleteItem ejumqxq4"
+                          className="css-ahi473-AutoCompleteItem ejumqxq4"
                           onClick={[Function]}
                         >
                           <div>
@@ -323,7 +323,7 @@ exports[`DropdownAutoCompleteMenu renders without a group 1`] = `
                         onClick={[Function]}
                       >
                         <div
-                          className="css-1sp52yo-AutoCompleteItem ejumqxq4"
+                          className="css-4bvl26-AutoCompleteItem ejumqxq4"
                           onClick={[Function]}
                         >
                           <div>
@@ -338,7 +338,7 @@ exports[`DropdownAutoCompleteMenu renders without a group 1`] = `
                         onClick={[Function]}
                       >
                         <div
-                          className="css-1sp52yo-AutoCompleteItem ejumqxq4"
+                          className="css-4bvl26-AutoCompleteItem ejumqxq4"
                           onClick={[Function]}
                         >
                           <div>
