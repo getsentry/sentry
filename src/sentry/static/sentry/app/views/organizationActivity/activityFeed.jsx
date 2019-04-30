@@ -94,20 +94,18 @@ class ActivityFeed extends React.Component {
       body = <LoadingError onRetry={this.fetchData} />;
     } else if (this.state.itemList.length > 0) {
       body = (
-        <div className="activity-container">
-          <ul className="activity">
-            {this.state.itemList.map(item => {
-              return (
-                <ErrorBoundary
-                  mini
-                  css={{marginBottom: space(1), borderRadius: 0}}
-                  key={item.id}
-                >
-                  <ActivityFeedItem organization={this.props.organization} item={item} />
-                </ErrorBoundary>
-              );
-            })}
-          </ul>
+        <div className="activity">
+          {this.state.itemList.map(item => {
+            return (
+              <ErrorBoundary
+                mini
+                css={{marginBottom: space(1), borderRadius: 0}}
+                key={item.id}
+              >
+                <ActivityFeedItem organization={this.props.organization} item={item} />
+              </ErrorBoundary>
+            );
+          })}
         </div>
       );
     } else {
