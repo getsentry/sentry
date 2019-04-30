@@ -54,7 +54,7 @@ exports[`Configure should render correctly render() should render platform docs 
                 priority="primary"
               >
                 <Button
-                  className="css-1lewl16-StyledButton eadl9o50"
+                  className="css-1lewl16-StyledButton e191d89y0"
                   disabled={false}
                   onClick={[Function]}
                   priority="primary"
@@ -62,7 +62,7 @@ exports[`Configure should render correctly render() should render platform docs 
                   <StyledButton
                     aria-disabled={false}
                     aria-label="Or See Sample Event"
-                    className="css-1lewl16-StyledButton eadl9o50"
+                    className="css-1lewl16-StyledButton e191d89y0"
                     disabled={false}
                     onClick={[Function]}
                     priority="primary"
@@ -71,7 +71,7 @@ exports[`Configure should render correctly render() should render platform docs 
                     <ForwardRef
                       aria-disabled={false}
                       aria-label="Or See Sample Event"
-                      className="eadl9o50 css-1ey421x-StyledButton-getColors-StyledButton e12ma6z0"
+                      className="e191d89y0 css-1ey421x-StyledButton-getColors-StyledButton e12ma6z0"
                       disabled={false}
                       onClick={[Function]}
                       priority="primary"
@@ -80,7 +80,7 @@ exports[`Configure should render correctly render() should render platform docs 
                       <button
                         aria-disabled={false}
                         aria-label="Or See Sample Event"
-                        className="eadl9o50 css-1ey421x-StyledButton-getColors-StyledButton e12ma6z0"
+                        className="e191d89y0 css-1ey421x-StyledButton-getColors-StyledButton e12ma6z0"
                         onClick={[Function]}
                         role="button"
                       >
