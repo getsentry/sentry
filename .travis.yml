@@ -30,7 +30,7 @@ env:
     - PIP_QUIET=1
     - SENTRY_LIGHT_BUILD=1
     - SENTRY_SKIP_BACKEND_VALIDATION=1
-    - SOUTH_TESTS_MIGRATE=1
+    - SOUTH_TESTS_MIGRATE=0
     - DJANGO_VERSION=">=1.8,<1.9"
     # node's version is pinned by .nvmrc and is autodetected by `nvm install`.
     - NODE_DIR="${HOME}/.nvm/versions/node/v$(< .nvmrc)"
