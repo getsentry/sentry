@@ -14,6 +14,7 @@ import time
 from django.conf import settings
 
 from sentry import features
+from sentry.models import EventDict
 from sentry.utils import snuba
 from sentry.utils.cache import cache
 from sentry.plugins import plugins
@@ -99,6 +100,10 @@ def post_process_group(event, is_new, is_regression, is_sample, is_new_group_env
         from sentry.models.group import get_group_with_redirect
         from sentry.rules.processor import RuleProcessor
         from sentry.tasks.servicehooks import process_service_hook
+
+        # Re-bind node data to avoid renormalization. We only want to
+        # renormalize when loading old data from the database.
+        event.data = EventDict(event.data, skip_renormalization=True)
 
         # Re-bind Group since we're pickling the whole Event object
         # which may contain a stale Group.
