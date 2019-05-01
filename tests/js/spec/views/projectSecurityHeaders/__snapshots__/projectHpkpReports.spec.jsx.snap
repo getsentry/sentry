@@ -34,7 +34,7 @@ exports[`ProjectHpkpReports renders 1`] = `
           <span
             key="4"
           >
-            <ExternalLink
+            <ForwardRef
               href="https://en.wikipedia.org/wiki/HTTP_Public_Key_Pinning"
               key="1"
               rel="noreferrer noopener"
@@ -45,7 +45,7 @@ exports[`ProjectHpkpReports renders 1`] = `
               >
                 HTTP Public Key Pinning
               </span>
-            </ExternalLink>
+            </ForwardRef>
             <span
               key="2"
             >
