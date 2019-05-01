@@ -73,6 +73,22 @@ SAMPLE_CREATE_META_RESPONSE = """
                 {"id": 10100, "label": "sad"},
                 {"id": 10101, "label": "happy"}
               ]
+            },
+            "customfield_10300": {
+              "required": false,
+              "schema": {
+                "type": "array",
+                "items": "option",
+                "custom": "com.atlassian.jira.plugin.system.customfieldtypes:multiselect",
+                "customId": 10202
+              },
+              "name": "Feature",
+              "hasDefaultValue": false,
+              "operations": ["add", "set", "remove"],
+              "allowedValues": [
+                {"value": "Feature 1", "id": "10105"},
+                {"value": "Feature 2", "id": "10106"}
+              ]
             }
           }
         }
@@ -476,6 +492,14 @@ class JiraIntegrationTest(APITestCase):
                 'label': 'Mood',
                 'default': '',
                 'choices': [('sad', 'sad'), ('happy', 'happy')],
+            }, {
+                'multiple': True,
+                'required': False,
+                'type': 'select',
+                'name': 'customfield_10300',
+                'label': 'Feature',
+                'default': '',
+                'choices': [('Feature 1', 'Feature 1'), ('Feature 2', 'Feature 2')],
             }]
 
     def test_get_create_issue_config_with_default_and_param(self):
@@ -636,6 +660,8 @@ class JiraIntegrationTest(APITestCase):
             body = json.loads(request.body)
             assert body['fields']['labels'] == ['fuzzy', 'bunnies']
             assert body['fields']['customfield_10200'] == {'value': 'sad'}
+            assert body['fields']['customfield_10300'] == [
+                {'value': 'Feature 1'}, {'value': 'Feature 2'}]
             return (200, {'content-type': 'application/json'}, '{"key":"APP-123"}')
 
         responses.add_callback(
@@ -651,6 +677,7 @@ class JiraIntegrationTest(APITestCase):
             'issuetype': '1',
             'project': '10000',
             'customfield_10200': 'sad',
+            'customfield_10300': ['Feature 1', 'Feature 2'],
             'labels': 'fuzzy , ,  bunnies'
         })
         assert result['key'] == 'APP-123'
