@@ -482,20 +482,15 @@ const OrganizationStream = createReactClass({
 
     if (savedSearch && savedSearch.id) {
       path = `/organizations/${organization.slug}/issues/searches/${savedSearch.id}/`;
-      // Drop query and project, adding the search project if available.
+
+      // Remove the query as saved searches bring their own query string.
       delete query.query;
-      delete query.project;
 
-      if (savedSearch.projectId) {
+      // If we aren't going to another page in the same search
+      // drop the query and replace the current project, with the saved search search project
+      // if available.
+      if (!query.cursor && savedSearch.projectId) {
         query.project = [savedSearch.projectId];
-      }
-
-      // If the saved search is project-less and the user doesn't have
-      // global-views we retain their current project filter
-      // so that the backend doesn't reject their request.
-      const hasMultipleProjectSelection = this.getFeatures().has('global-views');
-      if (!savedSearch.projectId && !hasMultipleProjectSelection) {
-        query.project = this.props.selection.projects;
       }
     } else {
       path = `/organizations/${organization.slug}/issues/`;
