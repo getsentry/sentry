@@ -25,4 +25,5 @@ class OrganizationSerializerTest(TestCase):
             'invite-members',
             'sso-saml2',
             'sso-basic',
+            'sentry10',
         ])
