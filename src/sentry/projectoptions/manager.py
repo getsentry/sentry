@@ -65,13 +65,13 @@ class ProjectOptionsManager(object):
     def delete(self, project, key):
         from sentry.models import ProjectOption
         self.update_rev_for_option(project)
-        return ProjectOption.objects.unset_value(self, project, key)
+        return ProjectOption.objects.unset_value(project, key)
 
     def update_rev_for_option(self, project):
         from sentry.models import ProjectOption
-        ProjectOption.objects.set_value(self, 'sentry:relay-rev', uuid.uuid().hex)
+        ProjectOption.objects.set_value(project, 'sentry:relay-rev', uuid.uuid4().hex)
         ProjectOption.objects.set_value(
-            self,
+            project,
             'sentry:relay-rev-lastchange',
             datetime.utcnow().replace(
                 tzinfo=utc))
