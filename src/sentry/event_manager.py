@@ -397,6 +397,15 @@ def track_outcome(org_id, project_id, key_id, outcome, reason=None, timestamp=No
             })
         )
 
+    metrics.incr(
+        'events.outcomes',
+        skip_internal=True,
+        tags={
+            'outcome': outcome,
+            'reason': reason,
+        },
+    )
+
 
 class EventManager(object):
     """
