@@ -320,7 +320,12 @@ const NoteInput = createReactClass({
       null;
 
     return (
-      <NoteInputForm noValidate error={error} onSubmit={this.onSubmit}>
+      <NoteInputForm
+        data-test-id="note-input-form"
+        noValidate
+        error={error}
+        onSubmit={this.onSubmit}
+      >
         <NoteInputNavTabs>
           <NoteInputNavTab className={!preview ? 'active' : ''}>
             <NoteInputNavTabLink onClick={this.toggleEdit}>

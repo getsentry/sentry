@@ -59,7 +59,7 @@ class IssueDetailsPage(BasePage):
         self.browser.wait_until_not('.loading-indicator')
 
     def find_comment_form(self):
-        return self.browser.find_element_by_css_selector('form.activity-field')
+        return self.browser.find_element_by_css_selector('[data-test-id="note-input-form"]')
 
     def has_comment(self, text):
         selector = '[data-test-id="activity-note-body"]'
