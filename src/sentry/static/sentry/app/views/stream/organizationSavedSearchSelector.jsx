@@ -100,7 +100,9 @@ const Container = styled.div`
   display: block;
 `;
 
-const StyledDropdownButton = styled(DropdownButton)`
+const StyledDropdownButton = styled(
+  React.forwardRef((prop, ref) => <DropdownButton innerRef={ref} {...prop} />)
+)`
   border-right: 0;
   z-index: ${p => p.theme.zIndex.dropdownAutocomplete.actor};
   border-radius: ${p =>
