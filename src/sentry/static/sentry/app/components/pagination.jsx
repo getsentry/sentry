@@ -7,6 +7,11 @@ import {t} from 'app/locale';
 
 export default class Pagination extends React.Component {
   static propTypes = {
+    // If this is set, reset `cursor` when clicking "previous" if the target cursor is
+    // equal to this prop. This is used as kind of a hack for the situation where you browse "next",
+    // then "previous" so you are back to the "initial" result set, but due to snuba reasons we can't
+    // be certain if there are new "previous" events on the initial page
+    resetPreviousCursor: PropTypes.string,
     pageLinks: PropTypes.string,
     to: PropTypes.string,
     onCursor: PropTypes.func,
@@ -29,7 +34,7 @@ export default class Pagination extends React.Component {
   };
 
   render() {
-    const {className, onCursor, pageLinks} = this.props;
+    const {className, onCursor, pageLinks, resetPreviousCursor} = this.props;
     if (!pageLinks) {
       return null;
     }
@@ -55,7 +60,20 @@ export default class Pagination extends React.Component {
         <div className="btn-group pull-right">
           <a
             onClick={() => {
-              onCursor(links.previous.cursor, path, query);
+              let cursor = links.previous.cursor;
+
+              // Chop off `cursor` if we are trying to click "previous" back to the initial result set,
+              // instead of maintaining a cursor to guarantee consistency, if we navigate back to the "first" page,
+              // reset the cursor so that we have the newest items.
+              if (resetPreviousCursor) {
+                const [initialTs] = resetPreviousCursor.split(':');
+                const [previousTs] = links.previous.cursor.split(':');
+
+                if (previousTs === initialTs) {
+                  cursor = undefined;
+                }
+              }
+              onCursor(cursor, path, query);
             }}
             className={previousPageClassName}
             disabled={links.previous.results === false}

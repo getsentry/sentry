@@ -90,6 +90,9 @@ const OrganizationStream = createReactClass({
       // Will only be set if selected issues all belong
       // to one project.
       selectedProject: null,
+
+      // Initial previous cursor, this will be used to track where the first page is
+      initialCursor: null,
     };
   },
 
@@ -317,6 +320,18 @@ const OrganizationStream = createReactClass({
 
         const queryCount = jqXHR.getResponseHeader('X-Hits');
         const queryMaxCount = jqXHR.getResponseHeader('X-Max-Hits');
+        const pageLinks = jqXHR.getResponseHeader('Link');
+        let initialCursor = this.state.initialCursor;
+
+        // Reset `initialCursor` if current route does not have "cursor" url param
+        // i.e. if you page back to first page and cursor is removed so that we fetch
+        // a fresh set of results, we should reset initial cursor
+        if ((!this.state.initialCursor || !currentQuery.cursor) && pageLinks) {
+          const links = utils.parseLinkHeader(pageLinks);
+          if (!links.previous.results) {
+            initialCursor = links.next.cursor;
+          }
+        }
 
         this.setState({
           error: false,
@@ -325,7 +340,8 @@ const OrganizationStream = createReactClass({
             typeof queryCount !== 'undefined' ? parseInt(queryCount, 10) || 0 : 0,
           queryMaxCount:
             typeof queryMaxCount !== 'undefined' ? parseInt(queryMaxCount, 10) || 0 : 0,
-          pageLinks: jqXHR.getResponseHeader('Link'),
+          pageLinks,
+          initialCursor,
         });
       },
       error: err => {
@@ -375,12 +391,9 @@ const OrganizationStream = createReactClass({
   },
 
   onRealtimePoll(data, links) {
+    // Note: We do not update state with cursors from polling,
+    // `CursorPoller` updates itself with new cursors
     this._streamManager.unshift(data);
-    if (!utils.valueIsEqual(this.state.pageLinks, links, true)) {
-      this.setState({
-        pageLinks: links,
-      });
-    }
   },
 
   onGroupChange() {
@@ -415,7 +428,7 @@ const OrganizationStream = createReactClass({
     this.transitionTo({sort});
   },
 
-  onCursorChange(cursor, path, query) {
+  onCursorChange(cursor) {
     this.transitionTo({cursor});
   },
 
@@ -506,7 +519,8 @@ const OrganizationStream = createReactClass({
   },
 
   renderGroupNodes(ids, groupStatsPeriod) {
-    // Restrict this guide to only show for new users (joined<30 days) and add guide anhor only to the first issue
+    // Restrict this guide to only show for new users (joined < 30 days)
+    // and add guide anchor only to the first issue
     const userDateJoined = new Date(ConfigStore.get('user').dateJoined);
     const dateCutoff = new Date();
     dateCutoff.setDate(dateCutoff.getDate() - 30);
@@ -716,7 +730,11 @@ const OrganizationStream = createReactClass({
               {this.renderStreamBody()}
             </PanelBody>
           </Panel>
-          <Pagination pageLinks={this.state.pageLinks} onCursor={this.onCursorChange} />
+          <Pagination
+            pageLinks={this.state.pageLinks}
+            resetPreviousCursor={this.state.initialCursor}
+            onCursor={this.onCursorChange}
+          />
         </div>
         <StreamSidebar
           loading={this.state.tagsLoading}
