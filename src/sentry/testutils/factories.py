@@ -841,22 +841,15 @@ class Factories(object):
 
     @staticmethod
     def create_incident(
-        organization, projects, identifier=None, detection_uuid=None, status=0,
+        organization, projects, detection_uuid=None, status=0,
         title=None, query='test query', date_started=None, date_detected=None,
         date_closed=None,
     ):
-        # TODO: Remove this once we handle creating this as part of the object
-        if identifier is None:
-            identifier = Incident.objects.filter(organization=organization).count() + 1
-
-        if not detection_uuid:
-            detection_uuid = uuid4()
         if not title:
             title = petname.Generate(2, ' ', letters=10).title()
 
         incident = Incident.objects.create(
             organization=organization,
-            identifier=identifier,
             detection_uuid=detection_uuid,
             status=status,
             title=title,

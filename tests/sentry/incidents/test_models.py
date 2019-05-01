@@ -1,6 +1,13 @@
 from __future__ import absolute_import
 
-from sentry.incidents.models import Incident
+from django.db import IntegrityError, transaction
+from mock import patch
+
+from sentry.db.models.manager import BaseManager
+from sentry.incidents.models import (
+    Incident,
+    IncidentStatus,
+)
 from sentry.testutils import TestCase
 
 
@@ -46,3 +53,75 @@ class FetchForOrganizationTest(TestCase):
             self.organization,
             [project],
         ))
+
+
+class IncidentCreationTest(TestCase):
+
+    def test_simple(self):
+        status = IncidentStatus.CREATED.value
+        title = 'hello'
+        query = 'goodbye'
+        incident = Incident.objects.create(
+            self.organization,
+            status=status,
+            title=title,
+            query=query,
+        )
+        assert incident.identifier == 1
+        assert incident.status == status
+        assert incident.title == title
+        assert incident.query == query
+
+        # Check identifier correctly increments
+        incident = Incident.objects.create(
+            self.organization,
+            status=status,
+            title=title,
+            query=query,
+        )
+        assert incident.identifier == 2
+
+    def test_identifier_conflict(self):
+        create_method = BaseManager.create
+        call_count = [0]
+
+        def mock_base_create(*args, **kwargs):
+            if not call_count[0]:
+                call_count[0] += 1
+                # This incident will take the identifier we already fetched and
+                # use it, which will cause the database to throw an integrity
+                # error.
+                with transaction.atomic():
+                    incident = Incident.objects.create(
+                        self.organization,
+                        status=IncidentStatus.CREATED.value,
+                        title='Conflicting Incident',
+                        query='Uh oh',
+                    )
+                assert incident.identifier == kwargs['identifier']
+                try:
+                    create_method(*args, **kwargs)
+                except IntegrityError:
+                    raise
+                else:
+                    self.fail('Expected an integrity error')
+            else:
+                call_count[0] += 1
+
+            return create_method(*args, **kwargs)
+
+        self.organization
+        with patch.object(BaseManager, 'create', new=mock_base_create):
+            incident = Incident.objects.create(
+                self.organization,
+                status=IncidentStatus.CREATED.value,
+                title='hi',
+                query='bye',
+            )
+            # We should have 3 calls - one for initial create, one for conflict,
+            # then the final one for the retry we get due to the conflict
+            assert call_count[0] == 3
+            # Ideally this would be 2, but because we create the conflicting
+            # row inside of a transaction it ends up rolled back. We just want
+            # to verify that it was created successfully.
+            assert incident.identifier == 1
