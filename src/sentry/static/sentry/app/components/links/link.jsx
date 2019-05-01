@@ -8,7 +8,7 @@ import {Link as RouterLink} from 'react-router';
  */
 class Link extends React.Component {
   static propTypes = {
-    to: PropTypes.string,
+    to: PropTypes.oneOfType([PropTypes.string, PropTypes.object]),
     href: PropTypes.string,
   };
 
