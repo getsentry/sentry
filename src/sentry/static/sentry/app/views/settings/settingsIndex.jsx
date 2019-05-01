@@ -320,7 +320,7 @@ const getHomeIconMargin = css`
   margin-bottom: 20px;
 `;
 
-const HomeIcon = styled.div`
+const HomeIcon = styled('div')`
   background: ${p => p.theme[p.color || 'gray2']};
   color: #fff;
   width: ${HOME_ICON_SIZE}px;
@@ -365,7 +365,7 @@ SupportLinkComponent.propTypes = {
   to: PropTypes.string,
 };
 
-const AvatarContainer = styled.div`
+const AvatarContainer = styled('div')`
   margin-bottom: 20px;
 `;
 

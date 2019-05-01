@@ -93,7 +93,7 @@ class ProcessingIssueHint extends React.Component {
   }
 }
 
-const Container = styled.div`
+const Container = styled('div')`
   margin: -1px -1px 0;
   padding: 10px 16px;
 `;

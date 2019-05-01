@@ -38,7 +38,7 @@ export const DiscoverGlobalSelectionHeader = styled(GlobalSelectionHeader)`
   left: 0;
 `;
 
-export const PageTitle = styled.h2`
+export const PageTitle = styled('h2')`
   display: flex;
   font-size: 20px;
   font-weight: normal;
@@ -162,7 +162,7 @@ export const SidebarTabs = styled(props => <NavTabs {...props} underlined={true}
   margin: 0;
 `;
 
-export const PlaceholderText = styled.div`
+export const PlaceholderText = styled('div')`
   color: ${p => p.theme.gray6};
   font-size: 15px;
 `;
@@ -173,7 +173,7 @@ export const HeadingContainer = styled(Flex)`
   align-items: center;
 `;
 
-export const Fieldset = styled.fieldset`
+export const Fieldset = styled('fieldset')`
   margin: ${space(2)} ${space(3)};
 `;
 
@@ -181,7 +181,7 @@ export const SelectListItem = styled(Flex)`
   margin-top: ${space(0.5)};
 `;
 
-export const SidebarLabel = styled.label`
+export const SidebarLabel = styled('label')`
   text-transform: uppercase;
   font-size: ${p => p.theme.fontSizeSmall};
   color: ${p => p.theme.gray3};
@@ -192,7 +192,7 @@ export const QueryFieldsContainer = styled('div')`
   overflow-y: scroll;
 `;
 
-export const AddText = styled.span`
+export const AddText = styled('span')`
   font-style: italic;
   text-decoration: underline;
   margin-left: 4px;
@@ -210,7 +210,7 @@ const spin = keyframes`
   }
 `;
 
-export const ButtonSpinner = styled.div`
+export const ButtonSpinner = styled('div')`
   animation: ${spin} 0.4s linear infinite;
   width: 14px;
   height: 14px;

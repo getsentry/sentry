@@ -8,13 +8,13 @@ import Tooltip from 'app/components/tooltip';
 import {t, tn} from 'app/locale';
 import utils from 'app/utils';
 
-const Chunks = styled.span`
+const Chunks = styled('span')`
   span {
     display: inline;
   }
 `;
 
-const Redaction = styled.span`
+const Redaction = styled('span')`
   background: rgba(255, 0, 0, 0.05);
   cursor: default;
 `;

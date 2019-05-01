@@ -373,7 +373,7 @@ class TimeRangeSelector extends React.PureComponent {
   }
 }
 
-const TimeRangeRoot = styled.div`
+const TimeRangeRoot = styled('div')`
   position: relative;
 `;
 

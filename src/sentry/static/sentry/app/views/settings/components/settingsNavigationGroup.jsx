@@ -6,11 +6,11 @@ import SentryTypes from 'app/sentryTypes';
 import SettingsNavItem from 'app/views/settings/components/settingsNavItem';
 import replaceRouterParams from 'app/utils/replaceRouterParams';
 
-const NavSection = styled.div`
+const NavSection = styled('div')`
   margin-bottom: 20px;
 `;
 
-const SettingsHeading = styled.div`
+const SettingsHeading = styled('div')`
   color: ${p => p.theme.gray3};
   font-size: 12px;
   font-weight: 600;

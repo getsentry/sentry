@@ -855,7 +855,7 @@ const PinIcon = styled(InlineSvg)`
   }
 `;
 
-const Container = styled.div`
+const Container = styled('div')`
   border: 1px solid ${p => p.theme.borderLight};
   border-radius: ${p =>
     p.isOpen
@@ -877,7 +877,7 @@ const Container = styled.div`
   }
 `;
 
-const ButtonBar = styled.div`
+const ButtonBar = styled('div')`
   display: flex;
   justify-content: flex-end;
   margin-right: ${space(1)};
@@ -897,11 +897,11 @@ const DropdownWrapper = styled('div')`
   display: ${p => (p.visible ? 'block' : 'none')};
 `;
 
-const StyledForm = styled.form`
+const StyledForm = styled('form')`
   flex-grow: 1;
 `;
 
-const StyledInput = styled.input`
+const StyledInput = styled('input')`
   color: ${p => p.theme.foreground};
   background: transparent;
   border: 0;

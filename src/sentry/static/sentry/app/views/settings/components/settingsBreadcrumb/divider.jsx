@@ -4,7 +4,7 @@ import styled from 'react-emotion';
 
 import InlineSvg from 'app/components/inlineSvg';
 
-const StyledDivider = styled.span`
+const StyledDivider = styled('span')`
   display: inline-block;
   margin-left: 6px;
   color: ${p => p.theme.borderDark};

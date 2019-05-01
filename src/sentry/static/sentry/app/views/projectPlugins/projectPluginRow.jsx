@@ -95,13 +95,13 @@ class ProjectPluginRow extends React.PureComponent {
 export default ProjectPluginRow;
 
 // Includes icon, name, version, configure link
-const PluginInfo = styled.div`
+const PluginInfo = styled('div')`
   display: flex;
   flex: 1;
   line-height: 24px;
 `;
 
-const PluginName = styled.div`
+const PluginName = styled('div')`
   font-size: 16px;
 `;
 
@@ -110,6 +110,6 @@ const StyledPluginIcon = styled(PluginIcon)`
 `;
 
 // Keeping these colors the same from old integrations page
-const Version = styled.span`
+const Version = styled('span')`
   color: #babec2;
 `;

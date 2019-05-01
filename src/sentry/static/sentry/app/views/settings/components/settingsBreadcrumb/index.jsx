@@ -93,7 +93,7 @@ export default createReactClass({
   },
 });
 
-const Breadcrumbs = styled.div`
+const Breadcrumbs = styled('div')`
   display: flex;
   align-items: center;
 `;

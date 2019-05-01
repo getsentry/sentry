@@ -302,7 +302,7 @@ const SavedSearchSelector = withApi(
   }
 );
 
-const Container = styled.div`
+const Container = styled('div')`
   & .dropdown-menu {
     max-width: 350px;
     min-width: 275px;
@@ -333,7 +333,7 @@ const StyledDropdownLink = styled(DropdownLink)`
   }
 `;
 
-const EmptyItem = styled.li`
+const EmptyItem = styled('li')`
   padding: 8px 10px 5px;
   font-style: italic;
 `;
@@ -361,7 +361,7 @@ const StyledMenuItem = styled(MenuItem)`
   }
 `;
 
-const ButtonBar = styled.li`
+const ButtonBar = styled('li')`
   padding: ${space(0.5)} ${space(1)};
   display: flex;
   justify-content: space-between;
