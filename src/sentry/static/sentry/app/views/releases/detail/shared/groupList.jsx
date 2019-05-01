@@ -7,7 +7,6 @@ import qs from 'query-string';
 
 import SentryTypes from 'app/sentryTypes';
 import {fetchOrgMembers, indexMembersByProject} from 'app/actionCreators/members';
-import GroupListHeader from 'app/components/groupListHeader';
 import GroupStore from 'app/stores/groupStore';
 import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
@@ -17,6 +16,8 @@ import withApi from 'app/utils/withApi';
 import {t} from 'app/locale';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
 import {Panel, PanelBody} from 'app/components/panels';
+
+import GroupListHeader from './groupListHeader';
 
 const GroupList = createReactClass({
   displayName: 'GroupList',
