@@ -20,7 +20,6 @@ from sentry.utils.dates import to_timestamp
 from sentry.utils.snuba import SENTRY_SNUBA_MAP
 
 WILDCARD_CHARS = re.compile(r'[\*]')
-BOOLEAN_OPERATORS = ('AND', 'OR')
 
 
 def translate(pat):
@@ -84,9 +83,8 @@ def translate(pat):
 
 
 event_search_grammar = Grammar(r"""
-search               = (nested_boolean_term / boolean_term / search_term)*
-nested_boolean_term  = boolean_term boolean_operator (boolean_term / search_term)
-boolean_term         = search_term boolean_operator (boolean_term / search_term)
+search               = (boolean_term / search_term)*
+boolean_term         = search_term (boolean_operator search_term)+
 search_term          = key_val_term / quoted_raw_search / raw_search
 key_val_term         = space? (time_filter / rel_time_filter / specific_time_filter
                        / numeric_filter / has_filter / is_filter / basic_filter)
@@ -156,7 +154,8 @@ def has_boolean_search_terms(search_terms):
 
 
 class SearchBoolean(namedtuple('SearchBoolean', 'left_term operator right_term')):
-    pass
+    BOOLEAN_AND = "AND"
+    BOOLEAN_OR = "OR"
 
 
 class SearchFilter(namedtuple('SearchFilter', 'key operator value')):
@@ -276,9 +275,33 @@ class SearchVisitor(NodeVisitor):
         return SearchFilter(SearchKey('message'), "=", SearchValue(value))
 
     def visit_boolean_term(self, node, children):
-        left_term, right_term = self.flatten(children[0])[0], self.flatten(children[2])[0]
-        operator = children[1]
-        return [SearchBoolean(left_term, operator, right_term)]
+        def find_next_operator(children, start, end, operator):
+            for index in range(start, end):
+                if children[index] == operator:
+                    return index
+            return None
+
+        def build_boolean_tree_helper(children, start, end, operator):
+            while True:
+                index = find_next_operator(children, start, end, operator)
+                if index is None:
+                    return None
+                left = build_boolean_tree(children, start, index)
+                right = build_boolean_tree(children, index + 1, end)
+                return SearchBoolean(left, children[index], right)
+
+        def build_boolean_tree(children, start, end):
+            if end - start == 1:
+                return children[start]
+
+            result = build_boolean_tree_helper(children, start, end, SearchBoolean.BOOLEAN_OR)
+            if result is None:
+                result = build_boolean_tree_helper(children, start, end, SearchBoolean.BOOLEAN_AND)
+
+            return result
+
+        children = self.flatten(children)
+        return [build_boolean_tree(children, 0, len(children))]
 
     def visit_nested_boolean_term(self, node, children):
         return self.visit_boolean_term(node, children)
