@@ -1,52 +1,50 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import createReactClass from 'create-react-class';
 import {Box} from 'grid-emotion';
 
-import ApiMixin from 'app/mixins/apiMixin';
 import FileSize from 'app/components/fileSize';
 
 import {t} from 'app/locale';
-
 import {Panel, PanelBody, PanelItem} from 'app/components/panels';
+import withApi from 'app/utils/withApi';
 
-export default createReactClass({
-  displayName: 'EventAttachments',
-
-  propTypes: {
+class EventAttachments extends React.Component {
+  static propTypes = {
+    api: PropTypes.object.isRequired,
     event: PropTypes.object.isRequired,
     orgId: PropTypes.string.isRequired,
     projectId: PropTypes.string.isRequired,
-  },
+  };
 
-  mixins: [ApiMixin],
-
-  getInitialState() {
-    return {attachmentList: undefined, expanded: false};
-  },
+  state = {
+    attachmentList: undefined,
+    expanded: false,
+  };
 
   componentDidMount() {
     this.fetchData(this.props.event);
-  },
+  }
 
-  componentWillReceiveProps(nextProps) {
-    if (this.props.event && nextProps.event) {
-      if (this.props.event.id !== nextProps.event.id) {
-        //two events, with different IDs
-        this.fetchData(nextProps.event);
-      }
-    } else if (nextProps.event) {
-      //going from having no event to having an event
-      this.fetchData(nextProps.event);
+  componentDidUpdate(prevProps) {
+    let doFetch = false;
+    if (!prevProps.event && this.props.event) {
+      // going from having no event to having an event
+      doFetch = true;
+    } else if (this.props.event && this.props.event.id !== prevProps.event.id) {
+      doFetch = true;
     }
-  },
+
+    if (doFetch) {
+      this.fetchData(this.props.event);
+    }
+  }
 
   fetchData(event) {
     // TODO(dcramer): this API request happens twice, and we need a store for it
     if (!event) {
       return;
     }
-    this.api.request(
+    this.props.api.request(
       `/projects/${this.props.orgId}/${this.props.projectId}/events/${
         event.id
       }/attachments/`,
@@ -63,14 +61,14 @@ export default createReactClass({
         },
       }
     );
-  },
+  }
 
   getDownloadUrl(attachment) {
     const {orgId, event, projectId} = this.props;
     return `/api/0/projects/${orgId}/${projectId}/events/${event.id}/attachments/${
       attachment.id
     }/?download=1`;
-  },
+  }
 
   render() {
     const {attachmentList} = this.state;
@@ -109,5 +107,7 @@ export default createReactClass({
         </div>
       </div>
     );
-  },
-});
+  }
+}
+
+export default withApi(EventAttachments);
