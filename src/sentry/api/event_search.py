@@ -121,7 +121,7 @@ rel_date_format      = ~r"[\+\-][0-9]+[wdhm](?=\s|$)"
 # NOTE: the order in which these operators are listed matters
 # because for example, if < comes before <= it will match that
 # even if the operator is <=
-boolean_operator     = "OR" / "or" / "AND" / "and"
+boolean_operator     = "OR" / "AND"
 operator             = ">=" / "<=" / ">" / "<" / "=" / "!="
 sep                  = ":"
 space                = " "
@@ -441,7 +441,7 @@ class SearchVisitor(NodeVisitor):
         return SearchValue(children[0])
 
     def visit_boolean_operator(self, node, children):
-        return node.text.upper()
+        return node.text
 
     def visit_value(self, node, children):
         return node.text
