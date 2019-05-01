@@ -24,7 +24,6 @@ const ProgressNodes = createReactClass({
 
   componentDidMount() {
     const {organization} = this.context;
-    const user = ConfigStore.get('user');
     const step = this.inferStep();
 
     if (step === 1) {
@@ -33,9 +32,6 @@ const ProgressNodes = createReactClass({
       });
       amplitude('Viewed Onboarding Create Project', parseInt(organization.id, 10));
     }
-
-    HookStore.get('analytics:onboarding-survey-log').length &&
-      HookStore.get('analytics:onboarding-survey-log')[0](organization, user);
   },
 
   steps: Object.keys(onboardingSteps),
