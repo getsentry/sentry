@@ -6,6 +6,7 @@ from sentry import filters
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.models import AuditLogEntryEvent
+import six
 
 
 class ProjectFilterDetailsEndpoint(ProjectEndpoint):
@@ -24,8 +25,6 @@ class ProjectFilterDetailsEndpoint(ProjectEndpoint):
             raise ResourceDoesNotExist
 
         serializer = filter.serializer_cls(data=request.DATA, partial=True)
-        if not serializer.is_valid():
-            return Response(serializer.errors, status=400)
 
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
@@ -35,16 +34,22 @@ class ProjectFilterDetailsEndpoint(ProjectEndpoint):
         audit_log_state = AuditLogEntryEvent.PROJECT_ENABLE
 
         if filter.id == 'legacy-browsers':
-            added = new_state - current_state
-            removed = current_state - new_state
+            if isinstance(current_state, bool) or new_state == 0 or isinstance(
+                    new_state, six.binary_type):
+                returned_state = new_state
 
-            if removed:
-                returned_state = removed
+                if isinstance(new_state, six.binary_type):
+                    audit_log_state = AuditLogEntryEvent.PROJECT_DISABLE
+                    returned_state = current_state
+
+            elif current_state - new_state:
+                returned_state = current_state - new_state
                 audit_log_state = AuditLogEntryEvent.PROJECT_DISABLE
-            elif added:
-                returned_state = added
 
-        if filter.id == 'browser-extensions' or filter.id == 'localhost' or filter.id == 'web-crawlers':
+            elif new_state - current_state:
+                returned_state = new_state - current_state
+
+        if filter.id in ('browser-extensions', 'localhost', 'web-crawlers'):
             returned_state = filter.id
             removed = current_state - new_state
 
