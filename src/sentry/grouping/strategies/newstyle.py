@@ -159,8 +159,10 @@ def get_function_component(function, platform, legacy_function_logic,
       such as in erb and the active_support library.
     - Block functions have metadata that we don't care about.
 
-    The v1 implementation always uses the `function` attribute, never the newer
-    `function_name` attribute.
+    The `legacy_function_logic` parameter controls if the system should
+    use the frame v1 function name logic or the frame v2 logic.  The difference
+    is that v2 uses the function name consistently and v1 prefers raw function
+    or a trimmed version (of the truncated one) for native.
     """
     from sentry.stacktraces.functions import trim_function_name
 
