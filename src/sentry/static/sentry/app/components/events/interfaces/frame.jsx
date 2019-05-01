@@ -53,8 +53,9 @@ class FunctionName extends React.Component {
     }
 
     const current = this.state.rawFunction ? rawFunc : func;
+    const title = this.state.rawFunction ? null : rawFunc;
     return (
-      <code {...props}>
+      <code {...props} title={title}>
         <a onClick={this.toggle}>{current || '<unknown>'}</a>
       </code>
     );
@@ -467,7 +468,10 @@ const Frame = createReactClass({
             <span className="symbol">
               <FunctionName frame={data} />{' '}
               {data.filename && (
-                <span className="filename">
+                <span
+                  className="filename"
+                  title={data.absPath !== data.filename ? data.absPath : null}
+                >
                   {data.filename}
                   {data.lineNo ? ':' + data.lineNo : ''}
                 </span>
