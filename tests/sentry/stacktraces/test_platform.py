@@ -2,7 +2,7 @@ from __future__ import absolute_import
 
 import pytest
 
-from sentry.grouping.utils import get_grouping_family_for_platform
+from sentry.stacktraces.platform import get_behavior_family_for_platform
 
 
 @pytest.mark.parametrize(
@@ -20,4 +20,4 @@ from sentry.grouping.utils import get_grouping_family_for_platform
     ]
 )
 def test_get_grouping_family_for_platform(input, output):
-    assert get_grouping_family_for_platform(input) == output
+    assert get_behavior_family_for_platform(input) == output

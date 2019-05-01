@@ -1,7 +1,7 @@
 from __future__ import absolute_import, print_function
 
 from sentry.plugins import Plugin2
-from sentry.stacktraces import find_stacktraces_in_data
+from sentry.stacktraces.processing import find_stacktraces_in_data
 from sentry.utils.safe import get_path
 
 from .processor import JavaScriptStacktraceProcessor
