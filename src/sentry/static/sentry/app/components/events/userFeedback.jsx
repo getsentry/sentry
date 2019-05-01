@@ -7,7 +7,7 @@ import ActivityAuthor from 'app/components/activity/activityAuthor';
 import ActivityItem from 'app/components/activity/activityItem';
 import Clipboard from 'app/components/clipboard';
 import InlineSvg from 'app/components/inlineSvg';
-import Link from 'app/components/link';
+import Link from 'app/components/links/link';
 import space from 'app/styles/space';
 import utils from 'app/utils';
 
