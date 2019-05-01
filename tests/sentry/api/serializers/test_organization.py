@@ -12,8 +12,6 @@ class OrganizationSerializerTest(TestCase):
     def test_simple(self):
         user = self.create_user()
         organization = self.create_organization(owner=user)
-        organization.flags.disable_new_visibility_features = True
-        organization.save()
 
         result = serialize(organization, user)
 
@@ -28,4 +26,3 @@ class OrganizationSerializerTest(TestCase):
             'sso-saml2',
             'sso-basic',
         ])
-        assert result['disableNewVisibilityFeatures']
