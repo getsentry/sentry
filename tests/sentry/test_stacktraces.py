@@ -1,7 +1,7 @@
 from __future__ import absolute_import
 
 from sentry.grouping.api import get_default_grouping_config_dict, load_grouping_config
-from sentry.stacktraces import find_stacktraces_in_data, normalize_stacktraces_for_grouping
+from sentry.stacktraces.processing import find_stacktraces_in_data, normalize_stacktraces_for_grouping
 from sentry.testutils import TestCase
 
 

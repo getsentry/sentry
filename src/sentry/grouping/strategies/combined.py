@@ -2,7 +2,7 @@
 from __future__ import absolute_import
 
 from sentry.grouping.strategies.base import strategy, lookup_strategy
-from sentry.grouping.utils import get_grouping_family_for_platform
+from sentry.stacktraces.platform import get_behavior_family_for_platform
 
 
 def dispatch_strategy(id, targets, score=None):
@@ -43,7 +43,7 @@ def dispatch_strategy(id, targets, score=None):
 
 
 def is_native(meta):
-    return get_grouping_family_for_platform(meta['event'].platform) == 'native'
+    return get_behavior_family_for_platform(meta['event'].platform) == 'native'
 
 
 stacktrace_v1nl = dispatch_strategy(

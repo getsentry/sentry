@@ -81,11 +81,11 @@ def is_unhashable_module_legacy(frame, platform):
     return False
 
 
-def is_unhashable_function_legacy(frame):
+def is_unhashable_function_legacy(func):
     # TODO(dcramer): lambda$ is Java specific
     # TODO(dcramer): [Anonymous is PHP specific (used for things like SQL
     # queries and JSON data)
-    return frame.function.startswith(('lambda$', '[Anonymous'))
+    return func.startswith(('lambda$', '[Anonymous'))
 
 
 def is_recursion_legacy(frame1, frame2):
@@ -263,6 +263,14 @@ def frame_legacy(frame, event, **meta):
     contributes = None
     hint = None
 
+    # this requires some explanation: older sentry versions did not have
+    # raw_function but only function.  For some platforms like native
+    # we now instead store a trimmed function name in frame.function so
+    # and the original value moved to raw_function.  This requires us to
+    # prioritize raw_function over function in the legacy grouping code to
+    # avoid creating new groups.
+    func = frame.raw_function or frame.function
+
     # Safari throws [native code] frames in for calls like ``forEach``
     # whereas Chrome ignores these. Let's remove it from the hashing algo
     # so that they're more likely to group together
@@ -333,7 +341,7 @@ def frame_legacy(frame, event, **meta):
     if frame.context_line is not None:
         if len(frame.context_line) > 120:
             context_line_component.update(hint='discarded because line too long')
-        elif is_url_frame_legacy(frame) and not frame.function:
+        elif is_url_frame_legacy(frame) and not func:
             context_line_component.update(hint='discarded because from URL origin')
         else:
             context_line_component.update(values=[frame.context_line])
@@ -350,10 +358,10 @@ def frame_legacy(frame, event, **meta):
        (module_component.contributes or filename_component.contributes):
         if frame.symbol:
             symbol_component.update(values=[frame.symbol])
-            if frame.function:
+            if func:
                 function_component.update(
                     contributes=False,
-                    values=[frame.function],
+                    values=[func],
                     hint='symbol takes precedence'
                 )
             if frame.lineno:
@@ -362,8 +370,8 @@ def frame_legacy(frame, event, **meta):
                     values=[frame.lineno],
                     hint='symbol takes precedence'
                 )
-        elif frame.function:
-            if is_unhashable_function_legacy(frame):
+        elif func:
+            if is_unhashable_function_legacy(func):
                 function_component.update(values=[
                     GroupingComponent(
                         id='salt',
@@ -372,7 +380,7 @@ def frame_legacy(frame, event, **meta):
                     )
                 ])
             else:
-                function, function_hint = remove_function_outliers_legacy(frame.function)
+                function, function_hint = remove_function_outliers_legacy(func)
                 function_component.update(
                     values=[function],
                     hint=function_hint
@@ -392,10 +400,10 @@ def frame_legacy(frame, event, **meta):
                 values=[frame.symbol],
                 hint='symbol is used only if module or filename are available'
             )
-        if frame.function:
+        if func:
             function_component.update(
                 contributes=False,
-                values=[frame.function],
+                values=[func],
                 hint='function name is used only if module or filename are available'
             )
         if frame.lineno:

@@ -5,7 +5,7 @@ from __future__ import absolute_import
 import pytest
 
 from sentry.interfaces.exception import Exception, slim_exception_data
-from sentry.stacktraces import normalize_stacktraces_for_grouping
+from sentry.stacktraces.processing import normalize_stacktraces_for_grouping
 from sentry.models import Event
 from sentry.event_manager import EventManager
 

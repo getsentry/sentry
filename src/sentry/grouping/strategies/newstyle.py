@@ -5,16 +5,13 @@ import re
 
 from sentry.grouping.component import GroupingComponent
 from sentry.grouping.strategies.base import strategy
-from sentry.grouping.strategies.utils import replace_enclosed_string, \
-    split_func_tokens, remove_non_stacktrace_variants
+from sentry.grouping.strategies.utils import remove_non_stacktrace_variants
 from sentry.grouping.strategies.message import trim_message_for_grouping
+from sentry.stacktraces.platform import get_behavior_family_for_platform
 
 
-_rust_hash = re.compile(r'::h[a-z0-9]{16}$')
-_windecl_hash = re.compile(r'^@?(.*?)@[0-9]+$')
 _ruby_erb_func = re.compile(r'__\d{4,}_\d{4,}$')
 _basename_re = re.compile(r'[/\\]')
-_cpp_trailer_re = re.compile(r'(\bconst\b|&)$')
 
 # OpenJDK auto-generated classes for reflection access:
 #   sun.reflect.GeneratedSerializationConstructorAccessor123
@@ -39,10 +36,6 @@ _java_assist_enhancer_re = re.compile(r'''(\$\$_javassist)(?:_seam)?(?:_[0-9]+)?
 
 # Clojure anon functions are compiled down to myapp.mymodule$fn__12345
 _clojure_enhancer_re = re.compile(r'''(\$fn__)\d+''', re.X)
-
-# Native function trim re.  For now this is a simple hack until we have the
-# language hints in which will let us trim this down better.
-_native_function_trim_re = re.compile(r'^(.[^(]*)\(')
 
 # fields that need to be the same between frames for them to be considered
 # recursive calls
@@ -157,115 +150,74 @@ def get_module_component_v1(abs_path, module, platform):
     return module_component
 
 
-def isolate_native_function_v1(function):
-    original_function = function
-    function = function.strip()
-
-    # Ensure we don't operated on objc functions
-    if function.startswith(('[', '+[', '-[')):
-        return function
-
-    # Chop off C++ trailers
-    while 1:
-        match = _cpp_trailer_re.search(function)
-        if match is None:
-            break
-        function = function[:match.start()].rstrip()
-
-    # Because operator<< really screws with our balancing, so let's work
-    # around that by replacing it with a character we do not observe in
-    # `split_func_tokens` or `replace_enclosed_string`.
-    function = function \
-        .replace('operator<<', u'operator⟨⟨') \
-        .replace('operator<', u'operator⟨') \
-        .replace('operator()', u'operator◯')
-
-    # Remove the arguments if there is one.
-    def process_args(value, start):
-        value = value.strip()
-        if value in ('anonymous namespace', 'operator'):
-            return '(%s)' % value
-        return ''
-    function = replace_enclosed_string(function, '(', ')', process_args)
-
-    # Resolve generic types, but special case rust which uses things like
-    # <Foo as Bar>::baz to denote traits.
-    def process_generics(value, start):
-        # Rust special case
-        if start == 0:
-            return '<%s>' % replace_enclosed_string(value, '<', '>', process_generics)
-        return '<T>'
-    function = replace_enclosed_string(function, '<', '>', process_generics)
-
-    # The last token is the function name.
-    tokens = split_func_tokens(function)
-    if tokens:
-        function = tokens[-1].replace(u'⟨', '<').replace(u'◯', '()')
-
-    # This really should never happen
-    else:
-        function = original_function
-
-    # trim off rust markers
-    function = _rust_hash.sub('', function)
-
-    # trim off windows decl markers
-    return _windecl_hash.sub('\\1', function)
-
-
-def get_function_component_v1(function, platform):
+def get_function_component(function, platform, legacy_function_logic,
+                           raw_function=None):
     """
     Attempt to normalize functions by removing common platform outliers.
 
     - Ruby generates (random?) integers for various anonymous style functions
       such as in erb and the active_support library.
     - Block functions have metadata that we don't care about.
+
+    The `legacy_function_logic` parameter controls if the system should
+    use the frame v1 function name logic or the frame v2 logic.  The difference
+    is that v2 uses the function name consistently and v1 prefers raw function
+    or a trimmed version (of the truncated one) for native.
     """
-    if not function:
+    from sentry.stacktraces.functions import trim_function_name
+
+    if legacy_function_logic:
+        func = raw_function or function
+    else:
+        func = function or raw_function
+        if not raw_function and function:
+            func = trim_function_name(func, platform)
+
+    if not func:
         return GroupingComponent(id='function')
 
     function_component = GroupingComponent(
         id='function',
-        values=[function],
+        values=[func],
     )
 
     if platform == 'ruby':
-        if function.startswith('block '):
+        if func.startswith('block '):
             function_component.update(
                 values=['block'],
                 hint='ruby block'
             )
         else:
-            new_function = _ruby_erb_func.sub('', function)
-            if new_function != function:
+            new_function = _ruby_erb_func.sub('', func)
+            if new_function != func:
                 function_component.update(
                     values=[new_function],
                     hint='removed generated erb template suffix'
                 )
 
     elif platform == 'php':
-        if function.startswith('[Anonymous'):
+        if func.startswith('[Anonymous'):
             function_component.update(
                 contributes=False,
                 hint='ignored anonymous function'
             )
 
     elif platform == 'java':
-        if function.startswith('lambda$'):
+        if func.startswith('lambda$'):
             function_component.update(
                 contributes=False,
                 hint='ignored lambda function'
             )
 
-    elif platform in ('objc', 'cocoa', 'native'):
-        if function in ('<redacted>', '<unknown>'):
+    elif get_behavior_family_for_platform(platform) == 'native':
+        if func in ('<redacted>', '<unknown>'):
             function_component.update(
                 contributes=False,
                 hint='ignored unknown function'
             )
-        else:
-            new_function = isolate_native_function_v1(function)
-            if new_function != function:
+        elif legacy_function_logic:
+            new_function = trim_function_name(func, platform)
+            if new_function != func:
                 function_component.update(
                     values=[new_function],
                     hint='isolated function'
@@ -280,6 +232,21 @@ def get_function_component_v1(function, platform):
     variants=['!system', 'app'],
 )
 def frame_v1(frame, event, **meta):
+    return get_frame_component(frame, event, meta,
+                               legacy_function_logic=True)
+
+
+@strategy(
+    id='frame:v2',
+    interfaces=['frame'],
+    variants=['!system', 'app'],
+)
+def frame_v2(frame, event, **meta):
+    return get_frame_component(frame, event, meta,
+                               legacy_function_logic=False)
+
+
+def get_frame_component(frame, event, meta, legacy_function_logic=False):
     platform = frame.platform or event.platform
 
     # Safari throws [native code] frames in for calls like ``forEach``
@@ -298,8 +265,12 @@ def frame_v1(frame, event, **meta):
             hint='module takes precedence'
         )
 
-    function_component = get_function_component_v1(
-        frame.function, platform)
+    function_component = get_function_component(
+        function=frame.function,
+        raw_function=frame.raw_function,
+        platform=platform,
+        legacy_function_logic=legacy_function_logic
+    )
 
     return GroupingComponent(
         id='frame',

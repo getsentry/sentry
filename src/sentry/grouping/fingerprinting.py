@@ -6,7 +6,7 @@ import inspect
 from parsimonious.grammar import Grammar, NodeVisitor
 from parsimonious.exceptions import ParseError
 
-from sentry.grouping.utils import get_grouping_family_for_platform
+from sentry.stacktraces.platform import get_behavior_family_for_platform
 from sentry.utils.safe import get_path
 from sentry.utils.glob import glob_match
 
@@ -67,7 +67,7 @@ class EventAccess(object):
             if message:
                 self._messages.append({
                     'message': message,
-                    'family': get_grouping_family_for_platform(self.event.get('platform')),
+                    'family': get_behavior_family_for_platform(self.event.get('platform')),
                 })
         return self._messages
 
@@ -78,21 +78,23 @@ class EventAccess(object):
                 self._exceptions.append({
                     'type': exc.get('type'),
                     'value': exc.get('value'),
-                    'family': get_grouping_family_for_platform(self.event.get('platform')),
+                    'family': get_behavior_family_for_platform(self.event.get('platform')),
                 })
         return self._exceptions
 
     def get_frames(self, with_functions=False):
-        from sentry.grouping.strategies.utils import trim_function_name
+        from sentry.stacktraces.functions import get_function_name_for_frame
         if self._frames is None:
             self._frames = []
 
             def _push_frame(frame):
+                platform = frame.get('platform') or self.event.get('platform')
+                func = get_function_name_for_frame(frame, platform)
                 self._frames.append({
-                    'function': trim_function_name(frame.get('function'), '<unknown>'),
+                    'function': func or '<unknown>',
                     'path': frame.get('abs_path') or frame.get('filename'),
                     'module': frame.get('module'),
-                    'family': get_grouping_family_for_platform(frame.get('platform') or self.event.get('platform')),
+                    'family': get_behavior_family_for_platform(platform),
                     'package': frame.get('package'),
                 })
 

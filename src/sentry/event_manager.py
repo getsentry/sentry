@@ -61,7 +61,7 @@ from sentry.utils.geo import rust_geoip
 from sentry.utils.pubsub import QueuedPublisherService, KafkaPublisher
 from sentry.utils.safe import safe_execute, trim, get_path, setdefault_path
 from sentry.utils.validators import is_float
-from sentry.stacktraces import normalize_stacktraces_for_grouping
+from sentry.stacktraces.processing import normalize_stacktraces_for_grouping
 from sentry.culprit import generate_culprit
 
 

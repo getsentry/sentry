@@ -1413,6 +1413,14 @@ div.traceback > ul {
           background: transparent;
           color: @blue-dark;
           padding-right: 5px;
+
+          a {
+            color: inherit;
+
+            &:hover {
+              text-decoration: underline;
+            }
+          }
         }
 
         span.offset {
@@ -1422,6 +1430,7 @@ div.traceback > ul {
 
         span.filename {
           color: @purple;
+          margin-right: 3px;
 
           &:before {
             content: '(';

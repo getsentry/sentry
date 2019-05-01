@@ -109,6 +109,7 @@ FRAME_INTERFACE_SCHEMA = {
         'errors': {},
         'filename': {'type': 'string'},
         'function': {'type': 'string'},
+        'raw_function': {'type': 'string'},
         'image_addr': {},
         'in_app': {'type': 'boolean', 'default': False},
         'instruction_addr': {},

@@ -13,10 +13,8 @@ def get_crash_location(exception, platform=None):
     for frame in reversed(get_path(exception, 'stacktrace', 'frames', filter=True) or ()):
         fn = frame.get('filename') or frame.get('abs_path')
         if fn:
-            func = frame.get('function')
-            if func is not None:
-                from sentry.grouping.strategies.utils import trim_function_name
-                func = trim_function_name(func, frame.get('platform') or platform)
+            from sentry.stacktraces.functions import get_function_name_for_frame
+            func = get_function_name_for_frame(frame, platform)
             if frame.get('in_app'):
                 return fn, func
             if default is None:
