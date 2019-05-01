@@ -1,6 +1,6 @@
 import React from 'react';
 import {shallow} from 'enzyme';
-import {InstallPromptBanner} from 'app/components/installPromptBanner';
+import {InstallPromptBanner} from 'app/views/organizationDetails/installPromptBanner';
 
 describe('InstallPromptBanner', function() {
   it('renders', function() {
