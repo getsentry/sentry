@@ -7,8 +7,6 @@ import withEnvironmentInQueryString from 'app/utils/withEnvironmentInQueryString
 import LoadingIndicator from 'app/components/loadingIndicator';
 import LoadingError from 'app/components/loadingError';
 import LastCommit from 'app/components/lastCommit';
-import CommitAuthorStats from 'app/components/commitAuthorStats';
-import ReleaseProjectStatSparkline from 'app/components/releaseProjectStatSparkline';
 import RepositoryFileSummary from 'app/components/repositoryFileSummary';
 
 import withApi from 'app/utils/withApi';
@@ -21,6 +19,8 @@ import {getFilesByRepository} from '../shared/utils';
 import ReleaseDeploys from '../shared/releaseDeploys';
 import ReleaseEmptyState from '../shared/releaseEmptyState';
 import ReleaseIssues from '../shared/releaseIssues';
+import CommitAuthorStats from '../shared/commitAuthorStats';
+import ReleaseProjectStatSparkline from '../shared/releaseProjectStatSparkline';
 
 const ReleaseOverview = createReactClass({
   displayName: 'ReleaseOverview',

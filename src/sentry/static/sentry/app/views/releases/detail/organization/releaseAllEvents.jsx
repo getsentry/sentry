@@ -3,8 +3,9 @@ import {Link} from 'react-router';
 
 import SentryTypes from 'app/sentryTypes';
 import Alert from 'app/components/alert';
-import GroupList from 'app/components/groupList';
 import {t} from 'app/locale';
+
+import GroupList from '../shared/groupList';
 
 export default class ReleaseAllEvents extends React.Component {
   static propTypes = {

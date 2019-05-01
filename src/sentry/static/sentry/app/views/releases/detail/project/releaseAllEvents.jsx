@@ -4,8 +4,9 @@ import {Link} from 'react-router';
 
 import SentryTypes from 'app/sentryTypes';
 import withEnvironmentInQueryString from 'app/utils/withEnvironmentInQueryString';
-import GroupList from 'app/components/groupList';
 import {t} from 'app/locale';
+
+import GroupList from '../shared/groupList';
 
 class ReleaseAllEvents extends React.Component {
   static propTypes = {
