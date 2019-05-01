@@ -740,7 +740,8 @@ describe('OrganizationStream', function() {
 
     it.todo('loads pinned search when invalid saved search id is accessed');
 
-    it('does not allow pagination to "previous" while on first page', async function() {
+    it('does not allow pagination to "previous" while on first page and resets cursors when navigating back to initial page', async function() {
+      let pushArgs;
       createWrapper();
       await tick();
       wrapper.update();
@@ -752,11 +753,6 @@ describe('OrganizationStream', function() {
           .prop('disabled')
       ).toBe(true);
 
-      wrapper
-        .find('Pagination a')
-        .last()
-        .simulate('click');
-
       issuesRequest = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/issues/',
         body: [group],
@@ -766,29 +762,26 @@ describe('OrganizationStream', function() {
         },
       });
 
-      expect(browserHistory.push).toHaveBeenLastCalledWith({
+      // Click next
+      wrapper
+        .find('Pagination a')
+        .last()
+        .simulate('click');
+      pushArgs = {
         pathname: '/organizations/org-slug/issues/',
         query: {
           cursor: '1443575000:0:0',
+          page: 1,
           environment: [],
           project: [],
           query: 'is:unresolved',
         },
-      });
-
-      wrapper.setProps({
-        location: {
-          pathname: '/organizations/org-slug/issues/',
-          query: {
-            cursor: '1443575000:0:0',
-            environment: [],
-            project: [],
-            query: 'is:unresolved',
-          },
-        },
-      });
-
+      };
+      expect(browserHistory.push).toHaveBeenLastCalledWith(pushArgs);
+      wrapper.setProps({location: pushArgs});
+      wrapper.setContext({location: pushArgs});
       wrapper.update();
+
       expect(
         wrapper
           .find('Pagination a')
@@ -796,6 +789,47 @@ describe('OrganizationStream', function() {
           .prop('disabled')
       ).toBe(false);
 
+      // Click next again
+      wrapper
+        .find('Pagination a')
+        .last()
+        .simulate('click');
+      pushArgs = {
+        pathname: '/organizations/org-slug/issues/',
+        query: {
+          cursor: '1443574000:0:0',
+          page: 2,
+          environment: [],
+          project: [],
+          query: 'is:unresolved',
+        },
+      };
+      expect(browserHistory.push).toHaveBeenLastCalledWith(pushArgs);
+      wrapper.setProps({location: pushArgs});
+      wrapper.setContext({location: pushArgs});
+      wrapper.update();
+
+      // Click previous
+      wrapper
+        .find('Pagination a')
+        .first()
+        .simulate('click');
+      pushArgs = {
+        pathname: '/organizations/org-slug/issues/',
+        query: {
+          cursor: '1443575000:0:1',
+          page: 1,
+          environment: [],
+          project: [],
+          query: 'is:unresolved',
+        },
+      };
+      expect(browserHistory.push).toHaveBeenLastCalledWith(pushArgs);
+      wrapper.setProps({location: pushArgs});
+      wrapper.setContext({location: pushArgs});
+      wrapper.update();
+
+      // Click previous back to initial page
       wrapper
         .find('Pagination a')
         .first()

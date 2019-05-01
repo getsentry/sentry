@@ -90,9 +90,6 @@ const OrganizationStream = createReactClass({
       // Will only be set if selected issues all belong
       // to one project.
       selectedProject: null,
-
-      // Initial previous cursor, this will be used to track where the first page is
-      initialCursor: null,
     };
   },
 
@@ -321,17 +318,6 @@ const OrganizationStream = createReactClass({
         const queryCount = jqXHR.getResponseHeader('X-Hits');
         const queryMaxCount = jqXHR.getResponseHeader('X-Max-Hits');
         const pageLinks = jqXHR.getResponseHeader('Link');
-        let initialCursor = this.state.initialCursor;
-
-        // Reset `initialCursor` if current route does not have "cursor" url param
-        // i.e. if you page back to first page and cursor is removed so that we fetch
-        // a fresh set of results, we should reset initial cursor
-        if ((!this.state.initialCursor || !currentQuery.cursor) && pageLinks) {
-          const links = utils.parseLinkHeader(pageLinks);
-          if (!links.previous.results) {
-            initialCursor = links.next.cursor;
-          }
-        }
 
         this.setState({
           error: false,
@@ -341,7 +327,6 @@ const OrganizationStream = createReactClass({
           queryMaxCount:
             typeof queryMaxCount !== 'undefined' ? parseInt(queryMaxCount, 10) || 0 : 0,
           pageLinks,
-          initialCursor,
         });
       },
       error: err => {
@@ -428,8 +413,17 @@ const OrganizationStream = createReactClass({
     this.transitionTo({sort});
   },
 
-  onCursorChange(cursor) {
-    this.transitionTo({cursor});
+  onCursorChange(cursor, path, query, pageDiff) {
+    const queryPageInt = parseInt(query.page, 10);
+    let nextPage = isNaN(queryPageInt) ? pageDiff : queryPageInt + pageDiff;
+
+    // unset cursor and page when we navigate back to the first page
+    if (nextPage === 0) {
+      cursor = undefined;
+      nextPage = undefined;
+    }
+
+    this.transitionTo({cursor, page: nextPage});
   },
 
   onTagsChange(tags) {
@@ -730,11 +724,7 @@ const OrganizationStream = createReactClass({
               {this.renderStreamBody()}
             </PanelBody>
           </Panel>
-          <Pagination
-            pageLinks={this.state.pageLinks}
-            resetPreviousCursor={this.state.initialCursor}
-            onCursor={this.onCursorChange}
-          />
+          <Pagination pageLinks={this.state.pageLinks} onCursor={this.onCursorChange} />
         </div>
         <StreamSidebar
           loading={this.state.tagsLoading}
