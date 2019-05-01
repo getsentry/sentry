@@ -83,17 +83,18 @@ class IssueDetailsTest(AcceptanceTestCase, SnubaTestCase):
             platform='javascript'
         )
 
-        # Don't enable sentry10 so we have coverage for sentry9 as well.
         self.dismiss_assistant()
-        self.browser.get(
-            u'/{}/{}/issues/{}/events/{}/'.format(
-                self.org.slug,
-                self.project.slug,
-                event.group.id,
-                event.id
+
+        with self.feature('organizations:sentry10'):
+            self.browser.get(
+                u'/organizations/{}/issues/{}/events/{}/'.format(
+                    self.org.slug,
+                    event.group.id,
+                    event.group.id
+                )
             )
-        )
-        self.wait_until_loaded()
+            self.wait_until_loaded()
+
         self.browser.snapshot('issue details javascript - event details')
 
         self.browser.find_element_by_xpath("//a//code[contains(text(), 'curl')]").click()
@@ -154,11 +155,13 @@ class IssueDetailsTest(AcceptanceTestCase, SnubaTestCase):
             platform='python',
         )
 
-        self.browser.get(
-            u'/{}/{}/issues/{}/activity/'.format(
-                self.org.slug, self.project.slug, event.group.id)
-        )
-        self.browser.wait_until('.activity-item')
+        with self.feature('organizations:sentry10'):
+            self.browser.get(
+                u'/organizations/{}/issues/{}/activity/'.format(
+                    self.org.slug, event.group.id)
+            )
+            self.browser.wait_until('.activity-item')
+
         self.browser.snapshot('issue activity python')
 
     def wait_until_loaded(self):
