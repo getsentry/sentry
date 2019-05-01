@@ -247,11 +247,14 @@ def pytest_addoption(parser):
         '--window-size',
         dest='window_size',
         help='window size (WIDTHxHEIGHT)',
-        default='1280x800')
+        default='1680x1050')
     group._addoption('--phantomjs-path', dest='phantomjs_path', help='path to phantomjs driver')
     group._addoption('--chrome-path', dest='chrome_path', help='path to google-chrome')
     group._addoption('--chromedriver-path', dest='chromedriver_path', help='path to chromedriver')
-    group._addoption('--no-headless', dest='no_headless', help='show a browser while running the tests (chrome)')
+    group._addoption(
+        '--no-headless',
+        dest='no_headless',
+        help='show a browser while running the tests (chrome)')
 
 
 def pytest_configure(config):
