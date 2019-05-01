@@ -20,7 +20,7 @@ class NoteHeader extends React.Component {
 
   canEdit = () => {
     const user = ConfigStore.get('user');
-    return user.isSuperuser || user.id === this.props.user.id;
+    return user && (user.isSuperuser || user.id === this.props.user.id);
   };
 
   render() {

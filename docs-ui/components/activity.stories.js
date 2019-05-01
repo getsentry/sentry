@@ -17,9 +17,9 @@ const user = {
   email: 'billy@sentry.io',
 };
 
-storiesOf('UI|Activity/ActivityItem', module)
+storiesOf('UI|Activity/Item', module)
   .add(
-    'default',
+    'default ActivityItem',
     withInfo(
       'An Activity Item is composed of: an author, header, body, and additionally timestamp and a status.'
     )(() => (
@@ -79,7 +79,7 @@ storiesOf('UI|Activity/ActivityItem', module)
     ))
   );
 
-storiesOf('UI|Activity/Components', module)
+storiesOf('UI|Activity/Item/Components', module)
   .add(
     'Bubble',
     withInfo(

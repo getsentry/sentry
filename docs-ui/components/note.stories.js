@@ -3,6 +3,7 @@ import {action} from '@storybook/addon-actions';
 import {storiesOf} from '@storybook/react';
 import {withInfo} from '@storybook/addon-info';
 
+import ConfigStore from 'app/stores/configStore';
 import Note from 'app/components/activity/note';
 
 const user = {
@@ -15,15 +16,17 @@ const user = {
   email: 'billy@sentry.io',
 };
 
+ConfigStore.set('user', {...user, isSuperuser: true, options: {}});
+
 storiesOf('UI|Activity/Note', module).add(
   'default',
   withInfo(
-    'An Activity Item is composed of: an author, header, body, and additionally timestamp and a status.'
+    'A `<Note>` is an `<ActivityItem>` that can be edited with an editor. The editor has an input mode and a preview mode.'
   )(() => (
     <Note
-      author={{type: 'user', user}}
-      item={{id: '123'}}
-      group={{}}
+      author={{name: 'Billy'}}
+      item={{id: '123', data: {text: 'hello'}, user, dateCreated: new Date()}}
+      group={{project: {slug: 'sentry'}}}
       onDelete={action('Deleted item')}
       sessionUser={{}}
       memberList={[]}
