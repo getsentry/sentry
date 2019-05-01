@@ -3,9 +3,9 @@ import React from 'react';
 import {boolean} from '@storybook/addon-knobs';
 import {storiesOf} from '@storybook/react';
 import {withInfo} from '@storybook/addon-info';
-import ActivityAvatar from 'app/components/activity/activityAvatar';
-import ActivityBubble from 'app/components/activity/activityBubble';
-import ActivityItem from 'app/components/activity/activityItem';
+import ActivityAvatar from 'app/components/activity/item/avatar';
+import ActivityBubble from 'app/components/activity/item/bubble';
+import ActivityItem from 'app/components/activity/item';
 
 const user = {
   username: 'billy@sentry.io',

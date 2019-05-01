@@ -2,14 +2,15 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
 
-import ActivityItem from 'app/components/activity/activityItem';
-import EditorTools from 'app/components/activity/editorTools';
-import NoteBody from 'app/components/activity/noteBody';
-import NoteHeader from 'app/components/activity/noteHeader';
-import NoteInput from 'app/components/activity/noteInput';
+import ActivityItem from 'app/components/activity/item';
 import space from 'app/styles/space';
 
-class NoteContainer extends React.Component {
+import EditorTools from './editorTools';
+import NoteBody from './body';
+import NoteHeader from './header';
+import NoteInput from './input';
+
+class Note extends React.Component {
   static propTypes = {
     group: PropTypes.object.isRequired,
     item: PropTypes.object.isRequired,
@@ -125,11 +126,11 @@ const StyledActivityItem = styled(ActivityItem)`
 
 const ActivityItemWithEditing = styled(StyledActivityItem)`
   &:hover {
-    /* stylelint-disable-next-line no-duplicate-selectors:0 */
+    /* stylelint-disable-next-line no-duplicate-selectors */
     ${EditorTools} {
       display: inline-block;
     }
   }
 `;
 
-export default NoteContainer;
+export default Note;

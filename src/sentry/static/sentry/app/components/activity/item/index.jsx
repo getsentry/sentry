@@ -6,13 +6,13 @@ import TimeSince from 'app/components/timeSince';
 import space from 'app/styles/space';
 import textStyles from 'app/styles/text';
 
-import ActivityAvatar from './activityAvatar';
-import ActivityBubble from './activityBubble';
+import ActivityAvatar from './avatar';
+import ActivityBubble from './bubble';
 
 class ActivityItem extends React.Component {
   static propTypes = {
     id: PropTypes.string,
-    date: PropTypes.object,
+    date: PropTypes.string,
     author: PropTypes.shape({
       type: ActivityAvatar.propTypes.type,
       user: ActivityAvatar.propTypes.user,

@@ -1,4 +1,3 @@
-import React from 'react';
 import styled from 'react-emotion';
 
 const ActivityAuthor = styled('span')`

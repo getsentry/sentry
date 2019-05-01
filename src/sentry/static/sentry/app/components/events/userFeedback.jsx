@@ -3,8 +3,8 @@ import React from 'react';
 import styled from 'react-emotion';
 
 import {t} from 'app/locale';
-import ActivityAuthor from 'app/components/activity/activityAuthor';
-import ActivityItem from 'app/components/activity/activityItem';
+import ActivityAuthor from 'app/components/activity/author';
+import ActivityItem from 'app/components/activity/item';
 import Clipboard from 'app/components/clipboard';
 import InlineSvg from 'app/components/inlineSvg';
 import Link from 'app/components/links/link';

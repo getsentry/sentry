@@ -3,11 +3,12 @@ import React from 'react';
 import styled from 'react-emotion';
 
 import {t} from 'app/locale';
-import ActivityAuthor from 'app/components/activity/activityAuthor';
+import ActivityAuthor from 'app/components/activity/author';
 import ConfigStore from 'app/stores/configStore';
-import EditorTools from 'app/components/activity/editorTools';
-import LinkWithConfirmation from 'app/components/linkWithConfirmation';
+import LinkWithConfirmation from 'app/components/links/linkWithConfirmation';
 import SentryTypes from 'app/sentryTypes';
+
+import EditorTools from './editorTools';
 
 class NoteHeader extends React.Component {
   static propTypes = {
@@ -55,7 +56,6 @@ const Edit = styled(EditorAction)`
   margin-left: 7px;
 
   &:hover {
-    /*      color: #666; */
     color: ${p => p.theme.gray2};
   }
 `;
