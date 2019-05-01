@@ -158,7 +158,7 @@ class IssueDetailsTest(AcceptanceTestCase, SnubaTestCase):
             u'/{}/{}/issues/{}/activity/'.format(
                 self.org.slug, self.project.slug, event.group.id)
         )
-        self.browser.wait_until('.activity-item')
+        self.browser.wait_until_test_id('activity-item')
         self.browser.snapshot('issue activity python')
 
     def wait_until_loaded(self):

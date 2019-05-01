@@ -47,7 +47,7 @@ class ActivityItem extends React.Component {
     const customFooter = typeof renderFooter === 'function';
 
     return (
-      <ActivityItemWrapper className={className}>
+      <ActivityItemWrapper data-test-id="activity-item" className={className}>
         {id && <a id={id} />}
         <StyledActivityAvatar type={author.type} user={author.user} size={avatarSize} />
 
