@@ -6,7 +6,7 @@ import styled, {css} from 'react-emotion';
 
 import {t} from 'app/locale';
 import DynamicWrapper from 'app/components/dynamicWrapper';
-import ExternalLink from 'app/components/externalLink';
+import ExternalLink from 'app/components/links/externalLink';
 import Access from 'app/components/acl/access';
 import PluginIcon from 'app/plugins/components/pluginIcon';
 import SentryTypes from 'app/sentryTypes';

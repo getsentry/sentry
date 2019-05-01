@@ -6,7 +6,7 @@ import {Box} from 'grid-emotion';
 import styled from 'react-emotion';
 
 import {t} from 'app/locale';
-import Link from 'app/components/link';
+import Link from 'app/components/links/link';
 import OrganizationState from 'app/mixins/organizationState';
 import {sortProjects} from 'app/utils';
 import theme from 'app/utils/theme';

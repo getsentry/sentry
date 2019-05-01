@@ -3,7 +3,7 @@ import React from 'react';
 
 import TimeSince from 'app/components/timeSince';
 import ConfigStore from 'app/stores/configStore';
-import LinkWithConfirmation from 'app/components/linkWithConfirmation';
+import LinkWithConfirmation from 'app/components/links/linkWithConfirmation';
 import {t} from 'app/locale';
 import marked from 'app/utils/marked';
 

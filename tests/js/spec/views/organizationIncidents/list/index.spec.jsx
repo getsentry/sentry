@@ -6,12 +6,7 @@ import {initializeOrg} from 'app-test/helpers/initializeOrg';
 import OrganizationIncidentsList from 'app/views/organizationIncidents/list';
 
 describe('OrganizationIncidentsList', function() {
-  const {routerContext} = initializeOrg({
-    projects: [TestStubs.Project()],
-    router: {
-      params: {orgId: 'org-slug'},
-    },
-  });
+  const {routerContext} = initializeOrg();
 
   afterEach(function() {
     MockApiClient.clearMockResponses();
@@ -23,7 +18,10 @@ describe('OrganizationIncidentsList', function() {
       body: [{id: '1', name: 'First incident'}, {id: '2', name: 'Second incident'}],
     });
 
-    const wrapper = mount(<OrganizationIncidentsList />, routerContext);
+    const wrapper = mount(
+      <OrganizationIncidentsList params={{orgId: 'org-slug'}} location={{}} />,
+      TestStubs.routerContext()
+    );
 
     const items = wrapper.find('PanelItem');
 
@@ -37,8 +35,11 @@ describe('OrganizationIncidentsList', function() {
       url: '/organizations/org-slug/incidents/',
       body: [],
     });
-    const wrapper = mount(<OrganizationIncidentsList />, routerContext);
+    const wrapper = mount(
+      <OrganizationIncidentsList params={{orgId: 'org-slug'}} location={{}} />,
+      routerContext
+    );
     expect(wrapper.find('PanelItem')).toHaveLength(0);
-    expect(wrapper.text()).toBe("You don't have any incidents yet!");
+    expect(wrapper.text()).toContain("You don't have any incidents yet!");
   });
 });

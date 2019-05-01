@@ -474,6 +474,7 @@ describe('OrganizationStream', function() {
           pathname: '/organizations/org-slug/issues/searches/789/',
           query: {
             environment: [],
+            project: [],
             sort: 'freq',
           },
         })
@@ -683,6 +684,7 @@ describe('OrganizationStream', function() {
         expect.objectContaining({
           pathname: '/organizations/org-slug/issues/searches/234/',
           query: {
+            project: [],
             environment: [],
           },
         })
@@ -762,6 +764,46 @@ describe('OrganizationStream', function() {
       });
     });
 
+    it('transitions to cursor with project-less saved search', function() {
+      savedSearch = {
+        id: 123,
+        projectId: null,
+        query: 'foo:bar',
+      };
+      instance.transitionTo({cursor: '1554756114000:0:0'}, savedSearch);
+
+      // should keep the current project selection as we're going to the next page.
+      expect(browserHistory.push).toHaveBeenCalledWith({
+        pathname: '/organizations/org-slug/issues/searches/123/',
+        query: {
+          environment: [],
+          project: [parseInt(project.id, 10)],
+          cursor: '1554756114000:0:0',
+          statsPeriod: '14d',
+        },
+      });
+    });
+
+    it('transitions to cursor with project saved search', function() {
+      savedSearch = {
+        id: 123,
+        projectId: 999,
+        query: 'foo:bar',
+      };
+      instance.transitionTo({cursor: '1554756114000:0:0'}, savedSearch);
+
+      // should keep the current project selection as we're going to the next page.
+      expect(browserHistory.push).toHaveBeenCalledWith({
+        pathname: '/organizations/org-slug/issues/searches/123/',
+        query: {
+          environment: [],
+          project: [parseInt(project.id, 10)],
+          cursor: '1554756114000:0:0',
+          statsPeriod: '14d',
+        },
+      });
+    });
+
     it('transitions to saved search that has a projectId', function() {
       savedSearch = {
         id: 123,
@@ -780,7 +822,7 @@ describe('OrganizationStream', function() {
       });
     });
 
-    it('goes to all projects when using a basic saved searches and global-views feature', function() {
+    it('goes to all projects when using a basic saved search and global-views feature', function() {
       organization.features = ['global-views'];
       savedSearch = {
         id: 1,
@@ -792,6 +834,7 @@ describe('OrganizationStream', function() {
       expect(browserHistory.push).toHaveBeenCalledWith({
         pathname: '/organizations/org-slug/issues/searches/1/',
         query: {
+          project: [parseInt(project.id, 10)],
           environment: [],
           statsPeriod: '14d',
         },

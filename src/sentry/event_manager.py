@@ -37,7 +37,7 @@ from sentry.coreapi import (
 )
 from sentry.interfaces.base import get_interface
 from sentry.models import (
-    Activity, Environment, Event, EventError, EventMapping, EventUser, Group,
+    Activity, Environment, Event, EventDict, EventError, EventMapping, EventUser, Group,
     GroupEnvironment, GroupHash, GroupLink, GroupRelease, GroupResolution, GroupStatus,
     Project, Release, ReleaseEnvironment, ReleaseProject,
     ReleaseProjectEnvironment, UserReport, Organization,
@@ -62,7 +62,7 @@ from sentry.utils.geo import rust_geoip
 from sentry.utils.pubsub import QueuedPublisherService, KafkaPublisher
 from sentry.utils.safe import safe_execute, trim, get_path, setdefault_path
 from sentry.utils.validators import is_float
-from sentry.stacktraces import normalize_stacktraces_for_grouping
+from sentry.stacktraces.processing import normalize_stacktraces_for_grouping
 from sentry.culprit import generate_culprit
 
 
@@ -398,6 +398,15 @@ def track_outcome(org_id, project_id, key_id, outcome, reason=None, timestamp=No
             })
         )
 
+    metrics.incr(
+        'events.outcomes',
+        skip_internal=True,
+        tags={
+            'outcome': outcome,
+            'reason': reason,
+        },
+    )
+
 
 class EventManager(object):
     """
@@ -586,7 +595,7 @@ class EventManager(object):
         return Event(
             project_id=project_id or self._project.id,
             event_id=event_id,
-            data=data,
+            data=EventDict(data, skip_renormalization=True),
             time_spent=time_spent,
             datetime=date,
             platform=platform

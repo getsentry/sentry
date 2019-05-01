@@ -8,7 +8,7 @@ import {t} from 'app/locale';
 import Button from 'app/components/button';
 import Confirm from 'app/components/confirm';
 import SentryTypes from 'app/sentryTypes';
-import Link from 'app/components/link';
+import Link from 'app/components/links/link';
 import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
 import DropdownAutoComplete from 'app/components/dropdownAutoComplete';
 import DropdownButton from 'app/components/dropdownButton';

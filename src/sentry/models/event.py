@@ -64,7 +64,17 @@ class EventDict(CanonicalKeyDict):
     """
 
     def __init__(self, data, skip_renormalization=False, **kwargs):
-        if not skip_renormalization and not isinstance(data, EventDict):
+        is_renormalized = (
+            isinstance(data, EventDict) or
+            (isinstance(data, NodeData) and isinstance(data.data, EventDict))
+        )
+
+        with configure_scope() as scope:
+            scope.set_tag("rust.is_renormalized", is_renormalized)
+            scope.set_tag("rust.skip_renormalization", skip_renormalization)
+            scope.set_tag("rust.renormalized", "null")
+
+        if not skip_renormalization and not is_renormalized:
             rust_renormalized = _should_skip_to_python(data.get('event_id'))
             if rust_renormalized:
                 normalizer = StoreNormalizer(is_renormalize=True)
@@ -127,6 +137,9 @@ class EventCommon(object):
 
     def get_interfaces(self):
         was_renormalized = _should_skip_to_python(self.event_id)
+
+        metrics.incr('event.get_interfaces',
+                     tags={'rust_renormalized': was_renormalized})
 
         return CanonicalKeyView(get_interfaces(self.data, rust_renormalized=was_renormalized))
 

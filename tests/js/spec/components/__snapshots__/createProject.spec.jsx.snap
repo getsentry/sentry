@@ -137,15 +137,11 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
     <PageHeading
       withMargins={true}
     >
-      <Wrapper
-        withMargins={true}
+      <h1
+        className="css-14dms5l-PageHeading e1f8hk460"
       >
-        <h1
-          className="css-13ev48w-Wrapper e1f8hk460"
-        >
-          Create a new Project
-        </h1>
-      </Wrapper>
+        Create a new Project
+      </h1>
     </PageHeading>
     <HelpText>
       <p
@@ -369,7 +365,7 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
       </NavContainer>
       <PlatformList>
         <div
-          className="css-545rh6-PlatformList exv4dm83"
+          className="css-d5crqi-PlatformList exv4dm83"
         >
           <PlatformCard
             data-test-id="platform-csharp"
@@ -1228,7 +1224,7 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
       onSubmit={[Function]}
     >
       <form
-        className="css-1ibxl16-CreateProjectForm e2gtsme0"
+        className="css-ub4hd-CreateProjectForm e2gtsme0"
         onSubmit={[Function]}
       >
         <div>
@@ -1697,15 +1693,11 @@ exports[`CreateProject should fill in platform name if its provided by url 1`] =
     <PageHeading
       withMargins={true}
     >
-      <Wrapper
-        withMargins={true}
+      <h1
+        className="css-14dms5l-PageHeading e1f8hk460"
       >
-        <h1
-          className="css-13ev48w-Wrapper e1f8hk460"
-        >
-          Create a new Project
-        </h1>
-      </Wrapper>
+        Create a new Project
+      </h1>
     </PageHeading>
     <HelpText>
       <p
@@ -1929,7 +1921,7 @@ exports[`CreateProject should fill in platform name if its provided by url 1`] =
       </NavContainer>
       <PlatformList>
         <div
-          className="css-545rh6-PlatformList exv4dm83"
+          className="css-d5crqi-PlatformList exv4dm83"
         >
           <PlatformCard
             data-test-id="platform-ruby-rack"
@@ -2194,7 +2186,7 @@ exports[`CreateProject should fill in platform name if its provided by url 1`] =
       onSubmit={[Function]}
     >
       <form
-        className="css-1ibxl16-CreateProjectForm e2gtsme0"
+        className="css-ub4hd-CreateProjectForm e2gtsme0"
         onSubmit={[Function]}
       >
         <div>
@@ -2663,15 +2655,11 @@ exports[`CreateProject should fill in project name if its empty when platform is
     <PageHeading
       withMargins={true}
     >
-      <Wrapper
-        withMargins={true}
+      <h1
+        className="css-14dms5l-PageHeading e1f8hk460"
       >
-        <h1
-          className="css-13ev48w-Wrapper e1f8hk460"
-        >
-          Create a new Project
-        </h1>
-      </Wrapper>
+        Create a new Project
+      </h1>
     </PageHeading>
     <HelpText>
       <p
@@ -2895,7 +2883,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
       </NavContainer>
       <PlatformList>
         <div
-          className="css-545rh6-PlatformList exv4dm83"
+          className="css-d5crqi-PlatformList exv4dm83"
         >
           <PlatformCard
             data-test-id="platform-csharp"
@@ -3860,7 +3848,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
       onSubmit={[Function]}
     >
       <form
-        className="css-1ibxl16-CreateProjectForm e2gtsme0"
+        className="css-ub4hd-CreateProjectForm e2gtsme0"
         onSubmit={[Function]}
       >
         <div>

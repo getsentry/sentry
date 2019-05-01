@@ -2,7 +2,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import {Box} from 'grid-emotion';
 
-import Link from 'app/components/link';
+import Link from 'app/components/links/link';
 import InlineSvg from 'app/components/inlineSvg';
 import {t} from 'app/locale';
 

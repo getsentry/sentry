@@ -12,7 +12,7 @@ import Button from 'app/components/button';
 import CircleIndicator from 'app/components/circleIndicator';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
 import Field from 'app/views/settings/components/forms/field';
-import ListLink from 'app/components/listLink';
+import ListLink from 'app/components/links/listLink';
 import NavTabs from 'app/components/navTabs';
 import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';

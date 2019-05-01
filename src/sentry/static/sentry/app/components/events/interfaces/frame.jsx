@@ -9,7 +9,7 @@ import {defined, objectIsEmpty, isUrl} from 'app/utils';
 import {t} from 'app/locale';
 import ClippedBox from 'app/components/clippedBox';
 import ContextLine from 'app/components/events/interfaces/contextLine';
-import ExternalLink from 'app/components/externalLink';
+import ExternalLink from 'app/components/links/externalLink';
 import FrameRegisters from 'app/components/events/interfaces/frameRegisters';
 import FrameVariables from 'app/components/events/interfaces/frameVariables';
 import StrictClick from 'app/components/strictClick';
@@ -23,6 +23,43 @@ export function trimPackage(pkg) {
   const pieces = pkg.split(/^([a-z]:\\|\\\\)/i.test(pkg) ? '\\' : '/');
   const filename = pieces[pieces.length - 1] || pieces[pieces.length - 2] || pkg;
   return filename.replace(/\.(dylib|so|a|dll|exe)$/, '');
+}
+
+class FunctionName extends React.Component {
+  static propTypes = {
+    frame: PropTypes.object,
+  };
+
+  constructor(props) {
+    super(props);
+    this.state = {
+      rawFunction: false,
+    };
+  }
+
+  toggle = event => {
+    event.stopPropagation();
+    this.setState(({rawFunction}) => ({rawFunction: !rawFunction}));
+  };
+
+  render() {
+    const {frame, ...props} = this.props;
+    const func = frame.function;
+    const rawFunc = frame.rawFunction;
+    const canToggle = rawFunc && func && func !== rawFunc;
+
+    if (!canToggle) {
+      return <code {...props}>{func || rawFunc || '<unknown>'}</code>;
+    }
+
+    const current = this.state.rawFunction ? rawFunc : func;
+    const title = this.state.rawFunction ? null : rawFunc;
+    return (
+      <code {...props} title={title}>
+        <a onClick={this.toggle}>{current || '<unknown>'}</a>
+      </code>
+    );
+  }
 }
 
 const Frame = createReactClass({
@@ -172,7 +209,7 @@ const Frame = createReactClass({
           />
         );
       }
-      if (defined(data.function)) {
+      if (defined(data.function) || defined(data.rawFunction)) {
         title.push(
           <span className="in-at" key="in">
             {' '}
@@ -182,12 +219,8 @@ const Frame = createReactClass({
       }
     }
 
-    if (defined(data.function)) {
-      title.push(
-        <code key="function" className="function">
-          {data.function}
-        </code>
-      );
+    if (defined(data.function) || defined(data.rawFunction)) {
+      title.push(<FunctionName frame={data} key="function" className="function" />);
     }
 
     // we don't want to render out zero line numbers which are used to
@@ -433,9 +466,12 @@ const Frame = createReactClass({
             )}
             <span className="address">{data.instructionAddr}</span>
             <span className="symbol">
-              <code>{data.function || '<unknown>'}</code>{' '}
+              <FunctionName frame={data} />{' '}
               {data.filename && (
-                <span className="filename">
+                <span
+                  className="filename"
+                  title={data.absPath !== data.filename ? data.absPath : null}
+                >
                   {data.filename}
                   {data.lineNo ? ':' + data.lineNo : ''}
                 </span>

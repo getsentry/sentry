@@ -4,7 +4,7 @@ import six
 
 from symbolic import ProguardMappingView
 from sentry.plugins import Plugin2
-from sentry.stacktraces import StacktraceProcessor
+from sentry.stacktraces.processing import StacktraceProcessor
 from sentry.models import ProjectDebugFile, EventError
 from sentry.reprocessing import report_processing_issue
 from sentry.utils.safe import get_path
