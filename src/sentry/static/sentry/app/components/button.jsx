@@ -18,7 +18,7 @@ class Button extends React.Component {
     /**
      * Use this prop if button is a react-router link
      */
-    to: PropTypes.string,
+    to: PropTypes.oneOfType([PropTypes.string, PropTypes.object]),
     /**
      * Use this prop if button should use a normal (non-react-router) link
      */

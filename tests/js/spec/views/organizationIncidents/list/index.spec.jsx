@@ -7,19 +7,22 @@ import OrganizationIncidentsList from 'app/views/organizationIncidents/list';
 
 describe('OrganizationIncidentsList', function() {
   const {routerContext} = initializeOrg();
+  let mock;
+
+  beforeEach(function() {
+    mock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/incidents/',
+      body: [{id: '1', name: 'First incident'}, {id: '2', name: 'Second incident'}],
+    });
+  });
 
   afterEach(function() {
     MockApiClient.clearMockResponses();
   });
 
   it('displays list', function() {
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/incidents/',
-      body: [{id: '1', name: 'First incident'}, {id: '2', name: 'Second incident'}],
-    });
-
     const wrapper = mount(
-      <OrganizationIncidentsList params={{orgId: 'org-slug'}} location={{}} />,
+      <OrganizationIncidentsList params={{orgId: 'org-slug'}} location={{query: {}}} />,
       TestStubs.routerContext()
     );
 
@@ -36,10 +39,52 @@ describe('OrganizationIncidentsList', function() {
       body: [],
     });
     const wrapper = mount(
-      <OrganizationIncidentsList params={{orgId: 'org-slug'}} location={{}} />,
+      <OrganizationIncidentsList params={{orgId: 'org-slug'}} location={{query: {}}} />,
       routerContext
     );
     expect(wrapper.find('PanelItem')).toHaveLength(0);
-    expect(wrapper.text()).toContain("You don't have any incidents yet!");
+    expect(wrapper.text()).toContain("You don't have any incidents yet");
+  });
+
+  it('toggles all/unresolved', function() {
+    const wrapper = mount(
+      <OrganizationIncidentsList
+        params={{orgId: 'org-slug'}}
+        location={{query: {}, search: ''}}
+      />,
+      routerContext
+    );
+
+    expect(
+      wrapper
+        .find('.btn-group')
+        .find('a')
+        .at(0)
+        .hasClass('active')
+    ).toBe(true);
+
+    expect(mock).toHaveBeenCalledTimes(1);
+
+    expect(mock).toHaveBeenCalledWith(
+      '/organizations/org-slug/incidents/',
+      expect.objectContaining({query: {}})
+    );
+
+    wrapper.setProps({location: {query: {status: ''}, search: '?status='}});
+
+    expect(
+      wrapper
+        .find('.btn-group')
+        .find('Button')
+        .at(1)
+        .hasClass('active')
+    ).toBe(true);
+
+    expect(mock).toHaveBeenCalledTimes(2);
+
+    expect(mock).toHaveBeenCalledWith(
+      '/organizations/org-slug/incidents/',
+      expect.objectContaining({query: expect.objectContaining({status: ''})})
+    );
   });
 });
