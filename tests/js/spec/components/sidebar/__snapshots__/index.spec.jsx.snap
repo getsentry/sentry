@@ -1190,17 +1190,17 @@ exports[`Sidebar SidebarPanel can show Incidents in Sidebar Panel 1`] = `
   className="incident-list"
 >
   <ul
-    className="incident-list css-9jctl-IncidentList e1teacth0"
+    className="incident-list css-9jctl-IncidentList eglisrw0"
   >
     <IncidentItem
       key="1"
     >
       <li
-        className="css-14n5z5w-IncidentItem e1teacth1"
+        className="css-14n5z5w-IncidentItem eglisrw1"
       >
         <IncidentTitle>
           <div
-            className="css-5djkqu-IncidentTitle e1teacth2"
+            className="css-5djkqu-IncidentTitle eglisrw2"
           >
             Test Incident
           </div>
@@ -1208,20 +1208,20 @@ exports[`Sidebar SidebarPanel can show Incidents in Sidebar Panel 1`] = `
         <div>
           <StatusHeader>
             <div
-              className="css-1x43ghi-StatusHeader e1teacth3"
+              className="css-1x43ghi-StatusHeader eglisrw3"
             >
               Latest updates:
             </div>
           </StatusHeader>
           <StatusList>
             <ul
-              className="css-144h8i2-StatusList e1teacth4"
+              className="css-144h8i2-StatusList eglisrw4"
             >
               <StatusItem
                 key="0"
               >
                 <li
-                  className="css-ykoqmj-StatusItem e1teacth5"
+                  className="css-ykoqmj-StatusItem eglisrw5"
                 >
                   First Update
                 </li>
@@ -1230,7 +1230,7 @@ exports[`Sidebar SidebarPanel can show Incidents in Sidebar Panel 1`] = `
                 key="1"
               >
                 <li
-                  className="css-ykoqmj-StatusItem e1teacth5"
+                  className="css-ykoqmj-StatusItem eglisrw5"
                 >
                   Second Update
                 </li>

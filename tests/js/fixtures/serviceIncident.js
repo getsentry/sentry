@@ -1,4 +1,4 @@
-export function Incident(params = {}) {
+export function ServiceIncident(params = {}) {
   return {
     id: '1',
     title: 'Test Incident',

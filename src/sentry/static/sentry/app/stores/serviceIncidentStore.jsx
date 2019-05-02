@@ -1,12 +1,12 @@
 import Reflux from 'reflux';
 
-import IncidentActions from 'app/actions/incidentActions';
+import ServiceIncidentActions from 'app/actions/serviceIncidentActions';
 
-const IncidentStore = Reflux.createStore({
+const ServiceIncidentStore = Reflux.createStore({
   init() {
     this.reset();
 
-    this.listenTo(IncidentActions.updateSuccess, this.onUpdateSuccess);
+    this.listenTo(ServiceIncidentActions.updateSuccess, this.onUpdateSuccess);
   },
 
   reset() {
@@ -23,4 +23,4 @@ const IncidentStore = Reflux.createStore({
   },
 });
 
-export default IncidentStore;
+export default ServiceIncidentStore;

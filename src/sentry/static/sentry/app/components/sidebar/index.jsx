@@ -24,7 +24,7 @@ import theme from 'app/utils/theme';
 import withLatestContext from 'app/utils/withLatestContext';
 
 import Broadcasts from './broadcasts';
-import Incidents from './incidents';
+import ServiceIncidents from './serviceIncidents';
 import OnboardingStatus from './onboardingStatus';
 import SidebarDropdown from './sidebarDropdown';
 import SidebarHelp from './help';
@@ -476,7 +476,7 @@ class Sidebar extends React.Component {
                 hidePanel={this.hidePanel}
                 organization={organization}
               />
-              <Incidents
+              <ServiceIncidents
                 orientation={orientation}
                 collapsed={collapsed}
                 showPanel={showPanel}

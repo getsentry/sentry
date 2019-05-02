@@ -1,7 +1,7 @@
 import $ from 'jquery';
 
 import ConfigStore from 'app/stores/configStore';
-import IncidentActions from 'app/actions/incidentActions';
+import ServiceIncidentActions from 'app/actions/serviceIncidentActions';
 
 function getIncidentsFromIncidentResponse(incidents) {
   if (incidents === null || incidents.length == 0) {
@@ -30,7 +30,7 @@ function getIncidentsFromIncidentResponse(incidents) {
 export function load() {
   const cfg = ConfigStore.get('statuspage');
   if (cfg && cfg.id) {
-    IncidentActions.update();
+    ServiceIncidentActions.update();
 
     $.ajax({
       type: 'GET',
@@ -39,7 +39,7 @@ export function load() {
       cache: false,
       success: data => {
         const [incidents, indicator] = getIncidentsFromIncidentResponse(data.incidents);
-        IncidentActions.updateSuccess({
+        ServiceIncidentActions.updateSuccess({
           status: {
             incidents,
             indicator,
@@ -48,7 +48,7 @@ export function load() {
         });
       },
       error: () => {
-        IncidentActions.updateError({
+        ServiceIncidentActions.updateError({
           status: null,
         });
       },

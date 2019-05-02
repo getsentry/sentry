@@ -1,7 +1,7 @@
 import React from 'react';
 
 import {mount, shallow} from 'enzyme';
-import IncidentStore from 'app/stores/incidentStore';
+import ServiceIncidentStore from 'app/stores/serviceIncidentStore';
 import ConfigStore from 'app/stores/configStore';
 import SidebarContainer, {Sidebar} from 'app/components/sidebar';
 
@@ -258,12 +258,12 @@ describe('Sidebar', function() {
 
     it('can show Incidents in Sidebar Panel', async function() {
       wrapper = createWrapper();
-      IncidentStore.onUpdateSuccess({
-        status: {incidents: [TestStubs.Incident()]},
+      ServiceIncidentStore.onUpdateSuccess({
+        status: {incidents: [TestStubs.ServiceIncident()]},
       });
       wrapper.update();
 
-      wrapper.find('Incidents').simulate('click');
+      wrapper.find('ServiceIncidents').simulate('click');
       wrapper.update();
       expect(wrapper.find('SidebarPanel')).toHaveLength(1);
 
