@@ -285,8 +285,10 @@ exports[`Sidebar SidebarDropdown can open Sidebar org/name dropdown menu 1`] = `
                 type="letter_avatar"
                 uploadPath="organization-avatar"
               >
-                <Tooltip
+                <Tooltip2
                   disabled={true}
+                  isStyled={true}
+                  position="top"
                   title="org-slug"
                 >
                   <StyledBaseAvatar
@@ -347,7 +349,7 @@ exports[`Sidebar SidebarDropdown can open Sidebar org/name dropdown menu 1`] = `
                       </LetterAvatar>
                     </span>
                   </StyledBaseAvatar>
-                </Tooltip>
+                </Tooltip2>
               </BaseAvatar>
             </OrganizationAvatar>
           </Avatar>
@@ -753,8 +755,10 @@ exports[`Sidebar SidebarDropdown can open Sidebar org/name dropdown menu 1`] = `
                                     type="letter_avatar"
                                     uploadPath="avatar"
                                   >
-                                    <Tooltip
+                                    <Tooltip2
                                       disabled={true}
+                                      isStyled={true}
+                                      position="top"
                                       title="Foo Bar (foo@example.com)"
                                     >
                                       <StyledBaseAvatar
@@ -818,7 +822,7 @@ exports[`Sidebar SidebarDropdown can open Sidebar org/name dropdown menu 1`] = `
                                           </LetterAvatar>
                                         </span>
                                       </StyledBaseAvatar>
-                                    </Tooltip>
+                                    </Tooltip2>
                                   </BaseAvatar>
                                 </UserAvatar>
                               </Avatar>
@@ -1954,8 +1958,10 @@ exports[`Sidebar renders without org and router 1`] = `
                                     type="letter_avatar"
                                     uploadPath="avatar"
                                   >
-                                    <Tooltip
+                                    <Tooltip2
                                       disabled={true}
+                                      isStyled={true}
+                                      position="top"
                                       title="Foo Bar (foo@example.com)"
                                     >
                                       <StyledBaseAvatar
@@ -2019,7 +2025,7 @@ exports[`Sidebar renders without org and router 1`] = `
                                           </LetterAvatar>
                                         </span>
                                       </StyledBaseAvatar>
-                                    </Tooltip>
+                                    </Tooltip2>
                                   </BaseAvatar>
                                 </UserAvatar>
                               </Avatar>

@@ -5,7 +5,7 @@ import qs from 'query-string';
 import styled from 'react-emotion';
 
 import LetterAvatar from 'app/components/letterAvatar';
-import Tooltip from 'app/components/tooltip';
+import Tooltip2 from 'app/components/tooltip2';
 
 import {imageStyle} from './styles';
 import Gravatar from './gravatar';
@@ -151,7 +151,7 @@ class BaseAvatar extends React.Component {
     }
 
     return (
-      <Tooltip title={tooltip} tooltipOptions={tooltipOptions} disabled={!hasTooltip}>
+      <Tooltip2 title={tooltip} disabled={!hasTooltip} isStyled {...tooltipOptions}>
         <StyledBaseAvatar
           loaded={this.state.hasLoaded}
           className={classNames('avatar', className)}
@@ -164,7 +164,7 @@ class BaseAvatar extends React.Component {
           {this.state.showBackupAvatar && this.renderLetterAvatar()}
           {this.renderImg()}
         </StyledBaseAvatar>
-      </Tooltip>
+      </Tooltip2>
     );
   }
 }

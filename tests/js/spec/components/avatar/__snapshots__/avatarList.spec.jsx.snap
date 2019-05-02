@@ -231,79 +231,93 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
                 type="letter_avatar"
                 uploadPath="avatar"
               >
-                <Tooltip
+                <Tooltip2
                   disabled={false}
+                  isStyled={true}
+                  position="top"
                   title="Foo Bar (foo@example.com)"
-                  tooltipOptions={
-                    Object {
-                      "placement": "top auto",
-                    }
-                  }
                 >
-                  <StyledBaseAvatar
-                    className="tip avatar css-ptswrs-StyledAvatar-Circle e1axh4r50"
-                    loaded={true}
-                    round={true}
-                    style={
-                      Object {
-                        "height": "28px",
-                        "width": "28px",
-                      }
-                    }
-                    title="Foo Bar (foo@example.com)"
-                  >
-                    <span
-                      className="tip avatar e1axh4r50 css-p25dkn-StyledBaseAvatar-StyledAvatar-Circle e1z0ohzl0"
-                      style={
-                        Object {
-                          "height": "28px",
-                          "width": "28px",
-                        }
-                      }
-                      title="Foo Bar (foo@example.com)"
-                    >
-                      <LetterAvatar
-                        displayName="Foo Bar"
-                        identifier="foo@example.com"
-                        round={true}
+                  <Manager>
+                    <Reference>
+                      <InnerReference
+                        setReferenceNode={[Function]}
                       >
-                        <Svg
+                        <StyledBaseAvatar
+                          aria-describedby="tooltip_5xnxosaaqo"
+                          className="avatar css-ptswrs-StyledAvatar-Circle e1axh4r50"
+                          innerRef={[Function]}
+                          loaded={true}
+                          onBlur={[Function]}
+                          onFocus={[Function]}
+                          onMouseEnter={[Function]}
+                          onMouseLeave={[Function]}
                           round={true}
-                          viewBox="0 0 120 120"
+                          style={
+                            Object {
+                              "height": "28px",
+                              "width": "28px",
+                            }
+                          }
                         >
-                          <svg
-                            className="css-1r4mnb9-Svg e1knxa8x0"
-                            viewBox="0 0 120 120"
-                          >
-                            <rect
-                              fill="#315cac"
-                              height="120"
-                              rx="15"
-                              ry="15"
-                              width="120"
-                              x="0"
-                              y="0"
-                            />
-                            <text
-                              fill="#FFFFFF"
-                              fontSize="65"
-                              style={
-                                Object {
-                                  "dominantBaseline": "central",
-                                }
+                          <span
+                            aria-describedby="tooltip_5xnxosaaqo"
+                            className="avatar e1axh4r50 css-p25dkn-StyledBaseAvatar-StyledAvatar-Circle e1z0ohzl0"
+                            onBlur={[Function]}
+                            onFocus={[Function]}
+                            onMouseEnter={[Function]}
+                            onMouseLeave={[Function]}
+                            style={
+                              Object {
+                                "height": "28px",
+                                "width": "28px",
                               }
-                              textAnchor="middle"
-                              x="50%"
-                              y="50%"
+                            }
+                          >
+                            <LetterAvatar
+                              displayName="Foo Bar"
+                              identifier="foo@example.com"
+                              round={true}
                             >
-                              FB
-                            </text>
-                          </svg>
-                        </Svg>
-                      </LetterAvatar>
-                    </span>
-                  </StyledBaseAvatar>
-                </Tooltip>
+                              <Svg
+                                round={true}
+                                viewBox="0 0 120 120"
+                              >
+                                <svg
+                                  className="css-1r4mnb9-Svg e1knxa8x0"
+                                  viewBox="0 0 120 120"
+                                >
+                                  <rect
+                                    fill="#315cac"
+                                    height="120"
+                                    rx="15"
+                                    ry="15"
+                                    width="120"
+                                    x="0"
+                                    y="0"
+                                  />
+                                  <text
+                                    fill="#FFFFFF"
+                                    fontSize="65"
+                                    style={
+                                      Object {
+                                        "dominantBaseline": "central",
+                                      }
+                                    }
+                                    textAnchor="middle"
+                                    x="50%"
+                                    y="50%"
+                                  >
+                                    FB
+                                  </text>
+                                </svg>
+                              </Svg>
+                            </LetterAvatar>
+                          </span>
+                        </StyledBaseAvatar>
+                      </InnerReference>
+                    </Reference>
+                  </Manager>
+                </Tooltip2>
               </BaseAvatar>
             </UserAvatar>
           </Avatar>
@@ -405,79 +419,93 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
                 type="letter_avatar"
                 uploadPath="avatar"
               >
-                <Tooltip
+                <Tooltip2
                   disabled={false}
+                  isStyled={true}
+                  position="top"
                   title="Foo Bar (foo@example.com)"
-                  tooltipOptions={
-                    Object {
-                      "placement": "top auto",
-                    }
-                  }
                 >
-                  <StyledBaseAvatar
-                    className="tip avatar css-ptswrs-StyledAvatar-Circle e1axh4r50"
-                    loaded={true}
-                    round={true}
-                    style={
-                      Object {
-                        "height": "28px",
-                        "width": "28px",
-                      }
-                    }
-                    title="Foo Bar (foo@example.com)"
-                  >
-                    <span
-                      className="tip avatar e1axh4r50 css-p25dkn-StyledBaseAvatar-StyledAvatar-Circle e1z0ohzl0"
-                      style={
-                        Object {
-                          "height": "28px",
-                          "width": "28px",
-                        }
-                      }
-                      title="Foo Bar (foo@example.com)"
-                    >
-                      <LetterAvatar
-                        displayName="Foo Bar"
-                        identifier="foo@example.com"
-                        round={true}
+                  <Manager>
+                    <Reference>
+                      <InnerReference
+                        setReferenceNode={[Function]}
                       >
-                        <Svg
+                        <StyledBaseAvatar
+                          aria-describedby="tooltip_7xsj156yci"
+                          className="avatar css-ptswrs-StyledAvatar-Circle e1axh4r50"
+                          innerRef={[Function]}
+                          loaded={true}
+                          onBlur={[Function]}
+                          onFocus={[Function]}
+                          onMouseEnter={[Function]}
+                          onMouseLeave={[Function]}
                           round={true}
-                          viewBox="0 0 120 120"
+                          style={
+                            Object {
+                              "height": "28px",
+                              "width": "28px",
+                            }
+                          }
                         >
-                          <svg
-                            className="css-1r4mnb9-Svg e1knxa8x0"
-                            viewBox="0 0 120 120"
-                          >
-                            <rect
-                              fill="#315cac"
-                              height="120"
-                              rx="15"
-                              ry="15"
-                              width="120"
-                              x="0"
-                              y="0"
-                            />
-                            <text
-                              fill="#FFFFFF"
-                              fontSize="65"
-                              style={
-                                Object {
-                                  "dominantBaseline": "central",
-                                }
+                          <span
+                            aria-describedby="tooltip_7xsj156yci"
+                            className="avatar e1axh4r50 css-p25dkn-StyledBaseAvatar-StyledAvatar-Circle e1z0ohzl0"
+                            onBlur={[Function]}
+                            onFocus={[Function]}
+                            onMouseEnter={[Function]}
+                            onMouseLeave={[Function]}
+                            style={
+                              Object {
+                                "height": "28px",
+                                "width": "28px",
                               }
-                              textAnchor="middle"
-                              x="50%"
-                              y="50%"
+                            }
+                          >
+                            <LetterAvatar
+                              displayName="Foo Bar"
+                              identifier="foo@example.com"
+                              round={true}
                             >
-                              FB
-                            </text>
-                          </svg>
-                        </Svg>
-                      </LetterAvatar>
-                    </span>
-                  </StyledBaseAvatar>
-                </Tooltip>
+                              <Svg
+                                round={true}
+                                viewBox="0 0 120 120"
+                              >
+                                <svg
+                                  className="css-1r4mnb9-Svg e1knxa8x0"
+                                  viewBox="0 0 120 120"
+                                >
+                                  <rect
+                                    fill="#315cac"
+                                    height="120"
+                                    rx="15"
+                                    ry="15"
+                                    width="120"
+                                    x="0"
+                                    y="0"
+                                  />
+                                  <text
+                                    fill="#FFFFFF"
+                                    fontSize="65"
+                                    style={
+                                      Object {
+                                        "dominantBaseline": "central",
+                                      }
+                                    }
+                                    textAnchor="middle"
+                                    x="50%"
+                                    y="50%"
+                                  >
+                                    FB
+                                  </text>
+                                </svg>
+                              </Svg>
+                            </LetterAvatar>
+                          </span>
+                        </StyledBaseAvatar>
+                      </InnerReference>
+                    </Reference>
+                  </Manager>
+                </Tooltip2>
               </BaseAvatar>
             </UserAvatar>
           </Avatar>
@@ -579,79 +607,93 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
                 type="letter_avatar"
                 uploadPath="avatar"
               >
-                <Tooltip
+                <Tooltip2
                   disabled={false}
+                  isStyled={true}
+                  position="top"
                   title="Foo Bar (foo@example.com)"
-                  tooltipOptions={
-                    Object {
-                      "placement": "top auto",
-                    }
-                  }
                 >
-                  <StyledBaseAvatar
-                    className="tip avatar css-ptswrs-StyledAvatar-Circle e1axh4r50"
-                    loaded={true}
-                    round={true}
-                    style={
-                      Object {
-                        "height": "28px",
-                        "width": "28px",
-                      }
-                    }
-                    title="Foo Bar (foo@example.com)"
-                  >
-                    <span
-                      className="tip avatar e1axh4r50 css-p25dkn-StyledBaseAvatar-StyledAvatar-Circle e1z0ohzl0"
-                      style={
-                        Object {
-                          "height": "28px",
-                          "width": "28px",
-                        }
-                      }
-                      title="Foo Bar (foo@example.com)"
-                    >
-                      <LetterAvatar
-                        displayName="Foo Bar"
-                        identifier="foo@example.com"
-                        round={true}
+                  <Manager>
+                    <Reference>
+                      <InnerReference
+                        setReferenceNode={[Function]}
                       >
-                        <Svg
+                        <StyledBaseAvatar
+                          aria-describedby="tooltip_pbui7dx3sk"
+                          className="avatar css-ptswrs-StyledAvatar-Circle e1axh4r50"
+                          innerRef={[Function]}
+                          loaded={true}
+                          onBlur={[Function]}
+                          onFocus={[Function]}
+                          onMouseEnter={[Function]}
+                          onMouseLeave={[Function]}
                           round={true}
-                          viewBox="0 0 120 120"
+                          style={
+                            Object {
+                              "height": "28px",
+                              "width": "28px",
+                            }
+                          }
                         >
-                          <svg
-                            className="css-1r4mnb9-Svg e1knxa8x0"
-                            viewBox="0 0 120 120"
-                          >
-                            <rect
-                              fill="#315cac"
-                              height="120"
-                              rx="15"
-                              ry="15"
-                              width="120"
-                              x="0"
-                              y="0"
-                            />
-                            <text
-                              fill="#FFFFFF"
-                              fontSize="65"
-                              style={
-                                Object {
-                                  "dominantBaseline": "central",
-                                }
+                          <span
+                            aria-describedby="tooltip_pbui7dx3sk"
+                            className="avatar e1axh4r50 css-p25dkn-StyledBaseAvatar-StyledAvatar-Circle e1z0ohzl0"
+                            onBlur={[Function]}
+                            onFocus={[Function]}
+                            onMouseEnter={[Function]}
+                            onMouseLeave={[Function]}
+                            style={
+                              Object {
+                                "height": "28px",
+                                "width": "28px",
                               }
-                              textAnchor="middle"
-                              x="50%"
-                              y="50%"
+                            }
+                          >
+                            <LetterAvatar
+                              displayName="Foo Bar"
+                              identifier="foo@example.com"
+                              round={true}
                             >
-                              FB
-                            </text>
-                          </svg>
-                        </Svg>
-                      </LetterAvatar>
-                    </span>
-                  </StyledBaseAvatar>
-                </Tooltip>
+                              <Svg
+                                round={true}
+                                viewBox="0 0 120 120"
+                              >
+                                <svg
+                                  className="css-1r4mnb9-Svg e1knxa8x0"
+                                  viewBox="0 0 120 120"
+                                >
+                                  <rect
+                                    fill="#315cac"
+                                    height="120"
+                                    rx="15"
+                                    ry="15"
+                                    width="120"
+                                    x="0"
+                                    y="0"
+                                  />
+                                  <text
+                                    fill="#FFFFFF"
+                                    fontSize="65"
+                                    style={
+                                      Object {
+                                        "dominantBaseline": "central",
+                                      }
+                                    }
+                                    textAnchor="middle"
+                                    x="50%"
+                                    y="50%"
+                                  >
+                                    FB
+                                  </text>
+                                </svg>
+                              </Svg>
+                            </LetterAvatar>
+                          </span>
+                        </StyledBaseAvatar>
+                      </InnerReference>
+                    </Reference>
+                  </Manager>
+                </Tooltip2>
               </BaseAvatar>
             </UserAvatar>
           </Avatar>
@@ -753,79 +795,93 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
                 type="letter_avatar"
                 uploadPath="avatar"
               >
-                <Tooltip
+                <Tooltip2
                   disabled={false}
+                  isStyled={true}
+                  position="top"
                   title="Foo Bar (foo@example.com)"
-                  tooltipOptions={
-                    Object {
-                      "placement": "top auto",
-                    }
-                  }
                 >
-                  <StyledBaseAvatar
-                    className="tip avatar css-ptswrs-StyledAvatar-Circle e1axh4r50"
-                    loaded={true}
-                    round={true}
-                    style={
-                      Object {
-                        "height": "28px",
-                        "width": "28px",
-                      }
-                    }
-                    title="Foo Bar (foo@example.com)"
-                  >
-                    <span
-                      className="tip avatar e1axh4r50 css-p25dkn-StyledBaseAvatar-StyledAvatar-Circle e1z0ohzl0"
-                      style={
-                        Object {
-                          "height": "28px",
-                          "width": "28px",
-                        }
-                      }
-                      title="Foo Bar (foo@example.com)"
-                    >
-                      <LetterAvatar
-                        displayName="Foo Bar"
-                        identifier="foo@example.com"
-                        round={true}
+                  <Manager>
+                    <Reference>
+                      <InnerReference
+                        setReferenceNode={[Function]}
                       >
-                        <Svg
+                        <StyledBaseAvatar
+                          aria-describedby="tooltip_odmxpdwl9w"
+                          className="avatar css-ptswrs-StyledAvatar-Circle e1axh4r50"
+                          innerRef={[Function]}
+                          loaded={true}
+                          onBlur={[Function]}
+                          onFocus={[Function]}
+                          onMouseEnter={[Function]}
+                          onMouseLeave={[Function]}
                           round={true}
-                          viewBox="0 0 120 120"
+                          style={
+                            Object {
+                              "height": "28px",
+                              "width": "28px",
+                            }
+                          }
                         >
-                          <svg
-                            className="css-1r4mnb9-Svg e1knxa8x0"
-                            viewBox="0 0 120 120"
-                          >
-                            <rect
-                              fill="#315cac"
-                              height="120"
-                              rx="15"
-                              ry="15"
-                              width="120"
-                              x="0"
-                              y="0"
-                            />
-                            <text
-                              fill="#FFFFFF"
-                              fontSize="65"
-                              style={
-                                Object {
-                                  "dominantBaseline": "central",
-                                }
+                          <span
+                            aria-describedby="tooltip_odmxpdwl9w"
+                            className="avatar e1axh4r50 css-p25dkn-StyledBaseAvatar-StyledAvatar-Circle e1z0ohzl0"
+                            onBlur={[Function]}
+                            onFocus={[Function]}
+                            onMouseEnter={[Function]}
+                            onMouseLeave={[Function]}
+                            style={
+                              Object {
+                                "height": "28px",
+                                "width": "28px",
                               }
-                              textAnchor="middle"
-                              x="50%"
-                              y="50%"
+                            }
+                          >
+                            <LetterAvatar
+                              displayName="Foo Bar"
+                              identifier="foo@example.com"
+                              round={true}
                             >
-                              FB
-                            </text>
-                          </svg>
-                        </Svg>
-                      </LetterAvatar>
-                    </span>
-                  </StyledBaseAvatar>
-                </Tooltip>
+                              <Svg
+                                round={true}
+                                viewBox="0 0 120 120"
+                              >
+                                <svg
+                                  className="css-1r4mnb9-Svg e1knxa8x0"
+                                  viewBox="0 0 120 120"
+                                >
+                                  <rect
+                                    fill="#315cac"
+                                    height="120"
+                                    rx="15"
+                                    ry="15"
+                                    width="120"
+                                    x="0"
+                                    y="0"
+                                  />
+                                  <text
+                                    fill="#FFFFFF"
+                                    fontSize="65"
+                                    style={
+                                      Object {
+                                        "dominantBaseline": "central",
+                                      }
+                                    }
+                                    textAnchor="middle"
+                                    x="50%"
+                                    y="50%"
+                                  >
+                                    FB
+                                  </text>
+                                </svg>
+                              </Svg>
+                            </LetterAvatar>
+                          </span>
+                        </StyledBaseAvatar>
+                      </InnerReference>
+                    </Reference>
+                  </Manager>
+                </Tooltip2>
               </BaseAvatar>
             </UserAvatar>
           </Avatar>
@@ -927,79 +983,93 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
                 type="letter_avatar"
                 uploadPath="avatar"
               >
-                <Tooltip
+                <Tooltip2
                   disabled={false}
+                  isStyled={true}
+                  position="top"
                   title="Foo Bar (foo@example.com)"
-                  tooltipOptions={
-                    Object {
-                      "placement": "top auto",
-                    }
-                  }
                 >
-                  <StyledBaseAvatar
-                    className="tip avatar css-ptswrs-StyledAvatar-Circle e1axh4r50"
-                    loaded={true}
-                    round={true}
-                    style={
-                      Object {
-                        "height": "28px",
-                        "width": "28px",
-                      }
-                    }
-                    title="Foo Bar (foo@example.com)"
-                  >
-                    <span
-                      className="tip avatar e1axh4r50 css-p25dkn-StyledBaseAvatar-StyledAvatar-Circle e1z0ohzl0"
-                      style={
-                        Object {
-                          "height": "28px",
-                          "width": "28px",
-                        }
-                      }
-                      title="Foo Bar (foo@example.com)"
-                    >
-                      <LetterAvatar
-                        displayName="Foo Bar"
-                        identifier="foo@example.com"
-                        round={true}
+                  <Manager>
+                    <Reference>
+                      <InnerReference
+                        setReferenceNode={[Function]}
                       >
-                        <Svg
+                        <StyledBaseAvatar
+                          aria-describedby="tooltip_thjwyj6gbk"
+                          className="avatar css-ptswrs-StyledAvatar-Circle e1axh4r50"
+                          innerRef={[Function]}
+                          loaded={true}
+                          onBlur={[Function]}
+                          onFocus={[Function]}
+                          onMouseEnter={[Function]}
+                          onMouseLeave={[Function]}
                           round={true}
-                          viewBox="0 0 120 120"
+                          style={
+                            Object {
+                              "height": "28px",
+                              "width": "28px",
+                            }
+                          }
                         >
-                          <svg
-                            className="css-1r4mnb9-Svg e1knxa8x0"
-                            viewBox="0 0 120 120"
-                          >
-                            <rect
-                              fill="#315cac"
-                              height="120"
-                              rx="15"
-                              ry="15"
-                              width="120"
-                              x="0"
-                              y="0"
-                            />
-                            <text
-                              fill="#FFFFFF"
-                              fontSize="65"
-                              style={
-                                Object {
-                                  "dominantBaseline": "central",
-                                }
+                          <span
+                            aria-describedby="tooltip_thjwyj6gbk"
+                            className="avatar e1axh4r50 css-p25dkn-StyledBaseAvatar-StyledAvatar-Circle e1z0ohzl0"
+                            onBlur={[Function]}
+                            onFocus={[Function]}
+                            onMouseEnter={[Function]}
+                            onMouseLeave={[Function]}
+                            style={
+                              Object {
+                                "height": "28px",
+                                "width": "28px",
                               }
-                              textAnchor="middle"
-                              x="50%"
-                              y="50%"
+                            }
+                          >
+                            <LetterAvatar
+                              displayName="Foo Bar"
+                              identifier="foo@example.com"
+                              round={true}
                             >
-                              FB
-                            </text>
-                          </svg>
-                        </Svg>
-                      </LetterAvatar>
-                    </span>
-                  </StyledBaseAvatar>
-                </Tooltip>
+                              <Svg
+                                round={true}
+                                viewBox="0 0 120 120"
+                              >
+                                <svg
+                                  className="css-1r4mnb9-Svg e1knxa8x0"
+                                  viewBox="0 0 120 120"
+                                >
+                                  <rect
+                                    fill="#315cac"
+                                    height="120"
+                                    rx="15"
+                                    ry="15"
+                                    width="120"
+                                    x="0"
+                                    y="0"
+                                  />
+                                  <text
+                                    fill="#FFFFFF"
+                                    fontSize="65"
+                                    style={
+                                      Object {
+                                        "dominantBaseline": "central",
+                                      }
+                                    }
+                                    textAnchor="middle"
+                                    x="50%"
+                                    y="50%"
+                                  >
+                                    FB
+                                  </text>
+                                </svg>
+                              </Svg>
+                            </LetterAvatar>
+                          </span>
+                        </StyledBaseAvatar>
+                      </InnerReference>
+                    </Reference>
+                  </Manager>
+                </Tooltip2>
               </BaseAvatar>
             </UserAvatar>
           </Avatar>
@@ -1161,79 +1231,93 @@ exports[`AvatarList renders with user avatars 1`] = `
                 type="letter_avatar"
                 uploadPath="avatar"
               >
-                <Tooltip
+                <Tooltip2
                   disabled={false}
+                  isStyled={true}
+                  position="top"
                   title="Foo Bar (foo@example.com)"
-                  tooltipOptions={
-                    Object {
-                      "placement": "top auto",
-                    }
-                  }
                 >
-                  <StyledBaseAvatar
-                    className="tip avatar css-ptswrs-StyledAvatar-Circle e1axh4r50"
-                    loaded={true}
-                    round={true}
-                    style={
-                      Object {
-                        "height": "28px",
-                        "width": "28px",
-                      }
-                    }
-                    title="Foo Bar (foo@example.com)"
-                  >
-                    <span
-                      className="tip avatar e1axh4r50 css-p25dkn-StyledBaseAvatar-StyledAvatar-Circle e1z0ohzl0"
-                      style={
-                        Object {
-                          "height": "28px",
-                          "width": "28px",
-                        }
-                      }
-                      title="Foo Bar (foo@example.com)"
-                    >
-                      <LetterAvatar
-                        displayName="Foo Bar"
-                        identifier="foo@example.com"
-                        round={true}
+                  <Manager>
+                    <Reference>
+                      <InnerReference
+                        setReferenceNode={[Function]}
                       >
-                        <Svg
+                        <StyledBaseAvatar
+                          aria-describedby="tooltip_jj4rpyzs79"
+                          className="avatar css-ptswrs-StyledAvatar-Circle e1axh4r50"
+                          innerRef={[Function]}
+                          loaded={true}
+                          onBlur={[Function]}
+                          onFocus={[Function]}
+                          onMouseEnter={[Function]}
+                          onMouseLeave={[Function]}
                           round={true}
-                          viewBox="0 0 120 120"
+                          style={
+                            Object {
+                              "height": "28px",
+                              "width": "28px",
+                            }
+                          }
                         >
-                          <svg
-                            className="css-1r4mnb9-Svg e1knxa8x0"
-                            viewBox="0 0 120 120"
-                          >
-                            <rect
-                              fill="#315cac"
-                              height="120"
-                              rx="15"
-                              ry="15"
-                              width="120"
-                              x="0"
-                              y="0"
-                            />
-                            <text
-                              fill="#FFFFFF"
-                              fontSize="65"
-                              style={
-                                Object {
-                                  "dominantBaseline": "central",
-                                }
+                          <span
+                            aria-describedby="tooltip_jj4rpyzs79"
+                            className="avatar e1axh4r50 css-p25dkn-StyledBaseAvatar-StyledAvatar-Circle e1z0ohzl0"
+                            onBlur={[Function]}
+                            onFocus={[Function]}
+                            onMouseEnter={[Function]}
+                            onMouseLeave={[Function]}
+                            style={
+                              Object {
+                                "height": "28px",
+                                "width": "28px",
                               }
-                              textAnchor="middle"
-                              x="50%"
-                              y="50%"
+                            }
+                          >
+                            <LetterAvatar
+                              displayName="Foo Bar"
+                              identifier="foo@example.com"
+                              round={true}
                             >
-                              FB
-                            </text>
-                          </svg>
-                        </Svg>
-                      </LetterAvatar>
-                    </span>
-                  </StyledBaseAvatar>
-                </Tooltip>
+                              <Svg
+                                round={true}
+                                viewBox="0 0 120 120"
+                              >
+                                <svg
+                                  className="css-1r4mnb9-Svg e1knxa8x0"
+                                  viewBox="0 0 120 120"
+                                >
+                                  <rect
+                                    fill="#315cac"
+                                    height="120"
+                                    rx="15"
+                                    ry="15"
+                                    width="120"
+                                    x="0"
+                                    y="0"
+                                  />
+                                  <text
+                                    fill="#FFFFFF"
+                                    fontSize="65"
+                                    style={
+                                      Object {
+                                        "dominantBaseline": "central",
+                                      }
+                                    }
+                                    textAnchor="middle"
+                                    x="50%"
+                                    y="50%"
+                                  >
+                                    FB
+                                  </text>
+                                </svg>
+                              </Svg>
+                            </LetterAvatar>
+                          </span>
+                        </StyledBaseAvatar>
+                      </InnerReference>
+                    </Reference>
+                  </Manager>
+                </Tooltip2>
               </BaseAvatar>
             </UserAvatar>
           </Avatar>
@@ -1335,79 +1419,93 @@ exports[`AvatarList renders with user avatars 1`] = `
                 type="letter_avatar"
                 uploadPath="avatar"
               >
-                <Tooltip
+                <Tooltip2
                   disabled={false}
+                  isStyled={true}
+                  position="top"
                   title="Foo Bar (foo@example.com)"
-                  tooltipOptions={
-                    Object {
-                      "placement": "top auto",
-                    }
-                  }
                 >
-                  <StyledBaseAvatar
-                    className="tip avatar css-ptswrs-StyledAvatar-Circle e1axh4r50"
-                    loaded={true}
-                    round={true}
-                    style={
-                      Object {
-                        "height": "28px",
-                        "width": "28px",
-                      }
-                    }
-                    title="Foo Bar (foo@example.com)"
-                  >
-                    <span
-                      className="tip avatar e1axh4r50 css-p25dkn-StyledBaseAvatar-StyledAvatar-Circle e1z0ohzl0"
-                      style={
-                        Object {
-                          "height": "28px",
-                          "width": "28px",
-                        }
-                      }
-                      title="Foo Bar (foo@example.com)"
-                    >
-                      <LetterAvatar
-                        displayName="Foo Bar"
-                        identifier="foo@example.com"
-                        round={true}
+                  <Manager>
+                    <Reference>
+                      <InnerReference
+                        setReferenceNode={[Function]}
                       >
-                        <Svg
+                        <StyledBaseAvatar
+                          aria-describedby="tooltip_uwj895ejkm"
+                          className="avatar css-ptswrs-StyledAvatar-Circle e1axh4r50"
+                          innerRef={[Function]}
+                          loaded={true}
+                          onBlur={[Function]}
+                          onFocus={[Function]}
+                          onMouseEnter={[Function]}
+                          onMouseLeave={[Function]}
                           round={true}
-                          viewBox="0 0 120 120"
+                          style={
+                            Object {
+                              "height": "28px",
+                              "width": "28px",
+                            }
+                          }
                         >
-                          <svg
-                            className="css-1r4mnb9-Svg e1knxa8x0"
-                            viewBox="0 0 120 120"
-                          >
-                            <rect
-                              fill="#315cac"
-                              height="120"
-                              rx="15"
-                              ry="15"
-                              width="120"
-                              x="0"
-                              y="0"
-                            />
-                            <text
-                              fill="#FFFFFF"
-                              fontSize="65"
-                              style={
-                                Object {
-                                  "dominantBaseline": "central",
-                                }
+                          <span
+                            aria-describedby="tooltip_uwj895ejkm"
+                            className="avatar e1axh4r50 css-p25dkn-StyledBaseAvatar-StyledAvatar-Circle e1z0ohzl0"
+                            onBlur={[Function]}
+                            onFocus={[Function]}
+                            onMouseEnter={[Function]}
+                            onMouseLeave={[Function]}
+                            style={
+                              Object {
+                                "height": "28px",
+                                "width": "28px",
                               }
-                              textAnchor="middle"
-                              x="50%"
-                              y="50%"
+                            }
+                          >
+                            <LetterAvatar
+                              displayName="Foo Bar"
+                              identifier="foo@example.com"
+                              round={true}
                             >
-                              FB
-                            </text>
-                          </svg>
-                        </Svg>
-                      </LetterAvatar>
-                    </span>
-                  </StyledBaseAvatar>
-                </Tooltip>
+                              <Svg
+                                round={true}
+                                viewBox="0 0 120 120"
+                              >
+                                <svg
+                                  className="css-1r4mnb9-Svg e1knxa8x0"
+                                  viewBox="0 0 120 120"
+                                >
+                                  <rect
+                                    fill="#315cac"
+                                    height="120"
+                                    rx="15"
+                                    ry="15"
+                                    width="120"
+                                    x="0"
+                                    y="0"
+                                  />
+                                  <text
+                                    fill="#FFFFFF"
+                                    fontSize="65"
+                                    style={
+                                      Object {
+                                        "dominantBaseline": "central",
+                                      }
+                                    }
+                                    textAnchor="middle"
+                                    x="50%"
+                                    y="50%"
+                                  >
+                                    FB
+                                  </text>
+                                </svg>
+                              </Svg>
+                            </LetterAvatar>
+                          </span>
+                        </StyledBaseAvatar>
+                      </InnerReference>
+                    </Reference>
+                  </Manager>
+                </Tooltip2>
               </BaseAvatar>
             </UserAvatar>
           </Avatar>
