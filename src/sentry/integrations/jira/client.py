@@ -189,18 +189,17 @@ class JiraApiClient(ApiClient):
 
     def search_users_for_project(self, project, username):
         # Jira Server wants a project key, while cloud is indifferent.
+        # Use the query parameter as our implemention follows jira's gdpr practices
         project_key = self.get_project_key_for_id(project)
         return self.get_cached(
             self.USERS_URL,
-            params={'project': project_key, 'username': username})
+            params={'project': project_key, 'query': username})
 
     def search_users_for_issue(self, issue_key, email):
-        # not actully in the official documentation, but apparently
-        # you can pass email as the username param see:
-        # https://community.atlassian.com/t5/Answers-Developer-Questions/JIRA-Rest-API-find-JIRA-user-based-on-user-s-email-address/qaq-p/532715
+        # Use the query parameter as our implemention follows jira's gdpr practices
         return self.get_cached(
             self.USERS_URL,
-            params={'issueKey': issue_key, 'username': email})
+            params={'issueKey': issue_key, 'query': email})
 
     def create_issue(self, raw_form_data):
         data = {'fields': raw_form_data}
