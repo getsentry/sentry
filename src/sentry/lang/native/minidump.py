@@ -205,10 +205,7 @@ def merge_symbolicator_minidump_response(data, response):
         image = {}
         merge_symbolicator_image(
             image, complete_image, sdk_info,
-            lambda e: handle_symbolication_failed(
-                e, data=data,
-                errors=data.setdefault('errors', [])
-            )
+            lambda e: handle_symbolication_failed(e, data=data)
         )
         images.append(image)
 

@@ -117,7 +117,7 @@ def merge_symbolicated_frame(new_frame, sfrm):
         frame_meta['symbolicator_status'] = sfrm['status']
 
 
-def handle_symbolication_failed(e, data, errors):
+def handle_symbolication_failed(e, data, errors=None):
     # User fixable but fatal errors are reported as processing
     # issues
     if e.is_user_fixable and e.is_fatal:
@@ -138,6 +138,8 @@ def handle_symbolication_failed(e, data, errors):
     # do not want to report some processing issues (eg:
     # optional difs)
     if e.is_user_fixable or e.is_sdk_failure:
+        if errors is None:
+            errors = data.setdefault('errors', [])
         errors.append(e.get_data())
     else:
         logger.debug('Failed to symbolicate with native backend',

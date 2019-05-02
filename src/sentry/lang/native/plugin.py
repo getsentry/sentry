@@ -269,7 +269,6 @@ class NativeStacktraceProcessor(StacktraceProcessor):
             handle_symbolication_failed(
                 SymbolicationFailed(type=EventError.NATIVE_SYMBOLICATOR_FAILED),
                 data=self.data,
-                errors=self.data.setdefault('errors', [])
             )
             return
 
@@ -281,8 +280,7 @@ class NativeStacktraceProcessor(StacktraceProcessor):
         for image, complete_image in zip(self.images, rv['modules']):
             merge_symbolicator_image(
                 image, complete_image, self.sdk_info,
-                lambda e: handle_symbolication_failed(
-                    e, data=self.data, errors=self.data.setdefault('errors', []))
+                lambda e: handle_symbolication_failed(e, data=self.data)
             )
 
         assert len(stacktraces) == len(rv['stacktraces'])
@@ -421,7 +419,6 @@ def reprocess_minidump(data):
         handle_symbolication_failed(
             SymbolicationFailed(type=EventError.NATIVE_SYMBOLICATOR_FAILED),
             data=data,
-            errors=data.setdefault('errors', [])
         )
         default_cache.set(minidump_is_reprocessed_cache_key, True, 3600)
         return
