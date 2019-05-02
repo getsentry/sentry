@@ -22,6 +22,11 @@ const isEqualWithEmptyArrays = (newQuery, current) => {
   );
 };
 
+// Reset values in global selection store
+export function resetGlobalSelection() {
+  GlobalSelectionActions.reset();
+}
+
 /**
  * Updates global project selection URL param if `router` is supplied
  * OTHERWISE fire action to update projects

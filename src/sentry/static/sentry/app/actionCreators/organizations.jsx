@@ -1,5 +1,6 @@
 import {browserHistory} from 'react-router';
 
+import {resetGlobalSelection} from 'app/actionCreators/globalSelection';
 import {Client} from 'app/api';
 import IndicatorStore from 'app/stores/indicatorStore';
 import OrganizationsActions from 'app/actions/organizationsActions';
@@ -47,6 +48,10 @@ export function remove(api, {successMessage, errorMessage, orgId} = {}) {
         IndicatorStore.add(errorMessage, 'error', {duration: 3000});
       }
     });
+}
+
+export function switchOrganization(prevOrgId, nextOrgId) {
+  resetGlobalSelection();
 }
 
 export function removeAndRedirectToRemainingOrganization(api, params) {
