@@ -28,7 +28,7 @@ class ActivityAvatar extends React.Component {
       // Return Sentry avatar
       return (
         <SystemAvatar className={className} size={size}>
-          <Logo src="icon-sentry" size={Math.round(size * 0.7)} />
+          <Logo src="icon-sentry" size={`${Math.round(size * 0.8)}px`} />
         </SystemAvatar>
       );
     }
@@ -43,14 +43,10 @@ const SystemAvatar = styled('span')`
   display: flex;
   justify-content: center;
   align-items: center;
-  border-radius: 100%;
-  background-color: ${p => p.theme.purple};
   width: ${p => p.size}px;
   height: ${p => p.size}px;
-  vertical-align: middle;
-  position: relative;
 `;
 
 const Logo = styled(InlineSvg)`
-  color: #fff;
+  color: ${p => p.theme.gray5};
 `;

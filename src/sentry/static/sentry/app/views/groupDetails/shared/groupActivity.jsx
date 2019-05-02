@@ -276,6 +276,7 @@ const GroupActivity = createReactClass({
         return (
           <ActivityItem
             item={item}
+            key={`group-activity-item-${item.id}`}
             author={{type: item.user ? 'user' : 'system', user: item.user}}
             date={item.dateCreated}
             header={
