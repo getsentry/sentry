@@ -1,6 +1,8 @@
 from __future__ import absolute_import
 
 from datetime import datetime, timedelta
+import pytz
+from mock import patch
 
 from sentry.testutils import AcceptanceTestCase, SnubaTestCase
 
@@ -66,7 +68,9 @@ class OrganizationDiscoverTest(AcceptanceTestCase, SnubaTestCase):
             self.browser.wait_until_not('.is-disabled')
             self.browser.snapshot('discover - query builder')
 
-    def test_run_query(self):
+    @patch('django.utils.timezone.now')
+    def test_run_query(self, mock_now):
+        mock_now.return_value = datetime.utcnow().replace(tzinfo=pytz.utc)
         with self.feature('organizations:discover'):
             self.browser.get(self.path)
             self.browser.wait_until_not('.loading')
