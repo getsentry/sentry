@@ -302,9 +302,6 @@ class SearchVisitor(NodeVisitor):
         children = self.flatten(children)
         return [build_boolean_tree(children, 0, len(children))]
 
-    def visit_nested_boolean_term(self, node, children):
-        return self.visit_boolean_term(node, children)
-
     def visit_numeric_filter(self, node, children):
         (search_key, _, operator, search_value) = children
         operator = operator[0] if not isinstance(operator, Node) else '='
