@@ -312,7 +312,7 @@ exports[`SharedGroupDetails renders 1`] = `
                           }
                         }
                       >
-                        <EventEntries
+                        <withApi(EventEntries)
                           event={
                             Object {
                               "entries": Array [
@@ -468,13 +468,42 @@ exports[`SharedGroupDetails renders 1`] = `
                             }
                           }
                         >
-                          <div
-                            className="entries"
-                          >
-                             
-                            <EventTags
-                              event={
-                                Object {
+                          <EventEntries
+                            api={Client {}}
+                            event={
+                              Object {
+                                "entries": Array [
+                                  Object {
+                                    "data": Object {
+                                      "formatted": "Blocked script",
+                                    },
+                                    "id": "1",
+                                    "type": "message",
+                                  },
+                                ],
+                                "eventID": "12345678901234567890123456789012",
+                                "groupID": "1",
+                                "id": "1",
+                                "message": "ApiException",
+                              }
+                            }
+                            group={
+                              Object {
+                                "activity": Array [],
+                                "annotations": Array [],
+                                "assignedTo": null,
+                                "count": "327482",
+                                "culprit": "fetchData(app/components/group/suggestedOwners)",
+                                "firstRelease": null,
+                                "firstSeen": "2019-04-05T19:44:05.963Z",
+                                "hasSeen": false,
+                                "id": "1",
+                                "isBookmarked": false,
+                                "isPublic": false,
+                                "isSubscribed": false,
+                                "lastRelease": null,
+                                "lastSeen": "2019-04-11T01:08:59Z",
+                                "latestEvent": Object {
                                   "entries": Array [
                                     Object {
                                       "data": Object {
@@ -488,251 +517,119 @@ exports[`SharedGroupDetails renders 1`] = `
                                   "groupID": "1",
                                   "id": "1",
                                   "message": "ApiException",
-                                }
-                              }
-                              group={
-                                Object {
-                                  "activity": Array [],
-                                  "annotations": Array [],
-                                  "assignedTo": null,
-                                  "count": "327482",
-                                  "culprit": "fetchData(app/components/group/suggestedOwners)",
-                                  "firstRelease": null,
-                                  "firstSeen": "2019-04-05T19:44:05.963Z",
-                                  "hasSeen": false,
-                                  "id": "1",
+                                },
+                                "level": "warning",
+                                "logger": null,
+                                "metadata": Object {
+                                  "function": "fetchData",
+                                  "type": "RequestError",
+                                },
+                                "numComments": 0,
+                                "participants": Array [],
+                                "permalink": "https://foo.io/organizations/foo/issues/1234/",
+                                "platform": "javascript",
+                                "pluginActions": Array [],
+                                "pluginContexts": Array [],
+                                "pluginIssues": Array [],
+                                "project": Object {
+                                  "environments": Array [],
+                                  "hasAccess": true,
+                                  "id": "2",
                                   "isBookmarked": false,
-                                  "isPublic": false,
-                                  "isSubscribed": false,
-                                  "lastRelease": null,
-                                  "lastSeen": "2019-04-11T01:08:59Z",
-                                  "latestEvent": Object {
-                                    "entries": Array [
-                                      Object {
-                                        "data": Object {
-                                          "formatted": "Blocked script",
-                                        },
-                                        "id": "1",
-                                        "type": "message",
-                                      },
-                                    ],
-                                    "eventID": "12345678901234567890123456789012",
-                                    "groupID": "1",
-                                    "id": "1",
-                                    "message": "ApiException",
+                                  "isMember": true,
+                                  "name": "Project Name",
+                                  "organization": Object {
+                                    "slug": "test-org",
                                   },
-                                  "level": "warning",
-                                  "logger": null,
-                                  "metadata": Object {
-                                    "function": "fetchData",
-                                    "type": "RequestError",
-                                  },
-                                  "numComments": 0,
-                                  "participants": Array [],
-                                  "permalink": "https://foo.io/organizations/foo/issues/1234/",
-                                  "platform": "javascript",
-                                  "pluginActions": Array [],
-                                  "pluginContexts": Array [],
-                                  "pluginIssues": Array [],
-                                  "project": Object {
-                                    "environments": Array [],
-                                    "hasAccess": true,
-                                    "id": "2",
-                                    "isBookmarked": false,
-                                    "isMember": true,
-                                    "name": "Project Name",
-                                    "organization": Object {
-                                      "slug": "test-org",
-                                    },
-                                    "slug": "project-slug",
-                                    "teams": Array [],
-                                  },
-                                  "seenBy": Array [],
-                                  "shareId": null,
-                                  "shortId": "JAVASCRIPT-6QS",
-                                  "stats": Object {
-                                    "24h": Array [
-                                      Array [
-                                        1517281200,
-                                        2,
-                                      ],
-                                      Array [
-                                        1517310000,
-                                        1,
-                                      ],
-                                    ],
-                                    "30d": Array [
-                                      Array [
-                                        1514764800,
-                                        1,
-                                      ],
-                                      Array [
-                                        1515024000,
-                                        122,
-                                      ],
-                                    ],
-                                  },
-                                  "status": "unresolved",
-                                  "statusDetails": Object {},
-                                  "subscriptionDetails": null,
-                                  "tags": Array [],
-                                  "title": "ZeroDivisionError",
-                                  "type": "error",
-                                  "userCount": 35097,
-                                  "userReportCount": 0,
-                                }
-                              }
-                              orgId="test-org"
-                              organization={
-                                Object {
-                                  "access": Array [
-                                    "org:read",
-                                    "org:write",
-                                    "org:admin",
-                                    "org:integrations",
-                                    "project:read",
-                                    "project:write",
-                                    "project:admin",
-                                    "team:read",
-                                    "team:write",
-                                    "team:admin",
-                                  ],
-                                  "features": Array [],
-                                  "id": "3",
-                                  "name": "Organization Name",
-                                  "onboardingTasks": Array [],
-                                  "projects": Array [],
-                                  "scrapeJavaScript": true,
-                                  "slug": "org-slug",
-                                  "status": Object {
-                                    "id": "active",
-                                    "name": "active",
-                                  },
+                                  "slug": "project-slug",
                                   "teams": Array [],
-                                }
-                              }
-                              projectId="project-slug"
-                            />
-                            <MessageInterface
-                              data={
-                                Object {
-                                  "formatted": "Blocked script",
-                                }
-                              }
-                              event={
-                                Object {
-                                  "entries": Array [
-                                    Object {
-                                      "data": Object {
-                                        "formatted": "Blocked script",
-                                      },
-                                      "id": "1",
-                                      "type": "message",
-                                    },
+                                },
+                                "seenBy": Array [],
+                                "shareId": null,
+                                "shortId": "JAVASCRIPT-6QS",
+                                "stats": Object {
+                                  "24h": Array [
+                                    Array [
+                                      1517281200,
+                                      2,
+                                    ],
+                                    Array [
+                                      1517310000,
+                                      1,
+                                    ],
                                   ],
-                                  "eventID": "12345678901234567890123456789012",
-                                  "groupID": "1",
-                                  "id": "1",
-                                  "message": "ApiException",
-                                }
+                                  "30d": Array [
+                                    Array [
+                                      1514764800,
+                                      1,
+                                    ],
+                                    Array [
+                                      1515024000,
+                                      122,
+                                    ],
+                                  ],
+                                },
+                                "status": "unresolved",
+                                "statusDetails": Object {},
+                                "subscriptionDetails": null,
+                                "tags": Array [],
+                                "title": "ZeroDivisionError",
+                                "type": "error",
+                                "userCount": 35097,
+                                "userReportCount": 0,
                               }
-                              group={
-                                Object {
-                                  "activity": Array [],
-                                  "annotations": Array [],
-                                  "assignedTo": null,
-                                  "count": "327482",
-                                  "culprit": "fetchData(app/components/group/suggestedOwners)",
-                                  "firstRelease": null,
-                                  "firstSeen": "2019-04-05T19:44:05.963Z",
-                                  "hasSeen": false,
-                                  "id": "1",
-                                  "isBookmarked": false,
-                                  "isPublic": false,
-                                  "isSubscribed": false,
-                                  "lastRelease": null,
-                                  "lastSeen": "2019-04-11T01:08:59Z",
-                                  "latestEvent": Object {
-                                    "entries": Array [
-                                      Object {
-                                        "data": Object {
-                                          "formatted": "Blocked script",
-                                        },
-                                        "id": "1",
-                                        "type": "message",
-                                      },
-                                    ],
-                                    "eventID": "12345678901234567890123456789012",
-                                    "groupID": "1",
-                                    "id": "1",
-                                    "message": "ApiException",
-                                  },
-                                  "level": "warning",
-                                  "logger": null,
-                                  "metadata": Object {
-                                    "function": "fetchData",
-                                    "type": "RequestError",
-                                  },
-                                  "numComments": 0,
-                                  "participants": Array [],
-                                  "permalink": "https://foo.io/organizations/foo/issues/1234/",
-                                  "platform": "javascript",
-                                  "pluginActions": Array [],
-                                  "pluginContexts": Array [],
-                                  "pluginIssues": Array [],
-                                  "project": Object {
-                                    "environments": Array [],
-                                    "hasAccess": true,
-                                    "id": "2",
-                                    "isBookmarked": false,
-                                    "isMember": true,
-                                    "name": "Project Name",
-                                    "organization": Object {
-                                      "slug": "test-org",
-                                    },
-                                    "slug": "project-slug",
-                                    "teams": Array [],
-                                  },
-                                  "seenBy": Array [],
-                                  "shareId": null,
-                                  "shortId": "JAVASCRIPT-6QS",
-                                  "stats": Object {
-                                    "24h": Array [
-                                      Array [
-                                        1517281200,
-                                        2,
-                                      ],
-                                      Array [
-                                        1517310000,
-                                        1,
-                                      ],
-                                    ],
-                                    "30d": Array [
-                                      Array [
-                                        1514764800,
-                                        1,
-                                      ],
-                                      Array [
-                                        1515024000,
-                                        122,
-                                      ],
-                                    ],
-                                  },
-                                  "status": "unresolved",
-                                  "statusDetails": Object {},
-                                  "subscriptionDetails": null,
-                                  "tags": Array [],
-                                  "title": "ZeroDivisionError",
-                                  "type": "error",
-                                  "userCount": 35097,
-                                  "userReportCount": 0,
-                                }
+                            }
+                            isShare={true}
+                            orgId="test-org"
+                            organization={
+                              Object {
+                                "access": Array [
+                                  "org:read",
+                                  "org:write",
+                                  "org:admin",
+                                  "org:integrations",
+                                  "project:read",
+                                  "project:write",
+                                  "project:admin",
+                                  "team:read",
+                                  "team:write",
+                                  "team:admin",
+                                ],
+                                "features": Array [],
+                                "id": "3",
+                                "name": "Organization Name",
+                                "onboardingTasks": Array [],
+                                "projects": Array [],
+                                "scrapeJavaScript": true,
+                                "slug": "org-slug",
+                                "status": Object {
+                                  "id": "active",
+                                  "name": "active",
+                                },
+                                "teams": Array [],
                               }
-                              isShare={true}
-                              key="entry-0"
-                              type="message"
+                            }
+                            project={
+                              Object {
+                                "environments": Array [],
+                                "hasAccess": true,
+                                "id": "2",
+                                "isBookmarked": false,
+                                "isMember": true,
+                                "name": "Project Name",
+                                "organization": Object {
+                                  "slug": "test-org",
+                                },
+                                "slug": "project-slug",
+                                "teams": Array [],
+                              }
+                            }
+                          >
+                            <div
+                              className="entries"
                             >
-                              <GroupEventDataSection
+                               
+                              <EventTags
                                 event={
                                   Object {
                                     "entries": Array [
@@ -842,46 +739,297 @@ exports[`SharedGroupDetails renders 1`] = `
                                     "userReportCount": 0,
                                   }
                                 }
-                                raw={false}
-                                title="Message"
+                                orgId="test-org"
+                                organization={
+                                  Object {
+                                    "access": Array [
+                                      "org:read",
+                                      "org:write",
+                                      "org:admin",
+                                      "org:integrations",
+                                      "project:read",
+                                      "project:write",
+                                      "project:admin",
+                                      "team:read",
+                                      "team:write",
+                                      "team:admin",
+                                    ],
+                                    "features": Array [],
+                                    "id": "3",
+                                    "name": "Organization Name",
+                                    "onboardingTasks": Array [],
+                                    "projects": Array [],
+                                    "scrapeJavaScript": true,
+                                    "slug": "org-slug",
+                                    "status": Object {
+                                      "id": "active",
+                                      "name": "active",
+                                    },
+                                    "teams": Array [],
+                                  }
+                                }
+                                projectId="project-slug"
+                              />
+                              <MessageInterface
+                                data={
+                                  Object {
+                                    "formatted": "Blocked script",
+                                  }
+                                }
+                                event={
+                                  Object {
+                                    "entries": Array [
+                                      Object {
+                                        "data": Object {
+                                          "formatted": "Blocked script",
+                                        },
+                                        "id": "1",
+                                        "type": "message",
+                                      },
+                                    ],
+                                    "eventID": "12345678901234567890123456789012",
+                                    "groupID": "1",
+                                    "id": "1",
+                                    "message": "ApiException",
+                                  }
+                                }
+                                group={
+                                  Object {
+                                    "activity": Array [],
+                                    "annotations": Array [],
+                                    "assignedTo": null,
+                                    "count": "327482",
+                                    "culprit": "fetchData(app/components/group/suggestedOwners)",
+                                    "firstRelease": null,
+                                    "firstSeen": "2019-04-05T19:44:05.963Z",
+                                    "hasSeen": false,
+                                    "id": "1",
+                                    "isBookmarked": false,
+                                    "isPublic": false,
+                                    "isSubscribed": false,
+                                    "lastRelease": null,
+                                    "lastSeen": "2019-04-11T01:08:59Z",
+                                    "latestEvent": Object {
+                                      "entries": Array [
+                                        Object {
+                                          "data": Object {
+                                            "formatted": "Blocked script",
+                                          },
+                                          "id": "1",
+                                          "type": "message",
+                                        },
+                                      ],
+                                      "eventID": "12345678901234567890123456789012",
+                                      "groupID": "1",
+                                      "id": "1",
+                                      "message": "ApiException",
+                                    },
+                                    "level": "warning",
+                                    "logger": null,
+                                    "metadata": Object {
+                                      "function": "fetchData",
+                                      "type": "RequestError",
+                                    },
+                                    "numComments": 0,
+                                    "participants": Array [],
+                                    "permalink": "https://foo.io/organizations/foo/issues/1234/",
+                                    "platform": "javascript",
+                                    "pluginActions": Array [],
+                                    "pluginContexts": Array [],
+                                    "pluginIssues": Array [],
+                                    "project": Object {
+                                      "environments": Array [],
+                                      "hasAccess": true,
+                                      "id": "2",
+                                      "isBookmarked": false,
+                                      "isMember": true,
+                                      "name": "Project Name",
+                                      "organization": Object {
+                                        "slug": "test-org",
+                                      },
+                                      "slug": "project-slug",
+                                      "teams": Array [],
+                                    },
+                                    "seenBy": Array [],
+                                    "shareId": null,
+                                    "shortId": "JAVASCRIPT-6QS",
+                                    "stats": Object {
+                                      "24h": Array [
+                                        Array [
+                                          1517281200,
+                                          2,
+                                        ],
+                                        Array [
+                                          1517310000,
+                                          1,
+                                        ],
+                                      ],
+                                      "30d": Array [
+                                        Array [
+                                          1514764800,
+                                          1,
+                                        ],
+                                        Array [
+                                          1515024000,
+                                          122,
+                                        ],
+                                      ],
+                                    },
+                                    "status": "unresolved",
+                                    "statusDetails": Object {},
+                                    "subscriptionDetails": null,
+                                    "tags": Array [],
+                                    "title": "ZeroDivisionError",
+                                    "type": "error",
+                                    "userCount": 35097,
+                                    "userReportCount": 0,
+                                  }
+                                }
+                                isShare={true}
+                                key="entry-0"
                                 type="message"
-                                wrapTitle={true}
                               >
-                                <div
-                                  className=" box"
+                                <GroupEventDataSection
+                                  event={
+                                    Object {
+                                      "entries": Array [
+                                        Object {
+                                          "data": Object {
+                                            "formatted": "Blocked script",
+                                          },
+                                          "id": "1",
+                                          "type": "message",
+                                        },
+                                      ],
+                                      "eventID": "12345678901234567890123456789012",
+                                      "groupID": "1",
+                                      "id": "1",
+                                      "message": "ApiException",
+                                    }
+                                  }
+                                  group={
+                                    Object {
+                                      "activity": Array [],
+                                      "annotations": Array [],
+                                      "assignedTo": null,
+                                      "count": "327482",
+                                      "culprit": "fetchData(app/components/group/suggestedOwners)",
+                                      "firstRelease": null,
+                                      "firstSeen": "2019-04-05T19:44:05.963Z",
+                                      "hasSeen": false,
+                                      "id": "1",
+                                      "isBookmarked": false,
+                                      "isPublic": false,
+                                      "isSubscribed": false,
+                                      "lastRelease": null,
+                                      "lastSeen": "2019-04-11T01:08:59Z",
+                                      "latestEvent": Object {
+                                        "entries": Array [
+                                          Object {
+                                            "data": Object {
+                                              "formatted": "Blocked script",
+                                            },
+                                            "id": "1",
+                                            "type": "message",
+                                          },
+                                        ],
+                                        "eventID": "12345678901234567890123456789012",
+                                        "groupID": "1",
+                                        "id": "1",
+                                        "message": "ApiException",
+                                      },
+                                      "level": "warning",
+                                      "logger": null,
+                                      "metadata": Object {
+                                        "function": "fetchData",
+                                        "type": "RequestError",
+                                      },
+                                      "numComments": 0,
+                                      "participants": Array [],
+                                      "permalink": "https://foo.io/organizations/foo/issues/1234/",
+                                      "platform": "javascript",
+                                      "pluginActions": Array [],
+                                      "pluginContexts": Array [],
+                                      "pluginIssues": Array [],
+                                      "project": Object {
+                                        "environments": Array [],
+                                        "hasAccess": true,
+                                        "id": "2",
+                                        "isBookmarked": false,
+                                        "isMember": true,
+                                        "name": "Project Name",
+                                        "organization": Object {
+                                          "slug": "test-org",
+                                        },
+                                        "slug": "project-slug",
+                                        "teams": Array [],
+                                      },
+                                      "seenBy": Array [],
+                                      "shareId": null,
+                                      "shortId": "JAVASCRIPT-6QS",
+                                      "stats": Object {
+                                        "24h": Array [
+                                          Array [
+                                            1517281200,
+                                            2,
+                                          ],
+                                          Array [
+                                            1517310000,
+                                            1,
+                                          ],
+                                        ],
+                                        "30d": Array [
+                                          Array [
+                                            1514764800,
+                                            1,
+                                          ],
+                                          Array [
+                                            1515024000,
+                                            122,
+                                          ],
+                                        ],
+                                      },
+                                      "status": "unresolved",
+                                      "statusDetails": Object {},
+                                      "subscriptionDetails": null,
+                                      "tags": Array [],
+                                      "title": "ZeroDivisionError",
+                                      "type": "error",
+                                      "userCount": 35097,
+                                      "userReportCount": 0,
+                                    }
+                                  }
+                                  raw={false}
+                                  title="Message"
+                                  type="message"
+                                  wrapTitle={true}
                                 >
                                   <div
-                                    className="box-header"
-                                    id="message"
+                                    className=" box"
                                   >
-                                    <a
-                                      className="permalink"
-                                      href="#message"
+                                    <div
+                                      className="box-header"
+                                      id="message"
                                     >
-                                      <em
-                                        className="icon-anchor"
-                                      />
-                                    </a>
-                                    <h3>
-                                      Message
-                                    </h3>
-                                  </div>
-                                  <div
-                                    className="box-content with-padding"
-                                  >
-                                    <pre
-                                      className="plain"
-                                    >
-                                      <Annotated
-                                        object={
-                                          Object {
-                                            "formatted": "Blocked script",
-                                          }
-                                        }
-                                        prop="formatted"
-                                        required={false}
+                                      <a
+                                        className="permalink"
+                                        href="#message"
                                       >
-                                        <MetaData
+                                        <em
+                                          className="icon-anchor"
+                                        />
+                                      </a>
+                                      <h3>
+                                        Message
+                                      </h3>
+                                    </div>
+                                    <div
+                                      className="box-content with-padding"
+                                    >
+                                      <pre
+                                        className="plain"
+                                      >
+                                        <Annotated
                                           object={
                                             Object {
                                               "formatted": "Blocked script",
@@ -890,21 +1038,31 @@ exports[`SharedGroupDetails renders 1`] = `
                                           prop="formatted"
                                           required={false}
                                         >
-                                          <ErrorBoundary
-                                            mini={true}
+                                          <MetaData
+                                            object={
+                                              Object {
+                                                "formatted": "Blocked script",
+                                              }
+                                            }
+                                            prop="formatted"
+                                            required={false}
                                           >
-                                            Blocked script
-                                          </ErrorBoundary>
-                                        </MetaData>
-                                      </Annotated>
-                                    </pre>
+                                            <ErrorBoundary
+                                              mini={true}
+                                            >
+                                              Blocked script
+                                            </ErrorBoundary>
+                                          </MetaData>
+                                        </Annotated>
+                                      </pre>
+                                    </div>
                                   </div>
-                                </div>
-                              </GroupEventDataSection>
-                            </MessageInterface>
-                             
-                          </div>
-                        </EventEntries>
+                                </GroupEventDataSection>
+                              </MessageInterface>
+                               
+                            </div>
+                          </EventEntries>
+                        </withApi(EventEntries)>
                       </WithOrganizationMockWrapper>
                     </div>
                   </div>

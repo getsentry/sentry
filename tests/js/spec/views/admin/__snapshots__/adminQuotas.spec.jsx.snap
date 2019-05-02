@@ -47,8 +47,7 @@ exports[`AdminQuotas render() renders 1`] = `
           Total Events
         </h4>
       </div>
-      <internalStatChart
-        height={150}
+      <withApi(InternalStatChart)
         label="Events"
         resolution="1h"
         since={1507603280}
@@ -65,8 +64,7 @@ exports[`AdminQuotas render() renders 1`] = `
           Dropped Events
         </h4>
       </div>
-      <internalStatChart
-        height={150}
+      <withApi(InternalStatChart)
         label="Events"
         resolution="1h"
         since={1507603280}
