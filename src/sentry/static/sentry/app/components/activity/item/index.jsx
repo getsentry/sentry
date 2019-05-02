@@ -22,10 +22,8 @@ class ActivityItem extends React.Component {
     // Hides date in header
     hideDate: PropTypes.bool,
 
-    header: PropTypes.node,
-    footer: PropTypes.node,
-    renderHeader: PropTypes.func,
-    renderFooter: PropTypes.func,
+    header: PropTypes.oneOfType([PropTypes.node, PropTypes.func]),
+    footer: PropTypes.oneOfType([PropTypes.node, PropTypes.func]),
   };
 
   render() {
@@ -37,14 +35,13 @@ class ActivityItem extends React.Component {
       date,
       author,
       hideDate,
-      renderHeader,
-      renderFooter,
       header,
       footer,
     } = this.props;
 
-    const customHeader = typeof renderHeader === 'function';
-    const customFooter = typeof renderFooter === 'function';
+    const headerRenderFunc = typeof header === 'function';
+    const footerRenderFunc = typeof footer === 'function';
+    const childrenRenderFunc = typeof children === 'function';
 
     return (
       <ActivityItemWrapper data-test-id="activity-item" className={className}>
@@ -52,9 +49,8 @@ class ActivityItem extends React.Component {
         <StyledActivityAvatar type={author.type} user={author.user} size={avatarSize} />
 
         <ActivityBubble>
-          {customHeader && renderHeader()}
-
-          {!customHeader && !!header && (
+          {header && headerRenderFunc && header()}
+          {header && !headerRenderFunc && (
             <ActivityHeader>
               <ActivityHeaderContent>{header}</ActivityHeaderContent>
 
@@ -62,13 +58,11 @@ class ActivityItem extends React.Component {
             </ActivityHeader>
           )}
 
-          {children && typeof children === 'function' && children()}
-          {children && typeof children !== 'function' && (
-            <ActivityBody>{children}</ActivityBody>
-          )}
+          {children && childrenRenderFunc && children()}
+          {children && !childrenRenderFunc && <ActivityBody>{children}</ActivityBody>}
 
-          {customFooter && renderFooter()}
-          {!customFooter && !!footer && <ActivityFooter>{footer}</ActivityFooter>}
+          {footer && footerRenderFunc && footer()}
+          {footer && !footerRenderFunc && <ActivityFooter>{footer}</ActivityFooter>}
         </ActivityBubble>
       </ActivityItemWrapper>
     );
