@@ -88,6 +88,13 @@ class Match(object):
         self.key = key
         self.pattern = pattern
 
+    @property
+    def description(self):
+        return '%s:%s' % (
+            self.key,
+            self.pattern.split() != [self.pattern] and '"%s"' % self.pattern or self.pattern,
+        )
+
     def matches_frame(self, frame_data, platform):
         # Path matches are always case insensitive
         if self.key in ('path', 'package'):
@@ -174,13 +181,20 @@ class Action(object):
             if self.key == 'app':
                 frame['in_app'] = self.flag
 
-    def update_frame_components_contributions(self, components, idx):
+    def update_frame_components_contributions(self, components, idx, rule=None):
+        rule_hint = 'grouping enhancement rule'
+        if rule:
+            rule_hint = '%s (%s)' % (
+                rule_hint,
+                rule.matcher_description,
+            )
+
         for component in self._slice_to_range(components, idx):
             if self.key == 'group' and self.flag != component.contributes:
                 component.update(
                     contributes=self.flag,
-                    hint='%s by grouping enhancement rule' % (
-                        self.flag and 'un-ignored' or 'ignored')
+                    hint='%s by %s' % (
+                        self.flag and 'un-ignored' or 'ignored', rule_hint)
                 )
             # The in app flag was set by `apply_modifications_to_frame`
             # but we want to add a hint if there is none yet.
@@ -188,8 +202,8 @@ class Action(object):
                     self.flag == component.contributes and \
                     component.hint is None:
                 component.update(
-                    hint='marked %s by grouping enhancement rule' % (
-                        self.flag and 'in-app' or 'out of app')
+                    hint='marked %s by %s' % (
+                        self.flag and 'in-app' or 'out of app', rule_hint)
                 )
 
     @classmethod
@@ -226,7 +240,8 @@ class Enhancements(object):
             for idx, (component, frame) in enumerate(izip(components, frames)):
                 actions = rule.get_matching_frame_actions(frame, platform)
                 for action in actions or ():
-                    action.update_frame_components_contributions(components, idx)
+                    action.update_frame_components_contributions(
+                        components, idx, rule=rule)
 
     def as_dict(self, with_rules=False):
         rv = {
@@ -295,6 +310,10 @@ class Rule(object):
     def __init__(self, matchers, actions):
         self.matchers = matchers
         self.actions = actions
+
+    @property
+    def matcher_description(self):
+        return ' '.join(x.description for x in self.matchers)
 
     def as_dict(self):
         matchers = {}
