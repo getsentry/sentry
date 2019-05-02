@@ -30,7 +30,7 @@ class ActivityItem extends React.Component {
     author: PropTypes.shape({
       type: ActivityAvatar.propTypes.type,
       user: ActivityAvatar.propTypes.user,
-    }),
+    }).isRequired,
 
     avatarSize: PropTypes.number,
 
