@@ -18,6 +18,7 @@ import EventDevice from 'app/components/events/device';
 import EventUserFeedback from 'app/components/events/userFeedback';
 import SentryTypes from 'app/sentryTypes';
 import utils from 'app/utils';
+import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
 import {t} from 'app/locale';
 
@@ -209,4 +210,4 @@ class EventEntries extends React.Component {
   }
 }
 
-export default withOrganization(EventEntries);
+export default withOrganization(withApi(EventEntries));
