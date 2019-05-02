@@ -477,7 +477,7 @@ class ParseSearchQueryTest(TestCase):
             ),
         ]
 
-    def test_empty_string(self):
+    def test_empty_filter_value(self):
         assert parse_search_query('device.family:""') == [
             SearchFilter(
                 key=SearchKey(name='device.family'),
@@ -684,6 +684,10 @@ class ParseSearchQueryTest(TestCase):
         ]
         for query, expected in queries:
             assert parse_search_query(query) == [expected]
+
+    def test_empty_string(self):
+        # Empty quotations become a dropped term
+        assert parse_search_query('') == []
 
 
 class ParseBooleanSearchQueryTest(TestCase):

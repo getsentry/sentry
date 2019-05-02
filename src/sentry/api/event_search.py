@@ -240,7 +240,7 @@ class SearchVisitor(NodeVisitor):
                 else:
                     yield item
 
-        if not (isinstance(children, list) and isinstance(children[0], list)):
+        if not (children and isinstance(children, list) and isinstance(children[0], list)):
             return children
 
         children = [child for group in children for child in _flatten(group)]
@@ -282,13 +282,12 @@ class SearchVisitor(NodeVisitor):
             return None
 
         def build_boolean_tree_helper(children, start, end, operator):
-            while True:
-                index = find_next_operator(children, start, end, operator)
-                if index is None:
-                    return None
-                left = build_boolean_tree(children, start, index)
-                right = build_boolean_tree(children, index + 1, end)
-                return SearchBoolean(left, children[index], right)
+            index = find_next_operator(children, start, end, operator)
+            if index is None:
+                return None
+            left = build_boolean_tree(children, start, index)
+            right = build_boolean_tree(children, index + 1, end)
+            return SearchBoolean(left, children[index], right)
 
         def build_boolean_tree(children, start, end):
             if end - start == 1:
