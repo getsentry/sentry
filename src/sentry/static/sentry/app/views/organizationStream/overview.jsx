@@ -418,7 +418,9 @@ const OrganizationStream = createReactClass({
     let nextPage = isNaN(queryPageInt) ? pageDiff : queryPageInt + pageDiff;
 
     // unset cursor and page when we navigate back to the first page
-    if (nextPage === 0) {
+    // also reset cursor if somehow the previous button is enabled on
+    // first page and user attempts to go backwards
+    if (nextPage <= 0) {
       cursor = undefined;
       nextPage = undefined;
     }
