@@ -1,5 +1,5 @@
 ---
-created: '2019-04-25T13:53:45.886630Z'
+created: '2019-05-02T10:52:08.545303Z'
 creator: sentry
 source: tests/symbolicator/test_unreal_full.py
 ---
@@ -182,10 +182,11 @@ exception:
         instruction_addr: '0x7ff756cff2ee'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
         trust: prewalked
-      - function: AActor::IsPendingKillPending()
+      - function: AActor::IsPendingKillPending
         in_app: false
         instruction_addr: '0x7ff754be3394'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        raw_function: AActor::IsPendingKillPending()
         trust: prewalked
     thread_id: 6900
     type: EXCEPTION_ACCESS_VIOLATION_READ
