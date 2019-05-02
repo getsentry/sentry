@@ -36,7 +36,7 @@ class EmptyStateWarning extends React.Component {
   }
 }
 
-const EmptyStreamWrapper = styled.div`
+const EmptyStreamWrapper = styled('div')`
   text-align: center;
   font-size: 22px;
   padding: 48px 0;

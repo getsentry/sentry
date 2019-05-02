@@ -14,10 +14,10 @@ import EmptyMessage from 'app/views/settings/components/emptyMessage';
 
 const ENDPOINT = '/users/me/subscriptions/';
 
-const SubscriptionName = styled.div`
+const SubscriptionName = styled('div')`
   font-size: 1.2em;
 `;
-const Description = styled.div`
+const Description = styled('div')`
   font-size: 0.8em;
   margin-top: 6px;
   color: ${p => p.theme.gray3};

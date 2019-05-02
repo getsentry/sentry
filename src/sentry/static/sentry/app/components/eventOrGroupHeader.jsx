@@ -146,7 +146,7 @@ const truncateStyles = css`
   white-space: nowrap;
 `;
 
-const Title = styled.div`
+const Title = styled('div')`
   ${truncateStyles};
   margin: 0 0 5px;
   & em {
@@ -157,7 +157,7 @@ const Title = styled.div`
   }
 `;
 
-const LocationWrapper = styled.div`
+const LocationWrapper = styled('div')`
   ${truncateStyles};
   direction: rtl;
   text-align: left;
@@ -178,7 +178,7 @@ function Location(props) {
   );
 }
 
-const Message = styled.div`
+const Message = styled('div')`
   ${truncateStyles};
   font-size: 14px;
   margin: 0 0 5px;
@@ -189,17 +189,17 @@ const iconStyles = css`
   margin-right: 5px;
 `;
 
-const Muted = styled.span`
+const Muted = styled('span')`
   ${iconStyles};
   color: ${p => p.theme.red};
 `;
 
-const Starred = styled.span`
+const Starred = styled('span')`
   ${iconStyles};
   color: ${p => p.theme.yellowOrange};
 `;
 
-const GroupLevel = styled.div`
+const GroupLevel = styled('div')`
   position: absolute;
   left: -1px;
   width: 9px;

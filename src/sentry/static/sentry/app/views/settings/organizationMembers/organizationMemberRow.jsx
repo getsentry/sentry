@@ -20,7 +20,7 @@ const UserName = styled(Link)`
   font-size: 16px;
 `;
 
-const Email = styled.div`
+const Email = styled('div')`
   color: ${p => p.theme.gray3};
   font-size: 14px;
 `;

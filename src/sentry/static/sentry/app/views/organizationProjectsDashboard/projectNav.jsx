@@ -116,7 +116,7 @@ const StyledNav = styled(Flex)`
   padding: ${space(2)} ${space(4)};
 `;
 
-const StyledDropdown = styled.div`
+const StyledDropdown = styled('div')`
   .dropdown-menu:after,
   .dropdown-menu:before {
     display: none;

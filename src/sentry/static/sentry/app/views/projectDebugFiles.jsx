@@ -54,7 +54,7 @@ function getFeatureTooltip(feature) {
   }
 }
 
-const DebugSymbolDetails = styled.div`
+const DebugSymbolDetails = styled('div')`
   margin-top: 4px;
 `;
 

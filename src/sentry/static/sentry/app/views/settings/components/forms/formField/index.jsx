@@ -17,7 +17,7 @@ import returnButton from 'app/views/settings/components/forms/returnButton';
 import {sanitizeQuerySelector} from 'app/utils/sanitizeQuerySelector';
 import space from 'app/styles/space';
 
-const FormFieldErrorReason = styled.div`
+const FormFieldErrorReason = styled('div')`
   color: ${p => p.theme.redDark};
   position: absolute;
   right: 2px;
@@ -48,12 +48,12 @@ const FormFieldErrorReason = styled.div`
   }
 `;
 
-const FormFieldError = styled.div`
+const FormFieldError = styled('div')`
   color: ${p => p.theme.redDark};
   animation: ${p => pulse(1.15)} 1s ease infinite;
 `;
 
-const FormFieldIsSaved = styled.div`
+const FormFieldIsSaved = styled('div')`
   color: ${p => p.theme.green};
   animation: ${fadeOut} 0.3s ease 2s 1 forwards;
   position: absolute;

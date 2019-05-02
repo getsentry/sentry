@@ -166,7 +166,7 @@ const AccountAvatar = createReactClass({
   },
 });
 
-const AvatarGroup = styled.div`
+const AvatarGroup = styled('div')`
   display: flex;
   flex-direction: ${p => (p.inline ? 'row' : 'column')};
 `;

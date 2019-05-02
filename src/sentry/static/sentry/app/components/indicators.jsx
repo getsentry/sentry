@@ -12,7 +12,7 @@ import IndicatorStore from 'app/stores/indicatorStore';
 import theme from 'app/utils/theme';
 import {removeIndicator} from 'app/actionCreators/indicator';
 
-const Toasts = styled.div`
+const Toasts = styled('div')`
   position: fixed;
   right: 30px;
   bottom: 30px;

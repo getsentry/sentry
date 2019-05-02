@@ -25,13 +25,13 @@ import U2fEnrolledDetails from 'app/views/settings/account/accountSecurity/compo
 
 const ENDPOINT = '/users/me/authenticators/';
 
-const DateLabel = styled.span`
+const DateLabel = styled('span')`
   font-weight: bold;
   margin-right: 6px;
   width: 100px;
 `;
 
-const Phone = styled.span`
+const Phone = styled('span')`
   font-weight: bold;
   margin-left: 6px;
 `;

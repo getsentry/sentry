@@ -16,7 +16,7 @@ class ProgressBar extends React.Component {
   }
 }
 
-const StyledBar = styled.div`
+const StyledBar = styled('div')`
   background: #767676;
   width: 100%;
   height: 15px;
@@ -27,7 +27,7 @@ const StyledBar = styled.div`
   position: relative;
 `;
 
-const StyledSlider = styled.div`
+const StyledSlider = styled('div')`
   height: 100%;
   width: ${props => (props.width ? props.width : 50)}%;
   background: #7ccca5;

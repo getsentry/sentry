@@ -70,7 +70,7 @@ const Name = styled(Box)`
   margin-bottom: ${space(1)};
 `;
 
-const Description = styled.div`
+const Description = styled('div')`
   font-size: 1.5rem;
   line-height: 2.1rem;
   margin-bottom: ${space(2)};

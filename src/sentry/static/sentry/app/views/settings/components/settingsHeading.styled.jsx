@@ -1,6 +1,6 @@
 import styled from 'react-emotion';
 
-const SettingsHeading = styled.div`
+const SettingsHeading = styled('div')`
   color: ${p => p.theme.gray3};
   font-size: 12px;
   line-height: 1.3;

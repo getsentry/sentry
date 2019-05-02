@@ -79,11 +79,11 @@ class SortOptions extends React.PureComponent {
   }
 }
 
-const Container = styled.div`
+const Container = styled('div')`
   margin-right: ${space(0.5)};
 `;
 
-const LabelText = styled.em`
+const LabelText = styled('em')`
   font-style: normal;
   color: ${p => p.theme.gray2};
 `;

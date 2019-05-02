@@ -10,7 +10,7 @@ const spin = keyframes`
   }
 `;
 
-const Spinner = styled.div`
+const Spinner = styled('div')`
   animation: ${spin} 0.4s linear infinite;
   width: 18px;
   height: 18px;

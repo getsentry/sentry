@@ -55,7 +55,7 @@ const Action = styled('div')`
   ${p => (p.tabs ? `margin-top: ${space(2)}` : null)};
 `;
 
-const Wrapper = styled.div`
+const Wrapper = styled('div')`
   font-size: 14px;
   margin-top: -${space(4)};
 `;

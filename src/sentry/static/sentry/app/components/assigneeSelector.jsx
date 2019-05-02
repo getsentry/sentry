@@ -365,7 +365,7 @@ const IconUser = styled(InlineSvg)`
   margin-right: 2px;
 `;
 
-const IconContainer = styled.div`
+const IconContainer = styled('div')`
   display: flex;
   align-items: center;
   justify-content: center;

@@ -232,7 +232,7 @@ class OrganizationIntegrations extends AsyncComponent {
   }
 }
 
-const IntegrationRow = styled.div``;
+const IntegrationRow = styled('div')``;
 
 const StyledLoadingIndicator = styled(LoadingIndicator)`
   position: absolute;

@@ -53,7 +53,7 @@ class RuleNodeList extends React.Component {
 
 export default RuleNodeList;
 
-const RuleNodes = styled.div`
+const RuleNodes = styled('div')`
   display: flex;
   flex-direction: column;
   margin-bottom: 10px;

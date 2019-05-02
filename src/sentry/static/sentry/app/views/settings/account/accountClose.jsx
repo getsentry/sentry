@@ -22,7 +22,7 @@ import TextBlock from 'app/views/settings/components/text/textBlock';
 const BYE_URL = '/';
 const leaveRedirect = () => (window.location.href = BYE_URL);
 
-const Important = styled.div`
+const Important = styled('div')`
   font-weight: bold;
   font-size: 1.2em;
 `;

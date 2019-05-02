@@ -4,7 +4,7 @@ import PropTypes from 'prop-types';
 
 import PluginIcon from 'app/plugins/components/pluginIcon';
 
-const Icon = styled.img`
+const Icon = styled('img')`
   height: ${p => p.size}px;
   width: ${p => p.size}px;
   border-radius: 2px;

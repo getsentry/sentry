@@ -31,15 +31,15 @@ const TextColorLink = styled(Link)`
   color: ${p => p.theme.gray3};
 `;
 
-const RuleDescriptionRow = styled.div`
+const RuleDescriptionRow = styled('div')`
   display: flex;
 `;
-const RuleDescriptionColumn = styled.div`
+const RuleDescriptionColumn = styled('div')`
   flex: 1;
   padding: ${p => p.theme.grid * 2}px;
   height: 100%;
 `;
-const Condition = styled.div`
+const Condition = styled('div')`
   display: flex;
   flex-direction: column;
   justify-content: space-between;

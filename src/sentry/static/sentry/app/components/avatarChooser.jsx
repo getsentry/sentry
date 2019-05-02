@@ -206,7 +206,7 @@ class AvatarChooser extends React.Component {
   }
 }
 
-const AvatarGroup = styled.div`
+const AvatarGroup = styled('div')`
   display: flex;
   flex-direction: ${p => (p.inline ? 'row' : 'column')};
 `;

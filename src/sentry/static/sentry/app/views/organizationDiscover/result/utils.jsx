@@ -325,11 +325,11 @@ export function getDisplayText(val) {
   return `${val}`;
 }
 
-const LightGray = styled.span`
+const LightGray = styled('span')`
   color: ${p => p.theme.gray1};
 `;
 
-const DarkGray = styled.span`
+const DarkGray = styled('span')`
   color: ${p => p.theme.gray5};
 `;
 

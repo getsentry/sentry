@@ -72,7 +72,7 @@ class DropdownControl extends React.Component {
   }
 }
 
-const Container = styled.div`
+const Container = styled('div')`
   display: inline-block;
   position: relative;
 `;
@@ -85,7 +85,7 @@ const StyledDropdownButton = styled(
   font-weight: normal;
 `;
 
-const MenuContainer = styled.ul`
+const MenuContainer = styled('ul')`
   list-style: none;
   width: ${p => p.menuWidth};
 

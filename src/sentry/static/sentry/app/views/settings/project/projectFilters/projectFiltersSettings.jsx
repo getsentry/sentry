@@ -318,12 +318,12 @@ const NestedForm = styled(Form)`
   flex: 1;
 `;
 
-const FilterGrid = styled.div`
+const FilterGrid = styled('div')`
   display: flex;
   flex-wrap: wrap;
 `;
 
-const FilterGridItem = styled.div`
+const FilterGridItem = styled('div')`
   display: flex;
   align-items: center;
   background: ${p => p.theme.whiteDark};
@@ -334,12 +334,12 @@ const FilterGridItem = styled.div`
 `;
 
 // We want this wrapper to maining 30% width
-const FilterGridItemWrapper = styled.div`
+const FilterGridItemWrapper = styled('div')`
   padding: 12px;
   width: 50%;
 `;
 
-const FilterGridIcon = styled.div`
+const FilterGridIcon = styled('div')`
   width: 38px;
   height: 38px;
   background-repeat: no-repeat;
@@ -349,31 +349,31 @@ const FilterGridIcon = styled.div`
   flex-shrink: 0;
 `;
 
-const FilterTitle = styled.div`
+const FilterTitle = styled('div')`
   font-size: 14px;
   font-weight: bold;
   line-height: 1;
   white-space: nowrap;
 `;
 
-const FilterDescription = styled.div`
+const FilterDescription = styled('div')`
   color: ${p => p.theme.gray3};
   font-size: 12px;
   line-height: 1;
   white-space: nowrap;
 `;
 
-const BulkFilter = styled.div`
+const BulkFilter = styled('div')`
   text-align: right;
   padding: 0 12px;
 `;
 
-const BulkFilterLabel = styled.span`
+const BulkFilterLabel = styled('span')`
   font-weight: bold;
   margin-right: 6px;
 `;
 
-const BulkFilterItem = styled.a`
+const BulkFilterItem = styled('a')`
   border-right: 1px solid #f1f2f3;
   margin-right: 6px;
   padding-right: 6px;

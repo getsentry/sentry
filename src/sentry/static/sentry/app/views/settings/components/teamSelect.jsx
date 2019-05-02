@@ -183,7 +183,7 @@ TeamRow.propTypes = {
   confirmMessage: PropTypes.string,
 };
 
-const TeamDropdownElement = styled.div`
+const TeamDropdownElement = styled('div')`
   padding: ${space(0.5)} ${space(0.25)};
   text-transform: none;
 `;

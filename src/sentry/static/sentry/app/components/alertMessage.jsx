@@ -18,7 +18,7 @@ const StyledInlineSvg = styled(InlineSvg)`
   /* Exists soley to enable its use as a selector in StyledCloseButton */
 `;
 
-const StyledCloseButton = styled.button`
+const StyledCloseButton = styled('button')`
   background: none;
   border: 0;
   opacity: 0.4;

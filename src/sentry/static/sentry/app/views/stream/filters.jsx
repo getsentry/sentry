@@ -144,7 +144,7 @@ class StreamFilters extends React.Component {
   }
 }
 
-const SearchContainer = styled.div`
+const SearchContainer = styled('div')`
   display: flex;
   width: ${p => (p.isWide ? '70%' : '58.3%')};
 `;

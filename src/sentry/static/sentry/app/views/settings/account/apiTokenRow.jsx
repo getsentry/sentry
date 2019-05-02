@@ -18,12 +18,12 @@ const Details = styled(Flex)`
   margin-top: 10px;
 `;
 
-const ScopeList = styled.div`
+const ScopeList = styled('div')`
   font-size: 0.9em;
   line-height: 1.4;
 `;
 
-const Time = styled.time`
+const Time = styled('time')`
   font-size: 0.9em;
   line-height: 1.4;
 `;
@@ -32,7 +32,7 @@ const Action = styled(Box)`
   align-self: flex-start;
 `;
 
-const Heading = styled.div`
+const Heading = styled('div')`
   font-size: 13px;
   text-transform: uppercase;
   color: ${p => p.theme.gray3};

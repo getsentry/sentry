@@ -336,6 +336,6 @@ const PanelHeaderLink = styled(Link)`
   color: ${p => p.theme.gray3};
 `;
 
-const KeyControl = styled.span`
+const KeyControl = styled('span')`
   margin-left: 6px;
 `;

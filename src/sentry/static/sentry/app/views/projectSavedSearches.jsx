@@ -16,7 +16,7 @@ import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader
 
 const InputColumn = props => <Flex flex="1" justify="center" {...props} />;
 
-const SearchTitle = styled.div`
+const SearchTitle = styled('div')`
   font-size: 18px;
   margin-bottom: 5px;
 `;

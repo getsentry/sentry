@@ -105,7 +105,7 @@ export default withProjects(withLatestContext(ProjectCrumb));
 // Set height of crumb because of spinner
 const SPINNER_SIZE = '24px';
 
-const ProjectName = styled.div`
+const ProjectName = styled('div')`
   display: flex;
 
   .loading {

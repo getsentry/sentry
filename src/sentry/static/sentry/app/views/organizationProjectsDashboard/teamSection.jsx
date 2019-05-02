@@ -52,7 +52,7 @@ const ProjectCards = styled(Flex)`
   padding: 0 ${space(3)} ${space(3)};
 `;
 
-const TeamSectionWrapper = styled.div`
+const TeamSectionWrapper = styled('div')`
   border-bottom: ${p => (p.showBorder ? '1px solid ' + p.theme.borderLight : 0)};
 
   /* stylelint-disable no-duplicate-selectors */

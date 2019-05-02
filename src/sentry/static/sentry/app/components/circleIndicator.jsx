@@ -15,7 +15,7 @@ const getSize = p => `
   width: ${p.size}px;
 `;
 
-const Circle = styled.div`
+const Circle = styled('div')`
   display: inline-block;
   position: relative;
   border-radius: 50%;
