@@ -41,7 +41,7 @@ storiesOf('UI|Activity/Item', module)
         author={{type: 'user', user}}
         item={{id: '123'}}
         date={new Date()}
-        renderHeader={() => (
+        header={() => (
           <div style={{backgroundColor: '#ccc'}}>Custom header (no timestamp)</div>
         )}
       >
