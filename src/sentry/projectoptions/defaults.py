@@ -29,12 +29,23 @@ register(
     }
 )
 
+# Grouping enhancements defaults
 DEFAULT_GROUPING_ENHANCEMENTS_BASE = 'legacy:2019-03-12'
 register(
     key='sentry:grouping_enhancements_base',
     epoch_defaults={
         1: DEFAULT_GROUPING_ENHANCEMENTS_BASE,
     }
+)
+register(
+    key='sentry:grouping_enhancements',
+    default=u''
+)
+
+# server side fingerprinting defaults.
+register(
+    key='sentry:fingerprinting_rules',
+    default=u''
 )
 
 # The JavaScript loader version that is the project default.  This option

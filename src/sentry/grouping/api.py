@@ -60,7 +60,7 @@ def _get_project_enhancements_config(project):
 
     try:
         rv = Enhancements.from_config_string(
-            enhancements or '', bases=[enhancements_base]).dumps()
+            enhancements, bases=[enhancements_base]).dumps()
     except InvalidEnhancerConfig:
         rv = get_default_enhancements()
     cache.set(cache_key, rv)
@@ -100,7 +100,7 @@ def load_grouping_config(config_dict=None):
 def get_fingerprinting_config_for_project(project):
     from sentry.grouping.fingerprinting import FingerprintingRules, \
         InvalidFingerprintingConfig
-    rules = project.get_option('sentry:fingerprint_rules')
+    rules = project.get_option('sentry:fingerprinting_rules')
     if not rules:
         return FingerprintingRules([])
 
@@ -112,8 +112,7 @@ def get_fingerprinting_config_for_project(project):
         return FingerprintingRules.from_json(rv)
 
     try:
-        rv = FingerprintingRules.from_config_string(
-            rules or '')
+        rv = FingerprintingRules.from_config_string(rules)
     except InvalidFingerprintingConfig:
         rv = FingerprintingRules([])
     cache.set(cache_key, rv.to_json())

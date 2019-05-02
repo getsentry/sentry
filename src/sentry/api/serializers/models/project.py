@@ -556,9 +556,9 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
                 'scrubIPAddresses': bool(attrs['options'].get('sentry:scrub_ip_address', False)),
                 'scrapeJavaScript': bool(attrs['options'].get('sentry:scrape_javascript', True)),
                 'groupingConfig': get_value_with_default('sentry:grouping_config'),
-                'groupingEnhancements': attrs['options'].get('sentry:grouping_enhancements') or u'',
+                'groupingEnhancements': get_value_with_default('sentry:grouping_enhancements'),
                 'groupingEnhancementsBase': get_value_with_default('sentry:grouping_enhancements_base'),
-                'fingerprintingRules': attrs['options'].get('sentry:fingerprinting_rules') or u'',
+                'fingerprintingRules': get_value_with_default('sentry:fingerprinting_rules'),
                 'organization':
                 attrs['org'],
                 'plugins':
