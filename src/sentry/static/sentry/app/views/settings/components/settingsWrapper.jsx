@@ -44,7 +44,7 @@ class SettingsWrapper extends React.Component {
 
 export default withLatestContext(SettingsWrapper);
 
-const StyledSettingsWrapper = styled.div`
+const StyledSettingsWrapper = styled('div')`
   display: flex;
   flex: 1;
   font-size: 16px;

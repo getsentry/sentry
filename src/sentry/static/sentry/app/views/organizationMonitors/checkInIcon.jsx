@@ -19,7 +19,7 @@ const getSize = p => `
   width: ${p.size}px;
 `;
 
-export default styled.div`
+export default styled('div')`
   display: inline-block;
   position: relative;
   border-radius: 50%;

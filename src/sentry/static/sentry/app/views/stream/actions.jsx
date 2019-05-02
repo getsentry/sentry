@@ -576,7 +576,7 @@ const StreamActions = createReactClass({
   },
 });
 
-const Sticky = styled.div`
+const Sticky = styled('div')`
   position: sticky;
   z-index: ${p => p.theme.zIndex.header};
   top: -1px;
@@ -609,7 +609,7 @@ const StyledToolbarHeader = styled(ToolbarHeader)`
   flex: 1;
 `;
 
-const GraphToggle = styled.a`
+const GraphToggle = styled('a')`
   font-size: 13px;
   padding-left: 8px;
 

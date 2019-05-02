@@ -88,7 +88,7 @@ class FrameRegisters extends React.Component {
   }
 }
 
-const RegistersWrapper = styled.div`
+const RegistersWrapper = styled('div')`
   border-top: 1px solid @trim;
   padding-top: 10px;
 
@@ -108,7 +108,7 @@ const Register = styled(Box)`
   padding: 4px 5px;
 `;
 
-const RegistersHeading = styled.strong`
+const RegistersHeading = styled('strong')`
   font-weight: 600;
   font-size: 13px;
   width: 125px;
@@ -119,7 +119,7 @@ const RegistersHeading = styled.strong`
   float: left;
 `;
 
-const RegisterName = styled.span`
+const RegisterName = styled('span')`
   display: inline-block;
   font-size: 13px;
   font-weight: 600;
@@ -127,16 +127,16 @@ const RegisterName = styled.span`
   width: 4em;
 `;
 
-const InlinePre = styled.pre`
+const InlinePre = styled('pre')`
   display: inline;
 `;
 
-const FixedWidth = styled.span`
+const FixedWidth = styled('span')`
   width: 12em;
   text-align: right;
 `;
 
-const Toggle = styled.span`
+const Toggle = styled('span')`
   opacity: 0.33;
   margin-left: 1ex;
   cursor: pointer;
