@@ -23,7 +23,7 @@ from sentry.models.eventerror import EventError
 from sentry.utils import metrics
 from sentry.utils.in_app import is_known_third_party
 from sentry.utils.safe import get_path
-from sentry.stacktraces import StacktraceProcessor
+from sentry.stacktraces.processing import StacktraceProcessor
 
 logger = logging.getLogger(__name__)
 
@@ -378,11 +378,11 @@ class NativeStacktraceProcessor(StacktraceProcessor):
         else:  # processable_frame.cache_value is present
             _ignored, symbolicated_frames = processable_frame.cache_value
 
+        platform = raw_frame.get('platform') or self.data.get('platform')
         new_frames = []
         for sfrm in symbolicated_frames:
             new_frame = dict(raw_frame)
-            merge_symbolicated_frame(new_frame, sfrm)
-
+            merge_symbolicated_frame(new_frame, sfrm, platform=platform)
             new_frames.append(new_frame)
 
         return new_frames, [raw_frame], []

@@ -1,5 +1,5 @@
 ---
-created: '2019-04-17T20:07:50.708385Z'
+created: '2019-04-26T19:30:17.911166Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -10,10 +10,10 @@ app:
       exception (ignored because this variant does not have a contributing stacktrace, but the system variant does)
         stacktrace
           frame (non app frame)
-            function* (isolated function)
+            function*
               u'Scaleform::GFx::IME::GImeNamesManagerVista::OnActivated'
           frame (non app frame)
-            function* (isolated function)
+            function*
               u'Scaleform::GFx::AS3::IMEManager::DispatchEvent'
         type (ignored because exception is synthetic)
           u'log_demo'
@@ -27,10 +27,10 @@ system:
       exception*
         stacktrace*
           frame*
-            function* (isolated function)
+            function*
               u'Scaleform::GFx::IME::GImeNamesManagerVista::OnActivated'
           frame*
-            function* (isolated function)
+            function*
               u'Scaleform::GFx::AS3::IMEManager::DispatchEvent'
         type (ignored because exception is synthetic)
           u'log_demo'

@@ -5,7 +5,7 @@ import React from 'react';
 import BreadcrumbDropdown from 'app/views/settings/components/settingsBreadcrumb/breadcrumbDropdown';
 import IdBadge from 'app/components/idBadge';
 import MenuItem from 'app/views/settings/components/settingsBreadcrumb/menuItem';
-import TextLink from 'app/components/textLink';
+import TextLink from 'app/components/links/textLink';
 import recreateRoute from 'app/utils/recreateRoute';
 import withTeams from 'app/utils/withTeams';
 

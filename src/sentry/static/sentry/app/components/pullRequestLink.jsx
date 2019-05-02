@@ -1,7 +1,7 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 
-import ExternalLink from 'app/components/externalLink';
+import ExternalLink from 'app/components/links/externalLink';
 import InlineSvg from 'app/components/inlineSvg';
 
 class PullRequestLink extends React.Component {

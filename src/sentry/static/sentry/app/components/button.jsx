@@ -5,7 +5,7 @@ import styled, {css} from 'react-emotion';
 import isPropValid from '@emotion/is-prop-valid';
 import {pickBy} from 'lodash';
 
-import ExternalLink from 'app/components/externalLink';
+import ExternalLink from 'app/components/links/externalLink';
 import InlineSvg from 'app/components/inlineSvg';
 import Tooltip from 'app/components/tooltip';
 
@@ -18,7 +18,7 @@ class Button extends React.Component {
     /**
      * Use this prop if button is a react-router link
      */
-    to: PropTypes.string,
+    to: PropTypes.oneOfType([PropTypes.string, PropTypes.object]),
     /**
      * Use this prop if button should use a normal (non-react-router) link
      */

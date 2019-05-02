@@ -8,7 +8,7 @@ import {fetchTeamDetails} from 'app/actionCreators/teams';
 import {t} from 'app/locale';
 import withApi from 'app/utils/withApi';
 import IdBadge from 'app/components/idBadge';
-import ListLink from 'app/components/listLink';
+import ListLink from 'app/components/links/listLink';
 import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import NavTabs from 'app/components/navTabs';

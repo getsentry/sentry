@@ -10,7 +10,8 @@ from symbolic import parse_addr
 
 from sentry.interfaces.contexts import DeviceContextType
 from sentry.reprocessing import report_processing_issue
-from sentry.utils.safe import get_path
+from sentry.stacktraces.functions import trim_function_name
+from sentry.utils.safe import get_path, trim
 
 logger = logging.getLogger(__name__)
 
@@ -94,11 +95,22 @@ def signal_from_data(data):
     return None
 
 
-def merge_symbolicated_frame(new_frame, sfrm):
+def merge_symbolicated_frame(new_frame, sfrm, platform=None):
+
+    raw_func = trim(sfrm['function'], 256)
+    func = trim(trim_function_name(sfrm['function'], platform), 256)
+
+    # if function and raw function match, we can get away without
+    # storing a raw function
+    if func == raw_func:
+        new_frame['function'] = raw_func
+    # otherwise we store both
+    else:
+        new_frame['raw_function'] = raw_func
+        new_frame['function'] = func
+
     if sfrm.get('instruction_addr'):
         new_frame['instruction_addr'] = sfrm['instruction_addr']
-    if sfrm.get('function'):
-        new_frame['function'] = sfrm['function']
     if sfrm.get('symbol'):
         new_frame['symbol'] = sfrm['symbol']
     if sfrm.get('abs_path'):

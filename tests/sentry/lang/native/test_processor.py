@@ -3,7 +3,7 @@ from __future__ import absolute_import
 from mock import patch
 
 from sentry.lang.native.plugin import NativeStacktraceProcessor
-from sentry.stacktraces import process_stacktraces
+from sentry.stacktraces.processing import process_stacktraces
 from sentry.testutils import TestCase
 
 OBJECT_NAME = (

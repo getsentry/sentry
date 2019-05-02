@@ -5,7 +5,7 @@ import styled from 'react-emotion';
 import {t} from 'app/locale';
 import {getShortVersion} from 'app/utils';
 import Button from 'app/components/button';
-import ExternalLink from 'app/components/externalLink';
+import ExternalLink from 'app/components/links/externalLink';
 import InlineSvg from 'app/components/inlineSvg';
 
 // TODO(epurkhiser, jess): This should be moved into plugins.

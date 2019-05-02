@@ -4,7 +4,7 @@ import PropTypes from 'prop-types';
 import styled from 'react-emotion';
 import {t} from 'app/locale';
 import SentryTypes from 'app/sentryTypes';
-import Link from 'app/components/link';
+import Link from 'app/components/links/link';
 import Tooltip from 'app/components/tooltip';
 import Panel from 'app/components/panels/panel';
 import EmptyStateWarning from 'app/components/emptyStateWarning';

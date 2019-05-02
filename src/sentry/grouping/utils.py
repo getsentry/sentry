@@ -12,11 +12,3 @@ def hash_from_values(values):
     for value in values:
         result.update(force_bytes(value, errors='replace'))
     return result.hexdigest()
-
-
-def get_grouping_family_for_platform(platform):
-    if platform in ('objc', 'cocoa', 'swift', 'native', 'c'):
-        return 'native'
-    if platform in ('javascript', 'node'):
-        return 'javascript'
-    return 'other'

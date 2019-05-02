@@ -6,7 +6,7 @@ import styled from 'react-emotion';
 import {t} from 'app/locale';
 import IdBadge from 'app/components/idBadge';
 import InlineSvg from 'app/components/inlineSvg';
-import Link from 'app/components/link';
+import Link from 'app/components/links/link';
 import ProjectSelector from 'app/components/projectSelector';
 import space from 'app/styles/space';
 

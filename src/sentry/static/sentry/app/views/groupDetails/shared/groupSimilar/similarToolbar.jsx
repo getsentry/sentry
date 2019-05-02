@@ -8,7 +8,7 @@ import GroupingStore from 'app/stores/groupingStore';
 
 import SpreadLayout from 'app/components/spreadLayout';
 import FlowLayout from 'app/components/flowLayout';
-import LinkWithConfirmation from 'app/components/linkWithConfirmation';
+import LinkWithConfirmation from 'app/components/links/linkWithConfirmation';
 import Toolbar from 'app/components/toolbar';
 import ToolbarHeader from 'app/components/toolbarHeader';
 

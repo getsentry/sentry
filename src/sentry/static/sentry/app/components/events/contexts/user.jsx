@@ -5,7 +5,7 @@ import _ from 'lodash';
 
 import Avatar from 'app/components/avatar';
 import ErrorBoundary from 'app/components/errorBoundary';
-import ExternalLink from 'app/components/externalLink';
+import ExternalLink from 'app/components/links/externalLink';
 import KeyValueList from 'app/components/events/interfaces/keyValueList';
 
 const EMAIL_REGEX = /[^@]+@[^\.]+\..+/;

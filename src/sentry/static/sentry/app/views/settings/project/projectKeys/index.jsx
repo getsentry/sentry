@@ -20,7 +20,7 @@ import Button from 'app/components/button';
 import ClippedBox from 'app/components/clippedBox';
 import Confirm from 'app/components/confirm';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
-import ExternalLink from 'app/components/externalLink';
+import ExternalLink from 'app/components/links/externalLink';
 import Pagination from 'app/components/pagination';
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
 import ProjectKeyCredentials from 'app/views/settings/project/projectKeys/projectKeyCredentials';

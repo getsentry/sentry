@@ -3,7 +3,7 @@ import React from 'react';
 import styled from 'react-emotion';
 
 import {t} from '../../locale';
-import ExternalLink from '../externalLink';
+import ExternalLink from '../links/externalLink';
 
 class SidebarPanelItem extends React.Component {
   static propTypes = {

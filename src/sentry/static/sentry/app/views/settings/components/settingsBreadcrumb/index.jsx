@@ -12,7 +12,7 @@ import SentryTypes from 'app/sentryTypes';
 import SettingsBreadcrumbActions from 'app/actions/settingsBreadcrumbActions';
 import SettingsBreadcrumbStore from 'app/stores/settingsBreadcrumbStore';
 import TeamCrumb from 'app/views/settings/components/settingsBreadcrumb/teamCrumb';
-import TextLink from 'app/components/textLink';
+import TextLink from 'app/components/links/textLink';
 import getRouteStringFromRoutes from 'app/utils/getRouteStringFromRoutes';
 import recreateRoute from 'app/utils/recreateRoute';
 

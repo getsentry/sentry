@@ -15,7 +15,7 @@ import DropdownAutoComplete from 'app/components/dropdownAutoComplete';
 import GroupStore from 'app/stores/groupStore';
 import Highlight from 'app/components/highlight';
 import InlineSvg from 'app/components/inlineSvg';
-import Link from 'app/components/link';
+import Link from 'app/components/links/link';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import MemberListStore from 'app/stores/memberListStore';
 import ProjectsStore from 'app/stores/projectsStore';

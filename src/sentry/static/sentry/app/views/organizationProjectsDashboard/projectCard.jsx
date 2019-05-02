@@ -10,7 +10,7 @@ import BookmarkStar from 'app/components/bookmarkStar';
 import {Client} from 'app/api';
 import {loadStatsForProject} from 'app/actionCreators/projects';
 import IdBadge from 'app/components/idBadge';
-import Link from 'app/components/link';
+import Link from 'app/components/links/link';
 import ProjectsStatsStore from 'app/stores/projectsStatsStore';
 import SentryTypes from 'app/sentryTypes';
 import space from 'app/styles/space';
