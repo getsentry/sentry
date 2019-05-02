@@ -78,6 +78,11 @@ install-yarn-pkgs:
 	@command -v yarn 2>&1 > /dev/null || (echo 'yarn not found. Please install it before proceeding.'; exit 1)
 	# Use NODE_ENV=development so that yarn installs both dependencies + devDependencies
 	NODE_ENV=development yarn install --pure-lockfile
+	# A common problem is with node packages not existing in `node_modules` even though `yarn install`
+	# says everything is up to date. Even though `yarn install` is run already, it doesn't take into
+	# account the state of the current filesystem (it only checks .yarn-integrity).
+	# Add an additional check against `node_modules`
+	yarn check --verify-tree || yarn install --check-files
 
 install-sentry-dev:
 	@echo "--> Installing Sentry (for development)"
