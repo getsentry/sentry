@@ -51,7 +51,7 @@ export default function getConfiguration({project}) {
             if (!organization || !organization.features) {
               return true;
             }
-            return !organization.features.includes('org-saved-searches');
+            return !organization.features.includes('sentry10');
           },
         },
         {

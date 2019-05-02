@@ -123,7 +123,7 @@ describe('OrganizationStream', function() {
   describe('withStores and feature flags', function() {
     const {router, routerContext} = initializeOrg({
       organization: {
-        features: ['org-saved-searches', 'recent-searches', 'global-views'],
+        features: ['sentry10', 'global-views'],
         slug: 'org-slug',
       },
       router: {

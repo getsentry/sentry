@@ -241,8 +241,8 @@ class ProjectSavedSearches extends AsyncView {
 }
 
 const ProjectSavedSearchContainer = function(props, context) {
-  const hasSavedSearch = context.organization.features.includes('org-saved-searches');
-  if (hasSavedSearch) {
+  const isSentry10 = context.organization.features.includes('sentry10');
+  if (isSentry10) {
     return <NotFound />;
   }
   return <ProjectSavedSearches {...props} />;

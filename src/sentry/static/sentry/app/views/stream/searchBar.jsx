@@ -63,13 +63,13 @@ class SearchBar extends React.Component {
     this.fetchData();
   }
 
-  hasOrgSavedSearches = () => {
+  hasSentry10 = () => {
     const {organization} = this.props;
-    return organization && organization.features.includes('org-saved-searches');
+    return organization && organization.features.includes('sentry10');
   };
 
   fetchData = async () => {
-    if (!this.hasOrgSavedSearches()) {
+    if (!this.hasSentry10()) {
       this.setState({
         defaultSearchItems: [SEARCH_ITEMS, []],
       });
@@ -118,7 +118,7 @@ class SearchBar extends React.Component {
 
   handleSavedRecentSearch = () => {
     // No need to refetch if recent searches feature is not enabled
-    if (!this.hasOrgSavedSearches()) {
+    if (!this.hasSentry10()) {
       return;
     }
 
@@ -133,7 +133,7 @@ class SearchBar extends React.Component {
       onSidebarToggle,
       ...props
     } = this.props;
-    const hasPinnedSearch = this.hasOrgSavedSearches();
+    const hasPinnedSearch = this.hasSentry10();
 
     return (
       <React.Fragment>
@@ -143,7 +143,7 @@ class SearchBar extends React.Component {
           maxSearchItems={5}
           hasPinnedSearch={hasPinnedSearch}
           savedSearchType={SEARCH_TYPES.ISSUE}
-          displayRecentSearches={this.hasOrgSavedSearches()}
+          displayRecentSearches={this.hasSentry10()}
           onSavedRecentSearch={this.handleSavedRecentSearch}
           onSidebarToggle={onSidebarToggle}
           pinnedSearch={savedSearch && savedSearch.isPinned ? savedSearch : null}

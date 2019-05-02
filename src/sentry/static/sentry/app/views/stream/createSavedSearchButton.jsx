@@ -92,7 +92,7 @@ class CreateSavedSearchButton extends React.Component {
     const {organization, query} = this.props;
 
     return (
-      <Feature organization={organization} features={['org-saved-searches']}>
+      <Feature organization={organization} features={['sentry10']}>
         <Access organization={organization} access={['org:write']}>
           <Tooltip title={t('Add to organization filter list')}>
             <StyledButton
