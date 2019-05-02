@@ -11,18 +11,40 @@ import ActivityBubble from './bubble';
 
 class ActivityItem extends React.Component {
   static propTypes = {
+    /**
+     * This is used to uniquely identify the activity item for use as an anchor
+     */
     id: PropTypes.string,
+
+    /**
+     * If supplied, will show the time since this date
+     */
     date: PropTypes.string,
+
+    /**
+     * Used to render an avatar for the author. Currently can be a user, otherwise
+     * defaults as a "system" avatar (i.e. sentry)
+     *
+     * `user` is required if `type` is "user"
+     */
     author: PropTypes.shape({
       type: ActivityAvatar.propTypes.type,
       user: ActivityAvatar.propTypes.user,
     }),
+
     avatarSize: PropTypes.number,
 
     // Hides date in header
     hideDate: PropTypes.bool,
 
+    /**
+     * Can be a react node or a render function. render function will not include default wrapper
+     */
     header: PropTypes.oneOfType([PropTypes.node, PropTypes.func]),
+
+    /**
+     * Can be a react node or a render function. render function will not include default wrapper
+     */
     footer: PropTypes.oneOfType([PropTypes.node, PropTypes.func]),
   };
 
