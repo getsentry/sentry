@@ -28,13 +28,13 @@ from functools import wraps
 from querystring_parser import parser
 from symbolic import ProcessMinidumpError, Unreal4Error
 
-from sentry import features, quotas, tsdb, options
+from sentry import features, quotas, options
 from sentry.attachments import CachedAttachment
 from sentry.coreapi import (
     Auth, APIError, APIForbidden, APIRateLimited, ClientApiHelper, ClientAuthHelper,
     SecurityAuthHelper, MinidumpAuthHelper, safely_load_json_string, logger as api_logger
 )
-from sentry.event_manager import EventManager
+from sentry.event_manager import EventManager, track_outcome
 from sentry.interfaces import schemas
 from sentry.interfaces.base import get_interface
 from sentry.lang.native.unreal import process_unreal_crash, merge_apple_crash_report, \
@@ -46,9 +46,8 @@ from sentry.signals import (
     event_accepted, event_dropped, event_filtered, event_received)
 from sentry.quotas.base import RateLimit
 from sentry.utils import json, metrics
-from sentry.utils.data_filters import FILTER_STAT_KEYS_TO_VALUES
+from sentry.utils.data_filters import FilterStatKeys
 from sentry.utils.data_scrubber import SensitiveDataFilter
-from sentry.utils.dates import to_datetime
 from sentry.utils.http import (
     is_valid_origin,
     get_origins,
@@ -98,31 +97,9 @@ def process_event(event_manager, project, key, remote_addr, helper, attachments)
     event_received.send_robust(ip=remote_addr, project=project, sender=process_event)
 
     start_time = time()
-    tsdb_start_time = to_datetime(start_time)
     should_filter, filter_reason = event_manager.should_filter()
     if should_filter:
-        increment_list = [
-            (tsdb.models.project_total_received, project.id),
-            (tsdb.models.project_total_blacklisted, project.id),
-            (tsdb.models.organization_total_received,
-                project.organization_id),
-            (tsdb.models.organization_total_blacklisted,
-                project.organization_id),
-            (tsdb.models.key_total_received, key.id),
-            (tsdb.models.key_total_blacklisted, key.id),
-        ]
-        try:
-            increment_list.append(
-                (FILTER_STAT_KEYS_TO_VALUES[filter_reason], project.id))
-        # should error when filter_reason does not match a key in FILTER_STAT_KEYS_TO_VALUES
-        except KeyError:
-            pass
-
-        tsdb.incr_multi(
-            increment_list,
-            timestamp=tsdb_start_time,
-        )
-
+        track_outcome(project.organization_id, project.id, key.id, 'filtered', filter_reason)
         metrics.incr(
             'events.blacklisted', tags={'reason': filter_reason}, skip_internal=False
         )
@@ -145,44 +122,24 @@ def process_event(event_manager, project, key, remote_addr, helper, attachments)
     if rate_limit is None or rate_limit.is_limited:
         if rate_limit is None:
             api_logger.debug('Dropped event due to error with rate limiter')
-        tsdb.incr_multi(
-            [
-                (tsdb.models.project_total_received, project.id),
-                (tsdb.models.project_total_rejected, project.id),
-                (tsdb.models.organization_total_received,
-                    project.organization_id),
-                (tsdb.models.organization_total_rejected,
-                    project.organization_id),
-                (tsdb.models.key_total_received, key.id),
-                (tsdb.models.key_total_rejected, key.id),
-            ],
-            timestamp=tsdb_start_time,
-        )
+
+        reason = rate_limit.reason_code if rate_limit else None
+        track_outcome(project.organization_id, project.id, key.id, 'rate_limited', reason)
         metrics.incr(
             'events.dropped',
             tags={
-                'reason': rate_limit.reason_code if rate_limit else 'unknown',
+                'reason': reason or 'unknown',
             },
             skip_internal=False,
         )
         event_dropped.send_robust(
             ip=remote_addr,
             project=project,
-            reason_code=rate_limit.reason_code if rate_limit else None,
+            reason_code=reason,
             sender=process_event,
         )
         if rate_limit is not None:
             raise APIRateLimited(rate_limit.retry_after)
-    else:
-        tsdb.incr_multi(
-            [
-                (tsdb.models.project_total_received, project.id),
-                (tsdb.models.organization_total_received,
-                    project.organization_id),
-                (tsdb.models.key_total_received, key.id),
-            ],
-            timestamp=tsdb_start_time,
-        )
 
     org_options = OrganizationOption.objects.get_all_values(
         project.organization_id)
@@ -197,6 +154,7 @@ def process_event(event_manager, project, key, remote_addr, helper, attachments)
     cache_key = 'ev:%s:%s' % (project.id, event_id, )
 
     if cache.get(cache_key) is not None:
+        track_outcome(project.organization_id, project.id, key.id, 'invalid', 'duplicate')
         raise APIForbidden(
             'An event with the same ID already exists (%s)' % (event_id, ))
 
@@ -407,8 +365,12 @@ class APIView(BaseView):
             if not project:
                 raise APIError('Client must be upgraded for CORS support')
             if not is_valid_origin(origin, project):
-                tsdb.incr(tsdb.models.project_total_received_cors,
-                          project.id)
+                track_outcome(
+                    project.organization_id,
+                    project.id,
+                    None,
+                    'invalid',
+                    FilterStatKeys.CORS)
                 raise APIForbidden('Invalid origin: %s' % (origin, ))
 
         # XXX: It seems that the OPTIONS call does not always include custom headers
@@ -557,6 +519,7 @@ class StoreView(APIView):
 
         if data_size > 10000000:
             metrics.timing('events.size.rejected', data_size)
+            track_outcome(project.organization_id, project.id, key.id, 'invalid', 'too_large')
             raise APIForbidden("Event size exceeded 10MB after normalization.")
 
         metrics.timing(
@@ -893,7 +856,7 @@ class SecurityReportView(StoreView):
             request=request, project=project, auth=auth, helper=helper, key=key, **kwargs
         )
 
-    def post(self, request, project, helper, **kwargs):
+    def post(self, request, project, helper, key, **kwargs):
         json_body = safely_load_json_string(request.body)
         report_type = self.security_report_type(json_body)
         if report_type is None:
@@ -909,7 +872,12 @@ class SecurityReportView(StoreView):
         origin = instance.get_origin()
         if not is_valid_origin(origin, project):
             if project:
-                tsdb.incr(tsdb.models.project_total_received_cors, project.id)
+                track_outcome(
+                    project.organization_id,
+                    project.id,
+                    key.id,
+                    'invalid',
+                    FilterStatKeys.CORS)
             raise APIForbidden('Invalid origin')
 
         data = {
@@ -919,7 +887,7 @@ class SecurityReportView(StoreView):
             'environment': request.GET.get('sentry_environment'),
         }
 
-        self.process(request, project=project, helper=helper, data=data, **kwargs)
+        self.process(request, project=project, helper=helper, data=data, key=key, **kwargs)
         return HttpResponse(content_type='application/javascript', status=201)
 
     def security_report_type(self, body):

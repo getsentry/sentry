@@ -6,10 +6,11 @@ import AlertActions from 'app/actions/alertActions';
 import Button from 'app/components/button';
 import ErrorBoundary from 'app/components/errorBoundary';
 import Footer from 'app/components/footer';
-import InstallPromptBanner from 'app/components/installPromptBanner';
 import NarrowLayout from 'app/components/narrowLayout';
 import OrganizationContext from 'app/views/organizationContext';
 import SentryTypes from 'app/sentryTypes';
+
+import InstallPromptBanner from './installPromptBanner';
 
 class DeletionInProgress extends Component {
   static propTypes = {

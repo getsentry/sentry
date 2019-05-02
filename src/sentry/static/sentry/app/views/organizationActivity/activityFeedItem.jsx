@@ -1,22 +1,22 @@
+import {Link} from 'react-router';
 import PropTypes from 'prop-types';
 import React from 'react';
-import {Link} from 'react-router';
 import marked from 'marked';
+import styled from 'react-emotion';
 
-import PullRequestLink from 'app/components/pullRequestLink';
-
+import {t, tn, tct} from 'app/locale';
+import Avatar from 'app/components/avatar';
 import CommitLink from 'app/components/commitLink';
 import Duration from 'app/components/duration';
-import Avatar from 'app/components/avatar';
 import IssueLink from 'app/components/issueLink';
-import VersionHoverCard from 'app/components/versionHoverCard';
 import MemberListStore from 'app/stores/memberListStore';
+import PullRequestLink from 'app/components/pullRequestLink';
 import SentryTypes from 'app/sentryTypes';
 import TeamStore from 'app/stores/teamStore';
 import TimeSince from 'app/components/timeSince';
 import Version from 'app/components/version';
-
-import {t, tn, tct} from 'app/locale';
+import VersionHoverCard from 'app/components/versionHoverCard';
+import space from 'app/styles/space';
 
 class ActivityItem extends React.Component {
   static propTypes = {
@@ -348,12 +348,12 @@ class ActivityItem extends React.Component {
     if (item.type === 'note') {
       const noteBody = marked(item.data.text);
       return (
-        <li className="activity-item activity-item-compact">
+        <div data-test-id="activity-item" className="activity-item activity-item-compact">
           <div className="activity-item-content">
             {this.formatProjectActivity(
               <span>
                 {author.avatar}
-                <span className="activity-author">{author.name}</span>
+                <ActivityAuthor>{author.name}</ActivityAuthor>
               </span>,
               item
             )}
@@ -365,19 +365,19 @@ class ActivityItem extends React.Component {
             <div className="activity-meta">
               {projectLink}
               <span className="bullet" />
-              <TimeSince date={item.dateCreated} />
+              <StyledTimeSince date={item.dateCreated} />
             </div>
           </div>
-        </li>
+        </div>
       );
     } else if (item.type === 'create_issue') {
       return (
-        <li className="activity-item activity-item-compact">
+        <div data-test-id="activity-item" className="activity-item activity-item-compact">
           <div className="activity-item-content">
             {this.formatProjectActivity(
               <span>
                 {author.avatar}
-                <span className="activity-author">{author.name}</span>
+                <ActivityAuthor>{author.name}</ActivityAuthor>
               </span>,
               item
             )}
@@ -387,32 +387,41 @@ class ActivityItem extends React.Component {
             <div className="activity-meta">
               {projectLink}
               <span className="bullet" />
-              <TimeSince date={item.dateCreated} />
+              <StyledTimeSince date={item.dateCreated} />
             </div>
           </div>
-        </li>
+        </div>
       );
     } else {
       return (
-        <li className="activity-item activity-item-compact">
+        <div data-test-id="activity-item" className="activity-item activity-item-compact">
           <div className="activity-item-content">
             {this.formatProjectActivity(
               <span>
                 {author.avatar}
-                <span className="activity-author">{author.name}</span>
+                <ActivityAuthor>{author.name}</ActivityAuthor>
               </span>,
               item
             )}
             <div className="activity-meta">
               {projectLink}
               <span className="bullet" />
-              <TimeSince date={item.dateCreated} />
+              <StyledTimeSince date={item.dateCreated} />
             </div>
           </div>
-        </li>
+        </div>
       );
     }
   }
 }
 
 export default ActivityItem;
+
+const ActivityAuthor = styled('span')`
+  font-weight: 600;
+`;
+
+const StyledTimeSince = styled(TimeSince)`
+  color: ${p => p.theme.gray2};
+  padding-left: ${space(1)};
+`;

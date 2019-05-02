@@ -10,7 +10,7 @@ import {t} from 'app/locale';
 import Button from 'app/components/button';
 import CircleIndicator from 'app/components/circleIndicator';
 import InstalledIntegration from 'app/views/organizationIntegrations/installedIntegration';
-import Link from 'app/components/link';
+import Link from 'app/components/links/link';
 import PluginIcon from 'app/plugins/components/pluginIcon';
 import SentryTypes from 'app/sentryTypes';
 import space from 'app/styles/space';
@@ -90,13 +90,14 @@ export default class ProviderRow extends React.Component {
         onRemove={this.props.onRemove}
         onDisable={this.props.onDisable}
         onReinstallIntegration={this.props.onReinstall}
+        data-test-id={integration.id}
       />
     ));
   }
 
   render() {
     return (
-      <PanelItem p={0} direction="column">
+      <PanelItem p={0} direction="column" data-test-id={this.props.provider.key}>
         <Flex align="center" p={2}>
           <PluginIcon size={36} pluginId={this.props.provider.key} />
           <Box px={2} flex={1}>

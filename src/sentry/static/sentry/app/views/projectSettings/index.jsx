@@ -5,12 +5,12 @@ import createReactClass from 'create-react-class';
 import {t} from 'app/locale';
 import withApi from 'app/utils/withApi';
 import Badge from 'app/components/badge';
-import ListLink from 'app/components/listLink';
+import ListLink from 'app/components/links/listLink';
 import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import OrganizationState from 'app/mixins/organizationState';
 import PluginNavigation from 'app/views/projectSettings/pluginNavigation';
-import ExternalLink from 'app/components/externalLink';
+import ExternalLink from 'app/components/links/externalLink';
 
 const ProjectSettings = createReactClass({
   displayName: 'ProjectSettings',

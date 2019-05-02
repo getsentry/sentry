@@ -4,7 +4,6 @@ html {
 
 body {
   margin: 0;
-  font-family: @font-family-base;
   font-size: 16px;
   line-height: 24px;
   color: @gray-darker;
@@ -13,17 +12,8 @@ body {
   overflow-x: hidden;
   min-height: 100vh;
 
-  .sentry-error-embed-wrapper {
-    z-index: 1005;
-  }
-
-  &.org-dashboard {
-    background-color: #fcfcfc;
-  }
-
   &.body-sidebar {
     padding-left: @sidebar-expanded-width;
-    font-family: 'Rubik', 'Avenir Next', 'Helvetica Neue', sans-serif;
 
     &.collapsed {
       padding-left: @sidebar-collapsed-width;

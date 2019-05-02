@@ -210,9 +210,11 @@ class StoreTasksTest(PluginTestCase):
         with mock.patch.object(EventManager, 'save', mock_save):
             save_event(data=data, start_time=now)
             mock_incr.assert_called_with([
-                (tsdb.models.project_total_received_discarded, project.id),
+                (tsdb.models.project_total_received, project.id),
+                (tsdb.models.organization_total_received, project.organization.id),
                 (tsdb.models.project_total_blacklisted, project.id),
                 (tsdb.models.organization_total_blacklisted, project.organization_id),
+                (tsdb.models.project_total_received_discarded, project.id),
             ],
                 timestamp=to_datetime(now),
             )

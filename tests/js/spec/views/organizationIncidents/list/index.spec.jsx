@@ -6,11 +6,14 @@ import {initializeOrg} from 'app-test/helpers/initializeOrg';
 import OrganizationIncidentsList from 'app/views/organizationIncidents/list';
 
 describe('OrganizationIncidentsList', function() {
-  const {routerContext} = initializeOrg({
-    projects: [TestStubs.Project()],
-    router: {
-      params: {orgId: 'org-slug'},
-    },
+  const {routerContext} = initializeOrg();
+  let mock;
+
+  beforeEach(function() {
+    mock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/incidents/',
+      body: [{id: '1', name: 'First incident'}, {id: '2', name: 'Second incident'}],
+    });
   });
 
   afterEach(function() {
@@ -18,12 +21,10 @@ describe('OrganizationIncidentsList', function() {
   });
 
   it('displays list', function() {
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/incidents/',
-      body: [{id: '1', name: 'First incident'}, {id: '2', name: 'Second incident'}],
-    });
-
-    const wrapper = mount(<OrganizationIncidentsList />, routerContext);
+    const wrapper = mount(
+      <OrganizationIncidentsList params={{orgId: 'org-slug'}} location={{query: {}}} />,
+      TestStubs.routerContext()
+    );
 
     const items = wrapper.find('PanelItem');
 
@@ -37,8 +38,53 @@ describe('OrganizationIncidentsList', function() {
       url: '/organizations/org-slug/incidents/',
       body: [],
     });
-    const wrapper = mount(<OrganizationIncidentsList />, routerContext);
+    const wrapper = mount(
+      <OrganizationIncidentsList params={{orgId: 'org-slug'}} location={{query: {}}} />,
+      routerContext
+    );
     expect(wrapper.find('PanelItem')).toHaveLength(0);
-    expect(wrapper.text()).toBe("You don't have any incidents yet!");
+    expect(wrapper.text()).toContain("You don't have any incidents yet");
+  });
+
+  it('toggles all/unresolved', function() {
+    const wrapper = mount(
+      <OrganizationIncidentsList
+        params={{orgId: 'org-slug'}}
+        location={{query: {}, search: ''}}
+      />,
+      routerContext
+    );
+
+    expect(
+      wrapper
+        .find('.btn-group')
+        .find('a')
+        .at(0)
+        .hasClass('active')
+    ).toBe(true);
+
+    expect(mock).toHaveBeenCalledTimes(1);
+
+    expect(mock).toHaveBeenCalledWith(
+      '/organizations/org-slug/incidents/',
+      expect.objectContaining({query: {}})
+    );
+
+    wrapper.setProps({location: {query: {status: ''}, search: '?status='}});
+
+    expect(
+      wrapper
+        .find('.btn-group')
+        .find('Button')
+        .at(1)
+        .hasClass('active')
+    ).toBe(true);
+
+    expect(mock).toHaveBeenCalledTimes(2);
+
+    expect(mock).toHaveBeenCalledWith(
+      '/organizations/org-slug/incidents/',
+      expect.objectContaining({query: expect.objectContaining({status: ''})})
+    );
   });
 });

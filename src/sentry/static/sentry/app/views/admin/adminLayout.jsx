@@ -4,7 +4,7 @@ import React from 'react';
 
 import Footer from 'app/components/footer';
 import HookStore from 'app/stores/hookStore';
-import ListLink from 'app/components/listLink';
+import ListLink from 'app/components/links/listLink';
 import Sidebar from 'app/components/sidebar';
 import withLatestContext from 'app/utils/withLatestContext';
 

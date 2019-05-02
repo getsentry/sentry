@@ -14,7 +14,6 @@ const validHookNames = new Set([
   'amplitude:event',
   'analytics:event',
   'analytics:init-user',
-  'analytics:onboarding-survey-log',
 
   // Operational metrics
   'metrics:event',

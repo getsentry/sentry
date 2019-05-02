@@ -24,7 +24,7 @@ import Button from 'app/components/button';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
 import EnvironmentStore from 'app/stores/environmentStore';
 import InlineSvg from 'app/components/inlineSvg';
-import ListLink from 'app/components/listLink';
+import ListLink from 'app/components/links/listLink';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import NavTabs from 'app/components/navTabs';
 import PermissionAlert from 'app/views/settings/project/permissionAlert';

@@ -137,15 +137,11 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
     <PageHeading
       withMargins={true}
     >
-      <Wrapper
-        withMargins={true}
+      <h1
+        className="css-14dms5l-PageHeading e1f8hk460"
       >
-        <h1
-          className="css-13ev48w-Wrapper e1f8hk460"
-        >
-          Create a new Project
-        </h1>
-      </Wrapper>
+        Create a new Project
+      </h1>
     </PageHeading>
     <HelpText>
       <p
@@ -333,7 +329,7 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
           </CategoryNav>
           <SearchBar>
             <div
-              className="css-1tdbwvk-SearchBar-inputStyles exv4dm81"
+              className="css-1keiof6-SearchBar-inputStyles exv4dm81"
             >
               <InlineSvg
                 src="icon-search"
@@ -369,7 +365,7 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
       </NavContainer>
       <PlatformList>
         <div
-          className="css-545rh6-PlatformList exv4dm83"
+          className="css-d5crqi-PlatformList exv4dm83"
         >
           <PlatformCard
             data-test-id="platform-csharp"
@@ -412,7 +408,7 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
                   platform="csharp"
                 >
                   <div
-                    className="css-i59jyf-PlatformIconTile-getColorStyles-StyledPlatformIconTile exv4dm84"
+                    className="css-1cwsgcj-PlatformIconTile-getColorStyles-StyledPlatformIconTile exv4dm84"
                   />
                 </StyledPlatformIconTile>
                 <h3>
@@ -462,7 +458,7 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
                   platform="elixir"
                 >
                   <div
-                    className="css-kjytvr-PlatformIconTile-getColorStyles-StyledPlatformIconTile exv4dm84"
+                    className="css-25odvi-PlatformIconTile-getColorStyles-StyledPlatformIconTile exv4dm84"
                   />
                 </StyledPlatformIconTile>
                 <h3>
@@ -512,7 +508,7 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
                   platform="java"
                 >
                   <div
-                    className="css-119q83u-PlatformIconTile-getColorStyles-StyledPlatformIconTile exv4dm84"
+                    className="css-dchggh-PlatformIconTile-getColorStyles-StyledPlatformIconTile exv4dm84"
                   />
                 </StyledPlatformIconTile>
                 <h3>
@@ -562,7 +558,7 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
                   platform="javascript-angular"
                 >
                   <div
-                    className="css-impgxj-PlatformIconTile-getColorStyles-StyledPlatformIconTile exv4dm84"
+                    className="css-1t3okop-PlatformIconTile-getColorStyles-StyledPlatformIconTile exv4dm84"
                   />
                 </StyledPlatformIconTile>
                 <h3>
@@ -612,7 +608,7 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
                   platform="javascript"
                 >
                   <div
-                    className="css-10lppcv-PlatformIconTile-getColorStyles-StyledPlatformIconTile exv4dm84"
+                    className="css-rxfgzv-PlatformIconTile-getColorStyles-StyledPlatformIconTile exv4dm84"
                   />
                 </StyledPlatformIconTile>
                 <h3>
@@ -662,7 +658,7 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
                   platform="javascript-react"
                 >
                   <div
-                    className="css-1a99nd3-PlatformIconTile-getColorStyles-StyledPlatformIconTile exv4dm84"
+                    className="css-1w8ely8-PlatformIconTile-getColorStyles-StyledPlatformIconTile exv4dm84"
                   />
                 </StyledPlatformIconTile>
                 <h3>
@@ -712,7 +708,7 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
                   platform="node-express"
                 >
                   <div
-                    className="css-3h9ff5-PlatformIconTile-getColorStyles-StyledPlatformIconTile exv4dm84"
+                    className="css-t8a266-PlatformIconTile-getColorStyles-StyledPlatformIconTile exv4dm84"
                   />
                 </StyledPlatformIconTile>
                 <h3>
@@ -762,7 +758,7 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
                   platform="node"
                 >
                   <div
-                    className="css-3h9ff5-PlatformIconTile-getColorStyles-StyledPlatformIconTile exv4dm84"
+                    className="css-t8a266-PlatformIconTile-getColorStyles-StyledPlatformIconTile exv4dm84"
                   />
                 </StyledPlatformIconTile>
                 <h3>
@@ -812,7 +808,7 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
                   platform="php-laravel"
                 >
                   <div
-                    className="css-9y1m82-PlatformIconTile-getColorStyles-StyledPlatformIconTile exv4dm84"
+                    className="css-n7loea-PlatformIconTile-getColorStyles-StyledPlatformIconTile exv4dm84"
                   />
                 </StyledPlatformIconTile>
                 <h3>
@@ -862,7 +858,7 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
                   platform="php"
                 >
                   <div
-                    className="css-6zjiba-PlatformIconTile-getColorStyles-StyledPlatformIconTile exv4dm84"
+                    className="css-6n3zj9-PlatformIconTile-getColorStyles-StyledPlatformIconTile exv4dm84"
                   />
                 </StyledPlatformIconTile>
                 <h3>
@@ -912,7 +908,7 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
                   platform="php-symfony2"
                 >
                   <div
-                    className="css-6zjiba-PlatformIconTile-getColorStyles-StyledPlatformIconTile exv4dm84"
+                    className="css-6n3zj9-PlatformIconTile-getColorStyles-StyledPlatformIconTile exv4dm84"
                   />
                 </StyledPlatformIconTile>
                 <h3>
@@ -962,7 +958,7 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
                   platform="python-django"
                 >
                   <div
-                    className="css-e97qg6-PlatformIconTile-getColorStyles-StyledPlatformIconTile exv4dm84"
+                    className="css-13yxgfk-PlatformIconTile-getColorStyles-StyledPlatformIconTile exv4dm84"
                   />
                 </StyledPlatformIconTile>
                 <h3>
@@ -1012,7 +1008,7 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
                   platform="python-flask"
                 >
                   <div
-                    className="css-kiuran-PlatformIconTile-getColorStyles-StyledPlatformIconTile exv4dm84"
+                    className="css-134gpxv-PlatformIconTile-getColorStyles-StyledPlatformIconTile exv4dm84"
                   />
                 </StyledPlatformIconTile>
                 <h3>
@@ -1062,7 +1058,7 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
                   platform="python"
                 >
                   <div
-                    className="css-1490qg9-PlatformIconTile-getColorStyles-StyledPlatformIconTile exv4dm84"
+                    className="css-i2lo8m-PlatformIconTile-getColorStyles-StyledPlatformIconTile exv4dm84"
                   />
                 </StyledPlatformIconTile>
                 <h3>
@@ -1112,7 +1108,7 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
                   platform="cocoa"
                 >
                   <div
-                    className="css-a5gfdj-PlatformIconTile-getColorStyles-StyledPlatformIconTile exv4dm84"
+                    className="css-10i69ba-PlatformIconTile-getColorStyles-StyledPlatformIconTile exv4dm84"
                   />
                 </StyledPlatformIconTile>
                 <h3>
@@ -1162,7 +1158,7 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
                   platform="ruby-rails"
                 >
                   <div
-                    className="css-tecggu-PlatformIconTile-getColorStyles-StyledPlatformIconTile exv4dm84"
+                    className="css-1953k9-PlatformIconTile-getColorStyles-StyledPlatformIconTile exv4dm84"
                   />
                 </StyledPlatformIconTile>
                 <h3>
@@ -1212,7 +1208,7 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
                   platform="ruby"
                 >
                   <div
-                    className="css-1cyior6-PlatformIconTile-getColorStyles-StyledPlatformIconTile exv4dm84"
+                    className="css-doe5jv-PlatformIconTile-getColorStyles-StyledPlatformIconTile exv4dm84"
                   />
                 </StyledPlatformIconTile>
                 <h3>
@@ -1228,7 +1224,7 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
       onSubmit={[Function]}
     >
       <form
-        className="css-1ibxl16-CreateProjectForm e2gtsme0"
+        className="css-ub4hd-CreateProjectForm e2gtsme0"
         onSubmit={[Function]}
       >
         <div>
@@ -1248,7 +1244,7 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
                 platform=""
               >
                 <div
-                  className="css-18ui2mh-PlatformIconTile-ProjectPlatformIcon e2gtsme2"
+                  className="css-1787wsr-PlatformIconTile-ProjectPlatformIcon e2gtsme2"
                 />
               </ProjectPlatformIcon>
               <input
@@ -1501,7 +1497,7 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
                       <ForwardRef
                         aria-disabled={false}
                         borderless={true}
-                        className="tip tip css-1v8ytf5-StyledButton-getColors e12ma6z0"
+                        className="tip tip css-1ggcm4u-StyledButton-getColors e12ma6z0"
                         data-test-id="create-team"
                         disabled={false}
                         onClick={[Function]}
@@ -1511,7 +1507,7 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
                       >
                         <button
                           aria-disabled={false}
-                          className="tip tip css-1v8ytf5-StyledButton-getColors e12ma6z0"
+                          className="tip tip css-1ggcm4u-StyledButton-getColors e12ma6z0"
                           data-test-id="create-team"
                           onClick={[Function]}
                           role="button"
@@ -1602,7 +1598,7 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
               <ForwardRef
                 aria-disabled={true}
                 aria-label="Create Project"
-                className="css-bo8dlg-StyledButton-getColors e12ma6z0"
+                className="css-mla83t-StyledButton-getColors e12ma6z0"
                 data-test-id="create-project"
                 disabled={true}
                 href={null}
@@ -1614,7 +1610,7 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
                 <button
                   aria-disabled={true}
                   aria-label="Create Project"
-                  className="css-bo8dlg-StyledButton-getColors e12ma6z0"
+                  className="css-mla83t-StyledButton-getColors e12ma6z0"
                   data-test-id="create-project"
                   href={null}
                   onClick={[Function]}
@@ -1697,15 +1693,11 @@ exports[`CreateProject should fill in platform name if its provided by url 1`] =
     <PageHeading
       withMargins={true}
     >
-      <Wrapper
-        withMargins={true}
+      <h1
+        className="css-14dms5l-PageHeading e1f8hk460"
       >
-        <h1
-          className="css-13ev48w-Wrapper e1f8hk460"
-        >
-          Create a new Project
-        </h1>
-      </Wrapper>
+        Create a new Project
+      </h1>
     </PageHeading>
     <HelpText>
       <p
@@ -1893,7 +1885,7 @@ exports[`CreateProject should fill in platform name if its provided by url 1`] =
           </CategoryNav>
           <SearchBar>
             <div
-              className="css-1tdbwvk-SearchBar-inputStyles exv4dm81"
+              className="css-1keiof6-SearchBar-inputStyles exv4dm81"
             >
               <InlineSvg
                 src="icon-search"
@@ -1929,7 +1921,7 @@ exports[`CreateProject should fill in platform name if its provided by url 1`] =
       </NavContainer>
       <PlatformList>
         <div
-          className="css-545rh6-PlatformList exv4dm83"
+          className="css-d5crqi-PlatformList exv4dm83"
         >
           <PlatformCard
             data-test-id="platform-ruby-rack"
@@ -1972,7 +1964,7 @@ exports[`CreateProject should fill in platform name if its provided by url 1`] =
                   platform="ruby-rack"
                 >
                   <div
-                    className="css-1cyior6-PlatformIconTile-getColorStyles-StyledPlatformIconTile exv4dm84"
+                    className="css-doe5jv-PlatformIconTile-getColorStyles-StyledPlatformIconTile exv4dm84"
                   />
                 </StyledPlatformIconTile>
                 <h3>
@@ -2022,7 +2014,7 @@ exports[`CreateProject should fill in platform name if its provided by url 1`] =
                   platform="ruby-rails"
                 >
                   <div
-                    className="css-tecggu-PlatformIconTile-getColorStyles-StyledPlatformIconTile exv4dm84"
+                    className="css-1953k9-PlatformIconTile-getColorStyles-StyledPlatformIconTile exv4dm84"
                   />
                 </StyledPlatformIconTile>
                 <h3>
@@ -2072,7 +2064,7 @@ exports[`CreateProject should fill in platform name if its provided by url 1`] =
                   platform="ruby"
                 >
                   <div
-                    className="css-1cyior6-PlatformIconTile-getColorStyles-StyledPlatformIconTile exv4dm84"
+                    className="css-doe5jv-PlatformIconTile-getColorStyles-StyledPlatformIconTile exv4dm84"
                   />
                 </StyledPlatformIconTile>
                 <h3>
@@ -2105,7 +2097,7 @@ exports[`CreateProject should fill in platform name if its provided by url 1`] =
                         <ForwardRef
                           aria-disabled={false}
                           borderless={true}
-                          className="exv4dm85 css-2lxdh0-StyledButton-getColors-ClearButton e12ma6z0"
+                          className="exv4dm85 css-1ac0eh4-StyledButton-getColors-ClearButton e12ma6z0"
                           disabled={false}
                           onClick={[Function]}
                           role="button"
@@ -2113,7 +2105,7 @@ exports[`CreateProject should fill in platform name if its provided by url 1`] =
                         >
                           <button
                             aria-disabled={false}
-                            className="exv4dm85 css-2lxdh0-StyledButton-getColors-ClearButton e12ma6z0"
+                            className="exv4dm85 css-1ac0eh4-StyledButton-getColors-ClearButton e12ma6z0"
                             onClick={[Function]}
                             role="button"
                             size="xsmall"
@@ -2194,7 +2186,7 @@ exports[`CreateProject should fill in platform name if its provided by url 1`] =
       onSubmit={[Function]}
     >
       <form
-        className="css-1ibxl16-CreateProjectForm e2gtsme0"
+        className="css-ub4hd-CreateProjectForm e2gtsme0"
         onSubmit={[Function]}
       >
         <div>
@@ -2214,7 +2206,7 @@ exports[`CreateProject should fill in platform name if its provided by url 1`] =
                 platform="ruby"
               >
                 <div
-                  className="css-2ftqz0-PlatformIconTile-ProjectPlatformIcon e2gtsme2"
+                  className="css-1gs8cc4-PlatformIconTile-ProjectPlatformIcon e2gtsme2"
                 />
               </ProjectPlatformIcon>
               <input
@@ -2467,7 +2459,7 @@ exports[`CreateProject should fill in platform name if its provided by url 1`] =
                       <ForwardRef
                         aria-disabled={false}
                         borderless={true}
-                        className="tip tip css-1v8ytf5-StyledButton-getColors e12ma6z0"
+                        className="tip tip css-1ggcm4u-StyledButton-getColors e12ma6z0"
                         data-test-id="create-team"
                         disabled={false}
                         onClick={[Function]}
@@ -2477,7 +2469,7 @@ exports[`CreateProject should fill in platform name if its provided by url 1`] =
                       >
                         <button
                           aria-disabled={false}
-                          className="tip tip css-1v8ytf5-StyledButton-getColors e12ma6z0"
+                          className="tip tip css-1ggcm4u-StyledButton-getColors e12ma6z0"
                           data-test-id="create-team"
                           onClick={[Function]}
                           role="button"
@@ -2568,7 +2560,7 @@ exports[`CreateProject should fill in platform name if its provided by url 1`] =
               <ForwardRef
                 aria-disabled={true}
                 aria-label="Create Project"
-                className="css-bo8dlg-StyledButton-getColors e12ma6z0"
+                className="css-mla83t-StyledButton-getColors e12ma6z0"
                 data-test-id="create-project"
                 disabled={true}
                 href={null}
@@ -2580,7 +2572,7 @@ exports[`CreateProject should fill in platform name if its provided by url 1`] =
                 <button
                   aria-disabled={true}
                   aria-label="Create Project"
-                  className="css-bo8dlg-StyledButton-getColors e12ma6z0"
+                  className="css-mla83t-StyledButton-getColors e12ma6z0"
                   data-test-id="create-project"
                   href={null}
                   onClick={[Function]}
@@ -2663,15 +2655,11 @@ exports[`CreateProject should fill in project name if its empty when platform is
     <PageHeading
       withMargins={true}
     >
-      <Wrapper
-        withMargins={true}
+      <h1
+        className="css-14dms5l-PageHeading e1f8hk460"
       >
-        <h1
-          className="css-13ev48w-Wrapper e1f8hk460"
-        >
-          Create a new Project
-        </h1>
-      </Wrapper>
+        Create a new Project
+      </h1>
     </PageHeading>
     <HelpText>
       <p
@@ -2859,7 +2847,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
           </CategoryNav>
           <SearchBar>
             <div
-              className="css-1tdbwvk-SearchBar-inputStyles exv4dm81"
+              className="css-1keiof6-SearchBar-inputStyles exv4dm81"
             >
               <InlineSvg
                 src="icon-search"
@@ -2895,7 +2883,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
       </NavContainer>
       <PlatformList>
         <div
-          className="css-545rh6-PlatformList exv4dm83"
+          className="css-d5crqi-PlatformList exv4dm83"
         >
           <PlatformCard
             data-test-id="platform-csharp"
@@ -2938,7 +2926,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
                   platform="csharp"
                 >
                   <div
-                    className="css-i59jyf-PlatformIconTile-getColorStyles-StyledPlatformIconTile exv4dm84"
+                    className="css-1cwsgcj-PlatformIconTile-getColorStyles-StyledPlatformIconTile exv4dm84"
                   />
                 </StyledPlatformIconTile>
                 <h3>
@@ -2971,7 +2959,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
                         <ForwardRef
                           aria-disabled={false}
                           borderless={true}
-                          className="exv4dm85 css-2lxdh0-StyledButton-getColors-ClearButton e12ma6z0"
+                          className="exv4dm85 css-1ac0eh4-StyledButton-getColors-ClearButton e12ma6z0"
                           disabled={false}
                           onClick={[Function]}
                           role="button"
@@ -2979,7 +2967,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
                         >
                           <button
                             aria-disabled={false}
-                            className="exv4dm85 css-2lxdh0-StyledButton-getColors-ClearButton e12ma6z0"
+                            className="exv4dm85 css-1ac0eh4-StyledButton-getColors-ClearButton e12ma6z0"
                             onClick={[Function]}
                             role="button"
                             size="xsmall"
@@ -3094,7 +3082,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
                   platform="elixir"
                 >
                   <div
-                    className="css-kjytvr-PlatformIconTile-getColorStyles-StyledPlatformIconTile exv4dm84"
+                    className="css-25odvi-PlatformIconTile-getColorStyles-StyledPlatformIconTile exv4dm84"
                   />
                 </StyledPlatformIconTile>
                 <h3>
@@ -3144,7 +3132,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
                   platform="java"
                 >
                   <div
-                    className="css-119q83u-PlatformIconTile-getColorStyles-StyledPlatformIconTile exv4dm84"
+                    className="css-dchggh-PlatformIconTile-getColorStyles-StyledPlatformIconTile exv4dm84"
                   />
                 </StyledPlatformIconTile>
                 <h3>
@@ -3194,7 +3182,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
                   platform="javascript-angular"
                 >
                   <div
-                    className="css-impgxj-PlatformIconTile-getColorStyles-StyledPlatformIconTile exv4dm84"
+                    className="css-1t3okop-PlatformIconTile-getColorStyles-StyledPlatformIconTile exv4dm84"
                   />
                 </StyledPlatformIconTile>
                 <h3>
@@ -3244,7 +3232,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
                   platform="javascript"
                 >
                   <div
-                    className="css-10lppcv-PlatformIconTile-getColorStyles-StyledPlatformIconTile exv4dm84"
+                    className="css-rxfgzv-PlatformIconTile-getColorStyles-StyledPlatformIconTile exv4dm84"
                   />
                 </StyledPlatformIconTile>
                 <h3>
@@ -3294,7 +3282,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
                   platform="javascript-react"
                 >
                   <div
-                    className="css-1a99nd3-PlatformIconTile-getColorStyles-StyledPlatformIconTile exv4dm84"
+                    className="css-1w8ely8-PlatformIconTile-getColorStyles-StyledPlatformIconTile exv4dm84"
                   />
                 </StyledPlatformIconTile>
                 <h3>
@@ -3344,7 +3332,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
                   platform="node-express"
                 >
                   <div
-                    className="css-3h9ff5-PlatformIconTile-getColorStyles-StyledPlatformIconTile exv4dm84"
+                    className="css-t8a266-PlatformIconTile-getColorStyles-StyledPlatformIconTile exv4dm84"
                   />
                 </StyledPlatformIconTile>
                 <h3>
@@ -3394,7 +3382,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
                   platform="node"
                 >
                   <div
-                    className="css-3h9ff5-PlatformIconTile-getColorStyles-StyledPlatformIconTile exv4dm84"
+                    className="css-t8a266-PlatformIconTile-getColorStyles-StyledPlatformIconTile exv4dm84"
                   />
                 </StyledPlatformIconTile>
                 <h3>
@@ -3444,7 +3432,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
                   platform="php-laravel"
                 >
                   <div
-                    className="css-9y1m82-PlatformIconTile-getColorStyles-StyledPlatformIconTile exv4dm84"
+                    className="css-n7loea-PlatformIconTile-getColorStyles-StyledPlatformIconTile exv4dm84"
                   />
                 </StyledPlatformIconTile>
                 <h3>
@@ -3494,7 +3482,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
                   platform="php"
                 >
                   <div
-                    className="css-6zjiba-PlatformIconTile-getColorStyles-StyledPlatformIconTile exv4dm84"
+                    className="css-6n3zj9-PlatformIconTile-getColorStyles-StyledPlatformIconTile exv4dm84"
                   />
                 </StyledPlatformIconTile>
                 <h3>
@@ -3544,7 +3532,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
                   platform="php-symfony2"
                 >
                   <div
-                    className="css-6zjiba-PlatformIconTile-getColorStyles-StyledPlatformIconTile exv4dm84"
+                    className="css-6n3zj9-PlatformIconTile-getColorStyles-StyledPlatformIconTile exv4dm84"
                   />
                 </StyledPlatformIconTile>
                 <h3>
@@ -3594,7 +3582,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
                   platform="python-django"
                 >
                   <div
-                    className="css-e97qg6-PlatformIconTile-getColorStyles-StyledPlatformIconTile exv4dm84"
+                    className="css-13yxgfk-PlatformIconTile-getColorStyles-StyledPlatformIconTile exv4dm84"
                   />
                 </StyledPlatformIconTile>
                 <h3>
@@ -3644,7 +3632,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
                   platform="python-flask"
                 >
                   <div
-                    className="css-kiuran-PlatformIconTile-getColorStyles-StyledPlatformIconTile exv4dm84"
+                    className="css-134gpxv-PlatformIconTile-getColorStyles-StyledPlatformIconTile exv4dm84"
                   />
                 </StyledPlatformIconTile>
                 <h3>
@@ -3694,7 +3682,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
                   platform="python"
                 >
                   <div
-                    className="css-1490qg9-PlatformIconTile-getColorStyles-StyledPlatformIconTile exv4dm84"
+                    className="css-i2lo8m-PlatformIconTile-getColorStyles-StyledPlatformIconTile exv4dm84"
                   />
                 </StyledPlatformIconTile>
                 <h3>
@@ -3744,7 +3732,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
                   platform="cocoa"
                 >
                   <div
-                    className="css-a5gfdj-PlatformIconTile-getColorStyles-StyledPlatformIconTile exv4dm84"
+                    className="css-10i69ba-PlatformIconTile-getColorStyles-StyledPlatformIconTile exv4dm84"
                   />
                 </StyledPlatformIconTile>
                 <h3>
@@ -3794,7 +3782,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
                   platform="ruby-rails"
                 >
                   <div
-                    className="css-tecggu-PlatformIconTile-getColorStyles-StyledPlatformIconTile exv4dm84"
+                    className="css-1953k9-PlatformIconTile-getColorStyles-StyledPlatformIconTile exv4dm84"
                   />
                 </StyledPlatformIconTile>
                 <h3>
@@ -3844,7 +3832,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
                   platform="ruby"
                 >
                   <div
-                    className="css-1cyior6-PlatformIconTile-getColorStyles-StyledPlatformIconTile exv4dm84"
+                    className="css-doe5jv-PlatformIconTile-getColorStyles-StyledPlatformIconTile exv4dm84"
                   />
                 </StyledPlatformIconTile>
                 <h3>
@@ -3860,7 +3848,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
       onSubmit={[Function]}
     >
       <form
-        className="css-1ibxl16-CreateProjectForm e2gtsme0"
+        className="css-ub4hd-CreateProjectForm e2gtsme0"
         onSubmit={[Function]}
       >
         <div>
@@ -3880,7 +3868,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
                 platform="csharp"
               >
                 <div
-                  className="css-1mw2nf5-PlatformIconTile-ProjectPlatformIcon e2gtsme2"
+                  className="css-n6b9il-PlatformIconTile-ProjectPlatformIcon e2gtsme2"
                 />
               </ProjectPlatformIcon>
               <input
@@ -4133,7 +4121,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
                       <ForwardRef
                         aria-disabled={false}
                         borderless={true}
-                        className="tip tip css-1v8ytf5-StyledButton-getColors e12ma6z0"
+                        className="tip tip css-1ggcm4u-StyledButton-getColors e12ma6z0"
                         data-test-id="create-team"
                         disabled={false}
                         onClick={[Function]}
@@ -4143,7 +4131,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
                       >
                         <button
                           aria-disabled={false}
-                          className="tip tip css-1v8ytf5-StyledButton-getColors e12ma6z0"
+                          className="tip tip css-1ggcm4u-StyledButton-getColors e12ma6z0"
                           data-test-id="create-team"
                           onClick={[Function]}
                           role="button"
@@ -4234,7 +4222,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
               <ForwardRef
                 aria-disabled={true}
                 aria-label="Create Project"
-                className="css-bo8dlg-StyledButton-getColors e12ma6z0"
+                className="css-mla83t-StyledButton-getColors e12ma6z0"
                 data-test-id="create-project"
                 disabled={true}
                 href={null}
@@ -4246,7 +4234,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
                 <button
                   aria-disabled={true}
                   aria-label="Create Project"
-                  className="css-bo8dlg-StyledButton-getColors e12ma6z0"
+                  className="css-mla83t-StyledButton-getColors e12ma6z0"
                   data-test-id="create-project"
                   href={null}
                   onClick={[Function]}

@@ -1,5 +1,5 @@
 ---
-created: '2019-04-17T20:02:28.163299Z'
+created: '2019-04-26T19:30:17.379327Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -23,7 +23,7 @@ app:
           frame*
             filename*
               u'boxed.rs'
-            function* (isolated function)
+            function*
               u'<F as alloc::boxed::FnBox<T>>::call_box'
           frame (non app frame)
             filename*
@@ -53,7 +53,7 @@ app:
           frame (non app frame)
             filename*
               u'panic.rs'
-            function* (isolated function)
+            function*
               u'<std::panic::AssertUnwindSafe<T> as core::ops::function::FnOnce<T>>::call_once'
           frame (non app frame)
             filename*
@@ -188,22 +188,22 @@ app:
           frame*
             filename*
               u'lib.rs'
-            function* (isolated function)
+            function*
               u'<tokio_current_thread::Entered<T>>::block_on'
           frame*
             filename*
               u'lib.rs'
-            function* (isolated function)
+            function*
               u'<tokio_current_thread::Entered<T>>::tick'
           frame*
             filename*
               u'scheduler.rs'
-            function* (isolated function)
+            function*
               u'<tokio_current_thread::scheduler::Scheduler<T>>::tick'
           frame*
             filename*
               u'lib.rs'
-            function* (isolated function)
+            function*
               u'<tokio_current_thread::Borrow<T>>::enter'
           frame (non app frame)
             filename*
@@ -218,7 +218,7 @@ app:
           frame*
             filename*
               u'lib.rs'
-            function* (isolated function)
+            function*
               u'<tokio_current_thread::Borrow<T>>::enter::{{closure}}'
           frame*
             filename*
@@ -228,17 +228,17 @@ app:
           frame*
             filename*
               u'lib.rs'
-            function* (isolated function)
+            function*
               u'<tokio_current_thread::Borrow<T>>::enter::{{closure}}::{{closure}}'
           frame*
             filename*
               u'scheduler.rs'
-            function* (isolated function)
+            function*
               u'<tokio_current_thread::scheduler::Scheduler<T>>::tick::{{closure}}'
           frame*
             filename*
               u'scheduler.rs'
-            function* (isolated function)
+            function*
               u'<tokio_current_thread::scheduler::Scheduled<T>>::tick'
           frame*
             filename*
@@ -273,27 +273,27 @@ app:
           frame (non app frame)
             filename*
               u'mod.rs'
-            function* (isolated function)
+            function*
               u'<alloc::boxed::Box<T> as futures::future::Future>::poll'
           frame*
             filename*
               u'then.rs'
-            function* (isolated function)
+            function*
               u'<futures::future::then::Then<T> as futures::future::Future>::poll'
           frame*
             filename*
               u'chain.rs'
-            function* (isolated function)
+            function*
               u'<futures::future::chain::Chain<T>>::poll'
           frame*
             filename*
               u'either.rs'
-            function* (isolated function)
+            function*
               u'<futures::future::either::Either<T> as futures::future::Future>::poll'
           frame (ignored due to recursion)
             filename*
               u'either.rs'
-            function* (isolated function)
+            function*
               u'<futures::future::either::Either<T> as futures::future::Future>::poll'
           frame*
             filename*
@@ -303,52 +303,52 @@ app:
           frame*
             filename*
               u'and_then.rs'
-            function* (isolated function)
+            function*
               u'<actix_net::service::and_then::AndThenFuture<T> as futures::future::Future>::poll'
           frame*
             filename*
               u'map_err.rs'
-            function* (isolated function)
+            function*
               u'<actix_net::service::map_err::MapErrFuture<T> as futures::future::Future>::poll'
           frame*
             filename*
               u'channel.rs'
-            function* (isolated function)
+            function*
               u'<actix_web::server::channel::HttpChannel<T> as futures::future::Future>::poll'
           frame*
             filename*
               u'channel.rs'
-            function* (isolated function)
+            function*
               u'<actix_web::server::channel::HttpChannel<T> as futures::future::Future>::poll'
           frame*
             filename*
               u'h1.rs'
-            function* (isolated function)
+            function*
               u'<actix_web::server::h1::Http1Dispatcher<T>>::poll'
           frame*
             filename*
               u'h1.rs'
-            function* (isolated function)
+            function*
               u'<actix_web::server::h1::Http1Dispatcher<T>>::poll_handler'
           frame*
             filename*
               u'h1.rs'
-            function* (isolated function)
+            function*
               u'<actix_web::server::h1::Http1Dispatcher<T>>::poll_io'
           frame*
             filename*
               u'h1.rs'
-            function* (isolated function)
+            function*
               u'<actix_web::server::h1::Http1Dispatcher<T>>::parse'
           frame*
             filename*
               u'pipeline.rs'
-            function* (isolated function)
+            function*
               u'<actix_web::pipeline::Pipeline<T> as actix_web::server::handler::HttpHandlerTask>::poll_io'
           frame*
             filename*
               u'<::log::macros::log macros>'
-            function* (isolated function)
+            function*
               u'<actix_web::pipeline::ProcessResponse<T>>::poll_io'
           frame*
             filename*
@@ -415,7 +415,7 @@ system:
           frame*
             filename*
               u'boxed.rs'
-            function* (isolated function)
+            function*
               u'<F as alloc::boxed::FnBox<T>>::call_box'
           frame*
             filename*
@@ -445,7 +445,7 @@ system:
           frame*
             filename*
               u'panic.rs'
-            function* (isolated function)
+            function*
               u'<std::panic::AssertUnwindSafe<T> as core::ops::function::FnOnce<T>>::call_once'
           frame*
             filename*
@@ -580,22 +580,22 @@ system:
           frame*
             filename*
               u'lib.rs'
-            function* (isolated function)
+            function*
               u'<tokio_current_thread::Entered<T>>::block_on'
           frame*
             filename*
               u'lib.rs'
-            function* (isolated function)
+            function*
               u'<tokio_current_thread::Entered<T>>::tick'
           frame*
             filename*
               u'scheduler.rs'
-            function* (isolated function)
+            function*
               u'<tokio_current_thread::scheduler::Scheduler<T>>::tick'
           frame*
             filename*
               u'lib.rs'
-            function* (isolated function)
+            function*
               u'<tokio_current_thread::Borrow<T>>::enter'
           frame*
             filename*
@@ -610,7 +610,7 @@ system:
           frame*
             filename*
               u'lib.rs'
-            function* (isolated function)
+            function*
               u'<tokio_current_thread::Borrow<T>>::enter::{{closure}}'
           frame*
             filename*
@@ -620,17 +620,17 @@ system:
           frame*
             filename*
               u'lib.rs'
-            function* (isolated function)
+            function*
               u'<tokio_current_thread::Borrow<T>>::enter::{{closure}}::{{closure}}'
           frame*
             filename*
               u'scheduler.rs'
-            function* (isolated function)
+            function*
               u'<tokio_current_thread::scheduler::Scheduler<T>>::tick::{{closure}}'
           frame*
             filename*
               u'scheduler.rs'
-            function* (isolated function)
+            function*
               u'<tokio_current_thread::scheduler::Scheduled<T>>::tick'
           frame*
             filename*
@@ -665,27 +665,27 @@ system:
           frame*
             filename*
               u'mod.rs'
-            function* (isolated function)
+            function*
               u'<alloc::boxed::Box<T> as futures::future::Future>::poll'
           frame*
             filename*
               u'then.rs'
-            function* (isolated function)
+            function*
               u'<futures::future::then::Then<T> as futures::future::Future>::poll'
           frame*
             filename*
               u'chain.rs'
-            function* (isolated function)
+            function*
               u'<futures::future::chain::Chain<T>>::poll'
           frame*
             filename*
               u'either.rs'
-            function* (isolated function)
+            function*
               u'<futures::future::either::Either<T> as futures::future::Future>::poll'
           frame (ignored due to recursion)
             filename*
               u'either.rs'
-            function* (isolated function)
+            function*
               u'<futures::future::either::Either<T> as futures::future::Future>::poll'
           frame*
             filename*
@@ -695,52 +695,52 @@ system:
           frame*
             filename*
               u'and_then.rs'
-            function* (isolated function)
+            function*
               u'<actix_net::service::and_then::AndThenFuture<T> as futures::future::Future>::poll'
           frame*
             filename*
               u'map_err.rs'
-            function* (isolated function)
+            function*
               u'<actix_net::service::map_err::MapErrFuture<T> as futures::future::Future>::poll'
           frame*
             filename*
               u'channel.rs'
-            function* (isolated function)
+            function*
               u'<actix_web::server::channel::HttpChannel<T> as futures::future::Future>::poll'
           frame*
             filename*
               u'channel.rs'
-            function* (isolated function)
+            function*
               u'<actix_web::server::channel::HttpChannel<T> as futures::future::Future>::poll'
           frame*
             filename*
               u'h1.rs'
-            function* (isolated function)
+            function*
               u'<actix_web::server::h1::Http1Dispatcher<T>>::poll'
           frame*
             filename*
               u'h1.rs'
-            function* (isolated function)
+            function*
               u'<actix_web::server::h1::Http1Dispatcher<T>>::poll_handler'
           frame*
             filename*
               u'h1.rs'
-            function* (isolated function)
+            function*
               u'<actix_web::server::h1::Http1Dispatcher<T>>::poll_io'
           frame*
             filename*
               u'h1.rs'
-            function* (isolated function)
+            function*
               u'<actix_web::server::h1::Http1Dispatcher<T>>::parse'
           frame*
             filename*
               u'pipeline.rs'
-            function* (isolated function)
+            function*
               u'<actix_web::pipeline::Pipeline<T> as actix_web::server::handler::HttpHandlerTask>::poll_io'
           frame*
             filename*
               u'<::log::macros::log macros>'
-            function* (isolated function)
+            function*
               u'<actix_web::pipeline::ProcessResponse<T>>::poll_io'
           frame*
             filename*

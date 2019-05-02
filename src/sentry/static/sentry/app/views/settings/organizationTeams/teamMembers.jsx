@@ -8,7 +8,7 @@ import withApi from 'app/utils/withApi';
 import IdBadge from 'app/components/idBadge';
 import Avatar from 'app/components/avatar';
 import Button from 'app/components/button';
-import Link from 'app/components/link';
+import Link from 'app/components/links/link';
 import DropdownAutoComplete from 'app/components/dropdownAutoComplete';
 import DropdownButton from 'app/components/dropdownButton';
 import IndicatorStore from 'app/stores/indicatorStore';

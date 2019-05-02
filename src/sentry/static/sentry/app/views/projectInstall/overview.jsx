@@ -6,7 +6,7 @@ import {t, tct} from 'app/locale';
 import AsyncComponent from 'app/components/asyncComponent';
 import AutoSelectText from 'app/components/autoSelectText';
 import Button from 'app/components/button';
-import ExternalLink from 'app/components/externalLink';
+import ExternalLink from 'app/components/links/externalLink';
 import PlatformPicker from 'app/components/platformPicker';
 import SentryTypes from 'app/sentryTypes';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
@@ -98,13 +98,13 @@ class ProjectInstallOverview extends AsyncComponent {
           </p>
         )}
         <PlatformPicker setPlatform={this.redirectToDocs} showOther={false} />
-        <DocsHelp>
+        <p>
           {tct(
             `For a complete list of client integrations, please see
              [docLink:our in-depth documentation].`,
             {docLink: <ExternalLink href="https://docs.sentry.io" />}
           )}
-        </DocsHelp>
+        </p>
       </div>
     );
   }
@@ -128,10 +128,6 @@ const DsnContainer = styled('div')`
   grid-gap: ${space(1.5)} ${space(2)};
   align-items: center;
   margin-bottom: ${space(2)};
-`;
-
-const DocsHelp = styled('p')`
-  margin-top: ${space(2)};
 `;
 
 export default withOrganization(ProjectInstallOverview);

@@ -90,7 +90,7 @@ exports[`IntegrationDetailsModal renders simple integration 1`] = `
             size={50}
           >
             <div
-              className="css-duaev8-IntegrationIcon e1bhjds90"
+              className="css-1x3ikxe-IntegrationIcon e1bhjds90"
               size={50}
             />
           </IntegrationIcon>
@@ -112,18 +112,24 @@ exports[`IntegrationDetailsModal renders simple integration 1`] = `
               className="css-1wqjzd8"
               is={null}
             >
-              <ProviderName>
+              <ProviderName
+                data-test-id="provider-name"
+              >
                 <Component
                   className="css-1pygq0m-ProviderName e1rf4mlr1"
+                  data-test-id="provider-name"
                 >
                   <Box
                     className="css-1pygq0m-ProviderName e1rf4mlr1"
+                    data-test-id="provider-name"
                   >
                     <Base
                       className="e1rf4mlr1 css-cswdqk-ProviderName"
+                      data-test-id="provider-name"
                     >
                       <div
                         className="e1rf4mlr1 css-cswdqk-ProviderName"
+                        data-test-id="provider-name"
                         is={null}
                       >
                         GitHub Integration
@@ -405,6 +411,7 @@ exports[`IntegrationDetailsModal renders simple integration 1`] = `
       className="modal-footer"
     >
       <Button
+        data-test-id="cancel-button"
         disabled={false}
         onClick={[MockFunction]}
         size="small"
@@ -412,6 +419,7 @@ exports[`IntegrationDetailsModal renders simple integration 1`] = `
         <StyledButton
           aria-disabled={false}
           aria-label="Cancel"
+          data-test-id="cancel-button"
           disabled={false}
           onClick={[Function]}
           role="button"
@@ -420,7 +428,8 @@ exports[`IntegrationDetailsModal renders simple integration 1`] = `
           <ForwardRef
             aria-disabled={false}
             aria-label="Cancel"
-            className="css-dkprmi-StyledButton-getColors e12ma6z0"
+            className="css-o6814l-StyledButton-getColors e12ma6z0"
+            data-test-id="cancel-button"
             disabled={false}
             onClick={[Function]}
             role="button"
@@ -429,7 +438,8 @@ exports[`IntegrationDetailsModal renders simple integration 1`] = `
             <button
               aria-disabled={false}
               aria-label="Cancel"
-              className="css-dkprmi-StyledButton-getColors e12ma6z0"
+              className="css-o6814l-StyledButton-getColors e12ma6z0"
+              data-test-id="cancel-button"
               onClick={[Function]}
               role="button"
               size="small"
@@ -623,9 +633,11 @@ exports[`IntegrationDetailsModal renders simple integration 1`] = `
               title="You must be an Owner, Manager or Admin to install this."
             >
               <AddButton
+                data-test-id="add-button"
                 disabled={false}
               >
                 <AddIntegrationButton
+                  data-test-id="add-button"
                   disabled={false}
                   onAddIntegration={[Function]}
                   priority="primary"
@@ -714,6 +726,7 @@ exports[`IntegrationDetailsModal renders simple integration 1`] = `
                       }
                     >
                       <Button
+                        data-test-id="add-button"
                         disabled={false}
                         onClick={[Function]}
                         priority="primary"
@@ -727,6 +740,7 @@ exports[`IntegrationDetailsModal renders simple integration 1`] = `
                         <StyledButton
                           aria-disabled={false}
                           aria-label="Add Installation"
+                          data-test-id="add-button"
                           disabled={false}
                           onClick={[Function]}
                           priority="primary"
@@ -741,7 +755,8 @@ exports[`IntegrationDetailsModal renders simple integration 1`] = `
                           <ForwardRef
                             aria-disabled={false}
                             aria-label="Add Installation"
-                            className="css-zvpqlo-StyledButton-getColors e12ma6z0"
+                            className="css-1oc9q3a-StyledButton-getColors e12ma6z0"
+                            data-test-id="add-button"
                             disabled={false}
                             onClick={[Function]}
                             priority="primary"
@@ -756,7 +771,8 @@ exports[`IntegrationDetailsModal renders simple integration 1`] = `
                             <button
                               aria-disabled={false}
                               aria-label="Add Installation"
-                              className="css-zvpqlo-StyledButton-getColors e12ma6z0"
+                              className="css-1oc9q3a-StyledButton-getColors e12ma6z0"
+                              data-test-id="add-button"
                               onClick={[Function]}
                               role="button"
                               size="small"
