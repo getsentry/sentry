@@ -272,6 +272,13 @@ def log():
     return inner
 
 
+class ReadableYamlDumper(yaml.dumper.SafeDumper):
+    """Disable pyyaml aliases for identical object references"""
+
+    def ignore_aliases(self, data):
+        return True
+
+
 @pytest.fixture
 def insta_snapshot(request, log):
     def inner(output, reference_file=None, subname=None):
@@ -293,7 +300,11 @@ def insta_snapshot(request, log):
                 "subname only works if you don't provide your own entire reference_file")
 
         if not isinstance(output, six.string_types):
-            output = yaml.safe_dump(output, indent=2, default_flow_style=False)
+            output = yaml.dump(
+                output,
+                indent=2,
+                default_flow_style=False,
+                Dumper=ReadableYamlDumper)
 
         try:
             with open(reference_file) as f:

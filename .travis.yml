@@ -291,8 +291,6 @@ matrix:
     # XXX(markus): Remove after rust interfaces are done
     - env: TEST_SUITE=postgres DB=postgres SENTRY_TEST_USE_RUST_INTERFACE_RENORMALIZATION=1
 
-    - env: TEST_SUITE=symbolicator
-
 notifications:
   webhooks:
     urls:
