@@ -1,5 +1,6 @@
 import React from 'react';
 
+import AlertLink from 'app/components/alertLink';
 import AsyncView from 'app/views/asyncView';
 import Button from 'app/components/button';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
@@ -67,6 +68,11 @@ class OrganizationDeveloperSettings extends AsyncView {
     return (
       <div>
         <SettingsPageHeader title={t('Developer Settings')} action={action} />
+        <AlertLink to="https://docs.sentry.io/workflow/integrations/integration-platform/">
+          {t(
+            'Have questions about the Integration Platform? Learn more about it in our docs.'
+          )}
+        </AlertLink>
         <Panel>
           <PanelHeader>{t('Integrations')}</PanelHeader>
           <PanelBody>
