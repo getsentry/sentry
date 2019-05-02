@@ -1,5 +1,5 @@
 ---
-created: '2019-04-25T13:53:47.803264Z'
+created: '2019-05-02T08:33:46.789632Z'
 creator: sentry
 source: tests/symbolicator/test_unreal_full.py
 ---
@@ -376,6 +376,62 @@ threads:
     stacktrace:
       frames:
       - in_app: false
+        instruction_addr: '0x7ff7548229e6'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff75563d233'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff759a2f3f0'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff7589ca88b'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff75a4831a8'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff754814eaa'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff759a2f3f0'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff75a4831a8'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff754814eaa'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff754814eaa'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff7589e69ae'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff759a2f3f0'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff759a2f3f0'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff755181c71'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
         instruction_addr: '0x7ffe100f9f84'
         package: C:\Windows\System32\ntdll.dll
         trust: context
@@ -686,6 +742,74 @@ threads:
     stacktrace:
       frames:
       - in_app: false
+        instruction_addr: '0x7ff75519224c'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff7551971e8'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff754d959f5'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff754d8d290'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff754da6f49'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff7551659f9'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff75a1ae0f0'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff754e3bba8'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff75a1ae0c0'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff754dbe522'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff7589c665e'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff758a672d0'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff758a671f8'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff754d8bdf1'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff754d89952'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff755199769'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff754d8f221'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
         instruction_addr: '0x7ffe100f9f84'
         package: C:\Windows\System32\ntdll.dll
         trust: context
@@ -808,6 +932,62 @@ threads:
     stacktrace:
       frames:
       - in_app: false
+        instruction_addr: '0x7ff75519224c'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff7551971e8'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff754d959f5'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff754d8d290'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff754da6f49'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff7551659f9'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff75a1ae0f0'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff754e3bba8'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff75a1ae0c0'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff754dbe522'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff7589c665e'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff754d8bdf1'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff754d89952'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff755199769'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
         instruction_addr: '0x7ffe100f9f84'
         package: C:\Windows\System32\ntdll.dll
         trust: context
@@ -929,6 +1109,62 @@ threads:
         rsp: '0x8c4070f778'
     stacktrace:
       frames:
+      - in_app: false
+        instruction_addr: '0x7ff75519224c'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff7551971e8'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff754d959f5'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff754d8d290'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff754da6f49'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff7551659f9'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff75a1ae0f0'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff754e3bba8'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff75a1ae0c0'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff754dbe522'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff7589c665e'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff754d8bdf1'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff754d89952'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff755199769'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - in_app: false
         instruction_addr: '0x7ffe100f9f84'
         package: C:\Windows\System32\ntdll.dll
@@ -1072,6 +1308,86 @@ threads:
     stacktrace:
       frames:
       - in_app: false
+        instruction_addr: '0x7ff75519224c'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff7551971e8'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff754d959f5'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff754d8d290'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff754da6f49'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff7551659f9'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff75a1ae0f0'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff754e3bba8'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff75a1ae0c0'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff75a1ae0f0'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff754e426b5'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff754e3b27e'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff754e3af02'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff754e3ae3b'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff754d8bdf1'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff754d89952'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff75a19ed98'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff755199769'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff754e3409c'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff7553a0fdf'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
         instruction_addr: '0x7ffe100f9f84'
         package: C:\Windows\System32\ntdll.dll
         trust: context
@@ -1210,6 +1526,74 @@ threads:
     stacktrace:
       frames:
       - in_app: false
+        instruction_addr: '0x7ff75519224c'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff7551971e8'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff754d959f5'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff754d8d290'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff754da6f49'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff7551659f9'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff75a1ae0f0'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff754e3bba8'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff75a1ae0c0'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff754dbe522'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff7589c665e'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff754d8bdf1'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff754d89952'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff75a19ed98'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff755199769'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff754e3409c'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff7553a0fdf'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
         instruction_addr: '0x7ffe100f9f84'
         package: C:\Windows\System32\ntdll.dll
         trust: context
@@ -1335,6 +1719,66 @@ threads:
         rsp: '0x8c4088f808'
     stacktrace:
       frames:
+      - in_app: false
+        instruction_addr: '0x7ff75519224c'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff7551971e8'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff754d959f5'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff754d8d290'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff754da6f49'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff7551659f9'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff75a1ae0f0'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff754e3bba8'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff75a1ae0c0'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff754dbe522'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff7589c665e'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff754d8bdf1'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff754d89952'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff755199769'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff754e3469f'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - in_app: false
         instruction_addr: '0x7ffe100f9f84'
         package: C:\Windows\System32\ntdll.dll
@@ -1474,6 +1918,74 @@ threads:
     stacktrace:
       frames:
       - in_app: false
+        instruction_addr: '0x7ff75519224c'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff7551971e8'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff754d959f5'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff754d8d290'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff754da6f49'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff7551659f9'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff75a1ae0f0'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff754e3bba8'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff75a1ae0c0'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff754dbe522'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff7589c665e'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff754d8bdf1'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff754d89952'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff755199769'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff7553923b0'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff754d8b7c9'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff75504b92d'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
         instruction_addr: '0x7ffe100f9f84'
         package: C:\Windows\System32\ntdll.dll
         trust: context
@@ -1612,6 +2124,74 @@ threads:
     stacktrace:
       frames:
       - in_app: false
+        instruction_addr: '0x7ff75519224c'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff7551971e8'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff754d959f5'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff754d8d290'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff754da6f49'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff7551659f9'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff75a1ae0f0'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff754e3bba8'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff75a1ae0c0'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff754dbe522'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff7589c665e'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff754d8bdf1'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff754d89952'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff755199769'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff7553923b0'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff754d8b7c9'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff75504b92d'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
         instruction_addr: '0x7ffe100f9f84'
         package: C:\Windows\System32\ntdll.dll
         trust: context
@@ -1745,6 +2325,70 @@ threads:
         rsp: '0x8c40a0f2f8'
     stacktrace:
       frames:
+      - in_app: false
+        instruction_addr: '0x7ff75519224c'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff7551971e8'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff754d959f5'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff754d8d290'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff754da6f49'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff7551659f9'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff75a1ae0f0'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff754e3bba8'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff75a1ae0c0'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff754dbe522'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff7589c665e'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff754d8bdf1'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff754d89952'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff755199769'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff754d8b7c9'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff75504b92d'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - in_app: false
         instruction_addr: '0x7ffe100f9f84'
         package: C:\Windows\System32\ntdll.dll
@@ -1880,6 +2524,70 @@ threads:
     stacktrace:
       frames:
       - in_app: false
+        instruction_addr: '0x7ff75519224c'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff7551971e8'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff754d959f5'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff754d8d290'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff754da6f49'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff7551659f9'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff75a1ae0f0'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff754e3bba8'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff75a1ae0c0'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff754dbe522'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff7589c665e'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff758a672d0'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff754d8bdf1'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff754d89952'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff758a672d0'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff755199769'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
         instruction_addr: '0x7ffe100f9f84'
         package: C:\Windows\System32\ntdll.dll
         trust: context
@@ -1953,6 +2661,22 @@ threads:
         rsp: '0x8c40b0f5c8'
     stacktrace:
       frames:
+      - in_app: false
+        instruction_addr: '0x7ff754d8bdf1'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff754d89952'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff755199769'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff75504b92d'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - in_app: false
         instruction_addr: '0x7ffe100f9f84'
         package: C:\Windows\System32\ntdll.dll
@@ -2036,6 +2760,30 @@ threads:
     stacktrace:
       frames:
       - in_app: false
+        instruction_addr: '0x7ff754d8bdf1'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff754d89952'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff75a19ed98'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff755199769'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff754e3409c'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff7553a0fdf'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
         instruction_addr: '0x7ffe100f9f84'
         package: C:\Windows\System32\ntdll.dll
         trust: context
@@ -2113,6 +2861,30 @@ threads:
         rsp: '0x8c40c0fa78'
     stacktrace:
       frames:
+      - in_app: false
+        instruction_addr: '0x7ff754d8bdf1'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff754d89952'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff75a19ed98'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff755199769'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff754e3409c'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff7553a0fdf'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - in_app: false
         instruction_addr: '0x7ffe100f9f84'
         package: C:\Windows\System32\ntdll.dll
@@ -2196,6 +2968,30 @@ threads:
     stacktrace:
       frames:
       - in_app: false
+        instruction_addr: '0x7ff754d8bdf1'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff754d89952'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff75a19ed98'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff755199769'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff754e3409c'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff7553a0fdf'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
         instruction_addr: '0x7ffe100f9f84'
         package: C:\Windows\System32\ntdll.dll
         trust: context
@@ -2277,6 +3073,30 @@ threads:
         rsp: '0x8c40d0f8a8'
     stacktrace:
       frames:
+      - in_app: false
+        instruction_addr: '0x7ff754d8bdf1'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff754d89952'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff75a19ed98'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff755199769'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff754e3409c'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff7553a0fdf'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - in_app: false
         instruction_addr: '0x7ffe100f9f84'
         package: C:\Windows\System32\ntdll.dll
@@ -2432,6 +3252,94 @@ threads:
     stacktrace:
       frames:
       - in_app: false
+        instruction_addr: '0x7ff75519224c'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff7551971e8'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff75506e26d'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff754d8d176'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff754e3bba8'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff75a1ae0c0'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff754e3469f'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff754e3419b'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff754e3409c'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff754e349d6'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff754e01a18'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff754d8ca09'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff75a1e2338'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff75a1e2338'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff754db0220'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff75504752f'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff754d89952'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff755199769'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff754da6f49'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff754d7a570'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff754d8f221'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff754e3aed7'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
         instruction_addr: '0x7ffe100f9f84'
         package: C:\Windows\System32\ntdll.dll
         trust: context
@@ -2550,6 +3458,62 @@ threads:
     stacktrace:
       frames:
       - in_app: false
+        instruction_addr: '0x7ff75519224c'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff7551971e8'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff758bbfa00'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff758a671f8'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff754e44d8d'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff754e449af'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff758a670b0'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff754db0220'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff75503ff42'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff758a67100'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff758c25f01'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff755199769'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff759452a10'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff75797c3f0'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
         instruction_addr: '0x7ffe100f9f84'
         package: C:\Windows\System32\ntdll.dll
         trust: context
@@ -2639,6 +3603,34 @@ threads:
         rsp: '0x8c3ebff458'
     stacktrace:
       frames:
+      - in_app: false
+        instruction_addr: '0x7ff75519224c'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff7551971e8'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff754e44d8d'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff754e449af'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff758a670b0'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff754db0220'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff755199769'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - in_app: false
         instruction_addr: '0x7ffe100f9f84'
         package: C:\Windows\System32\ntdll.dll
@@ -2742,6 +3734,46 @@ threads:
     stacktrace:
       frames:
       - in_app: false
+        instruction_addr: '0x7ff75519224c'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff7551971e8'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff754e44d8d'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff754e449af'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff758a670b0'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff754db0220'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff755199769'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff75482017b'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff759452a10'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff75797c3f0'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
         instruction_addr: '0x7ffe100f9f84'
         package: C:\Windows\System32\ntdll.dll
         trust: context
@@ -2843,6 +3875,46 @@ threads:
         rsp: '0x8c40dcf698'
     stacktrace:
       frames:
+      - in_app: false
+        instruction_addr: '0x7ff75519224c'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff7551971e8'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff754e44d8d'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff754e449af'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff758a670b0'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff754db0220'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff755199769'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff75482017b'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff759452a10'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff75797c3f0'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - in_app: false
         instruction_addr: '0x7ffe100f9f84'
         package: C:\Windows\System32\ntdll.dll
@@ -2946,6 +4018,46 @@ threads:
     stacktrace:
       frames:
       - in_app: false
+        instruction_addr: '0x7ff75519224c'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff7551971e8'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff754e44d8d'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff754e449af'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff758a670b0'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff754db0220'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff755199769'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff75482017b'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff759452a10'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff75797c3f0'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
         instruction_addr: '0x7ffe100f9f84'
         package: C:\Windows\System32\ntdll.dll
         trust: context
@@ -3039,6 +4151,38 @@ threads:
         rsp: '0x8c40e0f558'
     stacktrace:
       frames:
+      - in_app: false
+        instruction_addr: '0x7ff75519224c'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff7551971e8'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff754e44d8d'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff754e449af'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff758a670b0'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff754db0220'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff754e3b27e'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff755199769'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - in_app: false
         instruction_addr: '0x7ffe100f9f84'
         package: C:\Windows\System32\ntdll.dll
@@ -3134,6 +4278,38 @@ threads:
     stacktrace:
       frames:
       - in_app: false
+        instruction_addr: '0x7ff75519224c'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff7551971e8'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff754e44d8d'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff754e449af'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff758a670b0'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff754db0220'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff754e3b27e'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff755199769'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
         instruction_addr: '0x7ffe100f9f84'
         package: C:\Windows\System32\ntdll.dll
         trust: context
@@ -3212,6 +4388,22 @@ threads:
     stacktrace:
       frames:
       - in_app: false
+        instruction_addr: '0x7ff75519224c'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff7551971e8'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff754f680be'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff75518c971'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
         instruction_addr: '0x7ffe100fa584'
         package: C:\Windows\System32\ntdll.dll
         trust: context
@@ -3285,6 +4477,18 @@ threads:
         rsp: '0x8c4131fd08'
     stacktrace:
       frames:
+      - in_app: false
+        instruction_addr: '0x7ff75519224c'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff7551971e8'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff756780450'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - in_app: false
         instruction_addr: '0x7ffe100fa584'
         package: C:\Windows\System32\ntdll.dll
@@ -3392,6 +4596,50 @@ threads:
     stacktrace:
       frames:
       - in_app: false
+        instruction_addr: '0x7ff75519224c'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff7551971e8'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff754b6efc6'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff754efc17c'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff758a670b0'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff754db0220'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff754f0021d'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff754e19759'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff755199769'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff758ae6d48'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff758a671f8'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
         instruction_addr: '0x7ffe100f9f84'
         package: C:\Windows\System32\ntdll.dll
         trust: context
@@ -3485,6 +4733,38 @@ threads:
         rsp: '0x8c4135fb68'
     stacktrace:
       frames:
+      - in_app: false
+        instruction_addr: '0x7ff75519224c'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff7551971e8'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff754e44d8d'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff754e449af'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff758a670b0'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff754db0220'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff755199769'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff75517fbb1'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - in_app: false
         instruction_addr: '0x7ffe100f9f84'
         package: C:\Windows\System32\ntdll.dll
@@ -3580,6 +4860,38 @@ threads:
     stacktrace:
       frames:
       - in_app: false
+        instruction_addr: '0x7ff75519224c'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff7551971e8'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff754e44d8d'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff754e449af'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff758a670b0'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff754db0220'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff755199769'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff75517fbb1'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
         instruction_addr: '0x7ffe100f9f84'
         package: C:\Windows\System32\ntdll.dll
         trust: context
@@ -3669,6 +4981,34 @@ threads:
         rsp: '0x8c4139fa08'
     stacktrace:
       frames:
+      - in_app: false
+        instruction_addr: '0x7ff75519224c'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff7551971e8'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff754e44d8d'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff754e449af'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff758a670b0'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff754db0220'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff755199769'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - in_app: false
         instruction_addr: '0x7ffe100f9f84'
         package: C:\Windows\System32\ntdll.dll
@@ -3763,6 +5103,38 @@ threads:
         rsp: '0x8c413bf8c8'
     stacktrace:
       frames:
+      - in_app: false
+        instruction_addr: '0x7ff75519224c'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff7551971e8'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff754e44d8d'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff754e449af'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff758a670b0'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff754db0220'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff755199769'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff75517fbb1'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - in_app: false
         instruction_addr: '0x7ffe100f9f84'
         package: C:\Windows\System32\ntdll.dll
@@ -3912,6 +5284,38 @@ threads:
     stacktrace:
       frames:
       - in_app: false
+        instruction_addr: '0x7ff75519224c'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff7551971e8'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff7559e6610'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff754f70c36'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff754f2efca'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff755199769'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff7559ccee1'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff7559e7c57'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
         instruction_addr: '0x7ffe100f9f84'
         package: C:\Windows\System32\ntdll.dll
         trust: context
@@ -3993,6 +5397,26 @@ threads:
         rsp: '0x8c4270fa18'
     stacktrace:
       frames:
+      - in_app: false
+        instruction_addr: '0x7ff75519224c'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff7551971e8'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff754e4b37f'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff756cba688'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff755199769'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - in_app: false
         instruction_addr: '0x7ffe100f9f84'
         package: C:\Windows\System32\ntdll.dll
@@ -4307,6 +5731,34 @@ threads:
     stacktrace:
       frames:
       - in_app: false
+        instruction_addr: '0x7ff75519224c'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff7551971e8'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff7549e3f3d'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff758a670b0'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff754db0220'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff755199769'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff754e3b984'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
         instruction_addr: '0x7ffe100f9f84'
         package: C:\Windows\System32\ntdll.dll
         trust: context
@@ -4396,6 +5848,34 @@ threads:
         rsp: '0x8c418ff968'
     stacktrace:
       frames:
+      - in_app: false
+        instruction_addr: '0x7ff75519224c'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff7551971e8'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff7549e3f3d'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff758a670b0'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff754db0220'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff755199769'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff754e3b984'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - in_app: false
         instruction_addr: '0x7ffe100f9f84'
         package: C:\Windows\System32\ntdll.dll
@@ -4487,6 +5967,34 @@ threads:
     stacktrace:
       frames:
       - in_app: false
+        instruction_addr: '0x7ff75519224c'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff7551971e8'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff7549e3f3d'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff758a670b0'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff754db0220'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff755199769'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff754e3b984'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
         instruction_addr: '0x7ffe100f9f84'
         package: C:\Windows\System32\ntdll.dll
         trust: context
@@ -4576,6 +6084,34 @@ threads:
         rsp: '0x8c4193f788'
     stacktrace:
       frames:
+      - in_app: false
+        instruction_addr: '0x7ff75519224c'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff7551971e8'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff7549e3f3d'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff758a670b0'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff754db0220'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff755199769'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff754e3b984'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - in_app: false
         instruction_addr: '0x7ffe100f9f84'
         package: C:\Windows\System32\ntdll.dll
@@ -4667,6 +6203,34 @@ threads:
     stacktrace:
       frames:
       - in_app: false
+        instruction_addr: '0x7ff75519224c'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff7551971e8'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff7549e3f3d'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff758a670b0'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff754db0220'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff755199769'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff754e3b984'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
         instruction_addr: '0x7ffe100f9f84'
         package: C:\Windows\System32\ntdll.dll
         trust: context
@@ -4756,6 +6320,34 @@ threads:
         rsp: '0x8c4197f9c8'
     stacktrace:
       frames:
+      - in_app: false
+        instruction_addr: '0x7ff75519224c'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff7551971e8'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff7549e3f3d'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff758a670b0'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff754db0220'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff755199769'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff754e3b984'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - in_app: false
         instruction_addr: '0x7ffe100f9f84'
         package: C:\Windows\System32\ntdll.dll
@@ -4847,6 +6439,34 @@ threads:
     stacktrace:
       frames:
       - in_app: false
+        instruction_addr: '0x7ff75519224c'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff7551971e8'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff7549e3f3d'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff758a670b0'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff754db0220'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff755199769'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff754e3b984'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
         instruction_addr: '0x7ffe100f9f84'
         package: C:\Windows\System32\ntdll.dll
         trust: context
@@ -4937,6 +6557,34 @@ threads:
     stacktrace:
       frames:
       - in_app: false
+        instruction_addr: '0x7ff75519224c'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff7551971e8'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff7549e3f3d'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff758a670b0'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff754db0220'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff755199769'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff754e3b984'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
         instruction_addr: '0x7ffe100f9f84'
         package: C:\Windows\System32\ntdll.dll
         trust: context
@@ -5014,6 +6662,30 @@ threads:
         rsp: '0x8c419df5f8'
     stacktrace:
       frames:
+      - in_app: false
+        instruction_addr: '0x7ff757fb47f2'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff758adc9f8'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff758a670b0'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff754db0220'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff755199769'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff754e3b984'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - in_app: false
         instruction_addr: '0x7ffe100f9f84'
         package: C:\Windows\System32\ntdll.dll
@@ -5108,6 +6780,38 @@ threads:
         rsp: '0x8c419efb58'
     stacktrace:
       frames:
+      - in_app: false
+        instruction_addr: '0x7ff75519224c'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff7551971e8'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff754e4b37f'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff757aaf081'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff758a670b0'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff754db0220'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff7551976c3'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff754e3b984'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - in_app: false
         instruction_addr: '0x7ffe100fa584'
         package: C:\Windows\System32\ntdll.dll
@@ -5297,6 +7001,26 @@ threads:
     stacktrace:
       frames:
       - in_app: false
+        instruction_addr: '0x7ff754d8ca09'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff754d89952'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff755199769'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff754d7a570'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff754da6f49'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
         instruction_addr: '0x7ffe100f9f84'
         package: C:\Windows\System32\ntdll.dll
         trust: context
@@ -5442,6 +7166,86 @@ threads:
     stacktrace:
       frames:
       - in_app: false
+        instruction_addr: '0x7ff75519224c'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff7551971e8'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff754e4b37f'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff7566cc3d7'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff7566cbf67'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff754d8d176'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff75501f8fc'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff75504b92d'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff754da6f49'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff754dc5267'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff754e349d6'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff754d8ca09'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff75a1e2338'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff75a1e2338'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff758a670b0'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff754db0220'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff754d89952'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff755199769'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff754d8f221'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff754e3419b'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
         instruction_addr: '0x7ffe100f9f84'
         package: C:\Windows\System32\ntdll.dll
         trust: context
@@ -5559,6 +7363,62 @@ threads:
         rsp: '0x8c4189fba8'
     stacktrace:
       frames:
+      - in_app: false
+        instruction_addr: '0x7ff75519224c'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff7551971e8'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff7566cc508'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff758a671f8'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff759054684'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff7566be97c'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff759054684'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff7566ce2a3'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff758a670b0'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff754db0220'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff758a67a48'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff754d8f4e0'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff7551976c3'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - in_app: false
+        instruction_addr: '0x7ff754d7feb8'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - in_app: false
         instruction_addr: '0x7ffe100fa584'
         package: C:\Windows\System32\ntdll.dll

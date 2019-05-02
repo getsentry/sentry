@@ -382,7 +382,8 @@ class NativeStacktraceProcessor(StacktraceProcessor):
         new_frames = []
         for sfrm in symbolicated_frames:
             new_frame = dict(raw_frame)
-            new_frame['function'] = sfrm['function']
+            if sfrm.get('function'):
+                new_frame['function'] = sfrm['function']
             if sfrm.get('symbol'):
                 new_frame['symbol'] = sfrm['symbol']
             if sfrm.get('abs_path'):
