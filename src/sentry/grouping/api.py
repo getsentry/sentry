@@ -104,7 +104,7 @@ def load_grouping_config(config_dict=None):
 def get_fingerprinting_config_for_project(project):
     from sentry.grouping.fingerprinting import FingerprintingRules, \
         InvalidFingerprintingConfig
-    rules = project.get_option('sentry:fingerprint_rules')
+    rules = project.get_option('sentry:fingerprinting_rules')
     if not rules:
         return FingerprintingRules([])
 
