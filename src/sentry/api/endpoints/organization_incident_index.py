@@ -5,10 +5,9 @@ from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
 
 from sentry import features
-from sentry.api.bases.organization import (
-    OrganizationEndpoint,
-    OrganizationPermission,
-)
+from sentry.api.bases.incident import IncidentPermission
+from sentry.api.bases.organization import OrganizationEndpoint
+from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework import ListField
@@ -19,13 +18,6 @@ from sentry.incidents.models import (
 )
 from sentry.models.group import Group
 from sentry.models.project import Project
-
-
-class OrganizationIncidentPermission(OrganizationPermission):
-    scope_map = {
-        'GET': ['org:read', 'org:write', 'org:admin'],
-        'POST': ['org:write', 'org:admin'],
-    }
 
 
 class IncidentSerializer(serializers.Serializer):
@@ -70,7 +62,7 @@ class IncidentSerializer(serializers.Serializer):
 
 
 class OrganizationIncidentIndexEndpoint(OrganizationEndpoint):
-    permission_classes = (OrganizationIncidentPermission, )
+    permission_classes = (IncidentPermission, )
 
     def get(self, request, organization):
         """
@@ -81,7 +73,7 @@ class OrganizationIncidentIndexEndpoint(OrganizationEndpoint):
         :auth: required
         """
         if not features.has('organizations:incidents', organization, actor=request.user):
-            return self.respond(status=404)
+            raise ResourceDoesNotExist
 
         incidents = Incident.objects.fetch_for_organization(
             organization,
