@@ -33,3 +33,13 @@ register(
         1: DEFAULT_GROUPING_ENHANCEMENTS_BASE,
     }
 )
+
+# The JavaScript loader version that is the project default.  This option
+# is expected to be never set but the epoch defaults are used if no
+# version is set on a project's DSN.
+register(
+    key='sentry:default_loader_version',
+    epoch_defaults={
+        1: '4.x',
+    }
+)

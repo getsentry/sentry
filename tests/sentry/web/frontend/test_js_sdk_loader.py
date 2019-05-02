@@ -6,7 +6,6 @@ from django.conf import settings
 from django.core.urlresolvers import reverse
 
 from sentry.testutils import TestCase
-from sentry.loader.browsersdkversion import DEFAULT_VERSION
 
 
 class JavaScriptSdkLoaderTest(TestCase):
@@ -61,7 +60,7 @@ class JavaScriptSdkLoaderTest(TestCase):
     def test_headers(self, mock_load_version_from_file):
         #  We want to always load the major version here since otherwise we fall back to
         #  the default value which isn't correct.
-        mocked_version = '%s.9.9' % DEFAULT_VERSION[0]
+        mocked_version = '4.9.9'
         mock_load_version_from_file.return_value = [mocked_version]
 
         resp = self.client.get(self.path)

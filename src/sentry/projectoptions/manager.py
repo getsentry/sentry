@@ -60,7 +60,7 @@ class ProjectOptionsManager(object):
     def get(self, project, key, default=None, validate=None):
         from sentry.models import ProjectOption
         return ProjectOption.objects.get_value(
-            project, key, default=default, validate=validate)
+            project, key, default, validate=validate)
 
     def delete(self, project, key):
         from sentry.models import ProjectOption
