@@ -242,11 +242,10 @@ class NativeStacktraceProcessor(StacktraceProcessor):
                               signal=self.signal,
                               request_id_cache_key=request_id_cache_key)
         if not rv:
-            self.data \
-                .setdefault('errors', []) \
-                .extend(self._handle_symbolication_failed(
-                    SymbolicationFailed(type=EventError.NATIVE_SYMBOLICATOR_FAILED)
-                ))
+            self._handle_symbolication_failed(
+                SymbolicationFailed(type=EventError.NATIVE_SYMBOLICATOR_FAILED),
+                self.data.setdefault('errors', [])
+            )
             return
 
         # TODO(markus): Set signal and os context from symbolicator response,
