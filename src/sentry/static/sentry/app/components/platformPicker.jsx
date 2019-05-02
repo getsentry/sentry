@@ -32,13 +32,10 @@ class PlatformPicker extends React.Component {
     showOther: true,
   };
 
-  constructor(props, ...args) {
-    super(props, ...args);
-    this.state = {
-      category: PLATFORM_CATEGORIES[0].id,
-      filter: props.platform?.split('-')[0],
-    };
-  }
+  state = {
+    category: PLATFORM_CATEGORIES[0].id,
+    filter: this.props.platform?.split('-')[0],
+  };
 
   get platformList() {
     const {category} = this.state;
