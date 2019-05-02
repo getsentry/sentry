@@ -319,9 +319,11 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
             if 'name' in item:
                 value = item['name']
             elif 'value' in item:
+                # Value based options prefer the value on submit.
+                key = item['value']
                 value = item['value']
             elif 'label' in item:
-                # Label based options are appear to prefer the value on submit.
+                # Label based options prefer the value on submit.
                 key = item['label']
                 value = item['label']
             else:
