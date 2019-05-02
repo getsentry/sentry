@@ -22,6 +22,14 @@ class NoteInput extends React.Component {
     memberList: PropTypes.array.isRequired,
     item: PropTypes.object,
     defaultText: PropTypes.string,
+    error: PropTypes.bool,
+    errorJSON: PropTypes.shape({
+      detail: PropTypes.shape({
+        message: PropTypes.string,
+        code: PropTypes.number,
+        extra: PropTypes.any,
+      }),
+    }),
 
     onEditFinish: PropTypes.func,
     onUpdate: PropTypes.func,
@@ -29,18 +37,19 @@ class NoteInput extends React.Component {
     onChange: PropTypes.func,
   };
 
+  static defaultProps = {
+    defaultText: '',
+  };
+
   constructor(props) {
     super(props);
 
     const {item} = props;
     const existing = !!item;
-    const defaultText = existing ? item.data.text : props.defaultText;
+    const defaultText = existing ? item.data.text || '' : props.defaultText;
 
     this.state = {
       loading: false,
-      error: false,
-      errorJSON: null,
-      expanded: false,
       preview: false,
       updating: existing,
       value: defaultText,
@@ -49,19 +58,9 @@ class NoteInput extends React.Component {
     };
   }
 
-  toggleEdit = () => {
-    this.setState({preview: false});
-  };
-
-  togglePreview = () => {
-    this.setState({preview: true});
-  };
-
   submitForm = () => {
     this.setState({
       loading: true,
-      error: false,
-      errorJSON: null,
     });
 
     if (this.state.updating) {
@@ -99,6 +98,14 @@ class NoteInput extends React.Component {
         this.props.item
       );
     }
+  };
+
+  handleToggleEdit = () => {
+    this.setState({preview: false});
+  };
+
+  handleTogglePreview = () => {
+    this.setState({preview: true});
   };
 
   handleSubmit = e => {
@@ -151,20 +158,6 @@ class NoteInput extends React.Component {
       .map(mention => mention[0]);
   };
 
-  expand = e => {
-    this.setState({expanded: true});
-
-    // HACK: Move cursor to end of text after autoFocus
-    // we do this my making sure this is only done on the first
-    // onFocus event
-    if (!this.state._hasFocused) {
-      this.setState({_hasFocused: true});
-      const value = e.target.value;
-      e.target.value = '';
-      e.target.value = value;
-    }
-  };
-
   mentionableUsers() {
     const {memberList} = this.props;
     return memberList.map(member => ({
@@ -184,7 +177,8 @@ class NoteInput extends React.Component {
   }
 
   render() {
-    const {error, errorJSON, loading, preview, updating, value} = this.state;
+    const {loading, preview, updating, value} = this.state;
+    const {error, errorJSON} = this.props;
 
     const placeHolderText = t(
       'Add details or updates to this event. \nTag users with @, or teams with #'
@@ -209,12 +203,12 @@ class NoteInput extends React.Component {
       >
         <NoteInputNavTabs>
           <NoteInputNavTab className={!preview ? 'active' : ''}>
-            <NoteInputNavTabLink onClick={this.toggleEdit}>
+            <NoteInputNavTabLink onClick={this.handleToggleEdit}>
               {updating ? t('Edit') : t('Write')}
             </NoteInputNavTabLink>
           </NoteInputNavTab>
           <NoteInputNavTab className={preview ? 'active' : ''}>
-            <NoteInputNavTabLink onClick={this.togglePreview}>
+            <NoteInputNavTabLink onClick={this.handleTogglePreview}>
               {t('Preview')}
             </NoteInputNavTabLink>
           </NoteInputNavTab>

@@ -8,6 +8,13 @@ jest.mock('app/api');
 
 describe('NoteInput', function() {
   let spy;
+  const routerContext = TestStubs.routerContext();
+
+  const props = {
+    group: {project: {}, id: 'groupId'},
+    memberList: [],
+    teams: [],
+  };
 
   beforeAll(function() {
     spy = Client.addMockResponse({
@@ -21,46 +28,34 @@ describe('NoteInput', function() {
   });
 
   it('renders', function() {
-    mount(
-      <NoteInput group={{project: {}}} memberList={[]} sessionUser={{}} />,
-      TestStubs.routerContext()
-    );
+    mount(<NoteInput {...props} />, routerContext);
   });
 
   it('submits when meta + enter is pressed', function() {
-    const wrapper = mount(
-      <NoteInput group={{project: {}, id: 'groupId'}} memberList={[]} sessionUser={{}} />,
-      TestStubs.routerContext()
-    );
+    const onCreate = jest.fn();
+    const wrapper = mount(<NoteInput {...props} onCreate={onCreate} />, routerContext);
 
     const input = wrapper.find('textarea');
 
     input.simulate('keyDown', {key: 'Enter', metaKey: true});
-    expect(spy).toHaveBeenCalled();
+    expect(onCreate).toHaveBeenCalled();
   });
 
   it('submits when ctrl + enter is pressed', function() {
-    const wrapper = mount(
-      <NoteInput group={{project: {}, id: 'groupId'}} memberList={[]} sessionUser={{}} />,
-      TestStubs.routerContext()
-    );
+    const onCreate = jest.fn();
+    const wrapper = mount(<NoteInput {...props} onCreate={onCreate} />, routerContext);
 
     const input = wrapper.find('textarea');
 
     input.simulate('keyDown', {key: 'Enter', ctrlKey: true});
-    expect(spy).toHaveBeenCalled();
+    expect(onCreate).toHaveBeenCalled();
   });
 
-  it('handles 401 error objects', async function() {
-    spy = Client.addMockResponse({
-      url: '/issues/groupId/comments/',
-      method: 'POST',
-      body: {detail: {message: '', code: 401, extra: ''}},
-      statusCode: 401,
-    });
+  it('handles errors', async function() {
+    const errorJSON = {detail: {message: '', code: 401, extra: ''}};
     const wrapper = mount(
-      <NoteInput group={{project: {}, id: 'groupId'}} memberList={[]} sessionUser={{}} />,
-      TestStubs.routerContext()
+      <NoteInput {...props} error={!!errorJSON} errorJSON={errorJSON} />,
+      routerContext
     );
 
     const input = wrapper.find('textarea');
@@ -68,6 +63,5 @@ describe('NoteInput', function() {
     input.simulate('keyDown', {key: 'Enter', ctrlKey: true});
     wrapper.update();
     expect(wrapper.find('ErrorMessage')).toHaveLength(1);
-    expect(spy).toHaveBeenCalled();
   });
 });
