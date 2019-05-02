@@ -46,8 +46,8 @@ describe('Organization Developer Settings', function() {
     );
 
     it('displays empty state', () => {
-      expect(wrapper).toMatchSnapshot();
       expect(wrapper.exists('EmptyMessage')).toBe(true);
+      expect(wrapper.text()).toMatch('No integrations have been created yet');
     });
   });
 
@@ -65,9 +65,8 @@ describe('Organization Developer Settings', function() {
     );
 
     it('displays all Apps owned by the Org', () => {
-      expect(wrapper).toMatchSnapshot();
       expect(wrapper.find('SentryApplicationRow').prop('app').name).toBe('Sample App');
-      // shows correct published status
+      expect(wrapper.find('PublishStatus').prop('published')).toBe(false);
     });
 
     it('allows for deletion', async () => {
@@ -106,8 +105,11 @@ describe('Organization Developer Settings', function() {
       routerContext
     );
 
+    it('shows the published status', () => {
+      expect(wrapper.find('PublishStatus').prop('published')).toBe(true);
+    });
+
     it('trash button is disabled', () => {
-      expect(wrapper).toMatchSnapshot();
       expect(wrapper.find('[icon="icon-trash"]').prop('disabled')).toEqual(true);
     });
   });
@@ -130,7 +132,6 @@ describe('Organization Developer Settings', function() {
     );
 
     it('trash button is disabled', () => {
-      expect(wrapper).toMatchSnapshot();
       expect(wrapper.find('[icon="icon-trash"]').prop('disabled')).toEqual(true);
     });
   });
