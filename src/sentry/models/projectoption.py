@@ -63,10 +63,6 @@ class ProjectOptionManager(BaseManager):
         self.filter(project=project, key=key).delete()
         self.reload_cache(project.id)
 
-    def get_option_epoch(self, project):
-        # if no epoch is set, then the oldest epoch is used
-        return self.get_value(project, 'sentry:option-epoch') or 1
-
     def set_value(self, project, key, value):
         inst, created = self.create_or_update(
             project=project,

@@ -24,12 +24,11 @@ class WellKnownProjectOption(object):
 
     def get_default(self, project=None, epoch=None):
         if self.epoch_defaults:
-            from sentry.models import ProjectOption
             if epoch is None:
                 if project is None:
                     epoch = 1
                 else:
-                    epoch = ProjectOption.objects.get_option_epoch(project)
+                    epoch = project.get_option('sentry:option-epoch') or 1
             idx = bisect.bisect(self.epoch_defaults, (epoch, None))
             try:
                 return self.epoch_defaults[idx][1]
@@ -53,6 +52,13 @@ class ProjectOptionsManager(object):
 
     def lookup_well_known_key(self, key):
         return self.registry.get(key)
+
+    def freeze_option_epoch(self, project, force=False):
+        # The options are frozen in a receiver hook for project saves.
+        # See `sentry.receivers.core.freeze_option_epoch_for_project`
+        if force or project.get_option('sentry:option-epoch') is None:
+            from .defaults import LATEST_EPOCH
+            project.update_option('sentry:option-epoch', LATEST_EPOCH)
 
     def set(self, project, key, value):
         from sentry.models import ProjectOption

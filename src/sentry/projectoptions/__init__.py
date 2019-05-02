@@ -31,7 +31,5 @@ def get_well_known_default(key, project=None, epoch=None):
         return well_known_key.get_default(project=project, epoch=epoch)
 
 
-# latest epoch
-LATEST_EPOCH = 2
-
 from . import defaults  # NOQA
+from .defaults import LATEST_EPOCH  # NOQA

@@ -8,6 +8,9 @@ sentry.projectoptions.defaults
 from __future__ import absolute_import
 from sentry.projectoptions import register
 
+# latest epoch
+LATEST_EPOCH = 1
+
 # grouping related configs
 #
 # The default values are hardcoded because some grouping configs might

@@ -49,8 +49,9 @@ class JavaScriptSdkLoader(BaseView):
             )
         except ProjectKey.DoesNotExist:
             pass
+        else:
+            key.project = Project.objects.get_from_cache(id=key.project_id)
 
-        key.project = Project.objects.get_from_cache(id=key.project_id)
         context, sdk_version, sdk_url = self._get_context(key)
 
         instance = "default"
