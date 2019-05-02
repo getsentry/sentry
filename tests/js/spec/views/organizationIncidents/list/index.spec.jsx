@@ -12,7 +12,10 @@ describe('OrganizationIncidentsList', function() {
   beforeEach(function() {
     mock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/incidents/',
-      body: [{id: '1', name: 'First incident'}, {id: '2', name: 'Second incident'}],
+      body: [
+        TestStubs.Incident({id: '1', identifier: '1', title: 'First incident'}),
+        TestStubs.Incident({id: '2', identifier: '1', title: 'Second incident'}),
+      ],
     });
   });
 
@@ -29,8 +32,8 @@ describe('OrganizationIncidentsList', function() {
     const items = wrapper.find('PanelItem');
 
     expect(items).toHaveLength(2);
-    expect(items.at(0).text()).toBe('First incident');
-    expect(items.at(1).text()).toBe('Second incident');
+    expect(items.at(0).text()).toContain('First incident');
+    expect(items.at(1).text()).toContain('Second incident');
   });
 
   it('displays empty state', function() {
