@@ -41,6 +41,11 @@ class WellKnownProjectOption(object):
 class ProjectOptionsManager(object):
     """Project options used to be implemented in a relatively ad-hoc manner
     in the past.  The project manager still uses the functionality of the
+    project model and just dispatches to it.
+
+    Options can be used without declaring defaults, but if defaults are
+    declared they are returned without having to define a default at the
+    time of the option lookup.
     """
 
     def __init__(self):
