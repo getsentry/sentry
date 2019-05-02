@@ -213,7 +213,7 @@ def merge_symbolicator_minidump_response(data, response):
 
     crashed_thread = {}
 
-    for complete_stacktrace in response.get('stacktraces') or ():
+    for complete_stacktrace in response['stacktraces']:
         thread = {
             'id': complete_stacktrace.get('thread_id'),
             'crashed': complete_stacktrace.get('is_requesting'),

@@ -96,19 +96,18 @@ def signal_from_data(data):
 
 
 def merge_symbolicated_frame(new_frame, sfrm, platform=None):
+    if sfrm.get('function'):
+        raw_func = trim(sfrm['function'], 256)
+        func = trim(trim_function_name(sfrm['function'], platform), 256)
 
-    raw_func = trim(sfrm['function'], 256)
-    func = trim(trim_function_name(sfrm['function'], platform), 256)
-
-    # if function and raw function match, we can get away without
-    # storing a raw function
-    if func == raw_func:
-        new_frame['function'] = raw_func
-    # otherwise we store both
-    else:
-        new_frame['raw_function'] = raw_func
-        new_frame['function'] = func
-
+        # if function and raw function match, we can get away without
+        # storing a raw function
+        if func == raw_func:
+            new_frame['function'] = raw_func
+        # otherwise we store both
+        else:
+            new_frame['raw_function'] = raw_func
+            new_frame['function'] = func
     if sfrm.get('instruction_addr'):
         new_frame['instruction_addr'] = sfrm['instruction_addr']
     if sfrm.get('symbol'):
