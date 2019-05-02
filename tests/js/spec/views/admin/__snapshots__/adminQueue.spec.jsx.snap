@@ -45,8 +45,7 @@ exports[`AdminQueue render() renders 1`] = `
           Global Throughput
         </h3>
       </div>
-      <internalStatChart
-        height={150}
+      <withApi(InternalStatChart)
         label="jobs started"
         resolution="1h"
         since={1507603280}
