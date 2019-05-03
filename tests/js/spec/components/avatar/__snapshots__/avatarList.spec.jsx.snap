@@ -6,7 +6,7 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
   maxVisibleAvatars={5}
   tooltipOptions={
     Object {
-      "placement": "top auto",
+      "position": "top",
     }
   }
   typeMembers="users"
@@ -140,7 +140,7 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
           size={28}
           tooltipOptions={
             Object {
-              "placement": "top auto",
+              "position": "top",
             }
           }
           user={
@@ -166,7 +166,7 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
             size={28}
             tooltipOptions={
               Object {
-                "placement": "top auto",
+                "position": "top",
               }
             }
             user={
@@ -193,7 +193,7 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
               size={28}
               tooltipOptions={
                 Object {
-                  "placement": "top auto",
+                  "position": "top",
                 }
               }
               user={
@@ -225,7 +225,7 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
                 tooltip="Foo Bar (foo@example.com)"
                 tooltipOptions={
                   Object {
-                    "placement": "top auto",
+                    "position": "top",
                   }
                 }
                 type="letter_avatar"
@@ -243,7 +243,7 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
                         setReferenceNode={[Function]}
                       >
                         <StyledBaseAvatar
-                          aria-describedby="tooltip_5xnxosaaqo"
+                          aria-describedby="tooltip-123456"
                           className="avatar css-ptswrs-StyledAvatar-Circle e1axh4r50"
                           innerRef={[Function]}
                           loaded={true}
@@ -260,7 +260,7 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
                           }
                         >
                           <span
-                            aria-describedby="tooltip_5xnxosaaqo"
+                            aria-describedby="tooltip-123456"
                             className="avatar e1axh4r50 css-p25dkn-StyledBaseAvatar-StyledAvatar-Circle e1z0ohzl0"
                             onBlur={[Function]}
                             onFocus={[Function]}
@@ -328,7 +328,7 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
           size={28}
           tooltipOptions={
             Object {
-              "placement": "top auto",
+              "position": "top",
             }
           }
           user={
@@ -354,7 +354,7 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
             size={28}
             tooltipOptions={
               Object {
-                "placement": "top auto",
+                "position": "top",
               }
             }
             user={
@@ -381,7 +381,7 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
               size={28}
               tooltipOptions={
                 Object {
-                  "placement": "top auto",
+                  "position": "top",
                 }
               }
               user={
@@ -413,7 +413,7 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
                 tooltip="Foo Bar (foo@example.com)"
                 tooltipOptions={
                   Object {
-                    "placement": "top auto",
+                    "position": "top",
                   }
                 }
                 type="letter_avatar"
@@ -431,7 +431,7 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
                         setReferenceNode={[Function]}
                       >
                         <StyledBaseAvatar
-                          aria-describedby="tooltip_7xsj156yci"
+                          aria-describedby="tooltip-123456"
                           className="avatar css-ptswrs-StyledAvatar-Circle e1axh4r50"
                           innerRef={[Function]}
                           loaded={true}
@@ -448,7 +448,7 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
                           }
                         >
                           <span
-                            aria-describedby="tooltip_7xsj156yci"
+                            aria-describedby="tooltip-123456"
                             className="avatar e1axh4r50 css-p25dkn-StyledBaseAvatar-StyledAvatar-Circle e1z0ohzl0"
                             onBlur={[Function]}
                             onFocus={[Function]}
@@ -516,7 +516,7 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
           size={28}
           tooltipOptions={
             Object {
-              "placement": "top auto",
+              "position": "top",
             }
           }
           user={
@@ -542,7 +542,7 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
             size={28}
             tooltipOptions={
               Object {
-                "placement": "top auto",
+                "position": "top",
               }
             }
             user={
@@ -569,7 +569,7 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
               size={28}
               tooltipOptions={
                 Object {
-                  "placement": "top auto",
+                  "position": "top",
                 }
               }
               user={
@@ -601,7 +601,7 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
                 tooltip="Foo Bar (foo@example.com)"
                 tooltipOptions={
                   Object {
-                    "placement": "top auto",
+                    "position": "top",
                   }
                 }
                 type="letter_avatar"
@@ -619,7 +619,7 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
                         setReferenceNode={[Function]}
                       >
                         <StyledBaseAvatar
-                          aria-describedby="tooltip_pbui7dx3sk"
+                          aria-describedby="tooltip-123456"
                           className="avatar css-ptswrs-StyledAvatar-Circle e1axh4r50"
                           innerRef={[Function]}
                           loaded={true}
@@ -636,7 +636,7 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
                           }
                         >
                           <span
-                            aria-describedby="tooltip_pbui7dx3sk"
+                            aria-describedby="tooltip-123456"
                             className="avatar e1axh4r50 css-p25dkn-StyledBaseAvatar-StyledAvatar-Circle e1z0ohzl0"
                             onBlur={[Function]}
                             onFocus={[Function]}
@@ -704,7 +704,7 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
           size={28}
           tooltipOptions={
             Object {
-              "placement": "top auto",
+              "position": "top",
             }
           }
           user={
@@ -730,7 +730,7 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
             size={28}
             tooltipOptions={
               Object {
-                "placement": "top auto",
+                "position": "top",
               }
             }
             user={
@@ -757,7 +757,7 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
               size={28}
               tooltipOptions={
                 Object {
-                  "placement": "top auto",
+                  "position": "top",
                 }
               }
               user={
@@ -789,7 +789,7 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
                 tooltip="Foo Bar (foo@example.com)"
                 tooltipOptions={
                   Object {
-                    "placement": "top auto",
+                    "position": "top",
                   }
                 }
                 type="letter_avatar"
@@ -807,7 +807,7 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
                         setReferenceNode={[Function]}
                       >
                         <StyledBaseAvatar
-                          aria-describedby="tooltip_odmxpdwl9w"
+                          aria-describedby="tooltip-123456"
                           className="avatar css-ptswrs-StyledAvatar-Circle e1axh4r50"
                           innerRef={[Function]}
                           loaded={true}
@@ -824,7 +824,7 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
                           }
                         >
                           <span
-                            aria-describedby="tooltip_odmxpdwl9w"
+                            aria-describedby="tooltip-123456"
                             className="avatar e1axh4r50 css-p25dkn-StyledBaseAvatar-StyledAvatar-Circle e1z0ohzl0"
                             onBlur={[Function]}
                             onFocus={[Function]}
@@ -892,7 +892,7 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
           size={28}
           tooltipOptions={
             Object {
-              "placement": "top auto",
+              "position": "top",
             }
           }
           user={
@@ -918,7 +918,7 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
             size={28}
             tooltipOptions={
               Object {
-                "placement": "top auto",
+                "position": "top",
               }
             }
             user={
@@ -945,7 +945,7 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
               size={28}
               tooltipOptions={
                 Object {
-                  "placement": "top auto",
+                  "position": "top",
                 }
               }
               user={
@@ -977,7 +977,7 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
                 tooltip="Foo Bar (foo@example.com)"
                 tooltipOptions={
                   Object {
-                    "placement": "top auto",
+                    "position": "top",
                   }
                 }
                 type="letter_avatar"
@@ -995,7 +995,7 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
                         setReferenceNode={[Function]}
                       >
                         <StyledBaseAvatar
-                          aria-describedby="tooltip_thjwyj6gbk"
+                          aria-describedby="tooltip-123456"
                           className="avatar css-ptswrs-StyledAvatar-Circle e1axh4r50"
                           innerRef={[Function]}
                           loaded={true}
@@ -1012,7 +1012,7 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
                           }
                         >
                           <span
-                            aria-describedby="tooltip_thjwyj6gbk"
+                            aria-describedby="tooltip-123456"
                             className="avatar e1axh4r50 css-p25dkn-StyledBaseAvatar-StyledAvatar-Circle e1z0ohzl0"
                             onBlur={[Function]}
                             onFocus={[Function]}
@@ -1086,7 +1086,7 @@ exports[`AvatarList renders with user avatars 1`] = `
   maxVisibleAvatars={5}
   tooltipOptions={
     Object {
-      "placement": "top auto",
+      "position": "top",
     }
   }
   typeMembers="users"
@@ -1140,7 +1140,7 @@ exports[`AvatarList renders with user avatars 1`] = `
           size={28}
           tooltipOptions={
             Object {
-              "placement": "top auto",
+              "position": "top",
             }
           }
           user={
@@ -1166,7 +1166,7 @@ exports[`AvatarList renders with user avatars 1`] = `
             size={28}
             tooltipOptions={
               Object {
-                "placement": "top auto",
+                "position": "top",
               }
             }
             user={
@@ -1193,7 +1193,7 @@ exports[`AvatarList renders with user avatars 1`] = `
               size={28}
               tooltipOptions={
                 Object {
-                  "placement": "top auto",
+                  "position": "top",
                 }
               }
               user={
@@ -1225,7 +1225,7 @@ exports[`AvatarList renders with user avatars 1`] = `
                 tooltip="Foo Bar (foo@example.com)"
                 tooltipOptions={
                   Object {
-                    "placement": "top auto",
+                    "position": "top",
                   }
                 }
                 type="letter_avatar"
@@ -1243,7 +1243,7 @@ exports[`AvatarList renders with user avatars 1`] = `
                         setReferenceNode={[Function]}
                       >
                         <StyledBaseAvatar
-                          aria-describedby="tooltip_jj4rpyzs79"
+                          aria-describedby="tooltip-123456"
                           className="avatar css-ptswrs-StyledAvatar-Circle e1axh4r50"
                           innerRef={[Function]}
                           loaded={true}
@@ -1260,7 +1260,7 @@ exports[`AvatarList renders with user avatars 1`] = `
                           }
                         >
                           <span
-                            aria-describedby="tooltip_jj4rpyzs79"
+                            aria-describedby="tooltip-123456"
                             className="avatar e1axh4r50 css-p25dkn-StyledBaseAvatar-StyledAvatar-Circle e1z0ohzl0"
                             onBlur={[Function]}
                             onFocus={[Function]}
@@ -1328,7 +1328,7 @@ exports[`AvatarList renders with user avatars 1`] = `
           size={28}
           tooltipOptions={
             Object {
-              "placement": "top auto",
+              "position": "top",
             }
           }
           user={
@@ -1354,7 +1354,7 @@ exports[`AvatarList renders with user avatars 1`] = `
             size={28}
             tooltipOptions={
               Object {
-                "placement": "top auto",
+                "position": "top",
               }
             }
             user={
@@ -1381,7 +1381,7 @@ exports[`AvatarList renders with user avatars 1`] = `
               size={28}
               tooltipOptions={
                 Object {
-                  "placement": "top auto",
+                  "position": "top",
                 }
               }
               user={
@@ -1413,7 +1413,7 @@ exports[`AvatarList renders with user avatars 1`] = `
                 tooltip="Foo Bar (foo@example.com)"
                 tooltipOptions={
                   Object {
-                    "placement": "top auto",
+                    "position": "top",
                   }
                 }
                 type="letter_avatar"
@@ -1431,7 +1431,7 @@ exports[`AvatarList renders with user avatars 1`] = `
                         setReferenceNode={[Function]}
                       >
                         <StyledBaseAvatar
-                          aria-describedby="tooltip_uwj895ejkm"
+                          aria-describedby="tooltip-123456"
                           className="avatar css-ptswrs-StyledAvatar-Circle e1axh4r50"
                           innerRef={[Function]}
                           loaded={true}
@@ -1448,7 +1448,7 @@ exports[`AvatarList renders with user avatars 1`] = `
                           }
                         >
                           <span
-                            aria-describedby="tooltip_uwj895ejkm"
+                            aria-describedby="tooltip-123456"
                             className="avatar e1axh4r50 css-p25dkn-StyledBaseAvatar-StyledAvatar-Circle e1z0ohzl0"
                             onBlur={[Function]}
                             onFocus={[Function]}

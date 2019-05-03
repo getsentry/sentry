@@ -4,6 +4,7 @@ import styled from 'react-emotion';
 import PropTypes from 'prop-types';
 
 import {Manager, Reference, Popper} from 'react-popper';
+import {domId} from 'app/utils/domId';
 
 class Tooltip2 extends React.Component {
   static propTypes = {
@@ -66,11 +67,7 @@ class Tooltip2 extends React.Component {
   };
 
   componentDidMount() {
-    this.tooltipId =
-      'tooltip_' +
-      Math.random()
-        .toString(36)
-        .substr(2, 10);
+    this.tooltipId = domId('tooltip-');
   }
 
   handleOpen = evt => {

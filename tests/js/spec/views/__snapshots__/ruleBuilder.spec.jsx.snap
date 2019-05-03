@@ -2639,7 +2639,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                                                       setReferenceNode={[Function]}
                                                     >
                                                       <StyledBaseAvatar
-                                                        aria-describedby="tooltip_9dyzij1zjr"
+                                                        aria-describedby="tooltip-123456"
                                                         className="avatar"
                                                         innerRef={[Function]}
                                                         loaded={true}
@@ -2656,7 +2656,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                                                         }
                                                       >
                                                         <span
-                                                          aria-describedby="tooltip_9dyzij1zjr"
+                                                          aria-describedby="tooltip-123456"
                                                           className="avatar css-3f9bmx-StyledBaseAvatar e1z0ohzl0"
                                                           onBlur={[Function]}
                                                           onFocus={[Function]}
