@@ -3,11 +3,11 @@ import React from 'react';
 import styled from 'react-emotion';
 
 import {t} from 'app/locale';
-import Avatar from 'app/components/avatar';
+import ActivityAuthor from 'app/components/activity/author';
+import ActivityItem from 'app/components/activity/item';
 import Clipboard from 'app/components/clipboard';
 import InlineSvg from 'app/components/inlineSvg';
 import Link from 'app/components/links/link';
-import TimeSince from 'app/components/timeSince';
 import space from 'app/styles/space';
 import utils from 'app/utils';
 
@@ -29,42 +29,35 @@ class EventUserFeedback extends React.Component {
   }
 
   render() {
-    const {report} = this.props;
+    const {className, report} = this.props;
 
     return (
-      <div className="user-report">
-        <div className="activity-container">
-          <ul className="activity">
-            <li className="activity-note">
-              <Avatar user={report} size={38} className="avatar" />
-              <div className="activity-bubble">
-                <div>
-                  <TimeSince date={report.dateCreated} />
-                  <div className="activity-author">
-                    {report.name}
-                    <Clipboard value={report.email}>
-                      <Email>
-                        {report.email}
-                        <CopyIcon src="icon-copy" />
-                      </Email>
-                    </Clipboard>
-                    {/* event.eventID might be undefined for legacy accounts */}
-                    {report.event.eventID && (
-                      <small>
-                        <Link to={this.getUrl()}>{t('View event')}</Link>
-                      </small>
-                    )}
-                  </div>
-                  <p
-                    dangerouslySetInnerHTML={{
-                      __html: utils.nl2br(utils.escape(report.comments)),
-                    }}
-                  />
-                </div>
-              </div>
-            </li>
-          </ul>
-        </div>
+      <div className={className}>
+        <ActivityItem
+          date={report.dateCreated}
+          author={{type: 'user', user: report}}
+          header={
+            <div>
+              <ActivityAuthor>{report.name}</ActivityAuthor>
+              <Clipboard value={report.email}>
+                <Email>
+                  {report.email}
+                  <CopyIcon src="icon-copy" />
+                </Email>
+              </Clipboard>
+              {/* event.eventID might be undefined for legacy accounts */}
+              {report.event.eventID && (
+                <ViewEventLink to={this.getUrl()}>{t('View event')}</ViewEventLink>
+              )}
+            </div>
+          }
+        >
+          <p
+            dangerouslySetInnerHTML={{
+              __html: utils.nl2br(utils.escape(report.comments)),
+            }}
+          />
+        </ActivityItem>
       </div>
     );
   }
@@ -77,6 +70,12 @@ const Email = styled('span')`
   font-weight: normal;
   cursor: pointer;
   margin-left: ${space(1)};
+`;
+
+const ViewEventLink = styled(Link)`
+  font-weight: 300;
+  margin-left: ${space(1)};
+  font-size: 0.9em;
 `;
 
 const CopyIcon = styled(InlineSvg)`

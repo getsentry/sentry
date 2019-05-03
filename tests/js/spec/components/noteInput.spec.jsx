@@ -1,7 +1,7 @@
 import React from 'react';
 import {mount} from 'enzyme';
 
-import NoteInput from 'app/components/activity/noteInput';
+import NoteInput from 'app/components/activity/note/input';
 import {Client} from 'app/api';
 
 jest.mock('app/api');
@@ -21,11 +21,10 @@ describe('NoteInput', function() {
   });
 
   it('renders', function() {
-    const wrapper = mount(
+    mount(
       <NoteInput group={{project: {}}} memberList={[]} sessionUser={{}} />,
       TestStubs.routerContext()
     );
-    expect(wrapper).toMatchSnapshot();
   });
 
   it('submits when meta + enter is pressed', function() {
@@ -68,7 +67,7 @@ describe('NoteInput', function() {
 
     input.simulate('keyDown', {key: 'Enter', ctrlKey: true});
     wrapper.update();
-    expect(wrapper.find('.activity-actions .error')).toHaveLength(1);
+    expect(wrapper.find('ErrorMessage')).toHaveLength(1);
     expect(spy).toHaveBeenCalled();
   });
 });

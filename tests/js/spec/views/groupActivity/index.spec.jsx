@@ -1,8 +1,9 @@
 import React from 'react';
-import {shallow} from 'enzyme';
+import {mount, shallow} from 'enzyme';
 
+import {initializeOrg} from 'app-test/helpers/initializeOrg';
 import {GroupActivity} from 'app/views/groupDetails/shared/groupActivity';
-import NoteInput from 'app/components/activity/noteInput';
+import NoteInput from 'app/components/activity/note/input';
 import ConfigStore from 'app/stores/configStore';
 import GroupStore from 'app/stores/groupStore';
 
@@ -21,20 +22,21 @@ describe('GroupActivity', function() {
   afterEach(function() {});
 
   it('renders a NoteInput', function() {
-    const wrapper = shallow(
+    const group = TestStubs.Group({
+      id: '1337',
+      activity: [],
+      project: TestStubs.Project(),
+    });
+    const {organization, routerContext} = initializeOrg({
+      group,
+    });
+    const wrapper = mount(
       <GroupActivity
         api={new MockApiClient()}
-        group={{id: '1337', activity: []}}
-        organization={TestStubs.Organization()}
+        group={group}
+        organization={organization}
       />,
-      {
-        context: {
-          group: {id: '1337'},
-          project: TestStubs.Project(),
-          team: {id: '1'},
-          organization: {id: 'bar'},
-        },
-      }
+      routerContext
     );
     expect(wrapper.find(NoteInput)).toHaveLength(1);
   });
