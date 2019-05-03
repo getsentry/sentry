@@ -5,16 +5,17 @@ import _ from 'lodash';
 import {
   addErrorMessage,
   addLoadingMessage,
-  removeIndicator,
+  clearIndicators,
 } from 'app/actionCreators/indicator';
+import {createNote, deleteNote, updateNote} from 'app/actionCreators/group';
 import {t} from 'app/locale';
+import {uniqueId} from 'app/utils/guid';
 import ActivityAuthor from 'app/components/activity/author';
 import ActivityItem from 'app/components/activity/item';
 import Avatar from 'app/components/avatar';
 import ConfigStore from 'app/stores/configStore';
 import ErrorBoundary from 'app/components/errorBoundary';
 import GroupActivityItem from 'app/views/groupDetails/shared/groupActivityItem';
-import GroupStore from 'app/stores/groupStore';
 import MemberListStore from 'app/stores/memberListStore';
 import Note from 'app/components/activity/note';
 import NoteInputWithStorage from 'app/components/activity/note/inputWithStorage';
@@ -35,94 +36,86 @@ class GroupActivity extends React.Component {
     group: SentryTypes.Group,
   };
 
+  state = {
+    createBusy: false,
+    preview: false,
+    error: false,
+    inputId: uniqueId(),
+  };
+
   getMemberList = (memberList, sessionUser) =>
     _.uniqBy(memberList, ({id}) => id).filter(({id}) => sessionUser.id !== id);
 
-  handleNoteDelete = item => {
-    const {group} = this.props;
+  handleNoteDelete = async item => {
+    const {api, group} = this.props;
 
     addLoadingMessage(t('Removing comment...'));
 
-    // Optimistically remove from UI
-    // removeGroupActivity(group, item);
-    const index = GroupStore.removeActivity(group.id, item.id);
-    if (index === -1) {
-      // I dunno, the id wasn't found in the GroupStore
-      return;
+    try {
+      await deleteNote(api, group, item);
+      clearIndicators();
+    } catch (_err) {
+      addErrorMessage(t('Failed to delete comment'));
     }
-
-    this.props.api.request('/issues/' + group.id + '/comments/' + item.id + '/', {
-      method: 'DELETE',
-      success: () => {
-        removeIndicator();
-      },
-      error: () => {
-        GroupStore.addActivity(group.id, item, index);
-        removeIndicator();
-        addErrorMessage(t('Failed to delete comment'));
-      },
-    });
   };
 
-  handleNoteCreate = note => {
-    const {group} = this.props;
+  handleNoteCreate = async note => {
+    const {api, group} = this.props;
+
+    this.setState({
+      createBusy: true,
+    });
 
     addLoadingMessage(t('Posting comment...'));
 
-    this.props.api.request('/issues/' + group.id + '/comments/', {
-      method: 'POST',
-      data: note,
-      error: error => {
-        this.setState({
-          loading: false,
-          preview: false,
-          error: true,
-          errorJSON: error.responseJSON || makeDefaultErrorJson(),
-        });
-        removeIndicator();
-      },
-      success: data => {
-        this.setState({
-          value: '',
-          preview: false,
-          expanded: false,
-          loading: false,
-          mentions: [],
-        });
-        GroupStore.addActivity(group.id, data);
-        this.finish();
-        removeIndicator();
-      },
-    });
+    try {
+      await createNote(api, group, note);
+
+      this.setState({
+        createBusy: false,
+        preview: false,
+        mentions: [],
+
+        // This is used as a `key` to Note Input so that after successful post
+        // we reset the value of the input
+        inputId: uniqueId(),
+      });
+      clearIndicators();
+    } catch (error) {
+      this.setState({
+        createBusy: false,
+        preview: false,
+        error: true,
+        errorJSON: error.responseJSON || makeDefaultErrorJson(),
+      });
+      addErrorMessage(t('Unable to post comment'));
+    }
   };
 
-  handleNoteUpdate = (note, item) => {
-    const {group} = this.props;
+  handleNoteUpdate = async (note, item) => {
+    const {api, group} = this.props;
 
-    addLoadingMessage(t('Updating comment...'));
-    this.props.api.request('/issues/' + group.id + '/comments/' + item.id + '/', {
-      method: 'PUT',
-      data: note,
-      error: error => {
-        this.setState({
-          loading: false,
-          preview: false,
-          error: true,
-          errorJSON: error.responseJSON || makeDefaultErrorJson(),
-        });
-        removeIndicator();
-      },
-      success: data => {
-        this.setState({
-          preview: false,
-          expanded: false,
-          loading: false,
-        });
-        GroupStore.updateActivity(group.id, item.id, {text: this.state.value});
-        removeIndicator();
-        this.finish();
-      },
+    this.setState({
+      updateBusy: true,
     });
+    addLoadingMessage(t('Updating comment...'));
+
+    try {
+      await updateNote(api, group, item, note);
+      this.setState({
+        updateBusy: false,
+        preview: false,
+      });
+      clearIndicators();
+    } catch (error) {
+      this.setState({
+        updateBusy: false,
+        preview: false,
+        error: true,
+        errorJSON: error.responseJSON || makeDefaultErrorJson(),
+      });
+      addErrorMessage(t('Unable to update comment'));
+    }
   };
 
   getMentionableTeams = projectSlug => {
@@ -154,9 +147,13 @@ class GroupActivity extends React.Component {
             <ActivityItem author={{type: 'user', user: me}}>
               {() => (
                 <NoteInputWithStorage
+                  key={this.state.inputId}
                   storageKey="groupinput:latest"
                   itemKey={group.id}
                   onCreate={this.handleNoteCreate}
+                  busy={this.state.createBusy}
+                  error={this.state.error}
+                  errorJSON={this.state.errorJSON}
                   {...noteProps}
                 />
               )}
@@ -177,6 +174,7 @@ class GroupActivity extends React.Component {
                       }}
                       onDelete={this.handleNoteDelete}
                       onUpdate={this.handleNoteUpdate}
+                      busy={this.state.updateBusy}
                       {...noteProps}
                     />
                   </ErrorBoundary>

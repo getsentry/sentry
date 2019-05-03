@@ -16,10 +16,11 @@ class Note extends React.Component {
     author: PropTypes.object.isRequired,
     item: PropTypes.object.isRequired,
     memberList: PropTypes.array.isRequired,
-    teams: PropTypes.arrayOf(SentryTypes.Team),
+    teams: PropTypes.arrayOf(SentryTypes.Team).isRequired,
 
-    onDelete: PropTypes.func.isRequired,
-    onUpdate: PropTypes.func.isRequired,
+    onDelete: PropTypes.func,
+    onCreate: PropTypes.func,
+    onUpdate: PropTypes.func,
   };
 
   constructor(...args) {
@@ -38,7 +39,34 @@ class Note extends React.Component {
   };
 
   handleDelete = () => {
-    this.props.onDelete(this.props.item);
+    const {item, onDelete} = this.props;
+
+    if (!onDelete) {
+      return;
+    }
+
+    onDelete(item);
+  };
+
+  handleCreate = note => {
+    const {onCreate} = this.props;
+
+    if (!onCreate) {
+      return;
+    }
+
+    onCreate(note);
+  };
+
+  handleUpdate = note => {
+    const {item, onUpdate} = this.props;
+
+    if (!onUpdate) {
+      return;
+    }
+
+    onUpdate(note, item);
+    this.setState({editing: false});
   };
 
   render() {
@@ -76,6 +104,8 @@ class Note extends React.Component {
           <NoteInput
             item={item}
             onEditFinish={this.handleEditFinish}
+            onUpdate={this.handleUpdate}
+            onCreate={this.handleCreate}
             memberList={memberList}
             teams={teams}
           />

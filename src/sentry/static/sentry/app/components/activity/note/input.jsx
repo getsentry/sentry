@@ -36,6 +36,7 @@ class NoteInput extends React.Component {
       }),
     }),
     placeholder: PropTypes.string,
+    busy: PropTypes.bool,
 
     onEditFinish: PropTypes.func,
     onUpdate: PropTypes.func,
@@ -46,6 +47,7 @@ class NoteInput extends React.Component {
   static defaultProps = {
     placeholder: t('Add a comment.\nTag users with @, or teams with #'),
     defaultText: '',
+    busy: false,
   };
 
   constructor(props) {
@@ -59,7 +61,6 @@ class NoteInput extends React.Component {
     this.teamMentions = [];
 
     this.state = {
-      loading: false,
       preview: false,
       value: defaultText,
       memberMentions: [],
@@ -92,10 +93,6 @@ class NoteInput extends React.Component {
   }
 
   submitForm = () => {
-    this.setState({
-      loading: true,
-    });
-
     if (!!this.props.item) {
       this.update();
     } else {
@@ -186,8 +183,8 @@ class NoteInput extends React.Component {
   };
 
   render() {
-    const {loading, preview, value} = this.state;
-    const {item, error, placeholder, errorJSON} = this.props;
+    const {preview, value} = this.state;
+    const {busy, item, error, placeholder, errorJSON} = this.props;
 
     const existingItem = !!item;
     const btnText = existingItem ? t('Save Comment') : t('Post Comment');
@@ -239,7 +236,7 @@ class NoteInput extends React.Component {
               value={value}
               required={true}
               autoFocus={true}
-              displayTransform={(id, display, type) =>
+              displayTransform={(_id, display, type) =>
                 `${type === 'member' ? '@' : ''}${display}`
               }
               markup="**[sentry.strip:__type__]__display__**"
@@ -270,7 +267,7 @@ class NoteInput extends React.Component {
                 {t('Cancel')}
               </FooterButton>
             )}
-            <FooterButton error={errorMessage} type="submit" disabled={loading}>
+            <FooterButton error={errorMessage} type="submit" disabled={busy}>
               {btnText}
             </FooterButton>
           </div>
