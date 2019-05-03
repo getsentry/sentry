@@ -540,6 +540,10 @@ describe('OrganizationStream', function() {
           isPinned: true,
         },
       });
+      const deletePin = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/pinned-searches/',
+        method: 'DELETE',
+      });
 
       wrapper
         .find('SmartSearchBar input')
@@ -575,7 +579,11 @@ describe('OrganizationStream', function() {
       wrapper.update();
 
       expect(browserHistory.push).toHaveBeenLastCalledWith(
-        '/organizations/org-slug/issues/searches/666/'
+        expect.objectContaining({
+          pathname: '/organizations/org-slug/issues/searches/666/',
+          query: {},
+          search: '',
+        })
       );
 
       wrapper.setProps({
@@ -590,6 +598,22 @@ describe('OrganizationStream', function() {
 
       expect(wrapper.find('OrganizationSavedSearchSelector ButtonTitle').text()).toBe(
         'My Pinned Search'
+      );
+
+      wrapper.find('Button[aria-label="Unpin this search"]').simulate('click');
+
+      expect(deletePin).toHaveBeenCalled();
+
+      await tick();
+      wrapper.update();
+
+      expect(browserHistory.push).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          pathname: '/organizations/org-slug/issues/',
+          query: {
+            query: 'assigned:me level:fatal',
+          },
+        })
       );
     });
 
@@ -656,7 +680,9 @@ describe('OrganizationStream', function() {
       wrapper.update();
 
       expect(browserHistory.push).toHaveBeenLastCalledWith(
-        '/organizations/org-slug/issues/searches/789/'
+        expect.objectContaining({
+          pathname: '/organizations/org-slug/issues/searches/789/',
+        })
       );
 
       wrapper.setProps({
@@ -718,7 +744,9 @@ describe('OrganizationStream', function() {
       wrapper.update();
 
       expect(browserHistory.push).toHaveBeenLastCalledWith(
-        '/organizations/org-slug/issues/searches/234/'
+        expect.objectContaining({
+          pathname: '/organizations/org-slug/issues/searches/234/',
+        })
       );
 
       wrapper.setProps({
@@ -733,6 +761,117 @@ describe('OrganizationStream', function() {
 
       expect(wrapper.find('OrganizationSavedSearchSelector ButtonTitle').text()).toBe(
         'Assigned to Me'
+      );
+    });
+
+    it('pinning and unpinning searches should keep project selected', async function() {
+      savedSearchesRequest = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/searches/',
+        body: [savedSearch],
+      });
+      createWrapper({
+        selection: {
+          projects: [123],
+          environments: ['prod'],
+          datetime: {},
+        },
+        location: {query: {project: ['123'], environment: ['prod']}},
+      });
+      await tick();
+      wrapper.update();
+
+      const deletePin = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/pinned-searches/',
+        method: 'DELETE',
+      });
+      const createPin = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/pinned-searches/',
+        method: 'PUT',
+        body: {
+          ...savedSearch,
+          id: '666',
+          name: 'My Pinned Search',
+          query: 'assigned:me level:fatal',
+          isPinned: true,
+        },
+      });
+
+      wrapper
+        .find('SmartSearchBar input')
+        .simulate('change', {target: {value: 'assigned:me level:fatal'}});
+      wrapper.find('SmartSearchBar form').simulate('submit');
+
+      expect(browserHistory.push).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          query: expect.objectContaining({
+            project: [123],
+            environment: ['prod'],
+            query: 'assigned:me level:fatal',
+          }),
+        })
+      );
+
+      const newRouter = {
+        ...router,
+        location: {
+          ...router.location,
+          query: {
+            ...router.location.query,
+            project: [123],
+            environment: ['prod'],
+            query: 'assigned:me level:fatal',
+          },
+        },
+      };
+
+      wrapper.setProps({...newRouter, router: newRouter});
+      wrapper.setContext({router: newRouter});
+      wrapper.update();
+
+      wrapper.find('Button[aria-label="Pin this search"]').simulate('click');
+
+      expect(createPin).toHaveBeenCalled();
+
+      await tick();
+      wrapper.update();
+
+      expect(browserHistory.push).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          pathname: '/organizations/org-slug/issues/searches/666/',
+          query: expect.objectContaining({
+            project: [123],
+            environment: ['prod'],
+            query: 'assigned:me level:fatal',
+          }),
+        })
+      );
+
+      wrapper.setProps({
+        params: {
+          ...router.params,
+          searchId: '666',
+        },
+      });
+
+      await tick();
+      wrapper.update();
+
+      wrapper.find('Button[aria-label="Unpin this search"]').simulate('click');
+
+      expect(deletePin).toHaveBeenCalled();
+
+      await tick();
+      wrapper.update();
+
+      expect(browserHistory.push).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          pathname: '/organizations/org-slug/issues/',
+          query: expect.objectContaining({
+            project: [123],
+            environment: ['prod'],
+            query: 'assigned:me level:fatal',
+          }),
+        })
       );
     });
 

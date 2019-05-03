@@ -119,6 +119,10 @@ class SmartSearchBar extends React.Component {
     excludeEnvironment: PropTypes.bool,
   };
 
+  static contextTypes = {
+    router: PropTypes.object,
+  };
+
   /**
    * Given a query, and the current cursor position, return the string-delimiting
    * index of the search term designated by the cursor.
@@ -536,6 +540,8 @@ class SmartSearchBar extends React.Component {
       pinnedSearch,
     } = this.props;
 
+    const {router} = this.context;
+
     evt.preventDefault();
     evt.stopPropagation();
 
@@ -545,9 +551,14 @@ class SmartSearchBar extends React.Component {
 
     if (!!pinnedSearch) {
       unpinSearch(api, organization.slug, savedSearchType, pinnedSearch).then(() => {
+        // TODO: We need to remove cursor/pagination query params from this
         browserHistory.push({
+          ...router.location,
           pathname: `/organizations/${organization.slug}/issues/`,
-          query: {query: pinnedSearch.query},
+          query: {
+            ...router.location.query,
+            query: pinnedSearch.query,
+          },
         });
       });
     } else {
@@ -558,9 +569,10 @@ class SmartSearchBar extends React.Component {
         removeSpace(this.state.query)
       ).then(resp => {
         if (resp && resp.id) {
-          browserHistory.push(
-            `/organizations/${organization.slug}/issues/searches/${resp.id}/`
-          );
+          browserHistory.push({
+            ...router.location,
+            pathname: `/organizations/${organization.slug}/issues/searches/${resp.id}/`,
+          });
         }
       });
     }
