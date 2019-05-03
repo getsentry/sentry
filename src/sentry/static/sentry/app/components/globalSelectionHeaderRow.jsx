@@ -23,11 +23,9 @@ class GlobalSelectionHeaderRow extends React.Component {
     return (
       <Container {...props}>
         <Content multi={multi}>{children}</Content>
-        {multi && (
-          <CheckboxWrapper onClick={onCheckClick} checked={checked}>
-            <Checkbox checked={checked} />
-          </CheckboxWrapper>
-        )}
+        <CheckboxWrapper onClick={multi ? onCheckClick : null} checked={checked}>
+          <Checkbox checked={checked} />
+        </CheckboxWrapper>
       </Container>
     );
   }
