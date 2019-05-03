@@ -32,7 +32,7 @@ def safe_execute(func, *args, **kwargs):
         else:
             result = func(*args, **kwargs)
     except Exception as e:
-        if isinstance(e, _passthrough_errors):
+        if _passthrough_errors and isinstance(e, _passthrough_errors):
             raise
         if hasattr(func, 'im_class'):
             cls = func.im_class
