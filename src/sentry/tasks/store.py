@@ -435,9 +435,10 @@ def _do_save_event(cache_key=None, data=None, start_time=None, event_id=None,
     """
     Saves an event to the database.
     """
-    from sentry.event_manager import HashDiscarded, EventManager, track_outcome
+    from sentry.event_manager import HashDiscarded, EventManager
     from sentry import quotas
     from sentry.models import ProjectKey
+    from sentry.utils.outcomes import Outcome, track_outcome
 
     if cache_key and data is None:
         data = default_cache.get(cache_key)
@@ -497,7 +498,7 @@ def _do_save_event(cache_key=None, data=None, start_time=None, event_id=None,
             event.project.organization_id,
             event.project.id,
             key_id,
-            'accepted',
+            Outcome.ACCEPTED,
             None,
             timestamp)
 
@@ -512,7 +513,14 @@ def _do_save_event(cache_key=None, data=None, start_time=None, event_id=None,
             pass
 
         quotas.refund(project, key=project_key, timestamp=start_time)
-        track_outcome(project.organization_id, project_id, key_id, 'filtered', reason, timestamp)
+        track_outcome(
+            project.organization_id,
+            project_id,
+            key_id,
+            Outcome.FILTERED,
+            reason,
+            timestamp
+        )
 
     finally:
         if cache_key:
