@@ -14,6 +14,7 @@ import {PageContent, PageHeader} from 'app/styles/organization';
 import PageHeading from 'app/components/pageHeading';
 import BetaTag from 'app/components/betaTag';
 import space from 'app/styles/space';
+import {getStatus} from '../utils';
 
 const DEFAULT_QUERY_STATUS = 'unresolved';
 
@@ -37,10 +38,10 @@ class OrganizationIncidentsBody extends AsyncComponent {
     return (
       <PanelItem key={incident.id}>
         <TableLayout>
-          <Link to={`/organizations/${orgId}/incidents/${incident.id}/`}>
-            {incident.name}
+          <Link to={`/organizations/${orgId}/incidents/${incident.identifier}/`}>
+            {incident.title}
           </Link>
-          <div>{incident.status}</div>
+          <div>{getStatus(incident.status)}</div>
           <div>{incident.duration}</div>
           <div>{incident.usersAffected}</div>
           <div>{incident.eventCount}</div>
