@@ -9,6 +9,8 @@ import {fadeIn} from 'app/styles/animations';
 import space from 'app/styles/space';
 import {domId} from 'app/utils/domId';
 
+const VALID_DIRECTIONS = ['top', 'bottom', 'left', 'right'];
+
 class Hovercard extends React.Component {
   static propTypes = {
     /**
@@ -38,7 +40,7 @@ class Hovercard extends React.Component {
     /**
      * Position tooltip should take relative to the child element
      */
-    position: PropTypes.oneOf(['top', 'bottom', 'left', 'right']),
+    position: PropTypes.oneOf(VALID_DIRECTIONS),
   };
 
   static defaultProps = {
@@ -160,13 +162,8 @@ const slideIn = p => keyframes`
 `;
 
 const getTipColor = p => (p['data-placement'] === 'bottom' ? p.theme.offWhite : '#fff');
-const TIP_DIRECTIONS = {
-  top: 'top',
-  bottom: 'bottom',
-  left: 'left',
-  right: 'right',
-};
-const getTipDirection = p => TIP_DIRECTIONS[p['data-placement']] || 'top';
+const getTipDirection = p =>
+  VALID_DIRECTIONS.includes(p['data-placement']) ? p['data-placement'] : 'top';
 
 const StyledHovercard = styled('div')`
   border-radius: 4px;
