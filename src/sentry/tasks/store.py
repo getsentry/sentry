@@ -500,7 +500,9 @@ def _do_save_event(cache_key=None, data=None, start_time=None, event_id=None,
             key_id,
             Outcome.ACCEPTED,
             None,
-            timestamp)
+            timestamp,
+            event_id
+        )
 
     except HashDiscarded:
         project = Project.objects.get_from_cache(id=project_id)
@@ -519,7 +521,8 @@ def _do_save_event(cache_key=None, data=None, start_time=None, event_id=None,
             key_id,
             Outcome.FILTERED,
             reason,
-            timestamp
+            timestamp,
+            event_id
         )
 
     finally:

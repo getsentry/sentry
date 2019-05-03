@@ -31,7 +31,7 @@ outcomes = settings.KAFKA_TOPICS[settings.KAFKA_OUTCOMES]
 outcomes_publisher = None
 
 
-def track_outcome(org_id, project_id, key_id, outcome, reason=None, timestamp=None):
+def track_outcome(org_id, project_id, key_id, outcome, reason=None, timestamp=None, event_id=None):
     """
     This is a central point to track org/project counters per incoming event.
     NB: This should only ever be called once per incoming event, which means
@@ -92,6 +92,7 @@ def track_outcome(org_id, project_id, key_id, outcome, reason=None, timestamp=No
                 'key_id': key_id,
                 'outcome': outcome.value,
                 'reason': reason,
+                'event_id': event_id,
             })
         )
 

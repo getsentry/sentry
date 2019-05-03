@@ -97,6 +97,7 @@ def api(func):
 def process_event(event_manager, project, key, remote_addr, helper, attachments):
     event_received.send_robust(ip=remote_addr, project=project, sender=process_event)
 
+    event_id = event_manager.get_data().get('event_id')
     start_time = time()
     should_filter, filter_reason = event_manager.should_filter()
     if should_filter:
@@ -106,6 +107,7 @@ def process_event(event_manager, project, key, remote_addr, helper, attachments)
             key.id,
             Outcome.FILTERED,
             filter_reason,
+            event_id=event_id
         )
         metrics.incr(
             'events.blacklisted', tags={'reason': filter_reason}, skip_internal=False
@@ -137,6 +139,7 @@ def process_event(event_manager, project, key, remote_addr, helper, attachments)
             key.id,
             Outcome.RATE_LIMITED,
             reason,
+            event_id=event_id
         )
         metrics.incr(
             'events.dropped',
@@ -173,6 +176,7 @@ def process_event(event_manager, project, key, remote_addr, helper, attachments)
             key.id,
             Outcome.INVALID,
             'duplicate',
+            event_id=event_id
         )
         raise APIForbidden(
             'An event with the same ID already exists (%s)' % (event_id, ))
@@ -544,6 +548,7 @@ class StoreView(APIView):
                 key.id,
                 Outcome.INVALID,
                 'too_large',
+                event_id=dict_data.get('event_id')
             )
             raise APIForbidden("Event size exceeded 10MB after normalization.")
 
