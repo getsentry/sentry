@@ -12,7 +12,7 @@ from sentry.lang.native.utils import get_sdk_from_event, handle_symbolication_fa
 from sentry.lang.native.symbolicator import merge_symbolicator_image
 from sentry.attachments import attachment_cache
 from sentry.coreapi import cache_key_for_event
-from sentry.utils.safe import get_path
+from sentry.utils.safe import get_path, setdefault_path
 
 minidumps_logger = logging.getLogger('sentry.minidumps')
 
@@ -53,6 +53,15 @@ def process_minidump(minidump, cfi=None):
         return ProcessState.from_minidump(minidump.temporary_file_path(), cfi)
     else:
         return ProcessState.from_minidump_buffer(minidump, cfi)
+
+
+def _guess_frame_quality(frames):
+    good_frames = 0
+    for frame in frames or ():
+        if frame.get('function'):
+            good_frames += 1
+
+    return good_frames / float(len(frames))
 
 
 def merge_process_state_event(data, state, cfi=None):
@@ -209,47 +218,49 @@ def merge_symbolicator_minidump_response(data, response):
         )
         images.append(image)
 
-    data['threads'] = threads = {'values': []}
+    setdefault_path(data, 'threads', 'values', value=[])
+    data_threads = get_path(data, 'threads', 'values')
+    assert isinstance(data_threads, list)
 
-    crashed_thread = {}
+    data_threads_by_id = {
+        thread['id']: thread
+        for thread in data_threads or ()
+        if thread.get('id')
+    }
+
+    data_exception = get_path(data, 'exception', 'values', 0)
 
     for complete_stacktrace in response['stacktraces']:
-        thread = {
-            'id': complete_stacktrace.get('thread_id'),
-            'crashed': complete_stacktrace.get('is_requesting'),
-            'stacktrace': {
-                'frames': [],
-                'registers': complete_stacktrace.get('registers')
-            },
-        }
+        is_requesting = complete_stacktrace.get('is_requesting')
+        thread_id = complete_stacktrace.get('thread_id')
 
-        if thread['crashed']:
-            crashed_thread = thread
+        if thread_id in data_threads_by_id:
+            data_thread = data_threads_by_id[thread_id]
+        else:
+            data_thread = {
+                'id': thread_id,
+                'crashed': is_requesting,
+            }
+            data_threads.append(data_thread)
 
-        for complete_frame in complete_stacktrace.get('frames') or ():
+        for container in data_thread, data_exception:
+            setdefault_path(data_thread, 'stacktrace', 'frames', value=[])
+            data_frames = get_path(data_thread, 'stacktrace', 'frames')
+            assert data_frames is not None
+            if data_frames:
+                break
+
+        if data_frames:
+            data_quality = _guess_frame_quality(data_frames)
+            new_quality = _guess_frame_quality(complete_stacktrace['frames'])
+
+            if new_quality < data_quality:
+                continue
+
+        data_frames.clear()
+        for complete_frame in reversed(complete_stacktrace['frames']):
             new_frame = {}
             merge_symbolicated_frame(new_frame, complete_frame)
-            thread['stacktrace']['frames'].append(new_frame)
+            data_frames.append(new_frame)
 
-        thread['stacktrace']['frames'].reverse()
-
-        threads['values'].append(thread)
-
-    exc_value = 'Assertion Error: %s' % response['assertion'] if response.get('assertion')\
-        else 'Fatal Error: %s' % response.get('crash_reason')
-
-    data['exception'] = {'values': [{
-        'value': exc_value,
-        'thread_id': crashed_thread.get('id'),
-        'type': response.get('crash_reason'),
-        # Move stacktrace here from crashed_thread (mutating!)
-        'stacktrace': crashed_thread.pop('stacktrace', None),
-        'mechanism': {
-            'type': 'minidump',
-            'handled': False,
-            'synthetic': True,
-            # We cannot extract exception codes or signals with the breakpad
-            # extractor just yet. Once these capabilities are added to symbolic,
-            # these values should go in the mechanism here.
-        }
-    }]}
+    # TODO(markus): Add exception data here once merge_process_state_event is gone
