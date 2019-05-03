@@ -1,18 +1,20 @@
 import React from 'react';
+import styled from 'react-emotion';
 
-import {t} from 'app/locale';
-import withOrganization from 'app/utils/withOrganization';
-import SentryTypes from 'app/sentryTypes';
-import Feature from 'app/components/acl/feature';
-import Alert from 'app/components/alert';
-import EmptyStateWarning from 'app/components/emptyStateWarning';
-import CompactIssue from 'app/components/compactIssue';
-import EventUserFeedback from 'app/components/events/userFeedback';
-import LoadingIndicator from 'app/components/loadingIndicator';
-import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
-import NoProjectMessage from 'app/components/noProjectMessage';
-import AsyncView from 'app/views/asyncView';
 import {PageContent} from 'app/styles/organization';
+import {t} from 'app/locale';
+import Alert from 'app/components/alert';
+import AsyncView from 'app/views/asyncView';
+import CompactIssue from 'app/components/compactIssue';
+import EmptyStateWarning from 'app/components/emptyStateWarning';
+import EventUserFeedback from 'app/components/events/userFeedback';
+import Feature from 'app/components/acl/feature';
+import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
+import LoadingIndicator from 'app/components/loadingIndicator';
+import NoProjectMessage from 'app/components/noProjectMessage';
+import SentryTypes from 'app/sentryTypes';
+import space from 'app/styles/space';
+import withOrganization from 'app/utils/withOrganization';
 
 import UserFeedbackContainer from './container';
 import {getQuery} from './utils';
@@ -57,7 +59,7 @@ class OrganizationUserFeedback extends AsyncView {
               data={issue}
               eventId={item.event.eventID}
             >
-              <EventUserFeedback report={item} orgId={orgId} issueId={issue.id} />
+              <StyledEventUserFeedback report={item} orgId={orgId} issueId={issue.id} />
             </CompactIssue>
           );
         })}
@@ -130,3 +132,7 @@ class OrganizationUserFeedback extends AsyncView {
 
 export {OrganizationUserFeedback};
 export default withOrganization(OrganizationUserFeedback);
+
+const StyledEventUserFeedback = styled(EventUserFeedback)`
+  margin: ${space(2)} 0 0;
+`;

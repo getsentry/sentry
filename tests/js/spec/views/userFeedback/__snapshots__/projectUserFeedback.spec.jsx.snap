@@ -86,7 +86,7 @@ exports[`projectUserFeedback renders 1`] = `
       id="1"
       key="123"
     >
-      <EventUserFeedback
+      <StyledEventUserFeedback
         issueId="1"
         orgId="org-slug"
         projectId="project-slug"

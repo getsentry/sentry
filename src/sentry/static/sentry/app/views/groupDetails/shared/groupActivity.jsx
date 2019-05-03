@@ -8,7 +8,8 @@ import {
   removeIndicator,
 } from 'app/actionCreators/indicator';
 import {t, tct, tn} from 'app/locale';
-import withApi from 'app/utils/withApi';
+import ActivityAuthor from 'app/components/activity/author';
+import ActivityItem from 'app/components/activity/item';
 import Avatar from 'app/components/avatar';
 import CommitLink from 'app/components/commitLink';
 import ConfigStore from 'app/stores/configStore';
@@ -16,13 +17,13 @@ import Duration from 'app/components/duration';
 import ErrorBoundary from 'app/components/errorBoundary';
 import GroupStore from 'app/stores/groupStore';
 import MemberListStore from 'app/stores/memberListStore';
-import NoteContainer from 'app/components/activity/noteContainer';
-import NoteInput from 'app/components/activity/noteInput';
+import Note from 'app/components/activity/note';
+import NoteInput from 'app/components/activity/note/input';
 import PullRequestLink from 'app/components/pullRequestLink';
 import SentryTypes from 'app/sentryTypes';
 import TeamStore from 'app/stores/teamStore';
-import TimeSince from 'app/components/timeSince';
 import Version from 'app/components/version';
+import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
 
 class GroupActivityItem extends React.Component {
@@ -253,10 +254,11 @@ const GroupActivity = createReactClass({
 
       if (item.type === 'note') {
         return (
-          <NoteContainer
+          <Note
             group={group}
             item={item}
-            key={'note' + itemIdx}
+            key={`note-${item.id}`}
+            id={`note-${item.id}`}
             author={{
               name: authorName,
               avatar: <Avatar user={item.user} size={38} />,
@@ -267,40 +269,28 @@ const GroupActivity = createReactClass({
           />
         );
       } else {
-        const avatar = item.user ? (
-          <Avatar user={item.user} size={18} className="activity-avatar" />
-        ) : (
-          <div className="activity-avatar avatar sentry">
-            <span className="icon-sentry-logo" />
-          </div>
-        );
-
         const author = {
           name: authorName,
-          avatar,
         };
 
         return (
-          <li className="activity-item" key={item.id}>
-            <a name={'event_' + item.id} />
-            <TimeSince date={item.dateCreated} />
-            <div className="activity-item-content">
+          <ActivityItem
+            item={item}
+            key={`group-activity-item-${item.id}`}
+            author={{type: item.user ? 'user' : 'system', user: item.user}}
+            date={item.dateCreated}
+            header={
               <ErrorBoundary mini>
                 <GroupActivityItem
                   organization={organization}
-                  author={
-                    <span key="author">
-                      {avatar}
-                      <span className="activity-author">{author.name}</span>
-                    </span>
-                  }
+                  author={<ActivityAuthor>{author.name}</ActivityAuthor>}
                   item={item}
                   orgId={this.props.params.orgId}
                   projectId={group.project.slug}
                 />
               </ErrorBoundary>
-            </div>
-          </li>
+            }
+          />
         );
       }
     });
@@ -308,16 +298,11 @@ const GroupActivity = createReactClass({
     return (
       <div className="row">
         <div className="col-md-9">
-          <div className="activity-container">
-            <ul className="activity">
-              <li className="activity-note" key="activity-note">
-                <Avatar user={me} size={38} />
-                <div className="activity-bubble">
-                  <NoteInput group={group} memberList={memberList} sessionUser={me} />
-                </div>
-              </li>
-              {children}
-            </ul>
+          <div>
+            <ActivityItem author={{type: 'user', user: me}}>
+              {() => <NoteInput group={group} memberList={memberList} sessionUser={me} />}
+            </ActivityItem>
+            {children}
           </div>
         </div>
       </div>
