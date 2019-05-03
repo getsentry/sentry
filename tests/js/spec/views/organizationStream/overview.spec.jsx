@@ -19,7 +19,7 @@ jest.mock('app/components/stream/group', () => jest.fn(() => null));
 
 const DEFAULT_LINKS_HEADER =
   '<http://127.0.0.1:8000/api/0/organizations/org-slug/issues/?cursor=1443575731:0:1>; rel="previous"; results="false"; cursor="1443575731:0:1", ' +
-  '<http://127.0.0.1:8000/api/0/organizations/org-slug/issues/?cursor=1443575731:0:0>; rel="next"; results="true"; cursor="1443575731:0:0';
+  '<http://127.0.0.1:8000/api/0/organizations/org-slug/issues/?cursor=1443575000:0:0>; rel="next"; results="true"; cursor="1443575000:0:0"';
 
 describe('OrganizationStream', function() {
   let wrapper;
@@ -739,6 +739,112 @@ describe('OrganizationStream', function() {
     it.todo('saves a new query');
 
     it.todo('loads pinned search when invalid saved search id is accessed');
+
+    it('does not allow pagination to "previous" while on first page and resets cursors when navigating back to initial page', async function() {
+      let pushArgs;
+      createWrapper();
+      await tick();
+      wrapper.update();
+
+      expect(
+        wrapper
+          .find('Pagination a')
+          .first()
+          .prop('disabled')
+      ).toBe(true);
+
+      issuesRequest = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/issues/',
+        body: [group],
+        headers: {
+          Link:
+            '<http://127.0.0.1:8000/api/0/organizations/org-slug/issues/?cursor=1443575000:0:0>; rel="previous"; results="true"; cursor="1443575000:0:1", <http://127.0.0.1:8000/api/0/organizations/org-slug/issues/?cursor=1443574000:0:0>; rel="next"; results="true"; cursor="1443574000:0:0"',
+        },
+      });
+
+      // Click next
+      wrapper
+        .find('Pagination a')
+        .last()
+        .simulate('click');
+      pushArgs = {
+        pathname: '/organizations/org-slug/issues/',
+        query: {
+          cursor: '1443575000:0:0',
+          page: 1,
+          environment: [],
+          project: [],
+          query: 'is:unresolved',
+        },
+      };
+      expect(browserHistory.push).toHaveBeenLastCalledWith(pushArgs);
+      wrapper.setProps({location: pushArgs});
+      wrapper.setContext({location: pushArgs});
+      wrapper.update();
+
+      expect(
+        wrapper
+          .find('Pagination a')
+          .first()
+          .prop('disabled')
+      ).toBe(false);
+
+      // Click next again
+      wrapper
+        .find('Pagination a')
+        .last()
+        .simulate('click');
+      pushArgs = {
+        pathname: '/organizations/org-slug/issues/',
+        query: {
+          cursor: '1443574000:0:0',
+          page: 2,
+          environment: [],
+          project: [],
+          query: 'is:unresolved',
+        },
+      };
+      expect(browserHistory.push).toHaveBeenLastCalledWith(pushArgs);
+      wrapper.setProps({location: pushArgs});
+      wrapper.setContext({location: pushArgs});
+      wrapper.update();
+
+      // Click previous
+      wrapper
+        .find('Pagination a')
+        .first()
+        .simulate('click');
+      pushArgs = {
+        pathname: '/organizations/org-slug/issues/',
+        query: {
+          cursor: '1443575000:0:1',
+          page: 1,
+          environment: [],
+          project: [],
+          query: 'is:unresolved',
+        },
+      };
+      expect(browserHistory.push).toHaveBeenLastCalledWith(pushArgs);
+      wrapper.setProps({location: pushArgs});
+      wrapper.setContext({location: pushArgs});
+      wrapper.update();
+
+      // Click previous back to initial page
+      wrapper
+        .find('Pagination a')
+        .first()
+        .simulate('click');
+
+      // cursor is undefined because "prev" cursor is == initial "next" cursor
+      expect(browserHistory.push).toHaveBeenLastCalledWith({
+        pathname: '/organizations/org-slug/issues/',
+        query: {
+          environment: [],
+          project: [],
+          query: 'is:unresolved',
+        },
+      });
+    });
   });
 
   describe('transitionTo', function() {
