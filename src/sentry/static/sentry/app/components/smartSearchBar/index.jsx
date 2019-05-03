@@ -549,14 +549,16 @@ class SmartSearchBar extends React.Component {
       return;
     }
 
+    // eslint-disable-next-line no-unused-vars
+    const {cursor: _cursor, page: _page, ...currentQuery} = router.location.query;
+
     if (!!pinnedSearch) {
       unpinSearch(api, organization.slug, savedSearchType, pinnedSearch).then(() => {
-        // TODO: We need to remove cursor/pagination query params from this
         browserHistory.push({
           ...router.location,
           pathname: `/organizations/${organization.slug}/issues/`,
           query: {
-            ...router.location.query,
+            ...currentQuery,
             query: pinnedSearch.query,
           },
         });
@@ -572,6 +574,7 @@ class SmartSearchBar extends React.Component {
           browserHistory.push({
             ...router.location,
             pathname: `/organizations/${organization.slug}/issues/searches/${resp.id}/`,
+            query: currentQuery,
           });
         }
       });
