@@ -144,6 +144,7 @@ const TooltipContent = styled('span')`
   border-radius: ${p => p.theme.borderRadius};
   overflow-wrap: break-word;
   max-width: 200px;
+  z-index: ${p => p.theme.zIndex.tooltip};
 
   font-weight: bold;
   font-size: ${p => p.theme.fontSizeSmall};
