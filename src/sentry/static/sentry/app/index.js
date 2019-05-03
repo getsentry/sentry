@@ -40,8 +40,9 @@ Sentry.init({
   integrations: [
     new ExtraErrorData(),
     new Tracing({
-      tracingOrigins: ['localhost', 'sentry.io', /^\//]
-    })
+      tracingOrigins: ['localhost', 'sentry.io', /^\//],
+      autoStartOnDomReady: false,
+    }),
   ],
 });
 
