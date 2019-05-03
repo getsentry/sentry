@@ -233,7 +233,7 @@ class Search extends React.Component {
 
 export default withRouter(Search);
 
-const DropdownBox = styled.div`
+const DropdownBox = styled('div')`
   background: #fff;
   border: 1px solid ${p => p.theme.borderDark};
   box-shadow: ${p => p.theme.dropShadowHeavy};
@@ -245,7 +245,7 @@ const DropdownBox = styled.div`
   overflow: hidden;
 `;
 
-const SearchWrapper = styled.div`
+const SearchWrapper = styled('div')`
   position: relative;
 `;
 

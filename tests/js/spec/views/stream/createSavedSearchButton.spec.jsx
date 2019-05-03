@@ -8,7 +8,7 @@ describe('CreateSavedSearchButton', function() {
 
   beforeEach(function() {
     organization = TestStubs.Organization({
-      features: ['org-saved-searches'],
+      features: ['sentry10'],
       access: ['org:write'],
     });
     wrapper = mount(
@@ -93,7 +93,7 @@ describe('CreateSavedSearchButton', function() {
 
     it('hides button if no access', function() {
       const orgWithoutAccess = TestStubs.Organization({
-        features: ['org-saved-searches'],
+        features: ['sentry10'],
         access: ['org:read'],
       });
       wrapper.setProps({organization: orgWithoutAccess});

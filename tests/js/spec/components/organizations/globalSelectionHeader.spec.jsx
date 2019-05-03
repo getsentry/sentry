@@ -54,6 +54,17 @@ describe('GlobalSelectionHeader', function() {
     expect(router.push).not.toHaveBeenCalled();
   });
 
+  it('does not update router if org in URL params is different than org in context/props', function() {
+    mount(<GlobalSelectionHeader organization={organization} hasCustomRouting />, {
+      ...routerContext,
+      context: {
+        ...routerContext.context,
+        router: {...routerContext.context.router, params: {orgId: 'diff-org'}},
+      },
+    });
+    expect(router.push).not.toHaveBeenCalled();
+  });
+
   it('does not replace URL with values from store when mounted with no query params', function() {
     mount(<GlobalSelectionHeader organization={organization} />, routerContext);
 
@@ -241,6 +252,7 @@ describe('GlobalSelectionHeader', function() {
     it('selects first project if more than one is requested', function() {
       const initializationObj = initializeOrg({
         router: {
+          params: {orgId: 'org-slug'}, // we need this to be set to make sure org in context is same as current org in URL
           location: {query: {project: [1, 2]}},
         },
       });
@@ -261,6 +273,7 @@ describe('GlobalSelectionHeader', function() {
       const initializationObj = initializeOrg({
         organization: org,
         router: {
+          params: {orgId: 'org-slug'},
           location: {query: {}},
         },
       });

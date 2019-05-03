@@ -1,5 +1,5 @@
 ---
-created: '2019-04-07T13:12:37.272426Z'
+created: '2019-05-02T18:53:29.352014Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -24,7 +24,7 @@ app:
           frame (non app frame)
             function*
               u'std::rt::lang_start::{{closure}}'
-          frame* (marked in-app by grouping enhancement rule)
+          frame* (marked in-app by grouping enhancement rule (family:native function:log_demo::*))
             function*
               u'log_demo::main'
           frame (non app frame)
@@ -45,7 +45,7 @@ system:
           frame*
             function*
               u'std::rt::lang_start_internal'
-          frame (ignored by grouping enhancement rule)
+          frame (ignored by grouping enhancement rule (family:native function:__*))
             function*
               u'___rust_maybe_catch_panic'
           frame*
@@ -54,10 +54,10 @@ system:
           frame*
             function*
               u'std::rt::lang_start::{{closure}}'
-          frame* (marked in-app by grouping enhancement rule)
+          frame* (marked in-app by grouping enhancement rule (family:native function:log_demo::*))
             function*
               u'log_demo::main'
-          frame (ignored by grouping enhancement rule)
+          frame (ignored by grouping enhancement rule (family:native function:*::__*))
             function*
               u'log::__private_api_log'
         type*

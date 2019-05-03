@@ -54,46 +54,48 @@ class DashboardTest(AcceptanceTestCase, SnubaTestCase):
         )
 
         self.login_as(self.user)
-        self.path = u'/{}/'.format(self.org.slug)
+        self.path = u'/organizations/{}/projects/'.format(self.org.slug)
 
     def test_no_issues(self):
         # I think no "activity" would be more accurate?
-        self.project.update(first_event=None)
-        self.browser.get(self.path)
-        self.browser.wait_until_not('.loading-indicator')
-        self.browser.wait_until_test_id('awaiting-events')
-        self.browser.snapshot('org dash no issues')
+        with self.feature('organizations:sentry10'):
+            self.project.update(first_event=None)
+            self.browser.get(self.path)
+            self.browser.wait_until_not('.loading-indicator')
+            self.browser.wait_until_test_id('awaiting-events')
+            self.browser.snapshot('org dash no issues')
 
     def test_one_issue(self):
-        self.init_snuba()
+        with self.feature('organizations:sentry10'):
+            self.init_snuba()
 
-        event_data = load_data('python')
-        event_data['event_id'] = 'd964fdbd649a4cf8bfc35d18082b6b0e'
-        event_data['timestamp'] = 1452683305
-        event = self.store_event(
-            project_id=self.project.id,
-            data=event_data,
-            assert_no_errors=False
-        )
-        event.group.update(
-            first_seen=datetime(2018, 1, 12, 3, 8, 25, tzinfo=timezone.utc),
-            last_seen=datetime(2018, 1, 13, 3, 8, 25, tzinfo=timezone.utc),
-        )
-        GroupAssignee.objects.create(
-            user=self.user,
-            group=event.group,
-            project=self.project,
-        )
-        OrganizationOnboardingTask.objects.create_or_update(
-            organization_id=self.project.organization_id,
-            task=OnboardingTask.FIRST_EVENT,
-            status=OnboardingTaskStatus.COMPLETE,
-        )
-        self.project.update(first_event=timezone.now())
-        self.browser.get(self.path)
-        self.browser.wait_until_not('.loading-indicator')
-        self.browser.wait_until('[data-test-id] figure')
-        self.browser.snapshot('org dash one issue')
+            event_data = load_data('python')
+            event_data['event_id'] = 'd964fdbd649a4cf8bfc35d18082b6b0e'
+            event_data['timestamp'] = 1452683305
+            event = self.store_event(
+                project_id=self.project.id,
+                data=event_data,
+                assert_no_errors=False
+            )
+            event.group.update(
+                first_seen=datetime(2018, 1, 12, 3, 8, 25, tzinfo=timezone.utc),
+                last_seen=datetime(2018, 1, 13, 3, 8, 25, tzinfo=timezone.utc),
+            )
+            GroupAssignee.objects.create(
+                user=self.user,
+                group=event.group,
+                project=self.project,
+            )
+            OrganizationOnboardingTask.objects.create_or_update(
+                organization_id=self.project.organization_id,
+                task=OnboardingTask.FIRST_EVENT,
+                status=OnboardingTaskStatus.COMPLETE,
+            )
+            self.project.update(first_event=timezone.now())
+            self.browser.get(self.path)
+            self.browser.wait_until_not('.loading-indicator')
+            self.browser.wait_until('[data-test-id] figure')
+            self.browser.snapshot('org dash one issue')
 
 
 class EmptyDashboardTest(AcceptanceTestCase):
@@ -112,9 +114,10 @@ class EmptyDashboardTest(AcceptanceTestCase):
             teams=[self.team],
         )
         self.login_as(self.user)
-        self.path = u'/{}/'.format(self.org.slug)
+        self.path = u'/organizations/{}/projects/'.format(self.org.slug)
 
     def test_new_dashboard_empty(self):
-        self.browser.get(self.path)
-        self.browser.wait_until_not('.loading-indicator')
-        self.browser.snapshot('new dashboard empty')
+        with self.feature('organizations:sentry10'):
+            self.browser.get(self.path)
+            self.browser.wait_until_not('.loading-indicator')
+            self.browser.snapshot('new dashboard empty')

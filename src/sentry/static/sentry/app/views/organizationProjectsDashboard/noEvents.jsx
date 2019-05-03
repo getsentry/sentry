@@ -16,7 +16,7 @@ export default class NoEvents extends React.Component {
   }
 }
 
-const Container = styled.div`
+const Container = styled('div')`
   position: absolute;
   top: 0;
   left: 0;

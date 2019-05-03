@@ -88,12 +88,12 @@ class StreamFilters extends React.Component {
       tagValueLoader,
       tags,
     } = this.props;
-    const hasOrgSavedSearches = organization.features.includes('org-saved-searches');
+    const hasSentry10 = organization.features.includes('sentry10');
 
     return (
       <PageHeader>
         <Feature
-          features={['org-saved-searches']}
+          features={['sentry10']}
           renderDisabled={() => (
             <SavedSearchSelector
               organization={organization}
@@ -113,10 +113,10 @@ class StreamFilters extends React.Component {
             <QueryCount count={queryCount} max={queryMaxCount} />
           </PageHeading>
         </Feature>
-        <SearchContainer isWide={hasOrgSavedSearches}>
+        <SearchContainer isWide={hasSentry10}>
           <SortOptions sort={sort} onSelect={onSortChange} />
 
-          <Feature features={['org-saved-searches']}>
+          <Feature features={['sentry10']}>
             <OrganizationSavedSearchSelector
               key={query}
               organization={organization}
@@ -144,7 +144,7 @@ class StreamFilters extends React.Component {
   }
 }
 
-const SearchContainer = styled.div`
+const SearchContainer = styled('div')`
   display: flex;
   width: ${p => (p.isWide ? '70%' : '58.3%')};
 `;

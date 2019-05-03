@@ -11,7 +11,7 @@ import {t} from 'app/locale';
 
 import {Panel} from 'app/components/panels';
 
-const ExpandButton = styled.span`
+const ExpandButton = styled('span')`
   cursor: pointer;
   position: absolute;
   right: 0;

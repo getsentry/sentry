@@ -12,7 +12,7 @@ import SentryTypes from 'app/sentryTypes';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import TextBlock from 'app/views/settings/components/text/textBlock';
 
-const CodeBlock = styled.pre`
+const CodeBlock = styled('pre')`
   word-break: break-all;
   white-space: pre-wrap;
 `;

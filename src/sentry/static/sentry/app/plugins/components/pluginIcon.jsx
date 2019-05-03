@@ -73,7 +73,7 @@ export const ICON_PATHS = {
   youtrack,
 };
 
-const IntegrationIcon = styled.div`
+const IntegrationIcon = styled('div')`
   position: relative;
   height: ${p => p.size}px;
   width: ${p => p.size}px;
