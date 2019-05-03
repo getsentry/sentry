@@ -179,7 +179,7 @@ class CfiReprocessingTest(TestCase):
 
         # mock_cache_get.assert_called_with('st:86e3a22f05a287eeeca681ecbeef3067')
         cache_key = 'e:9dac1e3a7ea043818ba6f0685e258c09:%s' % self.project.id
-        mock_attachment_get.assert_called_once_with(cache_key)
+        mock_attachment_get.assert_called_with(cache_key)
         assert result is None
 
     @mock.patch('sentry.attachments.base.BaseAttachmentCache.get')
@@ -200,7 +200,9 @@ class CfiReprocessingTest(TestCase):
                 frame['trust'] = 'cfi'
         result = reprocess_minidump_with_cfi(data)
 
-        assert mock_cache_get.call_count == 0
+        for call in mock_cache_get.mock_calls:
+            assert call[1][0] != 'st:b4eeed5c7008d0003cc5549c36dba6b7'
+
         assert mock_attachment_get.call_count == 0
         assert result is None
 
@@ -212,7 +214,7 @@ class CfiReprocessingTest(TestCase):
         data = self.get_mock_event(reprocessed=False)
         result = reprocess_minidump_with_cfi(data)
 
-        mock_cache_get.assert_called_once_with('st:b4eeed5c7008d0003cc5549c36dba6b7')
+        mock_cache_get.assert_called_with('st:b4eeed5c7008d0003cc5549c36dba6b7')
         assert mock_attachment_get.call_count == 0
         assert result == self.get_mock_event(reprocessed=True)
 
@@ -224,7 +226,7 @@ class CfiReprocessingTest(TestCase):
         data = self.get_mock_event(reprocessed=False)
         result = reprocess_minidump_with_cfi(data)
 
-        mock_cache_get.assert_called_once_with('st:b4eeed5c7008d0003cc5549c36dba6b7')
+        mock_cache_get.assert_called_with('st:b4eeed5c7008d0003cc5549c36dba6b7')
         assert mock_attachment_get.call_count == 0
         assert result is None
 
@@ -273,7 +275,7 @@ class CfiReprocessingTest(TestCase):
         result = reprocess_minidump_with_cfi(data)
 
         cache_key = 'e:9dac1e3a7ea043818ba6f0685e258c09:%s' % self.project.id
-        mock_attachment_get.assert_called_once_with(cache_key)
+        mock_attachment_get.assert_called_with(cache_key)
         mock_cache_set.assert_called_with('st:b4eeed5c7008d0003cc5549c36dba6b7', CFI_CACHE)
 
         assert result == self.get_mock_event(reprocessed=True)
