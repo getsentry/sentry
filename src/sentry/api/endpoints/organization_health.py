@@ -163,7 +163,7 @@ class OrganizationHealthTopEndpoint(OrganizationHealthEndpointBase):
             except ValueError:
                 return Response({'detail': 'Invalid topk'}, status=400)
             aggregations += [
-                ('topK(%d)' % topk, 'project_id', 'top_projects'),
+                ('top%d' % topk, 'project_id', 'top_projects'),
                 ('uniq', 'project_id', 'total_projects'),
             ]
 
