@@ -1,67 +1,132 @@
 import React from 'react';
 import {mount} from 'enzyme';
 
-import NoteInput from 'app/components/activity/note/input';
-import {Client} from 'app/api';
+import changeReactMentionsInput from 'app-test/helpers/changeReactMentionsInput';
 
-jest.mock('app/api');
+import NoteInput from 'app/components/activity/note/input';
 
 describe('NoteInput', function() {
-  let spy;
   const routerContext = TestStubs.routerContext();
 
-  const props = {
-    group: {project: {}, id: 'groupId'},
-    memberList: [],
-    teams: [],
-  };
+  describe('New item', function() {
+    const props = {
+      group: {project: {}, id: 'groupId'},
+      memberList: [],
+      teams: [],
+    };
 
-  beforeAll(function() {
-    spy = Client.addMockResponse({
-      url: '/issues/groupId/comments/',
-      method: 'POST',
+    it('renders', function() {
+      mount(<NoteInput {...props} />, routerContext);
+    });
+
+    it('submits when meta + enter is pressed', function() {
+      const onCreate = jest.fn();
+      const wrapper = mount(<NoteInput {...props} onCreate={onCreate} />, routerContext);
+
+      const input = wrapper.find('textarea');
+
+      input.simulate('keyDown', {key: 'Enter', metaKey: true});
+      expect(onCreate).toHaveBeenCalled();
+    });
+
+    it('submits when ctrl + enter is pressed', function() {
+      const onCreate = jest.fn();
+      const wrapper = mount(<NoteInput {...props} onCreate={onCreate} />, routerContext);
+
+      const input = wrapper.find('textarea');
+
+      input.simulate('keyDown', {key: 'Enter', ctrlKey: true});
+      expect(onCreate).toHaveBeenCalled();
+    });
+
+    it('handles errors', async function() {
+      const errorJSON = {detail: {message: '', code: 401, extra: ''}};
+      const wrapper = mount(
+        <NoteInput {...props} error={!!errorJSON} errorJSON={errorJSON} />,
+        routerContext
+      );
+
+      const input = wrapper.find('textarea');
+
+      input.simulate('keyDown', {key: 'Enter', ctrlKey: true});
+      wrapper.update();
+      expect(wrapper.find('ErrorMessage')).toHaveLength(1);
     });
   });
 
-  beforeEach(function() {
-    spy.mockReset();
-  });
+  describe('Existing Item', function() {
+    const defaultProps = {
+      group: {project: {}, id: 'groupId'},
+      item: {
+        data: {
+          text: 'an existing item',
+        },
+      },
+      memberList: [],
+      teams: [],
+    };
 
-  it('renders', function() {
-    mount(<NoteInput {...props} />, routerContext);
-  });
+    const createWrapper = props => {
+      return mount(<NoteInput {...defaultProps} {...props} />, routerContext);
+    };
 
-  it('submits when meta + enter is pressed', function() {
-    const onCreate = jest.fn();
-    const wrapper = mount(<NoteInput {...props} onCreate={onCreate} />, routerContext);
+    it('edits existing message', async function() {
+      const onUpdate = jest.fn();
+      const wrapper = createWrapper({onUpdate});
 
-    const input = wrapper.find('textarea');
+      expect(
+        wrapper
+          .find('NoteInputNavTabLink')
+          .first()
+          .text()
+      ).toBe('Edit');
 
-    input.simulate('keyDown', {key: 'Enter', metaKey: true});
-    expect(onCreate).toHaveBeenCalled();
-  });
+      // Switch to preview
+      wrapper
+        .find('NoteInputNavTabLink')
+        .last()
+        .simulate('click');
 
-  it('submits when ctrl + enter is pressed', function() {
-    const onCreate = jest.fn();
-    const wrapper = mount(<NoteInput {...props} onCreate={onCreate} />, routerContext);
+      expect(wrapper.find('NotePreview').text()).toBe('an existing item\n');
 
-    const input = wrapper.find('textarea');
+      // Switch to edit
+      wrapper
+        .find('NoteInputNavTabLink')
+        .first()
+        .simulate('click');
 
-    input.simulate('keyDown', {key: 'Enter', ctrlKey: true});
-    expect(onCreate).toHaveBeenCalled();
-  });
+      expect(wrapper.find('textarea').prop('value')).toBe('an existing item');
 
-  it('handles errors', async function() {
-    const errorJSON = {detail: {message: '', code: 401, extra: ''}};
-    const wrapper = mount(
-      <NoteInput {...props} error={!!errorJSON} errorJSON={errorJSON} />,
-      routerContext
-    );
+      // Can edit text
+      changeReactMentionsInput(wrapper, 'new item');
 
-    const input = wrapper.find('textarea');
+      wrapper.find('textarea').simulate('keyDown', {key: 'Enter', ctrlKey: true});
 
-    input.simulate('keyDown', {key: 'Enter', ctrlKey: true});
-    wrapper.update();
-    expect(wrapper.find('ErrorMessage')).toHaveLength(1);
+      expect(onUpdate).toHaveBeenCalledWith(
+        {text: 'new item'},
+        {data: {text: 'an existing item'}}
+      );
+    });
+
+    it('canels editing and moves to preview mode', async function() {
+      const onEditFinish = jest.fn();
+      const wrapper = createWrapper({onEditFinish});
+
+      changeReactMentionsInput(wrapper, 'new value');
+
+      expect(
+        wrapper
+          .find('FooterButton')
+          .first()
+          .text()
+      ).toBe('Cancel');
+
+      wrapper
+        .find('FooterButton')
+        .first()
+        .simulate('click');
+
+      expect(onEditFinish).toHaveBeenCalled();
+    });
   });
 });

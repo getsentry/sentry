@@ -1,73 +1,60 @@
 import React from 'react';
 import {mount} from 'enzyme';
 
-import NoteInput from 'app/components/activity/note/input';
-import {Client} from 'app/api';
+import changeReactMentionsInput from 'app-test/helpers/changeReactMentionsInput';
 
-jest.mock('app/api');
+import NoteInputWithStorage from 'app/components/activity/note/inputWithStorage';
+import localStorage from 'app/utils/localStorage';
 
-describe('NoteInput', function() {
-  let spy;
+jest.mock('app/utils/localStorage');
 
-  beforeAll(function() {
-    spy = Client.addMockResponse({
-      url: '/issues/groupId/comments/',
-      method: 'POST',
-    });
+describe('NoteInputWithStorage', function() {
+  const defaultProps = {
+    storageKey: 'storage',
+    itemKey: 'item1',
+    group: {project: {}, id: 'groupId'},
+    memberList: [],
+    teams: [],
+  };
+  const routerContext = TestStubs.routerContext();
+
+  const createWrapper = props => {
+    return mount(<NoteInputWithStorage {...defaultProps} {...props} />, routerContext);
+  };
+
+  it('loads draft item from local storage when mounting', function() {
+    localStorage.getItem.mockImplementation(() => JSON.stringify({item1: 'saved item'}));
+
+    const wrapper = createWrapper();
+
+    expect(localStorage.getItem).toHaveBeenCalledWith('storage');
+    expect(wrapper.find('textarea').prop('value')).toBe('saved item');
   });
 
-  beforeEach(function() {
-    spy.mockReset();
-  });
+  it('saves draft when input changes', function() {
+    const wrapper = createWrapper();
 
-  it('renders', function() {
-    mount(
-      <NoteInput group={{project: {}}} memberList={[]} sessionUser={{}} />,
-      TestStubs.routerContext()
+    changeReactMentionsInput(wrapper, 'WIP COMMENT');
+
+    expect(localStorage.setItem).toHaveBeenCalledWith(
+      'storage',
+      JSON.stringify({item1: 'WIP COMMENT'})
     );
   });
 
-  it('submits when meta + enter is pressed', function() {
-    const wrapper = mount(
-      <NoteInput group={{project: {}, id: 'groupId'}} memberList={[]} sessionUser={{}} />,
-      TestStubs.routerContext()
+  it('removes draft item after submitting', function() {
+    localStorage.getItem.mockImplementation(() =>
+      JSON.stringify({item1: 'draft item', item2: 'item2', item3: 'item3'})
     );
 
-    const input = wrapper.find('textarea');
+    const wrapper = createWrapper();
 
-    input.simulate('keyDown', {key: 'Enter', metaKey: true});
-    expect(spy).toHaveBeenCalled();
-  });
+    changeReactMentionsInput(wrapper, 'new comment');
 
-  it('submits when ctrl + enter is pressed', function() {
-    const wrapper = mount(
-      <NoteInput group={{project: {}, id: 'groupId'}} memberList={[]} sessionUser={{}} />,
-      TestStubs.routerContext()
+    wrapper.find('textarea').simulate('keyDown', {key: 'Enter', ctrlKey: true});
+    expect(localStorage.setItem).toHaveBeenLastCalledWith(
+      'storage',
+      JSON.stringify({item2: 'item2', item3: 'item3'})
     );
-
-    const input = wrapper.find('textarea');
-
-    input.simulate('keyDown', {key: 'Enter', ctrlKey: true});
-    expect(spy).toHaveBeenCalled();
-  });
-
-  it('handles 401 error objects', async function() {
-    spy = Client.addMockResponse({
-      url: '/issues/groupId/comments/',
-      method: 'POST',
-      body: {detail: {message: '', code: 401, extra: ''}},
-      statusCode: 401,
-    });
-    const wrapper = mount(
-      <NoteInput group={{project: {}, id: 'groupId'}} memberList={[]} sessionUser={{}} />,
-      TestStubs.routerContext()
-    );
-
-    const input = wrapper.find('textarea');
-
-    input.simulate('keyDown', {key: 'Enter', ctrlKey: true});
-    wrapper.update();
-    expect(wrapper.find('ErrorMessage')).toHaveLength(1);
-    expect(spy).toHaveBeenCalled();
   });
 });

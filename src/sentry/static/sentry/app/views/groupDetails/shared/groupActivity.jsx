@@ -142,6 +142,9 @@ class GroupActivity extends React.Component {
       group,
       memberList,
       teams,
+      placeholder: t(
+        'Add details or updates to this event. \nTag users with @, or teams with #'
+      ),
     };
 
     return (

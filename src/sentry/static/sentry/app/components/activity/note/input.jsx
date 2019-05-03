@@ -20,7 +20,12 @@ class NoteInput extends React.Component {
   static propTypes = {
     teams: PropTypes.arrayOf(SentryTypes.Team).isRequired,
     memberList: PropTypes.array.isRequired,
-    item: PropTypes.object,
+
+    item: PropTypes.shape({
+      data: PropTypes.shape({
+        text: PropTypes.string,
+      }),
+    }),
     defaultText: PropTypes.string,
     error: PropTypes.bool,
     errorJSON: PropTypes.shape({
@@ -30,6 +35,7 @@ class NoteInput extends React.Component {
         extra: PropTypes.any,
       }),
     }),
+    placeholder: PropTypes.string,
 
     onEditFinish: PropTypes.func,
     onUpdate: PropTypes.func,
@@ -38,6 +44,7 @@ class NoteInput extends React.Component {
   };
 
   static defaultProps = {
+    placeholder: t('Add a comment.\nTag users with @, or teams with #'),
     defaultText: '',
   };
 
@@ -48,14 +55,40 @@ class NoteInput extends React.Component {
     const existing = !!item;
     const defaultText = existing ? item.data.text || '' : props.defaultText;
 
+    this.memberMentions = [];
+    this.teamMentions = [];
+
     this.state = {
       loading: false,
       preview: false,
-      updating: existing,
       value: defaultText,
       memberMentions: [],
       teamMentions: [],
     };
+  }
+
+  cleanMarkdown(text) {
+    return text
+      .replace(/\[sentry\.strip:member\]/g, '@')
+      .replace(/\[sentry\.strip:team\]/g, '');
+  }
+
+  mentionableUsers() {
+    const {memberList} = this.props;
+    return memberList.map(member => ({
+      id: buildUserId(member.id),
+      display: member.name,
+      email: member.email,
+    }));
+  }
+
+  mentionableTeams() {
+    const {teams} = this.props;
+    return teams.map(team => ({
+      id: buildTeamId(team.id),
+      display: `#${team.slug}`,
+      email: team.id,
+    }));
   }
 
   submitForm = () => {
@@ -63,18 +96,12 @@ class NoteInput extends React.Component {
       loading: true,
     });
 
-    if (this.state.updating) {
+    if (!!this.props.item) {
       this.update();
     } else {
       this.create();
     }
   };
-
-  cleanMarkdown(text) {
-    return text
-      .replace(/\[sentry\.strip:member\]/g, '@')
-      .replace(/\[sentry\.strip:team\]/g, '');
-  }
 
   create = () => {
     const {onCreate} = this.props;
@@ -100,6 +127,19 @@ class NoteInput extends React.Component {
     }
   };
 
+  finish = () => {
+    this.props.onEditFinish && this.props.onEditFinish();
+  };
+
+  finalizeMentions = () => {
+    const {memberMentions, teamMentions} = this.state;
+
+    // each mention looks like [id, display]
+    return [...memberMentions, ...teamMentions]
+      .filter(mention => this.state.value.indexOf(mention[1]) !== -1)
+      .map(mention => mention[0]);
+  };
+
   handleToggleEdit = () => {
     this.setState({preview: false});
   };
@@ -117,7 +157,7 @@ class NoteInput extends React.Component {
     this.setState({value: e.target.value});
 
     if (this.props.onChange) {
-      this.props.onChange(e, {updating: this.state.updating});
+      this.props.onChange(e, {updating: !!this.props.item});
     }
   };
 
@@ -145,46 +185,12 @@ class NoteInput extends React.Component {
     }));
   };
 
-  finish = () => {
-    this.props.onEditFinish && this.props.onEditFinish();
-  };
-
-  finalizeMentions = () => {
-    const {memberMentions, teamMentions} = this.state;
-
-    // each mention looks like [id, display]
-    return [...memberMentions, ...teamMentions]
-      .filter(mention => this.state.value.indexOf(mention[1]) !== -1)
-      .map(mention => mention[0]);
-  };
-
-  mentionableUsers() {
-    const {memberList} = this.props;
-    return memberList.map(member => ({
-      id: buildUserId(member.id),
-      display: member.name,
-      email: member.email,
-    }));
-  }
-
-  mentionableTeams() {
-    const {teams} = this.props;
-    return teams.map(team => ({
-      id: buildTeamId(team.id),
-      display: `#${team.slug}`,
-      email: team.id,
-    }));
-  }
-
   render() {
-    const {loading, preview, updating, value} = this.state;
-    const {error, errorJSON} = this.props;
+    const {loading, preview, value} = this.state;
+    const {item, error, placeholder, errorJSON} = this.props;
 
-    const placeHolderText = t(
-      'Add details or updates to this event. \nTag users with @, or teams with #'
-    );
-
-    const btnText = updating ? t('Save Comment') : t('Post Comment');
+    const existingItem = !!item;
+    const btnText = existingItem ? t('Save Comment') : t('Post Comment');
 
     const errorMessage =
       (errorJSON &&
@@ -204,7 +210,7 @@ class NoteInput extends React.Component {
         <NoteInputNavTabs>
           <NoteInputNavTab className={!preview ? 'active' : ''}>
             <NoteInputNavTabLink onClick={this.handleToggleEdit}>
-              {updating ? t('Edit') : t('Write')}
+              {existingItem ? t('Edit') : t('Write')}
             </NoteInputNavTabLink>
           </NoteInputNavTab>
           <NoteInputNavTab className={preview ? 'active' : ''}>
@@ -226,7 +232,7 @@ class NoteInput extends React.Component {
           ) : (
             <MentionsInput
               style={mentionsStyle}
-              placeholder={placeHolderText}
+              placeholder={placeholder}
               onChange={this.handleChange}
               onBlur={this.handleBlur}
               onKeyDown={this.handleKeyDown}
@@ -259,7 +265,7 @@ class NoteInput extends React.Component {
         <Footer>
           <div>{errorMessage && <ErrorMessage>{errorMessage}</ErrorMessage>}</div>
           <div>
-            {updating && (
+            {existingItem && (
               <FooterButton priority="danger" type="button" onClick={this.handleCancel}>
                 {t('Cancel')}
               </FooterButton>
