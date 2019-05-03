@@ -1,6 +1,7 @@
 import React, {Component} from 'react';
 
 import {Client} from 'app/api';
+import {switchOrganization} from 'app/actionCreators/organizations';
 import {t, tct} from 'app/locale';
 import AlertActions from 'app/actions/alertActions';
 import Button from 'app/components/button';
@@ -148,6 +149,15 @@ class OrganizationDetailsBody extends Component {
 }
 
 export default class OrganizationDetails extends Component {
+  componentDidUpdate(prevProps) {
+    if (
+      prevProps.params &&
+      this.props.params &&
+      prevProps.params.orgId !== this.props.params.orgId
+    ) {
+      switchOrganization(prevProps.params.orgId, this.props.params.orgId);
+    }
+  }
   render() {
     return (
       <OrganizationContext includeSidebar useLastOrganization {...this.props}>

@@ -102,9 +102,11 @@ class GlobalSelectionHeader extends React.Component {
       return;
     }
 
+    const {location, params, organization, selection} = this.props;
+
     const hasMultipleProjectFeature = this.hasMultipleProjectSelection();
 
-    const stateFromRouter = getStateFromQuery(this.props.location.query);
+    const stateFromRouter = getStateFromQuery(location.query);
     // We should update store if there are any relevant URL parameters when component
     // is mounted
     if (Object.values(stateFromRouter).some(i => !!i)) {
@@ -131,12 +133,13 @@ class GlobalSelectionHeader extends React.Component {
         updateProjects(allowedProjects);
         updateParams({project: allowedProjects}, this.getRouter());
       }
-    } else {
-      // Otherwise, we can update URL with values from store
+    } else if (params && params.orgId === organization.slug) {
+      // Otherwise, if organization has NOT changed,
+      // we can update URL with values from store
       //
       // e.g. when switching to a new view that uses this component,
       // update URL parameters to reflect current store
-      const {datetime, environments, projects} = this.props.selection;
+      const {datetime, environments, projects} = selection;
 
       if (hasMultipleProjectFeature || projects.length === 1) {
         updateParamsWithoutHistory(

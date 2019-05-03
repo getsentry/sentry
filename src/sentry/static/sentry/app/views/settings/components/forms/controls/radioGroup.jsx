@@ -41,7 +41,7 @@ RadioGroup.propTypes = {
   onChange: PropTypes.func,
 };
 
-const RadioLineButton = styled.div`
+const RadioLineButton = styled('div')`
   width: 1.5em;
   height: 1.5em;
   position: relative;

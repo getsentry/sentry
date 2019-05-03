@@ -16,7 +16,7 @@ import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader
 
 const InputColumn = props => <Flex flex="1" justify="center" {...props} />;
 
-const SearchTitle = styled.div`
+const SearchTitle = styled('div')`
   font-size: 18px;
   margin-bottom: 5px;
 `;
@@ -241,8 +241,8 @@ class ProjectSavedSearches extends AsyncView {
 }
 
 const ProjectSavedSearchContainer = function(props, context) {
-  const hasSavedSearch = context.organization.features.includes('org-saved-searches');
-  if (hasSavedSearch) {
+  const isSentry10 = context.organization.features.includes('sentry10');
+  if (isSentry10) {
     return <NotFound />;
   }
   return <ProjectSavedSearches {...props} />;

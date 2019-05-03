@@ -95,7 +95,7 @@ export default class OrganizationSavedSearchSelector extends React.Component {
   }
 }
 
-const Container = styled.div`
+const Container = styled('div')`
   position: relative;
   display: block;
 `;
@@ -118,11 +118,11 @@ const StyledDropdownButton = styled(
   }
 `;
 
-const ButtonTitle = styled.span`
+const ButtonTitle = styled('span')`
   ${overflowEllipsis}
 `;
 
-const SearchTitle = styled.strong`
+const SearchTitle = styled('strong')`
   color: ${p => p.theme.gray5};
   padding: 0;
   background: inherit;
@@ -132,7 +132,7 @@ const SearchTitle = styled.strong`
   }
 `;
 
-const SearchQuery = styled.code`
+const SearchQuery = styled('code')`
   color: ${p => p.theme.gray5};
   padding: 0;
   background: inherit;
@@ -150,7 +150,7 @@ const DeleteButton = styled(Button)`
   }
 `;
 
-const MenuItem = styled.li`
+const MenuItem = styled('li')`
   display: flex;
 
   position: relative;
@@ -172,7 +172,7 @@ const MenuItem = styled.li`
   }
 `;
 
-const EmptyItem = styled.li`
+const EmptyItem = styled('li')`
   padding: 8px 10px 5px;
   font-style: italic;
 `;

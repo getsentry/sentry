@@ -6,15 +6,15 @@ import styled from 'react-emotion';
 
 import {t} from 'app/locale';
 import Button from 'app/components/button';
-import IncidentStore from 'app/stores/incidentStore';
+import ServiceIncidentStore from 'app/stores/serviceIncidentStore';
 import InlineSvg from 'app/components/inlineSvg';
 
 import SidebarItem from './sidebarItem';
 import SidebarPanel from './sidebarPanel';
 import SidebarPanelEmpty from './sidebarPanelEmpty';
 
-const Incidents = createReactClass({
-  displayName: 'Incidents',
+const ServiceIncidents = createReactClass({
+  displayName: 'ServiceIncidents',
 
   propTypes: {
     orientation: PropTypes.oneOf(['top', 'left']),
@@ -25,7 +25,7 @@ const Incidents = createReactClass({
     onShowPanel: PropTypes.func.isRequired,
   },
 
-  mixins: [Reflux.listenTo(IncidentStore, 'onIncidentChange')],
+  mixins: [Reflux.listenTo(ServiceIncidentStore, 'onIncidentChange')],
 
   getInitialState() {
     return {
@@ -118,7 +118,7 @@ const Incidents = createReactClass({
   },
 });
 
-export default Incidents;
+export default ServiceIncidents;
 
 const IncidentList = styled('ul')`
   list-style: none;

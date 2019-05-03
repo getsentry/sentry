@@ -42,6 +42,7 @@ const isValidSelection = (selection, organization) => {
 const GlobalSelectionStore = Reflux.createStore({
   init() {
     this.reset(this.selection);
+    this.listenTo(GlobalSelectionActions.reset, this.onReset);
     this.listenTo(GlobalSelectionActions.updateProjects, this.updateProjects);
     this.listenTo(GlobalSelectionActions.updateDateTime, this.updateDateTime);
     this.listenTo(GlobalSelectionActions.updateEnvironments, this.updateEnvironments);
@@ -98,6 +99,11 @@ const GlobalSelectionStore = Reflux.createStore({
 
   get() {
     return this.selection;
+  },
+
+  onReset() {
+    this.reset();
+    this.trigger(this.selection);
   },
 
   updateProjects(projects = []) {

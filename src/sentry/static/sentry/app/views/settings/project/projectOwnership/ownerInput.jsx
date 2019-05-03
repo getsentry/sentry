@@ -185,7 +185,7 @@ class OwnerInput extends React.Component {
 const TEXTAREA_PADDING = 4;
 const TEXTAREA_LINE_HEIGHT = 24;
 
-const SyntaxOverlay = styled.div`
+const SyntaxOverlay = styled('div')`
   ${inputStyles};
   width: 100%;
   height: ${TEXTAREA_LINE_HEIGHT}px;
@@ -196,7 +196,7 @@ const SyntaxOverlay = styled.div`
   top: ${({line}) => TEXTAREA_PADDING + line * 24}px;
 `;
 
-const SaveButton = styled.div`
+const SaveButton = styled('div')`
   text-align: end;
   padding-top: 10px;
 `;

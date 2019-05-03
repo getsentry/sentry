@@ -238,7 +238,7 @@ describe('SearchBar', function() {
     let pinSearch;
     let unpinSearch;
     const {organization, routerContext} = initializeOrg({
-      organization: {features: ['org-saved-searches']},
+      organization: {features: ['sentry10']},
     });
 
     beforeEach(function() {
@@ -260,7 +260,7 @@ describe('SearchBar', function() {
       });
     });
 
-    it('does not have pin icon without org-saved-searches featureflag', function() {
+    it('does not have pin icon without sentry10 featureflag', function() {
       const props = {
         orgId: organization.slug,
         query: 'url:"fu"',

@@ -127,7 +127,7 @@ const ProjectCardContainer = createReactClass({
   },
 });
 
-const ChartContainer = styled.div`
+const ChartContainer = styled('div')`
   position: relative;
   background: ${p => p.theme.offWhite};
   padding-top: ${space(1)};
@@ -144,7 +144,7 @@ const ProjectCardWrapper = styled(Box)`
   padding: 10px;
 `;
 
-const StyledProjectCard = styled.div`
+const StyledProjectCard = styled('div')`
   background-color: white;
   border: 1px solid ${p => p.theme.borderDark};
   border-radius: ${p => p.theme.borderRadius};
