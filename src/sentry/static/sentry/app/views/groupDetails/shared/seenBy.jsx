@@ -1,6 +1,5 @@
 import React from 'react';
 import moment from 'moment';
-import _ from 'lodash';
 import styled from 'react-emotion';
 
 import SentryTypes from 'app/sentryTypes';
@@ -39,8 +38,13 @@ export default class GroupSeenBy extends React.Component {
           avatarSize={28}
           maxVisibleAvatars={10}
           tooltipOptions={{html: true}}
-          renderTooltip={user => `${_.escape(userDisplayName(user))} <br/>
-            ${moment(user.lastSeen).format('LL')}`}
+          renderTooltip={user => (
+            <React.Fragment>
+              {userDisplayName(user)}
+              <br />
+              {moment(user.lastSeen).format('LL')}
+            </React.Fragment>
+          )}
         />
         <IconWrapper>
           <Tooltip title={t("People who've viewed this issue")}>

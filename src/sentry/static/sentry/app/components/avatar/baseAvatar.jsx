@@ -40,7 +40,7 @@ class BaseAvatar extends React.Component {
     gravatarId: PropTypes.string,
     letterId: PropTypes.string,
     title: PropTypes.string,
-    tooltip: PropTypes.string,
+    tooltip: PropTypes.oneOfType([PropTypes.string, PropTypes.element]),
     tooltipOptions: PropTypes.object,
     /**
      * Should avatar be round instead of a square

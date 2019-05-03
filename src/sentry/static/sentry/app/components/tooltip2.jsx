@@ -86,9 +86,18 @@ class Tooltip2 extends React.Component {
     }
 
     let tip = null;
+    const modifiers = {
+      hide: {enabled: false},
+      preventOverflow: {
+        padding: 10,
+        enabled: true,
+        boundariesElement: 'viewport',
+      },
+    };
+
     if (isOpen) {
       tip = ReactDOM.createPortal(
-        <Popper placement={position}>
+        <Popper placement={position} modifiers={modifiers}>
           {({ref, style, placement, arrowProps}) => (
             <TooltipContent
               id={this.tooltipId}
