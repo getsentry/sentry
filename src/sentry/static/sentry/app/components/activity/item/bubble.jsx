@@ -9,7 +9,7 @@ const ActivityBubble = styled('div')`
   flex: 1;
   background: ${p => p.background};
   border: 1px solid ${p => p.theme.borderLight};
-  border-radius: 3px;
+  border-radius: ${p => p.theme.borderRadius};
   position: relative;
 
   &:before {

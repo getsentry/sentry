@@ -403,6 +403,7 @@ export {NoteInput};
 
 export default withApi(NoteInput);
 
+// This styles both the note preview and the note editor input
 const notePreviewCss = css`
   display: block;
   width: 100%;
@@ -411,7 +412,7 @@ const notePreviewCss = css`
   max-width: 100%;
   margin: 0;
   border: 0;
-  padding: 15px 20px 0;
+  padding: ${space(1.5)} ${space(2)} 0;
   overflow: auto;
 `;
 
@@ -424,7 +425,7 @@ const getNoteInputErrorStyles = p => {
   color: ${p.theme.error};
   margin: -1px;
   border: 1px solid ${p.theme.error};
-  border-radius: 3px;
+  border-radius: ${p.theme.borderRadius};
 
     &:before {
       display: block;
@@ -475,13 +476,13 @@ const Footer = styled('div')`
   border-top: 1px solid ${p => p.theme.borderLight};
   justify-content: space-between;
   transition: opacity 0.2s ease-in-out;
-  padding-left: 15px;
+  padding-left: ${space(1.5)};
 `;
 
 const FooterButton = styled(Button)`
   font-size: 13px;
   margin: -1px -1px -1px;
-  border-radius: 0 0 3px;
+  border-radius: 0 0 ${p => p.theme.borderRadius};
 
   ${p =>
     p.error &&
@@ -502,7 +503,7 @@ const ErrorMessage = styled('span')`
 `;
 
 const NoteInputNavTabs = styled(NavTabs)`
-  padding: 7px 20px 0;
+  padding: ${space(1)} ${space(2)} 0;
   border-bottom: 1px solid ${p => p.theme.borderLight};
   margin-bottom: 0;
 `;
