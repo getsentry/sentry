@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 import json
+import pytest
 
 from django.conf import settings
 from django.utils import timezone
@@ -25,6 +26,7 @@ class ProjectReleasesTest(AcceptanceTestCase):
         self.path = u'/{}/{}/releases/'.format(
             self.org.slug, self.project.slug)
 
+    @pytest.mark.skip(reason="Sentry 9 only")
     def test_with_releases(self):
         release = self.create_release(
             project=self.project,
@@ -41,6 +43,7 @@ class ProjectReleasesTest(AcceptanceTestCase):
         self.browser.wait_until('.ref-project-releases')
         self.browser.snapshot('project releases with releases')
 
+    @pytest.mark.skip(reason="Sentry 9 only")
     def test_with_no_releases(self):
         self.dismiss_assistant()
         self.browser.get(self.path)
@@ -86,6 +89,7 @@ class ProjectReleaseDetailsTest(AcceptanceTestCase):
         self.path = u'/{}/{}/releases/{}/'.format(
             self.org.slug, self.project.slug, self.release.version)
 
+    @pytest.mark.skip(reason="Sentry 9 only")
     def test_release_details_no_commits_no_deploys(self):
         self.browser.get(self.path)
         self.browser.wait_until_not('.loading')
