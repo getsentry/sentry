@@ -110,6 +110,7 @@ class Symbolizer(object):
             'instruction_addr': hex(sym.instr_addr + addr_off).rstrip('L'),
             'lineno': sym.line,
         }
+
         symbol = trim(sym.symbol, MAX_SYM)
         function = sym.function_name
 
