@@ -4,16 +4,7 @@ import {mount} from 'enzyme';
 import IncidentDetails from 'app/views/organizationIncidents/details';
 
 describe('IncidentDetails', function() {
-  const mockIncident = {
-    id: '123',
-    name: 'Too many Chrome errors',
-    status: 'resolved',
-    projects: [],
-    suspects: [],
-    eventCount: 100,
-    usersAffected: 20,
-  };
-
+  const mockIncident = TestStubs.Incident();
   beforeAll(function() {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/incidents/123/',
