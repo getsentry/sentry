@@ -199,7 +199,7 @@ def merge_symbolicator_minidump_response(data, response):
     # TODO(markus): Add OS context here when `merge_process_state_event` is no
     # longer called for symbolicator projects
 
-    data.setdefault('debug_meta', {})['images'] = images = []
+    set_path(data, 'debug_meta', 'images', value=images)
 
     for complete_image in response['modules']:
         image = {}
