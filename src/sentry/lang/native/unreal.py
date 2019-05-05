@@ -166,17 +166,15 @@ def merge_unreal_context_event(unreal_context, event, project):
             comments=user_desc,
         )
 
-    if not any(thread.get('stacktrace') and thread.get('crashed')
-               for thread in event.get('threads', [])):
-        portable_callstack = runtime_prop.pop('portable_call_stack', None)
-        if portable_callstack is not None:
-            images = get_path(event, 'debug_meta', 'images', filter=True, default=())
-            frames = parse_portable_callstack(portable_callstack, images)
+    portable_callstack_parsed = False
+    portable_callstack = runtime_prop.pop('portable_call_stack', None)
+    if portable_callstack is not None:
+        images = get_path(event, 'debug_meta', 'images', filter=True, default=())
+        frames = parse_portable_callstack(portable_callstack, images)
 
-            if len(frames) > 0:
-                event['stacktrace'] = {
-                    'frames': frames
-                }
+        if len(frames) > 0:
+            set_path(event, 'exception', 'values', 0, 'stacktrace', 'frames', value=frames)
+            portable_callstack_parsed = True
 
     # drop modules. minidump processing adds 'images loaded'
     runtime_prop.pop('modules', None)
@@ -184,6 +182,12 @@ def merge_unreal_context_event(unreal_context, event, project):
     # add everything else as extra
     extra = event.setdefault('extra', {})
     extra.update(**runtime_prop)
+
+    # This property is required for correct behavior of symbolicator codepath.
+    # TODO(markus): Move all extra attrs into this context
+    unreal_event_context = {}
+    unreal_event_context['portable_call_stack_parsed'] = portable_callstack_parsed
+    set_path(event, 'contexts', 'unreal', value=unreal_event_context)
 
     # add sdk info
     event['sdk'] = {

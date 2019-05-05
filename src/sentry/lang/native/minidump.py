@@ -12,7 +12,7 @@ from sentry.lang.native.utils import get_sdk_from_event, handle_symbolication_fa
 from sentry.lang.native.symbolicator import merge_symbolicator_image
 from sentry.attachments import attachment_cache
 from sentry.coreapi import cache_key_for_event
-from sentry.utils.safe import get_path, setdefault_path
+from sentry.utils.safe import get_path
 
 minidumps_logger = logging.getLogger('sentry.minidumps')
 
@@ -53,15 +53,6 @@ def process_minidump(minidump, cfi=None):
         return ProcessState.from_minidump(minidump.temporary_file_path(), cfi)
     else:
         return ProcessState.from_minidump_buffer(minidump, cfi)
-
-
-def _guess_frame_quality(frames):
-    good_frames = 0
-    for frame in frames or ():
-        if frame.get('function'):
-            good_frames += 1
-
-    return good_frames / float(len(frames))
 
 
 def merge_process_state_event(data, state, cfi=None):
@@ -218,15 +209,8 @@ def merge_symbolicator_minidump_response(data, response):
         )
         images.append(image)
 
-    setdefault_path(data, 'threads', 'values', value=[])
-    data_threads = get_path(data, 'threads', 'values')
-    assert isinstance(data_threads, list)
-
-    data_threads_by_id = {
-        thread['id']: thread
-        for thread in data_threads or ()
-        if thread.get('id')
-    }
+    data_threads = []
+    data['threads'] = {'values': data_threads}
 
     data_exception = get_path(data, 'exception', 'values', 0)
 
@@ -234,33 +218,31 @@ def merge_symbolicator_minidump_response(data, response):
         is_requesting = complete_stacktrace.get('is_requesting')
         thread_id = complete_stacktrace.get('thread_id')
 
-        if thread_id in data_threads_by_id:
-            data_thread = data_threads_by_id[thread_id]
-        else:
-            data_thread = {
-                'id': thread_id,
-                'crashed': is_requesting,
-            }
-            data_threads.append(data_thread)
+        data_thread = {
+            'id': thread_id,
+            'crashed': is_requesting,
+        }
+        data_threads.append(data_thread)
 
-        for container in data_thread, data_exception:
-            setdefault_path(data_thread, 'stacktrace', 'frames', value=[])
-            data_frames = get_path(data_thread, 'stacktrace', 'frames')
-            assert data_frames is not None
-            if data_frames:
-                break
-
-        if data_frames:
-            data_quality = _guess_frame_quality(data_frames)
-            new_quality = _guess_frame_quality(complete_stacktrace['frames'])
-
-            if new_quality < data_quality:
+        if is_requesting:
+            data_stacktrace = get_path(data_exception, 'stacktrace')
+            assert isinstance(data_stacktrace, dict), data_stacktrace
+            # Make exemption specifically for unreal portable callstacks
+            # TODO(markus): Allow overriding stacktrace more generically
+            # (without looking into unreal context) once we no longer parse
+            # minidump twice.
+            if data_stacktrace['frames'] and get_path(
+                    data, 'contexts', 'unreal', 'portable_call_stack_parsed'):
                 continue
+            del data_stacktrace['frames'][:]
+        else:
+            data_thread['stacktrace'] = data_stacktrace = {'frames': []}
 
-        data_frames.clear()
+        data_stacktrace['registers'] = complete_stacktrace['registers']
+
         for complete_frame in reversed(complete_stacktrace['frames']):
             new_frame = {}
             merge_symbolicated_frame(new_frame, complete_frame)
-            data_frames.append(new_frame)
+            data_stacktrace['frames'].append(new_frame)
 
     # TODO(markus): Add exception data here once merge_process_state_event is gone

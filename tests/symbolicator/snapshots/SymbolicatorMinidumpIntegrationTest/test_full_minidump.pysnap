@@ -1,5 +1,5 @@
 ---
-created: '2019-05-03T09:12:26.731778Z'
+created: '2019-05-05T12:41:17.511460Z'
 creator: sentry
 source: tests/symbolicator/test_minidump_full.py
 ---
@@ -144,79 +144,23 @@ exception:
       handled: false
       synthetic: true
       type: minidump
-    raw_stacktrace:
-      frames:
-      - in_app: false
-        instruction_addr: '0x771d0f44'
-        package: C:\Windows\System32\ntdll.dll
-        trust: fp
-      - in_app: false
-        instruction_addr: '0x771d0f79'
-        package: C:\Windows\System32\ntdll.dll
-        trust: fp
-      - in_app: false
-        instruction_addr: '0x750662c4'
-        package: C:\Windows\System32\kernel32.dll
-        trust: fp
-      - in_app: false
-        instruction_addr: '0x2a2d97'
-        package: C:\projects\breakpad-tools\windows\Release\crash.exe
-        trust: scan
-      - in_app: false
-        instruction_addr: '0x2a3435'
-        package: C:\projects\breakpad-tools\windows\Release\crash.exe
-        trust: scan
-      - in_app: false
-        instruction_addr: '0x7584e9c0'
-        package: C:\Windows\System32\rpcrt4.dll
-        trust: scan
-      - in_app: false
-        instruction_addr: '0x75810000'
-        trust: scan
-      - in_app: false
-        instruction_addr: '0x70b7ae40'
-        package: C:\Windows\System32\dbgcore.dll
-        trust: scan
-      - in_app: false
-        instruction_addr: '0x70850000'
-        trust: scan
-      - in_app: false
-        instruction_addr: '0x7584e9c0'
-        package: C:\Windows\System32\rpcrt4.dll
-        trust: scan
-      - in_app: false
-        instruction_addr: '0x2a28d0'
-        package: C:\projects\breakpad-tools\windows\Release\crash.exe
-        trust: fp
-      - in_app: false
-        instruction_addr: '0x2a2a3d'
-        package: C:\projects\breakpad-tools\windows\Release\crash.exe
-        trust: context
-      registers:
-        eax: '0x0'
-        ebp: '0x10ff670'
-        ebx: '0xfe5000'
-        ecx: '0x10ff670'
-        edi: '0x13bfd78'
-        edx: '0x7'
-        eflags: '0x10246'
-        eip: '0x2a2a3d'
-        esi: '0x759c6314'
-        esp: '0x10ff644'
     stacktrace:
       frames:
-      - in_app: false
+      - data:
+          symbolicator_status: missing
+        in_app: false
         instruction_addr: '0x771d0f44'
         package: C:\Windows\System32\ntdll.dll
-        trust: fp
-      - in_app: false
+      - data:
+          symbolicator_status: missing
+        in_app: false
         instruction_addr: '0x771d0f79'
         package: C:\Windows\System32\ntdll.dll
-        trust: fp
-      - in_app: false
+      - data:
+          symbolicator_status: missing
+        in_app: false
         instruction_addr: '0x750662c4'
         package: C:\Windows\System32\kernel32.dll
-        trust: fp
       - abs_path: f:\dd\vctools\crt\vcstartup\src\startup\exe_common.inl
         data:
           symbolicator_status: symbolicated
@@ -227,24 +171,6 @@ exception:
         lineno: 283
         package: C:\projects\breakpad-tools\windows\Release\crash.exe
         symbol: __scrt_common_main_seh
-        trust: scan
-      - abs_path: f:\dd\vctools\crt\vcstartup\src\utility\utility_desktop.cpp
-        data:
-          symbolicator_status: symbolicated
-        filename: utility_desktop.cpp
-        function: __scrt_set_unhandled_exception_filter
-        in_app: false
-        instruction_addr: '0x2a3434'
-        lineno: 84
-        package: C:\projects\breakpad-tools\windows\Release\crash.exe
-        symbol: __scrt_set_unhandled_exception_filter
-        trust: scan
-      - data:
-          symbolicator_status: symbolicated
-        in_app: false
-        instruction_addr: '0x2a28d0'
-        package: C:\projects\breakpad-tools\windows\Release\crash.exe
-        trust: fp
       - abs_path: c:\projects\breakpad-tools\windows\crash\main.cpp
         data:
           symbolicator_status: symbolicated
@@ -255,7 +181,6 @@ exception:
         lineno: 35
         package: C:\projects\breakpad-tools\windows\Release\crash.exe
         symbol: main
-        trust: context
       registers:
         eax: '0x0'
         ebp: '0x10ff670'
@@ -275,57 +200,30 @@ threads:
   values:
   - crashed: true
     id: 1636
-    stacktrace:
-      frames: []
   - crashed: false
     id: 3580
-    raw_stacktrace:
-      frames:
-      - in_app: false
-        instruction_addr: '0x771d0f44'
-        package: C:\Windows\System32\ntdll.dll
-        trust: fp
-      - in_app: false
-        instruction_addr: '0x771d0f79'
-        package: C:\Windows\System32\ntdll.dll
-        trust: fp
-      - in_app: false
-        instruction_addr: '0x750662c4'
-        package: C:\Windows\System32\kernel32.dll
-        trust: fp
-      - in_app: false
-        instruction_addr: '0x771e016c'
-        package: C:\Windows\System32\ntdll.dll
-        trust: context
-      registers:
-        eax: '0x0'
-        ebp: '0x159faa4'
-        ebx: '0x13b0990'
-        ecx: '0x0'
-        edi: '0x13b4af0'
-        edx: '0x0'
-        eflags: '0x216'
-        eip: '0x771e016c'
-        esi: '0x13b4930'
-        esp: '0x159f900'
     stacktrace:
       frames:
-      - in_app: false
+      - data:
+          symbolicator_status: missing
+        in_app: false
         instruction_addr: '0x771d0f44'
         package: C:\Windows\System32\ntdll.dll
-        trust: fp
-      - in_app: false
+      - data:
+          symbolicator_status: missing
+        in_app: false
         instruction_addr: '0x771d0f79'
         package: C:\Windows\System32\ntdll.dll
-        trust: fp
-      - in_app: false
+      - data:
+          symbolicator_status: missing
+        in_app: false
         instruction_addr: '0x750662c4'
         package: C:\Windows\System32\kernel32.dll
-        trust: fp
-      - in_app: false
+      - data:
+          symbolicator_status: missing
+        in_app: false
         instruction_addr: '0x771e016c'
         package: C:\Windows\System32\ntdll.dll
-        trust: context
       registers:
         eax: '0x0'
         ebp: '0x159faa4'
@@ -339,53 +237,28 @@ threads:
         esp: '0x159f900'
   - crashed: false
     id: 2600
-    raw_stacktrace:
-      frames:
-      - in_app: false
-        instruction_addr: '0x771d0f44'
-        package: C:\Windows\System32\ntdll.dll
-        trust: fp
-      - in_app: false
-        instruction_addr: '0x771d0f79'
-        package: C:\Windows\System32\ntdll.dll
-        trust: fp
-      - in_app: false
-        instruction_addr: '0x750662c4'
-        package: C:\Windows\System32\kernel32.dll
-        trust: fp
-      - in_app: false
-        instruction_addr: '0x771e016c'
-        package: C:\Windows\System32\ntdll.dll
-        trust: context
-      registers:
-        eax: '0x0'
-        ebp: '0x169fb98'
-        ebx: '0x13b0990'
-        ecx: '0x0'
-        edi: '0x13b7c28'
-        edx: '0x0'
-        eflags: '0x202'
-        eip: '0x771e016c'
-        esi: '0x13b7a68'
-        esp: '0x169f9f4'
     stacktrace:
       frames:
-      - in_app: false
+      - data:
+          symbolicator_status: missing
+        in_app: false
         instruction_addr: '0x771d0f44'
         package: C:\Windows\System32\ntdll.dll
-        trust: fp
-      - in_app: false
+      - data:
+          symbolicator_status: missing
+        in_app: false
         instruction_addr: '0x771d0f79'
         package: C:\Windows\System32\ntdll.dll
-        trust: fp
-      - in_app: false
+      - data:
+          symbolicator_status: missing
+        in_app: false
         instruction_addr: '0x750662c4'
         package: C:\Windows\System32\kernel32.dll
-        trust: fp
-      - in_app: false
+      - data:
+          symbolicator_status: missing
+        in_app: false
         instruction_addr: '0x771e016c'
         package: C:\Windows\System32\ntdll.dll
-        trust: context
       registers:
         eax: '0x0'
         ebp: '0x169fb98'
@@ -399,29 +272,13 @@ threads:
         esp: '0x169f9f4'
   - crashed: false
     id: 2920
-    raw_stacktrace:
-      frames:
-      - in_app: false
-        instruction_addr: '0x771df3dc'
-        package: C:\Windows\System32\ntdll.dll
-        trust: context
-      registers:
-        eax: '0x0'
-        ebp: '0x179f2b8'
-        ebx: '0x17b1aa0'
-        ecx: '0x0'
-        edi: '0x17b1a90'
-        edx: '0x0'
-        eflags: '0x206'
-        eip: '0x771df3dc'
-        esi: '0x2cc'
-        esp: '0x179f2ac'
     stacktrace:
       frames:
-      - in_app: false
+      - data:
+          symbolicator_status: missing
+        in_app: false
         instruction_addr: '0x771df3dc'
         package: C:\Windows\System32\ntdll.dll
-        trust: context
       registers:
         eax: '0x0'
         ebp: '0x179f2b8'
