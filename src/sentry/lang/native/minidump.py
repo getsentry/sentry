@@ -230,9 +230,11 @@ def merge_symbolicator_minidump_response(data, response):
             # Make exemption specifically for unreal portable callstacks
             # TODO(markus): Allow overriding stacktrace more generically
             # (without looking into unreal context) once we no longer parse
-            # minidump twice.
+            # minidump in the endpoint (right now we can't distinguish that
+            # from user json).
             if data_stacktrace['frames'] and get_path(
-                    data, 'contexts', 'unreal', 'portable_call_stack_parsed'):
+                data, 'contexts', 'unreal', 'portable_call_stack_parsed'
+            ):
                 continue
             del data_stacktrace['frames'][:]
         else:

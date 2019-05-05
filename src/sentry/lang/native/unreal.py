@@ -173,7 +173,7 @@ def merge_unreal_context_event(unreal_context, event, project):
         frames = parse_portable_callstack(portable_callstack, images)
 
         if len(frames) > 0:
-            set_path(event, 'exception', 'values', 0, 'stacktrace', 'frames', value=frames)
+            event['stacktrace'] = {'frames': frames}
             portable_callstack_parsed = True
 
     # drop modules. minidump processing adds 'images loaded'
