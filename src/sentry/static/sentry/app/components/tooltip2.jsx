@@ -72,13 +72,6 @@ class Tooltip2 extends React.Component {
     this.setState({isOpen: false});
   };
 
-  /**
-   * Different kinds of children need different wrapping.
-   * For custom components and function components we have
-   * to add a span as we can't trust the component to implement
-   * forward refs. For svg and html elements we can clone
-   * the child and push more props onto it.
-   */
   renderTrigger(children, ref) {
     const propList = {
       'aria-describedby': this.tooltipId,
@@ -87,6 +80,10 @@ class Tooltip2 extends React.Component {
       onMouseEnter: this.handleOpen,
       onMouseLeave: this.handleClose,
     };
+    // Use the `type` property of the react instance to detect whether we
+    // have a basic element (type=string) or a class/function component (type=function)
+    // Because we can't rely on the child element implementing forwardRefs we wrap
+    // it with a span tag so that popper has ref
     if (children.type instanceof Function) {
       return (
         <Container {...propList} innerRef={ref}>
@@ -94,6 +91,7 @@ class Tooltip2 extends React.Component {
         </Container>
       );
     }
+    // Basic DOM nodes can be cloned and have more props applied.
     return React.cloneElement(children, {
       ...propList,
       ref,
