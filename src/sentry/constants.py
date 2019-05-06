@@ -372,12 +372,14 @@ class ObjectStatus(object):
 class SentryAppStatus(object):
     UNPUBLISHED = 0
     PUBLISHED = 1
+    INTERNAL = 2
 
     @classmethod
     def as_choices(cls):
         return (
             (cls.UNPUBLISHED, 'unpublished'),
             (cls.PUBLISHED, 'published'),
+            (cls.INTERNAL, 'internal'),
         )
 
 
