@@ -6,6 +6,7 @@ from datetime import datetime
 
 from sentry.models import Event, EventDict
 from sentry.utils import json, metrics
+from sentry.utils.safe import get_path
 
 
 logger = logging.getLogger(__name__)
@@ -104,12 +105,12 @@ def get_task_kwargs_for_message(value):
     metrics.timing('evenstream.events.size.data', len(value))
     payload = json.loads(value)
 
-    event_id = payload[2]['event_id']
-    project_id = payload[2]['project_id']
+    event_id = get_path(payload, 2, 'event_id')
+    project_id = get_path(payload, 2, 'project_id')
     metrics.incr(
         'evenstream.events.size.data.mb_bucket.%s' % (len(value) // (10 ** 6),),
         tags={
-            'project_id': project_id,
+            'project_id': project_id or 'None',
             'event': '%s,%s' % (project_id, event_id)
         }
     )
