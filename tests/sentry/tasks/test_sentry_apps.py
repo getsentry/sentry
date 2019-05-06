@@ -111,8 +111,9 @@ class TestSendAlertEvent(TestCase):
             kwargs={'sentry_app': self.sentry_app},
         )
 
-        with self.tasks():
-            notify_sentry_app(event, [rule_future])
+        with self.feature('organizations:sentry10'):
+            with self.tasks():
+                notify_sentry_app(event, [rule_future])
 
         data = json.loads(faux(safe_urlopen).kwargs['data'])
 
@@ -129,9 +130,8 @@ class TestSendAlertEvent(TestCase):
                         self.project.slug,
                         event.id,
                     ])),
-                    web_url=absolute_uri(reverse('sentry-group-event', args=[
+                    web_url=absolute_uri(reverse('sentry-organization-event-detail', args=[
                         self.organization.slug,
-                        self.project.slug,
                         group.id,
                         event.id,
                     ])),
