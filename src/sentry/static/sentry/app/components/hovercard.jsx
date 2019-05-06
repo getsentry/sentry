@@ -130,7 +130,7 @@ class Hovercard extends React.Component {
                   visible={visible}
                   withHeader={!!header}
                   style={style}
-                  data-placement={placement}
+                  placement={placement}
                   onMouseEnter={this.handleToggleOn}
                   onMouseLeave={this.handleToggleOff}
                   className={cx}
@@ -140,7 +140,7 @@ class Hovercard extends React.Component {
                   <HovercardArrow
                     innerRef={arrowProps.ref}
                     style={arrowProps.style}
-                    data-placement={placement}
+                    placement={placement}
                   />
                 </StyledHovercard>
               )}
@@ -161,9 +161,9 @@ const slideIn = p => keyframes`
   }
 `;
 
-const getTipColor = p => (p['data-placement'] === 'bottom' ? p.theme.offWhite : '#fff');
+const getTipColor = p => (p.placement === 'bottom' ? p.theme.offWhite : '#fff');
 const getTipDirection = p =>
-  VALID_DIRECTIONS.includes(p['data-placement']) ? p['data-placement'] : 'top';
+  VALID_DIRECTIONS.includes(p.placement) ? p.placement : 'top';
 
 const StyledHovercard = styled('div')`
   border-radius: 4px;
@@ -190,18 +190,10 @@ const StyledHovercard = styled('div')`
   animation-play-state: ${p => (p.visible ? 'running' : 'paused')};
 
   /* Offset for the arrow */
-  &[data-placement*='top'] {
-    margin-bottom: 15px;
-  }
-  &[data-placement*='bottom'] {
-    margin-top: 15px;
-  }
-  &[data-placement*='left'] {
-    margin-left: 15px;
-  }
-  &[data-placement*='right'] {
-    margin-right: 15px;
-  }
+  ${p => (p.placement === 'top' ? 'margin-bottom: 15px' : '')};
+  ${p => (p.placement === 'bottom' ? 'margin-top: 15px' : '')};
+  ${p => (p.placement === 'left' ? 'margin-left: 15px' : '')};
+  ${p => (p.placement === 'right' ? 'margin-right: 15px' : '')};
 `;
 
 const Container = styled('span')`
@@ -232,6 +224,11 @@ const HovercardArrow = styled('span')`
   height: 20px;
   z-index: -1;
 
+  ${p => (p.placement === 'top' ? 'bottom: -20px; left: 0' : '')};
+  ${p => (p.placement === 'bottom' ? 'top: -20px; left: 0' : '')};
+  ${p => (p.placement === 'left' ? 'right: -20px' : '')};
+  ${p => (p.placement === 'right' ? 'left: -20px' : '')};
+
   &::before,
   &::after {
     content: '';
@@ -250,40 +247,15 @@ const HovercardArrow = styled('span')`
     border: 10px solid transparent;
     /* stylelint-disable-next-line property-no-unknown */
     border-${getTipDirection}-color: ${p => p.theme.borderLight};
+
+    ${p => (p.placement === 'bottom' ? 'top: -1px' : '')};
+    ${p => (p.placement === 'left' ? 'top: 0; left: 1px;' : '')};
+    ${p => (p.placement === 'right' ? 'top: 0; left: -1px' : '')};
   }
   &::after {
     border: 10px solid transparent;
     /* stylelint-disable-next-line property-no-unknown */
     border-${getTipDirection}-color: ${getTipColor};
-  }
-
-  &[data-placement*='bottom'] {
-    top: -20px;
-    left: 0;
-    &:before {
-      top: -1px;
-    }
-  }
-
-  &[data-placement*='top'] {
-    bottom: -20px;
-    left: 0;
-  }
-
-  &[data-placement*='right'] {
-    left: -20px;
-    &:before {
-      top: 0;
-      left: -1px;
-    }
-  }
-
-  &[data-placement*='left'] {
-    right: -20px;
-    &:before {
-      top: 0;
-      left: 1px;
-    }
   }
 `;
 
