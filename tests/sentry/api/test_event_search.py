@@ -821,7 +821,7 @@ class ParseBooleanSearchQueryTest(TestCase):
                 )
             )]
 
-        # absuredly long
+        # absurdly long
         assert parse_search_query(
             'user.email:foo@example.com AND user.email:bar@example.com OR user.email:foobar@example.com AND user.email:hello@example.com AND user.email:hi@example.com OR user.email:foo@example.com AND user.email:bar@example.com OR user.email:foobar@example.com AND user.email:hello@example.com AND user.email:hi@example.com'
         ) == [SearchBoolean(
