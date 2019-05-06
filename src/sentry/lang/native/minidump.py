@@ -42,7 +42,12 @@ MINIDUMP_IMAGE_TYPES = {
 
 def is_minidump_event(data):
     exceptions = get_path(data, 'exception', 'values', filter=True)
-    return get_path(exceptions, 0, 'mechanism', 'type') == 'minidump'
+    return get_path(exceptions, 0, 'mechanism', 'type') in ('minidump', 'unreal')
+
+
+def is_unreal_exception_stacktrace(data):
+    exceptions = get_path(data, 'exception', 'values', filter=True)
+    return get_path(exceptions, 0, 'mechanism', 'type') == 'unreal'
 
 
 def process_minidump(minidump, cfi=None):
@@ -94,7 +99,7 @@ def merge_process_state_event(data, state, cfi=None):
     # Extract the crash reason and infos
     exc_value = 'Assertion Error: %s' % state.assertion if state.assertion \
         else 'Fatal Error: %s' % state.crash_reason
-    data['exception'] = {
+    data['exception'] = {'values': [{
         'value': exc_value,
         'thread_id': crashed_thread['id'],
         'type': state.crash_reason,
@@ -108,7 +113,7 @@ def merge_process_state_event(data, state, cfi=None):
             # extractor just yet. Once these capabilities are added to symbolic,
             # these values should go in the mechanism here.
         }
-    }
+    }]}
 
     # Extract referenced (not all loaded) images
     images = [{
@@ -233,9 +238,7 @@ def merge_symbolicator_minidump_response(data, response):
             # (without looking into unreal context) once we no longer parse
             # minidump in the endpoint (right now we can't distinguish that
             # from user json).
-            if data_stacktrace['frames'] and get_path(
-                data, 'contexts', 'unreal', 'portable_call_stack_parsed'
-            ):
+            if data_stacktrace['frames'] and is_unreal_exception_stacktrace(data):
                 continue
             del data_stacktrace['frames'][:]
         else:

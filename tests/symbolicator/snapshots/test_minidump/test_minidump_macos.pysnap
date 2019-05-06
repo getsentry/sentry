@@ -1,5 +1,5 @@
 ---
-created: '2019-04-02T14:12:11.068611Z'
+created: '2019-05-06T08:50:02.285689Z'
 creator: sentry
 source: tests/symbolicator/test_minidump.py
 ---
@@ -315,45 +315,46 @@ debug_meta:
     image_size: 172032
     type: macho
 exception:
-  mechanism:
-    handled: false
-    synthetic: true
-    type: minidump
-  stacktrace:
-    frames:
-    - instruction_addr: '0x7fffe7eeb235'
-      package: /usr/lib/system/libdyld.dylib
-      trust: scan
-    - instruction_addr: '0x7fffe7eeb235'
-      package: /usr/lib/system/libdyld.dylib
-      trust: scan
-    - instruction_addr: '0x109ba8c70'
-      package: /Users/travis/build/getsentry/breakpad-tools/macos/build/./crash
-      trust: scan
-    - instruction_addr: '0x109ba8c15'
-      package: /Users/travis/build/getsentry/breakpad-tools/macos/build/./crash
-      trust: context
-    registers:
-      r10: '0x000000000000002e'
-      r11: '0x00007fffe8105171'
-      r12: '0x0000000000000000'
-      r13: '0x0000000000000000'
-      r14: '0x0000000000000000'
-      r15: '0x0000000000000000'
-      r8: '0x000000000c0008ff'
-      r9: '0x0000000000000000'
-      rax: '0x0000000000000001'
-      rbp: '0x00007fff56064258'
-      rbx: '0x00007fff56064120'
-      rcx: '0x0000000000000000'
-      rdi: '0x00007fff56064120'
-      rdx: '0x0000000000000000'
-      rip: '0x0000000109ba8c15'
-      rsi: '0x00007fff56064140'
-      rsp: '0x00007fff56064110'
-  thread_id: 775
-  type: EXC_BAD_ACCESS / KERN_INVALID_ADDRESS
-  value: 'Fatal Error: EXC_BAD_ACCESS / KERN_INVALID_ADDRESS'
+  values:
+  - mechanism:
+      handled: false
+      synthetic: true
+      type: minidump
+    stacktrace:
+      frames:
+      - instruction_addr: '0x7fffe7eeb235'
+        package: /usr/lib/system/libdyld.dylib
+        trust: scan
+      - instruction_addr: '0x7fffe7eeb235'
+        package: /usr/lib/system/libdyld.dylib
+        trust: scan
+      - instruction_addr: '0x109ba8c70'
+        package: /Users/travis/build/getsentry/breakpad-tools/macos/build/./crash
+        trust: scan
+      - instruction_addr: '0x109ba8c15'
+        package: /Users/travis/build/getsentry/breakpad-tools/macos/build/./crash
+        trust: context
+      registers:
+        r10: '0x000000000000002e'
+        r11: '0x00007fffe8105171'
+        r12: '0x0000000000000000'
+        r13: '0x0000000000000000'
+        r14: '0x0000000000000000'
+        r15: '0x0000000000000000'
+        r8: '0x000000000c0008ff'
+        r9: '0x0000000000000000'
+        rax: '0x0000000000000001'
+        rbp: '0x00007fff56064258'
+        rbx: '0x00007fff56064120'
+        rcx: '0x0000000000000000'
+        rdi: '0x00007fff56064120'
+        rdx: '0x0000000000000000'
+        rip: '0x0000000109ba8c15'
+        rsi: '0x00007fff56064140'
+        rsp: '0x00007fff56064110'
+    thread_id: 775
+    type: EXC_BAD_ACCESS / KERN_INVALID_ADDRESS
+    value: 'Fatal Error: EXC_BAD_ACCESS / KERN_INVALID_ADDRESS'
 level: fatal
 platform: native
 release: test-1.0.0

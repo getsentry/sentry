@@ -1,5 +1,5 @@
 ---
-created: '2019-04-02T14:12:11.021596Z'
+created: '2019-05-06T08:50:02.253818Z'
 creator: sentry
 source: tests/symbolicator/test_minidump.py
 ---
@@ -70,87 +70,88 @@ debug_meta:
     image_size: 8192
     type: elf
 exception:
-  mechanism:
-    handled: false
-    synthetic: true
-    type: minidump
-  stacktrace:
-    frames:
-    - instruction_addr: '0x401dc0'
-      package: /work/linux/build/crash
-      trust: scan
-    - instruction_addr: '0x7f5140cdc000'
-      package: null
-      trust: scan
-    - instruction_addr: '0x400040'
-      package: /work/linux/build/crash
-      trust: scan
-    - instruction_addr: '0x7fff5aef1000'
-      package: null
-      trust: scan
-    - instruction_addr: '0x401de9'
-      package: /work/linux/build/crash
-      trust: scan
-    - instruction_addr: '0x401dc0'
-      package: /work/linux/build/crash
-      trust: scan
-    - instruction_addr: '0x414ca0'
-      package: /work/linux/build/crash
-      trust: scan
-    - instruction_addr: '0x401c70'
-      package: /work/linux/build/crash
-      trust: scan
-    - instruction_addr: '0x401dc0'
-      package: /work/linux/build/crash
-      trust: scan
-    - instruction_addr: '0x401c70'
-      package: /work/linux/build/crash
-      trust: scan
-    - instruction_addr: '0x7f514017d830'
-      package: /lib/x86_64-linux-gnu/libc-2.23.so
-      trust: scan
-    - instruction_addr: '0x414c30'
-      package: /work/linux/build/crash
-      trust: scan
-    - instruction_addr: '0x401ec0'
-      package: /work/linux/build/crash
-      trust: scan
-    - instruction_addr: '0x7f5140cebac6'
-      package: /lib/x86_64-linux-gnu/ld-2.23.so
-      trust: scan
-    - instruction_addr: '0x400000'
-      package: null
-      trust: scan
-    - instruction_addr: '0x7f51401e4800'
-      package: /lib/x86_64-linux-gnu/libc-2.23.so
-      trust: scan
-    - instruction_addr: '0x7f514025002e'
-      package: /lib/x86_64-linux-gnu/libc-2.23.so
-      trust: scan
-    - instruction_addr: '0x401d72'
-      package: /work/linux/build/crash
-      trust: context
-    registers:
-      r10: '0x0000000000000131'
-      r11: '0x00007f5140aca4c0'
-      r12: '0x0000000000401dc0'
-      r13: '0x00007fff5ae4ac90'
-      r14: '0x00007fff5ae4aab0'
-      r15: '0x0000000000000000'
-      r8: '0x0000000000000000'
-      r9: '0x0000000000000000'
-      rax: '0xffffffffffffffff'
-      rbp: '0x00007fff5ae4abb0'
-      rbx: '0x00007fff5ae4aa20'
-      rcx: '0x00007f5140521b20'
-      rdi: '0x00007fff5ae4aab0'
-      rdx: '0x00007f5140efc000'
-      rip: '0x0000000000401d72'
-      rsi: '0x0000000000000000'
-      rsp: '0x00007fff5ae4aa20'
-  thread_id: 1304
-  type: SIGSEGV /0x00000000
-  value: 'Fatal Error: SIGSEGV /0x00000000'
+  values:
+  - mechanism:
+      handled: false
+      synthetic: true
+      type: minidump
+    stacktrace:
+      frames:
+      - instruction_addr: '0x401dc0'
+        package: /work/linux/build/crash
+        trust: scan
+      - instruction_addr: '0x7f5140cdc000'
+        package: null
+        trust: scan
+      - instruction_addr: '0x400040'
+        package: /work/linux/build/crash
+        trust: scan
+      - instruction_addr: '0x7fff5aef1000'
+        package: null
+        trust: scan
+      - instruction_addr: '0x401de9'
+        package: /work/linux/build/crash
+        trust: scan
+      - instruction_addr: '0x401dc0'
+        package: /work/linux/build/crash
+        trust: scan
+      - instruction_addr: '0x414ca0'
+        package: /work/linux/build/crash
+        trust: scan
+      - instruction_addr: '0x401c70'
+        package: /work/linux/build/crash
+        trust: scan
+      - instruction_addr: '0x401dc0'
+        package: /work/linux/build/crash
+        trust: scan
+      - instruction_addr: '0x401c70'
+        package: /work/linux/build/crash
+        trust: scan
+      - instruction_addr: '0x7f514017d830'
+        package: /lib/x86_64-linux-gnu/libc-2.23.so
+        trust: scan
+      - instruction_addr: '0x414c30'
+        package: /work/linux/build/crash
+        trust: scan
+      - instruction_addr: '0x401ec0'
+        package: /work/linux/build/crash
+        trust: scan
+      - instruction_addr: '0x7f5140cebac6'
+        package: /lib/x86_64-linux-gnu/ld-2.23.so
+        trust: scan
+      - instruction_addr: '0x400000'
+        package: null
+        trust: scan
+      - instruction_addr: '0x7f51401e4800'
+        package: /lib/x86_64-linux-gnu/libc-2.23.so
+        trust: scan
+      - instruction_addr: '0x7f514025002e'
+        package: /lib/x86_64-linux-gnu/libc-2.23.so
+        trust: scan
+      - instruction_addr: '0x401d72'
+        package: /work/linux/build/crash
+        trust: context
+      registers:
+        r10: '0x0000000000000131'
+        r11: '0x00007f5140aca4c0'
+        r12: '0x0000000000401dc0'
+        r13: '0x00007fff5ae4ac90'
+        r14: '0x00007fff5ae4aab0'
+        r15: '0x0000000000000000'
+        r8: '0x0000000000000000'
+        r9: '0x0000000000000000'
+        rax: '0xffffffffffffffff'
+        rbp: '0x00007fff5ae4abb0'
+        rbx: '0x00007fff5ae4aa20'
+        rcx: '0x00007f5140521b20'
+        rdi: '0x00007fff5ae4aab0'
+        rdx: '0x00007f5140efc000'
+        rip: '0x0000000000401d72'
+        rsi: '0x0000000000000000'
+        rsp: '0x00007fff5ae4aa20'
+    thread_id: 1304
+    type: SIGSEGV /0x00000000
+    value: 'Fatal Error: SIGSEGV /0x00000000'
 level: fatal
 platform: native
 release: test-1.0.0

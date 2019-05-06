@@ -1,5 +1,5 @@
 ---
-created: '2019-05-05T13:01:19.687699Z'
+created: '2019-05-06T08:50:24.392558Z'
 creator: sentry
 source: tests/symbolicator/test_unreal.py
 ---
@@ -10,8 +10,6 @@ contexts:
     name: Parallels Display Adapter (WDDM)
   os:
     name: Windows 10
-  unreal:
-    portable_call_stack_parsed: true
 environment: Production
 event_id: 12852a74acc943a790c8f1cd23907caa
 extra:

@@ -1,5 +1,5 @@
 ---
-created: '2019-05-05T13:05:03.384187Z'
+created: '2019-05-06T08:50:28.461867Z'
 creator: sentry
 source: tests/symbolicator/test_unreal_full.py
 ---
@@ -16,15 +16,12 @@ contexts:
     name: Windows 10
     type: os
     version: 10.0.17134
-  unreal:
-    portable_call_stack_parsed: true
-    type: default
 exception:
   values:
   - mechanism:
       handled: false
       synthetic: true
-      type: minidump
+      type: unreal
     raw_stacktrace:
       frames:
       - in_app: false

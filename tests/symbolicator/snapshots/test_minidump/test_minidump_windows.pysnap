@@ -1,5 +1,5 @@
 ---
-created: '2019-04-02T14:12:11.098942Z'
+created: '2019-05-06T08:50:02.313593Z'
 creator: sentry
 source: tests/symbolicator/test_minidump.py
 ---
@@ -133,62 +133,63 @@ debug_meta:
     image_size: 1585152
     type: pe
 exception:
-  mechanism:
-    handled: false
-    synthetic: true
-    type: minidump
-  stacktrace:
-    frames:
-    - instruction_addr: '0x771d0f44'
-      package: C:\Windows\System32\ntdll.dll
-      trust: fp
-    - instruction_addr: '0x771d0f79'
-      package: C:\Windows\System32\ntdll.dll
-      trust: fp
-    - instruction_addr: '0x750662c4'
-      package: C:\Windows\System32\kernel32.dll
-      trust: fp
-    - instruction_addr: '0x2a2d97'
-      package: C:\projects\breakpad-tools\windows\Release\crash.exe
-      trust: scan
-    - instruction_addr: '0x2a3435'
-      package: C:\projects\breakpad-tools\windows\Release\crash.exe
-      trust: scan
-    - instruction_addr: '0x7584e9c0'
-      package: C:\Windows\System32\rpcrt4.dll
-      trust: scan
-    - instruction_addr: '0x75810000'
-      package: null
-      trust: scan
-    - instruction_addr: '0x70b7ae40'
-      package: C:\Windows\System32\dbgcore.dll
-      trust: scan
-    - instruction_addr: '0x70850000'
-      package: null
-      trust: scan
-    - instruction_addr: '0x7584e9c0'
-      package: C:\Windows\System32\rpcrt4.dll
-      trust: scan
-    - instruction_addr: '0x2a28d0'
-      package: C:\projects\breakpad-tools\windows\Release\crash.exe
-      trust: fp
-    - instruction_addr: '0x2a2a3d'
-      package: C:\projects\breakpad-tools\windows\Release\crash.exe
-      trust: context
-    registers:
-      eax: '0x00000000'
-      ebp: '0x010ff670'
-      ebx: '0x00fe5000'
-      ecx: '0x010ff670'
-      edi: '0x013bfd78'
-      edx: '0x00000007'
-      eflags: '0x00010246'
-      eip: '0x002a2a3d'
-      esi: '0x759c6314'
-      esp: '0x010ff644'
-  thread_id: 1636
-  type: EXCEPTION_ACCESS_VIOLATION_WRITE
-  value: 'Fatal Error: EXCEPTION_ACCESS_VIOLATION_WRITE'
+  values:
+  - mechanism:
+      handled: false
+      synthetic: true
+      type: minidump
+    stacktrace:
+      frames:
+      - instruction_addr: '0x771d0f44'
+        package: C:\Windows\System32\ntdll.dll
+        trust: fp
+      - instruction_addr: '0x771d0f79'
+        package: C:\Windows\System32\ntdll.dll
+        trust: fp
+      - instruction_addr: '0x750662c4'
+        package: C:\Windows\System32\kernel32.dll
+        trust: fp
+      - instruction_addr: '0x2a2d97'
+        package: C:\projects\breakpad-tools\windows\Release\crash.exe
+        trust: scan
+      - instruction_addr: '0x2a3435'
+        package: C:\projects\breakpad-tools\windows\Release\crash.exe
+        trust: scan
+      - instruction_addr: '0x7584e9c0'
+        package: C:\Windows\System32\rpcrt4.dll
+        trust: scan
+      - instruction_addr: '0x75810000'
+        package: null
+        trust: scan
+      - instruction_addr: '0x70b7ae40'
+        package: C:\Windows\System32\dbgcore.dll
+        trust: scan
+      - instruction_addr: '0x70850000'
+        package: null
+        trust: scan
+      - instruction_addr: '0x7584e9c0'
+        package: C:\Windows\System32\rpcrt4.dll
+        trust: scan
+      - instruction_addr: '0x2a28d0'
+        package: C:\projects\breakpad-tools\windows\Release\crash.exe
+        trust: fp
+      - instruction_addr: '0x2a2a3d'
+        package: C:\projects\breakpad-tools\windows\Release\crash.exe
+        trust: context
+      registers:
+        eax: '0x00000000'
+        ebp: '0x010ff670'
+        ebx: '0x00fe5000'
+        ecx: '0x010ff670'
+        edi: '0x013bfd78'
+        edx: '0x00000007'
+        eflags: '0x00010246'
+        eip: '0x002a2a3d'
+        esi: '0x759c6314'
+        esp: '0x010ff644'
+    thread_id: 1636
+    type: EXCEPTION_ACCESS_VIOLATION_WRITE
+    value: 'Fatal Error: EXCEPTION_ACCESS_VIOLATION_WRITE'
 level: fatal
 platform: native
 release: test-1.0.0
