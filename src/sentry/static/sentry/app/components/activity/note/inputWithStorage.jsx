@@ -32,7 +32,10 @@ class NoteInputWithStorage extends React.Component {
     try {
       return JSON.parse(storage);
     } catch (err) {
-      Sentry.captureException(err);
+      Sentry.withScope(scope => {
+        scope.setExtra('storage', storage);
+        Sentry.captureException(err);
+      });
       return null;
     }
   };
@@ -44,6 +47,10 @@ class NoteInputWithStorage extends React.Component {
       localStorage.setItem(storageKey, JSON.stringify(obj));
     } catch (err) {
       Sentry.captureException(err);
+      Sentry.withScope(scope => {
+        scope.setExtra('storage', obj);
+        Sentry.captureException(err);
+      });
     }
   };
 

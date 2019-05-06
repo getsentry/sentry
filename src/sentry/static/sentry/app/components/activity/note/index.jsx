@@ -41,29 +41,17 @@ class Note extends React.Component {
   handleDelete = () => {
     const {item, onDelete} = this.props;
 
-    if (!onDelete) {
-      return;
-    }
-
     onDelete(item);
   };
 
   handleCreate = note => {
     const {onCreate} = this.props;
 
-    if (!onCreate) {
-      return;
-    }
-
     onCreate(note);
   };
 
   handleUpdate = note => {
     const {item, onUpdate} = this.props;
-
-    if (!onUpdate) {
-      return;
-    }
 
     onUpdate(note, item);
     this.setState({editing: false});

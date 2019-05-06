@@ -3,7 +3,7 @@ const changeReactMentionsInput = (wrapper, value) => {
   // checks that event object is === document.activeElement
   let el = wrapper.find('textarea').getDOMNode();
 
-  // tbh idk what i'm doing here, i think we need these 2 values to be differe different
+  // We need a non-zero width selection for `react-mentions`
   el.selectionStart = 2;
   el.selectionEnd = 3;
   wrapper.find('textarea').simulate('select', {target: el});
