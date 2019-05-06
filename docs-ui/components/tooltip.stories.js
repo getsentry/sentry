@@ -7,6 +7,12 @@ import Tooltip from 'app/components/tooltip';
 import Tooltip2 from 'app/components/tooltip2';
 import Button from 'app/components/button';
 
+class CustomThing extends React.Component {
+  render() {
+    return <span>A class component with no ref</span>;
+  }
+}
+
 storiesOf('UI|Tooltip', module)
   .add(
     'Tooltip',
@@ -46,7 +52,7 @@ storiesOf('UI|Tooltip', module)
     'Tooltip v2',
     withInfo({
       text: 'Adds a tooltip to any component,',
-      propTablesExclude: [Button, 'Button'],
+      propTablesExclude: [CustomThing, Button, 'Button'],
     })(() => {
       const title = text('tooltip', 'Basic tooltip content');
       const disabled = boolean('Disabled', false);
@@ -60,9 +66,30 @@ storiesOf('UI|Tooltip', module)
         <React.Fragment>
           <h3>With styled component trigger</h3>
           <p>
-            <Tooltip2 isStyled title={title} position={position} disabled={disabled}>
-              <Button>Custom React Component</Button>
+            <Tooltip2 title={title} position={position} disabled={disabled}>
+              <Button>Styled button</Button>
             </Tooltip2>
+          </p>
+
+          <h3>With class component trigger</h3>
+          <p>
+            <Tooltip2 title={title} position={position} disabled={disabled}>
+              <CustomThing>Custom React Component</CustomThing>
+            </Tooltip2>
+          </p>
+
+          <h3>With an SVG element trigger</h3>
+          <p>
+            <svg
+              viewBox="0 0 100 100"
+              width="100"
+              height="100"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <Tooltip2 title={title} position={position} disabled={disabled}>
+                <circle cx="50" cy="50" r="50" />
+              </Tooltip2>
+            </svg>
           </p>
 
           <h3>With element title and native html element</h3>

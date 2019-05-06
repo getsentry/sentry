@@ -35,11 +35,6 @@ class Tooltip2 extends React.Component {
       'auto',
     ]),
     /**
-     * Set to true if your reference element is a styled component
-     * or needs to receive `innerRef`
-     */
-    isStyled: PropTypes.bool,
-    /**
      * Additional style rules for the tooltip content.
      */
     popperStyle: PropTypes.oneOfType([PropTypes.string, PropTypes.object]),
@@ -47,7 +42,6 @@ class Tooltip2 extends React.Component {
 
   static defaultProps = {
     position: 'top',
-    isStyled: false,
   };
 
   constructor(props) {
@@ -78,8 +72,36 @@ class Tooltip2 extends React.Component {
     this.setState({isOpen: false});
   };
 
+  /**
+   * Different kinds of children need different wrapping.
+   * For custom components and function components we have
+   * to add a span as we can't trust the component to implement
+   * forward refs. For svg and html elements we can clone
+   * the child and push more props onto it.
+   */
+  renderTrigger(children, ref) {
+    const propList = {
+      'aria-describedby': this.tooltipId,
+      onFocus: this.handleOpen,
+      onBlur: this.handleClose,
+      onMouseEnter: this.handleOpen,
+      onMouseLeave: this.handleClose,
+    };
+    if (children.type instanceof Function) {
+      return (
+        <span {...propList} ref={ref}>
+          {children}
+        </span>
+      );
+    }
+    return React.cloneElement(children, {
+      ...propList,
+      ref,
+    });
+  }
+
   render() {
-    const {disabled, children, title, position, popperStyle, isStyled} = this.props;
+    const {disabled, children, title, position, popperStyle} = this.props;
     const {isOpen} = this.state;
     if (disabled) {
       return children;
@@ -123,18 +145,7 @@ class Tooltip2 extends React.Component {
 
     return (
       <Manager>
-        <Reference>
-          {({ref}) => {
-            return React.cloneElement(children, {
-              'aria-describedby': this.tooltipId,
-              onFocus: this.handleOpen,
-              onBlur: this.handleOpen,
-              onMouseEnter: this.handleOpen,
-              onMouseLeave: this.handleClose,
-              ...(isStyled ? {innerRef: ref} : {ref}),
-            });
-          }}
-        </Reference>
+        <Reference>{({ref}) => this.renderTrigger(children, ref)}</Reference>
         {tip}
       </Manager>
     );

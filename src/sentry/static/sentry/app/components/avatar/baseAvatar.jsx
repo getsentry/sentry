@@ -151,7 +151,7 @@ class BaseAvatar extends React.Component {
     }
 
     return (
-      <Tooltip2 title={tooltip} disabled={!hasTooltip} isStyled {...tooltipOptions}>
+      <Tooltip2 title={tooltip} disabled={!hasTooltip} {...tooltipOptions}>
         <StyledBaseAvatar
           loaded={this.state.hasLoaded}
           className={classNames('avatar', className)}
