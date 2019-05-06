@@ -154,12 +154,13 @@ class IssueDetailsTest(AcceptanceTestCase, SnubaTestCase):
             platform='python',
         )
 
-        self.browser.get(
-            u'/{}/{}/issues/{}/activity/'.format(
-                self.org.slug, self.project.slug, event.group.id)
-        )
-        self.browser.wait_until_test_id('activity-item')
-        self.browser.snapshot('issue activity python')
+        with self.feature('organizations:sentry10'):
+            self.browser.get(
+                u'/organizations/{}/issues/{}/activity/'.format(
+                    self.org.slug, event.group.id)
+            )
+            self.browser.wait_until_test_id('activity-item')
+            self.browser.snapshot('issue activity python')
 
     def wait_until_loaded(self):
         self.browser.wait_until_not('.loading-indicator')
