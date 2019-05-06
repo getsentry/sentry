@@ -241,26 +241,26 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
                       <InnerReference
                         setReferenceNode={[Function]}
                       >
-                        <span
+                        <Container
                           aria-describedby="tooltip-123456"
+                          innerRef={[Function]}
                           onBlur={[Function]}
                           onFocus={[Function]}
                           onMouseEnter={[Function]}
                           onMouseLeave={[Function]}
                         >
-                          <StyledBaseAvatar
-                            className="avatar css-ptswrs-StyledAvatar-Circle e1axh4r50"
-                            loaded={true}
-                            round={true}
-                            style={
-                              Object {
-                                "height": "28px",
-                                "width": "28px",
-                              }
-                            }
+                          <span
+                            aria-describedby="tooltip-123456"
+                            className="css-1m3e0hg-Container e7ebgxc0"
+                            onBlur={[Function]}
+                            onFocus={[Function]}
+                            onMouseEnter={[Function]}
+                            onMouseLeave={[Function]}
                           >
-                            <span
-                              className="avatar e1axh4r50 css-p25dkn-StyledBaseAvatar-StyledAvatar-Circle e1z0ohzl0"
+                            <StyledBaseAvatar
+                              className="avatar css-ptswrs-StyledAvatar-Circle e1axh4r50"
+                              loaded={true}
+                              round={true}
                               style={
                                 Object {
                                   "height": "28px",
@@ -268,48 +268,58 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
                                 }
                               }
                             >
-                              <LetterAvatar
-                                displayName="Foo Bar"
-                                identifier="foo@example.com"
-                                round={true}
+                              <span
+                                className="avatar e1axh4r50 css-p25dkn-StyledBaseAvatar-StyledAvatar-Circle e1z0ohzl0"
+                                style={
+                                  Object {
+                                    "height": "28px",
+                                    "width": "28px",
+                                  }
+                                }
                               >
-                                <Svg
+                                <LetterAvatar
+                                  displayName="Foo Bar"
+                                  identifier="foo@example.com"
                                   round={true}
-                                  viewBox="0 0 120 120"
                                 >
-                                  <svg
-                                    className="css-1r4mnb9-Svg e1knxa8x0"
+                                  <Svg
+                                    round={true}
                                     viewBox="0 0 120 120"
                                   >
-                                    <rect
-                                      fill="#315cac"
-                                      height="120"
-                                      rx="15"
-                                      ry="15"
-                                      width="120"
-                                      x="0"
-                                      y="0"
-                                    />
-                                    <text
-                                      fill="#FFFFFF"
-                                      fontSize="65"
-                                      style={
-                                        Object {
-                                          "dominantBaseline": "central",
-                                        }
-                                      }
-                                      textAnchor="middle"
-                                      x="50%"
-                                      y="50%"
+                                    <svg
+                                      className="css-1r4mnb9-Svg e1knxa8x0"
+                                      viewBox="0 0 120 120"
                                     >
-                                      FB
-                                    </text>
-                                  </svg>
-                                </Svg>
-                              </LetterAvatar>
-                            </span>
-                          </StyledBaseAvatar>
-                        </span>
+                                      <rect
+                                        fill="#315cac"
+                                        height="120"
+                                        rx="15"
+                                        ry="15"
+                                        width="120"
+                                        x="0"
+                                        y="0"
+                                      />
+                                      <text
+                                        fill="#FFFFFF"
+                                        fontSize="65"
+                                        style={
+                                          Object {
+                                            "dominantBaseline": "central",
+                                          }
+                                        }
+                                        textAnchor="middle"
+                                        x="50%"
+                                        y="50%"
+                                      >
+                                        FB
+                                      </text>
+                                    </svg>
+                                  </Svg>
+                                </LetterAvatar>
+                              </span>
+                            </StyledBaseAvatar>
+                          </span>
+                        </Container>
                       </InnerReference>
                     </Reference>
                   </Manager>
@@ -425,26 +435,26 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
                       <InnerReference
                         setReferenceNode={[Function]}
                       >
-                        <span
+                        <Container
                           aria-describedby="tooltip-123456"
+                          innerRef={[Function]}
                           onBlur={[Function]}
                           onFocus={[Function]}
                           onMouseEnter={[Function]}
                           onMouseLeave={[Function]}
                         >
-                          <StyledBaseAvatar
-                            className="avatar css-ptswrs-StyledAvatar-Circle e1axh4r50"
-                            loaded={true}
-                            round={true}
-                            style={
-                              Object {
-                                "height": "28px",
-                                "width": "28px",
-                              }
-                            }
+                          <span
+                            aria-describedby="tooltip-123456"
+                            className="css-1m3e0hg-Container e7ebgxc0"
+                            onBlur={[Function]}
+                            onFocus={[Function]}
+                            onMouseEnter={[Function]}
+                            onMouseLeave={[Function]}
                           >
-                            <span
-                              className="avatar e1axh4r50 css-p25dkn-StyledBaseAvatar-StyledAvatar-Circle e1z0ohzl0"
+                            <StyledBaseAvatar
+                              className="avatar css-ptswrs-StyledAvatar-Circle e1axh4r50"
+                              loaded={true}
+                              round={true}
                               style={
                                 Object {
                                   "height": "28px",
@@ -452,48 +462,58 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
                                 }
                               }
                             >
-                              <LetterAvatar
-                                displayName="Foo Bar"
-                                identifier="foo@example.com"
-                                round={true}
+                              <span
+                                className="avatar e1axh4r50 css-p25dkn-StyledBaseAvatar-StyledAvatar-Circle e1z0ohzl0"
+                                style={
+                                  Object {
+                                    "height": "28px",
+                                    "width": "28px",
+                                  }
+                                }
                               >
-                                <Svg
+                                <LetterAvatar
+                                  displayName="Foo Bar"
+                                  identifier="foo@example.com"
                                   round={true}
-                                  viewBox="0 0 120 120"
                                 >
-                                  <svg
-                                    className="css-1r4mnb9-Svg e1knxa8x0"
+                                  <Svg
+                                    round={true}
                                     viewBox="0 0 120 120"
                                   >
-                                    <rect
-                                      fill="#315cac"
-                                      height="120"
-                                      rx="15"
-                                      ry="15"
-                                      width="120"
-                                      x="0"
-                                      y="0"
-                                    />
-                                    <text
-                                      fill="#FFFFFF"
-                                      fontSize="65"
-                                      style={
-                                        Object {
-                                          "dominantBaseline": "central",
-                                        }
-                                      }
-                                      textAnchor="middle"
-                                      x="50%"
-                                      y="50%"
+                                    <svg
+                                      className="css-1r4mnb9-Svg e1knxa8x0"
+                                      viewBox="0 0 120 120"
                                     >
-                                      FB
-                                    </text>
-                                  </svg>
-                                </Svg>
-                              </LetterAvatar>
-                            </span>
-                          </StyledBaseAvatar>
-                        </span>
+                                      <rect
+                                        fill="#315cac"
+                                        height="120"
+                                        rx="15"
+                                        ry="15"
+                                        width="120"
+                                        x="0"
+                                        y="0"
+                                      />
+                                      <text
+                                        fill="#FFFFFF"
+                                        fontSize="65"
+                                        style={
+                                          Object {
+                                            "dominantBaseline": "central",
+                                          }
+                                        }
+                                        textAnchor="middle"
+                                        x="50%"
+                                        y="50%"
+                                      >
+                                        FB
+                                      </text>
+                                    </svg>
+                                  </Svg>
+                                </LetterAvatar>
+                              </span>
+                            </StyledBaseAvatar>
+                          </span>
+                        </Container>
                       </InnerReference>
                     </Reference>
                   </Manager>
@@ -609,26 +629,26 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
                       <InnerReference
                         setReferenceNode={[Function]}
                       >
-                        <span
+                        <Container
                           aria-describedby="tooltip-123456"
+                          innerRef={[Function]}
                           onBlur={[Function]}
                           onFocus={[Function]}
                           onMouseEnter={[Function]}
                           onMouseLeave={[Function]}
                         >
-                          <StyledBaseAvatar
-                            className="avatar css-ptswrs-StyledAvatar-Circle e1axh4r50"
-                            loaded={true}
-                            round={true}
-                            style={
-                              Object {
-                                "height": "28px",
-                                "width": "28px",
-                              }
-                            }
+                          <span
+                            aria-describedby="tooltip-123456"
+                            className="css-1m3e0hg-Container e7ebgxc0"
+                            onBlur={[Function]}
+                            onFocus={[Function]}
+                            onMouseEnter={[Function]}
+                            onMouseLeave={[Function]}
                           >
-                            <span
-                              className="avatar e1axh4r50 css-p25dkn-StyledBaseAvatar-StyledAvatar-Circle e1z0ohzl0"
+                            <StyledBaseAvatar
+                              className="avatar css-ptswrs-StyledAvatar-Circle e1axh4r50"
+                              loaded={true}
+                              round={true}
                               style={
                                 Object {
                                   "height": "28px",
@@ -636,48 +656,58 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
                                 }
                               }
                             >
-                              <LetterAvatar
-                                displayName="Foo Bar"
-                                identifier="foo@example.com"
-                                round={true}
+                              <span
+                                className="avatar e1axh4r50 css-p25dkn-StyledBaseAvatar-StyledAvatar-Circle e1z0ohzl0"
+                                style={
+                                  Object {
+                                    "height": "28px",
+                                    "width": "28px",
+                                  }
+                                }
                               >
-                                <Svg
+                                <LetterAvatar
+                                  displayName="Foo Bar"
+                                  identifier="foo@example.com"
                                   round={true}
-                                  viewBox="0 0 120 120"
                                 >
-                                  <svg
-                                    className="css-1r4mnb9-Svg e1knxa8x0"
+                                  <Svg
+                                    round={true}
                                     viewBox="0 0 120 120"
                                   >
-                                    <rect
-                                      fill="#315cac"
-                                      height="120"
-                                      rx="15"
-                                      ry="15"
-                                      width="120"
-                                      x="0"
-                                      y="0"
-                                    />
-                                    <text
-                                      fill="#FFFFFF"
-                                      fontSize="65"
-                                      style={
-                                        Object {
-                                          "dominantBaseline": "central",
-                                        }
-                                      }
-                                      textAnchor="middle"
-                                      x="50%"
-                                      y="50%"
+                                    <svg
+                                      className="css-1r4mnb9-Svg e1knxa8x0"
+                                      viewBox="0 0 120 120"
                                     >
-                                      FB
-                                    </text>
-                                  </svg>
-                                </Svg>
-                              </LetterAvatar>
-                            </span>
-                          </StyledBaseAvatar>
-                        </span>
+                                      <rect
+                                        fill="#315cac"
+                                        height="120"
+                                        rx="15"
+                                        ry="15"
+                                        width="120"
+                                        x="0"
+                                        y="0"
+                                      />
+                                      <text
+                                        fill="#FFFFFF"
+                                        fontSize="65"
+                                        style={
+                                          Object {
+                                            "dominantBaseline": "central",
+                                          }
+                                        }
+                                        textAnchor="middle"
+                                        x="50%"
+                                        y="50%"
+                                      >
+                                        FB
+                                      </text>
+                                    </svg>
+                                  </Svg>
+                                </LetterAvatar>
+                              </span>
+                            </StyledBaseAvatar>
+                          </span>
+                        </Container>
                       </InnerReference>
                     </Reference>
                   </Manager>
@@ -793,26 +823,26 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
                       <InnerReference
                         setReferenceNode={[Function]}
                       >
-                        <span
+                        <Container
                           aria-describedby="tooltip-123456"
+                          innerRef={[Function]}
                           onBlur={[Function]}
                           onFocus={[Function]}
                           onMouseEnter={[Function]}
                           onMouseLeave={[Function]}
                         >
-                          <StyledBaseAvatar
-                            className="avatar css-ptswrs-StyledAvatar-Circle e1axh4r50"
-                            loaded={true}
-                            round={true}
-                            style={
-                              Object {
-                                "height": "28px",
-                                "width": "28px",
-                              }
-                            }
+                          <span
+                            aria-describedby="tooltip-123456"
+                            className="css-1m3e0hg-Container e7ebgxc0"
+                            onBlur={[Function]}
+                            onFocus={[Function]}
+                            onMouseEnter={[Function]}
+                            onMouseLeave={[Function]}
                           >
-                            <span
-                              className="avatar e1axh4r50 css-p25dkn-StyledBaseAvatar-StyledAvatar-Circle e1z0ohzl0"
+                            <StyledBaseAvatar
+                              className="avatar css-ptswrs-StyledAvatar-Circle e1axh4r50"
+                              loaded={true}
+                              round={true}
                               style={
                                 Object {
                                   "height": "28px",
@@ -820,48 +850,58 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
                                 }
                               }
                             >
-                              <LetterAvatar
-                                displayName="Foo Bar"
-                                identifier="foo@example.com"
-                                round={true}
+                              <span
+                                className="avatar e1axh4r50 css-p25dkn-StyledBaseAvatar-StyledAvatar-Circle e1z0ohzl0"
+                                style={
+                                  Object {
+                                    "height": "28px",
+                                    "width": "28px",
+                                  }
+                                }
                               >
-                                <Svg
+                                <LetterAvatar
+                                  displayName="Foo Bar"
+                                  identifier="foo@example.com"
                                   round={true}
-                                  viewBox="0 0 120 120"
                                 >
-                                  <svg
-                                    className="css-1r4mnb9-Svg e1knxa8x0"
+                                  <Svg
+                                    round={true}
                                     viewBox="0 0 120 120"
                                   >
-                                    <rect
-                                      fill="#315cac"
-                                      height="120"
-                                      rx="15"
-                                      ry="15"
-                                      width="120"
-                                      x="0"
-                                      y="0"
-                                    />
-                                    <text
-                                      fill="#FFFFFF"
-                                      fontSize="65"
-                                      style={
-                                        Object {
-                                          "dominantBaseline": "central",
-                                        }
-                                      }
-                                      textAnchor="middle"
-                                      x="50%"
-                                      y="50%"
+                                    <svg
+                                      className="css-1r4mnb9-Svg e1knxa8x0"
+                                      viewBox="0 0 120 120"
                                     >
-                                      FB
-                                    </text>
-                                  </svg>
-                                </Svg>
-                              </LetterAvatar>
-                            </span>
-                          </StyledBaseAvatar>
-                        </span>
+                                      <rect
+                                        fill="#315cac"
+                                        height="120"
+                                        rx="15"
+                                        ry="15"
+                                        width="120"
+                                        x="0"
+                                        y="0"
+                                      />
+                                      <text
+                                        fill="#FFFFFF"
+                                        fontSize="65"
+                                        style={
+                                          Object {
+                                            "dominantBaseline": "central",
+                                          }
+                                        }
+                                        textAnchor="middle"
+                                        x="50%"
+                                        y="50%"
+                                      >
+                                        FB
+                                      </text>
+                                    </svg>
+                                  </Svg>
+                                </LetterAvatar>
+                              </span>
+                            </StyledBaseAvatar>
+                          </span>
+                        </Container>
                       </InnerReference>
                     </Reference>
                   </Manager>
@@ -977,26 +1017,26 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
                       <InnerReference
                         setReferenceNode={[Function]}
                       >
-                        <span
+                        <Container
                           aria-describedby="tooltip-123456"
+                          innerRef={[Function]}
                           onBlur={[Function]}
                           onFocus={[Function]}
                           onMouseEnter={[Function]}
                           onMouseLeave={[Function]}
                         >
-                          <StyledBaseAvatar
-                            className="avatar css-ptswrs-StyledAvatar-Circle e1axh4r50"
-                            loaded={true}
-                            round={true}
-                            style={
-                              Object {
-                                "height": "28px",
-                                "width": "28px",
-                              }
-                            }
+                          <span
+                            aria-describedby="tooltip-123456"
+                            className="css-1m3e0hg-Container e7ebgxc0"
+                            onBlur={[Function]}
+                            onFocus={[Function]}
+                            onMouseEnter={[Function]}
+                            onMouseLeave={[Function]}
                           >
-                            <span
-                              className="avatar e1axh4r50 css-p25dkn-StyledBaseAvatar-StyledAvatar-Circle e1z0ohzl0"
+                            <StyledBaseAvatar
+                              className="avatar css-ptswrs-StyledAvatar-Circle e1axh4r50"
+                              loaded={true}
+                              round={true}
                               style={
                                 Object {
                                   "height": "28px",
@@ -1004,48 +1044,58 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
                                 }
                               }
                             >
-                              <LetterAvatar
-                                displayName="Foo Bar"
-                                identifier="foo@example.com"
-                                round={true}
+                              <span
+                                className="avatar e1axh4r50 css-p25dkn-StyledBaseAvatar-StyledAvatar-Circle e1z0ohzl0"
+                                style={
+                                  Object {
+                                    "height": "28px",
+                                    "width": "28px",
+                                  }
+                                }
                               >
-                                <Svg
+                                <LetterAvatar
+                                  displayName="Foo Bar"
+                                  identifier="foo@example.com"
                                   round={true}
-                                  viewBox="0 0 120 120"
                                 >
-                                  <svg
-                                    className="css-1r4mnb9-Svg e1knxa8x0"
+                                  <Svg
+                                    round={true}
                                     viewBox="0 0 120 120"
                                   >
-                                    <rect
-                                      fill="#315cac"
-                                      height="120"
-                                      rx="15"
-                                      ry="15"
-                                      width="120"
-                                      x="0"
-                                      y="0"
-                                    />
-                                    <text
-                                      fill="#FFFFFF"
-                                      fontSize="65"
-                                      style={
-                                        Object {
-                                          "dominantBaseline": "central",
-                                        }
-                                      }
-                                      textAnchor="middle"
-                                      x="50%"
-                                      y="50%"
+                                    <svg
+                                      className="css-1r4mnb9-Svg e1knxa8x0"
+                                      viewBox="0 0 120 120"
                                     >
-                                      FB
-                                    </text>
-                                  </svg>
-                                </Svg>
-                              </LetterAvatar>
-                            </span>
-                          </StyledBaseAvatar>
-                        </span>
+                                      <rect
+                                        fill="#315cac"
+                                        height="120"
+                                        rx="15"
+                                        ry="15"
+                                        width="120"
+                                        x="0"
+                                        y="0"
+                                      />
+                                      <text
+                                        fill="#FFFFFF"
+                                        fontSize="65"
+                                        style={
+                                          Object {
+                                            "dominantBaseline": "central",
+                                          }
+                                        }
+                                        textAnchor="middle"
+                                        x="50%"
+                                        y="50%"
+                                      >
+                                        FB
+                                      </text>
+                                    </svg>
+                                  </Svg>
+                                </LetterAvatar>
+                              </span>
+                            </StyledBaseAvatar>
+                          </span>
+                        </Container>
                       </InnerReference>
                     </Reference>
                   </Manager>
@@ -1221,26 +1271,26 @@ exports[`AvatarList renders with user avatars 1`] = `
                       <InnerReference
                         setReferenceNode={[Function]}
                       >
-                        <span
+                        <Container
                           aria-describedby="tooltip-123456"
+                          innerRef={[Function]}
                           onBlur={[Function]}
                           onFocus={[Function]}
                           onMouseEnter={[Function]}
                           onMouseLeave={[Function]}
                         >
-                          <StyledBaseAvatar
-                            className="avatar css-ptswrs-StyledAvatar-Circle e1axh4r50"
-                            loaded={true}
-                            round={true}
-                            style={
-                              Object {
-                                "height": "28px",
-                                "width": "28px",
-                              }
-                            }
+                          <span
+                            aria-describedby="tooltip-123456"
+                            className="css-1m3e0hg-Container e7ebgxc0"
+                            onBlur={[Function]}
+                            onFocus={[Function]}
+                            onMouseEnter={[Function]}
+                            onMouseLeave={[Function]}
                           >
-                            <span
-                              className="avatar e1axh4r50 css-p25dkn-StyledBaseAvatar-StyledAvatar-Circle e1z0ohzl0"
+                            <StyledBaseAvatar
+                              className="avatar css-ptswrs-StyledAvatar-Circle e1axh4r50"
+                              loaded={true}
+                              round={true}
                               style={
                                 Object {
                                   "height": "28px",
@@ -1248,48 +1298,58 @@ exports[`AvatarList renders with user avatars 1`] = `
                                 }
                               }
                             >
-                              <LetterAvatar
-                                displayName="Foo Bar"
-                                identifier="foo@example.com"
-                                round={true}
+                              <span
+                                className="avatar e1axh4r50 css-p25dkn-StyledBaseAvatar-StyledAvatar-Circle e1z0ohzl0"
+                                style={
+                                  Object {
+                                    "height": "28px",
+                                    "width": "28px",
+                                  }
+                                }
                               >
-                                <Svg
+                                <LetterAvatar
+                                  displayName="Foo Bar"
+                                  identifier="foo@example.com"
                                   round={true}
-                                  viewBox="0 0 120 120"
                                 >
-                                  <svg
-                                    className="css-1r4mnb9-Svg e1knxa8x0"
+                                  <Svg
+                                    round={true}
                                     viewBox="0 0 120 120"
                                   >
-                                    <rect
-                                      fill="#315cac"
-                                      height="120"
-                                      rx="15"
-                                      ry="15"
-                                      width="120"
-                                      x="0"
-                                      y="0"
-                                    />
-                                    <text
-                                      fill="#FFFFFF"
-                                      fontSize="65"
-                                      style={
-                                        Object {
-                                          "dominantBaseline": "central",
-                                        }
-                                      }
-                                      textAnchor="middle"
-                                      x="50%"
-                                      y="50%"
+                                    <svg
+                                      className="css-1r4mnb9-Svg e1knxa8x0"
+                                      viewBox="0 0 120 120"
                                     >
-                                      FB
-                                    </text>
-                                  </svg>
-                                </Svg>
-                              </LetterAvatar>
-                            </span>
-                          </StyledBaseAvatar>
-                        </span>
+                                      <rect
+                                        fill="#315cac"
+                                        height="120"
+                                        rx="15"
+                                        ry="15"
+                                        width="120"
+                                        x="0"
+                                        y="0"
+                                      />
+                                      <text
+                                        fill="#FFFFFF"
+                                        fontSize="65"
+                                        style={
+                                          Object {
+                                            "dominantBaseline": "central",
+                                          }
+                                        }
+                                        textAnchor="middle"
+                                        x="50%"
+                                        y="50%"
+                                      >
+                                        FB
+                                      </text>
+                                    </svg>
+                                  </Svg>
+                                </LetterAvatar>
+                              </span>
+                            </StyledBaseAvatar>
+                          </span>
+                        </Container>
                       </InnerReference>
                     </Reference>
                   </Manager>
@@ -1405,26 +1465,26 @@ exports[`AvatarList renders with user avatars 1`] = `
                       <InnerReference
                         setReferenceNode={[Function]}
                       >
-                        <span
+                        <Container
                           aria-describedby="tooltip-123456"
+                          innerRef={[Function]}
                           onBlur={[Function]}
                           onFocus={[Function]}
                           onMouseEnter={[Function]}
                           onMouseLeave={[Function]}
                         >
-                          <StyledBaseAvatar
-                            className="avatar css-ptswrs-StyledAvatar-Circle e1axh4r50"
-                            loaded={true}
-                            round={true}
-                            style={
-                              Object {
-                                "height": "28px",
-                                "width": "28px",
-                              }
-                            }
+                          <span
+                            aria-describedby="tooltip-123456"
+                            className="css-1m3e0hg-Container e7ebgxc0"
+                            onBlur={[Function]}
+                            onFocus={[Function]}
+                            onMouseEnter={[Function]}
+                            onMouseLeave={[Function]}
                           >
-                            <span
-                              className="avatar e1axh4r50 css-p25dkn-StyledBaseAvatar-StyledAvatar-Circle e1z0ohzl0"
+                            <StyledBaseAvatar
+                              className="avatar css-ptswrs-StyledAvatar-Circle e1axh4r50"
+                              loaded={true}
+                              round={true}
                               style={
                                 Object {
                                   "height": "28px",
@@ -1432,48 +1492,58 @@ exports[`AvatarList renders with user avatars 1`] = `
                                 }
                               }
                             >
-                              <LetterAvatar
-                                displayName="Foo Bar"
-                                identifier="foo@example.com"
-                                round={true}
+                              <span
+                                className="avatar e1axh4r50 css-p25dkn-StyledBaseAvatar-StyledAvatar-Circle e1z0ohzl0"
+                                style={
+                                  Object {
+                                    "height": "28px",
+                                    "width": "28px",
+                                  }
+                                }
                               >
-                                <Svg
+                                <LetterAvatar
+                                  displayName="Foo Bar"
+                                  identifier="foo@example.com"
                                   round={true}
-                                  viewBox="0 0 120 120"
                                 >
-                                  <svg
-                                    className="css-1r4mnb9-Svg e1knxa8x0"
+                                  <Svg
+                                    round={true}
                                     viewBox="0 0 120 120"
                                   >
-                                    <rect
-                                      fill="#315cac"
-                                      height="120"
-                                      rx="15"
-                                      ry="15"
-                                      width="120"
-                                      x="0"
-                                      y="0"
-                                    />
-                                    <text
-                                      fill="#FFFFFF"
-                                      fontSize="65"
-                                      style={
-                                        Object {
-                                          "dominantBaseline": "central",
-                                        }
-                                      }
-                                      textAnchor="middle"
-                                      x="50%"
-                                      y="50%"
+                                    <svg
+                                      className="css-1r4mnb9-Svg e1knxa8x0"
+                                      viewBox="0 0 120 120"
                                     >
-                                      FB
-                                    </text>
-                                  </svg>
-                                </Svg>
-                              </LetterAvatar>
-                            </span>
-                          </StyledBaseAvatar>
-                        </span>
+                                      <rect
+                                        fill="#315cac"
+                                        height="120"
+                                        rx="15"
+                                        ry="15"
+                                        width="120"
+                                        x="0"
+                                        y="0"
+                                      />
+                                      <text
+                                        fill="#FFFFFF"
+                                        fontSize="65"
+                                        style={
+                                          Object {
+                                            "dominantBaseline": "central",
+                                          }
+                                        }
+                                        textAnchor="middle"
+                                        x="50%"
+                                        y="50%"
+                                      >
+                                        FB
+                                      </text>
+                                    </svg>
+                                  </Svg>
+                                </LetterAvatar>
+                              </span>
+                            </StyledBaseAvatar>
+                          </span>
+                        </Container>
                       </InnerReference>
                     </Reference>
                   </Manager>

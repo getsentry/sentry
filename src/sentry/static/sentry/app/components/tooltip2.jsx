@@ -89,9 +89,9 @@ class Tooltip2 extends React.Component {
     };
     if (children.type instanceof Function) {
       return (
-        <span {...propList} ref={ref}>
+        <Container {...propList} innerRef={ref}>
           {children}
-        </span>
+        </Container>
       );
     }
     return React.cloneElement(children, {
@@ -151,6 +151,12 @@ class Tooltip2 extends React.Component {
     );
   }
 }
+
+// Using an inline-block solves the container being smaller
+// than the elements it is wrapping
+const Container = styled('span')`
+  display: inline-block;
+`;
 
 const TooltipContent = styled('span')`
   color: #fff;
