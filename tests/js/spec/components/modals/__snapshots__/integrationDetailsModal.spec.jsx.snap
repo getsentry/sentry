@@ -298,7 +298,7 @@ exports[`IntegrationDetailsModal renders simple integration 1`] = `
               className="css-roynbj"
               is={null}
             >
-              <ExternalLink
+              <ForwardRef
                 href="http://example.com/integration_source_url"
                 rel="noreferrer noopener"
                 target="_blank"
@@ -310,8 +310,8 @@ exports[`IntegrationDetailsModal renders simple integration 1`] = `
                 >
                   View Source
                 </a>
-              </ExternalLink>
-              <ExternalLink
+              </ForwardRef>
+              <ForwardRef
                 href="http://example.com/integration_issue_url"
                 rel="noreferrer noopener"
                 target="_blank"
@@ -323,7 +323,7 @@ exports[`IntegrationDetailsModal renders simple integration 1`] = `
                 >
                   Report Issue
                 </a>
-              </ExternalLink>
+              </ForwardRef>
             </div>
           </Base>
         </Box>
