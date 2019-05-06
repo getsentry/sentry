@@ -1,5 +1,5 @@
 import React from 'react';
-import {mount, shallow} from 'enzyme';
+import {mount} from 'enzyme';
 
 import {initializeOrg} from 'app-test/helpers/initializeOrg';
 import {GroupActivity} from 'app/views/groupDetails/shared/groupActivity';
@@ -8,6 +8,16 @@ import ConfigStore from 'app/stores/configStore';
 import GroupStore from 'app/stores/groupStore';
 
 describe('GroupActivity', function() {
+  const group = TestStubs.Group({
+    id: '1337',
+    activity: [
+      {type: 'note', id: 'note-1', data: {text: 'Test Note'}, user: TestStubs.User()},
+    ],
+    project: TestStubs.Project(),
+  });
+  const {organization, routerContext} = initializeOrg({
+    group,
+  });
   beforeEach(function() {
     jest.spyOn(ConfigStore, 'get').mockImplementation(key => {
       if (key === 'user') {
@@ -22,14 +32,6 @@ describe('GroupActivity', function() {
   afterEach(function() {});
 
   it('renders a NoteInput', function() {
-    const group = TestStubs.Group({
-      id: '1337',
-      activity: [],
-      project: TestStubs.Project(),
-    });
-    const {organization, routerContext} = initializeOrg({
-      group,
-    });
     const wrapper = mount(
       <GroupActivity
         api={new MockApiClient()}
@@ -41,44 +43,41 @@ describe('GroupActivity', function() {
     expect(wrapper.find(NoteInput)).toHaveLength(1);
   });
 
-  describe('onNoteDelete()', function() {
-    let instance;
+  describe('Delete', function() {
+    let wrapper;
+    let deleteMock;
 
     beforeEach(function() {
-      instance = shallow(
+      deleteMock = MockApiClient.addMockResponse({
+        url: '/issues/1337/comments/note-1/',
+        method: 'DELETE',
+      });
+      wrapper = mount(
         <GroupActivity
           api={new MockApiClient()}
-          group={{id: '1337', activity: []}}
-          organization={TestStubs.Organization()}
+          group={group}
+          organization={organization}
         />,
-        {
-          context: {
-            group: {id: '1337'},
-            project: TestStubs.Project(),
-            team: {id: '1'},
-            organization: {id: 'bar'},
-          },
-        }
-      ).instance();
+        routerContext
+      );
     });
 
     it('should do nothing if not present in GroupStore', function() {
       jest.spyOn(GroupStore, 'removeActivity').mockImplementation(() => -1); // not found
-      const request = jest.spyOn(instance.props.api, 'request');
 
-      instance.onNoteDelete({id: 1});
-      expect(request.calledOnce).not.toBeTruthy();
+      // Would rather call simulate on the actual component but it's in a styled component
+      // that is only visible on hover
+      wrapper.find('NoteHeader').prop('onDelete')();
+      expect(deleteMock).not.toHaveBeenCalled();
     });
 
     it('should remove remove the item from the GroupStore make a DELETE API request', function() {
-      const mock = MockApiClient.addMockResponse({
-        url: '/issues/1337/comments/1/',
-        method: 'DELETE',
-      });
       jest.spyOn(GroupStore, 'removeActivity').mockImplementation(() => 1);
 
-      instance.onNoteDelete({id: 1});
-      expect(mock).toHaveBeenCalledTimes(1);
+      // Would rather call simulate on the actual component but it's in a styled component
+      // that is only visible on hover
+      wrapper.find('NoteHeader').prop('onDelete')();
+      expect(deleteMock).toHaveBeenCalledTimes(1);
     });
   });
 });

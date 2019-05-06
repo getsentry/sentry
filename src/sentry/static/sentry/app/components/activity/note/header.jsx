@@ -46,13 +46,14 @@ class NoteHeader extends React.Component {
   }
 }
 
-const EditorAction = styled('a')`
+const getActionStyle = p => `
   padding: 0 7px;
-  color: ${p => p.theme.gray1};
+  color: ${p.theme.gray1};
   font-weight: normal;
 `;
 
-const Edit = styled(EditorAction)`
+const Edit = styled('a')`
+  ${getActionStyle};
   margin-left: 7px;
 
   &:hover {
@@ -60,7 +61,8 @@ const Edit = styled(EditorAction)`
   }
 `;
 
-const Remove = styled(EditorAction)`
+const Remove = styled('span')`
+  ${getActionStyle};
   border-left: 1px solid ${p => p.theme.borderLight};
 
   &:hover {

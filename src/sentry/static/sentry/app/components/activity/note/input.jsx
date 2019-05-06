@@ -1,315 +1,193 @@
 import {MentionsInput, Mention} from 'react-mentions';
 import PropTypes from 'prop-types';
 import React from 'react';
-import _ from 'lodash';
-import createReactClass from 'create-react-class';
 import marked from 'marked';
 import styled, {css} from 'react-emotion';
 
-import {logException} from 'app/utils/logging';
 import {t} from 'app/locale';
 import Button from 'app/components/button';
-import GroupStore from 'app/stores/groupStore';
-import IndicatorStore from 'app/stores/indicatorStore';
 import NavTabs from 'app/components/navTabs';
-import OrganizationState from 'app/mixins/organizationState';
-import ProjectsStore from 'app/stores/projectsStore';
-import localStorage from 'app/utils/localStorage';
+import SentryTypes from 'app/sentryTypes';
 import mentionsStyle from 'app/../styles/mentions-styles';
 import space from 'app/styles/space';
 import textStyles from 'app/styles/text';
 import withApi from 'app/utils/withApi';
 
-const localStorageKey = 'noteinput:latest';
-
-function makeDefaultErrorJson() {
-  return {detail: t('Unknown error. Please try again.')};
-}
-
 const buildUserId = id => `user:${id}`;
 const buildTeamId = id => `team:${id}`;
 
-const NoteInput = createReactClass({
-  displayName: 'NoteInput',
-
-  propTypes: {
-    api: PropTypes.object,
-    item: PropTypes.object,
-    group: PropTypes.object.isRequired,
-    onFinish: PropTypes.func,
+class NoteInput extends React.Component {
+  static propTypes = {
+    teams: PropTypes.arrayOf(SentryTypes.Team).isRequired,
     memberList: PropTypes.array.isRequired,
-    sessionUser: PropTypes.object.isRequired,
-  },
 
-  mixins: [OrganizationState],
+    item: PropTypes.shape({
+      data: PropTypes.shape({
+        text: PropTypes.string,
+      }),
+    }),
+    defaultText: PropTypes.string,
+    error: PropTypes.bool,
+    errorJSON: PropTypes.shape({
+      detail: PropTypes.shape({
+        message: PropTypes.string,
+        code: PropTypes.number,
+        extra: PropTypes.any,
+      }),
+    }),
+    placeholder: PropTypes.string,
+    busy: PropTypes.bool,
 
-  getInitialState() {
-    const {item, group} = this.props;
-    const updating = !!item;
-    let defaultText = '';
+    onEditFinish: PropTypes.func,
+    onUpdate: PropTypes.func,
+    onCreate: PropTypes.func,
+    onChange: PropTypes.func,
+  };
 
-    if (updating) {
-      defaultText = item.data.text;
-    } else {
-      const storage = localStorage.getItem(localStorageKey);
-      if (storage) {
-        const {groupId, value} = JSON.parse(storage);
-        if (groupId === group.id) {
-          defaultText = value;
-        }
-      }
-    }
+  static defaultProps = {
+    placeholder: t('Add a comment.\nTag users with @, or teams with #'),
+    defaultText: '',
+    busy: false,
+  };
 
-    return {
-      loading: false,
-      error: false,
-      errorJSON: null,
-      expanded: false,
+  constructor(props) {
+    super(props);
+
+    const {item} = props;
+    const existing = !!item;
+    const defaultText = existing ? item.data.text || '' : props.defaultText;
+
+    this.memberMentions = [];
+    this.teamMentions = [];
+
+    this.state = {
       preview: false,
-      updating,
       value: defaultText,
       memberMentions: [],
       teamMentions: [],
-      mentionableUsers: this.mentionableUsers(),
-      mentionableTeams: this.mentionableTeams(),
     };
-  },
-
-  componentWillUpdate(nextProps, nextState) {
-    if (!_.isEqual(nextProps.memberList, this.props.memberList)) {
-      this.setState({
-        mentionableUsers: this.mentionableUsers(),
-        mentionableTeams: this.mentionableTeams(),
-      });
-    }
-
-    // We can't support this when editing an existing Note since it'll
-    // clobber the other storages
-    if (this.state.updating) {
-      return;
-    }
-
-    // Nothing changed
-    if (this.state.value === nextState.value) {
-      return;
-    }
-
-    try {
-      localStorage.setItem(
-        localStorageKey,
-        JSON.stringify({
-          groupId: this.props.group.id,
-          value: nextState.value,
-        })
-      );
-    } catch (ex) {
-      logException(ex);
-    }
-  },
-
-  toggleEdit() {
-    this.setState({preview: false});
-  },
-
-  togglePreview() {
-    this.setState({preview: true});
-  },
-
-  onSubmit(e) {
-    e.preventDefault();
-    this.submitForm();
-  },
-
-  submitForm() {
-    this.setState({
-      loading: true,
-      error: false,
-      errorJSON: null,
-    });
-
-    if (this.state.updating) {
-      this.update();
-    } else {
-      this.create();
-    }
-  },
+  }
 
   cleanMarkdown(text) {
     return text
       .replace(/\[sentry\.strip:member\]/g, '@')
       .replace(/\[sentry\.strip:team\]/g, '');
-  },
+  }
 
-  create() {
-    const {group} = this.props;
+  mentionableUsers() {
+    const {memberList} = this.props;
+    return memberList.map(member => ({
+      id: buildUserId(member.id),
+      display: member.name,
+      email: member.email,
+    }));
+  }
 
-    const loadingIndicator = IndicatorStore.add(t('Posting comment..'));
+  mentionableTeams() {
+    const {teams} = this.props;
+    return teams.map(team => ({
+      id: buildTeamId(team.id),
+      display: `#${team.slug}`,
+      email: team.id,
+    }));
+  }
 
-    this.props.api.request('/issues/' + group.id + '/comments/', {
-      method: 'POST',
-      data: {
+  submitForm = () => {
+    if (!!this.props.item) {
+      this.update();
+    } else {
+      this.create();
+    }
+  };
+
+  create = () => {
+    const {onCreate} = this.props;
+
+    if (onCreate) {
+      onCreate({
         text: this.cleanMarkdown(this.state.value),
         mentions: this.finalizeMentions(),
-      },
-      error: error => {
-        this.setState({
-          loading: false,
-          preview: false,
-          error: true,
-          errorJSON: error.responseJSON || makeDefaultErrorJson(),
-        });
-      },
-      success: data => {
-        this.setState({
-          value: '',
-          preview: false,
-          expanded: false,
-          loading: false,
-          mentions: [],
-        });
-        GroupStore.addActivity(group.id, data);
-        this.finish();
-      },
-      complete: () => {
-        IndicatorStore.remove(loadingIndicator);
-      },
-    });
-  },
-
-  update() {
-    const {group, item} = this.props;
-
-    const loadingIndicator = IndicatorStore.add(t('Updating comment..'));
-
-    this.props.api.request('/issues/' + group.id + '/comments/' + item.id + '/', {
-      method: 'PUT',
-      data: {
-        text: this.state.value,
-      },
-      error: error => {
-        this.setState({
-          loading: false,
-          preview: false,
-          error: true,
-          errorJSON: error.responseJSON || makeDefaultErrorJson(),
-        });
-        IndicatorStore.remove(loadingIndicator);
-      },
-      success: data => {
-        this.setState({
-          preview: false,
-          expanded: false,
-          loading: false,
-        });
-        GroupStore.updateActivity(group.id, item.id, {text: this.state.value});
-        IndicatorStore.remove(loadingIndicator);
-        this.finish();
-      },
-    });
-  },
-
-  onChange(e) {
-    this.setState({value: e.target.value});
-  },
-
-  onKeyDown(e) {
-    // Auto submit the form on [meta] + Enter
-    if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
-      this.submitForm();
+      });
     }
-  },
+  };
 
-  onCancel(e) {
-    e.preventDefault();
-    this.finish();
-  },
+  update = () => {
+    const {onUpdate} = this.props;
 
-  onAddMember(id, display) {
-    this.setState(({memberMentions}) => ({
-      memberMentions: [...memberMentions, [id, display]],
-    }));
-  },
+    if (onUpdate) {
+      onUpdate(
+        {
+          text: this.state.value,
+        },
+        this.props.item
+      );
+    }
+  };
 
-  onAddTeam(id, display) {
-    this.setState(({teamMentions}) => ({
-      teamMentions: [...teamMentions, [id, display]],
-    }));
-  },
+  finish = () => {
+    this.props.onEditFinish && this.props.onEditFinish();
+  };
 
-  finish() {
-    this.props.onFinish && this.props.onFinish();
-  },
-
-  finalizeMentions() {
+  finalizeMentions = () => {
     const {memberMentions, teamMentions} = this.state;
 
     // each mention looks like [id, display]
     return [...memberMentions, ...teamMentions]
       .filter(mention => this.state.value.indexOf(mention[1]) !== -1)
       .map(mention => mention[0]);
-  },
+  };
 
-  expand(e) {
-    this.setState({expanded: true});
+  handleToggleEdit = () => {
+    this.setState({preview: false});
+  };
 
-    // HACK: Move cursor to end of text after autoFocus
-    // we do this my making sure this is only done on the first
-    // onFocus event
-    if (!this.state._hasFocused) {
-      this.setState({_hasFocused: true});
-      const value = e.target.value;
-      e.target.value = '';
-      e.target.value = value;
+  handleTogglePreview = () => {
+    this.setState({preview: true});
+  };
+
+  handleSubmit = e => {
+    e.preventDefault();
+    this.submitForm();
+  };
+
+  handleChange = e => {
+    this.setState({value: e.target.value});
+
+    if (this.props.onChange) {
+      this.props.onChange(e, {updating: !!this.props.item});
     }
-  },
+  };
 
-  maybeCollapse() {
-    if (this.state.value === '') {
-      this.setState({expanded: false});
+  handleKeyDown = e => {
+    // Auto submit the form on [meta] + Enter
+    if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
+      this.submitForm();
     }
-  },
+  };
 
-  mentionableUsers() {
-    const {memberList, sessionUser} = this.props;
-    return _.uniqBy(memberList, ({id}) => id)
-      .filter(member => sessionUser.id !== member.id)
-      .map(member => ({
-        id: buildUserId(member.id),
-        display: member.name,
-        email: member.email,
-      }));
-  },
+  handleCancel = e => {
+    e.preventDefault();
+    this.finish();
+  };
 
-  mentionableTeams() {
-    const {group} = this.props;
-    return (
-      ProjectsStore.getBySlug(group.project.slug) || {
-        teams: [],
-      }
-    ).teams.map(team => ({
-      id: buildTeamId(team.id),
-      display: `#${team.slug}`,
-      email: team.id,
+  handleAddMember = (id, display) => {
+    this.setState(({memberMentions}) => ({
+      memberMentions: [...memberMentions, [id, display]],
     }));
-  },
+  };
+
+  handleAddTeam = (id, display) => {
+    this.setState(({teamMentions}) => ({
+      teamMentions: [...teamMentions, [id, display]],
+    }));
+  };
 
   render() {
-    const {
-      error,
-      errorJSON,
-      loading,
-      preview,
-      updating,
-      value,
-      mentionableUsers,
-      mentionableTeams,
-    } = this.state;
+    const {preview, value} = this.state;
+    const {busy, item, error, placeholder, errorJSON} = this.props;
 
-    const placeHolderText = t(
-      'Add details or updates to this event. \nTag users with @, or teams with #'
-    );
-
-    const btnText = updating ? t('Save Comment') : t('Post Comment');
+    const existingItem = !!item;
+    const btnText = existingItem ? t('Save Comment') : t('Post Comment');
 
     const errorMessage =
       (errorJSON &&
@@ -324,16 +202,16 @@ const NoteInput = createReactClass({
         data-test-id="note-input-form"
         noValidate
         error={error}
-        onSubmit={this.onSubmit}
+        onSubmit={this.handleSubmit}
       >
         <NoteInputNavTabs>
           <NoteInputNavTab className={!preview ? 'active' : ''}>
-            <NoteInputNavTabLink onClick={this.toggleEdit}>
-              {updating ? t('Edit') : t('Write')}
+            <NoteInputNavTabLink onClick={this.handleToggleEdit}>
+              {existingItem ? t('Edit') : t('Write')}
             </NoteInputNavTabLink>
           </NoteInputNavTab>
           <NoteInputNavTab className={preview ? 'active' : ''}>
-            <NoteInputNavTabLink onClick={this.togglePreview}>
+            <NoteInputNavTabLink onClick={this.handleTogglePreview}>
               {t('Preview')}
             </NoteInputNavTabLink>
           </NoteInputNavTab>
@@ -351,14 +229,14 @@ const NoteInput = createReactClass({
           ) : (
             <MentionsInput
               style={mentionsStyle}
-              placeholder={placeHolderText}
-              onChange={this.onChange}
-              onBlur={this.onBlur}
-              onKeyDown={this.onKeyDown}
+              placeholder={placeholder}
+              onChange={this.handleChange}
+              onBlur={this.handleBlur}
+              onKeyDown={this.handleKeyDown}
               value={value}
               required={true}
               autoFocus={true}
-              displayTransform={(id, display, type) =>
+              displayTransform={(_id, display, type) =>
                 `${type === 'member' ? '@' : ''}${display}`
               }
               markup="**[sentry.strip:__type__]__display__**"
@@ -366,15 +244,15 @@ const NoteInput = createReactClass({
               <Mention
                 type="member"
                 trigger="@"
-                data={mentionableUsers}
-                onAdd={this.onAddMember}
+                data={this.mentionableUsers()}
+                onAdd={this.handleAddMember}
                 appendSpaceOnAdd={true}
               />
               <Mention
                 type="team"
                 trigger="#"
-                data={mentionableTeams}
-                onAdd={this.onAddTeam}
+                data={this.mentionableTeams()}
+                onAdd={this.handleAddTeam}
                 appendSpaceOnAdd={true}
               />
             </MentionsInput>
@@ -384,20 +262,20 @@ const NoteInput = createReactClass({
         <Footer>
           <div>{errorMessage && <ErrorMessage>{errorMessage}</ErrorMessage>}</div>
           <div>
-            {updating && (
-              <FooterButton priority="danger" type="button" onClick={this.onCancel}>
+            {existingItem && (
+              <FooterButton priority="danger" type="button" onClick={this.handleCancel}>
                 {t('Cancel')}
               </FooterButton>
             )}
-            <FooterButton error={errorMessage} type="submit" disabled={loading}>
+            <FooterButton error={errorMessage} type="submit" disabled={busy}>
               {btnText}
             </FooterButton>
           </div>
         </Footer>
       </NoteInputForm>
     );
-  },
-});
+  }
+}
 
 export {NoteInput};
 

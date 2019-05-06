@@ -1,314 +1,211 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import createReactClass from 'create-react-class';
+import _ from 'lodash';
 
 import {
   addErrorMessage,
   addLoadingMessage,
-  removeIndicator,
+  clearIndicators,
 } from 'app/actionCreators/indicator';
-import {t, tct, tn} from 'app/locale';
+import {createNote, deleteNote, updateNote} from 'app/actionCreators/group';
+import {t} from 'app/locale';
+import {uniqueId} from 'app/utils/guid';
 import ActivityAuthor from 'app/components/activity/author';
 import ActivityItem from 'app/components/activity/item';
 import Avatar from 'app/components/avatar';
-import CommitLink from 'app/components/commitLink';
 import ConfigStore from 'app/stores/configStore';
-import Duration from 'app/components/duration';
 import ErrorBoundary from 'app/components/errorBoundary';
-import GroupStore from 'app/stores/groupStore';
+import GroupActivityItem from 'app/views/groupDetails/shared/groupActivityItem';
 import MemberListStore from 'app/stores/memberListStore';
 import Note from 'app/components/activity/note';
-import NoteInput from 'app/components/activity/note/input';
-import PullRequestLink from 'app/components/pullRequestLink';
+import NoteInputWithStorage from 'app/components/activity/note/inputWithStorage';
+import ProjectsStore from 'app/stores/projectsStore';
 import SentryTypes from 'app/sentryTypes';
-import TeamStore from 'app/stores/teamStore';
-import Version from 'app/components/version';
 import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
 
-class GroupActivityItem extends React.Component {
-  static propTypes = {
-    organization: SentryTypes.Organization.isRequired,
-    author: PropTypes.node,
-    item: PropTypes.object,
-    orgId: PropTypes.string,
-    projectId: PropTypes.string,
-  };
-
-  render() {
-    const {organization, author, item, orgId, projectId} = this.props;
-    const {data} = item;
-
-    const hasSentry10 = new Set(organization.features).has('sentry10');
-
-    const issuesLink = hasSentry10
-      ? `/organizations/${orgId}/issues/`
-      : `/${orgId}/${projectId}/issues/`;
-
-    switch (item.type) {
-      case 'note':
-        return t('%s left a comment', author);
-      case 'set_resolved':
-        return t('%s marked this issue as resolved', author);
-      case 'set_resolved_by_age':
-        return t('%(author)s marked this issue as resolved due to inactivity', {
-          author,
-        });
-      case 'set_resolved_in_release':
-        return data.version
-          ? t('%(author)s marked this issue as resolved in %(version)s', {
-              author,
-              version: (
-                <Version version={data.version} orgId={orgId} projectId={projectId} />
-              ),
-            })
-          : t('%s marked this issue as resolved in the upcoming release', author);
-      case 'set_resolved_in_commit':
-        return t('%(author)s marked this issue as resolved in %(version)s', {
-          author,
-          version: (
-            <CommitLink
-              inline={true}
-              commitId={data.commit && data.commit.id}
-              repository={data.commit && data.commit.repository}
-            />
-          ),
-        });
-      case 'set_resolved_in_pull_request':
-        return t('%(author)s marked this issue as resolved in %(version)s', {
-          author,
-          version: (
-            <PullRequestLink
-              inline={true}
-              pullRequest={data.pullRequest}
-              repository={data.pullRequest && data.pullRequest.repository}
-            />
-          ),
-        });
-      case 'set_unresolved':
-        return t('%s marked this issue as unresolved', author);
-      case 'set_ignored':
-        if (data.ignoreDuration) {
-          return t('%(author)s ignored this issue for %(duration)s', {
-            author,
-            duration: <Duration seconds={data.ignoreDuration * 60} />,
-          });
-        } else if (data.ignoreCount && data.ignoreWindow) {
-          return tct(
-            '[author] ignored this issue until it happens [count] time(s) in [duration]',
-            {
-              author,
-              count: data.ignoreCount,
-              duration: <Duration seconds={data.ignoreWindow * 60} />,
-            }
-          );
-        } else if (data.ignoreCount) {
-          return tct('[author] ignored this issue until it happens [count] time(s)', {
-            author,
-            count: data.ignoreCount,
-          });
-        } else if (data.ignoreUserCount && data.ignoreUserWindow) {
-          return tct(
-            '[author] ignored this issue until it affects [count] user(s) in [duration]',
-            {
-              author,
-              count: data.ignoreUserCount,
-              duration: <Duration seconds={data.ignoreUserWindow * 60} />,
-            }
-          );
-        } else if (data.ignoreUserCount) {
-          return tct('[author] ignored this issue until it affects [count] user(s)', {
-            author,
-            count: data.ignoreUserCount,
-          });
-        }
-        return t('%s ignored this issue', author);
-      case 'set_public':
-        return t('%s made this issue public', author);
-      case 'set_private':
-        return t('%s made this issue private', author);
-      case 'set_regression':
-        return data.version
-          ? t('%(author)s marked this issue as a regression in %(version)s', {
-              author,
-              version: (
-                <Version version={data.version} orgId={orgId} projectId={projectId} />
-              ),
-            })
-          : t('%s marked this issue as a regression', author);
-      case 'create_issue':
-        return t('%(author)s created an issue on %(provider)s titled %(title)s', {
-          author,
-          provider: data.provider,
-          title: <a href={data.location}>{data.title}</a>,
-        });
-      case 'unmerge_source':
-        return tn(
-          '%2$s migrated %1$s fingerprint to %3$s',
-          '%2$s migrated %1$s fingerprints to %3$s',
-          data.fingerprints.length,
-          author,
-          data.destination ? (
-            <a href={`${issuesLink}${data.destination.id}`}>{data.destination.shortId}</a>
-          ) : (
-            t('a group')
-          )
-        );
-      case 'unmerge_destination':
-        return tn(
-          '%2$s migrated %1$s fingerprint from %3$s',
-          '%2$s migrated %1$s fingerprints from %3$s',
-          data.fingerprints.length,
-          author,
-          data.source ? (
-            <a href={`${issuesLink}${data.source.id}`}>{data.source.shortId}</a>
-          ) : (
-            t('a group')
-          )
-        );
-      case 'first_seen':
-        return t('%s first saw this issue', author);
-      case 'assigned':
-        let assignee;
-
-        if (data.assigneeType == 'team') {
-          const team = TeamStore.getById(data.assignee);
-          assignee = team ? team.slug : '<unknown-team>';
-
-          return t('%(author)s assigned this issue to #%(assignee)s', {
-            author,
-            assignee,
-          });
-        }
-
-        if (item.user && data.assignee === item.user.id) {
-          return t('%s assigned this issue to themselves', author);
-        } else {
-          assignee = MemberListStore.getById(data.assignee);
-          if (assignee && assignee.email) {
-            return t('%(author)s assigned this issue to %(assignee)s', {
-              author,
-              assignee: assignee.email,
-            });
-          } else {
-            return t('%s assigned this issue to an unknown user', author);
-          }
-        }
-      case 'unassigned':
-        return t('%s unassigned this issue', author);
-      case 'merge':
-        return tn(
-          '%2$s merged %1$s issue into this issue',
-          '%2$s merged %1$s issues into this issue',
-          data.issues.length,
-          author
-        );
-      default:
-        return ''; // should never hit (?)
-    }
-  }
+function makeDefaultErrorJson() {
+  return {detail: t('Unknown error. Please try again.')};
 }
 
-const GroupActivity = createReactClass({
-  displayName: 'GroupActivity',
-
+class GroupActivity extends React.Component {
   // TODO(dcramer): only re-render on group/activity change
-  propTypes: {
+  static propTypes = {
     api: PropTypes.object,
     organization: SentryTypes.Organization.isRequired,
     group: SentryTypes.Group,
-  },
+  };
 
-  onNoteDelete(item) {
-    const {group} = this.props;
+  state = {
+    createBusy: false,
+    preview: false,
+    error: false,
+    inputId: uniqueId(),
+  };
 
-    // Optimistically remove from UI
-    const index = GroupStore.removeActivity(group.id, item.id);
-    if (index === -1) {
-      // I dunno, the id wasn't found in the GroupStore
-      return;
-    }
+  getMemberList = (memberList, sessionUser) =>
+    _.uniqBy(memberList, ({id}) => id).filter(({id}) => sessionUser.id !== id);
+
+  handleNoteDelete = async item => {
+    const {api, group} = this.props;
 
     addLoadingMessage(t('Removing comment...'));
 
-    this.props.api.request('/issues/' + group.id + '/comments/' + item.id + '/', {
-      method: 'DELETE',
-      success: () => {
-        removeIndicator();
-      },
-      error: error => {
-        GroupStore.addActivity(group.id, item, index);
-        removeIndicator();
-        addErrorMessage(t('Failed to delete comment'));
-      },
+    try {
+      await deleteNote(api, group, item);
+      clearIndicators();
+    } catch (_err) {
+      addErrorMessage(t('Failed to delete comment'));
+    }
+  };
+
+  handleNoteCreate = async note => {
+    const {api, group} = this.props;
+
+    this.setState({
+      createBusy: true,
     });
-  },
+
+    addLoadingMessage(t('Posting comment...'));
+
+    try {
+      await createNote(api, group, note);
+
+      this.setState({
+        createBusy: false,
+        preview: false,
+        mentions: [],
+
+        // This is used as a `key` to Note Input so that after successful post
+        // we reset the value of the input
+        inputId: uniqueId(),
+      });
+      clearIndicators();
+    } catch (error) {
+      this.setState({
+        createBusy: false,
+        preview: false,
+        error: true,
+        errorJSON: error.responseJSON || makeDefaultErrorJson(),
+      });
+      addErrorMessage(t('Unable to post comment'));
+    }
+  };
+
+  handleNoteUpdate = async (note, item) => {
+    const {api, group} = this.props;
+
+    this.setState({
+      updateBusy: true,
+    });
+    addLoadingMessage(t('Updating comment...'));
+
+    try {
+      await updateNote(api, group, item, note);
+      this.setState({
+        updateBusy: false,
+        preview: false,
+      });
+      clearIndicators();
+    } catch (error) {
+      this.setState({
+        updateBusy: false,
+        preview: false,
+        error: true,
+        errorJSON: error.responseJSON || makeDefaultErrorJson(),
+      });
+      addErrorMessage(t('Unable to update comment'));
+    }
+  };
+
+  getMentionableTeams = projectSlug => {
+    return (
+      ProjectsStore.getBySlug(projectSlug) || {
+        teams: [],
+      }
+    ).teams;
+  };
 
   render() {
     const {organization, group} = this.props;
     const me = ConfigStore.get('user');
-    const memberList = MemberListStore.getAll();
-
-    const children = group.activity.map((item, itemIdx) => {
-      const authorName = item.user ? item.user.name : 'Sentry';
-
-      if (item.type === 'note') {
-        return (
-          <Note
-            group={group}
-            item={item}
-            key={`note-${item.id}`}
-            id={`note-${item.id}`}
-            author={{
-              name: authorName,
-              avatar: <Avatar user={item.user} size={38} />,
-            }}
-            onDelete={this.onNoteDelete}
-            sessionUser={me}
-            memberList={memberList}
-          />
-        );
-      } else {
-        const author = {
-          name: authorName,
-        };
-
-        return (
-          <ActivityItem
-            item={item}
-            key={`group-activity-item-${item.id}`}
-            author={{type: item.user ? 'user' : 'system', user: item.user}}
-            date={item.dateCreated}
-            header={
-              <ErrorBoundary mini>
-                <GroupActivityItem
-                  organization={organization}
-                  author={<ActivityAuthor>{author.name}</ActivityAuthor>}
-                  item={item}
-                  orgId={this.props.params.orgId}
-                  projectId={group.project.slug}
-                />
-              </ErrorBoundary>
-            }
-          />
-        );
-      }
-    });
+    const memberList = this.getMemberList(MemberListStore.getAll(), me);
+    const teams = this.getMentionableTeams(group && group.project && group.project.slug);
+    const noteProps = {
+      group,
+      memberList,
+      teams,
+      placeholder: t(
+        'Add details or updates to this event. \nTag users with @, or teams with #'
+      ),
+    };
 
     return (
       <div className="row">
         <div className="col-md-9">
           <div>
             <ActivityItem author={{type: 'user', user: me}}>
-              {() => <NoteInput group={group} memberList={memberList} sessionUser={me} />}
+              {() => (
+                <NoteInputWithStorage
+                  key={this.state.inputId}
+                  storageKey="groupinput:latest"
+                  itemKey={group.id}
+                  onCreate={this.handleNoteCreate}
+                  busy={this.state.createBusy}
+                  error={this.state.error}
+                  errorJSON={this.state.errorJSON}
+                  {...noteProps}
+                />
+              )}
             </ActivityItem>
-            {children}
+
+            {group.activity.map(item => {
+              const authorName = item.user ? item.user.name : 'Sentry';
+
+              if (item.type === 'note') {
+                return (
+                  <ErrorBoundary mini key={`note-${item.id}`}>
+                    <Note
+                      item={item}
+                      id={`note-${item.id}`}
+                      author={{
+                        name: authorName,
+                        avatar: <Avatar user={item.user} size={38} />,
+                      }}
+                      onDelete={this.handleNoteDelete}
+                      onUpdate={this.handleNoteUpdate}
+                      busy={this.state.updateBusy}
+                      {...noteProps}
+                    />
+                  </ErrorBoundary>
+                );
+              } else {
+                return (
+                  <ErrorBoundary mini key={`item-${item.id}`}>
+                    <ActivityItem
+                      item={item}
+                      author={{type: item.user ? 'user' : 'system', user: item.user}}
+                      date={item.dateCreated}
+                      header={
+                        <GroupActivityItem
+                          organization={organization}
+                          author={<ActivityAuthor>{authorName}</ActivityAuthor>}
+                          item={item}
+                          orgId={this.props.params.orgId}
+                          projectId={group.project.slug}
+                        />
+                      }
+                    />
+                  </ErrorBoundary>
+                );
+              }
+            })}
           </div>
         </div>
       </div>
     );
-  },
-});
+  }
+}
 
 export {GroupActivity};
 export default withApi(withOrganization(GroupActivity));
