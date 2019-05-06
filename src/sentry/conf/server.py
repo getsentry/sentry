@@ -1485,12 +1485,13 @@ SUDO_URL = 'sentry-sudo'
 SDK_VERSIONS = {
     'raven-js': '3.21.0',
     'raven-node': '2.3.0',
-    'raven-python': '6.4.0',
+    'raven-python': '6.10.0',
     'raven-ruby': '2.7.1',
     'sentry-cocoa': '3.11.1',
     'sentry-java': '1.6.4',
     'sentry-laravel': '0.8.0',
     'sentry-php': '1.8.2',
+    'sentry-python': '0.7.14',
 }
 
 SDK_URLS = {
@@ -1503,6 +1504,7 @@ SDK_URLS = {
     'sentry-php': 'https://docs.sentry.io/clients/php/',
     'sentry-laravel': 'https://docs.sentry.io/clients/php/integrations/laravel/',
     'sentry-swift': 'https://docs.sentry.io/clients/cocoa/',
+    'sentry-python': 'https://docs.sentry.io/platforms/python/',
 }
 
 DEPRECATED_SDKS = {
@@ -1516,6 +1518,7 @@ DEPRECATED_SDKS = {
     'raven-php': 'sentry-php',
     'sentry-android': 'raven-java',
     'sentry-swift': 'sentry-cocoa',
+    'raven-python': 'sentry-python',
 
     # The Ruby SDK used to go by the name 'sentry-raven'...
     'sentry-raven': 'raven-ruby',
