@@ -624,10 +624,13 @@ class SmartSearchBar extends React.Component {
         const [nextGroupIndex, nextChildrenIndex] =
           findSearchItemByIndex(searchItems, nextActiveSearchItem) || [];
 
-        searchItems[nextGroupIndex].children[nextChildrenIndex] = {
-          ...searchItems[nextGroupIndex].children[nextChildrenIndex],
-          active: true,
-        };
+        // Make sure search items exist (e.g. both groups could be empty)
+        if (searchItems[nextGroupIndex] && searchItems[nextGroupIndex].children) {
+          searchItems[nextGroupIndex].children[nextChildrenIndex] = {
+            ...searchItems[nextGroupIndex].children[nextChildrenIndex],
+            active: true,
+          };
+        }
 
         return {
           activeSearchItem: nextActiveSearchItem,
