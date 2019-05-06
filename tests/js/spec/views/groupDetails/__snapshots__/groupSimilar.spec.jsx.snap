@@ -1283,7 +1283,7 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                                           shortId="INTERNAL-4G"
                                         >
                                           <div
-                                            className="eec9orn4 css-zds1k7-StyledShortId-GroupShortId ebuncw00"
+                                            className="eec9orn4 css-1p4nhlc-StyledShortId-GroupShortId ebuncw00"
                                             onClick={[Function]}
                                           >
                                             <ProjectBadge
@@ -1447,10 +1447,10 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                                               avatar={true}
                                             >
                                               <AutoSelectText
-                                                className="css-1iocdui-StyledAutoSelectText ebuncw01"
+                                                className="css-1m1w4wi-StyledAutoSelectText ebuncw01"
                                               >
                                                 <div
-                                                  className="auto-select-text css-1iocdui-StyledAutoSelectText ebuncw01"
+                                                  className="auto-select-text css-1m1w4wi-StyledAutoSelectText ebuncw01"
                                                   onClick={[Function]}
                                                 >
                                                   <span>

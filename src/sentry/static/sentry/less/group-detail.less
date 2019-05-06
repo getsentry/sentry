@@ -85,9 +85,18 @@
   }
 
   .count {
-    &.short-id-box span {
-      font-size: 19px;
-      line-height: 1.4;
+    &.short-id-box {
+      min-width: 0;
+
+      span {
+        font-size: 18px;
+        line-height: 1.45;
+        display: block;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        direction: rtl;
+      }
     }
 
     span {

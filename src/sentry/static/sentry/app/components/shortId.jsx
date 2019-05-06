@@ -34,10 +34,12 @@ export default class ShortId extends React.Component {
 
 const StyledShortId = styled('div')`
   font-family: ${p => p.theme.text.familyMono};
-  display: inline-flex;
+  display: flex;
   align-items: center;
+  justify-content: flex-end;
 `;
 
 const StyledAutoSelectText = styled(AutoSelectText, {shouldForwardProp: isPropValid})`
   margin-left: ${p => p.avatar && '0.5em'};
+  min-width: 0;
 `;
