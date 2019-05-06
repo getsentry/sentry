@@ -220,7 +220,6 @@ Users now have access to useful links from the blogs and docs on Spike-protectio
                                   >
                                     <Tooltip2
                                       disabled={true}
-                                      isStyled={true}
                                       position="top"
                                       title="Foo Bar (example@sentry.io)"
                                     >
@@ -630,7 +629,6 @@ Users now have access to useful links from the blogs and docs on Spike-protectio
                                   >
                                     <Tooltip2
                                       disabled={true}
-                                      isStyled={true}
                                       position="top"
                                       title="Foo Bar (example@sentry.io)"
                                     >
