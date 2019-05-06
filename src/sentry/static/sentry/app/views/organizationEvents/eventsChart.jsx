@@ -74,6 +74,8 @@ class EventsLineChart extends React.Component {
 class EventsChart extends React.Component {
   static propTypes = {
     api: PropTypes.object,
+    projects: PropTypes.arrayOf(PropTypes.number),
+    environments: PropTypes.arrayOf(PropTypes.string),
     period: PropTypes.string,
     query: PropTypes.string,
     start: PropTypes.instanceOf(Date),
@@ -83,17 +85,37 @@ class EventsChart extends React.Component {
   };
 
   render() {
-    const {api, period, utc, query, router, start, end, ...props} = this.props;
+    const {
+      api,
+      period,
+      utc,
+      query,
+      router,
+      start,
+      end,
+      projects,
+      environments,
+      ...props
+    } = this.props;
     // Include previous only on relative dates (defaults to relative if no start and end)
     const includePrevious = !start && !end;
 
     return (
-      <ChartZoom router={router} period={period} utc={utc} {...props}>
+      <ChartZoom
+        router={router}
+        period={period}
+        utc={utc}
+        projects={projects}
+        environments={environments}
+        {...props}
+      >
         {({interval, ...zoomRenderProps}) => (
           <EventsRequest
             {...props}
             api={api}
             period={period}
+            project={projects}
+            environment={environments}
             start={start}
             end={end}
             interval={getInterval(this.props, true)}
@@ -104,7 +126,7 @@ class EventsChart extends React.Component {
           >
             {({loading, reloading, timeseriesData, previousTimeseriesData}) => {
               return (
-                <ReleaseSeries utc={utc} api={api}>
+                <ReleaseSeries utc={utc} api={api} projects={projects}>
                   {({releaseSeries}) => {
                     if (loading && !reloading) {
                       return <LoadingPanel data-test-id="events-request-loading" />;
@@ -149,8 +171,8 @@ const EventsChartContainer = withGlobalSelection(
         return (
           <EventsChart
             {...datetime}
-            project={projects || []}
-            environment={environments || []}
+            projects={projects || []}
+            environments={environments || []}
             {...props}
           />
         );
