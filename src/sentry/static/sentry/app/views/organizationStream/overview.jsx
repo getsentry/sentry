@@ -208,6 +208,7 @@ const OrganizationStream = createReactClass({
       query: this.getQuery(),
       ...selection.datetime,
     };
+
     if (selection.datetime.period) {
       delete params.period;
       params.statsPeriod = selection.datetime.period;
