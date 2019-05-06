@@ -307,7 +307,7 @@ class Sidebar extends React.Component {
                         evt
                       )
                     }
-                    icon={<InlineSvg src="icon-circle-exclamation" />}
+                    icon={<InlineSvg src="icon-incidents" />}
                     label={t('Incidents')}
                     to={`/organizations/${organization.slug}/incidents/`}
                     id="incidents"
