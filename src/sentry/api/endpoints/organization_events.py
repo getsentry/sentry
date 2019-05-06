@@ -1,6 +1,5 @@
 from __future__ import absolute_import
 
-from collections import namedtuple
 from datetime import timedelta
 from functools import partial
 
@@ -13,9 +12,10 @@ from sentry.api.serializers import EventSerializer, serialize, SimpleEventSerial
 from sentry.api.serializers.snuba import SnubaTSResultSerializer
 from sentry.models import SnubaEvent
 from sentry.utils.dates import parse_stats_period
-from sentry.utils.snuba import raw_query
-
-SnubaTSResult = namedtuple('SnubaTSResult', ('data', 'start', 'end', 'rollup'))
+from sentry.utils.snuba import (
+    raw_query,
+    SnubaTSResult,
+)
 
 
 class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):

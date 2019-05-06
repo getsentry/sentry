@@ -1,6 +1,9 @@
 from __future__ import absolute_import
 
-from collections import OrderedDict
+from collections import (
+    namedtuple,
+    OrderedDict,
+)
 from contextlib import contextmanager
 from datetime import datetime, timedelta
 from dateutil.parser import parse as parse_datetime
@@ -181,6 +184,9 @@ class QueryOutsideRetentionError(Exception):
 
 class QueryOutsideGroupActivityError(Exception):
     pass
+
+
+SnubaTSResult = namedtuple('SnubaTSResult', ('data', 'start', 'end', 'rollup'))
 
 
 @contextmanager

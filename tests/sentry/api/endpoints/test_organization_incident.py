@@ -2,6 +2,7 @@ from __future__ import absolute_import
 
 from django.utils import timezone
 from exam import fixture
+from freezegun import freeze_time
 
 from sentry.api.serializers import serialize
 from sentry.incidents.models import Incident
@@ -38,6 +39,7 @@ class IncidentListEndpointTest(APITestCase):
         assert resp.status_code == 404
 
 
+@freeze_time()
 class IncidentCreateEndpointTest(APITestCase):
     endpoint = 'sentry-api-0-organization-incident-index'
     method = 'post'
@@ -116,7 +118,7 @@ class IncidentCreateEndpointTest(APITestCase):
                 dateStarted=timezone.now(),
                 groups=[self.group.id, other_group.id],
             )
-            assert resp.status_code == 403
+            assert resp.status_code == 400, resp.content
 
     def test_no_feature(self):
         self.create_member(
