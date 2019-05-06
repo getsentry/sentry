@@ -1,14 +1,16 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 
+import {addErrorMessage} from 'app/actionCreators/indicator';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import LoadingError from 'app/components/loadingError';
 import {PageContent} from 'app/styles/organization';
 import withApi from 'app/utils/withApi';
+import {t} from 'app/locale';
 
 import IncidentHeader from './header';
 import Incidents from './incidents';
-import {fetchIncident} from '../utils';
+import {fetchIncident, updateSubscription} from '../utils';
 
 class OrganizationIncidentDetails extends React.Component {
   static propTypes = {
@@ -24,7 +26,7 @@ class OrganizationIncidentDetails extends React.Component {
     this.fetchData();
   }
 
-  fetchData() {
+  fetchData = () => {
     this.setState({isLoading: true, hasError: false});
     const {
       api,
@@ -38,13 +40,37 @@ class OrganizationIncidentDetails extends React.Component {
       .catch(() => {
         this.setState({isLoading: false, hasError: true});
       });
-  }
+  };
+
+  handleSubscriptionChange = () => {
+    const {
+      api,
+      params: {orgId, incidentId},
+    } = this.props;
+
+    const isSubscribed = !this.state.incident.isSubscribed;
+
+    updateSubscription(api, orgId, incidentId, isSubscribed)
+      .then(() => {
+        this.setState(state => ({
+          incident: {...state.incident, isSubscribed},
+        }));
+      })
+      .catch(() => {
+        addErrorMessage(t('An error occurred'));
+      });
+  };
 
   render() {
     const {incident, isLoading, hasError} = this.state;
+
     return (
       <React.Fragment>
-        <IncidentHeader params={this.props.params} incident={incident} />
+        <IncidentHeader
+          params={this.props.params}
+          incident={incident}
+          onSubscriptionChange={this.handleSubscriptionChange}
+        />
         {incident && <Incidents incident={incident} />}
         {isLoading && (
           <PageContent>
