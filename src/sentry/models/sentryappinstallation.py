@@ -32,6 +32,17 @@ class SentryAppInstallation(ParanoidModel):
                                      on_delete=models.SET_NULL,
                                      related_name='sentry_app_installation')
 
+    # Two scenarios for tokens:
+    # 1) An installation gets an access token once the Grant has been exchanged,
+    # and is updated when the token gets refreshed.
+    #
+    # 2) An installation is created for an internal SentryApp. This token will
+    # not need to be refreshed as it will live forever
+    api_token = models.OneToOneField('sentry.ApiToken',
+                                     null=True,
+                                     on_delete=models.SET_NULL,
+                                     related_name='sentry_app_installation')
+
     uuid = models.CharField(max_length=64,
                             default=default_uuid)
 
