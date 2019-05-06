@@ -54,15 +54,18 @@ class IncidentSerializer(serializers.Serializer):
         )
         if len(projects) != len(slugs):
             raise serializers.ValidationError('Invalid project slug(s)')
-        attrs[source] = projects
+        attrs[source] = list(projects)
         return attrs
 
     def validate_groups(self, attrs, source):
         group_ids = attrs[source]
-        groups = Group.objects.filter(id__in=group_ids).select_related('project')
+        groups = Group.objects.filter(
+            project__organization=self.context['organization'],
+            id__in=group_ids,
+        ).select_related('project')
         if len(groups) != len(group_ids):
             raise serializers.ValidationError('Invalid group id(s)')
-        attrs[source] = groups
+        attrs[source] = list(groups)
         return attrs
 
 

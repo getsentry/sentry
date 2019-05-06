@@ -114,3 +114,15 @@ class Incident(Model):
         app_label = 'sentry'
         db_table = 'sentry_incident'
         unique_together = (('organization', 'identifier'),)
+
+    @property
+    def current_end_date(self):
+        """
+        Returns the current end of the incident. Either the date it was closed,
+        or the current time if it's still open.
+        """
+        return self.date_closed if self.date_closed else timezone.now()
+
+    @property
+    def duration(self):
+        return self.current_end_date - self.date_started
