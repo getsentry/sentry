@@ -12,7 +12,7 @@ from sentry.lang.native.utils import get_sdk_from_event, handle_symbolication_fa
 from sentry.lang.native.symbolicator import merge_symbolicator_image
 from sentry.attachments import attachment_cache
 from sentry.coreapi import cache_key_for_event
-from sentry.utils.safe import get_path
+from sentry.utils.safe import get_path, set_path
 
 minidumps_logger = logging.getLogger('sentry.minidumps')
 
@@ -199,6 +199,7 @@ def merge_symbolicator_minidump_response(data, response):
     # TODO(markus): Add OS context here when `merge_process_state_event` is no
     # longer called for symbolicator projects
 
+    images = []
     set_path(data, 'debug_meta', 'images', value=images)
 
     for complete_image in response['modules']:
