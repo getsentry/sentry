@@ -3,6 +3,7 @@ import React from 'react';
 import styled from 'react-emotion';
 
 import ActivityItem from 'app/components/activity/item';
+import SentryTypes from 'app/sentryTypes';
 import space from 'app/styles/space';
 
 import EditorTools from './editorTools';
@@ -12,12 +13,14 @@ import NoteInput from './input';
 
 class Note extends React.Component {
   static propTypes = {
-    group: PropTypes.object.isRequired,
-    item: PropTypes.object.isRequired,
     author: PropTypes.object.isRequired,
-    onDelete: PropTypes.func.isRequired,
-    sessionUser: PropTypes.object.isRequired,
+    item: PropTypes.object.isRequired,
     memberList: PropTypes.array.isRequired,
+    teams: PropTypes.arrayOf(SentryTypes.Team).isRequired,
+
+    onDelete: PropTypes.func,
+    onCreate: PropTypes.func,
+    onUpdate: PropTypes.func,
   };
 
   constructor(...args) {
@@ -27,20 +30,35 @@ class Note extends React.Component {
     };
   }
 
-  onEdit = () => {
+  handleEdit = () => {
     this.setState({editing: true});
   };
 
-  onFinish = () => {
+  handleEditFinish = () => {
     this.setState({editing: false});
   };
 
-  onDelete = () => {
-    this.props.onDelete(this.props.item);
+  handleDelete = () => {
+    const {item, onDelete} = this.props;
+
+    onDelete(item);
+  };
+
+  handleCreate = note => {
+    const {onCreate} = this.props;
+
+    onCreate(note);
+  };
+
+  handleUpdate = note => {
+    const {item, onUpdate} = this.props;
+
+    onUpdate(note, item);
+    this.setState({editing: false});
   };
 
   render() {
-    const {group, item, author, sessionUser, memberList} = this.props;
+    const {item, author, teams, memberList} = this.props;
 
     const activityItemProps = {
       id: `activity-item-${item.id}`,
@@ -56,8 +74,8 @@ class Note extends React.Component {
             <NoteHeader
               author={author}
               user={item.user}
-              onEdit={this.onEdit}
-              onDelete={this.onDelete}
+              onEdit={this.handleEdit}
+              onDelete={this.handleDelete}
             />
           }
         >
@@ -72,11 +90,12 @@ class Note extends React.Component {
       <StyledActivityItem {...activityItemProps}>
         {() => (
           <NoteInput
-            group={group}
             item={item}
-            onFinish={this.onFinish}
-            sessionUser={sessionUser}
+            onEditFinish={this.handleEditFinish}
+            onUpdate={this.handleUpdate}
+            onCreate={this.handleCreate}
             memberList={memberList}
+            teams={teams}
           />
         )}
       </StyledActivityItem>
