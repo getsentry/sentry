@@ -104,6 +104,16 @@ def get_task_kwargs_for_message(value):
     metrics.timing('evenstream.events.size.data', len(value))
     payload = json.loads(value)
 
+    event_id = payload[2]['event_id']
+    project_id = payload[2]['project_id']
+    metrics.incr(
+        'evenstream.events.size.data.mb_bucket.%s' % (len(value) // (10 ** 6),),
+        tags={
+            'project_id': project_id,
+            'event': '%s,%s' % (project_id, event_id)
+        }
+    )
+
     try:
         version = payload[0]
     except Exception:
