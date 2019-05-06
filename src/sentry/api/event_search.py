@@ -281,7 +281,7 @@ class SearchVisitor(NodeVisitor):
                     return index
             return None
 
-        def build_boolean_tree_helper(children, start, end, operator):
+        def build_boolean_tree_branch(children, start, end, operator):
             index = find_next_operator(children, start, end, operator)
             if index is None:
                 return None
@@ -293,9 +293,9 @@ class SearchVisitor(NodeVisitor):
             if end - start == 1:
                 return children[start]
 
-            result = build_boolean_tree_helper(children, start, end, SearchBoolean.BOOLEAN_OR)
+            result = build_boolean_tree_branch(children, start, end, SearchBoolean.BOOLEAN_OR)
             if result is None:
-                result = build_boolean_tree_helper(children, start, end, SearchBoolean.BOOLEAN_AND)
+                result = build_boolean_tree_branch(children, start, end, SearchBoolean.BOOLEAN_AND)
 
             return result
 
