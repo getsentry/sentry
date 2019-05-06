@@ -209,7 +209,7 @@ class Fixtures(object):
     def create_incident(self, organization=None, projects=None, *args, **kwargs):
         if not organization:
             organization = self.organization
-        if not projects:
+        if projects is None:
             projects = [self.project]
 
         return Factories.create_incident(

@@ -1,6 +1,11 @@
 from __future__ import absolute_import
 
+import unittest
+from datetime import timedelta
+
 from django.db import IntegrityError, transaction
+from django.utils import timezone
+from freezegun import freeze_time
 from mock import patch
 
 from sentry.db.models.manager import BaseManager
@@ -125,3 +130,21 @@ class IncidentCreationTest(TestCase):
             # row inside of a transaction it ends up rolled back. We just want
             # to verify that it was created successfully.
             assert incident.identifier == 1
+
+
+@freeze_time()
+class IncidentDurationTest(unittest.TestCase):
+    def test(self):
+        incident = Incident(date_started=timezone.now() - timedelta(minutes=5))
+        assert incident.duration == timedelta(minutes=5)
+        incident.date_closed = incident.date_started + timedelta(minutes=2)
+        assert incident.duration == timedelta(minutes=2)
+
+
+@freeze_time()
+class IncidentCurrentEndDateTest(unittest.TestCase):
+    def test(self):
+        incident = Incident()
+        assert incident.current_end_date == timezone.now()
+        incident.date_closed = timezone.now() - timedelta(minutes=10)
+        assert incident.current_end_date == timezone.now() - timedelta(minutes=10)
