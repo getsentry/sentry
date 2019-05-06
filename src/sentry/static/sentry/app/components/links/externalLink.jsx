@@ -7,9 +7,9 @@ import PropTypes from 'prop-types';
  * By default will open in a new tab with `rel="noreferrer noopener"` to guard against
  * `target="_blank"` vulnerabilities
  */
-export default function ExternalLink({href, ...otherProps}) {
-  return <a {...otherProps} href={href} />;
-}
+const ExternalLink = React.forwardRef(({href, ...otherProps}, ref) => {
+  return <a ref={ref} {...otherProps} href={href} />;
+});
 
 ExternalLink.propTypes = {
   href: PropTypes.string.isRequired,
@@ -22,3 +22,5 @@ ExternalLink.defaultProps = {
   target: '_blank',
   rel: 'noreferrer noopener',
 };
+
+export default ExternalLink;

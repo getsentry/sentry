@@ -34,7 +34,7 @@ exports[`ProjectExpectCtReports renders 1`] = `
           <span
             key="4"
           >
-            <ExternalLink
+            <ForwardRef
               href="https://en.wikipedia.org/wiki/Certificate_Transparency"
               key="1"
               rel="noreferrer noopener"
@@ -45,7 +45,7 @@ exports[`ProjectExpectCtReports renders 1`] = `
               >
                 Certificate Transparency
               </span>
-            </ExternalLink>
+            </ForwardRef>
             <span
               key="2"
             >

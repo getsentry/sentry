@@ -217,7 +217,7 @@ exports[`OrganizationApiKeysList renders 1`] = `
             >
               API keys grant access to the 
             </span>
-            <ExternalLink
+            <ForwardRef
               href="https://docs.sentry.io/hosted/api/"
               key="2"
               rel="noreferrer noopener"
@@ -234,7 +234,7 @@ exports[`OrganizationApiKeysList renders 1`] = `
                   developer web API
                 </span>
               </a>
-            </ExternalLink>
+            </ForwardRef>
             <span
               key="3"
             >

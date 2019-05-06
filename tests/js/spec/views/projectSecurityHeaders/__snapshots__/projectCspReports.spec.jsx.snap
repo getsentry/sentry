@@ -59,7 +59,7 @@ exports[`ProjectCspReports renders 1`] = `
           <span
             key="4"
           >
-            <ExternalLink
+            <ForwardRef
               href="https://en.wikipedia.org/wiki/Content_Security_Policy"
               key="1"
               rel="noreferrer noopener"
@@ -70,7 +70,7 @@ exports[`ProjectCspReports renders 1`] = `
               >
                 Content Security Policy
               </span>
-            </ExternalLink>
+            </ForwardRef>
             <span
               key="2"
             >
