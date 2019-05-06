@@ -571,7 +571,7 @@ describe('OrganizationStream', function() {
         'Custom Search'
       );
 
-      wrapper.find('Button[aria-label="Pin this search"]').simulate('click');
+      wrapper.find('Button[aria-label="Pin this search"] button').simulate('click');
 
       expect(createPin).toHaveBeenCalled();
 
@@ -672,7 +672,7 @@ describe('OrganizationStream', function() {
         'Unresolved Issues'
       );
 
-      wrapper.find('Button[aria-label="Pin this search"]').simulate('click');
+      wrapper.find('Button[aria-label="Pin this search"] button').simulate('click');
 
       expect(createPin).toHaveBeenCalled();
 
@@ -736,7 +736,7 @@ describe('OrganizationStream', function() {
         },
       });
 
-      wrapper.find('Button[aria-label="Pin this search"]').simulate('click');
+      wrapper.find('Button[aria-label="Pin this search"] button').simulate('click');
 
       expect(createPin).toHaveBeenCalled();
 

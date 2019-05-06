@@ -1,6 +1,5 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import _ from 'lodash';
 import classNames from 'classnames';
 import createReactClass from 'create-react-class';
 import styled, {css} from 'react-emotion';
@@ -13,7 +12,7 @@ import ExternalLink from 'app/components/links/externalLink';
 import FrameRegisters from 'app/components/events/interfaces/frameRegisters';
 import FrameVariables from 'app/components/events/interfaces/frameVariables';
 import StrictClick from 'app/components/strictClick';
-import Tooltip from 'app/components/tooltip';
+import Tooltip2 from 'app/components/tooltip2';
 import Truncate from 'app/components/truncate';
 import OpenInContextLine from 'app/components/events/interfaces/openInContextLine';
 import SentryAppComponentsStore from 'app/stores/sentryAppComponentsStore';
@@ -125,22 +124,15 @@ const Frame = createReactClass({
   renderOriginalSourceInfo() {
     const data = this.props.data;
 
-    const sourceMapText = t('Source Map');
-
-    let out = `
-    <div>
-      <strong>${sourceMapText}</strong><br/>`;
-
     // mapUrl not always present; e.g. uploaded source maps
-    if (data.mapUrl) {
-      out += `${_.escape(data.mapUrl)}<br/>`;
-    } else {
-      out += `${_.escape(data.map)}<br/>`;
-    }
-
-    out += '</div>';
-
-    return out;
+    return (
+      <React.Fragment>
+        <strong>{t('Source Map')}</strong>
+        <br />
+        {data.mapUrl ? data.mapUrl : data.map}
+        <br />
+      </React.Fragment>
+    );
   },
 
   getPlatform() {
@@ -191,11 +183,11 @@ const Frame = createReactClass({
       // we want to show a litle (?) icon that on hover shows the actual filename
       if (shouldPrioritizeModuleName && data.filename) {
         title.push(
-          <Tooltip title={_.escape(data.filename)} tooltipOptions={{html: true}}>
+          <Tooltip2 title={data.filename}>
             <a className="in-at real-filename">
               <span className="icon-question" />
             </a>
-          </Tooltip>
+          </Tooltip2>
         );
       }
 
@@ -256,15 +248,11 @@ const Frame = createReactClass({
 
     if (defined(data.origAbsPath)) {
       title.push(
-        <Tooltip
-          key="info-tooltip"
-          title={this.renderOriginalSourceInfo()}
-          tooltipOptions={{html: true}}
-        >
+        <Tooltip2 key="info-tooltip" title={this.renderOriginalSourceInfo()}>
           <a className="in-at original-src">
             <span className="icon-question" />
           </a>
-        </Tooltip>
+        </Tooltip2>
       );
     }
 
@@ -477,11 +465,11 @@ const Frame = createReactClass({
                 </span>
               )}
               {hint !== null ? (
-                <Tooltip title={_.escape(hint)}>
+                <Tooltip2 title={hint}>
                   <a key="inline">
                     <span className="icon-question" />
                   </a>
-                </Tooltip>
+                </Tooltip2>
               ) : null}
             </span>
           </NativeLineContent>

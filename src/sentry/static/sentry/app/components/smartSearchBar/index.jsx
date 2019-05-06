@@ -23,7 +23,6 @@ import CreateSavedSearchButton from 'app/views/stream/createSavedSearchButton';
 import InlineSvg from 'app/components/inlineSvg';
 import MemberListStore from 'app/stores/memberListStore';
 import SentryTypes from 'app/sentryTypes';
-import Tooltip from 'app/components/tooltip';
 import space from 'app/styles/space';
 import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
@@ -770,17 +769,16 @@ class SmartSearchBar extends React.Component {
               query={this.state.query}
               organization={organization}
             />
-            <Tooltip title={pinTooltip}>
-              <Button
-                type="button"
-                borderless
-                aria-label={pinTooltip}
-                size="zero"
-                onClick={this.onTogglePinnedSearch}
-              >
-                <PinIcon isPinned={!!pinnedSearch} src={pinIconSrc} />
-              </Button>
-            </Tooltip>
+            <Button
+              type="button"
+              title={pinTooltip}
+              borderless
+              aria-label={pinTooltip}
+              size="zero"
+              onClick={this.onTogglePinnedSearch}
+            >
+              <PinIcon isPinned={!!pinnedSearch} src={pinIconSrc} />
+            </Button>
             <SidebarButton
               borderless
               size="zero"

@@ -115,12 +115,12 @@ describe('TeamSettings', function() {
     );
 
     // Click "Remove Team button
-    wrapper.find('Button[priority="danger"]').simulate('click');
+    wrapper.find('Button[priority="danger"] button').simulate('click');
 
     TeamStore.trigger.mockReset();
 
     // Wait for modal
-    wrapper.find('ModalDialog Button[priority="danger"]').simulate('click');
+    wrapper.find('ModalDialog Button[priority="danger"] button').simulate('click');
     expect(deleteMock).toHaveBeenCalledWith(
       `/teams/org/${team.slug}/`,
       expect.objectContaining({

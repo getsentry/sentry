@@ -7,7 +7,7 @@ import {pickBy} from 'lodash';
 
 import ExternalLink from 'app/components/links/externalLink';
 import InlineSvg from 'app/components/inlineSvg';
-import Tooltip from 'app/components/tooltip';
+import Tooltip2 from 'app/components/tooltip2';
 
 class Button extends React.Component {
   static propTypes = {
@@ -132,7 +132,7 @@ class Button extends React.Component {
 
     // Doing this instead of using `Tooltip`'s `disabled` prop so that we can minimize snapshot nesting
     if (title) {
-      return <Tooltip title={title}>{button}</Tooltip>;
+      return <Tooltip2 title={title}>{button}</Tooltip2>;
     }
 
     return button;

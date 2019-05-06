@@ -119,11 +119,11 @@ describe('OrganizationSavedSearchSelector', function() {
       const button = wrapper
         .find('MenuItem')
         .at(1)
-        .find('Button[icon="icon-trash"]');
+        .find('Button[icon="icon-trash"] button');
       button.simulate('click');
       await wrapper.update();
 
-      wrapper.find('Modal Button[priority="primary"]').simulate('click');
+      wrapper.find('Modal Button[priority="primary"] button').simulate('click');
       expect(onDelete).toHaveBeenCalledWith(savedSearchList[1]);
     });
   });
