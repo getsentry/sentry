@@ -189,7 +189,7 @@ class ProjectGeneralSettings extends AsyncView {
                 </TextBlock>
                 <TextBlock>
                   {t(
-                    'Please enter the organization owner you would like to transfer this project to.'
+                    'Please enter the email of an organization owner for the org to which you would like to transfer this project.'
                   )}
                 </TextBlock>
                 <Panel>
@@ -206,11 +206,8 @@ class ProjectGeneralSettings extends AsyncView {
                       label={t('Organization Owner')}
                       placeholder="admin@example.com"
                       required
-                      help={tct(
-                        'A request will be emailed to the new owner in order to transfer [project] to a new organization.',
-                        {
-                          project: <strong> {project.slug} </strong>,
-                        }
+                      help={t(
+                        'A request will be emailed to this address, asking the organization owner to accept the project transfer.'
                       )}
                     />
                   </Form>

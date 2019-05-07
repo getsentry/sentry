@@ -632,7 +632,7 @@ exports[`IntegrationDetailsModal renders simple integration 1`] = `
               containerDisplayMode="inline-block"
               disabled={true}
               position="top"
-              title="You must be an Owner, Manager or Admin to install this."
+              title="You must be an Organization Owner, Manager or Admin to install this."
             >
               <AddButton
                 data-test-id="add-button"

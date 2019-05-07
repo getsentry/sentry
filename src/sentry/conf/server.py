@@ -1282,8 +1282,8 @@ SENTRY_ROLES = (
         ),
     }, {
         'id': 'owner',
-        'name': 'Owner',
-        'desc': 'Gains full permission across the organization. Can manage members as well as perform catastrophic operations such as removing the organization.',
+        'name': 'Organization Owner',
+        'desc': 'Unrestricted access to the organization, its data, and its settings. Can add, modify, and delete projects and members, as well as make billing and plan changes.',
         'is_global': True,
         'scopes': set(
             [

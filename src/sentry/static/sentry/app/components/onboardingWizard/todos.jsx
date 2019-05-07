@@ -39,7 +39,7 @@ const TASKS = [
     description: t('Bring your team aboard'),
     detailedDescription: t(
       `Let Sentry help your team triage and assign issues. Improve your workflow
-          by unlocking suggested owners, mentions, and assignment.`
+           by unlocking mentions, assignment, and suggested issue owners.`
     ),
     skippable: true,
     prereq: [],
@@ -80,7 +80,7 @@ const TASKS = [
     description: t('See which releases cause errors'),
     detailedDescription: t(
       `Set up commits for additional context when determining the cause of an issue
-          e.g. suggested owners and resolve issues via commit messages.`
+          (e.g. suggested issue owners) and resolve issues via commit messages.`
     ),
     skippable: true,
     prereq: [1, 2],

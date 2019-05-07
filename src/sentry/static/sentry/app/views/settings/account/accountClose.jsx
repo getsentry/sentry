@@ -138,11 +138,11 @@ class AccountClose extends AsyncView {
           <PanelBody>
             <PanelAlert type="info">
               {t(
-                'Ownership will remain with other members if an organization is not deleted.'
+                'Ownership will remain with other organization owners if an organization is not deleted.'
               )}
               <br />
               {t(
-                'Disabled boxes mean that there is no other owner within the organization so no one else can take ownership.'
+                'Boxes which can\'t be unchecked mean that you are the only organization owner and the organization <b>will be deleted</b>.'
               )}
             </PanelAlert>
 

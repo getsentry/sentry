@@ -116,7 +116,7 @@ export default class IntegrationInstallation extends AsyncView {
             <p>
               {tct(
                 `You do not have permission to install integrations in
-                  [organization]. Ask your organization owner or manager to
+                  [organization]. Ask an organization owner or manager to
                   visit this page to finish installing this integration.`,
                 {organization: <strong>{organization.slug}</strong>}
               )}

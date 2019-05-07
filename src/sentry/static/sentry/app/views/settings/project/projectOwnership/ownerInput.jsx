@@ -68,7 +68,7 @@ class OwnerInput extends React.Component {
 
     request
       .then(() => {
-        addSuccessMessage(t('Updated ownership rules'));
+        addSuccessMessage(t('Updated issue ownership rules'));
         this.setState({
           initialText: text,
         });
@@ -77,7 +77,7 @@ class OwnerInput extends React.Component {
         this.setState({error: error.responseJSON});
         if (error.status === 403) {
           addErrorMessage(
-            t("You don't have permission to modify ownership rules for this project")
+            t("You don't have permission to modify issue ownership rules for this project")
           );
         } else if (
           error.status === 400 &&
@@ -85,10 +85,10 @@ class OwnerInput extends React.Component {
           error.responseJSON.raw[0].startsWith('Invalid rule owners:')
         ) {
           addErrorMessage(
-            t('Unable to save ownership rules changes: ' + error.responseJSON.raw[0])
+            t('Unable to save issue ownership rule changes: ' + error.responseJSON.raw[0])
           );
         } else {
-          addErrorMessage(t('Unable to save ownership rules changes'));
+          addErrorMessage(t('Unable to save issue ownership rule changes'));
         }
       });
 
