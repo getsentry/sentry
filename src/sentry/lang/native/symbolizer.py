@@ -92,17 +92,20 @@ class Symbolizer(object):
     we have in the database and reports errors slightly differently.
     """
 
-    def __init__(self, project, object_lookup, referenced_images,
+    def __init__(self, project, object_lookup, referenced_images, use_symbolicator,
                  on_dif_referenced=None):
         if not isinstance(object_lookup, ObjectLookup):
             object_lookup = ObjectLookup(object_lookup)
         self.object_lookup = object_lookup
 
-        self.symcaches, self.symcaches_conversion_errors = \
-            ProjectDebugFile.difcache.get_symcaches(
-                project, referenced_images,
-                on_dif_referenced=on_dif_referenced,
-                with_conversion_errors=True)
+        self.symcaches = self.symcaches_conversion_errors = None
+
+        if not use_symbolicator:
+            self.symcaches, self.symcaches_conversion_errors = \
+                ProjectDebugFile.difcache.get_symcaches(
+                    project, referenced_images,
+                    on_dif_referenced=on_dif_referenced,
+                    with_conversion_errors=True)
 
     def _process_frame(self, sym, package=None, addr_off=0):
         frame = {
@@ -128,11 +131,15 @@ class Symbolizer(object):
         return frame
 
     def _symbolize_app_frame(self, instruction_addr, obj, sdk_info=None, trust=None):
-        symcache = self.symcaches.get(obj.debug_id)
+        symcache = None
+        if self.symcaches is not None:
+            symcache = self.symcaches.get(obj.debug_id)
+
         if symcache is None:
             # In case we know what error happened on symcache conversion
             # we can report it to the user now.
-            if obj.debug_id in self.symcaches_conversion_errors:
+            if self.symcaches_conversion_errors is not None and \
+               obj.debug_id in self.symcaches_conversion_errors:
                 raise SymbolicationFailed(
                     message=self.symcaches_conversion_errors[obj.debug_id],
                     type=EventError.NATIVE_BAD_DSYM,
