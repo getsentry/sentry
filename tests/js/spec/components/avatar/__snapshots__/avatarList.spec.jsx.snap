@@ -111,6 +111,7 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
         is={null}
       >
         <Tooltip2
+          containerDisplayMode="inline-block"
           position="top"
           title="1 other users"
         >
@@ -121,6 +122,7 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
               >
                 <Container
                   aria-describedby="tooltip-123456"
+                  containerDisplayMode="inline-block"
                   innerRef={[Function]}
                   onBlur={[Function]}
                   onFocus={[Function]}
@@ -256,6 +258,7 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
                 uploadPath="avatar"
               >
                 <Tooltip2
+                  containerDisplayMode="inline-block"
                   disabled={false}
                   position="top"
                   title="Foo Bar (foo@example.com)"
@@ -267,6 +270,7 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
                       >
                         <Container
                           aria-describedby="tooltip-123456"
+                          containerDisplayMode="inline-block"
                           innerRef={[Function]}
                           onBlur={[Function]}
                           onFocus={[Function]}
@@ -450,6 +454,7 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
                 uploadPath="avatar"
               >
                 <Tooltip2
+                  containerDisplayMode="inline-block"
                   disabled={false}
                   position="top"
                   title="Foo Bar (foo@example.com)"
@@ -461,6 +466,7 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
                       >
                         <Container
                           aria-describedby="tooltip-123456"
+                          containerDisplayMode="inline-block"
                           innerRef={[Function]}
                           onBlur={[Function]}
                           onFocus={[Function]}
@@ -644,6 +650,7 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
                 uploadPath="avatar"
               >
                 <Tooltip2
+                  containerDisplayMode="inline-block"
                   disabled={false}
                   position="top"
                   title="Foo Bar (foo@example.com)"
@@ -655,6 +662,7 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
                       >
                         <Container
                           aria-describedby="tooltip-123456"
+                          containerDisplayMode="inline-block"
                           innerRef={[Function]}
                           onBlur={[Function]}
                           onFocus={[Function]}
@@ -838,6 +846,7 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
                 uploadPath="avatar"
               >
                 <Tooltip2
+                  containerDisplayMode="inline-block"
                   disabled={false}
                   position="top"
                   title="Foo Bar (foo@example.com)"
@@ -849,6 +858,7 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
                       >
                         <Container
                           aria-describedby="tooltip-123456"
+                          containerDisplayMode="inline-block"
                           innerRef={[Function]}
                           onBlur={[Function]}
                           onFocus={[Function]}
@@ -1032,6 +1042,7 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
                 uploadPath="avatar"
               >
                 <Tooltip2
+                  containerDisplayMode="inline-block"
                   disabled={false}
                   position="top"
                   title="Foo Bar (foo@example.com)"
@@ -1043,6 +1054,7 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
                       >
                         <Container
                           aria-describedby="tooltip-123456"
+                          containerDisplayMode="inline-block"
                           innerRef={[Function]}
                           onBlur={[Function]}
                           onFocus={[Function]}
@@ -1286,6 +1298,7 @@ exports[`AvatarList renders with user avatars 1`] = `
                 uploadPath="avatar"
               >
                 <Tooltip2
+                  containerDisplayMode="inline-block"
                   disabled={false}
                   position="top"
                   title="Foo Bar (foo@example.com)"
@@ -1297,6 +1310,7 @@ exports[`AvatarList renders with user avatars 1`] = `
                       >
                         <Container
                           aria-describedby="tooltip-123456"
+                          containerDisplayMode="inline-block"
                           innerRef={[Function]}
                           onBlur={[Function]}
                           onFocus={[Function]}
@@ -1480,6 +1494,7 @@ exports[`AvatarList renders with user avatars 1`] = `
                 uploadPath="avatar"
               >
                 <Tooltip2
+                  containerDisplayMode="inline-block"
                   disabled={false}
                   position="top"
                   title="Foo Bar (foo@example.com)"
@@ -1491,6 +1506,7 @@ exports[`AvatarList renders with user avatars 1`] = `
                       >
                         <Container
                           aria-describedby="tooltip-123456"
+                          containerDisplayMode="inline-block"
                           innerRef={[Function]}
                           onBlur={[Function]}
                           onFocus={[Function]}

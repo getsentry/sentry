@@ -85,13 +85,14 @@ class Tooltip2 extends React.Component {
       onBlur: this.handleClose,
       onMouseEnter: this.handleOpen,
       onMouseLeave: this.handleClose,
-      containerDisplayMode: this.props.containerDisplayMode,
     };
+
     // Use the `type` property of the react instance to detect whether we
     // have a basic element (type=string) or a class/function component (type=function)
     // Because we can't rely on the child element implementing forwardRefs we wrap
     // it with a span tag so that popper has ref
     if (children.type instanceof Function) {
+      propList.containerDisplayMode = this.props.containerDisplayMode;
       return (
         <Container {...propList} innerRef={ref}>
           {children}

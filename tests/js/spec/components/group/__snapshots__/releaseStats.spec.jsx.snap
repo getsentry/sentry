@@ -1040,6 +1040,7 @@ exports[`GroupReleaseStats renders 1`] = `
               key="1"
             >
               <Tooltip2
+                containerDisplayMode="inline-block"
                 position="top"
                 title={
                   <div
@@ -1078,6 +1079,7 @@ exports[`GroupReleaseStats renders 1`] = `
                     >
                       <Container
                         aria-describedby="tooltip-123456"
+                        containerDisplayMode="inline-block"
                         innerRef={[Function]}
                         onBlur={[Function]}
                         onFocus={[Function]}
@@ -1177,6 +1179,7 @@ exports[`GroupReleaseStats renders 1`] = `
               key="1"
             >
               <Tooltip2
+                containerDisplayMode="inline-block"
                 position="top"
                 title={
                   <div
@@ -1215,6 +1218,7 @@ exports[`GroupReleaseStats renders 1`] = `
                     >
                       <Container
                         aria-describedby="tooltip-123456"
+                        containerDisplayMode="inline-block"
                         innerRef={[Function]}
                         onBlur={[Function]}
                         onFocus={[Function]}

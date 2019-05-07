@@ -600,7 +600,7 @@ describe('OrganizationStream', function() {
         'My Pinned Search'
       );
 
-      wrapper.find('Button[aria-label="Unpin this search"]').simulate('click');
+      wrapper.find('Button[aria-label="Unpin this search"] button').simulate('click');
 
       expect(deletePin).toHaveBeenCalled();
 
@@ -828,7 +828,7 @@ describe('OrganizationStream', function() {
       wrapper.setContext({router: newRouter});
       wrapper.update();
 
-      wrapper.find('Button[aria-label="Pin this search"]').simulate('click');
+      wrapper.find('Button[aria-label="Pin this search"] button').simulate('click');
 
       expect(createPin).toHaveBeenCalled();
 
@@ -856,7 +856,7 @@ describe('OrganizationStream', function() {
       await tick();
       wrapper.update();
 
-      wrapper.find('Button[aria-label="Unpin this search"]').simulate('click');
+      wrapper.find('Button[aria-label="Unpin this search"] button').simulate('click');
 
       expect(deletePin).toHaveBeenCalled();
 

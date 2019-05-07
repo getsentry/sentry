@@ -59,6 +59,7 @@ exports[`CreateProject should block if you have access to no teams 1`] = `
             value={0}
           />
           <Tooltip2
+            containerDisplayMode="inline-block"
             position="top"
             title="Create a team"
           >
@@ -1469,6 +1470,7 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
                 </StyledSelect>
               </SelectControl>
               <Tooltip2
+                containerDisplayMode="inline-block"
                 position="top"
                 title="Create a team"
               >
@@ -1479,6 +1481,7 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
                     >
                       <Container
                         aria-describedby="tooltip-123456"
+                        containerDisplayMode="inline-block"
                         innerRef={[Function]}
                         onBlur={[Function]}
                         onFocus={[Function]}
@@ -2448,6 +2451,7 @@ exports[`CreateProject should fill in platform name if its provided by url 1`] =
                 </StyledSelect>
               </SelectControl>
               <Tooltip2
+                containerDisplayMode="inline-block"
                 position="top"
                 title="Create a team"
               >
@@ -2458,6 +2462,7 @@ exports[`CreateProject should fill in platform name if its provided by url 1`] =
                     >
                       <Container
                         aria-describedby="tooltip-123456"
+                        containerDisplayMode="inline-block"
                         innerRef={[Function]}
                         onBlur={[Function]}
                         onFocus={[Function]}
@@ -4127,6 +4132,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
                 </StyledSelect>
               </SelectControl>
               <Tooltip2
+                containerDisplayMode="inline-block"
                 position="top"
                 title="Create a team"
               >
@@ -4137,6 +4143,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
                     >
                       <Container
                         aria-describedby="tooltip-123456"
+                        containerDisplayMode="inline-block"
                         innerRef={[Function]}
                         onBlur={[Function]}
                         onFocus={[Function]}
