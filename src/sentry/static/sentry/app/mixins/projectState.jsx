@@ -8,10 +8,6 @@ const ProjectState = {
     project: SentryTypes.Project,
   },
 
-  getProjectFeatures() {
-    return new Set(this.context.project.features);
-  },
-
   getProject() {
     return this.context.project;
   },
