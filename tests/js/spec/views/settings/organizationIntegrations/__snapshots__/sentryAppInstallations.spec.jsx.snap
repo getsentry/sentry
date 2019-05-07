@@ -464,6 +464,7 @@ exports[`Sentry App Installations when Apps exist displays all Apps owned by the
                                         "sentryErrorEmbed": 1090,
                                         "sidebar": 1010,
                                         "toast": 10001,
+                                        "tooltip": 1070,
                                       },
                                     }
                                   }
@@ -735,6 +736,7 @@ exports[`Sentry App Installations when Apps exist displays all Apps owned by the
                                                 "sentryErrorEmbed": 1090,
                                                 "sidebar": 1010,
                                                 "toast": 10001,
+                                                "tooltip": 1070,
                                               },
                                             }
                                           }

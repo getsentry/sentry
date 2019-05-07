@@ -218,8 +218,9 @@ Users now have access to useful links from the blogs and docs on Spike-protectio
                                     uploadId={null}
                                     uploadPath="avatar"
                                   >
-                                    <Tooltip
+                                    <Tooltip2
                                       disabled={true}
+                                      position="top"
                                       title="Foo Bar (example@sentry.io)"
                                     >
                                       <StyledBaseAvatar
@@ -283,7 +284,7 @@ Users now have access to useful links from the blogs and docs on Spike-protectio
                                           </LetterAvatar>
                                         </span>
                                       </StyledBaseAvatar>
-                                    </Tooltip>
+                                    </Tooltip2>
                                   </BaseAvatar>
                                 </UserAvatar>
                               </Avatar>
@@ -626,8 +627,9 @@ Users now have access to useful links from the blogs and docs on Spike-protectio
                                     uploadId={null}
                                     uploadPath="avatar"
                                   >
-                                    <Tooltip
+                                    <Tooltip2
                                       disabled={true}
+                                      position="top"
                                       title="Foo Bar (example@sentry.io)"
                                     >
                                       <StyledBaseAvatar
@@ -691,7 +693,7 @@ Users now have access to useful links from the blogs and docs on Spike-protectio
                                           </LetterAvatar>
                                         </span>
                                       </StyledBaseAvatar>
-                                    </Tooltip>
+                                    </Tooltip2>
                                   </BaseAvatar>
                                 </UserAvatar>
                               </Avatar>

@@ -37,8 +37,8 @@ export default class AvatarList extends React.Component {
     const visibleUsers = users.slice(0, maxVisibleAvatars);
     const numCollapsedUsers = users.length - visibleUsers.length;
 
-    if (!tooltipOptions.placement) {
-      tooltipOptions.placement = 'top auto';
+    if (!tooltipOptions.position) {
+      tooltipOptions.position = 'top';
     }
 
     return (
