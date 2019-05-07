@@ -476,7 +476,7 @@ exports[`Configure should render correctly render() should render platform docs 
                                                             role="button"
                                                             size="small"
                                                           >
-                                                            <ExternalLink
+                                                            <ForwardRef
                                                               aria-disabled={false}
                                                               aria-label="Full Documentation"
                                                               className="css-o6814l-StyledButton-getColors e12ma6z0"
@@ -513,7 +513,7 @@ exports[`Configure should render correctly render() should render platform docs 
                                                                   </Component>
                                                                 </ButtonLabel>
                                                               </a>
-                                                            </ExternalLink>
+                                                            </ForwardRef>
                                                           </ForwardRef>
                                                         </StyledButton>
                                                       </Button>

@@ -590,7 +590,7 @@ urlpatterns += patterns(
         name='sentry-group'
     ),
     url(
-        r'^(?P<organization_slug>[\w_-]+)/(?P<project_slug>[\w_-]+)/issues/(?P<group_id>\d+)/events/(?P<event_id>\d+)/$',
+        r'^(?P<organization_slug>[\w_-]+)/(?P<project_slug>[\w_-]+)/issues/(?P<group_id>\d+)/events/(?P<event_id>[\w-]+)/$',
         react_page_view,
         name='sentry-group-event'
     ),

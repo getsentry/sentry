@@ -55,7 +55,7 @@ export default class Pagination extends React.Component {
         <div className="btn-group pull-right">
           <a
             onClick={() => {
-              onCursor(links.previous.cursor, path, query);
+              onCursor(links.previous.cursor, path, query, -1);
             }}
             className={previousPageClassName}
             disabled={links.previous.results === false}
@@ -64,7 +64,7 @@ export default class Pagination extends React.Component {
           </a>
           <a
             onClick={() => {
-              onCursor(links.next.cursor, path, query);
+              onCursor(links.next.cursor, path, query, 1);
             }}
             className={nextPageClassName}
             disabled={links.next.results === false}

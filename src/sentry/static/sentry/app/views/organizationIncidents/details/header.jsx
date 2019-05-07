@@ -30,7 +30,7 @@ export default class IncidentHeader extends React.Component {
               <Chevron src="icon-chevron-right" size={space(2)} />
               {params.incidentId}
             </Title>
-            <div>{incident && incident.name}</div>
+            <div>{incident && incident.title}</div>
           </PageHeading>
         </HeaderItem>
         {incident && (

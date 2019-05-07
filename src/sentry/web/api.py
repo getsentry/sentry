@@ -34,7 +34,7 @@ from sentry.coreapi import (
     Auth, APIError, APIForbidden, APIRateLimited, ClientApiHelper, ClientAuthHelper,
     SecurityAuthHelper, MinidumpAuthHelper, safely_load_json_string, logger as api_logger
 )
-from sentry.event_manager import EventManager, track_outcome
+from sentry.event_manager import EventManager
 from sentry.interfaces import schemas
 from sentry.interfaces.base import get_interface
 from sentry.lang.native.unreal import process_unreal_crash, merge_apple_crash_report, \
@@ -53,6 +53,7 @@ from sentry.utils.http import (
     get_origins,
     is_same_domain,
 )
+from sentry.utils.outcomes import Outcome, track_outcome
 from sentry.utils.pubsub import QueuedPublisherService, KafkaPublisher
 from sentry.utils.safe import safe_execute
 from sentry.web.helpers import render_to_response
@@ -96,10 +97,18 @@ def api(func):
 def process_event(event_manager, project, key, remote_addr, helper, attachments):
     event_received.send_robust(ip=remote_addr, project=project, sender=process_event)
 
+    event_id = event_manager.get_data().get('event_id')
     start_time = time()
     should_filter, filter_reason = event_manager.should_filter()
     if should_filter:
-        track_outcome(project.organization_id, project.id, key.id, 'filtered', filter_reason)
+        track_outcome(
+            project.organization_id,
+            project.id,
+            key.id,
+            Outcome.FILTERED,
+            filter_reason,
+            event_id=event_id
+        )
         metrics.incr(
             'events.blacklisted', tags={'reason': filter_reason}, skip_internal=False
         )
@@ -124,7 +133,14 @@ def process_event(event_manager, project, key, remote_addr, helper, attachments)
             api_logger.debug('Dropped event due to error with rate limiter')
 
         reason = rate_limit.reason_code if rate_limit else None
-        track_outcome(project.organization_id, project.id, key.id, 'rate_limited', reason)
+        track_outcome(
+            project.organization_id,
+            project.id,
+            key.id,
+            Outcome.RATE_LIMITED,
+            reason,
+            event_id=event_id
+        )
         metrics.incr(
             'events.dropped',
             tags={
@@ -154,7 +170,14 @@ def process_event(event_manager, project, key, remote_addr, helper, attachments)
     cache_key = 'ev:%s:%s' % (project.id, event_id, )
 
     if cache.get(cache_key) is not None:
-        track_outcome(project.organization_id, project.id, key.id, 'invalid', 'duplicate')
+        track_outcome(
+            project.organization_id,
+            project.id,
+            key.id,
+            Outcome.INVALID,
+            'duplicate',
+            event_id=event_id
+        )
         raise APIForbidden(
             'An event with the same ID already exists (%s)' % (event_id, ))
 
@@ -369,7 +392,7 @@ class APIView(BaseView):
                     project.organization_id,
                     project.id,
                     None,
-                    'invalid',
+                    Outcome.INVALID,
                     FilterStatKeys.CORS)
                 raise APIForbidden('Invalid origin: %s' % (origin, ))
 
@@ -519,7 +542,14 @@ class StoreView(APIView):
 
         if data_size > 10000000:
             metrics.timing('events.size.rejected', data_size)
-            track_outcome(project.organization_id, project.id, key.id, 'invalid', 'too_large')
+            track_outcome(
+                project.organization_id,
+                project.id,
+                key.id,
+                Outcome.INVALID,
+                'too_large',
+                event_id=dict_data.get('event_id')
+            )
             raise APIForbidden("Event size exceeded 10MB after normalization.")
 
         metrics.timing(
@@ -876,7 +906,7 @@ class SecurityReportView(StoreView):
                     project.organization_id,
                     project.id,
                     key.id,
-                    'invalid',
+                    Outcome.INVALID,
                     FilterStatKeys.CORS)
             raise APIForbidden('Invalid origin')
 

@@ -11,7 +11,7 @@ import queryString from 'query-string';
 
 import {extractSelectionParameters} from 'app/components/organizations/globalSelectionHeader/utils';
 import {hideSidebar, showSidebar} from 'app/actionCreators/preferences';
-import {load as loadIncidents} from 'app/actionCreators/incidents';
+import {load as loadIncidents} from 'app/actionCreators/serviceIncidents';
 import {t} from 'app/locale';
 import ConfigStore from 'app/stores/configStore';
 import Feature from 'app/components/acl/feature';

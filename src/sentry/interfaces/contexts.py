@@ -168,6 +168,16 @@ class MonitorContextType(ContextType):
     }
 
 
+@contexttype
+class TraceContextType(ContextType):
+    type = 'trace'
+    indexed_fields = {
+        '': u'{trace_id}',
+        'span': u'{span_id}',
+        'ctx': u'{trace_id}-{span_id}',
+    }
+
+
 class Contexts(Interface):
     """
     This interface stores context specific information.
