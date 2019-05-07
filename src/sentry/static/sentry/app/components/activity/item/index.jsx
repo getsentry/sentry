@@ -2,6 +2,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
 
+import DateTime from 'app/components/dateTime';
 import TimeSince from 'app/components/timeSince';
 import space from 'app/styles/space';
 import textStyles from 'app/styles/text';
@@ -37,6 +38,9 @@ class ActivityItem extends React.Component {
     // Hides date in header
     hideDate: PropTypes.bool,
 
+    // Instead of showing a relative time/date, show the time
+    showTime: PropTypes.bool,
+
     /**
      * Can be a react node or a render function. render function will not include default wrapper
      */
@@ -46,6 +50,8 @@ class ActivityItem extends React.Component {
      * Can be a react node or a render function. render function will not include default wrapper
      */
     footer: PropTypes.oneOfType([PropTypes.node, PropTypes.func]),
+
+    bubbleProps: PropTypes.shape(ActivityBubble.propTypes),
   };
 
   render() {
@@ -57,26 +63,30 @@ class ActivityItem extends React.Component {
       date,
       author,
       hideDate,
+      showTime,
       header,
       footer,
+      bubbleProps,
     } = this.props;
 
     const headerRenderFunc = typeof header === 'function';
     const footerRenderFunc = typeof footer === 'function';
     const childrenRenderFunc = typeof children === 'function';
+    const showDate = !hideDate && date;
 
     return (
       <ActivityItemWrapper data-test-id="activity-item" className={className}>
         {id && <a id={id} />}
         <StyledActivityAvatar type={author.type} user={author.user} size={avatarSize} />
 
-        <ActivityBubble>
+        <ActivityBubble {...bubbleProps}>
           {header && headerRenderFunc && header()}
           {header && !headerRenderFunc && (
             <ActivityHeader>
               <ActivityHeaderContent>{header}</ActivityHeaderContent>
 
-              {!hideDate && date && <StyledTimeSince date={date} />}
+              {showDate && !showTime && <StyledTimeSince date={date} />}
+              {showDate && showTime && <StyledDateTime timeOnly date={date} />}
             </ActivityHeader>
           )}
 
@@ -131,6 +141,10 @@ const StyledActivityAvatar = styled(ActivityAvatar)`
 `;
 
 const StyledTimeSince = styled(TimeSince)`
+  color: ${p => p.theme.gray2};
+`;
+
+const StyledDateTime = styled(DateTime)`
   color: ${p => p.theme.gray2};
 `;
 
