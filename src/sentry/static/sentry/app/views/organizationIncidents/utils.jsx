@@ -12,19 +12,19 @@ export function updateSubscription(api, orgId, incidentId, isSubscribed) {
 }
 
 /**
- * Is incident resolved?
+ * Is incident open?
  *
  * @param {Object} incident Incident object
  * @returns {Boolean}
  */
 
-export function isResolved(incident) {
+export function isOpen(incident) {
   switch (incident.status) {
     case 2: // closed
-      return true;
+      return false;
     case 0: // detected
     case 1: // created
     default:
-      return false;
+      return true;
   }
 }
