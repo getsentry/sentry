@@ -907,6 +907,11 @@ const ButtonBar = styled('div')`
       background: transparent;
     }
   }
+
+  & > span {
+    /* match button height */
+    line-height: 40px;
+  }
 `;
 
 const DropdownWrapper = styled('div')`
