@@ -8,7 +8,7 @@ import styled from 'react-emotion';
 const ActivityBubble = styled('div')`
   flex: 1;
   background: ${p => p.background};
-  border: 1px solid ${p => p.theme.borderLight};
+  border: 1px solid ${p => p.borderColor || p.theme.borderLight};
   border-radius: ${p => p.theme.borderRadius};
   position: relative;
 
@@ -19,7 +19,7 @@ const ActivityBubble = styled('div')`
     height: 0;
     border-top: 7px solid transparent;
     border-bottom: 7px solid transparent;
-    border-right: 7px solid ${p => p.theme.borderLight};
+    border-right: 7px solid ${p => p.borderColor || p.theme.borderLight};
     position: absolute;
     left: -7px;
     top: 12px;
@@ -41,6 +41,7 @@ const ActivityBubble = styled('div')`
 
 ActivityBubble.propTypes = {
   background: PropTypes.string,
+  borderColor: PropTypes.string,
 };
 
 ActivityBubble.defaultProps = {
