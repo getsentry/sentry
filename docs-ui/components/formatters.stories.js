@@ -22,6 +22,10 @@ storiesOf('Utility|Formatters', module)
         <div>
           <DateTime dateOnly date={1500000000000} />
         </div>
+
+        <div>
+          <DateTime timeOnly date={1500000000000} />
+        </div>
       </div>
     ))
   )
