@@ -408,21 +408,14 @@ class EventManager(object):
         self._data = data
 
     def normalize(self):
-        tags = {
-            'use_rust_normalize': True
-        }
-
-        with metrics.timer('events.store.normalize.duration', tags=tags):
+        with metrics.timer('events.store.normalize.duration'):
             self._normalize_impl()
 
         data = self.get_data()
 
-        data['use_rust_normalize'] = True
-
         metrics.timing(
             'events.store.normalize.errors',
             len(data.get("errors") or ()),
-            tags=tags,
         )
 
     def _normalize_impl(self):
