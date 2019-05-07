@@ -77,7 +77,9 @@ class OwnerInput extends React.Component {
         this.setState({error: error.responseJSON});
         if (error.status === 403) {
           addErrorMessage(
-            t("You don't have permission to modify issue ownership rules for this project")
+            t(
+              "You don't have permission to modify issue ownership rules for this project"
+            )
           );
         } else if (
           error.status === 400 &&

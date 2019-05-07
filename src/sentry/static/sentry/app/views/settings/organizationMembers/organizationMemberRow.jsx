@@ -234,7 +234,9 @@ export default class OrganizationMemberRow extends React.PureComponent {
                 size="small"
                 icon="icon-exit"
                 disabled
-                title={t('You cannot leave this organization as you are the only organization owner.')}
+                title={t(
+                  'You cannot leave this organization as you are the only organization owner.'
+                )}
               >
                 {t('Leave')}
               </Button>

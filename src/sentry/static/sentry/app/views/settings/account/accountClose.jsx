@@ -142,7 +142,7 @@ class AccountClose extends AsyncView {
               )}
               <br />
               {t(
-                'Boxes which can\'t be unchecked mean that you are the only organization owner and the organization <b>will be deleted</b>.'
+                "Boxes which can't be unchecked mean that you are the only organization owner and the organization <b>will be deleted</b>."
               )}
             </PanelAlert>
 
