@@ -67,6 +67,10 @@ class IssueSearchVisitor(SearchVisitor):
             search_value,
         )
 
+    def visit_boolean_operator(self, node, children):
+        raise InvalidSearchQuery(
+            'Boolean statements containing "OR" or "AND" are not supported in this search')
+
 
 def parse_search_query(query):
     tree = event_search_grammar.parse(query)

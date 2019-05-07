@@ -9,7 +9,7 @@ from rest_framework.response import Response
 from functools import partial
 
 
-from sentry import options, quotas, tagstore
+from sentry import features, options, quotas, tagstore
 from sentry.api.base import DocSection, EnvironmentMixin
 from sentry.api.bases import GroupEndpoint
 from sentry.api.event_search import get_snuba_query_args
@@ -30,6 +30,10 @@ from sentry.utils.snuba import raw_query
 
 
 class NoResults(Exception):
+    pass
+
+
+class GroupEventsError(Exception):
     pass
 
 
@@ -70,9 +74,14 @@ class GroupEventsEndpoint(GroupEndpoint, EnvironmentMixin):
             request.GET.get('enable_snuba') == '1'
             or options.get('snuba.events-queries.enabled')
         )
+
         backend = self._get_events_snuba if use_snuba else self._get_events_legacy
         start, end = get_date_range_from_params(request.GET, optional=True)
-        return backend(request, group, environments, query, tags, start, end)
+
+        try:
+            return backend(request, group, environments, query, tags, start, end)
+        except GroupEventsError as exc:
+            return Response({'detail': six.text_type(exc)}, status=400)
 
     def _get_events_snuba(self, request, group, environments, query, tags, start, end):
         default_end = timezone.now()
@@ -92,6 +101,18 @@ class GroupEventsEndpoint(GroupEndpoint, EnvironmentMixin):
 
         full = request.GET.get('full', False)
         snuba_args = get_snuba_query_args(request.GET.get('query', None), params)
+
+        # TODO(lb): remove once boolean search is fully functional
+        if snuba_args:
+            has_boolean_op_flag = features.has(
+                'organizations:boolean-search',
+                group.project.organization,
+                actor=request.user
+            )
+            if snuba_args.pop('has_boolean_terms', False) and not has_boolean_op_flag:
+                raise GroupEventsError(
+                    'Boolean search operator OR and AND not allowed in this search.')
+
         snuba_cols = SnubaEvent.minimal_columns if full else SnubaEvent.selected_columns
 
         data_fn = partial(
