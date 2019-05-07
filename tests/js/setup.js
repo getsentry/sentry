@@ -110,6 +110,7 @@ jest.mock('@sentry/browser', () => {
     captureException: jest.fn(),
     showReportDialog: jest.fn(),
     lastEventId: jest.fn(),
+    getCurrentHub: jest.spyOn(SentryBrowser, 'getCurrentHub'),
     withScope: jest.spyOn(SentryBrowser, 'withScope'),
   };
 });

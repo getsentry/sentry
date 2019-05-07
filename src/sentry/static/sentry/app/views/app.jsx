@@ -7,6 +7,8 @@ import React from 'react';
 import Reflux from 'reflux';
 import createReactClass from 'create-react-class';
 import keydown from 'react-keydown';
+import {getCurrentHub} from '@sentry/browser';
+import {Tracing} from '@sentry/integrations';
 
 import {openCommandPalette} from 'app/actionCreators/modal';
 import {t} from 'app/locale';
@@ -25,7 +27,6 @@ import NewsletterConsent from 'app/views/newsletterConsent';
 import OrganizationsStore from 'app/stores/organizationsStore';
 import theme from 'app/utils/theme';
 import getRouteStringFromRoutes from 'app/utils/getRouteStringFromRoutes';
-import * as tracing from 'app/utils/tracing';
 
 function getAlertTypeForProblem(problem) {
   switch (problem.severity) {
@@ -157,12 +158,8 @@ const App = createReactClass({
   },
 
   updateTracing() {
-    tracing.startTransaction();
-
     const route = getRouteStringFromRoutes(this.props.routes);
-    if (route) {
-      tracing.setRoute(route);
-    }
+    Tracing.startTrace(getCurrentHub(), route);
   },
 
   onConfigStoreChange(config) {
