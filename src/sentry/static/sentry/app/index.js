@@ -167,9 +167,6 @@ const globals = {
     addSuccessMessage: require('app/actionCreators/indicator').addSuccessMessage,
     addErrorMessage: require('app/actionCreators/indicator').addErrorMessage,
     Button: require('app/components/button').default,
-    mixins: {
-      ApiMixin: require('app/mixins/apiMixin').default,
-    },
     BarChart: require('app/components/barChart').default,
     i18n: il8n,
     ConfigStore: require('app/stores/configStore').default,
