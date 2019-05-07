@@ -358,7 +358,7 @@ class BasicResolvingIntegrationTest(TestCase):
         assert frames[1].lineno == 42
         assert frames[1].colno == 23
         assert frames[1].package == object_name
-        assert frames[1].instruction_addr == '0x100020014'
+        assert frames[1].instruction_addr == '0x100026330'
         assert frames[1].in_app
 
         assert frames[2].function == 'other_main'
@@ -366,7 +366,7 @@ class BasicResolvingIntegrationTest(TestCase):
         assert frames[2].lineno == 82
         assert frames[2].colno == 23
         assert frames[2].package == object_name
-        assert frames[2].instruction_addr == '0x10002001c'
+        assert frames[2].instruction_addr == '0x1'
         assert frames[2].in_app
 
         assert frames[3].platform == 'javascript'
@@ -380,8 +380,8 @@ class BasicResolvingIntegrationTest(TestCase):
         x = bt.get_api_context()
         long_frames = x['frames']
         assert long_frames[0]['instructionAddr'] == '0x002ac28b8'
-        assert long_frames[1]['instructionAddr'] == '0x100020014'
-        assert long_frames[2]['instructionAddr'] == '0x10002001c'
+        assert long_frames[1]['instructionAddr'] == '0x100026330'
+        assert long_frames[2]['instructionAddr'] == '0x000000001'
 
 
 class InAppHonoringResolvingIntegrationTest(TestCase):
@@ -714,7 +714,7 @@ class InAppHonoringResolvingIntegrationTest(TestCase):
         assert frames[1].lineno == 42
         assert frames[1].colno == 23
         assert frames[1].package == object_name
-        assert frames[1].instruction_addr == '0x100020014'
+        assert frames[1].instruction_addr == '0x100026330'
         assert frames[1].in_app
 
         assert frames[2].function == 'other_main'
@@ -722,7 +722,7 @@ class InAppHonoringResolvingIntegrationTest(TestCase):
         assert frames[2].lineno == 82
         assert frames[2].colno == 23
         assert frames[2].package == object_name
-        assert frames[2].instruction_addr == '0x10002001c'
+        assert frames[2].instruction_addr == '0x1'
         assert frames[2].in_app
 
         assert frames[3].platform == 'javascript'
@@ -736,8 +736,8 @@ class InAppHonoringResolvingIntegrationTest(TestCase):
         x = bt.get_api_context()
         long_frames = x['frames']
         assert long_frames[0]['instructionAddr'] == '0x002ac28b8'
-        assert long_frames[1]['instructionAddr'] == '0x100020014'
-        assert long_frames[2]['instructionAddr'] == '0x10002001c'
+        assert long_frames[1]['instructionAddr'] == '0x100026330'
+        assert long_frames[2]['instructionAddr'] == '0x000000001'
 
     def sym_mac_app_frame(self, instruction_addr, img, sdk_info=None, trust=None):
         object_name = (

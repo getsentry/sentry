@@ -1,5 +1,5 @@
 ---
-created: '2019-05-02T10:52:08.545303Z'
+created: '2019-05-06T08:50:26.334139Z'
 creator: sentry
 source: tests/symbolicator/test_unreal_full.py
 ---
@@ -21,7 +21,7 @@ exception:
   - mechanism:
       handled: false
       synthetic: true
-      type: minidump
+      type: unreal
     raw_stacktrace:
       frames:
       - in_app: false
