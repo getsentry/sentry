@@ -16,10 +16,6 @@ const OrganizationStateMixin = {
   getFeatures() {
     return new Set(this.context.organization.features);
   },
-
-  getOnboardingTasks() {
-    return new Set(this.context.organization.onboardingTasks);
-  },
 };
 
 export default OrganizationStateMixin;
@@ -35,9 +31,6 @@ export const getOrganizationState = function(org) {
     },
     getFeatures: () => {
       return new Set(org.features);
-    },
-    getOnboardingTasks: () => {
-      return new Set(org.onboardingTasks);
     },
   };
 };
