@@ -106,8 +106,8 @@ class Symbolizer(object):
 
     def _process_frame(self, sym, package=None, addr_off=0):
         frame = {
-            'sym_addr': hex(sym.sym_addr + addr_off).rstrip('L'),
-            'instruction_addr': hex(sym.instr_addr + addr_off).rstrip('L'),
+            'sym_addr': '0x%x' % (sym.sym_addr + addr_off,),
+            'instruction_addr': '0x%x' % (sym.instr_addr + addr_off,),
             'lineno': sym.line,
         }
 
