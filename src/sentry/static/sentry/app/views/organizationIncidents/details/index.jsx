@@ -57,7 +57,7 @@ class OrganizationIncidentDetails extends React.Component {
         }));
       })
       .catch(() => {
-        addErrorMessage(t('An error occurred'));
+        addErrorMessage(t('An error occurred, your subscription status was not changed.'));
       });
   };
 
