@@ -4,7 +4,6 @@ import React from 'react';
 import createReactClass from 'create-react-class';
 
 import {t} from 'app/locale';
-import ApiMixin from 'app/mixins/apiMixin';
 import AsyncView from 'app/views/asyncView';
 import Button from 'app/components/button';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
@@ -24,8 +23,6 @@ const ServiceHookRow = createReactClass({
     hook: PropTypes.object.isRequired,
     onToggleActive: PropTypes.func.isRequired,
   },
-
-  mixins: [ApiMixin],
 
   getInitialState() {
     return {
