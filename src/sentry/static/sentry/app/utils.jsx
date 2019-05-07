@@ -2,7 +2,6 @@ import _ from 'lodash';
 
 // import/export sub-utils
 import parseLinkHeader from 'app/utils/parseLinkHeader';
-import Collection from 'app/utils/collection';
 import PendingChangeQueue from 'app/utils/pendingChangeQueue';
 import CursorPoller from 'app/utils/cursorPoller';
 import StreamManager from 'app/utils/streamManager';
@@ -270,7 +269,7 @@ export function parsePeriodToHours(str) {
 }
 
 // re-export under utils
-export {parseLinkHeader, Collection, PendingChangeQueue, CursorPoller};
+export {parseLinkHeader, PendingChangeQueue, CursorPoller};
 
 // backwards compatible default export for use w/ getsentry (exported
 // as a single object w/ function refs for consumption by getsentry)
@@ -292,7 +291,6 @@ export default {
 
   // external imports
   objectToArray,
-  Collection,
   PendingChangeQueue,
   StreamManager,
   CursorPoller,
