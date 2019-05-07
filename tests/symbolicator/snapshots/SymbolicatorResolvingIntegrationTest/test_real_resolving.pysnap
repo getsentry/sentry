@@ -1,7 +1,7 @@
 ---
-created: '2019-04-15T11:04:06.116525Z'
+created: '2019-05-03T08:10:43.264420Z'
 creator: sentry
-source: tests/symbolicator/test_native_plugin.py
+source: tests/symbolicator/test_payload_full.py
 ---
 contexts: null
 debug_meta:
@@ -30,6 +30,8 @@ exception:
     stacktrace:
       frames:
       - abs_path: /tmp/hello.c
+        data:
+          symbolicator_status: symbolicated
         filename: hello.c
         function: main
         in_app: false

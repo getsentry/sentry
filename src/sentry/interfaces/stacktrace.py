@@ -389,7 +389,7 @@ class Frame(Interface):
         if not is_public:
             data['vars'] = self.vars
         # TODO(dcramer): abstract out this API
-        if self.data:
+        if self.data and 'sourcemap' in data:
             data.update(
                 {
                     'map': self.data['sourcemap'].rsplit('/', 1)[-1],

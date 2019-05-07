@@ -106,10 +106,11 @@ class Symbolizer(object):
 
     def _process_frame(self, sym, package=None, addr_off=0):
         frame = {
-            'sym_addr': sym.sym_addr + addr_off,
-            'instruction_addr': sym.instr_addr + addr_off,
+            'sym_addr': '0x%x' % (sym.sym_addr + addr_off,),
+            'instruction_addr': '0x%x' % (sym.instr_addr + addr_off,),
             'lineno': sym.line,
         }
+
         symbol = trim(sym.symbol, MAX_SYM)
         function = sym.function_name
 

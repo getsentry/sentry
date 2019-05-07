@@ -1,7 +1,7 @@
 ---
-created: '2019-04-15T11:04:01.534478Z'
+created: '2019-05-03T08:10:38.360935Z'
 creator: sentry
-source: tests/symbolicator/test_native_plugin.py
+source: tests/symbolicator/test_payload_full.py
 ---
 contexts:
   device:
@@ -32,6 +32,8 @@ exception:
     stacktrace:
       frames:
       - abs_path: c:\projects\breakpad-tools\windows\crash\main.cpp
+        data:
+          symbolicator_status: symbolicated
         filename: main.cpp
         function: main
         in_app: false

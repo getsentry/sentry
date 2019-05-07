@@ -1,13 +1,18 @@
 from __future__ import absolute_import
 
+import logging
+
 from django.core.files.uploadedfile import InMemoryUploadedFile, TemporaryUploadedFile
 
 import dateutil.parser as dp
-import logging
 from msgpack import unpack, Unpacker, UnpackException, ExtraData
 from symbolic import normalize_arch, ProcessState, id_from_breakpad
 
-from sentry.utils.safe import get_path
+from sentry.lang.native.utils import get_sdk_from_event, handle_symbolication_failed, merge_symbolicated_frame
+from sentry.lang.native.symbolicator import merge_symbolicator_image
+from sentry.attachments import attachment_cache
+from sentry.coreapi import cache_key_for_event
+from sentry.utils.safe import get_path, set_path
 
 minidumps_logger = logging.getLogger('sentry.minidumps')
 
@@ -37,7 +42,12 @@ MINIDUMP_IMAGE_TYPES = {
 
 def is_minidump_event(data):
     exceptions = get_path(data, 'exception', 'values', filter=True)
-    return get_path(exceptions, 0, 'mechanism', 'type') == 'minidump'
+    return get_path(exceptions, 0, 'mechanism', 'type') in ('minidump', 'unreal')
+
+
+def is_unreal_exception_stacktrace(data):
+    exceptions = get_path(data, 'exception', 'values', filter=True)
+    return get_path(exceptions, 0, 'mechanism', 'type') == 'unreal'
 
 
 def process_minidump(minidump, cfi=None):
@@ -89,7 +99,7 @@ def merge_process_state_event(data, state, cfi=None):
     # Extract the crash reason and infos
     exc_value = 'Assertion Error: %s' % state.assertion if state.assertion \
         else 'Fatal Error: %s' % state.crash_reason
-    data['exception'] = {
+    data['exception'] = {'values': [{
         'value': exc_value,
         'thread_id': crashed_thread['id'],
         'type': state.crash_reason,
@@ -103,7 +113,7 @@ def merge_process_state_event(data, state, cfi=None):
             # extractor just yet. Once these capabilities are added to symbolic,
             # these values should go in the mechanism here.
         }
-    }
+    }]}
 
     # Extract referenced (not all loaded) images
     images = [{
@@ -180,3 +190,65 @@ def frames_from_minidump_thread(thread):
         'package': frame.module.code_file if frame.module else None,
         'trust': frame.trust,
     } for frame in reversed(list(thread.frames()))]
+
+
+def get_attached_minidump(data):
+    cache_key = cache_key_for_event(data)
+    attachments = attachment_cache.get(cache_key) or []
+    return next((a for a in attachments if a.type == MINIDUMP_ATTACHMENT_TYPE), None)
+
+
+def merge_symbolicator_minidump_response(data, response):
+    sdk_info = get_sdk_from_event(data)
+
+    # TODO(markus): Add OS context here when `merge_process_state_event` is no
+    # longer called for symbolicator projects
+
+    images = []
+    set_path(data, 'debug_meta', 'images', value=images)
+
+    for complete_image in response['modules']:
+        image = {}
+        merge_symbolicator_image(
+            image, complete_image, sdk_info,
+            lambda e: handle_symbolication_failed(e, data=data)
+        )
+        images.append(image)
+
+    data_threads = []
+    data['threads'] = {'values': data_threads}
+
+    data_exception = get_path(data, 'exception', 'values', 0)
+
+    for complete_stacktrace in response['stacktraces']:
+        is_requesting = complete_stacktrace.get('is_requesting')
+        thread_id = complete_stacktrace.get('thread_id')
+
+        data_thread = {
+            'id': thread_id,
+            'crashed': is_requesting,
+        }
+        data_threads.append(data_thread)
+
+        if is_requesting:
+            data_stacktrace = get_path(data_exception, 'stacktrace')
+            assert isinstance(data_stacktrace, dict), data_stacktrace
+            # Make exemption specifically for unreal portable callstacks
+            # TODO(markus): Allow overriding stacktrace more generically
+            # (without looking into unreal context) once we no longer parse
+            # minidump in the endpoint (right now we can't distinguish that
+            # from user json).
+            if data_stacktrace['frames'] and is_unreal_exception_stacktrace(data):
+                continue
+            del data_stacktrace['frames'][:]
+        else:
+            data_thread['stacktrace'] = data_stacktrace = {'frames': []}
+
+        data_stacktrace['registers'] = complete_stacktrace['registers']
+
+        for complete_frame in reversed(complete_stacktrace['frames']):
+            new_frame = {}
+            merge_symbolicated_frame(new_frame, complete_frame)
+            data_stacktrace['frames'].append(new_frame)
+
+    # TODO(markus): Add exception data here once merge_process_state_event is gone

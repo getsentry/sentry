@@ -1,7 +1,7 @@
 ---
-created: '2019-04-25T13:14:48.774031Z'
+created: '2019-05-03T08:10:26.398964Z'
 creator: sentry
-source: tests/symbolicator/test_native_plugin.py
+source: tests/symbolicator/test_minidump_full.py
 ---
 contexts:
   device:
@@ -194,7 +194,7 @@ exception:
         filename: exe_common.inl
         function: __scrt_common_main_seh
         in_app: false
-        instruction_addr: '0x2a2d97'
+        instruction_addr: '0x2a2d96'
         lineno: 283
         package: C:\projects\breakpad-tools\windows\Release\crash.exe
         trust: cfi

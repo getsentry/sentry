@@ -166,17 +166,17 @@ def merge_unreal_context_event(unreal_context, event, project):
             comments=user_desc,
         )
 
-    if not any(thread.get('stacktrace') and thread.get('crashed')
-               for thread in event.get('threads', [])):
-        portable_callstack = runtime_prop.pop('portable_call_stack', None)
-        if portable_callstack is not None:
-            images = get_path(event, 'debug_meta', 'images', filter=True, default=())
-            frames = parse_portable_callstack(portable_callstack, images)
+    portable_callstack = runtime_prop.pop('portable_call_stack', None)
+    if portable_callstack is not None:
+        images = get_path(event, 'debug_meta', 'images', filter=True, default=())
+        frames = parse_portable_callstack(portable_callstack, images)
 
-            if len(frames) > 0:
-                event['stacktrace'] = {
-                    'frames': frames
-                }
+        if len(frames) > 0:
+            exception = get_path(event, 'exception', 'values', 0)
+            if exception:
+                # This property is required for correct behavior of symbolicator codepath.
+                exception['mechanism'] = {'type': 'unreal', 'handled': False, 'synthetic': True}
+            event['stacktrace'] = {'frames': frames}
 
     # drop modules. minidump processing adds 'images loaded'
     runtime_prop.pop('modules', None)
