@@ -30,7 +30,7 @@ class ActivityItem extends React.Component {
     author: PropTypes.shape({
       type: ActivityAvatar.propTypes.type,
       user: ActivityAvatar.propTypes.user,
-    }).isRequired,
+    }),
 
     avatarSize: PropTypes.number,
 
@@ -68,7 +68,12 @@ class ActivityItem extends React.Component {
     return (
       <ActivityItemWrapper data-test-id="activity-item" className={className}>
         {id && <a id={id} />}
-        <StyledActivityAvatar type={author.type} user={author.user} size={avatarSize} />
+
+        <StyledActivityAvatar
+          type={author && author.type}
+          user={author && author.user}
+          size={avatarSize}
+        />
 
         <ActivityBubble>
           {header && headerRenderFunc && header()}
