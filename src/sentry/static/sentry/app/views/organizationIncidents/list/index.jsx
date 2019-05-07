@@ -42,9 +42,7 @@ class OrganizationIncidentsBody extends AsyncComponent {
           <Link to={`/organizations/${orgId}/incidents/${incident.identifier}/`}>
             {incident.title}
           </Link>
-          <div>
-            <Status incident={incident} />
-          </div>
+          <Status incident={incident} />
           <div>{incident.duration}</div>
           <div>{incident.usersAffected}</div>
           <div>{incident.eventCount}</div>
