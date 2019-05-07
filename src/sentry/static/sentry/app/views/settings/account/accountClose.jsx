@@ -11,7 +11,7 @@ import {
 } from 'app/components/panels';
 import {addMessage, addErrorMessage} from 'app/actionCreators/indicator';
 import {openModal} from 'app/actionCreators/modal';
-import {t} from 'app/locale';
+import {t, tct} from 'app/locale';
 import Alert from 'app/components/alert';
 import AsyncView from 'app/views/asyncView';
 import Button from 'app/components/button';
@@ -141,8 +141,9 @@ class AccountClose extends AsyncView {
                 'Ownership will remain with other organization owners if an organization is not deleted.'
               )}
               <br />
-              {t(
-                "Boxes which can't be unchecked mean that you are the only organization owner and the organization <b>will be deleted</b>."
+              {tct(
+                "Boxes which can't be unchecked mean that you are the only organization owner and the organization [strong:will be deleted].",
+                {strong: <strong />}
               )}
             </PanelAlert>
 
