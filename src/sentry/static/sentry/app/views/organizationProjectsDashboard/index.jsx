@@ -1,39 +1,40 @@
+import {Flex} from 'grid-emotion';
 import {Link, browserHistory} from 'react-router';
 import LazyLoad from 'react-lazyload';
-import React from 'react';
 import PropTypes from 'prop-types';
+import React from 'react';
 import createReactClass from 'create-react-class';
-import {Flex} from 'grid-emotion';
 import styled from 'react-emotion';
 
-import SentryTypes from 'app/sentryTypes';
+import {sortProjects} from 'app/utils';
+import {t} from 'app/locale';
+import ConfigStore from 'app/stores/configStore';
+import Feature from 'app/components/acl/feature';
 import IdBadge from 'app/components/idBadge';
 import NoProjectMessage from 'app/components/noProjectMessage';
-import OrganizationState from 'app/mixins/organizationState';
 import ProjectsStatsStore from 'app/stores/projectsStatsStore';
-import ConfigStore from 'app/stores/configStore';
+import SentryTypes from 'app/sentryTypes';
 import getProjectsByTeams from 'app/utils/getProjectsByTeams';
-import {sortProjects} from 'app/utils';
 import getRouteStringFromRoutes from 'app/utils/getRouteStringFromRoutes';
-import withTeams from 'app/utils/withTeams';
+import withOrganization from 'app/utils/withOrganization';
 import withProjects from 'app/utils/withProjects';
-import {t} from 'app/locale';
+import withTeams from 'app/utils/withTeams';
 
 import ProjectNav from './projectNav';
-import TeamSection from './teamSection';
 import Resources from './resources';
+import TeamSection from './teamSection';
 
 class Dashboard extends React.Component {
   static propTypes = {
     routes: PropTypes.array,
     teams: PropTypes.array,
     projects: PropTypes.array,
+    hasSentry10: PropTypes.bool,
     organization: SentryTypes.Organization,
   };
 
   componentDidMount() {
-    const {organization, routes} = this.props;
-    const hasSentry10 = new Set(organization.features).has('sentry10');
+    const {organization, routes, hasSentry10} = this.props;
     const isOldRoute = getRouteStringFromRoutes(routes) === '/:orgId/';
 
     if (hasSentry10 && isOldRoute) {
@@ -45,7 +46,7 @@ class Dashboard extends React.Component {
   }
 
   render() {
-    const {teams, projects, params, organization} = this.props;
+    const {teams, projects, params, hasSentry10, organization} = this.props;
     const sortedProjects = sortProjects(projects);
 
     const {isSuperuser} = ConfigStore.get('user');
@@ -55,8 +56,6 @@ class Dashboard extends React.Component {
     const favorites = projects.filter(project => project.isBookmarked);
     const access = new Set(organization.access);
     const teamsMap = new Map(teams.map(teamObj => [teamObj.slug, teamObj]));
-
-    const hasSentry10 = new Set(organization.features).has('sentry10');
 
     const hasTeamAdminAccess = access.has('team:admin');
 
@@ -111,15 +110,16 @@ class Dashboard extends React.Component {
 }
 
 const OrganizationDashboard = createReactClass({
-  displayName: 'OrganizationDashboard',
-  mixins: [OrganizationState],
-
   render() {
     return (
-      <Flex flex="1" direction="column">
-        {!this.getFeatures().has('sentry10') && <ProjectNav />}
-        <Dashboard organization={this.context.organization} {...this.props} />
-      </Flex>
+      <Feature features={['sentry10']}>
+        {({hasFeature}) => (
+          <Flex flex="1" direction="column">
+            {!hasFeature && <ProjectNav />}
+            <Dashboard hasSentry10={hasFeature} {...this.props} />
+          </Flex>
+        )}
+      </Feature>
     );
   },
 });
@@ -130,4 +130,4 @@ const TeamLink = styled(Link)`
 `;
 
 export {Dashboard};
-export default withTeams(withProjects(OrganizationDashboard));
+export default withTeams(withProjects(withOrganization(OrganizationDashboard)));
