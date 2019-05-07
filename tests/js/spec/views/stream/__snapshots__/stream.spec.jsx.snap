@@ -136,37 +136,82 @@ exports[`Stream render() displays the group list 1`] = `
         }
       />
       <Panel>
-        <withApi(StreamActions)
-          allResultsVisible={false}
-          groupIds={
+        <withConfig(FeatureContainer)
+          features={
             Array [
-              "1",
+              "projects:releases",
             ]
           }
-          hasReleases={false}
-          onRealtimeChange={[Function]}
-          onSelectStatsPeriod={[Function]}
-          orgId="org-slug"
-          projectId="project-slug"
-          query="is:unresolved"
-          queryCount={0}
-          realtimeActive={false}
-          selection={
+          organization={
             Object {
-              "datetime": Object {
-                "end": null,
-                "period": null,
-                "start": null,
-                "utc": null,
-              },
-              "environments": Array [],
-              "projects": Array [
-                3559,
+              "access": Array [
+                "org:read",
+                "org:write",
+                "org:admin",
+                "org:integrations",
+                "project:read",
+                "project:write",
+                "project:admin",
+                "team:read",
+                "team:write",
+                "team:admin",
               ],
+              "features": Array [],
+              "id": "1337",
+              "name": "Organization Name",
+              "onboardingTasks": Array [],
+              "projects": Array [],
+              "scrapeJavaScript": true,
+              "slug": "org-slug",
+              "status": Object {
+                "id": "active",
+                "name": "active",
+              },
+              "teams": Array [],
             }
           }
-          statsPeriod="24h"
-        />
+          project={
+            Object {
+              "allowedDomains": Array [
+                "example.com",
+                "https://example.com",
+              ],
+              "dataScrubber": false,
+              "dataScrubberDefaults": false,
+              "digestsMaxDelay": 60,
+              "digestsMinDelay": 5,
+              "environments": Array [],
+              "features": Array [],
+              "firstEvent": true,
+              "hasAccess": true,
+              "id": 3559,
+              "isBookmarked": false,
+              "isMember": true,
+              "name": "Foo Project",
+              "resolveAge": 48,
+              "safeFields": Array [
+                "business-email",
+                "company",
+              ],
+              "scrapeJavaScript": true,
+              "scrubIPAddresses": false,
+              "securityToken": "security-token",
+              "securityTokenHeader": "x-security-header",
+              "sensitiveFields": Array [
+                "creditcard",
+                "ssn",
+              ],
+              "slug": "project-slug",
+              "storeCrashReports": false,
+              "subjectPrefix": "[my-org]",
+              "subjectTemplate": "[$project] \${tag:level}: $title",
+              "teams": Array [],
+              "verifySSL": true,
+            }
+          }
+        >
+          <Component />
+        </withConfig(FeatureContainer)>
         <PanelBody
           direction="column"
           disablePadding={true}
@@ -452,37 +497,82 @@ exports[`Stream toggles environment select all environments 1`] = `
         }
       />
       <Panel>
-        <withApi(StreamActions)
-          allResultsVisible={false}
-          groupIds={
+        <withConfig(FeatureContainer)
+          features={
             Array [
-              "1",
+              "projects:releases",
             ]
           }
-          hasReleases={false}
-          onRealtimeChange={[Function]}
-          onSelectStatsPeriod={[Function]}
-          orgId="org-slug"
-          projectId="project-slug"
-          query="is:unresolved"
-          queryCount={0}
-          realtimeActive={false}
-          selection={
+          organization={
             Object {
-              "datetime": Object {
-                "end": null,
-                "period": null,
-                "start": null,
-                "utc": null,
-              },
-              "environments": Array [],
-              "projects": Array [
-                3559,
+              "access": Array [
+                "org:read",
+                "org:write",
+                "org:admin",
+                "org:integrations",
+                "project:read",
+                "project:write",
+                "project:admin",
+                "team:read",
+                "team:write",
+                "team:admin",
               ],
+              "features": Array [],
+              "id": "1337",
+              "name": "Organization Name",
+              "onboardingTasks": Array [],
+              "projects": Array [],
+              "scrapeJavaScript": true,
+              "slug": "org-slug",
+              "status": Object {
+                "id": "active",
+                "name": "active",
+              },
+              "teams": Array [],
             }
           }
-          statsPeriod="24h"
-        />
+          project={
+            Object {
+              "allowedDomains": Array [
+                "example.com",
+                "https://example.com",
+              ],
+              "dataScrubber": false,
+              "dataScrubberDefaults": false,
+              "digestsMaxDelay": 60,
+              "digestsMinDelay": 5,
+              "environments": Array [],
+              "features": Array [],
+              "firstEvent": true,
+              "hasAccess": true,
+              "id": 3559,
+              "isBookmarked": false,
+              "isMember": true,
+              "name": "Foo Project",
+              "resolveAge": 48,
+              "safeFields": Array [
+                "business-email",
+                "company",
+              ],
+              "scrapeJavaScript": true,
+              "scrubIPAddresses": false,
+              "securityToken": "security-token",
+              "securityTokenHeader": "x-security-header",
+              "sensitiveFields": Array [
+                "creditcard",
+                "ssn",
+              ],
+              "slug": "project-slug",
+              "storeCrashReports": false,
+              "subjectPrefix": "[my-org]",
+              "subjectTemplate": "[$project] \${tag:level}: $title",
+              "teams": Array [],
+              "verifySSL": true,
+            }
+          }
+        >
+          <Component />
+        </withConfig(FeatureContainer)>
         <PanelBody
           direction="column"
           disablePadding={true}
