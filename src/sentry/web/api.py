@@ -97,9 +97,14 @@ def api(func):
 def process_event(event_manager, project, key, remote_addr, helper, attachments):
     event_received.send_robust(ip=remote_addr, project=project, sender=process_event)
 
-    event_id = event_manager.get_data().get('event_id')
     start_time = time()
+
+    data = event_manager.get_data()
     should_filter, filter_reason = event_manager.should_filter()
+    del event_manager
+
+    event_id = data['event_id']
+
     if should_filter:
         track_outcome(
             project.organization_id,
@@ -159,11 +164,6 @@ def process_event(event_manager, project, key, remote_addr, helper, attachments)
 
     org_options = OrganizationOption.objects.get_all_values(
         project.organization_id)
-
-    data = event_manager.get_data()
-    del event_manager
-
-    event_id = data['event_id']
 
     # TODO(dcramer): ideally we'd only validate this if the event_id was
     # supplied by the user

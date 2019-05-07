@@ -411,11 +411,9 @@ class EventManager(object):
         with metrics.timer('events.store.normalize.duration'):
             self._normalize_impl()
 
-        data = self.get_data()
-
         metrics.timing(
             'events.store.normalize.errors',
-            len(data.get("errors") or ()),
+            len(self._data.get("errors") or ()),
         )
 
     def _normalize_impl(self):
