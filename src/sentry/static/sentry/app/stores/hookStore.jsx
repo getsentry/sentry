@@ -7,7 +7,6 @@ const validHookNames = new Set([
   'routes',
   'routes:admin',
   'routes:organization',
-  'routes:onboarding-survey',
   'routes:organization-root',
 
   // Analytics and tracking hooks
@@ -19,8 +18,6 @@ const validHookNames = new Set([
   'metrics:event',
 
   // Specific component customizations
-  'sidebar:onboarding-assets',
-  'utils:onboarding-survey-url',
   'component:org-auth-view',
   'component:org-members-view',
 
@@ -35,6 +32,14 @@ const validHookNames = new Set([
   'sidebar:organization-dropdown-menu',
   'sidebar:bottom-items',
   'sidebar:item-label',
+
+  // Onboarding experience
+  // TODO(epurkhiser): Thes all should become less getsentry specific
+  'routes:onboarding',
+  'utils:onboarding-survey-url',
+  'sidebar:onboarding-assets',
+  'onboarding:invite-members',
+  'component:onboarding-new-project',
 
   // Used to provide a component for integration features.
   'integrations:feature-gates',
