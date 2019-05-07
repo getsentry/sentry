@@ -179,6 +179,7 @@ class NativeStacktraceProcessor(StacktraceProcessor):
             self.project,
             self.object_lookup,
             referenced_images=referenced_images,
+            use_symbolicator=self.use_symbolicator
         )
 
         if options.get('symbolserver.enabled'):
