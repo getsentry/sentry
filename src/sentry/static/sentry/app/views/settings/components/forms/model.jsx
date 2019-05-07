@@ -649,7 +649,7 @@ class FormModel {
   @action
   submitError(err) {
     this.formState = FormState.ERROR;
-    this.formErrors = err.responseJSON;
+    this.errors.merge(err.responseJSON);
     this.handleErrorResponse(err);
   }
 }
