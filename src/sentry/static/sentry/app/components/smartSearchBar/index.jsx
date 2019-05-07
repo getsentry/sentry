@@ -780,6 +780,7 @@ class SmartSearchBar extends React.Component {
               <PinIcon isPinned={!!pinnedSearch} src={pinIconSrc} />
             </Button>
             <SidebarButton
+              title={t('Toggle search builder')}
               borderless
               size="zero"
               aria-label={t('Toggle search builder')}
@@ -895,6 +896,7 @@ const Container = styled('div')`
 
 const ButtonBar = styled('div')`
   display: flex;
+  padding-top: 12px;
   justify-content: flex-end;
   margin-right: ${space(1)};
 
@@ -906,11 +908,6 @@ const ButtonBar = styled('div')`
     &:hover {
       background: transparent;
     }
-  }
-
-  & > span {
-    /* match button height */
-    line-height: 40px;
   }
 `;
 
@@ -930,7 +927,8 @@ const StyledInput = styled('input')`
 
   font-size: ${p => p.theme.fontSizeMedium};
   width: 100%;
-  height: 100%;
+  height: 40px;
+  line-height: 40px;
   padding: 0 0 0 ${space(1)};
 
   &::placeholder {
