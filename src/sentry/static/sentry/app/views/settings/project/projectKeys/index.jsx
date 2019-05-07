@@ -14,7 +14,6 @@ import {
 } from 'app/actionCreators/indicator';
 import {getOrganizationState} from 'app/mixins/organizationState';
 import {t, tct} from 'app/locale';
-import ApiMixin from 'app/mixins/apiMixin';
 import AsyncView from 'app/views/asyncView';
 import Button from 'app/components/button';
 import ClippedBox from 'app/components/clippedBox';
@@ -33,6 +32,7 @@ const KeyRow = createReactClass({
   displayName: 'KeyRow',
 
   propTypes: {
+    api: PropTypes.object.isRequired,
     orgId: PropTypes.string.isRequired,
     projectId: PropTypes.string.isRequired,
     data: PropTypes.object.isRequired,
@@ -40,8 +40,6 @@ const KeyRow = createReactClass({
     onToggle: PropTypes.func.isRequired,
     onRemove: PropTypes.func.isRequired,
   },
-
-  mixins: [ApiMixin],
 
   getInitialState() {
     return {
@@ -57,7 +55,7 @@ const KeyRow = createReactClass({
 
     const loadingIndicator = addLoadingMessage(t('Saving changes..'));
     const {orgId, projectId, data} = this.props;
-    this.api.request(`/projects/${orgId}/${projectId}/keys/${data.id}/`, {
+    this.props.api.request(`/projects/${orgId}/${projectId}/keys/${data.id}/`, {
       method: 'DELETE',
       success: (d, _, jqXHR) => {
         this.props.onRemove();
@@ -81,7 +79,7 @@ const KeyRow = createReactClass({
     }
     const loadingIndicator = addLoadingMessage(t('Saving changes..'));
     const {orgId, projectId, data} = this.props;
-    this.api.request(`/projects/${orgId}/${projectId}/keys/${data.id}/`, {
+    this.props.api.request(`/projects/${orgId}/${projectId}/keys/${data.id}/`, {
       method: 'PUT',
       data: params,
       success: (d, _, jqXHR) => {
