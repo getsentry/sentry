@@ -148,7 +148,7 @@ export default class ResolveActions extends React.Component {
           >
             <MenuItem header={true}>{t('Resolved In')}</MenuItem>
             <MenuItem noAnchor={true}>
-              <Tooltip2 title={actionTitle}>
+              <Tooltip2 title={actionTitle} containerDisplayMode="block">
                 <ActionLink
                   {...actionLinkProps}
                   onAction={() => {
@@ -166,7 +166,7 @@ export default class ResolveActions extends React.Component {
                   {t('The next release')}
                 </ActionLink>
               </Tooltip2>
-              <Tooltip2 title={actionTitle}>
+              <Tooltip2 title={actionTitle} containerDisplayMode="block">
                 <ActionLink
                   {...actionLinkProps}
                   onAction={() => {
@@ -189,7 +189,7 @@ export default class ResolveActions extends React.Component {
                     : t('The current release')}
                 </ActionLink>
               </Tooltip2>
-              <Tooltip2 title={actionTitle}>
+              <Tooltip2 title={actionTitle} containerDisplayMode="block">
                 <ActionLink
                   {...actionLinkProps}
                   onAction={() => hasRelease && this.setState({modal: true})}
