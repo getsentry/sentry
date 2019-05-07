@@ -11,14 +11,20 @@ export function updateSubscription(api, orgId, incidentId, isSubscribed) {
   });
 }
 
-export function getStatus(status) {
-  switch (status) {
-    case 1:
-      return 'created';
-    case 2:
-      return 'closed';
-    case 0:
+/**
+ * Is incident resolved?
+ *
+ * @param {Object} incident Incident object
+ * @returns {Boolean}
+ */
+
+export function isResolved(incident) {
+  switch (incident.status) {
+    case 2: // closed
+      return true;
+    case 0: // detected
+    case 1: // created
     default:
-      return 'detected';
+      return false;
   }
 }
