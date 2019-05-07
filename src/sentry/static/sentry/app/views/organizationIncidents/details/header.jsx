@@ -9,15 +9,17 @@ import Link from 'app/components/links/link';
 import InlineSvg from 'app/components/inlineSvg';
 import {PageHeader} from 'app/styles/organization';
 import space from 'app/styles/space';
+import SubscribeButton from 'app/components/subscribeButton';
 
 export default class IncidentHeader extends React.Component {
   static propTypes = {
-    params: PropTypes.object.isRequired,
     incident: SentryTypes.Incident,
+    params: PropTypes.object.isRequired,
+    onSubscriptionChange: PropTypes.func.isRequired,
   };
 
   render() {
-    const {incident, params} = this.props;
+    const {incident, params, onSubscriptionChange} = this.props;
 
     return (
       <Header>
@@ -42,6 +44,15 @@ export default class IncidentHeader extends React.Component {
             <HeaderItem>
               <ItemTitle>{t('Users affected')}</ItemTitle>
               <ItemValue>{incident.usersAffected}</ItemValue>
+            </HeaderItem>
+            <HeaderItem>
+              <ItemTitle>{t('Notifications')}</ItemTitle>
+              <ItemValue>
+                <SubscribeButton
+                  isSubscribed={incident.isSubscribed}
+                  onClick={onSubscriptionChange}
+                />
+              </ItemValue>
             </HeaderItem>
           </GroupedHeaderItems>
         )}
@@ -71,11 +82,14 @@ const ItemTitle = styled('h6')`
   text-transform: uppercase;
   color: ${p => p.theme.gray2};
   letter-spacing: 0.1px;
-  border-bottom: 1px dotted ${p => p.theme.gray2};
 `;
 
-const ItemValue = styled('span')`
+const ItemValue = styled('div')`
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
   font-size: ${p => p.theme.headerFontSize};
+  height: 34px;
 `;
 
 const Title = styled('div')`

@@ -411,6 +411,7 @@ export const Incident = PropTypes.shape({
       likelihood: PropTypes.string,
     })
   ).isRequired,
+  isSubscribed: PropTypes.bool.isRequired,
 });
 
 export const GlobalSelection = PropTypes.shape({

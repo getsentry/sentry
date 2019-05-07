@@ -8,6 +8,7 @@ export function Incident(params) {
     suspects: [],
     eventCount: 100,
     usersAffected: 20,
+    isSubscribed: true,
     ...params,
   };
 }
