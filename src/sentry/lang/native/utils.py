@@ -123,6 +123,8 @@ def merge_symbolicated_frame(new_frame, sfrm, platform=None):
         new_frame['colno'] = sfrm['colno']
     if sfrm.get('package'):
         new_frame['package'] = sfrm['package']
+    if sfrm.get('trust'):
+        new_frame['trust'] = sfrm['trust']
     if sfrm.get('status'):
         frame_meta = new_frame.setdefault('data', {})
         frame_meta['symbolicator_status'] = sfrm['status']
