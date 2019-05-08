@@ -228,6 +228,11 @@ def get_sources_for_project(project):
     return sources
 
 
+def _get_default_headers(project_id):
+    # Required for load balancing
+    return {'x-sentry-project-id': project_id}
+
+
 def create_minidump_task(sess, base_url, project_id, sources, minidump):
     files = {
         'upload_file_minidump': minidump,
@@ -243,7 +248,7 @@ def create_minidump_task(sess, base_url, project_id, sources, minidump):
         scope=project_id
     )
 
-    return sess.post(url, data=data, files=files)
+    return sess.post(url, data=data, files=files, headers=_get_default_headers(project_id))
 
 
 def create_payload_task(sess, base_url, project_id, sources, signal,
@@ -262,7 +267,7 @@ def create_payload_task(sess, base_url, project_id, sources, signal,
         timeout=SYMBOLICATOR_TIMEOUT,
         scope=project_id,
     )
-    return sess.post(url, json=request)
+    return sess.post(url, json=request, headers=_get_default_headers(project_id))
 
 
 def run_symbolicator(project, request_id_cache_key, create_task=create_payload_task, **kwargs):
@@ -286,7 +291,7 @@ def run_symbolicator(project, request_id_cache_key, create_task=create_payload_t
                 if request_id:
                     rv = _poll_symbolication_task(
                         sess=sess, base_url=base_url,
-                        request_id=request_id
+                        request_id=request_id, project_id=project_id,
                     )
                 else:
                     if sources is None:
@@ -345,13 +350,13 @@ def run_symbolicator(project, request_id_cache_key, create_task=create_payload_t
                 wait *= 2.0
 
 
-def _poll_symbolication_task(sess, base_url, request_id):
+def _poll_symbolication_task(sess, base_url, request_id, project_id):
     url = '{base_url}/requests/{request_id}?timeout={timeout}'.format(
         base_url=base_url,
         request_id=request_id,
         timeout=SYMBOLICATOR_TIMEOUT,
     )
-    return sess.get(url)
+    return sess.get(url, headers=_get_default_headers(project_id))
 
 
 def merge_symbolicator_image(raw_image, complete_image, sdk_info, handle_symbolication_failed):
