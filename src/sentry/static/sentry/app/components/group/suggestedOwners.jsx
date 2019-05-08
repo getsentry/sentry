@@ -7,24 +7,23 @@ import {openCreateOwnershipRule} from 'app/actionCreators/modal';
 import {t} from 'app/locale';
 import Access from 'app/components/acl/access';
 import ActorAvatar from 'app/components/actorAvatar';
-import withApi from 'app/utils/withApi';
 import Button from 'app/components/button';
-import OrganizationState from 'app/mixins/organizationState';
 import GuideAnchor from 'app/components/assistant/guideAnchor';
 import SentryTypes from 'app/sentryTypes';
 import SuggestedOwnerHovercard from 'app/components/group/suggestedOwnerHovercard';
+import withApi from 'app/utils/withApi';
+import withOrganization from 'app/utils/withOrganization';
 
 const SuggestedOwners = createReactClass({
   displayName: 'SuggestedOwners',
 
   propTypes: {
     api: PropTypes.object,
+    organization: SentryTypes.Organization,
     project: SentryTypes.Project,
     group: SentryTypes.Group,
     event: SentryTypes.Event,
   },
-
-  mixins: [OrganizationState],
 
   getInitialState() {
     return {
@@ -54,26 +53,31 @@ const SuggestedOwners = createReactClass({
     if (!event) {
       return;
     }
-    const org = this.getOrganization();
-    const project = this.props.project;
 
-    this.props.api.request(
-      `/projects/${org.slug}/${project.slug}/events/${event.id}/committers/`,
-      {
-        success: (data, _, jqXHR) => {
-          this.setState({
-            committers: data.committers,
-          });
-        },
-        error: error => {
-          this.setState({
-            committers: [],
-          });
-        },
-      }
-    );
-    this.props.api.request(
-      `/projects/${org.slug}/${project.slug}/events/${event.id}/owners/`,
+    const {api, project, group, organization} = this.props;
+
+    // No committers if you don't have any releases
+    if (!!group.firstRelease) {
+      // TODO: move this into a store since `EventCause` makes this exact request as well
+      api.request(
+        `/projects/${organization.slug}/${project.slug}/events/${event.id}/committers/`,
+        {
+          success: (data, _, jqXHR) => {
+            this.setState({
+              committers: data.committers,
+            });
+          },
+          error: error => {
+            this.setState({
+              committers: [],
+            });
+          },
+        }
+      );
+    }
+
+    api.request(
+      `/projects/${organization.slug}/${project.slug}/events/${event.id}/owners/`,
       {
         success: (data, _, jqXHR) => {
           this.setState({
@@ -150,9 +154,8 @@ const SuggestedOwners = createReactClass({
   },
 
   render() {
-    const {group, project} = this.props;
+    const {group, organization, project} = this.props;
     const owners = this.getOwnerList();
-    const org = this.getOrganization();
 
     return (
       <React.Fragment>
@@ -194,7 +197,7 @@ const SuggestedOwners = createReactClass({
               onClick={() =>
                 openCreateOwnershipRule({
                   project,
-                  organization: org,
+                  organization,
                   issueId: group.id,
                 })
               }
@@ -210,7 +213,7 @@ const SuggestedOwners = createReactClass({
   },
 });
 export {SuggestedOwners};
-export default withApi(SuggestedOwners);
+export default withApi(withOrganization(SuggestedOwners));
 
 /**
  * Given a list of rule objects returned from the API, locate the matching
