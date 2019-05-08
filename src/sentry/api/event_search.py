@@ -149,13 +149,6 @@ class InvalidSearchQuery(Exception):
     pass
 
 
-def has_boolean_search_terms(search_terms):
-    for term in search_terms:
-        if isinstance(term, SearchBoolean):
-            return True
-    return False
-
-
 class SearchBoolean(namedtuple('SearchBoolean', 'left_term operator right_term')):
     BOOLEAN_AND = "AND"
     BOOLEAN_OR = "OR"
@@ -489,6 +482,27 @@ def parse_search_query(query):
     return SearchVisitor().visit(tree)
 
 
+def convert_search_boolean_to_snuba_query(search_boolean):
+    def convert_term(term):
+        if isinstance(term, SearchFilter):
+            return convert_search_filter_to_snuba_query(term)
+        elif isinstance(term, SearchBoolean):
+            return convert_search_boolean_to_snuba_query(term)
+        else:
+            raise InvalidSearchQuery(
+                'Attempted to covert term of unrecognized type %s' %
+                term.__class__.__name__)
+
+    if not search_boolean:
+        return search_boolean
+
+    left = convert_term(search_boolean.left_term)
+    right = convert_term(search_boolean.right_term)
+    operator = search_boolean.operator.lower()
+
+    return [operator, [left, right]]
+
+
 def convert_endpoint_params(params):
     return [
         SearchFilter(
@@ -579,10 +593,10 @@ def convert_search_filter_to_snuba_query(search_filter):
 
 def get_snuba_query_args(query=None, params=None):
     # NOTE: this function assumes project permissions check already happened
-    parsed_filters = []
+    parsed_terms = []
     if query is not None:
         try:
-            parsed_filters = parse_search_query(query)
+            parsed_terms = parse_search_query(query)
         except ParseError as e:
             raise InvalidSearchQuery(
                 u'Parse error: %r (column %d)' % (e.expr.name, e.column())
@@ -595,29 +609,27 @@ def get_snuba_query_args(query=None, params=None):
 
     # Keys included as url params take precedent if same key is included in search
     if params is not None:
-        parsed_filters.extend(convert_endpoint_params(params))
+        parsed_terms.extend(convert_endpoint_params(params))
 
     kwargs = {
         'conditions': [],
         'filter_keys': {},
     }
 
-    # TODO(lb): remove when boolean terms fully functional
-    if has_boolean_search_terms(parsed_filters):
-        kwargs['has_boolean_terms'] = True
+    for term in parsed_terms:
+        if isinstance(term, SearchFilter):
+            snuba_name = term.key.snuba_name
 
-    for _filter in parsed_filters:
-        # TODO(lb): remove when boolean terms fully functional
-        if isinstance(_filter, SearchBoolean):
-            continue
-
-        snuba_name = _filter.key.snuba_name
-
-        if snuba_name in ('start', 'end'):
-            kwargs[snuba_name] = _filter.value.value
-        elif snuba_name in ('project_id', 'issue'):
-            kwargs['filter_keys'][snuba_name] = _filter.value.value
-        else:
-            converted_filter = convert_search_filter_to_snuba_query(_filter)
-            kwargs['conditions'].append(converted_filter)
+            if snuba_name in ('start', 'end'):
+                kwargs[snuba_name] = term.value.value
+            elif snuba_name in ('project_id', 'issue'):
+                kwargs['filter_keys'][snuba_name] = term.value.value
+            else:
+                converted_filter = convert_search_filter_to_snuba_query(term)
+                kwargs['conditions'].append(converted_filter)
+        else:  # SearchBoolean
+            # TODO(lb): remove when boolean terms fully functional
+            kwargs['has_boolean_terms'] = True
+            # TODO(lb): check that this still works for start, end, project_id, and issue
+            kwargs['conditions'].append(convert_search_boolean_to_snuba_query(term))
     return kwargs
