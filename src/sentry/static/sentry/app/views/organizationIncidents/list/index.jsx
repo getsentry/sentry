@@ -17,7 +17,7 @@ import space from 'app/styles/space';
 
 import Status from '../status';
 
-const DEFAULT_QUERY_STATUS = 'unresolved';
+const DEFAULT_QUERY_STATUS = 'open';
 
 class OrganizationIncidentsBody extends AsyncComponent {
   getEndpoints() {
@@ -89,7 +89,7 @@ class OrganizationIncidents extends React.Component {
   render() {
     const {pathname, query} = this.props.location;
 
-    const unresolvedQuery = omit(query, 'status');
+    const openIncidentsQuery = omit(query, 'status');
     const allIncidentsQuery = {...query, status: ''};
 
     const status = query.status === undefined ? DEFAULT_QUERY_STATUS : query.status;
@@ -104,18 +104,18 @@ class OrganizationIncidents extends React.Component {
 
             <div className="btn-group">
               <Button
-                to={{pathname, query: unresolvedQuery}}
+                to={{pathname, query: openIncidentsQuery}}
                 size="small"
-                className={'btn' + (status === 'unresolved' ? ' active' : '')}
+                className={'btn' + (status === 'open' ? ' active' : '')}
               >
-                {t('Unresolved')}
+                {t('Open')}
               </Button>
               <Button
                 to={{pathname, query: allIncidentsQuery}}
                 size="small"
                 className={'btn' + (status === '' ? ' active' : '')}
               >
-                {t('All Issues')}
+                {t('All Incidents')}
               </Button>
             </div>
           </PageHeader>

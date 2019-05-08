@@ -4,8 +4,9 @@ import styled from 'react-emotion';
 import InlineSvg from 'app/components/inlineSvg';
 import SentryTypes from 'app/sentryTypes';
 import space from 'app/styles/space';
+import {t} from 'app/locale';
 
-import {isResolved} from './utils';
+import {isOpen} from './utils';
 
 export default class Status extends React.Component {
   static propTypes = {
@@ -13,14 +14,14 @@ export default class Status extends React.Component {
   };
 
   render() {
-    const isIncidentResolved = isResolved(this.props.incident);
+    const isIncidentOpen = isOpen(this.props.incident);
 
-    const icon = isIncidentResolved ? 'icon-circle-check' : 'icon-circle-exclamation';
-    const text = isIncidentResolved ? 'Resolved' : 'Active';
+    const icon = isIncidentOpen ? 'icon-circle-exclamation' : 'icon-circle-check';
+    const text = isIncidentOpen ? t('Open') : t('Closed');
 
     return (
       <Container>
-        <Icon src={icon} isResolved={isIncidentResolved} />
+        <Icon src={icon} isOpen={isIncidentOpen} />
         {text}
       </Container>
     );
@@ -33,6 +34,6 @@ const Container = styled('div')`
 `;
 
 const Icon = styled(InlineSvg)`
-  color: ${p => (p.isResolved ? p.theme.success : p.theme.error)};
+  color: ${p => (p.isOpen ? p.theme.error : p.theme.success)};
   margin-right: ${space(0.5)};
 `;
