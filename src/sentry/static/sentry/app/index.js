@@ -38,7 +38,10 @@ import plugins from 'app/plugins';
 Sentry.init({
   ...window.__SENTRY__OPTIONS,
   integrations: [
-    new ExtraErrorData(),
+    new ExtraErrorData({
+      // 6 is arbitrary, seems like a nice number
+      depth: 6,
+    }),
     new Tracing({
       tracingOrigins: ['localhost', 'sentry.io', /^\//],
       autoStartOnDomReady: false,
