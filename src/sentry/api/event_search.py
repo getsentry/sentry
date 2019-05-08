@@ -82,10 +82,9 @@ def translate(pat):
 # ?              // allow to be empty (allow empty quotes)
 # "              // quote literal
 
-
 event_search_grammar = Grammar(r"""
-search               = (boolean_term / search_term)*
-boolean_term         = (paren_term / search_term) space? (boolean_operator space? (paren_term / search_term))+
+search               = (boolean_term / paren_term / search_term)*
+boolean_term         = (paren_term / search_term) space? (boolean_operator space? (paren_term / search_term) space?)+
 paren_term           = space? paren space? (paren_term / boolean_term)+ space? paren space?
 search_term          = key_val_term / quoted_raw_search / raw_search
 key_val_term         = space? (time_filter / rel_time_filter / specific_time_filter
@@ -159,10 +158,6 @@ def has_boolean_search_terms(search_terms):
 class SearchBoolean(namedtuple('SearchBoolean', 'left_term operator right_term')):
     BOOLEAN_AND = "AND"
     BOOLEAN_OR = "OR"
-
-
-class SearchGroup(namedtuple('SearchGroup', 'values')):
-    pass
 
 
 class SearchFilter(namedtuple('SearchFilter', 'key operator value')):
@@ -327,7 +322,7 @@ class SearchVisitor(NodeVisitor):
         children = self.remove_optional_nodes(children)
         children = self.remove_space(children)
 
-        return SearchGroup(self.flatten(children[1]))
+        return self.flatten(children[1])
 
     def visit_numeric_filter(self, node, children):
         (search_key, _, operator, search_value) = children

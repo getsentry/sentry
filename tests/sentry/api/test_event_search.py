@@ -860,13 +860,30 @@ class ParseBooleanSearchQueryTest(TestCase):
 
     def test_grouping_simple(self):
         result = parse_search_query(
-            '(user.email:foo@example.com OR user.email:bar@example.com) AND user.email:foobar@example.com'
+            '(user.email:foo@example.com OR user.email:bar@example.com)'
         )
         assert result == [SearchBoolean(left_term=self.term1, operator="OR", right_term=self.term2)]
+        result = parse_search_query(
+            '(user.email:foo@example.com OR user.email:bar@example.com) AND user.email:foobar@example.com'
+        )
+        assert result == [SearchBoolean(
+            left_term=SearchBoolean(
+                left_term=self.term1,
+                operator='OR',
+                right_term=self.term2),
+            operator='AND',
+            right_term=self.term3)]
 
-        assert parse_search_query(
-            '(user.email:foo@example.com AND user.email:bar@example.com)'
-        ) == [SearchBoolean(left_term=self.term1, operator="AND", right_term=self.term2)]
+        result = parse_search_query(
+            'user.email:foo@example.com AND (user.email:bar@example.com OR user.email:foobar@example.com)'
+        )
+        assert result == [SearchBoolean(
+            left_term=self.term1,
+            operator='AND',
+            right_term=SearchBoolean(
+                left_term=self.term2,
+                operator='OR',
+                right_term=self.term3))]
 
 
 class GetSnubaQueryArgsTest(TestCase):
