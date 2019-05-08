@@ -60,7 +60,8 @@ def is_recursion_v1(frame1, frame2):
     return True
 
 
-def get_filename_component_v1(abs_path, filename, platform):
+def get_filename_component(abs_path, filename, platform,
+                           allow_file_origin=False):
     """Attempt to normalize filenames by detecing special filenames and by
     using the basename only.
     """
@@ -75,7 +76,7 @@ def get_filename_component_v1(abs_path, filename, platform):
         values=[filename],
     )
 
-    if has_url_origin(abs_path):
+    if has_url_origin(abs_path, allow_file_origin=allow_file_origin):
         filename_component.update(
             contributes=False,
             hint='ignored because frame points to a URL',
@@ -284,7 +285,7 @@ def get_contextline_component(frame, platform):
         if len(frame.context_line) > 120:
             component.update(hint='discarded because line too long')
         elif get_behavior_family_for_platform(platform) == 'javascript' \
-                and has_url_origin(frame.abs_path):
+                and has_url_origin(frame.abs_path, allow_file_origin=True):
             component.update(hint='discarded because from URL origin')
         else:
             component.update(values=[line])
@@ -300,8 +301,9 @@ def get_frame_component(frame, event, meta, legacy_function_logic=False,
     # Safari throws [native code] frames in for calls like ``forEach``
     # whereas Chrome ignores these. Let's remove it from the hashing algo
     # so that they're more likely to group together
-    filename_component = get_filename_component_v1(
-        frame.abs_path, frame.filename, platform)
+    filename_component = get_filename_component(
+        frame.abs_path, frame.filename, platform,
+        allow_file_origin=javascript_fuzzing)
 
     # if we have a module we use that for grouping.  This will always
     # take precedence over the filename if it contributes
@@ -348,7 +350,7 @@ def get_frame_component(frame, event, meta, legacy_function_logic=False,
         if func in (None, '?', '<anonymous function>', '<anonymous>',
                     'Anonymous function', 'eval') or \
            func.endswith('/<') or \
-           frame.abs_path in ('[native code]', 'eval code', '<anonymous>'):
+           frame.abs_path in ('[native code]', 'native code', 'eval code', '<anonymous>'):
             rv.update(
                 contributes=False,
                 hint='ignored low quality javascript frame'
