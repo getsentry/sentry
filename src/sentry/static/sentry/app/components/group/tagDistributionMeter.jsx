@@ -118,7 +118,7 @@ const TagDistributionMeter = createReactClass({
           );
 
           return (
-            <Tooltip2 key={value.value} title={tooltipHtml} containerDisplayMode="block">
+            <Tooltip2 key={value.value} title={tooltipHtml} containerDisplayMode="inline">
               <Segment
                 style={{width: pct + '%'}}
                 to={url}
@@ -139,7 +139,7 @@ const TagDistributionMeter = createReactClass({
         {hasOther && (
           <Tooltip2
             key="other"
-            containerDisplayMode="block"
+            containerDisplayMode="inline"
             title={
               <React.Fragment>
                 Other
