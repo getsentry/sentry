@@ -1,5 +1,5 @@
 ---
-created: '2019-05-08T07:48:19.291606Z'
+created: '2019-05-08T12:46:10.449505Z'
 creator: sentry
 source: tests/symbolicator/test_minidump_full.py
 ---
@@ -151,16 +151,19 @@ exception:
         in_app: false
         instruction_addr: '0x771d0f44'
         package: C:\Windows\System32\ntdll.dll
+        trust: fp
       - data:
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x771d0f79'
         package: C:\Windows\System32\ntdll.dll
+        trust: fp
       - data:
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x750662c4'
         package: C:\Windows\System32\kernel32.dll
+        trust: cfi
       - abs_path: f:\dd\vctools\crt\vcstartup\src\startup\exe_common.inl
         data:
           symbolicator_status: symbolicated
@@ -171,6 +174,7 @@ exception:
         lineno: 283
         package: C:\projects\breakpad-tools\windows\Release\crash.exe
         symbol: __scrt_common_main_seh
+        trust: cfi
       - abs_path: c:\projects\breakpad-tools\windows\crash\main.cpp
         data:
           symbolicator_status: symbolicated
@@ -181,6 +185,7 @@ exception:
         lineno: 35
         package: C:\projects\breakpad-tools\windows\Release\crash.exe
         symbol: main
+        trust: context
       registers:
         eax: '0x0'
         ebp: '0x10ff670'
@@ -209,21 +214,25 @@ threads:
         in_app: false
         instruction_addr: '0x771d0f44'
         package: C:\Windows\System32\ntdll.dll
+        trust: fp
       - data:
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x771d0f79'
         package: C:\Windows\System32\ntdll.dll
+        trust: fp
       - data:
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x750662c4'
         package: C:\Windows\System32\kernel32.dll
+        trust: fp
       - data:
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x771e016c'
         package: C:\Windows\System32\ntdll.dll
+        trust: context
       registers:
         eax: '0x0'
         ebp: '0x159faa4'
@@ -244,21 +253,25 @@ threads:
         in_app: false
         instruction_addr: '0x771d0f44'
         package: C:\Windows\System32\ntdll.dll
+        trust: fp
       - data:
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x771d0f79'
         package: C:\Windows\System32\ntdll.dll
+        trust: fp
       - data:
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x750662c4'
         package: C:\Windows\System32\kernel32.dll
+        trust: fp
       - data:
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x771e016c'
         package: C:\Windows\System32\ntdll.dll
+        trust: context
       registers:
         eax: '0x0'
         ebp: '0x169fb98'
@@ -279,6 +292,7 @@ threads:
         in_app: false
         instruction_addr: '0x771df3dc'
         package: C:\Windows\System32\ntdll.dll
+        trust: context
       registers:
         eax: '0x0'
         ebp: '0x179f2b8'

@@ -1,5 +1,5 @@
 ---
-created: '2019-05-08T10:48:31.035476Z'
+created: '2019-05-08T12:46:32.597355Z'
 creator: sentry
 source: tests/symbolicator/test_unreal_full.py
 ---
@@ -278,76 +278,115 @@ threads:
         in_app: false
         instruction_addr: '0x7ff7548229e6'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff75563d233'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff759a2f3f0'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff7589ca88b'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff75a4831a8'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff754814eaa'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff759a2f3f0'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff75a4831a8'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - data:
+          symbolicator_status: missing
+        in_app: false
+        instruction_addr: '0x7ffe10066c86'
+        package: C:\Windows\System32\ntdll.dll
+        trust: scan
+      - data:
+          symbolicator_status: missing
+        in_app: false
+        instruction_addr: '0x7ffe100fed3d'
+        package: C:\Windows\System32\ntdll.dll
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff754814eaa'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff754814eaa'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - data:
+          symbolicator_status: missing
+        in_app: false
+        instruction_addr: '0x7ffe03a9bf10'
+        package: C:\Windows\System32\VCRUNTIME140.dll
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff7589e69ae'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff759a2f3f0'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff759a2f3f0'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff755181c71'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - data:
+          symbolicator_status: missing
+        in_app: false
+        instruction_addr: '0x7ffe0ca99252'
+        package: C:\Windows\System32\KERNELBASE.dll
+        trust: scan
       - data:
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7ffe100f9f84'
         package: C:\Windows\System32\ntdll.dll
+        trust: context
       registers:
         r10: '0x7ff7544e0000'
         r11: '0x7ff7589ca88b'
@@ -373,8 +412,21 @@ threads:
       - data:
           symbolicator_status: missing
         in_app: false
+        instruction_addr: '0x7ffe10083140'
+        package: C:\Windows\System32\ntdll.dll
+        trust: scan
+      - data:
+          symbolicator_status: missing
+        in_app: false
+        instruction_addr: '0x7ffe1007f856'
+        package: C:\Windows\System32\ntdll.dll
+        trust: scan
+      - data:
+          symbolicator_status: missing
+        in_app: false
         instruction_addr: '0x7ffe100fd854'
         package: C:\Windows\System32\ntdll.dll
+        trust: context
       registers:
         r10: '0x6c'
         r11: '0x8c3f79f140'
@@ -400,8 +452,21 @@ threads:
       - data:
           symbolicator_status: missing
         in_app: false
+        instruction_addr: '0x7ffe10083140'
+        package: C:\Windows\System32\ntdll.dll
+        trust: scan
+      - data:
+          symbolicator_status: missing
+        in_app: false
+        instruction_addr: '0x7ffe1007f856'
+        package: C:\Windows\System32\ntdll.dll
+        trust: scan
+      - data:
+          symbolicator_status: missing
+        in_app: false
         instruction_addr: '0x7ffe100fd854'
         package: C:\Windows\System32\ntdll.dll
+        trust: context
       registers:
         r10: '0x23d833cc5b0'
         r11: '0x23d833ce4b0'
@@ -427,8 +492,21 @@ threads:
       - data:
           symbolicator_status: missing
         in_app: false
+        instruction_addr: '0x7ffe10083140'
+        package: C:\Windows\System32\ntdll.dll
+        trust: scan
+      - data:
+          symbolicator_status: missing
+        in_app: false
+        instruction_addr: '0x7ffe1007f856'
+        package: C:\Windows\System32\ntdll.dll
+        trust: scan
+      - data:
+          symbolicator_status: missing
+        in_app: false
         instruction_addr: '0x7ffe100fd854'
         package: C:\Windows\System32\ntdll.dll
+        trust: context
       registers:
         r10: '0x23df7290cc0'
         r11: '0x7ffe10178b20'
@@ -454,95 +532,137 @@ threads:
     stacktrace:
       frames:
       - data:
+          symbolicator_status: missing
+        in_app: false
+        instruction_addr: '0x7ffe100d1471'
+        package: C:\Windows\System32\ntdll.dll
+        trust: scan
+      - data:
+          symbolicator_status: missing
+        in_app: false
+        instruction_addr: '0x7ffe0fd53034'
+        package: C:\Windows\System32\kernel32.dll
+        trust: scan
+      - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff75519224c'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff7551971e8'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff754d959f5'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff754d8d290'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff754da6f49'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff7551659f9'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff75a1ae0f0'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff754e3bba8'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff75a1ae0c0'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - data:
+          symbolicator_status: missing
+        in_app: false
+        instruction_addr: '0x7ffe0cab443b'
+        package: C:\Windows\System32\KERNELBASE.dll
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff754dbe522'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff7589c665e'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff758a672d0'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff758a671f8'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff754d8bdf1'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff754d89952'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff755199769'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff754d8f221'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - data:
+          symbolicator_status: missing
+        in_app: false
+        instruction_addr: '0x7ffe0ca99252'
+        package: C:\Windows\System32\KERNELBASE.dll
+        trust: scan
       - data:
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7ffe100f9f84'
         package: C:\Windows\System32\ntdll.dll
+        trust: context
       registers:
         r10: '0x7ffef000'
         r11: '0x1'
@@ -566,80 +686,119 @@ threads:
     stacktrace:
       frames:
       - data:
+          symbolicator_status: missing
+        in_app: false
+        instruction_addr: '0x7ffe100d1471'
+        package: C:\Windows\System32\ntdll.dll
+        trust: scan
+      - data:
+          symbolicator_status: missing
+        in_app: false
+        instruction_addr: '0x7ffe0fd53034'
+        package: C:\Windows\System32\kernel32.dll
+        trust: scan
+      - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff75519224c'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff7551971e8'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff754d959f5'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff754d8d290'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff754da6f49'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff7551659f9'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff75a1ae0f0'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff754e3bba8'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff75a1ae0c0'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - data:
+          symbolicator_status: missing
+        in_app: false
+        instruction_addr: '0x7ffe0cab443b'
+        package: C:\Windows\System32\KERNELBASE.dll
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff754dbe522'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff7589c665e'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff754d8bdf1'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff754d89952'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff755199769'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - data:
+          symbolicator_status: missing
+        in_app: false
+        instruction_addr: '0x7ffe0ca99252'
+        package: C:\Windows\System32\KERNELBASE.dll
+        trust: scan
       - data:
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7ffe100f9f84'
         package: C:\Windows\System32\ntdll.dll
+        trust: context
       registers:
         r10: '0x0'
         r11: '0x246'
@@ -663,80 +822,119 @@ threads:
     stacktrace:
       frames:
       - data:
+          symbolicator_status: missing
+        in_app: false
+        instruction_addr: '0x7ffe100d1471'
+        package: C:\Windows\System32\ntdll.dll
+        trust: scan
+      - data:
+          symbolicator_status: missing
+        in_app: false
+        instruction_addr: '0x7ffe0fd53034'
+        package: C:\Windows\System32\kernel32.dll
+        trust: scan
+      - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff75519224c'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff7551971e8'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff754d959f5'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff754d8d290'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff754da6f49'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff7551659f9'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff75a1ae0f0'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff754e3bba8'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff75a1ae0c0'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - data:
+          symbolicator_status: missing
+        in_app: false
+        instruction_addr: '0x7ffe0cab443b'
+        package: C:\Windows\System32\KERNELBASE.dll
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff754dbe522'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff7589c665e'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff754d8bdf1'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff754d89952'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff755199769'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - data:
+          symbolicator_status: missing
+        in_app: false
+        instruction_addr: '0x7ffe0ca99252'
+        package: C:\Windows\System32\KERNELBASE.dll
+        trust: scan
       - data:
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7ffe100f9f84'
         package: C:\Windows\System32\ntdll.dll
+        trust: context
       registers:
         r10: '0x0'
         r11: '0x23d8e930000'
@@ -760,110 +958,149 @@ threads:
     stacktrace:
       frames:
       - data:
+          symbolicator_status: missing
+        in_app: false
+        instruction_addr: '0x7ffe100d1471'
+        package: C:\Windows\System32\ntdll.dll
+        trust: scan
+      - data:
+          symbolicator_status: missing
+        in_app: false
+        instruction_addr: '0x7ffe0fd53034'
+        package: C:\Windows\System32\kernel32.dll
+        trust: scan
+      - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff75519224c'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff7551971e8'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff754d959f5'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff754d8d290'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff754da6f49'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff7551659f9'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff75a1ae0f0'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff754e3bba8'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff75a1ae0c0'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff75a1ae0f0'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff754e426b5'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff754e3b27e'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff754e3af02'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff754e3ae3b'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff754d8bdf1'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff754d89952'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff75a19ed98'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff755199769'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff754e3409c'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff7553a0fdf'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - data:
+          symbolicator_status: missing
+        in_app: false
+        instruction_addr: '0x7ffe0ca99252'
+        package: C:\Windows\System32\KERNELBASE.dll
+        trust: scan
       - data:
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7ffe100f9f84'
         package: C:\Windows\System32\ntdll.dll
+        trust: context
       registers:
         r10: '0x7ff758ce10a8'
         r11: '0x23d8d30edc0'
@@ -887,95 +1124,143 @@ threads:
     stacktrace:
       frames:
       - data:
+          symbolicator_status: missing
+        in_app: false
+        instruction_addr: '0x7ffe100d1471'
+        package: C:\Windows\System32\ntdll.dll
+        trust: scan
+      - data:
+          symbolicator_status: missing
+        in_app: false
+        instruction_addr: '0x7ffe0fd53034'
+        package: C:\Windows\System32\kernel32.dll
+        trust: scan
+      - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff75519224c'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff7551971e8'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff754d959f5'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff754d8d290'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff754da6f49'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff7551659f9'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff75a1ae0f0'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff754e3bba8'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff75a1ae0c0'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - data:
+          symbolicator_status: missing
+        in_app: false
+        instruction_addr: '0x7ffe0cab443b'
+        package: C:\Windows\System32\KERNELBASE.dll
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff754dbe522'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff7589c665e'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff754d8bdf1'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - data:
+          symbolicator_status: missing
+        in_app: false
+        instruction_addr: '0x7ffe100d1450'
+        package: C:\Windows\System32\ntdll.dll
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff754d89952'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff75a19ed98'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff755199769'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff754e3409c'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff7553a0fdf'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - data:
+          symbolicator_status: missing
+        in_app: false
+        instruction_addr: '0x7ffe0ca99252'
+        package: C:\Windows\System32\KERNELBASE.dll
+        trust: scan
       - data:
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7ffe100f9f84'
         package: C:\Windows\System32\ntdll.dll
+        trust: context
       registers:
         r10: '0x7ff758ce10a8'
         r11: '0x23d8d48edc0'
@@ -999,85 +1284,125 @@ threads:
     stacktrace:
       frames:
       - data:
+          symbolicator_status: missing
+        in_app: false
+        instruction_addr: '0x7ffe100d1471'
+        package: C:\Windows\System32\ntdll.dll
+        trust: scan
+      - data:
+          symbolicator_status: missing
+        in_app: false
+        instruction_addr: '0x7ffe0fd53034'
+        package: C:\Windows\System32\kernel32.dll
+        trust: scan
+      - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff75519224c'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff7551971e8'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff754d959f5'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff754d8d290'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff754da6f49'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff7551659f9'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff75a1ae0f0'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff754e3bba8'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff75a1ae0c0'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - data:
+          symbolicator_status: missing
+        in_app: false
+        instruction_addr: '0x7ffe0cab443b'
+        package: C:\Windows\System32\KERNELBASE.dll
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff754dbe522'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff7589c665e'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff754d8bdf1'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff754d89952'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff755199769'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff754e3469f'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - data:
+          symbolicator_status: missing
+        in_app: false
+        instruction_addr: '0x7ffe0ca99252'
+        package: C:\Windows\System32\KERNELBASE.dll
+        trust: scan
       - data:
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7ffe100f9f84'
         package: C:\Windows\System32\ntdll.dll
+        trust: context
       registers:
         r10: '0x23df732f648'
         r11: '0x23df732f638'
@@ -1101,95 +1426,143 @@ threads:
     stacktrace:
       frames:
       - data:
+          symbolicator_status: missing
+        in_app: false
+        instruction_addr: '0x7ffe100d1471'
+        package: C:\Windows\System32\ntdll.dll
+        trust: scan
+      - data:
+          symbolicator_status: missing
+        in_app: false
+        instruction_addr: '0x7ffe0fd53034'
+        package: C:\Windows\System32\kernel32.dll
+        trust: scan
+      - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff75519224c'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff7551971e8'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff754d959f5'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff754d8d290'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff754da6f49'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff7551659f9'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff75a1ae0f0'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff754e3bba8'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff75a1ae0c0'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - data:
+          symbolicator_status: missing
+        in_app: false
+        instruction_addr: '0x7ffe0cab443b'
+        package: C:\Windows\System32\KERNELBASE.dll
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff754dbe522'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff7589c665e'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff754d8bdf1'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - data:
+          symbolicator_status: missing
+        in_app: false
+        instruction_addr: '0x7ffe100d1450'
+        package: C:\Windows\System32\ntdll.dll
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff754d89952'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff755199769'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff7553923b0'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff754d8b7c9'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff75504b92d'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - data:
+          symbolicator_status: missing
+        in_app: false
+        instruction_addr: '0x7ffe0ca99252'
+        package: C:\Windows\System32\KERNELBASE.dll
+        trust: scan
       - data:
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7ffe100f9f84'
         package: C:\Windows\System32\ntdll.dll
+        trust: context
       registers:
         r10: '0x23df7346090'
         r11: '0x23d829847a0'
@@ -1213,95 +1586,143 @@ threads:
     stacktrace:
       frames:
       - data:
+          symbolicator_status: missing
+        in_app: false
+        instruction_addr: '0x7ffe100d1471'
+        package: C:\Windows\System32\ntdll.dll
+        trust: scan
+      - data:
+          symbolicator_status: missing
+        in_app: false
+        instruction_addr: '0x7ffe0fd53034'
+        package: C:\Windows\System32\kernel32.dll
+        trust: scan
+      - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff75519224c'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff7551971e8'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff754d959f5'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff754d8d290'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff754da6f49'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff7551659f9'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff75a1ae0f0'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff754e3bba8'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff75a1ae0c0'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - data:
+          symbolicator_status: missing
+        in_app: false
+        instruction_addr: '0x7ffe0cab443b'
+        package: C:\Windows\System32\KERNELBASE.dll
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff754dbe522'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff7589c665e'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff754d8bdf1'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - data:
+          symbolicator_status: missing
+        in_app: false
+        instruction_addr: '0x7ffe100d1450'
+        package: C:\Windows\System32\ntdll.dll
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff754d89952'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff755199769'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff7553923b0'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff754d8b7c9'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff75504b92d'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - data:
+          symbolicator_status: missing
+        in_app: false
+        instruction_addr: '0x7ffe0ca99252'
+        package: C:\Windows\System32\KERNELBASE.dll
+        trust: scan
       - data:
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7ffe100f9f84'
         package: C:\Windows\System32\ntdll.dll
+        trust: context
       registers:
         r10: '0x0'
         r11: '0x23d8d180000'
@@ -1325,90 +1746,137 @@ threads:
     stacktrace:
       frames:
       - data:
+          symbolicator_status: missing
+        in_app: false
+        instruction_addr: '0x7ffe100d1471'
+        package: C:\Windows\System32\ntdll.dll
+        trust: scan
+      - data:
+          symbolicator_status: missing
+        in_app: false
+        instruction_addr: '0x7ffe0fd53034'
+        package: C:\Windows\System32\kernel32.dll
+        trust: scan
+      - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff75519224c'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff7551971e8'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff754d959f5'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff754d8d290'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff754da6f49'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff7551659f9'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff75a1ae0f0'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff754e3bba8'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff75a1ae0c0'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - data:
+          symbolicator_status: missing
+        in_app: false
+        instruction_addr: '0x7ffe0cab443b'
+        package: C:\Windows\System32\KERNELBASE.dll
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff754dbe522'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff7589c665e'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff754d8bdf1'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - data:
+          symbolicator_status: missing
+        in_app: false
+        instruction_addr: '0x7ffe100d1450'
+        package: C:\Windows\System32\ntdll.dll
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff754d89952'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff755199769'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff754d8b7c9'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff75504b92d'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - data:
+          symbolicator_status: missing
+        in_app: false
+        instruction_addr: '0x7ffe0ca99252'
+        package: C:\Windows\System32\KERNELBASE.dll
+        trust: scan
       - data:
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7ffe100f9f84'
         package: C:\Windows\System32\ntdll.dll
+        trust: context
       registers:
         r10: '0x0'
         r11: '0x23d8d180000'
@@ -1432,90 +1900,137 @@ threads:
     stacktrace:
       frames:
       - data:
+          symbolicator_status: missing
+        in_app: false
+        instruction_addr: '0x7ffe100d1471'
+        package: C:\Windows\System32\ntdll.dll
+        trust: scan
+      - data:
+          symbolicator_status: missing
+        in_app: false
+        instruction_addr: '0x7ffe0fd53034'
+        package: C:\Windows\System32\kernel32.dll
+        trust: scan
+      - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff75519224c'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff7551971e8'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff754d959f5'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff754d8d290'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff754da6f49'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff7551659f9'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff75a1ae0f0'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff754e3bba8'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff75a1ae0c0'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - data:
+          symbolicator_status: missing
+        in_app: false
+        instruction_addr: '0x7ffe0cab443b'
+        package: C:\Windows\System32\KERNELBASE.dll
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff754dbe522'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff7589c665e'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff758a672d0'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff754d8bdf1'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - data:
+          symbolicator_status: missing
+        in_app: false
+        instruction_addr: '0x7ffe100d1450'
+        package: C:\Windows\System32\ntdll.dll
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff754d89952'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff758a672d0'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff755199769'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - data:
+          symbolicator_status: missing
+        in_app: false
+        instruction_addr: '0x7ffe0ca99252'
+        package: C:\Windows\System32\KERNELBASE.dll
+        trust: scan
       - data:
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7ffe100f9f84'
         package: C:\Windows\System32\ntdll.dll
+        trust: context
       registers:
         r10: '0x0'
         r11: '0x246'
@@ -1543,26 +2058,43 @@ threads:
         in_app: false
         instruction_addr: '0x7ff754d8bdf1'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - data:
+          symbolicator_status: missing
+        in_app: false
+        instruction_addr: '0x7ffe100d1450'
+        package: C:\Windows\System32\ntdll.dll
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff754d89952'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff755199769'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff75504b92d'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - data:
+          symbolicator_status: missing
+        in_app: false
+        instruction_addr: '0x7ffe0ca99252'
+        package: C:\Windows\System32\KERNELBASE.dll
+        trust: scan
       - data:
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7ffe100f9f84'
         package: C:\Windows\System32\ntdll.dll
+        trust: context
       registers:
         r10: '0x23df7346090'
         r11: '0x8c40b0eef0'
@@ -1590,36 +2122,55 @@ threads:
         in_app: false
         instruction_addr: '0x7ff754d8bdf1'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - data:
+          symbolicator_status: missing
+        in_app: false
+        instruction_addr: '0x7ffe100d1450'
+        package: C:\Windows\System32\ntdll.dll
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff754d89952'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff75a19ed98'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff755199769'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff754e3409c'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff7553a0fdf'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - data:
+          symbolicator_status: missing
+        in_app: false
+        instruction_addr: '0x7ffe0ca99252'
+        package: C:\Windows\System32\KERNELBASE.dll
+        trust: scan
       - data:
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7ffe100f9f84'
         package: C:\Windows\System32\ntdll.dll
+        trust: context
       registers:
         r10: '0x7ffef000'
         r11: '0x23d82351d80'
@@ -1647,36 +2198,49 @@ threads:
         in_app: false
         instruction_addr: '0x7ff754d8bdf1'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff754d89952'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff75a19ed98'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff755199769'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff754e3409c'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff7553a0fdf'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - data:
+          symbolicator_status: missing
+        in_app: false
+        instruction_addr: '0x7ffe0ca99252'
+        package: C:\Windows\System32\KERNELBASE.dll
+        trust: scan
       - data:
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7ffe100f9f84'
         package: C:\Windows\System32\ntdll.dll
+        trust: context
       registers:
         r10: '0x7ff758ce10a8'
         r11: '0x8c40c0f4a8'
@@ -1704,36 +2268,55 @@ threads:
         in_app: false
         instruction_addr: '0x7ff754d8bdf1'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - data:
+          symbolicator_status: missing
+        in_app: false
+        instruction_addr: '0x7ffe100d1450'
+        package: C:\Windows\System32\ntdll.dll
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff754d89952'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff75a19ed98'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff755199769'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff754e3409c'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff7553a0fdf'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - data:
+          symbolicator_status: missing
+        in_app: false
+        instruction_addr: '0x7ffe0ca99252'
+        package: C:\Windows\System32\KERNELBASE.dll
+        trust: scan
       - data:
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7ffe100f9f84'
         package: C:\Windows\System32\ntdll.dll
+        trust: context
       registers:
         r10: '0x7ff758ce10a8'
         r11: '0x8c40c8f268'
@@ -1761,36 +2344,55 @@ threads:
         in_app: false
         instruction_addr: '0x7ff754d8bdf1'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - data:
+          symbolicator_status: missing
+        in_app: false
+        instruction_addr: '0x7ffe100d1450'
+        package: C:\Windows\System32\ntdll.dll
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff754d89952'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff75a19ed98'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff755199769'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff754e3409c'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff7553a0fdf'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - data:
+          symbolicator_status: missing
+        in_app: false
+        instruction_addr: '0x7ffe0ca99252'
+        package: C:\Windows\System32\KERNELBASE.dll
+        trust: scan
       - data:
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7ffe100f9f84'
         package: C:\Windows\System32\ntdll.dll
+        trust: context
       registers:
         r10: '0x7ff758ce10a8'
         r11: '0x23d8d490080'
@@ -1814,120 +2416,167 @@ threads:
     stacktrace:
       frames:
       - data:
+          symbolicator_status: missing
+        in_app: false
+        instruction_addr: '0x7ffe100d1471'
+        package: C:\Windows\System32\ntdll.dll
+        trust: scan
+      - data:
+          symbolicator_status: missing
+        in_app: false
+        instruction_addr: '0x7ffe0fd53034'
+        package: C:\Windows\System32\kernel32.dll
+        trust: scan
+      - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff75519224c'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff7551971e8'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff75506e26d'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff754d8d176'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff754e3bba8'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff75a1ae0c0'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff754e3469f'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - data:
+          symbolicator_status: missing
+        in_app: false
+        instruction_addr: '0x7ffe0cab443b'
+        package: C:\Windows\System32\KERNELBASE.dll
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff754e3419b'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff754e3409c'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff754e349d6'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff754e01a18'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff754d8ca09'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff75a1e2338'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff75a1e2338'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff754db0220'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff75504752f'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff754d89952'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff755199769'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff754da6f49'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff754d7a570'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff754d8f221'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff754e3aed7'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - data:
+          symbolicator_status: missing
+        in_app: false
+        instruction_addr: '0x7ffe0ca99252'
+        package: C:\Windows\System32\KERNELBASE.dll
+        trust: scan
       - data:
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7ffe100f9f84'
         package: C:\Windows\System32\ntdll.dll
+        trust: context
       registers:
         r10: '0x0'
         r11: '0x23d8e630000'
@@ -1951,80 +2600,113 @@ threads:
     stacktrace:
       frames:
       - data:
+          symbolicator_status: missing
+        in_app: false
+        instruction_addr: '0x7ffe100d1471'
+        package: C:\Windows\System32\ntdll.dll
+        trust: scan
+      - data:
+          symbolicator_status: missing
+        in_app: false
+        instruction_addr: '0x7ffe0fd53034'
+        package: C:\Windows\System32\kernel32.dll
+        trust: scan
+      - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff75519224c'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff7551971e8'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff758bbfa00'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff758a671f8'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff754e44d8d'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff754e449af'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff758a670b0'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff754db0220'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff75503ff42'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff758a67100'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff758c25f01'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff755199769'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff759452a10'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff75797c3f0'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - data:
+          symbolicator_status: missing
+        in_app: false
+        instruction_addr: '0x7ffe0ca99252'
+        package: C:\Windows\System32\KERNELBASE.dll
+        trust: scan
       - data:
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7ffe100f9f84'
         package: C:\Windows\System32\ntdll.dll
+        trust: context
       registers:
         r10: '0x0'
         r11: '0x246'
@@ -2048,45 +2730,71 @@ threads:
     stacktrace:
       frames:
       - data:
+          symbolicator_status: missing
+        in_app: false
+        instruction_addr: '0x7ffe100d1471'
+        package: C:\Windows\System32\ntdll.dll
+        trust: scan
+      - data:
+          symbolicator_status: missing
+        in_app: false
+        instruction_addr: '0x7ffe0fd53034'
+        package: C:\Windows\System32\kernel32.dll
+        trust: scan
+      - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff75519224c'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff7551971e8'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff754e44d8d'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff754e449af'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff758a670b0'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff754db0220'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff755199769'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - data:
+          symbolicator_status: missing
+        in_app: false
+        instruction_addr: '0x7ffe0ca99252'
+        package: C:\Windows\System32\KERNELBASE.dll
+        trust: scan
       - data:
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7ffe100f9f84'
         package: C:\Windows\System32\ntdll.dll
+        trust: context
       registers:
         r10: '0x0'
         r11: '0x246'
@@ -2110,60 +2818,89 @@ threads:
     stacktrace:
       frames:
       - data:
+          symbolicator_status: missing
+        in_app: false
+        instruction_addr: '0x7ffe100d1471'
+        package: C:\Windows\System32\ntdll.dll
+        trust: scan
+      - data:
+          symbolicator_status: missing
+        in_app: false
+        instruction_addr: '0x7ffe0fd53034'
+        package: C:\Windows\System32\kernel32.dll
+        trust: scan
+      - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff75519224c'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff7551971e8'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff754e44d8d'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff754e449af'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff758a670b0'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff754db0220'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff755199769'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff75482017b'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff759452a10'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff75797c3f0'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - data:
+          symbolicator_status: missing
+        in_app: false
+        instruction_addr: '0x7ffe0ca99252'
+        package: C:\Windows\System32\KERNELBASE.dll
+        trust: scan
       - data:
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7ffe100f9f84'
         package: C:\Windows\System32\ntdll.dll
+        trust: context
       registers:
         r10: '0x7ffef000'
         r11: '0x1'
@@ -2187,60 +2924,89 @@ threads:
     stacktrace:
       frames:
       - data:
+          symbolicator_status: missing
+        in_app: false
+        instruction_addr: '0x7ffe100d1471'
+        package: C:\Windows\System32\ntdll.dll
+        trust: scan
+      - data:
+          symbolicator_status: missing
+        in_app: false
+        instruction_addr: '0x7ffe0fd53034'
+        package: C:\Windows\System32\kernel32.dll
+        trust: scan
+      - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff75519224c'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff7551971e8'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff754e44d8d'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff754e449af'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff758a670b0'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff754db0220'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff755199769'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff75482017b'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff759452a10'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff75797c3f0'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - data:
+          symbolicator_status: missing
+        in_app: false
+        instruction_addr: '0x7ffe0ca99252'
+        package: C:\Windows\System32\KERNELBASE.dll
+        trust: scan
       - data:
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7ffe100f9f84'
         package: C:\Windows\System32\ntdll.dll
+        trust: context
       registers:
         r10: '0x7ffef000'
         r11: '0x1'
@@ -2264,60 +3030,89 @@ threads:
     stacktrace:
       frames:
       - data:
+          symbolicator_status: missing
+        in_app: false
+        instruction_addr: '0x7ffe100d1471'
+        package: C:\Windows\System32\ntdll.dll
+        trust: scan
+      - data:
+          symbolicator_status: missing
+        in_app: false
+        instruction_addr: '0x7ffe0fd53034'
+        package: C:\Windows\System32\kernel32.dll
+        trust: scan
+      - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff75519224c'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff7551971e8'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff754e44d8d'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff754e449af'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff758a670b0'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff754db0220'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff755199769'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff75482017b'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff759452a10'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff75797c3f0'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - data:
+          symbolicator_status: missing
+        in_app: false
+        instruction_addr: '0x7ffe0ca99252'
+        package: C:\Windows\System32\KERNELBASE.dll
+        trust: scan
       - data:
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7ffe100f9f84'
         package: C:\Windows\System32\ntdll.dll
+        trust: context
       registers:
         r10: '0x7ffef000'
         r11: '0x8c40def4b8'
@@ -2341,50 +3136,77 @@ threads:
     stacktrace:
       frames:
       - data:
+          symbolicator_status: missing
+        in_app: false
+        instruction_addr: '0x7ffe100d1471'
+        package: C:\Windows\System32\ntdll.dll
+        trust: scan
+      - data:
+          symbolicator_status: missing
+        in_app: false
+        instruction_addr: '0x7ffe0fd53034'
+        package: C:\Windows\System32\kernel32.dll
+        trust: scan
+      - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff75519224c'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff7551971e8'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff754e44d8d'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff754e449af'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff758a670b0'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff754db0220'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff754e3b27e'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff755199769'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - data:
+          symbolicator_status: missing
+        in_app: false
+        instruction_addr: '0x7ffe0ca99252'
+        package: C:\Windows\System32\KERNELBASE.dll
+        trust: scan
       - data:
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7ffe100f9f84'
         package: C:\Windows\System32\ntdll.dll
+        trust: context
       registers:
         r10: '0x7ffef000'
         r11: '0x1'
@@ -2408,50 +3230,77 @@ threads:
     stacktrace:
       frames:
       - data:
+          symbolicator_status: missing
+        in_app: false
+        instruction_addr: '0x7ffe100d1471'
+        package: C:\Windows\System32\ntdll.dll
+        trust: scan
+      - data:
+          symbolicator_status: missing
+        in_app: false
+        instruction_addr: '0x7ffe0fd53034'
+        package: C:\Windows\System32\kernel32.dll
+        trust: scan
+      - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff75519224c'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff7551971e8'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff754e44d8d'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff754e449af'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff758a670b0'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff754db0220'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff754e3b27e'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff755199769'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - data:
+          symbolicator_status: missing
+        in_app: false
+        instruction_addr: '0x7ffe0ca99252'
+        package: C:\Windows\System32\KERNELBASE.dll
+        trust: scan
       - data:
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7ffe100f9f84'
         package: C:\Windows\System32\ntdll.dll
+        trust: context
       registers:
         r10: '0x7ffef000'
         r11: '0x8c40e2f8d8'
@@ -2475,30 +3324,53 @@ threads:
     stacktrace:
       frames:
       - data:
+          symbolicator_status: missing
+        in_app: false
+        instruction_addr: '0x7ffe100d1471'
+        package: C:\Windows\System32\ntdll.dll
+        trust: scan
+      - data:
+          symbolicator_status: missing
+        in_app: false
+        instruction_addr: '0x7ffe0fd53034'
+        package: C:\Windows\System32\kernel32.dll
+        trust: scan
+      - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff75519224c'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff7551971e8'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff754f680be'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff75518c971'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - data:
+          symbolicator_status: missing
+        in_app: false
+        instruction_addr: '0x7ffe0caa5e9a'
+        package: C:\Windows\System32\KERNELBASE.dll
+        trust: scan
       - data:
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7ffe100fa584'
         package: C:\Windows\System32\ntdll.dll
+        trust: context
       registers:
         r10: '0x0'
         r11: '0x246'
@@ -2522,25 +3394,47 @@ threads:
     stacktrace:
       frames:
       - data:
+          symbolicator_status: missing
+        in_app: false
+        instruction_addr: '0x7ffe100d1471'
+        package: C:\Windows\System32\ntdll.dll
+        trust: scan
+      - data:
+          symbolicator_status: missing
+        in_app: false
+        instruction_addr: '0x7ffe0fd53034'
+        package: C:\Windows\System32\kernel32.dll
+        trust: scan
+      - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff75519224c'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff7551971e8'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff756780450'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - data:
+          symbolicator_status: missing
+        in_app: false
+        instruction_addr: '0x7ffe0caa5e9a'
+        package: C:\Windows\System32\KERNELBASE.dll
+        trust: scan
       - data:
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7ffe100fa584'
         package: C:\Windows\System32\ntdll.dll
+        trust: context
       registers:
         r10: '0x0'
         r11: '0x246'
@@ -2564,65 +3458,95 @@ threads:
     stacktrace:
       frames:
       - data:
+          symbolicator_status: missing
+        in_app: false
+        instruction_addr: '0x7ffe100d1471'
+        package: C:\Windows\System32\ntdll.dll
+        trust: scan
+      - data:
+          symbolicator_status: missing
+        in_app: false
+        instruction_addr: '0x7ffe0fd53034'
+        package: C:\Windows\System32\kernel32.dll
+        trust: scan
+      - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff75519224c'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff7551971e8'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff754b6efc6'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff754efc17c'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff758a670b0'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff754db0220'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff754f0021d'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff754e19759'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff755199769'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff758ae6d48'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff758a671f8'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - data:
+          symbolicator_status: missing
+        in_app: false
+        instruction_addr: '0x7ffe0ca99252'
+        package: C:\Windows\System32\KERNELBASE.dll
+        trust: scan
       - data:
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7ffe100f9f84'
         package: C:\Windows\System32\ntdll.dll
+        trust: context
       registers:
         r10: '0x0'
         r11: '0x246'
@@ -2646,50 +3570,77 @@ threads:
     stacktrace:
       frames:
       - data:
+          symbolicator_status: missing
+        in_app: false
+        instruction_addr: '0x7ffe100d1471'
+        package: C:\Windows\System32\ntdll.dll
+        trust: scan
+      - data:
+          symbolicator_status: missing
+        in_app: false
+        instruction_addr: '0x7ffe0fd53034'
+        package: C:\Windows\System32\kernel32.dll
+        trust: scan
+      - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff75519224c'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff7551971e8'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff754e44d8d'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff754e449af'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff758a670b0'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff754db0220'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff755199769'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff75517fbb1'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - data:
+          symbolicator_status: missing
+        in_app: false
+        instruction_addr: '0x7ffe0ca99252'
+        package: C:\Windows\System32\KERNELBASE.dll
+        trust: scan
       - data:
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7ffe100f9f84'
         package: C:\Windows\System32\ntdll.dll
+        trust: context
       registers:
         r10: '0x0'
         r11: '0x23d8e5b0000'
@@ -2713,50 +3664,77 @@ threads:
     stacktrace:
       frames:
       - data:
+          symbolicator_status: missing
+        in_app: false
+        instruction_addr: '0x7ffe100d1471'
+        package: C:\Windows\System32\ntdll.dll
+        trust: scan
+      - data:
+          symbolicator_status: missing
+        in_app: false
+        instruction_addr: '0x7ffe0fd53034'
+        package: C:\Windows\System32\kernel32.dll
+        trust: scan
+      - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff75519224c'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff7551971e8'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff754e44d8d'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff754e449af'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff758a670b0'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff754db0220'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff755199769'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff75517fbb1'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - data:
+          symbolicator_status: missing
+        in_app: false
+        instruction_addr: '0x7ffe0ca99252'
+        package: C:\Windows\System32\KERNELBASE.dll
+        trust: scan
       - data:
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7ffe100f9f84'
         package: C:\Windows\System32\ntdll.dll
+        trust: context
       registers:
         r10: '0x7ffef000'
         r11: '0x8c4137fa88'
@@ -2780,45 +3758,71 @@ threads:
     stacktrace:
       frames:
       - data:
+          symbolicator_status: missing
+        in_app: false
+        instruction_addr: '0x7ffe100d1471'
+        package: C:\Windows\System32\ntdll.dll
+        trust: scan
+      - data:
+          symbolicator_status: missing
+        in_app: false
+        instruction_addr: '0x7ffe0fd53034'
+        package: C:\Windows\System32\kernel32.dll
+        trust: scan
+      - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff75519224c'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff7551971e8'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff754e44d8d'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff754e449af'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff758a670b0'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff754db0220'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff755199769'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - data:
+          symbolicator_status: missing
+        in_app: false
+        instruction_addr: '0x7ffe0ca99252'
+        package: C:\Windows\System32\KERNELBASE.dll
+        trust: scan
       - data:
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7ffe100f9f84'
         package: C:\Windows\System32\ntdll.dll
+        trust: context
       registers:
         r10: '0x0'
         r11: '0x246'
@@ -2842,50 +3846,77 @@ threads:
     stacktrace:
       frames:
       - data:
+          symbolicator_status: missing
+        in_app: false
+        instruction_addr: '0x7ffe100d1471'
+        package: C:\Windows\System32\ntdll.dll
+        trust: scan
+      - data:
+          symbolicator_status: missing
+        in_app: false
+        instruction_addr: '0x7ffe0fd53034'
+        package: C:\Windows\System32\kernel32.dll
+        trust: scan
+      - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff75519224c'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff7551971e8'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff754e44d8d'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff754e449af'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff758a670b0'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff754db0220'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff755199769'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff75517fbb1'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - data:
+          symbolicator_status: missing
+        in_app: false
+        instruction_addr: '0x7ffe0ca99252'
+        package: C:\Windows\System32\KERNELBASE.dll
+        trust: scan
       - data:
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7ffe100f9f84'
         package: C:\Windows\System32\ntdll.dll
+        trust: context
       registers:
         r10: '0x0'
         r11: '0x246'
@@ -2911,8 +3942,15 @@ threads:
       - data:
           symbolicator_status: missing
         in_app: false
+        instruction_addr: '0x7ffe1007f856'
+        package: C:\Windows\System32\ntdll.dll
+        trust: scan
+      - data:
+          symbolicator_status: missing
+        in_app: false
         instruction_addr: '0x7ffe100fd854'
         package: C:\Windows\System32\ntdll.dll
+        trust: context
       registers:
         r10: '0x23df7327fc8'
         r11: '0x7ffe10178b20'
@@ -2936,50 +3974,77 @@ threads:
     stacktrace:
       frames:
       - data:
+          symbolicator_status: missing
+        in_app: false
+        instruction_addr: '0x7ffe100d1471'
+        package: C:\Windows\System32\ntdll.dll
+        trust: scan
+      - data:
+          symbolicator_status: missing
+        in_app: false
+        instruction_addr: '0x7ffe0fd53034'
+        package: C:\Windows\System32\kernel32.dll
+        trust: scan
+      - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff75519224c'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff7551971e8'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff7559e6610'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff754f70c36'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff754f2efca'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff755199769'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff7559ccee1'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff7559e7c57'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - data:
+          symbolicator_status: missing
+        in_app: false
+        instruction_addr: '0x7ffe0ca99252'
+        package: C:\Windows\System32\KERNELBASE.dll
+        trust: scan
       - data:
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7ffe100f9f84'
         package: C:\Windows\System32\ntdll.dll
+        trust: context
       registers:
         r10: '0x7ffef000'
         r11: '0x1'
@@ -3003,35 +4068,59 @@ threads:
     stacktrace:
       frames:
       - data:
+          symbolicator_status: missing
+        in_app: false
+        instruction_addr: '0x7ffe100d1471'
+        package: C:\Windows\System32\ntdll.dll
+        trust: scan
+      - data:
+          symbolicator_status: missing
+        in_app: false
+        instruction_addr: '0x7ffe0fd53034'
+        package: C:\Windows\System32\kernel32.dll
+        trust: scan
+      - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff75519224c'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff7551971e8'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff754e4b37f'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff756cba688'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff755199769'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - data:
+          symbolicator_status: missing
+        in_app: false
+        instruction_addr: '0x7ffe0ca99252'
+        package: C:\Windows\System32\KERNELBASE.dll
+        trust: scan
       - data:
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7ffe100f9f84'
         package: C:\Windows\System32\ntdll.dll
+        trust: context
       registers:
         r10: '0x0'
         r11: '0x246'
@@ -3057,8 +4146,21 @@ threads:
       - data:
           symbolicator_status: missing
         in_app: false
+        instruction_addr: '0x7ffe10083140'
+        package: C:\Windows\System32\ntdll.dll
+        trust: scan
+      - data:
+          symbolicator_status: missing
+        in_app: false
+        instruction_addr: '0x7ffe1007f856'
+        package: C:\Windows\System32\ntdll.dll
+        trust: scan
+      - data:
+          symbolicator_status: missing
+        in_app: false
         instruction_addr: '0x7ffe100fd854'
         package: C:\Windows\System32\ntdll.dll
+        trust: context
       registers:
         r10: '0x0'
         r11: '0x7ffe00d599b6'
@@ -3084,8 +4186,183 @@ threads:
       - data:
           symbolicator_status: missing
         in_app: false
+        instruction_addr: '0x7ffe100d1471'
+        package: C:\Windows\System32\ntdll.dll
+        trust: scan
+      - data:
+          symbolicator_status: missing
+        in_app: false
+        instruction_addr: '0x7ffe0fd53034'
+        package: C:\Windows\System32\kernel32.dll
+        trust: scan
+      - data:
+          symbolicator_status: missing
+        in_app: false
+        instruction_addr: '0x7ffe0e526d4c'
+        package: C:\Windows\System32\combase.dll
+        trust: scan
+      - data:
+          symbolicator_status: missing
+        in_app: false
+        instruction_addr: '0x7ffe0e4f102e'
+        package: C:\Windows\System32\combase.dll
+        trust: scan
+      - data:
+          symbolicator_status: missing
+        in_app: false
+        instruction_addr: '0x7ffe0e491671'
+        package: C:\Windows\System32\combase.dll
+        trust: scan
+      - data:
+          symbolicator_status: missing
+        in_app: false
+        instruction_addr: '0x7ffe0e4b8b37'
+        package: C:\Windows\System32\combase.dll
+        trust: scan
+      - data:
+          symbolicator_status: missing
+        in_app: false
+        instruction_addr: '0x7ffe0e48dff0'
+        package: C:\Windows\System32\combase.dll
+        trust: scan
+      - data:
+          symbolicator_status: missing
+        in_app: false
+        instruction_addr: '0x7ffe10072b55'
+        package: C:\Windows\System32\ntdll.dll
+        trust: scan
+      - data:
+          symbolicator_status: missing
+        in_app: false
+        instruction_addr: '0x7ffe0ca99be3'
+        package: C:\Windows\System32\KERNELBASE.dll
+        trust: scan
+      - data:
+          symbolicator_status: missing
+        in_app: false
+        instruction_addr: '0x7ffe100a70e0'
+        package: C:\Windows\System32\ntdll.dll
+        trust: scan
+      - data:
+          symbolicator_status: missing
+        in_app: false
+        instruction_addr: '0x7ffe10073755'
+        package: C:\Windows\System32\ntdll.dll
+        trust: scan
+      - data:
+          symbolicator_status: missing
+        in_app: false
+        instruction_addr: '0x7ffe100795c8'
+        package: C:\Windows\System32\ntdll.dll
+        trust: scan
+      - data:
+          symbolicator_status: missing
+        in_app: false
+        instruction_addr: '0x7ffe10077f34'
+        package: C:\Windows\System32\ntdll.dll
+        trust: scan
+      - data:
+          symbolicator_status: missing
+        in_app: false
+        instruction_addr: '0x7ffe101ba460'
+        package: C:\Windows\System32\ntdll.dll
+        trust: scan
+      - data:
+          symbolicator_status: missing
+        in_app: false
+        instruction_addr: '0x7ffe10078044'
+        package: C:\Windows\System32\ntdll.dll
+        trust: scan
+      - data:
+          symbolicator_status: missing
+        in_app: false
+        instruction_addr: '0x7ffe100793e8'
+        package: C:\Windows\System32\ntdll.dll
+        trust: scan
+      - data:
+          symbolicator_status: missing
+        in_app: false
+        instruction_addr: '0x7ffe0e494217'
+        package: C:\Windows\System32\combase.dll
+        trust: scan
+      - data:
+          symbolicator_status: missing
+        in_app: false
+        instruction_addr: '0x7ffe0caa75f9'
+        package: C:\Windows\System32\KERNELBASE.dll
+        trust: scan
+      - data:
+          symbolicator_status: missing
+        in_app: false
+        instruction_addr: '0x7ffe10072b55'
+        package: C:\Windows\System32\ntdll.dll
+        trust: scan
+      - data:
+          symbolicator_status: missing
+        in_app: false
+        instruction_addr: '0x7ffe100a70e0'
+        package: C:\Windows\System32\ntdll.dll
+        trust: scan
+      - data:
+          symbolicator_status: missing
+        in_app: false
+        instruction_addr: '0x7ffe100d305b'
+        package: C:\Windows\System32\ntdll.dll
+        trust: scan
+      - data:
+          symbolicator_status: missing
+        in_app: false
+        instruction_addr: '0x7ffe10060000'
+        package: C:\Windows\System32\ntdll.dll
+        trust: scan
+      - data:
+          symbolicator_status: missing
+        in_app: false
+        instruction_addr: '0x7ffe100d311e'
+        package: C:\Windows\System32\ntdll.dll
+        trust: scan
+      - data:
+          symbolicator_status: missing
+        in_app: false
+        instruction_addr: '0x7ffe10091b96'
+        package: C:\Windows\System32\ntdll.dll
+        trust: scan
+      - data:
+          symbolicator_status: missing
+        in_app: false
+        instruction_addr: '0x7ffe10091b76'
+        package: C:\Windows\System32\ntdll.dll
+        trust: scan
+      - data:
+          symbolicator_status: missing
+        in_app: false
+        instruction_addr: '0x7ffe07679bf0'
+        package: C:\Windows\System32\RTWorkQ.dll
+        trust: scan
+      - data:
+          symbolicator_status: missing
+        in_app: false
+        instruction_addr: '0x7ffe10091bae'
+        package: C:\Windows\System32\ntdll.dll
+        trust: scan
+      - data:
+          symbolicator_status: missing
+        in_app: false
+        instruction_addr: '0x7ffe07679bf0'
+        package: C:\Windows\System32\RTWorkQ.dll
+        trust: scan
+      - data:
+          symbolicator_status: missing
+        in_app: false
+        instruction_addr: '0x7ffe0caa6099'
+        package: C:\Windows\System32\KERNELBASE.dll
+        trust: scan
+      - data:
+          symbolicator_status: missing
+        in_app: false
         instruction_addr: '0x7ffe100faa54'
         package: C:\Windows\System32\ntdll.dll
+        trust: context
       registers:
         r10: '0x0'
         r11: '0x0'
@@ -3109,45 +4386,71 @@ threads:
     stacktrace:
       frames:
       - data:
+          symbolicator_status: missing
+        in_app: false
+        instruction_addr: '0x7ffe100d1471'
+        package: C:\Windows\System32\ntdll.dll
+        trust: scan
+      - data:
+          symbolicator_status: missing
+        in_app: false
+        instruction_addr: '0x7ffe0fd53034'
+        package: C:\Windows\System32\kernel32.dll
+        trust: scan
+      - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff75519224c'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff7551971e8'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff7549e3f3d'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff758a670b0'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff754db0220'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff755199769'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff754e3b984'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - data:
+          symbolicator_status: missing
+        in_app: false
+        instruction_addr: '0x7ffe0ca99252'
+        package: C:\Windows\System32\KERNELBASE.dll
+        trust: scan
       - data:
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7ffe100f9f84'
         package: C:\Windows\System32\ntdll.dll
+        trust: context
       registers:
         r10: '0x7ffef000'
         r11: '0x1'
@@ -3171,45 +4474,71 @@ threads:
     stacktrace:
       frames:
       - data:
+          symbolicator_status: missing
+        in_app: false
+        instruction_addr: '0x7ffe100d1471'
+        package: C:\Windows\System32\ntdll.dll
+        trust: scan
+      - data:
+          symbolicator_status: missing
+        in_app: false
+        instruction_addr: '0x7ffe0fd53034'
+        package: C:\Windows\System32\kernel32.dll
+        trust: scan
+      - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff75519224c'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff7551971e8'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff7549e3f3d'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff758a670b0'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff754db0220'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff755199769'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff754e3b984'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - data:
+          symbolicator_status: missing
+        in_app: false
+        instruction_addr: '0x7ffe0ca99252'
+        package: C:\Windows\System32\KERNELBASE.dll
+        trust: scan
       - data:
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7ffe100f9f84'
         package: C:\Windows\System32\ntdll.dll
+        trust: context
       registers:
         r10: '0x7ffef000'
         r11: '0x1'
@@ -3233,45 +4562,71 @@ threads:
     stacktrace:
       frames:
       - data:
+          symbolicator_status: missing
+        in_app: false
+        instruction_addr: '0x7ffe100d1471'
+        package: C:\Windows\System32\ntdll.dll
+        trust: scan
+      - data:
+          symbolicator_status: missing
+        in_app: false
+        instruction_addr: '0x7ffe0fd53034'
+        package: C:\Windows\System32\kernel32.dll
+        trust: scan
+      - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff75519224c'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff7551971e8'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff7549e3f3d'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff758a670b0'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff754db0220'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff755199769'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff754e3b984'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - data:
+          symbolicator_status: missing
+        in_app: false
+        instruction_addr: '0x7ffe0ca99252'
+        package: C:\Windows\System32\KERNELBASE.dll
+        trust: scan
       - data:
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7ffe100f9f84'
         package: C:\Windows\System32\ntdll.dll
+        trust: context
       registers:
         r10: '0x0'
         r11: '0x246'
@@ -3295,45 +4650,71 @@ threads:
     stacktrace:
       frames:
       - data:
+          symbolicator_status: missing
+        in_app: false
+        instruction_addr: '0x7ffe100d1471'
+        package: C:\Windows\System32\ntdll.dll
+        trust: scan
+      - data:
+          symbolicator_status: missing
+        in_app: false
+        instruction_addr: '0x7ffe0fd53034'
+        package: C:\Windows\System32\kernel32.dll
+        trust: scan
+      - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff75519224c'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff7551971e8'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff7549e3f3d'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff758a670b0'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff754db0220'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff755199769'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff754e3b984'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - data:
+          symbolicator_status: missing
+        in_app: false
+        instruction_addr: '0x7ffe0ca99252'
+        package: C:\Windows\System32\KERNELBASE.dll
+        trust: scan
       - data:
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7ffe100f9f84'
         package: C:\Windows\System32\ntdll.dll
+        trust: context
       registers:
         r10: '0x0'
         r11: '0x246'
@@ -3357,45 +4738,71 @@ threads:
     stacktrace:
       frames:
       - data:
+          symbolicator_status: missing
+        in_app: false
+        instruction_addr: '0x7ffe100d1471'
+        package: C:\Windows\System32\ntdll.dll
+        trust: scan
+      - data:
+          symbolicator_status: missing
+        in_app: false
+        instruction_addr: '0x7ffe0fd53034'
+        package: C:\Windows\System32\kernel32.dll
+        trust: scan
+      - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff75519224c'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff7551971e8'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff7549e3f3d'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff758a670b0'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff754db0220'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff755199769'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff754e3b984'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - data:
+          symbolicator_status: missing
+        in_app: false
+        instruction_addr: '0x7ffe0ca99252'
+        package: C:\Windows\System32\KERNELBASE.dll
+        trust: scan
       - data:
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7ffe100f9f84'
         package: C:\Windows\System32\ntdll.dll
+        trust: context
       registers:
         r10: '0x7ffef000'
         r11: '0x8c4195f7a8'
@@ -3419,45 +4826,71 @@ threads:
     stacktrace:
       frames:
       - data:
+          symbolicator_status: missing
+        in_app: false
+        instruction_addr: '0x7ffe100d1471'
+        package: C:\Windows\System32\ntdll.dll
+        trust: scan
+      - data:
+          symbolicator_status: missing
+        in_app: false
+        instruction_addr: '0x7ffe0fd53034'
+        package: C:\Windows\System32\kernel32.dll
+        trust: scan
+      - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff75519224c'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff7551971e8'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff7549e3f3d'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff758a670b0'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff754db0220'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff755199769'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff754e3b984'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - data:
+          symbolicator_status: missing
+        in_app: false
+        instruction_addr: '0x7ffe0ca99252'
+        package: C:\Windows\System32\KERNELBASE.dll
+        trust: scan
       - data:
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7ffe100f9f84'
         package: C:\Windows\System32\ntdll.dll
+        trust: context
       registers:
         r10: '0x0'
         r11: '0x246'
@@ -3481,45 +4914,71 @@ threads:
     stacktrace:
       frames:
       - data:
+          symbolicator_status: missing
+        in_app: false
+        instruction_addr: '0x7ffe100d1471'
+        package: C:\Windows\System32\ntdll.dll
+        trust: scan
+      - data:
+          symbolicator_status: missing
+        in_app: false
+        instruction_addr: '0x7ffe0fd53034'
+        package: C:\Windows\System32\kernel32.dll
+        trust: scan
+      - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff75519224c'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff7551971e8'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff7549e3f3d'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff758a670b0'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff754db0220'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff755199769'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff754e3b984'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - data:
+          symbolicator_status: missing
+        in_app: false
+        instruction_addr: '0x7ffe0ca99252'
+        package: C:\Windows\System32\KERNELBASE.dll
+        trust: scan
       - data:
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7ffe100f9f84'
         package: C:\Windows\System32\ntdll.dll
+        trust: context
       registers:
         r10: '0x7ffef000'
         r11: '0x1'
@@ -3543,45 +5002,71 @@ threads:
     stacktrace:
       frames:
       - data:
+          symbolicator_status: missing
+        in_app: false
+        instruction_addr: '0x7ffe100d1471'
+        package: C:\Windows\System32\ntdll.dll
+        trust: scan
+      - data:
+          symbolicator_status: missing
+        in_app: false
+        instruction_addr: '0x7ffe0fd53034'
+        package: C:\Windows\System32\kernel32.dll
+        trust: scan
+      - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff75519224c'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff7551971e8'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff7549e3f3d'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff758a670b0'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff754db0220'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff755199769'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff754e3b984'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - data:
+          symbolicator_status: missing
+        in_app: false
+        instruction_addr: '0x7ffe0ca99252'
+        package: C:\Windows\System32\KERNELBASE.dll
+        trust: scan
       - data:
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7ffe100f9f84'
         package: C:\Windows\System32\ntdll.dll
+        trust: context
       registers:
         r10: '0x7ffef000'
         r11: '0x1'
@@ -3609,36 +5094,49 @@ threads:
         in_app: false
         instruction_addr: '0x7ff757fb47f2'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff758adc9f8'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff758a670b0'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff754db0220'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff755199769'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff754e3b984'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - data:
+          symbolicator_status: missing
+        in_app: false
+        instruction_addr: '0x7ffe0ca99252'
+        package: C:\Windows\System32\KERNELBASE.dll
+        trust: scan
       - data:
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7ffe100f9f84'
         package: C:\Windows\System32\ntdll.dll
+        trust: context
       registers:
         r10: '0x23df7346090'
         r11: '0x8c419df480'
@@ -3662,50 +5160,77 @@ threads:
     stacktrace:
       frames:
       - data:
+          symbolicator_status: missing
+        in_app: false
+        instruction_addr: '0x7ffe100d1471'
+        package: C:\Windows\System32\ntdll.dll
+        trust: scan
+      - data:
+          symbolicator_status: missing
+        in_app: false
+        instruction_addr: '0x7ffe0fd53034'
+        package: C:\Windows\System32\kernel32.dll
+        trust: scan
+      - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff75519224c'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff7551971e8'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff754e4b37f'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff757aaf081'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff758a670b0'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff754db0220'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff7551976c3'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff754e3b984'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - data:
+          symbolicator_status: missing
+        in_app: false
+        instruction_addr: '0x7ffe0caa5e9a'
+        package: C:\Windows\System32\KERNELBASE.dll
+        trust: scan
       - data:
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7ffe100fa584'
         package: C:\Windows\System32\ntdll.dll
+        trust: context
       registers:
         r10: '0x0'
         r11: '0x246'
@@ -3731,8 +5256,105 @@ threads:
       - data:
           symbolicator_status: missing
         in_app: false
+        instruction_addr: '0x7ffe100d1471'
+        package: C:\Windows\System32\ntdll.dll
+        trust: scan
+      - data:
+          symbolicator_status: missing
+        in_app: false
+        instruction_addr: '0x7ffe0fd53034'
+        package: C:\Windows\System32\kernel32.dll
+        trust: scan
+      - data:
+          symbolicator_status: missing
+        in_app: false
+        instruction_addr: '0x7ffdd9762b8a'
+        package: C:\Windows\System32\XAudio2_7.dll
+        trust: scan
+      - data:
+          symbolicator_status: missing
+        in_app: false
+        instruction_addr: '0x7ffe0caa5f8e'
+        package: C:\Windows\System32\KERNELBASE.dll
+        trust: scan
+      - data:
+          symbolicator_status: missing
+        in_app: false
+        instruction_addr: '0x7ffdd9762891'
+        package: C:\Windows\System32\XAudio2_7.dll
+        trust: scan
+      - data:
+          symbolicator_status: missing
+        in_app: false
+        instruction_addr: '0x7ffdd97635b6'
+        package: C:\Windows\System32\XAudio2_7.dll
+        trust: scan
+      - data:
+          symbolicator_status: missing
+        in_app: false
+        instruction_addr: '0x7ffe0caa5f8e'
+        package: C:\Windows\System32\KERNELBASE.dll
+        trust: scan
+      - data:
+          symbolicator_status: missing
+        in_app: false
+        instruction_addr: '0x7ffe0ca99252'
+        package: C:\Windows\System32\KERNELBASE.dll
+        trust: scan
+      - data:
+          symbolicator_status: missing
+        in_app: false
+        instruction_addr: '0x7ffdde41bf48'
+        package: C:\Windows\System32\AudioSes.dll
+        trust: scan
+      - data:
+          symbolicator_status: missing
+        in_app: false
+        instruction_addr: '0x7ffdde31468b'
+        package: C:\Windows\System32\AudioSes.dll
+        trust: scan
+      - data:
+          symbolicator_status: missing
+        in_app: false
+        instruction_addr: '0x7ffe0ca886f2'
+        package: C:\Windows\System32\KERNELBASE.dll
+        trust: scan
+      - data:
+          symbolicator_status: missing
+        in_app: false
+        instruction_addr: '0x7ffdde314507'
+        package: C:\Windows\System32\AudioSes.dll
+        trust: scan
+      - data:
+          symbolicator_status: missing
+        in_app: false
+        instruction_addr: '0x7ffe0ca886f2'
+        package: C:\Windows\System32\KERNELBASE.dll
+        trust: scan
+      - data:
+          symbolicator_status: missing
+        in_app: false
+        instruction_addr: '0x7ffdde41bf48'
+        package: C:\Windows\System32\AudioSes.dll
+        trust: scan
+      - data:
+          symbolicator_status: missing
+        in_app: false
+        instruction_addr: '0x7ffdde3128e1'
+        package: C:\Windows\System32\AudioSes.dll
+        trust: scan
+      - data:
+          symbolicator_status: missing
+        in_app: false
+        instruction_addr: '0x7ffe0caa6099'
+        package: C:\Windows\System32\KERNELBASE.dll
+        trust: scan
+      - data:
+          symbolicator_status: missing
+        in_app: false
         instruction_addr: '0x7ffe100faa54'
         package: C:\Windows\System32\ntdll.dll
+        trust: context
       registers:
         r10: '0x7ffef000'
         r11: '0x23d8d4b3848'
@@ -3760,31 +5382,43 @@ threads:
         in_app: false
         instruction_addr: '0x7ff754d8ca09'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff754d89952'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff755199769'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff754d7a570'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff754da6f49'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - data:
+          symbolicator_status: missing
+        in_app: false
+        instruction_addr: '0x7ffe0ca99252'
+        package: C:\Windows\System32\KERNELBASE.dll
+        trust: scan
       - data:
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7ffe100f9f84'
         package: C:\Windows\System32\ntdll.dll
+        trust: context
       registers:
         r10: '0x23df7346090'
         r11: '0x8c43a4eff0'
@@ -3808,110 +5442,149 @@ threads:
     stacktrace:
       frames:
       - data:
+          symbolicator_status: missing
+        in_app: false
+        instruction_addr: '0x7ffe100d1471'
+        package: C:\Windows\System32\ntdll.dll
+        trust: scan
+      - data:
+          symbolicator_status: missing
+        in_app: false
+        instruction_addr: '0x7ffe0fd53034'
+        package: C:\Windows\System32\kernel32.dll
+        trust: scan
+      - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff75519224c'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff7551971e8'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff754e4b37f'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff7566cc3d7'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff7566cbf67'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff754d8d176'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff75501f8fc'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff75504b92d'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff754da6f49'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff754dc5267'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff754e349d6'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff754d8ca09'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff75a1e2338'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff75a1e2338'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff758a670b0'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff754db0220'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff754d89952'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff755199769'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff754d8f221'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff754e3419b'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - data:
+          symbolicator_status: missing
+        in_app: false
+        instruction_addr: '0x7ffe0ca99252'
+        package: C:\Windows\System32\KERNELBASE.dll
+        trust: scan
       - data:
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7ffe100f9f84'
         package: C:\Windows\System32\ntdll.dll
+        trust: context
       registers:
         r10: '0x7ffef000'
         r11: '0x1'
@@ -3935,80 +5608,113 @@ threads:
     stacktrace:
       frames:
       - data:
+          symbolicator_status: missing
+        in_app: false
+        instruction_addr: '0x7ffe100d1471'
+        package: C:\Windows\System32\ntdll.dll
+        trust: scan
+      - data:
+          symbolicator_status: missing
+        in_app: false
+        instruction_addr: '0x7ffe0fd53034'
+        package: C:\Windows\System32\kernel32.dll
+        trust: scan
+      - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff75519224c'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff7551971e8'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff7566cc508'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff758a671f8'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff759054684'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff7566be97c'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff759054684'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff7566ce2a3'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff758a670b0'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff754db0220'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff758a67a48'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff754d8f4e0'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff7551976c3'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
       - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff754d7feb8'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        trust: scan
+      - data:
+          symbolicator_status: missing
+        in_app: false
+        instruction_addr: '0x7ffe0caa5e9a'
+        package: C:\Windows\System32\KERNELBASE.dll
+        trust: scan
       - data:
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7ffe100fa584'
         package: C:\Windows\System32\ntdll.dll
+        trust: context
       registers:
         r10: '0x7ffef000'
         r11: '0x1'
