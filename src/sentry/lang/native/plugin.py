@@ -35,7 +35,7 @@ SYMBOLICATOR_FRAME_ATTRS = ("instruction_addr", "package", "lang", "symbol",
 
 
 def _is_symbolicator_enabled(project, data):
-    if options.get('symbolicator.enabled'):
+    if not options.get('symbolicator.enabled'):
         return False
 
     if project.get_option('sentry:symbolicator-enabled'):
