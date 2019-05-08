@@ -86,7 +86,7 @@ storiesOf('UI|Activity/Item/Components', module)
       'Activity bubble with arrow at the top-left. This should probably not be used directly unless creating a new component.'
     )(() => (
       <ActivityBubble
-        background={color('Background', '#fff')}
+        backgroundColor={color('Background', '#fff')}
         borderColor={color('Border', 'red')}
       >
         <div>Activity Bubble</div>
