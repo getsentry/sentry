@@ -288,6 +288,12 @@ matrix:
     - language: node_js
       env: STORYBOOK_BUILD=1
 
+    # XXX(ja): Should be removed once symbolicator's interface is more stable or
+    # tests have been refactored to be more lenient. At the moment, snapshots
+    # break every time when a new attribute is added or some secondary attribute
+    # is changed.
+    - env: TEST_SUITE=symbolicator
+
     # XXX(markus): Remove after rust interfaces are done
     - env: TEST_SUITE=postgres DB=postgres SENTRY_TEST_USE_RUST_INTERFACE_RENORMALIZATION=1
 
