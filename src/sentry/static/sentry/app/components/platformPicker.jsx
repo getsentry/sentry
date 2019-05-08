@@ -25,7 +25,7 @@ class PlatformPicker extends React.Component {
     setPlatform: PropTypes.func.isRequired,
     platform: PropTypes.string,
     showOther: PropTypes.bool,
-    listClass: PropTypes.string,
+    listProps: PropTypes.object,
   };
 
   static defaultProps = {
@@ -71,7 +71,7 @@ class PlatformPicker extends React.Component {
 
   render() {
     const platformList = this.platformList;
-    const {setPlatform, listClass} = this.props;
+    const {setPlatform, listProps} = this.props;
     const {filter, category} = this.state;
 
     return (
@@ -105,7 +105,7 @@ class PlatformPicker extends React.Component {
             />
           </SearchBar>
         </NavContainer>
-        <PlatformList className={listClass}>
+        <PlatformList {...listProps}>
           {platformList.map(platform => (
             <PlatformCard
               data-test-id={`platform-${platform.id}`}
