@@ -1,6 +1,6 @@
 import React from 'react';
 
-import {boolean} from '@storybook/addon-knobs';
+import {boolean, color} from '@storybook/addon-knobs';
 import {storiesOf} from '@storybook/react';
 import {withInfo} from '@storybook/addon-info';
 import ActivityAvatar from 'app/components/activity/item/avatar';
@@ -85,7 +85,10 @@ storiesOf('UI|Activity/Item/Components', module)
     withInfo(
       'Activity bubble with arrow at the top-left. This should probably not be used directly unless creating a new component.'
     )(() => (
-      <ActivityBubble>
+      <ActivityBubble
+        backgroundColor={color('Background', '#fff')}
+        borderColor={color('Border', 'red')}
+      >
         <div>Activity Bubble</div>
         <div>Activity Bubble</div>
         <div>Activity Bubble</div>
