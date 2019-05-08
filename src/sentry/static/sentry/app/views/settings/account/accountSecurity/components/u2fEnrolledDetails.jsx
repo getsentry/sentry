@@ -77,12 +77,12 @@ class U2fEnrolledDetails extends React.Component {
                     }
                   >
                     <Button size="small" priority="danger">
-                      <Tooltip
+                      <Tooltip2
                         disabled={!isLastDevice}
                         title={t('Can not remove last U2F device')}
                       >
                         <span className="icon icon-trash" />
-                      </Tooltip>
+                      </Tooltip2>
                     </Button>
                   </Confirm>
                 </Box>

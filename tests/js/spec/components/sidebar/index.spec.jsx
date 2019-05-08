@@ -67,7 +67,7 @@ describe('Sidebar', function() {
     expect(wrapper.find('OrgOrUserName').text()).toContain(organization.name);
     expect(wrapper.find('UserNameOrEmail').text()).toContain(user.name);
 
-    wrapper.find('SidebarCollapseItem').simulate('click');
+    wrapper.find('SidebarCollapseItem StyledSidebarItem').simulate('click');
     await tick();
     wrapper.update();
 
@@ -75,13 +75,13 @@ describe('Sidebar', function() {
     // Instead check for `SidebarItemLabel` which doesn't exist in collapsed state
     expect(wrapper.find('SidebarItemLabel')).toHaveLength(0);
 
-    wrapper.find('SidebarCollapseItem').simulate('click');
+    wrapper.find('SidebarCollapseItem StyledSidebarItem').simulate('click');
     await tick();
     wrapper.update();
     expect(wrapper.find('SidebarItemLabel').length).toBeGreaterThan(0);
   });
 
-  it('can have onboarding feature', function() {
+  it('can have onboarding feature', async function() {
     wrapper = mount(
       <SidebarContainer
         organization={{...organization, features: ['onboarding']}}
@@ -95,6 +95,7 @@ describe('Sidebar', function() {
 
     wrapper.find('[data-test-id="onboarding-progress-bar"]').simulate('click');
     wrapper.update();
+
     expect(wrapper.find('OnboardingStatus SidebarPanel')).toMatchSnapshot();
   });
 

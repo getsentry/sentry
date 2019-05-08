@@ -5,7 +5,7 @@ import {t} from 'app/locale';
 import {DESCRIPTIONS} from 'app/views/settings/organizationDeveloperSettings/constants';
 import styled from 'react-emotion';
 import Checkbox from 'app/components/checkbox';
-import Tooltip from 'app/components/tooltip';
+import Tooltip2 from 'app/components/tooltip2';
 import {Flex} from 'grid-emotion';
 
 export default class SubscriptionBox extends React.Component {
@@ -37,7 +37,7 @@ export default class SubscriptionBox extends React.Component {
     return (
       <React.Fragment>
         <SubscriptionGridItemWrapper key={resource}>
-          <Tooltip disabled={!disabled} title={message}>
+          <Tooltip2 disabled={!disabled} title={message}>
             <SubscriptionGridItem disabled={disabled}>
               <SubscriptionInfo>
                 <SubscriptionTitle>{t(`${resource}`)}</SubscriptionTitle>
@@ -54,7 +54,7 @@ export default class SubscriptionBox extends React.Component {
                 onChange={this.onChange}
               />
             </SubscriptionGridItem>
-          </Tooltip>
+          </Tooltip2>
         </SubscriptionGridItemWrapper>
       </React.Fragment>
     );

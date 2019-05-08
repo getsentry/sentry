@@ -33,6 +33,6 @@ describe('SubscriptionBox', () => {
 
   it('renders tooltip when checkbox is disabled', () => {
     wrapper.setProps({disabled: true});
-    expect(wrapper.find('Tooltip').prop('disabled')).toBe(false);
+    expect(wrapper.find('Tooltip2').prop('disabled')).toBe(false);
   });
 });

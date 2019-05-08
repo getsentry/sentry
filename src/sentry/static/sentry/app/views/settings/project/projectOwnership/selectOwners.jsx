@@ -19,7 +19,7 @@ import ActorAvatar from 'app/components/actorAvatar';
 import SentryTypes from 'app/sentryTypes';
 import Button from 'app/components/button';
 import InlineSvg from 'app/components/inlineSvg';
-import Tooltip from 'app/components/tooltip';
+import Tooltip2 from 'app/components/tooltip2';
 
 class ValueComponent extends React.Component {
   static propTypes = {
@@ -105,12 +105,12 @@ export default class SelectOwners extends React.Component {
       disabled: true,
       label: (
         <DisabledLabel>
-          <Tooltip
-            tooltipOptions={{container: 'body', placement: 'left'}}
+          <Tooltip2
+            position="left"
             title={t('%s is not a member of project', user.name || user.email)}
           >
             {this.renderUserBadge(user)}
-          </Tooltip>
+          </Tooltip2>
         </DisabledLabel>
       ),
     };
@@ -139,14 +139,14 @@ export default class SelectOwners extends React.Component {
       label: (
         <Flex justify="space-between">
           <DisabledLabel>
-            <Tooltip
-              tooltipOptions={{container: 'body', placement: 'left'}}
+            <Tooltip2
+              position="left"
               title={t('%s is not a member of project', `#${team.slug}`)}
             >
               <IdBadge team={team} />
-            </Tooltip>
+            </Tooltip2>
           </DisabledLabel>
-          <Tooltip
+          <Tooltip2
             title={
               canAddTeam
                 ? t('Add %s to project', `#${team.slug}`)
@@ -161,7 +161,7 @@ export default class SelectOwners extends React.Component {
             >
               <InlineSvg src="icon-circle-add" />
             </AddToProjectButton>
-          </Tooltip>
+          </Tooltip2>
         </Flex>
       ),
     };

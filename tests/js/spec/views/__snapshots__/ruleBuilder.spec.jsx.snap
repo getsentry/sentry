@@ -791,14 +791,10 @@ exports[`RuleBuilder renders 1`] = `
                                     justify="space-between"
                                   >
                                     <DisabledLabel>
-                                      <Tooltip
+                                      <Tooltip2
+                                        containerDisplayMode="inline-block"
+                                        position="left"
                                         title="#team-not-in-project is not a member of project"
-                                        tooltipOptions={
-                                          Object {
-                                            "container": "body",
-                                            "placement": "left",
-                                          }
-                                        }
                                       >
                                         <IdBadge
                                           team={
@@ -811,9 +807,11 @@ exports[`RuleBuilder renders 1`] = `
                                             }
                                           }
                                         />
-                                      </Tooltip>
+                                      </Tooltip2>
                                     </DisabledLabel>
-                                    <Tooltip
+                                    <Tooltip2
+                                      containerDisplayMode="inline-block"
+                                      position="top"
                                       title="Add #team-not-in-project to project"
                                     >
                                       <AddToProjectButton
@@ -826,7 +824,7 @@ exports[`RuleBuilder renders 1`] = `
                                           src="icon-circle-add"
                                         />
                                       </AddToProjectButton>
-                                    </Tooltip>
+                                    </Tooltip2>
                                   </Flex>,
                                   "searchKey": "#team-not-in-project",
                                   "value": "team:4",
@@ -839,14 +837,10 @@ exports[`RuleBuilder renders 1`] = `
                                   },
                                   "disabled": true,
                                   "label": <DisabledLabel>
-                                    <Tooltip
+                                    <Tooltip2
+                                      containerDisplayMode="inline-block"
+                                      position="left"
                                       title="John Smith is not a member of project"
-                                      tooltipOptions={
-                                        Object {
-                                          "container": "body",
-                                          "placement": "left",
-                                        }
-                                      }
                                     >
                                       <IdBadge
                                         avatarSize={24}
@@ -860,7 +854,7 @@ exports[`RuleBuilder renders 1`] = `
                                           }
                                         }
                                       />
-                                    </Tooltip>
+                                    </Tooltip2>
                                   </DisabledLabel>,
                                   "searchKey": "johnsmith@example.com john smith",
                                   "value": "user:2",
@@ -2361,14 +2355,10 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                                     justify="space-between"
                                   >
                                     <DisabledLabel>
-                                      <Tooltip
+                                      <Tooltip2
+                                        containerDisplayMode="inline-block"
+                                        position="left"
                                         title="#team-not-in-project is not a member of project"
-                                        tooltipOptions={
-                                          Object {
-                                            "container": "body",
-                                            "placement": "left",
-                                          }
-                                        }
                                       >
                                         <IdBadge
                                           team={
@@ -2381,9 +2371,11 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                                             }
                                           }
                                         />
-                                      </Tooltip>
+                                      </Tooltip2>
                                     </DisabledLabel>
-                                    <Tooltip
+                                    <Tooltip2
+                                      containerDisplayMode="inline-block"
+                                      position="top"
                                       title="Add #team-not-in-project to project"
                                     >
                                       <AddToProjectButton
@@ -2396,7 +2388,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                                           src="icon-circle-add"
                                         />
                                       </AddToProjectButton>
-                                    </Tooltip>
+                                    </Tooltip2>
                                   </Flex>,
                                   "searchKey": "#team-not-in-project",
                                   "value": "team:4",
@@ -2409,14 +2401,10 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                                   },
                                   "disabled": true,
                                   "label": <DisabledLabel>
-                                    <Tooltip
+                                    <Tooltip2
+                                      containerDisplayMode="inline-block"
+                                      position="left"
                                       title="John Smith is not a member of project"
-                                      tooltipOptions={
-                                        Object {
-                                          "container": "body",
-                                          "placement": "left",
-                                        }
-                                      }
                                     >
                                       <IdBadge
                                         avatarSize={24}
@@ -2430,7 +2418,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                                           }
                                         }
                                       />
-                                    </Tooltip>
+                                    </Tooltip2>
                                   </DisabledLabel>,
                                   "searchKey": "johnsmith@example.com john smith",
                                   "value": "user:2",
