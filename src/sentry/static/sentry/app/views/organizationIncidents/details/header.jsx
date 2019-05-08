@@ -10,13 +10,57 @@ import InlineSvg from 'app/components/inlineSvg';
 import {PageHeader} from 'app/styles/organization';
 import space from 'app/styles/space';
 import SubscribeButton from 'app/components/subscribeButton';
+import DropdownControl from 'app/components/dropdownControl';
+import MenuItem from 'app/components/menuItem';
+import Access from 'app/components/acl/access';
+import DropdownButton from 'app/components/dropdownButton';
+
+import Status from '../status';
+import {isOpen} from '../utils';
 
 export default class IncidentHeader extends React.Component {
   static propTypes = {
     incident: SentryTypes.Incident,
     params: PropTypes.object.isRequired,
     onSubscriptionChange: PropTypes.func.isRequired,
+    onStatusChange: PropTypes.func.isRequired,
   };
+
+  renderStatus() {
+    const {incident, onStatusChange} = this.props;
+
+    const isIncidentOpen = isOpen(incident);
+
+    return (
+      <Access
+        access={['org:write']}
+        renderNoAccessMessage={() => <Status incident={incident} />}
+      >
+        <DropdownControl
+          button={
+            // eslint-disable-next-line no-shadow
+            ({getActorProps, isOpen}) => (
+              <DropdownButton {...getActorProps()} isOpen={isOpen}>
+                <Status incident={incident} />
+              </DropdownButton>
+            )
+          }
+          menuWidth="160px"
+        >
+          {isIncidentOpen && (
+            <StyledMenuItem onSelect={onStatusChange}>
+              {t('Close this incident')}
+            </StyledMenuItem>
+          )}
+          {!isIncidentOpen && (
+            <StyledMenuItem onSelect={onStatusChange}>
+              {t('Reopen this incident')}
+            </StyledMenuItem>
+          )}
+        </DropdownControl>
+      </Access>
+    );
+  }
 
   render() {
     const {incident, params, onSubscriptionChange} = this.props;
@@ -37,6 +81,10 @@ export default class IncidentHeader extends React.Component {
         </HeaderItem>
         {incident && (
           <GroupedHeaderItems>
+            <HeaderItem>
+              <ItemTitle>{t('Status')}</ItemTitle>
+              <ItemValue>{this.renderStatus()}</ItemValue>
+            </HeaderItem>
             <HeaderItem>
               <ItemTitle>{t('Event count')}</ItemTitle>
               <ItemValue>{incident.eventCount}</ItemValue>
@@ -103,4 +151,10 @@ const IncidentsLink = styled(Link)`
 const Chevron = styled(InlineSvg)`
   color: ${p => p.theme.gray1};
   margin: 0 ${space(0.5)};
+`;
+
+const StyledMenuItem = styled(MenuItem)`
+  font-size: ${p => p.theme.fontSizeMedium};
+  text-align: left;
+  padding: ${space(1)};
 `;

@@ -10,7 +10,13 @@ import {t} from 'app/locale';
 
 import IncidentHeader from './header';
 import Incidents from './incidents';
-import {fetchIncident, updateSubscription} from '../utils';
+import {
+  INCIDENT_STATUS,
+  fetchIncident,
+  updateSubscription,
+  updateStatus,
+  isOpen,
+} from '../utils';
 
 class OrganizationIncidentDetails extends React.Component {
   static propTypes = {
@@ -63,6 +69,27 @@ class OrganizationIncidentDetails extends React.Component {
       });
   };
 
+  handleStatusChange = () => {
+    const {
+      api,
+      params: {orgId, incidentId},
+    } = this.props;
+
+    const status = isOpen(this.state.incident)
+      ? INCIDENT_STATUS.CLOSED
+      : INCIDENT_STATUS.CREATED;
+
+    updateStatus(api, orgId, incidentId, status)
+      .then(() => {
+        this.setState(state => ({
+          incident: {...state.incident, status},
+        }));
+      })
+      .catch(() => {
+        addErrorMessage(t('An error occurred, your incident status was not changed.'));
+      });
+  };
+
   render() {
     const {incident, isLoading, hasError} = this.state;
 
@@ -72,6 +99,7 @@ class OrganizationIncidentDetails extends React.Component {
           params={this.props.params}
           incident={incident}
           onSubscriptionChange={this.handleSubscriptionChange}
+          onStatusChange={this.handleStatusChange}
         />
         {incident && <Incidents incident={incident} />}
         {isLoading && (

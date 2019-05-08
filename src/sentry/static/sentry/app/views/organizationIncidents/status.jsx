@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
 
@@ -10,17 +11,19 @@ import {isOpen} from './utils';
 
 export default class Status extends React.Component {
   static propTypes = {
+    className: PropTypes.string,
     incident: SentryTypes.Incident.isRequired,
   };
 
   render() {
-    const isIncidentOpen = isOpen(this.props.incident);
+    const {className, incident} = this.props;
+    const isIncidentOpen = isOpen(incident);
 
     const icon = isIncidentOpen ? 'icon-circle-exclamation' : 'icon-circle-check';
     const text = isIncidentOpen ? t('Open') : t('Closed');
 
     return (
-      <Container>
+      <Container className={className}>
         <Icon src={icon} isOpen={isIncidentOpen} />
         {text}
       </Container>
