@@ -1039,29 +1039,80 @@ exports[`GroupReleaseStats renders 1`] = `
             <dd
               key="1"
             >
-              <Tooltip
-                title="<div style=\\"width:170px\\"><div class=\\"time-label\\">First seen</div><dl class=\\"flat\\"><dt>Globally:</dt><dd><time dateTime=\\"2019-04-05T19:44:05.963Z\\" title=\\"April 5, 2019 12:44 PM PDT\\">in a year</time><br/></dd></dl></div>"
-                tooltipOptions={
-                  Object {
-                    "html": true,
-                  }
+              <Tooltip2
+                containerDisplayMode="inline-block"
+                position="top"
+                title={
+                  <div
+                    style={
+                      Object {
+                        "width": 170,
+                      }
+                    }
+                  >
+                    <div
+                      className="time-label"
+                    >
+                      First seen
+                    </div>
+                    <dl
+                      className="flat"
+                    >
+                      <dt>
+                        Globally:
+                      </dt>
+                      <dd>
+                        <TimeSince
+                          date="2019-04-05T19:44:05.963Z"
+                          suffix="ago"
+                        />
+                        <br />
+                      </dd>
+                    </dl>
+                  </div>
                 }
               >
-                <TimeSince
-                  className="tip dotted-underline"
-                  date="2019-04-05T19:44:05.963Z"
-                  suffix="ago"
-                  title="<div style=\\"width:170px\\"><div class=\\"time-label\\">First seen</div><dl class=\\"flat\\"><dt>Globally:</dt><dd><time dateTime=\\"2019-04-05T19:44:05.963Z\\" title=\\"April 5, 2019 12:44 PM PDT\\">in a year</time><br/></dd></dl></div>"
-                >
-                  <time
-                    className="tip dotted-underline"
-                    dateTime="2019-04-05T19:44:05.963Z"
-                    title="April 5, 2019 12:44 PM PDT"
-                  >
-                    in a year
-                  </time>
-                </TimeSince>
-              </Tooltip>
+                <Manager>
+                  <Reference>
+                    <InnerReference
+                      setReferenceNode={[Function]}
+                    >
+                      <Container
+                        aria-describedby="tooltip-123456"
+                        containerDisplayMode="inline-block"
+                        innerRef={[Function]}
+                        onBlur={[Function]}
+                        onFocus={[Function]}
+                        onMouseEnter={[Function]}
+                        onMouseLeave={[Function]}
+                      >
+                        <span
+                          aria-describedby="tooltip-123456"
+                          className="css-1m3e0hg-Container e7ebgxc0"
+                          onBlur={[Function]}
+                          onFocus={[Function]}
+                          onMouseEnter={[Function]}
+                          onMouseLeave={[Function]}
+                        >
+                          <TimeSince
+                            className="dotted-underline"
+                            date="2019-04-05T19:44:05.963Z"
+                            suffix="ago"
+                          >
+                            <time
+                              className="dotted-underline"
+                              dateTime="2019-04-05T19:44:05.963Z"
+                              title="April 5, 2019 12:44 PM PDT"
+                            >
+                              in a year
+                            </time>
+                          </TimeSince>
+                        </span>
+                      </Container>
+                    </InnerReference>
+                  </Reference>
+                </Manager>
+              </Tooltip2>
               <br />
               <small>
                 <DateTime
@@ -1127,29 +1178,80 @@ exports[`GroupReleaseStats renders 1`] = `
             <dd
               key="1"
             >
-              <Tooltip
-                title="<div style=\\"width:170px\\"><div class=\\"time-label\\">Last seen</div><dl class=\\"flat\\"><dt>Globally:</dt><dd><time dateTime=\\"2019-04-11T01:08:59.000Z\\" title=\\"April 10, 2019 6:08 PM PDT\\">in a year</time><br/></dd></dl></div>"
-                tooltipOptions={
-                  Object {
-                    "html": true,
-                  }
+              <Tooltip2
+                containerDisplayMode="inline-block"
+                position="top"
+                title={
+                  <div
+                    style={
+                      Object {
+                        "width": 170,
+                      }
+                    }
+                  >
+                    <div
+                      className="time-label"
+                    >
+                      Last seen
+                    </div>
+                    <dl
+                      className="flat"
+                    >
+                      <dt>
+                        Globally:
+                      </dt>
+                      <dd>
+                        <TimeSince
+                          date="2019-04-11T01:08:59Z"
+                          suffix="ago"
+                        />
+                        <br />
+                      </dd>
+                    </dl>
+                  </div>
                 }
               >
-                <TimeSince
-                  className="tip dotted-underline"
-                  date="2019-04-11T01:08:59Z"
-                  suffix="ago"
-                  title="<div style=\\"width:170px\\"><div class=\\"time-label\\">Last seen</div><dl class=\\"flat\\"><dt>Globally:</dt><dd><time dateTime=\\"2019-04-11T01:08:59.000Z\\" title=\\"April 10, 2019 6:08 PM PDT\\">in a year</time><br/></dd></dl></div>"
-                >
-                  <time
-                    className="tip dotted-underline"
-                    dateTime="2019-04-11T01:08:59.000Z"
-                    title="April 10, 2019 6:08 PM PDT"
-                  >
-                    in a year
-                  </time>
-                </TimeSince>
-              </Tooltip>
+                <Manager>
+                  <Reference>
+                    <InnerReference
+                      setReferenceNode={[Function]}
+                    >
+                      <Container
+                        aria-describedby="tooltip-123456"
+                        containerDisplayMode="inline-block"
+                        innerRef={[Function]}
+                        onBlur={[Function]}
+                        onFocus={[Function]}
+                        onMouseEnter={[Function]}
+                        onMouseLeave={[Function]}
+                      >
+                        <span
+                          aria-describedby="tooltip-123456"
+                          className="css-1m3e0hg-Container e7ebgxc0"
+                          onBlur={[Function]}
+                          onFocus={[Function]}
+                          onMouseEnter={[Function]}
+                          onMouseLeave={[Function]}
+                        >
+                          <TimeSince
+                            className="dotted-underline"
+                            date="2019-04-11T01:08:59Z"
+                            suffix="ago"
+                          >
+                            <time
+                              className="dotted-underline"
+                              dateTime="2019-04-11T01:08:59.000Z"
+                              title="April 10, 2019 6:08 PM PDT"
+                            >
+                              in a year
+                            </time>
+                          </TimeSince>
+                        </span>
+                      </Container>
+                    </InnerReference>
+                  </Reference>
+                </Manager>
+              </Tooltip2>
               <br />
               <small>
                 <DateTime

@@ -5,7 +5,7 @@ import {isObject} from 'lodash';
 import AsyncComponent from 'app/components/asyncComponent';
 import DropdownAutoComplete from 'app/components/dropdownAutoComplete';
 import DropdownButton from 'app/components/dropdownButton';
-import Tooltip from 'app/components/tooltip';
+import Tooltip2 from 'app/components/tooltip2';
 
 import EventDataSection from 'app/components/events/eventDataSection';
 import SentryTypes from 'app/sentryTypes';
@@ -233,11 +233,11 @@ class GroupingConfigSelect extends AsyncComponent {
         })}
       >
         {({isOpen}) => (
-          <Tooltip title="Click here to experiment with other grouping configs">
+          <Tooltip2 title="Click here to experiment with other grouping configs">
             <DropdownButton isOpen={isOpen} size="small" style={{fontWeight: 'inherit'}}>
               {renderIdLabel(configId)}
             </DropdownButton>
-          </Tooltip>
+          </Tooltip2>
         )}
       </DropdownAutoComplete>
     );

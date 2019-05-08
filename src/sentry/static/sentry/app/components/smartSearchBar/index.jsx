@@ -23,7 +23,6 @@ import CreateSavedSearchButton from 'app/views/stream/createSavedSearchButton';
 import InlineSvg from 'app/components/inlineSvg';
 import MemberListStore from 'app/stores/memberListStore';
 import SentryTypes from 'app/sentryTypes';
-import Tooltip from 'app/components/tooltip';
 import space from 'app/styles/space';
 import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
@@ -770,18 +769,18 @@ class SmartSearchBar extends React.Component {
               query={this.state.query}
               organization={organization}
             />
-            <Tooltip title={pinTooltip}>
-              <Button
-                type="button"
-                borderless
-                aria-label={pinTooltip}
-                size="zero"
-                onClick={this.onTogglePinnedSearch}
-              >
-                <PinIcon isPinned={!!pinnedSearch} src={pinIconSrc} />
-              </Button>
-            </Tooltip>
+            <Button
+              type="button"
+              title={pinTooltip}
+              borderless
+              aria-label={pinTooltip}
+              size="zero"
+              onClick={this.onTogglePinnedSearch}
+            >
+              <PinIcon isPinned={!!pinnedSearch} src={pinIconSrc} />
+            </Button>
             <SidebarButton
+              title={t('Toggle search builder')}
               borderless
               size="zero"
               aria-label={t('Toggle search builder')}
@@ -897,6 +896,7 @@ const Container = styled('div')`
 
 const ButtonBar = styled('div')`
   display: flex;
+  padding-top: 9px;
   justify-content: flex-end;
   margin-right: ${space(1)};
 
@@ -927,7 +927,8 @@ const StyledInput = styled('input')`
 
   font-size: ${p => p.theme.fontSizeMedium};
   width: 100%;
-  height: 100%;
+  height: 40px;
+  line-height: 40px;
   padding: 0 0 0 ${space(1)};
 
   &::placeholder {

@@ -38,10 +38,16 @@ class Tooltip2 extends React.Component {
      * Additional style rules for the tooltip content.
      */
     popperStyle: PropTypes.oneOfType([PropTypes.string, PropTypes.object]),
+
+    /**
+     * Display mode for the container element
+     */
+    containerDisplayMode: PropTypes.oneOf(['block', 'inline-block', 'inline']),
   };
 
   static defaultProps = {
     position: 'top',
+    containerDisplayMode: 'inline-block',
   };
 
   constructor(props) {
@@ -80,11 +86,13 @@ class Tooltip2 extends React.Component {
       onMouseEnter: this.handleOpen,
       onMouseLeave: this.handleClose,
     };
+
     // Use the `type` property of the react instance to detect whether we
     // have a basic element (type=string) or a class/function component (type=function)
     // Because we can't rely on the child element implementing forwardRefs we wrap
     // it with a span tag so that popper has ref
     if (children.type instanceof Function) {
+      propList.containerDisplayMode = this.props.containerDisplayMode;
       return (
         <Container {...propList} innerRef={ref}>
           {children}
@@ -101,7 +109,7 @@ class Tooltip2 extends React.Component {
   render() {
     const {disabled, children, title, position, popperStyle} = this.props;
     const {isOpen} = this.state;
-    if (disabled) {
+    if (disabled || title === '') {
       return children;
     }
 
@@ -153,7 +161,7 @@ class Tooltip2 extends React.Component {
 // Using an inline-block solves the container being smaller
 // than the elements it is wrapping
 const Container = styled('span')`
-  display: inline-block;
+  display: ${p => p.containerDisplayMode};
 `;
 
 const TooltipContent = styled('span')`
