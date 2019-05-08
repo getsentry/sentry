@@ -896,7 +896,7 @@ const Container = styled('div')`
 
 const ButtonBar = styled('div')`
   display: flex;
-  padding-top: 12px;
+  padding-top: 9px;
   justify-content: flex-end;
   margin-right: ${space(1)};
 
