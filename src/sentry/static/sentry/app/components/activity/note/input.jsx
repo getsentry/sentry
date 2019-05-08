@@ -2,16 +2,17 @@ import {MentionsInput, Mention} from 'react-mentions';
 import PropTypes from 'prop-types';
 import React from 'react';
 import marked from 'marked';
-import styled, {css} from 'react-emotion';
+import styled from 'react-emotion';
 
 import {t} from 'app/locale';
 import Button from 'app/components/button';
 import NavTabs from 'app/components/navTabs';
 import SentryTypes from 'app/sentryTypes';
-import mentionsStyle from 'app/../styles/mentions-styles';
 import space from 'app/styles/space';
 import textStyles from 'app/styles/text';
 import withApi from 'app/utils/withApi';
+
+import mentionStyle from './mentionStyle';
 
 const buildUserId = id => `user:${id}`;
 const buildTeamId = id => `team:${id}`;
@@ -38,6 +39,11 @@ class NoteInput extends React.Component {
     placeholder: PropTypes.string,
     busy: PropTypes.bool,
 
+    /**
+     * minimum height of the textarea
+     */
+    minHeight: PropTypes.number,
+
     onEditFinish: PropTypes.func,
     onUpdate: PropTypes.func,
     onCreate: PropTypes.func,
@@ -47,6 +53,7 @@ class NoteInput extends React.Component {
   static defaultProps = {
     placeholder: t('Add a comment.\nTag users with @, or teams with #'),
     defaultText: '',
+    minHeight: 140,
     busy: false,
   };
 
@@ -184,7 +191,7 @@ class NoteInput extends React.Component {
 
   render() {
     const {preview, value} = this.state;
-    const {busy, item, error, placeholder, errorJSON} = this.props;
+    const {busy, item, error, placeholder, minHeight, errorJSON} = this.props;
 
     const existingItem = !!item;
     const btnText = existingItem ? t('Save Comment') : t('Post Comment');
@@ -224,11 +231,12 @@ class NoteInput extends React.Component {
         <NoteInputBody>
           {preview ? (
             <NotePreview
+              minHeight={minHeight}
               dangerouslySetInnerHTML={{__html: marked(this.cleanMarkdown(value))}}
             />
           ) : (
             <MentionsInput
-              style={mentionsStyle}
+              style={mentionStyle({minHeight})}
               placeholder={placeholder}
               onChange={this.handleChange}
               onBlur={this.handleBlur}
@@ -282,17 +290,18 @@ export {NoteInput};
 export default withApi(NoteInput);
 
 // This styles both the note preview and the note editor input
-const notePreviewCss = css`
-  display: block;
-  width: 100%;
-  min-height: 140px;
+const getNotePreviewCss = p => {
+  const {minHeight, padding, overflow, border} = mentionStyle(p)['&multiLine'].input;
+
+  return `
   max-height: 1000px;
   max-width: 100%;
-  margin: 0;
-  border: 0;
-  padding: ${space(1.5)} ${space(2)} 0;
-  overflow: auto;
+  ${(minHeight && `min-height: ${minHeight}px`) || ''};
+  padding: ${padding};
+  overflow: ${overflow};
+  border: ${border};
 `;
+};
 
 const getNoteInputErrorStyles = p => {
   if (!p.error) {
@@ -339,10 +348,6 @@ const NoteInputForm = styled('form')`
   transition: padding 0.2s ease-in-out;
 
   ${getNoteInputErrorStyles}
-
-  textarea {
-    ${notePreviewCss};
-  }
 `;
 
 const NoteInputBody = styled('div')`
@@ -417,7 +422,6 @@ const MarkdownIcon = styled('span')`
 `;
 
 const NotePreview = styled('div')`
-  ${notePreviewCss};
-
+  ${getNotePreviewCss};
   padding-bottom: ${space(1)};
 `;
