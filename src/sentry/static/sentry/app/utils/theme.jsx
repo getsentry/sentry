@@ -90,6 +90,7 @@ const theme = {
     sidebar: 1010,
     orgAndUserMenu: 1011,
 
+    // tooltips and hovercards
     tooltip: 1070,
 
     // Sentry user feedback modal
