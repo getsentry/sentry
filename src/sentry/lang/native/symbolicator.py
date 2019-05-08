@@ -230,7 +230,7 @@ def get_sources_for_project(project):
 
 def _get_default_headers(project_id):
     # Required for load balancing
-    return {'X-Sentry-Project-Id': project_id}
+    return {'x-sentry-project-id': project_id}
 
 
 def create_minidump_task(sess, base_url, project_id, sources, minidump):
