@@ -85,7 +85,7 @@ def translate(pat):
 event_search_grammar = Grammar(r"""
 search               = (boolean_term / paren_term / search_term)*
 boolean_term         = (paren_term / search_term) space? (boolean_operator space? (paren_term / search_term) space?)+
-paren_term           = space? paren space? (paren_term / boolean_term)+ space? paren space?
+paren_term           = space? open_paren space? (paren_term / boolean_term)+ space? closed_paren space?
 search_term          = key_val_term / quoted_raw_search / raw_search
 key_val_term         = space? (time_filter / rel_time_filter / specific_time_filter
                        / numeric_filter / has_filter / is_filter / basic_filter)
@@ -124,7 +124,8 @@ rel_date_format      = ~r"[\+\-][0-9]+[wdhm](?=\s|$)"
 # even if the operator is <=
 boolean_operator     = "OR" / "AND"
 operator             = ">=" / "<=" / ">" / "<" / "=" / "!="
-paren                = ")" / "("
+open_paren           = "("
+closed_paren         = ")"
 sep                  = ":"
 space                = " "
 negation             = "!"
@@ -458,7 +459,10 @@ class SearchVisitor(NodeVisitor):
     def visit_search_value(self, node, children):
         return SearchValue(children[0])
 
-    def visit_paren(self, node, children):
+    def visit_closed_paren(self, node, children):
+        return node.text
+
+    def visit_open_paren(self, node, children):
         return node.text
 
     def visit_boolean_operator(self, node, children):

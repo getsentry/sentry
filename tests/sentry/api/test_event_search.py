@@ -916,6 +916,10 @@ class ParseBooleanSearchQueryTest(TestCase):
             )
         )]
 
+    def test_malformed_groups(self):
+        # TODO(lb): what do we do here?
+        pass
+
 
 class GetSnubaQueryArgsTest(TestCase):
     def test_simple(self):
