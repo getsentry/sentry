@@ -708,6 +708,16 @@ class ParseBooleanSearchQueryTest(TestCase):
             operator="=",
             value=SearchValue(raw_value='foobar@example.com'),
         )
+        self.term4 = SearchFilter(
+            key=SearchKey(name='user.email'),
+            operator="=",
+            value=SearchValue(raw_value='hello@example.com'),
+        )
+        self.term5 = SearchFilter(
+            key=SearchKey(name='user.email'),
+            operator="=",
+            value=SearchValue(raw_value='hi@example.com'),
+        )
 
     def test_simple(self):
         assert parse_search_query(
@@ -770,12 +780,6 @@ class ParseBooleanSearchQueryTest(TestCase):
             )
         )]
 
-        term4 = SearchFilter(
-            key=SearchKey(name='user.email'),
-            operator="=",
-            value=SearchValue(raw_value='hello@example.com'),
-        )
-
         # longer even number of terms
         assert parse_search_query(
             'user.email:foo@example.com AND user.email:bar@example.com OR user.email:foobar@example.com AND user.email:hello@example.com'
@@ -789,15 +793,9 @@ class ParseBooleanSearchQueryTest(TestCase):
             right_term=SearchBoolean(
                 left_term=self.term3,
                 operator='AND',
-                right_term=term4
+                right_term=self.term4
             )
         )]
-
-        term5 = SearchFilter(
-            key=SearchKey(name='user.email'),
-            operator="=",
-            value=SearchValue(raw_value='hi@example.com'),
-        )
 
         # longer odd number of terms
         assert parse_search_query(
@@ -814,9 +812,9 @@ class ParseBooleanSearchQueryTest(TestCase):
                     left_term=self.term3,
                     operator='AND',
                     right_term=SearchBoolean(
-                        left_term=term4,
+                        left_term=self.term4,
                         operator='AND',
-                        right_term=term5
+                        right_term=self.term5
                     )
                 )
             )]
@@ -835,9 +833,9 @@ class ParseBooleanSearchQueryTest(TestCase):
                     left_term=self.term3,
                     operator='AND',
                     right_term=SearchBoolean(
-                        left_term=term4,
+                        left_term=self.term4,
                         operator='AND',
-                        right_term=term5)),
+                        right_term=self.term5)),
                 operator='OR',
                 right_term=SearchBoolean(
                     left_term=SearchBoolean(
@@ -849,9 +847,9 @@ class ParseBooleanSearchQueryTest(TestCase):
                         left_term=self.term3,
                         operator='AND',
                         right_term=SearchBoolean(
-                            left_term=term4,
+                            left_term=self.term4,
                             operator='AND',
-                            right_term=term5
+                            right_term=self.term5
                         )
                     )
                 )
@@ -884,6 +882,39 @@ class ParseBooleanSearchQueryTest(TestCase):
                 left_term=self.term2,
                 operator='OR',
                 right_term=self.term3))]
+
+    def test_nested_grouping(self):
+        result = parse_search_query(
+            '(user.email:foo@example.com OR (user.email:bar@example.com OR user.email:foobar@example.com))'
+        )
+        assert result == [SearchBoolean(
+            left_term=self.term1,
+            operator="OR",
+            right_term=SearchBoolean(
+                left_term=self.term2,
+                operator="OR",
+                right_term=self.term3))
+        ]
+        result = parse_search_query(
+            '(user.email:foo@example.com OR (user.email:bar@example.com OR (user.email:foobar@example.com AND user.email:hello@example.com OR user.email:hi@example.com)))'
+        )
+        assert result == [SearchBoolean(
+            left_term=self.term1,
+            operator="OR",
+            right_term=SearchBoolean(
+                left_term=self.term2,
+                operator="OR",
+                right_term=SearchBoolean(
+                    left_term=SearchBoolean(
+                        left_term=self.term3,
+                        operator="AND",
+                        right_term=self.term4
+                    ),
+                    operator="OR",
+                    right_term=self.term5,
+                )
+            )
+        )]
 
 
 class GetSnubaQueryArgsTest(TestCase):
