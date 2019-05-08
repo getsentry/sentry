@@ -1,9 +1,16 @@
 import React from 'react';
 import {storiesOf} from '@storybook/react';
 import {withInfo} from '@storybook/addon-info';
-import {text} from '@storybook/addon-knobs';
+import {text, select} from '@storybook/addon-knobs';
 
 import Hovercard from 'app/components/hovercard';
+
+const positionOptions = {
+  top: 'top',
+  bottom: 'bottom',
+  left: 'left',
+  right: 'right',
+};
 
 storiesOf('UI|Hovercard', module).add(
   'Hovercard',
@@ -21,6 +28,7 @@ storiesOf('UI|Hovercard', module).add(
       <Hovercard
         header={text('Header', 'Hovercard Header')}
         body={text('Body', 'Hovercard body (can also be a React node)')}
+        position={select('position', positionOptions, 'top', 'Hovercard positioning')}
       >
         Hover over me
       </Hovercard>
