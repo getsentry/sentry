@@ -1,5 +1,5 @@
 ---
-created: '2019-05-07T10:59:50.212398Z'
+created: '2019-05-08T10:48:31.035476Z'
 creator: sentry
 source: tests/symbolicator/test_unreal_full.py
 ---
@@ -281,11 +281,6 @@ threads:
       - data:
           symbolicator_status: missing_symbol
         in_app: false
-        instruction_addr: '0x7ff7544e0000'
-        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
-      - data:
-          symbolicator_status: missing_symbol
-        in_app: false
         instruction_addr: '0x7ff75563d233'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
       - data:
@@ -306,11 +301,6 @@ threads:
       - data:
           symbolicator_status: missing_symbol
         in_app: false
-        instruction_addr: '0x7ff7544e0000'
-        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
-      - data:
-          symbolicator_status: missing_symbol
-        in_app: false
         instruction_addr: '0x7ff754814eaa'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
       - data:
@@ -321,24 +311,9 @@ threads:
       - data:
           symbolicator_status: missing_symbol
         in_app: false
-        instruction_addr: '0x7ff7544e0000'
-        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
-      - data:
-          symbolicator_status: missing_symbol
-        in_app: false
         instruction_addr: '0x7ff75a4831a8'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
       - data:
-          symbolicator_status: missing
-        in_app: false
-        instruction_addr: '0x7ffe10066c86'
-        package: C:\Windows\System32\ntdll.dll
-      - data:
-          symbolicator_status: missing
-        in_app: false
-        instruction_addr: '0x7ffe100fed3d'
-        package: C:\Windows\System32\ntdll.dll
-      - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff754814eaa'
@@ -348,11 +323,6 @@ threads:
         in_app: false
         instruction_addr: '0x7ff754814eaa'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
-      - data:
-          symbolicator_status: missing
-        in_app: false
-        instruction_addr: '0x7ffe03a9bf10'
-        package: C:\Windows\System32\VCRUNTIME140.dll
       - data:
           symbolicator_status: missing_symbol
         in_app: false
@@ -373,11 +343,6 @@ threads:
         in_app: false
         instruction_addr: '0x7ff755181c71'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
-      - data:
-          symbolicator_status: missing
-        in_app: false
-        instruction_addr: '0x7ffe0ca99252'
-        package: C:\Windows\System32\KERNELBASE.dll
       - data:
           symbolicator_status: missing
         in_app: false
@@ -408,16 +373,6 @@ threads:
       - data:
           symbolicator_status: missing
         in_app: false
-        instruction_addr: '0x7ffe10083140'
-        package: C:\Windows\System32\ntdll.dll
-      - data:
-          symbolicator_status: missing
-        in_app: false
-        instruction_addr: '0x7ffe1007f856'
-        package: C:\Windows\System32\ntdll.dll
-      - data:
-          symbolicator_status: missing
-        in_app: false
         instruction_addr: '0x7ffe100fd854'
         package: C:\Windows\System32\ntdll.dll
       registers:
@@ -442,16 +397,6 @@ threads:
     id: 8188
     stacktrace:
       frames:
-      - data:
-          symbolicator_status: missing
-        in_app: false
-        instruction_addr: '0x7ffe10083140'
-        package: C:\Windows\System32\ntdll.dll
-      - data:
-          symbolicator_status: missing
-        in_app: false
-        instruction_addr: '0x7ffe1007f856'
-        package: C:\Windows\System32\ntdll.dll
       - data:
           symbolicator_status: missing
         in_app: false
@@ -482,16 +427,6 @@ threads:
       - data:
           symbolicator_status: missing
         in_app: false
-        instruction_addr: '0x7ffe10083140'
-        package: C:\Windows\System32\ntdll.dll
-      - data:
-          symbolicator_status: missing
-        in_app: false
-        instruction_addr: '0x7ffe1007f856'
-        package: C:\Windows\System32\ntdll.dll
-      - data:
-          symbolicator_status: missing
-        in_app: false
         instruction_addr: '0x7ffe100fd854'
         package: C:\Windows\System32\ntdll.dll
       registers:
@@ -518,16 +453,6 @@ threads:
     id: 5200
     stacktrace:
       frames:
-      - data:
-          symbolicator_status: missing
-        in_app: false
-        instruction_addr: '0x7ffe100d1471'
-        package: C:\Windows\System32\ntdll.dll
-      - data:
-          symbolicator_status: missing
-        in_app: false
-        instruction_addr: '0x7ffe0fd53034'
-        package: C:\Windows\System32\kernel32.dll
       - data:
           symbolicator_status: missing_symbol
         in_app: false
@@ -573,11 +498,6 @@ threads:
         in_app: false
         instruction_addr: '0x7ff75a1ae0c0'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
-      - data:
-          symbolicator_status: missing
-        in_app: false
-        instruction_addr: '0x7ffe0cab443b'
-        package: C:\Windows\System32\KERNELBASE.dll
       - data:
           symbolicator_status: missing_symbol
         in_app: false
@@ -621,11 +541,6 @@ threads:
       - data:
           symbolicator_status: missing
         in_app: false
-        instruction_addr: '0x7ffe0ca99252'
-        package: C:\Windows\System32\KERNELBASE.dll
-      - data:
-          symbolicator_status: missing
-        in_app: false
         instruction_addr: '0x7ffe100f9f84'
         package: C:\Windows\System32\ntdll.dll
       registers:
@@ -650,16 +565,6 @@ threads:
     id: 9648
     stacktrace:
       frames:
-      - data:
-          symbolicator_status: missing
-        in_app: false
-        instruction_addr: '0x7ffe100d1471'
-        package: C:\Windows\System32\ntdll.dll
-      - data:
-          symbolicator_status: missing
-        in_app: false
-        instruction_addr: '0x7ffe0fd53034'
-        package: C:\Windows\System32\kernel32.dll
       - data:
           symbolicator_status: missing_symbol
         in_app: false
@@ -706,11 +611,6 @@ threads:
         instruction_addr: '0x7ff75a1ae0c0'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
       - data:
-          symbolicator_status: missing
-        in_app: false
-        instruction_addr: '0x7ffe0cab443b'
-        package: C:\Windows\System32\KERNELBASE.dll
-      - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff754dbe522'
@@ -735,11 +635,6 @@ threads:
         in_app: false
         instruction_addr: '0x7ff755199769'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
-      - data:
-          symbolicator_status: missing
-        in_app: false
-        instruction_addr: '0x7ffe0ca99252'
-        package: C:\Windows\System32\KERNELBASE.dll
       - data:
           symbolicator_status: missing
         in_app: false
@@ -768,16 +663,6 @@ threads:
     stacktrace:
       frames:
       - data:
-          symbolicator_status: missing
-        in_app: false
-        instruction_addr: '0x7ffe100d1471'
-        package: C:\Windows\System32\ntdll.dll
-      - data:
-          symbolicator_status: missing
-        in_app: false
-        instruction_addr: '0x7ffe0fd53034'
-        package: C:\Windows\System32\kernel32.dll
-      - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff75519224c'
@@ -823,11 +708,6 @@ threads:
         instruction_addr: '0x7ff75a1ae0c0'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
       - data:
-          symbolicator_status: missing
-        in_app: false
-        instruction_addr: '0x7ffe0cab443b'
-        package: C:\Windows\System32\KERNELBASE.dll
-      - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff754dbe522'
@@ -855,11 +735,6 @@ threads:
       - data:
           symbolicator_status: missing
         in_app: false
-        instruction_addr: '0x7ffe0ca99252'
-        package: C:\Windows\System32\KERNELBASE.dll
-      - data:
-          symbolicator_status: missing
-        in_app: false
         instruction_addr: '0x7ffe100f9f84'
         package: C:\Windows\System32\ntdll.dll
       registers:
@@ -884,16 +759,6 @@ threads:
     id: 10628
     stacktrace:
       frames:
-      - data:
-          symbolicator_status: missing
-        in_app: false
-        instruction_addr: '0x7ffe100d1471'
-        package: C:\Windows\System32\ntdll.dll
-      - data:
-          symbolicator_status: missing
-        in_app: false
-        instruction_addr: '0x7ffe0fd53034'
-        package: C:\Windows\System32\kernel32.dll
       - data:
           symbolicator_status: missing_symbol
         in_app: false
@@ -997,11 +862,6 @@ threads:
       - data:
           symbolicator_status: missing
         in_app: false
-        instruction_addr: '0x7ffe0ca99252'
-        package: C:\Windows\System32\KERNELBASE.dll
-      - data:
-          symbolicator_status: missing
-        in_app: false
         instruction_addr: '0x7ffe100f9f84'
         package: C:\Windows\System32\ntdll.dll
       registers:
@@ -1026,16 +886,6 @@ threads:
     id: 11280
     stacktrace:
       frames:
-      - data:
-          symbolicator_status: missing
-        in_app: false
-        instruction_addr: '0x7ffe100d1471'
-        package: C:\Windows\System32\ntdll.dll
-      - data:
-          symbolicator_status: missing
-        in_app: false
-        instruction_addr: '0x7ffe0fd53034'
-        package: C:\Windows\System32\kernel32.dll
       - data:
           symbolicator_status: missing_symbol
         in_app: false
@@ -1082,11 +932,6 @@ threads:
         instruction_addr: '0x7ff75a1ae0c0'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
       - data:
-          symbolicator_status: missing
-        in_app: false
-        instruction_addr: '0x7ffe0cab443b'
-        package: C:\Windows\System32\KERNELBASE.dll
-      - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff754dbe522'
@@ -1101,11 +946,6 @@ threads:
         in_app: false
         instruction_addr: '0x7ff754d8bdf1'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
-      - data:
-          symbolicator_status: missing
-        in_app: false
-        instruction_addr: '0x7ffe100d1450'
-        package: C:\Windows\System32\ntdll.dll
       - data:
           symbolicator_status: missing_symbol
         in_app: false
@@ -1134,11 +974,6 @@ threads:
       - data:
           symbolicator_status: missing
         in_app: false
-        instruction_addr: '0x7ffe0ca99252'
-        package: C:\Windows\System32\KERNELBASE.dll
-      - data:
-          symbolicator_status: missing
-        in_app: false
         instruction_addr: '0x7ffe100f9f84'
         package: C:\Windows\System32\ntdll.dll
       registers:
@@ -1163,16 +998,6 @@ threads:
     id: 2432
     stacktrace:
       frames:
-      - data:
-          symbolicator_status: missing
-        in_app: false
-        instruction_addr: '0x7ffe100d1471'
-        package: C:\Windows\System32\ntdll.dll
-      - data:
-          symbolicator_status: missing
-        in_app: false
-        instruction_addr: '0x7ffe0fd53034'
-        package: C:\Windows\System32\kernel32.dll
       - data:
           symbolicator_status: missing_symbol
         in_app: false
@@ -1218,11 +1043,6 @@ threads:
         in_app: false
         instruction_addr: '0x7ff75a1ae0c0'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
-      - data:
-          symbolicator_status: missing
-        in_app: false
-        instruction_addr: '0x7ffe0cab443b'
-        package: C:\Windows\System32\KERNELBASE.dll
       - data:
           symbolicator_status: missing_symbol
         in_app: false
@@ -1256,11 +1076,6 @@ threads:
       - data:
           symbolicator_status: missing
         in_app: false
-        instruction_addr: '0x7ffe0ca99252'
-        package: C:\Windows\System32\KERNELBASE.dll
-      - data:
-          symbolicator_status: missing
-        in_app: false
         instruction_addr: '0x7ffe100f9f84'
         package: C:\Windows\System32\ntdll.dll
       registers:
@@ -1285,16 +1100,6 @@ threads:
     id: 6680
     stacktrace:
       frames:
-      - data:
-          symbolicator_status: missing
-        in_app: false
-        instruction_addr: '0x7ffe100d1471'
-        package: C:\Windows\System32\ntdll.dll
-      - data:
-          symbolicator_status: missing
-        in_app: false
-        instruction_addr: '0x7ffe0fd53034'
-        package: C:\Windows\System32\kernel32.dll
       - data:
           symbolicator_status: missing_symbol
         in_app: false
@@ -1341,11 +1146,6 @@ threads:
         instruction_addr: '0x7ff75a1ae0c0'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
       - data:
-          symbolicator_status: missing
-        in_app: false
-        instruction_addr: '0x7ffe0cab443b'
-        package: C:\Windows\System32\KERNELBASE.dll
-      - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff754dbe522'
@@ -1360,11 +1160,6 @@ threads:
         in_app: false
         instruction_addr: '0x7ff754d8bdf1'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
-      - data:
-          symbolicator_status: missing
-        in_app: false
-        instruction_addr: '0x7ffe100d1450'
-        package: C:\Windows\System32\ntdll.dll
       - data:
           symbolicator_status: missing_symbol
         in_app: false
@@ -1390,11 +1185,6 @@ threads:
         in_app: false
         instruction_addr: '0x7ff75504b92d'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
-      - data:
-          symbolicator_status: missing
-        in_app: false
-        instruction_addr: '0x7ffe0ca99252'
-        package: C:\Windows\System32\KERNELBASE.dll
       - data:
           symbolicator_status: missing
         in_app: false
@@ -1423,16 +1213,6 @@ threads:
     stacktrace:
       frames:
       - data:
-          symbolicator_status: missing
-        in_app: false
-        instruction_addr: '0x7ffe100d1471'
-        package: C:\Windows\System32\ntdll.dll
-      - data:
-          symbolicator_status: missing
-        in_app: false
-        instruction_addr: '0x7ffe0fd53034'
-        package: C:\Windows\System32\kernel32.dll
-      - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff75519224c'
@@ -1478,11 +1258,6 @@ threads:
         instruction_addr: '0x7ff75a1ae0c0'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
       - data:
-          symbolicator_status: missing
-        in_app: false
-        instruction_addr: '0x7ffe0cab443b'
-        package: C:\Windows\System32\KERNELBASE.dll
-      - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff754dbe522'
@@ -1497,11 +1272,6 @@ threads:
         in_app: false
         instruction_addr: '0x7ff754d8bdf1'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
-      - data:
-          symbolicator_status: missing
-        in_app: false
-        instruction_addr: '0x7ffe100d1450'
-        package: C:\Windows\System32\ntdll.dll
       - data:
           symbolicator_status: missing_symbol
         in_app: false
@@ -1530,11 +1300,6 @@ threads:
       - data:
           symbolicator_status: missing
         in_app: false
-        instruction_addr: '0x7ffe0ca99252'
-        package: C:\Windows\System32\KERNELBASE.dll
-      - data:
-          symbolicator_status: missing
-        in_app: false
         instruction_addr: '0x7ffe100f9f84'
         package: C:\Windows\System32\ntdll.dll
       registers:
@@ -1559,16 +1324,6 @@ threads:
     id: 6080
     stacktrace:
       frames:
-      - data:
-          symbolicator_status: missing
-        in_app: false
-        instruction_addr: '0x7ffe100d1471'
-        package: C:\Windows\System32\ntdll.dll
-      - data:
-          symbolicator_status: missing
-        in_app: false
-        instruction_addr: '0x7ffe0fd53034'
-        package: C:\Windows\System32\kernel32.dll
       - data:
           symbolicator_status: missing_symbol
         in_app: false
@@ -1615,11 +1370,6 @@ threads:
         instruction_addr: '0x7ff75a1ae0c0'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
       - data:
-          symbolicator_status: missing
-        in_app: false
-        instruction_addr: '0x7ffe0cab443b'
-        package: C:\Windows\System32\KERNELBASE.dll
-      - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff754dbe522'
@@ -1634,11 +1384,6 @@ threads:
         in_app: false
         instruction_addr: '0x7ff754d8bdf1'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
-      - data:
-          symbolicator_status: missing
-        in_app: false
-        instruction_addr: '0x7ffe100d1450'
-        package: C:\Windows\System32\ntdll.dll
       - data:
           symbolicator_status: missing_symbol
         in_app: false
@@ -1659,11 +1404,6 @@ threads:
         in_app: false
         instruction_addr: '0x7ff75504b92d'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
-      - data:
-          symbolicator_status: missing
-        in_app: false
-        instruction_addr: '0x7ffe0ca99252'
-        package: C:\Windows\System32\KERNELBASE.dll
       - data:
           symbolicator_status: missing
         in_app: false
@@ -1692,16 +1432,6 @@ threads:
     stacktrace:
       frames:
       - data:
-          symbolicator_status: missing
-        in_app: false
-        instruction_addr: '0x7ffe100d1471'
-        package: C:\Windows\System32\ntdll.dll
-      - data:
-          symbolicator_status: missing
-        in_app: false
-        instruction_addr: '0x7ffe0fd53034'
-        package: C:\Windows\System32\kernel32.dll
-      - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff75519224c'
@@ -1747,11 +1477,6 @@ threads:
         instruction_addr: '0x7ff75a1ae0c0'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
       - data:
-          symbolicator_status: missing
-        in_app: false
-        instruction_addr: '0x7ffe0cab443b'
-        package: C:\Windows\System32\KERNELBASE.dll
-      - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff754dbe522'
@@ -1772,11 +1497,6 @@ threads:
         instruction_addr: '0x7ff754d8bdf1'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
       - data:
-          symbolicator_status: missing
-        in_app: false
-        instruction_addr: '0x7ffe100d1450'
-        package: C:\Windows\System32\ntdll.dll
-      - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff754d89952'
@@ -1791,11 +1511,6 @@ threads:
         in_app: false
         instruction_addr: '0x7ff755199769'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
-      - data:
-          symbolicator_status: missing
-        in_app: false
-        instruction_addr: '0x7ffe0ca99252'
-        package: C:\Windows\System32\KERNELBASE.dll
       - data:
           symbolicator_status: missing
         in_app: false
@@ -1829,11 +1544,6 @@ threads:
         instruction_addr: '0x7ff754d8bdf1'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
       - data:
-          symbolicator_status: missing
-        in_app: false
-        instruction_addr: '0x7ffe100d1450'
-        package: C:\Windows\System32\ntdll.dll
-      - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff754d89952'
@@ -1848,11 +1558,6 @@ threads:
         in_app: false
         instruction_addr: '0x7ff75504b92d'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
-      - data:
-          symbolicator_status: missing
-        in_app: false
-        instruction_addr: '0x7ffe0ca99252'
-        package: C:\Windows\System32\KERNELBASE.dll
       - data:
           symbolicator_status: missing
         in_app: false
@@ -1886,11 +1591,6 @@ threads:
         instruction_addr: '0x7ff754d8bdf1'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
       - data:
-          symbolicator_status: missing
-        in_app: false
-        instruction_addr: '0x7ffe100d1450'
-        package: C:\Windows\System32\ntdll.dll
-      - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff754d89952'
@@ -1915,11 +1615,6 @@ threads:
         in_app: false
         instruction_addr: '0x7ff7553a0fdf'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
-      - data:
-          symbolicator_status: missing
-        in_app: false
-        instruction_addr: '0x7ffe0ca99252'
-        package: C:\Windows\System32\KERNELBASE.dll
       - data:
           symbolicator_status: missing
         in_app: false
@@ -1980,11 +1675,6 @@ threads:
       - data:
           symbolicator_status: missing
         in_app: false
-        instruction_addr: '0x7ffe0ca99252'
-        package: C:\Windows\System32\KERNELBASE.dll
-      - data:
-          symbolicator_status: missing
-        in_app: false
         instruction_addr: '0x7ffe100f9f84'
         package: C:\Windows\System32\ntdll.dll
       registers:
@@ -2015,11 +1705,6 @@ threads:
         instruction_addr: '0x7ff754d8bdf1'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
       - data:
-          symbolicator_status: missing
-        in_app: false
-        instruction_addr: '0x7ffe100d1450'
-        package: C:\Windows\System32\ntdll.dll
-      - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff754d89952'
@@ -2044,11 +1729,6 @@ threads:
         in_app: false
         instruction_addr: '0x7ff7553a0fdf'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
-      - data:
-          symbolicator_status: missing
-        in_app: false
-        instruction_addr: '0x7ffe0ca99252'
-        package: C:\Windows\System32\KERNELBASE.dll
       - data:
           symbolicator_status: missing
         in_app: false
@@ -2082,11 +1762,6 @@ threads:
         instruction_addr: '0x7ff754d8bdf1'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
       - data:
-          symbolicator_status: missing
-        in_app: false
-        instruction_addr: '0x7ffe100d1450'
-        package: C:\Windows\System32\ntdll.dll
-      - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff754d89952'
@@ -2114,11 +1789,6 @@ threads:
       - data:
           symbolicator_status: missing
         in_app: false
-        instruction_addr: '0x7ffe0ca99252'
-        package: C:\Windows\System32\KERNELBASE.dll
-      - data:
-          symbolicator_status: missing
-        in_app: false
         instruction_addr: '0x7ffe100f9f84'
         package: C:\Windows\System32\ntdll.dll
       registers:
@@ -2143,16 +1813,6 @@ threads:
     id: 7512
     stacktrace:
       frames:
-      - data:
-          symbolicator_status: missing
-        in_app: false
-        instruction_addr: '0x7ffe100d1471'
-        package: C:\Windows\System32\ntdll.dll
-      - data:
-          symbolicator_status: missing
-        in_app: false
-        instruction_addr: '0x7ffe0fd53034'
-        package: C:\Windows\System32\kernel32.dll
       - data:
           symbolicator_status: missing_symbol
         in_app: false
@@ -2188,11 +1848,6 @@ threads:
         in_app: false
         instruction_addr: '0x7ff754e3469f'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
-      - data:
-          symbolicator_status: missing
-        in_app: false
-        instruction_addr: '0x7ffe0cab443b'
-        package: C:\Windows\System32\KERNELBASE.dll
       - data:
           symbolicator_status: missing_symbol
         in_app: false
@@ -2271,11 +1926,6 @@ threads:
       - data:
           symbolicator_status: missing
         in_app: false
-        instruction_addr: '0x7ffe0ca99252'
-        package: C:\Windows\System32\KERNELBASE.dll
-      - data:
-          symbolicator_status: missing
-        in_app: false
         instruction_addr: '0x7ffe100f9f84'
         package: C:\Windows\System32\ntdll.dll
       registers:
@@ -2300,16 +1950,6 @@ threads:
     id: 8684
     stacktrace:
       frames:
-      - data:
-          symbolicator_status: missing
-        in_app: false
-        instruction_addr: '0x7ffe100d1471'
-        package: C:\Windows\System32\ntdll.dll
-      - data:
-          symbolicator_status: missing
-        in_app: false
-        instruction_addr: '0x7ffe0fd53034'
-        package: C:\Windows\System32\kernel32.dll
       - data:
           symbolicator_status: missing_symbol
         in_app: false
@@ -2383,11 +2023,6 @@ threads:
       - data:
           symbolicator_status: missing
         in_app: false
-        instruction_addr: '0x7ffe0ca99252'
-        package: C:\Windows\System32\KERNELBASE.dll
-      - data:
-          symbolicator_status: missing
-        in_app: false
         instruction_addr: '0x7ffe100f9f84'
         package: C:\Windows\System32\ntdll.dll
       registers:
@@ -2412,16 +2047,6 @@ threads:
     id: 5444
     stacktrace:
       frames:
-      - data:
-          symbolicator_status: missing
-        in_app: false
-        instruction_addr: '0x7ffe100d1471'
-        package: C:\Windows\System32\ntdll.dll
-      - data:
-          symbolicator_status: missing
-        in_app: false
-        instruction_addr: '0x7ffe0fd53034'
-        package: C:\Windows\System32\kernel32.dll
       - data:
           symbolicator_status: missing_symbol
         in_app: false
@@ -2457,11 +2082,6 @@ threads:
         in_app: false
         instruction_addr: '0x7ff755199769'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
-      - data:
-          symbolicator_status: missing
-        in_app: false
-        instruction_addr: '0x7ffe0ca99252'
-        package: C:\Windows\System32\KERNELBASE.dll
       - data:
           symbolicator_status: missing
         in_app: false
@@ -2490,16 +2110,6 @@ threads:
     stacktrace:
       frames:
       - data:
-          symbolicator_status: missing
-        in_app: false
-        instruction_addr: '0x7ffe100d1471'
-        package: C:\Windows\System32\ntdll.dll
-      - data:
-          symbolicator_status: missing
-        in_app: false
-        instruction_addr: '0x7ffe0fd53034'
-        package: C:\Windows\System32\kernel32.dll
-      - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff75519224c'
@@ -2549,11 +2159,6 @@ threads:
         in_app: false
         instruction_addr: '0x7ff75797c3f0'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
-      - data:
-          symbolicator_status: missing
-        in_app: false
-        instruction_addr: '0x7ffe0ca99252'
-        package: C:\Windows\System32\KERNELBASE.dll
       - data:
           symbolicator_status: missing
         in_app: false
@@ -2582,16 +2187,6 @@ threads:
     stacktrace:
       frames:
       - data:
-          symbolicator_status: missing
-        in_app: false
-        instruction_addr: '0x7ffe100d1471'
-        package: C:\Windows\System32\ntdll.dll
-      - data:
-          symbolicator_status: missing
-        in_app: false
-        instruction_addr: '0x7ffe0fd53034'
-        package: C:\Windows\System32\kernel32.dll
-      - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff75519224c'
@@ -2641,11 +2236,6 @@ threads:
         in_app: false
         instruction_addr: '0x7ff75797c3f0'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
-      - data:
-          symbolicator_status: missing
-        in_app: false
-        instruction_addr: '0x7ffe0ca99252'
-        package: C:\Windows\System32\KERNELBASE.dll
       - data:
           symbolicator_status: missing
         in_app: false
@@ -2674,16 +2264,6 @@ threads:
     stacktrace:
       frames:
       - data:
-          symbolicator_status: missing
-        in_app: false
-        instruction_addr: '0x7ffe100d1471'
-        package: C:\Windows\System32\ntdll.dll
-      - data:
-          symbolicator_status: missing
-        in_app: false
-        instruction_addr: '0x7ffe0fd53034'
-        package: C:\Windows\System32\kernel32.dll
-      - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff75519224c'
@@ -2736,11 +2316,6 @@ threads:
       - data:
           symbolicator_status: missing
         in_app: false
-        instruction_addr: '0x7ffe0ca99252'
-        package: C:\Windows\System32\KERNELBASE.dll
-      - data:
-          symbolicator_status: missing
-        in_app: false
         instruction_addr: '0x7ffe100f9f84'
         package: C:\Windows\System32\ntdll.dll
       registers:
@@ -2765,16 +2340,6 @@ threads:
     id: 7604
     stacktrace:
       frames:
-      - data:
-          symbolicator_status: missing
-        in_app: false
-        instruction_addr: '0x7ffe100d1471'
-        package: C:\Windows\System32\ntdll.dll
-      - data:
-          symbolicator_status: missing
-        in_app: false
-        instruction_addr: '0x7ffe0fd53034'
-        package: C:\Windows\System32\kernel32.dll
       - data:
           symbolicator_status: missing_symbol
         in_app: false
@@ -2815,11 +2380,6 @@ threads:
         in_app: false
         instruction_addr: '0x7ff755199769'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
-      - data:
-          symbolicator_status: missing
-        in_app: false
-        instruction_addr: '0x7ffe0ca99252'
-        package: C:\Windows\System32\KERNELBASE.dll
       - data:
           symbolicator_status: missing
         in_app: false
@@ -2848,16 +2408,6 @@ threads:
     stacktrace:
       frames:
       - data:
-          symbolicator_status: missing
-        in_app: false
-        instruction_addr: '0x7ffe100d1471'
-        package: C:\Windows\System32\ntdll.dll
-      - data:
-          symbolicator_status: missing
-        in_app: false
-        instruction_addr: '0x7ffe0fd53034'
-        package: C:\Windows\System32\kernel32.dll
-      - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff75519224c'
@@ -2900,11 +2450,6 @@ threads:
       - data:
           symbolicator_status: missing
         in_app: false
-        instruction_addr: '0x7ffe0ca99252'
-        package: C:\Windows\System32\KERNELBASE.dll
-      - data:
-          symbolicator_status: missing
-        in_app: false
         instruction_addr: '0x7ffe100f9f84'
         package: C:\Windows\System32\ntdll.dll
       registers:
@@ -2930,16 +2475,6 @@ threads:
     stacktrace:
       frames:
       - data:
-          symbolicator_status: missing
-        in_app: false
-        instruction_addr: '0x7ffe100d1471'
-        package: C:\Windows\System32\ntdll.dll
-      - data:
-          symbolicator_status: missing
-        in_app: false
-        instruction_addr: '0x7ffe0fd53034'
-        package: C:\Windows\System32\kernel32.dll
-      - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff75519224c'
@@ -2959,11 +2494,6 @@ threads:
         in_app: false
         instruction_addr: '0x7ff75518c971'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
-      - data:
-          symbolicator_status: missing
-        in_app: false
-        instruction_addr: '0x7ffe0caa5e9a'
-        package: C:\Windows\System32\KERNELBASE.dll
       - data:
           symbolicator_status: missing
         in_app: false
@@ -2992,16 +2522,6 @@ threads:
     stacktrace:
       frames:
       - data:
-          symbolicator_status: missing
-        in_app: false
-        instruction_addr: '0x7ffe100d1471'
-        package: C:\Windows\System32\ntdll.dll
-      - data:
-          symbolicator_status: missing
-        in_app: false
-        instruction_addr: '0x7ffe0fd53034'
-        package: C:\Windows\System32\kernel32.dll
-      - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff75519224c'
@@ -3016,11 +2536,6 @@ threads:
         in_app: false
         instruction_addr: '0x7ff756780450'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
-      - data:
-          symbolicator_status: missing
-        in_app: false
-        instruction_addr: '0x7ffe0caa5e9a'
-        package: C:\Windows\System32\KERNELBASE.dll
       - data:
           symbolicator_status: missing
         in_app: false
@@ -3048,16 +2563,6 @@ threads:
     id: 4264
     stacktrace:
       frames:
-      - data:
-          symbolicator_status: missing
-        in_app: false
-        instruction_addr: '0x7ffe100d1471'
-        package: C:\Windows\System32\ntdll.dll
-      - data:
-          symbolicator_status: missing
-        in_app: false
-        instruction_addr: '0x7ffe0fd53034'
-        package: C:\Windows\System32\kernel32.dll
       - data:
           symbolicator_status: missing_symbol
         in_app: false
@@ -3116,11 +2621,6 @@ threads:
       - data:
           symbolicator_status: missing
         in_app: false
-        instruction_addr: '0x7ffe0ca99252'
-        package: C:\Windows\System32\KERNELBASE.dll
-      - data:
-          symbolicator_status: missing
-        in_app: false
         instruction_addr: '0x7ffe100f9f84'
         package: C:\Windows\System32\ntdll.dll
       registers:
@@ -3145,16 +2645,6 @@ threads:
     id: 2548
     stacktrace:
       frames:
-      - data:
-          symbolicator_status: missing
-        in_app: false
-        instruction_addr: '0x7ffe100d1471'
-        package: C:\Windows\System32\ntdll.dll
-      - data:
-          symbolicator_status: missing
-        in_app: false
-        instruction_addr: '0x7ffe0fd53034'
-        package: C:\Windows\System32\kernel32.dll
       - data:
           symbolicator_status: missing_symbol
         in_app: false
@@ -3195,11 +2685,6 @@ threads:
         in_app: false
         instruction_addr: '0x7ff75517fbb1'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
-      - data:
-          symbolicator_status: missing
-        in_app: false
-        instruction_addr: '0x7ffe0ca99252'
-        package: C:\Windows\System32\KERNELBASE.dll
       - data:
           symbolicator_status: missing
         in_app: false
@@ -3228,16 +2713,6 @@ threads:
     stacktrace:
       frames:
       - data:
-          symbolicator_status: missing
-        in_app: false
-        instruction_addr: '0x7ffe100d1471'
-        package: C:\Windows\System32\ntdll.dll
-      - data:
-          symbolicator_status: missing
-        in_app: false
-        instruction_addr: '0x7ffe0fd53034'
-        package: C:\Windows\System32\kernel32.dll
-      - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff75519224c'
@@ -3277,11 +2752,6 @@ threads:
         in_app: false
         instruction_addr: '0x7ff75517fbb1'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
-      - data:
-          symbolicator_status: missing
-        in_app: false
-        instruction_addr: '0x7ffe0ca99252'
-        package: C:\Windows\System32\KERNELBASE.dll
       - data:
           symbolicator_status: missing
         in_app: false
@@ -3310,16 +2780,6 @@ threads:
     stacktrace:
       frames:
       - data:
-          symbolicator_status: missing
-        in_app: false
-        instruction_addr: '0x7ffe100d1471'
-        package: C:\Windows\System32\ntdll.dll
-      - data:
-          symbolicator_status: missing
-        in_app: false
-        instruction_addr: '0x7ffe0fd53034'
-        package: C:\Windows\System32\kernel32.dll
-      - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff75519224c'
@@ -3357,11 +2817,6 @@ threads:
       - data:
           symbolicator_status: missing
         in_app: false
-        instruction_addr: '0x7ffe0ca99252'
-        package: C:\Windows\System32\KERNELBASE.dll
-      - data:
-          symbolicator_status: missing
-        in_app: false
         instruction_addr: '0x7ffe100f9f84'
         package: C:\Windows\System32\ntdll.dll
       registers:
@@ -3386,16 +2841,6 @@ threads:
     id: 3028
     stacktrace:
       frames:
-      - data:
-          symbolicator_status: missing
-        in_app: false
-        instruction_addr: '0x7ffe100d1471'
-        package: C:\Windows\System32\ntdll.dll
-      - data:
-          symbolicator_status: missing
-        in_app: false
-        instruction_addr: '0x7ffe0fd53034'
-        package: C:\Windows\System32\kernel32.dll
       - data:
           symbolicator_status: missing_symbol
         in_app: false
@@ -3436,11 +2881,6 @@ threads:
         in_app: false
         instruction_addr: '0x7ff75517fbb1'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
-      - data:
-          symbolicator_status: missing
-        in_app: false
-        instruction_addr: '0x7ffe0ca99252'
-        package: C:\Windows\System32\KERNELBASE.dll
       - data:
           symbolicator_status: missing
         in_app: false
@@ -3471,11 +2911,6 @@ threads:
       - data:
           symbolicator_status: missing
         in_app: false
-        instruction_addr: '0x7ffe1007f856'
-        package: C:\Windows\System32\ntdll.dll
-      - data:
-          symbolicator_status: missing
-        in_app: false
         instruction_addr: '0x7ffe100fd854'
         package: C:\Windows\System32\ntdll.dll
       registers:
@@ -3500,16 +2935,6 @@ threads:
     id: 9124
     stacktrace:
       frames:
-      - data:
-          symbolicator_status: missing
-        in_app: false
-        instruction_addr: '0x7ffe100d1471'
-        package: C:\Windows\System32\ntdll.dll
-      - data:
-          symbolicator_status: missing
-        in_app: false
-        instruction_addr: '0x7ffe0fd53034'
-        package: C:\Windows\System32\kernel32.dll
       - data:
           symbolicator_status: missing_symbol
         in_app: false
@@ -3553,11 +2978,6 @@ threads:
       - data:
           symbolicator_status: missing
         in_app: false
-        instruction_addr: '0x7ffe0ca99252'
-        package: C:\Windows\System32\KERNELBASE.dll
-      - data:
-          symbolicator_status: missing
-        in_app: false
         instruction_addr: '0x7ffe100f9f84'
         package: C:\Windows\System32\ntdll.dll
       registers:
@@ -3583,16 +3003,6 @@ threads:
     stacktrace:
       frames:
       - data:
-          symbolicator_status: missing
-        in_app: false
-        instruction_addr: '0x7ffe100d1471'
-        package: C:\Windows\System32\ntdll.dll
-      - data:
-          symbolicator_status: missing
-        in_app: false
-        instruction_addr: '0x7ffe0fd53034'
-        package: C:\Windows\System32\kernel32.dll
-      - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff75519224c'
@@ -3617,11 +3027,6 @@ threads:
         in_app: false
         instruction_addr: '0x7ff755199769'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
-      - data:
-          symbolicator_status: missing
-        in_app: false
-        instruction_addr: '0x7ffe0ca99252'
-        package: C:\Windows\System32\KERNELBASE.dll
       - data:
           symbolicator_status: missing
         in_app: false
@@ -3652,16 +3057,6 @@ threads:
       - data:
           symbolicator_status: missing
         in_app: false
-        instruction_addr: '0x7ffe10083140'
-        package: C:\Windows\System32\ntdll.dll
-      - data:
-          symbolicator_status: missing
-        in_app: false
-        instruction_addr: '0x7ffe1007f856'
-        package: C:\Windows\System32\ntdll.dll
-      - data:
-          symbolicator_status: missing
-        in_app: false
         instruction_addr: '0x7ffe100fd854'
         package: C:\Windows\System32\ntdll.dll
       registers:
@@ -3686,151 +3081,6 @@ threads:
     id: 4136
     stacktrace:
       frames:
-      - data:
-          symbolicator_status: missing
-        in_app: false
-        instruction_addr: '0x7ffe100d1471'
-        package: C:\Windows\System32\ntdll.dll
-      - data:
-          symbolicator_status: missing
-        in_app: false
-        instruction_addr: '0x7ffe0fd53034'
-        package: C:\Windows\System32\kernel32.dll
-      - data:
-          symbolicator_status: missing
-        in_app: false
-        instruction_addr: '0x7ffe0e526d4c'
-        package: C:\Windows\System32\combase.dll
-      - data:
-          symbolicator_status: missing
-        in_app: false
-        instruction_addr: '0x7ffe0e4f102e'
-        package: C:\Windows\System32\combase.dll
-      - data:
-          symbolicator_status: missing
-        in_app: false
-        instruction_addr: '0x7ffe0e491671'
-        package: C:\Windows\System32\combase.dll
-      - data:
-          symbolicator_status: missing
-        in_app: false
-        instruction_addr: '0x7ffe0e4b8b37'
-        package: C:\Windows\System32\combase.dll
-      - data:
-          symbolicator_status: missing
-        in_app: false
-        instruction_addr: '0x7ffe0e48dff0'
-        package: C:\Windows\System32\combase.dll
-      - data:
-          symbolicator_status: missing
-        in_app: false
-        instruction_addr: '0x7ffe10072b55'
-        package: C:\Windows\System32\ntdll.dll
-      - data:
-          symbolicator_status: missing
-        in_app: false
-        instruction_addr: '0x7ffe0ca99be3'
-        package: C:\Windows\System32\KERNELBASE.dll
-      - data:
-          symbolicator_status: missing
-        in_app: false
-        instruction_addr: '0x7ffe100a70e0'
-        package: C:\Windows\System32\ntdll.dll
-      - data:
-          symbolicator_status: missing
-        in_app: false
-        instruction_addr: '0x7ffe10073755'
-        package: C:\Windows\System32\ntdll.dll
-      - data:
-          symbolicator_status: missing
-        in_app: false
-        instruction_addr: '0x7ffe100795c8'
-        package: C:\Windows\System32\ntdll.dll
-      - data:
-          symbolicator_status: missing
-        in_app: false
-        instruction_addr: '0x7ffe10077f34'
-        package: C:\Windows\System32\ntdll.dll
-      - data:
-          symbolicator_status: missing
-        in_app: false
-        instruction_addr: '0x7ffe101ba460'
-        package: C:\Windows\System32\ntdll.dll
-      - data:
-          symbolicator_status: missing
-        in_app: false
-        instruction_addr: '0x7ffe10078044'
-        package: C:\Windows\System32\ntdll.dll
-      - data:
-          symbolicator_status: missing
-        in_app: false
-        instruction_addr: '0x7ffe100793e8'
-        package: C:\Windows\System32\ntdll.dll
-      - data:
-          symbolicator_status: missing
-        in_app: false
-        instruction_addr: '0x7ffe0e494217'
-        package: C:\Windows\System32\combase.dll
-      - data:
-          symbolicator_status: missing
-        in_app: false
-        instruction_addr: '0x7ffe0caa75f9'
-        package: C:\Windows\System32\KERNELBASE.dll
-      - data:
-          symbolicator_status: missing
-        in_app: false
-        instruction_addr: '0x7ffe10072b55'
-        package: C:\Windows\System32\ntdll.dll
-      - data:
-          symbolicator_status: missing
-        in_app: false
-        instruction_addr: '0x7ffe100a70e0'
-        package: C:\Windows\System32\ntdll.dll
-      - data:
-          symbolicator_status: missing
-        in_app: false
-        instruction_addr: '0x7ffe100d305b'
-        package: C:\Windows\System32\ntdll.dll
-      - data:
-          symbolicator_status: missing
-        in_app: false
-        instruction_addr: '0x7ffe10060000'
-        package: C:\Windows\System32\ntdll.dll
-      - data:
-          symbolicator_status: missing
-        in_app: false
-        instruction_addr: '0x7ffe100d311e'
-        package: C:\Windows\System32\ntdll.dll
-      - data:
-          symbolicator_status: missing
-        in_app: false
-        instruction_addr: '0x7ffe10091b96'
-        package: C:\Windows\System32\ntdll.dll
-      - data:
-          symbolicator_status: missing
-        in_app: false
-        instruction_addr: '0x7ffe10091b76'
-        package: C:\Windows\System32\ntdll.dll
-      - data:
-          symbolicator_status: missing
-        in_app: false
-        instruction_addr: '0x7ffe07679bf0'
-        package: C:\Windows\System32\RTWorkQ.dll
-      - data:
-          symbolicator_status: missing
-        in_app: false
-        instruction_addr: '0x7ffe10091bae'
-        package: C:\Windows\System32\ntdll.dll
-      - data:
-          symbolicator_status: missing
-        in_app: false
-        instruction_addr: '0x7ffe07679bf0'
-        package: C:\Windows\System32\RTWorkQ.dll
-      - data:
-          symbolicator_status: missing
-        in_app: false
-        instruction_addr: '0x7ffe0caa6099'
-        package: C:\Windows\System32\KERNELBASE.dll
       - data:
           symbolicator_status: missing
         in_app: false
@@ -3859,16 +3109,6 @@ threads:
     stacktrace:
       frames:
       - data:
-          symbolicator_status: missing
-        in_app: false
-        instruction_addr: '0x7ffe100d1471'
-        package: C:\Windows\System32\ntdll.dll
-      - data:
-          symbolicator_status: missing
-        in_app: false
-        instruction_addr: '0x7ffe0fd53034'
-        package: C:\Windows\System32\kernel32.dll
-      - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff75519224c'
@@ -3903,11 +3143,6 @@ threads:
         in_app: false
         instruction_addr: '0x7ff754e3b984'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
-      - data:
-          symbolicator_status: missing
-        in_app: false
-        instruction_addr: '0x7ffe0ca99252'
-        package: C:\Windows\System32\KERNELBASE.dll
       - data:
           symbolicator_status: missing
         in_app: false
@@ -3936,16 +3171,6 @@ threads:
     stacktrace:
       frames:
       - data:
-          symbolicator_status: missing
-        in_app: false
-        instruction_addr: '0x7ffe100d1471'
-        package: C:\Windows\System32\ntdll.dll
-      - data:
-          symbolicator_status: missing
-        in_app: false
-        instruction_addr: '0x7ffe0fd53034'
-        package: C:\Windows\System32\kernel32.dll
-      - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff75519224c'
@@ -3980,11 +3205,6 @@ threads:
         in_app: false
         instruction_addr: '0x7ff754e3b984'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
-      - data:
-          symbolicator_status: missing
-        in_app: false
-        instruction_addr: '0x7ffe0ca99252'
-        package: C:\Windows\System32\KERNELBASE.dll
       - data:
           symbolicator_status: missing
         in_app: false
@@ -4013,16 +3233,6 @@ threads:
     stacktrace:
       frames:
       - data:
-          symbolicator_status: missing
-        in_app: false
-        instruction_addr: '0x7ffe100d1471'
-        package: C:\Windows\System32\ntdll.dll
-      - data:
-          symbolicator_status: missing
-        in_app: false
-        instruction_addr: '0x7ffe0fd53034'
-        package: C:\Windows\System32\kernel32.dll
-      - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff75519224c'
@@ -4057,11 +3267,6 @@ threads:
         in_app: false
         instruction_addr: '0x7ff754e3b984'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
-      - data:
-          symbolicator_status: missing
-        in_app: false
-        instruction_addr: '0x7ffe0ca99252'
-        package: C:\Windows\System32\KERNELBASE.dll
       - data:
           symbolicator_status: missing
         in_app: false
@@ -4090,16 +3295,6 @@ threads:
     stacktrace:
       frames:
       - data:
-          symbolicator_status: missing
-        in_app: false
-        instruction_addr: '0x7ffe100d1471'
-        package: C:\Windows\System32\ntdll.dll
-      - data:
-          symbolicator_status: missing
-        in_app: false
-        instruction_addr: '0x7ffe0fd53034'
-        package: C:\Windows\System32\kernel32.dll
-      - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff75519224c'
@@ -4134,11 +3329,6 @@ threads:
         in_app: false
         instruction_addr: '0x7ff754e3b984'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
-      - data:
-          symbolicator_status: missing
-        in_app: false
-        instruction_addr: '0x7ffe0ca99252'
-        package: C:\Windows\System32\KERNELBASE.dll
       - data:
           symbolicator_status: missing
         in_app: false
@@ -4167,16 +3357,6 @@ threads:
     stacktrace:
       frames:
       - data:
-          symbolicator_status: missing
-        in_app: false
-        instruction_addr: '0x7ffe100d1471'
-        package: C:\Windows\System32\ntdll.dll
-      - data:
-          symbolicator_status: missing
-        in_app: false
-        instruction_addr: '0x7ffe0fd53034'
-        package: C:\Windows\System32\kernel32.dll
-      - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff75519224c'
@@ -4211,11 +3391,6 @@ threads:
         in_app: false
         instruction_addr: '0x7ff754e3b984'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
-      - data:
-          symbolicator_status: missing
-        in_app: false
-        instruction_addr: '0x7ffe0ca99252'
-        package: C:\Windows\System32\KERNELBASE.dll
       - data:
           symbolicator_status: missing
         in_app: false
@@ -4244,16 +3419,6 @@ threads:
     stacktrace:
       frames:
       - data:
-          symbolicator_status: missing
-        in_app: false
-        instruction_addr: '0x7ffe100d1471'
-        package: C:\Windows\System32\ntdll.dll
-      - data:
-          symbolicator_status: missing
-        in_app: false
-        instruction_addr: '0x7ffe0fd53034'
-        package: C:\Windows\System32\kernel32.dll
-      - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff75519224c'
@@ -4288,11 +3453,6 @@ threads:
         in_app: false
         instruction_addr: '0x7ff754e3b984'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
-      - data:
-          symbolicator_status: missing
-        in_app: false
-        instruction_addr: '0x7ffe0ca99252'
-        package: C:\Windows\System32\KERNELBASE.dll
       - data:
           symbolicator_status: missing
         in_app: false
@@ -4321,16 +3481,6 @@ threads:
     stacktrace:
       frames:
       - data:
-          symbolicator_status: missing
-        in_app: false
-        instruction_addr: '0x7ffe100d1471'
-        package: C:\Windows\System32\ntdll.dll
-      - data:
-          symbolicator_status: missing
-        in_app: false
-        instruction_addr: '0x7ffe0fd53034'
-        package: C:\Windows\System32\kernel32.dll
-      - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff75519224c'
@@ -4365,11 +3515,6 @@ threads:
         in_app: false
         instruction_addr: '0x7ff754e3b984'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
-      - data:
-          symbolicator_status: missing
-        in_app: false
-        instruction_addr: '0x7ffe0ca99252'
-        package: C:\Windows\System32\KERNELBASE.dll
       - data:
           symbolicator_status: missing
         in_app: false
@@ -4398,16 +3543,6 @@ threads:
     stacktrace:
       frames:
       - data:
-          symbolicator_status: missing
-        in_app: false
-        instruction_addr: '0x7ffe100d1471'
-        package: C:\Windows\System32\ntdll.dll
-      - data:
-          symbolicator_status: missing
-        in_app: false
-        instruction_addr: '0x7ffe0fd53034'
-        package: C:\Windows\System32\kernel32.dll
-      - data:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff75519224c'
@@ -4442,11 +3577,6 @@ threads:
         in_app: false
         instruction_addr: '0x7ff754e3b984'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
-      - data:
-          symbolicator_status: missing
-        in_app: false
-        instruction_addr: '0x7ffe0ca99252'
-        package: C:\Windows\System32\KERNELBASE.dll
       - data:
           symbolicator_status: missing
         in_app: false
@@ -4507,11 +3637,6 @@ threads:
       - data:
           symbolicator_status: missing
         in_app: false
-        instruction_addr: '0x7ffe0ca99252'
-        package: C:\Windows\System32\KERNELBASE.dll
-      - data:
-          symbolicator_status: missing
-        in_app: false
         instruction_addr: '0x7ffe100f9f84'
         package: C:\Windows\System32\ntdll.dll
       registers:
@@ -4536,16 +3661,6 @@ threads:
     id: 3096
     stacktrace:
       frames:
-      - data:
-          symbolicator_status: missing
-        in_app: false
-        instruction_addr: '0x7ffe100d1471'
-        package: C:\Windows\System32\ntdll.dll
-      - data:
-          symbolicator_status: missing
-        in_app: false
-        instruction_addr: '0x7ffe0fd53034'
-        package: C:\Windows\System32\kernel32.dll
       - data:
           symbolicator_status: missing_symbol
         in_app: false
@@ -4589,11 +3704,6 @@ threads:
       - data:
           symbolicator_status: missing
         in_app: false
-        instruction_addr: '0x7ffe0caa5e9a'
-        package: C:\Windows\System32\KERNELBASE.dll
-      - data:
-          symbolicator_status: missing
-        in_app: false
         instruction_addr: '0x7ffe100fa584'
         package: C:\Windows\System32\ntdll.dll
       registers:
@@ -4618,86 +3728,6 @@ threads:
     id: 10944
     stacktrace:
       frames:
-      - data:
-          symbolicator_status: missing
-        in_app: false
-        instruction_addr: '0x7ffe100d1471'
-        package: C:\Windows\System32\ntdll.dll
-      - data:
-          symbolicator_status: missing
-        in_app: false
-        instruction_addr: '0x7ffe0fd53034'
-        package: C:\Windows\System32\kernel32.dll
-      - data:
-          symbolicator_status: missing
-        in_app: false
-        instruction_addr: '0x7ffdd9762b8a'
-        package: C:\Windows\System32\XAudio2_7.dll
-      - data:
-          symbolicator_status: missing
-        in_app: false
-        instruction_addr: '0x7ffe0caa5f8e'
-        package: C:\Windows\System32\KERNELBASE.dll
-      - data:
-          symbolicator_status: missing
-        in_app: false
-        instruction_addr: '0x7ffdd9762891'
-        package: C:\Windows\System32\XAudio2_7.dll
-      - data:
-          symbolicator_status: missing
-        in_app: false
-        instruction_addr: '0x7ffdd97635b6'
-        package: C:\Windows\System32\XAudio2_7.dll
-      - data:
-          symbolicator_status: missing
-        in_app: false
-        instruction_addr: '0x7ffe0caa5f8e'
-        package: C:\Windows\System32\KERNELBASE.dll
-      - data:
-          symbolicator_status: missing
-        in_app: false
-        instruction_addr: '0x7ffe0ca99252'
-        package: C:\Windows\System32\KERNELBASE.dll
-      - data:
-          symbolicator_status: missing
-        in_app: false
-        instruction_addr: '0x7ffdde41bf48'
-        package: C:\Windows\System32\AudioSes.dll
-      - data:
-          symbolicator_status: missing
-        in_app: false
-        instruction_addr: '0x7ffdde31468b'
-        package: C:\Windows\System32\AudioSes.dll
-      - data:
-          symbolicator_status: missing
-        in_app: false
-        instruction_addr: '0x7ffe0ca886f2'
-        package: C:\Windows\System32\KERNELBASE.dll
-      - data:
-          symbolicator_status: missing
-        in_app: false
-        instruction_addr: '0x7ffdde314507'
-        package: C:\Windows\System32\AudioSes.dll
-      - data:
-          symbolicator_status: missing
-        in_app: false
-        instruction_addr: '0x7ffe0ca886f2'
-        package: C:\Windows\System32\KERNELBASE.dll
-      - data:
-          symbolicator_status: missing
-        in_app: false
-        instruction_addr: '0x7ffdde41bf48'
-        package: C:\Windows\System32\AudioSes.dll
-      - data:
-          symbolicator_status: missing
-        in_app: false
-        instruction_addr: '0x7ffdde3128e1'
-        package: C:\Windows\System32\AudioSes.dll
-      - data:
-          symbolicator_status: missing
-        in_app: false
-        instruction_addr: '0x7ffe0caa6099'
-        package: C:\Windows\System32\KERNELBASE.dll
       - data:
           symbolicator_status: missing
         in_app: false
@@ -4753,11 +3783,6 @@ threads:
       - data:
           symbolicator_status: missing
         in_app: false
-        instruction_addr: '0x7ffe0ca99252'
-        package: C:\Windows\System32\KERNELBASE.dll
-      - data:
-          symbolicator_status: missing
-        in_app: false
         instruction_addr: '0x7ffe100f9f84'
         package: C:\Windows\System32\ntdll.dll
       registers:
@@ -4782,16 +3807,6 @@ threads:
     id: 612
     stacktrace:
       frames:
-      - data:
-          symbolicator_status: missing
-        in_app: false
-        instruction_addr: '0x7ffe100d1471'
-        package: C:\Windows\System32\ntdll.dll
-      - data:
-          symbolicator_status: missing
-        in_app: false
-        instruction_addr: '0x7ffe0fd53034'
-        package: C:\Windows\System32\kernel32.dll
       - data:
           symbolicator_status: missing_symbol
         in_app: false
@@ -4841,11 +3856,6 @@ threads:
           symbolicator_status: missing_symbol
         in_app: false
         instruction_addr: '0x7ff754dc5267'
-        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
-      - data:
-          symbolicator_status: missing_symbol
-        in_app: false
-        instruction_addr: '0x7ff7544e0000'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
       - data:
           symbolicator_status: missing_symbol
@@ -4900,11 +3910,6 @@ threads:
       - data:
           symbolicator_status: missing
         in_app: false
-        instruction_addr: '0x7ffe0ca99252'
-        package: C:\Windows\System32\KERNELBASE.dll
-      - data:
-          symbolicator_status: missing
-        in_app: false
         instruction_addr: '0x7ffe100f9f84'
         package: C:\Windows\System32\ntdll.dll
       registers:
@@ -4929,16 +3934,6 @@ threads:
     id: 10900
     stacktrace:
       frames:
-      - data:
-          symbolicator_status: missing
-        in_app: false
-        instruction_addr: '0x7ffe100d1471'
-        package: C:\Windows\System32\ntdll.dll
-      - data:
-          symbolicator_status: missing
-        in_app: false
-        instruction_addr: '0x7ffe0fd53034'
-        package: C:\Windows\System32\kernel32.dll
       - data:
           symbolicator_status: missing_symbol
         in_app: false
@@ -5009,11 +4004,6 @@ threads:
         in_app: false
         instruction_addr: '0x7ff754d7feb8'
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
-      - data:
-          symbolicator_status: missing
-        in_app: false
-        instruction_addr: '0x7ffe0caa5e9a'
-        package: C:\Windows\System32\KERNELBASE.dll
       - data:
           symbolicator_status: missing
         in_app: false
