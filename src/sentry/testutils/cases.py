@@ -660,7 +660,7 @@ class PermissionTestCase(TestCase):
         self.assert_cannot_access(user, path, **kwargs)
 
     def assert_team_admin_can_access(self, path, **kwargs):
-        return self.assert_role_can_access(path, 'owner', **kwargs)
+        return self.assert_role_can_access(path, 'admin', **kwargs)
 
     def assert_teamless_admin_can_access(self, path, **kwargs):
         user = self.create_user(is_superuser=False)
