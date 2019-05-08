@@ -34,9 +34,19 @@ SYMBOLICATOR_FRAME_ATTRS = ("instruction_addr", "package", "lang", "symbol",
                             "line_addr")
 
 
-def _is_symbolicator_enabled(project):
-    return options.get('symbolicator.enabled') and \
-        project.get_option('sentry:symbolicator-enabled')
+def _is_symbolicator_enabled(project, data):
+    if options.get('symbolicator.enabled'):
+        return False
+
+    if project.get_option('sentry:symbolicator-enabled'):
+        return True
+
+    percentage = options.get('sentry:symbolicator-percent-opt-in') or 0
+    if percentage > 0:
+        id_bit = int(data['event_id'][4:6], 16)
+        return id_bit < percentage * 256
+
+    return False
 
 
 def request_id_cache_key_for_event(data):
@@ -59,7 +69,7 @@ class NativeStacktraceProcessor(StacktraceProcessor):
         # service for native symbolication, which also means symbolic is not
         # used at all anymore.
         # The (iOS) symbolserver is still used regardless of this value.
-        self.use_symbolicator = _is_symbolicator_enabled(self.project)
+        self.use_symbolicator = _is_symbolicator_enabled(self.project, self.data)
 
         self.arch = cpu_name_from_data(self.data)
         self.signal = signal_from_data(self.data)
@@ -396,7 +406,7 @@ def reprocess_minidump(data):
     if default_cache.get(minidump_is_reprocessed_cache_key):
         return
 
-    if not _is_symbolicator_enabled(project):
+    if not _is_symbolicator_enabled(project, data):
         rv = reprocess_minidump_with_cfi(data)
         default_cache.set(minidump_is_reprocessed_cache_key, True, 3600)
         return rv
