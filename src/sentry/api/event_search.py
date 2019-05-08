@@ -6,6 +6,7 @@ from datetime import datetime
 
 import six
 from django.utils.functional import cached_property
+from parsimonious.expressions import Optional
 from parsimonious.exceptions import ParseError
 from parsimonious.nodes import Node
 from parsimonious.grammar import Grammar, NodeVisitor
@@ -84,7 +85,8 @@ def translate(pat):
 
 event_search_grammar = Grammar(r"""
 search               = (boolean_term / search_term)*
-boolean_term         = search_term (boolean_operator search_term)+
+boolean_term         = (paren_term / search_term) space? (boolean_operator space? (paren_term / search_term))+
+paren_term           = space? paren space? (paren_term / boolean_term)+ space? paren space?
 search_term          = key_val_term / quoted_raw_search / raw_search
 key_val_term         = space? (time_filter / rel_time_filter / specific_time_filter
                        / numeric_filter / has_filter / is_filter / basic_filter)
@@ -109,7 +111,7 @@ is_filter            = negation? "is" sep search_value
 
 search_key           = key / quoted_key
 search_value         = quoted_value / value
-value                = ~r"\S*"
+value                = ~r"[^()\s]*"
 quoted_value         = ~r"\"((?:[^\"]|(?<=\\)[\"])*)?\""s
 key                  = ~r"[a-zA-Z0-9_\.-]+"
 # only allow colons in quoted keys
@@ -123,6 +125,7 @@ rel_date_format      = ~r"[\+\-][0-9]+[wdhm](?=\s|$)"
 # even if the operator is <=
 boolean_operator     = "OR" / "AND"
 operator             = ">=" / "<=" / ">" / "<" / "=" / "!="
+paren                = ")" / "("
 sep                  = ":"
 space                = " "
 negation             = "!"
@@ -156,6 +159,10 @@ def has_boolean_search_terms(search_terms):
 class SearchBoolean(namedtuple('SearchBoolean', 'left_term operator right_term')):
     BOOLEAN_AND = "AND"
     BOOLEAN_OR = "OR"
+
+
+class SearchGroup(namedtuple('SearchGroup', 'values')):
+    pass
 
 
 class SearchFilter(namedtuple('SearchFilter', 'key operator value')):
@@ -248,6 +255,16 @@ class SearchVisitor(NodeVisitor):
 
         return children
 
+    def remove_optional_nodes(self, children):
+        def is_not_optional(child):
+            return not(isinstance(child, Node) and isinstance(child.expr, Optional))
+        return filter(is_not_optional, children)
+
+    def remove_space(self, children):
+        def is_not_space(child):
+            return not(isinstance(child, Node) and child.text == ' ')
+        return filter(is_not_space, children)
+
     def visit_search(self, node, children):
         return self.flatten(children)
 
@@ -300,7 +317,17 @@ class SearchVisitor(NodeVisitor):
             return result
 
         children = self.flatten(children)
+        children = self.remove_optional_nodes(children)
+        children = self.remove_space(children)
+
         return [build_boolean_tree(children, 0, len(children))]
+
+    def visit_paren_term(self, node, children):
+        children = self.flatten(children)
+        children = self.remove_optional_nodes(children)
+        children = self.remove_space(children)
+
+        return SearchGroup(self.flatten(children[1]))
 
     def visit_numeric_filter(self, node, children):
         (search_key, _, operator, search_value) = children
@@ -435,6 +462,9 @@ class SearchVisitor(NodeVisitor):
 
     def visit_search_value(self, node, children):
         return SearchValue(children[0])
+
+    def visit_paren(self, node, children):
+        return node.text
 
     def visit_boolean_operator(self, node, children):
         return node.text
