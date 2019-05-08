@@ -2628,6 +2628,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                                               uploadPath="avatar"
                                             >
                                               <Tooltip2
+                                                containerDisplayMode="inline-block"
                                                 disabled={false}
                                                 position="top"
                                                 title="Jane Doe (janedoe@example.com)"
@@ -2639,6 +2640,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                                                     >
                                                       <Container
                                                         aria-describedby="tooltip-123456"
+                                                        containerDisplayMode="inline-block"
                                                         innerRef={[Function]}
                                                         onBlur={[Function]}
                                                         onFocus={[Function]}

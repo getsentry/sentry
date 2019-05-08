@@ -1,7 +1,7 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import createReactClass from 'create-react-class';
-import Tooltip from 'app/components/tooltip';
+import Tooltip2 from 'app/components/tooltip';
 import TimeSince from 'app/components/timeSince';
 import {t} from 'app/locale';
 
@@ -40,9 +40,9 @@ const LatestDeployOrReleaseTime = createReactClass({
               <span className="icon icon-clock" />{' '}
               <TimeSince date={latestDeploy.dateFinished} />
               {earlierDeploysNum > 0 && (
-                <Tooltip title={earlierDeploysNum + t(' earlier deploys')}>
+                <Tooltip2 title={t('%s earlier deploys', earlierDeploysNum)}>
                   <span className="badge">{earlierDeploysNum}</span>
-                </Tooltip>
+                </Tooltip2>
               )}
             </p>
           </div>

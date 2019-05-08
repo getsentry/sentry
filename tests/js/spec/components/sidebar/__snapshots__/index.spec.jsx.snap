@@ -286,6 +286,7 @@ exports[`Sidebar SidebarDropdown can open Sidebar org/name dropdown menu 1`] = `
                 uploadPath="organization-avatar"
               >
                 <Tooltip2
+                  containerDisplayMode="inline-block"
                   disabled={true}
                   position="top"
                   title="org-slug"
@@ -755,6 +756,7 @@ exports[`Sidebar SidebarDropdown can open Sidebar org/name dropdown menu 1`] = `
                                     uploadPath="avatar"
                                   >
                                     <Tooltip2
+                                      containerDisplayMode="inline-block"
                                       disabled={true}
                                       position="top"
                                       title="Foo Bar (foo@example.com)"
@@ -1989,6 +1991,7 @@ exports[`Sidebar renders without org and router 1`] = `
                                     uploadPath="avatar"
                                   >
                                     <Tooltip2
+                                      containerDisplayMode="inline-block"
                                       disabled={true}
                                       position="top"
                                       title="Foo Bar (foo@example.com)"

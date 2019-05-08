@@ -56,6 +56,7 @@ storiesOf('UI|Tooltip', module)
     })(() => {
       const title = text('tooltip', 'Basic tooltip content');
       const disabled = boolean('Disabled', false);
+      const displayMode = select('Container display mode', ['block', 'inline-block', 'inline']);
       const position = select(
         'position',
         {top: 'top', bottom: 'bottom', left: 'left', right: 'right'},
@@ -66,7 +67,7 @@ storiesOf('UI|Tooltip', module)
         <React.Fragment>
           <h3>With styled component trigger</h3>
           <p>
-            <Tooltip2 title={title} position={position} disabled={disabled}>
+            <Tooltip2 title={title} position={position} disabled={disabled} containerDisplayMode={displayMode}>
               <Button>Styled button</Button>
             </Tooltip2>
           </p>
@@ -86,7 +87,7 @@ storiesOf('UI|Tooltip', module)
               height="100"
               xmlns="http://www.w3.org/2000/svg"
             >
-              <Tooltip2 title={title} position={position} disabled={disabled}>
+              <Tooltip2 title={title} position={position} disabled={disabled} containerDisplayMode={displayMode}>
                 <circle cx="50" cy="50" r="50" />
               </Tooltip2>
             </svg>
@@ -100,6 +101,7 @@ storiesOf('UI|Tooltip', module)
                   <em>so strong</em>
                 </span>
               }
+              containerDisplayMode={displayMode}
               position={position}
               disabled={disabled}
             >

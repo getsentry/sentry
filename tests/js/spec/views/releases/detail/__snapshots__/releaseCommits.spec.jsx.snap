@@ -219,6 +219,7 @@ Users now have access to useful links from the blogs and docs on Spike-protectio
                                     uploadPath="avatar"
                                   >
                                     <Tooltip2
+                                      containerDisplayMode="inline-block"
                                       disabled={true}
                                       position="top"
                                       title="Foo Bar (example@sentry.io)"
@@ -628,6 +629,7 @@ Users now have access to useful links from the blogs and docs on Spike-protectio
                                     uploadPath="avatar"
                                   >
                                     <Tooltip2
+                                      containerDisplayMode="inline-block"
                                       disabled={true}
                                       position="top"
                                       title="Foo Bar (example@sentry.io)"
