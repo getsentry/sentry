@@ -1,0 +1,58 @@
+---
+created: '2019-05-08T07:33:31.590279Z'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app:
+  hash: None
+  component:
+    app (exception of system takes precedence)
+      exception (ignored because this variant does not have a contributing stacktrace, but the system variant does)
+        stacktrace
+          frame (non app frame)
+            module*
+              u'app/components/modals/createTeamModal'
+            filename (module takes precedence)
+              u'createteammodal.jsx'
+            context-line*
+              u'onError(err);'
+          frame (non app frame)
+            module*
+              u'app/views/settings/components/forms/form'
+            filename (module takes precedence)
+              u'form.jsx'
+            function*
+              u'onError'
+            context-line*
+              u'this.model.submitError(error);'
+        type*
+          u'TypeError'
+        value*
+          u"Cannot read property 'submitError' of null"
+--------------------------------------------------------------------------
+system:
+  hash: '91988f89088ac4c46b463cbab27e84d2'
+  component:
+    system*
+      exception*
+        stacktrace*
+          frame (ignored low quality javascript frame)
+            module*
+              u'app/components/modals/createTeamModal'
+            filename (module takes precedence)
+              u'createteammodal.jsx'
+            context-line*
+              u'onError(err);'
+          frame*
+            module*
+              u'app/views/settings/components/forms/form'
+            filename (module takes precedence)
+              u'form.jsx'
+            function*
+              u'onError'
+            context-line*
+              u'this.model.submitError(error);'
+        type*
+          u'TypeError'
+        value (ignored because stacktrace takes precedence)
+          u"Cannot read property 'submitError' of null"

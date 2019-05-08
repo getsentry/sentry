@@ -5,7 +5,8 @@ import re
 
 from sentry.grouping.component import GroupingComponent
 from sentry.grouping.strategies.base import strategy
-from sentry.grouping.strategies.utils import remove_non_stacktrace_variants
+from sentry.grouping.strategies.utils import remove_non_stacktrace_variants, \
+    has_url_origin
 from sentry.grouping.strategies.message import trim_message_for_grouping
 from sentry.stacktraces.platform import get_behavior_family_for_platform
 
@@ -50,13 +51,6 @@ RECURSION_COMPARISON_FIELDS = [
 ]
 
 
-def abs_path_is_url_v1(abs_path):
-    if not abs_path:
-        return False
-    return abs_path.startswith((
-        'blob:', 'file:', 'http:', 'https:', 'applewebdata:'))
-
-
 def is_recursion_v1(frame1, frame2):
     "Returns a boolean indicating whether frames are recursive calls."
     for field in RECURSION_COMPARISON_FIELDS:
@@ -81,7 +75,7 @@ def get_filename_component_v1(abs_path, filename, platform):
         values=[filename],
     )
 
-    if abs_path_is_url_v1(abs_path):
+    if has_url_origin(abs_path):
         filename_component.update(
             contributes=False,
             hint='ignored because frame points to a URL',
@@ -151,7 +145,7 @@ def get_module_component_v1(abs_path, module, platform):
 
 
 def get_function_component(function, platform, legacy_function_logic,
-                           raw_function=None):
+                           raw_function=None, javascript_fuzzing=False):
     """
     Attempt to normalize functions by removing common platform outliers.
 
@@ -165,6 +159,7 @@ def get_function_component(function, platform, legacy_function_logic,
     or a trimmed version (of the truncated one) for native.
     """
     from sentry.stacktraces.functions import trim_function_name
+    behavior_family = get_behavior_family_for_platform(platform)
 
     if legacy_function_logic:
         func = raw_function or function
@@ -209,7 +204,7 @@ def get_function_component(function, platform, legacy_function_logic,
                 hint='ignored lambda function'
             )
 
-    elif get_behavior_family_for_platform(platform) == 'native':
+    elif behavior_family == 'native':
         if func in ('<redacted>', '<unknown>'):
             function_component.update(
                 contributes=False,
@@ -222,6 +217,16 @@ def get_function_component(function, platform, legacy_function_logic,
                     values=[new_function],
                     hint='isolated function'
                 )
+
+    elif javascript_fuzzing and behavior_family == 'javascript':
+        # This changes Object.foo or Foo.foo into foo so that we can
+        # resolve some common cross browser differences
+        new_function = func.rsplit('.', 1)[-1]
+        if new_function != func:
+            function_component.update(
+                values=[new_function],
+                hint='trimmed javascript function'
+            )
 
     return function_component
 
@@ -246,7 +251,50 @@ def frame_v2(frame, event, **meta):
                                legacy_function_logic=False)
 
 
-def get_frame_component(frame, event, meta, legacy_function_logic=False):
+@strategy(
+    id='frame:v3',
+    interfaces=['frame'],
+    variants=['!system', 'app'],
+)
+def frame_v3(frame, event, **meta):
+    platform = frame.platform or event.platform
+    # These are platforms that we know have always source available and
+    # where the source is of good quality for grouping.  For javascript
+    # this assumes that we have sourcemaps available.
+    good_source = platform in ('javascript', 'node', 'python', 'php', 'ruby')
+    return get_frame_component(frame, event, meta,
+                               legacy_function_logic=False,
+                               use_contextline=good_source,
+                               javascript_fuzzing=True)
+
+
+def get_contextline_component(frame, platform):
+    """Returns a contextline component.  The caller's responsibility is to
+    make sure context lines are only used for platforms where we trust the
+    quality of the sourcecode.  It does however protect against some bad
+    JavaScript environments based on origin checks.
+    """
+    component = GroupingComponent(id='context-line')
+
+    if not frame.context_line:
+        return component
+
+    line = ' '.join(frame.context_line.expandtabs(2).split())
+    if line:
+        if len(frame.context_line) > 120:
+            component.update(hint='discarded because line too long')
+        elif get_behavior_family_for_platform(platform) == 'javascript' \
+                and has_url_origin(frame.abs_path):
+            component.update(hint='discarded because from URL origin')
+        else:
+            component.update(values=[line])
+
+    return component
+
+
+def get_frame_component(frame, event, meta, legacy_function_logic=False,
+                        use_contextline=False,
+                        javascript_fuzzing=False):
     platform = frame.platform or event.platform
 
     # Safari throws [native code] frames in for calls like ``forEach``
@@ -269,17 +317,44 @@ def get_frame_component(frame, event, meta, legacy_function_logic=False):
         function=frame.function,
         raw_function=frame.raw_function,
         platform=platform,
-        legacy_function_logic=legacy_function_logic
+        legacy_function_logic=legacy_function_logic,
+        javascript_fuzzing=javascript_fuzzing,
     )
 
-    return GroupingComponent(
+    values = [
+        module_component,
+        filename_component,
+        function_component,
+    ]
+
+    # If we are allowed to use the contextline we add it now.
+    if use_contextline:
+        values.append(get_contextline_component(frame, platform))
+
+    rv = GroupingComponent(
         id='frame',
-        values=[
-            module_component,
-            filename_component,
-            function_component,
-        ],
+        values=values,
     )
+
+    # if we are in javascript fuzzing mode we want to disregard some
+    # frames consistently.  These force common bad stacktraces together
+    # to have a common hash at the cost of maybe skipping over frames that
+    # would otherwise be useful.
+    if javascript_fuzzing \
+       and get_behavior_family_for_platform(platform) == 'javascript':
+        func = frame.raw_function or frame.function
+        if func:
+            func = func.rsplit('.', 1)[-1]
+        if func in (None, '?', '<anonymous function>', '<anonymous>',
+                    'Anonymous function', 'eval') or \
+           func.endswith('/<') or \
+           frame.abs_path in ('[native code]', 'eval code', '<anonymous>'):
+            rv.update(
+                contributes=False,
+                hint='ignored low quality javascript frame'
+            )
+
+    return rv
 
 
 @strategy(
