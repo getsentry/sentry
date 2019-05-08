@@ -1,5 +1,5 @@
 ---
-created: '2019-05-08T07:33:31.590279Z'
+created: '2019-05-08T22:36:43.422914Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -21,7 +21,7 @@ app:
               u'app/views/settings/components/forms/form'
             filename (module takes precedence)
               u'form.jsx'
-            function*
+            function (ignored because sourcemap used and context line available)
               u'onError'
             context-line*
               u'this.model.submitError(error);'
@@ -31,7 +31,7 @@ app:
           u"Cannot read property 'submitError' of null"
 --------------------------------------------------------------------------
 system:
-  hash: '91988f89088ac4c46b463cbab27e84d2'
+  hash: '2f2dc85b9b0cd1e3be91984802c7b1b7'
   component:
     system*
       exception*
@@ -48,7 +48,7 @@ system:
               u'app/views/settings/components/forms/form'
             filename (module takes precedence)
               u'form.jsx'
-            function*
+            function (ignored because sourcemap used and context line available)
               u'onError'
             context-line*
               u'this.model.submitError(error);'

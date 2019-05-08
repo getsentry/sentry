@@ -1,10 +1,10 @@
 ---
-created: '2019-05-08T07:31:17.843592Z'
+created: '2019-05-08T22:36:44.224971Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app:
-  hash: '6cdeaed0f1aaf256a8a69559548b5bfe'
+  hash: '73470e545e51eea9cff8a6c006f68f57'
   component:
     app*
       exception*
@@ -14,7 +14,7 @@ app:
               u'react-native/Libraries/BatchedBridge/MessageQueue'
             filename (module takes precedence)
               u'messagequeue.js'
-            function*
+            function (ignored because sourcemap used and context line available)
               u'value'
             context-line*
               u'return this.flushedQueue();'
@@ -23,7 +23,7 @@ app:
               u'react-native/Libraries/BatchedBridge/MessageQueue'
             filename (module takes precedence)
               u'messagequeue.js'
-            function*
+            function (ignored because sourcemap used and context line available)
               u'flushedQueue'
             context-line*
               u'this._inCall--;'
@@ -32,7 +32,7 @@ app:
               u'react-native/Libraries/BatchedBridge/MessageQueue'
             filename (module takes precedence)
               u'messagequeue.js'
-            function*
+            function (ignored because sourcemap used and context line available)
               u'_inCall'
             context-line*
               u'return this.flushedQueue();'
@@ -41,7 +41,7 @@ app:
               u'react-native/Libraries/BatchedBridge/MessageQueue'
             filename (module takes precedence)
               u'messagequeue.js'
-            function*
+            function (ignored because sourcemap used and context line available)
               u'flushedQueue'
             context-line*
               u'this._lastFlush = new Date().getTime();'
@@ -50,7 +50,7 @@ app:
               u'react-native/Libraries/Renderer/ReactNativeRenderer-prod'
             filename (module takes precedence)
               u'reactnativerenderer-prod.js'
-            function*
+            function (ignored because sourcemap used and context line available)
               u'_lastFlush'
             context-line*
               u'_receiveRootNodeIDEvent(index, eventTopLevelType, i);'
@@ -59,7 +59,7 @@ app:
               u'react-native/Libraries/Renderer/ReactNativeRenderer-prod'
             filename (module takes precedence)
               u'reactnativerenderer-prod.js'
-            function*
+            function (ignored because sourcemap used and context line available)
               u'_receiveRootNodeIDEvent'
             context-line*
               u'batchedUpdates(function() {'
@@ -68,7 +68,7 @@ app:
               u'react-native/Libraries/Renderer/ReactNativeRenderer-prod'
             filename (module takes precedence)
               u'reactnativerenderer-prod.js'
-            function*
+            function (ignored because sourcemap used and context line available)
               u'batchedUpdates'
             context-line*
               u'return _batchedUpdates(fn, bookkeeping);'
@@ -77,7 +77,7 @@ app:
               u'react-native/Libraries/Renderer/ReactNativeRenderer-prod'
             filename (module takes precedence)
               u'reactnativerenderer-prod.js'
-            function*
+            function (ignored because sourcemap used and context line available)
               u'_batchedUpdates'
             context-line*
               u'return fn(a);'
@@ -86,7 +86,7 @@ app:
               u'react-native/Libraries/Renderer/ReactNativeRenderer-prod'
             filename (module takes precedence)
               u'reactnativerenderer-prod.js'
-            function*
+            function (ignored because sourcemap used and context line available)
               u'fn'
             context-line*
               u'(forEachAccumulated(events, executeDispatchesAndReleaseTopLevel),'
@@ -95,7 +95,7 @@ app:
               u'react-native/Libraries/Renderer/ReactNativeRenderer-prod'
             filename (module takes precedence)
               u'reactnativerenderer-prod.js'
-            function*
+            function (ignored because sourcemap used and context line available)
               u'forEachAccumulated'
             context-line*
               u'Array.isArray(arr) ? arr.forEach(cb, scope) : arr && cb.call(scope, arr);'
@@ -107,7 +107,7 @@ app:
               u'react-native/Libraries/Renderer/ReactNativeRenderer-prod'
             filename (module takes precedence)
               u'reactnativerenderer-prod.js'
-            function*
+            function (ignored because sourcemap used and context line available)
               u'D'
             context-line*
               u'executeDispatch(e, !1, dispatchListeners, dispatchInstances);'
@@ -116,7 +116,7 @@ app:
               u'react-native/Libraries/Renderer/ReactNativeRenderer-prod'
             filename (module takes precedence)
               u'reactnativerenderer-prod.js'
-            function*
+            function (ignored because sourcemap used and context line available)
               u'executeDispatch'
             context-line*
               u'ReactErrorUtils.invokeGuardedCallbackAndCatchFirstError('
@@ -125,7 +125,7 @@ app:
               u'react-native/Libraries/Renderer/ReactNativeRenderer-prod'
             filename (module takes precedence)
               u'reactnativerenderer-prod.js'
-            function*
+            function (ignored because sourcemap used and context line available)
               u'invokeGuardedCallbackAndCatchFirstError'
             context-line*
               u'ReactErrorUtils.invokeGuardedCallback.apply(this, arguments);'
@@ -134,7 +134,7 @@ app:
               u'react-native/Libraries/Renderer/ReactNativeRenderer-prod'
             filename (module takes precedence)
               u'reactnativerenderer-prod.js'
-            function*
+            function (ignored because sourcemap used and context line available)
               u'apply'
             context-line*
               u'invokeGuardedCallback.apply(ReactErrorUtils, arguments);'
@@ -143,7 +143,7 @@ app:
               u'react-native/Libraries/Renderer/ReactNativeRenderer-prod'
             filename (module takes precedence)
               u'reactnativerenderer-prod.js'
-            function*
+            function (ignored because sourcemap used and context line available)
               u'apply'
             context-line*
               u'var funcArgs = Array.prototype.slice.call(arguments, 3);'
@@ -152,7 +152,7 @@ app:
               u'react-native/Libraries/Components/Touchable/Touchable'
             filename (module takes precedence)
               u'touchable.js'
-            function*
+            function (ignored because sourcemap used and context line available)
               u'arguments'
             context-line*
               u'touchableHandleResponderRelease: function(e) {'
@@ -161,7 +161,7 @@ app:
               u'react-native/Libraries/Components/Touchable/Touchable'
             filename (module takes precedence)
               u'touchable.js'
-            function*
+            function (ignored because sourcemap used and context line available)
               u'_receiveSignal'
             context-line*
               u'this._performSideEffectsForTransition(curState, nextState, signal, e);'
@@ -170,7 +170,7 @@ app:
               u'react-native/Libraries/Components/Touchable/Touchable'
             filename (module takes precedence)
               u'touchable.js'
-            function*
+            function (ignored because sourcemap used and context line available)
               u'_performSideEffectsForTransition'
             context-line*
               u'this.touchableHandlePress(e);'
@@ -179,7 +179,7 @@ app:
               u'react-native/Libraries/Components/Touchable/TouchableNativeFeedback.android'
             filename (module takes precedence)
               u'touchablenativefeedback.android.js'
-            function*
+            function (ignored because sourcemap used and context line available)
               u'this'
             context-line*
               u'this.props.onPress && this.props.onPress(e);'
@@ -188,7 +188,7 @@ app:
               u'App'
             filename (module takes precedence)
               u'app.js'
-            function*
+            function (ignored because sourcemap used and context line available)
               u'onPress'
             context-line*
               u'<Button'
@@ -197,7 +197,7 @@ app:
               u'App'
             filename (module takes precedence)
               u'app.js'
-            function*
+            function (ignored because sourcemap used and context line available)
               u'Button'
             context-line*
               u'<Button'
@@ -207,7 +207,7 @@ app:
           u"undefined is not a function (evaluating '({}).invalidFunction()')"
 --------------------------------------------------------------------------
 system:
-  hash: '3f325a8355ef16546cc7b4a04ebe73be'
+  hash: 'ecd413627f0d90a5a25cb28d1ba9c39f'
   component:
     system*
       exception*
@@ -217,7 +217,7 @@ system:
               u'react-native/Libraries/BatchedBridge/MessageQueue'
             filename (module takes precedence)
               u'messagequeue.js'
-            function*
+            function (ignored because sourcemap used and context line available)
               u'value'
             context-line*
               u'return this.flushedQueue();'
@@ -226,7 +226,7 @@ system:
               u'react-native/Libraries/BatchedBridge/MessageQueue'
             filename (module takes precedence)
               u'messagequeue.js'
-            function*
+            function (ignored because sourcemap used and context line available)
               u'flushedQueue'
             context-line*
               u'this._inCall--;'
@@ -235,7 +235,7 @@ system:
               u'react-native/Libraries/BatchedBridge/MessageQueue'
             filename (module takes precedence)
               u'messagequeue.js'
-            function*
+            function (ignored because sourcemap used and context line available)
               u'_inCall'
             context-line*
               u'return this.flushedQueue();'
@@ -244,7 +244,7 @@ system:
               u'react-native/Libraries/BatchedBridge/MessageQueue'
             filename (module takes precedence)
               u'messagequeue.js'
-            function*
+            function (ignored because sourcemap used and context line available)
               u'flushedQueue'
             context-line*
               u'this._lastFlush = new Date().getTime();'
@@ -253,7 +253,7 @@ system:
               u'react-native/Libraries/Renderer/ReactNativeRenderer-prod'
             filename (module takes precedence)
               u'reactnativerenderer-prod.js'
-            function*
+            function (ignored because sourcemap used and context line available)
               u'_lastFlush'
             context-line*
               u'_receiveRootNodeIDEvent(index, eventTopLevelType, i);'
@@ -262,7 +262,7 @@ system:
               u'react-native/Libraries/Renderer/ReactNativeRenderer-prod'
             filename (module takes precedence)
               u'reactnativerenderer-prod.js'
-            function*
+            function (ignored because sourcemap used and context line available)
               u'_receiveRootNodeIDEvent'
             context-line*
               u'batchedUpdates(function() {'
@@ -271,7 +271,7 @@ system:
               u'react-native/Libraries/Renderer/ReactNativeRenderer-prod'
             filename (module takes precedence)
               u'reactnativerenderer-prod.js'
-            function*
+            function (ignored because sourcemap used and context line available)
               u'batchedUpdates'
             context-line*
               u'return _batchedUpdates(fn, bookkeeping);'
@@ -280,7 +280,7 @@ system:
               u'react-native/Libraries/Renderer/ReactNativeRenderer-prod'
             filename (module takes precedence)
               u'reactnativerenderer-prod.js'
-            function*
+            function (ignored because sourcemap used and context line available)
               u'_batchedUpdates'
             context-line*
               u'return fn(a);'
@@ -289,7 +289,7 @@ system:
               u'react-native/Libraries/Renderer/ReactNativeRenderer-prod'
             filename (module takes precedence)
               u'reactnativerenderer-prod.js'
-            function*
+            function (ignored because sourcemap used and context line available)
               u'fn'
             context-line*
               u'(forEachAccumulated(events, executeDispatchesAndReleaseTopLevel),'
@@ -298,7 +298,7 @@ system:
               u'react-native/Libraries/Renderer/ReactNativeRenderer-prod'
             filename (module takes precedence)
               u'reactnativerenderer-prod.js'
-            function*
+            function (ignored because sourcemap used and context line available)
               u'forEachAccumulated'
             context-line*
               u'Array.isArray(arr) ? arr.forEach(cb, scope) : arr && cb.call(scope, arr);'
@@ -310,7 +310,7 @@ system:
               u'react-native/Libraries/Renderer/ReactNativeRenderer-prod'
             filename (module takes precedence)
               u'reactnativerenderer-prod.js'
-            function*
+            function (ignored because sourcemap used and context line available)
               u'D'
             context-line*
               u'executeDispatch(e, !1, dispatchListeners, dispatchInstances);'
@@ -319,7 +319,7 @@ system:
               u'react-native/Libraries/Renderer/ReactNativeRenderer-prod'
             filename (module takes precedence)
               u'reactnativerenderer-prod.js'
-            function*
+            function (ignored because sourcemap used and context line available)
               u'executeDispatch'
             context-line*
               u'ReactErrorUtils.invokeGuardedCallbackAndCatchFirstError('
@@ -328,7 +328,7 @@ system:
               u'react-native/Libraries/Renderer/ReactNativeRenderer-prod'
             filename (module takes precedence)
               u'reactnativerenderer-prod.js'
-            function*
+            function (ignored because sourcemap used and context line available)
               u'invokeGuardedCallbackAndCatchFirstError'
             context-line*
               u'ReactErrorUtils.invokeGuardedCallback.apply(this, arguments);'
@@ -337,7 +337,7 @@ system:
               u'react-native/Libraries/Renderer/ReactNativeRenderer-prod'
             filename (module takes precedence)
               u'reactnativerenderer-prod.js'
-            function*
+            function (ignored because sourcemap used and context line available)
               u'apply'
             context-line*
               u'invokeGuardedCallback.apply(ReactErrorUtils, arguments);'
@@ -346,7 +346,7 @@ system:
               u'react-native/Libraries/Renderer/ReactNativeRenderer-prod'
             filename (module takes precedence)
               u'reactnativerenderer-prod.js'
-            function*
+            function (ignored because sourcemap used and context line available)
               u'apply'
             context-line*
               u'var funcArgs = Array.prototype.slice.call(arguments, 3);'
@@ -355,7 +355,7 @@ system:
               u'react-native/Libraries/Components/Touchable/Touchable'
             filename (module takes precedence)
               u'touchable.js'
-            function*
+            function (ignored because sourcemap used and context line available)
               u'arguments'
             context-line*
               u'touchableHandleResponderRelease: function(e) {'
@@ -364,7 +364,7 @@ system:
               u'react-native/Libraries/Components/Touchable/Touchable'
             filename (module takes precedence)
               u'touchable.js'
-            function*
+            function (ignored because sourcemap used and context line available)
               u'_receiveSignal'
             context-line*
               u'this._performSideEffectsForTransition(curState, nextState, signal, e);'
@@ -373,7 +373,7 @@ system:
               u'react-native/Libraries/Components/Touchable/Touchable'
             filename (module takes precedence)
               u'touchable.js'
-            function*
+            function (ignored because sourcemap used and context line available)
               u'_performSideEffectsForTransition'
             context-line*
               u'this.touchableHandlePress(e);'
@@ -382,7 +382,7 @@ system:
               u'react-native/Libraries/Components/Touchable/TouchableNativeFeedback.android'
             filename (module takes precedence)
               u'touchablenativefeedback.android.js'
-            function*
+            function (ignored because sourcemap used and context line available)
               u'this'
             context-line*
               u'this.props.onPress && this.props.onPress(e);'
@@ -391,7 +391,7 @@ system:
               u'App'
             filename (module takes precedence)
               u'app.js'
-            function*
+            function (ignored because sourcemap used and context line available)
               u'onPress'
             context-line*
               u'<Button'
@@ -400,7 +400,7 @@ system:
               u'App'
             filename (module takes precedence)
               u'app.js'
-            function*
+            function (ignored because sourcemap used and context line available)
               u'Button'
             context-line*
               u'<Button'

@@ -146,6 +146,7 @@ def get_module_component_v1(abs_path, module, platform):
 
 
 def get_function_component(function, platform, legacy_function_logic,
+                           sourcemap_used=False, context_line_available=False,
                            raw_function=None, javascript_fuzzing=False):
     """
     Attempt to normalize functions by removing common platform outliers.
@@ -227,6 +228,17 @@ def get_function_component(function, platform, legacy_function_logic,
             function_component.update(
                 values=[new_function],
                 hint='trimmed javascript function'
+            )
+
+        # if a sourcemap was used for this frame and we know that we can
+        # use the context line information we no longer want to use the
+        # function name.  The reason for this is that function names in
+        # sourcemaps are unreliable by the nature of sourcemaps and thus a
+        # bad indicator for grouping.
+        if sourcemap_used and context_line_available:
+            function_component.update(
+                contributes=False,
+                hint='ignored because sourcemap used and context line available'
             )
 
     return function_component
@@ -315,10 +327,18 @@ def get_frame_component(frame, event, meta, legacy_function_logic=False,
             hint='module takes precedence'
         )
 
+    context_line_component = None
+
+    # If we are allowed to use the contextline we add it now.
+    if use_contextline:
+        context_line_component = get_contextline_component(frame, platform)
+
     function_component = get_function_component(
         function=frame.function,
         raw_function=frame.raw_function,
         platform=platform,
+        sourcemap_used=frame.data and frame.data.get('sourcemap') is not None,
+        context_line_available=context_line_component and context_line_component.contributes,
         legacy_function_logic=legacy_function_logic,
         javascript_fuzzing=javascript_fuzzing,
     )
@@ -328,10 +348,8 @@ def get_frame_component(frame, event, meta, legacy_function_logic=False,
         filename_component,
         function_component,
     ]
-
-    # If we are allowed to use the contextline we add it now.
-    if use_contextline:
-        values.append(get_contextline_component(frame, platform))
+    if context_line_component is not None:
+        values.append(context_line_component)
 
     rv = GroupingComponent(
         id='frame',
