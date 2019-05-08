@@ -1,6 +1,6 @@
 from __future__ import absolute_import
 
-from BeautifulSoup import BeautifulStoneSoup
+from bs4 import BeautifulSoup
 from collections import OrderedDict
 from simplejson.decoder import JSONDecodeError
 from six.moves.urllib.parse import urlparse
@@ -24,7 +24,7 @@ class ApiError(Exception):
             except (JSONDecodeError, ValueError):
                 if self.text[:5] == "<?xml":
                     # perhaps it's XML?
-                    self.xml = BeautifulStoneSoup(self.text)
+                    self.xml = BeautifulSoup(xml=self.text)
                 # must be an awful code.
                 self.json = None
         else:
@@ -43,7 +43,7 @@ class ApiHostError(ApiError):
 
     @classmethod
     def from_exception(cls, exception):
-        if getattr(exception, 'request'):
+        if exception.request:
             return cls.from_request(exception.request)
         return cls('Unable to reach host')
 
@@ -58,7 +58,7 @@ class ApiTimeoutError(ApiError):
 
     @classmethod
     def from_exception(cls, exception):
-        if getattr(exception, 'request'):
+        if exception.request:
             return cls.from_request(exception.request)
         return cls('Timed out reaching host')
 
