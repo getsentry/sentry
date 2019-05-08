@@ -120,7 +120,7 @@ class OrganizationIncidentIndexEndpoint(OrganizationEndpoint):
                 query=result.get('query', ''),
                 date_started=result['dateStarted'],
                 date_detected=result.get('dateDetected', result['dateStarted']),
-                projects=all_projects,
+                projects=result['projects'],
                 groups=groups,
             )
             return Response(serialize(incident, request.user), status=201)
