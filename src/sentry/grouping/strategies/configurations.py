@@ -128,6 +128,8 @@ register_strategy_config(
           code information (JavaScript, Python, PHP and Ruby)
         * JavaScript stacktraces are better deduplicated across browser
           versions.
+        * JavaScript stacktraces involving source maps are likely to group
+          better.
     '''
 )
 
