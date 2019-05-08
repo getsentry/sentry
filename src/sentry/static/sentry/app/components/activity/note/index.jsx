@@ -18,6 +18,17 @@ class Note extends React.Component {
     memberList: PropTypes.array.isRequired,
     teams: PropTypes.arrayOf(SentryTypes.Team).isRequired,
 
+    // pass through to ActivityItem
+    // shows absolute time instead of a relative string
+    showTime: PropTypes.bool,
+
+    // pass through to ActivityItem
+    // hides the date/timestamp in header
+    hideDate: PropTypes.bool,
+
+    // min-height for NoteInput textarea
+    minHeight: PropTypes.number,
+
     onDelete: PropTypes.func,
     onCreate: PropTypes.func,
     onUpdate: PropTypes.func,
@@ -58,9 +69,11 @@ class Note extends React.Component {
   };
 
   render() {
-    const {item, author, teams, memberList} = this.props;
+    const {item, author, teams, memberList, hideDate, minHeight, showTime} = this.props;
 
     const activityItemProps = {
+      hideDate,
+      showTime,
       id: `activity-item-${item.id}`,
       author: {type: 'user', user: item.user},
       date: item.dateCreated,
@@ -90,6 +103,7 @@ class Note extends React.Component {
       <StyledActivityItem {...activityItemProps}>
         {() => (
           <NoteInput
+            minHeight={minHeight}
             item={item}
             onEditFinish={this.handleEditFinish}
             onUpdate={this.handleUpdate}
