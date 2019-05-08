@@ -170,7 +170,7 @@ class SnubaTSDB(BaseTSDB):
 
     def get_most_frequent(self, model, keys, start, end=None,
                           rollup=None, limit=10, environment_id=None):
-        aggregation = u'top{}'.format(limit)
+        aggregation = u'topK({})'.format(limit)
         result = self.get_data(model, keys, start, end, rollup,
                                [environment_id] if environment_id is not None else None,
                                aggregation=aggregation)
@@ -186,7 +186,7 @@ class SnubaTSDB(BaseTSDB):
 
     def get_most_frequent_series(self, model, keys, start, end=None,
                                  rollup=None, limit=10, environment_id=None):
-        aggregation = u'top{}'.format(limit)
+        aggregation = u'topK({})'.format(limit)
         result = self.get_data(model, keys, start, end, rollup,
                                [environment_id] if environment_id is not None else None,
                                aggregation=aggregation, group_on_time=True)
