@@ -327,7 +327,6 @@ class SnubaSearchTest(TestCase, SnubaTestCase):
             sort_by='date',
         )
         assert list(results) == [self.group2, self.group1]
-
         results = self.make_query(
             environments=[self.environments['production']],
             sort_by='new',
@@ -1024,7 +1023,7 @@ class SnubaSearchTest(TestCase, SnubaTestCase):
             orderby=['-last_seen', 'issue'],
             aggregations=[
                 ['uniq', 'issue', 'total'],
-                ['toUInt64(max(timestamp)) * 1000', '', 'last_seen']
+                ['multiply(toUInt64(max(timestamp)), 1000)', '', 'last_seen']
             ],
             having=[['last_seen', '>=', Any(int)]],
             **common_args
@@ -1037,10 +1036,10 @@ class SnubaSearchTest(TestCase, SnubaTestCase):
         assert query_mock.call_args == mock.call(
             orderby=['-priority', 'issue'],
             aggregations=[
-                ['(toUInt64(log(times_seen) * 600)) + last_seen', '', 'priority'],
+                ['toUInt64(plus(multiply(log(times_seen), 600), last_seen))', '', 'priority'],
                 ['count()', '', 'times_seen'],
                 ['uniq', 'issue', 'total'],
-                ['toUInt64(max(timestamp)) * 1000', '', 'last_seen']
+                ['multiply(toUInt64(max(timestamp)), 1000)', '', 'last_seen']
             ],
             having=[],
             **common_args
