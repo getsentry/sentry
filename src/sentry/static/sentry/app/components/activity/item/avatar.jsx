@@ -33,7 +33,7 @@ class ActivityAvatar extends React.Component {
       );
     }
 
-    return null;
+    return <Placeholder className={className} size={size} />;
   }
 }
 
@@ -49,4 +49,12 @@ const SystemAvatar = styled('span')`
 
 const Logo = styled(InlineSvg)`
   color: ${p => p.theme.gray5};
+`;
+
+const Placeholder = styled('div')`
+  height: ${p => p.size}px;
+  width: ${p => p.size}px;
+  border-radius: 100%;
+  background-color: #f5f5f5;
+  flex-shrink: 0;
 `;
