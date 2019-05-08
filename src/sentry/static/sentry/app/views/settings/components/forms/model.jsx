@@ -359,7 +359,7 @@ class FormModel {
       data: this.getTransformedData(),
     });
 
-    this.formState = FormState.SAVING;
+    this.setFormSaving();
     request
       .then(resp => {
         // save snapshot
@@ -547,6 +547,11 @@ class FormModel {
     }
 
     return this.saveField(id, currentValue);
+  }
+
+  @action
+  setFormSaving() {
+    this.formState = FormState.SAVING;
   }
 
   /**
