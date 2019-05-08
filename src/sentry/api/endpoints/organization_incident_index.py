@@ -42,7 +42,7 @@ class IncidentSerializer(serializers.Serializer):
         default=[],
     )
     title = serializers.CharField(required=True)
-    query = serializers.CharField(required=True)
+    query = serializers.CharField(required=False)
     dateStarted = serializers.DateTimeField(required=True)
     dateDetected = serializers.DateTimeField(required=False)
 
@@ -106,7 +106,6 @@ class OrganizationIncidentIndexEndpoint(OrganizationEndpoint):
 
             result = serializer.object
             groups = result['groups']
-            projects = result['projects']
             all_projects = set(result['projects']) | set(g.project for g in result['groups'])
             if any(p for p in all_projects if not request.access.has_project_access(p)):
                 raise PermissionDenied
@@ -115,10 +114,10 @@ class OrganizationIncidentIndexEndpoint(OrganizationEndpoint):
                 organization=organization,
                 status=IncidentStatus.CREATED,
                 title=result['title'],
-                query=result['query'],
+                query=result.get('query', ''),
                 date_started=result['dateStarted'],
                 date_detected=result.get('dateDetected', result['dateStarted']),
-                projects=projects,
+                projects=all_projects,
                 groups=groups,
             )
             return Response(serialize(incident, request.user), status=201)
