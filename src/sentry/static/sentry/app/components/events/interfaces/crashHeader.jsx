@@ -92,11 +92,13 @@ const CrashHeader = createReactClass({
         <h3 className="pull-left">
           {this.props.title}
           <small style={{marginLeft: 5}}>
-            (<Tooltip2 title={t('Toggle stacktrace order')}>
+            (
+            <Tooltip2 title={t('Toggle stacktrace order')}>
               <a onClick={this.toggleOrder} style={{borderBottom: '1px dotted #aaa'}}>
                 {newestFirst ? t('most recent call first') : t('most recent call last')}
               </a>
-            </Tooltip2>)
+            </Tooltip2>
+            )
           </small>
         </h3>
         <div className="btn-group" style={{marginLeft: 10}}>
