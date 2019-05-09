@@ -72,9 +72,9 @@ class InviteMembers extends React.Component {
           >
             <HelpText>
               {t(
-                `Enter the emails of team members you would like to invite to your
-             organization. We'll handle sending an email invitation to get them
-             signed up in your organization.`
+                `Enter the emails of team members you'd like in your
+                 organization. We'll send out their invitation and make sure
+                 they get set up.`
               )}
             </HelpText>
             <EmailField
@@ -83,7 +83,7 @@ class InviteMembers extends React.Component {
               placeholder={`e.g. team.member@${this.emailSuffix}`}
               label={t('Member Email')}
               help={t(
-                'Enter te email of a team member to invite to your Sentry Organization. You may invite more than one.'
+                'Enter the email of a team member to invite to your Sentry Organization. You may invite more than one.'
               )}
             />
             <SelectField

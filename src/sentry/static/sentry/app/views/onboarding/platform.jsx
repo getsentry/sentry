@@ -131,17 +131,16 @@ class OnboardingPlatform extends React.Component {
         <p>
           {tct(
             `Sentry integrates with many different languages and platforms
-             through the official [strong:Sentry SDKs].`,
+             through the official [strong:Sentry SDKs]. Select your platform
+             from the list below to see a tailored installation process for
+             Sentry.`,
             {strong: <strong />}
           )}
         </p>
-
         <p>
           {tct(
-            `Selecting your platform from the list below will provide a
-            tailored installation process for Sentry. Not seeing your platform
-            in the list below? [selectOther:Select the other
-            platform] and use a community client!`,
+            `Not seeing your platform in the list below? [selectOther:Select
+             the other platform], and use a community client!`,
             {selectOther: <a href="#" onClick={this.handleSelectOther} />}
           )}
         </p>

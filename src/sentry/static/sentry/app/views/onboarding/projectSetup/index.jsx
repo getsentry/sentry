@@ -29,7 +29,7 @@ const SETUP_CHOICES = [
     icon: 'icon-window',
     extra: <ChoiceStar />,
     subtext: t(
-      `Ready to copy and paste some code? Or looking for a quick overview of the
+      `Ready to copy and paste some code? Looking for a quick overview of the
        setup process? You'll be sending errors in only a few minutes!`
     ),
   },
@@ -38,8 +38,9 @@ const SETUP_CHOICES = [
     title: t('Invite Team Members'),
     icon: 'icon-user-multi',
     subtext: t(
-      `Don't know how to integrate sentry into your code but know someone on
-       your team who does? Spread the love and invite teammates!`
+      `Not sure how to integrate Sentry into your code, but know someone on
+       your team who does? Teamwork makes the dream work. Invite your
+       teammates.`
     ),
   },
   {

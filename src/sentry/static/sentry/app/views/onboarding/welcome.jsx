@@ -21,22 +21,21 @@ class OnboardingWelcome extends React.Component {
     return (
       <React.Fragment>
         <p>
-          {tct('Welcome to Sentry [name]!', {
+          {tct("We're happy you're here [name]!", {
             name: <strong>{user.name.split(' ')[0]}</strong>,
           })}
         </p>
         <p>
           {t(
-            `Lets take a moment to get you familiar with some concepts in
-             Sentry and set your account up with a few things along the way. At
-             the end of this short (we promise!) onboarding, you'll be ready to
-             integrate Sentry into your application and start saving yourself
-             hours of headaches debugging errors.`
+            `Let's get started by setting up your account and taking nickel
+             tour of Sentry. At the end of this short (we promise!) onboarding,
+             you'll be ready to integrate Sentry into your application and save
+             yourself hours of debugging-related headaches.`
           )}
         </p>
         <ActionGroup>
           <Button disabled={!active} priority="primary" onClick={e => onComplete()}>
-            {t('Lets set this up!')}
+            {t('Get Started')}
           </Button>
           <SecondaryAction>
             {tct('Not your first Sentry rodeo? [exitLink:Skip this onboarding].', {

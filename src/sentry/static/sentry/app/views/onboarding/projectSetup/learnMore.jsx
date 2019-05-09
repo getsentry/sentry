@@ -24,10 +24,9 @@ const LearnMore = ({project}) => (
     <Panel>
       <SampleEventPanelBody disablePadding={false}>
         {tct(
-          `Looking to dig into more of what Sentry can do before
-               integrating Sentry into your application? Create a
-               [strong:Sample Error Event] and poke around a bit to get a
-               better feel for the Sentry workflow!`,
+          `Want to see more of what Sentry can do before integrating into your
+           application? Create a [strong:Sample Error Event] and poke around to
+           get a better feel for the Sentry workflow.`,
           {strong: <strong />}
         )}
         <CreateSampleEventButton

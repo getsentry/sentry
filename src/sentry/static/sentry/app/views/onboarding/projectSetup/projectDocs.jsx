@@ -65,7 +65,7 @@ class ProjectDocs extends React.Component {
           <Description id={scrollTargetId}>
             {tct(
               `Follow these instructions to install and verify the integration
-               of Sentry into your Application, including sending
+               of Sentry into your application, including sending
                [strong:your first event] from your development environment. See
                the full documentation for additional configuration, platform
                features, and methods of sending events.`,
