@@ -38,7 +38,6 @@ class GroupActivity extends React.Component {
 
   state = {
     createBusy: false,
-    preview: false,
     error: false,
     inputId: uniqueId(),
   };
@@ -59,6 +58,10 @@ class GroupActivity extends React.Component {
     }
   };
 
+  /**
+   * Note: This is nearly the same logic as `app/views/organizationIncidents/details/activity`
+   * This can be abstracted a bit if we create more objects that can have activities
+   */
   handleNoteCreate = async note => {
     const {api, group} = this.props;
 
@@ -73,8 +76,6 @@ class GroupActivity extends React.Component {
 
       this.setState({
         createBusy: false,
-        preview: false,
-        mentions: [],
 
         // This is used as a `key` to Note Input so that after successful post
         // we reset the value of the input
@@ -84,7 +85,6 @@ class GroupActivity extends React.Component {
     } catch (error) {
       this.setState({
         createBusy: false,
-        preview: false,
         error: true,
         errorJSON: error.responseJSON || makeDefaultErrorJson(),
       });
@@ -104,13 +104,11 @@ class GroupActivity extends React.Component {
       await updateNote(api, group, item, note);
       this.setState({
         updateBusy: false,
-        preview: false,
       });
       clearIndicators();
     } catch (error) {
       this.setState({
         updateBusy: false,
-        preview: false,
         error: true,
         errorJSON: error.responseJSON || makeDefaultErrorJson(),
       });
