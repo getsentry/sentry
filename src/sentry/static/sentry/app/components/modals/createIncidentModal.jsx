@@ -1,30 +1,52 @@
+import {browserHistory} from 'react-router';
 import PropTypes from 'prop-types';
 import React from 'react';
 
+import {createIncident} from 'app/actionCreators/incident';
 import {t} from 'app/locale';
 import Form from 'app/views/settings/components/forms/form';
-// import SentryTypes from 'app/sentryTypes';
+import SentryTypes from 'app/sentryTypes';
 import TextField from 'app/views/settings/components/forms/textField';
+import withApi from 'app/utils/withApi';
 
 class CreateIncidentModal extends React.Component {
   static propTypes = {
+    api: PropTypes.object.isRequired,
+    issues: PropTypes.arrayOf(PropTypes.string),
     closeModal: PropTypes.func,
     onClose: PropTypes.func,
     Body: PropTypes.oneOfType([PropTypes.func, PropTypes.node]).isRequired,
     Header: PropTypes.oneOfType([PropTypes.func, PropTypes.node]).isRequired,
-    // organization: SentryTypes.Organization.isRequired,
+    organization: SentryTypes.Organization.isRequired,
   };
 
-  handleSubmit = (data, onSuccess, onError) => {
-    // TODO(billy): Actually create incident and handle success follow up
+  handleSubmit = async (data, onSuccess, onError, _e, setFormSavingState) => {
+    const {api, organization, issues} = this.props;
+
+    setFormSavingState();
+
+    try {
+      const incident = await createIncident(api, organization, data.title, issues);
+      onSuccess(incident);
+    } catch (err) {
+      onError(err);
+    }
   };
 
   handleSuccess = data => {
-    if (this.props.onClose) {
-      this.props.onClose(data);
+    const {organization, onClose, closeModal} = this.props;
+
+    if (onClose) {
+      onClose(data);
     }
 
-    this.props.closeModal();
+    closeModal();
+
+    if (data) {
+      browserHistory.push(
+        `/organizations/${organization.slug}/incidents/${data.identifier}/`
+      );
+    }
   };
 
   render() {
@@ -43,7 +65,7 @@ class CreateIncidentModal extends React.Component {
             requireChanges
           >
             <TextField
-              name="name"
+              name="title"
               label={t('Incident Name')}
               placeholder={t('Incident Name')}
               help={t('Give a name to help identify the incident')}
@@ -59,4 +81,4 @@ class CreateIncidentModal extends React.Component {
   }
 }
 
-export default CreateIncidentModal;
+export default withApi(CreateIncidentModal);

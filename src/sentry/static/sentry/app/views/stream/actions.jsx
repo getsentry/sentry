@@ -397,7 +397,9 @@ const StreamActions = createReactClass({
                   className="btn btn-default btn-sm hidden-sm hidden-xs"
                   title={t('Create new incident')}
                   disabled={!anySelected}
-                  onAction={() => openCreateIncidentModal({organization})}
+                  onAction={() =>
+                    openCreateIncidentModal({organization, issues: Array.from(issues)})
+                  }
                 >
                   <InlineSvg src="icon-circle-add" />
                 </ActionLink>
