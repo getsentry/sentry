@@ -2,7 +2,7 @@
   "tags": [
     ["level", "error"],
     ["server_name", "web01.example.org"],
-    ["os.name", "Linux"]
+    ["environment", "prod"],
   ],
   "sentry.interfaces.Stacktrace": {
     "frames": [
