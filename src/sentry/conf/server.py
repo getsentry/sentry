@@ -1062,7 +1062,8 @@ _SENTRY_TAGSTORE_DEFAULT_MULTI_OPTIONS = {
     ],
     'runner': 'ImmediateRunner',
 }
-SENTRY_TAGSTORE = os.environ.get('SENTRY_TAGSTORE', 'sentry.tagstore.legacy.LegacyTagStorage')
+SENTRY_TAGSTORE = os.environ.get('SENTRY_TAGSTORE',
+                                 'sentry.tagstore.snuba.SnubaCompatibilityTagStorage')
 SENTRY_TAGSTORE_OPTIONS = (
     _SENTRY_TAGSTORE_DEFAULT_MULTI_OPTIONS if 'SENTRY_TAGSTORE_DEFAULT_MULTI_OPTIONS' in os.environ
     else {}
@@ -1077,7 +1078,7 @@ SENTRY_SEARCH_OPTIONS = {}
 # }
 
 # Time-series storage backend
-SENTRY_TSDB = 'sentry.tsdb.dummy.DummyTSDB'
+SENTRY_TSDB = 'sentry.tsdb.redissnuba.RedisSnubaTSDB'
 SENTRY_TSDB_OPTIONS = {}
 
 SENTRY_NEWSLETTER = 'sentry.newsletter.base.Newsletter'
