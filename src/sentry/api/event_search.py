@@ -490,7 +490,7 @@ def convert_search_boolean_to_snuba_query(search_boolean):
             return convert_search_boolean_to_snuba_query(term)
         else:
             raise InvalidSearchQuery(
-                'Attempted to covert term of unrecognized type %s' %
+                'Attempted to convert term of unrecognized type %s into a snuba expression' %
                 term.__class__.__name__)
 
     if not search_boolean:
