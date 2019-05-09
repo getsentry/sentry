@@ -6,10 +6,11 @@ sentry.utils.outcomes.py
 """
 from __future__ import absolute_import
 
-import random
-import time
+from datetime import datetime
 from django.conf import settings
 from enum import IntEnum
+import random
+import time
 
 from sentry import tsdb, options
 from sentry.utils import json, metrics
@@ -49,6 +50,12 @@ def track_outcome(org_id, project_id, key_id, outcome, reason=None, timestamp=No
                 settings.KAFKA_CLUSTERS[outcomes['cluster']]
             )
         )
+
+    assert isinstance(org_id, int)
+    assert isinstance(project_id, int)
+    assert isinstance(key_id, (type(None), int))
+    assert isinstance(outcome, Outcome)
+    assert isinstance(timestamp, (type(None), datetime))
 
     timestamp = timestamp or to_datetime(time.time())
     increment_list = []
