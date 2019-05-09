@@ -10,8 +10,9 @@ import {Client} from 'app/api';
 describe('SavedSearchesStore', function() {
   let api;
 
-  beforeAll(function() {
+  beforeAll(async function() {
     api = new Client();
+    await SavedSearchesStore.reset();
   });
 
   beforeEach(function() {
@@ -30,9 +31,10 @@ describe('SavedSearchesStore', function() {
     });
   });
 
-  afterEach(function() {
+  afterEach(async function() {
     Client.clearMockResponses();
     SavedSearchesStore.reset();
+    await tick();
   });
 
   it('get', function() {
@@ -64,7 +66,9 @@ describe('SavedSearchesStore', function() {
         isPinned: true,
       },
     });
+
     pinSearch(api, 'org-1', 0, 'level:info');
+    await tick();
     await tick();
 
     expect(SavedSearchesStore.get().savedSearches).toHaveLength(3);
@@ -115,6 +119,7 @@ describe('SavedSearchesStore', function() {
 
     pinSearch(api, 'org-1', 0, searches[1].query);
     await tick();
+    await tick();
 
     // Order should remain the same
     expect(SavedSearchesStore.get().savedSearches[1]).toEqual(
@@ -160,6 +165,7 @@ describe('SavedSearchesStore', function() {
     await tick();
 
     pinSearch(api, 'org-1', 0, searches[1].query);
+    await tick();
     await tick();
 
     expect(SavedSearchesStore.get().savedSearches).toHaveLength(2);
@@ -208,6 +214,7 @@ describe('SavedSearchesStore', function() {
 
     unpinSearch(api, 'org-1', 0, searches[0]);
     await tick();
+    await tick();
 
     // Saved custom search should be removed
     expect(SavedSearchesStore.get().savedSearches).toHaveLength(2);
@@ -244,6 +251,7 @@ describe('SavedSearchesStore', function() {
     await tick();
 
     unpinSearch(api, 'org-1', 0, searches[0]);
+    await tick();
     await tick();
 
     expect(SavedSearchesStore.get().savedSearches).toHaveLength(2);
@@ -283,6 +291,7 @@ describe('SavedSearchesStore', function() {
     await tick();
 
     unpinSearch(api, 'org-1', 0, searches[0]);
+    await tick();
     await tick();
 
     expect(SavedSearchesStore.get().savedSearches).toHaveLength(2);
