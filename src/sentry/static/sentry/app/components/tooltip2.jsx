@@ -129,6 +129,7 @@ class Tooltip2 extends React.Component {
           {({ref, style, placement, arrowProps}) => (
             <TooltipContent
               id={this.tooltipId}
+              className="tooltip-content"
               aria-hidden={!isOpen}
               isOpen={isOpen}
               innerRef={ref}
@@ -164,7 +165,7 @@ const Container = styled('span')`
   display: ${p => p.containerDisplayMode};
 `;
 
-const TooltipContent = styled('span')`
+const TooltipContent = styled('div')`
   color: #fff;
   background: #000;
   opacity: 0.9;
@@ -172,7 +173,7 @@ const TooltipContent = styled('span')`
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
   border-radius: ${p => p.theme.borderRadius};
   overflow-wrap: break-word;
-  max-width: 200px;
+  max-width: 225px;
   z-index: ${p => p.theme.zIndex.tooltip};
 
   font-weight: bold;

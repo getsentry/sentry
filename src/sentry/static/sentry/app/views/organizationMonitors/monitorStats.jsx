@@ -47,10 +47,10 @@ export default class MonitorStats extends AsyncComponent {
     const value = `${ok.toLocaleString()} successful<br>${error.toLocaleString()} failed`;
 
     return (
-      '<div style="width:150px">' +
-      `<div class="time-label">${timeLabel}</div>` +
-      `<div class="value-label">${value}</div>` +
-      '</div>'
+      <div style={{width: '150px'}}>
+        <div className="time-label">{timeLabel}</div>
+        <div className="value-label">{value}</div>
+      </div>
     );
   }
 
