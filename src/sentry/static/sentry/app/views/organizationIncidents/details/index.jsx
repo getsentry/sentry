@@ -54,19 +54,20 @@ class OrganizationIncidentDetails extends React.Component {
       params: {orgId, incidentId},
     } = this.props;
 
-    const isSubscribed = !this.state.incident.isSubscribed;
+    const isSubscribed = this.state.incident.isSubscribed;
 
-    updateSubscription(api, orgId, incidentId, isSubscribed)
-      .then(() => {
-        this.setState(state => ({
-          incident: {...state.incident, isSubscribed},
-        }));
-      })
-      .catch(() => {
-        addErrorMessage(
-          t('An error occurred, your subscription status was not changed.')
-        );
-      });
+    const newIsSubscribed = !isSubscribed;
+
+    this.setState(state => ({
+      incident: {...state.incident, isSubscribed: newIsSubscribed},
+    }));
+
+    updateSubscription(api, orgId, incidentId, isSubscribed).catch(() => {
+      this.setState(state => ({
+        incident: {...state.incident, isSubscribed},
+      }));
+      addErrorMessage(t('An error occurred, your subscription status was not changed.'));
+    });
   };
 
   handleStatusChange = () => {
@@ -75,19 +76,23 @@ class OrganizationIncidentDetails extends React.Component {
       params: {orgId, incidentId},
     } = this.props;
 
-    const status = isOpen(this.state.incident)
+    const {status} = this.state.incident;
+
+    const newStatus = isOpen(this.state.incident)
       ? INCIDENT_STATUS.CLOSED
       : INCIDENT_STATUS.CREATED;
 
-    updateStatus(api, orgId, incidentId, status)
-      .then(() => {
-        this.setState(state => ({
-          incident: {...state.incident, status},
-        }));
-      })
-      .catch(() => {
-        addErrorMessage(t('An error occurred, your incident status was not changed.'));
-      });
+    this.setState(state => ({
+      incident: {...state.incident, newStatus},
+    }));
+
+    updateStatus(api, orgId, incidentId, status).catch(() => {
+      this.setState(state => ({
+        incident: {...state.incident, status},
+      }));
+
+      addErrorMessage(t('An error occurred, your incident status was not changed.'));
+    });
   };
 
   render() {
