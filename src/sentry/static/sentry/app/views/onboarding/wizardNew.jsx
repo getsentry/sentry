@@ -20,17 +20,17 @@ const ONBOARDING_STEPS = [
   {
     id: 'welcome',
     title: t('Welcome to Sentry'),
-    component: OnboardingWelcome,
+    Component: OnboardingWelcome,
   },
   {
     id: 'select-platform',
     title: t('Platform Selection'),
-    component: OnboardingPlatform,
+    Component: OnboardingPlatform,
   },
   {
     id: 'get-started',
     title: t('Getting Started with Sentry'),
-    component: OnboardingProjectSetup,
+    Component: OnboardingProjectSetup,
   },
 ];
 
@@ -105,7 +105,7 @@ class OnboardingWizard extends React.Component {
     return visibleSteps.map((step, index) => (
       <OnboardingStep key={step.id} onPoseComplete={this.scrollToActiveStep}>
         <PageHeading withMargins>{step.title}</PageHeading>
-        <step.component
+        <step.Component
           scrollTargetId={`onboarding_step_${step.id}`}
           active={activeStepIndex === index}
           orgId={orgId}
