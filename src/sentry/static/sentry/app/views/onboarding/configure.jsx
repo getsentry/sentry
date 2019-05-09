@@ -1,32 +1,28 @@
-import React from 'react';
-import createReactClass from 'create-react-class';
 import {browserHistory} from 'react-router';
+import React from 'react';
 import styled from 'react-emotion';
 
 import {analytics, amplitude} from 'app/utils/analytics';
+import {t} from 'app/locale';
+import Button from 'app/components/button';
 import ProjectContext from 'app/views/projects/projectContext';
 import ProjectInstallPlatform from 'app/views/projectInstall/platform';
 import SentryTypes from 'app/sentryTypes';
-import {t} from 'app/locale';
-import Button from 'app/components/button';
+import withOrganization from 'app/utils/withOrganization';
 
-import CreateSampleEvent from './createSampleEvent';
+import CreateSampleEventButton from './createSampleEventButton';
 
-const Configure = createReactClass({
-  displayName: 'Configure',
-  contextTypes: {
+class Configure extends React.Component {
+  static propTypes = {
     organization: SentryTypes.Organization,
-  },
+  };
 
-  getInitialState() {
-    return {
-      hasSentRealEvent: false,
-    };
-  },
+  state = {
+    hasSentRealEvent: false,
+  };
 
   componentDidMount() {
-    const {organization} = this.context;
-    const {params} = this.props;
+    const {organization, params} = this.props;
     const data = {
       project: params.projectId,
       platform: params.platform,
@@ -41,22 +37,26 @@ const Configure = createReactClass({
     data.org_id = parseInt(organization.id, 10);
     analytics('onboarding.configure_viewed', data);
     this.sentRealEvent();
-  },
+  }
 
-  sentRealEvent() {
-    const project = this.context.organization.projects.find(
+  get project() {
+    return this.props.organization.projects.find(
       p => p.slug == this.props.params.projectId
     );
+  }
+
+  sentRealEvent() {
+    const project = this.project;
     let hasSentRealEvent = false;
     if (project && project.firstEvent) {
       hasSentRealEvent = true;
     }
     this.setState({hasSentRealEvent});
-  },
+  }
 
   redirectUrl() {
+    const {organization} = this.props;
     const {orgId, projectId} = this.props.params;
-    const {organization} = this.context;
 
     const hasSentry10 = new Set(organization.features).has('sentry10');
 
@@ -64,11 +64,11 @@ const Configure = createReactClass({
       ? `/organizations/${orgId}/issues/#welcome`
       : `/${orgId}/${projectId}/#welcome`;
     browserHistory.push(url);
-  },
+  }
 
-  submit() {
+  submit = () => {
+    const {organization} = this.props;
     const {projectId} = this.props.params;
-    const {organization} = this.context;
     analytics('onboarding.complete', {project: projectId});
     amplitude(
       'Completed Onboarding Installation Instructions',
@@ -76,7 +76,7 @@ const Configure = createReactClass({
       {projectId}
     );
     this.redirectUrl();
-  },
+  };
 
   render() {
     const {orgId, projectId} = this.props.params;
@@ -88,7 +88,11 @@ const Configure = createReactClass({
           <h2 style={{marginBottom: 30}}>
             {t('Configure your application')}
             {!hasSentRealEvent && (
-              <CreateSampleEvent params={this.props.params} source="header" />
+              <div className="pull-right">
+                <CreateSampleEventButton project={this.project} source="header">
+                  {t('Or Create a Sample Event')}
+                </CreateSampleEventButton>
+              </div>
             )}
           </h2>
           <ProjectContext projectId={projectId} orgId={orgId} style={{marginBottom: 30}}>
@@ -106,8 +110,8 @@ const Configure = createReactClass({
         </div>
       </div>
     );
-  },
-});
+  }
+}
 
 const DoneButton = styled('div')`
   display: grid;
@@ -116,4 +120,4 @@ const DoneButton = styled('div')`
   margin-bottom: 20px;
 `;
 
-export default Configure;
+export default withOrganization(Configure);
