@@ -36,3 +36,55 @@ export async function createIncident(api, organization, title, groups) {
     throw err;
   }
 }
+
+/**
+ * Fetches a list of activities for an incident
+ */
+export async function fetchIncidentActivities(api, orgId, incidentId) {}
+
+/**
+ * Creates a note for an incident
+ */
+export async function createIncidentNote(api, incidentId, note) {
+  addLoadingMessage(t('Posting comment...'));
+
+  try {
+    // TODO: Implement me
+
+    clearIndicators();
+  } catch (err) {
+    addErrorMessage(t('Unable to post comment'));
+    throw err;
+  }
+}
+
+/**
+ * Deletes a note for an incident
+ */
+export async function deleteIncidentNote(api, incidentId, item) {
+  addLoadingMessage(t('Removing comment...'));
+
+  try {
+    // TODO: Implement me
+
+    clearIndicators();
+  } catch (err) {
+    addErrorMessage(t('Failed to delete comment'));
+    throw err;
+  }
+}
+
+/**
+ * Updates a note for an incident
+ */
+export async function updateIncidentNote(api, incidentId, item, note) {
+  addLoadingMessage(t('Updating comment...'));
+
+  try {
+    // TODO: Implement me
+    clearIndicators();
+  } catch (err) {
+    addErrorMessage(t('Unable to update comment'));
+    throw err;
+  }
+}
