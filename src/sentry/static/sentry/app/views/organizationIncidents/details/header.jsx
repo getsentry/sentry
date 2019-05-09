@@ -47,16 +47,9 @@ export default class IncidentHeader extends React.Component {
           }
           menuWidth="160px"
         >
-          {isIncidentOpen && (
-            <StyledMenuItem onSelect={onStatusChange}>
-              {t('Close this incident')}
-            </StyledMenuItem>
-          )}
-          {!isIncidentOpen && (
-            <StyledMenuItem onSelect={onStatusChange}>
-              {t('Reopen this incident')}
-            </StyledMenuItem>
-          )}
+          <StyledMenuItem onSelect={onStatusChange}>
+            {isIncidentOpen ? t('Close this incident') : t('Reopen this incident')}
+          </StyledMenuItem>
         </DropdownControl>
       </Access>
     );
