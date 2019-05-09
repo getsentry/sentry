@@ -193,6 +193,7 @@ describe('OrganizationStream', function() {
       expect(savedSearchesRequest).toHaveBeenCalledTimes(1);
       // Update stores with saved searches
       await tick();
+      await tick();
       wrapper.update();
 
       // auxillary requests being made
