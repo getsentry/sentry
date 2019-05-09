@@ -4,7 +4,7 @@ import styled from 'react-emotion';
 
 import {t} from 'app/locale';
 import InlineSvg from 'app/components/inlineSvg';
-import Tooltip from 'app/components/tooltip';
+import Tooltip2 from 'app/components/tooltip2';
 
 import InviteMembers from './inviteMembers';
 import LearnMore from './learnMore';
@@ -12,9 +12,9 @@ import ProjectDocs from './projectDocs';
 import SetupChoices from './setupChoices';
 
 const ChoiceStar = styled(p => (
-  <Tooltip title={t('Recommended next step')}>
+  <Tooltip2 title={t('Recommended next step')}>
     <InlineSvg src="icon-star-small-filled" {...p} />
-  </Tooltip>
+  </Tooltip2>
 ))`
   position: absolute;
   top: 10px;
