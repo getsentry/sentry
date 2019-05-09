@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 import datetime
+import pytest
 from datetime import timedelta
 
 from django.utils import timezone
@@ -917,8 +918,14 @@ class ParseBooleanSearchQueryTest(TestCase):
         )]
 
     def test_malformed_groups(self):
-        # TODO(lb): what do we do here?
-        pass
+        with pytest.raises(IncompleteParseError):
+            parse_search_query(
+                '(user.email:foo@example.com OR user.email:bar@example.com'
+            )
+        with pytest.raises(IncompleteParseError):
+            parse_search_query(
+                '((user.email:foo@example.com OR user.email:bar@example.com AND  user.email:bar@example.com)'
+            )
 
 
 class GetSnubaQueryArgsTest(TestCase):
@@ -1025,6 +1032,10 @@ class GetSnubaQueryArgsTest(TestCase):
                 0,
             ]]
         }
+
+    def test_malformed_groups(self):
+        with pytest.raises(InvalidSearchQuery):
+            get_snuba_query_args('(user.email:foo@example.com OR user.email:bar@example.com')
 
 
 class ConvertEndpointParamsTests(TestCase):

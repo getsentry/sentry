@@ -7,7 +7,7 @@ from datetime import datetime
 import six
 from django.utils.functional import cached_property
 from parsimonious.expressions import Optional
-from parsimonious.exceptions import ParseError
+from parsimonious.exceptions import IncompleteParseError, ParseError
 from parsimonious.nodes import Node
 from parsimonious.grammar import Grammar, NodeVisitor
 
@@ -90,7 +90,7 @@ search_term          = key_val_term / quoted_raw_search / raw_search
 key_val_term         = space? (time_filter / rel_time_filter / specific_time_filter
                        / numeric_filter / has_filter / is_filter / basic_filter)
                        space?
-raw_search           = (!key_val_term ~r"\ *([^\ ^\n]+)\ *" )*
+raw_search           = (!key_val_term ~r"\ *([^\ ^\n ()]+)\ *" )*
 quoted_raw_search    = spaces quoted_value spaces
 
 # standard key:val filter
@@ -586,6 +586,11 @@ def get_snuba_query_args(query=None, params=None):
         except ParseError as e:
             raise InvalidSearchQuery(
                 u'Parse error: %r (column %d)' % (e.expr.name, e.column())
+            )
+        except IncompleteParseError as e:
+            raise InvalidSearchQuery(
+                'Parse error: Search did not parse completely. This is commonly caused by unmatched-parenthesis. '
+                + six.text_type(e)
             )
 
     # Keys included as url params take precedent if same key is included in search
