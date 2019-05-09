@@ -10,6 +10,7 @@ from datetime import datetime
 from django.conf import settings
 from enum import IntEnum
 import random
+import six
 import time
 
 from sentry import tsdb, options
@@ -51,9 +52,9 @@ def track_outcome(org_id, project_id, key_id, outcome, reason=None, timestamp=No
             )
         )
 
-    assert isinstance(org_id, int)
-    assert isinstance(project_id, int)
-    assert isinstance(key_id, (type(None), int))
+    assert isinstance(org_id, six.integer_types)
+    assert isinstance(project_id, six.integer_types)
+    assert isinstance(key_id, (type(None), six.integer_types))
     assert isinstance(outcome, Outcome)
     assert isinstance(timestamp, (type(None), datetime))
 
