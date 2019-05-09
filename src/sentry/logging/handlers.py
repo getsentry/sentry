@@ -61,11 +61,14 @@ class HumanRenderer(object):
 
 
 class StructLogHandler(logging.StreamHandler):
-    def emit(self, record, logger=get_logger()):
+    def emit(self, record, logger=None):
         # If anyone wants to use the 'extra' kwarg to provide context within
         # structlog, we have to strip all of the default attributes from
         # a record because the RootLogger will take the 'extra' dictionary
         # and just turn them into attributes.
+        if logger is None:
+            logger = get_logger()
+
         kwargs = {
             k: v for k, v in six.iteritems(vars(record)) if k not in throwaways and v is not None
         }
@@ -113,7 +116,7 @@ metrics_badchars_re = re.compile("[^a-z0-9_.]")
 
 
 class MetricsLogHandler(logging.Handler):
-    def emit(self, record, logger=get_logger()):
+    def emit(self, record, logger=None):
         """
         Turn something like:
             > django.request.Forbidden (CSRF cookie not set.): /account
