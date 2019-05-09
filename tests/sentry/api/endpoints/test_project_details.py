@@ -713,7 +713,7 @@ class CopyProjectSettingsTest(APITestCase):
         for rule, other_rule in zip(rules, self.rules):
             assert rule.label == other_rule.label
 
-    def assert_settings_not_copied(self, project, teams=[]):
+    def assert_settings_not_copied(self, project, teams=()):
         for key in six.iterkeys(self.options_dict):
             assert project.get_option(key) is None
 

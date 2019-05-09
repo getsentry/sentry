@@ -83,7 +83,7 @@ class EventOrdering(Enum):
 
 
 def get_oldest_or_latest_event_for_environments(
-        ordering, environments=[], issue_id=None, project_id=None):
+        ordering, environments=(), issue_id=None, project_id=None):
     from sentry.utils import snuba
     from sentry.models import SnubaEvent
 
@@ -410,7 +410,7 @@ class Group(Model):
                 self._latest_event = None
         return self._latest_event
 
-    def get_latest_event_for_environments(self, environments=[]):
+    def get_latest_event_for_environments(self, environments=()):
         use_snuba = options.get('snuba.events-queries.enabled')
 
         # Fetch without environment if Snuba is not enabled
@@ -439,7 +439,7 @@ class Group(Model):
                 self._oldest_event = None
         return self._oldest_event
 
-    def get_oldest_event_for_environments(self, environments=[]):
+    def get_oldest_event_for_environments(self, environments=()):
         use_snuba = options.get('snuba.events-queries.enabled')
 
         # Fetch without environment if Snuba is not enabled

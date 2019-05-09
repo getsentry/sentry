@@ -24,7 +24,7 @@ def is_postgres(alias='default'):
     return 'postgres' in engine
 
 
-def attach_foreignkey(objects, field, related=[], database=None):
+def attach_foreignkey(objects, field, related=(), database=None):
     """
     Shortcut method which handles a pythonic LEFT OUTER JOIN.
 

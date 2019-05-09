@@ -64,9 +64,9 @@ class NestedPipelineView(PipelineView):
     Useful for embedding an identity authentication pipeline.
     """
 
-    def __init__(self, bind_key, pipeline_cls, provider_key, config={}):
+    def __init__(self, bind_key, pipeline_cls, provider_key, config=None):
         self.provider_key = provider_key
-        self.config = config
+        self.config = config or {}
 
         class NestedPipeline(pipeline_cls):
             def set_parent_pipeline(self, parent_pipeline):
