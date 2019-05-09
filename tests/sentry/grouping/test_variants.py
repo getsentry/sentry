@@ -86,8 +86,7 @@ def test_event_hash_variant(insta_snapshot, config_name, test_name, log):
         grouping_config['enhancements'] = e.dumps()
 
     # Noramlize the event
-    mgr = EventManager(data=input, grouping_config=grouping_config,
-                       remove_other=False)
+    mgr = EventManager(data=input, grouping_config=grouping_config)
     mgr.normalize()
     data = mgr.get_data()
 
