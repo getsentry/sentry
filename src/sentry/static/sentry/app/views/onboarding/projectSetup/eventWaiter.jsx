@@ -65,7 +65,7 @@ class EventWaiter extends React.Component {
     const issues = await api.requestPromise(`/projects/${orgId}/${projectId}/issues/`);
 
     // The event may have expired, default to true
-    const firstIssue = issues.find(issue => issue.firstSeen === firstEvent) || true;
+    const firstIssue = issues.find(issue => issue.firstSeen === firstEvent);
 
     this.stopPolling();
     this.setState({firstIssue});

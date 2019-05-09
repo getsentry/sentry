@@ -121,7 +121,7 @@ const RoleDescriptiom = styled('div')`
   font-size: 0.8em;
 `;
 
-// Member invitation works a bit differnetly in sentrys SASS product, this
+// Member invitation works a bit differently in Sentry's SaaS product, this
 // provides a hook for that.
 export default HookOrDefault({
   hookName: 'onboarding:invite-members',
