@@ -404,9 +404,7 @@ exports[`ProjectTags renders 1`] = `
                         p={0}
                       >
                         <Base
-                          align="center"
                           className="ref-tag-row css-1jykl04-PanelItem eo8n7lk0"
-                          p={0}
                         >
                           <div
                             className="ref-tag-row css-1jykl04-PanelItem eo8n7lk0"
@@ -636,9 +634,7 @@ exports[`ProjectTags renders 1`] = `
                         p={0}
                       >
                         <Base
-                          align="center"
                           className="ref-tag-row css-1jykl04-PanelItem eo8n7lk0"
-                          p={0}
                         >
                           <div
                             className="ref-tag-row css-1jykl04-PanelItem eo8n7lk0"
@@ -868,9 +864,7 @@ exports[`ProjectTags renders 1`] = `
                         p={0}
                       >
                         <Base
-                          align="center"
                           className="ref-tag-row css-1jykl04-PanelItem eo8n7lk0"
-                          p={0}
                         >
                           <div
                             className="ref-tag-row css-1jykl04-PanelItem eo8n7lk0"
@@ -1100,9 +1094,7 @@ exports[`ProjectTags renders 1`] = `
                         p={0}
                       >
                         <Base
-                          align="center"
                           className="ref-tag-row css-1jykl04-PanelItem eo8n7lk0"
-                          p={0}
                         >
                           <div
                             className="ref-tag-row css-1jykl04-PanelItem eo8n7lk0"
@@ -1365,9 +1357,7 @@ exports[`ProjectTags renders 1`] = `
                         p={0}
                       >
                         <Base
-                          align="center"
                           className="ref-tag-row css-1jykl04-PanelItem eo8n7lk0"
-                          p={0}
                         >
                           <div
                             className="ref-tag-row css-1jykl04-PanelItem eo8n7lk0"

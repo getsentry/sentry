@@ -97,7 +97,12 @@ export default class ProviderRow extends React.Component {
 
   render() {
     return (
-      <PanelItem p={0} direction="column" data-test-id={this.props.provider.key}>
+      <PanelItem
+        p={0}
+        forceBorder={true}
+        direction="column"
+        data-test-id={this.props.provider.key}
+      >
         <Flex align="center" p={2}>
           <PluginIcon size={36} pluginId={this.props.provider.key} />
           <Box px={2} flex={1}>

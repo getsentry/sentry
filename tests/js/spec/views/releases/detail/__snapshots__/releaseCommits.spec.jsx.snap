@@ -121,9 +121,7 @@ Users now have access to useful links from the blogs and docs on Spike-protectio
                     p={2}
                   >
                     <Base
-                      align="center"
                       className="css-xfqgz4-PanelItem eo8n7lk0"
-                      p={2}
                     >
                       <div
                         className="css-xfqgz4-PanelItem eo8n7lk0"
@@ -531,9 +529,7 @@ Users now have access to useful links from the blogs and docs on Spike-protectio
                     p={2}
                   >
                     <Base
-                      align="center"
                       className="css-xfqgz4-PanelItem eo8n7lk0"
-                      p={2}
                     >
                       <div
                         className="css-xfqgz4-PanelItem eo8n7lk0"

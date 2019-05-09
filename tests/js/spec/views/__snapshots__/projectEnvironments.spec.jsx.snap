@@ -784,10 +784,7 @@ exports[`ProjectEnvironments render active renders environment list and sets sta
                   p={2}
                 >
                   <Base
-                    align="center"
                     className="css-1uaastv-PanelItem eo8n7lk0"
-                    justify="space-between"
-                    p={2}
                   >
                     <div
                       className="css-1uaastv-PanelItem eo8n7lk0"
@@ -1008,10 +1005,7 @@ exports[`ProjectEnvironments render active renders environment list and sets sta
                   p={2}
                 >
                   <Base
-                    align="center"
                     className="css-1uaastv-PanelItem eo8n7lk0"
-                    justify="space-between"
-                    p={2}
                   >
                     <div
                       className="css-1uaastv-PanelItem eo8n7lk0"
@@ -1288,10 +1282,7 @@ exports[`ProjectEnvironments render active renders environment list and sets sta
                   p={2}
                 >
                   <Base
-                    align="center"
                     className="css-1uaastv-PanelItem eo8n7lk0"
-                    justify="space-between"
-                    p={2}
                   >
                     <div
                       className="css-1uaastv-PanelItem eo8n7lk0"
@@ -2317,10 +2308,7 @@ exports[`ProjectEnvironments render hidden renders environment list 1`] = `
                   p={2}
                 >
                   <Base
-                    align="center"
                     className="css-1uaastv-PanelItem eo8n7lk0"
-                    justify="space-between"
-                    p={2}
                   >
                     <div
                       className="css-1uaastv-PanelItem eo8n7lk0"

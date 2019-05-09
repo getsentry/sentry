@@ -195,7 +195,6 @@ exports[`InviteMember should render roles when available and allowed, and handle
                     <Base
                       className="css-125s2dx-PanelItem eo8n7lk0"
                       onClick={[Function]}
-                      p={2}
                     >
                       <div
                         className="css-125s2dx-PanelItem eo8n7lk0"
@@ -272,7 +271,6 @@ exports[`InviteMember should render roles when available and allowed, and handle
                     <Base
                       className="css-125s2dx-PanelItem eo8n7lk0"
                       onClick={[Function]}
-                      p={2}
                     >
                       <div
                         className="css-125s2dx-PanelItem eo8n7lk0"

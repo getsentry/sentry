@@ -256,10 +256,7 @@ exports[`ProjectSavedSearches renders 1`] = `
                         py={2}
                       >
                         <Base
-                          align="center"
                           className="css-16d6l3f-PanelItem eo8n7lk0"
-                          p={0}
-                          py={2}
                         >
                           <div
                             className="css-16d6l3f-PanelItem eo8n7lk0"
@@ -575,10 +572,7 @@ exports[`ProjectSavedSearches renders 1`] = `
                         py={2}
                       >
                         <Base
-                          align="center"
                           className="css-16d6l3f-PanelItem eo8n7lk0"
-                          p={0}
-                          py={2}
                         >
                           <div
                             className="css-16d6l3f-PanelItem eo8n7lk0"

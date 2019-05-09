@@ -158,9 +158,7 @@ exports[`AccountSubscriptions renders list and can toggle 1`] = `
                       p={2}
                     >
                       <Base
-                        align="center"
                         className="css-xfqgz4-PanelItem eo8n7lk0"
-                        p={2}
                       >
                         <div
                           className="css-xfqgz4-PanelItem eo8n7lk0"
@@ -269,9 +267,7 @@ exports[`AccountSubscriptions renders list and can toggle 1`] = `
                       p={2}
                     >
                       <Base
-                        align="center"
                         className="css-xfqgz4-PanelItem eo8n7lk0"
-                        p={2}
                       >
                         <div
                           className="css-xfqgz4-PanelItem eo8n7lk0"
