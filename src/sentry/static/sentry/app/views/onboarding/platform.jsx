@@ -13,7 +13,7 @@ import withTeams from 'app/utils/withTeams';
 const platformListStyle = css`
   max-height: 420px;
   overflow-y: scroll;
-  // Needed to fix overflow cropping of the de-select button
+  /* Needed to fix overflow cropping of the de-select button */
   margin-top: -5px;
   padding-top: 5px;
 `;
