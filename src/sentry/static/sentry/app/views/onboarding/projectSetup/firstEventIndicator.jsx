@@ -10,23 +10,19 @@ import EventWaiter from 'app/views/onboarding/projectSetup/eventWaiter';
 import InlineSvg from 'app/components/inlineSvg';
 import space from 'app/styles/space';
 
-const FirstEventIndicator = props => {
-  const {orgId, projectId} = props;
-
-  return (
-    <EventWaiter orgId={orgId} projectId={projectId}>
-      {({firstIssue}) => (
-        <PoseGroup preEnterPose="init">
-          {!firstIssue ? (
-            <Waiting key="waiting" {...props} />
-          ) : (
-            <Success key="recieved" firstIssue={firstIssue} {...props} />
-          )}
-        </PoseGroup>
-      )}
-    </EventWaiter>
-  );
-};
+const FirstEventIndicator = props => (
+  <EventWaiter {...props}>
+    {({firstIssue}) => (
+      <PoseGroup preEnterPose="init">
+        {!firstIssue ? (
+          <Waiting key="waiting" />
+        ) : (
+          <Success key="recieved" firstIssue={firstIssue} {...props} />
+        )}
+      </PoseGroup>
+    )}
+  </EventWaiter>
+);
 
 FirstEventIndicator.propTypes = {
   orgId: PropTypes.string,
@@ -40,8 +36,8 @@ const Waiting = props => (
   </StatusWrapper>
 );
 
-const Success = ({orgId, firstIssue, ...props}) => (
-  <StatusWrapper {...props}>
+const Success = ({orgId, firstIssue}) => (
+  <StatusWrapper>
     <ReceivedIndicator src="icon-checkmark-sm" />
     <PosedText>{t('First event was recieved!')}</PosedText>
     {firstIssue !== true && (
