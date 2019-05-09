@@ -41,6 +41,8 @@ class Filter(object):
         if value:
             inbound_filter_toggled.send(project=self.project, sender=self)
 
+        return value.get('active', False)
+
     def disable(self):
         return self.enable(False)
 

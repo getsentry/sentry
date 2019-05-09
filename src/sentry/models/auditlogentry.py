@@ -43,6 +43,8 @@ class AuditLogEntryEvent(object):
     PROJECT_SET_PRIVATE = 34
     PROJECT_REQUEST_TRANSFER = 35
     PROJECT_ACCEPT_TRANSFER = 36
+    PROJECT_ENABLE = 37
+    PROJECT_DISABLE = 38
 
     TAGKEY_REMOVE = 40
 
@@ -126,6 +128,8 @@ class AuditLogEntry(Model):
             (AuditLogEntryEvent.PROJECT_SET_PRIVATE, 'project.set-private'),
             (AuditLogEntryEvent.PROJECT_REQUEST_TRANSFER, 'project.request-transfer'),
             (AuditLogEntryEvent.PROJECT_ACCEPT_TRANSFER, 'project.accept-transfer'),
+            (AuditLogEntryEvent.PROJECT_ENABLE, 'project.enable'),
+            (AuditLogEntryEvent.PROJECT_DISABLE, 'project.disable'),
             (AuditLogEntryEvent.ORG_ADD, 'org.create'),
             (AuditLogEntryEvent.ORG_EDIT, 'org.edit'),
             (AuditLogEntryEvent.ORG_REMOVE, 'org.remove'),
@@ -260,6 +264,14 @@ class AuditLogEntry(Model):
             return 'requested to transfer project %s' % (self.data['slug'], )
         elif self.event == AuditLogEntryEvent.PROJECT_ACCEPT_TRANSFER:
             return 'accepted transfer of project %s' % (self.data['slug'], )
+        elif self.event == AuditLogEntryEvent.PROJECT_ENABLE:
+            if isinstance(self.data['state'], six.string_types):
+                return 'enabled project filter %s' % (self.data['state'], )
+            return 'enabled project filter %s' % (', '.join(self.data["state"]),)
+        elif self.event == AuditLogEntryEvent.PROJECT_DISABLE:
+            if isinstance(self.data['state'], six.string_types):
+                return 'disabled project filter %s' % (self.data['state'], )
+            return 'disabled project filter %s' % (', '.join(self.data["state"]),)
 
         elif self.event == AuditLogEntryEvent.TAGKEY_REMOVE:
             return 'removed tags matching %s = *' % (self.data['key'], )
