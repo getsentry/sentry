@@ -1,4 +1,3 @@
-/*global global*/
 import {observable} from 'mobx';
 import React from 'react';
 
