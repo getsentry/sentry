@@ -156,7 +156,9 @@ class EventEntries extends React.Component {
         {!utils.objectIsEmpty(event.errors) && (
           <EventErrors group={group} event={event} />
         )}{' '}
-        {!isShare && <EventCause event={event} orgId={orgId} projectId={project.slug} />}
+        {!isShare && !!group.firstRelease && (
+          <EventCause event={event} orgId={orgId} projectId={project.slug} />
+        )}
         {event.userReport && (
           <StyledEventUserFeedback
             report={event.userReport}
