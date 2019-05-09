@@ -32,8 +32,9 @@ import Tooltip2 from 'app/components/tooltip2';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 import ConfigStore from 'app/stores/configStore';
 import withProjects from 'app/utils/withProjects';
-import {getStateFromQuery} from './utils';
 import space from 'app/styles/space';
+
+import {getStateFromQuery} from './utils';
 
 class GlobalSelectionHeader extends React.Component {
   static propTypes = {
