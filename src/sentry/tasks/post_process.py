@@ -46,8 +46,7 @@ def _get_service_hooks(project_id):
 
 def _capture_stats(event, is_new):
     # TODO(dcramer): limit platforms to... something?
-    group = event.group
-    platform = group.platform
+    platform = event.platform
     if not platform:
         return
     platform = platform.split('-', 1)[0].split('_', 1)[0]
@@ -120,10 +119,12 @@ def post_process_group(event, is_new, is_regression, is_sample, is_new_group_env
 
         # Re-bind Group since we're pickling the whole Event object
         # which may contain a stale Group.
-        event.group, _ = get_group_with_redirect(event.group_id)
-        event.group_id = event.group.id
+        if event.group_id:
+            event.group, _ = get_group_with_redirect(event.group_id)
+            event.group_id = event.group.id
 
-        project_id = event.group.project_id
+        project_id = event.project_id
+
         with configure_scope() as scope:
             scope.set_tag("project", project_id)
 
@@ -133,18 +134,27 @@ def post_process_group(event, is_new, is_regression, is_sample, is_new_group_env
 
         _capture_stats(event, is_new)
 
-        # we process snoozes before rules as it might create a regression
-        has_reappeared = process_snoozes(event.group)
+        if event.group_id:
+            # we process snoozes before rules as it might create a regression
+            has_reappeared = process_snoozes(event.group)
 
-        handle_owner_assignment(event.project, event.group, event)
+            handle_owner_assignment(event.project, event.group, event)
+        else:
+            has_reappeared = None
 
-        rp = RuleProcessor(event, is_new, is_regression, is_new_group_environment, has_reappeared)
-        has_alert = False
-        # TODO(dcramer): ideally this would fanout, but serializing giant
-        # objects back and forth isn't super efficient
-        for callback, futures in rp.apply():
-            has_alert = True
-            safe_execute(callback, event, futures)
+        if event.group_id:
+            rp = RuleProcessor(
+                event,
+                is_new,
+                is_regression,
+                is_new_group_environment,
+                has_reappeared)
+            has_alert = False
+            # TODO(dcramer): ideally this would fanout, but serializing giant
+            # objects back and forth isn't super efficient
+            for callback, futures in rp.apply():
+                has_alert = True
+                safe_execute(callback, event, futures)
 
         if features.has(
             'projects:servicehooks',
@@ -162,21 +172,23 @@ def post_process_group(event, is_new, is_regression, is_sample, is_new_group_env
                             event=event,
                         )
 
-        if is_new:
+        if event.group_id and is_new:
             process_resource_change_bound.delay(
                 action='created',
                 sender='Group',
                 instance_id=event.group_id,
             )
 
-        for plugin in plugins.for_project(event.project):
-            plugin_post_process_group(
-                plugin_slug=plugin.slug,
-                event=event,
-                is_new=is_new,
-                is_regresion=is_regression,
-                is_sample=is_sample,
-            )
+        # plugins do not support issue-less events
+        if event.group_id:
+            for plugin in plugins.for_project(event.project):
+                plugin_post_process_group(
+                    plugin_slug=plugin.slug,
+                    event=event,
+                    is_new=is_new,
+                    is_regresion=is_regression,
+                    is_sample=is_sample,
+                )
 
         event_processed.send_robust(
             sender=post_process_group,

@@ -1081,6 +1081,25 @@ class EventManagerTest(TestCase):
             'message': "Blocked 'script' from 'example.com'",
         }
 
+    def test_issueless_event(self):
+        manager = EventManager(
+            make_event(
+                **{
+                    'message': '',
+                    'fingerprint': False,
+                    'logentry': {
+                        'formatted': 'foo bar',
+                        'message': 'foo %s',
+                        'params': ['bar'],
+                    }
+                }
+            )
+        )
+        manager.normalize()
+        event = manager.save(self.project.id)
+        assert event.group_id == 0
+        assert event.group is None
+
     def test_sdk(self):
         manager = EventManager(
             make_event(**{

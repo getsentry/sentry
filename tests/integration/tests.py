@@ -187,6 +187,24 @@ class SentryRemoteTest(TestCase):
             'foo',
             'bar') is not None
 
+    def test_issueless(self):
+        kwargs = {'message': 'hello', 'tags': {'foo': 'bar'}, 'fingerprint': False}
+
+        resp = self._postWithHeader(kwargs)
+
+        assert resp.status_code == 200, resp.content
+
+        event_id = json.loads(resp.content)['id']
+        instance = Event.objects.get(event_id=event_id)
+        Event.objects.bind_nodes([instance], 'data')
+
+        assert instance.message == 'hello'
+        assert instance.data['logentry'] == {'formatted': 'hello'}
+        assert instance.title == instance.data['title'] == 'hello'
+        assert instance.location is instance.data.get('location', None) is None
+        assert instance.group is None
+        assert instance.group_id == 0
+
     def test_exception(self):
         kwargs = {'exception': {
             'type': 'ZeroDivisionError',

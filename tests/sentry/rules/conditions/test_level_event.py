@@ -91,8 +91,8 @@ class LevelConditionTest(RuleTestCase):
 
         wevent.group.level = logging.WARNING
 
-        assert wevent.level == logging.WARNING
-        assert eevent.level == logging.WARNING
+        assert eevent.get_tag('level') == 'error'
+        assert wevent.get_tag('level') == 'warning'
 
         rule = self.get_rule(data={
             'match': MatchType.GREATER_OR_EQUAL,

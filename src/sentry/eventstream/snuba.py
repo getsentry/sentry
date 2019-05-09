@@ -256,6 +256,7 @@ class SnubaEventStream(SnubaProtocolEventStream):
                 raise snuba.SnubaError("HTTP %s response from Snuba!" % resp.status)
             return resp
         except urllib3.exceptions.HTTPError as err:
+            raise
             raise snuba.SnubaError(err)
 
     def requires_post_process_forwarder(self):

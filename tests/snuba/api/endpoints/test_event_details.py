@@ -330,3 +330,27 @@ class EventDetailsTest(APITestCase, SnubaTestCase):
         assert response.status_code == 200, response.content
         assert response.data['id'] == six.text_type(event.id)
         assert response.data['previousEventID'] == six.text_type(before.event_id)
+
+    def test_issueless(self):
+        self.login_as(user=self.user)
+
+        event = self.store_event(
+            data={
+                'event_id': 'b' * 32,
+                'timestamp': self.two_min_ago,
+                'fingerprint': False,
+            },
+            project_id=self.project.id
+        )
+        url = reverse(
+            'sentry-api-0-event-details', kwargs={
+                'event_id': event.id,
+            }
+        )
+        response = self.client.get(url, format='json')
+
+        assert response.status_code == 200, response.content
+        assert response.data['id'] == six.text_type(event.id)
+        assert response.data['nextEventID'] is None
+        assert response.data['previousEventID'] is None
+        assert response.data['groupID'] is None

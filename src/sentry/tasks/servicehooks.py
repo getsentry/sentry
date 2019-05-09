@@ -21,11 +21,14 @@ def get_payload_v0(event):
         project.slug,
     ))
 
-    group_context = serialize(group)
-    group_context['url'] = u'{}/issues/{}/'.format(
-        project_url_base,
-        group.id,
-    )
+    if group:
+        group_context = serialize(group)
+        group_context['url'] = u'{}/issues/{}/'.format(
+            project_url_base,
+            group.id,
+        )
+    else:
+        group_context = None
 
     event_context = serialize(event)
     event_context['url'] = u'{}/issues/{}/events/{}/'.format(

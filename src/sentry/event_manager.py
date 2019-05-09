@@ -412,10 +412,16 @@ class EventManager(object):
             'use_rust_normalize': True
         }
 
+        # XXX(dcramer): we're hacking around the rust normalizer not understanding
+        # fingerprint=False for now
+        disable_fingerprint = self.get_data().get('fingerprint') is False
         with metrics.timer('events.store.normalize.duration', tags=tags):
             self._normalize_impl()
 
         data = self.get_data()
+
+        if disable_fingerprint:
+            data['fingerprint'] = False
 
         data['use_rust_normalize'] = True
 
@@ -711,8 +717,10 @@ class EventManager(object):
         # fingerprint was set to `'{{ default }}' just in case someone
         # removed it from the payload.  The call to get_hashes will then
         # look at `grouping_config` to pick the right paramters.
-        data['fingerprint'] = data.get('fingerprint') or ['{{ default }}']
-        apply_server_fingerprinting(data, get_fingerprinting_config_for_project(project))
+        fingerprint = data.get('fingerprint')
+        data['fingerprint'] = ['{{ default }}'] if fingerprint is None else fingerprint
+        if data['fingerprint'] is not False:
+            apply_server_fingerprinting(data, get_fingerprinting_config_for_project(project))
         hashes = event.get_hashes()
         data['hashes'] = hashes
 
@@ -752,34 +760,45 @@ class EventManager(object):
         if release:
             kwargs['first_release'] = release
 
-        try:
-            group, is_new, is_regression, is_sample = self._save_aggregate(
-                event=event, hashes=hashes, release=release, **kwargs
-            )
-        except HashDiscarded:
-            event_discarded.send_robust(
-                project=project,
-                sender=EventManager,
-            )
+        should_save = data['fingerprint'] is not False
+        if should_save:
+            try:
+                group, is_new, is_regression, is_sample = self._save_aggregate(
+                    event=event, hashes=hashes, release=release, **kwargs
+                )
+            except HashDiscarded:
+                event_discarded.send_robust(
+                    project=project,
+                    sender=EventManager,
+                )
 
-            metrics.incr(
-                'events.discarded',
-                skip_internal=True,
-                tags={
-                    'organization_id': project.organization_id,
-                    'platform': platform,
-                },
-            )
-            raise
+                metrics.incr(
+                    'events.discarded',
+                    skip_internal=True,
+                    tags={
+                        'organization_id': project.organization_id,
+                        'platform': platform,
+                    },
+                )
+                raise
         else:
-            event_saved.send_robust(
-                project=project,
-                event_size=event.size,
-                sender=EventManager,
-            )
+            group = None
+            is_new = None
+            is_regression = None
+            is_sample = False
 
-        event.group = group
-        # store a reference to the group id to guarantee validation of isolation
+        event_saved.send_robust(
+            project=project,
+            event_size=event.size,
+            sender=EventManager,
+        )
+
+        if group:
+            event.group = group
+        else:
+            event.group_id = 0
+
+        # store a reference to guarantee validation of isolation
         event.data.bind_ref(event)
 
         # When an event was sampled, the canonical source of truth
@@ -809,13 +828,16 @@ class EventManager(object):
             name=environment,
         )
 
-        group_environment, is_new_group_environment = GroupEnvironment.get_or_create(
-            group_id=group.id,
-            environment_id=environment.id,
-            defaults={
-                'first_release': release if release else None,
-            },
-        )
+        if group:
+            group_environment, is_new_group_environment = GroupEnvironment.get_or_create(
+                group_id=group.id,
+                environment_id=environment.id,
+                defaults={
+                    'first_release': release if release else None,
+                },
+            )
+        else:
+            is_new_group_environment = None
 
         if release:
             ReleaseEnvironment.get_or_create(
@@ -832,59 +854,53 @@ class EventManager(object):
                 datetime=date,
             )
 
-            grouprelease = GroupRelease.get_or_create(
-                group=group,
-                release=release,
-                environment=environment,
-                datetime=date,
-            )
+            if group:
+                grouprelease = GroupRelease.get_or_create(
+                    group=group,
+                    release=release,
+                    environment=environment,
+                    datetime=date,
+                )
 
         counters = [
-            (tsdb.models.group, group.id),
             (tsdb.models.project, project.id),
         ]
+        if group:
+            counters.append((tsdb.models.group, group.id))
 
         if release:
             counters.append((tsdb.models.release, release.id))
 
         tsdb.incr_multi(counters, timestamp=event.datetime, environment_id=environment.id)
 
-        frequencies = [
-            # (tsdb.models.frequent_projects_by_organization, {
-            #     project.organization_id: {
-            #         project.id: 1,
-            #     },
-            # }),
-            # (tsdb.models.frequent_issues_by_project, {
-            #     project.id: {
-            #         group.id: 1,
-            #     },
-            # })
-            (tsdb.models.frequent_environments_by_group, {
-                group.id: {
-                    environment.id: 1,
-                },
-            })
-        ]
-
-        if release:
-            frequencies.append(
-                (tsdb.models.frequent_releases_by_group, {
+        if group:
+            frequencies = [
+                (tsdb.models.frequent_environments_by_group, {
                     group.id: {
-                        grouprelease.id: 1,
+                        environment.id: 1,
                     },
                 })
+            ]
+
+            if release:
+                frequencies.append(
+                    (tsdb.models.frequent_releases_by_group, {
+                        group.id: {
+                            grouprelease.id: 1,
+                        },
+                    })
+                )
+
+            tsdb.record_frequency_multi(frequencies, timestamp=event.datetime)
+
+        if group:
+            UserReport.objects.filter(
+                project=project,
+                event_id=event_id,
+            ).update(
+                group=group,
+                environment=environment,
             )
-
-        tsdb.record_frequency_multi(frequencies, timestamp=event.datetime)
-
-        UserReport.objects.filter(
-            project=project,
-            event_id=event_id,
-        ).update(
-            group=group,
-            environment=environment,
-        )
 
         # save the event unless its been sampled
         if not is_sample:
@@ -898,7 +914,7 @@ class EventManager(object):
                     extra={
                         'event_uuid': event_id,
                         'project_id': project.id,
-                        'group_id': group.id,
+                        'group_id': group.id if group else None,
                         'model': Event.__name__,
                     }
                 )
@@ -907,7 +923,7 @@ class EventManager(object):
             tagstore.delay_index_event_tags(
                 organization_id=project.organization_id,
                 project_id=project.id,
-                group_id=group.id,
+                group_id=group.id if group else None,
                 environment_id=environment.id,
                 event_id=event.id,
                 tags=event.tags,
@@ -915,23 +931,27 @@ class EventManager(object):
             )
 
         if event_user:
+            metrics_ = [
+                (tsdb.models.users_affected_by_project, project.id, (event_user.tag_value, )),
+            ]
+            if group:
+                metrics_.append((tsdb.models.users_affected_by_group,
+                                 group.id, (event_user.tag_value, )))
             tsdb.record_multi(
-                (
-                    (tsdb.models.users_affected_by_group, group.id, (event_user.tag_value, )),
-                    (tsdb.models.users_affected_by_project, project.id, (event_user.tag_value, )),
-                ),
+                metrics_,
                 timestamp=event.datetime,
                 environment_id=environment.id,
             )
+
         if release:
-            if is_new:
+            if group and is_new:
                 buffer.incr(
                     ReleaseProject, {'new_groups': 1}, {
                         'release_id': release.id,
                         'project_id': project.id,
                     }
                 )
-            if is_new_group_environment:
+            if group and is_new_group_environment:
                 buffer.incr(
                     ReleaseProjectEnvironment, {'new_issues_count': 1}, {
                         'project_id': project.id,
@@ -940,17 +960,19 @@ class EventManager(object):
                     }
                 )
 
-        safe_execute(
-            Group.objects.add_tags,
-            group,
-            environment,
-            event.get_tags(),
-            _with_transaction=False)
+        if group:
+            safe_execute(
+                Group.objects.add_tags,
+                group,
+                environment,
+                event.get_tags(),
+                _with_transaction=False)
 
         if not raw:
             if not project.first_event:
                 project.update(first_event=date)
-                first_event_received.send_robust(project=project, group=group, sender=Project)
+                first_event_received.send_robust(
+                    project=project, event=event, group=group, sender=Project)
 
         eventstream.insert(
             group=group,
