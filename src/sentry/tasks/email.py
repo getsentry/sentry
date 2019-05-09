@@ -73,4 +73,8 @@ def process_inbound_email(mailfrom, group_id, payload):
     max_retries=None
 )
 def send_email(message):
+    # Shim for handling emails made in 1.6 and handled in 1.8+
+    if not hasattr(message, 'reply_to'):
+        message.reply_to = []
+
     send_messages([message])
