@@ -1,5 +1,5 @@
 ---
-created: '2019-05-08T19:13:33.298272Z'
+created: '2019-05-10T12:58:20.731060Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -12,6 +12,7 @@ app:
           frame (non app frame)
             filename*
               u'test.html'
+            function (ignored unknown function name)
           frame (non app frame)
             filename*
               u'test.html'
@@ -40,6 +41,7 @@ app:
           frame (non app frame)
             filename*
               u'test.html'
+            function (ignored unknown function name)
           frame (non app frame)
             filename*
               u'test.html'
@@ -66,14 +68,15 @@ app:
           u'bad'
 --------------------------------------------------------------------------
 system:
-  hash: '992d9978c56ad65c987156d1a9dd528a'
+  hash: 'c63e8727af1a8fe75872b6a762797113'
   component:
     system*
       exception*
         stacktrace*
-          frame (ignored low quality javascript frame)
+          frame*
             filename*
               u'test.html'
+            function (ignored unknown function name)
           frame*
             filename*
               u'test.html'
@@ -99,9 +102,10 @@ system:
               u'[native code]'
             function*
               u'map'
-          frame (ignored low quality javascript frame)
+          frame*
             filename*
               u'test.html'
+            function (ignored unknown function name)
           frame*
             filename*
               u'test.html'

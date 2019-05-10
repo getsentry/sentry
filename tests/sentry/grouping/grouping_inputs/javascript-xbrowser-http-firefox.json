@@ -38,6 +38,7 @@
               "filename": "/test.html"
             },
             {
+              "function": "eval",
               "abs_path": "http://localhost:4001/test.html",
               "module": "test",
               "filename": "/test.html",

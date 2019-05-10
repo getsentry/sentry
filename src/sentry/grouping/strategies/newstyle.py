@@ -366,8 +366,13 @@ def get_frame_component(frame, event, meta, legacy_function_logic=False,
         if func:
             func = func.rsplit('.', 1)[-1]
         if func in (None, '?', '<anonymous function>', '<anonymous>',
-                    'Anonymous function', 'eval') or \
-           func.endswith('/<') or \
+                    'Anonymous function') \
+           or func.endswith('/<'):
+            function_component.update(
+                contributes=False,
+                hint='ignored unknown function name'
+            )
+        if (func == 'eval') or \
            frame.abs_path in ('[native code]', 'native code', 'eval code', '<anonymous>'):
             rv.update(
                 contributes=False,
