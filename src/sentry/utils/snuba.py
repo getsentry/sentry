@@ -44,7 +44,6 @@ SENTRY_SNUBA_MAP = {
     # general
     'id': 'event_id',
     'project.id': 'project_id',
-    'type': 'type',
     # We support platform as both tag and a real column.
     'platform.name': 'platform',
     'message': 'message',
