@@ -1,5 +1,5 @@
 ---
-created: '2019-05-08T07:33:32.089211Z'
+created: '2019-05-10T13:28:59.194675Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -22,7 +22,7 @@ app:
               u'sentry/dist/vendor'
             filename (ignored because frame points to a URL)
               u'vendor.js'
-            function*
+            function (ignored unknown function name)
               u'S/<'
             context-line (discarded because line too long)
           frame (non app frame)
@@ -62,7 +62,7 @@ app:
               u'sentry/dist/vendor'
             filename (ignored because frame points to a URL)
               u'vendor.js'
-            function* (trimmed javascript function)
+            function (ignored unknown function name)
               u'_invoke</<'
             context-line (discarded because line too long)
           frame (non app frame)
@@ -78,7 +78,7 @@ app:
               u'sentry/dist/app'
             filename (ignored because frame points to a URL)
               u'app.js'
-            function*
+            function (ignored unknown function name)
               u'e/<'
             context-line (discarded because line too long)
           frame (non app frame)
@@ -86,7 +86,7 @@ app:
               u'sentry/dist/app'
             filename (ignored because frame points to a URL)
               u'app.js'
-            function*
+            function (ignored unknown function name)
               u'e/</a</<'
             context-line (discarded because line too long)
           frame (non app frame)
@@ -94,7 +94,7 @@ app:
               u'sentry/dist/vendor'
             filename (ignored because frame points to a URL)
               u'vendor.js'
-            function* (trimmed javascript function)
+            function (ignored unknown function name)
               u'exports/<'
             context-line (discarded because line too long)
           frame (non app frame)
@@ -110,7 +110,7 @@ app:
               u'sentry/dist/vendor'
             filename (ignored because frame points to a URL)
               u'vendor.js'
-            function* (trimmed javascript function)
+            function (ignored unknown function name)
               u'exports/</<'
             context-line (discarded because line too long)
           frame (non app frame)
@@ -142,7 +142,7 @@ app:
               u'sentry/dist/vendor'
             filename (ignored because frame points to a URL)
               u'vendor.js'
-            function* (trimmed javascript function)
+            function (ignored unknown function name)
               u'_invoke</<'
             context-line (discarded because line too long)
           frame (non app frame)
@@ -158,7 +158,7 @@ app:
               u'sentry/dist/app'
             filename (ignored because frame points to a URL)
               u'app.js'
-            function*
+            function (ignored unknown function name)
               u'e/<'
             context-line (discarded because line too long)
           frame (non app frame)
@@ -182,14 +182,14 @@ app:
               u'sentry/dist/vendor'
             filename (ignored because frame points to a URL)
               u'vendor.js'
-            function* (trimmed javascript function)
+            function (ignored unknown function name)
               u'wrapTimeFunction/<'
             context-line (discarded because line too long)
         type*
           u'NS_ERROR_NOT_INITIALIZED'
 --------------------------------------------------------------------------
 system:
-  hash: '229ba965d8c77f776bcc01d92969615e'
+  hash: 'dcfcd48a02c100bbe4023cbc783054f0'
   component:
     system*
       exception*
@@ -202,12 +202,12 @@ system:
             function*
               u'M'
             context-line (discarded because line too long)
-          frame (ignored low quality javascript frame)
+          frame*
             module*
               u'sentry/dist/vendor'
             filename (ignored because frame points to a URL)
               u'vendor.js'
-            function*
+            function (ignored unknown function name)
               u'S/<'
             context-line (discarded because line too long)
           frame*
@@ -242,12 +242,12 @@ system:
             function*
               u'g/</t[e]'
             context-line (discarded because line too long)
-          frame (ignored low quality javascript frame)
+          frame*
             module*
               u'sentry/dist/vendor'
             filename (ignored because frame points to a URL)
               u'vendor.js'
-            function* (trimmed javascript function)
+            function (ignored unknown function name)
               u'_invoke</<'
             context-line (discarded because line too long)
           frame*
@@ -258,28 +258,28 @@ system:
             function*
               u'W'
             context-line (discarded because line too long)
-          frame (ignored low quality javascript frame)
+          frame*
             module*
               u'sentry/dist/app'
             filename (ignored because frame points to a URL)
               u'app.js'
-            function*
+            function (ignored unknown function name)
               u'e/<'
             context-line (discarded because line too long)
-          frame (ignored low quality javascript frame)
+          frame*
             module*
               u'sentry/dist/app'
             filename (ignored because frame points to a URL)
               u'app.js'
-            function*
+            function (ignored unknown function name)
               u'e/</a</<'
             context-line (discarded because line too long)
-          frame (ignored low quality javascript frame)
+          frame*
             module*
               u'sentry/dist/vendor'
             filename (ignored because frame points to a URL)
               u'vendor.js'
-            function* (trimmed javascript function)
+            function (ignored unknown function name)
               u'exports/<'
             context-line (discarded because line too long)
           frame*
@@ -290,12 +290,12 @@ system:
             function*
               u'L'
             context-line (discarded because line too long)
-          frame (ignored low quality javascript frame)
+          frame*
             module*
               u'sentry/dist/vendor'
             filename (ignored because frame points to a URL)
               u'vendor.js'
-            function* (trimmed javascript function)
+            function (ignored unknown function name)
               u'exports/</<'
             context-line (discarded because line too long)
           frame*
@@ -322,12 +322,12 @@ system:
             function*
               u'g/</t[e]'
             context-line (discarded because line too long)
-          frame (ignored low quality javascript frame)
+          frame*
             module*
               u'sentry/dist/vendor'
             filename (ignored because frame points to a URL)
               u'vendor.js'
-            function* (trimmed javascript function)
+            function (ignored unknown function name)
               u'_invoke</<'
             context-line (discarded because line too long)
           frame*
@@ -338,12 +338,12 @@ system:
             function*
               u'W'
             context-line (discarded because line too long)
-          frame (ignored low quality javascript frame)
+          frame*
             module*
               u'sentry/dist/app'
             filename (ignored because frame points to a URL)
               u'app.js'
-            function*
+            function (ignored unknown function name)
               u'e/<'
             context-line (discarded because line too long)
           frame*
@@ -362,12 +362,12 @@ system:
             function* (trimmed javascript function)
               u'e'
             context-line (discarded because line too long)
-          frame (ignored low quality javascript frame)
+          frame*
             module*
               u'sentry/dist/vendor'
             filename (ignored because frame points to a URL)
               u'vendor.js'
-            function* (trimmed javascript function)
+            function (ignored unknown function name)
               u'wrapTimeFunction/<'
             context-line (discarded because line too long)
         type*

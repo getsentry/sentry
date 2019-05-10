@@ -1,5 +1,5 @@
 ---
-created: '2019-05-08T19:44:33.408562Z'
+created: '2019-05-10T13:21:29.479938Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -39,7 +39,9 @@ app:
               u'test'
             filename (module takes precedence)
               u'/test.html'
-            lineno*
+            function*
+              u'eval'
+            lineno (function takes precedence)
               1
           frame* (frame considered in-app because no frame is in-app)
             module*
@@ -92,7 +94,7 @@ app:
           u'bad'
 --------------------------------------------------------------------------
 system:
-  hash: '76257a5880699cfcb33257b10f7808c0'
+  hash: '71036056ea01a28f0931ab8e951206e2'
   component:
     system*
       exception*
@@ -127,7 +129,9 @@ system:
               u'test'
             filename (module takes precedence)
               u'/test.html'
-            lineno*
+            function*
+              u'eval'
+            lineno (function takes precedence)
               1
           frame*
             module*

@@ -1,5 +1,5 @@
 ---
-created: '2019-05-08T22:36:43.422914Z'
+created: '2019-05-10T12:45:55.182908Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -14,6 +14,7 @@ app:
               u'app/components/modals/createTeamModal'
             filename (module takes precedence)
               u'createteammodal.jsx'
+            function (ignored unknown function name)
             context-line*
               u'onError(err);'
           frame (non app frame)
@@ -31,16 +32,17 @@ app:
           u"Cannot read property 'submitError' of null"
 --------------------------------------------------------------------------
 system:
-  hash: '2f2dc85b9b0cd1e3be91984802c7b1b7'
+  hash: '26552f86ca2368e708afa1df6effc1c5'
   component:
     system*
       exception*
         stacktrace*
-          frame (ignored low quality javascript frame)
+          frame*
             module*
               u'app/components/modals/createTeamModal'
             filename (module takes precedence)
               u'createteammodal.jsx'
+            function (ignored unknown function name)
             context-line*
               u'onError(err);'
           frame*

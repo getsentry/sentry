@@ -1,5 +1,5 @@
 ---
-created: '2019-05-08T19:13:31.268322Z'
+created: '2019-05-10T13:21:31.567127Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -25,6 +25,8 @@ app:
           frame (non app frame)
             filename (ignored because frame points to a URL)
               u'test.html'
+            function*
+              u'eval'
           frame (non app frame)
             filename (ignored because frame points to a URL)
               u'test.html'
@@ -54,7 +56,7 @@ app:
           u'Error'
 --------------------------------------------------------------------------
 system:
-  hash: '10a56c6cae9b8877c1267ece4b9a1dcf'
+  hash: 'fe1acbd354c812ab2969a76083b84e7f'
   component:
     system*
       exception*
@@ -72,9 +74,11 @@ system:
               u'test.html'
             function*
               u'aha'
-          frame
+          frame*
             filename (ignored because frame points to a URL)
               u'test.html'
+            function*
+              u'eval'
           frame*
             filename (ignored because frame points to a URL)
               u'test.html'
