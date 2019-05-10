@@ -1608,3 +1608,8 @@ KAFKA_TOPICS = {
         'topic': KAFKA_OUTCOMES,
     },
 }
+
+# Enable this to use the legacy Slack Workspace Token apps. You will likely
+# never need to switch this unless you created a workspace app before slack
+# disabled them.
+SLACK_INTEGRATION_USE_WST = False
