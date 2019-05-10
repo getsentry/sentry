@@ -151,7 +151,7 @@ const OnboardingWrapper = styled('main')`
 
 const Header = styled('header')`
   background: #fff;
-  padding: ${space(2)} 0;
+  padding: ${space(4)} 0;
   position: sticky;
   top: 0;
   z-index: 100;
@@ -165,8 +165,8 @@ const Container = styled.div`
 `;
 
 const LogoSvg = styled(InlineSvg)`
-  width: 150px;
-  height: 52px;
+  width: 145px;
+  height: 32px;
   color: ${p => p.theme.gray5};
 `;
 
