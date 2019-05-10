@@ -35,6 +35,7 @@
               "in_app": false
             },
             {
+              "function": "eval",
               "abs_path": "file:///private/tmp/test.html",
               "filename": "/private/tmp/test.html",
               "lineno": 1,

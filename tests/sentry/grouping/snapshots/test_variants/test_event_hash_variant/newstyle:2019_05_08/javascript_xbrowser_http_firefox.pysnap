@@ -1,5 +1,5 @@
 ---
-created: '2019-05-08T19:44:37.545007Z'
+created: '2019-05-10T13:28:59.047346Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -14,6 +14,7 @@ app:
               u'test'
             filename (ignored because frame points to a URL)
               u'test.html'
+            function (ignored unknown function name)
           frame (non app frame)
             module*
               u'test'
@@ -33,6 +34,8 @@ app:
               u'test'
             filename (ignored because frame points to a URL)
               u'test.html'
+            function*
+              u'eval'
           frame (non app frame)
             module*
               u'test'
@@ -45,7 +48,7 @@ app:
               u'test'
             filename (ignored because frame points to a URL)
               u'test.html'
-            function*
+            function (ignored unknown function name)
               u'test/<'
           frame (non app frame)
             module*
@@ -74,16 +77,17 @@ app:
           u'bad'
 --------------------------------------------------------------------------
 system:
-  hash: 'a40b332d0f8a51220c57733fe759fd28'
+  hash: 'b2602ad455472dede8e4c340d8a7eaba'
   component:
     system*
       exception*
         stacktrace*
-          frame (ignored low quality javascript frame)
+          frame*
             module*
               u'test'
             filename (ignored because frame points to a URL)
               u'test.html'
+            function (ignored unknown function name)
           frame*
             module*
               u'test'
@@ -103,6 +107,8 @@ system:
               u'test'
             filename (ignored because frame points to a URL)
               u'test.html'
+            function*
+              u'eval'
           frame*
             module*
               u'test'
@@ -110,12 +116,12 @@ system:
               u'test.html'
             function*
               u'test'
-          frame (ignored low quality javascript frame)
+          frame*
             module*
               u'test'
             filename (ignored because frame points to a URL)
               u'test.html'
-            function*
+            function (ignored unknown function name)
               u'test/<'
           frame*
             module*

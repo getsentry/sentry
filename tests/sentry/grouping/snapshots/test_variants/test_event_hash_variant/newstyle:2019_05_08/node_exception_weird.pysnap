@@ -1,10 +1,10 @@
 ---
-created: '2019-05-08T07:39:46.454178Z'
+created: '2019-05-10T12:45:55.934160Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app:
-  hash: '280318c52af37d73af6668b1b911e01d'
+  hash: 'a20509269752c9a1bea6078851e4d39c'
   component:
     app*
       exception*
@@ -18,12 +18,12 @@ app:
               u'withScope'
             context-line*
               u'*/'
-          frame (ignored low quality javascript frame)
+          frame*
             module*
               u'onunhandledrejection.ts'
             filename (module takes precedence)
               u'onunhandledrejection.ts'
-            function* (trimmed javascript function)
+            function (ignored unknown function name)
               u'<anonymous>'
           frame (non app frame)
             module*
@@ -39,7 +39,7 @@ app:
               u'jest-mock.build:index'
             filename (module takes precedence)
               u'index.js'
-            function* (trimmed javascript function)
+            function (ignored unknown function name)
               u'<anonymous>'
             context-line*
               u'})();'
@@ -57,7 +57,7 @@ app:
               u'jest-mock.build:index'
             filename (module takes precedence)
               u'index.js'
-            function* (trimmed javascript function)
+            function (ignored unknown function name)
               u'<anonymous>'
             context-line*
               u'return original.apply(this, arguments);'
@@ -101,7 +101,7 @@ app:
           u'bla'
 --------------------------------------------------------------------------
 system:
-  hash: '149f3f2fba7318d20804b50c70fcaa37'
+  hash: '252dc79eb5653bf822e2684d90734cb8'
   component:
     system*
       exception*
@@ -115,12 +115,12 @@ system:
               u'withScope'
             context-line*
               u'*/'
-          frame (ignored low quality javascript frame)
+          frame*
             module*
               u'onunhandledrejection.ts'
             filename (module takes precedence)
               u'onunhandledrejection.ts'
-            function* (trimmed javascript function)
+            function (ignored unknown function name)
               u'<anonymous>'
           frame*
             module*
@@ -131,12 +131,12 @@ system:
               u'mockConstructor [as captureException]'
             context-line*
               u'return fn.apply(this, arguments);'
-          frame (ignored low quality javascript frame)
+          frame*
             module*
               u'jest-mock.build:index'
             filename (module takes precedence)
               u'index.js'
-            function* (trimmed javascript function)
+            function (ignored unknown function name)
               u'<anonymous>'
             context-line*
               u'})();'
@@ -149,12 +149,12 @@ system:
               u'finalReturnValue'
             context-line*
               u'return specificMockImpl.apply(this, arguments);'
-          frame (ignored low quality javascript frame)
+          frame*
             module*
               u'jest-mock.build:index'
             filename (module takes precedence)
               u'index.js'
-            function* (trimmed javascript function)
+            function (ignored unknown function name)
               u'<anonymous>'
             context-line*
               u'return original.apply(this, arguments);'
