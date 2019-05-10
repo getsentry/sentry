@@ -108,7 +108,7 @@ class WorkItemWebhook(Endpoint):
                 'vsts.updated-workitem-fields-not-passed',
                 extra={
                     'error': six.text_type(e),
-                    'payload': data,
+                    'workItemId': data['resource']['workItemId'],
                     'integration_id': integration.id
                 }
             )
