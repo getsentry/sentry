@@ -5,7 +5,8 @@ import posixpath
 
 from sentry.grouping.component import GroupingComponent
 from sentry.grouping.strategies.base import strategy
-from sentry.grouping.strategies.utils import remove_non_stacktrace_variants
+from sentry.grouping.strategies.utils import remove_non_stacktrace_variants, \
+    has_url_origin
 
 
 _ruby_anon_func = re.compile(r'_\d{2,}')
@@ -53,21 +54,6 @@ RECURSION_COMPARISON_FIELDS = [
     'lineno',
     'colno',
 ]
-
-
-def is_url_legacy(filename):
-    return filename.startswith(('file:', 'http:', 'https:', 'applewebdata:'))
-
-
-def is_url_frame_legacy(frame):
-    if not frame.abs_path:
-        return False
-    # URLs can be generated such that they are:
-    #   blob:http://example.com/7f7aaadf-a006-4217-9ed5-5fbf8585c6c0
-    # https://developer.mozilla.org/en-US/docs/Web/API/URL/createObjectURL
-    if frame.abs_path.startswith('blob:'):
-        return True
-    return is_url_legacy(frame.abs_path)
 
 
 def is_unhashable_module_legacy(frame, platform):
@@ -285,7 +271,7 @@ def frame_legacy(frame, event, **meta):
         contributes = False
         hint = 'native code indicated by filename'
     elif frame.filename:
-        if is_url_frame_legacy(frame):
+        if has_url_origin(frame.abs_path):
             filename_component.update(
                 contributes=False,
                 values=[frame.filename],
@@ -341,7 +327,7 @@ def frame_legacy(frame, event, **meta):
     if frame.context_line is not None:
         if len(frame.context_line) > 120:
             context_line_component.update(hint='discarded because line too long')
-        elif is_url_frame_legacy(frame) and not func:
+        elif has_url_origin(frame.abs_path) and not func:
             context_line_component.update(hint='discarded because from URL origin')
         else:
             context_line_component.update(values=[frame.context_line])

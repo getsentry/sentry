@@ -44,3 +44,16 @@ def remove_non_stacktrace_variants(variants):
             )
 
     return variants
+
+
+def has_url_origin(path, allow_file_origin=False):
+    # URLs can be generated such that they are:
+    #   blob:http://example.com/7f7aaadf-a006-4217-9ed5-5fbf8585c6c0
+    # https://developer.mozilla.org/en-US/docs/Web/API/URL/createObjectURL
+    if not path:
+        return False
+    if path.startswith(('http:', 'https:', 'applewebdata:', 'blob:')):
+        return True
+    if path.startswith('file:'):
+        return not allow_file_origin
+    return False

@@ -1,0 +1,58 @@
+---
+created: '2019-05-08T22:36:43.422914Z'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app:
+  hash: None
+  component:
+    app (exception of system takes precedence)
+      exception (ignored because this variant does not have a contributing stacktrace, but the system variant does)
+        stacktrace
+          frame (non app frame)
+            module*
+              u'app/components/modals/createTeamModal'
+            filename (module takes precedence)
+              u'createteammodal.jsx'
+            context-line*
+              u'onError(err);'
+          frame (non app frame)
+            module*
+              u'app/views/settings/components/forms/form'
+            filename (module takes precedence)
+              u'form.jsx'
+            function (ignored because sourcemap used and context line available)
+              u'onError'
+            context-line*
+              u'this.model.submitError(error);'
+        type*
+          u'TypeError'
+        value*
+          u"Cannot read property 'submitError' of null"
+--------------------------------------------------------------------------
+system:
+  hash: '2f2dc85b9b0cd1e3be91984802c7b1b7'
+  component:
+    system*
+      exception*
+        stacktrace*
+          frame (ignored low quality javascript frame)
+            module*
+              u'app/components/modals/createTeamModal'
+            filename (module takes precedence)
+              u'createteammodal.jsx'
+            context-line*
+              u'onError(err);'
+          frame*
+            module*
+              u'app/views/settings/components/forms/form'
+            filename (module takes precedence)
+              u'form.jsx'
+            function (ignored because sourcemap used and context line available)
+              u'onError'
+            context-line*
+              u'this.model.submitError(error);'
+        type*
+          u'TypeError'
+        value (ignored because stacktrace takes precedence)
+          u"Cannot read property 'submitError' of null"
