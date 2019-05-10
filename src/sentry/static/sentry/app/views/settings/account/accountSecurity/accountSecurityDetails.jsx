@@ -20,7 +20,7 @@ import RecoveryCodes from 'app/views/settings/account/accountSecurity/components
 import RemoveConfirm from 'app/views/settings/account/accountSecurity/components/removeConfirm';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import TextBlock from 'app/views/settings/components/text/textBlock';
-import Tooltip from 'app/components/tooltip';
+import Tooltip2 from 'app/components/tooltip2';
 import U2fEnrolledDetails from 'app/views/settings/account/accountSecurity/components/u2fEnrolledDetails';
 
 const ENDPOINT = '/users/me/authenticators/';
@@ -133,7 +133,7 @@ class AccountSecurityDetails extends AsyncView {
           action={
             authenticator.isEnrolled &&
             authenticator.removeButton && (
-              <Tooltip
+              <Tooltip2
                 title={t(
                   "Two-factor authentication is required for at least one organization you're a member of."
                 )}
@@ -142,7 +142,7 @@ class AccountSecurityDetails extends AsyncView {
                 <RemoveConfirm onConfirm={this.handleRemove} disabled={deleteDisabled}>
                   <Button priority="danger">{authenticator.removeButton}</Button>
                 </RemoveConfirm>
-              </Tooltip>
+              </Tooltip2>
             )
           }
         />

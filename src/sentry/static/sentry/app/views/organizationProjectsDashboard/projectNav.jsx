@@ -13,7 +13,7 @@ import MenuItem from 'app/components/menuItem';
 import {t} from 'app/locale';
 import Button from 'app/components/button';
 import ProjectSelector from 'app/components/projectHeader/projectSelector';
-import Tooltip from 'app/components/tooltip';
+import Tooltip2 from 'app/components/tooltip2';
 
 const ProjectNav = createReactClass({
   mixins: [OrganizationState],
@@ -64,9 +64,9 @@ const ProjectNav = createReactClass({
       if (item.disabled) {
         acc.push(
           <li role="presentation" key={item.title} disabled>
-            <Tooltip title={item.tooltip}>
+            <Tooltip2 title={item.tooltip}>
               <span>{item.title}</span>
-            </Tooltip>
+            </Tooltip2>
           </li>
         );
       } else {

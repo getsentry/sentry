@@ -13,8 +13,10 @@ exports[`SubscriptionBox renders resource checkbox 1`] = `
     <div
       className="css-8xqq56-SubscriptionGridItemWrapper e139qogw2"
     >
-      <Tooltip
+      <Tooltip2
+        containerDisplayMode="inline-block"
         disabled={true}
+        position="top"
         title="Must have at least 'Read' permissions enabled for issue"
       >
         <SubscriptionGridItem
@@ -69,7 +71,7 @@ exports[`SubscriptionBox renders resource checkbox 1`] = `
             </Checkbox>
           </div>
         </SubscriptionGridItem>
-      </Tooltip>
+      </Tooltip2>
     </div>
   </SubscriptionGridItemWrapper>
 </SubscriptionBox>

@@ -8,7 +8,7 @@ import {capitalize} from 'lodash';
 import ProjectLink from 'app/components/projectLink';
 import {Metadata} from 'app/sentryTypes';
 import EventOrGroupTitle from 'app/components/eventOrGroupTitle';
-import Tooltip from 'app/components/tooltip';
+import Tooltip2 from 'app/components/tooltip2';
 import {isNativePlatform} from 'app/utils/platform';
 
 /**
@@ -109,9 +109,11 @@ class EventOrGroupHeader extends React.Component {
         style={data.status === 'resolved' ? {textDecoration: 'line-through'} : null}
       >
         {!hideLevel && level && (
-          <Tooltip title={`Error level: ${capitalize(level)}`}>
-            <GroupLevel level={data.level} />
-          </Tooltip>
+          <GroupLevel level={data.level}>
+            <Tooltip2 title={`Error level: ${capitalize(level)}`}>
+              <span />
+            </Tooltip2>
+          </GroupLevel>
         )}
         {!hideIcons && data.status === 'ignored' && <Muted className="icon-soundoff" />}
         {!hideIcons && data.isBookmarked && <Starred className="icon-star-solid" />}
@@ -222,6 +224,12 @@ const GroupLevel = styled('div')`
         return p.theme.gray2;
     }
   }};
+
+  & span {
+    display: block;
+    width: 9px;
+    height: 15px;
+  }
 `;
 
 export default withRouter(EventOrGroupHeader);

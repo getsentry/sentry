@@ -17,7 +17,7 @@ import EventOrGroupTitle from 'app/components/eventOrGroupTitle';
 import GuideAnchor from 'app/components/assistant/guideAnchor';
 import OrganizationState from 'app/mixins/organizationState';
 import ProjectBadge from 'app/components/idBadge/projectBadge';
-import Tooltip from 'app/components/tooltip';
+import Tooltip2 from 'app/components/tooltip2';
 import {t} from 'app/locale';
 import SentryTypes from 'app/sentryTypes';
 
@@ -163,11 +163,11 @@ const GroupHeader = createReactClass({
                 <div className="short-id-box count align-right">
                   <h6 className="nav-header">
                     <GuideAnchor target="issue_number" type="text" />
-                    <Tooltip
+                    <Tooltip2
                       title={t(
                         'This identifier is unique across your organization, and can be used to reference an issue in various places, like commit messages.'
                       )}
-                      tooltipOptions={{placement: 'bottom'}}
+                      position="bottom"
                     >
                       <a
                         className="help-link"
@@ -175,7 +175,7 @@ const GroupHeader = createReactClass({
                       >
                         {t('Issue #')}
                       </a>
-                    </Tooltip>
+                    </Tooltip2>
                   </h6>
                   <ShortId
                     shortId={group.shortId}

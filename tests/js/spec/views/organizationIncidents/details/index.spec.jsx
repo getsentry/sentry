@@ -22,7 +22,8 @@ describe('IncidentDetails', function() {
 
   it('loads incident', async function() {
     const wrapper = mount(
-      <IncidentDetails params={{orgId: 'org-slug', incidentId: mockIncident.id}} />
+      <IncidentDetails params={{orgId: 'org-slug', incidentId: mockIncident.id}} />,
+      TestStubs.routerContext()
     );
     expect(wrapper.find('LoadingIndicator')).toHaveLength(1);
     await tick();
@@ -32,7 +33,8 @@ describe('IncidentDetails', function() {
 
   it('handles invalid incident', async function() {
     const wrapper = mount(
-      <IncidentDetails params={{orgId: 'org-slug', incidentId: '456'}} />
+      <IncidentDetails params={{orgId: 'org-slug', incidentId: '456'}} />,
+      TestStubs.routerContext()
     );
     await tick();
     wrapper.update();

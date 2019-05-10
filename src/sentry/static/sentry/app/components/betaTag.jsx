@@ -1,21 +1,19 @@
 import React from 'react';
 import styled from 'react-emotion';
 import Tag from 'app/views/settings/components/tag';
-import Tooltip from 'app/components/tooltip';
+import Tooltip2 from 'app/components/tooltip2';
 import space from 'app/styles/space';
 import {t} from 'app/locale';
 
 const BetaTag = () => (
-  <Tooltip
+  <Tooltip2
     title={t('This feature is in beta and may change in the future.')}
-    tooltipOptions={{
-      placement: 'right',
-    }}
+    position="right"
   >
     <StyledTag priority="beta" size="small">
       beta
     </StyledTag>
-  </Tooltip>
+  </Tooltip2>
 );
 
 const StyledTag = styled(Tag)`

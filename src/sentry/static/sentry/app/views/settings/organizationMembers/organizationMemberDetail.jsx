@@ -18,7 +18,7 @@ import {removeAuthenticator} from 'app/actionCreators/account';
 import SentryTypes from 'app/sentryTypes';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import TeamSelect from 'app/views/settings/components/teamSelect';
-import Tooltip from 'app/components/tooltip';
+import Tooltip2 from 'app/components/tooltip2';
 import recreateRoute from 'app/utils/recreateRoute';
 
 import RoleSelect from './inviteMember/roleSelect';
@@ -309,7 +309,7 @@ class OrganizationMemberDetail extends AsyncView {
                   'Resetting two-factor authentication will remove all two-factor authentication methods for this member.'
                 )}
               >
-                <Tooltip
+                <Tooltip2
                   data-test-id="reset-2fa-tooltip"
                   disabled={this.showResetButton()}
                   title={this.getTooltip()}
@@ -327,7 +327,7 @@ class OrganizationMemberDetail extends AsyncView {
                       {t('Reset two-factor authentication')}
                     </Button>
                   </Confirm>
-                </Tooltip>
+                </Tooltip2>
               </Field>
             </PanelBody>
           </Panel>

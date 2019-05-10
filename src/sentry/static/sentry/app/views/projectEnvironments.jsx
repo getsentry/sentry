@@ -31,7 +31,7 @@ import PermissionAlert from 'app/views/settings/project/permissionAlert';
 import SentryTypes from 'app/sentryTypes';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import Tag from 'app/views/settings/components/tag';
-import Tooltip from 'app/components/tooltip';
+import Tooltip2 from 'app/components/tooltip2';
 import recreateRoute from 'app/utils/recreateRoute';
 import space from 'app/styles/space';
 
@@ -266,14 +266,11 @@ const ProjectEnvironments = createReactClass({
           id: project.defaultEnvironment,
           displayName: (
             <React.Fragment>
-              <Tooltip
-                title={t('This is not an active environment')}
-                tooltipOptions={{container: 'body'}}
-              >
+              <Tooltip2 title={t('This is not an active environment')}>
                 <span css={{marginRight: 8}}>
                   <InvalidDefaultEnvironmentIcon />
                 </span>
-              </Tooltip>
+              </Tooltip2>
               <code>{project.defaultEnvironment}</code>
             </React.Fragment>
           ),

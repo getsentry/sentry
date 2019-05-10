@@ -1,11 +1,11 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 
+import Tooltip2 from 'app/components/tooltip2';
 import {analytics} from 'app/utils/analytics';
-import {t} from '../../locale';
+import {tct} from 'app/locale';
 import SidebarPanel from './sidebarPanel';
 import TodoList, {TASKS} from '../onboardingWizard/todos';
-import Tooltip from '../tooltip';
 
 class OnboardingStatus extends React.Component {
   static propTypes = {
@@ -59,17 +59,18 @@ class OnboardingStatus extends React.Component {
     if (doneTasks.length >= allDisplayedTasks.length) {
       return null;
     }
+    const title = tct(
+      'Getting started with Sentry: [br] [done] / [all] tasks completed',
+      {
+        br: <br />,
+        done: doneTasks.length,
+        all: allDisplayedTasks.length,
+      }
+    );
 
     return (
       <div className={currentPanel === 'todos' ? 'onboarding active' : 'onboarding'}>
-        <Tooltip
-          title={t(
-            `Getting started with Sentry: <br />${doneTasks.length} / ${
-              allDisplayedTasks.length
-            } tasks completed`
-          )}
-          tooltipOptions={{html: true}}
-        >
+        <Tooltip2 title={title}>
           <div
             data-test-id="onboarding-progress-bar"
             className="onboarding-progress-bar"
@@ -77,7 +78,7 @@ class OnboardingStatus extends React.Component {
           >
             <div className="slider" style={style} />
           </div>
-        </Tooltip>
+        </Tooltip2>
         {showPanel && currentPanel === 'todos' && (
           <SidebarPanel
             collapsed={collapsed}

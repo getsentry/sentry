@@ -4,9 +4,8 @@ import React from 'react';
 import styled from 'react-emotion';
 
 import InlineSvg from 'app/components/inlineSvg';
-import Tooltip from 'app/components/tooltip';
+import Tooltip2 from 'app/components/tooltip2';
 import {t, tn} from 'app/locale';
-import utils from 'app/utils';
 
 const Chunks = styled('span')`
   span {
@@ -47,9 +46,9 @@ function renderChunk(chunk) {
   if (chunk.type === 'redaction') {
     const title = t('%s due to PII rule "%s"', REMARKS[chunk.remark], chunk.rule_id);
     return (
-      <Tooltip title={title}>
+      <Tooltip2 title={title}>
         <Redaction>{chunk.text}</Redaction>
-      </Tooltip>
+      </Tooltip2>
     );
   }
 
@@ -82,7 +81,7 @@ function renderValue(value, chunks, errors, remarks) {
 
   if (remarks && remarks.length) {
     const title = t('%s due to PII rule "%s"', REMARKS[remarks[0][1]], remarks[0][0]);
-    element = <Tooltip title={title}>{element}</Tooltip>;
+    element = <Tooltip2 title={title}>{element}</Tooltip2>;
   }
 
   return element;
@@ -93,19 +92,21 @@ function renderErrors(errors) {
     return null;
   }
 
-  const tooltip = `
-  <div style="text-align: left">
-    <strong>${tn('Processing Error:', 'Processing Errors:', errors.length)}</strong>
-    <ul>
-      ${errors.map(e => `<li>${utils.escape(e)}</li>`)}
-    </ul>
-  </div>
-  `;
+  const tooltip = (
+    <div style={{'text-align': 'left'}}>
+      <strong>{tn('Processing Error:', 'Processing Errors:', errors.length)}</strong>
+      <ul>
+        {errors.map(e => (
+          <li key={e}>{e}</li>
+        ))}
+      </ul>
+    </div>
+  );
 
   return (
-    <Tooltip title={tooltip} tooltipOptions={{html: true}}>
+    <Tooltip2 title={tooltip}>
       <ErrorIcon src="icon-circle-exclamation" />
-    </Tooltip>
+    </Tooltip2>
   );
 }
 

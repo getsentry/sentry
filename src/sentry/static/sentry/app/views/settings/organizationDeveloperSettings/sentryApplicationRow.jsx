@@ -9,7 +9,6 @@ import Confirm from 'app/components/confirm';
 import ConfirmDelete from 'app/components/confirmDelete';
 import PropTypes from 'prop-types';
 import SentryTypes from 'app/sentryTypes';
-import Tooltip from 'app/components/tooltip';
 import {PanelItem} from 'app/components/panels';
 import {t} from 'app/locale';
 import styled from 'react-emotion';
@@ -139,20 +138,24 @@ export default class SentryApplicationRow extends React.PureComponent {
                   {({hasAccess}) => (
                     <React.Fragment>
                       {!hasAccess && (
-                        <Tooltip
+                        <Button
+                          disabled
                           title={t('Owner permissions are required for this action.')}
-                        >
-                          <Button disabled size="small" icon="icon-trash" />
-                        </Tooltip>
+                          size="small"
+                          icon="icon-trash"
+                        />
                       )}
                       {hasAccess && this.renderRemoveApp(app)}
                     </React.Fragment>
                   )}
                 </Access>
               ) : (
-                <Tooltip title={t('Published apps cannot be removed.')}>
-                  <Button disabled size="small" icon="icon-trash" />
-                </Tooltip>
+                <Button
+                  disabled
+                  title={t('Published apps cannot be removed.')}
+                  size="small"
+                  icon="icon-trash"
+                />
               )}
             </Box>
           )}

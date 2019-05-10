@@ -5,7 +5,6 @@ import {Flex} from 'grid-emotion';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import LoadingError from 'app/components/loadingError';
 import Avatar from 'app/components/avatar';
-import Tooltip from 'app/components/tooltip';
 
 import withApi from 'app/utils/withApi';
 
@@ -118,9 +117,12 @@ class CommitAuthorStats extends React.Component {
               return (
                 <PanelItem key={i} p={1} align="center">
                   <Flex>
-                    <Tooltip title={`${author.name} ${author.email}`}>
-                      <Avatar user={author} size={20} />
-                    </Tooltip>
+                    <Avatar
+                      user={author}
+                      size={20}
+                      hasTooltip
+                      tooltip={`${author.name} ${author.email}`}
+                    />
                   </Flex>
                   <Flex flex="1" px={1}>
                     <CommitBar

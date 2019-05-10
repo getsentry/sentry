@@ -6,7 +6,7 @@ import PropTypes from 'prop-types';
 import {t} from 'app/locale';
 import Button from 'app/components/button';
 import PageHeading from 'app/components/pageHeading';
-import Tooltip from 'app/components/tooltip';
+import Tooltip2 from 'app/components/tooltip2';
 import SentryTypes from 'app/sentryTypes';
 import space from 'app/styles/space';
 import ConfigStore from 'app/stores/configStore';
@@ -47,7 +47,7 @@ export default class NoProjectMessage extends React.Component {
             </HelpMessage>
             <Flex align="center">
               <CallToAction>
-                <Tooltip
+                <Tooltip2
                   disabled={canJoinTeam}
                   title={t('You do not have permission to join a team.')}
                 >
@@ -58,11 +58,11 @@ export default class NoProjectMessage extends React.Component {
                   >
                     {t('Join a Team')}
                   </Button>
-                </Tooltip>
+                </Tooltip2>
               </CallToAction>
 
               <CallToAction>
-                <Tooltip
+                <Tooltip2
                   disabled={canCreateProject}
                   title={t('You do not have permission to create a project.')}
                 >
@@ -72,7 +72,7 @@ export default class NoProjectMessage extends React.Component {
                   >
                     {t('Create project')}
                   </Button>
-                </Tooltip>
+                </Tooltip2>
               </CallToAction>
             </Flex>
           </Content>

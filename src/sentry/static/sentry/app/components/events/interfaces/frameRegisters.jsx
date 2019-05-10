@@ -3,7 +3,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
 
-import Tooltip from 'app/components/tooltip';
+import Tooltip2 from 'app/components/tooltip2';
 import {t} from 'app/locale';
 import {defined, objectToArray} from 'app/utils';
 
@@ -48,9 +48,9 @@ export class RegisterValue extends React.Component {
     return (
       <InlinePre>
         <FixedWidth>{this.formatValue(this.props.value)}</FixedWidth>
-        <Tooltip title={REGISTER_VIEWS[this.state.view]} onClick={this.toggleView}>
-          <Toggle className="icon-filter" />
-        </Tooltip>
+        <Tooltip2 title={REGISTER_VIEWS[this.state.view]}>
+          <Toggle className="icon-filter" onClick={this.toggleView} />
+        </Tooltip2>
       </InlinePre>
     );
   }

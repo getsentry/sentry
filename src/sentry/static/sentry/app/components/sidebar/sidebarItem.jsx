@@ -4,10 +4,10 @@ import React from 'react';
 import styled, {css} from 'react-emotion';
 
 import HookOrDefault from 'app/components/hookOrDefault';
+import Tooltip2 from 'app/components/tooltip2';
 
 import Link from '../links/link';
 import TextOverflow from '../textOverflow';
-import Tooltip from '../tooltip';
 
 const LabelHook = HookOrDefault({
   hookName: 'sidebar:item-label',
@@ -82,11 +82,7 @@ class SidebarItem extends React.Component {
     const placement = isTop ? 'bottom' : 'right';
 
     return (
-      <Tooltip
-        disabled={!collapsed}
-        title={label}
-        tooltipOptions={{placement, html: true}}
-      >
+      <Tooltip2 disabled={!collapsed} title={label} placement={placement}>
         <StyledSidebarItem
           data-test-id={this.props['data-test-id']}
           active={active || isActiveRouter}
@@ -109,7 +105,7 @@ class SidebarItem extends React.Component {
             )}
           </SidebarItemWrapper>
         </StyledSidebarItem>
-      </Tooltip>
+      </Tooltip2>
     );
   }
 }

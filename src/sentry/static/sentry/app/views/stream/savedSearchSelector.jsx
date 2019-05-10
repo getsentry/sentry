@@ -10,7 +10,7 @@ import DropdownLink from 'app/components/dropdownLink';
 import QueryCount from 'app/components/queryCount';
 import MenuItem from 'app/components/menuItem';
 import SentryTypes from 'app/sentryTypes';
-import Tooltip from 'app/components/tooltip';
+import Tooltip2 from 'app/components/tooltip2';
 import Tag from 'app/views/settings/components/tag';
 import {BooleanField, FormState, TextField} from 'app/components/forms';
 import withApi from 'app/utils/withApi';
@@ -119,7 +119,7 @@ const SaveSearchButton = withApi(
       const access = new Set(organization.access);
       return (
         <React.Fragment>
-          <Tooltip
+          <Tooltip2
             title="You must select issues from a single project to create new saved searches"
             disabled={!disabled}
           >
@@ -133,7 +133,7 @@ const SaveSearchButton = withApi(
             >
               {children}
             </Button>
-          </Tooltip>
+          </Tooltip2>
           <Modal
             show={this.state.isModalOpen}
             animation={false}
@@ -281,7 +281,7 @@ const SavedSearchSelector = withApi(
                 {t('Save Current Search')}
               </SaveSearchButton>
 
-              <Tooltip
+              <Tooltip2
                 title="You must select issues from a single project to manage saved searches"
                 disabled={hasProject}
               >
@@ -293,7 +293,7 @@ const SavedSearchSelector = withApi(
                 >
                   {t('Manage')}
                 </Button>
-              </Tooltip>
+              </Tooltip2>
             </ButtonBar>
           </StyledDropdownLink>
         </Container>

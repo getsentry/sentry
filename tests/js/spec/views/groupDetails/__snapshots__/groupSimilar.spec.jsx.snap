@@ -875,20 +875,35 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                                             }
                                           }
                                         >
-                                          <Tooltip
-                                            title="Error level: Error"
+                                          <GroupLevel
+                                            level="error"
                                           >
-                                            <GroupLevel
-                                              className="tip"
-                                              level="error"
-                                              title="Error level: Error"
+                                            <div
+                                              className="css-1oawdkn-GroupLevel eex8od5"
                                             >
-                                              <div
-                                                className="tip css-hpn2f3-GroupLevel eex8od5"
+                                              <Tooltip2
+                                                containerDisplayMode="inline-block"
+                                                position="top"
                                                 title="Error level: Error"
-                                              />
-                                            </GroupLevel>
-                                          </Tooltip>
+                                              >
+                                                <Manager>
+                                                  <Reference>
+                                                    <InnerReference
+                                                      setReferenceNode={[Function]}
+                                                    >
+                                                      <span
+                                                        aria-describedby="tooltip-123456"
+                                                        onBlur={[Function]}
+                                                        onFocus={[Function]}
+                                                        onMouseEnter={[Function]}
+                                                        onMouseLeave={[Function]}
+                                                      />
+                                                    </InnerReference>
+                                                  </Reference>
+                                                </Manager>
+                                              </Tooltip2>
+                                            </div>
+                                          </GroupLevel>
                                           <EventOrGroupTitle
                                             data={
                                               Object {

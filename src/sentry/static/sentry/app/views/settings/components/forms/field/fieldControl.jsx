@@ -5,7 +5,7 @@ import styled from 'react-emotion';
 
 import FieldControlState from 'app/views/settings/components/forms/field/fieldControlState';
 import InlineSvg from 'app/components/inlineSvg';
-import Tooltip from 'app/components/tooltip';
+import Tooltip2 from 'app/components/tooltip2';
 
 // This wraps Control + ControlError message
 // * can NOT be a flex box here because of `position: absolute` on "control error message"
@@ -73,9 +73,9 @@ class FieldControl extends React.Component {
 
           {disabled && disabledReason && (
             <Flex align="center" ml={1} className="disabled-indicator">
-              <Tooltip title={disabledReason}>
+              <Tooltip2 title={disabledReason}>
                 <StyledInlineSvg src="icon-circle-question" size="18px" />
-              </Tooltip>
+              </Tooltip2>
             </Flex>
           )}
 

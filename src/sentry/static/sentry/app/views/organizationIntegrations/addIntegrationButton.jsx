@@ -4,7 +4,7 @@ import React from 'react';
 import {t} from 'app/locale';
 import AddIntegration from 'app/views/organizationIntegrations/addIntegration';
 import Button from 'app/components/button';
-import Tooltip from 'app/components/tooltip';
+import Tooltip2 from 'app/components/tooltip2';
 
 export default class AddIntegrationButton extends React.Component {
   static propTypes = {
@@ -27,7 +27,7 @@ export default class AddIntegrationButton extends React.Component {
       buttonText || t(reinstall ? 'Enable' : 'Add %s', provider.metadata.noun);
 
     return (
-      <Tooltip
+      <Tooltip2
         disabled={provider.canAdd}
         title={`Integration cannot be added on Sentry. Enable this integration via the ${
           provider.name
@@ -44,7 +44,7 @@ export default class AddIntegrationButton extends React.Component {
             </Button>
           )}
         </AddIntegration>
-      </Tooltip>
+      </Tooltip2>
     );
   }
 }
