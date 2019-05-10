@@ -102,9 +102,34 @@ register_strategy_config(
     changelog='''
         * messages are now preprocessed to increase change of grouping together
         * exceptions without stacktraces are now grouped by a trimmed message
+    '''
+)
 
-        *This algorithm is currently work in progress and will continue to
-        evolve based on feedback*
+register_strategy_config(
+    id='newstyle:2019-05-08',
+    strategies=[
+        'expect-ct:v1',
+        'expect-staple:v1',
+        'hpkp:v1',
+        'csp:v1',
+        'threads:v1',
+        'stacktrace:v1',
+        'chained-exception:v1',
+        'template:v1',
+        'message:v2',
+    ],
+    delegates=[
+        'frame:v3',
+        'stacktrace:v1',
+        'single-exception:v2',
+    ],
+    changelog='''
+        * context lines are honored again for platforms with reliable source
+          code information (JavaScript, Python, PHP and Ruby)
+        * JavaScript stacktraces are better deduplicated across browser
+          versions.
+        * JavaScript stacktraces involving source maps are likely to group
+          better.
     '''
 )
 

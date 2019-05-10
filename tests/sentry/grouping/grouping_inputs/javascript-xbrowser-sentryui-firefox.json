@@ -1,0 +1,888 @@
+{
+  "culprit": "/organizations/:orgId/issues/:groupId/",
+  "event_id": "58ccfd9da72f4a88b6f2084f2fdf1f2a",
+  "environment": "prod",
+  "platform": "javascript",
+  "logger": "",
+  "fingerprint": [
+    "{{ default }}"
+  ],
+  "exception": {
+    "values": [
+      {
+        "stacktrace": {
+          "frames": [
+            {
+              "function": "M",
+              "abs_path": "webpack:////usr/src/getsentry/src/sentry/node_modules/core-js/modules/_microtask.js",
+              "pre_context": [
+                "    if (isNode && (parent = process.domain)) parent.exit();",
+                "    while (head) {",
+                "      fn = head.fn;",
+                "      head = head.next;",
+                "      try {"
+              ],
+              "module": "usr/src/getsentry/src/sentry/node_modules/core-js/modules/_microtask",
+              "filename": "/usr/src/getsentry/src/sentry/node_modules/core-js/modules/_microtask.js",
+              "post_context": [
+                "      } catch (e) {",
+                "        if (head) notify();",
+                "        else last = undefined;",
+                "        throw e;",
+                "      }"
+              ],
+              "colno": 1,
+              "in_app": false,
+              "data": {
+                "sourcemap": "https://s1.sentry-cdn.com/_static/6561974731a99a09341b7a8c97c5e0f0/sentry/dist/vendor.js.map"
+              },
+              "context_line": "        fn();",
+              "lineno": 18
+            },
+            {
+              "function": "fn",
+              "abs_path": "webpack:////usr/src/getsentry/src/sentry/node_modules/core-js/modules/es6.promise.js",
+              "pre_context": [
+                "      } catch (e) {",
+                "        if (domain && !exited) domain.exit();",
+                "        reject(e);",
+                "      }",
+                "    };"
+              ],
+              "module": "usr/src/getsentry/src/sentry/node_modules/core-js/modules/es6.promise",
+              "filename": "/usr/src/getsentry/src/sentry/node_modules/core-js/modules/es6.promise.js",
+              "post_context": [
+                "    promise._c = [];",
+                "    promise._n = false;",
+                "    if (isReject && !promise._h) onUnhandled(promise);",
+                "  });",
+                "};"
+              ],
+              "colno": 1,
+              "in_app": false,
+              "data": {
+                "sourcemap": "https://s1.sentry-cdn.com/_static/6561974731a99a09341b7a8c97c5e0f0/sentry/dist/vendor.js.map"
+              },
+              "context_line": "    while (chain.length > i) run(chain[i++]); // variable length - can't use forEach",
+              "lineno": 92
+            },
+            {
+              "function": "run",
+              "abs_path": "webpack:////usr/src/getsentry/src/sentry/node_modules/core-js/modules/es6.promise.js",
+              "pre_context": [
+                "            promise._h = 1;",
+                "          }",
+                "          if (handler === true) result = value;",
+                "          else {",
+                "            if (domain) domain.enter();"
+              ],
+              "module": "usr/src/getsentry/src/sentry/node_modules/core-js/modules/es6.promise",
+              "filename": "/usr/src/getsentry/src/sentry/node_modules/core-js/modules/es6.promise.js",
+              "post_context": [
+                "            if (domain) {",
+                "              domain.exit();",
+                "              exited = true;",
+                "            }",
+                "          }"
+              ],
+              "colno": 1,
+              "in_app": false,
+              "data": {
+                "sourcemap": "https://s1.sentry-cdn.com/_static/6561974731a99a09341b7a8c97c5e0f0/sentry/dist/vendor.js.map"
+              },
+              "context_line": "            result = handler(value); // may throw",
+              "lineno": 75
+            },
+            {
+              "function": "_next",
+              "abs_path": "webpack:////usr/src/getsentry/src/sentry/node_modules/@babel/runtime/helpers/asyncToGenerator.js",
+              "pre_context": [
+                "        args = arguments;",
+                "    return new Promise(function (resolve, reject) {",
+                "      var gen = fn.apply(self, args);",
+                "",
+                "      function _next(value) {"
+              ],
+              "module": "usr/src/getsentry/src/sentry/node_modules/@babel/runtime/helpers/asyncToGenerator",
+              "filename": "/usr/src/getsentry/src/sentry/node_modules/@babel/runtime/helpers/asyncToGenerator.js",
+              "post_context": [
+                "      }",
+                "",
+                "      function _throw(err) {",
+                "        asyncGeneratorStep(gen, resolve, reject, _next, _throw, \"throw\", err);",
+                "      }"
+              ],
+              "colno": 1,
+              "in_app": false,
+              "data": {
+                "sourcemap": "https://s1.sentry-cdn.com/_static/6561974731a99a09341b7a8c97c5e0f0/sentry/dist/vendor.js.map"
+              },
+              "context_line": "        asyncGeneratorStep(gen, resolve, reject, _next, _throw, \"next\", value);",
+              "lineno": 25
+            },
+            {
+              "function": "asyncGeneratorStep",
+              "abs_path": "webpack:////usr/src/getsentry/src/sentry/node_modules/@babel/runtime/helpers/asyncToGenerator.js",
+              "pre_context": [
+                "function asyncGeneratorStep(gen, resolve, reject, _next, _throw, key, arg) {",
+                "  try {"
+              ],
+              "module": "usr/src/getsentry/src/sentry/node_modules/@babel/runtime/helpers/asyncToGenerator",
+              "filename": "/usr/src/getsentry/src/sentry/node_modules/@babel/runtime/helpers/asyncToGenerator.js",
+              "post_context": [
+                "    var value = info.value;",
+                "  } catch (error) {",
+                "    reject(error);",
+                "    return;",
+                "  }"
+              ],
+              "colno": 1,
+              "in_app": false,
+              "data": {
+                "sourcemap": "https://s1.sentry-cdn.com/_static/6561974731a99a09341b7a8c97c5e0f0/sentry/dist/vendor.js.map"
+              },
+              "context_line": "    var info = gen[key](arg);",
+              "lineno": 3
+            },
+            {
+              "function": "key",
+              "abs_path": "webpack:////usr/src/getsentry/src/sentry/node_modules/regenerator-runtime/runtime.js",
+              "pre_context": [
+                "  // Helper for defining the .next, .throw, and .return methods of the",
+                "  // Iterator interface in terms of a single ._invoke method.",
+                "  function defineIteratorMethods(prototype) {",
+                "    [\"next\", \"throw\", \"return\"].forEach(function(method) {",
+                "      prototype[method] = function(arg) {"
+              ],
+              "module": "usr/src/getsentry/src/sentry/node_modules/regenerator-runtime/runtime",
+              "filename": "/usr/src/getsentry/src/sentry/node_modules/regenerator-runtime/runtime.js",
+              "post_context": [
+                "      };",
+                "    });",
+                "  }",
+                "",
+                "  runtime.isGeneratorFunction = function(genFun) {"
+              ],
+              "colno": 1,
+              "in_app": false,
+              "data": {
+                "sourcemap": "https://s1.sentry-cdn.com/_static/6561974731a99a09341b7a8c97c5e0f0/sentry/dist/vendor.js.map"
+              },
+              "context_line": "        return this._invoke(method, arg);",
+              "lineno": 114
+            },
+            {
+              "function": "this",
+              "abs_path": "webpack:////usr/src/getsentry/src/sentry/node_modules/regenerator-runtime/runtime.js",
+              "pre_context": [
+                "          context.abrupt(\"return\", context.arg);",
+                "        }",
+                "",
+                "        state = GenStateExecuting;",
+                ""
+              ],
+              "module": "usr/src/getsentry/src/sentry/node_modules/regenerator-runtime/runtime",
+              "filename": "/usr/src/getsentry/src/sentry/node_modules/regenerator-runtime/runtime.js",
+              "post_context": [
+                "        if (record.type === \"normal\") {",
+                "          // If an exception is thrown from innerFn, we leave state ===",
+                "          // GenStateExecuting and loop back for another invocation.",
+                "          state = context.done",
+                "            ? GenStateCompleted"
+              ],
+              "colno": 1,
+              "in_app": false,
+              "data": {
+                "sourcemap": "https://s1.sentry-cdn.com/_static/6561974731a99a09341b7a8c97c5e0f0/sentry/dist/vendor.js.map"
+              },
+              "context_line": "        var record = tryCatch(innerFn, self, context);",
+              "lineno": 288
+            },
+            {
+              "function": "tryCatch",
+              "abs_path": "webpack:////usr/src/getsentry/src/sentry/node_modules/regenerator-runtime/runtime.js",
+              "pre_context": [
+                "  // in every case, so we don't have to touch the arguments object. The",
+                "  // only additional allocation required is the completion record, which",
+                "  // has a stable shape and so hopefully should be cheap to allocate.",
+                "  function tryCatch(fn, obj, arg) {",
+                "    try {"
+              ],
+              "module": "usr/src/getsentry/src/sentry/node_modules/regenerator-runtime/runtime",
+              "filename": "/usr/src/getsentry/src/sentry/node_modules/regenerator-runtime/runtime.js",
+              "post_context": [
+                "    } catch (err) {",
+                "      return { type: \"throw\", arg: err };",
+                "    }",
+                "  }",
+                ""
+              ],
+              "colno": 15,
+              "in_app": false,
+              "data": {
+                "sourcemap": "https://s1.sentry-cdn.com/_static/6561974731a99a09341b7a8c97c5e0f0/sentry/dist/vendor.js.map"
+              },
+              "context_line": "      return { type: \"normal\", arg: fn.call(obj, arg) };",
+              "lineno": 62
+            },
+            {
+              "function": "fn",
+              "abs_path": "webpack:///./app/components/lazyLoad.jsx",
+              "pre_context": [
+                "  async fetchComponent() {",
+                "    const getComponent = this.getComponentGetter();",
+                "",
+                "    try {",
+                "      const Component = await retryableImport(getComponent);"
+              ],
+              "module": "app/components/lazyLoad",
+              "filename": "./app/components/lazyLoad.jsx",
+              "post_context": [
+                "        Component: Component.default || Component,",
+                "      });",
+                "    } catch (err) {",
+                "      this.handleFetchError(err);",
+                "    }"
+              ],
+              "colno": 7,
+              "in_app": true,
+              "data": {
+                "sourcemap": "https://s1.sentry-cdn.com/_static/6561974731a99a09341b7a8c97c5e0f0/sentry/dist/app.js.map"
+              },
+              "context_line": "      this.setState({",
+              "lineno": 100
+            },
+            {
+              "function": "this",
+              "abs_path": "webpack:////usr/src/getsentry/src/sentry/node_modules/react/cjs/react.production.min.js",
+              "pre_context": [
+                " */",
+                "",
+                "'use strict';var m=require(\"object-assign\"),n=\"function\"===typeof Symbol&&Symbol.for,p=n?Symbol.for(\"react.element\"):60103,q=n?Symbol.for(\"r {snip}",
+                "var z=\"function\"===typeof Symbol&&Symbol.iterator;function A(a,b,d,c,e,g,h,f){if(!a){a=void 0;if(void 0===b)a=Error(\"Minified exception occu {snip}",
+                "function B(a){for(var b=arguments.length-1,d=\"https://reactjs.org/docs/error-decoder.html?invariant=\"+a,c=0;c<b;c++)d+=\"&args[]=\"+encodeURIC {snip}"
+              ],
+              "module": "usr/src/getsentry/src/sentry/node_modules/react/cjs/react.production",
+              "filename": "/usr/src/getsentry/src/sentry/node_modules/react/cjs/react.production.min.js",
+              "post_context": [
+                "H.constructor=G;m(H,E.prototype);H.isPureReactComponent=!0;var I={current:null,currentDispatcher:null},J=Object.prototype.hasOwnProperty,K={ {snip}",
+                "function L(a,b,d){var c=void 0,e={},g=null,h=null;if(null!=b)for(c in void 0!==b.ref&&(h=b.ref),void 0!==b.key&&(g=\"\"+b.key),b)J.call(b,c)&& {snip}",
+                "function M(a,b){return{$$typeof:p,type:a.type,key:b,ref:a.ref,props:a.props,_owner:a._owner}}function N(a){return\"object\"===typeof a&&null!= {snip}",
+                "function R(a){a.result=null;a.keyPrefix=null;a.func=null;a.context=null;a.count=0;10>P.length&&P.push(a)}",
+                "function S(a,b,d,c){var e=typeof a;if(\"undefined\"===e||\"boolean\"===e)a=null;var g=!1;if(null===a)g=!0;else switch(e){case \"string\":case \"num {snip}"
+              ],
+              "colno": 211,
+              "in_app": false,
+              "data": {
+                "sourcemap": "https://s1.sentry-cdn.com/_static/6561974731a99a09341b7a8c97c5e0f0/sentry/dist/vendor.js.map"
+              },
+              "context_line": "{snip} !==typeof a&&\"function\"!==typeof a&&null!=a?B(\"85\"):void 0;this.updater.enqueueSetState(this,a,b,\"setState\")};E.prototype.forceUpdate=functi {snip}",
+              "lineno": 13
+            },
+            {
+              "function": "this",
+              "abs_path": "webpack:////usr/src/getsentry/src/sentry/node_modules/react-dom/cjs/react-dom.production.min.js",
+              "pre_context": [
+                "function lf(a,b,c){null!==b.firstCapturedUpdate&&(null!==b.lastUpdate&&(b.lastUpdate.next=b.firstCapturedUpdate,b.lastUpdate=b.lastCapturedU {snip}",
+                "function nf(a,b){return{value:a,source:b,stack:mc(b)}}var of={current:null},pf=null,qf=null,rf=null;function sf(a,b){var c=a.type._context;H {snip}",
+                "function vf(a,b){if(rf!==a&&!1!==b&&0!==b){if(\"number\"!==typeof b||1073741823===b)rf=a,b=1073741823;b={context:a,observedBits:b,next:null};n {snip}",
+                "function Af(a,b){H(yf,b,a);H(xf,a,a);H(L,wf,a);var c=b.nodeType;switch(c){case 9:case 11:b=(b=b.documentElement)?b.namespaceURI:le(null,\"\"); {snip}",
+                "function Ff(a,b,c,d){b=a.memoizedState;c=c(d,b);c=null===c||void 0===c?b:n({},b,c);a.memoizedState=c;d=a.updateQueue;null!==d&&0===a.expirat {snip}"
+              ],
+              "module": "usr/src/getsentry/src/sentry/node_modules/react-dom/cjs/react-dom.production",
+              "filename": "/usr/src/getsentry/src/sentry/node_modules/react-dom/cjs/react-dom.production.min.js",
+              "post_context": [
+                "b&&null!==b&&(d.callback=b);ff(a,d);If(a,c)}};function Kf(a,b,c,d,e,f,g){a=a.stateNode;return\"function\"===typeof a.shouldComponentUpdate?a.s {snip}",
+                "function Mf(a,b,c,d){var e=a.stateNode,f=K(b)?Ge:I.current;e.props=c;e.state=a.memoizedState;e.refs=Ef;e.context=He(a,f);f=a.updateQueue;nul {snip}",
+                "e.componentWillMount(),\"function\"===typeof e.UNSAFE_componentWillMount&&e.UNSAFE_componentWillMount(),b!==e.state&&Jf.enqueueReplaceState(e, {snip}",
+                "function Of(a,b,c){a=c.ref;if(null!==a&&\"function\"!==typeof a&&\"object\"!==typeof a){if(c._owner){c=c._owner;var d=void 0;c&&(2!==c.tag&&3!== {snip}",
+                "function Pf(a,b){\"textarea\"!==a.type&&t(\"31\",\"[object Object]\"===Object.prototype.toString.call(b)?\"object with keys {\"+Object.keys(b).join( {snip}"
+              ],
+              "colno": 223,
+              "in_app": false,
+              "data": {
+                "sourcemap": "https://s1.sentry-cdn.com/_static/6561974731a99a09341b7a8c97c5e0f0/sentry/dist/vendor.js.map"
+              },
+              "context_line": "{snip} );e.payload=b;void 0!==c&&null!==c&&(e.callback=c);ff(a,e);If(a,d)},enqueueReplaceState:function(a,b,c){a=a._reactInternalFiber;var d=Gf();d {snip}",
+              "lineno": 130
+            },
+            {
+              "function": "If",
+              "abs_path": "webpack:////usr/src/getsentry/src/sentry/node_modules/react-dom/cjs/react-dom.production.min.js",
+              "pre_context": [
+                "f=a.latestSuspendedTime;g=a.latestPingedTime;if(0!==e&&e>d||0!==f&&f>d||0!==g&&g>d){a.didError=!1;c=a.latestPingedTime;0!==c&&c<=d&&(a.lates {snip}",
+                "!c){a.didError=!0;a.nextExpirationTimeToWorkOn=d;d=a.expirationTime=1;a.expirationTime=d;return}}a.pendingCommitExpirationTime=d;a.finishedWork=b}}",
+                "function wg(a,b){var c;a:{Lg&&!Og?t(\"263\"):void 0;for(c=a.return;null!==c;){switch(c.tag){case 2:case 3:var d=c.stateNode;if(\"function\"===ty {snip}",
+                "function Hf(a,b){0!==Kg?a=Kg:Lg?a=Og?1:O:b.mode&1?(a=Ug?2+10*(((a-2+15)/10|0)+1):2+25*(((a-2+500)/25|0)+1),null!==Mg&&a===O&&(a+=1)):a=1;Ug& {snip}",
+                "function If(a,b){a:{if(0===a.expirationTime||a.expirationTime>b)a.expirationTime=b;var c=a.alternate;null!==c&&(0===c.expirationTime||c.expi {snip}"
+              ],
+              "module": "usr/src/getsentry/src/sentry/node_modules/react-dom/cjs/react-dom.production",
+              "filename": "/usr/src/getsentry/src/sentry/node_modules/react-dom/cjs/react-dom.production.min.js",
+              "post_context": [
+                "var U=null,T=null,ch=0,dh=void 0,V=!1,Y=null,Z=0,Vg=0,eh=!1,fh=!1,gh=null,hh=null,W=!1,Wg=!1,Ug=!1,ih=null,jh=ba.unstable_now(),kh=(jh/10|0) {snip}",
+                "function qh(){var a=0,b=null;if(null!==T)for(var c=T,d=U;null!==d;){var e=d.expirationTime;if(0===e){null===c||null===T?t(\"244\"):void 0;if(d {snip}",
+                "c=d;d=d.nextScheduledRoot}}Y=b;Z=a}function ph(a){if(a.didTimeout&&null!==U){oh();var b=U;do{var c=b.expirationTime;0!==c&&kh>=c&&(b.nextExp {snip}",
+                "function Yg(a,b){hh=b;qh();if(null!==hh)for(oh(),lh=kh;null!==Y&&0!==Z&&(0===a||a>=Z)&&(!eh||kh>=Z);)Xg(Y,Z,kh>=Z),qh(),oh(),lh=kh;else for( {snip}",
+                "function Xg(a,b,c){V?t(\"245\"):void 0;V=!0;if(null===hh||c){var d=a.finishedWork;null!==d?rh(a,d,b):(a.finishedWork=null,Sg(a,!1,c),d=a.finis {snip}"
+              ],
+              "colno": 270,
+              "in_app": false,
+              "data": {
+                "sourcemap": "https://s1.sentry-cdn.com/_static/6561974731a99a09341b7a8c97c5e0f0/sentry/dist/vendor.js.map"
+              },
+              "context_line": "{snip} );else if(c=b.expirationTime,0===c||a<c)b.expirationTime=a;V||(W?Wg&&(Y=b,Z=1,Xg(b,1,!0)):1===a?Yg(1,null):Zg(b,a))}$g>ah&&($g=0,t(\"185\"))}} {snip}",
+              "lineno": 200
+            },
+            {
+              "function": "Yg",
+              "abs_path": "webpack:////usr/src/getsentry/src/sentry/node_modules/react-dom/cjs/react-dom.production.min.js",
+              "pre_context": [
+                "function If(a,b){a:{if(0===a.expirationTime||a.expirationTime>b)a.expirationTime=b;var c=a.alternate;null!==c&&(0===c.expirationTime||c.expi {snip}",
+                "a){!Lg&&0!==O&&b<O&&Pg();Ze(a,b);if(!Lg||Og||Mg!==a){b=a;a=a.expirationTime;if(null===b.nextScheduledRoot)b.expirationTime=a,null===T?(U=T=b {snip}",
+                "var U=null,T=null,ch=0,dh=void 0,V=!1,Y=null,Z=0,Vg=0,eh=!1,fh=!1,gh=null,hh=null,W=!1,Wg=!1,Ug=!1,ih=null,jh=ba.unstable_now(),kh=(jh/10|0) {snip}",
+                "function qh(){var a=0,b=null;if(null!==T)for(var c=T,d=U;null!==d;){var e=d.expirationTime;if(0===e){null===c||null===T?t(\"244\"):void 0;if(d {snip}",
+                "c=d;d=d.nextScheduledRoot}}Y=b;Z=a}function ph(a){if(a.didTimeout&&null!==U){oh();var b=U;do{var c=b.expirationTime;0!==c&&kh>=c&&(b.nextExp {snip}"
+              ],
+              "module": "usr/src/getsentry/src/sentry/node_modules/react-dom/cjs/react-dom.production",
+              "filename": "/usr/src/getsentry/src/sentry/node_modules/react-dom/cjs/react-dom.production.min.js",
+              "post_context": [
+                "function Xg(a,b,c){V?t(\"245\"):void 0;V=!0;if(null===hh||c){var d=a.finishedWork;null!==d?rh(a,d,b):(a.finishedWork=null,Sg(a,!1,c),d=a.finis {snip}",
+                "function rh(a,b,c){var d=a.firstBatch;if(null!==d&&d._expirationTime<=c&&(null===ih?ih=[d]:ih.push(d),d._defer)){a.finishedWork=b;a.expirati {snip}",
+                "0,a.latestPingedTime=0):(e=a.latestPendingTime,0!==e&&(e<d?a.earliestPendingTime=a.latestPendingTime=0:a.earliestPendingTime<d&&(a.earliestP {snip}",
+                "{start:e.selectionStart,end:e.selectionEnd};else a:{f=(f=e.ownerDocument)&&f.defaultView||window;var g=f.getSelection&&f.getSelection();if(g {snip}",
+                "e)break b;P===f&&++A===h&&(m=l);P===k&&++S===g&&(r=l);if(null!==(v=B.nextSibling))break;B=P;P=B.parentNode}B=v}f=-1===m||-1===r?null:{start: {snip}"
+              ],
+              "colno": 173,
+              "in_app": false,
+              "data": {
+                "sourcemap": "https://s1.sentry-cdn.com/_static/6561974731a99a09341b7a8c97c5e0f0/sentry/dist/vendor.js.map"
+              },
+              "context_line": "{snip} ),qh(),oh(),lh=kh;else for(;null!==Y&&0!==Z&&(0===a||a>=Z);)Xg(Y,Z,!0),qh();null!==hh&&(ch=0,dh=null);0!==Z&&Zg(Y,Z);hh=null;eh=!1;$g=0;mh=n {snip}",
+              "lineno": 204
+            },
+            {
+              "function": "Xg",
+              "abs_path": "webpack:////usr/src/getsentry/src/sentry/node_modules/react-dom/cjs/react-dom.production.min.js",
+              "pre_context": [
+                "a){!Lg&&0!==O&&b<O&&Pg();Ze(a,b);if(!Lg||Og||Mg!==a){b=a;a=a.expirationTime;if(null===b.nextScheduledRoot)b.expirationTime=a,null===T?(U=T=b {snip}",
+                "var U=null,T=null,ch=0,dh=void 0,V=!1,Y=null,Z=0,Vg=0,eh=!1,fh=!1,gh=null,hh=null,W=!1,Wg=!1,Ug=!1,ih=null,jh=ba.unstable_now(),kh=(jh/10|0) {snip}",
+                "function qh(){var a=0,b=null;if(null!==T)for(var c=T,d=U;null!==d;){var e=d.expirationTime;if(0===e){null===c||null===T?t(\"244\"):void 0;if(d {snip}",
+                "c=d;d=d.nextScheduledRoot}}Y=b;Z=a}function ph(a){if(a.didTimeout&&null!==U){oh();var b=U;do{var c=b.expirationTime;0!==c&&kh>=c&&(b.nextExp {snip}",
+                "function Yg(a,b){hh=b;qh();if(null!==hh)for(oh(),lh=kh;null!==Y&&0!==Z&&(0===a||a>=Z)&&(!eh||kh>=Z);)Xg(Y,Z,kh>=Z),qh(),oh(),lh=kh;else for( {snip}"
+              ],
+              "module": "usr/src/getsentry/src/sentry/node_modules/react-dom/cjs/react-dom.production",
+              "filename": "/usr/src/getsentry/src/sentry/node_modules/react-dom/cjs/react-dom.production.min.js",
+              "post_context": [
+                "function rh(a,b,c){var d=a.firstBatch;if(null!==d&&d._expirationTime<=c&&(null===ih?ih=[d]:ih.push(d),d._defer)){a.finishedWork=b;a.expirati {snip}",
+                "0,a.latestPingedTime=0):(e=a.latestPendingTime,0!==e&&(e<d?a.earliestPendingTime=a.latestPendingTime=0:a.earliestPendingTime<d&&(a.earliestP {snip}",
+                "{start:e.selectionStart,end:e.selectionEnd};else a:{f=(f=e.ownerDocument)&&f.defaultView||window;var g=f.getSelection&&f.getSelection();if(g {snip}",
+                "e)break b;P===f&&++A===h&&(m=l);P===k&&++S===g&&(r=l);if(null!==(v=B.nextSibling))break;B=P;P=B.parentNode}B=v}f=-1===m||-1===r?null:{start: {snip}",
+                "x);R.__reactInternalSnapshotBeforeUpdate=yh}break a;case 5:case 7:case 8:case 6:break a;default:t(\"163\")}}Q=Q.nextEffect}}catch(Xa){e=!0,f=X {snip}"
+              ],
+              "colno": 81,
+              "in_app": false,
+              "data": {
+                "sourcemap": "https://s1.sentry-cdn.com/_static/6561974731a99a09341b7a8c97c5e0f0/sentry/dist/vendor.js.map"
+              },
+              "context_line": "{snip} t(\"245\"):void 0;V=!0;if(null===hh||c){var d=a.finishedWork;null!==d?rh(a,d,b):(a.finishedWork=null,Sg(a,!1,c),d=a.finishedWork,null!==d&&rh( {snip}",
+              "lineno": 205
+            },
+            {
+              "function": "rh",
+              "abs_path": "webpack:////usr/src/getsentry/src/sentry/node_modules/react-dom/cjs/react-dom.production.min.js",
+              "pre_context": [
+                "{start:e.selectionStart,end:e.selectionEnd};else a:{f=(f=e.ownerDocument)&&f.defaultView||window;var g=f.getSelection&&f.getSelection();if(g {snip}",
+                "e)break b;P===f&&++A===h&&(m=l);P===k&&++S===g&&(r=l);if(null!==(v=B.nextSibling))break;B=P;P=B.parentNode}B=v}f=-1===m||-1===r?null:{start: {snip}",
+                "x);R.__reactInternalSnapshotBeforeUpdate=yh}break a;case 5:case 7:case 8:case 6:break a;default:t(\"163\")}}Q=Q.nextEffect}}catch(Xa){e=!0,f=X {snip}",
+                "Q);break;case 4:Bg(Q.alternate,Q);break;case 8:x=Q,yg(x),x.return=null,x.child=null,x.alternate&&(x.alternate.child=null,x.alternate.return= {snip}",
+                "(p=w.ownerDocument||document,y=(p?p.defaultView:window).getSelection(),x=w.textContent.length,q=Math.min(u.start,x),u=void 0===u.end?q:Math. {snip}"
+              ],
+              "module": "usr/src/getsentry/src/sentry/node_modules/react-dom/cjs/react-dom.production",
+              "filename": "/usr/src/getsentry/src/sentry/node_modules/react-dom/cjs/react-dom.production.min.js",
+              "post_context": [
+                "Jh=oc.memoizedState;X.props=q.memoizedProps;X.state=q.memoizedState;X.componentDidUpdate(Ih,Jh,X.__reactInternalSnapshotBeforeUpdate)}var kg {snip}",
+                "case 8:break;case 6:break;case 15:break;case 16:break;default:t(\"163\")}}if(Sa&128){var Ac=Q.ref;if(null!==Ac){var mg=Q.stateNode;switch(Q.ta {snip}",
+                "b;a.finishedWork=null}function Tg(){return eh?!0:null===hh||hh.timeRemaining()>nh?!1:eh=!0}function Dg(a){null===Y?t(\"246\"):void 0;Y.expirat {snip}",
+                "function vh(a){if(!a)return Fe;a=a._reactInternalFiber;a:{2!==jd(a)||2!==a.tag&&3!==a.tag?t(\"170\"):void 0;var b=a;do{switch(b.tag){case 5:b= {snip}",
+                "c,b);return b}function wh(a,b,c,d,e){var f=b.current;c=vh(c);null===b.context?b.context=c:b.pendingContext=c;b=e;e=df(d);e.payload={element: {snip}"
+              ],
+              "colno": 384,
+              "in_app": false,
+              "data": {
+                "sourcemap": "https://s1.sentry-cdn.com/_static/6561974731a99a09341b7a8c97c5e0f0/sentry/dist/vendor.js.map"
+              },
+              "context_line": "{snip} nate;q=Q;p=y;switch(q.tag){case 2:case 3:var X=q.stateNode;if(q.effectTag&4)if(null===oc)X.props=q.memoizedProps,X.state=q.memoizedState,X.c {snip}",
+              "lineno": 213
+            },
+            {
+              "function": "X",
+              "abs_path": "webpack:///./app/views/groupDetails/shared/groupEventDetails.jsx",
+              "pre_context": [
+                "      eventNavLinks: '',",
+                "    };",
+                "  }",
+                "",
+                "  componentDidMount() {"
+              ],
+              "module": "app/views/groupDetails/shared/groupEventDetails",
+              "filename": "./app/views/groupDetails/shared/groupEventDetails.jsx",
+              "post_context": [
+                "  }",
+                "",
+                "  componentDidUpdate(prevProps, prevState) {",
+                "    const {environments, params, location} = this.props;",
+                ""
+              ],
+              "colno": 5,
+              "in_app": true,
+              "data": {
+                "sourcemap": "https://s1.sentry-cdn.com/_static/6561974731a99a09341b7a8c97c5e0f0/sentry/dist/app.js.map"
+              },
+              "context_line": "    this.fetchData();",
+              "lineno": 42
+            },
+            {
+              "function": "this",
+              "abs_path": "webpack:///./app/views/groupDetails/shared/groupEventDetails.jsx",
+              "pre_context": [
+                "      error: false,",
+                "    });",
+                "",
+                "    const envNames = environments.map(e => e.name);",
+                ""
+              ],
+              "module": "app/views/groupDetails/shared/groupEventDetails",
+              "in_app": true,
+              "post_context": [
+                "      .then(data => {",
+                "        this.setState({",
+                "          event: data,",
+                "          error: false,",
+                "          loading: false,"
+              ],
+              "colno": 5,
+              "filename": "./app/views/groupDetails/shared/groupEventDetails.jsx",
+              "data": {
+                "sourcemap": "https://s1.sentry-cdn.com/_static/6561974731a99a09341b7a8c97c5e0f0/sentry/dist/app.js.map"
+              },
+              "context_line": "    fetchGroupEventAndMarkSeen(api, orgSlug, projSlug, groupId, eventId, envNames)",
+              "lineno": 96
+            },
+            {
+              "function": "fetchGroupEventAndMarkSeen",
+              "abs_path": "webpack:///./app/api.jsx",
+              "pre_context": [
+                "    // that we have a helpful stacktrace if it errors",
+                "    //",
+                "    // This *should* get logged to Sentry only if the promise rejection is not handled",
+                "    // (since SDK captures unhandled rejections). Ideally we explicitly ignore rejection",
+                "    // or handle with a user friendly error message"
+              ],
+              "module": "app/api",
+              "filename": "./app/api.jsx",
+              "post_context": [
+                "",
+                "    return new Promise((resolve, reject) => {",
+                "      this.request(path, {",
+                "        ...options,",
+                "        preservedError,"
+              ],
+              "colno": 28,
+              "in_app": true,
+              "data": {
+                "sourcemap": "https://s1.sentry-cdn.com/_static/6561974731a99a09341b7a8c97c5e0f0/sentry/dist/app.js.map"
+              },
+              "context_line": "    const preservedError = new Error();",
+              "lineno": 276
+            }
+          ]
+        },
+        "raw_stacktrace": {
+          "frames": [
+            {
+              "function": "M",
+              "abs_path": "https://s1.sentry-cdn.com/_static/6561974731a99a09341b7a8c97c5e0f0/sentry/dist/vendor.js",
+              "pre_context": [
+                " * @overview es6-promise - a tiny implementation of Promises/A+.",
+                " * @copyright Copyright (c) 2014 Yehuda Katz, Tom Dale, Stefan Penner and contributors (Conversion to ES6 API by Jake Archibald)",
+                " * @license   Licensed under MIT license",
+                " *            See https://raw.githubusercontent.com/stefanpenner/es6-promise/master/LICENSE",
+                " * @version   v4.2.5+7f2b526d"
+              ],
+              "post_context": [
+                "/** @license React v16.5.1",
+                " * react-dom-server.browser.production.min.js",
+                " *",
+                " * Copyright (c) Facebook, Inc. and its affiliates.",
+                " *"
+              ],
+              "in_app": false,
+              "lineno": 188,
+              "colno": 38154,
+              "filename": "/_static/6561974731a99a09341b7a8c97c5e0f0/sentry/dist/vendor.js",
+              "context_line": "{snip}  o,r;for(b&&(o=i.domain)&&o.exit();t;){r=t.fn,t=t.next;try{r()}catch(o){throw t?n():e=void 0,o}}e=void 0,o&&o.enter()};if(b)n=function(){i.n {snip}"
+            },
+            {
+              "function": "x/<",
+              "abs_path": "https://s1.sentry-cdn.com/_static/6561974731a99a09341b7a8c97c5e0f0/sentry/dist/vendor.js",
+              "pre_context": [
+                "/*!",
+                " * parseurl",
+                " * Copyright(c) 2014 Jonathan Ong",
+                " * Copyright(c) 2014-2017 Douglas Christopher Wilson",
+                " * MIT Licensed"
+              ],
+              "post_context": [
+                "/*!",
+                "  Copyright (c) 2015 Jed Watson.",
+                "  Based on code that is Copyright 2013-2015, Facebook, Inc.",
+                "  All rights reserved.",
+                "*/"
+              ],
+              "in_app": false,
+              "lineno": 163,
+              "colno": 6164,
+              "filename": "/_static/6561974731a99a09341b7a8c97c5e0f0/sentry/dist/vendor.js",
+              "context_line": "{snip} ,M):b(n)):M(o)}catch(t){a&&!i&&a.exit(),M(t)}};n.length>p;)i(n[p++]);t._c=[],t._n=!1,e&&!t._h&&_(t)})}},_=function(t){d.call(b,function(){va {snip}"
+            },
+            {
+              "function": "i",
+              "abs_path": "https://s1.sentry-cdn.com/_static/6561974731a99a09341b7a8c97c5e0f0/sentry/dist/vendor.js",
+              "pre_context": [
+                "/*!",
+                " * parseurl",
+                " * Copyright(c) 2014 Jonathan Ong",
+                " * Copyright(c) 2014-2017 Douglas Christopher Wilson",
+                " * MIT Licensed"
+              ],
+              "post_context": [
+                "/*!",
+                "  Copyright (c) 2015 Jed Watson.",
+                "  Based on code that is Copyright 2013-2015, Facebook, Inc.",
+                "  All rights reserved.",
+                "*/"
+              ],
+              "in_app": false,
+              "lineno": 163,
+              "colno": 6019,
+              "filename": "/_static/6561974731a99a09341b7a8c97c5e0f0/sentry/dist/vendor.js",
+              "context_line": "{snip} ry{c?(r||(2==t._h&&E(t),t._h=1),!0===c?n=o:(a&&a.enter(),n=c(o),a&&(a.exit(),i=!0)),n===e.promise?M(y(\"Promise-chain cycle\")):(p=N(n))?p.cal {snip}"
+            },
+            {
+              "function": "c",
+              "abs_path": "https://s1.sentry-cdn.com/_static/6561974731a99a09341b7a8c97c5e0f0/sentry/dist/vendor.js",
+              "pre_context": [
+                "MERCHANTABLITY OR NON-INFRINGEMENT.",
+                "",
+                "See the Apache Version 2.0 License for specific language governing permissions",
+                "and limitations under the License.",
+                "***************************************************************************** */"
+              ],
+              "post_context": [
+                "/*!",
+                "  Copyright (c) 2017 Jed Watson.",
+                "  Licensed under the MIT License (MIT), see",
+                "  http://jedwatson.github.io/classnames",
+                "*/"
+              ],
+              "in_app": false,
+              "lineno": 66,
+              "colno": 59539,
+              "filename": "/_static/6561974731a99a09341b7a8c97c5e0f0/sentry/dist/vendor.js",
+              "context_line": "{snip} new Promise(function(r,p){var i=t.apply(e,o);function c(t){n(i,r,p,c,b,\"next\",t)}function b(t){n(i,r,p,c,b,\"throw\",t)}c(void 0)})}}},functio {snip}"
+            },
+            {
+              "function": "n",
+              "abs_path": "https://s1.sentry-cdn.com/_static/6561974731a99a09341b7a8c97c5e0f0/sentry/dist/vendor.js",
+              "pre_context": [
+                "MERCHANTABLITY OR NON-INFRINGEMENT.",
+                "",
+                "See the Apache Version 2.0 License for specific language governing permissions",
+                "and limitations under the License.",
+                "***************************************************************************** */"
+              ],
+              "post_context": [
+                "/*!",
+                "  Copyright (c) 2017 Jed Watson.",
+                "  Licensed under the MIT License (MIT), see",
+                "  http://jedwatson.github.io/classnames",
+                "*/"
+              ],
+              "in_app": false,
+              "lineno": 66,
+              "colno": 59329,
+              "filename": "/_static/6561974731a99a09341b7a8c97c5e0f0/sentry/dist/vendor.js",
+              "context_line": "{snip} t}},,function(t,e){function n(t,e,n,o,r,p,i){try{var c=t[p](i),b=c.value}catch(t){return void n(t)}c.done?e(b):Promise.resolve(b).then(o,r)} {snip}"
+            },
+            {
+              "function": "g/</t[e]",
+              "abs_path": "https://s1.sentry-cdn.com/_static/6561974731a99a09341b7a8c97c5e0f0/sentry/dist/vendor.js",
+              "pre_context": [
+                " * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER",
+                " * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,",
+                " * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE",
+                " * SOFTWARE.",
+                " */"
+              ],
+              "post_context": [
+                "/*!",
+                " * parseurl",
+                " * Copyright(c) 2014 Jonathan Ong",
+                " * Copyright(c) 2014-2017 Douglas Christopher Wilson",
+                " * MIT Licensed"
+              ],
+              "in_app": false,
+              "lineno": 157,
+              "colno": 28530,
+              "filename": "/_static/6561974731a99a09341b7a8c97c5e0f0/sentry/dist/vendor.js",
+              "context_line": "{snip} row\",\"return\"].forEach(function(e){t[e]=function(t){return this._invoke(e,t)}})}function R(t){var e;this._invoke=function(n,o){function p(){ {snip}"
+            },
+            {
+              "function": "q/p._invoke</<",
+              "abs_path": "https://s1.sentry-cdn.com/_static/6561974731a99a09341b7a8c97c5e0f0/sentry/dist/vendor.js",
+              "pre_context": [
+                " * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER",
+                " * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,",
+                " * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE",
+                " * SOFTWARE.",
+                " */"
+              ],
+              "post_context": [
+                "/*!",
+                " * parseurl",
+                " * Copyright(c) 2014 Jonathan Ong",
+                " * Copyright(c) 2014-2017 Douglas Christopher Wilson",
+                " * MIT Licensed"
+              ],
+              "in_app": false,
+              "lineno": 157,
+              "colno": 28144,
+              "filename": "/_static/6561974731a99a09341b7a8c97c5e0f0/sentry/dist/vendor.js",
+              "context_line": "{snip} lse\"return\"===n.method&&n.abrupt(\"return\",n.arg);o=s;var b=W(t,e,n);if(\"normal\"===b.type){if(o=n.done?O:z,b.arg===l)continue;return{value:b. {snip}"
+            },
+            {
+              "function": "W",
+              "abs_path": "https://s1.sentry-cdn.com/_static/6561974731a99a09341b7a8c97c5e0f0/sentry/dist/vendor.js",
+              "pre_context": [
+                " * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER",
+                " * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,",
+                " * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE",
+                " * SOFTWARE.",
+                " */"
+              ],
+              "post_context": [
+                "/*!",
+                " * parseurl",
+                " * Copyright(c) 2014 Jonathan Ong",
+                " * Copyright(c) 2014-2017 Douglas Christopher Wilson",
+                " * MIT Licensed"
+              ],
+              "in_app": false,
+              "lineno": 157,
+              "colno": 28354,
+              "filename": "/_static/6561974731a99a09341b7a8c97c5e0f0/sentry/dist/vendor.js",
+              "context_line": "{snip} }}(t,n,i),p}function W(t,e,n){try{return{type:\"normal\",arg:t.call(e,n)}}catch(t){return{type:\"throw\",arg:t}}}function v(){}function y(){}fun {snip}"
+            },
+            {
+              "function": "e/<",
+              "abs_path": "https://s1.sentry-cdn.com/_static/6561974731a99a09341b7a8c97c5e0f0/sentry/dist/app.js",
+              "post_context": [
+                "//# sourceMappingURL=app.js.map"
+              ],
+              "in_app": true,
+              "lineno": 1,
+              "colno": 36820,
+              "filename": "/_static/6561974731a99a09341b7a8c97c5e0f0/sentry/dist/app.js",
+              "context_line": "{snip} etComponentGetter(),e.prev=1,e.next=4,I(t);case 4:n=e.sent,this.setState({Component:n.default||n}),e.next=11;break;case 8:e.prev=8,e.t0=e.ca {snip}"
+            },
+            {
+              "function": "A.prototype.setState",
+              "abs_path": "https://s1.sentry-cdn.com/_static/6561974731a99a09341b7a8c97c5e0f0/sentry/dist/vendor.js",
+              "pre_context": [
+                " *",
+                " * Copyright (c) Facebook, Inc. and its affiliates.",
+                " *",
+                " * This source code is licensed under the MIT license found in the",
+                " * LICENSE file in the root directory of this source tree."
+              ],
+              "post_context": [
+                "/** @license React v16.5.1",
+                " * react-dom.production.min.js",
+                " *",
+                " * Copyright (c) Facebook, Inc. and its affiliates.",
+                " *"
+              ],
+              "in_app": false,
+              "lineno": 204,
+              "colno": 1578,
+              "filename": "/_static/6561974731a99a09341b7a8c97c5e0f0/sentry/dist/vendor.js",
+              "context_line": "{snip} \"object\"!=typeof t&&\"function\"!=typeof t&&null!=t&&l(\"85\"),this.updater.enqueueSetState(this,t,e,\"setState\")},A.prototype.forceUpdate=functi {snip}"
+            },
+            {
+              "function": "enqueueSetState",
+              "abs_path": "https://s1.sentry-cdn.com/_static/6561974731a99a09341b7a8c97c5e0f0/sentry/dist/vendor.js",
+              "pre_context": [
+                " *",
+                " * Copyright (c) Facebook, Inc. and its affiliates.",
+                " *",
+                " * This source code is licensed under the MIT license found in the",
+                " * LICENSE file in the root directory of this source tree."
+              ],
+              "post_context": [
+                "/** @license React v16.5.1",
+                " * schedule.production.min.js",
+                " *",
+                " * Copyright (c) Facebook, Inc. and its affiliates.",
+                " *"
+              ],
+              "in_app": false,
+              "lineno": 212,
+              "colno": 46383,
+              "filename": "/_static/6561974731a99a09341b7a8c97c5e0f0/sentry/dist/vendor.js",
+              "context_line": "{snip} =Jo(o=xp(o,t));r.payload=e,null!=n&&(r.callback=n),$o(t,r),_p(t,o)},enqueueReplaceState:function(t,e,n){t=t._reactInternalFiber;var o=ci(),r {snip}"
+            },
+            {
+              "function": "_p",
+              "abs_path": "https://s1.sentry-cdn.com/_static/6561974731a99a09341b7a8c97c5e0f0/sentry/dist/vendor.js",
+              "pre_context": [
+                " *",
+                " * Copyright (c) Facebook, Inc. and its affiliates.",
+                " *",
+                " * This source code is licensed under the MIT license found in the",
+                " * LICENSE file in the root directory of this source tree."
+              ],
+              "post_context": [
+                "/** @license React v16.5.1",
+                " * schedule.production.min.js",
+                " *",
+                " * Copyright (c) Facebook, Inc. and its affiliates.",
+                " *"
+              ],
+              "in_app": false,
+              "lineno": 212,
+              "colno": 77354,
+              "filename": "/_static/6561974731a99a09341b7a8c97c5e0f0/sentry/dist/vendor.js",
+              "context_line": "{snip} expirationTime=t),Dp||(Kp?Yp&&(Fp=e,Ip=1,ui(e,1,!0)):1===t?ai(1,null):ii(e,t))),ni>ei&&(ni=0,i(\"185\")))}function Tp(t,e,n,o,r){var p=hp;hp=1 {snip}"
+            },
+            {
+              "function": "ai",
+              "abs_path": "https://s1.sentry-cdn.com/_static/6561974731a99a09341b7a8c97c5e0f0/sentry/dist/vendor.js",
+              "pre_context": [
+                " *",
+                " * Copyright (c) Facebook, Inc. and its affiliates.",
+                " *",
+                " * This source code is licensed under the MIT license found in the",
+                " * LICENSE file in the root directory of this source tree."
+              ],
+              "post_context": [
+                "/** @license React v16.5.1",
+                " * schedule.production.min.js",
+                " *",
+                " * Copyright (c) Facebook, Inc. and its affiliates.",
+                " *"
+              ],
+              "in_app": false,
+              "lineno": 212,
+              "colno": 78842,
+              "filename": "/_static/6561974731a99a09341b7a8c97c5e0f0/sentry/dist/vendor.js",
+              "context_line": "{snip} (),pi(),ti=$p;else for(;null!==Fp&&0!==Ip&&(0===t||t>=Ip);)ui(Fp,Ip,!0),bi();if(null!==Gp&&(Hp=0,Pp=null),0!==Ip&&ii(Fp,Ip),Gp=null,jp=!1,ni {snip}"
+            },
+            {
+              "function": "ui",
+              "abs_path": "https://s1.sentry-cdn.com/_static/6561974731a99a09341b7a8c97c5e0f0/sentry/dist/vendor.js",
+              "pre_context": [
+                " *",
+                " * Copyright (c) Facebook, Inc. and its affiliates.",
+                " *",
+                " * This source code is licensed under the MIT license found in the",
+                " * LICENSE file in the root directory of this source tree."
+              ],
+              "post_context": [
+                "/** @license React v16.5.1",
+                " * schedule.production.min.js",
+                " *",
+                " * Copyright (c) Facebook, Inc. and its affiliates.",
+                " *"
+              ],
+              "in_app": false,
+              "lineno": 212,
+              "colno": 79226,
+              "filename": "/_static/6561974731a99a09341b7a8c97c5e0f0/sentry/dist/vendor.js",
+              "context_line": "{snip} (t.finishedWork=null,Sp(t,!1,n),null!==(o=t.finishedWork)&&zi(t,o,e))}else null!==(o=t.finishedWork)?zi(t,o,e):(t.finishedWork=null,Sp(t,!0, {snip}"
+            },
+            {
+              "function": "zi",
+              "abs_path": "https://s1.sentry-cdn.com/_static/6561974731a99a09341b7a8c97c5e0f0/sentry/dist/vendor.js",
+              "pre_context": [
+                " *",
+                " * Copyright (c) Facebook, Inc. and its affiliates.",
+                " *",
+                " * This source code is licensed under the MIT license found in the",
+                " * LICENSE file in the root directory of this source tree."
+              ],
+              "post_context": [
+                "/** @license React v16.5.1",
+                " * schedule.production.min.js",
+                " *",
+                " * Copyright (c) Facebook, Inc. and its affiliates.",
+                " *"
+              ],
+              "in_app": false,
+              "lineno": 212,
+              "colno": 83607,
+              "filename": "/_static/6561974731a99a09341b7a8c97c5e0f0/sentry/dist/vendor.js",
+              "context_line": "{snip} f(null===B)X.props=g.memoizedProps,X.state=g.memoizedState,X.componentDidMount();else{var w=B.memoizedProps,L=B.memoizedState;X.props=g.memo {snip}"
+            },
+            {
+              "function": "value",
+              "abs_path": "https://s1.sentry-cdn.com/_static/6561974731a99a09341b7a8c97c5e0f0/sentry/dist/app.js",
+              "post_context": [
+                "//# sourceMappingURL=app.js.map"
+              ],
+              "in_app": true,
+              "lineno": 1,
+              "colno": 940494,
+              "filename": "/_static/6561974731a99a09341b7a8c97c5e0f0/sentry/dist/app.js",
+              "context_line": "{snip}  p()(t,e),o()(t,[{key:\"componentDidMount\",value:function(){this.fetchData()}},{key:\"componentDidUpdate\",value:function(e,t){var n=this.props {snip}"
+            },
+            {
+              "abs_path": "https://s1.sentry-cdn.com/_static/6561974731a99a09341b7a8c97c5e0f0/sentry/dist/app.js",
+              "post_context": [
+                "//# sourceMappingURL=app.js.map"
+              ],
+              "in_app": true,
+              "lineno": 1,
+              "colno": 940031,
+              "filename": "/_static/6561974731a99a09341b7a8c97c5e0f0/sentry/dist/app.js",
+              "context_line": "{snip} ding:!0,error:!1});var m=s.map(function(e){return e.name});Object(Cn.a)(t,u,d,l,c,m).then(function(e){n.setState({event:e,error:!1,loading:! {snip}"
+            },
+            {
+              "function": "value",
+              "abs_path": "https://s1.sentry-cdn.com/_static/6561974731a99a09341b7a8c97c5e0f0/sentry/dist/app.js",
+              "post_context": [
+                "//# sourceMappingURL=app.js.map"
+              ],
+              "in_app": true,
+              "lineno": 1,
+              "colno": 54023,
+              "filename": "/_static/6561974731a99a09341b7a8c97c5e0f0/sentry/dist/app.js",
+              "context_line": "{snip} nts[1]:{},a=n.includeAllArgs,i=o()(n,[\"includeAllArgs\"]),s=new Error;return new Promise(function(n,o){t.request(e,r()({},i,{preservedError:s {snip}"
+            }
+          ]
+        },
+        "mechanism": {
+          "data": {
+            "message": "GET /issues/1017871644/events/latest/ 404",
+            "mode": "stack",
+            "name": "NotFoundError"
+          },
+          "type": "onunhandledrejection",
+          "handled": false
+        },
+        "value": "GET /issues/1017871644/events/latest/ 404",
+        "type": "NotFoundError"
+      }
+    ]
+  },
+  "release": "30808c27b8e8f2ac672499e43e16dcba452e9f5a"
+}

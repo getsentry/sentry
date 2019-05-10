@@ -1,0 +1,109 @@
+{
+  "culprit": "aha(test)",
+  "event_id": "d60107d3e8cf4e779612e57852162861",
+  "platform": "javascript",
+  "logger": "",
+  "fingerprint": [
+    "{{ default }}"
+  ],
+  "exception": {
+    "values": [
+      {
+        "stacktrace": {
+          "frames": [
+            {
+              "function": "Anonymous function",
+              "abs_path": "http://argus.local:4001/test.html",
+              "module": "test",
+              "in_app": false,
+              "lineno": 49,
+              "colno": 8,
+              "filename": "/test.html"
+            },
+            {
+              "function": "Foo.prototype.testMethod",
+              "abs_path": "http://argus.local:4001/test.html",
+              "module": "test",
+              "in_app": false,
+              "lineno": 43,
+              "colno": 7,
+              "filename": "/test.html"
+            },
+            {
+              "function": "aha",
+              "abs_path": "http://argus.local:4001/test.html",
+              "module": "test",
+              "in_app": false,
+              "lineno": 38,
+              "colno": 5,
+              "filename": "/test.html"
+            },
+            {
+              "function": "eval code",
+              "abs_path": "eval code",
+              "filename": "eval code",
+              "lineno": 1,
+              "colno": 1,
+              "in_app": false
+            },
+            {
+              "function": "test",
+              "abs_path": "http://argus.local:4001/test.html",
+              "module": "test",
+              "in_app": false,
+              "lineno": 32,
+              "colno": 5,
+              "filename": "/test.html"
+            },
+            {
+              "function": "Array.prototype.map",
+              "abs_path": "native code",
+              "in_app": false,
+              "module": "test",
+              "filename": "native code"
+            },
+            {
+              "function": "Anonymous function",
+              "abs_path": "http://argus.local:4001/test.html",
+              "module": "test",
+              "in_app": false,
+              "lineno": 33,
+              "colno": 7,
+              "filename": "/test.html"
+            },
+            {
+              "function": "callback",
+              "abs_path": "http://argus.local:4001/test.html",
+              "module": "test",
+              "in_app": false,
+              "lineno": 24,
+              "colno": 7,
+              "filename": "/test.html"
+            },
+            {
+              "function": "callAnotherThing",
+              "abs_path": "http://argus.local:4001/test.html",
+              "module": "test",
+              "in_app": false,
+              "lineno": 17,
+              "colno": 6,
+              "filename": "/test.html"
+            },
+            {
+              "function": "aha",
+              "abs_path": "http://argus.local:4001/test.html",
+              "module": "test",
+              "in_app": false,
+              "lineno": 18,
+              "colno": 7,
+              "filename": "/test.html"
+            }
+          ]
+        },
+        "type": "Error",
+        "value": "bad"
+      }
+    ]
+  },
+  "release": null
+}
