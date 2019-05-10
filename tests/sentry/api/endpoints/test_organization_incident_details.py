@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 from exam import fixture
+from django.utils import timezone
 
 from sentry.api.serializers import serialize
 from sentry.testutils import APITestCase
@@ -23,11 +24,26 @@ class IncidentDetailsTest(APITestCase):
 
     def test_simple(self):
         self.create_team(organization=self.organization, members=[self.user])
-        incident = self.create_incident()
+        incident = self.create_incident(seen_by=[self.user])
         self.login_as(self.user)
         with self.feature('organizations:incidents'):
             resp = self.get_valid_response(incident.organization.slug, incident.id)
-        assert resp.data == serialize(incident)
+
+        expected = serialize(incident)
+
+        user_data = serialize(self.user)
+        user_data['lastSeen'] = timezone.now()
+        seen_by = [user_data]
+
+        assert resp.data['id'] == expected['id']
+        assert resp.data['identifier'] == expected['identifier']
+        assert resp.data['query'] == expected['query']
+        assert resp.data['projects'] == expected['projects']
+        assert resp.data['dateDetected'] == expected['dateDetected']
+        assert resp.data['dateAdded'] == expected['dateAdded']
+        assert resp.data['projects'] == expected['projects']
+        assert resp.data['eventStats'] == expected['eventStats']
+        assert resp.data['seenBy'] == seen_by
 
     def test_no_perms(self):
         incident = self.create_incident()
