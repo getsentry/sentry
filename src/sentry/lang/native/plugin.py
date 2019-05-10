@@ -71,6 +71,8 @@ class NativeStacktraceProcessor(StacktraceProcessor):
         # The (iOS) symbolserver is still used regardless of this value.
         self.use_symbolicator = _is_symbolicator_enabled(self.project, self.data)
 
+        metrics.incr('native.use_symbolicator', tags={'value': self.use_symbolicator})
+
         self.arch = cpu_name_from_data(self.data)
         self.signal = signal_from_data(self.data)
 
@@ -401,18 +403,12 @@ class NativeStacktraceProcessor(StacktraceProcessor):
 
 def reprocess_minidump(data):
     project = Project.objects.get_from_cache(id=data['project'])
-    symbolicator_enabled = _is_symbolicator_enabled(project, data)
-    metrics.incr('native.use_symbolicator',
-                 tags={'value': symbolicator_enabled})
-
-    if not is_minidump_event(data):
-        return
 
     minidump_is_reprocessed_cache_key = minidump_reprocessed_cache_key_for_event(data)
     if default_cache.get(minidump_is_reprocessed_cache_key):
         return
 
-    if not symbolicator_enabled:
+    if not _is_symbolicator_enabled(project, data):
         rv = reprocess_minidump_with_cfi(data)
         default_cache.set(minidump_is_reprocessed_cache_key, True, 3600)
         return rv
@@ -453,7 +449,8 @@ class NativePlugin(Plugin2):
     can_disable = False
 
     def get_event_enhancers(self, data):
-        return [reprocess_minidump]
+        if is_minidump_event(data):
+            return [reprocess_minidump]
 
     def get_stacktrace_processors(self, data, stacktrace_infos, platforms, **kwargs):
         if any(platform in NativeStacktraceProcessor.supported_platforms for platform in platforms):
