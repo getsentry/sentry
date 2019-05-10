@@ -36,6 +36,7 @@ export const HIDDEN_TAGS = ['sentry:user', 'sentry:release'];
 
 export const COLUMNS = [
   {name: 'id', type: TYPES.STRING},
+  {name: 'event.type', type: TYPES.STRING},
   {name: 'issue.id', type: TYPES.NUMBER},
   {name: 'project.id', type: TYPES.STRING},
   {name: 'project.name', type: TYPES.STRING},
