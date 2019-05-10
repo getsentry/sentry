@@ -30,12 +30,18 @@ class IssueDetailsTest(AcceptanceTestCase, SnubaTestCase):
         self.dismiss_assistant()
 
     def create_sample_event(self, platform, default=None, sample_name=None, time=None):
-        if time is None:
-            time = datetime(2017, 9, 6, 0, 0)
         event_data = load_data(platform, default=default, sample_name=sample_name)
         event_data['event_id'] = 'd964fdbd649a4cf8bfc35d18082b6b0e'
-        event_data['timestamp'] = time.isoformat()
-        event_data['received'] = time.isoformat()
+
+        # Only set these properties if we were given a time.
+        # event processing will mark old time values as processing errors.
+        if time:
+            event_data['timestamp'] = time.isoformat()
+            event_data['received'] = time.isoformat()
+
+        # We need a fallback datetime for the event
+        if time is None:
+            time = datetime(2017, 9, 6, 0, 0)
         event = self.store_event(
             data=event_data,
             project_id=self.project.id,
