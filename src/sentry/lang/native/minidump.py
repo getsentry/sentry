@@ -244,7 +244,8 @@ def merge_symbolicator_minidump_response(data, response):
         else:
             data_thread['stacktrace'] = data_stacktrace = {'frames': []}
 
-        data_stacktrace['registers'] = complete_stacktrace['registers']
+        if complete_stacktrace.get('registers'):
+            data_stacktrace['registers'] = complete_stacktrace['registers']
 
         for complete_frame in reversed(complete_stacktrace['frames']):
             new_frame = {}
