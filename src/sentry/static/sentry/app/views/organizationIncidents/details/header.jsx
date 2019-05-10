@@ -18,7 +18,7 @@ import DropdownButton from 'app/components/dropdownButton';
 import Status from '../status';
 import {isOpen} from '../utils';
 
-export default class IncidentHeader extends React.Component {
+export default class DetailsHeader extends React.Component {
   static propTypes = {
     incident: SentryTypes.Incident,
     params: PropTypes.object.isRequired,
