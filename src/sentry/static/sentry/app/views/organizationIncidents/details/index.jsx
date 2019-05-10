@@ -10,7 +10,13 @@ import {t} from 'app/locale';
 
 import IncidentHeader from './header';
 import Incidents from './incidents';
-import {fetchIncident, updateSubscription} from '../utils';
+import {
+  INCIDENT_STATUS,
+  fetchIncident,
+  updateSubscription,
+  updateStatus,
+  isOpen,
+} from '../utils';
 
 class OrganizationIncidentDetails extends React.Component {
   static propTypes = {
@@ -48,19 +54,45 @@ class OrganizationIncidentDetails extends React.Component {
       params: {orgId, incidentId},
     } = this.props;
 
-    const isSubscribed = !this.state.incident.isSubscribed;
+    const isSubscribed = this.state.incident.isSubscribed;
 
-    updateSubscription(api, orgId, incidentId, isSubscribed)
-      .then(() => {
-        this.setState(state => ({
-          incident: {...state.incident, isSubscribed},
-        }));
-      })
-      .catch(() => {
-        addErrorMessage(
-          t('An error occurred, your subscription status was not changed.')
-        );
-      });
+    const newIsSubscribed = !isSubscribed;
+
+    this.setState(state => ({
+      incident: {...state.incident, isSubscribed: newIsSubscribed},
+    }));
+
+    updateSubscription(api, orgId, incidentId, isSubscribed).catch(() => {
+      this.setState(state => ({
+        incident: {...state.incident, isSubscribed},
+      }));
+      addErrorMessage(t('An error occurred, your subscription status was not changed.'));
+    });
+  };
+
+  handleStatusChange = () => {
+    const {
+      api,
+      params: {orgId, incidentId},
+    } = this.props;
+
+    const {status} = this.state.incident;
+
+    const newStatus = isOpen(this.state.incident)
+      ? INCIDENT_STATUS.CLOSED
+      : INCIDENT_STATUS.CREATED;
+
+    this.setState(state => ({
+      incident: {...state.incident, newStatus},
+    }));
+
+    updateStatus(api, orgId, incidentId, status).catch(() => {
+      this.setState(state => ({
+        incident: {...state.incident, status},
+      }));
+
+      addErrorMessage(t('An error occurred, your incident status was not changed.'));
+    });
   };
 
   render() {
@@ -72,6 +104,7 @@ class OrganizationIncidentDetails extends React.Component {
           params={this.props.params}
           incident={incident}
           onSubscriptionChange={this.handleSubscriptionChange}
+          onStatusChange={this.handleStatusChange}
         />
         {incident && <Incidents incident={incident} />}
         {isLoading && (

@@ -1,3 +1,9 @@
+export const INCIDENT_STATUS = {
+  DETECTED: 0,
+  CREATED: 1,
+  CLOSED: 2,
+};
+
 export function fetchIncident(api, orgId, incidentId) {
   return api.requestPromise(`/organizations/${orgId}/incidents/${incidentId}/`);
 }
@@ -11,6 +17,15 @@ export function updateSubscription(api, orgId, incidentId, isSubscribed) {
   });
 }
 
+export function updateStatus(api, orgId, incidentId, status) {
+  return api.requestPromise(`/organizations/${orgId}/incidents/${incidentId}/`, {
+    method: 'PUT',
+    data: {
+      status,
+    },
+  });
+}
+
 /**
  * Is incident open?
  *
@@ -20,10 +35,10 @@ export function updateSubscription(api, orgId, incidentId, isSubscribed) {
 
 export function isOpen(incident) {
   switch (incident.status) {
-    case 2: // closed
+    case INCIDENT_STATUS.CLOSED:
       return false;
-    case 0: // detected
-    case 1: // created
+    case INCIDENT_STATUS.DETECTED:
+    case INCIDENT_STATUS.CREATED:
     default:
       return true;
   }
