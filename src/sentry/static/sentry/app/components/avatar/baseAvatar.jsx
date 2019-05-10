@@ -25,7 +25,13 @@ class BaseAvatar extends React.Component {
      * Default gravatar to display
      */
     default: PropTypes.string,
+    /**
+     * Enable to display tooltips.
+     */
     hasTooltip: PropTypes.bool,
+    /**
+     * The type of avatar being rendered.
+     */
     type: PropTypes.string,
     /**
      * Path to uploaded avatar (differs based on model type)
@@ -40,7 +46,13 @@ class BaseAvatar extends React.Component {
     gravatarId: PropTypes.string,
     letterId: PropTypes.string,
     title: PropTypes.string,
+    /**
+     * The content for the tooltip. Requires hasTooltip to display
+     */
     tooltip: PropTypes.oneOfType([PropTypes.string, PropTypes.element]),
+    /**
+     * Additional props for the tooltip
+     */
     tooltipOptions: PropTypes.object,
     /**
      * Should avatar be round instead of a square

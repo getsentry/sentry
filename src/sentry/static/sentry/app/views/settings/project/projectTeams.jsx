@@ -10,7 +10,7 @@ import AsyncView from 'app/views/asyncView';
 import Link from 'app/components/links/link';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import TeamSelect from 'app/views/settings/components/teamSelect';
-import Tooltip from 'app/components/tooltip';
+import Tooltip2 from 'app/components/tooltip2';
 import space from 'app/styles/space';
 
 class ProjectTeams extends AsyncView {
@@ -117,15 +117,15 @@ class ProjectTeams extends AsyncView {
     const menuHeader = (
       <StyledTeamsLabel>
         {t('Teams')}
-        <Tooltip
+        <Tooltip2
           disabled={canCreateTeam}
           title={t('You must be a project admin to create teams')}
-          tooltipOptions={{placement: 'top'}}
+          position="top"
         >
           <StyledCreateTeamLink disabled={!canCreateTeam} onClick={this.handleCreateTeam}>
             {t('Create Team')}
           </StyledCreateTeamLink>
-        </Tooltip>
+        </Tooltip2>
       </StyledTeamsLabel>
     );
 

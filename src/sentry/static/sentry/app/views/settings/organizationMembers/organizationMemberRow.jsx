@@ -12,7 +12,7 @@ import InlineSvg from 'app/components/inlineSvg';
 import Link from 'app/components/links/link';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import SentryTypes from 'app/sentryTypes';
-import Tooltip from 'app/components/tooltip';
+import Tooltip2 from 'app/components/tooltip2';
 import recreateRoute from 'app/utils/recreateRoute';
 import {conditionalGuideAnchor} from 'app/components/assistant/guideAnchor';
 
@@ -160,9 +160,9 @@ export default class OrganizationMemberRow extends React.PureComponent {
             ) : (
               <div>
                 {!has2fa ? (
-                  <Tooltip title={t('Two-factor auth not enabled')}>
+                  <Tooltip2 title={t('Two-factor auth not enabled')}>
                     <NoTwoFactorIcon />
-                  </Tooltip>
+                  </Tooltip2>
                 ) : (
                   <HasTwoFactorIcon />
                 )}

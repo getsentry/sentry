@@ -21,7 +21,7 @@ import EmptyStateWarning from 'app/components/emptyStateWarning';
 import EnvironmentStore from 'app/stores/environmentStore';
 import PermissionAlert from 'app/views/settings/project/permissionAlert';
 import SentryTypes from 'app/sentryTypes';
-import Tooltip from 'app/components/tooltip';
+import Tooltip2 from 'app/components/tooltip2';
 import recreateRoute from 'app/utils/recreateRoute';
 import withApi from 'app/utils/withApi';
 
@@ -104,7 +104,7 @@ const RuleRow = withApi(
             </TextColorLink>
 
             <Flex>
-              <Tooltip
+              <Tooltip2
                 disabled={canEdit}
                 title={t('You do not have permission to edit alert rules.')}
               >
@@ -117,9 +117,9 @@ const RuleRow = withApi(
                 >
                   {t('Edit Rule')}
                 </Button>
-              </Tooltip>
+              </Tooltip2>
 
-              <Tooltip
+              <Tooltip2
                 disabled={canEdit}
                 title={t('You do not have permission to edit alert rules.')}
               >
@@ -130,7 +130,7 @@ const RuleRow = withApi(
                 >
                   <Button size="xsmall" icon="icon-trash" />
                 </Confirm>
-              </Tooltip>
+              </Tooltip2>
             </Flex>
           </PanelHeader>
 
