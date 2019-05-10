@@ -1,17 +1,24 @@
 from __future__ import absolute_import
 
 from datetime import timedelta
+from freezegun import freeze_time
 from uuid import uuid4
 
+import six
 from django.utils import timezone
 from django.utils.functional import cached_property
 
 from sentry.incidents.logic import (
+    create_event_stat_snapshot,
     create_incident,
+    create_incident_activity,
+    create_initial_event_stats_snapshot,
     get_incident_aggregates,
     get_incident_event_stats,
 )
 from sentry.incidents.models import (
+    IncidentActivity,
+    IncidentActivityType,
     IncidentGroup,
     IncidentProject,
     IncidentStatus,
@@ -53,6 +60,11 @@ class CreateIncidentTest(TestCase):
             incident=incident,
             project__in=[self.project, other_project],
         ).count() == 2
+        assert IncidentActivity.objects.filter(
+            incident=incident,
+            type=IncidentActivityType.CREATED.value,
+            event_stats_snapshot__isnull=False,
+        ).count() == 1
 
 
 class BaseIncidentsTest(SnubaTestCase):
@@ -76,6 +88,21 @@ class BaseIncidentsTest(SnubaTestCase):
 
 
 class GetIncidentEventStatsTest(TestCase, BaseIncidentsTest):
+
+    def run_test(self, incident, expected_results, start=None, end=None):
+        kwargs = {}
+        if start is not None:
+            kwargs['start'] = start
+        if end is not None:
+            kwargs['end'] = end
+
+        result = get_incident_event_stats(incident, data_points=20, **kwargs)
+        # Duration of 300s / 20 data points
+        assert result.rollup == 15
+        assert result.start == start if start else incident.date_started
+        assert result.end == end if end else incident.current_end_date
+        assert [r['count'] for r in result.data['data']] == expected_results
+
     def test_project(self):
         self.create_event(self.now - timedelta(minutes=2))
         self.create_event(self.now - timedelta(minutes=2))
@@ -86,14 +113,9 @@ class GetIncidentEventStatsTest(TestCase, BaseIncidentsTest):
             query='',
             projects=[self.project]
         )
-        result = get_incident_event_stats(incident)
-        # Duration of 300s / 20 data points
-        assert result.rollup == 15
-        assert result.start == incident.date_started
-        assert result.end == incident.current_end_date
-        assert len(result.data['data']) == 2
-        assert result.data['data'][0]['count'] == 2
-        assert result.data['data'][1]['count'] == 1
+        self.run_test(incident, [2, 1])
+        self.run_test(incident, [1], start=self.now - timedelta(minutes=1))
+        self.run_test(incident, [2], end=self.now - timedelta(minutes=1, seconds=59))
 
     def test_groups(self):
         fingerprint = 'group-1'
@@ -107,14 +129,7 @@ class GetIncidentEventStatsTest(TestCase, BaseIncidentsTest):
             projects=[],
             groups=[event.group],
         )
-        result = get_incident_event_stats(incident)
-        # Duration of 300s / 20 data points
-        assert result.rollup == 15
-        assert result.start == incident.date_started
-        assert result.end == incident.current_end_date
-        assert len(result.data['data']) == 2, result.data
-        assert result.data['data'][0]['count'] == 1
-        assert result.data['data'][1]['count'] == 1
+        self.run_test(incident, [1, 1])
 
 
 class GetIncidentAggregatesTest(TestCase, BaseIncidentsTest):
@@ -146,3 +161,99 @@ class GetIncidentAggregatesTest(TestCase, BaseIncidentsTest):
             groups=[group],
         )
         assert get_incident_aggregates(incident) == {'count': 4, 'unique_users': 2}
+
+
+@freeze_time()
+class CreateEventStatTest(TestCase, BaseIncidentsTest):
+
+    def test_simple(self):
+        self.create_event(self.now - timedelta(minutes=2))
+        self.create_event(self.now - timedelta(minutes=2))
+        self.create_event(self.now - timedelta(minutes=1))
+        incident = self.create_incident(
+            date_started=self.now - timedelta(minutes=5),
+            query='',
+            projects=[self.project]
+        )
+        snapshot = create_event_stat_snapshot(
+            incident,
+            incident.date_started,
+            incident.current_end_date,
+        )
+        assert snapshot.start == incident.date_started
+        assert snapshot.end == incident.current_end_date
+        assert [row[1] for row in snapshot.values] == [2, 1]
+
+
+@freeze_time()
+class CreateIncidentActivityTest(TestCase, BaseIncidentsTest):
+
+    def test_no_snapshot(self):
+        incident = self.create_incident()
+        activity = create_incident_activity(
+            incident,
+            IncidentActivityType.STATUS_CHANGE,
+            user=self.user,
+            value=six.text_type(IncidentStatus.CLOSED.value),
+            previous_value=six.text_type(IncidentStatus.CREATED.value),
+        )
+        assert activity.incident == incident
+        assert activity.type == IncidentActivityType.STATUS_CHANGE.value
+        assert activity.user == self.user
+        assert activity.value == six.text_type(IncidentStatus.CLOSED.value)
+        assert activity.previous_value == six.text_type(IncidentStatus.CREATED.value)
+
+    def test_snapshot(self):
+        self.create_event(self.now - timedelta(minutes=2))
+        self.create_event(self.now - timedelta(minutes=2))
+        self.create_event(self.now - timedelta(minutes=1))
+        # Define events outside incident range. Should be included in the
+        # snapshot
+        self.create_event(self.now - timedelta(minutes=20))
+        self.create_event(self.now - timedelta(minutes=30))
+
+        # Too far out, should be excluded
+        self.create_event(self.now - timedelta(minutes=100))
+
+        incident = self.create_incident(
+            date_started=self.now - timedelta(minutes=5),
+            query='',
+            projects=[self.project]
+        )
+        event_stats_snapshot = create_initial_event_stats_snapshot(incident)
+        activity = create_incident_activity(
+            incident,
+            IncidentActivityType.CREATED,
+            event_stats_snapshot=event_stats_snapshot,
+        )
+        assert activity.incident == incident
+        assert activity.type == IncidentActivityType.CREATED.value
+        assert activity.value is None
+        assert activity.previous_value is None
+
+        assert event_stats_snapshot == activity.event_stats_snapshot
+
+
+@freeze_time()
+class CreateInitialEventStatsSnapshotTest(TestCase, BaseIncidentsTest):
+
+    def test_snapshot(self):
+        self.create_event(self.now - timedelta(minutes=2))
+        self.create_event(self.now - timedelta(minutes=2))
+        self.create_event(self.now - timedelta(minutes=1))
+        # Define events outside incident range. Should be included in the
+        # snapshot
+        self.create_event(self.now - timedelta(minutes=20))
+        self.create_event(self.now - timedelta(minutes=30))
+
+        # Too far out, should be excluded
+        self.create_event(self.now - timedelta(minutes=100))
+
+        incident = self.create_incident(
+            date_started=self.now - timedelta(minutes=5),
+            query='',
+            projects=[self.project]
+        )
+        event_stat_snapshot = create_initial_event_stats_snapshot(incident)
+        assert event_stat_snapshot.start == self.now - timedelta(minutes=40)
+        assert [row[1] for row in event_stat_snapshot.values] == [1, 1, 2, 1]
