@@ -1427,5 +1427,6 @@ class SnubaSearchTest(TestCase, SnubaTestCase):
             else:
                 val = 'hello'
                 test_query('!%s:%s' % (key, val))
+                test_query('%s:%s' % (key, 'hello*'))
 
             test_query('%s:%s' % (key, val))
