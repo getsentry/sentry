@@ -8,8 +8,8 @@ import {PageContent} from 'app/styles/organization';
 import withApi from 'app/utils/withApi';
 import {t} from 'app/locale';
 
-import IncidentHeader from './header';
-import Incidents from './incidents';
+import DetailsHeader from './header';
+import DetailsBody from './body';
 import {
   INCIDENT_STATUS,
   fetchIncident,
@@ -97,16 +97,17 @@ class OrganizationIncidentDetails extends React.Component {
 
   render() {
     const {incident, isLoading, hasError} = this.state;
+    const {params} = this.props;
 
     return (
       <React.Fragment>
-        <IncidentHeader
-          params={this.props.params}
+        <DetailsHeader
+          params={params}
           incident={incident}
           onSubscriptionChange={this.handleSubscriptionChange}
           onStatusChange={this.handleStatusChange}
         />
-        {incident && <Incidents incident={incident} />}
+        <DetailsBody params={params} incident={incident} />
         {isLoading && (
           <PageContent>
             <LoadingIndicator />

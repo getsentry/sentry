@@ -18,7 +18,7 @@ const TABS = {
   related: {name: t('Related incidents'), component: RelatedIncidents},
 };
 
-export default class Incidents extends React.Component {
+export default class DetailsBody extends React.Component {
   static propTypes = {
     incident: SentryTypes.Incident,
   };
@@ -33,7 +33,7 @@ export default class Incidents extends React.Component {
   }
 
   render() {
-    const {incident} = this.props;
+    const {params, incident} = this.props;
     const {activeTab} = this.state;
     const ActiveComponent = TABS[activeTab].component;
 
@@ -48,12 +48,12 @@ export default class Incidents extends React.Component {
                 </li>
               ))}
             </NavTabs>
-            <ActiveComponent />
+            <ActiveComponent params={params} incident={incident} />
           </PageContent>
         </Main>
         <Sidebar>
           <PageContent>
-            <IncidentsSuspects incident={incident} />
+            <IncidentsSuspects suspects={[]} />
           </PageContent>
         </Sidebar>
       </StyledPageContent>
