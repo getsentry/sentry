@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+from django.conf import settings
 from django.db import (
     IntegrityError,
     models,
@@ -39,6 +40,19 @@ class IncidentGroup(Model):
         app_label = 'sentry'
         db_table = 'sentry_incidentgroup'
         unique_together = (('group', 'incident'), )
+
+
+class IncidentSeen(Model):
+    __core__ = False
+
+    incident = FlexibleForeignKey('sentry.Incident')
+    user = FlexibleForeignKey(settings.AUTH_USER_MODEL, db_index=False)
+    last_seen = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        app_label = 'sentry'
+        db_table = 'sentry_incidentseen'
+        unique_together = (('user', 'incident'), )
 
 
 class IncidentManager(BaseManager):
