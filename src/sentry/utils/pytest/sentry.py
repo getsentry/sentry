@@ -112,6 +112,10 @@ def pytest_configure(config):
         }
     }
 
+    # raduw (10 May 2019) the default snuba tag storage does not implement create_tag_key and get_or_create_tag_key
+    # which are used by some unit tests (remove offending tests ? )
+    settings.SENTRY_TAGSTORE = os.environ.get('SENTRY_TAGSTORE', 'sentry.tagstore.legacy.LegacyTagStorage')
+
     if os.environ.get('USE_SNUBA', False):
         settings.SENTRY_SEARCH = 'sentry.search.snuba.SnubaSearchBackend'
         settings.SENTRY_TAGSTORE = 'sentry.tagstore.snuba.SnubaCompatibilityTagStorage'
