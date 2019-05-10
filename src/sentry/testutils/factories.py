@@ -24,6 +24,7 @@ from sentry.incidents.models import (
     Incident,
     IncidentGroup,
     IncidentProject,
+    IncidentSeen,
 )
 from sentry.mediators import sentry_apps, sentry_app_installations, service_hooks
 from sentry.models import (
@@ -844,7 +845,7 @@ class Factories(object):
     def create_incident(
         organization, projects, detection_uuid=None, status=0,
         title=None, query='test query', date_started=None, date_detected=None,
-        date_closed=None, groups=None,
+        date_closed=None, groups=None, seen_by=None,
     ):
         if not title:
             title = petname.Generate(2, ' ', letters=10).title()
@@ -864,5 +865,7 @@ class Factories(object):
         if groups:
             for group in groups:
                 IncidentGroup.objects.create(incident=incident, group=group)
-
+        if seen_by:
+            for user in seen_by:
+                IncidentSeen.objects.create(incident=incident, user=user, last_seen=timezone.now())
         return incident

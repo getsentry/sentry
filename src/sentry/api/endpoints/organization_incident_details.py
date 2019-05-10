@@ -7,6 +7,7 @@ from sentry.api.bases.incident import IncidentPermission
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
+from sentry.api.serializers.models.incident import DetailedIncidentSerializer
 from sentry.incidents.models import Incident
 
 
@@ -40,5 +41,6 @@ class OrganizationIncidentDetailsEndpoint(OrganizationEndpoint):
         ``````````````````
         :auth: required
         """
+        data = serialize(incident, request.user, DetailedIncidentSerializer())
 
-        return Response(serialize(incident, request.user))
+        return Response(data)
