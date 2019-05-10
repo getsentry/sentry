@@ -7,6 +7,7 @@ import AlertActions from 'app/actions/alertActions';
 const MAX_TAGS = 500;
 
 const BUILTIN_TAGS = [
+  'event.type',
   'platform',
   'message',
   'title',
