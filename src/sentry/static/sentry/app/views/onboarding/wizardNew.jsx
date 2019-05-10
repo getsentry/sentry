@@ -121,33 +121,53 @@ class OnboardingWizard extends React.Component {
 
   render() {
     return (
-      <OnboardingContainer>
+      <OnboardingWrapper>
         <DocumentTitle title="Get Started on Sentry" />
         <Header>
-          <LogoSvg src="logo" />
+          <Container>
+            <LogoSvg src="logo" />
+          </Container>
         </Header>
-        <PoseGroup flipMove={false}>{this.renderOnboardingSteps()}</PoseGroup>
-      </OnboardingContainer>
+        <Container>
+          <PoseGroup flipMove={false}>{this.renderOnboardingSteps()}</PoseGroup>
+        </Container>
+      </OnboardingWrapper>
     );
   }
 }
 
-const OnboardingContainer = styled('main')`
-  max-width: ${p => p.theme.breakpoints[0]};
-  margin: ${space(4)} ${space(3)} 50vh;
-  width: 100%;
-  align-self: center;
+const Theme = {
+  colors: {
+    gray: ['#f6f6f8', '9093c1', '#584674'],
+    pink: '#e1567c',
+  },
+  shadow: '0 2px 0 rgba(54,45,89,0.15)',
+};
+
+const OnboardingWrapper = styled('main')`
+  background: ${Theme.colors.gray[0]};
+  padding-bottom: 50vh;
 `;
 
 const Header = styled('header')`
-  margin-bottom: ${space(4)};
+  background: #fff;
+  padding: ${space(2)} 0;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+`;
+
+const Container = styled.div`
+  padding: 0 ${space(3)};
+  max-width: ${p => p.theme.breakpoints[0]};
+  width: 100%;
+  margin: 0 auto;
 `;
 
 const LogoSvg = styled(InlineSvg)`
   width: 150px;
   height: 52px;
-  background-color: ${p => p.theme.gray5};
-  color: #fff;
+  color: ${p => p.theme.gray5};
 `;
 
 const PosedOnboardingStep = posed.div({
@@ -156,10 +176,9 @@ const PosedOnboardingStep = posed.div({
 });
 
 export const OnboardingStep = styled(PosedOnboardingStep)`
-  margin: ${space(4)} 0;
+  margin: 70px 0;
   margin-left: -20px;
   padding-left: 18px;
-  border-left: 2px solid ${p => p.theme.borderLighter};
   counter-increment: step;
   position: relative;
 
@@ -169,10 +188,12 @@ export const OnboardingStep = styled(PosedOnboardingStep)`
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 20px;
-    height: 20px;
-    left: -20px;
-    background-color: ${p => p.theme.gray5};
+    width: 30px;
+    height: 30px;
+    top: -4px;
+    left: -30px;
+    background-color: ${p => p.theme.gray2};
+    border-radius: 50%;
     color: #fff;
     font-size: 1.5rem;
   }
