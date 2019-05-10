@@ -1,7 +1,10 @@
 from __future__ import absolute_import
 
 from exam import fixture
+import mock
 from django.utils import timezone
+import pytz
+from datetime import datetime
 
 from sentry.api.serializers import serialize
 from sentry.testutils import APITestCase
@@ -22,7 +25,10 @@ class IncidentDetailsTest(APITestCase):
     def user(self):
         return self.create_user()
 
-    def test_simple(self):
+    @mock.patch('django.utils.timezone.now')
+    def test_simple(self, mock_now):
+        mock_now.return_value = datetime.utcnow().replace(tzinfo=pytz.utc)
+
         self.create_team(organization=self.organization, members=[self.user])
         incident = self.create_incident(seen_by=[self.user])
         self.login_as(self.user)

@@ -7,7 +7,7 @@ from sentry.incidents.models import IncidentSeen
 
 
 @register(IncidentSeen)
-class IncidenSeenSerializer(Serializer):
+class IncidentSeenSerializer(Serializer):
     def get_attrs(self, item_list, user):
         user_map = {d['id']: d for d in serialize(set(i.user for i in item_list), user)}
 
