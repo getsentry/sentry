@@ -93,6 +93,16 @@ class UserNotificationFineTuningTest(APITestCase):
         resp = self.client.put(url, data=update)
         assert resp.status_code == 403
 
+    def test_invalid_id_value(self):
+        url = reverse(
+            'sentry-api-0-user-notifications-fine-tuning', kwargs={
+                'user_id': 'me',
+                'notification_type': 'alerts',
+            }
+        )
+        resp = self.client.put(url, data={'nope': 1})
+        assert resp.status_code == 400
+
     def test_saves_and_returns_alerts(self):
         url = reverse(
             'sentry-api-0-user-notifications-fine-tuning', kwargs={

@@ -121,7 +121,12 @@ class UserNotificationFineTuningEndpoint(UserEndpoint):
             update_key = 'organization'
             parent_ids = set(self.get_org_ids(user))
 
-        ids_to_update = set([int(i) for i in request.DATA.keys()])
+        try:
+            ids_to_update = set([int(i) for i in request.DATA.keys()])
+        except ValueError:
+            return Response({
+                'detail': 'Invalid id value provided. Id values should be integers.'
+            }, status=status.HTTP_400_BAD_REQUEST)
 
         # make sure that the ids we are going to update are a subset of the user's
         # list of orgs or projects
