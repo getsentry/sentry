@@ -71,6 +71,8 @@ class NativeStacktraceProcessor(StacktraceProcessor):
         # The (iOS) symbolserver is still used regardless of this value.
         self.use_symbolicator = _is_symbolicator_enabled(self.project, self.data)
 
+        metrics.incr('native.use_symbolicator', tags={'value': self.use_symbolicator})
+
         self.arch = cpu_name_from_data(self.data)
         self.signal = signal_from_data(self.data)
 
