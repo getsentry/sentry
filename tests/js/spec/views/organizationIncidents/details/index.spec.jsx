@@ -5,6 +5,8 @@ import IncidentDetails from 'app/views/organizationIncidents/details';
 
 describe('IncidentDetails', function() {
   const mockIncident = TestStubs.Incident();
+  const routerContext = TestStubs.routerContext();
+
   beforeAll(function() {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/incidents/123/',
@@ -23,7 +25,7 @@ describe('IncidentDetails', function() {
   it('loads incident', async function() {
     const wrapper = mount(
       <IncidentDetails params={{orgId: 'org-slug', incidentId: mockIncident.id}} />,
-      TestStubs.routerContext()
+      routerContext
     );
     expect(wrapper.find('LoadingIndicator')).toHaveLength(1);
     await tick();
@@ -34,7 +36,7 @@ describe('IncidentDetails', function() {
   it('handles invalid incident', async function() {
     const wrapper = mount(
       <IncidentDetails params={{orgId: 'org-slug', incidentId: '456'}} />,
-      TestStubs.routerContext()
+      routerContext
     );
     await tick();
     wrapper.update();

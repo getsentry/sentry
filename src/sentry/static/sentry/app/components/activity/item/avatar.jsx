@@ -55,6 +55,6 @@ const Placeholder = styled('div')`
   height: ${p => p.size}px;
   width: ${p => p.size}px;
   border-radius: 100%;
-  background-color: #f5f5f5;
+  background-color: ${p => p.theme.placeholderBackground};
   flex-shrink: 0;
 `;
