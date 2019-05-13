@@ -44,8 +44,8 @@ class OrganizationIncidentsBody extends AsyncComponent {
           </Link>
           <Status incident={incident} />
           <div>{incident.duration}</div>
-          <div>{incident.usersAffected}</div>
-          <div>{incident.eventCount}</div>
+          <div>{incident.uniqueUsers}</div>
+          <div>{incident.totalEvents}</div>
         </TableLayout>
       </PanelItem>
     );
