@@ -152,12 +152,20 @@ class Hovercard extends React.Component {
   }
 }
 
+// Slide in from the same direction as the placement
+// so that the card pops into place.
 const slideIn = p => keyframes`
   from {
-    top: -10px;
+    ${p.placement === 'top' ? 'top: -10px;' : ''}
+    ${p.placement === 'bottom' ? 'top: 10px;' : ''}
+    ${p.placement === 'left' ? 'left: -10px;' : ''}
+    ${p.placement === 'right' ? 'left: 10px;' : ''}
   }
   to {
-    top: 0;
+    ${p.placement === 'top' ? 'top: 0;' : ''}
+    ${p.placement === 'bottom' ? 'top: 0;' : ''}
+    ${p.placement === 'left' ? 'left: 0;' : ''}
+    ${p.placement === 'right' ? 'left: 0;' : ''}
   }
 `;
 
@@ -192,8 +200,8 @@ const StyledHovercard = styled('div')`
   /* Offset for the arrow */
   ${p => (p.placement === 'top' ? 'margin-bottom: 15px' : '')};
   ${p => (p.placement === 'bottom' ? 'margin-top: 15px' : '')};
-  ${p => (p.placement === 'left' ? 'margin-left: 15px' : '')};
-  ${p => (p.placement === 'right' ? 'margin-right: 15px' : '')};
+  ${p => (p.placement === 'left' ? 'margin-right: 15px' : '')};
+  ${p => (p.placement === 'right' ? 'margin-left: 15px' : '')};
 `;
 
 const Container = styled('span')`
