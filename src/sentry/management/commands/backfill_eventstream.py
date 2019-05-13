@@ -11,7 +11,7 @@ import sys
 
 import six
 
-from django.core.management.base import BaseCommand, CommandError, make_option
+from django.core.management.base import BaseCommand, CommandError
 from django.utils.dateparse import parse_datetime
 
 from sentry.models import Event, Project, Group
@@ -20,18 +20,17 @@ from sentry.models import Event, Project, Group
 class Command(BaseCommand):
     help = 'Backfill events from the database into the event stream.'
 
-    option_list = BaseCommand.option_list + (
-        make_option('--from-ts', dest='from_ts', type='string',
-                    help='Starting event timestamp (ISO 8601). Example: 2018-11-26T23:59:59'),
-        make_option('--to-ts', dest='to_ts', type='string',
-                    help='Last event timestamp (ISO 8601).'),
-        make_option('--from-id', dest='from_id', type=int,
-                    help='Starting event ID (primary key).'),
-        make_option('--to-id', dest='to_id', type=int,
-                    help='Last event ID (primary key).'),
-        make_option('--no-input', action='store_true', dest='no_input',
-                    help='Do not ask questions.')
-    )
+    def add_arguments(self, parser):
+        parser.add_argument('--from-ts', dest='from_ts', type=six.text_type,
+                            help='Starting event timestamp (ISO 8601). Example: 2018-11-26T23:59:59'),
+        parser.add_argument('--to-ts', dest='to_ts', type=six.text_type,
+                            help='Last event timestamp (ISO 8601).'),
+        parser.add_argument('--from-id', dest='from_id', type=int,
+                            help='Starting event ID (primary key).'),
+        parser.add_argument('--to-id', dest='to_id', type=int,
+                            help='Last event ID (primary key).'),
+        parser.add_argument('--no-input', action='store_true', dest='no_input',
+                            help='Do not ask questions.')
 
     def get_events_by_timestamp(self, from_ts, to_ts):
         from_date = parse_datetime(from_ts)
