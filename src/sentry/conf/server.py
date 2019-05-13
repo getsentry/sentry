@@ -261,13 +261,13 @@ TEMPLATE_CONTEXT_PROCESSORS = (
 INSTALLED_APPS = (
     'django.contrib.admin', 'django.contrib.auth', 'django.contrib.contenttypes',
     'django.contrib.messages', 'django.contrib.sessions', 'django.contrib.sites',
-    'django.contrib.staticfiles', 'crispy_forms', 'debug_toolbar',
+    'crispy_forms', 'debug_toolbar',
     'rest_framework', 'sentry', 'sentry.analytics', 'sentry.incidents',
     'sentry.analytics.events', 'sentry.nodestore', 'sentry.search', 'sentry.lang.java',
     'sentry.lang.javascript', 'sentry.lang.native', 'sentry.plugins.sentry_interface_types',
     'sentry.plugins.sentry_mail', 'sentry.plugins.sentry_urls', 'sentry.plugins.sentry_useragents',
     'sentry.plugins.sentry_webhooks', 'social_auth', 'sudo', 'sentry.tagstore',
-    'sentry.eventstream', 'sentry.auth.providers.google',
+    'sentry.eventstream', 'sentry.auth.providers.google', 'django.contrib.staticfiles',
 )
 
 import django
