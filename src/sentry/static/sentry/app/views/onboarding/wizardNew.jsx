@@ -146,7 +146,7 @@ const Theme = {
 
 const OnboardingWrapper = styled('main')`
   background: ${Theme.colors.gray[0]};
-  padding-bottom: 50vh;
+  min-height: 100vh;
 `;
 
 const Header = styled('header')`
@@ -155,6 +155,7 @@ const Header = styled('header')`
   position: sticky;
   top: 0;
   z-index: 100;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.02);
 `;
 
 const Container = styled.div`

@@ -7,8 +7,7 @@ import {loadDocs} from 'app/actionCreators/projects';
 import {t, tct} from 'app/locale';
 import Button from 'app/components/button';
 import FirstEventIndicator from 'app/views/onboarding/projectSetup/firstEventIndicator';
-import Panel from 'app/components/panels/panel';
-import PanelBody from 'app/components/panels/panelBody';
+import Text from 'app/components/text.jsx';
 import PlatformIcon from 'app/components/platformIcon';
 import SentryTypes from 'app/sentryTypes';
 import platforms from 'app/data/platforms';
@@ -58,28 +57,26 @@ class ProjectDocs extends React.Component {
     const {loadedPlatform, platformDocs} = this.state;
 
     const introduction = (
-      <Panel>
-        <PanelBody disablePadding={false}>
-          <AnimatedPlatformHeading platform={loadedPlatform || platform} />
+      <StyledText>
+        <AnimatedPlatformHeading platform={loadedPlatform || platform} />
 
-          <Description id={scrollTargetId}>
-            {tct(
-              `Follow these instructions to install and verify the integration
+        <Description id={scrollTargetId}>
+          {tct(
+            `Follow these instructions to install and verify the integration
                of Sentry into your application, including sending
                [strong:your first event] from your development environment. See
                the full documentation for additional configuration, platform
                features, and methods of sending events.`,
-              {strong: <strong />}
-            )}
-          </Description>
-          <Footer>
-            {project && <FirstEventIndicator orgId={orgId} projectId={project.slug} />}
-            <Button external href={platformDocs?.link} size="small">
-              {t('Full Documentation')}
-            </Button>
-          </Footer>
-        </PanelBody>
-      </Panel>
+            {strong: <strong />}
+          )}
+        </Description>
+        <Footer>
+          {project && <FirstEventIndicator orgId={orgId} projectId={project.slug} />}
+          <Button external href={platformDocs?.link} size="small">
+            {t('Full Documentation')}
+          </Button>
+        </Footer>
+      </StyledText>
     );
 
     const docs = platformDocs !== null && (
@@ -141,6 +138,10 @@ const Header = styled('div')`
   font-size: 1.8rem;
   margin-right: 16px;
   font-weight: bold;
+`;
+
+const StyledText = styled(Text)`
+  margin-bottom: ${space(4)};
 `;
 
 const StyledPlatformIcon = styled(PlatformIcon)`
