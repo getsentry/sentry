@@ -28,7 +28,7 @@ class OrganizationIncidentDetailsEndpoint(OrganizationEndpoint):
         try:
             kwargs['incident'] = Incident.objects.get(
                 organization=organization,
-                id=incident_id,
+                identifier=incident_id,
             )
         except Incident.DoesNotExist:
             raise ResourceDoesNotExist
