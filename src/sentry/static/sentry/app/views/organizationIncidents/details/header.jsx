@@ -40,7 +40,7 @@ export default class DetailsHeader extends React.Component {
           button={
             // eslint-disable-next-line no-shadow
             ({getActorProps, isOpen}) => (
-              <DropdownButton {...getActorProps()} isOpen={isOpen}>
+              <DropdownButton {...getActorProps({isStyled: true})} isOpen={isOpen}>
                 <Status incident={incident} />
               </DropdownButton>
             )
@@ -80,17 +80,17 @@ export default class DetailsHeader extends React.Component {
             </HeaderItem>
             <HeaderItem>
               <ItemTitle>{t('Event count')}</ItemTitle>
-              <ItemValue>{incident.eventCount}</ItemValue>
+              <ItemValue>{incident.totalEvents}</ItemValue>
             </HeaderItem>
             <HeaderItem>
               <ItemTitle>{t('Users affected')}</ItemTitle>
-              <ItemValue>{incident.usersAffected}</ItemValue>
+              <ItemValue>{incident.uniqueUsers}</ItemValue>
             </HeaderItem>
             <HeaderItem>
               <ItemTitle>{t('Notifications')}</ItemTitle>
               <ItemValue>
                 <SubscribeButton
-                  isSubscribed={incident.isSubscribed}
+                  isSubscribed={!!incident.isSubscribed}
                   onClick={onSubscriptionChange}
                 />
               </ItemValue>
