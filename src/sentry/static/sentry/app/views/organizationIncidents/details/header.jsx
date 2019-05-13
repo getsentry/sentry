@@ -13,7 +13,6 @@ import SubscribeButton from 'app/components/subscribeButton';
 import DropdownControl from 'app/components/dropdownControl';
 import MenuItem from 'app/components/menuItem';
 import Access from 'app/components/acl/access';
-import DropdownButton from 'app/components/dropdownButton';
 
 import Status from '../status';
 import {isOpen} from '../utils';
@@ -36,17 +35,7 @@ export default class DetailsHeader extends React.Component {
         access={['org:write']}
         renderNoAccessMessage={() => <Status incident={incident} />}
       >
-        <DropdownControl
-          button={
-            // eslint-disable-next-line no-shadow
-            ({getActorProps, isOpen}) => (
-              <DropdownButton {...getActorProps({isStyled: true})} isOpen={isOpen}>
-                <Status incident={incident} />
-              </DropdownButton>
-            )
-          }
-          menuWidth="160px"
-        >
+        <DropdownControl label={<Status incident={incident} />} menuWidth="160px">
           <StyledMenuItem onSelect={onStatusChange}>
             {isIncidentOpen ? t('Close this incident') : t('Reopen this incident')}
           </StyledMenuItem>
