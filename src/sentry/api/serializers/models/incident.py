@@ -30,12 +30,12 @@ class IncidentSerializer(Serializer):
             incident_projects[incident_project.incident_id].append(incident_project.project.slug)
 
         results = {}
-        for item in item_list:
-            results[item] = {'projects': incident_projects.get(item.id, [])}
-
         for incident in item_list:
-            results[item]['event_stats'] = get_incident_event_stats(incident)
-            results[item]['aggregates'] = get_incident_aggregates(incident)
+            results[incident] = {
+                'projects': incident_projects.get(incident.id, []),
+                'event_stats': get_incident_event_stats(incident),
+                'aggregates': get_incident_aggregates(incident),
+            }
 
         return results
 
