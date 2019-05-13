@@ -7,23 +7,20 @@ sentry.plugins.base.v2
 """
 from __future__ import absolute_import, print_function
 
-__all__ = ('Plugin2', )
-
 import logging
-import six
-
-from django.http import HttpResponseRedirect
 from threading import local
 
+import six
+from django.http import HttpResponseRedirect
+
 from sentry.plugins import HIDDEN_PLUGINS
+from sentry.plugins.base.configuration import default_plugin_config, default_plugin_options
+from sentry.plugins.base.response import Response
 from sentry.plugins.config import PluginConfigMixin
 from sentry.plugins.status import PluginStatusMixin
-from sentry.plugins.base.response import Response
-from sentry.plugins.base.configuration import (
-    default_plugin_config,
-    default_plugin_options,
-)
 from sentry.utils.hashlib import md5_text
+
+__all__ = ('Plugin2', )
 
 
 class PluginMount(type):

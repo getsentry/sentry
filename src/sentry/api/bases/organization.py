@@ -6,10 +6,7 @@ from sentry.api.base import Endpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.helpers.environments import get_environments
 from sentry.api.permissions import SentryPermission
-from sentry.api.utils import (
-    get_date_range_from_params,
-    InvalidParams,
-)
+from sentry.api.utils import InvalidParams, get_date_range_from_params
 from sentry.auth.superuser import is_active_superuser
 from sentry.models import (
     ApiKey, Authenticator, Organization, Project, ProjectStatus, ReleaseProject,

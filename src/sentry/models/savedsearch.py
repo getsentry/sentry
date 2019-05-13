@@ -6,7 +6,6 @@ from django.utils import timezone
 from sentry.db.models import FlexibleForeignKey, Model, sane_repr
 from sentry.models.search_common import SearchType
 
-
 DEFAULT_SAVED_SEARCHES = [
     {
         'name': 'Unresolved Issues',

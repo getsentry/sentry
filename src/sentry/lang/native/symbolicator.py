@@ -1,14 +1,14 @@
 from __future__ import absolute_import
 
-import sys
-import jsonschema
 import logging
-import six
+import sys
 import time
 
+import jsonschema
+import six
 from django.core.urlresolvers import reverse
-
 from requests.exceptions import RequestException
+from symbolic import id_from_breakpad
 
 from sentry import options
 from sentry.auth.system import get_system_token
@@ -16,12 +16,10 @@ from sentry.cache import default_cache
 from sentry.lang.native.symbolizer import SymbolicationFailed
 from sentry.lang.native.utils import image_name
 from sentry.models.eventerror import EventError
-from sentry.utils import json, metrics
-from sentry.utils.in_app import is_known_third_party, is_optional_package
 from sentry.net.http import Session
 from sentry.tasks.store import RetrySymbolication
-
-from symbolic import id_from_breakpad
+from sentry.utils import json, metrics
+from sentry.utils.in_app import is_known_third_party, is_optional_package
 
 MAX_ATTEMPTS = 3
 REQUEST_CACHE_TIMEOUT = 3600

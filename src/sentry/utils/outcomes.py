@@ -6,18 +6,19 @@ sentry.utils.outcomes.py
 """
 from __future__ import absolute_import
 
-from datetime import datetime
-from django.conf import settings
-from enum import IntEnum
 import random
-import six
 import time
+from datetime import datetime
+from enum import IntEnum
 
-from sentry import tsdb, options
+import six
+from django.conf import settings
+
+from sentry import options, tsdb
 from sentry.utils import json, metrics
 from sentry.utils.data_filters import FILTER_STAT_KEYS_TO_VALUES
 from sentry.utils.dates import to_datetime
-from sentry.utils.pubsub import QueuedPublisherService, KafkaPublisher
+from sentry.utils.pubsub import KafkaPublisher, QueuedPublisherService
 
 # valid values for outcome
 

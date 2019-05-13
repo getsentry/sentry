@@ -1,23 +1,22 @@
 from __future__ import absolute_import
 
 import six
-
 from django import forms
 from django.db import IntegrityError, transaction
 from django.http import HttpResponse
-from django.views.generic import View
 from django.template.loader import render_to_string
 from django.utils import timezone
 from django.utils.safestring import mark_safe
 from django.utils.translation import ugettext_lazy as _
 from django.views.decorators.csrf import csrf_exempt
+from django.views.generic import View
 
-from sentry.models import (Event, Group, ProjectKey, ProjectOption, UserReport)
-from sentry.web.helpers import render_to_response
+from sentry.models import Event, Group, ProjectKey, ProjectOption, UserReport
 from sentry.signals import user_feedback_received
 from sentry.utils import json
 from sentry.utils.http import is_valid_origin, origin_from_request
 from sentry.utils.validators import is_event_id
+from sentry.web.helpers import render_to_response
 
 GENERIC_ERROR = _('An unknown error occurred while submitting your report. Please try again.')
 FORM_ERROR = _('Some fields were invalid. Please correct the errors and try again.')

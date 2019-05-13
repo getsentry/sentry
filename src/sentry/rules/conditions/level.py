@@ -11,8 +11,8 @@ from __future__ import absolute_import
 from collections import OrderedDict
 
 from django import forms
-from sentry.constants import LOG_LEVELS, LOG_LEVELS_MAP
 
+from sentry.constants import LOG_LEVELS, LOG_LEVELS_MAP
 from sentry.rules.conditions.base import EventCondition
 
 LEVEL_CHOICES = OrderedDict(

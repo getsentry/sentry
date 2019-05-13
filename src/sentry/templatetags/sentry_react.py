@@ -1,22 +1,21 @@
 from __future__ import absolute_import
 
-import sentry
-
 from django import template
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
 from django.contrib.messages import get_messages
 from pkg_resources import parse_version
 
+import sentry
 from sentry import features, options
 from sentry.api.serializers.base import serialize
 from sentry.api.serializers.models.user import DetailedUserSerializer
 from sentry.auth.superuser import is_active_superuser
-from sentry.utils import auth, json
-from sentry.utils.email import is_smtp_enabled
-from sentry.utils.assets import get_asset_url
-from sentry.utils.support import get_support_mail
 from sentry.templatetags.sentry_dsn import get_public_dsn
+from sentry.utils import auth, json
+from sentry.utils.assets import get_asset_url
+from sentry.utils.email import is_smtp_enabled
+from sentry.utils.support import get_support_mail
 
 register = template.Library()
 

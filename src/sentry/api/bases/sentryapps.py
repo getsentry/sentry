@@ -2,12 +2,12 @@ from __future__ import absolute_import
 
 from django.http import Http404
 
-from sentry.utils.sdk import configure_scope
 from sentry.api.authentication import ClientIdSecretAuthentication
 from sentry.api.base import Endpoint
 from sentry.api.permissions import SentryPermission
 from sentry.auth.superuser import is_active_superuser
-from sentry.models import SentryApp, SentryAppInstallation, Organization
+from sentry.models import Organization, SentryApp, SentryAppInstallation
+from sentry.utils.sdk import configure_scope
 
 
 def ensure_scoped_permission(request, allowed_scopes):

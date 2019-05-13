@@ -8,38 +8,37 @@ sentry.models.debugfile
 
 from __future__ import absolute_import
 
-import re
-import os
-import six
-import uuid
-import time
 import errno
-import shutil
 import hashlib
 import logging
+import os
+import re
+import shutil
 import tempfile
+import time
+import uuid
 
-from jsonfield import JSONField
-from django.db import models, transaction, IntegrityError
+import six
+from django.db import IntegrityError, models, transaction
 from django.db.models.fields.related import OneToOneRel
-
-from symbolic import Archive, SymbolicError, ObjectErrorUnsupportedObject, \
-    SYMCACHE_LATEST_VERSION, SymCache, SymCacheErrorMissingDebugInfo, \
-    SymCacheErrorMissingDebugSection, CfiCache, CfiErrorMissingDebugInfo, \
-    CFICACHE_LATEST_VERSION
+from jsonfield import JSONField
+from symbolic import (
+    CFICACHE_LATEST_VERSION, SYMCACHE_LATEST_VERSION, Archive, CfiCache, CfiErrorMissingDebugInfo,
+    ObjectErrorUnsupportedObject, SymbolicError, SymCache, SymCacheErrorMissingDebugInfo,
+    SymCacheErrorMissingDebugSection,
+)
 
 from sentry import options
 from sentry.cache import default_cache
 from sentry.constants import KNOWN_DIF_FORMATS
-from sentry.db.models import FlexibleForeignKey, Model, \
-    sane_repr, BaseManager, BoundedPositiveIntegerField
+from sentry.db.models import (
+    BaseManager, BoundedPositiveIntegerField, FlexibleForeignKey, Model, sane_repr,
+)
 from sentry.models.file import File
-from sentry.reprocessing import resolve_processing_issue, \
-    bump_reprocessing_revision
+from sentry.reprocessing import bump_reprocessing_revision, resolve_processing_issue
 from sentry.utils import metrics
-from sentry.utils.zip import safe_extract_zip
 from sentry.utils.decorators import classproperty
-
+from sentry.utils.zip import safe_extract_zip
 
 logger = logging.getLogger(__name__)
 

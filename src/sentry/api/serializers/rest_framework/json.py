@@ -1,7 +1,8 @@
 from __future__ import absolute_import
 
 from django.utils.translation import ugettext_lazy as _
-from rest_framework.serializers import WritableField, ValidationError
+from rest_framework.serializers import ValidationError, WritableField
+
 from sentry.utils import json
 
 # JSONField taken from Django rest framework version 3.9.0

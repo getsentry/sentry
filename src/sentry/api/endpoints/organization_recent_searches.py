@@ -1,21 +1,12 @@
 from __future__ import absolute_import
 
-from django.utils import (
-    six,
-    timezone,
-)
+from django.utils import six, timezone
 from rest_framework import serializers
 from rest_framework.response import Response
 
-from sentry.api.bases.organization import (
-    OrganizationEndpoint,
-    OrganizationPermission,
-)
+from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
 from sentry.api.serializers import serialize
-from sentry.models.recentsearch import (
-    RecentSearch,
-    remove_excess_recent_searches,
-)
+from sentry.models.recentsearch import RecentSearch, remove_excess_recent_searches
 from sentry.models.search_common import SearchType
 
 

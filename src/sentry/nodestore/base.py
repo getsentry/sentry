@@ -8,11 +8,11 @@ sentry.nodestore.base
 
 from __future__ import absolute_import
 
-import six
-
 from base64 import b64encode
 from threading import local
 from uuid import uuid4
+
+import six
 
 from sentry.utils.services import Service
 

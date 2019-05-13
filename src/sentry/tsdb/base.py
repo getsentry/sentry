@@ -8,13 +8,13 @@ sentry.tsdb.base
 from __future__ import absolute_import
 
 import collections
-import six
-
 from collections import OrderedDict
 from datetime import timedelta
+from enum import Enum
+
+import six
 from django.conf import settings
 from django.utils import timezone
-from enum import Enum
 
 from sentry.utils.dates import to_datetime, to_timestamp
 from sentry.utils.services import Service

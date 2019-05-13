@@ -1,17 +1,16 @@
 from __future__ import absolute_import
 
 import operator
-
-from jsonfield import JSONField
+from functools import reduce
 
 from django.db import models
 from django.db.models import Q
 from django.utils import timezone
+from jsonfield import JSONField
 
 from sentry.db.models import Model, sane_repr
 from sentry.db.models.fields import FlexibleForeignKey
 from sentry.ownership.grammar import load_schema
-from functools import reduce
 
 
 class ProjectOwnership(Model):

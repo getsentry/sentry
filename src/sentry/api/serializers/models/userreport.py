@@ -2,8 +2,8 @@ from __future__ import absolute_import
 
 import six
 
-from sentry.api.serializers import register, serialize, Serializer
-from sentry.models import EventUser, UserReport, Event
+from sentry.api.serializers import Serializer, register, serialize
+from sentry.models import Event, EventUser, UserReport
 
 
 @register(UserReport)

@@ -6,8 +6,8 @@ from django.utils import timezone
 from jsonfield import JSONField
 
 from sentry.constants import ObjectStatus
-from sentry.db.models import (BoundedPositiveIntegerField, Model, sane_repr)
 from sentry.db.mixin import PendingDeletionMixin, delete_pending_deletion_option
+from sentry.db.models import BoundedPositiveIntegerField, Model, sane_repr
 from sentry.signals import pending_delete
 
 

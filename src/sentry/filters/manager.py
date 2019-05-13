@@ -1,8 +1,8 @@
 from __future__ import absolute_import, print_function
 
-__all__ = ['FilterManager', 'FilterNotRegistered']
-
 import six
+
+__all__ = ['FilterManager', 'FilterNotRegistered']
 
 
 class FilterNotRegistered(Exception):

@@ -8,18 +8,21 @@ sentry.interfaces.exception
 
 from __future__ import absolute_import
 
-__all__ = ('Exception', 'Mechanism', 'upgrade_legacy_mechanism')
-
 import re
-import six
 
+import six
 from django.conf import settings
 
-from sentry.interfaces.base import Interface, InterfaceValidationError, prune_empty_keys, RUST_RENORMALIZED_DEFAULT
+from sentry.interfaces.base import (
+    RUST_RENORMALIZED_DEFAULT, Interface, InterfaceValidationError, prune_empty_keys,
+)
 from sentry.interfaces.schemas import validate_and_default_interface
 from sentry.interfaces.stacktrace import Stacktrace, slim_frame_data
 from sentry.utils import json
 from sentry.utils.safe import get_path, trim
+
+__all__ = ('Exception', 'Mechanism', 'upgrade_legacy_mechanism')
+
 
 _type_value_re = re.compile('^(\w+):(.*)$')
 

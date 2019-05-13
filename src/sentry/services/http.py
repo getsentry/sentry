@@ -8,8 +8,9 @@ sentry.services.http
 from __future__ import absolute_import, print_function
 
 import os
-import six
 import sys
+
+import six
 
 from sentry.services.base import Service
 

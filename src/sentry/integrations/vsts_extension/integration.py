@@ -3,9 +3,7 @@ from __future__ import absolute_import
 from django.contrib import messages
 from django.http import HttpResponseRedirect
 
-from sentry.integrations.vsts.integration import (
-    VstsIntegrationProvider, AccountConfigView,
-)
+from sentry.integrations.vsts.integration import AccountConfigView, VstsIntegrationProvider
 from sentry.pipeline import PipelineView
 from sentry.utils.http import absolute_uri
 

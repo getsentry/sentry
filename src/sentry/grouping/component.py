@@ -2,7 +2,6 @@ from __future__ import absolute_import
 
 from sentry.grouping.utils import hash_from_values
 
-
 DEFAULT_HINTS = {
     'salt': 'a static salt',
 }

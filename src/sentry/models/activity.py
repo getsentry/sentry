@@ -14,7 +14,7 @@ from django.db.models import F
 from django.utils import timezone
 
 from sentry.db.models import (
-    BoundedPositiveIntegerField, FlexibleForeignKey, GzippedDictField, Model, sane_repr
+    BoundedPositiveIntegerField, FlexibleForeignKey, GzippedDictField, Model, sane_repr,
 )
 from sentry.tasks import activity
 

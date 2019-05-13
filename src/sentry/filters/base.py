@@ -1,10 +1,11 @@
 from __future__ import absolute_import
 
-__all__ = ['Filter']
+from rest_framework import serializers
 
 from sentry.models import ProjectOption
 from sentry.signals import inbound_filter_toggled
-from rest_framework import serializers
+
+__all__ = ['Filter']
 
 
 class FilterSerializer(serializers.Serializer):

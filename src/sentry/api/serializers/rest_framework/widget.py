@@ -5,7 +5,7 @@ from rest_framework import serializers
 
 from sentry.api.bases.discoversavedquery import DiscoverSavedQuerySerializer
 from sentry.api.serializers.rest_framework import JSONField, ListField, ValidationError
-from sentry.models import Widget, WidgetDisplayTypes, WidgetDataSourceTypes
+from sentry.models import Widget, WidgetDataSourceTypes, WidgetDisplayTypes
 
 
 def get_next_dashboard_order(dashboard_id):

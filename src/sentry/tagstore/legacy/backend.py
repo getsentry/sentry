@@ -9,25 +9,24 @@ sentry.tagstore.legacy.backend
 from __future__ import absolute_import
 
 import collections
-import six
-
 from collections import defaultdict
 from datetime import timedelta
-from django.db import connections, router, IntegrityError, transaction
+from operator import or_
+
+import six
+from django.db import IntegrityError, connections, router, transaction
 from django.db.models import Q, Sum
 from django.utils import timezone
-from operator import or_
 from six.moves import reduce
 
 from sentry import buffer
 from sentry.tagstore import TagKeyStatus
-from sentry.tagstore.base import TagStorage, TOP_VALUES_DEFAULT_LIMIT
+from sentry.tagstore.base import TOP_VALUES_DEFAULT_LIMIT, TagStorage
+from sentry.tagstore.types import GroupTagKey, GroupTagValue, TagKey, TagValue
+from sentry.tasks.post_process import index_event_tags
 from sentry.utils import db
 
 from . import models
-from sentry.tagstore.types import TagKey, TagValue, GroupTagKey, GroupTagValue
-from sentry.tasks.post_process import index_event_tags
-
 
 transformers = {
     models.TagKey: lambda instance: TagKey(

@@ -1,27 +1,22 @@
 from __future__ import absolute_import
 
-from collections import namedtuple, defaultdict
+from collections import defaultdict, namedtuple
 from datetime import timedelta
 
+from django.utils import timezone
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
-from django.utils import timezone
 
-from sentry.api.bases import OrganizationEndpoint, EnvironmentMixin
-from sentry.api.utils import get_date_range_from_params, InvalidParams
+from sentry.api.bases import EnvironmentMixin, OrganizationEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
-from sentry.auth.superuser import is_active_superuser
-from sentry.models import (
-    Project, ProjectStatus, OrganizationMemberTeam,
-    Environment,
-)
 from sentry.api.serializers.snuba import (
-    SnubaResultSerializer, SnubaTSResultSerializer, value_from_row,
-    SnubaLookup,
+    SnubaLookup, SnubaResultSerializer, SnubaTSResultSerializer, value_from_row,
 )
+from sentry.api.utils import InvalidParams, get_date_range_from_params
+from sentry.auth.superuser import is_active_superuser
+from sentry.models import Environment, OrganizationMemberTeam, Project, ProjectStatus
 from sentry.utils import snuba
 from sentry.utils.dates import parse_stats_period
-
 
 SnubaResultSet = namedtuple('SnubaResultSet', ('current', 'previous'))
 SnubaTSResult = namedtuple('SnubaTSResult', ('data', 'start', 'end', 'rollup'))

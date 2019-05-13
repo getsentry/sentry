@@ -1,13 +1,13 @@
 from __future__ import absolute_import
 
-import time
 import logging
+import time
 
 from requests.exceptions import RequestException
 
 from sentry import options
-from sentry.net.http import Session
 from sentry.lang.native.utils import sdk_info_to_sdk_id
+from sentry.net.http import Session
 
 MAX_ATTEMPTS = 3
 

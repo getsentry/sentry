@@ -12,12 +12,12 @@ from __future__ import absolute_import, print_function
 
 import logging
 import os.path
-import six
-
 from collections import OrderedDict, namedtuple
+from operator import attrgetter
+
+import six
 from django.conf import settings
 from django.utils.translation import ugettext_lazy as _
-from operator import attrgetter
 
 from sentry.utils.integrationdocs import load_doc
 

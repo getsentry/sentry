@@ -11,22 +11,19 @@ from __future__ import absolute_import
 import functools
 from collections import defaultdict
 from datetime import timedelta
+
+import six
 from dateutil.parser import parse as parse_datetime
 from django.utils import timezone
-import six
 
 from sentry.tagstore import TagKeyStatus
-from sentry.tagstore.base import TagStorage, TOP_VALUES_DEFAULT_LIMIT
+from sentry.tagstore.base import TOP_VALUES_DEFAULT_LIMIT, TagStorage
 from sentry.tagstore.exceptions import (
-    GroupTagKeyNotFound,
-    GroupTagValueNotFound,
-    TagKeyNotFound,
-    TagValueNotFound,
+    GroupTagKeyNotFound, GroupTagValueNotFound, TagKeyNotFound, TagValueNotFound,
 )
-from sentry.tagstore.types import TagKey, TagValue, GroupTagKey, GroupTagValue
+from sentry.tagstore.types import GroupTagKey, GroupTagValue, TagKey, TagValue
 from sentry.utils import snuba
 from sentry.utils.dates import to_timestamp
-
 
 SEEN_COLUMN = 'timestamp'
 

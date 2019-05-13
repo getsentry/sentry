@@ -1,7 +1,6 @@
 from __future__ import absolute_import
 
 import jwt
-
 from django.core.urlresolvers import reverse
 from oauthlib.oauth1 import SIGNATURE_RSA
 from requests_oauthlib import OAuth1

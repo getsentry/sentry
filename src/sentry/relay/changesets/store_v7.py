@@ -1,9 +1,9 @@
 from __future__ import absolute_import
 
-from django.core.urlresolvers import resolve, reverse
-from rest_framework.test import APIRequestFactory
-from rest_framework import serializers
 import six
+from django.core.urlresolvers import resolve, reverse
+from rest_framework import serializers
+from rest_framework.test import APIRequestFactory
 
 from sentry.models import Project
 from sentry.relay.changesets.base import BaseChangeset, ChangesetError

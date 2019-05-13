@@ -1,26 +1,22 @@
 from __future__ import absolute_import
 
-import logging
 import json
-import requests
-
+import logging
 from collections import OrderedDict
 from time import time
 
+import requests
 from BeautifulSoup import BeautifulStoneSoup
 from django.utils.functional import cached_property
-from requests.exceptions import ConnectionError, Timeout, HTTPError
+from requests.exceptions import ConnectionError, HTTPError, Timeout
+from six.moves.urllib.parse import urlparse
+
 from sentry.exceptions import InvalidIdentity
 from sentry.http import build_session
 from sentry.utils import metrics
-from six.moves.urllib.parse import urlparse
 
 from .exceptions import (
-    ApiHostError,
-    ApiTimeoutError,
-    ApiError,
-    ApiUnauthorized,
-    UnsupportedResponseType
+    ApiError, ApiHostError, ApiTimeoutError, ApiUnauthorized, UnsupportedResponseType,
 )
 
 

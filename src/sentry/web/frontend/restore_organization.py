@@ -1,8 +1,8 @@
 from __future__ import absolute_import
 
 import logging
-import six
 
+import six
 from django.contrib import messages
 from django.core.urlresolvers import reverse
 from django.utils.translation import ugettext_lazy as _

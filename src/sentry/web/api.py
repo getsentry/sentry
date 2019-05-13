@@ -1,60 +1,59 @@
 from __future__ import absolute_import, print_function
 
 import base64
-import math
-
-import jsonschema
 import logging
+import math
 import os
 import random
-import six
 import traceback
 import uuid
-
+from functools import wraps
 from time import time
 
+import jsonschema
+import six
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
 from django.core.cache import cache
-from django.core.urlresolvers import reverse
 from django.core.files import uploadhandler
-from django.http import HttpResponse, HttpResponseRedirect, HttpResponseNotAllowed
+from django.core.urlresolvers import reverse
+from django.http import HttpResponse, HttpResponseNotAllowed, HttpResponseRedirect
 from django.http.multipartparser import MultiPartParser
 from django.utils.encoding import force_bytes
-from django.views.decorators.cache import never_cache, cache_control
+from django.views.decorators.cache import cache_control, never_cache
 from django.views.decorators.csrf import csrf_exempt
 from django.views.generic.base import View as BaseView
-from functools import wraps
 from querystring_parser import parser
 from symbolic import ProcessMinidumpError, Unreal4Error
 
-from sentry import features, quotas, options
+from sentry import features, options, quotas
 from sentry.attachments import CachedAttachment
 from sentry.coreapi import (
-    Auth, APIError, APIForbidden, APIRateLimited, ClientApiHelper, ClientAuthHelper,
-    SecurityAuthHelper, MinidumpAuthHelper, safely_load_json_string, logger as api_logger
+    APIError, APIForbidden, APIRateLimited, Auth, ClientApiHelper, ClientAuthHelper,
+    MinidumpAuthHelper, SecurityAuthHelper,
 )
+from sentry.coreapi import logger as api_logger
+from sentry.coreapi import safely_load_json_string
 from sentry.event_manager import EventManager
 from sentry.interfaces import schemas
 from sentry.interfaces.base import get_interface
-from sentry.lang.native.unreal import process_unreal_crash, merge_apple_crash_report, \
-    unreal_attachment_type, merge_unreal_context_event, merge_unreal_logs_event
-from sentry.lang.native.minidump import merge_process_state_event, process_minidump, \
-    merge_attached_event, merge_attached_breadcrumbs, MINIDUMP_ATTACHMENT_TYPE
-from sentry.models import Project, OrganizationOption, Organization
-from sentry.signals import (
-    event_accepted, event_dropped, event_filtered, event_received)
+from sentry.lang.native.minidump import (
+    MINIDUMP_ATTACHMENT_TYPE, merge_attached_breadcrumbs, merge_attached_event,
+    merge_process_state_event, process_minidump,
+)
+from sentry.lang.native.unreal import (
+    merge_apple_crash_report, merge_unreal_context_event, merge_unreal_logs_event,
+    process_unreal_crash, unreal_attachment_type,
+)
+from sentry.models import Organization, OrganizationOption, Project
 from sentry.quotas.base import RateLimit
+from sentry.signals import event_accepted, event_dropped, event_filtered, event_received
 from sentry.utils import json, metrics
 from sentry.utils.data_filters import FilterStatKeys
 from sentry.utils.data_scrubber import SensitiveDataFilter
-from sentry.utils.http import (
-    is_valid_origin,
-    get_origins,
-    is_same_domain,
-)
+from sentry.utils.http import get_origins, is_same_domain, is_valid_origin
 from sentry.utils.outcomes import Outcome, track_outcome
-from sentry.utils.pubsub import QueuedPublisherService, KafkaPublisher
+from sentry.utils.pubsub import KafkaPublisher, QueuedPublisherService
 from sentry.utils.safe import safe_execute
 from sentry.web.helpers import render_to_response
 

@@ -4,7 +4,7 @@ from rest_framework.response import Response
 
 from sentry import options
 from sentry.api.bases.project import ProjectEndpoint
-from sentry.models import Commit, Event, SnubaEvent, Release
+from sentry.models import Commit, Event, Release, SnubaEvent
 from sentry.utils.committers import get_event_file_committers
 
 

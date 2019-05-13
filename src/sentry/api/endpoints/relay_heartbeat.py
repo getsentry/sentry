@@ -1,14 +1,14 @@
 from __future__ import absolute_import
 
+from datetime import timedelta
+
+from django.utils import timezone
 from rest_framework.response import Response
 
-from datetime import timedelta
-from django.utils import timezone
-
-from sentry.api.base import Endpoint
-from sentry.relay import change_set, query
-from sentry.api.permissions import RelayPermission
 from sentry.api.authentication import RelayAuthentication
+from sentry.api.base import Endpoint
+from sentry.api.permissions import RelayPermission
+from sentry.relay import change_set, query
 
 
 class RelayHeartbeatEndpoint(Endpoint):

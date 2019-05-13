@@ -8,9 +8,9 @@ sentry.rules.registry
 
 from __future__ import absolute_import
 
-import six
-
 from collections import defaultdict
+
+import six
 
 
 class RuleRegistry(object):

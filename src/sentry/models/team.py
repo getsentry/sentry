@@ -11,13 +11,13 @@ import warnings
 from collections import defaultdict
 
 from django.conf import settings
-from django.db import connections, IntegrityError, models, router, transaction
+from django.db import IntegrityError, connections, models, router, transaction
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 
 from sentry.app import env, locks
 from sentry.db.models import (
-    BaseManager, BoundedPositiveIntegerField, FlexibleForeignKey, Model, sane_repr
+    BaseManager, BoundedPositiveIntegerField, FlexibleForeignKey, Model, sane_repr,
 )
 from sentry.db.models.utils import slugify_instance
 from sentry.utils.retries import TimedRetryPolicy

@@ -4,13 +4,12 @@ import time
 
 from django.conf import settings
 
+from sentry.loader.browsersdkversion import get_browser_sdk_version
+from sentry.models import ProjectKey
 from sentry.relay import config
 from sentry.utils import metrics
-from sentry.models import ProjectKey
 from sentry.web.frontend.base import BaseView
 from sentry.web.helpers import render_to_response
-from sentry.loader.browsersdkversion import get_browser_sdk_version
-
 
 CACHE_CONTROL = 'public, max-age=600, s-maxage=60, stale-while-revalidate=315360000, stale-if-error=315360000'
 

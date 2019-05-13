@@ -8,6 +8,7 @@ sentry.utils.data_scrubber
 from __future__ import absolute_import
 
 import re
+
 import six
 from six.moves.urllib.parse import urlsplit, urlunsplit
 

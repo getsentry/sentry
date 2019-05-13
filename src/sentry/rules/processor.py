@@ -1,10 +1,10 @@
 from __future__ import absolute_import
 
 import logging
-import six
-
 from collections import namedtuple
 from datetime import timedelta
+
+import six
 from django.utils import timezone
 
 from sentry.models import GroupRuleStatus, Rule

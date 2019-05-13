@@ -8,13 +8,12 @@ sentry.tagstore.v2.models.grouptagvalue
 from __future__ import absolute_import
 
 import six
-
-from django.db import models, router, transaction, DataError, connections
+from django.db import DataError, connections, models, router, transaction
 from django.utils import timezone
 
 from sentry.api.serializers import Serializer, register
 from sentry.db.models import (
-    Model, BoundedPositiveIntegerField, BoundedBigIntegerField, FlexibleForeignKey, sane_repr
+    BoundedBigIntegerField, BoundedPositiveIntegerField, FlexibleForeignKey, Model, sane_repr,
 )
 from sentry.tagstore.query import TagStoreManager
 

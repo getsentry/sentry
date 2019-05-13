@@ -13,9 +13,9 @@ from __future__ import absolute_import
 
 import ipaddress
 import logging
-import six
-
 from datetime import datetime, timedelta
+
+import six
 from django.conf import settings
 from django.core.signing import BadSignature
 from django.utils import timezone

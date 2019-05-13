@@ -3,12 +3,13 @@ from __future__ import absolute_import, print_function
 import os
 import struct
 from threading import Lock
-from zlib import compress as zlib_compress, decompress as zlib_decompress
+from zlib import compress as zlib_compress
+from zlib import decompress as zlib_decompress
 
+from django.utils import timezone
 from google.cloud import bigtable
 from google.cloud.bigtable.row_set import RowSet
 from simplejson import JSONEncoder, _default_decoder
-from django.utils import timezone
 
 from sentry.nodestore.base import NodeStorage
 

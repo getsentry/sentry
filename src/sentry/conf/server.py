@@ -9,20 +9,26 @@ These settings act as the default (base) settings for the Sentry-provided web-se
 """
 from __future__ import absolute_import
 
-from django.conf.global_settings import *  # NOQA
-
 import os
 import os.path
+import random
 import re
 import socket
 import sys
 import tempfile
+from datetime import timedelta
+
+import django
+from celery.schedules import crontab
+from django.conf.global_settings import *  # NOQA
+# Queue configuration
+from kombu import Exchange, Queue
+from six.moves.urllib.parse import urlparse
 
 import sentry
 from sentry.utils.types import type_from_value
 
-from datetime import timedelta
-from six.moves.urllib.parse import urlparse
+from .locale import CATALOGS
 
 
 def gettext_noop(s):
@@ -191,7 +197,6 @@ LANGUAGES = (
     ('zh-cn', gettext_noop('Simplified Chinese')), ('zh-tw', gettext_noop('Traditional Chinese')),
 )
 
-from .locale import CATALOGS
 LANGUAGES = tuple((code, name) for code, name in LANGUAGES if code in CATALOGS)
 
 SUPPORTED_LANGUAGES = frozenset(CATALOGS)
@@ -270,7 +275,6 @@ INSTALLED_APPS = (
     'sentry.eventstream', 'sentry.auth.providers.google',
 )
 
-import django
 if django.VERSION < (1, 9):
     INSTALLED_APPS += ('south', )
 
@@ -407,8 +411,6 @@ AUTH_PROVIDER_LABELS = {
     'visualstudio': 'Visual Studio',
 }
 
-import random
-
 
 def SOCIAL_AUTH_DEFAULT_USERNAME():
     return random.choice(['Darth Vader', 'Obi-Wan Kenobi', 'R2-D2', 'C-3PO', 'Yoda'])
@@ -417,8 +419,6 @@ def SOCIAL_AUTH_DEFAULT_USERNAME():
 SOCIAL_AUTH_PROTECTED_USER_FIELDS = ['email']
 SOCIAL_AUTH_FORCE_POST_DISCONNECT = True
 
-# Queue configuration
-from kombu import Exchange, Queue
 
 BROKER_URL = "redis://localhost:6379"
 BROKER_TRANSPORT_OPTIONS = {}
@@ -506,7 +506,6 @@ def create_partitioned_queues(name):
 create_partitioned_queues('counters')
 create_partitioned_queues('triggers')
 
-from celery.schedules import crontab
 
 # XXX: Make sure to register the monitor_id for each job in `SENTRY_CELERYBEAT_MONITORS`!
 CELERYBEAT_SCHEDULE_FILENAME = os.path.join(tempfile.gettempdir(), 'sentry-celerybeat')

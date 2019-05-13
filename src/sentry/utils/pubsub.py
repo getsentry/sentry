@@ -1,10 +1,10 @@
 from __future__ import absolute_import
 
-import redis
 import logging
-
 from threading import Thread
-from six.moves.queue import Queue, Full
+
+import redis
+from six.moves.queue import Full, Queue
 
 
 class QueuedPublisherService(object):

@@ -3,23 +3,14 @@ from __future__ import absolute_import
 import functools
 import itertools
 import logging
-import six
+from collections import OrderedDict, defaultdict, namedtuple
 
-from collections import (
-    OrderedDict,
-    defaultdict,
-    namedtuple,
-)
+import six
 from six.moves import reduce
 
 from sentry.app import tsdb
 from sentry.digests import Record
-from sentry.models import (
-    Project,
-    Group,
-    GroupStatus,
-    Rule,
-)
+from sentry.models import Group, GroupStatus, Project, Rule
 from sentry.utils.dates import to_timestamp
 
 logger = logging.getLogger('sentry.digests')

@@ -8,15 +8,15 @@ sentry.options.store
 from __future__ import absolute_import, print_function
 
 import logging
-import six
-
 from collections import namedtuple
-from time import time
 from random import random
+from time import time
 
-from django.db.utils import ProgrammingError, OperationalError
+import six
+from django.db.utils import OperationalError, ProgrammingError
 from django.utils import timezone
 from django.utils.functional import cached_property
+
 from sentry.db.models.query import create_or_update
 from sentry.utils.hashlib import md5_text
 

@@ -1,14 +1,13 @@
 from __future__ import absolute_import
 
+from django.template.defaultfilters import slugify
 from jsonschema.exceptions import ValidationError as SchemaValidationError
-
 from rest_framework import serializers
 from rest_framework.serializers import Serializer, ValidationError
 
-from django.template.defaultfilters import slugify
 from sentry.api.validators.sentry_apps.schema import validate as validate_schema
 from sentry.models import ApiScopes, SentryApp
-from sentry.models.sentryapp import VALID_EVENT_RESOURCES, REQUIRED_EVENT_PERMISSIONS
+from sentry.models.sentryapp import REQUIRED_EVENT_PERMISSIONS, VALID_EVENT_RESOURCES
 
 
 class ApiScopesField(serializers.WritableField):

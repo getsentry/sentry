@@ -14,15 +14,14 @@ import time
 from django.conf import settings
 
 from sentry import features
-from sentry.models import EventDict
-from sentry.utils import snuba
-from sentry.utils.cache import cache
 from sentry.exceptions import PluginError
+from sentry.models import EventDict
 from sentry.plugins import plugins
 from sentry.signals import event_processed
-from sentry.tasks.sentry_apps import process_resource_change_bound
 from sentry.tasks.base import instrumented_task
-from sentry.utils import metrics
+from sentry.tasks.sentry_apps import process_resource_change_bound
+from sentry.utils import metrics, snuba
+from sentry.utils.cache import cache
 from sentry.utils.redis import redis_clusters
 from sentry.utils.safe import safe_execute
 from sentry.utils.sdk import configure_scope

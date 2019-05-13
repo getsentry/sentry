@@ -1,14 +1,13 @@
 from __future__ import absolute_import
 
 import six
-from sentry.app import locks
-from sentry.models import OrganizationOption
-from sentry.plugins import providers
-from sentry.models import Integration
-from sentry.utils.http import absolute_uri
 
+from sentry.app import locks
 from sentry.integrations.exceptions import ApiError, IntegrationError
+from sentry.models import Integration, OrganizationOption
 from sentry.models.apitoken import generate_token
+from sentry.plugins import providers
+from sentry.utils.http import absolute_uri
 
 from .webhook import parse_raw_user_email, parse_raw_user_name
 

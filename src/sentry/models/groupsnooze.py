@@ -7,7 +7,7 @@ from django.utils import timezone
 from jsonfield import JSONField
 
 from sentry.db.models import (
-    BaseManager, BoundedPositiveIntegerField, FlexibleForeignKey, Model, sane_repr
+    BaseManager, BoundedPositiveIntegerField, FlexibleForeignKey, Model, sane_repr,
 )
 
 

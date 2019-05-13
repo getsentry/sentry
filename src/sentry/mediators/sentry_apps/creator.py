@@ -1,13 +1,13 @@
 from __future__ import absolute_import
 
-import six
-
 from collections import Iterable
 
+import six
+
 from sentry import analytics
-from sentry.utils.audit import create_audit_entry
 from sentry.mediators import Mediator, Param
-from sentry.models import (AuditLogEntryEvent, ApiApplication, SentryApp, SentryAppComponent, User,)
+from sentry.models import ApiApplication, AuditLogEntryEvent, SentryApp, SentryAppComponent, User
+from sentry.utils.audit import create_audit_entry
 
 
 class Creator(Mediator):

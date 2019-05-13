@@ -4,8 +4,7 @@ from django.db import models
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 
-from sentry.db.models import Model, sane_repr
-from sentry.db.models import CIEmailField
+from sentry.db.models import CIEmailField, Model, sane_repr
 
 
 class Email(Model):

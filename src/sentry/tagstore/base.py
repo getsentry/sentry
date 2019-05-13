@@ -11,7 +11,9 @@ from __future__ import absolute_import
 import re
 
 from sentry.constants import TAG_LABELS
-from sentry.tagstore.exceptions import TagKeyNotFound, TagValueNotFound, GroupTagKeyNotFound, GroupTagValueNotFound
+from sentry.tagstore.exceptions import (
+    GroupTagKeyNotFound, GroupTagValueNotFound, TagKeyNotFound, TagValueNotFound,
+)
 from sentry.utils.services import Service, raises
 
 # Valid pattern for tag key names

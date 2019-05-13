@@ -1,18 +1,18 @@
 from __future__ import absolute_import
 
-import six
-
 from collections import defaultdict
+
+import six
 from django.db.models import Count
 from six.moves import zip
 
 from sentry import roles
-from sentry.app import env
 from sentry.api.serializers import Serializer, register, serialize
+from sentry.app import env
 from sentry.auth.superuser import is_active_superuser
 from sentry.models import (
-    OrganizationAccessRequest, OrganizationMember, OrganizationMemberTeam,
-    ProjectStatus, ProjectTeam, Team, TeamAvatar
+    OrganizationAccessRequest, OrganizationMember, OrganizationMemberTeam, ProjectStatus,
+    ProjectTeam, Team, TeamAvatar,
 )
 
 

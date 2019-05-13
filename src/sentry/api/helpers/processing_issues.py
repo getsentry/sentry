@@ -2,16 +2,10 @@ from __future__ import absolute_import
 
 from collections import defaultdict
 
-from django.db.models import (
-    Count,
-    Max,
-)
+from django.db.models import Count, Max
 
 from sentry.api.serializers import serialize
-from sentry.models import (
-    ProcessingIssue,
-    ReprocessingReport,
-)
+from sentry.models import ProcessingIssue, ReprocessingReport
 from sentry.utils.linksign import generate_signed_link
 
 

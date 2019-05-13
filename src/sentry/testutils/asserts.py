@@ -6,6 +6,7 @@ sentry.testutils.asserts
 :license: BSD, see LICENSE for more details.
 """
 from __future__ import absolute_import
+
 from sentry.models import CommitFileChange
 
 

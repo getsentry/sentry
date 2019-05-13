@@ -6,60 +6,51 @@ sentry.event_manager
 """
 from __future__ import absolute_import, print_function
 
-import jsonschema
 import logging
-import six
-
 from datetime import datetime, timedelta
+
+import jsonschema
+import six
 from django.conf import settings
-from django.db import connection, IntegrityError, router, transaction
+from django.db import IntegrityError, connection, router, transaction
 from django.utils import timezone
 from django.utils.encoding import force_text
 
-from sentry import buffer, eventtypes, eventstream, features, tagstore, tsdb, filters
-from sentry.constants import (
-    LOG_LEVELS, LOG_LEVELS_MAP, VALID_PLATFORMS, MAX_TAG_VALUE_LENGTH,
-)
-from sentry.grouping.api import get_grouping_config_dict_for_project, \
-    get_grouping_config_dict_for_event_data, load_grouping_config, \
-    apply_server_fingerprinting, get_fingerprinting_config_for_project
+from sentry import buffer, eventstream, eventtypes, features, filters, tagstore, tsdb
+from sentry.constants import LOG_LEVELS, LOG_LEVELS_MAP, MAX_TAG_VALUE_LENGTH, VALID_PLATFORMS
 from sentry.coreapi import (
-    APIError,
-    APIForbidden,
-    decompress_gzip,
-    decompress_deflate,
-    decode_and_decompress_data,
-    decode_data,
-    safely_load_json_string,
+    APIError, APIForbidden, decode_and_decompress_data, decode_data, decompress_deflate,
+    decompress_gzip, safely_load_json_string,
+)
+from sentry.culprit import generate_culprit
+from sentry.grouping.api import (
+    apply_server_fingerprinting, get_fingerprinting_config_for_project,
+    get_grouping_config_dict_for_event_data, get_grouping_config_dict_for_project,
+    load_grouping_config,
 )
 from sentry.interfaces.base import get_interface
 from sentry.models import (
     Activity, Environment, Event, EventDict, EventError, EventMapping, EventUser, Group,
     GroupEnvironment, GroupHash, GroupLink, GroupRelease, GroupResolution, GroupStatus,
-    Project, Release, ReleaseEnvironment, ReleaseProject,
-    ReleaseProjectEnvironment, UserReport, Organization,
+    Organization, Project, Release, ReleaseEnvironment, ReleaseProject, ReleaseProjectEnvironment,
+    UserReport,
 )
 from sentry.plugins import plugins
 from sentry.signals import event_discarded, event_saved, first_event_received
+from sentry.stacktraces.processing import normalize_stacktraces_for_grouping
 from sentry.tasks.integrations import kick_off_status_syncs
 from sentry.utils import metrics
 from sentry.utils.cache import default_cache
 from sentry.utils.canonical import CanonicalKeyDict
 from sentry.utils.contexts_normalization import normalize_user_agent
 from sentry.utils.data_filters import (
-    is_valid_ip,
-    is_valid_release,
-    is_valid_error_message,
-    FilterStatKeys,
+    FilterStatKeys, is_valid_error_message, is_valid_ip, is_valid_release,
 )
 from sentry.utils.dates import to_timestamp
 from sentry.utils.db import is_postgres
 from sentry.utils.geo import rust_geoip
-from sentry.utils.safe import safe_execute, trim, get_path, setdefault_path
+from sentry.utils.safe import get_path, safe_execute, setdefault_path, trim
 from sentry.utils.validators import is_float
-from sentry.stacktraces.processing import normalize_stacktraces_for_grouping
-from sentry.culprit import generate_culprit
-
 
 logger = logging.getLogger("sentry.events")
 

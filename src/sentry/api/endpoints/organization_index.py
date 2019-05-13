@@ -1,7 +1,6 @@
 from __future__ import absolute_import
 
 import six
-
 from django.conf import settings
 from django.db import IntegrityError, transaction
 from django.db.models import Count, Q, Sum
@@ -9,20 +8,20 @@ from rest_framework import serializers, status
 from rest_framework.response import Response
 
 from sentry import analytics, features, options, roles
-from sentry.app import ratelimiter
 from sentry.api.base import DocSection, Endpoint
 from sentry.api.bases.organization import OrganizationPermission
 from sentry.api.paginator import DateTimePaginator, OffsetPaginator
 from sentry.api.serializers import serialize
+from sentry.app import ratelimiter
 from sentry.auth.superuser import is_active_superuser
 from sentry.db.models.query import in_iexact
 from sentry.models import (
     AuditLogEntryEvent, Organization, OrganizationMember, OrganizationMemberTeam,
-    OrganizationStatus, ProjectPlatform
+    OrganizationStatus, ProjectPlatform,
 )
 from sentry.search.utils import tokenize_query
 from sentry.signals import terms_accepted
-from sentry.utils.apidocs import scenario, attach_scenarios
+from sentry.utils.apidocs import attach_scenarios, scenario
 
 
 @scenario('ListYourOrganizations')

@@ -1,19 +1,33 @@
 from __future__ import absolute_import, print_function
 
-__all__ = ['JavaScriptStacktraceProcessor']
-
+import base64
 import logging
 import re
 import sys
-import base64
-import six
 import zlib
-
-from django.conf import settings
 from os.path import splitext
+
+import six
+from django.conf import settings
 from requests.utils import get_encoding_from_headers
 from six.moves.urllib.parse import urljoin, urlsplit
 from symbolic import SourceMapView
+
+from sentry import http
+from sentry.interfaces.stacktrace import Stacktrace
+from sentry.models import EventError, Organization, ReleaseFile
+from sentry.stacktraces.processing import StacktraceProcessor
+from sentry.utils import metrics
+from sentry.utils.cache import cache
+from sentry.utils.files import compress_file
+from sentry.utils.hashlib import md5_text
+from sentry.utils.http import is_valid_origin
+from sentry.utils.safe import get_path
+
+from .cache import SourceCache, SourceMapCache
+
+__all__ = ['JavaScriptStacktraceProcessor']
+
 
 # In case SSL is unavailable (light builds) we can't import this here.
 try:
@@ -23,19 +37,6 @@ except ImportError:
     class ZeroReturnError(Exception):
         pass
 
-
-from sentry import http
-from sentry.interfaces.stacktrace import Stacktrace
-from sentry.models import EventError, ReleaseFile, Organization
-from sentry.utils.cache import cache
-from sentry.utils.files import compress_file
-from sentry.utils.hashlib import md5_text
-from sentry.utils.http import is_valid_origin
-from sentry.utils.safe import get_path
-from sentry.utils import metrics
-from sentry.stacktraces.processing import StacktraceProcessor
-
-from .cache import SourceCache, SourceMapCache
 
 # number of surrounding lines (on each side) to fetch
 LINES_OF_CONTEXT = 5

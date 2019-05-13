@@ -7,32 +7,13 @@ from sentry.adoption import manager
 from sentry.models import FeatureAdoption, GroupTombstone, Organization
 from sentry.plugins import IssueTrackingPlugin, IssueTrackingPlugin2
 from sentry.plugins.bases.notify import NotificationPlugin
-from sentry.receivers.rules import DEFAULT_RULE_LABEL, DEFAULT_RULE_DATA
+from sentry.receivers.rules import DEFAULT_RULE_DATA, DEFAULT_RULE_LABEL
 from sentry.signals import (
-    advanced_search,
-    alert_rule_created,
-    data_scrubber_enabled,
-    deploy_created,
-    event_processed,
-    first_event_received,
-    inbound_filter_toggled,
-    integration_added,
-    integration_issue_created,
-    integration_issue_linked,
-    issue_assigned,
-    issue_resolved,
-    issue_ignored,
-    issue_deleted,
-    member_joined,
-    ownership_rule_created,
-    plugin_enabled,
-    project_created,
-    release_created,
-    repo_linked,
-    save_search_created,
-    sso_enabled,
-    team_created,
-    user_feedback_received,
+    advanced_search, alert_rule_created, data_scrubber_enabled, deploy_created, event_processed,
+    first_event_received, inbound_filter_toggled, integration_added, integration_issue_created,
+    integration_issue_linked, issue_assigned, issue_deleted, issue_ignored, issue_resolved,
+    member_joined, ownership_rule_created, plugin_enabled, project_created, release_created,
+    repo_linked, save_search_created, sso_enabled, team_created, user_feedback_received,
 )
 from sentry.utils.javascript import has_sourcemap
 

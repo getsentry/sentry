@@ -3,8 +3,8 @@ from __future__ import absolute_import
 import six
 
 from sentry.api.serializers import Serializer, register
-from sentry.models import Commit, CommitFileChange, Repository
 from sentry.api.serializers.models.commit import get_users_for_commits
+from sentry.models import Commit, CommitFileChange, Repository
 
 
 @register(CommitFileChange)

@@ -1,14 +1,12 @@
 from __future__ import absolute_import
 
 import six
-
-from rest_framework.response import Response
-from social_auth.models import UserSocialAuth
-
 from django.conf import settings
 from django.conf.urls import url
 from django.core.urlresolvers import reverse
 from django.utils.html import format_html
+from rest_framework.response import Response
+from social_auth.models import UserSocialAuth
 
 from sentry.api.serializers.models.plugin import PluginSerializer
 # api compat

@@ -1,11 +1,7 @@
 from __future__ import absolute_import
 
 from sentry.models import GroupAssignee
-from sentry.signals import (
-    issue_ignored,
-    issue_assigned,
-    issue_resolved,
-)
+from sentry.signals import issue_assigned, issue_ignored, issue_resolved
 from sentry.tasks.sentry_apps import workflow_notification
 
 

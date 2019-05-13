@@ -1,25 +1,27 @@
 from __future__ import absolute_import
 
-from six.moves.urllib.parse import urlparse
-from django.utils.translation import ugettext_lazy as _
 from django import forms
+from django.utils.translation import ugettext_lazy as _
+from six.moves.urllib.parse import urlparse
 
 from sentry import http
-from sentry.web.helpers import render_to_response
-from sentry.identity.pipeline import IdentityProviderPipeline
 from sentry.identity.github_enterprise import get_user_info
-from sentry.integrations import IntegrationMetadata, IntegrationInstallation, FeatureDescription, IntegrationFeatures
+from sentry.identity.pipeline import IdentityProviderPipeline
+from sentry.integrations import (
+    FeatureDescription, IntegrationFeatures, IntegrationInstallation, IntegrationMetadata,
+)
 from sentry.integrations.constants import ERR_INTERNAL, ERR_UNAUTHORIZED
 from sentry.integrations.exceptions import ApiError
-from sentry.integrations.repositories import RepositoryMixin
-from sentry.pipeline import NestedPipelineView, PipelineView
-from sentry.utils.http import absolute_uri
 from sentry.integrations.github.integration import GitHubIntegrationProvider
 from sentry.integrations.github.issues import GitHubIssueBasic
 from sentry.integrations.github.utils import get_jwt
+from sentry.integrations.repositories import RepositoryMixin
+from sentry.pipeline import NestedPipelineView, PipelineView
+from sentry.utils.http import absolute_uri
+from sentry.web.helpers import render_to_response
 
-from .repository import GitHubEnterpriseRepositoryProvider
 from .client import GitHubEnterpriseAppsClient
+from .repository import GitHubEnterpriseRepositoryProvider
 
 DESCRIPTION = """
 Connect your Sentry organization into your on-premise GitHub Enterprise

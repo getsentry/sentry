@@ -1,8 +1,7 @@
 # -*- coding: utf-8 -*-
-import six
-
 from collections import defaultdict
 
+import six
 from django.db import models
 from south.db import db
 from south.utils import datetime_utils as datetime

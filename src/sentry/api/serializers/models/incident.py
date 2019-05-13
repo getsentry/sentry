@@ -4,21 +4,10 @@ from collections import defaultdict
 
 import six
 
-from sentry.api.serializers import (
-    Serializer,
-    register,
-    serialize,
-)
+from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.snuba import SnubaTSResultSerializer
-from sentry.incidents.logic import (
-    get_incident_aggregates,
-    get_incident_event_stats,
-)
-from sentry.incidents.models import (
-    Incident,
-    IncidentProject,
-    IncidentSeen,
-)
+from sentry.incidents.logic import get_incident_aggregates, get_incident_event_stats
+from sentry.incidents.models import Incident, IncidentProject, IncidentSeen
 
 
 @register(Incident)

@@ -1,20 +1,18 @@
 from __future__ import absolute_import
 
-import os
-
-from collections import OrderedDict
 import logging
-import six
+import os
+from collections import OrderedDict
 
+import six
 from django.conf import settings
 from django.utils.translation import ugettext as _
 
 from sentry.utils.canonical import get_canonical_name
+from sentry.utils.decorators import classproperty
 from sentry.utils.html import escape
 from sentry.utils.imports import import_string
 from sentry.utils.safe import safe_execute
-from sentry.utils.decorators import classproperty
-
 
 logger = logging.getLogger("sentry.events")
 interface_logger = logging.getLogger("sentry.interfaces")

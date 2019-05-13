@@ -1,23 +1,21 @@
 from __future__ import absolute_import
 
 import six
-
-from rest_framework.response import Response
-from rest_framework import serializers, status
-
 from django.conf import settings
 from django.utils import timezone
+from rest_framework import serializers, status
+from rest_framework.response import Response
+from semaphore import (
+    PublicKey, create_register_challenge, get_register_response_relay_id,
+    validate_register_response,
+)
 
-from sentry.cache import default_cache
-from sentry.utils import json
-from sentry.models import Relay
 from sentry.api.base import Endpoint
 from sentry.api.serializers import serialize
+from sentry.cache import default_cache
+from sentry.models import Relay
 from sentry.relay.utils import get_header_relay_id, get_header_relay_signature
-
-
-from semaphore import create_register_challenge, validate_register_response, \
-    get_register_response_relay_id, PublicKey
+from sentry.utils import json
 
 
 class RelayIdSerializer(serializers.Serializer):

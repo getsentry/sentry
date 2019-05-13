@@ -1,13 +1,14 @@
 from __future__ import absolute_import
 
-from .base import Filter
-
-from ua_parser.user_agent_parser import Parse
 from rest_framework import serializers
-from sentry.models import ProjectOption
+from ua_parser.user_agent_parser import Parse
+
 from sentry.api.fields import MultipleChoiceField
+from sentry.models import ProjectOption
 from sentry.utils.data_filters import FilterStatKeys
 from sentry.utils.safe import get_path
+
+from .base import Filter
 
 """
 For default (legacy) filter

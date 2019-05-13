@@ -5,9 +5,9 @@ from rest_framework.response import Response
 from sentry.api import client
 from sentry.api.base import DocSection
 from sentry.api.bases.group import GroupEndpoint
-from sentry.models import Group
-from sentry.utils.apidocs import scenario, attach_scenarios
 from sentry.api.helpers.environments import get_environments
+from sentry.models import Group
+from sentry.utils.apidocs import attach_scenarios, scenario
 
 
 @scenario('GetOldestGroupSample')

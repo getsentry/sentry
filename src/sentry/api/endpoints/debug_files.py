@@ -1,25 +1,26 @@
 from __future__ import absolute_import
 
-import six
-import jsonschema
 import logging
 import posixpath
 
+import jsonschema
+import six
 from django.db import transaction
 from django.db.models import Q
 from rest_framework.response import Response
-from symbolic import normalize_debug_id, SymbolicError
+from symbolic import SymbolicError, normalize_debug_id
 
 from sentry import ratelimits
-
 from sentry.api.base import DocSection
 from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
 from sentry.api.content_negotiation import ConditionalContentNegotiation
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.constants import KNOWN_DIF_FORMATS
-from sentry.models import ChunkFileState, FileBlobOwner, ProjectDebugFile, \
-    create_files_from_dif_zip, get_assemble_status, set_assemble_status
+from sentry.models import (
+    ChunkFileState, FileBlobOwner, ProjectDebugFile, create_files_from_dif_zip, get_assemble_status,
+    set_assemble_status,
+)
 from sentry.utils import json
 
 try:

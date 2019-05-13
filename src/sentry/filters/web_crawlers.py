@@ -2,9 +2,10 @@ from __future__ import absolute_import
 
 import re
 
-from .base import Filter
 from sentry.utils.data_filters import FilterStatKeys
 from sentry.utils.safe import get_path
+
+from .base import Filter
 
 # not all of these agents are guaranteed to execute JavaScript, but to avoid
 # overhead of identifying which ones do, and which ones will over time we simply

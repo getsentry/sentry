@@ -8,29 +8,21 @@ sentry.plugins.bases.notify
 from __future__ import absolute_import, print_function
 
 import logging
-import six
 import urllib2
-from six.moves.urllib.parse import (
-    urlparse,
-    urlencode,
-    urlunparse,
-    parse_qs,
-)
 
+import six
 from django import forms
-from requests.exceptions import SSLError, HTTPError
+from requests.exceptions import HTTPError, SSLError
+from six.moves.urllib.parse import parse_qs, urlencode, urlparse, urlunparse
 
 from sentry import digests, ratelimits
 from sentry.digests import get_option_key as get_digest_option_key
-from sentry.digests.notifications import (
-    event_to_record,
-    unsplit_key,
-)
+from sentry.digests.notifications import event_to_record, unsplit_key
 from sentry.exceptions import PluginError
 from sentry.integrations.exceptions import ApiError
+from sentry.models import ProjectOption
 from sentry.plugins import Notification, Plugin
 from sentry.plugins.base.configuration import react_plugin_config
-from sentry.models import ProjectOption
 from sentry.tasks.digests import deliver_digest
 
 

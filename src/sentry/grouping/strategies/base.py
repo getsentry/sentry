@@ -5,7 +5,6 @@ import inspect
 from sentry.grouping.component import GroupingComponent
 from sentry.grouping.enhancer import Enhancements
 
-
 STRATEGIES = {}
 
 

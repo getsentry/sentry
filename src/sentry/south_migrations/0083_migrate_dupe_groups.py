@@ -2,7 +2,6 @@
 from __future__ import print_function
 
 import six
-
 from south.v2 import DataMigration
 
 

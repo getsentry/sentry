@@ -1,13 +1,13 @@
 from __future__ import absolute_import
 
-__all__ = ('Analytics', )
-
 import six
 
 from sentry.analytics.event import Event
 from sentry.utils.services import Service
 
 from .event_manager import default_manager
+
+__all__ = ('Analytics', )
 
 
 class Analytics(Service):

@@ -1,16 +1,17 @@
 from __future__ import absolute_import
 
 import posixpath
+
 import six
+
+from sentry import features, options
+from sentry.api.bases.project import ProjectEndpoint
+from sentry.models import Event, EventAttachment, SnubaEvent
 
 try:
     from django.http import (CompatibleStreamingHttpResponse as StreamingHttpResponse)
 except ImportError:
     from django.http import StreamingHttpResponse
-
-from sentry import features, options
-from sentry.api.bases.project import ProjectEndpoint
-from sentry.models import Event, SnubaEvent, EventAttachment
 
 
 class EventAttachmentDetailsEndpoint(ProjectEndpoint):

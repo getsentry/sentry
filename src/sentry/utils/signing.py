@@ -3,8 +3,10 @@ Generic way to sign and unsign data for use in urls.
 """
 from __future__ import absolute_import
 
-from base64 import urlsafe_b64encode, urlsafe_b64decode
+from base64 import urlsafe_b64decode, urlsafe_b64encode
+
 from django.core.signing import TimestampSigner
+
 from sentry.utils.json import dumps, loads
 
 SALT = 'sentry-generic-signing'

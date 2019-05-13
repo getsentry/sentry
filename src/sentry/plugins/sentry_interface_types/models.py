@@ -10,7 +10,6 @@ from __future__ import absolute_import
 import six
 
 import sentry
-
 from sentry.plugins import register
 from sentry.plugins.bases.tag import TagPlugin
 

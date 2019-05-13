@@ -1,8 +1,6 @@
 from __future__ import absolute_import
 
-from sentry.api.bases.organization import (
-    OrganizationEndpoint
-)
+from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.models import Dashboard, Widget
 

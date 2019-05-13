@@ -12,10 +12,7 @@ from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework import ListField
 from sentry.incidents.logic import create_incident
-from sentry.incidents.models import (
-    Incident,
-    IncidentStatus,
-)
+from sentry.incidents.models import Incident, IncidentStatus
 from sentry.models.group import Group
 from sentry.models.project import Project
 

@@ -1,12 +1,7 @@
 from __future__ import absolute_import
 
 from sentry.api.exceptions import ResourceDoesNotExist
-from sentry.models import (
-    GroupLink,
-    GroupResolution,
-    Release,
-    ReleaseCommit,
-)
+from sentry.models import GroupLink, GroupResolution, Release, ReleaseCommit
 
 
 def get_group_ids_resolved_in_release(organization, version):

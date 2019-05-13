@@ -10,14 +10,14 @@ from django.db.models import Min, Q
 from django.utils import timezone
 
 from sentry import tagstore, tsdb
+from sentry.api.fields.actor import Actor
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.actor import ActorSerializer
-from sentry.api.fields.actor import Actor
 from sentry.constants import LOG_LEVELS, StatsPeriod
 from sentry.models import (
-    Commit, Environment, Group, GroupAssignee, GroupBookmark, GroupEnvironment, GroupLink, GroupMeta,
-    GroupResolution, GroupSeen, GroupSnooze, GroupShare, GroupStatus, GroupSubscription,
-    GroupSubscriptionReason, Integration, User, UserOption, UserOptionValue
+    Commit, Environment, Group, GroupAssignee, GroupBookmark, GroupEnvironment, GroupLink,
+    GroupMeta, GroupResolution, GroupSeen, GroupShare, GroupSnooze, GroupStatus, GroupSubscription,
+    GroupSubscriptionReason, Integration, User, UserOption, UserOptionValue,
 )
 from sentry.tagstore.snuba.backend import SnubaTagStorage
 from sentry.tsdb.snuba import SnubaTSDB

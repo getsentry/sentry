@@ -1,10 +1,11 @@
 from __future__ import absolute_import
 
-__all__ = ['TaskRunner']
+from contextlib import contextmanager
 
 from celery import current_app
-from contextlib import contextmanager
 from django.conf import settings
+
+__all__ = ['TaskRunner']
 
 
 @contextmanager

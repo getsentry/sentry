@@ -7,24 +7,23 @@ sentry.models.organizationmember
 """
 from __future__ import absolute_import, print_function
 
-import six
-
-from bitfield import BitField
 from datetime import timedelta
+from hashlib import md5
+from uuid import uuid4
+
+import six
+from bitfield import BitField
 from django.conf import settings
 from django.core.urlresolvers import reverse
 from django.db import models, transaction
 from django.utils import timezone
 from django.utils.encoding import force_bytes
-from hashlib import md5
-from structlog import get_logger
-from uuid import uuid4
 from six.moves.urllib.parse import urlencode
+from structlog import get_logger
 
 from sentry import roles
 from sentry.db.models import (
-    BaseModel, BoundedAutoField, BoundedPositiveIntegerField, FlexibleForeignKey,
-    Model, sane_repr
+    BaseModel, BoundedAutoField, BoundedPositiveIntegerField, FlexibleForeignKey, Model, sane_repr,
 )
 from sentry.models.team import TeamStatus
 from sentry.utils.http import absolute_uri

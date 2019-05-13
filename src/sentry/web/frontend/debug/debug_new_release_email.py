@@ -5,15 +5,13 @@ import datetime
 import pytz
 from django.views.generic import View
 
+from sentry import features
 from sentry.models import (
-    Commit, CommitAuthor, Deploy, GroupSubscriptionReason, Organization, Project, Release,
-    User
+    Commit, CommitAuthor, Deploy, GroupSubscriptionReason, Organization, Project, Release, User,
 )
 from sentry.utils.http import absolute_uri
 
 from .mail import MailPreview
-
-from sentry import features
 
 
 class DebugNewReleaseEmailView(View):

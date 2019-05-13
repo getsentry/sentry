@@ -9,13 +9,13 @@ from __future__ import absolute_import
 
 from django.conf import settings
 from django.core.cache import cache
-from django.db import models, IntegrityError, transaction
+from django.db import IntegrityError, models, transaction
 from django.utils import timezone
 from jsonfield import JSONField
 
 from sentry.db.models import (
     BaseManager, BoundedBigIntegerField, BoundedPositiveIntegerField, FlexibleForeignKey, Model,
-    sane_repr
+    sane_repr,
 )
 
 

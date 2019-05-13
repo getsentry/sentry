@@ -5,17 +5,16 @@ sentry.models.groupassignee
 :license: BSD, see LICENSE for more details.
 """
 from __future__ import absolute_import
-import logging
-import six
 
+import logging
 from collections import defaultdict
 
+import six
 from django.conf import settings
 from django.db import models
 from django.utils import timezone
 
-from sentry.db.models import FlexibleForeignKey, Model, sane_repr, \
-    BaseManager
+from sentry.db.models import BaseManager, FlexibleForeignKey, Model, sane_repr
 from sentry.models.activity import Activity
 from sentry.signals import issue_assigned
 from sentry.utils import metrics

@@ -2,8 +2,8 @@ from __future__ import absolute_import, print_function
 
 from uuid import uuid4
 
-from sentry.utils.redis import clusters
 from sentry.utils.json import dumps, loads
+from sentry.utils.redis import clusters
 
 EXPIRATION_TTL = 10 * 60
 

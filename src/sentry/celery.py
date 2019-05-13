@@ -1,11 +1,11 @@
 from __future__ import absolute_import
 
-from django.conf import settings
-
 from celery import Celery
 from celery.app.task import Task
+from django.conf import settings
 
 from sentry.utils import metrics
+from sentry.utils.monitors import connect
 
 DB_SHARED_THREAD = """\
 DatabaseWrapper objects created in a thread can only \
@@ -67,5 +67,4 @@ app = SentryCelery('sentry')
 app.config_from_object(settings)
 app.autodiscover_tasks(lambda: settings.INSTALLED_APPS)
 
-from sentry.utils.monitors import connect
 connect(app)

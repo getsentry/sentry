@@ -4,10 +4,9 @@ import os
 import os.path
 import shutil
 import sys
-
 from distutils import log
-from subprocess import check_output
 from distutils.core import Command
+from subprocess import check_output
 
 
 class BaseBuildCommand(Command):

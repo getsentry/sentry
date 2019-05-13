@@ -1,19 +1,18 @@
 from __future__ import absolute_import
 
-import os
-import six
 import base64
-import msgpack
 import inspect
+import os
 from itertools import izip
 
-from parsimonious.grammar import Grammar, NodeVisitor
+import msgpack
+import six
 from parsimonious.exceptions import ParseError
+from parsimonious.grammar import Grammar, NodeVisitor
 
 from sentry.stacktraces.platform import get_behavior_family_for_platform
 from sentry.utils.compat import implements_to_string
 from sentry.utils.glob import glob_match
-
 
 # Grammar is defined in EBNF syntax.
 enhancements_grammar = Grammar(r"""

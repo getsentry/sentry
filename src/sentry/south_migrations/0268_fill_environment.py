@@ -1,11 +1,12 @@
 # -*- coding: utf-8 -*-
 from datetime import timedelta
-from south.utils import datetime_utils as datetime
-from south.db import db
-from south.v2 import DataMigration
+
 from django.db import IntegrityError, models, transaction
-from django.db.models import Min, Max
+from django.db.models import Max, Min
 from django.utils import timezone
+from south.db import db
+from south.utils import datetime_utils as datetime
+from south.v2 import DataMigration
 
 
 class Migration(DataMigration):

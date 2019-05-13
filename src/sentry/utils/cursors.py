@@ -7,9 +7,9 @@ sentry.utils.cursors
 """
 from __future__ import absolute_import
 
-import six
-
 from collections import Sequence
+
+import six
 
 
 class Cursor(object):

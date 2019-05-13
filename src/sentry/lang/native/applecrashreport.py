@@ -2,13 +2,13 @@ from __future__ import absolute_import
 
 import posixpath
 
+from symbolic import parse_addr
+
 from sentry.constants import NATIVE_UNKNOWN_STRING
 from sentry.interfaces.exception import upgrade_legacy_mechanism
 from sentry.lang.native.utils import image_name
 from sentry.utils.compat import implements_to_string
 from sentry.utils.safe import get_path
-
-from symbolic import parse_addr
 
 REPORT_VERSION = '104'
 

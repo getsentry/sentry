@@ -7,9 +7,9 @@ from rest_framework.response import Response
 from sentry.api.base import DocSection
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.serializers import serialize
-from sentry.models import AuditLogEntryEvent, ProjectKey, ProjectKeyStatus
-from sentry.utils.apidocs import scenario, attach_scenarios
 from sentry.loader.browsersdkversion import DEFAULT_VERSION
+from sentry.models import AuditLogEntryEvent, ProjectKey, ProjectKeyStatus
+from sentry.utils.apidocs import attach_scenarios, scenario
 
 
 @scenario('ListClientKeys')

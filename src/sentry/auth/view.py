@@ -1,9 +1,9 @@
 from __future__ import absolute_import, print_function
 
-__all__ = ['AuthView', 'ConfigureView']
-
 from sentry.plugins.base.view import PluggableViewMixin
 from sentry.web.frontend.base import BaseView
+
+__all__ = ['AuthView', 'ConfigureView']
 
 
 class AuthView(BaseView):

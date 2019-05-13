@@ -4,10 +4,10 @@ from rest_framework.response import Response
 
 from sentry import roles
 from sentry.api.base import Endpoint
-from sentry.api.exceptions import ResourceDoesNotExist, ProjectMoved
+from sentry.api.exceptions import ProjectMoved, ResourceDoesNotExist
 from sentry.auth.superuser import is_active_superuser
 from sentry.auth.system import is_system_auth
-from sentry.models import OrganizationMember, Project, ProjectStatus, ProjectRedirect
+from sentry.models import OrganizationMember, Project, ProjectRedirect, ProjectStatus
 from sentry.utils.sdk import configure_scope
 
 from .organization import OrganizationPermission

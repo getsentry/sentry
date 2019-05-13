@@ -1,10 +1,10 @@
 from __future__ import absolute_import, print_function
 
-__all__ = ['IdentityManager']
-
 import six
 
 from sentry.exceptions import NotRegistered
+
+__all__ = ['IdentityManager']
 
 
 class IdentityManager(object):

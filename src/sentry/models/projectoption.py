@@ -11,7 +11,7 @@ from celery.signals import task_postrun
 from django.core.signals import request_finished
 from django.db import models
 
-from sentry.db.models import Model, FlexibleForeignKey, sane_repr
+from sentry.db.models import FlexibleForeignKey, Model, sane_repr
 from sentry.db.models.fields import EncryptedPickledObjectField
 from sentry.db.models.manager import BaseManager
 from sentry.utils.cache import cache

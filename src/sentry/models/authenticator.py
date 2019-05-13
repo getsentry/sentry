@@ -7,35 +7,33 @@ sentry.models.authenticator
 """
 from __future__ import absolute_import
 
-import os
-import hmac
-import time
 import base64
 import hashlib
-import six
+import hmac
+import os
+import time
 
+import six
+from cryptography.exceptions import InvalidKey, InvalidSignature
+from django.core.cache import cache
+from django.core.urlresolvers import reverse
+from django.db import models
+from django.utils import timezone
+from django.utils.functional import cached_property
+from django.utils.translation import ugettext_lazy as _
 from u2flib_server import u2f
 from u2flib_server.model import DeviceRegistration
-
-from cryptography.exceptions import InvalidSignature, InvalidKey
-
-from django.db import models
-from django.core.cache import cache
-from django.utils import timezone
-from django.utils.translation import ugettext_lazy as _
-from django.utils.functional import cached_property
-from django.core.urlresolvers import reverse
 
 from sentry import options
 from sentry.db.models import (
     BaseManager, BaseModel, BoundedAutoField, BoundedPositiveIntegerField,
-    EncryptedPickledObjectField, FlexibleForeignKey
+    EncryptedPickledObjectField, FlexibleForeignKey,
 )
-from sentry.utils.decorators import classproperty
-from sentry.utils.otp import generate_secret_key, TOTP
-from sentry.utils.sms import send_sms, sms_available
 from sentry.utils.dates import to_datetime
+from sentry.utils.decorators import classproperty
 from sentry.utils.http import absolute_uri
+from sentry.utils.otp import TOTP, generate_secret_key
+from sentry.utils.sms import send_sms, sms_available
 
 
 class ActivationResult(object):

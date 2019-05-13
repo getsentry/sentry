@@ -3,19 +3,10 @@ from __future__ import absolute_import
 from django.utils.functional import cached_property
 
 from sentry.api.event_search import (
-    event_search_grammar,
-    InvalidSearchQuery,
-    SearchFilter,
-    SearchKey,
-    SearchValue,
-    SearchVisitor,
+    InvalidSearchQuery, SearchFilter, SearchKey, SearchValue, SearchVisitor, event_search_grammar,
 )
 from sentry.constants import STATUS_CHOICES
-from sentry.search.utils import (
-    parse_actor_value,
-    parse_user_value,
-    parse_release,
-)
+from sentry.search.utils import parse_actor_value, parse_release, parse_user_value
 
 
 class IssueSearchVisitor(SearchVisitor):

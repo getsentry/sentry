@@ -1,41 +1,32 @@
 from __future__ import absolute_import
 
 import logging
-import six
-
 from collections import defaultdict
 from datetime import timedelta
 from uuid import uuid4
 
+import six
 from django.db import IntegrityError, transaction
 from django.utils import timezone
-
 from rest_framework import serializers
 from rest_framework.response import Response
 
 from sentry import eventstream, features
 from sentry.api.base import audit_logger
 from sentry.api.fields import Actor, ActorField
+from sentry.api.issue_search import InvalidSearchQuery, convert_query_values, parse_search_query
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.actor import ActorSerializer
 from sentry.api.serializers.models.group import SUBSCRIPTION_REASON_MAP
 from sentry.constants import DEFAULT_SORT_OPTION
 from sentry.db.models.query import create_or_update
 from sentry.models import (
-    Activity, Commit, Group, GroupAssignee, GroupHash, GroupLink, GroupStatus, GroupTombstone,
-    GroupResolution, GroupBookmark, GroupSeen, GroupShare, GroupSnooze, GroupSubscription,
-    GroupSubscriptionReason, Release, Repository, TOMBSTONE_FIELDS_FROM_GROUP,
-    Team, User, UserOption
+    TOMBSTONE_FIELDS_FROM_GROUP, Activity, Commit, Group, GroupAssignee, GroupBookmark, GroupHash,
+    GroupLink, GroupResolution, GroupSeen, GroupShare, GroupSnooze, GroupStatus, GroupSubscription,
+    GroupSubscriptionReason, GroupTombstone, Release, Repository, Team, User, UserOption,
 )
 from sentry.models.group import looks_like_short_id
-from sentry.api.issue_search import (
-    convert_query_values,
-    InvalidSearchQuery,
-    parse_search_query,
-)
-from sentry.signals import (
-    issue_deleted, issue_ignored, issue_resolved
-)
+from sentry.signals import issue_deleted, issue_ignored, issue_resolved
 from sentry.tasks.deletion import delete_groups as delete_groups_task
 from sentry.tasks.integrations import kick_off_status_syncs
 from sentry.tasks.merge import merge_groups

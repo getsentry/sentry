@@ -1,9 +1,9 @@
 from __future__ import absolute_import
+
 from django.db import models, transaction
 from jsonfield import JSONField
-from sentry.db.models import (
-    Model, FlexibleForeignKey, sane_repr
-)
+
+from sentry.db.models import FlexibleForeignKey, Model, sane_repr
 
 
 class DiscoverSavedQueryProject(Model):

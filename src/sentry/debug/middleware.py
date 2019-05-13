@@ -11,7 +11,6 @@ from six.moves import _thread as thread
 
 from sentry.auth.superuser import is_active_superuser
 
-
 WRAPPER = """
 <!DOCTYPE html>
 <html>

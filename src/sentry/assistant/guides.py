@@ -2,7 +2,6 @@ from __future__ import absolute_import
 
 from django.utils.translation import ugettext_lazy as _
 
-
 # Guide Schema
 # id (text, required): unique id
 # cue (text):  The text used to prompt the user to initiate the guide.

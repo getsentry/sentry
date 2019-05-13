@@ -3,11 +3,11 @@ from __future__ import absolute_import
 import six
 from rest_framework.response import Response
 
+from sentry.api.authentication import RelayAuthentication
 from sentry.api.base import Endpoint
 from sentry.api.permissions import RelayPermission
-from sentry.api.authentication import RelayAuthentication
+from sentry.models import Organization, Project
 from sentry.relay import config
-from sentry.models import Project, Organization
 
 
 class RelayProjectConfigsEndpoint(Endpoint):

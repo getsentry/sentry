@@ -2,7 +2,6 @@ from __future__ import absolute_import
 
 from datetime import datetime, timedelta
 
-
 TOKEN_LIFE_IN_HOURS = 8
 
 AUTHORIZATION = 'authorization_code'

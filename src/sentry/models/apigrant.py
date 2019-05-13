@@ -1,14 +1,14 @@
 from __future__ import absolute_import, print_function
 
-import six
-
-from bitfield import BitField
 from datetime import timedelta
-from django.db import models
-from django.utils import timezone
 from uuid import uuid4
 
-from sentry.db.models import ArrayField, Model, FlexibleForeignKey
+import six
+from bitfield import BitField
+from django.db import models
+from django.utils import timezone
+
+from sentry.db.models import ArrayField, FlexibleForeignKey, Model
 
 DEFAULT_EXPIRATION = timedelta(minutes=10)
 

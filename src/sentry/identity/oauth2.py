@@ -1,23 +1,25 @@
 from __future__ import absolute_import, print_function
 
-__all__ = ['OAuth2Provider', 'OAuth2CallbackView', 'OAuth2LoginView']
-
 import logging
-from six.moves.urllib.parse import parse_qsl, urlencode
-from uuid import uuid4
 from time import time
+from uuid import uuid4
+
+from django.views.decorators.csrf import csrf_exempt
 from requests.exceptions import SSLError
 from simplejson import JSONDecodeError
-from django.views.decorators.csrf import csrf_exempt
+from six.moves.urllib.parse import parse_qsl, urlencode
 
 from sentry.auth.exceptions import IdentityNotValid
 from sentry.http import safe_urlopen, safe_urlread
 from sentry.integrations.exceptions import ApiError
+from sentry.pipeline import PipelineView
 from sentry.utils import json
 from sentry.utils.http import absolute_uri
-from sentry.pipeline import PipelineView
 
 from .base import Provider
+
+__all__ = ['OAuth2Provider', 'OAuth2CallbackView', 'OAuth2LoginView']
+
 
 logger = logging.getLogger(__name__)
 ERR_INVALID_STATE = 'An error occurred while validating your request.'

@@ -7,7 +7,7 @@ from sentry.api.authentication import DSNAuthentication
 from sentry.api.bases.monitor import MonitorEndpoint
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
-from sentry.models import Monitor, MonitorCheckIn, MonitorStatus, CheckInStatus, ProjectKey
+from sentry.models import CheckInStatus, Monitor, MonitorCheckIn, MonitorStatus, ProjectKey
 
 
 class CheckInSerializer(serializers.Serializer):

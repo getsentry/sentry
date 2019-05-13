@@ -8,9 +8,9 @@ sentry.tasks.options
 from __future__ import absolute_import
 
 import logging
-import six
-
 from datetime import timedelta
+
+import six
 from django.utils import timezone
 
 from sentry.models import Option

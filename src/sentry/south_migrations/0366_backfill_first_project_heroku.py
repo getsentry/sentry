@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
-from sentry.utils.query import RangeQuerySetWrapperWithProgressBar
+from django.db import IntegrityError, transaction
 from south.db import db
 from south.v2 import DataMigration
-from django.db import IntegrityError, transaction
+
+from sentry.utils.query import RangeQuerySetWrapperWithProgressBar
 
 
 class Migration(DataMigration):

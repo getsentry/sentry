@@ -1,11 +1,14 @@
 from __future__ import absolute_import
 
 import logging
+
 import six
 
 from sentry import features
 from sentry.integrations.exceptions import ApiError, IntegrationError
-from sentry.models import Activity, Event, ExternalIssue, Group, GroupLink, GroupStatus, Organization
+from sentry.models import (
+    Activity, Event, ExternalIssue, Group, GroupLink, GroupStatus, Organization,
+)
 from sentry.utils.http import absolute_uri
 from sentry.utils.safe import safe_execute
 

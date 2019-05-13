@@ -1,8 +1,9 @@
 from __future__ import absolute_import
 
-from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
-from sentry.models import Group, ReleaseCommit, Repository, Deploy
 from rest_framework.response import Response
+
+from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
+from sentry.models import Deploy, Group, ReleaseCommit, Repository
 
 
 class ProjectReleaseSetupCompletionEndpoint(ProjectEndpoint):

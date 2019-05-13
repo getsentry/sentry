@@ -9,8 +9,13 @@ These are additional urls used by the Sentry-provided web server
 """
 from __future__ import absolute_import
 
-from django.conf import settings
 import debug_toolbar
+from django.conf import settings
+
+from sentry.web.frontend.csrf_failure import CsrfFailureView
+from sentry.web.frontend.error_404 import Error404View
+from sentry.web.frontend.error_500 import Error500View
+from sentry.web.urls import urlpatterns as web_urlpatterns
 
 try:
     from django.conf.urls import include, patterns, url
@@ -18,10 +23,6 @@ except ImportError:
     # django < 1.5 compat
     from django.conf.urls.defaults import include, patterns, url  # NOQA
 
-from sentry.web.urls import urlpatterns as web_urlpatterns
-from sentry.web.frontend.csrf_failure import CsrfFailureView
-from sentry.web.frontend.error_404 import Error404View
-from sentry.web.frontend.error_500 import Error500View
 
 handler404 = Error404View.as_view()
 handler500 = Error500View.as_view()

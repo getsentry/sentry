@@ -3,7 +3,7 @@ from __future__ import absolute_import, division
 from django.http import Http404, HttpResponse
 
 from sentry import options
-from sentry.models import Event, SnubaEvent, Group, GroupMeta, get_group_with_redirect
+from sentry.models import Event, Group, GroupMeta, SnubaEvent, get_group_with_redirect
 from sentry.utils import json
 from sentry.web.frontend.base import OrganizationView
 

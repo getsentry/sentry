@@ -7,12 +7,12 @@ sentry.plugins.base.manager
 """
 from __future__ import absolute_import, print_function
 
-__all__ = ('PluginManager', )
-
 import logging
 
 from sentry.utils.managers import InstanceManager
 from sentry.utils.safe import safe_execute
+
+__all__ = ('PluginManager', )
 
 
 class PluginManager(InstanceManager):

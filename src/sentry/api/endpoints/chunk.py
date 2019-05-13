@@ -1,22 +1,21 @@
 from __future__ import absolute_import
 
 import logging
-import six
-from io import BytesIO
 from gzip import GzipFile
+from io import BytesIO
 from itertools import izip
-from rest_framework import status
-from six.moves.urllib.parse import urljoin
-from rest_framework.response import Response
-from django.core.urlresolvers import reverse
+
+import six
 from django.conf import settings
+from django.core.urlresolvers import reverse
+from rest_framework import status
+from rest_framework.response import Response
+from six.moves.urllib.parse import urljoin
 
 from sentry import options
+from sentry.api.bases.organization import OrganizationEndpoint, OrganizationReleasePermission
 from sentry.models import FileBlob
-from sentry.api.bases.organization import (OrganizationEndpoint,
-                                           OrganizationReleasePermission)
 from sentry.utils.files import get_max_file_size
-
 
 # The blob size must be a power of two
 CHUNK_UPLOAD_BLOB_SIZE = 8 * 1024 * 1024  # 8MB

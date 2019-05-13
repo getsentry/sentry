@@ -8,11 +8,11 @@ sentry.management.commands.collectstatic
 from __future__ import absolute_import
 
 import os
-
-from click import echo
+from hashlib import md5
 from itertools import chain
 from operator import itemgetter
-from hashlib import md5
+
+from click import echo
 from django.contrib.staticfiles.management.commands.collectstatic import Command as BaseCommand
 from six.moves import zip
 

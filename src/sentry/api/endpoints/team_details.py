@@ -12,7 +12,7 @@ from sentry.api.decorators import sudo_required
 from sentry.api.serializers import serialize
 from sentry.models import AuditLogEntryEvent, Team, TeamStatus
 from sentry.tasks.deletion import delete_team
-from sentry.utils.apidocs import scenario, attach_scenarios
+from sentry.utils.apidocs import attach_scenarios, scenario
 
 delete_logger = logging.getLogger('sentry.deletions.api')
 

@@ -1,10 +1,9 @@
 from __future__ import absolute_import
 
 from sentry import analytics
-from sentry.mediators import Mediator, Param
-from sentry.mediators import service_hooks
-from sentry.models import AuditLogEntryEvent, ServiceHook
+from sentry.mediators import Mediator, Param, service_hooks
 from sentry.mediators.sentry_app_installations.installation_notifier import InstallationNotifier
+from sentry.models import AuditLogEntryEvent, ServiceHook
 from sentry.utils.audit import create_audit_entry
 
 

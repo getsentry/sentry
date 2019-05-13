@@ -4,7 +4,7 @@ from django.db import models
 from django.utils import timezone
 from jsonfield import JSONField
 
-from sentry.db.models import (Model, sane_repr)
+from sentry.db.models import Model, sane_repr
 
 
 def schedule_jobs(jobs):

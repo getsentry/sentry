@@ -2,9 +2,8 @@ from __future__ import absolute_import
 
 import logging
 
-from sentry.utils.services import Service
 from sentry.tasks.post_process import post_process_group
-
+from sentry.utils.services import Service
 
 logger = logging.getLogger(__name__)
 

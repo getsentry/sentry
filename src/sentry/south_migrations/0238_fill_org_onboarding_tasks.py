@@ -1,11 +1,10 @@
 # -*- coding: utf-8 -*-
-from south.utils import datetime_utils as datetime
+from django.db import IntegrityError, connection, models, transaction
 from south.db import db
+from south.utils import datetime_utils as datetime
 from south.v2 import DataMigration
-from django.db import connection, models, IntegrityError, transaction
 
-from sentry.plugins import plugins
-from sentry.plugins import IssueTrackingPlugin, NotificationPlugin
+from sentry.plugins import IssueTrackingPlugin, NotificationPlugin, plugins
 
 
 class Migration(DataMigration):

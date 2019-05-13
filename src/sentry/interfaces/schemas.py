@@ -8,21 +8,18 @@ sentry.interfaces.schemas
 
 from __future__ import absolute_import
 
-from functools32 import lru_cache
+import uuid
 from itertools import groupby
+
 import jsonschema
 import six
-import uuid
+from functools32 import lru_cache
 
-from sentry.db.models import BoundedIntegerField
 from sentry.constants import (
-    LOG_LEVELS_MAP,
-    MAX_TAG_KEY_LENGTH,
-    MAX_TAG_VALUE_LENGTH,
-    VALID_PLATFORMS,
-    ENVIRONMENT_NAME_MAX_LENGTH,
-    ENVIRONMENT_NAME_PATTERN,
+    ENVIRONMENT_NAME_MAX_LENGTH, ENVIRONMENT_NAME_PATTERN, LOG_LEVELS_MAP, MAX_TAG_KEY_LENGTH,
+    MAX_TAG_VALUE_LENGTH, VALID_PLATFORMS,
 )
+from sentry.db.models import BoundedIntegerField
 from sentry.interfaces.base import InterfaceValidationError
 from sentry.models import EventError
 from sentry.tagstore.base import INTERNAL_TAG_KEYS

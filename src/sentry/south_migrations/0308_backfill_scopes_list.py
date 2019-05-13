@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
 import six
 from bitfield.types import BitHandler
-from south.utils import datetime_utils as datetime
-from south.db import db
-from south.v2 import DataMigration
 from django.db import models
+from south.db import db
+from south.utils import datetime_utils as datetime
+from south.v2 import DataMigration
 
 
 def make_handler(value):

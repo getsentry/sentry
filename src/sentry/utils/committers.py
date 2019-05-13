@@ -1,19 +1,18 @@
 from __future__ import absolute_import
 
 import operator
+from collections import defaultdict
+from itertools import izip
+
 import six
+from django.db.models import Q
+from six.moves import reduce
 
 from sentry.api.serializers import serialize
-from sentry.models import (Release, ReleaseCommit, Commit, CommitFileChange, Event, Group)
 from sentry.api.serializers.models.commit import CommitSerializer, get_users_for_commits
+from sentry.models import Commit, CommitFileChange, Event, Group, Release, ReleaseCommit
 from sentry.utils import metrics
 from sentry.utils.safe import get_path
-
-from django.db.models import Q
-
-from itertools import izip
-from collections import defaultdict
-from six.moves import reduce
 
 PATH_SEPERATORS = frozenset(['/', '\\'])
 

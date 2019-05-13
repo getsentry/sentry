@@ -1,15 +1,14 @@
 from __future__ import absolute_import
 
 import six
-
 from rest_framework.response import Response
 
 from sentry.api.base import DocSection
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
-from sentry.models import Project, Event, EventMapping
-from sentry.utils.apidocs import scenario, attach_scenarios
+from sentry.models import Event, EventMapping, Project
+from sentry.utils.apidocs import attach_scenarios, scenario
 
 
 @scenario('ResolveEventId')

@@ -5,7 +5,7 @@ from django.utils.translation import ugettext_lazy as _
 from sentry import http
 from sentry.identity.pipeline import IdentityProviderPipeline
 from sentry.integrations import (
-    IntegrationFeatures, IntegrationMetadata, IntegrationProvider, FeatureDescription,
+    FeatureDescription, IntegrationFeatures, IntegrationMetadata, IntegrationProvider,
 )
 from sentry.pipeline import NestedPipelineView
 from sentry.utils.http import absolute_uri

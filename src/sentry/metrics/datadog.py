@@ -1,13 +1,13 @@
 from __future__ import absolute_import
 
-__all__ = ['DatadogMetricsBackend']
-
-from datadog import initialize, ThreadStats
+from datadog import ThreadStats, initialize
 from datadog.util.hostname import get_hostname
 
 from sentry.utils.cache import memoize
 
 from .base import MetricsBackend
+
+__all__ = ['DatadogMetricsBackend']
 
 
 class DatadogMetricsBackend(MetricsBackend):

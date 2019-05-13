@@ -8,7 +8,10 @@ sentry.utils.yaml
 from __future__ import absolute_import
 
 from functools import partial
-from yaml import load as _load, dump as _dump
+
+from yaml import dump as _dump
+from yaml import load as _load
+
 try:
     # Try to load bindings with libyaml if available
     from yaml import (

@@ -1,12 +1,12 @@
 from __future__ import absolute_import
 
+import six
 from rest_framework.response import Response
 
 from sentry import filters
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.models import AuditLogEntryEvent
-import six
 
 
 class ProjectFilterDetailsEndpoint(ProjectEndpoint):

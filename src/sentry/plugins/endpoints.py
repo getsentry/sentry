@@ -1,12 +1,12 @@
 from __future__ import absolute_import
 
-__all__ = ['PluginProjectEndpoint', 'PluginGroupEndpoint']
-
 from rest_framework.response import Response
 
 from sentry.api.bases.group import GroupEndpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.models import GroupMeta
+
+__all__ = ['PluginProjectEndpoint', 'PluginGroupEndpoint']
 
 
 class PluginProjectEndpoint(ProjectEndpoint):

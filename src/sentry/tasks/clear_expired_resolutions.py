@@ -2,7 +2,7 @@ from __future__ import absolute_import, print_function
 
 from django.db.models import Q
 
-from sentry.models import (Activity, GroupResolution, Release)
+from sentry.models import Activity, GroupResolution, Release
 from sentry.tasks.base import instrumented_task
 
 

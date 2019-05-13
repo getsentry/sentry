@@ -3,14 +3,15 @@ from __future__ import absolute_import
 from django.db.models import F
 
 from sentry import roles
-from sentry.cache import default_cache
-from sentry.models import ApiToken
+from sentry.api.endpoints.setup_wizard import SETUP_WIZARD_CACHE_KEY, SETUP_WIZARD_CACHE_TIMEOUT
 from sentry.api.serializers import serialize
+from sentry.cache import default_cache
+from sentry.models import (
+    ApiToken, Organization, OrganizationStatus, Project, ProjectKey, ProjectKeyStatus,
+    ProjectStatus,
+)
 from sentry.web.frontend.base import BaseView
 from sentry.web.helpers import render_to_response
-from sentry.models import (Organization, OrganizationStatus, Project, ProjectKey,
-                           ProjectKeyStatus, ProjectStatus)
-from sentry.api.endpoints.setup_wizard import SETUP_WIZARD_CACHE_KEY, SETUP_WIZARD_CACHE_TIMEOUT
 
 
 class SetupWizardView(BaseView):

@@ -1,6 +1,6 @@
 from __future__ import absolute_import, print_function
 
-from ..base import (BulkModelDeletionTask, ModelDeletionTask, ModelRelation)
+from ..base import BulkModelDeletionTask, ModelDeletionTask, ModelRelation
 
 
 class ProjectDeletionTask(ModelDeletionTask):

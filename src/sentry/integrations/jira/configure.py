@@ -1,16 +1,17 @@
 from __future__ import absolute_import
 
-from jwt import ExpiredSignatureError
-
 from django import forms
 from django.core.urlresolvers import reverse
 from django.views.generic import View
+from jwt import ExpiredSignatureError
 
 from sentry import roles
-from sentry.integrations.atlassian_connect import AtlassianConnectValidationError, get_integration_from_request
+from sentry.integrations.atlassian_connect import (
+    AtlassianConnectValidationError, get_integration_from_request,
+)
+from sentry.models import OrganizationIntegration, OrganizationMember
 from sentry.utils.http import absolute_uri
 from sentry.web.helpers import render_to_response
-from sentry.models import OrganizationIntegration, OrganizationMember
 
 
 class JiraConfigForm(forms.Form):

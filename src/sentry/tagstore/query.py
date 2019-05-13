@@ -2,6 +2,7 @@ from __future__ import absolute_import, print_function
 
 from django.db.models import sql
 from django.db.models.query import QuerySet
+
 from sentry.db.models import BaseManager
 
 try:

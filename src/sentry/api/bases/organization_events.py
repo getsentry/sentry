@@ -4,7 +4,7 @@ from rest_framework.exceptions import PermissionDenied
 
 from sentry import features
 from sentry.api.bases import OrganizationEndpoint, OrganizationEventsError
-from sentry.api.event_search import get_snuba_query_args, InvalidSearchQuery
+from sentry.api.event_search import InvalidSearchQuery, get_snuba_query_args
 from sentry.models.project import Project
 
 

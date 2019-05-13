@@ -8,7 +8,7 @@ from sentry.api.base import DocSection, EnvironmentMixin, StatsMixin
 from sentry.api.bases.team import TeamEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.models import Environment, Project
-from sentry.utils.apidocs import scenario, attach_scenarios
+from sentry.utils.apidocs import attach_scenarios, scenario
 
 
 @scenario('RetrieveEventCountsTeam')

@@ -1,7 +1,6 @@
 from __future__ import absolute_import, print_function
 
 import logging
-
 from uuid import uuid4
 
 from django.conf import settings
@@ -13,24 +12,24 @@ from django.http import HttpResponseRedirect
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 
+import sentry.utils.json as json
 from sentry.app import locks
-from sentry.auth.provider import MigratingIdentityId
 from sentry.auth.exceptions import IdentityNotValid
+from sentry.auth.provider import MigratingIdentityId
 from sentry.models import (
     AuditLogEntry, AuditLogEntryEvent, AuthIdentity, AuthProvider, Organization, OrganizationMember,
-    OrganizationMemberTeam, User, UserEmail
+    OrganizationMemberTeam, User, UserEmail,
 )
 from sentry.signals import sso_enabled
 from sentry.tasks.auth import email_missing_links
 from sentry.utils import auth, metrics
 from sentry.utils.audit import create_audit_entry
-from sentry.utils.redis import clusters
 from sentry.utils.hashlib import md5_text
 from sentry.utils.http import absolute_uri
+from sentry.utils.redis import clusters
 from sentry.utils.retries import TimedRetryPolicy
 from sentry.web.forms.accounts import AuthenticationForm
 from sentry.web.helpers import render_to_response
-import sentry.utils.json as json
 
 from . import manager
 

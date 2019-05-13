@@ -8,6 +8,7 @@ sentry.models.broadcast
 from __future__ import absolute_import
 
 from datetime import timedelta
+
 from django.db import models
 from django.utils import timezone
 

@@ -8,12 +8,11 @@ sentry.quotas.base
 from __future__ import absolute_import
 
 import six
-
 from django.conf import settings
 
 from sentry import options
-from sentry.utils.services import Service
 from sentry.utils.cache import default_cache
+from sentry.utils.services import Service
 
 
 class RateLimit(object):

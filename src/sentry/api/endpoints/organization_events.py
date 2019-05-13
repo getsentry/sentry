@@ -5,17 +5,14 @@ from functools import partial
 
 from rest_framework.response import Response
 
-from sentry.api.bases import OrganizationEventsEndpointBase, OrganizationEventsError, NoProjects
+from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase, OrganizationEventsError
 from sentry.api.helpers.events import get_direct_hit_response
 from sentry.api.paginator import GenericOffsetPaginator
-from sentry.api.serializers import EventSerializer, serialize, SimpleEventSerializer
+from sentry.api.serializers import EventSerializer, SimpleEventSerializer, serialize
 from sentry.api.serializers.snuba import SnubaTSResultSerializer
 from sentry.models import SnubaEvent
 from sentry.utils.dates import parse_stats_period
-from sentry.utils.snuba import (
-    raw_query,
-    SnubaTSResult,
-)
+from sentry.utils.snuba import SnubaTSResult, raw_query
 
 
 class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):

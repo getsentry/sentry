@@ -9,9 +9,18 @@ from __future__ import absolute_import
 
 from threading import local
 
+# COMPAT
+from sentry import search, tsdb  # NOQA
 from sentry.utils import redis
 from sentry.utils.locking.backends.redis import RedisLockBackend
 from sentry.utils.locking.manager import LockManager
+from sentry.utils.sdk import RavenShim
+
+from .buffer import backend as buffer  # NOQA
+from .digests import backend as digests  # NOQA
+from .nodestore import backend as nodestore  # NOQA
+from .quotas import backend as quotas  # NOQA
+from .ratelimits import backend as ratelimiter  # NOQA
 
 
 class State(local):
@@ -22,15 +31,7 @@ class State(local):
 env = State()
 
 
-# COMPAT
-from sentry import search, tsdb  # NOQA
-from .buffer import backend as buffer  # NOQA
-from .digests import backend as digests  # NOQA
-from .nodestore import backend as nodestore  # NOQA
-from .quotas import backend as quotas  # NOQA
-from .ratelimits import backend as ratelimiter  # NOQA
 
-from sentry.utils.sdk import RavenShim
 
 raven = client = RavenShim()  # NOQA
 

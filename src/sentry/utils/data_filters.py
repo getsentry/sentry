@@ -9,8 +9,8 @@ from __future__ import absolute_import
 
 import fnmatch
 import ipaddress
-import six
 
+import six
 from django.utils.encoding import force_text
 
 from sentry import tsdb

@@ -7,30 +7,24 @@ sentry.models.event
 """
 from __future__ import absolute_import
 
-import six
 import string
 import warnings
-import pytz
-
 from collections import OrderedDict
 from datetime import datetime
+from hashlib import md5
+
+import pytz
+import six
 from dateutil.parser import parse as parse_date
 from django.db import models
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
-from hashlib import md5
-
 from semaphore.processing import StoreNormalizer
 
 from sentry import eventtypes, options
 from sentry.constants import EVENT_ORDERING_KEY
 from sentry.db.models import (
-    BoundedBigIntegerField,
-    BoundedIntegerField,
-    Model,
-    NodeData,
-    NodeField,
-    sane_repr
+    BoundedBigIntegerField, BoundedIntegerField, Model, NodeData, NodeField, sane_repr,
 )
 from sentry.db.models.manager import EventManager, SnubaEventManager
 from sentry.interfaces.base import get_interfaces
@@ -38,8 +32,8 @@ from sentry.utils import json, metrics
 from sentry.utils.cache import memoize
 from sentry.utils.canonical import CanonicalKeyDict, CanonicalKeyView
 from sentry.utils.safe import get_path
-from sentry.utils.strings import truncatechars
 from sentry.utils.sdk import configure_scope
+from sentry.utils.strings import truncatechars
 
 
 def _should_skip_to_python(event_id):

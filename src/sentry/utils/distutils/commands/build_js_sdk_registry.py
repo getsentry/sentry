@@ -2,12 +2,14 @@
 # process.  Thus we do not want to import non stdlib things here.
 from __future__ import absolute_import
 
+import json
 import os
 import sys
-import json
 from distutils import log
 
 import sentry
+
+from .base import BaseBuildCommand
 
 JS_SDK_REGISTRY_URL = 'https://release-registry.services.sentry.io/sdks/sentry.javascript.browser/versions'
 LOADER_FOLDER = os.path.abspath(os.path.join(os.path.dirname(sentry.__file__), 'loader'))
@@ -45,9 +47,6 @@ def sync_registry():
     body = urlopen(JS_SDK_REGISTRY_URL).read().decode('utf-8')
     data = json.loads(body)
     dump_registry('_registry', data)
-
-
-from .base import BaseBuildCommand
 
 
 class BuildJsSdkRegistryCommand(BaseBuildCommand):

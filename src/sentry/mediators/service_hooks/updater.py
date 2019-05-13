@@ -1,8 +1,8 @@
 from __future__ import absolute_import
 
-import six
-
 from collections import Iterable
+
+import six
 
 from sentry.mediators import Mediator, Param
 from sentry.mediators.param import if_param

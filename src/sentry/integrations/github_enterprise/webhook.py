@@ -4,17 +4,22 @@ from __future__ import absolute_import
 import hashlib
 import hmac
 import logging
-import six
 
+import six
 from django.http import HttpResponse
 from django.utils.crypto import constant_time_compare
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
 from django.views.generic import View
 from simplejson import JSONDecodeError
+
+from sentry.integrations.github.webhook import (
+    InstallationEventWebhook, InstallationRepositoryEventWebhook, PullRequestEventWebhook,
+    PushEventWebhook,
+)
 from sentry.models import Integration
 from sentry.utils import json
-from sentry.integrations.github.webhook import InstallationEventWebhook, InstallationRepositoryEventWebhook, PushEventWebhook, PullRequestEventWebhook
+
 from .repository import GitHubEnterpriseRepositoryProvider
 
 logger = logging.getLogger('sentry.webhooks')

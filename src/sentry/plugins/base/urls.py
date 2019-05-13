@@ -2,7 +2,7 @@ from __future__ import absolute_import
 
 import re
 
-from django.conf.urls import patterns, include, url
+from django.conf.urls import include, patterns, url
 
 from sentry.plugins import plugins
 

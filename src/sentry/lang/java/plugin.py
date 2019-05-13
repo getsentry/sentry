@@ -1,12 +1,12 @@
 from __future__ import absolute_import
 
 import six
-
 from symbolic import ProguardMappingView
+
+from sentry.models import EventError, ProjectDebugFile
 from sentry.plugins import Plugin2
-from sentry.stacktraces.processing import StacktraceProcessor
-from sentry.models import ProjectDebugFile, EventError
 from sentry.reprocessing import report_processing_issue
+from sentry.stacktraces.processing import StacktraceProcessor
 from sentry.utils.safe import get_path
 
 FRAME_CACHE_VERSION = 2

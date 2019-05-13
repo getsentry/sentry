@@ -8,12 +8,12 @@ sentry.interfaces.contexts
 
 from __future__ import absolute_import
 
-import six
 import string
 
+import six
 from django.utils.encoding import force_text
 
-from sentry.interfaces.base import Interface, prune_empty_keys, RUST_RENORMALIZED_DEFAULT
+from sentry.interfaces.base import RUST_RENORMALIZED_DEFAULT, Interface, prune_empty_keys
 from sentry.utils.contexts_normalization import normalize_os, normalize_runtime
 from sentry.utils.safe import get_path, trim
 

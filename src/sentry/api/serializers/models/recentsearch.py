@@ -2,10 +2,7 @@ from __future__ import absolute_import
 
 import six
 
-from sentry.api.serializers import (
-    Serializer,
-    register,
-)
+from sentry.api.serializers import Serializer, register
 from sentry.models.recentsearch import RecentSearch
 
 

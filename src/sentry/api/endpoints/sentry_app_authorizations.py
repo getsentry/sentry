@@ -3,13 +3,9 @@ from __future__ import absolute_import
 from rest_framework.response import Response
 
 from sentry.api.bases import SentryAppAuthorizationsBaseEndpoint
-from sentry.coreapi import APIUnauthorized
-from sentry.mediators.token_exchange import (
-    GrantExchanger,
-    Refresher,
-    GrantTypes,
-)
 from sentry.api.serializers.models.apitoken import ApiTokenSerializer
+from sentry.coreapi import APIUnauthorized
+from sentry.mediators.token_exchange import GrantExchanger, GrantTypes, Refresher
 
 
 class SentryAppAuthorizationsEndpoint(SentryAppAuthorizationsBaseEndpoint):

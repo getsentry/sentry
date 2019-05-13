@@ -3,16 +3,8 @@ from __future__ import absolute_import, print_function
 from django.conf.urls import include, patterns, url
 
 from .endpoints.accept_project_transfer import AcceptProjectTransferEndpoint
-from .endpoints.organization_dashboards import OrganizationDashboardsEndpoint
-from .endpoints.relay_heartbeat import RelayHeartbeatEndpoint
-from .endpoints.relay_projectconfigs import RelayProjectConfigsEndpoint
-from .endpoints.relay_publickeys import RelayPublicKeysEndpoint
-from .endpoints.relay_index import RelayIndexEndpoint
-from .endpoints.relay_details import RelayDetailsEndpoint
-from .endpoints.relay_register import RelayRegisterChallengeEndpoint, \
-    RelayRegisterResponseEndpoint
-from .endpoints.api_applications import ApiApplicationsEndpoint
 from .endpoints.api_application_details import ApiApplicationDetailsEndpoint
+from .endpoints.api_applications import ApiApplicationsEndpoint
 from .endpoints.api_authorizations import ApiAuthorizationsEndpoint
 from .endpoints.api_tokens import ApiTokensEndpoint
 from .endpoints.assistant import AssistantEndpoint
@@ -22,173 +14,208 @@ from .endpoints.broadcast_details import BroadcastDetailsEndpoint
 from .endpoints.broadcast_index import BroadcastIndexEndpoint
 from .endpoints.catchall import CatchallEndpoint
 from .endpoints.chunk import ChunkUploadEndpoint
+from .endpoints.debug_files import (
+    AssociateDSymFilesEndpoint, DebugFilesEndpoint, DifAssembleEndpoint, UnknownDebugFilesEndpoint,
+)
+from .endpoints.event_apple_crash_report import EventAppleCrashReportEndpoint
 from .endpoints.event_attachment_details import EventAttachmentDetailsEndpoint
 from .endpoints.event_attachments import EventAttachmentsEndpoint
 from .endpoints.event_details import EventDetailsEndpoint
-from .endpoints.event_owners import EventOwnersEndpoint
-from .endpoints.event_apple_crash_report import EventAppleCrashReportEndpoint
+from .endpoints.event_file_committers import EventFileCommittersEndpoint
 from .endpoints.event_grouping_info import EventGroupingInfoEndpoint
+from .endpoints.event_owners import EventOwnersEndpoint
+from .endpoints.filechange import CommitFileChangeEndpoint
 from .endpoints.group_details import GroupDetailsEndpoint
 from .endpoints.group_events import GroupEventsEndpoint
 from .endpoints.group_events_latest import GroupEventsLatestEndpoint
 from .endpoints.group_events_oldest import GroupEventsOldestEndpoint
+from .endpoints.group_external_issue_details import GroupExternalIssueDetailsEndpoint
+from .endpoints.group_external_issues import GroupExternalIssuesEndpoint
 from .endpoints.group_hashes import GroupHashesEndpoint
 from .endpoints.group_integration_details import GroupIntegrationDetailsEndpoint
 from .endpoints.group_integrations import GroupIntegrationsEndpoint
 from .endpoints.group_notes import GroupNotesEndpoint
 from .endpoints.group_notes_details import GroupNotesDetailsEndpoint
 from .endpoints.group_participants import GroupParticipantsEndpoint
-from .endpoints.group_external_issues import GroupExternalIssuesEndpoint
-from .endpoints.group_external_issue_details import GroupExternalIssueDetailsEndpoint
 from .endpoints.group_similar_issues import GroupSimilarIssuesEndpoint
 from .endpoints.group_stats import GroupStatsEndpoint
-from .endpoints.group_tags import GroupTagsEndpoint
 from .endpoints.group_tagkey_details import GroupTagKeyDetailsEndpoint
 from .endpoints.group_tagkey_values import GroupTagKeyValuesEndpoint
-from .endpoints.group_tombstone_details import GroupTombstoneDetailsEndpoint
+from .endpoints.group_tags import GroupTagsEndpoint
 from .endpoints.group_tombstone import GroupTombstoneEndpoint
+from .endpoints.group_tombstone_details import GroupTombstoneDetailsEndpoint
 from .endpoints.group_user_reports import GroupUserReportsEndpoint
-from .endpoints.organization_incident_details import OrganizationIncidentDetailsEndpoint
+from .endpoints.grouping_configs import GroupingConfigsEndpoint
+from .endpoints.grouping_enhancements import GroupingEnhancementsEndpoint
 from .endpoints.index import IndexEndpoint
 from .endpoints.internal_queue_tasks import InternalQueueTasksEndpoint
 from .endpoints.internal_quotas import InternalQuotasEndpoint
 from .endpoints.internal_stats import InternalStatsEndpoint
-from .endpoints.monitor_checkins import MonitorCheckInsEndpoint
 from .endpoints.monitor_checkin_details import MonitorCheckInDetailsEndpoint
+from .endpoints.monitor_checkins import MonitorCheckInsEndpoint
 from .endpoints.monitor_details import MonitorDetailsEndpoint
 from .endpoints.monitor_stats import MonitorStatsEndpoint
 from .endpoints.organization_access_request_details import OrganizationAccessRequestDetailsEndpoint
 from .endpoints.organization_activity import OrganizationActivityEndpoint
-from .endpoints.organization_auditlogs import OrganizationAuditLogsEndpoint
-from .endpoints.organization_api_key_index import OrganizationApiKeyIndexEndpoint
 from .endpoints.organization_api_key_details import OrganizationApiKeyDetailsEndpoint
-from .endpoints.organization_auth_providers import OrganizationAuthProvidersEndpoint
+from .endpoints.organization_api_key_index import OrganizationApiKeyIndexEndpoint
+from .endpoints.organization_auditlogs import OrganizationAuditLogsEndpoint
 from .endpoints.organization_auth_provider_details import OrganizationAuthProviderDetailsEndpoint
-from .endpoints.organization_auth_provider_send_reminders import OrganizationAuthProviderSendRemindersEndpoint
+from .endpoints.organization_auth_provider_send_reminders import (
+    OrganizationAuthProviderSendRemindersEndpoint,
+)
+from .endpoints.organization_auth_providers import OrganizationAuthProvidersEndpoint
 from .endpoints.organization_avatar import OrganizationAvatarEndpoint
+from .endpoints.organization_config_integrations import OrganizationConfigIntegrationsEndpoint
+from .endpoints.organization_config_repositories import OrganizationConfigRepositoriesEndpoint
+from .endpoints.organization_dashboard_details import OrganizationDashboardDetailsEndpoint
+from .endpoints.organization_dashboard_widget_details import (
+    OrganizationDashboardWidgetDetailsEndpoint,
+)
+from .endpoints.organization_dashboard_widgets import OrganizationDashboardWidgetsEndpoint
+from .endpoints.organization_dashboards import OrganizationDashboardsEndpoint
 from .endpoints.organization_details import OrganizationDetailsEndpoint
 from .endpoints.organization_discover_query import OrganizationDiscoverQueryEndpoint
 from .endpoints.organization_discover_saved_queries import OrganizationDiscoverSavedQueriesEndpoint
-from .endpoints.organization_discover_saved_query_detail import OrganizationDiscoverSavedQueryDetailEndpoint
-from .endpoints.organization_events import OrganizationEventsEndpoint, OrganizationEventsMetaEndpoint, OrganizationEventsStatsEndpoint
-from .endpoints.organization_group_index import OrganizationGroupIndexEndpoint
-from .endpoints.organization_dashboard_details import OrganizationDashboardDetailsEndpoint
-from .endpoints.organization_dashboard_widget_details import OrganizationDashboardWidgetDetailsEndpoint
-from .endpoints.organization_dashboard_widgets import OrganizationDashboardWidgetsEndpoint
-from .endpoints.organization_health import OrganizationHealthTopEndpoint, OrganizationHealthGraphEndpoint
-from .endpoints.organization_shortid import ShortIdLookupEndpoint
+from .endpoints.organization_discover_saved_query_detail import (
+    OrganizationDiscoverSavedQueryDetailEndpoint,
+)
 from .endpoints.organization_environments import OrganizationEnvironmentsEndpoint
 from .endpoints.organization_eventid import EventIdLookupEndpoint
-from .endpoints.organization_slugs import SlugsUpdateEndpoint
+from .endpoints.organization_events import (
+    OrganizationEventsEndpoint, OrganizationEventsMetaEndpoint, OrganizationEventsStatsEndpoint,
+)
+from .endpoints.organization_group_index import OrganizationGroupIndexEndpoint
+from .endpoints.organization_health import (
+    OrganizationHealthGraphEndpoint, OrganizationHealthTopEndpoint,
+)
+from .endpoints.organization_incident_details import OrganizationIncidentDetailsEndpoint
 from .endpoints.organization_incident_index import OrganizationIncidentIndexEndpoint
+from .endpoints.organization_index import OrganizationIndexEndpoint
+from .endpoints.organization_integration_details import OrganizationIntegrationDetailsEndpoint
+from .endpoints.organization_integration_repos import OrganizationIntegrationReposEndpoint
+from .endpoints.organization_integrations import OrganizationIntegrationsEndpoint
 from .endpoints.organization_issues_new import OrganizationIssuesNewEndpoint
-from .endpoints.organization_issues_resolved_in_release import OrganizationIssuesResolvedInReleaseEndpoint
+from .endpoints.organization_issues_resolved_in_release import (
+    OrganizationIssuesResolvedInReleaseEndpoint,
+)
 from .endpoints.organization_member_details import OrganizationMemberDetailsEndpoint
 from .endpoints.organization_member_index import OrganizationMemberIndexEndpoint
 from .endpoints.organization_member_issues_assigned import OrganizationMemberIssuesAssignedEndpoint
-from .endpoints.organization_member_issues_bookmarked import OrganizationMemberIssuesBookmarkedEndpoint
+from .endpoints.organization_member_issues_bookmarked import (
+    OrganizationMemberIssuesBookmarkedEndpoint,
+)
 from .endpoints.organization_member_issues_viewed import OrganizationMemberIssuesViewedEndpoint
-from .endpoints.organization_member_unreleased_commits import OrganizationMemberUnreleasedCommitsEndpoint
 from .endpoints.organization_member_team_details import OrganizationMemberTeamDetailsEndpoint
+from .endpoints.organization_member_unreleased_commits import (
+    OrganizationMemberUnreleasedCommitsEndpoint,
+)
 from .endpoints.organization_monitors import OrganizationMonitorsEndpoint
 from .endpoints.organization_onboarding_tasks import OrganizationOnboardingTaskEndpoint
-from .endpoints.organization_index import OrganizationIndexEndpoint
 from .endpoints.organization_pinned_searches import OrganizationPinnedSearchEndpoint
 from .endpoints.organization_plugins import OrganizationPluginsEndpoint
 from .endpoints.organization_processingissues import OrganizationProcessingIssuesEndpoint
 from .endpoints.organization_projects import OrganizationProjectsEndpoint
 from .endpoints.organization_recent_searches import OrganizationRecentSearchesEndpoint
-from .endpoints.organization_releases import OrganizationReleasesEndpoint
-from .endpoints.organization_release_details import OrganizationReleaseDetailsEndpoint
-from .endpoints.organization_release_files import OrganizationReleaseFilesEndpoint
-from .endpoints.organization_release_file_details import OrganizationReleaseFileDetailsEndpoint
 from .endpoints.organization_release_commits import OrganizationReleaseCommitsEndpoint
+from .endpoints.organization_release_details import OrganizationReleaseDetailsEndpoint
+from .endpoints.organization_release_file_details import OrganizationReleaseFileDetailsEndpoint
+from .endpoints.organization_release_files import OrganizationReleaseFilesEndpoint
+from .endpoints.organization_releases import OrganizationReleasesEndpoint
 from .endpoints.organization_repositories import OrganizationRepositoriesEndpoint
-from .endpoints.organization_integration_details import OrganizationIntegrationDetailsEndpoint
-from .endpoints.organization_integration_repos import OrganizationIntegrationReposEndpoint
-from .endpoints.organization_integrations import OrganizationIntegrationsEndpoint
-from .endpoints.organization_config_integrations import OrganizationConfigIntegrationsEndpoint
-from .endpoints.organization_config_repositories import OrganizationConfigRepositoriesEndpoint
 from .endpoints.organization_repository_commits import OrganizationRepositoryCommitsEndpoint
 from .endpoints.organization_repository_details import OrganizationRepositoryDetailsEndpoint
 from .endpoints.organization_search_details import OrganizationSearchDetailsEndpoint
 from .endpoints.organization_searches import OrganizationSearchesEndpoint
 from .endpoints.organization_sentry_apps import OrganizationSentryAppsEndpoint
+from .endpoints.organization_shortid import ShortIdLookupEndpoint
+from .endpoints.organization_slugs import SlugsUpdateEndpoint
+from .endpoints.organization_stats import OrganizationStatsEndpoint
 from .endpoints.organization_tagkey_values import OrganizationTagKeyValuesEndpoint
 from .endpoints.organization_tags import OrganizationTagsEndpoint
-from .endpoints.organization_user_reports import OrganizationUserReportsEndpoint
-from .endpoints.organization_users import OrganizationUsersEndpoint
-from .endpoints.organization_user_details import OrganizationUserDetailsEndpoint
-from .endpoints.sentry_app_installations import SentryAppInstallationsEndpoint
-from .endpoints.sentry_app_installation_details import SentryAppInstallationDetailsEndpoint
-from .endpoints.sentry_app_installation_external_requests import SentryAppInstallationExternalRequestsEndpoint
-from .endpoints.sentry_app_installation_external_issues import SentryAppInstallationExternalIssuesEndpoint
-from .endpoints.organization_stats import OrganizationStatsEndpoint
 from .endpoints.organization_teams import OrganizationTeamsEndpoint
+from .endpoints.organization_user_details import OrganizationUserDetailsEndpoint
 from .endpoints.organization_user_issues import OrganizationUserIssuesEndpoint
 from .endpoints.organization_user_issues_search import OrganizationUserIssuesSearchEndpoint
+from .endpoints.organization_user_reports import OrganizationUserReportsEndpoint
+from .endpoints.organization_users import OrganizationUsersEndpoint
 from .endpoints.project_avatar import ProjectAvatarEndpoint
-from .endpoints.project_details import ProjectDetailsEndpoint
-from .endpoints.project_transfer import ProjectTransferEndpoint
 from .endpoints.project_create_sample import ProjectCreateSampleEndpoint
+from .endpoints.project_details import ProjectDetailsEndpoint
 from .endpoints.project_docs_platform import ProjectDocsPlatformEndpoint
-from .endpoints.project_environments import ProjectEnvironmentsEndpoint
 from .endpoints.project_environment_details import ProjectEnvironmentDetailsEndpoint
-from .endpoints.project_platforms import ProjectPlatformsEndpoint
-from .endpoints.project_events import ProjectEventsEndpoint
+from .endpoints.project_environments import ProjectEnvironmentsEndpoint
 from .endpoints.project_event_details import ProjectEventDetailsEndpoint
-from .endpoints.project_filters import ProjectFiltersEndpoint
+from .endpoints.project_events import ProjectEventsEndpoint
 from .endpoints.project_filter_details import ProjectFilterDetailsEndpoint
+from .endpoints.project_filters import ProjectFiltersEndpoint
 from .endpoints.project_group_index import ProjectGroupIndexEndpoint
 from .endpoints.project_group_stats import ProjectGroupStatsEndpoint
 from .endpoints.project_index import ProjectIndexEndpoint
 from .endpoints.project_issues_resolved_in_release import ProjectIssuesResolvedInReleaseEndpoint
-from .endpoints.project_keys import ProjectKeysEndpoint
 from .endpoints.project_key_details import ProjectKeyDetailsEndpoint
 from .endpoints.project_key_stats import ProjectKeyStatsEndpoint
+from .endpoints.project_keys import ProjectKeysEndpoint
 from .endpoints.project_member_index import ProjectMemberIndexEndpoint
 from .endpoints.project_ownership import ProjectOwnershipEndpoint
-from .endpoints.project_plugins import ProjectPluginsEndpoint
+from .endpoints.project_platforms import ProjectPlatformsEndpoint
 from .endpoints.project_plugin_details import ProjectPluginDetailsEndpoint
-from .endpoints.project_release_details import ProjectReleaseDetailsEndpoint
-from .endpoints.project_release_files import ProjectReleaseFilesEndpoint
-from .endpoints.project_release_file_details import ProjectReleaseFileDetailsEndpoint
+from .endpoints.project_plugins import ProjectPluginsEndpoint
+from .endpoints.project_processingissues import (
+    ProjectProcessingIssuesDiscardEndpoint, ProjectProcessingIssuesEndpoint,
+    ProjectProcessingIssuesFixEndpoint,
+)
 from .endpoints.project_release_commits import ProjectReleaseCommitsEndpoint
-from .endpoints.project_releases import ProjectReleasesEndpoint
+from .endpoints.project_release_details import ProjectReleaseDetailsEndpoint
+from .endpoints.project_release_file_details import ProjectReleaseFileDetailsEndpoint
+from .endpoints.project_release_files import ProjectReleaseFilesEndpoint
 from .endpoints.project_release_setup import ProjectReleaseSetupCompletionEndpoint
+from .endpoints.project_releases import ProjectReleasesEndpoint
 from .endpoints.project_releases_token import ProjectReleasesTokenEndpoint
+from .endpoints.project_reprocessing import ProjectReprocessingEndpoint
+from .endpoints.project_rule_details import ProjectRuleDetailsEndpoint
 from .endpoints.project_rules import ProjectRulesEndpoint
 from .endpoints.project_rules_configuration import ProjectRulesConfigurationEndpoint
-from .endpoints.project_rule_details import ProjectRuleDetailsEndpoint
-from .endpoints.project_searches import ProjectSearchesEndpoint
 from .endpoints.project_search_details import ProjectSearchDetailsEndpoint
-from .endpoints.project_stats import ProjectStatsEndpoint
-from .endpoints.project_tags import ProjectTagsEndpoint
-from .endpoints.project_tagkey_details import ProjectTagKeyDetailsEndpoint
-from .endpoints.project_tagkey_values import ProjectTagKeyValuesEndpoint
-from .endpoints.project_team_details import ProjectTeamDetailsEndpoint
-from .endpoints.project_teams import ProjectTeamsEndpoint
-from .endpoints.project_processingissues import ProjectProcessingIssuesEndpoint, \
-    ProjectProcessingIssuesFixEndpoint, ProjectProcessingIssuesDiscardEndpoint
-from .endpoints.project_reprocessing import ProjectReprocessingEndpoint
-from .endpoints.project_servicehooks import ProjectServiceHooksEndpoint
+from .endpoints.project_searches import ProjectSearchesEndpoint
 from .endpoints.project_servicehook_details import ProjectServiceHookDetailsEndpoint
 from .endpoints.project_servicehook_stats import ProjectServiceHookStatsEndpoint
+from .endpoints.project_servicehooks import ProjectServiceHooksEndpoint
+from .endpoints.project_stats import ProjectStatsEndpoint
+from .endpoints.project_tagkey_details import ProjectTagKeyDetailsEndpoint
+from .endpoints.project_tagkey_values import ProjectTagKeyValuesEndpoint
+from .endpoints.project_tags import ProjectTagsEndpoint
+from .endpoints.project_team_details import ProjectTeamDetailsEndpoint
+from .endpoints.project_teams import ProjectTeamsEndpoint
+from .endpoints.project_transfer import ProjectTransferEndpoint
 from .endpoints.project_user_details import ProjectUserDetailsEndpoint
 from .endpoints.project_user_reports import ProjectUserReportsEndpoint
 from .endpoints.project_user_stats import ProjectUserStatsEndpoint
 from .endpoints.project_users import ProjectUsersEndpoint
 from .endpoints.prompts_activity import PromptsActivityEndpoint
-from .endpoints.filechange import CommitFileChangeEndpoint
+from .endpoints.relay_details import RelayDetailsEndpoint
+from .endpoints.relay_heartbeat import RelayHeartbeatEndpoint
+from .endpoints.relay_index import RelayIndexEndpoint
+from .endpoints.relay_projectconfigs import RelayProjectConfigsEndpoint
+from .endpoints.relay_publickeys import RelayPublicKeysEndpoint
+from .endpoints.relay_register import RelayRegisterChallengeEndpoint, RelayRegisterResponseEndpoint
 from .endpoints.release_deploys import ReleaseDeploysEndpoint
-from .endpoints.debug_files import DebugFilesEndpoint, DifAssembleEndpoint, \
-    UnknownDebugFilesEndpoint, AssociateDSymFilesEndpoint
+from .endpoints.sentry_app_authorizations import SentryAppAuthorizationsEndpoint
+from .endpoints.sentry_app_components import (
+    OrganizationSentryAppComponentsEndpoint, SentryAppComponentsEndpoint,
+)
+from .endpoints.sentry_app_details import SentryAppDetailsEndpoint
+from .endpoints.sentry_app_installation_details import SentryAppInstallationDetailsEndpoint
+from .endpoints.sentry_app_installation_external_issues import (
+    SentryAppInstallationExternalIssuesEndpoint,
+)
+from .endpoints.sentry_app_installation_external_requests import (
+    SentryAppInstallationExternalRequestsEndpoint,
+)
+from .endpoints.sentry_app_installations import SentryAppInstallationsEndpoint
 from .endpoints.sentry_apps import SentryAppsEndpoint
 from .endpoints.sentry_apps_stats import SentryAppsStatsEndpoint
-from .endpoints.sentry_app_components import SentryAppComponentsEndpoint, \
-    OrganizationSentryAppComponentsEndpoint
-from .endpoints.sentry_app_details import SentryAppDetailsEndpoint
-from .endpoints.sentry_app_authorizations import SentryAppAuthorizationsEndpoint
+from .endpoints.setup_wizard import SetupWizard
 from .endpoints.shared_group_details import SharedGroupDetailsEndpoint
 from .endpoints.system_health import SystemHealthEndpoint
 from .endpoints.system_options import SystemOptionsEndpoint
@@ -199,29 +226,24 @@ from .endpoints.team_groups_trending import TeamGroupsTrendingEndpoint
 from .endpoints.team_members import TeamMembersEndpoint
 from .endpoints.team_projects import TeamProjectsEndpoint
 from .endpoints.team_stats import TeamStatsEndpoint
-from .endpoints.useravatar import UserAvatarEndpoint
 from .endpoints.user_appearance import UserAppearanceEndpoint
-from .endpoints.user_authenticator_index import UserAuthenticatorIndexEndpoint
-from .endpoints.user_authenticator_enroll import UserAuthenticatorEnrollEndpoint
 from .endpoints.user_authenticator_details import UserAuthenticatorDetailsEndpoint
-from .endpoints.user_identity_details import UserIdentityDetailsEndpoint
-from .endpoints.user_index import UserIndexEndpoint
+from .endpoints.user_authenticator_enroll import UserAuthenticatorEnrollEndpoint
+from .endpoints.user_authenticator_index import UserAuthenticatorIndexEndpoint
 from .endpoints.user_details import UserDetailsEndpoint
 from .endpoints.user_emails import UserEmailsEndpoint
 from .endpoints.user_emails_confirm import UserEmailsConfirmEndpoint
+from .endpoints.user_identity_details import UserIdentityDetailsEndpoint
+from .endpoints.user_index import UserIndexEndpoint
 from .endpoints.user_ips import UserIPsEndpoint
-from .endpoints.user_organizations import UserOrganizationsEndpoint
 from .endpoints.user_notification_details import UserNotificationDetailsEndpoint
-from .endpoints.user_password import UserPasswordEndpoint
 from .endpoints.user_notification_fine_tuning import UserNotificationFineTuningEndpoint
+from .endpoints.user_organizations import UserOrganizationsEndpoint
+from .endpoints.user_password import UserPasswordEndpoint
 from .endpoints.user_social_identities_index import UserSocialIdentitiesIndexEndpoint
 from .endpoints.user_social_identity_details import UserSocialIdentityDetailsEndpoint
 from .endpoints.user_subscriptions import UserSubscriptionsEndpoint
-from .endpoints.event_file_committers import EventFileCommittersEndpoint
-from .endpoints.setup_wizard import SetupWizard
-from .endpoints.grouping_configs import GroupingConfigsEndpoint
-from .endpoints.grouping_enhancements import GroupingEnhancementsEndpoint
-
+from .endpoints.useravatar import UserAvatarEndpoint
 
 urlpatterns = patterns(
     '',

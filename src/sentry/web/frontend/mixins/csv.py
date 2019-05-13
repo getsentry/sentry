@@ -1,10 +1,10 @@
 from __future__ import absolute_import
 
 import csv
-import six
 
-from django.utils.encoding import force_bytes
+import six
 from django.http import StreamingHttpResponse
+from django.utils.encoding import force_bytes
 
 # Python 2 doesn't support unicode with CSV, but Python 3 does via
 # the encoding param

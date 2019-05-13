@@ -1,7 +1,6 @@
 from __future__ import absolute_import, print_function
 
 import six
-
 from django.conf import settings
 from django.db import models
 

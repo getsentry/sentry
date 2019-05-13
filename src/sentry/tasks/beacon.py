@@ -10,18 +10,18 @@ from __future__ import absolute_import, print_function
 
 import json
 import logging
-import sentry
-
 from datetime import timedelta
-from django.conf import settings
-from django.utils import timezone
 from hashlib import sha1
 from uuid import uuid4
 
+from django.conf import settings
+from django.utils import timezone
+
+import sentry
 from sentry.app import tsdb
+from sentry.debug.utils.packages import get_all_package_versions
 from sentry.http import safe_urlopen, safe_urlread
 from sentry.tasks.base import instrumented_task
-from sentry.debug.utils.packages import get_all_package_versions
 
 BEACON_URL = 'https://sentry.io/remote/beacon/'
 

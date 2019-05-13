@@ -1,15 +1,14 @@
 from __future__ import absolute_import
 
-import six
 import inspect
 
-from parsimonious.grammar import Grammar, NodeVisitor
+import six
 from parsimonious.exceptions import ParseError
+from parsimonious.grammar import Grammar, NodeVisitor
 
 from sentry.stacktraces.platform import get_behavior_family_for_platform
-from sentry.utils.safe import get_path
 from sentry.utils.glob import glob_match
-
+from sentry.utils.safe import get_path
 
 VERSION = 1
 

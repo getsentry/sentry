@@ -1,11 +1,11 @@
 from __future__ import absolute_import
 
-__all__ = ('Geo', )
-
 import six
 
-from sentry.interfaces.base import Interface, RUST_RENORMALIZED_DEFAULT
+from sentry.interfaces.base import RUST_RENORMALIZED_DEFAULT, Interface
 from sentry.utils.geo import geo_by_addr
+
+__all__ = ('Geo', )
 
 
 class Geo(Interface):

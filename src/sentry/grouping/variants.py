@@ -1,6 +1,6 @@
 from __future__ import absolute_import
 
-from sentry.grouping.utils import hash_from_values, DEFAULT_FINGERPRINT_VALUES
+from sentry.grouping.utils import DEFAULT_FINGERPRINT_VALUES, hash_from_values
 
 
 class BaseVariant(object):

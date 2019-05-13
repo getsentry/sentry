@@ -1,18 +1,17 @@
 from __future__ import absolute_import
 
-from time import time
-from datetime import timedelta
-
 import logging
+from datetime import timedelta
+from time import time
+
 import six
 
 from sentry import analytics, features
-from sentry.models import (
-    Activity, ExternalIssue, Group, GroupLink, GroupStatus, Integration, Organization,
-    ObjectStatus, OrganizationIntegration, Repository, User
-)
-
 from sentry.integrations.exceptions import ApiError, ApiUnauthorized, IntegrationError
+from sentry.models import (
+    Activity, ExternalIssue, Group, GroupLink, GroupStatus, Integration, ObjectStatus, Organization,
+    OrganizationIntegration, Repository, User,
+)
 from sentry.models.apitoken import generate_token
 from sentry.tasks.base import instrumented_task, retry
 

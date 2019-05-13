@@ -12,7 +12,7 @@ from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 from jsonfield import JSONField
 
-from sentry.db.models import Model, sane_repr, BoundedBigIntegerField, BoundedPositiveIntegerField
+from sentry.db.models import BoundedBigIntegerField, BoundedPositiveIntegerField, Model, sane_repr
 
 
 class GroupLink(Model):

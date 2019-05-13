@@ -1,16 +1,17 @@
 from __future__ import absolute_import
 
-import six
-
 from collections import defaultdict
-from django.db.models import Sum
 from itertools import izip
+
+import six
+from django.db.models import Sum
 
 from sentry import tagstore
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.db.models.query import in_iexact
 from sentry.models import (
-    Commit, CommitAuthor, Deploy, Release, ReleaseProject, ReleaseProjectEnvironment, User, UserEmail
+    Commit, CommitAuthor, Deploy, Release, ReleaseProject, ReleaseProjectEnvironment, User,
+    UserEmail,
 )
 
 

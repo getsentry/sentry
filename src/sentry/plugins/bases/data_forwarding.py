@@ -1,6 +1,6 @@
 from __future__ import absolute_import
 
-from sentry import tsdb, ratelimits
+from sentry import ratelimits, tsdb
 from sentry.api.serializers import serialize
 from sentry.plugins.base import Plugin
 from sentry.plugins.base.configuration import react_plugin_config

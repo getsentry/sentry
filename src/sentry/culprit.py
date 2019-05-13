@@ -8,6 +8,7 @@ code that generates it.
 """
 
 from __future__ import absolute_import
+
 from sentry.constants import MAX_CULPRIT_LENGTH
 from sentry.utils.safe import get_path
 from sentry.utils.strings import truncatechars

@@ -8,21 +8,23 @@ sentry.interfaces.stacktrace
 
 from __future__ import absolute_import
 
-__all__ = ('Stacktrace', )
+from itertools import chain, islice
 
 import six
-from itertools import islice, chain
-
 from django.conf import settings
 from django.utils.translation import ugettext as _
 from six.moves.urllib.parse import urlparse
 
 from sentry.app import env
-from sentry.interfaces.base import Interface, InterfaceValidationError, prune_empty_keys, RUST_RENORMALIZED_DEFAULT
+from sentry.interfaces.base import (
+    RUST_RENORMALIZED_DEFAULT, Interface, InterfaceValidationError, prune_empty_keys,
+)
 from sentry.interfaces.schemas import validate_and_default_interface
 from sentry.models import UserOption
 from sentry.utils.safe import trim, trim_dict
 from sentry.web.helpers import render_to_string
+
+__all__ = ('Stacktrace', )
 
 
 def max_addr(cur, addr):

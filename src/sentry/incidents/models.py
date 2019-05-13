@@ -1,19 +1,12 @@
 from __future__ import absolute_import
 
-from django.conf import settings
-from django.db import (
-    IntegrityError,
-    models,
-    transaction,
-)
-from django.utils import timezone
 from enum import Enum
 
-from sentry.db.models import (
-    FlexibleForeignKey,
-    Model,
-    UUIDField,
-)
+from django.conf import settings
+from django.db import IntegrityError, models, transaction
+from django.utils import timezone
+
+from sentry.db.models import FlexibleForeignKey, Model, UUIDField
 from sentry.db.models.manager import BaseManager
 from sentry.utils.retries import TimedRetryPolicy
 

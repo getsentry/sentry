@@ -10,11 +10,10 @@ from __future__ import absolute_import, print_function
 import sys
 
 import six
-
 from django.core.management.base import BaseCommand, CommandError, make_option
 from django.utils.dateparse import parse_datetime
 
-from sentry.models import Event, Project, Group
+from sentry.models import Event, Group, Project
 
 
 class Command(BaseCommand):

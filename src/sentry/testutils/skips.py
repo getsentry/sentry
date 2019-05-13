@@ -7,12 +7,12 @@ sentry.testutils.skips
 """
 from __future__ import absolute_import
 
-from django.conf import settings
-from six.moves.urllib.parse import urlparse
 import os
 import socket
-import pytest
 
+import pytest
+from django.conf import settings
+from six.moves.urllib.parse import urlparse
 
 _service_status = {}
 

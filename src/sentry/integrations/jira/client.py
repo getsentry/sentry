@@ -1,19 +1,19 @@
 from __future__ import absolute_import
 
 import datetime
-import jwt
-import re
 import json
 import logging
+import re
 from hashlib import md5 as _md5
+
+import jwt
+from django.utils.encoding import force_bytes
 from six.moves.urllib.parse import parse_qs, urlparse, urlsplit
 
-from sentry.utils.cache import cache
-from django.utils.encoding import force_bytes
-
 from sentry.integrations.atlassian_connect import get_query_hash
-from sentry.integrations.exceptions import ApiError
 from sentry.integrations.client import ApiClient
+from sentry.integrations.exceptions import ApiError
+from sentry.utils.cache import cache
 from sentry.utils.http import absolute_uri
 
 logger = logging.getLogger('sentry.integrations.jira')

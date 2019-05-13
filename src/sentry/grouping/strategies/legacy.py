@@ -1,13 +1,11 @@
 from __future__ import absolute_import
 
-import re
 import posixpath
+import re
 
 from sentry.grouping.component import GroupingComponent
 from sentry.grouping.strategies.base import strategy
-from sentry.grouping.strategies.utils import remove_non_stacktrace_variants, \
-    has_url_origin
-
+from sentry.grouping.strategies.utils import has_url_origin, remove_non_stacktrace_variants
 
 _ruby_anon_func = re.compile(r'_\d{2,}')
 _filename_version_re = re.compile(

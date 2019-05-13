@@ -1,20 +1,20 @@
 from __future__ import absolute_import
 
+import inspect
+import json
+import mimetypes
 import os
 import re
-import json
-import inspect
-import requests
-import mimetypes
-
 from collections import defaultdict
 from contextlib import contextmanager
 from datetime import datetime, timedelta
+from random import randint
+
+import requests
 from django.conf import settings
 from django.db import transaction
 from docutils.core import publish_doctree
 from pytz import utc
-from random import randint
 from six import StringIO
 
 # Do not import from sentry here!  Bad things will happen

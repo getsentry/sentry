@@ -1,29 +1,20 @@
 from __future__ import absolute_import
 
 from datetime import timedelta
+from uuid import uuid4
+
 from django.db import IntegrityError, transaction
 from django.utils import timezone
 from rest_framework import serializers
-from uuid import uuid4
 
 from sentry.api.authentication import DSNAuthentication
 from sentry.api.base import DocSection, EnvironmentMixin
 from sentry.api.bases.project import ProjectEndpoint
-from sentry.api.serializers import (
-    serialize,
-    UserReportWithGroupSerializer,
-)
 from sentry.api.paginator import DateTimePaginator
-from sentry.models import (
-    Environment,
-    Event,
-    EventUser,
-    Group,
-    GroupStatus,
-    ProjectKey,
-    UserReport)
+from sentry.api.serializers import UserReportWithGroupSerializer, serialize
+from sentry.models import Environment, Event, EventUser, Group, GroupStatus, ProjectKey, UserReport
 from sentry.signals import user_feedback_received
-from sentry.utils.apidocs import scenario, attach_scenarios
+from sentry.utils.apidocs import attach_scenarios, scenario
 
 
 @scenario('CreateUserFeedback')

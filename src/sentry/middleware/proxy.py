@@ -2,8 +2,10 @@ from __future__ import absolute_import
 
 import io
 import logging
-import six
 import zlib
+
+import six
+from django.conf import settings
 
 try:
     import uwsgi
@@ -11,7 +13,6 @@ try:
 except ImportError:
     has_uwsgi = False
 
-from django.conf import settings
 
 logger = logging.getLogger(__name__)
 Z_CHUNK = 1024 * 8

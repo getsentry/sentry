@@ -7,7 +7,7 @@ from sentry.api.base import EnvironmentMixin
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.group import GroupSerializer
-from sentry.models import (EventUser, Group, OrganizationMemberTeam, Project)
+from sentry.models import EventUser, Group, OrganizationMemberTeam, Project
 
 
 class OrganizationUserIssuesSearchEndpoint(OrganizationEndpoint, EnvironmentMixin):

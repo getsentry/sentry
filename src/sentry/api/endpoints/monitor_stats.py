@@ -1,14 +1,14 @@
 from __future__ import absolute_import
 
-import six
-
 from collections import OrderedDict
+
+import six
 from rest_framework.response import Response
 
 from sentry import tsdb
 from sentry.api.base import StatsMixin
 from sentry.api.bases.monitor import MonitorEndpoint
-from sentry.models import MonitorCheckIn, CheckInStatus
+from sentry.models import CheckInStatus, MonitorCheckIn
 
 
 class MonitorStatsEndpoint(MonitorEndpoint, StatsMixin):

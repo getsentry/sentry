@@ -1,7 +1,7 @@
 # coding: utf-8
 from __future__ import absolute_import
 
-from sentry.grouping.strategies.base import strategy, lookup_strategy
+from sentry.grouping.strategies.base import lookup_strategy, strategy
 from sentry.stacktraces.platform import get_behavior_family_for_platform
 
 

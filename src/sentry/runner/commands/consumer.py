@@ -1,7 +1,8 @@
 from __future__ import absolute_import, print_function
 
-import click
 import signal
+
+import click
 from django.conf import settings
 
 from sentry.runner.decorators import configuration

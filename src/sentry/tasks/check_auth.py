@@ -9,9 +9,9 @@ sentry.tasks.check_alerts
 from __future__ import absolute_import, division
 
 import logging
-import six
-
 from datetime import timedelta
+
+import six
 from django.utils import timezone
 
 from sentry.auth.exceptions import IdentityNotValid

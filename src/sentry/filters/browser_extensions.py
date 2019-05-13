@@ -1,10 +1,10 @@
 from __future__ import absolute_import
 
-from .base import Filter
-
 import re
 
 from sentry.utils.data_filters import FilterStatKeys
+
+from .base import Filter
 
 EXTENSION_EXC_VALUES = re.compile(
     '|'.join(

@@ -2,16 +2,17 @@ from __future__ import absolute_import
 
 import logging
 
-from django.core.files.uploadedfile import InMemoryUploadedFile, TemporaryUploadedFile
-
 import dateutil.parser as dp
-from msgpack import unpack, Unpacker, UnpackException, ExtraData
-from symbolic import normalize_arch, ProcessState, id_from_breakpad
+from django.core.files.uploadedfile import InMemoryUploadedFile, TemporaryUploadedFile
+from msgpack import ExtraData, Unpacker, UnpackException, unpack
+from symbolic import ProcessState, id_from_breakpad, normalize_arch
 
-from sentry.lang.native.utils import get_sdk_from_event, handle_symbolication_failed, merge_symbolicated_frame
-from sentry.lang.native.symbolicator import merge_symbolicator_image
 from sentry.attachments import attachment_cache
 from sentry.coreapi import cache_key_for_event
+from sentry.lang.native.symbolicator import merge_symbolicator_image
+from sentry.lang.native.utils import (
+    get_sdk_from_event, handle_symbolication_failed, merge_symbolicated_frame,
+)
 from sentry.utils.safe import get_path, set_path
 
 minidumps_logger = logging.getLogger('sentry.minidumps')

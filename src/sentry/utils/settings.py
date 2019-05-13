@@ -8,8 +8,9 @@ sentry.utils.settings
 from __future__ import absolute_import
 
 import inspect
-import six
 import sys
+
+import six
 
 from sentry.utils.imports import import_string
 

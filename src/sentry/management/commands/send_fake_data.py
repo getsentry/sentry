@@ -10,9 +10,9 @@ from __future__ import absolute_import
 import datetime
 import itertools
 import random
-import six
 import time
 
+import six
 from django.core.management.base import BaseCommand, CommandError, make_option
 
 

@@ -23,9 +23,10 @@ THE SOFTWARE.
 
 from __future__ import absolute_import
 
+import re
+
 __all__ = ('parse_link_header', )
 
-import re
 
 TOKEN = r'(?:[^\(\)<>@,;:\\"/\[\]\?={} \t]+?)'
 QUOTED_STRING = r'(?:"(?:\\"|[^"])*")'

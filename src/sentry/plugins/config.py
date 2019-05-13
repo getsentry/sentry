@@ -1,10 +1,8 @@
 from __future__ import absolute_import
 
-__all__ = ['PluginConfigMixin']
+from collections import OrderedDict
 
 import six
-
-from collections import OrderedDict
 from django import forms
 from rest_framework import serializers
 
@@ -13,6 +11,9 @@ from sentry.utils.forms import form_to_config
 
 from .providers import ProviderMixin
 from .validators import DEFAULT_VALIDATORS
+
+__all__ = ['PluginConfigMixin']
+
 
 VALIDATOR_ERRORS = (forms.ValidationError, serializers.ValidationError, PluginError, )
 

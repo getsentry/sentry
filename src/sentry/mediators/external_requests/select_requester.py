@@ -1,12 +1,13 @@
 from __future__ import absolute_import
 
-import six
 import logging
 from uuid import uuid4
 
-from six.moves.urllib.parse import urlparse, urlencode, urlunparse
-from sentry.http import safe_urlopen, safe_urlread
+import six
+from six.moves.urllib.parse import urlencode, urlparse, urlunparse
+
 from sentry.coreapi import APIError
+from sentry.http import safe_urlopen, safe_urlread
 from sentry.mediators import Mediator, Param
 from sentry.mediators.external_requests.util import validate
 from sentry.utils import json

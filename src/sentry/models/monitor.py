@@ -1,23 +1,19 @@
 from __future__ import absolute_import, print_function
 
+from datetime import datetime, timedelta
+from uuid import uuid4
+
 import pytz
 import six
-
 from croniter import croniter
-from datetime import datetime, timedelta
 from dateutil import rrule
 from django.db import models
 from django.db.models import Q
 from django.utils import timezone
-from uuid import uuid4
 
 from sentry.constants import ObjectStatus
 from sentry.db.models import (
-    Model,
-    BoundedPositiveIntegerField,
-    EncryptedJsonField,
-    UUIDField,
-    sane_repr,
+    BoundedPositiveIntegerField, EncryptedJsonField, Model, UUIDField, sane_repr,
 )
 
 SCHEDULE_INTERVAL_MAP = {

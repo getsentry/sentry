@@ -1,16 +1,15 @@
 from __future__ import absolute_import
 
 import logging
-import six
 
-from django.utils.translation import ugettext as _
-from django.utils.safestring import mark_safe
-from django.template.loader import render_to_string
-from django.core.urlresolvers import reverse
-from django.template import RequestContext
-from django.http import HttpResponseRedirect
+import six
 from django.contrib import messages
-from django.http import Http404
+from django.core.urlresolvers import reverse
+from django.http import Http404, HttpResponseRedirect
+from django.template import RequestContext
+from django.template.loader import render_to_string
+from django.utils.safestring import mark_safe
+from django.utils.translation import ugettext as _
 from requests.exceptions import HTTPError
 
 from sentry import options

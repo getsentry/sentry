@@ -1,24 +1,21 @@
 from __future__ import absolute_import
 
-import six
-import uuid
 import hmac
 import itertools
-
-from django.db import models
-from django.utils import timezone
-from django.template.defaultfilters import slugify
+import uuid
 from hashlib import sha256
-from sentry.constants import SentryAppStatus, SENTRY_APP_SLUG_MAX_LENGTH
+
+import six
+from django.db import models
+from django.template.defaultfilters import slugify
+from django.utils import timezone
+
+from sentry.constants import SENTRY_APP_SLUG_MAX_LENGTH, SentryAppStatus
+from sentry.db.models import (
+    ArrayField, BoundedPositiveIntegerField, EncryptedJsonField, FlexibleForeignKey, ParanoidModel,
+)
 from sentry.models import Organization
 from sentry.models.apiscopes import HasApiScopes
-from sentry.db.models import (
-    ArrayField,
-    BoundedPositiveIntegerField,
-    EncryptedJsonField,
-    FlexibleForeignKey,
-    ParanoidModel,
-)
 
 # When a developer selects to receive "<Resource> Webhooks" it really means
 # listening to a list of specific events. This is a mapping of what those

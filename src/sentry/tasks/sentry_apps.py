@@ -7,14 +7,14 @@ from django.core.urlresolvers import reverse
 from requests.exceptions import RequestException
 
 from sentry import features
+from sentry.api.serializers import AppPlatformEvent, serialize
 from sentry.http import safe_urlopen
-from sentry.tasks.base import instrumented_task, retry
-from sentry.utils.http import absolute_uri
-from sentry.api.serializers import serialize, AppPlatformEvent
 from sentry.models import (
-    SentryAppInstallation, Group, User, ServiceHook, ServiceHookProject, SentryApp,
+    Group, SentryApp, SentryAppInstallation, ServiceHook, ServiceHookProject, User,
 )
 from sentry.models.sentryapp import VALID_EVENTS
+from sentry.tasks.base import instrumented_task, retry
+from sentry.utils.http import absolute_uri
 
 logger = logging.Logger('sentry.tasks.sentry_apps')
 

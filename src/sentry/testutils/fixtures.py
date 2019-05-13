@@ -1,9 +1,9 @@
 from __future__ import absolute_import, print_function, unicode_literals
 
-from sentry.models import Activity, OrganizationMember, OrganizationMemberTeam
-
 import pytest
 from django.utils.functional import cached_property
+
+from sentry.models import Activity, OrganizationMember, OrganizationMemberTeam
 from sentry.testutils.factories import Factories
 
 

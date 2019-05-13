@@ -3,7 +3,9 @@ from __future__ import absolute_import
 import six
 
 from sentry.api.serializers import Serializer, register
-from sentry.models import AuthenticatorInterface, RecoveryCodeInterface, SmsInterface, TotpInterface, U2fInterface
+from sentry.models import (
+    AuthenticatorInterface, RecoveryCodeInterface, SmsInterface, TotpInterface, U2fInterface,
+)
 
 
 @register(AuthenticatorInterface)

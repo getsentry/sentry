@@ -1,20 +1,21 @@
 from __future__ import absolute_import
 
-# TODO(dcramer): this heavily inspired by pytest-selenium, and it's possible
-# we could simply inherit from the plugin at this point
-
 import logging
 import os
-import pytest
-
 from datetime import datetime
+
+import pytest
 from django.conf import settings
 from selenium import webdriver
 from selenium.common.exceptions import NoSuchElementException
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions
 from selenium.webdriver.common.action_chains import ActionChains
+from selenium.webdriver.support import expected_conditions
+from selenium.webdriver.support.ui import WebDriverWait
 from six.moves.urllib.parse import quote, urlparse
+
+# TODO(dcramer): this heavily inspired by pytest-selenium, and it's possible
+# we could simply inherit from the plugin at this point
+
 
 # if we're not running in a PR, we kill the PERCY_TOKEN because its a push
 # to a branch, and we dont want percy comparing things

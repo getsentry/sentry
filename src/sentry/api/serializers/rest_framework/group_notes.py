@@ -2,10 +2,10 @@ from __future__ import absolute_import
 
 from rest_framework import serializers
 
-from .list import ListField
 from sentry.api.fields.actor import ActorField
+from sentry.models import Team, User
 
-from sentry.models import User, Team
+from .list import ListField
 
 
 def seperate_actors(actors):

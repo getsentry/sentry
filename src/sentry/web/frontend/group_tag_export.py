@@ -4,9 +4,7 @@ from django.http import Http404
 
 from sentry import tagstore
 from sentry.api.base import EnvironmentMixin
-from sentry.models import (
-    Environment, EventUser, Group, get_group_with_redirect
-)
+from sentry.models import Environment, EventUser, Group, get_group_with_redirect
 from sentry.web.frontend.base import ProjectView
 from sentry.web.frontend.mixins.csv import CsvMixin
 

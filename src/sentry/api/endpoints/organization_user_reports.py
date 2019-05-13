@@ -1,22 +1,14 @@
 from __future__ import absolute_import
 
 from rest_framework.response import Response
-from sentry.api.bases.organization import (
-    OrganizationEndpoint,
-    OrganizationUserReportsPermission,
-)
+
 from sentry.api.bases import NoProjects, OrganizationEventsError
+from sentry.api.bases.organization import OrganizationEndpoint, OrganizationUserReportsPermission
 from sentry.api.paginator import DateTimePaginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models import UserReportWithGroupSerializer
-from sentry.models import (
-    GroupStatus,
-    UserReport,
-)
-from sentry.utils.apidocs import (
-    attach_scenarios,
-    scenario,
-)
+from sentry.models import GroupStatus, UserReport
+from sentry.utils.apidocs import attach_scenarios, scenario
 
 
 @scenario('ListOrganizationUserReports')

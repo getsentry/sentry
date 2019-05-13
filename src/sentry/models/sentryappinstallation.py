@@ -1,12 +1,12 @@
 from __future__ import absolute_import
 
-import six
 import uuid
 
+import six
 from django.db import models
 from django.utils import timezone
 
-from sentry.db.models import (FlexibleForeignKey, ParanoidModel)
+from sentry.db.models import FlexibleForeignKey, ParanoidModel
 
 
 def default_uuid():

@@ -7,14 +7,11 @@ from datetime import datetime
 import six
 from django.utils.functional import cached_property
 from parsimonious.exceptions import ParseError
-from parsimonious.nodes import Node
 from parsimonious.grammar import Grammar, NodeVisitor
+from parsimonious.nodes import Node
 
 from sentry.search.utils import (
-    parse_datetime_range,
-    parse_datetime_string,
-    parse_datetime_value,
-    InvalidQuery,
+    InvalidQuery, parse_datetime_range, parse_datetime_string, parse_datetime_value,
 )
 from sentry.utils.dates import to_timestamp
 from sentry.utils.snuba import SENTRY_SNUBA_MAP

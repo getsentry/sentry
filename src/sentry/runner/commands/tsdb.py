@@ -1,11 +1,11 @@
 from __future__ import absolute_import
 
+from collections import OrderedDict
+from datetime import datetime, timedelta
+
 import click
 import pytz
 import six
-
-from collections import OrderedDict
-from datetime import datetime, timedelta
 from dateutil.parser import parse
 
 from sentry.runner.decorators import configuration

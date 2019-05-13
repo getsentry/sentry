@@ -1,13 +1,13 @@
 from __future__ import absolute_import
 
-__all__ = ('ApiClient', )
-
 from django.core.urlresolvers import resolve
 from rest_framework.test import APIRequestFactory, force_authenticate
 
 from sentry.auth.superuser import Superuser
 from sentry.utils import json
 from sentry.utils.compat import implements_to_string
+
+__all__ = ('ApiClient', )
 
 
 @implements_to_string

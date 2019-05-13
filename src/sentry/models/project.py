@@ -10,24 +10,24 @@ from __future__ import absolute_import, print_function
 import logging
 import warnings
 from collections import defaultdict
+from datetime import datetime
+from uuid import uuid1
 
 import six
-from pytz import utc
-from datetime import datetime
 from bitfield import BitField
 from django.conf import settings
 from django.db import IntegrityError, models, transaction
 from django.db.models.signals import pre_delete
 from django.utils import timezone
-from django.utils.translation import ugettext_lazy as _
 from django.utils.http import urlencode
-from uuid import uuid1
+from django.utils.translation import ugettext_lazy as _
+from pytz import utc
 
 from sentry.app import locks
-from sentry.constants import ObjectStatus, RESERVED_PROJECT_SLUGS
+from sentry.constants import RESERVED_PROJECT_SLUGS, ObjectStatus
 from sentry.db.mixin import PendingDeletionMixin, delete_pending_deletion_option
 from sentry.db.models import (
-    BaseManager, BoundedPositiveIntegerField, FlexibleForeignKey, Model, sane_repr
+    BaseManager, BoundedPositiveIntegerField, FlexibleForeignKey, Model, sane_repr,
 )
 from sentry.db.models.utils import slugify_instance
 from sentry.utils.colors import get_hashed_color

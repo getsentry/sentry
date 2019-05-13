@@ -14,30 +14,28 @@ import abc
 import base64
 import logging
 import re
-import six
 import zlib
+from gzip import GzipFile
+from time import time
 
+import six
 from django.conf import settings
 from django.core.exceptions import SuspiciousOperation
 from django.utils.crypto import constant_time_compare
-from gzip import GzipFile
 from six import BytesIO
-from time import time
 
 from sentry import features
 from sentry.attachments import attachment_cache
 from sentry.cache import default_cache
 from sentry.models import ProjectKey
-from sentry.tasks.store import preprocess_event, \
-    preprocess_event_from_reprocessing
-from sentry.utils import kafka, json
+from sentry.tasks.store import preprocess_event, preprocess_event_from_reprocessing
+from sentry.utils import json, kafka
 from sentry.utils.auth import parse_auth_header
+from sentry.utils.canonical import CANONICAL_TYPES
 from sentry.utils.http import origin_from_request
-from sentry.utils.strings import decompress
 from sentry.utils.safe import get_path
 from sentry.utils.sdk import configure_scope
-from sentry.utils.canonical import CANONICAL_TYPES
-
+from sentry.utils.strings import decompress
 
 _dist_re = re.compile(r'^[a-zA-Z0-9_.-]+$')
 logger = logging.getLogger("sentry.api")

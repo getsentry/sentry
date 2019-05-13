@@ -4,7 +4,6 @@ from django.conf.urls import patterns, url
 
 from .webhook import GitHubEnterpriseWebhookEndpoint
 
-
 urlpatterns = patterns(
     '',
     url(r'^webhook/$', GitHubEnterpriseWebhookEndpoint.as_view()),

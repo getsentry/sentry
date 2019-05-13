@@ -5,13 +5,13 @@ from rest_framework import serializers
 from rest_framework.response import Response
 
 from sentry import roles
-from sentry.api.bases.organization import (OrganizationEndpoint, OrganizationPermission)
+from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.team import TeamWithProjectsSerializer
 from sentry.auth.superuser import is_active_superuser
 from sentry.models import (
-    AuditLogEntryEvent, OrganizationAccessRequest, OrganizationMember, OrganizationMemberTeam, Team
+    AuditLogEntryEvent, OrganizationAccessRequest, OrganizationMember, OrganizationMemberTeam, Team,
 )
 
 ERR_INSUFFICIENT_ROLE = 'You do not have permission to edit that user\'s membership.'

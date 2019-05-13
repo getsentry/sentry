@@ -8,15 +8,16 @@ sentry.interfaces.message
 
 from __future__ import absolute_import
 
-__all__ = ('Message', )
-
 import six
-
 from django.conf import settings
 
-from sentry.interfaces.base import Interface, InterfaceValidationError, prune_empty_keys, RUST_RENORMALIZED_DEFAULT
+from sentry.interfaces.base import (
+    RUST_RENORMALIZED_DEFAULT, Interface, InterfaceValidationError, prune_empty_keys,
+)
 from sentry.utils import json
 from sentry.utils.safe import trim
+
+__all__ = ('Message', )
 
 
 def stringify(value):

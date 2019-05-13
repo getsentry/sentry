@@ -2,19 +2,19 @@ from __future__ import absolute_import
 
 import six
 
+from sentry import options
+from sentry.api.bases.project import ProjectEndpoint
+from sentry.api.exceptions import ResourceDoesNotExist
+from sentry.lang.native.applecrashreport import AppleCrashReport
+from sentry.models import Event, SnubaEvent
+from sentry.utils.safe import get_path
+
 try:
     from django.http import (
         HttpResponse,
         CompatibleStreamingHttpResponse as StreamingHttpResponse)
 except ImportError:
     from django.http import HttpResponse, StreamingHttpResponse
-
-from sentry import options
-from sentry.api.bases.project import ProjectEndpoint
-from sentry.api.exceptions import ResourceDoesNotExist
-from sentry.models import Event, SnubaEvent
-from sentry.lang.native.applecrashreport import AppleCrashReport
-from sentry.utils.safe import get_path
 
 
 class EventAppleCrashReportEndpoint(ProjectEndpoint):

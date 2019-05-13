@@ -1,8 +1,9 @@
 from __future__ import absolute_import
-from django.core.urlresolvers import reverse
-from sentry.integrations.issues import IssueBasicMixin
-from sentry.integrations.exceptions import ApiError, IntegrationFormError
 
+from django.core.urlresolvers import reverse
+
+from sentry.integrations.exceptions import ApiError, IntegrationFormError
+from sentry.integrations.issues import IssueBasicMixin
 
 ISSUE_TYPES = (
     ('bug', 'Bug'), ('enhancement', 'Enhancement'), ('proposal', 'Proposal'), ('task', 'Task'),

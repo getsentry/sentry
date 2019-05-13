@@ -1,7 +1,7 @@
 from __future__ import absolute_import
 
-from sentry.tasks.base import instrumented_task
 from sentry.models import Project, ProjectDebugFile
+from sentry.tasks.base import instrumented_task
 
 
 @instrumented_task(

@@ -12,7 +12,7 @@ import logging
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
 from django.http import HttpResponse
-from django.template import loader, RequestContext, Context
+from django.template import Context, RequestContext, loader
 
 from sentry.api.serializers.base import serialize
 from sentry.auth import access

@@ -1,7 +1,5 @@
 from __future__ import absolute_import
 
-__all__ = ['from_user', 'from_member', 'DEFAULT']
-
 import warnings
 
 from django.conf import settings
@@ -11,9 +9,11 @@ from sentry import roles
 from sentry.auth.superuser import is_active_superuser
 from sentry.auth.system import is_system_auth
 from sentry.models import (
-    AuthIdentity, AuthProvider, OrganizationMember, Project, ProjectStatus,
-    SentryApp, UserPermission
+    AuthIdentity, AuthProvider, OrganizationMember, Project, ProjectStatus, SentryApp,
+    UserPermission,
 )
+
+__all__ = ['from_user', 'from_member', 'DEFAULT']
 
 
 def _sso_params(member):

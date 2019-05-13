@@ -4,12 +4,10 @@ import six
 
 from sentry import analytics
 from sentry.mediators import Mediator, Param, service_hooks
-from sentry.models import (
-    AuditLogEntryEvent, ApiGrant, SentryApp, SentryAppInstallation
-)
-from sentry.utils.cache import memoize
-from sentry.utils.audit import create_audit_entry
+from sentry.models import ApiGrant, AuditLogEntryEvent, SentryApp, SentryAppInstallation
 from sentry.tasks.sentry_apps import installation_webhook
+from sentry.utils.audit import create_audit_entry
+from sentry.utils.cache import memoize
 
 
 class Creator(Mediator):

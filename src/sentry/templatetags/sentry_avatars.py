@@ -8,7 +8,7 @@ from templatetag_sugar.parser import Constant, Optional, Variable
 from templatetag_sugar.register import tag
 
 from sentry.models import User, UserAvatar
-from sentry.utils.avatar import (get_email_avatar, get_gravatar_url, get_letter_avatar)
+from sentry.utils.avatar import get_email_avatar, get_gravatar_url, get_letter_avatar
 
 register = template.Library()
 

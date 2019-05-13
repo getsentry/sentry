@@ -4,9 +4,8 @@ from datetime import timedelta
 
 from django.utils import timezone
 
-from sentry.search.utils import parse_datetime_string, InvalidQuery
+from sentry.search.utils import InvalidQuery, parse_datetime_string
 from sentry.utils.dates import parse_stats_period
-
 
 MAX_STATS_PERIOD = timedelta(days=90)
 

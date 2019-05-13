@@ -3,15 +3,8 @@ from __future__ import absolute_import
 from django.db import transaction
 
 from sentry.api.event_search import get_snuba_query_args
-from sentry.incidents.models import (
-    Incident,
-    IncidentGroup,
-    IncidentProject,
-)
-from sentry.utils.snuba import (
-    raw_query,
-    SnubaTSResult,
-)
+from sentry.incidents.models import Incident, IncidentGroup, IncidentProject
+from sentry.utils.snuba import SnubaTSResult, raw_query
 
 
 def create_incident(

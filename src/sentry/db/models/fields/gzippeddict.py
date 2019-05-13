@@ -9,13 +9,13 @@ sentry.db.models.fields.gzippeddict
 from __future__ import absolute_import, print_function
 
 import logging
-import six
 
+import six
 from django.conf import settings
 from django.db import models
 
 from sentry.utils.compat import pickle
-from sentry.utils.strings import decompress, compress
+from sentry.utils.strings import compress, decompress
 
 __all__ = ('GzippedDictField', )
 

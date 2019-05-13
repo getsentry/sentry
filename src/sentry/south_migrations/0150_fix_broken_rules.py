@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
-from south.utils import datetime_utils as datetime
-from south.db import db
-from south.v2 import DataMigration
 from django.db import models
+from south.db import db
+from south.utils import datetime_utils as datetime
+from south.v2 import DataMigration
 
 NEW_RULE_VALID = "eJxljbsOwjAMRXf/SDJZlDcjQjCy5AOqKklRpMqJ4oDUv8epUjGw+drX52iXOjDKRnKhhEisIG1BT2kH2qW9nIKT1UEG9lTyjPk9ecbfA44hc+nZe+r9Rzr4qAsj+V7jbW0K5gg8sFGDXVWnqjpX1QVef5LWQ4oljHOjP5ewoK+2cbtNBeMX2PhGnQ=="
 NEW_RULE_INVALID = "{'conditions': [{'id': 'sentry.rules.conditions.first_seen_event.FirstSeenEventCondition'}], 'actions': [{'id': 'sentry.rules.actions.notify_event.NotifyEventAction'}]}"

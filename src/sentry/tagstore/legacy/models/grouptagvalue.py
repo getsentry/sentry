@@ -7,12 +7,11 @@ sentry.tagstore.legacy.models.grouptagvalue
 """
 from __future__ import absolute_import
 
-from django.db import models, router, transaction, DataError
+from django.db import DataError, models, router, transaction
 from django.utils import timezone
 
 from sentry.constants import MAX_TAG_KEY_LENGTH, MAX_TAG_VALUE_LENGTH
-from sentry.db.models import (
-    Model, BoundedPositiveIntegerField, BaseManager, sane_repr)
+from sentry.db.models import BaseManager, BoundedPositiveIntegerField, Model, sane_repr
 
 
 class GroupTagValue(Model):

@@ -12,8 +12,8 @@ from multiprocessing import cpu_count
 
 import click
 
-from sentry.runner.decorators import configuration, log_options
 from sentry.bgtasks.api import managed_bgtasks
+from sentry.runner.decorators import configuration, log_options
 
 
 class AddressParamType(click.ParamType):

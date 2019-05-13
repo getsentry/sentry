@@ -9,19 +9,17 @@ from __future__ import absolute_import
 
 import itertools
 import logging
+
 import six
-
-import sentry
-
 from django.core.urlresolvers import reverse
 from django.utils import dateformat
 from django.utils.encoding import force_text
 from django.utils.safestring import mark_safe
 
+import sentry
 from sentry import options
-from sentry.models import ProjectOwnership, User
-
 from sentry.digests.utilities import get_digest_metadata, get_personalized_digests
+from sentry.models import ProjectOwnership, User
 from sentry.plugins import register
 from sentry.plugins.base.structs import Notification
 from sentry.plugins.bases.notify import NotificationPlugin

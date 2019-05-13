@@ -1,10 +1,11 @@
 from __future__ import absolute_import
 
 from base64 import b64decode
+
 from django.conf import settings
+from PIL import Image
 from rest_framework import serializers
 from rest_framework.exceptions import APIException
-from PIL import Image
 from six import BytesIO
 
 MIN_DIMENSION = 256

@@ -9,19 +9,13 @@ from hashlib import md5
 from django.db.models import Q
 from django.utils import timezone
 
-from sentry import (
-    options,
-    quotas,
-)
-from sentry.api.event_search import (
-    convert_search_filter_to_snuba_query,
-    InvalidSearchQuery,
-)
-from sentry.api.paginator import DateTimePaginator, SequencePaginator, Paginator
+from sentry import options, quotas
+from sentry.api.event_search import InvalidSearchQuery, convert_search_filter_to_snuba_query
+from sentry.api.paginator import DateTimePaginator, Paginator, SequencePaginator
 from sentry.event_manager import ALLOWED_FUTURE_DELTA
 from sentry.models import Group
 from sentry.search.base import SearchBackend
-from sentry.utils import snuba, metrics
+from sentry.utils import metrics, snuba
 from sentry.utils.db import is_postgres
 
 logger = logging.getLogger('sentry.search.snuba')

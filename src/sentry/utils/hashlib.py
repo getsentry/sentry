@@ -7,10 +7,10 @@ sentry.utils.hashlib
 """
 from __future__ import absolute_import
 
-import six
 from hashlib import md5 as _md5
 from hashlib import sha1 as _sha1
 
+import six
 from django.utils.encoding import force_bytes
 
 

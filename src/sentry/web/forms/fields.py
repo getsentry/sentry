@@ -8,12 +8,9 @@ sentry.web.forms.fields
 from __future__ import absolute_import
 
 import six
-
-from django.forms.widgets import RadioFieldRenderer, TextInput, Widget
+from django.forms import CharField, EmailField, Field, TypedChoiceField, ValidationError
 from django.forms.util import flatatt
-from django.forms import (
-    Field, CharField, EmailField, TypedChoiceField, ValidationError
-)
+from django.forms.widgets import RadioFieldRenderer, TextInput, Widget
 from django.utils.encoding import force_text
 from django.utils.html import format_html
 from django.utils.safestring import mark_safe

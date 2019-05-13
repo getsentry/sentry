@@ -1,16 +1,20 @@
 from __future__ import absolute_import
 
 import re
+
 import six
 
-from sentry.grouping.strategies.configurations import CONFIGURATIONS, DEFAULT_CONFIG
 from sentry.grouping.component import GroupingComponent
-from sentry.grouping.variants import ChecksumVariant, FallbackVariant, \
-    ComponentVariant, CustomFingerprintVariant, SaltedComponentVariant
-from sentry.grouping.enhancer import Enhancements, InvalidEnhancerConfig, \
-    DEFAULT_ENHANCEMENTS_CONFIG, DEFAULT_ENHANCEMENT_BASE, ENHANCEMENT_BASES
+from sentry.grouping.enhancer import (
+    DEFAULT_ENHANCEMENT_BASE, DEFAULT_ENHANCEMENTS_CONFIG, ENHANCEMENT_BASES, Enhancements,
+    InvalidEnhancerConfig,
+)
+from sentry.grouping.strategies.configurations import CONFIGURATIONS, DEFAULT_CONFIG
 from sentry.grouping.utils import DEFAULT_FINGERPRINT_VALUES, hash_from_values
-
+from sentry.grouping.variants import (
+    ChecksumVariant, ComponentVariant, CustomFingerprintVariant, FallbackVariant,
+    SaltedComponentVariant,
+)
 
 HASH_RE = re.compile(r'^[0-9a-f]{32}$')
 

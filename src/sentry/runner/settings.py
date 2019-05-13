@@ -8,6 +8,7 @@ sentry.runner.settings
 from __future__ import absolute_import, print_function
 
 import os
+
 import click
 
 DEFAULT_SETTINGS_MODULE = 'sentry.conf.server'

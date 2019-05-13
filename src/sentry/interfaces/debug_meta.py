@@ -1,13 +1,16 @@
 from __future__ import absolute_import
 
-import six
 import uuid
+
+import six
+from symbolic import normalize_debug_id, parse_addr
+
+from sentry.interfaces.base import (
+    RUST_RENORMALIZED_DEFAULT, Interface, InterfaceValidationError, prune_empty_keys,
+)
 
 __all__ = ('DebugMeta', )
 
-from sentry.interfaces.base import Interface, InterfaceValidationError, prune_empty_keys, RUST_RENORMALIZED_DEFAULT
-
-from symbolic import parse_addr, normalize_debug_id
 
 image_types = {}
 

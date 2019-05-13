@@ -2,13 +2,13 @@ from __future__ import absolute_import
 
 from django.db import transaction
 from django.http import Http404, HttpResponseRedirect
-from django.views.decorators.cache import never_cache
 from django.utils.decorators import method_decorator
+from django.views.decorators.cache import never_cache
 
 from sentry.models import Group, GroupSubscription, OrganizationMember
+from sentry.utils.http import absolute_uri
 from sentry.web.decorators import signed_auth_required
 from sentry.web.frontend.base import BaseView
-from sentry.utils.http import absolute_uri
 
 signed_auth_required_m = method_decorator(signed_auth_required)
 

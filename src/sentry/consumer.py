@@ -1,7 +1,6 @@
 from __future__ import absolute_import, print_function
 
 from batching_kafka_consumer import AbstractBatchWorker
-
 from django.conf import settings
 
 import sentry.tasks.store as store_tasks

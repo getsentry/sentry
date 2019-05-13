@@ -7,7 +7,7 @@ from sentry.api.bases import GroupEndpoint
 from sentry.api.serializers import serialize
 from sentry.models import Group, GroupHash
 from sentry.tasks.unmerge import unmerge
-from sentry.utils.apidocs import scenario, attach_scenarios
+from sentry.utils.apidocs import attach_scenarios, scenario
 
 
 @scenario('ListAvailableHashes')

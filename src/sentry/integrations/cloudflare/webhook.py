@@ -2,11 +2,11 @@ from __future__ import absolute_import
 
 import hmac
 import logging
-import six
-
-from django.utils.crypto import constant_time_compare
 from functools import wraps
 from hashlib import sha256
+
+import six
+from django.utils.crypto import constant_time_compare
 from rest_framework.response import Response
 
 from sentry import options

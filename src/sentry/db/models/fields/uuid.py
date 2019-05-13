@@ -1,13 +1,13 @@
 from __future__ import absolute_import, print_function
 
 import importlib
-import six
+from uuid import UUID, uuid4
 
+import six
 from django.conf import settings
 from django.db import models
 from django.db.models.fields import NOT_PROVIDED
 from psycopg2.extensions import register_adapter
-from uuid import uuid4, UUID
 
 SOUTH = 'south' in settings.INSTALLED_APPS
 

@@ -5,7 +5,6 @@ from django.conf.urls import patterns, url
 from .metadata import CloudflareMetadataEndpoint
 from .webhook import CloudflareWebhookEndpoint
 
-
 urlpatterns = patterns(
     '',
     url(r'^metadata/$', CloudflareMetadataEndpoint.as_view()),

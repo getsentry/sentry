@@ -2,10 +2,10 @@
 # process.  Thus we do not want to import non stdlib things here.
 from __future__ import absolute_import
 
-import os
-import sys
 import json
 import logging
+import os
+import sys
 
 import sentry
 

@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 import logging
+
 import six
 
 from sentry.integrations.exceptions import ApiError, IntegrationError

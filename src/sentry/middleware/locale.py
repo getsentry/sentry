@@ -9,7 +9,6 @@ sentry.middleware.locale
 from __future__ import absolute_import
 
 import pytz
-
 from django.conf import settings
 from django.middleware.locale import LocaleMiddleware
 from django.utils.translation import _trans

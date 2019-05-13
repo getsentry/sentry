@@ -6,7 +6,8 @@ from django.utils import timezone
 
 from sentry import analytics
 from sentry.models import (
-    Activity, Commit, Group, GroupAssignee, GroupLink, GroupSubscription, GroupSubscriptionReason, GroupStatus, Release, Repository, PullRequest, UserOption
+    Activity, Commit, Group, GroupAssignee, GroupLink, GroupStatus, GroupSubscription,
+    GroupSubscriptionReason, PullRequest, Release, Repository, UserOption,
 )
 from sentry.signals import issue_resolved
 from sentry.tasks.clear_expired_resolutions import clear_expired_resolutions

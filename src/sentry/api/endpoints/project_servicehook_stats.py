@@ -1,8 +1,8 @@
 from __future__ import absolute_import
 
-import six
-
 from collections import OrderedDict
+
+import six
 
 from sentry import tsdb
 from sentry.api.base import StatsMixin

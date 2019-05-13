@@ -2,10 +2,10 @@ from __future__ import absolute_import
 
 from rest_framework.response import Response
 
-from sentry.plugins import plugins
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.plugin import PluginSerializer
+from sentry.plugins import plugins
 
 
 class ProjectPluginsEndpoint(ProjectEndpoint):

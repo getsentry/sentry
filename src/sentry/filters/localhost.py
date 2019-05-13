@@ -1,9 +1,11 @@
 from __future__ import absolute_import
 
-from .base import Filter
 from six.moves.urllib.parse import urlparse
+
 from sentry.utils.data_filters import FilterStatKeys
 from sentry.utils.safe import get_path
+
+from .base import Filter
 
 LOCAL_IPS = frozenset(['127.0.0.1', '::1'])
 LOCAL_DOMAINS = frozenset(['127.0.0.1', 'localhost'])

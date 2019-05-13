@@ -9,11 +9,9 @@ sentry.db.models.fields.citext
 from __future__ import absolute_import, print_function
 
 import six
-
 from django.conf import settings
 from django.db import connections, models
 from django.db.models.signals import pre_syncdb
-
 
 __all__ = ('CITextField', 'CICharField', 'CIEmailField')
 

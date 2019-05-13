@@ -2,7 +2,6 @@ from __future__ import absolute_import
 
 import uuid
 
-
 REPROCESSING_OPTION = 'sentry:processing-rev'
 
 

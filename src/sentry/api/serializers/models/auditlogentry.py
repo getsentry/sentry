@@ -1,8 +1,8 @@
 from __future__ import absolute_import
 
 import six
-
 from bitfield.types import BitHandler
+
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.models import AuditLogEntry
 

@@ -4,10 +4,10 @@ from django.db import IntegrityError, transaction
 from rest_framework import serializers
 from rest_framework.response import Response
 
-from sentry.api.bases.organization import (OrganizationEndpoint, OrganizationPermission)
+from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
-from sentry.models import (AuditLogEntryEvent, OrganizationAccessRequest, OrganizationMemberTeam)
+from sentry.models import AuditLogEntryEvent, OrganizationAccessRequest, OrganizationMemberTeam
 
 
 class AccessRequestPermission(OrganizationPermission):

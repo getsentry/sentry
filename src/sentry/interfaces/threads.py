@@ -1,6 +1,6 @@
 from __future__ import absolute_import
 
-from sentry.interfaces.base import Interface, prune_empty_keys, RUST_RENORMALIZED_DEFAULT
+from sentry.interfaces.base import RUST_RENORMALIZED_DEFAULT, Interface, prune_empty_keys
 from sentry.interfaces.stacktrace import Stacktrace
 from sentry.utils.safe import trim
 

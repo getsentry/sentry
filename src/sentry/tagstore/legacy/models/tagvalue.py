@@ -12,7 +12,7 @@ from django.utils import timezone
 
 from sentry.constants import MAX_TAG_KEY_LENGTH, MAX_TAG_VALUE_LENGTH
 from sentry.db.models import (
-    Model, BoundedPositiveIntegerField, GzippedDictField, BaseManager, sane_repr
+    BaseManager, BoundedPositiveIntegerField, GzippedDictField, Model, sane_repr,
 )
 
 

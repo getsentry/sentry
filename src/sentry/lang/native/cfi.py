@@ -1,20 +1,20 @@
 from __future__ import absolute_import
 
 import logging
-import six
 
+import six
 from symbolic import FrameInfoMap, FrameTrust, ObjectLookup
 
 from sentry.attachments import attachment_cache
 from sentry.coreapi import cache_key_for_event
-from sentry.lang.native.minidump import process_minidump, frames_from_minidump_thread, \
-    MINIDUMP_ATTACHMENT_TYPE
+from sentry.lang.native.minidump import (
+    MINIDUMP_ATTACHMENT_TYPE, frames_from_minidump_thread, process_minidump,
+)
 from sentry.lang.native.utils import parse_addr, rebase_addr
 from sentry.models import Project, ProjectDebugFile
 from sentry.utils.cache import cache
 from sentry.utils.hashlib import hash_values
 from sentry.utils.safe import get_path
-
 
 logger = logging.getLogger('sentry.minidumps')
 

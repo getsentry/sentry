@@ -10,14 +10,13 @@ from __future__ import absolute_import, print_function, unicode_literals
 import os
 import re
 import sys
-import yaml
-import sentry
+from datetime import datetime
 
 import pytest
 import six
+import yaml
 
-from datetime import datetime
-
+import sentry
 
 DEFAULT_EVENT_DATA = {
     'extra': {

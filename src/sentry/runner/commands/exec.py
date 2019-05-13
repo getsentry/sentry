@@ -7,9 +7,10 @@ sentry.runner.commands.exec
 """
 from __future__ import absolute_import, print_function
 
-import six
 import sys
+
 import click
+import six
 
 # If this changes, make sure to also update in the `__doc__`
 SCRIPT_TEMPLATE = u"""\

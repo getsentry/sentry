@@ -1,11 +1,11 @@
 from __future__ import absolute_import
 
-import re
-import six
 import logging
 import posixpath
-
+import re
 from collections import namedtuple
+
+import six
 from symbolic import parse_addr
 
 from sentry.interfaces.contexts import DeviceContextType

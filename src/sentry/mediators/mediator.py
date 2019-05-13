@@ -2,14 +2,15 @@ from __future__ import absolute_import
 
 import datetime
 import logging
-import six
-import sentry
-
 from contextlib import contextmanager
+
+import six
 from django.db import transaction
 
+import sentry
 from sentry.utils.cache import memoize
 from sentry.utils.functional import compact
+
 from .param import Param
 
 

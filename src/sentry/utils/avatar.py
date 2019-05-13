@@ -11,7 +11,6 @@ selected, the svg, etc) will also need to be changed there.
 from __future__ import absolute_import
 
 import six
-
 from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.core.validators import validate_email
@@ -19,8 +18,8 @@ from django.utils.encoding import force_text
 from django.utils.html import escape
 from six.moves.urllib.parse import urlencode
 
-from sentry.utils.hashlib import md5_text
 from sentry.http import safe_urlopen
+from sentry.utils.hashlib import md5_text
 
 
 def get_gravatar_url(email, size=None, default='mm'):

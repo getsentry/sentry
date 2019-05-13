@@ -8,8 +8,8 @@ sentry.utils.imports
 from __future__ import absolute_import
 
 import pkgutil
-import six
 
+import six
 
 MODEL_MOVES = {
     'sentry.models.tagkey.TagKey': 'sentry.tagstore.legacy.models.tagkey.TagKey',

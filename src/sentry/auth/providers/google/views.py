@@ -5,9 +5,7 @@ import logging
 from sentry.auth.view import AuthView, ConfigureView
 from sentry.utils import json
 
-from .constants import (
-    DOMAIN_BLOCKLIST, ERR_INVALID_DOMAIN, ERR_INVALID_RESPONSE,
-)
+from .constants import DOMAIN_BLOCKLIST, ERR_INVALID_DOMAIN, ERR_INVALID_RESPONSE
 from .utils import urlsafe_b64decode
 
 logger = logging.getLogger('sentry.auth.google')

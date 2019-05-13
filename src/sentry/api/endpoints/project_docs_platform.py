@@ -1,14 +1,13 @@
 from __future__ import absolute_import
 
 import six
-
-from sentry.utils.http import absolute_uri
-from rest_framework.response import Response
 from django.core.urlresolvers import reverse
+from rest_framework.response import Response
 
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.models import ProjectKey
+from sentry.utils.http import absolute_uri
 from sentry.utils.integrationdocs import load_doc
 
 

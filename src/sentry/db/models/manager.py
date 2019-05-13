@@ -9,16 +9,16 @@ sentry.db.models.manager
 from __future__ import absolute_import, print_function
 
 import logging
-import six
 import threading
 import weakref
 
+import six
 from django.conf import settings
 from django.core.exceptions import ObjectDoesNotExist
 from django.db import router
 from django.db.models import Model
 from django.db.models.manager import Manager, QuerySet
-from django.db.models.signals import (post_save, post_delete, post_init, class_prepared)
+from django.db.models.signals import class_prepared, post_delete, post_init, post_save
 from django.utils.encoding import smart_text
 
 from sentry import nodestore

@@ -9,12 +9,9 @@ from sentry.api.base import DocSection
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
+from sentry.loader.browsersdkversion import DEFAULT_VERSION, get_browser_sdk_version_choices
 from sentry.models import AuditLogEntryEvent, ProjectKey, ProjectKeyStatus
-from sentry.utils.apidocs import scenario, attach_scenarios
-from sentry.loader.browsersdkversion import (
-    DEFAULT_VERSION,
-    get_browser_sdk_version_choices
-)
+from sentry.utils.apidocs import attach_scenarios, scenario
 
 
 @scenario('DeleteClientKey')

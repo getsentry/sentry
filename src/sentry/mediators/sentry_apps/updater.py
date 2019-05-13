@@ -1,14 +1,13 @@
 from __future__ import absolute_import
 
-import six
-
 from collections import Iterable
 
+import six
+
 from sentry import analytics
-from sentry.coreapi import APIError
 from sentry.constants import SentryAppStatus
-from sentry.mediators import Mediator, Param
-from sentry.mediators import service_hooks
+from sentry.coreapi import APIError
+from sentry.mediators import Mediator, Param, service_hooks
 from sentry.mediators.param import if_param
 from sentry.models import SentryAppComponent, ServiceHook
 from sentry.models.sentryapp import REQUIRED_EVENT_PERMISSIONS

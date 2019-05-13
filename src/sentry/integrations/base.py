@@ -1,5 +1,22 @@
 from __future__ import absolute_import
 
+import logging
+import sys
+from collections import namedtuple
+from enum import Enum
+
+import six
+
+from sentry.exceptions import InvalidIdentity
+from sentry.models import Identity, OrganizationIntegration
+from sentry.pipeline import PipelineProvider
+
+from .constants import ERR_INTERNAL, ERR_UNAUTHORIZED, ERR_UNSUPPORTED_RESPONSE_TYPE
+from .exceptions import (
+    ApiError, ApiHostError, ApiUnauthorized, IntegrationError, IntegrationFormError,
+    UnsupportedResponseType,
+)
+
 __all__ = [
     'IntegrationInstallation',
     'IntegrationFeatures',
@@ -7,23 +24,6 @@ __all__ = [
     'IntegrationMetadata',
     'FeatureDescription',
 ]
-
-import logging
-import six
-import sys
-
-from collections import namedtuple
-from enum import Enum
-
-from sentry.exceptions import InvalidIdentity
-from sentry.pipeline import PipelineProvider
-
-from .exceptions import (
-    ApiHostError, ApiError, ApiUnauthorized, IntegrationError,
-    IntegrationFormError, UnsupportedResponseType
-)
-from .constants import ERR_UNAUTHORIZED, ERR_INTERNAL, ERR_UNSUPPORTED_RESPONSE_TYPE
-from sentry.models import Identity, OrganizationIntegration
 
 
 FeatureDescription = namedtuple('FeatureDescription', [

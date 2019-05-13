@@ -6,7 +6,7 @@ from sentry.api.bases.group import GroupEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.tagvalue import UserTagValueSerializer
-from sentry.models import Group, Environment
+from sentry.models import Environment, Group
 from sentry.utils.apidocs import scenario
 
 

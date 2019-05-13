@@ -2,8 +2,8 @@ from __future__ import absolute_import
 
 from sentry import features
 from sentry.api.base import Endpoint
-from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.bases.project import ProjectPermission
+from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.models import Monitor, Project, ProjectStatus
 from sentry.utils.sdk import configure_scope
 

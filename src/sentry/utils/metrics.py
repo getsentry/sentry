@@ -1,15 +1,15 @@
 from __future__ import absolute_import
 
-__all__ = ['timing', 'incr']
-
 import logging
-
 from contextlib import contextmanager
-from django.conf import settings
 from random import random
-from time import time
 from threading import Thread
+from time import time
+
+from django.conf import settings
 from six.moves.queue import Queue
+
+__all__ = ['timing', 'incr']
 
 
 metrics_skip_internal_prefixes = tuple(settings.SENTRY_METRICS_SKIP_INTERNAL_PREFIXES)

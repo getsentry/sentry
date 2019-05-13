@@ -10,25 +10,24 @@ from __future__ import absolute_import
 
 import logging
 from datetime import datetime
-import six
-
 from time import time
+
+import six
 from django.conf import settings
 from django.utils import timezone
 
 from sentry import features, reprocessing
 from sentry.attachments import attachment_cache
 from sentry.cache import default_cache
+from sentry.models import Activity, EventAttachment, File, Project, ProjectOption
+from sentry.stacktraces.processing import process_stacktraces, should_process_for_stacktraces
 from sentry.tasks.base import instrumented_task
 from sentry.utils import json, kafka, metrics
-from sentry.utils.safe import safe_execute
-from sentry.stacktraces.processing import process_stacktraces, \
-    should_process_for_stacktraces
+from sentry.utils.canonical import CANONICAL_TYPES, CanonicalKeyDict
 from sentry.utils.data_filters import FilterStatKeys
-from sentry.utils.canonical import CanonicalKeyDict, CANONICAL_TYPES
 from sentry.utils.dates import to_datetime
+from sentry.utils.safe import safe_execute
 from sentry.utils.sdk import configure_scope
-from sentry.models import EventAttachment, File, ProjectOption, Activity, Project
 
 error_logger = logging.getLogger('sentry.errors.events')
 info_logger = logging.getLogger('sentry.store')

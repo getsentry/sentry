@@ -1,23 +1,15 @@
 from __future__ import absolute_import
 
-import six
-
 from datetime import datetime
+
+import six
 from django.utils import timezone
 from semaphore import meta_with_chunks
 
 from sentry.api.serializers import Serializer, register, serialize
-from sentry.models import (
-    Event,
-    EventError,
-    EventAttachment,
-    Release,
-    UserReport,
-    SnubaEvent
-)
+from sentry.models import Event, EventAttachment, EventError, Release, SnubaEvent, UserReport
 from sentry.search.utils import convert_user_tag_to_query
 from sentry.utils.safe import get_path
-
 
 CRASH_FILE_TYPES = set(['event.minidump'])
 

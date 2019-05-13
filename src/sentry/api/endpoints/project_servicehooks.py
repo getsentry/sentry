@@ -10,7 +10,7 @@ from sentry.api.serializers import serialize
 from sentry.api.validators import ServiceHookValidator
 from sentry.mediators import service_hooks
 from sentry.models import AuditLogEntryEvent, ObjectStatus, ServiceHook
-from sentry.utils.apidocs import scenario, attach_scenarios
+from sentry.utils.apidocs import attach_scenarios, scenario
 
 
 @scenario('ListServiceHooks')

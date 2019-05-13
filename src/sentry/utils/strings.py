@@ -10,10 +10,10 @@ from __future__ import absolute_import
 import base64
 import codecs
 import re
-import six
 import string
 import zlib
 
+import six
 from django.utils.encoding import force_text, smart_text
 
 _word_sep_re = re.compile(r'[\s.;,_-]+(?u)')

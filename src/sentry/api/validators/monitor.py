@@ -1,15 +1,14 @@
 from __future__ import absolute_import
 
-import six
-
 from collections import OrderedDict
+
+import six
 from croniter import croniter
 from django.core.exceptions import ValidationError
 from rest_framework import serializers
 
-from sentry.models import MonitorStatus, MonitorType, ScheduleType
 from sentry.api.serializers.rest_framework.project import ProjectField
-
+from sentry.models import MonitorStatus, MonitorType, ScheduleType
 
 SCHEDULE_TYPES = OrderedDict([
     ('crontab', ScheduleType.CRONTAB),

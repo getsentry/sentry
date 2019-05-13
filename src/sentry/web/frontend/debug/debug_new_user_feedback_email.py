@@ -3,11 +3,10 @@ from __future__ import absolute_import
 from django.views.generic import View
 
 from sentry.models import Organization, Project
-
-from .mail import MailPreview
-
 from sentry.utils.http import absolute_uri
 from sentry.utils.samples import create_sample_event
+
+from .mail import MailPreview
 
 
 class DebugNewUserFeedbackEmailView(View):

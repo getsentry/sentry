@@ -1,17 +1,14 @@
 from __future__ import absolute_import
 
-import six
-
 from collections import defaultdict
 
-from sentry.api.bases.user import UserEndpoint
-from sentry.models import UserOption, UserOptionValue
-
-from sentry.api.serializers import serialize, Serializer
-
+import six
+from rest_framework import serializers
 from rest_framework.response import Response
 
-from rest_framework import serializers
+from sentry.api.bases.user import UserEndpoint
+from sentry.api.serializers import Serializer, serialize
+from sentry.models import UserOption, UserOptionValue
 
 USER_OPTION_SETTINGS = {
     'deployNotifications': {

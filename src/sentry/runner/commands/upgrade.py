@@ -9,8 +9,8 @@ from __future__ import absolute_import, print_function
 
 import click
 import django
-
 from django.conf import settings
+
 from sentry.runner.decorators import configuration
 
 DJANGO_17 = django.VERSION[0] > 1 or (django.VERSION[0] == 1 and django.VERSION[1] >= 7)

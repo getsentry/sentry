@@ -38,9 +38,9 @@ by the rule's logic. Each rule condition may be associated with a form.
 from __future__ import absolute_import
 
 import logging
-import six
-
 from collections import namedtuple
+
+import six
 
 # Encapsulates a reference to the callback, including arguments. The `key`
 # attribute may be specifically used to key the callbacks when they are

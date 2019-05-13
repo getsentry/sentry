@@ -3,10 +3,7 @@ from __future__ import absolute_import
 from rest_framework.response import Response
 
 from sentry import analytics
-from sentry.api.bases.organization import (
-    OrganizationEndpoint,
-    OrganizationSearchPermission,
-)
+from sentry.api.bases.organization import OrganizationEndpoint, OrganizationSearchPermission
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.models import SavedSearch
 from sentry.models.search_common import SearchType

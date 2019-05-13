@@ -2,8 +2,8 @@ from __future__ import absolute_import
 
 from rest_framework import serializers
 
-from sentry.api.serializers.rest_framework import CommitSerializer, ListField
 from sentry.api.fields.user import UserField
+from sentry.api.serializers.rest_framework import CommitSerializer, ListField
 from sentry.constants import VERSION_LENGTH
 from sentry.models import Release
 

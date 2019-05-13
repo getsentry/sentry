@@ -2,11 +2,11 @@ from __future__ import absolute_import
 
 from rest_framework.response import Response
 
-from sentry.auth.superuser import is_active_superuser
 from sentry.api.bases import SentryAppsBaseEndpoint
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework import SentryAppSerializer
+from sentry.auth.superuser import is_active_superuser
 from sentry.constants import SentryAppStatus
 from sentry.features.helpers import requires_feature
 from sentry.mediators.sentry_apps import Creator

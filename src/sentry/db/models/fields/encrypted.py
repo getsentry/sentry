@@ -1,17 +1,17 @@
 from __future__ import absolute_import
 
-__all__ = (
-    'EncryptedCharField', 'EncryptedJsonField', 'EncryptedPickledObjectField', 'EncryptedTextField',
-)
-
 import six
-
 from django.conf import settings
 from django.db import models
 from django.db.models import CharField, TextField
 from jsonfield import JSONField
 from picklefield.fields import PickledObjectField
+
 from sentry.utils.encryption import decrypt, encrypt
+
+__all__ = (
+    'EncryptedCharField', 'EncryptedJsonField', 'EncryptedPickledObjectField', 'EncryptedTextField',
+)
 
 
 class EncryptedCharField(CharField):

@@ -1,8 +1,8 @@
 from __future__ import absolute_import
 
 import logging
-import requests
 
+import requests
 from six.moves.urllib.parse import quote
 
 from sentry import options

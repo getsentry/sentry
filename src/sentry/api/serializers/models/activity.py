@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 import functools
+
 import six
 
 from sentry.api.serializers import Serializer, register, serialize

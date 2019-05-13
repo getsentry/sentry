@@ -1,5 +1,6 @@
 from __future__ import absolute_import
-from sentry.api.serializers import register, Serializer
+
+from sentry.api.serializers import Serializer, register
 from sentry.models import ProjectPlatform
 
 

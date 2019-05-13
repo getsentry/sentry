@@ -3,9 +3,9 @@ from __future__ import absolute_import
 import logging
 
 from django.conf import settings
-from django.views.generic import View
-from django.template import Context, loader
 from django.http import HttpResponseServerError
+from django.template import Context, loader
+from django.views.generic import View
 
 from sentry.models import ProjectKey
 from sentry.utils import json

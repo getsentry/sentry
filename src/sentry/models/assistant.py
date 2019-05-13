@@ -3,9 +3,7 @@ from __future__ import absolute_import
 from django.conf import settings
 from django.db import models
 
-from sentry.db.models import (
-    BoundedPositiveIntegerField, FlexibleForeignKey, Model, sane_repr
-)
+from sentry.db.models import BoundedPositiveIntegerField, FlexibleForeignKey, Model, sane_repr
 
 
 class AssistantActivity(Model):

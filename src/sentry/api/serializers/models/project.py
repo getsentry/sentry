@@ -1,27 +1,28 @@
 from __future__ import absolute_import
 
-import six
-
 from collections import defaultdict
 from datetime import timedelta
+
+import six
 from django.db.models import Q
 from django.db.models.aggregates import Count
 from django.utils import timezone
 
 from sentry import options, roles, tsdb
-from sentry.api.serializers import register, serialize, Serializer
+from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.plugin import PluginSerializer
 from sentry.api.serializers.models.team import get_org_roles, get_team_memberships
 from sentry.app import env
 from sentry.auth.superuser import is_active_superuser
 from sentry.constants import StatsPeriod
 from sentry.digests import backend as digests
-from sentry.models import (
-    EnvironmentProject, Project, ProjectAvatar, ProjectBookmark, ProjectOption, ProjectPlatform,
-    ProjectStatus, ProjectTeam, Release, ReleaseProjectEnvironment, Deploy, UserOption, DEFAULT_SUBJECT_TEMPLATE
-)
-from sentry.grouping.strategies.configurations import DEFAULT_CONFIG as DEFAULT_GROUPING_CONFIG
 from sentry.grouping.enhancer import DEFAULT_ENHANCEMENT_BASE
+from sentry.grouping.strategies.configurations import DEFAULT_CONFIG as DEFAULT_GROUPING_CONFIG
+from sentry.models import (
+    DEFAULT_SUBJECT_TEMPLATE, Deploy, EnvironmentProject, Project, ProjectAvatar, ProjectBookmark,
+    ProjectOption, ProjectPlatform, ProjectStatus, ProjectTeam, Release, ReleaseProjectEnvironment,
+    UserOption,
+)
 from sentry.utils.data_filters import FilterTypes
 from sentry.utils.db import is_postgres
 

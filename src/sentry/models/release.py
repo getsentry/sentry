@@ -7,25 +7,23 @@ sentry.models.release
 """
 from __future__ import absolute_import, print_function
 
+import itertools
 import logging
 import re
-import six
-import itertools
+from time import time
 
-from django.db import models, IntegrityError, transaction
+import six
+from django.db import IntegrityError, models, transaction
 from django.db.models import F
 from django.utils import timezone
 from jsonfield import JSONField
-from time import time
 
 from sentry.app import locks
 from sentry.db.models import (
-    ArrayField, BoundedPositiveIntegerField, FlexibleForeignKey, Model, sane_repr
+    ArrayField, BoundedPositiveIntegerField, FlexibleForeignKey, Model, sane_repr,
 )
-
 from sentry.models import CommitFileChange
 from sentry.signals import issue_resolved
-
 from sentry.utils import metrics
 from sentry.utils.cache import cache
 from sentry.utils.hashlib import md5_text

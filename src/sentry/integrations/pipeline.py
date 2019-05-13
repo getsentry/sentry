@@ -1,7 +1,5 @@
 from __future__ import absolute_import, print_function
 
-__all__ = ['IntegrationPipeline']
-
 from django.db import IntegrityError
 from django.utils import timezone
 from django.utils.translation import ugettext as _
@@ -12,7 +10,10 @@ from sentry.integrations.exceptions import IntegrationError
 from sentry.models import Identity, IdentityProvider, IdentityStatus, Integration
 from sentry.pipeline import Pipeline
 from sentry.web.helpers import render_to_response
+
 from . import default_manager
+
+__all__ = ['IntegrationPipeline']
 
 
 def ensure_integration(key, data):

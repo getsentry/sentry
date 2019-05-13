@@ -1,9 +1,8 @@
 from __future__ import absolute_import
 
-from sentry.api.serializers import Serializer, register, serialize
-
 import six
 
+from sentry.api.serializers import Serializer, register, serialize
 from sentry.search.utils import convert_user_tag_to_query
 from sentry.tagstore.base import TagKeyStatus
 

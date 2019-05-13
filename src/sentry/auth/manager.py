@@ -1,10 +1,10 @@
 from __future__ import absolute_import, print_function
 
-__all__ = ['ProviderManager']
-
 import six
 
 from .exceptions import ProviderNotRegistered
+
+__all__ = ['ProviderManager']
 
 
 # Ideally this and PluginManager abstracted from the same base, but

@@ -9,24 +9,21 @@ sentry.nodestore.riak.client
 from __future__ import absolute_import
 
 import functools
-import six
-import sys
 import socket
+import sys
 from base64 import b64encode
 from random import shuffle
-from six.moves.queue import Queue
+from threading import Event, Lock, Thread
 from time import time
-from threading import Lock, Thread, Event
 
-# utilize the ca_certs path from requests since we already depend on it
-# and they bundle a ca cert.
+import six
 from requests.certs import where as ca_certs
-from six.moves.urllib.parse import urlencode, quote_plus
+from six.moves.queue import Queue
+from six.moves.urllib.parse import quote_plus, urlencode
 from urllib3 import HTTPConnectionPool, HTTPSConnectionPool
 from urllib3.exceptions import HTTPError
 
 from sentry.net.http import UnixHTTPConnectionPool
-
 
 DEFAULT_NODES = ({'host': '127.0.0.1', 'port': 8098}, )
 

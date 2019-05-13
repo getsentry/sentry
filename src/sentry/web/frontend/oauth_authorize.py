@@ -1,17 +1,15 @@
 from __future__ import absolute_import, print_function
 
 import logging
-import six
 
+import six
 from django.conf import settings
 from django.db import IntegrityError, transaction
 from django.utils import timezone
 from django.utils.safestring import mark_safe
 from six.moves.urllib.parse import parse_qsl, urlencode, urlparse, urlunparse
 
-from sentry.models import (
-    ApiApplication, ApiApplicationStatus, ApiAuthorization, ApiGrant, ApiToken
-)
+from sentry.models import ApiApplication, ApiApplicationStatus, ApiAuthorization, ApiGrant, ApiToken
 from sentry.web.frontend.auth_login import AuthLoginView
 
 logger = logging.getLogger('sentry.api')

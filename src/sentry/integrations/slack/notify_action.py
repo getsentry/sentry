@@ -4,9 +4,9 @@ from django import forms
 from django.utils.translation import ugettext_lazy as _
 
 from sentry import http
-from sentry.rules.actions.base import EventAction
-from sentry.utils import metrics, json
 from sentry.models import Integration
+from sentry.rules.actions.base import EventAction
+from sentry.utils import json, metrics
 
 from .utils import build_attachment
 

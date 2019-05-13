@@ -9,11 +9,11 @@ sentry.db.utils
 from __future__ import absolute_import
 
 import operator
+from uuid import uuid4
 
 from django.db.models import F
-from django.utils.crypto import get_random_string
 from django.template.defaultfilters import slugify
-from uuid import uuid4
+from django.utils.crypto import get_random_string
 
 from sentry.db.exceptions import CannotResolveExpression
 

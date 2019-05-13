@@ -1,19 +1,17 @@
 from __future__ import absolute_import
 
 import logging
+from functools import wraps
 
 from click import echo
 from django.conf import settings
 from django.db import connections, transaction
+from django.db.models.signals import post_save, post_syncdb
 from django.db.utils import OperationalError, ProgrammingError
-from django.db.models.signals import post_syncdb, post_save
-from functools import wraps
 from pkg_resources import parse_version as Version
 
 from sentry import options
-from sentry.models import (
-    Organization, OrganizationMember, Project, User, Team, ProjectKey
-)
+from sentry.models import Organization, OrganizationMember, Project, ProjectKey, Team, User
 from sentry.utils import db
 
 PROJECT_SEQUENCE_FIX = """

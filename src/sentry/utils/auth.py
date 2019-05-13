@@ -7,17 +7,17 @@ sentry.utils.auth
 """
 from __future__ import absolute_import
 
-import six
 import logging
+from time import time
 
+import six
 from django.conf import settings
 from django.contrib.auth import login as _login
 from django.contrib.auth.backends import ModelBackend
-from django.core.urlresolvers import reverse, resolve
+from django.core.urlresolvers import resolve, reverse
 from sudo.utils import is_safe_url
-from time import time
 
-from sentry.models import User, Authenticator
+from sentry.models import Authenticator, User
 
 logger = logging.getLogger('sentry.auth')
 

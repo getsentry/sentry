@@ -11,8 +11,8 @@ import os
 import posixpath
 
 from django.conf import settings
-from django.http import HttpResponseNotFound, Http404
 from django.contrib.staticfiles import finders
+from django.http import Http404, HttpResponseNotFound
 from django.utils.six.moves.urllib.parse import unquote
 from django.views import static
 from django.views.generic import TemplateView as BaseTemplateView

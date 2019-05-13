@@ -7,13 +7,13 @@ sentry.options.manager
 """
 from __future__ import absolute_import, print_function
 
-import six
-import sys
 import logging
+import sys
 
+import six
 from django.conf import settings
 
-from sentry.utils.types import type_from_value, Any
+from sentry.utils.types import Any, type_from_value
 
 # Prevent outselves from clobbering the builtin
 _type = type

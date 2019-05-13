@@ -7,16 +7,16 @@ sentry.interfaces.user
 """
 from __future__ import absolute_import
 
-__all__ = ('User', )
-
 import six
 
-from sentry.interfaces.base import Interface, prune_empty_keys, RUST_RENORMALIZED_DEFAULT
+from sentry.constants import MAX_EMAIL_FIELD_LENGTH
+from sentry.interfaces.base import RUST_RENORMALIZED_DEFAULT, Interface, prune_empty_keys
 from sentry.interfaces.geo import Geo
 from sentry.utils.safe import trim, trim_dict
-from sentry.web.helpers import render_to_string
 from sentry.utils.validators import validate_ip
-from sentry.constants import MAX_EMAIL_FIELD_LENGTH
+from sentry.web.helpers import render_to_string
+
+__all__ = ('User', )
 
 
 class User(Interface):

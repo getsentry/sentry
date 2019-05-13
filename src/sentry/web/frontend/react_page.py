@@ -3,7 +3,7 @@ from __future__ import absolute_import
 from django.conf import settings
 from django.http import HttpResponse
 from django.middleware.csrf import get_token as get_csrf_token
-from django.template import loader, Context
+from django.template import Context, loader
 
 from sentry.models import Project
 from sentry.signals import first_event_pending

@@ -1,22 +1,21 @@
 from __future__ import absolute_import
 
 import logging
-from collections import defaultdict, OrderedDict
+from collections import OrderedDict, defaultdict
 
 from django.db import transaction
+from six.moves import reduce
 
 from sentry import eventstream, tagstore
 from sentry.app import tsdb
 from sentry.constants import DEFAULT_LOGGER_NAME, LOG_LEVELS_MAP
 from sentry.event_manager import generate_culprit
 from sentry.models import (
-    Activity, Environment, Event, EventMapping, EventUser, Group,
-    GroupEnvironment, GroupHash, GroupRelease, Project, Release, UserReport
+    Activity, Environment, Event, EventMapping, EventUser, Group, GroupEnvironment, GroupHash,
+    GroupRelease, Project, Release, UserReport,
 )
 from sentry.similarity import features
 from sentry.tasks.base import instrumented_task
-from six.moves import reduce
-
 
 logger = logging.getLogger(__name__)
 

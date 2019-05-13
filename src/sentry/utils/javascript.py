@@ -7,7 +7,6 @@ sentry.utils.javascript
 """
 from __future__ import absolute_import
 
-
 from sentry.utils.safe import get_path
 
 

@@ -1,7 +1,6 @@
 from __future__ import absolute_import
 
 from django.db import IntegrityError, transaction
-
 from rest_framework.response import Response
 
 from sentry import features

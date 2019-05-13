@@ -1,12 +1,12 @@
 from __future__ import absolute_import
 
 import re
-import six
 from itertools import islice
+
+import six
 
 from sentry.grouping.component import GroupingComponent
 from sentry.grouping.strategies.base import strategy
-
 
 _irrelevant_re = re.compile(r'''(?x)
     (?P<email>

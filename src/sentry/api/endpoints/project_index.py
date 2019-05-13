@@ -1,18 +1,17 @@
 from __future__ import absolute_import
 
 import six
-
 from django.db.models import Q
 
 from sentry.api.base import DocSection, Endpoint
 from sentry.api.bases.project import ProjectPermission
 from sentry.api.paginator import DateTimePaginator
-from sentry.api.serializers import serialize, ProjectWithOrganizationSerializer
+from sentry.api.serializers import ProjectWithOrganizationSerializer, serialize
 from sentry.auth.superuser import is_active_superuser
 from sentry.db.models.query import in_iexact
-from sentry.models import (Project, ProjectPlatform, ProjectStatus)
+from sentry.models import Project, ProjectPlatform, ProjectStatus
 from sentry.search.utils import tokenize_query
-from sentry.utils.apidocs import scenario, attach_scenarios
+from sentry.utils.apidocs import attach_scenarios, scenario
 
 
 @scenario('ListYourProjects')

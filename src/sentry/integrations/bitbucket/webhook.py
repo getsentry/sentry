@@ -1,20 +1,20 @@
 from __future__ import absolute_import
 
-import dateutil.parser
+import ipaddress
 import logging
-import six
 import re
 
-import ipaddress
-
+import dateutil.parser
+import six
 from django.db import IntegrityError, transaction
-from django.http import HttpResponse, Http404
+from django.http import Http404, HttpResponse
+from django.utils import timezone
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
 from django.views.generic import View
-from django.utils import timezone
 from simplejson import JSONDecodeError
-from sentry.models import (Commit, CommitAuthor, Organization, Repository)
+
+from sentry.models import Commit, CommitAuthor, Organization, Repository
 from sentry.plugins.providers import IntegrationRepositoryProvider
 from sentry.utils import json
 

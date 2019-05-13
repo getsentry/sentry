@@ -1,9 +1,10 @@
 from __future__ import absolute_import
 
-__all__ = ['AuthProvider']
-
 from contextlib import contextmanager
+
 from sentry.auth import register, unregister
+
+__all__ = ['AuthProvider']
 
 
 @contextmanager

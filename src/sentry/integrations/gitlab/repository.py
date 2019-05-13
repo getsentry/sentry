@@ -1,9 +1,8 @@
 from __future__ import absolute_import
 
-
 from sentry.integrations.exceptions import ApiError, IntegrationError
-from sentry.plugins import providers
 from sentry.models import Integration
+from sentry.plugins import providers
 
 
 class GitlabRepositoryProvider(providers.IntegrationRepositoryProvider):

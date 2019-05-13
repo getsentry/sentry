@@ -9,14 +9,9 @@ from __future__ import absolute_import, print_function
 
 from sentry.logging import LoggingFormat
 from sentry.options import (
-    FLAG_IMMUTABLE,
-    FLAG_NOSTORE,
-    FLAG_PRIORITIZE_DISK,
-    FLAG_REQUIRED,
-    FLAG_ALLOW_EMPTY,
-    register,
+    FLAG_ALLOW_EMPTY, FLAG_IMMUTABLE, FLAG_NOSTORE, FLAG_PRIORITIZE_DISK, FLAG_REQUIRED, register,
 )
-from sentry.utils.types import Bool, Dict, String, Sequence, Int
+from sentry.utils.types import Bool, Dict, Int, Sequence, String
 
 # Cache
 # register('cache.backend', flags=FLAG_NOSTORE)

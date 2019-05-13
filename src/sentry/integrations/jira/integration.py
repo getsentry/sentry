@@ -1,16 +1,19 @@
 from __future__ import absolute_import
 
 import logging
-import six
 
+import six
 from django.core.urlresolvers import reverse
 from django.utils.translation import ugettext as _
 
 from sentry import features
 from sentry.integrations import (
-    IntegrationInstallation, IntegrationFeatures, IntegrationProvider, IntegrationMetadata, FeatureDescription,
+    FeatureDescription, IntegrationFeatures, IntegrationInstallation, IntegrationMetadata,
+    IntegrationProvider,
 )
-from sentry.integrations.exceptions import ApiUnauthorized, ApiError, IntegrationError, IntegrationFormError
+from sentry.integrations.exceptions import (
+    ApiError, ApiUnauthorized, IntegrationError, IntegrationFormError,
+)
 from sentry.integrations.issues import IssueSyncMixin
 from sentry.models import IntegrationExternalProject, Organization, OrganizationIntegration, User
 from sentry.utils.http import absolute_uri

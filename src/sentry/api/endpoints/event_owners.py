@@ -7,7 +7,7 @@ from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.fields.actor import Actor
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.actor import ActorSerializer
-from sentry.models import Event, SnubaEvent, ProjectOwnership
+from sentry.models import Event, ProjectOwnership, SnubaEvent
 
 
 class EventOwnersEndpoint(ProjectEndpoint):

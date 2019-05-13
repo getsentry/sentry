@@ -9,11 +9,12 @@ sentry.nodestore.riak.backend
 from __future__ import absolute_import
 
 import os
-import six
 
+import six
 from simplejson import JSONEncoder, _default_decoder
 
 from sentry.nodestore.base import NodeStorage
+
 from .client import RiakClient
 
 # Cache an instance of the encoder we want to use

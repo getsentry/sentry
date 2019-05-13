@@ -1,16 +1,15 @@
 from __future__ import absolute_import
 
+import semaphore
 from django.contrib.auth.models import AnonymousUser
 from django.utils.crypto import constant_time_compare
-from rest_framework.authentication import (BasicAuthentication, get_authorization_header)
+from rest_framework.authentication import BasicAuthentication, get_authorization_header
 from rest_framework.exceptions import AuthenticationFailed
 
 from sentry.auth.system import SystemToken
 from sentry.models import ApiApplication, ApiKey, ApiToken, ProjectKey, Relay
 from sentry.relay.utils import get_header_relay_id, get_header_relay_signature
 from sentry.utils.sdk import configure_scope
-
-import semaphore
 
 
 class QuietBasicAuthentication(BasicAuthentication):

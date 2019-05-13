@@ -8,11 +8,11 @@ sentry.utils.canonical
 
 from __future__ import absolute_import, print_function
 
-from django.conf import settings
-
-import copy
 import collections
+import copy
+
 import six
+from django.conf import settings
 
 __all__ = ('CanonicalKeyDict', 'CanonicalKeyView', 'get_canonical_name')
 

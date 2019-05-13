@@ -2,8 +2,10 @@ from __future__ import absolute_import
 
 from collections import namedtuple
 from fnmatch import fnmatch
-from parsimonious.grammar import Grammar, NodeVisitor
+
 from parsimonious.exceptions import ParseError  # noqa
+from parsimonious.grammar import Grammar, NodeVisitor
+
 from sentry.utils.safe import get_path
 
 __all__ = ('parse_rules', 'dump_schema', 'load_schema')

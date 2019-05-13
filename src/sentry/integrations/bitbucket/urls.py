@@ -4,9 +4,10 @@ from django.conf.urls import patterns, url
 
 from .descriptor import BitbucketDescriptorEndpoint
 from .installed import BitbucketInstalledEndpoint
+from .search import BitbucketSearchEndpoint
 from .uninstalled import BitbucketUninstalledEndpoint
 from .webhook import BitbucketWebhookEndpoint
-from .search import BitbucketSearchEndpoint
+
 urlpatterns = patterns(
     '',
     url(r'^descriptor/$', BitbucketDescriptorEndpoint.as_view()),

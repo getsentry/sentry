@@ -1,8 +1,8 @@
 from __future__ import absolute_import
 
-__all__ = ['DummyMetricsBackend']
-
 from .base import MetricsBackend
+
+__all__ = ['DummyMetricsBackend']
 
 
 class DummyMetricsBackend(MetricsBackend):

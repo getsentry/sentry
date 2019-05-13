@@ -1,7 +1,9 @@
 from __future__ import absolute_import
+
 from rest_framework import serializers
-from sentry.api.serializers.rest_framework import ListField
 from rest_framework.exceptions import PermissionDenied
+
+from sentry.api.serializers.rest_framework import ListField
 from sentry.models import Project, ProjectStatus
 
 

@@ -1,23 +1,25 @@
 from __future__ import absolute_import
 
-from sentry.integrations import (
-    IntegrationInstallation, IntegrationFeatures, IntegrationProvider,
-    IntegrationMetadata, FeatureDescription,
-)
-from sentry.integrations.atlassian_connect import AtlassianConnectValidationError, get_integration_from_request
-from sentry.integrations.repositories import RepositoryMixin
-from sentry.pipeline import NestedPipelineView, PipelineView
-from sentry.identity.pipeline import IdentityProviderPipeline
 from django.utils.translation import ugettext_lazy as _
 
+from sentry.identity.pipeline import IdentityProviderPipeline
+from sentry.integrations import (
+    FeatureDescription, IntegrationFeatures, IntegrationInstallation, IntegrationMetadata,
+    IntegrationProvider,
+)
+from sentry.integrations.atlassian_connect import (
+    AtlassianConnectValidationError, get_integration_from_request,
+)
 from sentry.integrations.exceptions import ApiError
+from sentry.integrations.repositories import RepositoryMixin
 from sentry.models import Repository
+from sentry.pipeline import NestedPipelineView, PipelineView
 from sentry.tasks.integrations import migrate_repo
 from sentry.utils.http import absolute_uri
 
-from .repository import BitbucketRepositoryProvider
 from .client import BitbucketApiClient
 from .issues import BitbucketIssueBasicMixin
+from .repository import BitbucketRepositoryProvider
 
 DESCRIPTION = """
 Connect your Sentry organization to Bitbucket, enabling the following features:

@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
-from south.utils import datetime_utils as datetime
+from django.db import IntegrityError, models, transaction
 from south.db import db
+from south.utils import datetime_utils as datetime
 from south.v2 import DataMigration
-from django.db import models, transaction, IntegrityError
 
 
 class Migration(DataMigration):

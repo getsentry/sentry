@@ -7,10 +7,10 @@ sentry.runner.initializer
 """
 from __future__ import absolute_import, print_function
 
-import click
 import os
-import six
 
+import click
+import six
 from django.conf import settings
 
 from sentry.utils import warnings

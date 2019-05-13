@@ -5,11 +5,9 @@ import re
 
 from sentry.grouping.component import GroupingComponent
 from sentry.grouping.strategies.base import strategy
-from sentry.grouping.strategies.utils import remove_non_stacktrace_variants, \
-    has_url_origin
 from sentry.grouping.strategies.message import trim_message_for_grouping
+from sentry.grouping.strategies.utils import has_url_origin, remove_non_stacktrace_variants
 from sentry.stacktraces.platform import get_behavior_family_for_platform
-
 
 _ruby_erb_func = re.compile(r'__\d{4,}_\d{4,}$')
 _basename_re = re.compile(r'[/\\]')

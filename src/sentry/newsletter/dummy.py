@@ -1,8 +1,8 @@
 from __future__ import absolute_import
 
-import six
-
 from collections import defaultdict
+
+import six
 from django.utils import timezone
 
 from .base import Newsletter

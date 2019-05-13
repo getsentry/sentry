@@ -8,10 +8,10 @@ sentry.db.models
 
 from __future__ import absolute_import
 
-from copy import copy
 import logging
-import six
+from copy import copy
 
+import six
 from bitfield.types import BitHandler
 from django.db import models
 from django.db.models import signals

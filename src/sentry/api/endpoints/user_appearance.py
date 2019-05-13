@@ -4,9 +4,9 @@ from datetime import datetime
 
 import pytz
 from django.conf import settings
-from rest_framework.response import Response
-from rest_framework import serializers
 from django.utils.translation import ugettext_lazy as _
+from rest_framework import serializers
+from rest_framework.response import Response
 
 from sentry.api.bases.user import UserEndpoint
 from sentry.constants import LANGUAGES

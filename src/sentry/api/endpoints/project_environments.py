@@ -7,7 +7,7 @@ from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.helpers.environments import environment_visibility_filter_options
 from sentry.api.serializers import serialize
 from sentry.models import EnvironmentProject
-from sentry.utils.apidocs import scenario, attach_scenarios
+from sentry.utils.apidocs import attach_scenarios, scenario
 
 
 @scenario('ListEnvironmentsForProject')

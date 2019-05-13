@@ -1,15 +1,13 @@
 from __future__ import absolute_import
 
 import six
+from django.core.urlresolvers import reverse
+from django.utils.translation import ugettext as _
 from mistune import markdown
 
-
-from django.core.urlresolvers import reverse
-from sentry.models import IntegrationExternalProject, OrganizationIntegration, User
+from sentry.integrations.exceptions import ApiError, ApiUnauthorized
 from sentry.integrations.issues import IssueSyncMixin
-
-from sentry.integrations.exceptions import ApiUnauthorized, ApiError
-from django.utils.translation import ugettext as _
+from sentry.models import IntegrationExternalProject, OrganizationIntegration, User
 
 
 class VstsIssueSync(IssueSyncMixin):

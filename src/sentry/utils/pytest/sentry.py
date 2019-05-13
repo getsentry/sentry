@@ -1,12 +1,11 @@
 from __future__ import absolute_import
 
-import pytest
-import mock
 import os
 
+import mock
+import pytest
 from django.conf import settings
 from sentry_sdk import Hub
-
 
 TEST_ROOT = os.path.normpath(
     os.path.join(

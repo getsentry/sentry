@@ -9,8 +9,8 @@ sentry.db.models.query
 from __future__ import absolute_import
 
 import itertools
-import six
 
+import six
 from django.db import IntegrityError, router, transaction
 from django.db.models import Model, Q
 from django.db.models.signals import post_save

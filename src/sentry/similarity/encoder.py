@@ -1,6 +1,6 @@
 from __future__ import absolute_import
 
-from collections import (Mapping, Set, Sequence)
+from collections import Mapping, Sequence, Set
 
 import six
 

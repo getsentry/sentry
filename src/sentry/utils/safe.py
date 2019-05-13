@@ -9,8 +9,8 @@ from __future__ import absolute_import, print_function
 
 import collections
 import logging
-import six
 
+import six
 from django.conf import settings
 from django.db import transaction
 from django.utils.encoding import force_text

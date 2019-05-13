@@ -1,37 +1,31 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, print_function, unicode_literals
 
-from django.conf import settings
-from django.utils.importlib import import_module
-
 import copy
 import json
 import os
-import petname
 import random
-import six
 import warnings
-
-from django.utils import timezone
-from django.utils.text import slugify
 from hashlib import sha1
-from loremipsum import Generator
 from uuid import uuid4
 
-from sentry.event_manager import EventManager
+import petname
+import six
+from django.conf import settings
+from django.utils import timezone
+from django.utils.importlib import import_module
+from django.utils.text import slugify
+from loremipsum import Generator
+
 from sentry.constants import SentryAppStatus
-from sentry.incidents.models import (
-    Incident,
-    IncidentGroup,
-    IncidentProject,
-    IncidentSeen,
-)
-from sentry.mediators import sentry_apps, sentry_app_installations, service_hooks
+from sentry.event_manager import EventManager
+from sentry.incidents.models import Incident, IncidentGroup, IncidentProject, IncidentSeen
+from sentry.mediators import sentry_app_installations, sentry_apps, service_hooks
 from sentry.models import (
-    Activity, Environment, Event, EventError, EventMapping, Group, Organization, OrganizationMember,
-    OrganizationMemberTeam, Project, ProjectBookmark, Team, User, UserEmail, Release, Commit, ReleaseCommit,
-    CommitAuthor, Repository, CommitFileChange, ProjectDebugFile, File, UserPermission, EventAttachment,
-    UserReport, PlatformExternalIssue,
+    Activity, Commit, CommitAuthor, CommitFileChange, Environment, Event, EventAttachment,
+    EventError, EventMapping, File, Group, Organization, OrganizationMember, OrganizationMemberTeam,
+    PlatformExternalIssue, Project, ProjectBookmark, ProjectDebugFile, Release, ReleaseCommit,
+    Repository, Team, User, UserEmail, UserPermission, UserReport,
 )
 from sentry.utils.canonical import CanonicalKeyDict
 

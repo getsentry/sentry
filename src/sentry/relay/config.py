@@ -1,14 +1,14 @@
 from __future__ import absolute_import
 
-import re
-import six
-import uuid
 import json
-
+import re
+import uuid
 from datetime import datetime
+
+import six
 from pytz import utc
 
-from sentry.models import ProjectKey, OrganizationOption
+from sentry.models import OrganizationOption, ProjectKey
 from sentry.utils.sdk import configure_scope
 
 

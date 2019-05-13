@@ -10,8 +10,8 @@ from __future__ import absolute_import
 
 import logging
 
-from sentry.utils.safe import safe_execute
 from sentry.tasks.base import instrumented_task
+from sentry.utils.safe import safe_execute
 
 logger = logging.getLogger(__name__)
 

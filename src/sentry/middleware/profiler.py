@@ -4,11 +4,11 @@
 from __future__ import absolute_import
 
 import cProfile
-import re
 import pstats
-import six
+import re
 import sys
 
+import six
 from django.conf import settings
 from django.http import HttpResponse
 from six import StringIO

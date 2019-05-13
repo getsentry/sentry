@@ -2,10 +2,8 @@ from __future__ import absolute_import
 
 from django.http import Http404
 
+from sentry.api.bases.organization import OrganizationEndpoint, OrganizationIntegrationsPermission
 from sentry.constants import ObjectStatus
-from sentry.api.bases.organization import (
-    OrganizationEndpoint, OrganizationIntegrationsPermission
-)
 from sentry.integrations.exceptions import IntegrationError
 from sentry.integrations.repositories import RepositoryMixin
 from sentry.models import Integration

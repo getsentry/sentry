@@ -3,10 +3,7 @@ from __future__ import absolute_import
 from rest_framework.response import Response
 
 from sentry.api.base import EnvironmentMixin
-from sentry.api.bases.organization import (
-    OrganizationEndpoint,
-    OrganizationPermission,
-)
+from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
 from sentry.api.helpers.releases import get_group_ids_resolved_in_release
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.group import GroupSerializerSnuba

@@ -1,10 +1,9 @@
 from __future__ import absolute_import
 
-from django.http import HttpResponseRedirect, Http404
 from django.core.urlresolvers import reverse
-from sentry import features
+from django.http import Http404, HttpResponseRedirect
 
-from sentry import options
+from sentry import features, options
 from sentry.models import Event, SnubaEvent
 from sentry.web.frontend.base import ProjectView
 

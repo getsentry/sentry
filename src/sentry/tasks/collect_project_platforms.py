@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 from datetime import timedelta
+
 from django.db.models import Max
 from django.utils import timezone
 

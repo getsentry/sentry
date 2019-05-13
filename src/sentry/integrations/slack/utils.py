@@ -4,14 +4,13 @@ import logging
 
 from sentry import tagstore
 from sentry.api.fields.actor import Actor
+from sentry.models import (
+    GroupAssignee, GroupStatus, Identity, OrganizationMember, Release, Team, User,
+)
 from sentry.utils import json
 from sentry.utils.assets import get_asset_url
 from sentry.utils.dates import to_timestamp
 from sentry.utils.http import absolute_uri
-from sentry.models import (
-    GroupStatus, GroupAssignee, OrganizationMember, User, Identity, Team,
-    Release
-)
 
 logger = logging.getLogger('sentry.integrations.slack')
 

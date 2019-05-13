@@ -1,11 +1,11 @@
 from __future__ import absolute_import
 
-from django.db import models, IntegrityError, transaction
+from django.db import IntegrityError, models, transaction
 from django.utils import timezone
 
 from sentry.constants import ObjectStatus
 from sentry.db.models import (
-    BoundedPositiveIntegerField, EncryptedJsonField, FlexibleForeignKey, Model
+    BoundedPositiveIntegerField, EncryptedJsonField, FlexibleForeignKey, Model,
 )
 from sentry.signals import integration_added
 

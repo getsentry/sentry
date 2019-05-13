@@ -25,12 +25,12 @@ from sentry import options
 from sentry.app import env
 from sentry.models import Project, User
 from sentry.plugins import plugins
+from sentry.utils import auth
 from sentry.utils.email import send_mail
 from sentry.utils.http import absolute_uri
 from sentry.utils.warnings import DeprecatedSettingWarning, UnsupportedBackend, seen_warnings
 from sentry.web.decorators import requires_admin
-from sentry.web.forms import (ChangeUserForm, NewUserForm, RemoveUserForm, TestEmailForm)
-from sentry.utils import auth
+from sentry.web.forms import ChangeUserForm, NewUserForm, RemoveUserForm, TestEmailForm
 from sentry.web.helpers import render_to_response, render_to_string
 
 

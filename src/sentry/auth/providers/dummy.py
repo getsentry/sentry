@@ -2,7 +2,7 @@ from __future__ import absolute_import, print_function
 
 from django.http import HttpResponse
 
-from sentry.auth import Provider, AuthView
+from sentry.auth import AuthView, Provider
 from sentry.auth.provider import MigratingIdentityId
 
 

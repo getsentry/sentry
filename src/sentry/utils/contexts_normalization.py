@@ -1,7 +1,9 @@
 from __future__ import absolute_import
+
 import re
 
 from ua_parser.user_agent_parser import Parse
+
 from sentry.utils.safe import get_path, setdefault_path
 
 # Environment.OSVersion (GetVersionEx) or RuntimeInformation.OSDescription, on Windows

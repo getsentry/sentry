@@ -1,20 +1,19 @@
 from __future__ import absolute_import
 
-import six
 import logging
+from collections import OrderedDict, namedtuple
 from datetime import datetime
+
+import six
 from django.utils import timezone
 
-from collections import namedtuple, OrderedDict
-
 from sentry.models import Project, Release
-from sentry.utils.in_app import is_known_third_party
+from sentry.stacktraces.functions import trim_function_name
+from sentry.stacktraces.platform import get_behavior_family_for_platform
 from sentry.utils.cache import cache
 from sentry.utils.hashlib import hash_values
+from sentry.utils.in_app import is_known_third_party
 from sentry.utils.safe import get_path, safe_execute
-from sentry.stacktraces.platform import get_behavior_family_for_platform
-from sentry.stacktraces.functions import trim_function_name
-
 
 logger = logging.getLogger(__name__)
 

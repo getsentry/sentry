@@ -1,12 +1,15 @@
 from __future__ import absolute_import
 
-__all__ = ('Sdk', )
-
 from distutils.version import LooseVersion
+
 from django.conf import settings
 
-from sentry.interfaces.base import Interface, InterfaceValidationError, prune_empty_keys, RUST_RENORMALIZED_DEFAULT
+from sentry.interfaces.base import (
+    RUST_RENORMALIZED_DEFAULT, Interface, InterfaceValidationError, prune_empty_keys,
+)
 from sentry.utils.safe import trim
+
+__all__ = ('Sdk', )
 
 
 def get_with_prefix(d, k, default=None, delimiter=":"):

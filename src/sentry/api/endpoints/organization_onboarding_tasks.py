@@ -4,7 +4,7 @@ from django.utils import timezone
 from rest_framework.response import Response
 
 from sentry.api.bases.organization import OrganizationEndpoint
-from sentry.models import (OnboardingTask, OnboardingTaskStatus, OrganizationOnboardingTask)
+from sentry.models import OnboardingTask, OnboardingTaskStatus, OrganizationOnboardingTask
 from sentry.receivers import check_for_onboarding_complete
 
 

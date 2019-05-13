@@ -1,7 +1,6 @@
 from __future__ import absolute_import
 
 import six
-
 from django.db import transaction
 from rest_framework import status
 from rest_framework.response import Response
@@ -9,8 +8,10 @@ from rest_framework.response import Response
 from sentry.api.bases.user import UserEndpoint
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models import UserNotificationsSerializer
-from sentry.models import OrganizationMember, OrganizationMemberTeam, OrganizationStatus, ProjectTeam, UserOption, UserEmail
-
+from sentry.models import (
+    OrganizationMember, OrganizationMemberTeam, OrganizationStatus, ProjectTeam, UserEmail,
+    UserOption,
+)
 
 KEY_MAP = {
     'alerts': {

@@ -1,9 +1,9 @@
 from __future__ import absolute_import
 
+from rest_framework.response import Response
 
 from sentry.api.bases.project import ProjectEndpoint, StrictProjectPermission
 from sentry.rules import rules
-from rest_framework.response import Response
 
 
 class ProjectRulesConfigurationEndpoint(ProjectEndpoint):

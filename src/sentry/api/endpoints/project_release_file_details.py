@@ -1,4 +1,5 @@
 from __future__ import absolute_import
+
 import posixpath
 
 from rest_framework import serializers
@@ -9,7 +10,8 @@ from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
 from sentry.models import Release, ReleaseFile
-from sentry.utils.apidocs import scenario, attach_scenarios
+from sentry.utils.apidocs import attach_scenarios, scenario
+
 try:
     from django.http import (CompatibleStreamingHttpResponse as StreamingHttpResponse)
 except ImportError:

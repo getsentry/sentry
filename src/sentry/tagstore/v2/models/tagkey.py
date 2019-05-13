@@ -8,13 +8,13 @@ sentry.tagstore.v2.models.tagkey
 
 from __future__ import absolute_import, print_function
 
-from django.db import models, router, connections, transaction, IntegrityError
+from django.db import IntegrityError, connections, models, router, transaction
 from django.utils.translation import ugettext_lazy as _
 
+from sentry.constants import MAX_TAG_KEY_LENGTH
+from sentry.db.models import BoundedBigIntegerField, BoundedPositiveIntegerField, Model, sane_repr
 from sentry.tagstore import TagKeyStatus
 from sentry.tagstore.query import TagStoreManager
-from sentry.constants import MAX_TAG_KEY_LENGTH
-from sentry.db.models import (Model, BoundedPositiveIntegerField, BoundedBigIntegerField, sane_repr)
 from sentry.utils.cache import cache
 from sentry.utils.hashlib import md5_text
 

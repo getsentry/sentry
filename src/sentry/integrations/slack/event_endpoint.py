@@ -2,14 +2,15 @@ from __future__ import absolute_import
 
 import json
 import re
+
 import six
 
 from sentry import http
 from sentry.api.base import Endpoint
 from sentry.models import Group, Project
 
-from .utils import build_attachment, logger
 from .requests import SlackEventRequest, SlackRequestError
+from .utils import build_attachment, logger
 
 # XXX(dcramer): this could be more tightly bound to our configured domain,
 # but slack limits what we can unfurl anyways so its probably safe

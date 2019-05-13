@@ -1,15 +1,14 @@
 from __future__ import absolute_import
 
 import six
+from symbolic import LineInfo, ObjectLookup, SymbolicError, parse_addr
 
-from symbolic import SymbolicError, ObjectLookup, LineInfo, parse_addr
-
-from sentry.utils.safe import trim
-from sentry.utils.compat import implements_to_string
-from sentry.models import EventError, ProjectDebugFile
-from sentry.lang.native.utils import image_name, rebase_addr
-from sentry.utils.in_app import is_known_third_party, is_optional_package
 from sentry.constants import MAX_SYM
+from sentry.lang.native.utils import image_name, rebase_addr
+from sentry.models import EventError, ProjectDebugFile
+from sentry.utils.compat import implements_to_string
+from sentry.utils.in_app import is_known_third_party, is_optional_package
+from sentry.utils.safe import trim
 
 FATAL_ERRORS = (
     EventError.NATIVE_MISSING_DSYM,

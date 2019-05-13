@@ -3,8 +3,8 @@ from __future__ import absolute_import
 import logging
 import re
 
-from django.core.urlresolvers import RegexURLResolver, RegexURLPattern
-from django.conf.urls import patterns, include, url
+from django.conf.urls import include, patterns, url
+from django.core.urlresolvers import RegexURLPattern, RegexURLResolver
 
 from sentry.plugins import plugins
 

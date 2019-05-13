@@ -7,12 +7,11 @@ sentry.buffer.redis
 """
 from __future__ import absolute_import
 
-import six
-
-from time import time
 from binascii import crc32
-
 from datetime import datetime
+from time import time
+
+import six
 from django.db import models
 from django.utils import timezone
 from django.utils.encoding import force_bytes

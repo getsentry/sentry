@@ -1,11 +1,12 @@
 from __future__ import absolute_import
 
 from datetime import timedelta
+from uuid import uuid4
+
 from django.db import models
 from django.db.models import get_model
 from django.utils import timezone
 from jsonfield import JSONField
-from uuid import uuid4
 
 from sentry.db.models import BoundedBigIntegerField, Model
 

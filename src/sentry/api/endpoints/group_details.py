@@ -1,38 +1,29 @@
 from __future__ import absolute_import
 
-from datetime import timedelta
 import functools
 import logging
+from datetime import timedelta
 from uuid import uuid4
 
 from django.utils import timezone
 from rest_framework.response import Response
 
-from sentry import eventstream, tsdb, tagstore
+from sentry import eventstream, tagstore, tsdb
 from sentry.api import client
 from sentry.api.base import DocSection, EnvironmentMixin
 from sentry.api.bases import GroupEndpoint
 from sentry.api.helpers.environments import get_environments
-from sentry.api.serializers import serialize, GroupSerializer, GroupSerializerSnuba
-from sentry.api.serializers.models.plugin import PluginSerializer
+from sentry.api.serializers import GroupSerializer, GroupSerializerSnuba, serialize
 from sentry.api.serializers.models.grouprelease import GroupReleaseWithStatsSerializer
+from sentry.api.serializers.models.plugin import PluginSerializer
 from sentry.models import (
-    Activity,
-    Group,
-    GroupHash,
-    GroupRelease,
-    GroupSeen,
-    GroupStatus,
-    Release,
-    ReleaseEnvironment,
-    ReleaseProject,
-    User,
-    UserReport,
+    Activity, Group, GroupHash, GroupRelease, GroupSeen, GroupStatus, Release, ReleaseEnvironment,
+    ReleaseProject, User, UserReport,
 )
 from sentry.plugins import IssueTrackingPlugin2, plugins
 from sentry.signals import issue_deleted
+from sentry.utils.apidocs import attach_scenarios, scenario
 from sentry.utils.safe import safe_execute
-from sentry.utils.apidocs import scenario, attach_scenarios
 
 delete_logger = logging.getLogger('sentry.deletions.api')
 

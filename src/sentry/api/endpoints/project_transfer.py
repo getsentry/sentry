@@ -2,18 +2,16 @@ from __future__ import absolute_import
 
 import logging
 from uuid import uuid4
-from six.moves.urllib.parse import urlencode
 
 from django.utils import timezone
 from rest_framework import status
 from rest_framework.response import Response
+from six.moves.urllib.parse import urlencode
 
-from sentry import roles, options
+from sentry import options, roles
 from sentry.api.bases.project import ProjectEndpoint, ProjectPermission
 from sentry.api.decorators import sudo_required
-from sentry.models import (
-    AuditLogEntryEvent, OrganizationMember,
-)
+from sentry.models import AuditLogEntryEvent, OrganizationMember
 from sentry.utils.email import MessageBuilder
 from sentry.utils.http import absolute_uri
 from sentry.utils.signing import sign

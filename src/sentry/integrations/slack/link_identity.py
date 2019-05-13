@@ -7,7 +7,7 @@ from django.utils import timezone
 from django.views.decorators.cache import never_cache
 
 from sentry import http
-from sentry.models import Integration, Identity, IdentityProvider, IdentityStatus, Organization
+from sentry.models import Identity, IdentityProvider, IdentityStatus, Integration, Organization
 from sentry.utils.http import absolute_uri
 from sentry.utils.signing import sign, unsign
 from sentry.web.frontend.base import BaseView

@@ -10,18 +10,18 @@ from __future__ import absolute_import
 
 import jsonschema
 import six
-
-__all__ = ('Csp', 'Hpkp', 'ExpectCT', 'ExpectStaple')
-
 from six.moves.urllib.parse import urlsplit, urlunsplit
 
-from sentry.interfaces.base import Interface, InterfaceValidationError, RUST_RENORMALIZED_DEFAULT
-from sentry.interfaces.schemas import validate_and_default_interface, INPUT_SCHEMAS
+from sentry.interfaces.base import RUST_RENORMALIZED_DEFAULT, Interface, InterfaceValidationError
+from sentry.interfaces.schemas import INPUT_SCHEMAS, validate_and_default_interface
 from sentry.utils import json
 from sentry.utils.cache import memoize
 from sentry.utils.http import is_valid_origin
 from sentry.utils.safe import trim
 from sentry.web.helpers import render_to_string
+
+__all__ = ('Csp', 'Hpkp', 'ExpectCT', 'ExpectStaple')
+
 
 # Default block list sourced from personal experience as well as
 # reputable blogs from Twitter and Dropbox

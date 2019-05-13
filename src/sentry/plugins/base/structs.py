@@ -8,9 +8,9 @@ sentry.plugins.base.structs
 
 from __future__ import absolute_import, print_function
 
-__all__ = ('Annotation', 'Notification')
-
 import warnings
+
+__all__ = ('Annotation', 'Notification')
 
 
 class Annotation(object):

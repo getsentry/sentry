@@ -7,16 +7,16 @@ sentry.models.apikey
 """
 from __future__ import absolute_import, print_function
 
-import six
+from uuid import uuid4
 
+import six
 from bitfield import BitField
 from django.db import models
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
-from uuid import uuid4
 
 from sentry.db.models import (
-    ArrayField, Model, BaseManager, BoundedPositiveIntegerField, FlexibleForeignKey, sane_repr
+    ArrayField, BaseManager, BoundedPositiveIntegerField, FlexibleForeignKey, Model, sane_repr,
 )
 
 

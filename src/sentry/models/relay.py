@@ -1,13 +1,12 @@
 from __future__ import absolute_import
 
+import semaphore
 from django.db import models
 from django.utils import timezone
+from django.utils.functional import cached_property
 
 from sentry.db.models import Model
 from sentry.relay import config
-from django.utils.functional import cached_property
-
-import semaphore
 
 
 class Relay(Model):

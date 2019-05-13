@@ -7,14 +7,14 @@ sentry.utils.query
 """
 from __future__ import absolute_import
 
-import progressbar
 import re
-import six
 
-from django.db import connections, IntegrityError, router, transaction
+import progressbar
+import six
+from django.db import IntegrityError, connections, router, transaction
 from django.db.models import ForeignKey
 from django.db.models.deletion import Collector
-from django.db.models.signals import pre_delete, pre_save, post_save, post_delete
+from django.db.models.signals import post_delete, post_save, pre_delete, pre_save
 
 from sentry.utils import db
 

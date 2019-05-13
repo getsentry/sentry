@@ -1,10 +1,12 @@
 from __future__ import absolute_import
-from symbolic import Unreal4Crash
-from sentry.lang.native.minidump import MINIDUMP_ATTACHMENT_TYPE
-from sentry.models import UserReport
-from sentry.utils.safe import set_path, setdefault_path, get_path
 
 import re
+
+from symbolic import Unreal4Crash
+
+from sentry.lang.native.minidump import MINIDUMP_ATTACHMENT_TYPE
+from sentry.models import UserReport
+from sentry.utils.safe import get_path, set_path, setdefault_path
 
 _portable_callstack_regexp = re.compile(r'''(?x)
     (?:^|\s)

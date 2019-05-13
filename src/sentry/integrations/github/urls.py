@@ -2,8 +2,8 @@ from __future__ import absolute_import, print_function
 
 from django.conf.urls import patterns, url
 
-from .webhook import GitHubIntegrationsWebhookEndpoint
 from .search import GitHubSearchEndpoint
+from .webhook import GitHubIntegrationsWebhookEndpoint
 
 urlpatterns = patterns(
     '',

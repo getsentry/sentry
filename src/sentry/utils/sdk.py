@@ -3,17 +3,18 @@ from __future__ import absolute_import, print_function
 import inspect
 import json
 import logging
-import six
 import zlib
 
+import sentry_sdk
+import six
 from django.conf import settings
 from django.utils.functional import cached_property
-
-import sentry_sdk
-
+# Reexport sentry_sdk just in case we ever have to write another shim like we
+# did for raven
+from sentry_sdk import capture_exception, capture_message, configure_scope, push_scope  # NOQA
 from sentry_sdk.client import get_options
-from sentry_sdk.transport import Transport, make_transport
 from sentry_sdk.consts import VERSION as SDK_VERSION
+from sentry_sdk.transport import Transport, make_transport
 from sentry_sdk.utils import Auth, capture_internal_exceptions
 from sentry_sdk.utils import logger as sdk_logger
 
@@ -21,10 +22,6 @@ from sentry.utils import metrics
 from sentry.utils.rust import RustInfoIntegration
 
 UNSAFE_FILES = ('sentry/event_manager.py', 'sentry/tasks/process_buffer.py', )
-
-# Reexport sentry_sdk just in case we ever have to write another shim like we
-# did for raven
-from sentry_sdk import configure_scope, push_scope, capture_message, capture_exception  # NOQA
 
 
 def is_current_event_safe():

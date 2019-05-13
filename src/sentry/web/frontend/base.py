@@ -1,14 +1,16 @@
 from __future__ import absolute_import
 
 import logging
-import six
 
+import six
 from django.core.context_processors import csrf
 from django.core.urlresolvers import reverse
-from django.http import HttpResponse, HttpResponseBadRequest, HttpResponseNotFound, HttpResponseRedirect
+from django.http import (
+    HttpResponse, HttpResponseBadRequest, HttpResponseNotFound, HttpResponseRedirect,
+)
 from django.middleware.csrf import CsrfViewMiddleware
-from django.views.generic import View
 from django.views.decorators.csrf import csrf_exempt
+from django.views.generic import View
 from sudo.views import redirect_to_sudo
 
 from sentry import roles
@@ -17,13 +19,12 @@ from sentry.auth import access
 from sentry.auth.superuser import is_active_superuser
 from sentry.models import (
     Authenticator, Organization, OrganizationMember, OrganizationStatus, Project, ProjectStatus,
-    Team, TeamStatus
+    Team, TeamStatus,
 )
 from sentry.utils import auth
 from sentry.utils.audit import create_audit_entry
-from sentry.web.helpers import render_to_response
 from sentry.web.frontend.generic import FOREVER_CACHE
-
+from sentry.web.helpers import render_to_response
 
 logger = logging.getLogger(__name__)
 audit_logger = logging.getLogger('sentry.audit.ui')

@@ -6,15 +6,17 @@ from rest_framework import serializers
 from rest_framework.response import Response
 
 from sentry import roles
-from sentry.api.bases.organization import (
-    OrganizationEndpoint, OrganizationPermission)
+from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import (
-    DetailedUserSerializer, serialize, RoleSerializer, OrganizationMemberWithTeamsSerializer)
+    DetailedUserSerializer, OrganizationMemberWithTeamsSerializer, RoleSerializer, serialize,
+)
 from sentry.api.serializers.rest_framework import ListField
 from sentry.auth.superuser import is_active_superuser
 from sentry.models import (
-    AuditLogEntryEvent, AuthIdentity, AuthProvider, OrganizationMember, OrganizationMemberTeam, Team, TeamStatus)
+    AuditLogEntryEvent, AuthIdentity, AuthProvider, OrganizationMember, OrganizationMemberTeam,
+    Team, TeamStatus,
+)
 
 ERR_NO_AUTH = 'You cannot remove this member with an unauthenticated API request.'
 ERR_INSUFFICIENT_ROLE = 'You cannot remove a member who has more access than you.'

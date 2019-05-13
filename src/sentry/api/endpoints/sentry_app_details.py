@@ -7,7 +7,7 @@ from sentry.api.bases.sentryapps import SentryAppBaseEndpoint
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework import SentryAppSerializer
 from sentry.constants import SentryAppStatus
-from sentry.mediators.sentry_apps import Updater, Destroyer
+from sentry.mediators.sentry_apps import Destroyer, Updater
 
 
 class SentryAppDetailsEndpoint(SentryAppBaseEndpoint):

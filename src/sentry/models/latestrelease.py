@@ -1,8 +1,6 @@
 from __future__ import absolute_import, print_function
 
-from sentry.db.models import (
-    BoundedBigIntegerField, Model, sane_repr
-)
+from sentry.db.models import BoundedBigIntegerField, Model, sane_repr
 
 
 class LatestRelease(Model):

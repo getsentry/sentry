@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
 import re
 
-from south.utils import datetime_utils as datetime
-from south.db import db
-from south.v2 import DataMigration
 from django.db import IntegrityError, models, transaction
+from south.db import db
+from south.utils import datetime_utils as datetime
+from south.v2 import DataMigration
 
 
 def is_full_sha(version):

@@ -1,28 +1,24 @@
 from __future__ import absolute_import
 
-from collections import (
-    namedtuple,
-    OrderedDict,
-)
+import os
+import re
+import time
+from collections import OrderedDict, namedtuple
 from contextlib import contextmanager
 from datetime import datetime, timedelta
-from dateutil.parser import parse as parse_datetime
-import os
-import pytz
-import re
-import six
-import time
-import urllib3
 
+import pytz
+import six
+import urllib3
+from dateutil.parser import parse as parse_datetime
 from django.conf import settings
 
 from sentry import quotas
 from sentry.models import (
-    Environment, Group, GroupRelease,
-    Organization, Project, Release, ReleaseProject
+    Environment, Group, GroupRelease, Organization, Project, Release, ReleaseProject,
 )
 from sentry.net.http import connection_from_url
-from sentry.utils import metrics, json
+from sentry.utils import json, metrics
 from sentry.utils.dates import to_timestamp
 
 # TODO remove this when Snuba accepts more than 500 issues

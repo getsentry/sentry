@@ -1,9 +1,9 @@
 from __future__ import absolute_import
 
-import six
-
 from collections import defaultdict
-from rest_framework.serializers import WritableField, ValidationError
+
+import six
+from rest_framework.serializers import ValidationError, WritableField
 
 
 class ListField(WritableField):

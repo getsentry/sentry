@@ -6,7 +6,6 @@ from .action_endpoint import SlackActionEndpoint
 from .event_endpoint import SlackEventEndpoint
 from .link_identity import SlackLinkIdentitiyView
 
-
 urlpatterns = patterns(
     '',
     url(r'^action/$', SlackActionEndpoint.as_view()),

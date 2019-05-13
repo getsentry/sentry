@@ -1,25 +1,27 @@
 from __future__ import absolute_import
-import six
 
-from django.db import transaction, IntegrityError
+import six
+from django.conf import settings
+from django.db import IntegrityError, transaction
 from django.db.models import Q
 from rest_framework import serializers
 from rest_framework.response import Response
-from django.conf import settings
 
-from sentry.app import locks
-from sentry import roles, features
-from sentry.api.bases.organization import (
-    OrganizationEndpoint, OrganizationPermission)
+from sentry import features, roles
+from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework import ListField
 from sentry.api.validators import AllowedEmailField
-from sentry.models import AuditLogEntryEvent, OrganizationMember, OrganizationMemberTeam, Team, TeamStatus
+from sentry.app import locks
+from sentry.models import (
+    AuditLogEntryEvent, OrganizationMember, OrganizationMemberTeam, Team, TeamStatus,
+)
 from sentry.search.utils import tokenize_query
 from sentry.signals import member_invited
-from .organization_member_details import get_allowed_roles
 from sentry.utils.retries import TimedRetryPolicy
+
+from .organization_member_details import get_allowed_roles
 
 
 class MemberPermission(OrganizationPermission):

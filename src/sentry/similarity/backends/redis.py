@@ -7,7 +7,6 @@ from sentry.similarity.backends.abstract import AbstractIndexBackend
 from sentry.utils.iterators import chunked
 from sentry.utils.redis import load_script
 
-
 index = load_script('similarity/index.lua')
 
 

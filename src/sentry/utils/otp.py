@@ -1,18 +1,17 @@
 from __future__ import absolute_import
 
-import six
-import time
-import hmac
 import base64
-import qrcode
 import hashlib
-
+import hmac
+import time
 from datetime import datetime
+
+import qrcode
+import six
+from django.utils.crypto import constant_time_compare, get_random_string
 from six.moves.urllib.parse import quote
 
 from sentry.utils.dates import to_timestamp
-
-from django.utils.crypto import constant_time_compare, get_random_string
 
 
 def generate_secret_key(length=32):

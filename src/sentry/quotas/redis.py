@@ -8,9 +8,9 @@ sentry.quotas.redis
 from __future__ import absolute_import
 
 import functools
-import six
-
 from time import time
+
+import six
 
 from sentry.exceptions import InvalidConfiguration
 from sentry.quotas.base import NotRateLimited, Quota, RateLimited

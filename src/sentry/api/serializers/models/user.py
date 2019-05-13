@@ -1,24 +1,17 @@
 from __future__ import absolute_import
 
-import six
-
 from collections import defaultdict
+
+import six
 from django.conf import settings
 
-from sentry.app import env
 from sentry.api.serializers import Serializer, register
-from sentry.models import (
-    AuthIdentity,
-    Authenticator,
-    OrganizationMember,
-    OrganizationStatus,
-    User,
-    UserAvatar,
-    UserOption,
-    UserEmail,
-    UserPermission,
-)
+from sentry.app import env
 from sentry.auth.superuser import is_active_superuser
+from sentry.models import (
+    Authenticator, AuthIdentity, OrganizationMember, OrganizationStatus, User, UserAvatar,
+    UserEmail, UserOption, UserPermission,
+)
 from sentry.utils.avatar import get_gravatar_url
 
 

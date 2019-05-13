@@ -7,10 +7,10 @@ sentry.tagstore.v2.models.grouptagkey
 """
 from __future__ import absolute_import
 
-from django.db import router, transaction, DataError, connections
+from django.db import DataError, connections, router, transaction
 
 from sentry.db.models import (
-    Model, BoundedPositiveIntegerField, BoundedBigIntegerField, FlexibleForeignKey, sane_repr
+    BoundedBigIntegerField, BoundedPositiveIntegerField, FlexibleForeignKey, Model, sane_repr,
 )
 from sentry.tagstore.query import TagStoreManager
 

@@ -1,14 +1,16 @@
 from __future__ import absolute_import
 
-__all__ = ('PubSubAnalytics',)
-
 import logging
 
-from sentry.utils.json import dumps
 from google.auth.exceptions import GoogleAuthError
 from google.cloud import pubsub_v1
 
+from sentry.utils.json import dumps
+
 from .base import Analytics
+
+__all__ = ('PubSubAnalytics',)
+
 
 logger = logging.getLogger(__name__)
 

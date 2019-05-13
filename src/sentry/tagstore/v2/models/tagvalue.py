@@ -8,15 +8,14 @@ sentry.tagstore.v2.models.tagvalue
 from __future__ import absolute_import, print_function
 
 import six
-
-from django.db import models, router, connections
+from django.db import connections, models, router
 from django.utils import timezone
 
 from sentry.api.serializers import Serializer, register
 from sentry.constants import MAX_TAG_VALUE_LENGTH
 from sentry.db.models import (
-    Model, BoundedPositiveIntegerField, BoundedBigIntegerField, GzippedDictField,
-    FlexibleForeignKey, sane_repr
+    BoundedBigIntegerField, BoundedPositiveIntegerField, FlexibleForeignKey, GzippedDictField,
+    Model, sane_repr,
 )
 from sentry.search.utils import convert_user_tag_to_query
 from sentry.tagstore.query import TagStoreManager

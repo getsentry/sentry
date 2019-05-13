@@ -5,14 +5,8 @@ import time
 
 from sentry.digests import get_option_key
 from sentry.digests.backends.base import InvalidState
-from sentry.digests.notifications import (
-    build_digest,
-    split_key,
-)
-from sentry.models import (
-    Project,
-    ProjectOption,
-)
+from sentry.digests.notifications import build_digest, split_key
+from sentry.models import Project, ProjectOption
 from sentry.tasks.base import instrumented_task
 from sentry.utils import snuba
 

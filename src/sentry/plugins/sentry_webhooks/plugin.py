@@ -1,18 +1,18 @@
 from __future__ import absolute_import
 
 import logging
-import six
-import sentry
 
+import six
 from django import forms
 from django.conf import settings
 from django.utils.translation import ugettext_lazy as _
 
+import sentry
 from sentry import features
 from sentry.exceptions import PluginError
+from sentry.http import is_valid_url, safe_urlopen
 from sentry.models import Event
 from sentry.plugins.bases import notify
-from sentry.http import is_valid_url, safe_urlopen
 from sentry.utils.safe import safe_execute
 
 

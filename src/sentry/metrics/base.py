@@ -1,10 +1,11 @@
 from __future__ import absolute_import
 
-__all__ = ['MetricsBackend']
-
-from django.conf import settings
 from random import random
 from threading import local
+
+from django.conf import settings
+
+__all__ = ['MetricsBackend']
 
 
 class MetricsBackend(local):

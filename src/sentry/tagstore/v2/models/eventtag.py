@@ -7,10 +7,10 @@ sentry.tagstore.v2.models.eventtag
 """
 from __future__ import absolute_import
 
-from django.db import models, router, connections
+from django.db import connections, models, router
 from django.utils import timezone
 
-from sentry.db.models import (Model, BoundedBigIntegerField, FlexibleForeignKey, sane_repr)
+from sentry.db.models import BoundedBigIntegerField, FlexibleForeignKey, Model, sane_repr
 
 
 class EventTag(Model):

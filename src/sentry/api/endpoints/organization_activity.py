@@ -3,7 +3,7 @@ from __future__ import absolute_import
 from sentry.api.base import EnvironmentMixin
 from sentry.api.bases import OrganizationMemberEndpoint
 from sentry.api.paginator import DateTimePaginator
-from sentry.api.serializers import serialize, OrganizationActivitySerializer
+from sentry.api.serializers import OrganizationActivitySerializer, serialize
 from sentry.models import Activity, OrganizationMemberTeam, Project
 
 

@@ -7,12 +7,12 @@ sentry.plugins.base.response
 """
 from __future__ import absolute_import, print_function
 
-__all__ = ('Response', 'JSONResponse')
-
 from django.core.context_processors import csrf
 from django.http import HttpResponse
 
 from sentry.utils import json
+
+__all__ = ('Response', 'JSONResponse')
 
 
 class Response(object):

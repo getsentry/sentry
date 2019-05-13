@@ -8,8 +8,8 @@ from __future__ import absolute_import
 
 import logging
 import re
-import six
 
+import six
 from django.utils.timezone import now
 from simplejson import JSONEncoder
 from structlog import get_logger

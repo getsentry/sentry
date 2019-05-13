@@ -1,14 +1,15 @@
 from __future__ import absolute_import
 
 from datetime import timedelta
-from django.utils import timezone
 from functools import partial
+
+from django.utils import timezone
 
 from sentry import options
 from sentry.api.base import DocSection
 from sentry.api.bases.project import ProjectEndpoint
-from sentry.api.serializers import EventSerializer, serialize, SimpleEventSerializer
-from sentry.utils.apidocs import scenario, attach_scenarios
+from sentry.api.serializers import EventSerializer, SimpleEventSerializer, serialize
+from sentry.utils.apidocs import attach_scenarios, scenario
 
 
 @scenario('ListProjectAvailableSamples')

@@ -1,9 +1,10 @@
 from __future__ import absolute_import
 
 from django.http import HttpResponse
+
 from sentry.integrations import (
-    IntegrationInstallation, IntegrationFeatures, IntegrationMetadata,
-    IntegrationProvider, FeatureDescription
+    FeatureDescription, IntegrationFeatures, IntegrationInstallation, IntegrationMetadata,
+    IntegrationProvider,
 )
 from sentry.integrations.exceptions import IntegrationError
 from sentry.integrations.issues import IssueSyncMixin

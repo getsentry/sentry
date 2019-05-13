@@ -1,7 +1,8 @@
 from __future__ import absolute_import
 
-import six
 import sys
+
+import six
 
 try:
     import pkg_resources

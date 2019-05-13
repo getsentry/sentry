@@ -1,8 +1,8 @@
 from __future__ import absolute_import
 
 import itertools
-import six
 
+import six
 from celery import current_app
 
 COUNTER_TASKS = set(

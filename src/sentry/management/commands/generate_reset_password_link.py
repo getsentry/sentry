@@ -2,9 +2,9 @@ from __future__ import absolute_import
 
 import sys
 
+from click import echo
 from django.core.management.base import BaseCommand, make_option
 from django.utils import timezone
-from click import echo
 
 from sentry.models import LostPasswordHash
 from sentry.utils.auth import find_users

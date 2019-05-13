@@ -1,10 +1,10 @@
 from __future__ import absolute_import, print_function
 
-__all__ = ['IntegrationManager']
-
 import six
 
 from sentry.exceptions import NotRegistered
+
+__all__ = ['IntegrationManager']
 
 
 # Ideally this and PluginManager abstracted from the same base, but

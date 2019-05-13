@@ -1,15 +1,15 @@
 from __future__ import absolute_import, print_function
 
 import logging
-import six
 
+import six
 from django.http import HttpResponse
 from django.utils import timezone
 from django.views.decorators.cache import never_cache
 from django.views.decorators.csrf import csrf_exempt
 from django.views.generic.base import View
 
-from sentry.models import (ApiApplication, ApiApplicationStatus, ApiGrant, ApiToken)
+from sentry.models import ApiApplication, ApiApplicationStatus, ApiGrant, ApiToken
 from sentry.utils import json
 
 logger = logging.getLogger('sentry.api')

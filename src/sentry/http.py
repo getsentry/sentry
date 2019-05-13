@@ -7,27 +7,26 @@ sentry.utils.http
 """
 from __future__ import absolute_import
 
-import six
-import warnings
-import time
 import logging
-
-from sentry import options
-from django.core.exceptions import SuspiciousOperation
+import time
+import warnings
 from collections import namedtuple
+
+import six
 from django.conf import settings
-from requests.exceptions import RequestException, Timeout, ReadTimeout
+from django.core.exceptions import SuspiciousOperation
+from requests.exceptions import ReadTimeout, RequestException, Timeout
 from six.moves.urllib.parse import urlparse
 
-from sentry.models import EventError
+from sentry import options
 from sentry.exceptions import RestrictedIPAddress
+from sentry.models import EventError
+from sentry.net.http import SafeSession
+# Importing for backwards compatible API
+from sentry.net.socket import is_safe_hostname, is_valid_url, safe_socket_connect  # NOQA
 from sentry.utils.cache import cache
 from sentry.utils.hashlib import md5_text
 from sentry.utils.strings import truncatechars
-
-# Importing for backwards compatible API
-from sentry.net.socket import safe_socket_connect, is_valid_url, is_safe_hostname  # NOQA
-from sentry.net.http import SafeSession
 
 logger = logging.getLogger(__name__)
 

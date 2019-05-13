@@ -8,11 +8,10 @@ sentry.models.organization
 from __future__ import absolute_import, print_function
 
 import logging
-import six
-
 from datetime import timedelta
 from enum import IntEnum
 
+import six
 from bitfield import BitField
 from django.conf import settings
 from django.core.urlresolvers import reverse
@@ -23,7 +22,7 @@ from django.utils.functional import cached_property
 from sentry import roles
 from sentry.app import locks
 from sentry.constants import RESERVED_ORGANIZATION_SLUGS, RESERVED_PROJECT_SLUGS
-from sentry.db.models import (BaseManager, BoundedPositiveIntegerField, Model, sane_repr)
+from sentry.db.models import BaseManager, BoundedPositiveIntegerField, Model, sane_repr
 from sentry.db.models.utils import slugify_instance
 from sentry.utils.http import absolute_uri
 from sentry.utils.retries import TimedRetryPolicy

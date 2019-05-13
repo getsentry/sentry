@@ -1,8 +1,7 @@
 from __future__ import absolute_import
 
 from sentry import http, options
-
-from sentry.identity.oauth2 import OAuth2Provider, OAuth2LoginView, OAuth2CallbackView
+from sentry.identity.oauth2 import OAuth2CallbackView, OAuth2LoginView, OAuth2Provider
 from sentry.utils.http import absolute_uri
 
 

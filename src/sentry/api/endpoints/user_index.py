@@ -1,7 +1,6 @@
 from __future__ import absolute_import
 
 import six
-
 from django.db.models import Q
 
 from sentry.api.base import Endpoint

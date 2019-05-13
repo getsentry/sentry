@@ -1,17 +1,16 @@
 from __future__ import absolute_import
 
+import json
+import logging
 import os
 import re
-import logging
-import json
-import six
 
-from pkg_resources import parse_version
+import six
+from django.conf import settings
 from functools32 import lru_cache
+from pkg_resources import parse_version
 
 import sentry
-
-from django.conf import settings
 
 logger = logging.getLogger('sentry')
 

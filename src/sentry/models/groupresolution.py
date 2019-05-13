@@ -3,7 +3,8 @@ from __future__ import absolute_import
 from django.db import models
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
-from sentry.db.models import (BoundedPositiveIntegerField, Model, FlexibleForeignKey, sane_repr)
+
+from sentry.db.models import BoundedPositiveIntegerField, FlexibleForeignKey, Model, sane_repr
 
 
 class GroupResolution(Model):

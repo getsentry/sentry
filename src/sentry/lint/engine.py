@@ -9,13 +9,11 @@ python stdlib to prevent the need to install the world just to run eslint.
 """
 from __future__ import absolute_import, print_function
 
-
-import os
-import sys
-import subprocess
 import json
-
-from subprocess import check_output, Popen
+import os
+import subprocess
+import sys
+from subprocess import Popen, check_output
 
 os.environ['PYFLAKES_NODOCTEST'] = '1'
 os.environ['SENTRY_PRECOMMIT'] = '1'

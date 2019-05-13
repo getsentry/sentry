@@ -7,12 +7,12 @@ sentry.interfaces.template
 """
 from __future__ import absolute_import
 
-__all__ = ('Template', )
-
-from sentry.interfaces.base import Interface, InterfaceValidationError, RUST_RENORMALIZED_DEFAULT
+from sentry.interfaces.base import RUST_RENORMALIZED_DEFAULT, Interface, InterfaceValidationError
 from sentry.interfaces.schemas import validate_and_default_interface
 from sentry.interfaces.stacktrace import get_context
 from sentry.utils.safe import trim
+
+__all__ = ('Template', )
 
 
 class Template(Interface):

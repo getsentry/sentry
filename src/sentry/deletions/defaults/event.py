@@ -2,7 +2,7 @@ from __future__ import absolute_import, print_function
 
 from sentry import nodestore
 
-from ..base import (BaseDeletionTask, BaseRelation, ModelDeletionTask, ModelRelation)
+from ..base import BaseDeletionTask, BaseRelation, ModelDeletionTask, ModelRelation
 
 
 class NodeDeletionTask(BaseDeletionTask):

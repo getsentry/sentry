@@ -1,21 +1,22 @@
 from __future__ import absolute_import
 
-import re
 import logging
+import re
+
 from django.db import IntegrityError, transaction
-from six import BytesIO
 from rest_framework.response import Response
+from six import BytesIO
 
 from sentry.api.base import DocSection
 from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
 from sentry.api.content_negotiation import ConditionalContentNegotiation
+from sentry.api.endpoints.organization_release_files import load_dist
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
-from sentry.api.endpoints.organization_release_files import load_dist
 from sentry.constants import MAX_RELEASE_FILES_OFFSET
 from sentry.models import File, Release, ReleaseFile
-from sentry.utils.apidocs import scenario, attach_scenarios
+from sentry.utils.apidocs import attach_scenarios, scenario
 
 ERR_FILE_EXISTS = 'A file matching this name already exists for the given release'
 _filename_re = re.compile(r"[\n\t\r\f\v\\]")

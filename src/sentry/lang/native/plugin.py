@@ -1,29 +1,34 @@
 from __future__ import absolute_import
 
-import uuid
 import logging
+import uuid
 
-from symbolic import parse_addr, find_best_instruction, arch_get_ip_reg_name, \
-    ObjectLookup
+from symbolic import ObjectLookup, arch_get_ip_reg_name, find_best_instruction, parse_addr
 from symbolic.utils import make_buffered_slice_reader
 
 from sentry import options
 from sentry.cache import default_cache
 from sentry.coreapi import cache_key_for_event
-from sentry.plugins import Plugin2
 from sentry.lang.native.cfi import reprocess_minidump_with_cfi
-from sentry.lang.native.minidump import get_attached_minidump, is_minidump_event, merge_symbolicator_minidump_response
-from sentry.lang.native.symbolizer import Symbolizer, SymbolicationFailed
-from sentry.lang.native.symbolicator import run_symbolicator, merge_symbolicator_image, create_minidump_task
-from sentry.lang.native.utils import get_sdk_from_event, handle_symbolication_failed, cpu_name_from_data, \
-    merge_symbolicated_frame, rebase_addr, signal_from_data
+from sentry.lang.native.minidump import (
+    get_attached_minidump, is_minidump_event, merge_symbolicator_minidump_response,
+)
+from sentry.lang.native.symbolicator import (
+    create_minidump_task, merge_symbolicator_image, run_symbolicator,
+)
+from sentry.lang.native.symbolizer import SymbolicationFailed, Symbolizer
 from sentry.lang.native.systemsymbols import lookup_system_symbols
+from sentry.lang.native.utils import (
+    cpu_name_from_data, get_sdk_from_event, handle_symbolication_failed, merge_symbolicated_frame,
+    rebase_addr, signal_from_data,
+)
 from sentry.models import Project
 from sentry.models.eventerror import EventError
+from sentry.plugins import Plugin2
+from sentry.stacktraces.processing import StacktraceProcessor
 from sentry.utils import metrics
 from sentry.utils.in_app import is_known_third_party
 from sentry.utils.safe import get_path
-from sentry.stacktraces.processing import StacktraceProcessor
 
 logger = logging.getLogger(__name__)
 

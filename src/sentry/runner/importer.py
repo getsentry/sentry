@@ -8,10 +8,10 @@ sentry.runner.importer
 from __future__ import absolute_import, print_function
 
 import imp
-import six
 import sys
 
 import click
+import six
 
 
 def install(name, config_path, default_settings, callback=None):

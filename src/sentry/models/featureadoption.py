@@ -2,13 +2,13 @@ from __future__ import absolute_import
 
 import logging
 
-from django.db import models, IntegrityError, transaction
+from django.db import IntegrityError, models, transaction
 from django.utils import timezone
 from jsonfield import JSONField
 
 from sentry.adoption import manager
 from sentry.adoption.manager import UnknownFeature
-from sentry.db.models import (BaseManager, FlexibleForeignKey, Model, sane_repr)
+from sentry.db.models import BaseManager, FlexibleForeignKey, Model, sane_repr
 from sentry.utils import redis
 
 logger = logging.getLogger(__name__)

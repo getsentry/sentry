@@ -1,10 +1,11 @@
 from __future__ import absolute_import
 
-import six
 from collections import defaultdict
 
+import six
+
 from sentry.api.serializers import Serializer, register, serialize
-from sentry.models import (OrganizationMember, OrganizationMemberTeam, Team, TeamStatus)
+from sentry.models import OrganizationMember, OrganizationMemberTeam, Team, TeamStatus
 
 
 @register(OrganizationMember)

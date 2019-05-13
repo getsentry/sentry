@@ -3,12 +3,12 @@ from __future__ import absolute_import
 import six
 
 from sentry import roles
-from sentry.app import quotas
 from sentry.api.serializers import Serializer, register, serialize
+from sentry.app import quotas
 from sentry.constants import LEGACY_RATE_LIMIT_OPTIONS
 from sentry.models import (
     ApiKey, Organization, OrganizationAccessRequest, OrganizationAvatar, OrganizationOnboardingTask,
-    OrganizationOption, OrganizationStatus, Project, ProjectStatus, Team, TeamStatus
+    OrganizationOption, OrganizationStatus, Project, ProjectStatus, Team, TeamStatus,
 )
 
 # org option default values

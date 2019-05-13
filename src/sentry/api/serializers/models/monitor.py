@@ -5,7 +5,6 @@ import six
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.models import Monitor, Project, ScheduleType
 
-
 SCHEDULE_TYPES = dict(ScheduleType.as_choices())
 
 

@@ -1,18 +1,17 @@
 from __future__ import absolute_import
 
-import six
 import logging
+from datetime import timedelta
 from itertools import chain
 from uuid import uuid4
 
-from datetime import timedelta
+import six
 from django.db import IntegrityError, transaction
 from django.utils import timezone
 from rest_framework import serializers, status
 from rest_framework.response import Response
 
 from sentry import features
-from sentry.utils.data_filters import FilterTypes
 from sentry.api.base import DocSection
 from sentry.api.bases.project import ProjectEndpoint, ProjectPermission
 from sentry.api.decorators import sudo_required
@@ -20,16 +19,17 @@ from sentry.api.serializers import serialize
 from sentry.api.serializers.models.project import DetailedProjectSerializer
 from sentry.api.serializers.rest_framework import ListField, OriginField
 from sentry.constants import RESERVED_PROJECT_SLUGS
-from sentry.lang.native.symbolicator import parse_sources, InvalidSourcesError
+from sentry.grouping.enhancer import Enhancements, InvalidEnhancerConfig
+from sentry.grouping.fingerprinting import FingerprintingRules, InvalidFingerprintingConfig
+from sentry.lang.native.symbolicator import InvalidSourcesError, parse_sources
 from sentry.models import (
     AuditLogEntryEvent, Group, GroupStatus, Project, ProjectBookmark, ProjectRedirect,
     ProjectStatus, ProjectTeam, UserOption,
 )
-from sentry.grouping.enhancer import Enhancements, InvalidEnhancerConfig
-from sentry.grouping.fingerprinting import FingerprintingRules, InvalidFingerprintingConfig
 from sentry.tasks.deletion import delete_project
-from sentry.utils.apidocs import scenario, attach_scenarios
 from sentry.utils import json
+from sentry.utils.apidocs import attach_scenarios, scenario
+from sentry.utils.data_filters import FilterTypes
 
 delete_logger = logging.getLogger('sentry.deletions.api')
 

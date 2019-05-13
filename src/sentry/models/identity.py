@@ -6,8 +6,7 @@ from django.db.models import Q
 from django.utils import timezone
 
 from sentry.db.models import (
-    ArrayField, BoundedPositiveIntegerField, EncryptedJsonField,
-    FlexibleForeignKey, Model
+    ArrayField, BoundedPositiveIntegerField, EncryptedJsonField, FlexibleForeignKey, Model,
 )
 
 

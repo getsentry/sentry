@@ -1,12 +1,13 @@
 from __future__ import absolute_import, unicode_literals
 
-from django.template import Context, Template
-from django.utils.translation import ugettext_lazy as _
 from time import time
 
-from .base import CallRecordingPanel
+from django.template import Context, Template
+from django.utils.translation import ugettext_lazy as _
+
 from ..utils.function_wrapper import FunctionWrapper
 from ..utils.patch_context import PatchContext
+from .base import CallRecordingPanel
 
 TEMPLATE = Template(
     """
