@@ -33,7 +33,7 @@ class IncidentDetailsTest(APITestCase):
         incident = self.create_incident(seen_by=[self.user])
         self.login_as(self.user)
         with self.feature('organizations:incidents'):
-            resp = self.get_valid_response(incident.organization.slug, incident.id)
+            resp = self.get_valid_response(incident.organization.slug, incident.identifier)
 
         expected = serialize(incident)
 
