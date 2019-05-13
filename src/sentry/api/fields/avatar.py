@@ -14,8 +14,8 @@ MAX_DIMENSION = 1024
 
 class ImageTooLarge(APIException):
     status_code = 413
-    default_detail = 'Image too large'
-    default_code = 'too_large'
+    default_detail = "Image too large"
+    default_code = "too_large"
 
 
 class AvatarField(serializers.WritableField):
@@ -33,7 +33,7 @@ class AvatarField(serializers.WritableField):
 
     def to_native(self, obj):
         if not obj:
-            return ''
+            return ""
         return obj.getvalue()
 
     def from_native(self, data):
@@ -47,9 +47,9 @@ class AvatarField(serializers.WritableField):
             with Image.open(BytesIO(data)) as img:
                 width, height = img.size
                 if not self.is_valid_size(width, height):
-                    raise serializers.ValidationError('Invalid image dimensions.')
+                    raise serializers.ValidationError("Invalid image dimensions.")
         except IOError:
-            raise serializers.ValidationError('Invalid image format.')
+            raise serializers.ValidationError("Invalid image format.")
 
         return BytesIO(data)
 

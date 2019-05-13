@@ -1,6 +1,6 @@
 from __future__ import absolute_import
 
-__all__ = ['PluggableViewMixin']
+__all__ = ["PluggableViewMixin"]
 
 from django.http import HttpResponseRedirect
 
@@ -30,5 +30,5 @@ class PluggableViewMixin(object):
         """
         if context is None:
             context = {}
-        context['plugin'] = self
+        context["plugin"] = self
         return Response(template, context)

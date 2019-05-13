@@ -33,8 +33,8 @@ class QueuedPublisherService(object):
                 try:
                     self.publisher.publish(channel, key=key, value=value)
                 except Exception as e:
-                    logger = logging.getLogger('sentry.errors')
-                    logger.debug('could not submit event to pubsub: %s' % e)
+                    logger = logging.getLogger("sentry.errors")
+                    logger.debug("could not submit event to pubsub: %s" % e)
                 finally:
                     q.task_done()
 

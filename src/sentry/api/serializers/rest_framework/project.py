@@ -14,15 +14,10 @@ class ProjectField(serializers.WritableField):
     def from_native(self, data):
         try:
             project = Project.objects.get(
-                organization=self.context['organization'],
-                slug=data,
+                organization=self.context["organization"], slug=data
             )
         except Project.DoesNotExist:
-            raise ValidationError(
-                'Invalid project'
-            )
-        if not self.context['access'].has_project_scope(project, 'project:write'):
-            raise ValidationError(
-                'Insufficient access to project'
-            )
+            raise ValidationError("Invalid project")
+        if not self.context["access"].has_project_scope(project, "project:write"):
+            raise ValidationError("Insufficient access to project")
         return project

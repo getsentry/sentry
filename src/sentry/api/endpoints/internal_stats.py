@@ -8,10 +8,10 @@ from sentry.api.permissions import SuperuserPermission
 
 
 class InternalStatsEndpoint(Endpoint, StatsMixin):
-    permission_classes = (SuperuserPermission, )
+    permission_classes = (SuperuserPermission,)
 
     def get(self, request):
-        key = request.GET['key']
+        key = request.GET["key"]
 
         data = tsdb.get_range(
             model=tsdb.models.internal, keys=[key], **self._parse_args(request)

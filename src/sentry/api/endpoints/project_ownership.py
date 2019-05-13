@@ -26,47 +26,47 @@ class ProjectOwnershipSerializer(serializers.Serializer):
             rules = parse_rules(attrs[source])
         except ParseError as e:
             raise serializers.ValidationError(
-                u'Parse error: %r (line %d, column %d)' % (
-                    e.expr.name, e.line(), e.column()
-                ))
+                u"Parse error: %r (line %d, column %d)"
+                % (e.expr.name, e.line(), e.column())
+            )
 
         schema = dump_schema(rules)
 
         owners = {o for rule in rules for o in rule.owners}
-        actors = resolve_actors(owners, self.context['ownership'].project_id)
+        actors = resolve_actors(owners, self.context["ownership"].project_id)
 
         bad_actors = []
         for owner, actor in six.iteritems(actors):
             if actor is None:
-                if owner.type == 'user':
+                if owner.type == "user":
                     bad_actors.append(owner.identifier)
-                elif owner.type == 'team':
-                    bad_actors.append(u'#{}'.format(owner.identifier))
+                elif owner.type == "team":
+                    bad_actors.append(u"#{}".format(owner.identifier))
 
         if bad_actors:
             raise serializers.ValidationError(
-                u'Invalid rule owners: {}'.format(", ".join(bad_actors))
+                u"Invalid rule owners: {}".format(", ".join(bad_actors))
             )
 
-        attrs['schema'] = schema
+        attrs["schema"] = schema
         return attrs
 
     def save(self):
-        ownership = self.context['ownership']
+        ownership = self.context["ownership"]
 
         changed = False
-        if 'raw' in self.object:
-            raw = self.object['raw']
+        if "raw" in self.object:
+            raw = self.object["raw"]
             if not raw.strip():
                 raw = None
 
             if ownership.raw != raw:
                 ownership.raw = raw
-                ownership.schema = self.object.get('schema')
+                ownership.schema = self.object.get("schema")
                 changed = True
 
-        if 'fallthrough' in self.object:
-            fallthrough = self.object['fallthrough']
+        if "fallthrough" in self.object:
+            fallthrough = self.object["fallthrough"]
             if ownership.fallthrough != fallthrough:
                 ownership.fallthrough = fallthrough
                 changed = True
@@ -83,7 +83,7 @@ class ProjectOwnershipSerializer(serializers.Serializer):
         return ownership
 
     def __modify_auto_assignment(self, ownership):
-        auto_assignment = self.object.get('autoAssignment')
+        auto_assignment = self.object.get("autoAssignment")
 
         if auto_assignment is None:
             return False
@@ -102,9 +102,7 @@ class ProjectOwnershipEndpoint(ProjectEndpoint):
             return ProjectOwnership.objects.get(project=project)
         except ProjectOwnership.DoesNotExist:
             return ProjectOwnership(
-                project=project,
-                date_created=None,
-                last_updated=None,
+                project=project, date_created=None, last_updated=None
             )
 
     def get(self, request, project):
@@ -134,7 +132,7 @@ class ProjectOwnershipEndpoint(ProjectEndpoint):
         serializer = ProjectOwnershipSerializer(
             data=request.DATA,
             partial=True,
-            context={'ownership': self.get_ownership(project)}
+            context={"ownership": self.get_ownership(project)},
         )
         if serializer.is_valid():
             ownership = serializer.save()

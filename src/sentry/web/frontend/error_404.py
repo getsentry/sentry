@@ -7,9 +7,7 @@ from django.http import HttpResponseNotFound
 
 class Error404View(View):
     def dispatch(self, request):
-        context = {
-            'request': request,
-        }
+        context = {"request": request}
 
-        t = loader.get_template('sentry/404.html')
+        t = loader.get_template("sentry/404.html")
         return HttpResponseNotFound(t.render(Context(context)))

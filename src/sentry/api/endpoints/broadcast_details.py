@@ -9,19 +9,25 @@ from rest_framework.permissions import IsAuthenticated
 
 from sentry.api.base import Endpoint
 from sentry.api.exceptions import ResourceDoesNotExist
-from sentry.api.serializers import serialize, AdminBroadcastSerializer, BroadcastSerializer
+from sentry.api.serializers import (
+    serialize,
+    AdminBroadcastSerializer,
+    BroadcastSerializer,
+)
 from sentry.api.validators import AdminBroadcastValidator, BroadcastValidator
 from sentry.auth.superuser import is_active_superuser
 from sentry.models import Broadcast, BroadcastSeen
 
-logger = logging.getLogger('sentry')
+logger = logging.getLogger("sentry")
 
 
 class BroadcastDetailsEndpoint(Endpoint):
-    permission_classes = (IsAuthenticated, )
+    permission_classes = (IsAuthenticated,)
 
     def _get_broadcast(self, request, broadcast_id):
-        if is_active_superuser(request) and request.access.has_permission('broadcasts.admin'):
+        if is_active_superuser(request) and request.access.has_permission(
+            "broadcasts.admin"
+        ):
             queryset = Broadcast.objects.all()
         else:
             queryset = Broadcast.objects.filter(
@@ -46,7 +52,9 @@ class BroadcastDetailsEndpoint(Endpoint):
 
     def _serialize_response(self, request, broadcast):
         serializer_cls = self._get_serializer(request)
-        return self.respond(serialize(broadcast, request.user, serializer=serializer_cls()))
+        return self.respond(
+            serialize(broadcast, request.user, serializer=serializer_cls())
+        )
 
     def get(self, request, broadcast_id):
         broadcast = self._get_broadcast(request, broadcast_id)
@@ -61,35 +69,35 @@ class BroadcastDetailsEndpoint(Endpoint):
         result = validator.object
 
         update_kwargs = {}
-        if result.get('title'):
-            update_kwargs['title'] = result['title']
-        if result.get('message'):
-            update_kwargs['message'] = result['message']
-        if result.get('link'):
-            update_kwargs['link'] = result['link']
-        if result.get('isActive') is not None:
-            update_kwargs['is_active'] = result['isActive']
-        if result.get('dateExpires', -1) != -1:
-            update_kwargs['date_expires'] = result['dateExpires']
-        if result.get('cta'):
-            update_kwargs['cta'] = result['cta']
+        if result.get("title"):
+            update_kwargs["title"] = result["title"]
+        if result.get("message"):
+            update_kwargs["message"] = result["message"]
+        if result.get("link"):
+            update_kwargs["link"] = result["link"]
+        if result.get("isActive") is not None:
+            update_kwargs["is_active"] = result["isActive"]
+        if result.get("dateExpires", -1) != -1:
+            update_kwargs["date_expires"] = result["dateExpires"]
+        if result.get("cta"):
+            update_kwargs["cta"] = result["cta"]
         if update_kwargs:
             with transaction.atomic():
                 broadcast.update(**update_kwargs)
-                logger.info('broadcasts.update', extra={
-                    'ip_address': request.META['REMOTE_ADDR'],
-                    'user_id': request.user.id,
-                    'broadcast_id': broadcast.id,
-                    'data': update_kwargs,
-                })
+                logger.info(
+                    "broadcasts.update",
+                    extra={
+                        "ip_address": request.META["REMOTE_ADDR"],
+                        "user_id": request.user.id,
+                        "broadcast_id": broadcast.id,
+                        "data": update_kwargs,
+                    },
+                )
 
-        if result.get('hasSeen'):
+        if result.get("hasSeen"):
             try:
                 with transaction.atomic():
-                    BroadcastSeen.objects.create(
-                        broadcast=broadcast,
-                        user=request.user,
-                    )
+                    BroadcastSeen.objects.create(broadcast=broadcast, user=request.user)
             except IntegrityError:
                 pass
 

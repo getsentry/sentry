@@ -8,9 +8,7 @@ from django.utils import timezone
 from uuid import uuid4
 
 from sentry.models.apiscopes import HasApiScopes
-from sentry.db.models import (
-    Model, BaseManager, FlexibleForeignKey, sane_repr
-)
+from sentry.db.models import Model, BaseManager, FlexibleForeignKey, sane_repr
 
 DEFAULT_EXPIRATION = timedelta(days=30)
 
@@ -27,31 +25,22 @@ class ApiToken(Model, HasApiScopes):
     __core__ = True
 
     # users can generate tokens without being application-bound
-    application = FlexibleForeignKey('sentry.ApiApplication', null=True)
-    user = FlexibleForeignKey('sentry.User')
-    token = models.CharField(
-        max_length=64,
-        unique=True,
-        default=generate_token,
-    )
+    application = FlexibleForeignKey("sentry.ApiApplication", null=True)
+    user = FlexibleForeignKey("sentry.User")
+    token = models.CharField(max_length=64, unique=True, default=generate_token)
     refresh_token = models.CharField(
-        max_length=64,
-        unique=True,
-        null=True,
-        default=generate_token,
+        max_length=64, unique=True, null=True, default=generate_token
     )
-    expires_at = models.DateTimeField(
-        null=True, default=default_expiration
-    )
+    expires_at = models.DateTimeField(null=True, default=default_expiration)
     date_added = models.DateTimeField(default=timezone.now)
 
-    objects = BaseManager(cache_fields=('token', ))
+    objects = BaseManager(cache_fields=("token",))
 
     class Meta:
-        app_label = 'sentry'
-        db_table = 'sentry_apitoken'
+        app_label = "sentry"
+        db_table = "sentry_apitoken"
 
-    __repr__ = sane_repr('user_id', 'token', 'application_id')
+    __repr__ = sane_repr("user_id", "token", "application_id")
 
     def __unicode__(self):
         return six.text_type(self.token)
@@ -72,9 +61,7 @@ class ApiToken(Model, HasApiScopes):
         return timezone.now() >= self.expires_at
 
     def get_audit_log_data(self):
-        return {
-            'scopes': self.get_scopes(),
-        }
+        return {"scopes": self.get_scopes()}
 
     def get_allowed_origins(self):
         if self.application:

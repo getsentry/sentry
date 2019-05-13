@@ -5,7 +5,7 @@ from .base import ActivityEmail
 
 class UnassignedActivityEmail(ActivityEmail):
     def get_activity_name(self):
-        return 'Unassigned'
+        return "Unassigned"
 
     def get_description(self):
-        return u'{author} unassigned {an issue}'
+        return u"{author} unassigned {an issue}"

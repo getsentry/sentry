@@ -7,11 +7,9 @@ from sentry.web.forms import fields
 
 
 class AllowedEmailField(serializers.EmailField):
-    type_name = 'AllowedEmailField'
-    type_label = 'email'
+    type_name = "AllowedEmailField"
+    type_label = "email"
     form_field_class = fields.AllowedEmailField
 
-    default_error_messages = {
-        'invalid': _('Enter a valid email address.'),
-    }
+    default_error_messages = {"invalid": _("Enter a valid email address.")}
     default_validators = fields.AllowedEmailField.default_validators

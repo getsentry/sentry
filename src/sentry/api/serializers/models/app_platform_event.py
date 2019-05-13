@@ -18,44 +18,36 @@ class AppPlatformEvent(object):
         # when sentry auto assigns, auto resolves, etc.
         # or when an alert rule is triggered
         if not self.actor:
-            return {
-                'type': 'application',
-                'id': 'sentry',
-                'name': 'Sentry',
-            }
+            return {"type": "application", "id": "sentry", "name": "Sentry"}
 
         if self.actor.is_sentry_app:
             return {
-                'type': 'application',
-                'id': self.install.sentry_app.uuid,
-                'name': self.install.sentry_app.name,
+                "type": "application",
+                "id": self.install.sentry_app.uuid,
+                "name": self.install.sentry_app.name,
             }
 
-        return {
-            'type': 'user',
-            'id': self.actor.id,
-            'name': self.actor.name,
-        }
+        return {"type": "user", "id": self.actor.id, "name": self.actor.name}
 
     @property
     def body(self):
-        return json.dumps({
-            'action': self.action,
-            'installation': {
-                'uuid': self.install.uuid,
-            },
-            'data': self.data,
-            'actor': self.get_actor(),
-        })
+        return json.dumps(
+            {
+                "action": self.action,
+                "installation": {"uuid": self.install.uuid},
+                "data": self.data,
+                "actor": self.get_actor(),
+            }
+        )
 
     @property
     def headers(self):
         request_uuid = uuid4().hex
 
         return {
-            'Content-Type': 'application/json',
-            'Request-ID': request_uuid,
-            'Sentry-Hook-Resource': self.resource,
-            'Sentry-Hook-Timestamp': six.text_type(int(time())),
-            'Sentry-Hook-Signature': self.install.sentry_app.build_signature(self.body)
+            "Content-Type": "application/json",
+            "Request-ID": request_uuid,
+            "Sentry-Hook-Resource": self.resource,
+            "Sentry-Hook-Timestamp": six.text_type(int(time())),
+            "Sentry-Hook-Signature": self.install.sentry_app.build_signature(self.body),
         }

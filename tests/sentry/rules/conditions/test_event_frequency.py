@@ -10,7 +10,8 @@ import six
 from sentry import tsdb
 from sentry.models import Rule
 from sentry.rules.conditions.event_frequency import (
-    EventFrequencyCondition, EventUniqueUserFrequencyCondition
+    EventFrequencyCondition,
+    EventUniqueUserFrequencyCondition,
 )
 from sentry.testutils.cases import RuleTestCase
 from six.moves import xrange
@@ -20,26 +21,19 @@ class FrequencyConditionMixin(object):
     def increment(self, event, count, timestamp=None):
         raise NotImplementedError
 
-    @mock.patch('django.utils.timezone.now')
+    @mock.patch("django.utils.timezone.now")
     def test_one_minute(self, now):
         now.return_value = datetime(2016, 8, 1, 0, 0, 0, 0, tzinfo=pytz.utc)
 
         event = self.get_event()
         value = 10
-        data = {
-            'interval': '1m',
-            'value': six.text_type(value),
-        }
+        data = {"interval": "1m", "value": six.text_type(value)}
 
-        rule = self.get_rule(
-            data=data,
-            rule=Rule(environment_id=None),
-        )
+        rule = self.get_rule(data=data, rule=Rule(environment_id=None))
 
         environment_id = 1
         environment_rule = self.get_rule(
-            data=data,
-            rule=Rule(environment_id=environment_id),
+            data=data, rule=Rule(environment_id=environment_id)
         )
 
         self.increment(
@@ -59,33 +53,22 @@ class FrequencyConditionMixin(object):
         self.assertPasses(rule, event)
         self.assertPasses(environment_rule, event)
         self.assertDoesNotPass(
-            self.get_rule(
-                data=data,
-                rule=Rule(environment_id=0),
-            ),
-            event,
+            self.get_rule(data=data, rule=Rule(environment_id=0)), event
         )
 
-    @mock.patch('django.utils.timezone.now')
+    @mock.patch("django.utils.timezone.now")
     def test_one_hour(self, now):
         now.return_value = datetime(2016, 8, 1, 0, 0, 0, 0, tzinfo=pytz.utc)
 
         event = self.get_event()
         value = 10
-        data = {
-            'interval': '1h',
-            'value': six.text_type(value),
-        }
+        data = {"interval": "1h", "value": six.text_type(value)}
 
-        rule = self.get_rule(
-            data=data,
-            rule=Rule(environment_id=None),
-        )
+        rule = self.get_rule(data=data, rule=Rule(environment_id=None))
 
         environment_id = 1
         environment_rule = self.get_rule(
-            data=data,
-            rule=Rule(environment_id=environment_id),
+            data=data, rule=Rule(environment_id=environment_id)
         )
 
         self.increment(
@@ -105,33 +88,22 @@ class FrequencyConditionMixin(object):
         self.assertPasses(rule, event)
         self.assertPasses(environment_rule, event)
         self.assertDoesNotPass(
-            self.get_rule(
-                data=data,
-                rule=Rule(environment_id=0),
-            ),
-            event,
+            self.get_rule(data=data, rule=Rule(environment_id=0)), event
         )
 
-    @mock.patch('django.utils.timezone.now')
+    @mock.patch("django.utils.timezone.now")
     def test_one_day(self, now):
         now.return_value = datetime(2016, 8, 1, 0, 0, 0, 0, tzinfo=pytz.utc)
 
         event = self.get_event()
         value = 10
-        data = {
-            'interval': '1d',
-            'value': six.text_type(value),
-        }
+        data = {"interval": "1d", "value": six.text_type(value)}
 
-        rule = self.get_rule(
-            data=data,
-            rule=Rule(environment_id=None),
-        )
+        rule = self.get_rule(data=data, rule=Rule(environment_id=None))
 
         environment_id = 1
         environment_rule = self.get_rule(
-            data=data,
-            rule=Rule(environment_id=environment_id),
+            data=data, rule=Rule(environment_id=environment_id)
         )
 
         self.increment(
@@ -151,32 +123,21 @@ class FrequencyConditionMixin(object):
         self.assertPasses(rule, event)
         self.assertPasses(environment_rule, event)
         self.assertDoesNotPass(
-            self.get_rule(
-                data=data,
-                rule=Rule(environment_id=0),
-            ),
-            event,
+            self.get_rule(data=data, rule=Rule(environment_id=0)), event
         )
 
-    @mock.patch('django.utils.timezone.now')
+    @mock.patch("django.utils.timezone.now")
     def test_more_than_zero(self, now):
         now.return_value = datetime(2016, 8, 1, 0, 0, 0, 0, tzinfo=pytz.utc)
 
         event = self.get_event()
-        data = {
-            'interval': '1m',
-            'value': six.text_type('0'),
-        }
+        data = {"interval": "1m", "value": six.text_type("0")}
 
-        rule = self.get_rule(
-            data=data,
-            rule=Rule(environment_id=None),
-        )
+        rule = self.get_rule(data=data, rule=Rule(environment_id=None))
 
         environment_id = 1
         environment_rule = self.get_rule(
-            data=data,
-            rule=Rule(environment_id=environment_id),
+            data=data, rule=Rule(environment_id=environment_id)
         )
 
         self.assertDoesNotPass(rule, event)
@@ -187,11 +148,7 @@ class FrequencyConditionMixin(object):
         self.assertPasses(rule, event)
         self.assertPasses(environment_rule, event)
         self.assertDoesNotPass(
-            self.get_rule(
-                data=data,
-                rule=Rule(environment_id=0),
-            ),
-            event,
+            self.get_rule(data=data, rule=Rule(environment_id=0)), event
         )
 
 
@@ -219,5 +176,5 @@ class EventUniqueUserFrequencyConditionTestCase(FrequencyConditionMixin, RuleTes
             event.group_id,
             [next(self.sequence) for _ in xrange(0, count)],
             environment_id=environment_id,
-            timestamp=timestamp
+            timestamp=timestamp,
         )

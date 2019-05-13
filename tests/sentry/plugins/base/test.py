@@ -25,7 +25,7 @@ def test_load_plugin_urls():
 
     class BadPluginB(Plugin2):
         def get_project_urls(self):
-            return 'lol'
+            return "lol"
 
     class BadPluginC(Plugin2):
         def get_project_urls(self):
@@ -33,14 +33,14 @@ def test_load_plugin_urls():
 
     class GoodPluginA(Plugin2):
         def get_project_urls(self):
-            return [url('', None)]
+            return [url("", None)]
 
     class GoodPluginB(Plugin2):
         def get_project_urls(self):
-            return [('foo', 'bar')]
+            return [("foo", "bar")]
 
     patterns = load_plugin_urls(
-        (BadPluginA(), BadPluginB(), BadPluginC(), GoodPluginA(), GoodPluginB(), )
+        (BadPluginA(), BadPluginB(), BadPluginC(), GoodPluginA(), GoodPluginB())
     )
 
     assert len(patterns) == 2
@@ -50,12 +50,12 @@ class Plugin2TestCase(TestCase):
     def test_reset_config(self):
         class APlugin(Plugin2):
             def get_conf_key(self):
-                return 'a-plugin'
+                return "a-plugin"
 
         project = self.create_project()
 
         a_plugin = APlugin()
-        a_plugin.set_option('key', 'value', project=project)
-        assert a_plugin.get_option('key', project=project) == 'value'
+        a_plugin.set_option("key", "value", project=project)
+        assert a_plugin.get_option("key", project=project) == "value"
         a_plugin.reset_options(project=project)
-        assert a_plugin.get_option('key', project=project) is None
+        assert a_plugin.get_option("key", project=project) is None

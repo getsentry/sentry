@@ -14,40 +14,42 @@ from sentry.models import AuditLogEntryEvent, Team, TeamStatus
 from sentry.tasks.deletion import delete_team
 from sentry.utils.apidocs import scenario, attach_scenarios
 
-delete_logger = logging.getLogger('sentry.deletions.api')
+delete_logger = logging.getLogger("sentry.deletions.api")
 
 
-@scenario('GetTeam')
+@scenario("GetTeam")
 def get_team_scenario(runner):
-    runner.request(method='GET', path='/teams/%s/%s/' %
-                   (runner.org.slug, runner.default_team.slug))
-
-
-@scenario('UpdateTeam')
-def update_team_scenario(runner):
-    team = runner.utils.create_team('The Obese Philosophers', runner.org)
     runner.request(
-        method='PUT',
-        path='/teams/%s/%s/' % (runner.org.slug, team.slug),
-        data={'name': 'The Inflated Philosophers'}
+        method="GET", path="/teams/%s/%s/" % (runner.org.slug, runner.default_team.slug)
+    )
+
+
+@scenario("UpdateTeam")
+def update_team_scenario(runner):
+    team = runner.utils.create_team("The Obese Philosophers", runner.org)
+    runner.request(
+        method="PUT",
+        path="/teams/%s/%s/" % (runner.org.slug, team.slug),
+        data={"name": "The Inflated Philosophers"},
     )
 
 
 class TeamSerializer(serializers.ModelSerializer):
-    slug = serializers.RegexField(r'^[a-z0-9_\-]+$', max_length=50)
+    slug = serializers.RegexField(r"^[a-z0-9_\-]+$", max_length=50)
 
     class Meta:
         model = Team
-        fields = ('name', 'slug')
+        fields = ("name", "slug")
 
     def validate_slug(self, attrs, source):
         value = attrs[source]
         qs = Team.objects.filter(
-            slug=value,
-            organization=self.object.organization,
+            slug=value, organization=self.object.organization
         ).exclude(id=self.object.id)
         if qs.exists():
-            raise serializers.ValidationError('The slug "%s" is already in use.' % (value, ))
+            raise serializers.ValidationError(
+                'The slug "%s" is already in use.' % (value,)
+            )
         return attrs
 
 
@@ -68,7 +70,7 @@ class TeamDetailsEndpoint(TeamEndpoint):
         :auth: required
         """
         context = serialize(team, request.user)
-        context['organization'] = serialize(team.organization, request.user)
+        context["organization"] = serialize(team.organization, request.user)
 
         return Response(context)
 
@@ -117,10 +119,9 @@ class TeamDetailsEndpoint(TeamEndpoint):
         immediate.  However once deletion has begun the state of a project
         changes and will be hidden from most public views.
         """
-        updated = Team.objects.filter(
-            id=team.id,
-            status=TeamStatus.VISIBLE,
-        ).update(status=TeamStatus.PENDING_DELETION)
+        updated = Team.objects.filter(id=team.id, status=TeamStatus.VISIBLE).update(
+            status=TeamStatus.PENDING_DELETION
+        )
         if updated:
             transaction_id = uuid4().hex
 
@@ -134,19 +135,16 @@ class TeamDetailsEndpoint(TeamEndpoint):
             )
 
             delete_team.apply_async(
-                kwargs={
-                    'object_id': team.id,
-                    'transaction_id': transaction_id,
-                },
+                kwargs={"object_id": team.id, "transaction_id": transaction_id}
             )
 
             delete_logger.info(
-                'object.delete.queued',
+                "object.delete.queued",
                 extra={
-                    'object_id': team.id,
-                    'transaction_id': transaction_id,
-                    'model': type(team).__name__,
-                }
+                    "object_id": team.id,
+                    "transaction_id": transaction_id,
+                    "model": type(team).__name__,
+                },
             )
 
         return Response(status=204)

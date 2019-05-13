@@ -3,13 +3,16 @@ from __future__ import absolute_import
 from rest_framework import status
 from rest_framework.response import Response
 
-from sentry.api.bases.organization import OrganizationEndpoint, OrganizationAuthProviderPermission
+from sentry.api.bases.organization import (
+    OrganizationEndpoint,
+    OrganizationAuthProviderPermission,
+)
 from sentry.api.serializers import serialize
 from sentry.models import AuthProvider
 
 
 class OrganizationAuthProviderDetailsEndpoint(OrganizationEndpoint):
-    permission_classes = (OrganizationAuthProviderPermission, )
+    permission_classes = (OrganizationAuthProviderPermission,)
 
     def get(self, request, organization):
         """
@@ -21,9 +24,7 @@ class OrganizationAuthProviderDetailsEndpoint(OrganizationEndpoint):
         :auth: required
         """
         try:
-            auth_provider = AuthProvider.objects.get(
-                organization=organization,
-            )
+            auth_provider = AuthProvider.objects.get(organization=organization)
         except AuthProvider.DoesNotExist:
             # This is a valid state where org does not have an auth provider
             # configured, make sure we respond with a 20x

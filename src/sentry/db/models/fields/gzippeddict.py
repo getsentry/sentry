@@ -17,9 +17,9 @@ from django.db import models
 from sentry.utils.compat import pickle
 from sentry.utils.strings import decompress, compress
 
-__all__ = ('GzippedDictField', )
+__all__ = ("GzippedDictField",)
 
-logger = logging.getLogger('sentry')
+logger = logging.getLogger("sentry")
 
 
 class GzippedDictField(models.TextField):
@@ -54,10 +54,12 @@ class GzippedDictField(models.TextField):
         return self.get_prep_value(value)
 
 
-if hasattr(models, 'SubfieldBase'):
+if hasattr(models, "SubfieldBase"):
     GzippedDictField = six.add_metaclass(models.SubfieldBase)(GzippedDictField)
 
-if 'south' in settings.INSTALLED_APPS:
+if "south" in settings.INSTALLED_APPS:
     from south.modelsinspector import add_introspection_rules
 
-    add_introspection_rules([], ["^sentry\.db\.models\.fields\.gzippeddict\.GzippedDictField"])
+    add_introspection_rules(
+        [], ["^sentry\.db\.models\.fields\.gzippeddict\.GzippedDictField"]
+    )

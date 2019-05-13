@@ -10,7 +10,7 @@ from sentry.models import Event
 
 
 class EventDetailsEndpoint(Endpoint):
-    permission_classes = (GroupPermission, )
+    permission_classes = (GroupPermission,)
 
     def get(self, request, event_id):
         """
@@ -29,11 +29,11 @@ class EventDetailsEndpoint(Endpoint):
 
         self.check_object_permissions(request, event.group)
 
-        Event.objects.bind_nodes([event], 'data')
+        Event.objects.bind_nodes([event], "data")
 
         data = serialize(event, request.user, DetailedEventSerializer())
 
-        data['nextEventID'] = event.next_event_id()
-        data['previousEventID'] = event.prev_event_id()
+        data["nextEventID"] = event.next_event_id()
+        data["previousEventID"] = event.prev_event_id()
 
         return Response(data)

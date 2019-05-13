@@ -1,6 +1,6 @@
 from __future__ import absolute_import
 
-__all__ = ['Filter']
+__all__ = ["Filter"]
 
 from sentry.models import ProjectOption
 from sentry.signals import inbound_filter_toggled
@@ -22,26 +22,29 @@ class Filter(object):
         self.project = project
 
     def is_enabled(self):
-        return ProjectOption.objects.get_value(
-            project=self.project,
-            key=u'filters:{}'.format(self.id),
-            default='1' if self.default else '0',
-        ) == '1'
+        return (
+            ProjectOption.objects.get_value(
+                project=self.project,
+                key=u"filters:{}".format(self.id),
+                default="1" if self.default else "0",
+            )
+            == "1"
+        )
 
     def enable(self, value=None):
         if value is None:
-            value = {'active': True}
+            value = {"active": True}
 
         ProjectOption.objects.set_value(
             project=self.project,
-            key=u'filters:{}'.format(self.id),
-            value='1' if value.get('active', False) else '0',
+            key=u"filters:{}".format(self.id),
+            value="1" if value.get("active", False) else "0",
         )
 
         if value:
             inbound_filter_toggled.send(project=self.project, sender=self)
 
-        return value.get('active', False)
+        return value.get("active", False)
 
     def disable(self):
         return self.enable(False)

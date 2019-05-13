@@ -18,8 +18,8 @@ def can_reconnect(exc):
     #     return True
     elif isinstance(exc, DatabaseError):
         exc_msg = six.text_type(exc)
-        if 'server closed the connection unexpectedly' in exc_msg:
+        if "server closed the connection unexpectedly" in exc_msg:
             return True
-        elif 'client_idle_timeout' in exc_msg:
+        elif "client_idle_timeout" in exc_msg:
             return True
     return False

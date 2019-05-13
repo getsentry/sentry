@@ -60,7 +60,7 @@ def auto_model(model):
 def memoize(function):
     "Standard memoization decorator."
     name = function.__name__
-    _name = '_' + name
+    _name = "_" + name
 
     def method(self):
         if not hasattr(self, _name):

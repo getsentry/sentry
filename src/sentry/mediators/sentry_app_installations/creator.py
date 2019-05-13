@@ -4,19 +4,17 @@ import six
 
 from sentry import analytics
 from sentry.mediators import Mediator, Param, service_hooks
-from sentry.models import (
-    AuditLogEntryEvent, ApiGrant, SentryApp, SentryAppInstallation
-)
+from sentry.models import AuditLogEntryEvent, ApiGrant, SentryApp, SentryAppInstallation
 from sentry.utils.cache import memoize
 from sentry.utils.audit import create_audit_entry
 from sentry.tasks.sentry_apps import installation_webhook
 
 
 class Creator(Mediator):
-    organization = Param('sentry.models.Organization')
+    organization = Param("sentry.models.Organization")
     slug = Param(six.string_types)
-    user = Param('sentry.models.User')
-    request = Param('rest_framework.request.Request', required=False)
+    user = Param("sentry.models.User")
+    request = Param("rest_framework.request.Request", required=False)
 
     def call(self):
         self._create_api_grant()
@@ -59,14 +57,12 @@ class Creator(Mediator):
                 organization=self.install.organization,
                 target_object=self.install.organization.id,
                 event=AuditLogEntryEvent.SENTRY_APP_INSTALL,
-                data={
-                    'sentry_app': self.sentry_app.name,
-                },
+                data={"sentry_app": self.sentry_app.name},
             )
 
     def record_analytics(self):
         analytics.record(
-            'sentry_app.installed',
+            "sentry_app.installed",
             user_id=self.user.id,
             organization_id=self.organization.id,
             sentry_app=self.slug,

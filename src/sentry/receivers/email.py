@@ -22,5 +22,9 @@ def delete_email(instance, **kwargs):
     Email.objects.filter(email=instance.email).delete()
 
 
-post_save.connect(create_email, sender=UserEmail, dispatch_uid="create_email", weak=False)
-post_delete.connect(delete_email, sender=UserEmail, dispatch_uid="delete_email", weak=False)
+post_save.connect(
+    create_email, sender=UserEmail, dispatch_uid="create_email", weak=False
+)
+post_delete.connect(
+    delete_email, sender=UserEmail, dispatch_uid="delete_email", weak=False
+)

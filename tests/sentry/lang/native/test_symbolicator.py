@@ -77,8 +77,10 @@ def test_merge_symbolicator_image_remove_unknown_arch():
     "code_file,error",
     [
         ("/var/containers/Bundle/Application/asdf/foo", EventError.NATIVE_MISSING_DSYM),
-        ("/var/containers/Bundle/Application/asdf/Frameworks/foo",
-         EventError.NATIVE_MISSING_OPTIONALLY_BUNDLED_DSYM),
+        (
+            "/var/containers/Bundle/Application/asdf/Frameworks/foo",
+            EventError.NATIVE_MISSING_OPTIONALLY_BUNDLED_DSYM,
+        ),
     ],
 )
 def test_merge_symbolicator_image_errors(code_file, error):

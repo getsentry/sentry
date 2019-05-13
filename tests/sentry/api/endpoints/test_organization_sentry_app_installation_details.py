@@ -7,15 +7,13 @@ from sentry.testutils import APITestCase
 
 class SentryAppInstallationDetailsTest(APITestCase):
     def setUp(self):
-        self.superuser = self.create_user(email='a@example.com', is_superuser=True)
-        self.user = self.create_user(email='boop@example.com')
+        self.superuser = self.create_user(email="a@example.com", is_superuser=True)
+        self.user = self.create_user(email="boop@example.com")
         self.org = self.create_organization(owner=self.user)
         self.super_org = self.create_organization(owner=self.superuser)
 
         self.published_app = self.create_sentry_app(
-            name='Test',
-            organization=self.super_org,
-            published=True,
+            name="Test", organization=self.super_org, published=True
         )
 
         self.installation = self.create_sentry_app_installation(
@@ -25,18 +23,15 @@ class SentryAppInstallationDetailsTest(APITestCase):
         )
 
         self.unpublished_app = self.create_sentry_app(
-            name='Testin',
-            organization=self.org,
+            name="Testin", organization=self.org
         )
 
         self.installation2 = self.create_sentry_app_installation(
-            slug=self.unpublished_app.slug,
-            organization=self.org,
-            user=self.user,
+            slug=self.unpublished_app.slug, organization=self.org, user=self.user
         )
 
         self.url = reverse(
-            'sentry-api-0-sentry-app-installation-details',
+            "sentry-api-0-sentry-app-installation-details",
             args=[self.installation2.uuid],
         )
 
@@ -44,48 +39,42 @@ class SentryAppInstallationDetailsTest(APITestCase):
 class GetSentryAppInstallationDetailsTest(SentryAppInstallationDetailsTest):
     def test_access_within_installs_organization(self):
         self.login_as(user=self.user)
-        response = self.client.get(self.url, format='json')
+        response = self.client.get(self.url, format="json")
 
         assert response.status_code == 200, response.content
         assert response.data == {
-            'app': {
-                'uuid': self.unpublished_app.uuid,
-                'slug': self.unpublished_app.slug,
+            "app": {
+                "uuid": self.unpublished_app.uuid,
+                "slug": self.unpublished_app.slug,
             },
-            'organization': {
-                'slug': self.org.slug,
-            },
-            'uuid': self.installation2.uuid,
-            'code': self.installation2.api_grant.code,
+            "organization": {"slug": self.org.slug},
+            "uuid": self.installation2.uuid,
+            "code": self.installation2.api_grant.code,
         }
 
     def test_no_access_outside_install_organization(self):
         self.login_as(user=self.user)
 
         url = reverse(
-            'sentry-api-0-sentry-app-installation-details',
+            "sentry-api-0-sentry-app-installation-details",
             args=[self.installation.uuid],
         )
 
-        response = self.client.get(url, format='json')
+        response = self.client.get(url, format="json")
         assert response.status_code == 404
 
 
 class DeleteSentryAppInstallationDetailsTest(SentryAppInstallationDetailsTest):
     def test_delete_install(self):
         self.login_as(user=self.user)
-        response = self.client.delete(self.url, format='json')
+        response = self.client.delete(self.url, format="json")
 
         assert response.status_code == 204
 
     def test_member_cannot_delete_install(self):
-        user = self.create_user('bar@example.com')
-        self.create_member(
-            organization=self.org,
-            user=user,
-            role='member',
-        )
+        user = self.create_user("bar@example.com")
+        self.create_member(organization=self.org, user=user, role="member")
         self.login_as(user)
-        response = self.client.delete(self.url, format='json')
+        response = self.client.delete(self.url, format="json")
 
         assert response.status_code == 403

@@ -25,4 +25,4 @@ class UserField(serializers.WritableField):
         try:
             return find_users(data)[0]
         except IndexError:
-            raise serializers.ValidationError('Unable to find user')
+            raise serializers.ValidationError("Unable to find user")

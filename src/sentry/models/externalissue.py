@@ -19,8 +19,8 @@ class ExternalIssue(Model):
     metadata = JSONField(null=True)
 
     class Meta:
-        app_label = 'sentry'
-        db_table = 'sentry_externalissue'
-        unique_together = (('organization_id', 'integration_id', 'key'), )
+        app_label = "sentry"
+        db_table = "sentry_externalissue"
+        unique_together = (("organization_id", "integration_id", "key"),)
 
-    __repr__ = sane_repr('organization_id', 'integration_id', 'key')
+    __repr__ = sane_repr("organization_id", "integration_id", "key")

@@ -13,19 +13,23 @@ from sentry.models import AuditLogEntryEvent, ObjectStatus, ServiceHook
 from sentry.utils.apidocs import scenario, attach_scenarios
 
 
-@scenario('ListServiceHooks')
+@scenario("ListServiceHooks")
 def list_hooks_scenario(runner):
     runner.request(
-        method='GET', path='/projects/%s/%s/hooks/' % (runner.org.slug, runner.default_project.slug)
+        method="GET",
+        path="/projects/%s/%s/hooks/" % (runner.org.slug, runner.default_project.slug),
     )
 
 
-@scenario('CreateServiceHook')
+@scenario("CreateServiceHook")
 def create_hook_scenario(runner):
     runner.request(
-        method='POST',
-        path='/projects/%s/%s/hooks/' % (runner.org.slug, runner.default_project.slug),
-        data={'url': 'https://example.com/sentry-hook', 'events': ['event.alert', 'event.created']}
+        method="POST",
+        path="/projects/%s/%s/hooks/" % (runner.org.slug, runner.default_project.slug),
+        data={
+            "url": "https://example.com/sentry-hook",
+            "events": ["event.alert", "event.created"],
+        },
     )
 
 
@@ -34,9 +38,7 @@ class ProjectServiceHooksEndpoint(ProjectEndpoint):
 
     def has_feature(self, request, project):
         return features.has(
-            'projects:servicehooks',
-            project=project,
-            actor=request.user,
+            "projects:servicehooks", project=project, actor=request.user
         )
 
     @attach_scenarios([list_hooks_scenario])
@@ -57,30 +59,27 @@ class ProjectServiceHooksEndpoint(ProjectEndpoint):
         :auth: required
         """
         if not self.has_feature(request, project):
-            return self.respond({
-                'error_type': 'unavailable_feature',
-                'detail': ['You do not have that feature enabled']
-            }, status=403)
+            return self.respond(
+                {
+                    "error_type": "unavailable_feature",
+                    "detail": ["You do not have that feature enabled"],
+                },
+                status=403,
+            )
 
-        queryset = ServiceHook.objects.filter(
-            project_id=project.id,
-        )
-        status = request.GET.get('status')
-        if status == 'active':
-            queryset = queryset.filter(
-                status=ObjectStatus.ACTIVE,
-            )
-        elif status == 'disabled':
-            queryset = queryset.filter(
-                status=ObjectStatus.DISABLED,
-            )
+        queryset = ServiceHook.objects.filter(project_id=project.id)
+        status = request.GET.get("status")
+        if status == "active":
+            queryset = queryset.filter(status=ObjectStatus.ACTIVE)
+        elif status == "disabled":
+            queryset = queryset.filter(status=ObjectStatus.DISABLED)
         elif status:
             queryset = queryset.none()
 
         return self.paginate(
             request=request,
             queryset=queryset,
-            order_by='-id',
+            order_by="-id",
             on_results=lambda x: serialize(x, request.user),
         )
 
@@ -112,10 +111,13 @@ class ProjectServiceHooksEndpoint(ProjectEndpoint):
             return self.respond(status=401)
 
         if not self.has_feature(request, project):
-            return self.respond({
-                'error_type': 'unavailable_feature',
-                'detail': ['You do not have that feature enabled']
-            }, status=403)
+            return self.respond(
+                {
+                    "error_type": "unavailable_feature",
+                    "detail": ["You do not have that feature enabled"],
+                },
+                status=403,
+            )
 
         validator = ServiceHookValidator(data=request.DATA)
         if not validator.is_valid():
@@ -127,10 +129,12 @@ class ProjectServiceHooksEndpoint(ProjectEndpoint):
             hook = service_hooks.Creator.run(
                 projects=[project],
                 organization=project.organization,
-                url=result['url'],
+                url=result["url"],
                 actor=request.user,
-                events=result.get('events'),
-                application=getattr(request.auth, 'application', None) if request.auth else None,
+                events=result.get("events"),
+                application=getattr(request.auth, "application", None)
+                if request.auth
+                else None,
             )
 
             self.create_audit_entry(

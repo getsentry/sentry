@@ -21,67 +21,51 @@ class Fixtures(object):
 
     @cached_property
     def user(self):
-        return self.create_user('admin@localhost', is_superuser=True)
+        return self.create_user("admin@localhost", is_superuser=True)
 
     @cached_property
     def organization(self):
         # XXX(dcramer): ensure that your org slug doesnt match your team slug
         # and the same for your project slug
-        return self.create_organization(
-            name='baz',
-            slug='baz',
-            owner=self.user,
-        )
+        return self.create_organization(name="baz", slug="baz", owner=self.user)
 
     @cached_property
     def team(self):
-        team = self.create_team(
-            organization=self.organization,
-            name='foo',
-            slug='foo',
-        )
+        team = self.create_team(organization=self.organization, name="foo", slug="foo")
         # XXX: handle legacy team fixture
-        queryset = OrganizationMember.objects.filter(
-            organization=self.organization,
-        )
+        queryset = OrganizationMember.objects.filter(organization=self.organization)
         for om in queryset:
             OrganizationMemberTeam.objects.create(
-                team=team,
-                organizationmember=om,
-                is_active=True,
+                team=team, organizationmember=om, is_active=True
             )
         return team
 
     @cached_property
     def project(self):
-        return self.create_project(
-            name='Bar',
-            slug='bar',
-            teams=[self.team],
-        )
+        return self.create_project(name="Bar", slug="bar", teams=[self.team])
 
     @cached_property
     def environment(self):
-        return self.create_environment(
-            name='development',
-            project=self.project,
-        )
+        return self.create_environment(name="development", project=self.project)
 
     @cached_property
     def group(self):
-        return self.create_group(message=u'\u3053\u3093\u306b\u3061\u306f')
+        return self.create_group(message="\u3053\u3093\u306b\u3061\u306f")
 
     @cached_property
     def event(self):
         return self.create_event(
-            event_id='a' * 32,
-            message=u'\u3053\u3093\u306b\u3061\u306f',
+            event_id="a" * 32, message="\u3053\u3093\u306b\u3061\u306f"
         )
 
     @cached_property
     def activity(self):
         return Activity.objects.create(
-            group=self.group, project=self.project, type=Activity.NOTE, user=self.user, data={}
+            group=self.group,
+            project=self.project,
+            type=Activity.NOTE,
+            user=self.user,
+            data={},
         )
 
     def create_organization(self, *args, **kwargs):
@@ -105,7 +89,7 @@ class Fixtures(object):
         return Factories.create_environment(project=project, **kwargs)
 
     def create_project(self, **kwargs):
-        kwargs.setdefault('teams', [self.team])
+        kwargs.setdefault("teams", [self.team])
         return Factories.create_project(**kwargs)
 
     def create_project_bookmark(self, project=None, *args, **kwargs):

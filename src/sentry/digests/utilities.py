@@ -68,8 +68,7 @@ def build_custom_digest(original_digest, events):
         user_rule_groups = OrderedDict()
         for group, group_records in six.iteritems(rule_groups):
             user_group_records = [
-                record for record in group_records
-                if record.value.event in events
+                record for record in group_records if record.value.event in events
             ]
             if user_group_records:
                 user_rule_groups[group] = user_group_records
@@ -101,7 +100,9 @@ def convert_actors_to_users(events_by_actor, user_ids):
     convert_actors_to_user_set(events_by_actor: Map[Actor, Set(Events)], user_ids: List(Int)) -> Map[user_id: Int, Set(Events)]
     """
     events_by_user = defaultdict(set)
-    team_actors = [actor for actor in six.iterkeys(events_by_actor) if actor.type == Team]
+    team_actors = [
+        actor for actor in six.iterkeys(events_by_actor) if actor.type == Team
+    ]
     teams_to_user_ids = team_actors_to_user_ids(team_actors, user_ids)
     for actor, events in six.iteritems(events_by_actor):
         if actor.type == Team:
@@ -115,7 +116,7 @@ def convert_actors_to_users(events_by_actor, user_ids):
         elif actor.type == User:
             events_by_user[actor.id].update(events)
         else:
-            raise ValueError('Unknown Actor type: %s' % actor.type)
+            raise ValueError("Unknown Actor type: %s" % actor.type)
     return events_by_user
 
 
@@ -127,10 +128,8 @@ def team_actors_to_user_ids(team_actors, user_ids):
     """
     team_ids = [actor.id for actor in team_actors]
     members = OrganizationMemberTeam.objects.filter(
-        team_id__in=team_ids,
-        is_active=True,
-        organizationmember__user_id__in=user_ids,
-    ).select_related('organizationmember')
+        team_id__in=team_ids, is_active=True, organizationmember__user_id__in=user_ids
+    ).select_related("organizationmember")
 
     team_members = defaultdict(set)
     for member in members:

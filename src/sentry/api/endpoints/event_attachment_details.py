@@ -4,7 +4,7 @@ import posixpath
 import six
 
 try:
-    from django.http import (CompatibleStreamingHttpResponse as StreamingHttpResponse)
+    from django.http import CompatibleStreamingHttpResponse as StreamingHttpResponse
 except ImportError:
     from django.http import StreamingHttpResponse
 
@@ -18,12 +18,13 @@ class EventAttachmentDetailsEndpoint(ProjectEndpoint):
         file = attachment.file
         fp = file.getfile()
         response = StreamingHttpResponse(
-            iter(lambda: fp.read(4096), b''),
-            content_type=file.headers.get('content-type', 'application/octet-stream'),
+            iter(lambda: fp.read(4096), b""),
+            content_type=file.headers.get("content-type", "application/octet-stream"),
         )
-        response['Content-Length'] = file.size
-        response['Content-Disposition'] = 'attachment; filename="%s"' % posixpath.basename(
-            " ".join(attachment.name.split())
+        response["Content-Length"] = file.size
+        response["Content-Disposition"] = (
+            'attachment; filename="%s"'
+            % posixpath.basename(" ".join(attachment.name.split()))
         )
         return response
 
@@ -40,35 +41,40 @@ class EventAttachmentDetailsEndpoint(ProjectEndpoint):
         :pparam string attachment_id: the id of the attachment.
         :auth: required
         """
-        if not features.has('organizations:event-attachments',
-                            project.organization, actor=request.user):
+        if not features.has(
+            "organizations:event-attachments", project.organization, actor=request.user
+        ):
             return self.respond(status=404)
 
-        use_snuba = options.get('snuba.events-queries.enabled')
+        use_snuba = options.get("snuba.events-queries.enabled")
 
         event_cls = event_cls = SnubaEvent if use_snuba else Event
 
         event = event_cls.objects.from_event_id(event_id, project.id)
         if event is None:
-            return self.respond({'detail': 'Event not found'}, status=404)
+            return self.respond({"detail": "Event not found"}, status=404)
 
         try:
-            attachment = EventAttachment.objects.filter(
-                project_id=project.id,
-                event_id=event.event_id,
-                id=attachment_id,
-            ).select_related('file').get()
+            attachment = (
+                EventAttachment.objects.filter(
+                    project_id=project.id, event_id=event.event_id, id=attachment_id
+                )
+                .select_related("file")
+                .get()
+            )
         except EventAttachment.DoesNotExist:
-            return self.respond({'detail': 'Attachment not found'}, status=404)
+            return self.respond({"detail": "Attachment not found"}, status=404)
 
-        if request.GET.get('download') is not None:
+        if request.GET.get("download") is not None:
             return self.download(attachment)
 
-        return self.respond({
-            'id': six.text_type(attachment.id),
-            'name': attachment.name,
-            'headers': attachment.file.headers,
-            'size': attachment.file.size,
-            'sha1': attachment.file.checksum,
-            'dateCreated': attachment.file.timestamp,
-        })
+        return self.respond(
+            {
+                "id": six.text_type(attachment.id),
+                "name": attachment.name,
+                "headers": attachment.file.headers,
+                "size": attachment.file.size,
+                "sha1": attachment.file.checksum,
+                "dateCreated": attachment.file.timestamp,
+            }
+        )

@@ -15,8 +15,12 @@ from django.utils import timezone
 from sentry.api.serializers import Serializer, register
 from sentry.constants import MAX_TAG_VALUE_LENGTH
 from sentry.db.models import (
-    Model, BoundedPositiveIntegerField, BoundedBigIntegerField, GzippedDictField,
-    FlexibleForeignKey, sane_repr
+    Model,
+    BoundedPositiveIntegerField,
+    BoundedBigIntegerField,
+    GzippedDictField,
+    FlexibleForeignKey,
+    sane_repr,
 )
 from sentry.search.utils import convert_user_tag_to_query
 from sentry.tagstore.query import TagStoreManager
@@ -28,26 +32,25 @@ class TagValue(Model):
     """
     Stores references to available filters.
     """
+
     __core__ = False
 
     project_id = BoundedBigIntegerField(db_index=True)
-    _key = FlexibleForeignKey('tagstore.TagKey', db_column='key_id')
+    _key = FlexibleForeignKey("tagstore.TagKey", db_column="key_id")
     value = models.CharField(max_length=MAX_TAG_VALUE_LENGTH)
     data = GzippedDictField(blank=True, null=True)
     times_seen = BoundedPositiveIntegerField(default=0)
-    last_seen = models.DateTimeField(
-        default=timezone.now, db_index=True, null=True)
-    first_seen = models.DateTimeField(
-        default=timezone.now, db_index=True, null=True)
+    last_seen = models.DateTimeField(default=timezone.now, db_index=True, null=True)
+    first_seen = models.DateTimeField(default=timezone.now, db_index=True, null=True)
 
     objects = TagStoreManager()
 
     class Meta:
-        app_label = 'tagstore'
-        unique_together = (('project_id', '_key', 'value'), )
-        index_together = (('project_id', '_key', 'last_seen'), )
+        app_label = "tagstore"
+        unique_together = (("project_id", "_key", "value"),)
+        index_together = (("project_id", "_key", "last_seen"),)
 
-    __repr__ = sane_repr('project_id', '_key_id', 'value')
+    __repr__ = sane_repr("project_id", "_key_id", "value")
 
     def delete(self):
         using = router.db_for_read(TagValue)
@@ -57,24 +60,26 @@ class TagValue(Model):
             DELETE FROM tagstore_tagvalue
             WHERE project_id = %s
               AND id = %s
-        """, [self.project_id, self.id]
+        """,
+            [self.project_id, self.id],
         )
 
     @property
     def key(self):
-        if hasattr(self, '_set_key'):
+        if hasattr(self, "_set_key"):
             return self._set_key
 
-        if hasattr(self, '__key_cache'):
+        if hasattr(self, "__key_cache"):
             return self._key.key
 
         # fallback
         from sentry.tagstore.v2.models import TagKey
 
-        tk = TagKey.objects.filter(
-            project_id=self.project_id,
-            id=self._key_id,
-        ).values_list('key', flat=True).get()
+        tk = (
+            TagKey.objects.filter(project_id=self.project_id, id=self._key_id)
+            .values_list("key", flat=True)
+            .get()
+        )
 
         # cache for future calls
         self.key = tk
@@ -92,7 +97,11 @@ class TagValue(Model):
 
     @classmethod
     def get_cache_key(cls, project_id, _key_id, value):
-        return 'tagvalue:1:%s:%s:%s' % (project_id, _key_id, md5_text(value).hexdigest())
+        return "tagvalue:1:%s:%s:%s" % (
+            project_id,
+            _key_id,
+            md5_text(value).hexdigest(),
+        )
 
     @classmethod
     def get_or_create(cls, project_id, _key_id, value, **kwargs):
@@ -102,10 +111,7 @@ class TagValue(Model):
         created = False
         if rv is None:
             rv, created = cls.objects.get_or_create(
-                project_id=project_id,
-                _key_id=_key_id,
-                value=value,
-                **kwargs
+                project_id=project_id, _key_id=_key_id, value=value, **kwargs
             )
             cache.set(cache_key, rv, 3600)
 
@@ -122,7 +128,9 @@ class TagValue(Model):
         remaining_keys = set(tags)
 
         # First attempt to hit from cache, which in theory is the hot case
-        cache_key_to_key = {cls.get_cache_key(project_id, tk.id, v): (tk, v) for tk, v in tags}
+        cache_key_to_key = {
+            cls.get_cache_key(project_id, tk.id, v): (tk, v) for tk, v in tags
+        }
         cache_key_to_models = cache.get_many(cache_key_to_key.keys())
         for model in cache_key_to_models.values():
             key_to_model[tags_by_key_id[model._key_id]] = model
@@ -151,9 +159,7 @@ class TagValueSerializer(Serializer):
 
         result = {}
         for item in item_list:
-            result[item] = {
-                'name': tagstore.get_tag_value_label(item.key, item.value),
-            }
+            result[item] = {"name": tagstore.get_tag_value_label(item.key, item.value)}
         return result
 
     def serialize(self, obj, attrs, user):
@@ -161,16 +167,16 @@ class TagValueSerializer(Serializer):
 
         key = tagstore.get_standardized_key(obj.key)
         serialized = {
-            'id': six.text_type(obj.id),
-            'key': key,
-            'name': attrs['name'],
-            'value': obj.value,
-            'count': obj.times_seen,
-            'lastSeen': obj.last_seen,
-            'firstSeen': obj.first_seen,
+            "id": six.text_type(obj.id),
+            "key": key,
+            "name": attrs["name"],
+            "value": obj.value,
+            "count": obj.times_seen,
+            "lastSeen": obj.last_seen,
+            "firstSeen": obj.first_seen,
         }
 
         query = convert_user_tag_to_query(key, obj.value)
         if query:
-            serialized['query'] = query
+            serialized["query"] = query
         return serialized

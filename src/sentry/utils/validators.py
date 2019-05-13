@@ -4,7 +4,7 @@ import ipaddress
 import re
 import six
 
-EVENT_ID_RE = re.compile(r'^[a-fA-F0-9]{32}$')
+EVENT_ID_RE = re.compile(r"^[a-fA-F0-9]{32}$")
 
 
 def validate_ip(value, required=True):

@@ -10,17 +10,19 @@ from __future__ import absolute_import
 from sentry import options
 from sentry.models import ProjectOption, UserOption
 
-__all__ = ('set_option', 'get_option', 'unset_option')
+__all__ = ("set_option", "get_option", "unset_option")
 
 
 def reset_options(prefix, project=None, user=None):
     if user:
         UserOption.objects.filter(
-            key__startswith='%s:' % (prefix, ), project=project, user=user
+            key__startswith="%s:" % (prefix,), project=project, user=user
         ).delete()
         UserOption.objects.clear_cache()
     elif project:
-        ProjectOption.objects.filter(key__startswith='%s:' % (prefix, ), project=project).delete()
+        ProjectOption.objects.filter(
+            key__startswith="%s:" % (prefix,), project=project
+        ).delete()
         ProjectOption.objects.clear_local_cache()
     else:
         raise NotImplementedError
@@ -28,7 +30,9 @@ def reset_options(prefix, project=None, user=None):
 
 def set_option(key, value, project=None, user=None):
     if user:
-        result = UserOption.objects.set_value(user=user, key=key, value=value, project=project)
+        result = UserOption.objects.set_value(
+            user=user, key=key, value=value, project=project
+        )
     elif project:
         result = ProjectOption.objects.set_value(project, key, value)
     else:

@@ -16,18 +16,18 @@ def get_direct_hit_response(request, query, snuba_params, referrer):
     """
     if is_event_id(query):
         snuba_args = get_snuba_query_args(
-            query=u'id:{}'.format(query),
-            params=snuba_params)
+            query=u"id:{}".format(query), params=snuba_params
+        )
 
         results = raw_query(
             selected_columns=SnubaEvent.selected_columns,
             referrer=referrer,
             **snuba_args
-        )['data']
+        )["data"]
 
         if len(results) == 1:
             response = Response(
                 serialize([SnubaEvent(row) for row in results], request.user)
             )
-            response['X-Sentry-Direct-Hit'] = '1'
+            response["X-Sentry-Direct-Hit"] = "1"
             return response

@@ -8,7 +8,5 @@ from .base import TagStorage, TagKeyStatus  # NOQA
 from .exceptions import *  # NOQA
 
 LazyServiceWrapper(
-    TagStorage,
-    settings.SENTRY_TAGSTORE,
-    settings.SENTRY_TAGSTORE_OPTIONS,
+    TagStorage, settings.SENTRY_TAGSTORE, settings.SENTRY_TAGSTORE_OPTIONS
 ).expose(locals())

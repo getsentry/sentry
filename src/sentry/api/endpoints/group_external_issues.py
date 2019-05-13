@@ -8,13 +8,11 @@ from sentry.models import PlatformExternalIssue
 class GroupExternalIssuesEndpoint(GroupEndpoint):
     def get(self, request, group):
 
-        external_issues = PlatformExternalIssue.objects.filter(
-            group_id=group.id,
-        )
+        external_issues = PlatformExternalIssue.objects.filter(group_id=group.id)
 
         return self.paginate(
             request=request,
             queryset=external_issues,
-            order_by='id',
+            order_by="id",
             on_results=lambda x: serialize(x, request.user),
         )

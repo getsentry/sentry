@@ -6,12 +6,13 @@ from collections import namedtuple
 from .view import ConfigureView
 
 
-class MigratingIdentityId(namedtuple('MigratingIdentityId', ['id', 'legacy_id'])):
+class MigratingIdentityId(namedtuple("MigratingIdentityId", ["id", "legacy_id"])):
     """
     MigratingIdentityId may be used in the ``id`` field of an identity
     dictionary to facilitate migrating user identites from one identifying id
     to another.
     """
+
     __slots__ = ()
 
     def __unicode__(self):
@@ -24,15 +25,16 @@ class Provider(object):
     A provider indicates how authenticate should happen for a given service,
     including its configuration and basic identity management.
     """
+
     name = None
 
     # All auth providers by default require the sso-basic feature
-    required_feature = 'organizations:sso-basic'
+    required_feature = "organizations:sso-basic"
 
     def __init__(self, key, **config):
         self.key = key
         self.config = config
-        self.logger = logging.getLogger('sentry.auth.%s' % (key, ))
+        self.logger = logging.getLogger("sentry.auth.%s" % (key,))
 
     def get_configure_view(self):
         """

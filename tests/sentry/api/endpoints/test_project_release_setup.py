@@ -13,14 +13,11 @@ class ProjectReleaseSetupCompletionTest(APITestCase):
         self.create_group(project=project, first_release=release)
 
         repo = Repository.objects.create(
-            organization_id=project.organization_id,
-            name=project.name,
+            organization_id=project.organization_id, name=project.name
         )
 
         commit = Commit.objects.create(
-            organization_id=project.organization_id,
-            repository_id=repo.id,
-            key='b' * 40,
+            organization_id=project.organization_id, repository_id=repo.id, key="b" * 40
         )
 
         ReleaseCommit.objects.create(
@@ -31,11 +28,11 @@ class ProjectReleaseSetupCompletionTest(APITestCase):
         )
 
         url = reverse(
-            'sentry-api-0-project-releases-completion-status',
+            "sentry-api-0-project-releases-completion-status",
             kwargs={
-                'organization_slug': project.organization.slug,
-                'project_slug': project.slug,
-            }
+                "organization_slug": project.organization.slug,
+                "project_slug": project.slug,
+            },
         )
 
         self.login_as(user=self.user)
@@ -43,7 +40,7 @@ class ProjectReleaseSetupCompletionTest(APITestCase):
         response = self.client.get(url)
         assert response.status_code == 200, response.content
         assert len(response.data) == 4
-        assert response.data[2]['step'] == 'commit'
-        assert response.data[2]['complete'] is True
-        assert response.data[3]['step'] == 'deploy'
-        assert response.data[3]['complete'] is False
+        assert response.data[2]["step"] == "commit"
+        assert response.data[2]["complete"] is True
+        assert response.data[3]["step"] == "deploy"
+        assert response.data[3]["complete"] is False

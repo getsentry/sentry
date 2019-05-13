@@ -27,18 +27,17 @@ from sentry.utils.redis import redis_clusters
 from sentry.utils.safe import safe_execute
 from sentry.utils.sdk import configure_scope
 
-logger = logging.getLogger('sentry')
+logger = logging.getLogger("sentry")
 
 
 def _get_service_hooks(project_id):
     from sentry.models import ServiceHook
-    cache_key = u'servicehooks:1:{}'.format(project_id)
+
+    cache_key = u"servicehooks:1:{}".format(project_id)
     result = cache.get(cache_key)
 
     if result is None:
-        hooks = ServiceHook.objects.filter(
-            servicehookproject__project_id=project_id,
-        )
+        hooks = ServiceHook.objects.filter(servicehookproject__project_id=project_id)
         result = [(h.id, h.events) for h in hooks]
         cache.set(cache_key, result, 60)
     return result
@@ -50,28 +49,28 @@ def _capture_stats(event, is_new):
     platform = group.platform
     if not platform:
         return
-    platform = platform.split('-', 1)[0].split('_', 1)[0]
-    tags = {
-        'platform': platform,
-    }
+    platform = platform.split("-", 1)[0].split("_", 1)[0]
+    tags = {"platform": platform}
 
     if is_new:
-        metrics.incr('events.unique', tags=tags, skip_internal=False)
+        metrics.incr("events.unique", tags=tags, skip_internal=False)
 
-    metrics.incr('events.processed', tags=tags, skip_internal=False)
-    metrics.incr(u'events.processed.{platform}'.format(platform=platform), skip_internal=False)
-    metrics.timing('events.size.data', event.size, tags=tags)
+    metrics.incr("events.processed", tags=tags, skip_internal=False)
+    metrics.incr(
+        u"events.processed.{platform}".format(platform=platform), skip_internal=False
+    )
+    metrics.timing("events.size.data", event.size, tags=tags)
 
 
 def check_event_already_post_processed(event):
-    cluster_key = getattr(settings, 'SENTRY_POST_PROCESSING_LOCK_REDIS_CLUSTER', None)
+    cluster_key = getattr(settings, "SENTRY_POST_PROCESSING_LOCK_REDIS_CLUSTER", None)
     if cluster_key is None:
         return
 
     client = redis_clusters.get(cluster_key)
     result = client.set(
-        u'pp:{}/{}'.format(event.project_id, event.event_id),
-        u'{:.0f}'.format(time.time()),
+        u"pp:{}/{}".format(event.project_id, event.event_id),
+        u"{:.0f}".format(time.time()),
         ex=60 * 60,
         nx=True,
     )
@@ -91,18 +90,23 @@ def handle_owner_assignment(project, group, event):
         GroupAssignee.objects.assign(group, owner)
 
 
-@instrumented_task(name='sentry.tasks.post_process.post_process_group')
-def post_process_group(event, is_new, is_regression, is_sample, is_new_group_environment, **kwargs):
+@instrumented_task(name="sentry.tasks.post_process.post_process_group")
+def post_process_group(
+    event, is_new, is_regression, is_sample, is_new_group_environment, **kwargs
+):
     """
     Fires post processing hooks for a group.
     """
-    with snuba.options_override({'consistent': True}):
+    with snuba.options_override({"consistent": True}):
         if check_event_already_post_processed(event):
-            logger.info('post_process.skipped', extra={
-                'project_id': event.project_id,
-                'event_id': event.event_id,
-                'reason': 'duplicate',
-            })
+            logger.info(
+                "post_process.skipped",
+                extra={
+                    "project_id": event.project_id,
+                    "event_id": event.event_id,
+                    "reason": "duplicate",
+                },
+            )
             return
 
         # NOTE: we must pass through the full Event object, and not an
@@ -137,7 +141,9 @@ def post_process_group(event, is_new, is_regression, is_sample, is_new_group_env
 
         handle_owner_assignment(event.project, event.group, event)
 
-        rp = RuleProcessor(event, is_new, is_regression, is_new_group_environment, has_reappeared)
+        rp = RuleProcessor(
+            event, is_new, is_regression, is_new_group_environment, has_reappeared
+        )
         has_alert = False
         # TODO(dcramer): ideally this would fanout, but serializing giant
         # objects back and forth isn't super efficient
@@ -145,27 +151,23 @@ def post_process_group(event, is_new, is_regression, is_sample, is_new_group_env
             has_alert = True
             safe_execute(callback, event, futures)
 
-        if features.has(
-            'projects:servicehooks',
-            project=event.project,
-        ):
-            allowed_events = set(['event.created'])
+        if features.has("projects:servicehooks", project=event.project):
+            allowed_events = set(["event.created"])
             if has_alert:
-                allowed_events.add('event.alert')
+                allowed_events.add("event.alert")
 
             if allowed_events:
-                for servicehook_id, events in _get_service_hooks(project_id=event.project_id):
+                for servicehook_id, events in _get_service_hooks(
+                    project_id=event.project_id
+                ):
                     if any(e in allowed_events for e in events):
                         process_service_hook.delay(
-                            servicehook_id=servicehook_id,
-                            event=event,
+                            servicehook_id=servicehook_id, event=event
                         )
 
         if is_new:
             process_resource_change_bound.delay(
-                action='created',
-                sender='Group',
-                instance_id=event.group_id,
+                action="created", sender="Group", instance_id=event.group_id
             )
 
         for plugin in plugins.for_project(event.project):
@@ -182,7 +184,7 @@ def post_process_group(event, is_new, is_regression, is_sample, is_new_group_env
             project=event.project,
             group=event.group,
             event=event,
-            primary_hash=kwargs.get('primary_hash'),
+            primary_hash=kwargs.get("primary_hash"),
         )
 
 
@@ -194,9 +196,7 @@ def process_snoozes(group):
     from sentry.models import GroupSnooze, GroupStatus
 
     try:
-        snooze = GroupSnooze.objects.get_from_cache(
-            group=group,
-        )
+        snooze = GroupSnooze.objects.get_from_cache(group=group)
     except GroupSnooze.DoesNotExist:
         return False
 
@@ -209,8 +209,8 @@ def process_snoozes(group):
 
 
 @instrumented_task(
-    name='sentry.tasks.post_process.plugin_post_process_group',
-    stat_suffix=lambda plugin_slug, *a, **k: plugin_slug
+    name="sentry.tasks.post_process.plugin_post_process_group",
+    stat_suffix=lambda plugin_slug, *a, **k: plugin_slug,
 )
 def plugin_post_process_group(plugin_slug, event, **kwargs):
     """
@@ -225,17 +225,26 @@ def plugin_post_process_group(plugin_slug, event, **kwargs):
         event=event,
         group=event.group,
         expected_errors=(PluginError,),
-        **kwargs)
+        **kwargs
+    )
 
 
 @instrumented_task(
-    name='sentry.tasks.index_event_tags',
-    queue='events.index_event_tags',
+    name="sentry.tasks.index_event_tags",
+    queue="events.index_event_tags",
     default_retry_delay=60 * 5,
     max_retries=None,
 )
-def index_event_tags(organization_id, project_id, event_id, tags,
-                     group_id, environment_id, date_added=None, **kwargs):
+def index_event_tags(
+    organization_id,
+    project_id,
+    event_id,
+    tags,
+    group_id,
+    environment_id,
+    date_added=None,
+    **kwargs
+):
     from sentry import tagstore
 
     with configure_scope() as scope:
@@ -243,14 +252,10 @@ def index_event_tags(organization_id, project_id, event_id, tags,
 
     create_event_tags_kwargs = {}
     if date_added is not None:
-        create_event_tags_kwargs['date_added'] = date_added
+        create_event_tags_kwargs["date_added"] = date_added
 
     metrics.timing(
-        'tagstore.tags_per_event',
-        len(tags),
-        tags={
-            'organization_id': organization_id,
-        }
+        "tagstore.tags_per_event", len(tags), tags={"organization_id": organization_id}
     )
 
     tagstore.create_event_tags(

@@ -12,7 +12,12 @@ from pkg_resources import parse_version as Version
 
 from sentry import options
 from sentry.models import (
-    Organization, OrganizationMember, Project, User, Team, ProjectKey
+    Organization,
+    OrganizationMember,
+    Project,
+    User,
+    Team,
+    ProjectKey,
 )
 from sentry.utils import db
 
@@ -30,14 +35,14 @@ def handle_db_failure(func):
             with transaction.atomic():
                 return func(*args, **kwargs)
         except (ProgrammingError, OperationalError):
-            logging.exception('Failed processing signal %s', func.__name__)
+            logging.exception("Failed processing signal %s", func.__name__)
             return
 
     return wrapped
 
 
 def create_default_projects(created_models, app=None, verbosity=2, **kwargs):
-    if app and app.__name__ != 'sentry.models':
+    if app and app.__name__ != "sentry.models":
         return
 
     if Project not in created_models:
@@ -45,16 +50,16 @@ def create_default_projects(created_models, app=None, verbosity=2, **kwargs):
 
     create_default_project(
         id=settings.SENTRY_PROJECT,
-        name='Internal',
-        slug='internal',
+        name="Internal",
+        slug="internal",
         verbosity=verbosity,
     )
 
     if settings.SENTRY_FRONTEND_PROJECT:
         create_default_project(
             id=settings.SENTRY_FRONTEND_PROJECT,
-            name='Frontend',
-            slug='frontend',
+            name="Frontend",
+            slug="frontend",
             verbosity=verbosity,
         )
 
@@ -69,22 +74,16 @@ def create_default_project(id, name, slug, verbosity=2, **kwargs):
         user = None
 
     org, _ = Organization.objects.get_or_create(
-        slug='sentry', defaults={
-            'name': 'Sentry',
-        }
+        slug="sentry", defaults={"name": "Sentry"}
     )
 
     if user:
         OrganizationMember.objects.get_or_create(
-            user=user,
-            organization=org,
-            role='owner',
+            user=user, organization=org, role="owner"
         )
 
     team, _ = Team.objects.get_or_create(
-        organization=org, slug='sentry', defaults={
-            'name': 'Sentry',
-        }
+        organization=org, slug="sentry", defaults={"name": "Sentry"}
     )
 
     project = Project.objects.create(
@@ -104,19 +103,23 @@ def create_default_project(id, name, slug, verbosity=2, **kwargs):
         cursor = connection.cursor()
         cursor.execute(PROJECT_SEQUENCE_FIX)
 
-    project.update_option('sentry:origins', ['*'])
+    project.update_option("sentry:origins", ["*"])
 
     if verbosity > 0:
-        echo('Created internal Sentry project (slug=%s, id=%s)' % (project.slug, project.id))
+        echo(
+            "Created internal Sentry project (slug=%s, id=%s)"
+            % (project.slug, project.id)
+        )
 
     return project
 
 
 def set_sentry_version(latest=None, **kwargs):
     import sentry
+
     current = sentry.VERSION
 
-    version = options.get('sentry:latest_version')
+    version = options.get("sentry:latest_version")
 
     for ver in (current, version):
         if Version(ver) >= Version(latest):
@@ -125,21 +128,18 @@ def set_sentry_version(latest=None, **kwargs):
     if latest == version:
         return
 
-    options.set('sentry:latest_version', (latest or current))
+    options.set("sentry:latest_version", (latest or current))
 
 
 def create_keys_for_project(instance, created, app=None, **kwargs):
-    if app and app.__name__ != 'sentry.models':
+    if app and app.__name__ != "sentry.models":
         return
 
-    if not created or kwargs.get('raw'):
+    if not created or kwargs.get("raw"):
         return
 
     if not ProjectKey.objects.filter(project=instance).exists():
-        ProjectKey.objects.create(
-            project=instance,
-            label='Default',
-        )
+        ProjectKey.objects.create(project=instance, label="Default")
 
 
 # Anything that relies on default objects that may not exist with default

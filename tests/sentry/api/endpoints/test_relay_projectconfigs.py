@@ -26,30 +26,28 @@ class RelayQueryGetProjectConfigTest(APITestCase):
         self.relay = Relay.objects.create(
             relay_id=self.relay_id,
             public_key=six.binary_type(self.public_key),
-            is_internal=True
+            is_internal=True,
         )
 
         self.project = self.create_project()
-        self.project.update_option('sentry:scrub_ip_address', True)
-        self.path = reverse(
-            'sentry-api-0-relay-projectconfigs'
-        )
+        self.project.update_option("sentry:scrub_ip_address", True)
+        self.path = reverse("sentry-api-0-relay-projectconfigs")
 
     def test_get_project_config(self):
         projects = [six.text_type(self.project.id)]
-        raw_json, signature = self.private_key.pack({'projects': projects})
+        raw_json, signature = self.private_key.pack({"projects": projects})
 
         resp = self.client.post(
             self.path,
             data=raw_json,
-            content_type='application/json',
+            content_type="application/json",
             HTTP_X_SENTRY_RELAY_ID=self.relay_id,
             HTTP_X_SENTRY_RELAY_SIGNATURE=signature,
         )
 
         result = json.loads(resp.content)
-        cfg = result['configs'][six.text_type(self.project.id)]
-        assert not cfg['disabled']
-        assert cfg['publicKeys'][self.projectkey.public_key] is True
-        assert cfg['slug'] == self.project.slug
-        assert cfg['config']['trustedRelays'] == []
+        cfg = result["configs"][six.text_type(self.project.id)]
+        assert not cfg["disabled"]
+        assert cfg["publicKeys"][self.projectkey.public_key] is True
+        assert cfg["slug"] == self.project.slug
+        assert cfg["config"]["trustedRelays"] == []

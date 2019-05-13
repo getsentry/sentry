@@ -9,9 +9,9 @@ from sentry.models import User, Team
 from sentry.utils.auth import find_users
 
 
-class Actor(namedtuple('Actor', 'id type')):
+class Actor(namedtuple("Actor", "id type")):
     def get_actor_id(self):
-        return '%s:%d' % (self.type.__name__.lower(), self.id)
+        return "%s:%d" % (self.type.__name__.lower(), self.id)
 
     @classmethod
     def from_actor_id(cls, actor_id):
@@ -24,16 +24,16 @@ class Actor(namedtuple('Actor', 'id type')):
         if actor_id.isdigit():
             return Actor(int(actor_id), User)
 
-        if actor_id.startswith('user:'):
+        if actor_id.startswith("user:"):
             return cls(int(actor_id[5:]), User)
 
-        if actor_id.startswith('team:'):
+        if actor_id.startswith("team:"):
             return cls(int(actor_id[5:]), Team)
 
         try:
             return Actor(find_users(actor_id)[0].id, User)
         except IndexError:
-            raise serializers.ValidationError('Unable to resolve actor id')
+            raise serializers.ValidationError("Unable to resolve actor id")
 
     def resolve(self):
         return self.type.objects.get(id=self.id)
@@ -49,9 +49,7 @@ class Actor(namedtuple('Actor', 'id type')):
 
         results = []
         for type, actors in actors_by_type.items():
-            results.extend(list(type.objects.filter(
-                id__in=[a.id for a in actors]
-            )))
+            results.extend(list(type.objects.filter(id__in=[a.id for a in actors])))
 
         return results
 
@@ -64,9 +62,9 @@ class Actor(namedtuple('Actor', 'id type')):
         resolved_actors = {}
         for type, actors in actors_by_type.items():
             resolved_actors[type] = {
-                actor.id: actor for actor in type.objects.filter(
-                    id__in=[a.id for a in actors]
-                )}
+                actor.id: actor
+                for actor in type.objects.filter(id__in=[a.id for a in actors])
+            }
 
         return {
             key: resolved_actors[value.type][value.id]
@@ -85,4 +83,4 @@ class ActorField(serializers.WritableField):
         try:
             return Actor.from_actor_id(data)
         except Exception:
-            raise serializers.ValidationError('Unknown actor input')
+            raise serializers.ValidationError("Unknown actor input")

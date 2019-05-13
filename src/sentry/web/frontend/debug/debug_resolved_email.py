@@ -7,4 +7,4 @@ from .mail import ActivityMailDebugView
 
 class DebugResolvedEmailView(ActivityMailDebugView):
     def get_activity(self, request, event):
-        return {'type': Activity.SET_RESOLVED}
+        return {"type": Activity.SET_RESOLVED}

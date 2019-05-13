@@ -24,8 +24,7 @@ class OrganizationSentryAppComponentsEndpoint(OrganizationEndpoint):
     def get(self, request, organization):
         try:
             project = Project.objects.get(
-                id=request.GET['projectId'],
-                organization_id=organization.id,
+                id=request.GET["projectId"], organization_id=organization.id
             )
         except Project.DoesNotExist:
             return Response([], status=404)
@@ -34,18 +33,16 @@ class OrganizationSentryAppComponentsEndpoint(OrganizationEndpoint):
 
         for install in organization.sentry_app_installations.all():
             _components = SentryAppComponent.objects.filter(
-                sentry_app_id=install.sentry_app_id,
+                sentry_app_id=install.sentry_app_id
             )
 
-            if 'filter' in request.GET:
-                _components = _components.filter(type=request.GET['filter'])
+            if "filter" in request.GET:
+                _components = _components.filter(type=request.GET["filter"])
 
             for component in _components:
                 try:
                     sentry_app_components.Preparer.run(
-                        component=component,
-                        install=install,
-                        project=project,
+                        component=component, install=install, project=project
                     )
                     components.append(component)
                 except APIError:

@@ -13,7 +13,7 @@ from sentry.models.search_common import SearchType
 
 
 class OrganizationSearchDetailsEndpoint(OrganizationEndpoint):
-    permission_classes = (OrganizationSearchPermission, )
+    permission_classes = (OrganizationSearchPermission,)
 
     def delete(self, request, organization, search_id):
         """
@@ -26,16 +26,14 @@ class OrganizationSearchDetailsEndpoint(OrganizationEndpoint):
         """
         try:
             search = SavedSearch.objects.get(
-                owner__isnull=True,
-                organization=organization,
-                id=search_id,
+                owner__isnull=True, organization=organization, id=search_id
             )
         except SavedSearch.DoesNotExist:
             raise ResourceDoesNotExist
 
         search.delete()
         analytics.record(
-            'organization_saved_search.deleted',
+            "organization_saved_search.deleted",
             search_type=SearchType(search.type).name,
             org_id=organization.id,
             query=search.query,

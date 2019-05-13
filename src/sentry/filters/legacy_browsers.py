@@ -13,14 +13,14 @@ from sentry.utils.safe import get_path
 For default (legacy) filter
 """
 MIN_VERSIONS = {
-    'Chrome': 0,
-    'IE': 10,
-    'Firefox': 0,
-    'Safari': 6,
-    'Edge': 0,
-    'Opera': 15,
-    'Android': 4,
-    'Opera Mini': 8
+    "Chrome": 0,
+    "IE": 10,
+    "Firefox": 0,
+    "Safari": 6,
+    "Edge": 0,
+    "Opera": 15,
+    "Android": 4,
+    "Opera Mini": 8,
 }
 
 
@@ -28,20 +28,21 @@ class LegacyBrowserFilterSerializer(serializers.Serializer):
     active = serializers.BooleanField()
     subfilters = MultipleChoiceField(
         choices=[
-            'ie_pre_9',
-            'ie9',
-            'ie10',
-            'opera_pre_15',
-            'android_pre_4',
-            'safari_pre_6',
-            'opera_mini_pre_8']
+            "ie_pre_9",
+            "ie9",
+            "ie10",
+            "opera_pre_15",
+            "android_pre_4",
+            "safari_pre_6",
+            "opera_mini_pre_8",
+        ]
     )
 
 
 class LegacyBrowsersFilter(Filter):
     id = FilterStatKeys.LEGACY_BROWSER
-    name = 'Filter out known errors from legacy browsers'
-    description = 'Older browsers often give less accurate information, and while they may report valid issues, the context to understand them is incorrect or missing.'
+    name = "Filter out known errors from legacy browsers"
+    description = "Older browsers often give less accurate information, and while they may report valid issues, the context to understand them is incorrect or missing."
     default = False
     serializer_cls = LegacyBrowserFilterSerializer
 
@@ -52,13 +53,13 @@ class LegacyBrowsersFilter(Filter):
         # legacy browsers should be filtered
         rv = ProjectOption.objects.get_value(
             project=self.project,
-            key=u'filters:{}'.format(self.id),
-            default='1' if self.default else '0',
+            key=u"filters:{}".format(self.id),
+            default="1" if self.default else "0",
         )
 
-        if rv == '1':
+        if rv == "1":
             return True
-        if rv == '0':
+        if rv == "0":
             return False
 
         return rv
@@ -67,40 +68,38 @@ class LegacyBrowsersFilter(Filter):
         if value is None:
             value = {}
 
-        option_val = '0'
-        if 'active' in value:
-            if value['active']:
-                option_val = '1'
-        elif 'subfilters' in value and len(value['subfilters']) > 0:
-            option_val = set(value['subfilters'])
+        option_val = "0"
+        if "active" in value:
+            if value["active"]:
+                option_val = "1"
+        elif "subfilters" in value and len(value["subfilters"]) > 0:
+            option_val = set(value["subfilters"])
 
         ProjectOption.objects.set_value(
-            project=self.project,
-            key=u'filters:{}'.format(self.id),
-            value=option_val,
+            project=self.project, key=u"filters:{}".format(self.id), value=option_val
         )
 
         return option_val
 
     def get_user_agent(self, data):
         try:
-            for key, value in get_path(data, 'request', 'headers', filter=True) or ():
-                if key.lower() == 'user-agent':
+            for key, value in get_path(data, "request", "headers", filter=True) or ():
+                if key.lower() == "user-agent":
                     return value
         except LookupError:
-            return ''
+            return ""
 
     def filter_default(self, browser):
         """
         Legacy filter - new users specify individual filters
         """
         try:
-            minimum_version = MIN_VERSIONS[browser['family']]
+            minimum_version = MIN_VERSIONS[browser["family"]]
         except KeyError:
             return False
 
         try:
-            major_browser_version = int(browser['major'])
+            major_browser_version = int(browser["major"])
         except (TypeError, ValueError):
             return False
 
@@ -110,11 +109,11 @@ class LegacyBrowsersFilter(Filter):
         return False
 
     def filter_opera_pre_15(self, browser):
-        if not browser['family'] == "Opera":
+        if not browser["family"] == "Opera":
             return False
 
         try:
-            major_browser_version = int(browser['major'])
+            major_browser_version = int(browser["major"])
         except (TypeError, ValueError):
             return False
 
@@ -124,11 +123,11 @@ class LegacyBrowsersFilter(Filter):
         return False
 
     def filter_safari_pre_6(self, browser):
-        if not browser['family'] == "Safari":
+        if not browser["family"] == "Safari":
             return False
 
         try:
-            major_browser_version = int(browser['major'])
+            major_browser_version = int(browser["major"])
         except (TypeError, ValueError):
             return False
 
@@ -138,11 +137,11 @@ class LegacyBrowsersFilter(Filter):
         return False
 
     def filter_android_pre_4(self, browser):
-        if not browser['family'] == "Android":
+        if not browser["family"] == "Android":
             return False
 
         try:
-            major_browser_version = int(browser['major'])
+            major_browser_version = int(browser["major"])
         except (TypeError, ValueError):
             return False
 
@@ -152,11 +151,11 @@ class LegacyBrowsersFilter(Filter):
         return False
 
     def filter_opera_mini_pre_8(self, browser):
-        if not browser['family'] == "Opera Mini":
+        if not browser["family"] == "Opera Mini":
             return False
 
         try:
-            major_browser_version = int(browser['major'])
+            major_browser_version = int(browser["major"])
         except (TypeError, ValueError):
             return False
 
@@ -166,11 +165,11 @@ class LegacyBrowsersFilter(Filter):
         return False
 
     def _filter_ie(self, browser, compare_version):
-        if not browser['family'] == "IE":
+        if not browser["family"] == "IE":
             return False
 
         try:
-            major_browser_version = int(browser['major'])
+            major_browser_version = int(browser["major"])
         except (TypeError, ValueError):
             return False
 
@@ -186,12 +185,11 @@ class LegacyBrowsersFilter(Filter):
         return self._filter_ie(browser, lambda major_ver: major_ver <= 8)
 
     def test(self, data):
-        if data.get('platform') != 'javascript':
+        if data.get("platform") != "javascript":
             return False
 
         opts = ProjectOption.objects.get_value(
-            project=self.project,
-            key=u'filters:{}'.format(self.id),
+            project=self.project, key=u"filters:{}".format(self.id)
         )
 
         value = self.get_user_agent(data)
@@ -202,17 +200,17 @@ class LegacyBrowsersFilter(Filter):
         if not ua:
             return False
 
-        browser = ua['user_agent']
+        browser = ua["user_agent"]
 
-        if not browser['family']:
+        if not browser["family"]:
             return False
 
         # IE Desktop and IE Mobile use the same engines, therefore we can treat them as one
-        if browser['family'] == "IE Mobile":
-            browser['family'] = "IE"
+        if browser["family"] == "IE Mobile":
+            browser["family"] = "IE"
 
         # handle old style config
-        if opts == '1':
+        if opts == "1":
             return self.filter_default(browser)
 
         # New style is not a simple boolean, but a list of
@@ -220,7 +218,7 @@ class LegacyBrowsersFilter(Filter):
         if opts:
             for key in opts:
                 try:
-                    fn = getattr(self, 'filter_' + key)
+                    fn = getattr(self, "filter_" + key)
                 except AttributeError:
                     pass
                 else:

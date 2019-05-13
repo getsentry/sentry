@@ -26,14 +26,12 @@ class TestGrantExchanger(TestCase):
     def test_happy_path(self):
         assert self.grant_exchanger.call()
 
-    @patch('sentry.mediators.token_exchange.Validator.run')
+    @patch("sentry.mediators.token_exchange.Validator.run")
     def test_validate_generic_token_exchange_requirements(self, validator):
         self.grant_exchanger.call()
 
         validator.assert_called_once_with(
-            install=self.install,
-            client_id=self.client_id,
-            user=self.user,
+            install=self.install, client_id=self.client_id, user=self.user
         )
 
     def test_grant_must_belong_to_installations(self):
@@ -50,23 +48,29 @@ class TestGrantExchanger(TestCase):
             self.grant_exchanger.call()
 
     def test_grant_must_be_active(self):
-        self.install.api_grant.update(expires_at=(datetime.utcnow() - timedelta(hours=1)))
+        self.install.api_grant.update(
+            expires_at=(datetime.utcnow() - timedelta(hours=1))
+        )
 
         with self.assertRaises(APIUnauthorized):
             self.grant_exchanger.call()
 
     def test_grant_must_exist(self):
-        self.grant_exchanger.code = '123'
+        self.grant_exchanger.code = "123"
 
         with self.assertRaises(APIUnauthorized):
             self.grant_exchanger.call()
 
-    @patch('sentry.models.ApiGrant.application', side_effect=ApiApplication.DoesNotExist)
+    @patch(
+        "sentry.models.ApiGrant.application", side_effect=ApiApplication.DoesNotExist
+    )
     def test_application_must_exist(self, _):
         with self.assertRaises(APIUnauthorized):
             self.grant_exchanger.call()
 
-    @patch('sentry.models.ApiApplication.sentry_app', side_effect=SentryApp.DoesNotExist)
+    @patch(
+        "sentry.models.ApiApplication.sentry_app", side_effect=SentryApp.DoesNotExist
+    )
     def test_sentry_app_must_exist(self, _):
         with self.assertRaises(APIUnauthorized):
             self.grant_exchanger.call()
@@ -76,7 +80,7 @@ class TestGrantExchanger(TestCase):
         self.grant_exchanger.call()
         assert not ApiGrant.objects.filter(id=grant_id)
 
-    @patch('sentry.analytics.record')
+    @patch("sentry.analytics.record")
     def test_records_analytics(self, record):
         GrantExchanger.run(
             install=self.install,
@@ -86,7 +90,7 @@ class TestGrantExchanger(TestCase):
         )
 
         record.assert_called_with(
-            'sentry_app.token_exchanged',
+            "sentry_app.token_exchanged",
             sentry_app_installation_id=self.install.id,
-            exchange_type='authorization',
+            exchange_type="authorization",
         )

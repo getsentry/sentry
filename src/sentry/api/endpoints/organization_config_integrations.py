@@ -18,4 +18,4 @@ class OrganizationConfigIntegrationsEndpoint(OrganizationEndpoint):
             serializer=IntegrationProviderSerializer(),
         )
 
-        return Response({'providers': serialized})
+        return Response({"providers": serialized})

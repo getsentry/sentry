@@ -26,43 +26,43 @@ class OrganizationUserIssuesSearchTest(APITestCase):
         )
         group2 = self.create_group(project=self.project2)
 
-        EventUser.objects.create(email='foo@example.com', project_id=self.project1.id)
-        EventUser.objects.create(email='bar@example.com', project_id=self.project1.id)
-        EventUser.objects.create(email='foo@example.com', project_id=self.project2.id)
+        EventUser.objects.create(email="foo@example.com", project_id=self.project1.id)
+        EventUser.objects.create(email="bar@example.com", project_id=self.project1.id)
+        EventUser.objects.create(email="foo@example.com", project_id=self.project2.id)
 
         tagstore.create_group_tag_value(
-            key='sentry:user',
-            value='email:foo@example.com',
+            key="sentry:user",
+            value="email:foo@example.com",
             group_id=group1.id,
             environment_id=None,
-            project_id=self.project1.id
+            project_id=self.project1.id,
         )
         tagstore.create_group_tag_value(
-            key='sentry:user',
-            value='email:bar@example.com',
+            key="sentry:user",
+            value="email:bar@example.com",
             group_id=group1.id,
             environment_id=None,
-            project_id=self.project1.id
+            project_id=self.project1.id,
         )
         tagstore.create_group_tag_value(
-            key='sentry:user',
-            value='email:foo@example.com',
+            key="sentry:user",
+            value="email:foo@example.com",
             group_id=group2.id,
             environment_id=None,
-            project_id=self.project2.id
+            project_id=self.project2.id,
         )
 
     def get_url(self):
-        return reverse('sentry-api-0-organization-issue-search', args=[self.org.slug])
+        return reverse("sentry-api-0-organization-issue-search", args=[self.org.slug])
 
     def test_no_team_access(self):
         user = self.create_user()
         self.create_member(user=user, organization=self.org)
         self.login_as(user=user)
 
-        url = '%s?%s' % (self.get_url(), urlencode({'email': 'foo@example.com'}))
+        url = "%s?%s" % (self.get_url(), urlencode({"email": "foo@example.com"}))
 
-        response = self.client.get(url, format='json')
+        response = self.client.get(url, format="json")
         assert response.status_code == 200
         assert len(response.data) == 0
 
@@ -72,29 +72,25 @@ class OrganizationUserIssuesSearchTest(APITestCase):
         self.login_as(user=user)
 
         OrganizationMemberTeam.objects.create(
-            team=self.team1,
-            organizationmember=member,
-            is_active=True,
+            team=self.team1, organizationmember=member, is_active=True
         )
 
-        url = '%s?%s' % (self.get_url(), urlencode({'email': 'foo@example.com'}))
-        response = self.client.get(url, format='json')
+        url = "%s?%s" % (self.get_url(), urlencode({"email": "foo@example.com"}))
+        response = self.client.get(url, format="json")
 
         # result shouldn't include results from team2/project2 or bar@example.com
         assert response.status_code == 200
         assert len(response.data) == 1
-        assert response.data[0]['project']['slug'] == self.project1.slug
+        assert response.data[0]["project"]["slug"] == self.project1.slug
 
         OrganizationMemberTeam.objects.create(
-            team=self.team2,
-            organizationmember=member,
-            is_active=True,
+            team=self.team2, organizationmember=member, is_active=True
         )
 
-        response = self.client.get(url, format='json')
+        response = self.client.get(url, format="json")
 
         # now result should include results from team2/project2
         assert response.status_code == 200
         assert len(response.data) == 2
-        assert response.data[0]['project']['slug'] == self.project2.slug
-        assert response.data[1]['project']['slug'] == self.project1.slug
+        assert response.data[0]["project"]["slug"] == self.project2.slug
+        assert response.data[1]["project"]["slug"] == self.project1.slug

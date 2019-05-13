@@ -15,8 +15,8 @@ def capture_signal(type):
 
 
 post_save.connect(
-    capture_signal('user.created'),
+    capture_signal("user.created"),
     sender=User,
-    dispatch_uid='analytics.user.created',
+    dispatch_uid="analytics.user.created",
     weak=False,
 )

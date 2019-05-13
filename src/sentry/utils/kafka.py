@@ -19,7 +19,7 @@ class ProducerManager(object):
         self.__producers = {}
 
     def get(self, key):
-        cluster_name = settings.KAFKA_TOPICS[key]['cluster']
+        cluster_name = settings.KAFKA_TOPICS[key]["cluster"]
         producer = self.__producers.get(cluster_name)
 
         if producer:
@@ -37,7 +37,7 @@ producers = ProducerManager()
 
 def delivery_callback(error, message):
     if error is not None:
-        logger.error('Could not publish message (error: %s): %r', error, message)
+        logger.error("Could not publish message (error: %s): %r", error, message)
 
 
 def produce_sync(topic_key, **kwargs):
@@ -45,12 +45,12 @@ def produce_sync(topic_key, **kwargs):
 
     try:
         producer.produce(
-            topic=settings.KAFKA_TOPICS[topic_key]['topic'],
+            topic=settings.KAFKA_TOPICS[topic_key]["topic"],
             on_delivery=delivery_callback,
             **kwargs
         )
     except Exception as error:
-        logger.error('Could not publish message: %s', error, exc_info=True)
+        logger.error("Could not publish message: %s", error, exc_info=True)
         return
 
     producer.flush()

@@ -5,16 +5,16 @@ import sqlparse
 from sqlparse.tokens import DML
 
 
-__all__ = ('parse_queries', )
+__all__ = ("parse_queries",)
 
 
 def parse_queries(captured_queries):
-    write_ops = ['INSERT', 'UPDATE', 'DELETE']
+    write_ops = ["INSERT", "UPDATE", "DELETE"]
 
     real_queries = {}
 
     for query in captured_queries:
-        raw_sql = query['sql']
+        raw_sql = query["sql"]
         parsed = sqlparse.parse(raw_sql)
         for token in parsed[0].tokens:
             if token.ttype is DML:

@@ -9,7 +9,7 @@ from debug_toolbar.toolbar import DebugToolbar
 
 def render_panel(request):
     """Render the contents of a panel"""
-    toolbar = DebugToolbar.fetch(request.GET['store_id'])
+    toolbar = DebugToolbar.fetch(request.GET["store_id"])
     if toolbar is None:
         content = _(
             "Data for this panel isn't available anymore. "
@@ -17,6 +17,6 @@ def render_panel(request):
         )
         content = "<p>%s</p>" % escape(content)
     else:
-        panel = toolbar.get_panel_by_id(request.GET['panel_id'])
+        panel = toolbar.get_panel_by_id(request.GET["panel_id"])
         content = panel.content
     return HttpResponse(content)

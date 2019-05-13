@@ -32,26 +32,75 @@ from south.management.commands.datamigration import Command as DataCommand
 
 class Command(DataCommand):
     option_list = DataCommand.option_list + (
-        make_option('--add-model', action='append', dest='added_model_list', type='string',
-                    help='Generate a Create Table migration for the specified model.  Add multiple models to this migration with subsequent --add-model parameters.'),
-        make_option('--add-field', action='append', dest='added_field_list', type='string',
-                    help='Generate an Add Column migration for the specified modelname.fieldname - you can use this multiple times to add more than one column.'),
-        make_option('--add-index', action='append', dest='added_index_list', type='string',
-                    help='Generate an Add Index migration for the specified modelname.fieldname - you can use this multiple times to add more than one column.'),
-        make_option('--initial', action='store_true', dest='initial', default=False,
-                    help='Generate the initial schema for the app.'),
-        make_option('--auto', action='store_true', dest='auto', default=False,
-                    help='Attempt to automatically detect differences from the last migration.'),
-        make_option('--empty', action='store_true', dest='empty', default=False,
-                    help='Make a blank migration.'),
-        make_option('--update', action='store_true', dest='update', default=False,
-                    help='Update the most recent migration instead of creating a new one. Rollback this migration if it is already applied.'),
+        make_option(
+            "--add-model",
+            action="append",
+            dest="added_model_list",
+            type="string",
+            help="Generate a Create Table migration for the specified model.  Add multiple models to this migration with subsequent --add-model parameters.",
+        ),
+        make_option(
+            "--add-field",
+            action="append",
+            dest="added_field_list",
+            type="string",
+            help="Generate an Add Column migration for the specified modelname.fieldname - you can use this multiple times to add more than one column.",
+        ),
+        make_option(
+            "--add-index",
+            action="append",
+            dest="added_index_list",
+            type="string",
+            help="Generate an Add Index migration for the specified modelname.fieldname - you can use this multiple times to add more than one column.",
+        ),
+        make_option(
+            "--initial",
+            action="store_true",
+            dest="initial",
+            default=False,
+            help="Generate the initial schema for the app.",
+        ),
+        make_option(
+            "--auto",
+            action="store_true",
+            dest="auto",
+            default=False,
+            help="Attempt to automatically detect differences from the last migration.",
+        ),
+        make_option(
+            "--empty",
+            action="store_true",
+            dest="empty",
+            default=False,
+            help="Make a blank migration.",
+        ),
+        make_option(
+            "--update",
+            action="store_true",
+            dest="update",
+            default=False,
+            help="Update the most recent migration instead of creating a new one. Rollback this migration if it is already applied.",
+        ),
     )
     help = "Creates a new template schema migration for the given app"
     usage_str = "Usage: ./manage.py schemamigration appname migrationname [--empty] [--initial] [--auto] [--add-model ModelName] [--add-field ModelName.field_name] [--stdout]"
 
-    def handle(self, app=None, name="", added_model_list=None, added_field_list=None, freeze_list=None, initial=False,
-               auto=False, stdout=False, added_index_list=None, verbosity=1, empty=False, update=False, **options):
+    def handle(
+        self,
+        app=None,
+        name="",
+        added_model_list=None,
+        added_field_list=None,
+        freeze_list=None,
+        initial=False,
+        auto=False,
+        stdout=False,
+        added_index_list=None,
+        verbosity=1,
+        empty=False,
+        update=False,
+        **options
+    ):
 
         # Any supposed lists that are None become empty lists
         added_model_list = added_model_list or []
@@ -64,18 +113,26 @@ class Command(DataCommand):
             name = "-"
 
         # Only allow valid names
-        if re.search('[^_\w]', name) and name != "-":
-            self.error("Migration names should contain only alphanumeric characters and underscores.")
+        if re.search("[^_\w]", name) and name != "-":
+            self.error(
+                "Migration names should contain only alphanumeric characters and underscores."
+            )
 
         # Make sure options are compatable
         if initial and (added_model_list or added_field_list or auto):
-            self.error("You cannot use --initial and other options together\n" + self.usage_str)
+            self.error(
+                "You cannot use --initial and other options together\n" + self.usage_str
+            )
 
         if auto and (added_model_list or added_field_list or initial):
-            self.error("You cannot use --auto and other options together\n" + self.usage_str)
+            self.error(
+                "You cannot use --auto and other options together\n" + self.usage_str
+            )
 
         if not app:
-            self.error("You must provide an app to create a migration for.\n" + self.usage_str)
+            self.error(
+                "You must provide an app to create a migration for.\n" + self.usage_str
+            )
 
         # See if the app exists
         app = app.split(".")[-1]
@@ -86,7 +143,9 @@ class Command(DataCommand):
             return
 
         # Get the Migrations for this app (creating the migrations dir if needed)
-        migrations = Migrations(app, force_creation=True, verbose_creation=int(verbosity) > 0)
+        migrations = Migrations(
+            app, force_creation=True, verbose_creation=int(verbosity) > 0
+        )
 
         # What actions do we need to do?
         if auto:
@@ -94,19 +153,26 @@ class Command(DataCommand):
             try:
                 last_migration = migrations[-2 if update else -1]
             except IndexError:
-                self.error("You cannot use --auto on an app with no migrations. Try --initial.")
-            # Make sure it has stored models
-            if migrations.app_label() not in getattr(last_migration.migration_class(), "complete_apps", []):
                 self.error(
-                    "You cannot use automatic detection, since the previous migration does not have this whole app frozen.\nEither make migrations using '--freeze %s' or set 'SOUTH_AUTO_FREEZE_APP = True' in your settings.py." %
-                    migrations.app_label())
+                    "You cannot use --auto on an app with no migrations. Try --initial."
+                )
+            # Make sure it has stored models
+            if migrations.app_label() not in getattr(
+                last_migration.migration_class(), "complete_apps", []
+            ):
+                self.error(
+                    "You cannot use automatic detection, since the previous migration does not have this whole app frozen.\nEither make migrations using '--freeze %s' or set 'SOUTH_AUTO_FREEZE_APP = True' in your settings.py."
+                    % migrations.app_label()
+                )
             # Alright, construct two model dicts to run the differ on.
             old_defs = dict(
-                (k, v) for k, v in last_migration.migration_class().models.items()
+                (k, v)
+                for k, v in last_migration.migration_class().models.items()
                 if k.split(".")[0] == migrations.app_label()
             )
             new_defs = dict(
-                (k, v) for k, v in freezer.freeze_apps([migrations.app_label()]).items()
+                (k, v)
+                for k, v in freezer.freeze_apps([migrations.app_label()]).items()
                 if k.split(".")[0] == migrations.app_label()
             )
             change_source = changes.AutoChanges(
@@ -122,19 +188,17 @@ class Command(DataCommand):
 
         else:
             # Read the commands manually off of the arguments
-            if (added_model_list or added_field_list or added_index_list):
+            if added_model_list or added_field_list or added_index_list:
                 change_source = changes.ManualChanges(
-                    migrations,
-                    added_model_list,
-                    added_field_list,
-                    added_index_list,
+                    migrations, added_model_list, added_field_list, added_index_list
                 )
             elif empty:
                 change_source = None
             else:
                 print(
                     "You have not passed any of --initial, --auto, --empty, --add-model, --add-field or --add-index.",
-                    file=sys.stderr)
+                    file=sys.stderr,
+                )
                 sys.exit(1)
 
         # Validate this so we can access the last migration without worrying
@@ -146,9 +210,11 @@ class Command(DataCommand):
             if change_source:
                 name = change_source.suggest_name()
             if update:
-                name = re.sub(r'^\d{4}_', '', migrations[-1].name())
+                name = re.sub(r"^\d{4}_", "", migrations[-1].name())
             if not name:
-                self.error("You must provide a name for this migration\n" + self.usage_str)
+                self.error(
+                    "You must provide a name for this migration\n" + self.usage_str
+                )
 
         # Get the actions, and then insert them into the actions lists
         forwards_actions = []
@@ -159,7 +225,9 @@ class Command(DataCommand):
                 try:
                     action_class = getattr(actions, action_name)
                 except AttributeError:
-                    raise ValueError("Invalid action name from source: %s" % action_name)
+                    raise ValueError(
+                        "Invalid action name from source: %s" % action_name
+                    )
                 else:
                     action = action_class(**params)
                     action.add_forwards(forwards_actions)
@@ -178,7 +246,9 @@ class Command(DataCommand):
             "forwards": "\n".join(forwards_actions or ["        pass"]),
             "backwards": "\n".join(backwards_actions or ["        pass"]),
             "frozen_models": freezer.freeze_apps_to_string(apps_to_freeze),
-            "complete_apps": apps_to_freeze and "complete_apps = [%s]" % (", ".join(map(repr, apps_to_freeze))) or ""
+            "complete_apps": apps_to_freeze
+            and "complete_apps = [%s]" % (", ".join(map(repr, apps_to_freeze)))
+            or "",
         }
 
         # Deal with update mode as late as possible, avoid a rollback as long
@@ -186,14 +256,19 @@ class Command(DataCommand):
         if update:
             last_migration = migrations[-1]
             if MigrationHistory.objects.filter(
-                    applied__isnull=False, app_name=app, migration=last_migration.name()):
+                applied__isnull=False, app_name=app, migration=last_migration.name()
+            ):
                 print(
-                    "Migration to be updated, %s, is already applied, rolling it back now..." %
-                    last_migration.name(), file=sys.stderr)
-                migrate_app(migrations, 'current-1', verbosity=verbosity)
-            for ext in ('py', 'pyc'):
-                old_filename = "%s.%s" % (os.path.join(
-                    migrations.migrations_dir(), last_migration.filename), ext)
+                    "Migration to be updated, %s, is already applied, rolling it back now..."
+                    % last_migration.name(),
+                    file=sys.stderr,
+                )
+                migrate_app(migrations, "current-1", verbosity=verbosity)
+            for ext in ("py", "pyc"):
+                old_filename = "%s.%s" % (
+                    os.path.join(migrations.migrations_dir(), last_migration.filename),
+                    ext,
+                )
                 if os.path.isfile(old_filename):
                     os.unlink(old_filename)
             migrations.remove(last_migration)
@@ -209,15 +284,19 @@ class Command(DataCommand):
             fp = open(os.path.join(migrations.migrations_dir(), new_filename), "w")
             fp.write(file_contents)
             fp.close()
-            verb = 'Updated' if update else 'Created'
+            verb = "Updated" if update else "Created"
             if empty:
                 print(
-                    "%s %s. You must now edit this migration and add the code for each direction." %
-                    (verb, new_filename), file=sys.stderr)
+                    "%s %s. You must now edit this migration and add the code for each direction."
+                    % (verb, new_filename),
+                    file=sys.stderr,
+                )
             else:
                 print(
-                    "%s %s. You can now apply this migration with: ./manage.py migrate %s" %
-                    (verb, new_filename, app), file=sys.stderr)
+                    "%s %s. You can now apply this migration with: ./manage.py migrate %s"
+                    % (verb, new_filename, app),
+                    file=sys.stderr,
+                )
 
     def get_migration_template(self):
         return MIGRATION_TEMPLATE

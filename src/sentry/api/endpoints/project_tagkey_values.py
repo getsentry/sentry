@@ -28,7 +28,9 @@ class ProjectTagKeyValuesEndpoint(ProjectEndpoint, EnvironmentMixin):
         lookup_key = tagstore.prefix_reserved_key(key)
 
         try:
-            environment_id = self._get_environment_id_from_request(request, project.organization_id)
+            environment_id = self._get_environment_id_from_request(
+                request, project.organization_id
+            )
         except Environment.DoesNotExist:
             # if the environment doesn't exist then the tag can't possibly exist
             raise ResourceDoesNotExist
@@ -42,8 +44,8 @@ class ProjectTagKeyValuesEndpoint(ProjectEndpoint, EnvironmentMixin):
             project.id,
             environment_id,
             tagkey.key,
-            query=request.GET.get('query'),
-            order_by='-last_seen',
+            query=request.GET.get("query"),
+            order_by="-last_seen",
         )
 
         return self.paginate(

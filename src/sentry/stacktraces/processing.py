@@ -18,7 +18,7 @@ from sentry.stacktraces.functions import trim_function_name
 
 logger = logging.getLogger(__name__)
 
-StacktraceInfo = namedtuple('StacktraceInfo', ['stacktrace', 'container', 'platforms'])
+StacktraceInfo = namedtuple("StacktraceInfo", ["stacktrace", "container", "platforms"])
 StacktraceInfo.__hash__ = lambda x: id(x)
 StacktraceInfo.__eq__ = lambda a, b: a is b
 StacktraceInfo.__ne__ = lambda a, b: a is not b
@@ -36,10 +36,10 @@ class ProcessableFrame(object):
         self.processable_frames = processable_frames
 
     def __repr__(self):
-        return '<ProcessableFrame %r #%r at %r>' % (
-            self.frame.get('function') or 'unknown',
+        return "<ProcessableFrame %r #%r at %r>" % (
+            self.frame.get("function") or "unknown",
             self.idx,
-            self.frame.get('instruction_addr'),
+            self.frame.get("instruction_addr"),
         )
 
     def __contains__(self, key):
@@ -77,7 +77,7 @@ class ProcessableFrame(object):
             return
 
         h = hash_values(values, seed=self.processor.__class__.__name__)
-        self.cache_key = rv = 'pf:%s' % h
+        self.cache_key = rv = "pf:%s" % h
         return rv
 
 
@@ -108,7 +108,7 @@ class StacktraceProcessor(object):
         self.data = data
         self.stacktrace_infos = stacktrace_infos
         if project is None:
-            project = Project.objects.get_from_cache(id=data['project'])
+            project = Project.objects.get_from_cache(id=data["project"])
         self.project = project
 
     def close(self):
@@ -119,20 +119,18 @@ class StacktraceProcessor(object):
         and optionally creates the release if it's missing.  In case there
         is no release info it will return `None`.
         """
-        release = self.data.get('release')
+        release = self.data.get("release")
         if not release:
             return None
         if not create:
-            return Release.get(project=self.project, version=self.data['release'])
-        timestamp = self.data.get('timestamp')
+            return Release.get(project=self.project, version=self.data["release"])
+        timestamp = self.data.get("timestamp")
         if timestamp is not None:
             date = datetime.fromtimestamp(timestamp).replace(tzinfo=timezone.utc)
         else:
             date = None
         return Release.get_or_create(
-            project=self.project,
-            version=self.data['release'],
-            date_added=date,
+            project=self.project, version=self.data["release"], date_added=date
         )
 
     def handles_frame(self, frame, stacktrace_info):
@@ -175,27 +173,31 @@ def find_stacktraces_in_data(data, include_raw=False):
     rv = []
 
     def _report_stack(stacktrace, container):
-        if not stacktrace or not get_path(stacktrace, 'frames', filter=True):
+        if not stacktrace or not get_path(stacktrace, "frames", filter=True):
             return
 
         platforms = set(
-            frame.get('platform') or data.get('platform')
-            for frame in get_path(stacktrace, 'frames', filter=True, default=())
+            frame.get("platform") or data.get("platform")
+            for frame in get_path(stacktrace, "frames", filter=True, default=())
         )
-        rv.append(StacktraceInfo(stacktrace=stacktrace, container=container, platforms=platforms))
+        rv.append(
+            StacktraceInfo(
+                stacktrace=stacktrace, container=container, platforms=platforms
+            )
+        )
 
-    for exc in get_path(data, 'exception', 'values', filter=True, default=()):
-        _report_stack(exc.get('stacktrace'), exc)
+    for exc in get_path(data, "exception", "values", filter=True, default=()):
+        _report_stack(exc.get("stacktrace"), exc)
 
-    _report_stack(data.get('stacktrace'), None)
+    _report_stack(data.get("stacktrace"), None)
 
-    for thread in get_path(data, 'threads', 'values', filter=True, default=()):
-        _report_stack(thread.get('stacktrace'), thread)
+    for thread in get_path(data, "threads", "values", filter=True, default=()):
+        _report_stack(thread.get("stacktrace"), thread)
 
     if include_raw:
         for info in rv[:]:
             if info.container is not None:
-                _report_stack(info.container.get('raw_stacktrace'), info.container)
+                _report_stack(info.container.get("raw_stacktrace"), info.container)
 
     return rv
 
@@ -207,7 +209,7 @@ def _has_system_frames(frames):
 
     system_frames = 0
     for frame in frames:
-        if not frame.get('in_app'):
+        if not frame.get("in_app"):
             system_frames += 1
     return bool(system_frames) and len(frames) != system_frames
 
@@ -220,25 +222,26 @@ def _normalize_in_app(stacktrace, platform=None, sdk_info=None):
     # normalization, just like grouping enhancers.
     # TODO(ja): Clean up those rules and put them in enhancers instead
     for frame in stacktrace:
-        if frame.get('in_app') is not None:
+        if frame.get("in_app") is not None:
             continue
 
-        family = get_behavior_family_for_platform(frame.get('platform') or platform)
-        if family == 'native':
-            frame_package = frame.get('package')
-            frame['in_app'] = bool(frame_package) and \
-                not is_known_third_party(frame_package, sdk_info=sdk_info)
+        family = get_behavior_family_for_platform(frame.get("platform") or platform)
+        if family == "native":
+            frame_package = frame.get("package")
+            frame["in_app"] = bool(frame_package) and not is_known_third_party(
+                frame_package, sdk_info=sdk_info
+            )
 
     has_system_frames = _has_system_frames(stacktrace)
     for frame in stacktrace:
         # If all frames are in_app, flip all of them. This is expected by the UI
         if not has_system_frames:
-            frame['in_app'] = False
+            frame["in_app"] = False
 
         # Default to false in all cases where processors or grouping enhancers
         # have not yet set in_app.
-        elif frame.get('in_app') is None:
-            frame['in_app'] = False
+        elif frame.get("in_app") is None:
+            frame["in_app"] = False
 
 
 def normalize_stacktraces_for_grouping(data, grouping_config=None):
@@ -250,14 +253,14 @@ def normalize_stacktraces_for_grouping(data, grouping_config=None):
     stacktraces = []
 
     for stacktrace_info in find_stacktraces_in_data(data, include_raw=True):
-        frames = get_path(stacktrace_info.stacktrace, 'frames', filter=True, default=())
+        frames = get_path(stacktrace_info.stacktrace, "frames", filter=True, default=())
         if frames:
             stacktraces.append(frames)
 
     if not stacktraces:
         return
 
-    platform = data.get('platform')
+    platform = data.get("platform")
 
     # Put the trimmed function names into the frames.  We only do this if
     # the trimming produces a different function than the function we have
@@ -265,16 +268,17 @@ def normalize_stacktraces_for_grouping(data, grouping_config=None):
     # unnecessarily.
     for frames in stacktraces:
         for frame in frames:
-            if frame.get('raw_function') is not None:
+            if frame.get("raw_function") is not None:
                 continue
-            raw_func = frame.get('function')
+            raw_func = frame.get("function")
             if not raw_func:
                 continue
             function_name = trim_function_name(
-                raw_func, frame.get('platform') or platform)
+                raw_func, frame.get("platform") or platform
+            )
             if function_name != raw_func:
-                frame['raw_function'] = raw_func
-                frame['function'] = function_name
+                frame["raw_function"] = raw_func
+                frame["function"] = function_name
 
     # If a grouping config is available, run grouping enhancers
     if grouping_config is not None:
@@ -288,6 +292,7 @@ def normalize_stacktraces_for_grouping(data, grouping_config=None):
 
 def should_process_for_stacktraces(data):
     from sentry.plugins import plugins
+
     infos = find_stacktraces_in_data(data)
     platforms = set()
     for info in infos:
@@ -298,7 +303,7 @@ def should_process_for_stacktraces(data):
             data=data,
             stacktrace_infos=infos,
             platforms=platforms,
-            _with_transaction=False
+            _with_transaction=False,
         )
         if processors:
             return True
@@ -320,12 +325,13 @@ def get_processors_for_stacktraces(data, infos):
                 data=data,
                 stacktrace_infos=infos,
                 platforms=platforms,
-                _with_transaction=False
-            ) or ()
+                _with_transaction=False,
+            )
+            or ()
         )
 
     if processors:
-        project = Project.objects.get_from_cache(id=data['project'])
+        project = Project.objects.get_from_cache(id=data["project"])
         processors = [x(data, infos, project) for x in processors]
 
     return processors
@@ -335,14 +341,18 @@ def get_processable_frames(stacktrace_info, processors):
     """Returns thin wrappers around the frames in a stacktrace associated
     with the processor for it.
     """
-    frames = get_path(stacktrace_info.stacktrace, 'frames', filter=True, default=())
+    frames = get_path(stacktrace_info.stacktrace, "frames", filter=True, default=())
     frame_count = len(frames)
     rv = []
     for idx, frame in enumerate(frames):
-        processor = next((p for p in processors if p.handles_frame(frame, stacktrace_info)), None)
+        processor = next(
+            (p for p in processors if p.handles_frame(frame, stacktrace_info)), None
+        )
         if processor is not None:
             rv.append(
-                ProcessableFrame(frame, frame_count - idx - 1, processor, stacktrace_info, rv)
+                ProcessableFrame(
+                    frame, frame_count - idx - 1, processor, stacktrace_info, rv
+                )
             )
     return rv
 
@@ -357,9 +367,11 @@ def process_single_stacktrace(processing_task, stacktrace_info, processable_fram
 
     for processable_frame in processable_frames:
         try:
-            rv = processable_frame.processor.process_frame(processable_frame, processing_task)
+            rv = processable_frame.processor.process_frame(
+                processable_frame, processing_task
+            )
         except Exception:
-            logger.exception('Failed to process frame')
+            logger.exception("Failed to process frame")
             rv = None
         expand_processed, expand_raw, errors = rv or (None, None, None)
 
@@ -380,8 +392,9 @@ def process_single_stacktrace(processing_task, stacktrace_info, processable_fram
         all_errors.extend(errors or ())
 
     return (
-        processed_frames if changed_processed else None, raw_frames
-        if changed_raw else None, all_errors,
+        processed_frames if changed_processed else None,
+        raw_frames if changed_raw else None,
+        all_errors,
     )
 
 
@@ -408,10 +421,12 @@ def get_stacktrace_processing_task(infos, processors):
         processable_frames = get_processable_frames(info, processors)
         for processable_frame in processable_frames:
             processable_frame.processor.preprocess_frame(processable_frame)
-            by_processor.setdefault(processable_frame.processor, []) \
-                .append(processable_frame)
-            by_stacktrace_info.setdefault(processable_frame.stacktrace_info, []) \
-                .append(processable_frame)
+            by_processor.setdefault(processable_frame.processor, []).append(
+                processable_frame
+            )
+            by_stacktrace_info.setdefault(processable_frame.stacktrace_info, []).append(
+                processable_frame
+            )
             if processable_frame.cache_key is not None:
                 to_lookup[processable_frame.cache_key] = processable_frame
 
@@ -458,22 +473,27 @@ def process_stacktraces(data, make_processors=None, set_raw_stacktrace=True):
                 changed = True
 
         # Process all stacktraces
-        for stacktrace_info, processable_frames in processing_task.iter_processable_stacktraces():
+        for (
+            stacktrace_info,
+            processable_frames,
+        ) in processing_task.iter_processable_stacktraces():
             new_frames, new_raw_frames, errors = process_single_stacktrace(
                 processing_task, stacktrace_info, processable_frames
             )
             if new_frames is not None:
-                stacktrace_info.stacktrace['frames'] = new_frames
+                stacktrace_info.stacktrace["frames"] = new_frames
                 changed = True
-            if set_raw_stacktrace and \
-               new_raw_frames is not None and \
-               stacktrace_info.container is not None:
-                stacktrace_info.container['raw_stacktrace'] = dict(
+            if (
+                set_raw_stacktrace
+                and new_raw_frames is not None
+                and stacktrace_info.container is not None
+            ):
+                stacktrace_info.container["raw_stacktrace"] = dict(
                     stacktrace_info.stacktrace, frames=new_raw_frames
                 )
                 changed = True
             if errors:
-                data.setdefault('errors', []).extend(dedup_errors(errors))
+                data.setdefault("errors", []).extend(dedup_errors(errors))
                 changed = True
 
     finally:

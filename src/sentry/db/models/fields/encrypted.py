@@ -1,7 +1,10 @@
 from __future__ import absolute_import
 
 __all__ = (
-    'EncryptedCharField', 'EncryptedJsonField', 'EncryptedPickledObjectField', 'EncryptedTextField',
+    "EncryptedCharField",
+    "EncryptedJsonField",
+    "EncryptedPickledObjectField",
+    "EncryptedTextField",
 )
 
 import six
@@ -16,7 +19,9 @@ from sentry.utils.encryption import decrypt, encrypt
 
 class EncryptedCharField(CharField):
     def get_db_prep_value(self, value, *args, **kwargs):
-        value = super(EncryptedCharField, self).get_db_prep_value(value, *args, **kwargs)
+        value = super(EncryptedCharField, self).get_db_prep_value(
+            value, *args, **kwargs
+        )
         return encrypt(value)
 
     def to_python(self, value):
@@ -26,16 +31,15 @@ class EncryptedCharField(CharField):
 
     def get_prep_lookup(self, lookup_type, value):
         raise NotImplementedError(
-            u'{!r} lookup type for {!r} is not supported'.format(
-                lookup_type,
-                self,
-            )
+            u"{!r} lookup type for {!r} is not supported".format(lookup_type, self)
         )
 
 
 class EncryptedJsonField(JSONField):
     def get_db_prep_value(self, value, *args, **kwargs):
-        value = super(EncryptedJsonField, self).get_db_prep_value(value, *args, **kwargs)
+        value = super(EncryptedJsonField, self).get_db_prep_value(
+            value, *args, **kwargs
+        )
         return encrypt(value)
 
     def to_python(self, value):
@@ -45,18 +49,17 @@ class EncryptedJsonField(JSONField):
 
     def get_prep_lookup(self, lookup_type, value):
         raise NotImplementedError(
-            u'{!r} lookup type for {!r} is not supported'.format(
-                lookup_type,
-                self,
-            )
+            u"{!r} lookup type for {!r} is not supported".format(lookup_type, self)
         )
 
 
 class EncryptedPickledObjectField(PickledObjectField):
     def get_db_prep_value(self, value, *args, **kwargs):
         if isinstance(value, six.binary_type):
-            value = value.decode('utf-8')
-        value = super(EncryptedPickledObjectField, self).get_db_prep_value(value, *args, **kwargs)
+            value = value.decode("utf-8")
+        value = super(EncryptedPickledObjectField, self).get_db_prep_value(
+            value, *args, **kwargs
+        )
         return encrypt(value)
 
     def to_python(self, value):
@@ -66,16 +69,15 @@ class EncryptedPickledObjectField(PickledObjectField):
 
     def get_prep_lookup(self, lookup_type, value):
         raise NotImplementedError(
-            u'{!r} lookup type for {!r} is not supported'.format(
-                lookup_type,
-                self,
-            )
+            u"{!r} lookup type for {!r} is not supported".format(lookup_type, self)
         )
 
 
 class EncryptedTextField(TextField):
     def get_db_prep_value(self, value, *args, **kwargs):
-        value = super(EncryptedTextField, self).get_db_prep_value(value, *args, **kwargs)
+        value = super(EncryptedTextField, self).get_db_prep_value(
+            value, *args, **kwargs
+        )
         return encrypt(value)
 
     def to_python(self, value):
@@ -85,23 +87,26 @@ class EncryptedTextField(TextField):
 
     def get_prep_lookup(self, lookup_type, value):
         raise NotImplementedError(
-            u'{!r} lookup type for {!r} is not supported'.format(
-                lookup_type,
-                self,
-            )
+            u"{!r} lookup type for {!r} is not supported".format(lookup_type, self)
         )
 
 
-if hasattr(models, 'SubfieldBase'):
+if hasattr(models, "SubfieldBase"):
     EncryptedCharField = six.add_metaclass(models.SubfieldBase)(EncryptedCharField)
     EncryptedTextField = six.add_metaclass(models.SubfieldBase)(EncryptedTextField)
 
-if 'south' in settings.INSTALLED_APPS:
+if "south" in settings.INSTALLED_APPS:
     from south.modelsinspector import add_introspection_rules
 
     add_introspection_rules(
         [], ["^sentry\.db\.models\.fields\.encrypted\.EncryptedPickledObjectField"]
     )
-    add_introspection_rules([], ["^sentry\.db\.models\.fields\.encrypted\.EncryptedCharField"])
-    add_introspection_rules([], ["^sentry\.db\.models\.fields\.encrypted\.EncryptedJsonField"])
-    add_introspection_rules([], ["^sentry\.db\.models\.fields\.encrypted\.EncryptedTextField"])
+    add_introspection_rules(
+        [], ["^sentry\.db\.models\.fields\.encrypted\.EncryptedCharField"]
+    )
+    add_introspection_rules(
+        [], ["^sentry\.db\.models\.fields\.encrypted\.EncryptedJsonField"]
+    )
+    add_introspection_rules(
+        [], ["^sentry\.db\.models\.fields\.encrypted\.EncryptedTextField"]
+    )

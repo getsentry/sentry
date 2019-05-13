@@ -20,8 +20,8 @@ class Relay(Model):
     is_internal = models.BooleanField(default=False)
 
     class Meta:
-        app_label = 'sentry'
-        db_table = 'sentry_relay'
+        app_label = "sentry"
+        db_table = "sentry_relay"
 
     @cached_property
     def public_key_object(self):

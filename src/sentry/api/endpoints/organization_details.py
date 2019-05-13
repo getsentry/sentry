@@ -16,69 +16,119 @@ from sentry.api.serializers.models import organization as org_serializers
 from sentry.api.serializers.rest_framework import ListField
 from sentry.constants import LEGACY_RATE_LIMIT_OPTIONS, RESERVED_ORGANIZATION_SLUGS
 from sentry.models import (
-    AuditLogEntryEvent, Authenticator, AuthProvider, Organization, OrganizationAvatar,
-    OrganizationOption, OrganizationStatus,
+    AuditLogEntryEvent,
+    Authenticator,
+    AuthProvider,
+    Organization,
+    OrganizationAvatar,
+    OrganizationOption,
+    OrganizationStatus,
 )
 from sentry.tasks.deletion import delete_organization
 from sentry.utils.apidocs import scenario, attach_scenarios
 from sentry.utils.cache import memoize
 
-ERR_DEFAULT_ORG = 'You cannot remove the default organization.'
-ERR_NO_USER = 'This request requires an authenticated user.'
-ERR_NO_2FA = 'Cannot require two-factor authentication without personal two-factor enabled.'
-ERR_SSO_ENABLED = 'Cannot require two-factor authentication with SSO enabled'
+ERR_DEFAULT_ORG = "You cannot remove the default organization."
+ERR_NO_USER = "This request requires an authenticated user."
+ERR_NO_2FA = (
+    "Cannot require two-factor authentication without personal two-factor enabled."
+)
+ERR_SSO_ENABLED = "Cannot require two-factor authentication with SSO enabled"
 
 ORG_OPTIONS = (
     # serializer field name, option key name, type, default value
-    ('projectRateLimit', 'sentry:project-rate-limit', int, org_serializers.PROJECT_RATE_LIMIT_DEFAULT),
-    ('accountRateLimit', 'sentry:account-rate-limit', int, org_serializers.ACCOUNT_RATE_LIMIT_DEFAULT),
-    ('dataScrubber', 'sentry:require_scrub_data', bool, org_serializers.REQUIRE_SCRUB_DATA_DEFAULT),
-    ('sensitiveFields', 'sentry:sensitive_fields', list, org_serializers.SENSITIVE_FIELDS_DEFAULT),
-    ('safeFields', 'sentry:safe_fields', list, org_serializers.SAFE_FIELDS_DEFAULT),
-    ('scrapeJavaScript', 'sentry:scrape_javascript', bool, org_serializers.SCRAPE_JAVASCRIPT_DEFAULT),
-    ('dataScrubberDefaults', 'sentry:require_scrub_defaults',
-     bool, org_serializers.REQUIRE_SCRUB_DEFAULTS_DEFAULT),
-    ('storeCrashReports', 'sentry:store_crash_reports',
-     bool, org_serializers.STORE_CRASH_REPORTS_DEFAULT),
-    ('scrubIPAddresses', 'sentry:require_scrub_ip_address',
-     bool, org_serializers.REQUIRE_SCRUB_IP_ADDRESS_DEFAULT),
-    ('trustedRelays', 'sentry:trusted-relays', list, org_serializers.TRUSTED_RELAYS_DEFAULT),
+    (
+        "projectRateLimit",
+        "sentry:project-rate-limit",
+        int,
+        org_serializers.PROJECT_RATE_LIMIT_DEFAULT,
+    ),
+    (
+        "accountRateLimit",
+        "sentry:account-rate-limit",
+        int,
+        org_serializers.ACCOUNT_RATE_LIMIT_DEFAULT,
+    ),
+    (
+        "dataScrubber",
+        "sentry:require_scrub_data",
+        bool,
+        org_serializers.REQUIRE_SCRUB_DATA_DEFAULT,
+    ),
+    (
+        "sensitiveFields",
+        "sentry:sensitive_fields",
+        list,
+        org_serializers.SENSITIVE_FIELDS_DEFAULT,
+    ),
+    ("safeFields", "sentry:safe_fields", list, org_serializers.SAFE_FIELDS_DEFAULT),
+    (
+        "scrapeJavaScript",
+        "sentry:scrape_javascript",
+        bool,
+        org_serializers.SCRAPE_JAVASCRIPT_DEFAULT,
+    ),
+    (
+        "dataScrubberDefaults",
+        "sentry:require_scrub_defaults",
+        bool,
+        org_serializers.REQUIRE_SCRUB_DEFAULTS_DEFAULT,
+    ),
+    (
+        "storeCrashReports",
+        "sentry:store_crash_reports",
+        bool,
+        org_serializers.STORE_CRASH_REPORTS_DEFAULT,
+    ),
+    (
+        "scrubIPAddresses",
+        "sentry:require_scrub_ip_address",
+        bool,
+        org_serializers.REQUIRE_SCRUB_IP_ADDRESS_DEFAULT,
+    ),
+    (
+        "trustedRelays",
+        "sentry:trusted-relays",
+        list,
+        org_serializers.TRUSTED_RELAYS_DEFAULT,
+    ),
 )
 
-delete_logger = logging.getLogger('sentry.deletions.api')
+delete_logger = logging.getLogger("sentry.deletions.api")
 
-DELETION_STATUSES = frozenset([OrganizationStatus.PENDING_DELETION,
-                               OrganizationStatus.DELETION_IN_PROGRESS])
+DELETION_STATUSES = frozenset(
+    [OrganizationStatus.PENDING_DELETION, OrganizationStatus.DELETION_IN_PROGRESS]
+)
 
 
-@scenario('RetrieveOrganization')
+@scenario("RetrieveOrganization")
 def retrieve_organization_scenario(runner):
-    runner.request(method='GET', path='/organizations/%s/' % runner.org.slug)
+    runner.request(method="GET", path="/organizations/%s/" % runner.org.slug)
 
 
-@scenario('UpdateOrganization')
+@scenario("UpdateOrganization")
 def update_organization_scenario(runner):
-    with runner.isolated_org('Badly Misnamed') as org:
+    with runner.isolated_org("Badly Misnamed") as org:
         runner.request(
-            method='PUT',
-            path='/organizations/%s/' % org.slug,
-            data={
-                'name': 'Impeccably Designated',
-                'slug': 'impeccably-designated',
-            }
+            method="PUT",
+            path="/organizations/%s/" % org.slug,
+            data={"name": "Impeccably Designated", "slug": "impeccably-designated"},
         )
 
 
 class OrganizationSerializer(serializers.Serializer):
     name = serializers.CharField(max_length=64)
-    slug = serializers.RegexField(r'^[a-z0-9_\-]+$', max_length=50)
+    slug = serializers.RegexField(r"^[a-z0-9_\-]+$", max_length=50)
     accountRateLimit = serializers.IntegerField(
-        min_value=0, max_value=1000000, required=False)
+        min_value=0, max_value=1000000, required=False
+    )
     projectRateLimit = serializers.IntegerField(
-        min_value=50, max_value=100, required=False)
+        min_value=50, max_value=100, required=False
+    )
     avatar = AvatarField(required=False)
     avatarType = serializers.ChoiceField(
-        choices=(('upload', 'upload'), ('letter_avatar', 'letter_avatar'), ), required=False
+        choices=(("upload", "upload"), ("letter_avatar", "letter_avatar")),
+        required=False,
     )
 
     openMembership = serializers.BooleanField(required=False)
@@ -98,14 +148,13 @@ class OrganizationSerializer(serializers.Serializer):
 
     @memoize
     def _has_legacy_rate_limits(self):
-        org = self.context['organization']
+        org = self.context["organization"]
         return OrganizationOption.objects.filter(
-            organization=org,
-            key__in=LEGACY_RATE_LIMIT_OPTIONS,
+            organization=org, key__in=LEGACY_RATE_LIMIT_OPTIONS
         ).exists()
 
     def _has_sso_enabled(self):
-        org = self.context['organization']
+        org = self.context["organization"]
         return AuthProvider.objects.filter(organization=org).exists()
 
     def validate_slug(self, attrs, source):
@@ -116,34 +165,36 @@ class OrganizationSerializer(serializers.Serializer):
         # just preventing new bad values.
         if len(value) < 3:
             raise serializers.ValidationError(
-                'This slug "%s" is too short. Minimum of 3 characters.' %
-                (value, ))
+                'This slug "%s" is too short. Minimum of 3 characters.' % (value,)
+            )
         if value in RESERVED_ORGANIZATION_SLUGS:
             raise serializers.ValidationError(
-                'This slug "%s" is reserved and not allowed.' %
-                (value, ))
-        qs = Organization.objects.filter(
-            slug=value,
-        ).exclude(id=self.context['organization'].id)
+                'This slug "%s" is reserved and not allowed.' % (value,)
+            )
+        qs = Organization.objects.filter(slug=value).exclude(
+            id=self.context["organization"].id
+        )
         if qs.exists():
-            raise serializers.ValidationError('The slug "%s" is already in use.' % (value, ))
+            raise serializers.ValidationError(
+                'The slug "%s" is already in use.' % (value,)
+            )
         return attrs
 
     def validate_sensitiveFields(self, attrs, source):
         value = attrs[source]
         if value and not all(value):
-            raise serializers.ValidationError('Empty values are not allowed.')
+            raise serializers.ValidationError("Empty values are not allowed.")
         return attrs
 
     def validate_safeFields(self, attrs, source):
         value = attrs[source]
         if value and not all(value):
-            raise serializers.ValidationError('Empty values are not allowed.')
+            raise serializers.ValidationError("Empty values are not allowed.")
         return attrs
 
     def validate_require2FA(self, attrs, source):
         value = attrs[source]
-        user = self.context['user']
+        user = self.context["user"]
         has_2fa = Authenticator.objects.user_has_2fa(user)
         if value and not has_2fa:
             raise serializers.ValidationError(ERR_NO_2FA)
@@ -158,46 +209,45 @@ class OrganizationSerializer(serializers.Serializer):
 
         from sentry import features
 
-        organization = self.context['organization']
+        organization = self.context["organization"]
         request = self.context["request"]
-        has_relays = features.has('organizations:relay',
-                                  organization,
-                                  actor=request.user)
+        has_relays = features.has(
+            "organizations:relay", organization, actor=request.user
+        )
         if not has_relays:
             raise serializers.ValidationError(
-                'Organization does not have the relay feature enabled'
+                "Organization does not have the relay feature enabled"
             )
         return attrs
 
     def validate_accountRateLimit(self, attrs, source):
         if not self._has_legacy_rate_limits:
             raise serializers.ValidationError(
-                'The accountRateLimit option cannot be configured for this organization')
+                "The accountRateLimit option cannot be configured for this organization"
+            )
         return attrs
 
     def validate_projectRateLimit(self, attrs, source):
         if not self._has_legacy_rate_limits:
             raise serializers.ValidationError(
-                'The accountRateLimit option cannot be configured for this organization')
+                "The accountRateLimit option cannot be configured for this organization"
+            )
         return attrs
 
     def validate(self, attrs):
         attrs = super(OrganizationSerializer, self).validate(attrs)
-        if attrs.get('avatarType') == 'upload':
+        if attrs.get("avatarType") == "upload":
             has_existing_file = OrganizationAvatar.objects.filter(
-                organization=self.context['organization'],
-                file__isnull=False,
+                organization=self.context["organization"], file__isnull=False
             ).exists()
-            if not has_existing_file and not attrs.get('avatar'):
+            if not has_existing_file and not attrs.get("avatar"):
                 raise serializers.ValidationError(
-                    {
-                        'avatarType': 'Cannot set avatarType to upload without avatar',
-                    }
+                    {"avatarType": "Cannot set avatarType to upload without avatar"}
                 )
         return attrs
 
     def save(self):
-        org = self.context['organization']
+        org = self.context["organization"]
         changed_data = {}
 
         for key, option, type_, default_value in ORG_OPTIONS:
@@ -205,77 +255,80 @@ class OrganizationSerializer(serializers.Serializer):
                 continue
             try:
                 option_inst = OrganizationOption.objects.get(
-                    organization=org, key=option)
+                    organization=org, key=option
+                )
             except OrganizationOption.DoesNotExist:
                 OrganizationOption.objects.set_value(
-                    organization=org,
-                    key=option,
-                    value=type_(self.init_data[key]),
+                    organization=org, key=option, value=type_(self.init_data[key])
                 )
 
                 if self.init_data[key] != default_value:
-                    changed_data[key] = u'to {}'.format(self.init_data[key])
+                    changed_data[key] = u"to {}".format(self.init_data[key])
             else:
                 option_inst.value = self.init_data[key]
                 # check if ORG_OPTIONS changed
-                if option_inst.has_changed('value'):
-                    old_val = option_inst.old_value('value')
-                    changed_data[key] = u'from {} to {}'.format(old_val, option_inst.value)
+                if option_inst.has_changed("value"):
+                    old_val = option_inst.old_value("value")
+                    changed_data[key] = u"from {} to {}".format(
+                        old_val, option_inst.value
+                    )
                 option_inst.save()
 
-        if 'openMembership' in self.init_data:
-            org.flags.allow_joinleave = self.init_data['openMembership']
-        if 'allowSharedIssues' in self.init_data:
-            org.flags.disable_shared_issues = not self.init_data['allowSharedIssues']
-        if 'enhancedPrivacy' in self.init_data:
-            org.flags.enhanced_privacy = self.init_data['enhancedPrivacy']
-        if 'isEarlyAdopter' in self.init_data:
-            org.flags.early_adopter = self.init_data['isEarlyAdopter']
-        if 'disableNewVisibilityFeatures' in self.init_data:
-            org.flags.disable_new_visibility_features = self.init_data['disableNewVisibilityFeatures']
-        if 'require2FA' in self.init_data:
-            org.flags.require_2fa = self.init_data['require2FA']
-        if 'name' in self.init_data:
-            org.name = self.init_data['name']
-        if 'slug' in self.init_data:
-            org.slug = self.init_data['slug']
+        if "openMembership" in self.init_data:
+            org.flags.allow_joinleave = self.init_data["openMembership"]
+        if "allowSharedIssues" in self.init_data:
+            org.flags.disable_shared_issues = not self.init_data["allowSharedIssues"]
+        if "enhancedPrivacy" in self.init_data:
+            org.flags.enhanced_privacy = self.init_data["enhancedPrivacy"]
+        if "isEarlyAdopter" in self.init_data:
+            org.flags.early_adopter = self.init_data["isEarlyAdopter"]
+        if "disableNewVisibilityFeatures" in self.init_data:
+            org.flags.disable_new_visibility_features = self.init_data[
+                "disableNewVisibilityFeatures"
+            ]
+        if "require2FA" in self.init_data:
+            org.flags.require_2fa = self.init_data["require2FA"]
+        if "name" in self.init_data:
+            org.name = self.init_data["name"]
+        if "slug" in self.init_data:
+            org.slug = self.init_data["slug"]
 
         org_tracked_field = {
-            'name': org.name,
-            'slug': org.slug,
-            'default_role': org.default_role,
-            'flag_field': {
-                'allow_joinleave': org.flags.allow_joinleave.is_set,
-                'enhanced_privacy': org.flags.enhanced_privacy.is_set,
-                'disable_shared_issues': org.flags.disable_shared_issues.is_set,
-                'early_adopter': org.flags.early_adopter.is_set,
-                'require_2fa': org.flags.require_2fa.is_set,
-            }
+            "name": org.name,
+            "slug": org.slug,
+            "default_role": org.default_role,
+            "flag_field": {
+                "allow_joinleave": org.flags.allow_joinleave.is_set,
+                "enhanced_privacy": org.flags.enhanced_privacy.is_set,
+                "disable_shared_issues": org.flags.disable_shared_issues.is_set,
+                "early_adopter": org.flags.early_adopter.is_set,
+                "require_2fa": org.flags.require_2fa.is_set,
+            },
         }
 
         # check if fields changed
         for f, v in six.iteritems(org_tracked_field):
-            if f is not 'flag_field':
+            if f is not "flag_field":
                 if org.has_changed(f):
                     old_val = org.old_value(f)
-                    changed_data[f] = u'from {} to {}'.format(old_val, v)
+                    changed_data[f] = u"from {} to {}".format(old_val, v)
             else:
                 # check if flag fields changed
-                for f, v in six.iteritems(org_tracked_field['flag_field']):
+                for f, v in six.iteritems(org_tracked_field["flag_field"]):
                     if org.flag_has_changed(f):
-                        changed_data[f] = u'to {}'.format(v)
+                        changed_data[f] = u"to {}".format(v)
 
         org.save()
 
-        if 'avatar' in self.init_data or 'avatarType' in self.init_data:
+        if "avatar" in self.init_data or "avatarType" in self.init_data:
             OrganizationAvatar.save_avatar(
-                relation={'organization': org},
-                type=self.init_data.get('avatarType', 'upload'),
-                avatar=self.init_data.get('avatar'),
-                filename=u'{}.png'.format(org.slug),
+                relation={"organization": org},
+                type=self.init_data.get("avatarType", "upload"),
+                avatar=self.init_data.get("avatar"),
+                filename=u"{}.png".format(org.slug),
             )
-        if 'require2FA' in self.init_data and self.init_data['require2FA'] is True:
-            org.handle_2fa_required(self.context['request'])
+        if "require2FA" in self.init_data and self.init_data["require2FA"] is True:
+            org.handle_2fa_required(self.context["request"])
         return org, changed_data
 
 
@@ -284,10 +337,12 @@ class OwnerOrganizationSerializer(OrganizationSerializer):
     cancelDeletion = serializers.BooleanField(required=False)
 
     def save(self, *args, **kwargs):
-        org = self.context['organization']
-        cancel_deletion = 'cancelDeletion' in self.init_data and org.status in DELETION_STATUSES
-        if 'defaultRole' in self.init_data:
-            org.default_role = self.init_data['defaultRole']
+        org = self.context["organization"]
+        cancel_deletion = (
+            "cancelDeletion" in self.init_data and org.status in DELETION_STATUSES
+        )
+        if "defaultRole" in self.init_data:
+            org.default_role = self.init_data["defaultRole"]
         if cancel_deletion:
             org.status = OrganizationStatus.VISIBLE
         return super(OwnerOrganizationSerializer, self).save(*args, **kwargs)
@@ -333,7 +388,7 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
                             to be available and unique.
         :auth: required
         """
-        if request.access.has_scope('org:admin'):
+        if request.access.has_scope("org:admin"):
             serializer_cls = OwnerOrganizationSerializer
         else:
             serializer_cls = OrganizationSerializer
@@ -344,9 +399,9 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
             data=request.DATA,
             partial=True,
             context={
-                'organization': organization,
-                'user': request.user,
-                'request': request,
+                "organization": organization,
+                "user": request.user,
+                "request": request,
             },
         )
         if serializer.is_valid():
@@ -361,11 +416,11 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
                     data=organization.get_audit_log_data(),
                 )
                 delete_logger.info(
-                    'object.delete.canceled',
+                    "object.delete.canceled",
                     extra={
-                        'object_id': organization.id,
-                        'model': Organization.__name__,
-                    }
+                        "object_id": organization.id,
+                        "model": Organization.__name__,
+                    },
                 )
             elif changed_data:
                 self.create_audit_entry(
@@ -373,7 +428,7 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
                     organization=organization,
                     target_object=organization.id,
                     event=AuditLogEntryEvent.ORG_EDIT,
-                    data=changed_data
+                    data=changed_data,
                 )
 
             return self.respond(
@@ -406,14 +461,13 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
         :auth: required, user-context-needed
         """
         if not request.user.is_authenticated():
-            return self.respond({'detail': ERR_NO_USER}, status=401)
+            return self.respond({"detail": ERR_NO_USER}, status=401)
 
         if organization.is_default:
-            return self.respond({'detail': ERR_DEFAULT_ORG}, status=400)
+            return self.respond({"detail": ERR_DEFAULT_ORG}, status=400)
 
         updated = Organization.objects.filter(
-            id=organization.id,
-            status=OrganizationStatus.VISIBLE,
+            id=organization.id, status=OrganizationStatus.VISIBLE
         ).update(status=OrganizationStatus.PENDING_DELETION)
         if updated:
             transaction_id = uuid4().hex
@@ -432,20 +486,20 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
 
             delete_organization.apply_async(
                 kwargs={
-                    'object_id': organization.id,
-                    'transaction_id': transaction_id,
-                    'actor_id': request.user.id,
+                    "object_id": organization.id,
+                    "transaction_id": transaction_id,
+                    "actor_id": request.user.id,
                 },
                 countdown=countdown,
             )
 
             delete_logger.info(
-                'object.delete.queued',
+                "object.delete.queued",
                 extra={
-                    'object_id': organization.id,
-                    'transaction_id': transaction_id,
-                    'model': Organization.__name__,
-                }
+                    "object_id": organization.id,
+                    "transaction_id": transaction_id,
+                    "model": Organization.__name__,
+                },
             )
 
         context = serialize(

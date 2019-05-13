@@ -10,7 +10,7 @@ from sentry.auth.superuser import is_active_superuser
 from sentry.utils import auth
 from sentry.web.helpers import render_to_response
 
-ERR_BAD_SIGNATURE = _('The link you followed is invalid or expired.')
+ERR_BAD_SIGNATURE = _("The link you followed is invalid or expired.")
 
 
 def login_required(func):
@@ -18,9 +18,9 @@ def login_required(func):
     def wrapped(request, *args, **kwargs):
         if not request.user.is_authenticated():
             auth.initiate_login(request, next_url=request.get_full_path())
-            if 'organization_slug' in kwargs:
+            if "organization_slug" in kwargs:
                 redirect_uri = reverse(
-                    'sentry-auth-organization', args=[kwargs['organization_slug']]
+                    "sentry-auth-organization", args=[kwargs["organization_slug"]]
                 )
             else:
                 redirect_uri = auth.get_login_url()
@@ -48,7 +48,9 @@ def requires_admin(func):
             if request.user.is_superuser:
                 auth.initiate_login(request, next_url=request.get_full_path())
                 return HttpResponseRedirect(auth.get_login_url())
-            return render_to_response('sentry/missing_permissions.html', {}, request, status=400)
+            return render_to_response(
+                "sentry/missing_permissions.html", {}, request, status=400
+            )
         return func(request, *args, **kwargs)
 
     return login_required(wrapped)

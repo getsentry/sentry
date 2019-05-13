@@ -16,118 +16,111 @@ from sentry.testutils import APITestCase
 class GroupEventsTest(APITestCase):
     def setUp(self):
         super(GroupEventsTest, self).setUp()
-        options.set('snuba.events-queries.enabled', False)
+        options.set("snuba.events-queries.enabled", False)
 
     def test_simple(self):
         self.login_as(user=self.user)
 
         group = self.create_group()
-        event_1 = self.create_event(event_id='a' * 32, group=group)
-        event_2 = self.create_event(event_id='b' * 32, group=group)
+        event_1 = self.create_event(event_id="a" * 32, group=group)
+        event_2 = self.create_event(event_id="b" * 32, group=group)
 
-        url = u'/api/0/issues/{}/events/'.format(group.id)
-        response = self.client.get(url, format='json')
+        url = u"/api/0/issues/{}/events/".format(group.id)
+        response = self.client.get(url, format="json")
 
         assert response.status_code == 200, response.content
         assert len(response.data) == 2
-        assert sorted(map(lambda x: x['id'], response.data)) == sorted(
-            [
-                six.text_type(event_1.id),
-                six.text_type(event_2.id),
-            ]
+        assert sorted(map(lambda x: x["id"], response.data)) == sorted(
+            [six.text_type(event_1.id), six.text_type(event_2.id)]
         )
 
     def test_tags(self):
         self.login_as(user=self.user)
 
         group = self.create_group()
-        event_1 = self.create_event(event_id='a' * 32, group=group)
-        event_2 = self.create_event(event_id='b' * 32, group=group)
+        event_1 = self.create_event(event_id="a" * 32, group=group)
+        event_2 = self.create_event(event_id="b" * 32, group=group)
 
         tagkey_1 = tagstore.create_tag_key(
-            project_id=group.project_id,
-            environment_id=self.environment.id,
-            key='foo')
+            project_id=group.project_id, environment_id=self.environment.id, key="foo"
+        )
         tagkey_2 = tagstore.create_tag_key(
-            project_id=group.project_id,
-            environment_id=self.environment.id,
-            key='bar')
+            project_id=group.project_id, environment_id=self.environment.id, key="bar"
+        )
         tagvalue_1 = tagstore.create_tag_value(
             project_id=group.project_id,
             environment_id=self.environment.id,
-            key='foo',
-            value='baz')
+            key="foo",
+            value="baz",
+        )
         tagvalue_2 = tagstore.create_tag_value(
             project_id=group.project_id,
             environment_id=self.environment.id,
-            key='bar',
-            value='biz')
+            key="bar",
+            value="biz",
+        )
         tagvalue_3 = tagstore.create_tag_value(
             project_id=group.project_id,
             environment_id=self.environment.id,
-            key='bar',
-            value='buz')
+            key="bar",
+            value="buz",
+        )
 
         tagstore.create_event_tags(
             project_id=group.project_id,
             group_id=group.id,
             environment_id=self.environment.id,
             event_id=event_1.id,
-            tags=[
-                (tagkey_1.key, tagvalue_1.value),
-                (tagkey_2.key, tagvalue_3.value),
-            ],
+            tags=[(tagkey_1.key, tagvalue_1.value), (tagkey_2.key, tagvalue_3.value)],
         )
         tagstore.create_event_tags(
             project_id=group.project_id,
             group_id=group.id,
             environment_id=self.environment.id,
             event_id=event_2.id,
-            tags=[
-                (tagkey_2.key, tagvalue_2.value),
-            ],
+            tags=[(tagkey_2.key, tagvalue_2.value)],
         )
 
-        url = u'/api/0/issues/{}/events/'.format(group.id)
-        response = self.client.get(url + '?query=foo:baz', format='json')
+        url = u"/api/0/issues/{}/events/".format(group.id)
+        response = self.client.get(url + "?query=foo:baz", format="json")
 
         assert response.status_code == 200, response.content
         assert len(response.data) == 1
-        assert response.data[0]['id'] == six.text_type(event_1.id)
+        assert response.data[0]["id"] == six.text_type(event_1.id)
 
-        response = self.client.get(url + '?query=bar:biz', format='json')
-
-        assert response.status_code == 200, response.content
-        assert len(response.data) == 1
-        assert response.data[0]['id'] == six.text_type(event_2.id)
-
-        response = self.client.get(url + '?query=bar:biz%20foo:baz', format='json')
-
-        assert response.status_code == 200, response.content
-        assert len(response.data) == 0
-
-        response = self.client.get(url + '?query=bar:buz%20foo:baz', format='json')
+        response = self.client.get(url + "?query=bar:biz", format="json")
 
         assert response.status_code == 200, response.content
         assert len(response.data) == 1
-        assert response.data[0]['id'] == six.text_type(event_1.id)
+        assert response.data[0]["id"] == six.text_type(event_2.id)
 
-        response = self.client.get(url + '?query=bar:baz', format='json')
-
-        assert response.status_code == 200, response.content
-        assert len(response.data) == 0
-
-        response = self.client.get(url + '?query=a:b', format='json')
+        response = self.client.get(url + "?query=bar:biz%20foo:baz", format="json")
 
         assert response.status_code == 200, response.content
         assert len(response.data) == 0
 
-        response = self.client.get(url + '?query=bar:b', format='json')
+        response = self.client.get(url + "?query=bar:buz%20foo:baz", format="json")
+
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 1
+        assert response.data[0]["id"] == six.text_type(event_1.id)
+
+        response = self.client.get(url + "?query=bar:baz", format="json")
 
         assert response.status_code == 200, response.content
         assert len(response.data) == 0
 
-        response = self.client.get(url + '?query=bar:baz', format='json')
+        response = self.client.get(url + "?query=a:b", format="json")
+
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 0
+
+        response = self.client.get(url + "?query=bar:b", format="json")
+
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 0
+
+        response = self.client.get(url + "?query=bar:baz", format="json")
 
         assert response.status_code == 200, response.content
         assert len(response.data) == 0
@@ -136,48 +129,51 @@ class GroupEventsTest(APITestCase):
         self.login_as(user=self.user)
 
         group = self.create_group()
-        event_1 = self.create_event(event_id='a' * 32, group=group)
-        self.create_event(event_id='b' * 32, group=group)
+        event_1 = self.create_event(event_id="a" * 32, group=group)
+        self.create_event(event_id="b" * 32, group=group)
         query = event_1.event_id
 
-        url = u'/api/0/issues/{}/events/?query={}'.format(group.id, query)
-        response = self.client.get(url, format='json')
+        url = u"/api/0/issues/{}/events/?query={}".format(group.id, query)
+        response = self.client.get(url, format="json")
 
         assert response.status_code == 200, response.content
         assert len(response.data) == 1
-        assert response.data[0]['eventID'] == event_1.event_id
+        assert response.data[0]["eventID"] == event_1.event_id
 
     def test_search_event_by_message(self):
         self.login_as(user=self.user)
 
         group = self.create_group()
-        event_1 = self.create_event(event_id='a' * 32, group=group, message="foo bar hello world")
+        event_1 = self.create_event(
+            event_id="a" * 32, group=group, message="foo bar hello world"
+        )
 
-        event_2 = self.create_event(event_id='b' * 32, group=group, message='this bar hello world ')
+        event_2 = self.create_event(
+            event_id="b" * 32, group=group, message="this bar hello world "
+        )
 
         query_1 = "foo"
         query_2 = "hello+world"
 
         # Single Word Query
-        url = u'/api/0/issues/{}/events/?query={}'.format(group.id, query_1)
-        response = self.client.get(url, format='json')
+        url = u"/api/0/issues/{}/events/?query={}".format(group.id, query_1)
+        response = self.client.get(url, format="json")
 
         assert response.status_code == 200, response.content
         assert len(response.data) == 1
-        assert response.data[0]['id'] == six.text_type(
-            event_1.id) and response.data[0]['eventID'] == event_1.event_id
+        assert (
+            response.data[0]["id"] == six.text_type(event_1.id)
+            and response.data[0]["eventID"] == event_1.event_id
+        )
 
         # Multiple Word Query
-        url = u'/api/0/issues/{}/events/?query={}'.format(group.id, query_2)
-        response = self.client.get(url, format='json')
+        url = u"/api/0/issues/{}/events/?query={}".format(group.id, query_2)
+        response = self.client.get(url, format="json")
 
         assert response.status_code == 200, response.content
         assert len(response.data) == 2
-        assert sorted(map(lambda x: x['id'], response.data)) == sorted(
-            [
-                six.text_type(event_1.id),
-                six.text_type(event_2.id),
-            ]
+        assert sorted(map(lambda x: x["id"], response.data)) == sorted(
+            [six.text_type(event_1.id), six.text_type(event_2.id)]
         )
 
     def test_environment(self):
@@ -186,25 +182,24 @@ class GroupEventsTest(APITestCase):
         group = self.create_group()
         events = {}
 
-        for name in ['production', 'development']:
+        for name in ["production", "development"]:
             environment = Environment.get_or_create(group.project, name)
 
             tagstore.get_or_create_tag_key(
                 project_id=group.project_id,
                 environment_id=environment.id,
-                key='environment',
+                key="environment",
             )
 
             tagstore.create_tag_value(
                 project_id=group.project_id,
                 environment_id=environment.id,
-                key='environment',
+                key="environment",
                 value=name,
             )
 
             events[name] = event = self.create_event(
-                group=group,
-                tags={'environment': name},
+                group=group, tags={"environment": name}
             )
 
             tagstore.create_event_tags(
@@ -212,29 +207,27 @@ class GroupEventsTest(APITestCase):
                 group_id=group.id,
                 environment_id=environment.id,
                 event_id=event.id,
-                tags=[
-                    ('environment', name),
-                ],
+                tags=[("environment", name)],
             )
 
-        url = u'/api/0/issues/{}/events/'.format(group.id)
-        response = self.client.get(url + '?environment=production', format='json')
+        url = u"/api/0/issues/{}/events/".format(group.id)
+        response = self.client.get(url + "?environment=production", format="json")
 
         assert response.status_code == 200, response.content
-        assert set(map(lambda x: x['id'], response.data)) == set([
-            six.text_type(events['production'].id),
-        ])
+        assert set(map(lambda x: x["id"], response.data)) == set(
+            [six.text_type(events["production"].id)]
+        )
 
-        url = u'/api/0/issues/{}/events/'.format(group.id)
-        response = self.client.get(url + '?environment=invalid', format='json')
+        url = u"/api/0/issues/{}/events/".format(group.id)
+        response = self.client.get(url + "?environment=invalid", format="json")
 
         assert response.status_code == 200, response.content
         assert response.data == []
 
-        url = u'/api/0/issues/{}/events/'.format(group.id)
+        url = u"/api/0/issues/{}/events/".format(group.id)
         response = self.client.get(
-            url + '?environment=production&query=environment:development',
-            format='json')
+            url + "?environment=production&query=environment:development", format="json"
+        )
 
         assert response.status_code == 200, response.content
         assert response.data == []
@@ -245,21 +238,17 @@ class GroupEventsTest(APITestCase):
         project = self.create_project()
         group = self.create_group(project=project)
         self.create_event(
-            event_id='a' * 32,
-            group=group,
-            datetime=timezone.now() - timedelta(days=2),
+            event_id="a" * 32, group=group, datetime=timezone.now() - timedelta(days=2)
         )
-        event_2 = self.create_event(event_id='b' * 32, group=group)
+        event_2 = self.create_event(event_id="b" * 32, group=group)
 
-        with self.options({'system.event-retention-days': 1}):
-            response = self.client.get(u'/api/0/issues/{}/events/'.format(group.id))
+        with self.options({"system.event-retention-days": 1}):
+            response = self.client.get(u"/api/0/issues/{}/events/".format(group.id))
 
         assert response.status_code == 200, response.content
         assert len(response.data) == 1
-        assert sorted(map(lambda x: x['id'], response.data)) == sorted(
-            [
-                six.text_type(event_2.id),
-            ]
+        assert sorted(map(lambda x: x["id"], response.data)) == sorted(
+            [six.text_type(event_2.id)]
         )
 
     @freeze_time()
@@ -269,50 +258,38 @@ class GroupEventsTest(APITestCase):
         project = self.create_project()
         group = self.create_group(project=project)
         event_1 = self.create_event(
-            event_id='a' * 32,
-            group=group,
-            datetime=timezone.now() - timedelta(days=2),
+            event_id="a" * 32, group=group, datetime=timezone.now() - timedelta(days=2)
         )
-        event_2 = self.create_event(event_id='b' * 32, group=group)
+        event_2 = self.create_event(event_id="b" * 32, group=group)
 
         response = self.client.get(
-            u'/api/0/issues/{}/events/'.format(group.id),
-            data={
-                'statsPeriod': '3d',
-            },
+            u"/api/0/issues/{}/events/".format(group.id), data={"statsPeriod": "3d"}
         )
 
         assert response.status_code == 200, response.content
         assert len(response.data) == 2
-        assert sorted(map(lambda x: x['id'], response.data)) == sorted(
-            [
-                six.text_type(event_1.id),
-                six.text_type(event_2.id),
-            ]
+        assert sorted(map(lambda x: x["id"], response.data)) == sorted(
+            [six.text_type(event_1.id), six.text_type(event_2.id)]
         )
 
         response = self.client.get(
-            u'/api/0/issues/{}/events/'.format(group.id),
-            data={
-                'statsPeriod': '1d',
-            },
+            u"/api/0/issues/{}/events/".format(group.id), data={"statsPeriod": "1d"}
         )
 
         assert response.status_code == 200, response.content
         assert len(response.data) == 1
-        assert response.data[0]['id'] == six.text_type(event_2.id)
+        assert response.data[0]["id"] == six.text_type(event_2.id)
 
     def test_force_snuba(self):
         self.login_as(user=self.user)
         project = self.create_project()
         group = self.create_group(project=project)
-        with patch('sentry.api.endpoints.group_events.GroupEventsEndpoint._get_events_snuba') as get_events_snuba:
+        with patch(
+            "sentry.api.endpoints.group_events.GroupEventsEndpoint._get_events_snuba"
+        ) as get_events_snuba:
             get_events_snuba.return_value = Response([])
             self.client.get(
-                u'/api/0/issues/{}/events/'.format(group.id),
-                data={
-                    'statsPeriod': '3d',
-                    'enable_snuba': '1',
-                },
+                u"/api/0/issues/{}/events/".format(group.id),
+                data={"statsPeriod": "3d", "enable_snuba": "1"},
             )
             assert get_events_snuba.call_count == 1

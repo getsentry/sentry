@@ -12,9 +12,9 @@ class OutView(View):
         if not settings.SENTRY_ONPREMISE:
             raise Http404
 
-        install_id = options.get('sentry:install-id')
+        install_id = options.get("sentry:install-id")
         if install_id:
-            query = '?install_id=' + install_id
+            query = "?install_id=" + install_id
         else:
-            query = ''
-        return HttpResponseRedirect('https://sentry.io/from/self-hosted/' + query)
+            query = ""
+        return HttpResponseRedirect("https://sentry.io/from/self-hosted/" + query)

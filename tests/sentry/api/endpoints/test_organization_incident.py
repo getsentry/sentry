@@ -10,7 +10,7 @@ from sentry.testutils import APITestCase
 
 
 class IncidentListEndpointTest(APITestCase):
-    endpoint = 'sentry-api-0-organization-incident-index'
+    endpoint = "sentry-api-0-organization-incident-index"
 
     @fixture
     def organization(self):
@@ -28,7 +28,7 @@ class IncidentListEndpointTest(APITestCase):
         self.create_team(organization=self.organization, members=[self.user])
         incident = self.create_incident()
         self.login_as(self.user)
-        with self.feature('organizations:incidents'):
+        with self.feature("organizations:incidents"):
             resp = self.get_valid_response(self.organization.slug)
         assert resp.data == serialize([incident])
 
@@ -41,8 +41,8 @@ class IncidentListEndpointTest(APITestCase):
 
 @freeze_time()
 class IncidentCreateEndpointTest(APITestCase):
-    endpoint = 'sentry-api-0-organization-incident-index'
-    method = 'post'
+    endpoint = "sentry-api-0-organization-incident-index"
+    method = "post"
 
     @fixture
     def organization(self):
@@ -60,38 +60,38 @@ class IncidentCreateEndpointTest(APITestCase):
         self.create_member(
             user=self.user,
             organization=self.organization,
-            role='owner',
+            role="owner",
             teams=[self.team],
         )
         self.login_as(self.user)
-        with self.feature('organizations:incidents'):
+        with self.feature("organizations:incidents"):
             resp = self.get_valid_response(
                 self.organization.slug,
-                title='hello',
-                query='hi',
+                title="hello",
+                query="hi",
                 dateStarted=timezone.now(),
                 projects=[self.project.slug],
                 groups=[self.group.id],
                 status_code=201,
             )
-        assert resp.data == serialize([Incident.objects.get(id=resp.data['id'])])[0]
+        assert resp.data == serialize([Incident.objects.get(id=resp.data["id"])])[0]
 
     def test_project_access(self):
         self.create_member(
             user=self.user,
             organization=self.organization,
-            role='owner',
+            role="owner",
             teams=[self.team],
         )
         self.login_as(self.user)
 
         other_org = self.create_organization(owner=self.create_user())
         other_project = self.create_project(organization=other_org, teams=[])
-        with self.feature('organizations:incidents'):
+        with self.feature("organizations:incidents"):
             resp = self.get_response(
                 other_org.slug,
-                title='hello',
-                query='hi',
+                title="hello",
+                query="hi",
                 dateStarted=timezone.now(),
                 projects=[other_project.slug],
                 groups=[self.group.id],
@@ -102,7 +102,7 @@ class IncidentCreateEndpointTest(APITestCase):
         self.create_member(
             user=self.user,
             organization=self.organization,
-            role='owner',
+            role="owner",
             teams=[self.team],
         )
         self.login_as(self.user)
@@ -110,11 +110,11 @@ class IncidentCreateEndpointTest(APITestCase):
         other_org = self.create_organization(owner=self.create_user())
         other_project = self.create_project(organization=other_org, teams=[])
         other_group = self.create_group(project=other_project)
-        with self.feature('organizations:incidents'):
+        with self.feature("organizations:incidents"):
             resp = self.get_response(
                 self.organization.slug,
-                title='hello',
-                query='hi',
+                title="hello",
+                query="hi",
                 dateStarted=timezone.now(),
                 groups=[self.group.id, other_group.id],
             )
@@ -124,7 +124,7 @@ class IncidentCreateEndpointTest(APITestCase):
         self.create_member(
             user=self.user,
             organization=self.organization,
-            role='owner',
+            role="owner",
             teams=[self.team],
         )
         self.login_as(self.user)

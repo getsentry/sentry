@@ -24,13 +24,15 @@ class SentryLocaleMiddleware(LocaleMiddleware):
         # This avoids touching user session, which means we avoid
         # setting `Vary: Cookie` as a response header which will
         # break HTTP caching entirely.
-        self.__skip_caching = request.path_info.startswith(settings.ANONYMOUS_STATIC_PREFIXES)
+        self.__skip_caching = request.path_info.startswith(
+            settings.ANONYMOUS_STATIC_PREFIXES
+        )
         if self.__skip_caching:
             return
 
         safe_execute(self.load_user_conf, request, _with_transaction=False)
 
-        lang_code = request.GET.get('lang')
+        lang_code = request.GET.get("lang")
         # user is explicitly forcing language
         if lang_code:
             try:
@@ -47,11 +49,11 @@ class SentryLocaleMiddleware(LocaleMiddleware):
         if not request.user.is_authenticated():
             return
 
-        language = UserOption.objects.get_value(user=request.user, key='language')
+        language = UserOption.objects.get_value(user=request.user, key="language")
         if language:
-            request.session['django_language'] = language
+            request.session["django_language"] = language
 
-        timezone = UserOption.objects.get_value(user=request.user, key='timezone')
+        timezone = UserOption.objects.get_value(user=request.user, key="timezone")
         if timezone:
             request.timezone = pytz.timezone(timezone)
 

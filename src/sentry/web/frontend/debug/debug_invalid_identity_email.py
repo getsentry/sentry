@@ -10,11 +10,9 @@ from .mail import MailPreview
 
 class DebugInvalidIdentityEmailView(View):
     def get(self, request):
-        identity = UserSocialAuth(user=request.user, provider='dummy')
+        identity = UserSocialAuth(user=request.user, provider="dummy")
 
-        email = generate_invalid_identity_email(
-            identity=identity,
-        )
+        email = generate_invalid_identity_email(identity=identity)
         return MailPreview(
             html_template=email.html_template,
             text_template=email.template,

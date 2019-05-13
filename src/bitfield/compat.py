@@ -1,6 +1,6 @@
 from __future__ import absolute_import
 
-__all__ = ('bitand', 'bitor')
+__all__ = ("bitand", "bitor")
 
 
 def bitand(a, b):
@@ -13,6 +13,7 @@ def bitor(a, b):
 
 try:
     from django.db.models.expressions import ExpressionNode
+
     ExpressionNode.BITAND  # noqa
     del ExpressionNode
 except ImportError:

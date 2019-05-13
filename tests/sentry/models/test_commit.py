@@ -13,17 +13,15 @@ class FindReferencedGroupsTest(TestCase):
         group2 = self.create_group()
 
         repo = Repository.objects.create(
-            name='example',
-            organization_id=self.group.organization.id,
+            name="example", organization_id=self.group.organization.id
         )
 
         commit = Commit.objects.create(
             key=sha1(uuid4().hex).hexdigest(),
             repository_id=repo.id,
             organization_id=group.organization.id,
-            message=u'Foo Biz\n\nFixes {} {}'.format(
-                group.qualified_short_id,
-                group2.qualified_short_id,
+            message=u"Foo Biz\n\nFixes {} {}".format(
+                group.qualified_short_id, group2.qualified_short_id
             ),
         )
 
@@ -36,9 +34,8 @@ class FindReferencedGroupsTest(TestCase):
             key=sha1(uuid4().hex).hexdigest(),
             repository_id=repo.id,
             organization_id=group.organization.id,
-            message=u'Foo Biz\n\Resolved {} {}'.format(
-                group.qualified_short_id,
-                group2.qualified_short_id,
+            message=u"Foo Biz\n\Resolved {} {}".format(
+                group.qualified_short_id, group2.qualified_short_id
             ),
         )
 
@@ -51,9 +48,8 @@ class FindReferencedGroupsTest(TestCase):
             key=sha1(uuid4().hex).hexdigest(),
             repository_id=repo.id,
             organization_id=group.organization.id,
-            message=u'Foo Biz\n\Close {} {}'.format(
-                group.qualified_short_id,
-                group2.qualified_short_id,
+            message=u"Foo Biz\n\Close {} {}".format(
+                group.qualified_short_id, group2.qualified_short_id
             ),
         )
 
@@ -67,17 +63,15 @@ class FindReferencedGroupsTest(TestCase):
         group2 = self.create_group()
 
         repo = Repository.objects.create(
-            name='example',
-            organization_id=self.group.organization.id,
+            name="example", organization_id=self.group.organization.id
         )
 
         commit = Commit.objects.create(
             key=sha1(uuid4().hex).hexdigest(),
             repository_id=repo.id,
             organization_id=group.organization.id,
-            message=u'Foo Biz\n\nFixes {}, {}'.format(
-                group.qualified_short_id,
-                group2.qualified_short_id,
+            message=u"Foo Biz\n\nFixes {}, {}".format(
+                group.qualified_short_id, group2.qualified_short_id
             ),
         )
 

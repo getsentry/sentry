@@ -1,6 +1,6 @@
 from __future__ import absolute_import
 
-__all__ = ['timing', 'incr']
+__all__ = ["timing", "incr"]
 
 import logging
 
@@ -29,7 +29,7 @@ backend = get_default_backend()
 def _get_key(key):
     prefix = settings.SENTRY_METRICS_PREFIX
     if prefix:
-        return u'{}{}'.format(prefix, key)
+        return u"{}{}".format(prefix, key)
     return key
 
 
@@ -60,14 +60,14 @@ class InternalMetrics(object):
                 key, instance, tags, amount = q.get()
                 amount = _sampled_value(amount)
                 if instance:
-                    full_key = u'{}.{}'.format(key, instance)
+                    full_key = u"{}.{}".format(key, instance)
                 else:
                     full_key = key
                 try:
                     tsdb.incr(tsdb.models.internal, full_key, count=amount)
                 except Exception:
-                    logger = logging.getLogger('sentry.errors')
-                    logger.exception('Unable to incr internal metric')
+                    logger = logging.getLogger("sentry.errors")
+                    logger.exception("Unable to incr internal metric")
                 finally:
                     q.task_done()
 
@@ -89,19 +89,15 @@ internal = InternalMetrics()
 def incr(key, amount=1, instance=None, tags=None, skip_internal=True):
     sample_rate = settings.SENTRY_METRICS_SAMPLE_RATE
     banned_prefix = key.startswith(metrics_skip_internal_prefixes)
-    if (
-        not skip_internal and
-        _should_sample() and
-        not banned_prefix
-    ):
+    if not skip_internal and _should_sample() and not banned_prefix:
         internal.incr(key, instance, tags, amount)
     try:
         backend.incr(key, instance, tags, amount, sample_rate)
         if not skip_internal and not banned_prefix:
-            backend.incr('internal_metrics.incr', key, None, 1, sample_rate)
+            backend.incr("internal_metrics.incr", key, None, 1, sample_rate)
     except Exception:
-        logger = logging.getLogger('sentry.errors')
-        logger.exception('Unable to record backend metric')
+        logger = logging.getLogger("sentry.errors")
+        logger.exception("Unable to record backend metric")
 
 
 def timing(key, value, instance=None, tags=None):
@@ -111,8 +107,8 @@ def timing(key, value, instance=None, tags=None):
     try:
         backend.timing(key, value, instance, tags, sample_rate)
     except Exception:
-        logger = logging.getLogger('sentry.errors')
-        logger.exception('Unable to record backend metric')
+        logger = logging.getLogger("sentry.errors")
+        logger.exception("Unable to record backend metric")
 
 
 @contextmanager
@@ -124,9 +120,9 @@ def timer(key, instance=None, tags=None):
     try:
         yield tags
     except Exception:
-        tags['result'] = 'failure'
+        tags["result"] = "failure"
         raise
     else:
-        tags['result'] = 'success'
+        tags["result"] = "success"
     finally:
         timing(key, time() - start, instance, tags)

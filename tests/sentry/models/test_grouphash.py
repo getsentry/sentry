@@ -9,16 +9,12 @@ class GroupTest(TestCase):
         group = self.group
 
         grouphash = GroupHash.objects.create(
-            project=group.project,
-            group=group,
-            hash='xyz',
+            project=group.project, group=group, hash="xyz"
         )
 
-        GroupHash.record_last_processed_event_id(
-            grouphash.id,
-            'event',
-        )
+        GroupHash.record_last_processed_event_id(grouphash.id, "event")
 
-        assert GroupHash.fetch_last_processed_event_id(
-            [grouphash.id, -1],
-        ) == ['event', None]
+        assert GroupHash.fetch_last_processed_event_id([grouphash.id, -1]) == [
+            "event",
+            None,
+        ]

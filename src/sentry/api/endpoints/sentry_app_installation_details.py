@@ -13,9 +13,5 @@ class SentryAppInstallationDetailsEndpoint(SentryAppInstallationBaseEndpoint):
         return Response(serialize(installation))
 
     def delete(self, request, installation):
-        Destroyer.run(
-            install=installation,
-            user=request.user,
-            request=request,
-        )
+        Destroyer.run(install=installation, user=request.user, request=request)
         return Response(status=204)

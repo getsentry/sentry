@@ -11,17 +11,17 @@ from sentry.models import Team
 
 class ProjectTeamsPermission(ProjectPermission):
     scope_map = {
-        'GET': ['project:read', 'project:write', 'project:admin'],
-        'POST': ['project:write', 'project:admin'],
-        'PUT': ['project:write', 'project:admin'],
+        "GET": ["project:read", "project:write", "project:admin"],
+        "POST": ["project:write", "project:admin"],
+        "PUT": ["project:write", "project:admin"],
         # allow deletes with write permission because it's just removing
         # a team from a project and not anything more destructive
-        'DELETE': ['project:write', 'project:admin'],
+        "DELETE": ["project:write", "project:admin"],
     }
 
 
 class ProjectTeamDetailsEndpoint(ProjectEndpoint):
-    permission_classes = (ProjectTeamsPermission, )
+    permission_classes = (ProjectTeamsPermission,)
 
     def post(self, request, project, team_slug):
         """
@@ -34,22 +34,18 @@ class ProjectTeamDetailsEndpoint(ProjectEndpoint):
         """
         try:
             team = Team.objects.get(
-                organization_id=project.organization_id,
-                slug=team_slug,
+                organization_id=project.organization_id, slug=team_slug
             )
         except Team.DoesNotExist:
             raise Http404
-        if not request.access.has_team_scope(team, 'project:write'):
+        if not request.access.has_team_scope(team, "project:write"):
             return Response(
-                {
-                    'detail': ['You do not have permission to perform this action.']
-                },
-                status=403
+                {"detail": ["You do not have permission to perform this action."]},
+                status=403,
             )
         project.add_team(team)
         return Response(
-            serialize(project, request.user, ProjectWithTeamSerializer()),
-            status=201,
+            serialize(project, request.user, ProjectWithTeamSerializer()), status=201
         )
 
     def delete(self, request, project, team_slug):
@@ -63,22 +59,18 @@ class ProjectTeamDetailsEndpoint(ProjectEndpoint):
         """
         try:
             team = Team.objects.get(
-                organization_id=project.organization_id,
-                slug=team_slug,
+                organization_id=project.organization_id, slug=team_slug
             )
         except Team.DoesNotExist:
             raise Http404
 
-        if not request.access.has_team_scope(team, 'project:write'):
+        if not request.access.has_team_scope(team, "project:write"):
             return Response(
-                {
-                    'detail': ['You do not have permission to perform this action.']
-                },
-                status=403
+                {"detail": ["You do not have permission to perform this action."]},
+                status=403,
             )
         project.remove_team(team)
 
         return Response(
-            serialize(project, request.user, ProjectWithTeamSerializer()),
-            status=200,
+            serialize(project, request.user, ProjectWithTeamSerializer()), status=200
         )

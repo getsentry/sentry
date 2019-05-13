@@ -20,7 +20,7 @@ class UnsubscribeIssueNotificationsView(BaseView):
     @signed_auth_required_m
     @transaction.atomic
     def handle(self, request, issue_id):
-        if not getattr(request, 'user_from_signed_request', False):
+        if not getattr(request, "user_from_signed_request", False):
             raise Http404
 
         try:
@@ -29,21 +29,18 @@ class UnsubscribeIssueNotificationsView(BaseView):
             raise Http404
 
         if not OrganizationMember.objects.filter(
-            user=request.user,
-            organization=group.project.organization,
+            user=request.user, organization=group.project.organization
         ).exists():
             raise Http404
 
         issue_link = absolute_uri(
-            u'/{}/{}/issues/{}/'.format(
-                group.project.organization.slug,
-                group.project.slug,
-                group.id,
+            u"/{}/{}/issues/{}/".format(
+                group.project.organization.slug, group.project.slug, group.id
             )
         )
 
-        if request.method == 'POST':
-            if request.POST.get('op') == 'unsubscribe':
+        if request.method == "POST":
+            if request.POST.get("op") == "unsubscribe":
                 GroupSubscription.objects.create_or_update(
                     group=group,
                     project=group.project,
@@ -53,7 +50,6 @@ class UnsubscribeIssueNotificationsView(BaseView):
             return HttpResponseRedirect(issue_link)
 
         return self.respond(
-            'sentry/unsubscribe-issue-notifications.html',
-            {'issue': group,
-             'issue_link': issue_link}
+            "sentry/unsubscribe-issue-notifications.html",
+            {"issue": group, "issue_link": issue_link},
         )

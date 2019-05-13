@@ -3,21 +3,18 @@ from __future__ import absolute_import
 from rest_framework import status
 from rest_framework.response import Response
 
-from sentry.api.bases.organization import OrganizationEndpoint, OrganizationAdminPermission
+from sentry.api.bases.organization import (
+    OrganizationEndpoint,
+    OrganizationAdminPermission,
+)
 from sentry.api.serializers import serialize
 from sentry.models import ApiKey, AuditLogEntryEvent
 
-DEFAULT_SCOPES = [
-    'project:read',
-    'event:read',
-    'team:read',
-    'org:read',
-    'member:read',
-]
+DEFAULT_SCOPES = ["project:read", "event:read", "team:read", "org:read", "member:read"]
 
 
 class OrganizationApiKeyIndexEndpoint(OrganizationEndpoint):
-    permission_classes = (OrganizationAdminPermission, )
+    permission_classes = (OrganizationAdminPermission,)
 
     def get(self, request, organization):
         """
@@ -28,9 +25,7 @@ class OrganizationApiKeyIndexEndpoint(OrganizationEndpoint):
         :auth: required
         """
         queryset = sorted(
-            ApiKey.objects.filter(
-                organization=organization,
-            ), key=lambda x: x.label
+            ApiKey.objects.filter(organization=organization), key=lambda x: x.label
         )
 
         return Response(serialize(queryset, request.user))
@@ -44,8 +39,7 @@ class OrganizationApiKeyIndexEndpoint(OrganizationEndpoint):
         :auth: required
         """
         key = ApiKey.objects.create(
-            organization=organization,
-            scope_list=DEFAULT_SCOPES,
+            organization=organization, scope_list=DEFAULT_SCOPES
         )
 
         self.create_audit_entry(

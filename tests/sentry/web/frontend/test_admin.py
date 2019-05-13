@@ -11,7 +11,7 @@ from sentry.testutils import TestCase
 class EnvStatusTest(TestCase):
     @fixture
     def path(self):
-        return reverse('sentry-admin-status')
+        return reverse("sentry-admin-status")
 
     def test_requires_auth(self):
         resp = self.client.get(self.path)
@@ -22,13 +22,13 @@ class EnvStatusTest(TestCase):
 
         resp = self.client.get(self.path)
         self.assertEquals(resp.status_code, 200)
-        self.assertTemplateUsed(resp, 'sentry/admin/status/env.html')
+        self.assertTemplateUsed(resp, "sentry/admin/status/env.html")
 
 
 class PackageStatusTest(TestCase):
     @fixture
     def path(self):
-        return reverse('sentry-admin-packages-status')
+        return reverse("sentry-admin-packages-status")
 
     def test_requires_auth(self):
         resp = self.client.get(self.path)
@@ -39,13 +39,13 @@ class PackageStatusTest(TestCase):
 
         resp = self.client.get(self.path)
         self.assertEquals(resp.status_code, 200)
-        self.assertTemplateUsed(resp, 'sentry/admin/status/packages.html')
+        self.assertTemplateUsed(resp, "sentry/admin/status/packages.html")
 
 
 class MailStatusTest(TestCase):
     @fixture
     def path(self):
-        return reverse('sentry-admin-mail-status')
+        return reverse("sentry-admin-mail-status")
 
     def test_requires_auth(self):
         resp = self.client.get(self.path)
@@ -56,4 +56,4 @@ class MailStatusTest(TestCase):
 
         resp = self.client.get(self.path)
         self.assertEquals(resp.status_code, 200)
-        self.assertTemplateUsed(resp, 'sentry/admin/status/mail.html')
+        self.assertTemplateUsed(resp, "sentry/admin/status/mail.html")

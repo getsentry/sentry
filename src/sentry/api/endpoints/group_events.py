@@ -20,10 +20,7 @@ from sentry.api.serializers import EventSerializer, serialize, SimpleEventSerial
 from sentry.api.paginator import DateTimePaginator, GenericOffsetPaginator
 from sentry.api.utils import get_date_range_from_params
 from sentry.models import Event, Group, SnubaEvent
-from sentry.search.utils import (
-    InvalidQuery,
-    parse_query,
-)
+from sentry.search.utils import InvalidQuery, parse_query
 from sentry.utils.apidocs import scenario, attach_scenarios
 from sentry.utils.validators import is_event_id
 from sentry.utils.snuba import raw_query
@@ -37,10 +34,10 @@ class GroupEventsError(Exception):
     pass
 
 
-@scenario('ListAvailableSamples')
+@scenario("ListAvailableSamples")
 def list_available_samples_scenario(runner):
     group = Group.objects.filter(project=runner.default_project).first()
-    runner.request(method='GET', path='/issues/%s/events/' % group.id)
+    runner.request(method="GET", path="/issues/%s/events/" % group.id)
 
 
 class GroupEventsEndpoint(GroupEndpoint, EnvironmentMixin):
@@ -60,19 +57,14 @@ class GroupEventsEndpoint(GroupEndpoint, EnvironmentMixin):
 
         try:
             environments = get_environments(request, group.project.organization)
-            query, tags = self._get_search_query_and_tags(
-                request,
-                group,
-                environments,
-            )
+            query, tags = self._get_search_query_and_tags(request, group, environments)
         except InvalidQuery as exc:
-            return Response({'detail': six.text_type(exc)}, status=400)
+            return Response({"detail": six.text_type(exc)}, status=400)
         except (NoResults, ResourceDoesNotExist):
             return Response([])
 
-        use_snuba = (
-            request.GET.get('enable_snuba') == '1'
-            or options.get('snuba.events-queries.enabled')
+        use_snuba = request.GET.get("enable_snuba") == "1" or options.get(
+            "snuba.events-queries.enabled"
         )
 
         backend = self._get_events_snuba if use_snuba else self._get_events_legacy
@@ -81,46 +73,49 @@ class GroupEventsEndpoint(GroupEndpoint, EnvironmentMixin):
         try:
             return backend(request, group, environments, query, tags, start, end)
         except GroupEventsError as exc:
-            return Response({'detail': six.text_type(exc)}, status=400)
+            return Response({"detail": six.text_type(exc)}, status=400)
 
     def _get_events_snuba(self, request, group, environments, query, tags, start, end):
         default_end = timezone.now()
         default_start = default_end - timedelta(days=90)
         params = {
-            'issue.id': [group.id],
-            'project_id': [group.project_id],
-            'start': start if start else default_start,
-            'end': end if end else default_end
+            "issue.id": [group.id],
+            "project_id": [group.project_id],
+            "start": start if start else default_start,
+            "end": end if end else default_end,
         }
-        direct_hit_resp = get_direct_hit_response(request, query, params, 'api.group-events')
+        direct_hit_resp = get_direct_hit_response(
+            request, query, params, "api.group-events"
+        )
         if direct_hit_resp:
             return direct_hit_resp
 
         if environments:
-            params['environment'] = [env.name for env in environments]
+            params["environment"] = [env.name for env in environments]
 
-        full = request.GET.get('full', False)
-        snuba_args = get_snuba_query_args(request.GET.get('query', None), params)
+        full = request.GET.get("full", False)
+        snuba_args = get_snuba_query_args(request.GET.get("query", None), params)
 
         # TODO(lb): remove once boolean search is fully functional
         if snuba_args:
             has_boolean_op_flag = features.has(
-                'organizations:boolean-search',
+                "organizations:boolean-search",
                 group.project.organization,
-                actor=request.user
+                actor=request.user,
             )
-            if snuba_args.pop('has_boolean_terms', False) and not has_boolean_op_flag:
+            if snuba_args.pop("has_boolean_terms", False) and not has_boolean_op_flag:
                 raise GroupEventsError(
-                    'Boolean search operator OR and AND not allowed in this search.')
+                    "Boolean search operator OR and AND not allowed in this search."
+                )
 
         snuba_cols = SnubaEvent.minimal_columns if full else SnubaEvent.selected_columns
 
         data_fn = partial(
             # extract 'data' from raw_query result
-            lambda *args, **kwargs: raw_query(*args, **kwargs)['data'],
+            lambda *args, **kwargs: raw_query(*args, **kwargs)["data"],
             selected_columns=snuba_cols,
-            orderby='-timestamp',
-            referrer='api.group-events',
+            orderby="-timestamp",
+            referrer="api.group-events",
             **snuba_args
         )
 
@@ -128,20 +123,12 @@ class GroupEventsEndpoint(GroupEndpoint, EnvironmentMixin):
         return self.paginate(
             request=request,
             on_results=lambda results: serialize(
-                [SnubaEvent(row) for row in results], request.user, serializer),
-            paginator=GenericOffsetPaginator(data_fn=data_fn)
+                [SnubaEvent(row) for row in results], request.user, serializer
+            ),
+            paginator=GenericOffsetPaginator(data_fn=data_fn),
         )
 
-    def _get_events_legacy(
-        self,
-        request,
-        group,
-        environments,
-        query,
-        tags,
-        start,
-        end,
-    ):
+    def _get_events_legacy(self, request, group, environments, query, tags, start, end):
         events = Event.objects.filter(group_id=group.id)
 
         if query:
@@ -183,29 +170,31 @@ class GroupEventsEndpoint(GroupEndpoint, EnvironmentMixin):
         return self.paginate(
             request=request,
             queryset=events,
-            order_by='-datetime',
+            order_by="-datetime",
             on_results=lambda x: serialize(x, request.user),
             paginator_cls=DateTimePaginator,
         )
 
     def _get_search_query_and_tags(self, request, group, environments=None):
-        raw_query = request.GET.get('query')
+        raw_query = request.GET.get("query")
 
         if raw_query:
-            query_kwargs = parse_query([group.project], raw_query, request.user, environments)
-            query = query_kwargs.pop('query', None)
-            tags = query_kwargs.pop('tags', {})
+            query_kwargs = parse_query(
+                [group.project], raw_query, request.user, environments
+            )
+            query = query_kwargs.pop("query", None)
+            tags = query_kwargs.pop("tags", {})
         else:
             query = None
             tags = {}
 
         if environments:
             env_names = set(env.name for env in environments)
-            if 'environment' in tags:
+            if "environment" in tags:
                 # If a single environment was passed as part of the query, then
                 # we'll just search for that individual environment in this
                 # query, even if more are selected.
-                if tags['environment'] not in env_names:
+                if tags["environment"] not in env_names:
                     # An event can only be associated with a single
                     # environment, so if the environments associated with
                     # the request don't contain the environment provided as a
@@ -215,6 +204,8 @@ class GroupEventsEndpoint(GroupEndpoint, EnvironmentMixin):
                 # XXX: Handle legacy backends here. Just store environment as a
                 # single tag if we only have one so that we don't break existing
                 # usage.
-                tags['environment'] = list(env_names) if len(env_names) > 1 else env_names.pop()
+                tags["environment"] = (
+                    list(env_names) if len(env_names) > 1 else env_names.pop()
+                )
 
         return query, tags

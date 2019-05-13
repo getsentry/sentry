@@ -18,13 +18,13 @@ from .client import RiakClient
 
 # Cache an instance of the encoder we want to use
 json_dumps = JSONEncoder(
-    separators=(',', ':'),
+    separators=(",", ":"),
     skipkeys=False,
     ensure_ascii=True,
     check_circular=True,
     allow_nan=True,
     indent=None,
-    encoding='utf-8',
+    encoding="utf-8",
     default=None,
 ).encode
 
@@ -41,7 +41,7 @@ class RiakNodeStorage(NodeStorage):
     def __init__(
         self,
         nodes,
-        bucket='nodes',
+        bucket="nodes",
         timeout=1,
         cooldown=5,
         max_retries=3,
@@ -52,10 +52,11 @@ class RiakNodeStorage(NodeStorage):
     ):
         # protocol being defined is useless, but is needed for backwards
         # compatability and leveraged as an opportunity to yell at the user
-        if protocol == 'pbc':
+        if protocol == "pbc":
             raise ValueError("'pbc' protocol is no longer supported")
         if protocol is not None:
             import warnings
+
             warnings.warn("'protocol' has been deprecated", DeprecationWarning)
         self.bucket = bucket
         self.conn = RiakClient(
@@ -66,10 +67,10 @@ class RiakNodeStorage(NodeStorage):
             tcp_keepalive=tcp_keepalive,
         )
         self.automatic_expiry = automatic_expiry
-        self.skip_deletes = automatic_expiry and '_SENTRY_CLEANUP' in os.environ
+        self.skip_deletes = automatic_expiry and "_SENTRY_CLEANUP" in os.environ
 
     def set(self, id, data, ttl=None):
-        self.conn.put(self.bucket, id, json_dumps(data), returnbody='false')
+        self.conn.put(self.bucket, id, json_dumps(data), returnbody="false")
 
     def delete(self, id):
         if self.skip_deletes:

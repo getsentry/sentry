@@ -10,54 +10,54 @@ from sentry.utils.safe import get_path
 # overhead of identifying which ones do, and which ones will over time we simply
 # target all of the major ones
 CRAWLERS = re.compile(
-    r'|'.join(
+    r"|".join(
         (
             # Google spiders (Adsense and others)
             # https://support.google.com/webmasters/answer/1061943?hl=en
-            r'Mediapartners\-Google',
-            r'AdsBot\-Google',
-            r'Googlebot',
-            r'FeedFetcher\-Google',
+            r"Mediapartners\-Google",
+            r"AdsBot\-Google",
+            r"Googlebot",
+            r"FeedFetcher\-Google",
             # Bing search
-            r'BingBot',
-            r'BingPreview',
+            r"BingBot",
+            r"BingPreview",
             # Baidu search
-            r'Baiduspider',
+            r"Baiduspider",
             # Yahoo
-            r'Slurp',
+            r"Slurp",
             # Sogou
-            r'Sogou',
+            r"Sogou",
             # facebook
-            r'facebook',
+            r"facebook",
             # Alexa
-            r'ia_archiver',
+            r"ia_archiver",
             # Generic bot
-            r'bots?[\/\s\)\;]',
+            r"bots?[\/\s\)\;]",
             # Generic spider
-            r'spider[\/\s\)\;]',
+            r"spider[\/\s\)\;]",
             # Slack - see https://api.slack.com/robots
-            r'Slack',
+            r"Slack",
             # Google indexing bot
-            r'Calypso AppCrawler',
+            r"Calypso AppCrawler",
         )
     ),
-    re.I
+    re.I,
 )
 
 
 class WebCrawlersFilter(Filter):
     id = FilterStatKeys.WEB_CRAWLER
-    name = 'Filter out known web crawlers'
-    description = 'Some crawlers may execute pages in incompatible ways which then cause errors that are unlikely to be seen by a normal user.'
+    name = "Filter out known web crawlers"
+    description = "Some crawlers may execute pages in incompatible ways which then cause errors that are unlikely to be seen by a normal user."
     default = True
 
     def get_user_agent(self, data):
         try:
-            for key, value in get_path(data, 'request', 'headers', filter=True) or ():
-                if key.lower() == 'user-agent':
+            for key, value in get_path(data, "request", "headers", filter=True) or ():
+                if key.lower() == "user-agent":
                     return value
         except LookupError:
-            return ''
+            return ""
 
     def test(self, data):
         """Return True if event with given user agent should be filtered out, False otherwise"""

@@ -16,7 +16,9 @@ class ProjectTagKeyDetailsEndpoint(ProjectEndpoint, EnvironmentMixin):
         lookup_key = tagstore.prefix_reserved_key(key)
 
         try:
-            environment_id = self._get_environment_id_from_request(request, project.organization_id)
+            environment_id = self._get_environment_id_from_request(
+                request, project.organization_id
+            )
         except Environment.DoesNotExist:
             # if the environment doesn't exist then the tag can't possibly exist
             raise ResourceDoesNotExist
@@ -42,6 +44,7 @@ class ProjectTagKeyDetailsEndpoint(ProjectEndpoint, EnvironmentMixin):
 
         try:
             from sentry import eventstream
+
             eventstream_state = eventstream.start_delete_tag(project.id, key)
 
             deleted = tagstore.delete_tag_key(project.id, lookup_key)
@@ -59,7 +62,7 @@ class ProjectTagKeyDetailsEndpoint(ProjectEndpoint, EnvironmentMixin):
             self.create_audit_entry(
                 request=request,
                 organization=project.organization,
-                target_object=getattr(tagkey, 'id', None),
+                target_object=getattr(tagkey, "id", None),
                 event=AuditLogEntryEvent.TAGKEY_REMOVE,
                 data=tagkey.get_audit_log_data(),
             )

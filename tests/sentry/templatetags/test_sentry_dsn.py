@@ -23,7 +23,7 @@ class DsnTest(TestCase):
         project = self.create_project()
 
         new_options = settings.SENTRY_OPTIONS.copy()
-        new_options['system.url-prefix'] = ''
+        new_options["system.url-prefix"] = ""
 
         with self.settings(SENTRY_PROJECT=project.id, SENTRY_OPTIONS=new_options):
             result = self.TEMPLATE.render(Context())

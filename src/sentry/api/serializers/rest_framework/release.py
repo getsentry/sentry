@@ -34,5 +34,7 @@ class ReleaseWithVersionSerializer(ReleaseSerializer):
     def validate_version(self, attrs, source):
         value = attrs[source]
         if not Release.is_valid_version(value):
-            raise serializers.ValidationError('Release with name %s is not allowed' % value)
+            raise serializers.ValidationError(
+                "Release with name %s is not allowed" % value
+            )
         return attrs

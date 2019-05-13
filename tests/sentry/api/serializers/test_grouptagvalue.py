@@ -14,14 +14,14 @@ class GroupTagValueSerializerTest(TestCase):
         user = self.create_user()
         grouptagvalue = GroupTagValue(
             group_id=0,
-            key='sentry:user',
-            value='username:ted',
+            key="sentry:user",
+            value="username:ted",
             times_seen=1,
             first_seen=datetime(2018, 1, 1),
             last_seen=datetime(2018, 1, 1),
         )
 
         result = serialize(grouptagvalue, user)
-        assert result['key'] == 'user'
-        assert result['value'] == 'username:ted'
-        assert result['name'] == 'ted'
+        assert result["key"] == "user"
+        assert result["value"] == "username:ted"
+        assert result["name"] == "ted"

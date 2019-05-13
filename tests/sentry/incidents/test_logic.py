@@ -11,22 +11,15 @@ from sentry.incidents.logic import (
     get_incident_aggregates,
     get_incident_event_stats,
 )
-from sentry.incidents.models import (
-    IncidentGroup,
-    IncidentProject,
-    IncidentStatus,
-)
-from sentry.testutils import (
-    TestCase,
-    SnubaTestCase,
-)
+from sentry.incidents.models import IncidentGroup, IncidentProject, IncidentStatus
+from sentry.testutils import TestCase, SnubaTestCase
 
 
 class CreateIncidentTest(TestCase):
     def test_simple(self):
         status = IncidentStatus.CREATED
-        title = 'hello'
-        query = 'goodbye'
+        title = "hello"
+        query = "goodbye"
         date_started = timezone.now()
         other_project = self.create_project()
         other_group = self.create_group(project=other_project)
@@ -45,14 +38,18 @@ class CreateIncidentTest(TestCase):
         assert incident.query == query
         assert incident.date_started == date_started
         assert incident.date_detected == date_started
-        assert IncidentGroup.objects.filter(
-            incident=incident,
-            group__in=[self.group, other_group]
-        ).count() == 2
-        assert IncidentProject.objects.filter(
-            incident=incident,
-            project__in=[self.project, other_project],
-        ).count() == 2
+        assert (
+            IncidentGroup.objects.filter(
+                incident=incident, group__in=[self.group, other_group]
+            ).count()
+            == 2
+        )
+        assert (
+            IncidentProject.objects.filter(
+                incident=incident, project__in=[self.project, other_project]
+            ).count()
+            == 2
+        )
 
 
 class BaseIncidentsTest(SnubaTestCase):
@@ -62,12 +59,12 @@ class BaseIncidentsTest(SnubaTestCase):
             fingerprint = event_id
 
         data = {
-            'event_id': event_id,
-            'fingerprint': [fingerprint],
-            'timestamp': timestamp.isoformat()[:19]
+            "event_id": event_id,
+            "fingerprint": [fingerprint],
+            "timestamp": timestamp.isoformat()[:19],
         }
         if user:
-            data['user'] = user
+            data["user"] = user
         return self.store_event(data=data, project_id=self.project.id)
 
     @cached_property
@@ -83,27 +80,29 @@ class GetIncidentEventStatsTest(TestCase, BaseIncidentsTest):
 
         incident = self.create_incident(
             date_started=self.now - timedelta(minutes=5),
-            query='',
-            projects=[self.project]
+            query="",
+            projects=[self.project],
         )
         result = get_incident_event_stats(incident)
         # Duration of 300s / 20 data points
         assert result.rollup == 15
         assert result.start == incident.date_started
         assert result.end == incident.current_end_date
-        assert len(result.data['data']) == 2
-        assert result.data['data'][0]['count'] == 2
-        assert result.data['data'][1]['count'] == 1
+        assert len(result.data["data"]) == 2
+        assert result.data["data"][0]["count"] == 2
+        assert result.data["data"][1]["count"] == 1
 
     def test_groups(self):
-        fingerprint = 'group-1'
-        event = self.create_event(self.now - timedelta(minutes=2), fingerprint=fingerprint)
-        self.create_event(self.now - timedelta(minutes=2), fingerprint='other-group')
+        fingerprint = "group-1"
+        event = self.create_event(
+            self.now - timedelta(minutes=2), fingerprint=fingerprint
+        )
+        self.create_event(self.now - timedelta(minutes=2), fingerprint="other-group")
         self.create_event(self.now - timedelta(minutes=1), fingerprint=fingerprint)
 
         incident = self.create_incident(
             date_started=self.now - timedelta(minutes=5),
-            query='',
+            query="",
             projects=[],
             groups=[event.group],
         )
@@ -112,37 +111,47 @@ class GetIncidentEventStatsTest(TestCase, BaseIncidentsTest):
         assert result.rollup == 15
         assert result.start == incident.date_started
         assert result.end == incident.current_end_date
-        assert len(result.data['data']) == 2, result.data
-        assert result.data['data'][0]['count'] == 1
-        assert result.data['data'][1]['count'] == 1
+        assert len(result.data["data"]) == 2, result.data
+        assert result.data["data"][0]["count"] == 1
+        assert result.data["data"][1]["count"] == 1
 
 
 class GetIncidentAggregatesTest(TestCase, BaseIncidentsTest):
     def test_projects(self):
         incident = self.create_incident(
             date_started=self.now - timedelta(minutes=5),
-            query='',
-            projects=[self.project]
+            query="",
+            projects=[self.project],
         )
         self.create_event(self.now - timedelta(minutes=1))
-        self.create_event(self.now - timedelta(minutes=2), user={'id': 123})
-        self.create_event(self.now - timedelta(minutes=2), user={'id': 123})
-        self.create_event(self.now - timedelta(minutes=2), user={'id': 124})
-        assert get_incident_aggregates(incident) == {'count': 4, 'unique_users': 2}
+        self.create_event(self.now - timedelta(minutes=2), user={"id": 123})
+        self.create_event(self.now - timedelta(minutes=2), user={"id": 123})
+        self.create_event(self.now - timedelta(minutes=2), user={"id": 124})
+        assert get_incident_aggregates(incident) == {"count": 4, "unique_users": 2}
 
     def test_groups(self):
-        fp = 'group'
+        fp = "group"
         group = self.create_event(self.now - timedelta(minutes=1), fingerprint=fp).group
-        self.create_event(self.now - timedelta(minutes=2), user={'id': 123}, fingerprint=fp)
-        self.create_event(self.now - timedelta(minutes=2), user={'id': 123}, fingerprint=fp)
-        self.create_event(self.now - timedelta(minutes=2), user={'id': 123}, fingerprint='other')
-        self.create_event(self.now - timedelta(minutes=2), user={'id': 124}, fingerprint=fp)
-        self.create_event(self.now - timedelta(minutes=2), user={'id': 124}, fingerprint='other')
+        self.create_event(
+            self.now - timedelta(minutes=2), user={"id": 123}, fingerprint=fp
+        )
+        self.create_event(
+            self.now - timedelta(minutes=2), user={"id": 123}, fingerprint=fp
+        )
+        self.create_event(
+            self.now - timedelta(minutes=2), user={"id": 123}, fingerprint="other"
+        )
+        self.create_event(
+            self.now - timedelta(minutes=2), user={"id": 124}, fingerprint=fp
+        )
+        self.create_event(
+            self.now - timedelta(minutes=2), user={"id": 124}, fingerprint="other"
+        )
 
         incident = self.create_incident(
             date_started=self.now - timedelta(minutes=5),
-            query='',
+            query="",
             projects=[],
             groups=[group],
         )
-        assert get_incident_aggregates(incident) == {'count': 4, 'unique_users': 2}
+        assert get_incident_aggregates(incident) == {"count": 4, "unique_users": 2}

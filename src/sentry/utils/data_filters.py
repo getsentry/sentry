@@ -17,16 +17,16 @@ from sentry import tsdb
 
 
 class FilterStatKeys(object):
-    IP_ADDRESS = 'ip-address'
-    RELEASE_VERSION = 'release-version'
-    ERROR_MESSAGE = 'error-message'
-    BROWSER_EXTENSION = 'browser-extensions'
-    LEGACY_BROWSER = 'legacy-browsers'
-    LOCALHOST = 'localhost'
-    WEB_CRAWLER = 'web-crawlers'
-    INVALID_CSP = 'invalid-csp'
-    CORS = 'cors'
-    DISCARDED_HASH = 'discarded-hash'
+    IP_ADDRESS = "ip-address"
+    RELEASE_VERSION = "release-version"
+    ERROR_MESSAGE = "error-message"
+    BROWSER_EXTENSION = "browser-extensions"
+    LEGACY_BROWSER = "legacy-browsers"
+    LOCALHOST = "localhost"
+    WEB_CRAWLER = "web-crawlers"
+    INVALID_CSP = "invalid-csp"
+    CORS = "cors"
+    DISCARDED_HASH = "discarded-hash"
 
 
 FILTER_STAT_KEYS_TO_VALUES = {
@@ -44,8 +44,8 @@ FILTER_STAT_KEYS_TO_VALUES = {
 
 
 class FilterTypes(object):
-    ERROR_MESSAGES = 'error_messages'
-    RELEASES = 'releases'
+    ERROR_MESSAGES = "error_messages"
+    RELEASES = "releases"
 
 
 def is_valid_ip(project, ip_address):
@@ -53,7 +53,7 @@ def is_valid_ip(project, ip_address):
     Verify that an IP address is not being blacklisted
     for the given project.
     """
-    blacklist = project.get_option('sentry:blacklisted_ips')
+    blacklist = project.get_option("sentry:blacklisted_ips")
     if not blacklist:
         return True
 
@@ -64,10 +64,9 @@ def is_valid_ip(project, ip_address):
 
         # Check to make sure it's actually a range before
         try:
-            if '/' in addr and (
-                ipaddress.ip_address(six.text_type(ip_address)) in ipaddress.ip_network(
-                    six.text_type(addr), strict=False
-                )
+            if "/" in addr and (
+                ipaddress.ip_address(six.text_type(ip_address))
+                in ipaddress.ip_network(six.text_type(addr), strict=False)
             ):
                 return False
         except ValueError:
@@ -82,7 +81,7 @@ def is_valid_release(project, release):
     Verify that a release is not being filtered
     for the given project.
     """
-    invalid_versions = project.get_option(u'sentry:{}'.format(FilterTypes.RELEASES))
+    invalid_versions = project.get_option(u"sentry:{}".format(FilterTypes.RELEASES))
     if not invalid_versions:
         return True
 
@@ -100,7 +99,9 @@ def is_valid_error_message(project, message):
     Verify that an error message is not being filtered
     for the given project.
     """
-    filtered_errors = project.get_option(u'sentry:{}'.format(FilterTypes.ERROR_MESSAGES))
+    filtered_errors = project.get_option(
+        u"sentry:{}".format(FilterTypes.ERROR_MESSAGES)
+    )
     if not filtered_errors:
         return True
 

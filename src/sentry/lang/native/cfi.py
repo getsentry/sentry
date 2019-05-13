@@ -7,8 +7,11 @@ from symbolic import FrameInfoMap, FrameTrust, ObjectLookup
 
 from sentry.attachments import attachment_cache
 from sentry.coreapi import cache_key_for_event
-from sentry.lang.native.minidump import process_minidump, frames_from_minidump_thread, \
-    MINIDUMP_ATTACHMENT_TYPE
+from sentry.lang.native.minidump import (
+    process_minidump,
+    frames_from_minidump_thread,
+    MINIDUMP_ATTACHMENT_TYPE,
+)
 from sentry.lang.native.utils import parse_addr, rebase_addr
 from sentry.models import Project, ProjectDebugFile
 from sentry.utils.cache import cache
@@ -16,16 +19,16 @@ from sentry.utils.hashlib import hash_values
 from sentry.utils.safe import get_path
 
 
-logger = logging.getLogger('sentry.minidumps')
+logger = logging.getLogger("sentry.minidumps")
 
 # Frame trust values achieved through the use of CFI
-CFI_TRUSTS = ('cfi', )
+CFI_TRUSTS = ("cfi",)
 
 # Minimum frame trust value that we require to omit CFI reprocessing
 MIN_TRUST = FrameTrust.fp
 
 # Placeholder used to indicate that no CFI could be used to stackwalk a thread
-NO_CFI_PLACEHOLDER = '__no_cfi__'
+NO_CFI_PLACEHOLDER = "__no_cfi__"
 
 
 class ThreadRef(object):
@@ -38,7 +41,7 @@ class ThreadRef(object):
         self._cache_key = self._get_cache_key()
 
     def _get_frame_key(self, frame):
-        module = self.modules.find_object(frame['instruction_addr'])
+        module = self.modules.find_object(frame["instruction_addr"])
 
         # If we cannot resolve a module for this frame, this means we're dealing
         # with an absolute address here. Since this address changes with every
@@ -46,15 +49,12 @@ class ThreadRef(object):
         if not module:
             return None
 
-        return (
-            module.debug_id,
-            rebase_addr(frame['instruction_addr'], module)
-        )
+        return (module.debug_id, rebase_addr(frame["instruction_addr"], module))
 
     def _get_cache_key(self):
         values = [self._get_frame_key(f) for f in self.raw_frames]
         # XXX: The seed is hard coded for a future refactor
-        return 'st:%s' % hash_values(values, seed='MinidumpCfiProcessor')
+        return "st:%s" % hash_values(values, seed="MinidumpCfiProcessor")
 
     def _frame_from_cache(self, entry):
         debug_id, offset, trust = entry[:3]
@@ -66,11 +66,14 @@ class ThreadRef(object):
         # latter hopefully never happens.
         addr = module.addr + parse_addr(offset) if module else parse_addr(offset)
 
-        return module, {
-            'instruction_addr': '0x%x' % addr,
-            'package': module.code_file if module else None,
-            'trust': trust,
-        }
+        return (
+            module,
+            {
+                "instruction_addr": "0x%x" % addr,
+                "package": module.code_file if module else None,
+                "trust": trust,
+            },
+        )
 
     def load_from_cache(self):
         """Attempts to load the reprocessed stack trace from the cache. The
@@ -94,7 +97,7 @@ class ThreadRef(object):
         known code modules only relative offsets are stored, otherwise the
         absolute address as fallback."""
         if self.resolved_frames is None:
-            raise RuntimeError('save_to_cache called before resolving frames')
+            raise RuntimeError("save_to_cache called before resolving frames")
 
         if self.resolved_frames == NO_CFI_PLACEHOLDER:
             cache.set(self._cache_key, NO_CFI_PLACEHOLDER)
@@ -103,10 +106,10 @@ class ThreadRef(object):
         values = []
         for module, frame in self.resolved_frames:
             module_id = module and module.debug_id
-            addr = frame['instruction_addr']
+            addr = frame["instruction_addr"]
             if module:
-                addr = '0x%x' % rebase_addr(addr, module)
-            values.append((module_id, addr, frame['trust']))
+                addr = "0x%x" % rebase_addr(addr, module)
+            values.append((module_id, addr, frame["trust"]))
 
         cache.set(self._cache_key, values)
 
@@ -122,9 +125,10 @@ class ThreadRef(object):
         # these cases we only store a marker. This also prevents us from
         # destroying absolute addresses when restoring from the cache. Stack
         # traces containing CFI frames are mapped to their modules and stored.
-        if any(frame['trust'] in CFI_TRUSTS for frame in frames):
-            self.resolved_frames = [(self.modules.find_object(f['instruction_addr']), f)
-                                    for f in frames]
+        if any(frame["trust"] in CFI_TRUSTS for frame in frames):
+            self.resolved_frames = [
+                (self.modules.find_object(f["instruction_addr"]), f) for f in frames
+            ]
         else:
             self.resolved_frames = NO_CFI_PLACEHOLDER
 
@@ -132,7 +136,7 @@ class ThreadRef(object):
         """Writes the loaded stack trace back to the event's payload. Returns
         ``True`` if the payload was changed, otherwise ``False``."""
         if self.resolved_frames is None:
-            raise RuntimeError('apply_to_event called before resolving frames')
+            raise RuntimeError("apply_to_event called before resolving frames")
 
         if self.resolved_frames == NO_CFI_PLACEHOLDER:
             return False
@@ -145,7 +149,7 @@ class ThreadRef(object):
         """Indicates whether this thread requires reprocessing with CFI due to
         scanned stack frames."""
         return any(
-            getattr(FrameTrust, f.get('trust', ''), 0) < MIN_TRUST
+            getattr(FrameTrust, f.get("trust", ""), 0) < MIN_TRUST
             for f in self.raw_frames
         )
 
@@ -169,7 +173,7 @@ class ThreadProcessingHandle(object):
         self.changed = False
 
     def _get_modules(self):
-        modules = get_path(self.data, 'debug_meta', 'images', filter=True)
+        modules = get_path(self.data, "debug_meta", "images", filter=True)
         return ObjectLookup(modules or [])
 
     def iter_modules(self):
@@ -182,17 +186,17 @@ class ThreadProcessingHandle(object):
         """Returns an iterator over all threads of the process at the time of
         the crash, including the crashing thread. The values are of type
         ``ThreadRef``."""
-        for thread in get_path(self.data, 'threads', 'values', filter=True, default=()):
-            if thread.get('crashed'):
+        for thread in get_path(self.data, "threads", "values", filter=True, default=()):
+            if thread.get("crashed"):
                 # XXX: Assumes that the full list of threads is present in the
                 # original crash report. This is guaranteed by KSCrash and our
                 # minidump utility.
-                exceptions = get_path(self.data, 'exception', 'values', filter=True)
-                frames = get_path(exceptions, 0, 'stacktrace', 'frames')
+                exceptions = get_path(self.data, "exception", "values", filter=True)
+                frames = get_path(exceptions, 0, "stacktrace", "frames")
             else:
-                frames = get_path(thread, 'stacktrace', 'frames')
+                frames = get_path(thread, "stacktrace", "frames")
 
-            tid = thread.get('id')
+            tid = thread.get("id")
             if tid and frames:
                 yield tid, ThreadRef(frames, self.modules)
 
@@ -236,7 +240,9 @@ def reprocess_minidump_with_cfi(data):
     # Check if we have a minidump to reprocess
     cache_key = cache_key_for_event(data)
     attachments = attachment_cache.get(cache_key) or []
-    minidump = next((a for a in attachments if a.type == MINIDUMP_ATTACHMENT_TYPE), None)
+    minidump = next(
+        (a for a in attachments if a.type == MINIDUMP_ATTACHMENT_TYPE), None
+    )
     if not minidump:
         return handle.result()
 
@@ -246,7 +252,7 @@ def reprocess_minidump_with_cfi(data):
         return handle.result()
 
     # Load CFI caches for all loaded modules (even unreferenced ones)
-    project = Project.objects.get_from_cache(id=data['project'])
+    project = Project.objects.get_from_cache(id=data["project"])
     cficaches = ProjectDebugFile.difcache.get_cficaches(project, debug_ids)
     if not cficaches:
         return handle.result()

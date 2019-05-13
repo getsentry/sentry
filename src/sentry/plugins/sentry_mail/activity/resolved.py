@@ -5,7 +5,7 @@ from .base import ActivityEmail
 
 class ResolvedActivityEmail(ActivityEmail):
     def get_activity_name(self):
-        return 'Resolved Issue'
+        return "Resolved Issue"
 
     def get_description(self):
-        return u'{author} marked {an issue} as resolved'
+        return u"{author} marked {an issue} as resolved"

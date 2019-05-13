@@ -8,14 +8,12 @@ from sentry.models import SentryApp
 
 class OrganizationSentryAppsEndpoint(OrganizationEndpoint):
     def get(self, request, organization):
-        queryset = SentryApp.objects.filter(
-            owner=organization,
-        )
+        queryset = SentryApp.objects.filter(owner=organization)
 
         return self.paginate(
             request=request,
             queryset=queryset,
-            order_by='-date_added',
+            order_by="-date_added",
             paginator_cls=OffsetPaginator,
             on_results=lambda x: serialize(x, request.user),
         )

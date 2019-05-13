@@ -19,12 +19,12 @@ def get_latest_events(group_hash_list):
     events_by_group_hash = {}
     for project_id, group_hash_list_chunk in group_hashes_by_project_id.items():
         event_id_list = GroupHash.fetch_last_processed_event_id(
-            [i.id for i in group_hash_list_chunk])
+            [i.id for i in group_hash_list_chunk]
+        )
         event_by_event_id = {
             event.event_id: event
             for event in Event.objects.filter(
-                project_id=project_id,
-                event_id__in=filter(None, event_id_list),
+                project_id=project_id, event_id__in=filter(None, event_id_list)
             )
         }
         for group_hash, event_id in zip(group_hash_list_chunk, event_id_list):
@@ -37,28 +37,19 @@ def get_latest_events(group_hash_list):
 
 @register(GroupHash)
 class GroupHashSerializer(Serializer):
-    state_text_map = {
-        None: 'unlocked',
-        GroupHash.State.LOCKED_IN_MIGRATION: 'locked',
-    }
+    state_text_map = {None: "unlocked", GroupHash.State.LOCKED_IN_MIGRATION: "locked"}
 
     def get_attrs(self, item_list, user, **kwargs):
         return {
-            item: {
-                'latest_event': latest_event
-            }
+            item: {"latest_event": latest_event}
             for item, latest_event in zip(
-                item_list,
-                serialize(
-                    get_latest_events(item_list),
-                    user=user,
-                ),
+                item_list, serialize(get_latest_events(item_list), user=user)
             )
         }
 
     def serialize(self, obj, attrs, user):
         return {
-            'id': obj.hash,
-            'latestEvent': attrs['latest_event'],
-            'state': self.state_text_map[obj.state],
+            "id": obj.hash,
+            "latestEvent": attrs["latest_event"],
+            "state": self.state_text_map[obj.state],
         }

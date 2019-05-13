@@ -27,9 +27,13 @@ from sentry.models import Project, User
 from sentry.plugins import plugins
 from sentry.utils.email import send_mail
 from sentry.utils.http import absolute_uri
-from sentry.utils.warnings import DeprecatedSettingWarning, UnsupportedBackend, seen_warnings
+from sentry.utils.warnings import (
+    DeprecatedSettingWarning,
+    UnsupportedBackend,
+    seen_warnings,
+)
 from sentry.web.decorators import requires_admin
-from sentry.web.forms import (ChangeUserForm, NewUserForm, RemoveUserForm, TestEmailForm)
+from sentry.web.forms import ChangeUserForm, NewUserForm, RemoveUserForm, TestEmailForm
 from sentry.utils import auth
 from sentry.web.helpers import render_to_response, render_to_string
 
@@ -44,12 +48,14 @@ def configure_plugin(request, slug):
         return view
 
     return render_to_response(
-        'sentry/admin/plugins/configure.html', {
-            'plugin': plugin,
-            'title': plugin.get_conf_title(),
-            'slug': plugin.slug,
-            'view': view,
-        }, request
+        "sentry/admin/plugins/configure.html",
+        {
+            "plugin": plugin,
+            "title": plugin.get_conf_title(),
+            "slug": plugin.slug,
+            "view": view,
+        },
+        request,
     )
 
 
@@ -58,10 +64,8 @@ def configure_plugin(request, slug):
 @csrf_protect
 def create_new_user(request):
     form = NewUserForm(
-        request.POST or None, initial={
-            'send_welcome_mail': True,
-            'create_project': True,
-        }
+        request.POST or None,
+        initial={"send_welcome_mail": True, "create_project": True},
     )
     if form.is_valid():
         user = form.save(commit=False)
@@ -72,33 +76,32 @@ def create_new_user(request):
 
         user.save()
 
-        if form.cleaned_data['send_welcome_mail']:
+        if form.cleaned_data["send_welcome_mail"]:
             context = {
-                'username': user.username,
-                'password': password,
-                'url': absolute_uri(auth.get_login_url()),
+                "username": user.username,
+                "password": password,
+                "url": absolute_uri(auth.get_login_url()),
             }
-            body = render_to_string('sentry/emails/welcome_mail.txt', context, request)
+            body = render_to_string("sentry/emails/welcome_mail.txt", context, request)
 
             try:
                 send_mail(
-                    '%s Welcome to Sentry' % (options.get('mail.subject-prefix'), ),
+                    "%s Welcome to Sentry" % (options.get("mail.subject-prefix"),),
                     body,
-                    options.get('mail.from'), [user.email],
-                    fail_silently=False
+                    options.get("mail.from"),
+                    [user.email],
+                    fail_silently=False,
                 )
             except Exception as e:
-                logger = logging.getLogger('sentry.mail.errors')
+                logger = logging.getLogger("sentry.mail.errors")
                 logger.exception(e)
 
-        return HttpResponseRedirect(absolute_uri('/manage/users/'))
+        return HttpResponseRedirect(absolute_uri("/manage/users/"))
 
-    context = {
-        'form': form,
-    }
+    context = {"form": form}
     context.update(csrf(request))
 
-    return render_to_response('sentry/admin/users/new.html', context, request)
+    return render_to_response("sentry/admin/users/new.html", context, request)
 
 
 @requires_admin
@@ -107,79 +110,69 @@ def edit_user(request, user_id):
     try:
         user = User.objects.get(pk=user_id)
     except User.DoesNotExist:
-        return HttpResponseRedirect(absolute_uri('/manage/users/'))
+        return HttpResponseRedirect(absolute_uri("/manage/users/"))
 
     form = ChangeUserForm(request.POST or None, instance=user)
     if form.is_valid():
         user = form.save()
-        return HttpResponseRedirect(absolute_uri('/manage/users/'))
+        return HttpResponseRedirect(absolute_uri("/manage/users/"))
 
     project_list = Project.objects.filter(
-        status=0,
-        organization__member_set__user=user,
-    ).order_by('-date_added')
+        status=0, organization__member_set__user=user
+    ).order_by("-date_added")
 
-    context = {
-        'form': form,
-        'the_user': user,
-        'project_list': project_list,
-    }
+    context = {"form": form, "the_user": user, "project_list": project_list}
     context.update(csrf(request))
 
-    return render_to_response('sentry/admin/users/edit.html', context, request)
+    return render_to_response("sentry/admin/users/edit.html", context, request)
 
 
 @requires_admin
 @csrf_protect
 def remove_user(request, user_id):
     if six.text_type(user_id) == six.text_type(request.user.id):
-        return HttpResponseRedirect(absolute_uri('/manage/users/'))
+        return HttpResponseRedirect(absolute_uri("/manage/users/"))
 
     try:
         user = User.objects.get(pk=user_id)
     except User.DoesNotExist:
-        return HttpResponseRedirect(absolute_uri('/manage/users/'))
+        return HttpResponseRedirect(absolute_uri("/manage/users/"))
 
     form = RemoveUserForm(request.POST or None)
     if form.is_valid():
-        if form.cleaned_data['removal_type'] == '2':
+        if form.cleaned_data["removal_type"] == "2":
             user.delete()
         else:
             User.objects.filter(pk=user.pk).update(is_active=False)
 
-        return HttpResponseRedirect(absolute_uri('/manage/users/'))
+        return HttpResponseRedirect(absolute_uri("/manage/users/"))
 
     context = csrf(request)
-    context.update({
-        'form': form,
-        'the_user': user,
-    })
+    context.update({"form": form, "the_user": user})
 
-    return render_to_response('sentry/admin/users/remove.html', context, request)
+    return render_to_response("sentry/admin/users/remove.html", context, request)
 
 
 @requires_admin
 def status_env(request):
-    reserved = ('PASSWORD', 'SECRET', 'KEY')
+    reserved = ("PASSWORD", "SECRET", "KEY")
     config = []
     for k in sorted(dir(settings)):
         v_repr = repr(getattr(settings, k))
         if any(r.lower() in v_repr.lower() for r in reserved):
-            v_repr = '*' * 16
+            v_repr = "*" * 16
         if any(r in k for r in reserved):
-            v_repr = '*' * 16
-        if k.startswith('_'):
+            v_repr = "*" * 16
+        if k.startswith("_"):
             continue
         if k.upper() != k:
             continue
         config.append((k, v_repr))
 
     return render_to_response(
-        'sentry/admin/status/env.html', {
-            'python_version': sys.version,
-            'config': config,
-            'environment': env.data,
-        }, request
+        "sentry/admin/status/env.html",
+        {"python_version": sys.version, "config": config, "environment": env.data},
+        request,
     )
 
 
@@ -187,32 +180,34 @@ def status_env(request):
 def status_packages(request):
     config = []
     for k in sorted(dir(settings)):
-        if k == 'KEY':
+        if k == "KEY":
             continue
-        if k.startswith('_'):
+        if k.startswith("_"):
             continue
         if k.upper() != k:
             continue
         config.append((k, getattr(settings, k)))
 
     return render_to_response(
-        'sentry/admin/status/packages.html', {
-            'modules':
-            sorted([(p.project_name, p.version) for p in pkg_resources.working_set]),
-            'extensions': [
-                (p.get_title(), '%s.%s' % (p.__module__, p.__class__.__name__))
+        "sentry/admin/status/packages.html",
+        {
+            "modules": sorted(
+                [(p.project_name, p.version) for p in pkg_resources.working_set]
+            ),
+            "extensions": [
+                (p.get_title(), "%s.%s" % (p.__module__, p.__class__.__name__))
                 for p in plugins.all(version=None)
             ],
         },
-        request
+        request,
     )
 
 
 @requires_admin
 def status_warnings(request):
     groupings = {
-        DeprecatedSettingWarning: 'Deprecated Settings',
-        UnsupportedBackend: 'Unsupported Backends',
+        DeprecatedSettingWarning: "Deprecated Settings",
+        UnsupportedBackend: "Unsupported Backends",
     }
 
     groups = defaultdict(list)
@@ -227,12 +222,15 @@ def status_warnings(request):
     sort_by_message = functools.partial(sorted, key=six.binary_type)
 
     return render_to_response(
-        'sentry/admin/status/warnings.html',
+        "sentry/admin/status/warnings.html",
         {
-            'groups':
-            sorted([(groupings[key], sort_by_message(values)) for key, values in groups.items()]),
-            'warnings':
-            sort_by_message(warnings),
+            "groups": sorted(
+                [
+                    (groupings[key], sort_by_message(values))
+                    for key, values in groups.items()
+                ]
+            ),
+            "warnings": sort_by_message(warnings),
         },
         request,
     )
@@ -247,23 +245,26 @@ def status_mail(request):
         body = """This email was sent as a request to test the Sentry outbound email configuration."""
         try:
             send_mail(
-                '%s Test Email' % (options.get('mail.subject-prefix'), ),
+                "%s Test Email" % (options.get("mail.subject-prefix"),),
                 body,
-                options.get('mail.from'), [request.user.email],
-                fail_silently=False
+                options.get("mail.from"),
+                [request.user.email],
+                fail_silently=False,
             )
         except Exception as e:
-            form.errors['__all__'] = [six.text_type(e)]
+            form.errors["__all__"] = [six.text_type(e)]
 
     return render_to_response(
-        'sentry/admin/status/mail.html', {
-            'form': form,
-            'mail_host': options.get('mail.host'),
-            'mail_password': bool(options.get('mail.password')),
-            'mail_username': options.get('mail.username'),
-            'mail_port': options.get('mail.port'),
-            'mail_use_tls': options.get('mail.use-tls'),
-            'mail_from': options.get('mail.from'),
-            'mail_list_namespace': options.get('mail.list-namespace'),
-        }, request
+        "sentry/admin/status/mail.html",
+        {
+            "form": form,
+            "mail_host": options.get("mail.host"),
+            "mail_password": bool(options.get("mail.password")),
+            "mail_username": options.get("mail.username"),
+            "mail_port": options.get("mail.port"),
+            "mail_use_tls": options.get("mail.use-tls"),
+            "mail_from": options.get("mail.from"),
+            "mail_list_namespace": options.get("mail.list-namespace"),
+        },
+        request,
     )

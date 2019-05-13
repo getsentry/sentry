@@ -26,15 +26,27 @@ from south.creator import freezer
 
 class Command(BaseCommand):
     option_list = BaseCommand.option_list + (
-        make_option('--freeze', action='append', dest='freeze_list', type='string',
-                    help='Freeze the specified app(s). Provide an app name with each; use the option multiple times for multiple apps'),
-        make_option('--stdout', action='store_true', dest='stdout', default=False,
-                    help='Print the migration to stdout instead of writing it to a file.'),
+        make_option(
+            "--freeze",
+            action="append",
+            dest="freeze_list",
+            type="string",
+            help="Freeze the specified app(s). Provide an app name with each; use the option multiple times for multiple apps",
+        ),
+        make_option(
+            "--stdout",
+            action="store_true",
+            dest="stdout",
+            default=False,
+            help="Print the migration to stdout instead of writing it to a file.",
+        ),
     )
     help = "Creates a new template data migration for the given app"
     usage_str = "Usage: ./manage.py datamigration appname migrationname [--stdout] [--freeze appname]"
 
-    def handle(self, app=None, name="", freeze_list=None, stdout=False, verbosity=1, **options):
+    def handle(
+        self, app=None, name="", freeze_list=None, stdout=False, verbosity=1, **options
+    ):
 
         verbosity = int(verbosity)
 
@@ -46,15 +58,19 @@ class Command(BaseCommand):
             name = "-"
 
         # Only allow valid names
-        if re.search('[^_\w]', name) and name != "-":
-            self.error("Migration names should contain only alphanumeric characters and underscores.")
+        if re.search("[^_\w]", name) and name != "-":
+            self.error(
+                "Migration names should contain only alphanumeric characters and underscores."
+            )
 
         # If not name, there's an error
         if not name:
             self.error("You must provide a name for this migration.\n" + self.usage_str)
 
         if not app:
-            self.error("You must provide an app to create a migration for.\n" + self.usage_str)
+            self.error(
+                "You must provide an app to create a migration for.\n" + self.usage_str
+            )
 
         # Ensure that verbosity is not a string (Python 3)
         try:
@@ -63,7 +79,9 @@ class Command(BaseCommand):
             self.error("Verbosity must be an number.\n" + self.usage_str)
 
         # Get the Migrations for this app (creating the migrations dir if needed)
-        migrations = Migrations(app, force_creation=True, verbose_creation=verbosity > 0)
+        migrations = Migrations(
+            app, force_creation=True, verbose_creation=verbosity > 0
+        )
 
         # See what filename is next in line. We assume they use numbers.
         new_filename = migrations.next_filename(name)
@@ -74,7 +92,9 @@ class Command(BaseCommand):
         # So, what's in this file, then?
         file_contents = self.get_migration_template() % {
             "frozen_models": freezer.freeze_apps_to_string(apps_to_freeze),
-            "complete_apps": apps_to_freeze and "complete_apps = [%s]" % (", ".join(map(repr, apps_to_freeze))) or ""
+            "complete_apps": apps_to_freeze
+            and "complete_apps = [%s]" % (", ".join(map(repr, apps_to_freeze)))
+            or "",
         }
 
         # - is a special name which means 'print to stdout'
@@ -96,14 +116,17 @@ class Command(BaseCommand):
         for to_freeze in freeze_list:
             if "." in to_freeze:
                 self.error(
-                    "You cannot freeze %r; you must provide an app label, like 'auth' or 'books'." %
-                    to_freeze)
+                    "You cannot freeze %r; you must provide an app label, like 'auth' or 'books'."
+                    % to_freeze
+                )
             # Make sure it's a real app
             if not models.get_app(to_freeze):
-                self.error("You cannot freeze %r; it's not an installed app." % to_freeze)
+                self.error(
+                    "You cannot freeze %r; it's not an installed app." % to_freeze
+                )
             # OK, it's fine
             apps_to_freeze.append(to_freeze)
-        if getattr(settings, 'SOUTH_AUTO_FREEZE_APP', True):
+        if getattr(settings, "SOUTH_AUTO_FREEZE_APP", True):
             apps_to_freeze.append(migrations.app_label())
         return apps_to_freeze
 

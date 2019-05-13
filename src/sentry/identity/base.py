@@ -6,12 +6,13 @@ from collections import namedtuple
 from sentry.pipeline import PipelineProvider
 
 
-class MigratingIdentityId(namedtuple('MigratingIdentityId', ['id', 'legacy_id'])):
+class MigratingIdentityId(namedtuple("MigratingIdentityId", ["id", "legacy_id"])):
     """
     MigratingIdentityId may be used in the ``id`` field of an identity
     dictionary to facilitate migrating user identites from one identifying id
     to another.
     """
+
     __slots__ = ()
 
     def __unicode__(self):
@@ -32,7 +33,7 @@ class Provider(PipelineProvider):
 
     def __init__(self, **config):
         self.config = config
-        self.logger = logging.getLogger(u'sentry.identity.%s'.format(self.key))
+        self.logger = logging.getLogger(u"sentry.identity.%s".format(self.key))
 
     def build_identity(self, state):
         """

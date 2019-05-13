@@ -1,23 +1,18 @@
 from __future__ import absolute_import
 
-from sentry.models import (
-    Commit,
-    CommitAuthor,
-    PullRequest,
-    GroupLink
-)
+from sentry.models import Commit, CommitAuthor, PullRequest, GroupLink
 from .testutils import (
     GitLabTestCase,
     WEBHOOK_TOKEN,
     EXTERNAL_ID,
     MERGE_REQUEST_OPENED_EVENT,
     PUSH_EVENT,
-    PUSH_EVENT_IGNORED_COMMIT
+    PUSH_EVENT_IGNORED_COMMIT,
 )
 
 
 class WebhookTest(GitLabTestCase):
-    url = '/extensions/gitlab/webhook/'
+    url = "/extensions/gitlab/webhook/"
 
     def test_get(self):
         response = self.client.get(self.url)
@@ -27,9 +22,9 @@ class WebhookTest(GitLabTestCase):
         response = self.client.post(
             self.url,
             data=PUSH_EVENT,
-            content_type='application/json',
+            content_type="application/json",
             HTTP_X_GITLAB_TOKEN=WEBHOOK_TOKEN,
-            HTTP_X_GITLAB_EVENT='lol'
+            HTTP_X_GITLAB_EVENT="lol",
         )
         assert response.status_code == 400
 
@@ -37,9 +32,9 @@ class WebhookTest(GitLabTestCase):
         response = self.client.post(
             self.url,
             data=PUSH_EVENT,
-            content_type='application/json',
-            HTTP_X_GITLAB_TOKEN='wrong',
-            HTTP_X_GITLAB_EVENT='Push Hook'
+            content_type="application/json",
+            HTTP_X_GITLAB_TOKEN="wrong",
+            HTTP_X_GITLAB_EVENT="Push Hook",
         )
         assert response.status_code == 400
 
@@ -47,19 +42,19 @@ class WebhookTest(GitLabTestCase):
         response = self.client.post(
             self.url,
             data=PUSH_EVENT,
-            content_type='application/json',
-            HTTP_X_GITLAB_TOKEN=u'{}:{}'.format(EXTERNAL_ID, 'wrong'),
-            HTTP_X_GITLAB_EVENT='Push Hook'
+            content_type="application/json",
+            HTTP_X_GITLAB_TOKEN=u"{}:{}".format(EXTERNAL_ID, "wrong"),
+            HTTP_X_GITLAB_EVENT="Push Hook",
         )
         assert response.status_code == 400
 
     def test_invalid_payload(self):
         response = self.client.post(
             self.url,
-            data='lol not json',
-            content_type='application/json',
+            data="lol not json",
+            content_type="application/json",
             HTTP_X_GITLAB_TOKEN=WEBHOOK_TOKEN,
-            HTTP_X_GITLAB_EVENT='Push Hook'
+            HTTP_X_GITLAB_EVENT="Push Hook",
         )
         assert response.status_code == 400
 
@@ -67,9 +62,9 @@ class WebhookTest(GitLabTestCase):
         response = self.client.post(
             self.url,
             data=PUSH_EVENT,
-            content_type='application/json',
+            content_type="application/json",
             HTTP_X_GITLAB_TOKEN=WEBHOOK_TOKEN,
-            HTTP_X_GITLAB_EVENT='Push Hook'
+            HTTP_X_GITLAB_EVENT="Push Hook",
         )
         # Missing repositories don't 40x as we can't explode
         # on missing repositories due to the possibility of multiple
@@ -79,7 +74,7 @@ class WebhookTest(GitLabTestCase):
 
     def test_push_event_multiple_organizations_one_missing_repo(self):
         # Create a repo on the primary organization
-        repo = self.create_repo('getsentry/sentry')
+        repo = self.create_repo("getsentry/sentry")
 
         # Second org with no repo.
         other_org = self.create_organization(owner=self.user)
@@ -88,9 +83,9 @@ class WebhookTest(GitLabTestCase):
         response = self.client.post(
             self.url,
             data=PUSH_EVENT,
-            content_type='application/json',
+            content_type="application/json",
             HTTP_X_GITLAB_TOKEN=WEBHOOK_TOKEN,
-            HTTP_X_GITLAB_EVENT='Push Hook'
+            HTTP_X_GITLAB_EVENT="Push Hook",
         )
         assert response.status_code == 204
         commits = Commit.objects.all()
@@ -101,19 +96,19 @@ class WebhookTest(GitLabTestCase):
 
     def test_push_event_multiple_organizations(self):
         # Create a repo on the primary organization
-        repo = self.create_repo('getsentry/sentry')
+        repo = self.create_repo("getsentry/sentry")
 
         # Second org with the same repo
         other_org = self.create_organization(owner=self.user)
         self.integration.add_organization(other_org, self.user)
-        other_repo = self.create_repo('getsentry/sentry', organization_id=other_org.id)
+        other_repo = self.create_repo("getsentry/sentry", organization_id=other_org.id)
 
         response = self.client.post(
             self.url,
             data=PUSH_EVENT,
-            content_type='application/json',
+            content_type="application/json",
             HTTP_X_GITLAB_TOKEN=WEBHOOK_TOKEN,
-            HTTP_X_GITLAB_EVENT='Push Hook'
+            HTTP_X_GITLAB_EVENT="Push Hook",
         )
         assert response.status_code == 204
 
@@ -128,13 +123,13 @@ class WebhookTest(GitLabTestCase):
             assert commit.organization_id == other_org.id
 
     def test_push_event_create_commits_and_authors(self):
-        repo = self.create_repo('getsentry/sentry')
+        repo = self.create_repo("getsentry/sentry")
         response = self.client.post(
             self.url,
             data=PUSH_EVENT,
-            content_type='application/json',
+            content_type="application/json",
             HTTP_X_GITLAB_TOKEN=WEBHOOK_TOKEN,
-            HTTP_X_GITLAB_EVENT='Push Hook'
+            HTTP_X_GITLAB_EVENT="Push Hook",
         )
         assert response.status_code == 204
 
@@ -152,18 +147,18 @@ class WebhookTest(GitLabTestCase):
         assert len(authors) == 2
         for author in authors:
             assert author.email
-            assert 'example.org' in author.email
+            assert "example.org" in author.email
             assert author.name
             assert author.organization_id == self.organization.id
 
     def test_push_event_ignore_commit(self):
-        self.create_repo('getsentry/sentry')
+        self.create_repo("getsentry/sentry")
         response = self.client.post(
             self.url,
             data=PUSH_EVENT_IGNORED_COMMIT,
-            content_type='application/json',
+            content_type="application/json",
             HTTP_X_GITLAB_TOKEN=WEBHOOK_TOKEN,
-            HTTP_X_GITLAB_EVENT='Push Hook'
+            HTTP_X_GITLAB_EVENT="Push Hook",
         )
         assert response.status_code == 204
         assert 0 == Commit.objects.count()
@@ -171,43 +166,40 @@ class WebhookTest(GitLabTestCase):
     def test_push_event_known_author(self):
         CommitAuthor.objects.create(
             organization_id=self.organization.id,
-            email='jordi@example.org',
-            name='Jordi'
+            email="jordi@example.org",
+            name="Jordi",
         )
-        self.create_repo('getsentry/sentry')
+        self.create_repo("getsentry/sentry")
         response = self.client.post(
             self.url,
             data=PUSH_EVENT,
-            content_type='application/json',
+            content_type="application/json",
             HTTP_X_GITLAB_TOKEN=WEBHOOK_TOKEN,
-            HTTP_X_GITLAB_EVENT='Push Hook'
+            HTTP_X_GITLAB_EVENT="Push Hook",
         )
         assert response.status_code == 204
-        assert 2 == CommitAuthor.objects.count(), 'No dupes made'
+        assert 2 == CommitAuthor.objects.count(), "No dupes made"
 
     def test_merge_event_missing_repo(self):
         response = self.client.post(
             self.url,
             data=MERGE_REQUEST_OPENED_EVENT,
-            content_type='application/json',
+            content_type="application/json",
             HTTP_X_GITLAB_TOKEN=WEBHOOK_TOKEN,
-            HTTP_X_GITLAB_EVENT='Merge Request Hook'
+            HTTP_X_GITLAB_EVENT="Merge Request Hook",
         )
         assert response.status_code == 204
         assert 0 == PullRequest.objects.count()
 
     def test_merge_event_create_pull_request(self):
-        self.create_repo('getsentry/sentry')
-        group = self.create_group(
-            project=self.project,
-            short_id=9
-        )
+        self.create_repo("getsentry/sentry")
+        group = self.create_group(project=self.project, short_id=9)
         response = self.client.post(
             self.url,
             data=MERGE_REQUEST_OPENED_EVENT,
-            content_type='application/json',
+            content_type="application/json",
             HTTP_X_GITLAB_TOKEN=WEBHOOK_TOKEN,
-            HTTP_X_GITLAB_EVENT='Merge Request Hook'
+            HTTP_X_GITLAB_EVENT="Merge Request Hook",
         )
         assert response.status_code == 204
         author = CommitAuthor.objects.all().first()
@@ -218,33 +210,30 @@ class WebhookTest(GitLabTestCase):
         self.assert_group_link(group, pull)
 
     def test_merge_event_update_pull_request(self):
-        repo = self.create_repo('getsentry/sentry')
-        group = self.create_group(
-            project=self.project,
-            short_id=9
-        )
+        repo = self.create_repo("getsentry/sentry")
+        group = self.create_group(project=self.project, short_id=9)
         PullRequest.objects.create(
             organization_id=self.organization.id,
             repository_id=repo.id,
             key=1,
-            title='Old title',
-            message='Old message'
+            title="Old title",
+            message="Old message",
         )
 
         response = self.client.post(
             self.url,
             data=MERGE_REQUEST_OPENED_EVENT,
-            content_type='application/json',
+            content_type="application/json",
             HTTP_X_GITLAB_TOKEN=WEBHOOK_TOKEN,
-            HTTP_X_GITLAB_EVENT='Merge Request Hook'
+            HTTP_X_GITLAB_EVENT="Merge Request Hook",
         )
         assert response.status_code == 204
         author = CommitAuthor.objects.all().first()
         self.assert_commit_author(author)
 
         pull = PullRequest.objects.all().first()
-        assert pull.title != 'Old title'
-        assert pull.message != 'Old message'
+        assert pull.title != "Old title"
+        assert pull.message != "Old message"
 
         self.assert_pull_request(pull, author)
         self.assert_group_link(group, pull)

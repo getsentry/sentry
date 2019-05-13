@@ -24,6 +24,7 @@ class _UnknownType(object):
 
 try:
     from django.db.models.expressions import ExpressionNode
+
     Value = _UnknownType
 except ImportError:
     from django.db.models.expressions import Combinable as ExpressionNode, Value
@@ -33,7 +34,7 @@ EXPRESSION_NODE_CALLBACKS = {
     ExpressionNode.ADD: operator.add,
     ExpressionNode.SUB: operator.sub,
     ExpressionNode.MUL: operator.mul,
-    ExpressionNode.DIV: getattr(operator, 'floordiv', None) or operator.div,
+    ExpressionNode.DIV: getattr(operator, "floordiv", None) or operator.div,
     ExpressionNode.MOD: operator.mod,
 }
 try:
@@ -58,12 +59,12 @@ def resolve_expression_node(instance, node):
 
     if isinstance(node, Value):
         return node.value
-    if not hasattr(node, 'connector'):
+    if not hasattr(node, "connector"):
         raise CannotResolveExpression
     op = EXPRESSION_NODE_CALLBACKS.get(node.connector, None)
     if not op:
         raise CannotResolveExpression
-    if hasattr(node, 'children'):
+    if hasattr(node, "children"):
         children = node.children
     else:
         children = [node.lhs, node.rhs]
@@ -73,7 +74,9 @@ def resolve_expression_node(instance, node):
     return runner
 
 
-def slugify_instance(inst, label, reserved=(), max_length=30, field_name='slug', *args, **kwargs):
+def slugify_instance(
+    inst, label, reserved=(), max_length=30, field_name="slug", *args, **kwargs
+):
     base_value = slugify(label)[:max_length]
 
     if base_value is not None:
@@ -93,9 +96,7 @@ def slugify_instance(inst, label, reserved=(), max_length=30, field_name='slug',
     setattr(inst, field_name, base_value)
 
     # We don't need to further mutate if we're unique at this point
-    if not base_qs.filter(**{
-        '{}__iexact'.format(field_name): base_value,
-    }).exists():
+    if not base_qs.filter(**{"{}__iexact".format(field_name): base_value}).exists():
         return
 
     # We want to sanely generate the shortest unique slug possible, so
@@ -110,12 +111,12 @@ def slugify_instance(inst, label, reserved=(), max_length=30, field_name='slug',
     )
     for attempts, size in sizes:
         for i in range(attempts):
-            end = get_random_string(size, allowed_chars='abcdefghijklmnopqrstuvwxyz0123456790')
-            value = base_value[:max_length - size - 1] + '-' + end
+            end = get_random_string(
+                size, allowed_chars="abcdefghijklmnopqrstuvwxyz0123456790"
+            )
+            value = base_value[: max_length - size - 1] + "-" + end
             setattr(inst, field_name, value)
-            if not base_qs.filter(**{
-                '{}__iexact'.format(field_name): value,
-            }).exists():
+            if not base_qs.filter(**{"{}__iexact".format(field_name): value}).exists():
                 return
 
     # If at this point, we've exhausted all possibilities, we'll just end up hitting

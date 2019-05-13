@@ -11,7 +11,7 @@ class UnsubscribeIssueNotificationsTest(TestCase):
 
         path = generate_signed_link(
             user=self.user,
-            viewname='sentry-account-email-unsubscribe-issue',
+            viewname="sentry-account-email-unsubscribe-issue",
             args=[group.id],
         )
 
@@ -24,26 +24,24 @@ class UnsubscribeIssueNotificationsTest(TestCase):
 
         path = generate_signed_link(
             user=self.user,
-            viewname='sentry-account-email-unsubscribe-issue',
+            viewname="sentry-account-email-unsubscribe-issue",
             args=[group.id],
         )
 
-        resp = self.client.post(path, data={'op': 'unsubscribe'})
+        resp = self.client.post(path, data={"op": "unsubscribe"})
 
         assert resp.status_code == 302
         assert GroupSubscription.objects.filter(
-            user=self.user,
-            group=group,
-            is_active=False,
+            user=self.user, group=group, is_active=False
         ).exists()
 
     def test_no_access(self):
-        user = self.create_user('foo@example.com')
+        user = self.create_user("foo@example.com")
         group = self.create_group()
 
         path = generate_signed_link(
             user=user,
-            viewname='sentry-account-email-unsubscribe-issue',
+            viewname="sentry-account-email-unsubscribe-issue",
             args=[group.id],
         )
 
@@ -55,7 +53,7 @@ class UnsubscribeIssueNotificationsTest(TestCase):
 
         path = generate_signed_link(
             user=self.user,
-            viewname='sentry-account-email-unsubscribe-issue',
+            viewname="sentry-account-email-unsubscribe-issue",
             args=[13413434],
         )
 

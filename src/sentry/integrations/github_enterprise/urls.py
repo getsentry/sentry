@@ -6,6 +6,5 @@ from .webhook import GitHubEnterpriseWebhookEndpoint
 
 
 urlpatterns = patterns(
-    '',
-    url(r'^webhook/$', GitHubEnterpriseWebhookEndpoint.as_view()),
+    "", url(r"^webhook/$", GitHubEnterpriseWebhookEndpoint.as_view())
 )

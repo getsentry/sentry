@@ -12,23 +12,22 @@ from sentry.incidents.models import Incident
 
 
 class OrganizationIncidentDetailsEndpoint(OrganizationEndpoint):
-    permission_classes = (IncidentPermission, )
+    permission_classes = (IncidentPermission,)
 
     def convert_args(self, request, incident_id, *args, **kwargs):
         args, kwargs = super(OrganizationIncidentDetailsEndpoint, self).convert_args(
-            request,
-            *args,
-            **kwargs
+            request, *args, **kwargs
         )
-        organization = kwargs['organization']
+        organization = kwargs["organization"]
 
-        if not features.has('organizations:incidents', organization, actor=request.user):
+        if not features.has(
+            "organizations:incidents", organization, actor=request.user
+        ):
             raise ResourceDoesNotExist
 
         try:
-            kwargs['incident'] = Incident.objects.get(
-                organization=organization,
-                id=incident_id,
+            kwargs["incident"] = Incident.objects.get(
+                organization=organization, id=incident_id
             )
         except Incident.DoesNotExist:
             raise ResourceDoesNotExist

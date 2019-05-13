@@ -18,7 +18,7 @@ if has_gis:
         # Django 1.1's gis module renamed these.
         rules = [
             (
-                (GeometryField, ),
+                (GeometryField,),
                 [],
                 {
                     "srid": ["srid", {"default": 4326}],
@@ -26,19 +26,19 @@ if has_gis:
                     "dim": ["dim", {"default": 2}],
                     "geography": ["geography", {"default": False}],
                 },
-            ),
+            )
         ]
     else:
         rules = [
             (
-                (GeometryField, ),
+                (GeometryField,),
                 [],
                 {
                     "srid": ["_srid", {"default": 4326}],
                     "spatial_index": ["_index", {"default": True}],
                     "dim": ["_dim", {"default": 2}],
                 },
-            ),
+            )
         ]
 
     # Install them

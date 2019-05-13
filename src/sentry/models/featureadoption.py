@@ -8,12 +8,12 @@ from jsonfield import JSONField
 
 from sentry.adoption import manager
 from sentry.adoption.manager import UnknownFeature
-from sentry.db.models import (BaseManager, FlexibleForeignKey, Model, sane_repr)
+from sentry.db.models import BaseManager, FlexibleForeignKey, Model, sane_repr
 from sentry.utils import redis
 
 logger = logging.getLogger(__name__)
 
-FEATURE_ADOPTION_REDIS_KEY = 'organization-feature-adoption:{}'
+FEATURE_ADOPTION_REDIS_KEY = "organization-feature-adoption:{}"
 
 # Languages
 manager.add(0, "python", "Python", "language")
@@ -44,42 +44,88 @@ manager.add(27, "zope", "Zope", "integration", prerequisite=["python"])
 
 # Configuration
 manager.add(40, "first_event", "First Event", "code", prerequisite=["first_project"])
-manager.add(41, "release_tracking", "Release Tracking", "code", prerequisite=["first_event"])
 manager.add(
-    42, "environment_tracking", "Environment Tracking", "code", prerequisite=["first_event"]
+    41, "release_tracking", "Release Tracking", "code", prerequisite=["first_event"]
+)
+manager.add(
+    42,
+    "environment_tracking",
+    "Environment Tracking",
+    "code",
+    prerequisite=["first_event"],
 )
 manager.add(43, "user_tracking", "User Tracking", "code", prerequisite=["first_event"])
 manager.add(44, "custom_tags", "Custom Tags", "code", prerequisite=["first_event"])
-manager.add(45, "source_maps", "Source Maps", "code",
-            prerequisite=["first_event", ("javascript", "node")])
-manager.add(46, "user_feedback", "User Feedback", "code", prerequisite=["user_tracking"])
-manager.add(48, "breadcrumbs", "Breadcrumbs", "code", prerequisite=[
-            "first_event", ("python", "javascript", "node", "php")])
+manager.add(
+    45,
+    "source_maps",
+    "Source Maps",
+    "code",
+    prerequisite=["first_event", ("javascript", "node")],
+)
+manager.add(
+    46, "user_feedback", "User Feedback", "code", prerequisite=["user_tracking"]
+)
+manager.add(
+    48,
+    "breadcrumbs",
+    "Breadcrumbs",
+    "code",
+    prerequisite=["first_event", ("python", "javascript", "node", "php")],
+)
 manager.add(49, "resolved_with_commit", "Resolve with Commit", "code")
 
 # Web UI
 manager.add(60, "first_project", "First Project", "web")
 manager.add(61, "invite_team", "Invite Team", "web", prerequisite=["first_project"])
-manager.add(62, "assignment", "Assign Issue", "web", prerequisite=["invite_team", "first_event"])
-manager.add(63, "resolved_in_release", "Resolve in Next Release", "web",
-            prerequisite=["release_tracking"])
-manager.add(64, "advanced_search", "Advanced Search", "web", prerequisite=["first_event"])
+manager.add(
+    62, "assignment", "Assign Issue", "web", prerequisite=["invite_team", "first_event"]
+)
+manager.add(
+    63,
+    "resolved_in_release",
+    "Resolve in Next Release",
+    "web",
+    prerequisite=["release_tracking"],
+)
+manager.add(
+    64, "advanced_search", "Advanced Search", "web", prerequisite=["first_event"]
+)
 manager.add(65, "saved_search", "Saved Search", "web", prerequisite=["advanced_search"])
-manager.add(66, "inbound_filters", "Inbound Filters", "web", prerequisite=["first_event"])
+manager.add(
+    66, "inbound_filters", "Inbound Filters", "web", prerequisite=["first_event"]
+)
 manager.add(67, "alert_rules", "Alert Rules", "web", prerequisite=["first_event"])
-manager.add(68, "issue_tracker_integration", "Issue Tracker Integration", "web",
-            prerequisite=["first_project"])
-manager.add(69, "notification_integration", "Notification Integration", "web",
-            prerequisite=["first_project"])
-manager.add(70, "delete_and_discard", "Delete and Discard Future Events", "web",
-            prerequisite=["first_event"])
+manager.add(
+    68,
+    "issue_tracker_integration",
+    "Issue Tracker Integration",
+    "web",
+    prerequisite=["first_project"],
+)
+manager.add(
+    69,
+    "notification_integration",
+    "Notification Integration",
+    "web",
+    prerequisite=["first_project"],
+)
+manager.add(
+    70,
+    "delete_and_discard",
+    "Delete and Discard Future Events",
+    "web",
+    prerequisite=["first_event"],
+)
 manager.add(71, "repo_linked", "Link a Repository", "web")
 manager.add(72, "ownership_rule_created", "Ownership Rules", "web")
 manager.add(73, "issue_ignored", "Ignore Issue", "web")
 
 # Admin UI
 manager.add(80, "sso", "SSO", "admin", prerequisite=["invite_team"])
-manager.add(81, "data_scrubbers", "Data Scrubbers", "admin", prerequisite=["first_event"])
+manager.add(
+    81, "data_scrubbers", "Data Scrubbers", "admin", prerequisite=["first_event"]
+)
 
 # API
 manager.add(90, "release_created", "Create Release Using API", "api")
@@ -90,31 +136,31 @@ class FeatureAdoptionManager(BaseManager):
     def in_cache(self, organization_id, feature_id):
         org_key = FEATURE_ADOPTION_REDIS_KEY.format(organization_id)
         feature_matches = []
-        with redis.clusters.get('default').map() as client:
+        with redis.clusters.get("default").map() as client:
             feature_matches.append(client.sismember(org_key, feature_id))
 
         return any([p.value for p in feature_matches])
 
     def set_cache(self, organization_id, feature_id):
         org_key = FEATURE_ADOPTION_REDIS_KEY.format(organization_id)
-        with redis.clusters.get('default').map() as client:
+        with redis.clusters.get("default").map() as client:
             client.sadd(org_key, feature_id)
         return True
 
     def get_all_cache(self, organization_id):
         org_key = FEATURE_ADOPTION_REDIS_KEY.format(organization_id)
         result = []
-        with redis.clusters.get('default').map() as client:
+        with redis.clusters.get("default").map() as client:
             result.append(client.smembers(org_key))
 
-        return {int(x) for x in set.union(* [p.value for p in result])}
+        return {int(x) for x in set.union(*[p.value for p in result])}
 
     def bulk_set_cache(self, organization_id, *args):
         if not args:
             return False
 
         org_key = FEATURE_ADOPTION_REDIS_KEY.format(organization_id)
-        with redis.clusters.get('default').map() as client:
+        with redis.clusters.get("default").map() as client:
             client.sadd(org_key, *args)
         return True
 
@@ -151,7 +197,9 @@ class FeatureAdoptionManager(BaseManager):
         for feature_id in incomplete_feature_ids:
             features.append(
                 FeatureAdoption(
-                    organization_id=organization_id, feature_id=feature_id, complete=True
+                    organization_id=organization_id,
+                    feature_id=feature_id,
+                    complete=True,
                 )
             )
         try:
@@ -178,18 +226,22 @@ class FeatureAdoptionManager(BaseManager):
 class FeatureAdoption(Model):
     __core__ = False
 
-    organization = FlexibleForeignKey('sentry.Organization')
-    feature_id = models.PositiveIntegerField(choices=[(f.id, f.name) for f in manager.all()])
+    organization = FlexibleForeignKey("sentry.Organization")
+    feature_id = models.PositiveIntegerField(
+        choices=[(f.id, f.name) for f in manager.all()]
+    )
     date_completed = models.DateTimeField(default=timezone.now)
     complete = models.BooleanField(default=False)
-    applicable = models.BooleanField(default=True)  # Is this feature applicable to this team?
+    applicable = models.BooleanField(
+        default=True
+    )  # Is this feature applicable to this team?
     data = JSONField()
 
     objects = FeatureAdoptionManager()
 
-    __repr__ = sane_repr('organization_id', 'feature_id', 'complete', 'applicable')
+    __repr__ = sane_repr("organization_id", "feature_id", "complete", "applicable")
 
     class Meta:
-        app_label = 'sentry'
-        db_table = 'sentry_featureadoption'
-        unique_together = (('organization', 'feature_id'), )
+        app_label = "sentry"
+        db_table = "sentry_featureadoption"
+        unique_together = (("organization", "feature_id"),)

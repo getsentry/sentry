@@ -8,8 +8,5 @@ from sentry.models import AuthIdentity
 
 class UserIdentityDetailsEndpoint(UserEndpoint):
     def delete(self, request, user, identity_id):
-        AuthIdentity.objects.filter(
-            user=user,
-            id=identity_id,
-        ).delete()
+        AuthIdentity.objects.filter(user=user, id=identity_id).delete()
         return Response(status=204)

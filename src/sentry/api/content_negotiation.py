@@ -10,7 +10,9 @@ class ConditionalContentNegotiation(DefaultContentNegotiation):
     """
 
     def select_parser(self, request, parsers):
-        if request.method == 'POST':
+        if request.method == "POST":
             parsers = [FormParser(), MultiPartParser()]
 
-        return super(ConditionalContentNegotiation, self).select_parser(request, parsers)
+        return super(ConditionalContentNegotiation, self).select_parser(
+            request, parsers
+        )

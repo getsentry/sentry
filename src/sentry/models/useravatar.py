@@ -13,18 +13,18 @@ class UserAvatar(AvatarBase):
     and contains their preferences for avatar type.
     """
 
-    AVATAR_TYPES = ((0, 'letter_avatar'), (1, 'upload'), (2, 'gravatar'), )
+    AVATAR_TYPES = ((0, "letter_avatar"), (1, "upload"), (2, "gravatar"))
 
-    FILE_TYPE = 'avatar.file'
+    FILE_TYPE = "avatar.file"
 
-    user = FlexibleForeignKey('sentry.User', unique=True, related_name='avatar')
+    user = FlexibleForeignKey("sentry.User", unique=True, related_name="avatar")
     avatar_type = models.PositiveSmallIntegerField(default=0, choices=AVATAR_TYPES)
 
-    objects = BaseManager(cache_fields=['user'])
+    objects = BaseManager(cache_fields=["user"])
 
     class Meta:
-        app_label = 'sentry'
-        db_table = 'sentry_useravatar'
+        app_label = "sentry"
+        db_table = "sentry_useravatar"
 
     def get_cache_key(self, size):
-        return 'avatar:%s:%s' % (self.user_id, size)
+        return "avatar:%s:%s" % (self.user_id, size)

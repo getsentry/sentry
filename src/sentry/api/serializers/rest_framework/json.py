@@ -11,13 +11,11 @@ from sentry.utils import json
 
 
 class JSONField(WritableField):
-    default_error_messages = {
-        'invalid': _('Value must be valid JSON.')
-    }
+    default_error_messages = {"invalid": _("Value must be valid JSON.")}
 
     def from_native(self, data):
         try:
             json.dumps(data)
         except (TypeError, ValueError):
-            raise ValidationError(self.default_error_messages['invalid'])
+            raise ValidationError(self.default_error_messages["invalid"])
         return data

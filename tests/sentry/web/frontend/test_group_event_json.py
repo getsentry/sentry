@@ -10,16 +10,14 @@ from sentry.testutils import TestCase
 class GroupEventJsonTest(TestCase):
     @fixture
     def path(self):
-        return u'/organizations/{}/issues/{}/events/{}/json/'.format(
-            self.organization.slug,
-            self.group.id,
-            self.event.id,
+        return u"/organizations/{}/issues/{}/events/{}/json/".format(
+            self.organization.slug, self.group.id, self.event.id
         )
 
     def test_does_render(self):
         self.login_as(self.user)
         resp = self.client.get(self.path)
         assert resp.status_code == 200
-        assert resp['Content-Type'] == 'application/json'
-        data = json.loads(resp.content.decode('utf-8'))
-        assert data['event_id'] == self.event.event_id
+        assert resp["Content-Type"] == "application/json"
+        data = json.loads(resp.content.decode("utf-8"))
+        assert data["event_id"] == self.event.event_id

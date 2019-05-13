@@ -22,11 +22,11 @@ class BetterSignal(Signal):
         if receiver is None:
             return wrapped
 
-        if hasattr(receiver, '__name__'):
+        if hasattr(receiver, "__name__"):
             wrapped.__name__ = receiver.__name__
-        if hasattr(receiver, '__module__'):
+        if hasattr(receiver, "__module__"):
             wrapped.__module__ = receiver.__module__
-        if hasattr(receiver, '__doc__'):
+        if hasattr(receiver, "__doc__"):
             wrapped.__doc__ = receiver.__doc__
         return wrapped(receiver)
 
@@ -35,7 +35,10 @@ class BetterSignal(Signal):
         A reimplementation of send_robust which logs failures, thus recovering stacktraces.
         """
         responses = []
-        if not self.receivers or self.sender_receivers_cache.get(sender) is NO_RECEIVERS:
+        if (
+            not self.receivers
+            or self.sender_receivers_cache.get(sender) is NO_RECEIVERS
+        ):
             return responses
 
         # Call each receiver with whatever arguments it can accept.
@@ -44,23 +47,25 @@ class BetterSignal(Signal):
             try:
                 response = receiver(signal=self, sender=sender, **named)
             except Exception as err:
-                logging.error('signal.failure', extra={
-                    'receiver': repr(receiver),
-                }, exc_info=True)
+                logging.error(
+                    "signal.failure", extra={"receiver": repr(receiver)}, exc_info=True
+                )
                 responses.append((receiver, err))
             else:
                 responses.append((receiver, response))
         return responses
 
 
-buffer_incr_complete = BetterSignal(providing_args=["model", "columns", "extra", "result"])
+buffer_incr_complete = BetterSignal(
+    providing_args=["model", "columns", "extra", "result"]
+)
 event_accepted = BetterSignal(providing_args=["ip", "data", "project"])
 event_discarded = BetterSignal(providing_args=["project"])
 event_dropped = BetterSignal(providing_args=["ip", "data", "project", "reason_code"])
 event_filtered = BetterSignal(providing_args=["ip", "data", "project"])
 event_received = BetterSignal(providing_args=["ip", "project"])
-pending_delete = BetterSignal(providing_args=['instance', 'actor'])
-event_processed = BetterSignal(providing_args=['project', 'group', 'event'])
+pending_delete = BetterSignal(providing_args=["instance", "actor"])
+event_processed = BetterSignal(providing_args=["project", "group", "event"])
 event_saved = BetterSignal(providing_args=["project"])
 
 # Organization Onboarding Signals
@@ -80,12 +85,8 @@ user_feedback_received = BetterSignal(providing_args=["project"])
 issue_assigned = BetterSignal(providing_args=["project", "group", "user"])
 
 issue_resolved = BetterSignal(
-    providing_args=[
-        "organization_id",
-        "project",
-        "group",
-        "user",
-        "resolution_type"])
+    providing_args=["organization_id", "project", "group", "user", "resolution_type"]
+)
 
 advanced_search = BetterSignal(providing_args=["project"])
 save_search_created = BetterSignal(providing_args=["project", "user"])
@@ -97,13 +98,19 @@ repo_linked = BetterSignal(providing_args=["repo", "user"])
 release_created = BetterSignal(providing_args=["release"])
 deploy_created = BetterSignal(providing_args=["deploy"])
 ownership_rule_created = BetterSignal(providing_args=["project"])
-issue_ignored = BetterSignal(providing_args=["project", "user", "group_list", "activity_data"])
+issue_ignored = BetterSignal(
+    providing_args=["project", "user", "group_list", "activity_data"]
+)
 
 terms_accepted = BetterSignal(providing_args=["organization", "user", "ip_address"])
 team_created = BetterSignal(providing_args=["organization", "user", "team"])
 integration_added = BetterSignal(providing_args=["integration", "organization", "user"])
-integration_issue_created = BetterSignal(providing_args=["integration", "organization", "user"])
-integration_issue_linked = BetterSignal(providing_args=["integration", "organization", "user"])
+integration_issue_created = BetterSignal(
+    providing_args=["integration", "organization", "user"]
+)
+integration_issue_linked = BetterSignal(
+    providing_args=["integration", "organization", "user"]
+)
 issue_deleted = BetterSignal(providing_args=["group", "user", "delete_type"])
 
 monitor_failed = BetterSignal(providing_args=["monitor"])

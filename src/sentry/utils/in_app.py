@@ -5,35 +5,27 @@ import re
 
 # Absolute paths where iOS mounts application files.
 IOS_APP_PATHS = (
-    '/var/containers/Bundle/Application/',
-    '/private/var/containers/Bundle/Application/',
+    "/var/containers/Bundle/Application/",
+    "/private/var/containers/Bundle/Application/",
 )
 
 # Locations which usually contain MacOS apps.
-MACOS_APP_PATHS = (
-    '.app/Contents/',
-    '/Users/',
-    '/usr/local/',
-)
+MACOS_APP_PATHS = (".app/Contents/", "/Users/", "/usr/local/")
 
 # Paths which usually contain linux system or third party libraries.
-LINUX_SYS_PATHS = (
-    '/lib/',
-    '/usr/lib/',
-    'linux-gate.so',
-)
+LINUX_SYS_PATHS = ("/lib/", "/usr/lib/", "linux-gate.so")
 
 # Regex matching the Windows folder on any drive.
-WINDOWS_SYS_PATH_RE = re.compile(r'^[a-z]:\\windows', re.IGNORECASE)
+WINDOWS_SYS_PATH_RE = re.compile(r"^[a-z]:\\windows", re.IGNORECASE)
 
 # Regex matching well-known iOS and macOS frameworks (and our own).
 SUPPORT_FRAMEWORK_RE = re.compile(
-    r'''(?x)
+    r"""(?x)
     /Frameworks/(
             libswift([a-zA-Z0-9]+)\.dylib$
         |   (KSCrash|SentrySwift|Sentry)\.framework/
     )
-    '''
+    """
 )
 
 
@@ -58,17 +50,19 @@ def is_known_third_party(package, sdk_info=None):
         return False
 
     # Check for app locations in the iOS simulator
-    if '/Developer/CoreSimulator/Devices/' in package \
-            and '/Containers/Bundle/Application/' in package:
+    if (
+        "/Developer/CoreSimulator/Devices/" in package
+        and "/Containers/Bundle/Application/" in package
+    ):
         return False
 
     # Check for OS-specific rules
-    sdk_name = sdk_info['sdk_name'].lower() if sdk_info else ''
-    if sdk_name == 'macos':
+    sdk_name = sdk_info["sdk_name"].lower() if sdk_info else ""
+    if sdk_name == "macos":
         return not any(p in package for p in MACOS_APP_PATHS)
-    if sdk_name == 'linux':
+    if sdk_name == "linux":
         return package.startswith(LINUX_SYS_PATHS)
-    if sdk_name == 'windows':
+    if sdk_name == "windows":
         return WINDOWS_SYS_PATH_RE.match(package) is not None
 
     # Everything else we don't know is considered third_party
@@ -94,7 +88,7 @@ def is_optional_package(package, sdk_info=None):
 
     # Bundled frameworks on iOS are considered optional, even though they live
     # in the application folder. They are not considered third party, however.
-    if package.startswith(IOS_APP_PATHS) and '/Frameworks/' in package:
+    if package.startswith(IOS_APP_PATHS) and "/Frameworks/" in package:
         return True
 
     # All other images, whether from the app bundle or not, are considered

@@ -13,5 +13,6 @@ class UserAuthenticatorIndexEndpoint(UserEndpoint):
         """
 
         interfaces = Authenticator.objects.all_interfaces_for_user(
-            user, return_missing=True)
+            user, return_missing=True
+        )
         return Response(serialize(list(interfaces)))

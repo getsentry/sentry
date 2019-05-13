@@ -62,7 +62,9 @@ def is_safe_hostname(hostname):
     family = allowed_gai_family()
 
     try:
-        for _, _, _, _, address in socket.getaddrinfo(hostname, 0, family, socket.SOCK_STREAM):
+        for _, _, _, _, address in socket.getaddrinfo(
+            hostname, 0, family, socket.SOCK_STREAM
+        ):
             # Only one bad apple will spoil the entire lookup, so be nice.
             if not is_ipaddress_allowed(address[0]):
                 return False
@@ -74,11 +76,15 @@ def is_safe_hostname(hostname):
 
 
 # Mostly yanked from https://github.com/urllib3/urllib3/blob/1.22/urllib3/util/connection.py#L36
-def safe_create_connection(address, timeout=socket._GLOBAL_DEFAULT_TIMEOUT,
-                           source_address=None, socket_options=None):
+def safe_create_connection(
+    address,
+    timeout=socket._GLOBAL_DEFAULT_TIMEOUT,
+    source_address=None,
+    socket_options=None,
+):
     host, port = address
-    if host.startswith('['):
-        host = host.strip('[]')
+    if host.startswith("["):
+        host = host.strip("[]")
     err = None
 
     # Using the value from allowed_gai_family() in the context of getaddrinfo lets
@@ -98,8 +104,8 @@ def safe_create_connection(address, timeout=socket._GLOBAL_DEFAULT_TIMEOUT,
             # are safe, but if one record is straddling safe and unsafe IPs, it's
             # suspicious.
             if host == ip:
-                raise RestrictedIPAddress('(%s) matches the URL blacklist' % ip)
-            raise RestrictedIPAddress('(%s/%s) matches the URL blacklist' % (host, ip))
+                raise RestrictedIPAddress("(%s) matches the URL blacklist" % ip)
+            raise RestrictedIPAddress("(%s/%s) matches the URL blacklist" % (host, ip))
 
         sock = None
         try:

@@ -6,7 +6,6 @@ class InvalidQuery(Exception):
 
 
 class BaseQuery(object):
-
     def __init__(self, relay):
         self.relay = relay
 

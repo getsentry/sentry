@@ -10,231 +10,226 @@ class Migration(SchemaMigration):
 
         # Changing field 'Message.view'
         db.alter_column(
-            'sentry_message', 'view',
-            self.gf('django.db.models.fields.CharField')(max_length=200, null=True)
+            "sentry_message",
+            "view",
+            self.gf("django.db.models.fields.CharField")(max_length=200, null=True),
         )
 
         # Adding field 'GroupedMessage.data'
         db.add_column(
-            'sentry_groupedmessage',
-            'data',
-            self.gf('django.db.models.fields.TextField')(null=True, blank=True),
-            keep_default=False
+            "sentry_groupedmessage",
+            "data",
+            self.gf("django.db.models.fields.TextField")(null=True, blank=True),
+            keep_default=False,
         )
 
         # Changing field 'GroupedMessage.view'
         db.alter_column(
-            'sentry_groupedmessage', 'view',
-            self.gf('django.db.models.fields.CharField')(max_length=200, null=True)
+            "sentry_groupedmessage",
+            "view",
+            self.gf("django.db.models.fields.CharField")(max_length=200, null=True),
         )
 
         # Changing field 'FilterValue.value'
         db.alter_column(
-            'sentry_filtervalue',
-            'value',
-            self.gf('django.db.models.fields.CharField')(max_length=200)
+            "sentry_filtervalue",
+            "value",
+            self.gf("django.db.models.fields.CharField")(max_length=200),
         )
 
     def backwards(self, orm):
 
         # Changing field 'Message.view'
         db.alter_column(
-            'sentry_message', 'view',
-            self.gf('django.db.models.fields.CharField')(max_length=255, null=True)
+            "sentry_message",
+            "view",
+            self.gf("django.db.models.fields.CharField")(max_length=255, null=True),
         )
 
         # Deleting field 'GroupedMessage.data'
-        db.delete_column('sentry_groupedmessage', 'data')
+        db.delete_column("sentry_groupedmessage", "data")
 
         # Changing field 'GroupedMessage.view'
         db.alter_column(
-            'sentry_groupedmessage', 'view',
-            self.gf('django.db.models.fields.CharField')(max_length=255, null=True)
+            "sentry_groupedmessage",
+            "view",
+            self.gf("django.db.models.fields.CharField")(max_length=255, null=True),
         )
 
         # Changing field 'FilterValue.value'
         db.alter_column(
-            'sentry_filtervalue',
-            'value',
-            self.gf('django.db.models.fields.CharField')(max_length=255)
+            "sentry_filtervalue",
+            "value",
+            self.gf("django.db.models.fields.CharField")(max_length=255),
         )
 
     models = {
-        'sentry.filtervalue': {
-            'Meta': {
-                'unique_together': "(('key', 'value'),)",
-                'object_name': 'FilterValue'
+        "sentry.filtervalue": {
+            "Meta": {
+                "unique_together": "(('key', 'value'),)",
+                "object_name": "FilterValue",
             },
-            'id':
-            ('sentry.db.models.fields.bounded.BoundedBigAutoField', [], {
-                'primary_key': 'True'
-            }),
-            'key': ('django.db.models.fields.CharField', [], {
-                'max_length': '32'
-            }),
-            'value': ('django.db.models.fields.CharField', [], {
-                'max_length': '200'
-            })
+            "id": (
+                "sentry.db.models.fields.bounded.BoundedBigAutoField",
+                [],
+                {"primary_key": "True"},
+            ),
+            "key": ("django.db.models.fields.CharField", [], {"max_length": "32"}),
+            "value": ("django.db.models.fields.CharField", [], {"max_length": "200"}),
         },
-        'sentry.groupedmessage': {
-            'Meta': {
-                'unique_together': "(('logger', 'view', 'checksum'),)",
-                'object_name': 'GroupedMessage'
+        "sentry.groupedmessage": {
+            "Meta": {
+                "unique_together": "(('logger', 'view', 'checksum'),)",
+                "object_name": "GroupedMessage",
             },
-            'checksum': ('django.db.models.fields.CharField', [], {
-                'max_length': '32'
-            }),
-            'class_name': (
-                'django.db.models.fields.CharField', [], {
-                    'db_index': 'True',
-                    'max_length': '128',
-                    'null': 'True',
-                    'blank': 'True'
-                }
+            "checksum": ("django.db.models.fields.CharField", [], {"max_length": "32"}),
+            "class_name": (
+                "django.db.models.fields.CharField",
+                [],
+                {
+                    "db_index": "True",
+                    "max_length": "128",
+                    "null": "True",
+                    "blank": "True",
+                },
             ),
-            'data': ('django.db.models.fields.TextField', [], {
-                'null': 'True',
-                'blank': 'True'
-            }),
-            'first_seen': (
-                'django.db.models.fields.DateTimeField', [], {
-                    'default': 'datetime.datetime.now',
-                    'db_index': 'True'
-                }
+            "data": (
+                "django.db.models.fields.TextField",
+                [],
+                {"null": "True", "blank": "True"},
             ),
-            'id':
-            ('sentry.db.models.fields.bounded.BoundedBigAutoField', [], {
-                'primary_key': 'True'
-            }),
-            'last_seen': (
-                'django.db.models.fields.DateTimeField', [], {
-                    'default': 'datetime.datetime.now',
-                    'db_index': 'True'
-                }
+            "first_seen": (
+                "django.db.models.fields.DateTimeField",
+                [],
+                {"default": "datetime.datetime.now", "db_index": "True"},
             ),
-            'level': (
-                'django.db.models.fields.PositiveIntegerField', [], {
-                    'default': '40',
-                    'db_index': 'True',
-                    'blank': 'True'
-                }
+            "id": (
+                "sentry.db.models.fields.bounded.BoundedBigAutoField",
+                [],
+                {"primary_key": "True"},
             ),
-            'logger': (
-                'django.db.models.fields.CharField', [], {
-                    'default': "'root'",
-                    'max_length': '64',
-                    'db_index': 'True',
-                    'blank': 'True'
-                }
+            "last_seen": (
+                "django.db.models.fields.DateTimeField",
+                [],
+                {"default": "datetime.datetime.now", "db_index": "True"},
             ),
-            'message': ('django.db.models.fields.TextField', [], {}),
-            'status': (
-                'django.db.models.fields.PositiveIntegerField', [], {
-                    'default': '0',
-                    'db_index': 'True'
-                }
+            "level": (
+                "django.db.models.fields.PositiveIntegerField",
+                [],
+                {"default": "40", "db_index": "True", "blank": "True"},
             ),
-            'times_seen': ('django.db.models.fields.PositiveIntegerField', [], {
-                'default': '1'
-            }),
-            'traceback':
-            ('django.db.models.fields.TextField', [], {
-                'null': 'True',
-                'blank': 'True'
-            }),
-            'view': (
-                'django.db.models.fields.CharField', [], {
-                    'max_length': '200',
-                    'null': 'True',
-                    'blank': 'True'
-                }
-            )
+            "logger": (
+                "django.db.models.fields.CharField",
+                [],
+                {
+                    "default": "'root'",
+                    "max_length": "64",
+                    "db_index": "True",
+                    "blank": "True",
+                },
+            ),
+            "message": ("django.db.models.fields.TextField", [], {}),
+            "status": (
+                "django.db.models.fields.PositiveIntegerField",
+                [],
+                {"default": "0", "db_index": "True"},
+            ),
+            "times_seen": (
+                "django.db.models.fields.PositiveIntegerField",
+                [],
+                {"default": "1"},
+            ),
+            "traceback": (
+                "django.db.models.fields.TextField",
+                [],
+                {"null": "True", "blank": "True"},
+            ),
+            "view": (
+                "django.db.models.fields.CharField",
+                [],
+                {"max_length": "200", "null": "True", "blank": "True"},
+            ),
         },
-        'sentry.message': {
-            'Meta': {
-                'object_name': 'Message'
-            },
-            'checksum': ('django.db.models.fields.CharField', [], {
-                'max_length': '32'
-            }),
-            'class_name': (
-                'django.db.models.fields.CharField', [], {
-                    'db_index': 'True',
-                    'max_length': '128',
-                    'null': 'True',
-                    'blank': 'True'
-                }
+        "sentry.message": {
+            "Meta": {"object_name": "Message"},
+            "checksum": ("django.db.models.fields.CharField", [], {"max_length": "32"}),
+            "class_name": (
+                "django.db.models.fields.CharField",
+                [],
+                {
+                    "db_index": "True",
+                    "max_length": "128",
+                    "null": "True",
+                    "blank": "True",
+                },
             ),
-            'data': ('django.db.models.fields.TextField', [], {
-                'null': 'True',
-                'blank': 'True'
-            }),
-            'datetime': (
-                'django.db.models.fields.DateTimeField', [], {
-                    'default': 'datetime.datetime.now',
-                    'db_index': 'True'
-                }
+            "data": (
+                "django.db.models.fields.TextField",
+                [],
+                {"null": "True", "blank": "True"},
             ),
-            'group': (
-                'sentry.db.models.fields.FlexibleForeignKey', [], {
-                    'blank': 'True',
-                    'related_name': "'message_set'",
-                    'null': 'True',
-                    'to': "orm['sentry.GroupedMessage']"
-                }
+            "datetime": (
+                "django.db.models.fields.DateTimeField",
+                [],
+                {"default": "datetime.datetime.now", "db_index": "True"},
             ),
-            'id':
-            ('sentry.db.models.fields.bounded.BoundedBigAutoField', [], {
-                'primary_key': 'True'
-            }),
-            'level': (
-                'django.db.models.fields.PositiveIntegerField', [], {
-                    'default': '40',
-                    'db_index': 'True',
-                    'blank': 'True'
-                }
+            "group": (
+                "sentry.db.models.fields.FlexibleForeignKey",
+                [],
+                {
+                    "blank": "True",
+                    "related_name": "'message_set'",
+                    "null": "True",
+                    "to": "orm['sentry.GroupedMessage']",
+                },
             ),
-            'logger': (
-                'django.db.models.fields.CharField', [], {
-                    'default': "'root'",
-                    'max_length': '64',
-                    'db_index': 'True',
-                    'blank': 'True'
-                }
+            "id": (
+                "sentry.db.models.fields.bounded.BoundedBigAutoField",
+                [],
+                {"primary_key": "True"},
             ),
-            'message': ('django.db.models.fields.TextField', [], {}),
-            'server_name':
-            ('django.db.models.fields.CharField', [], {
-                'max_length': '128',
-                'db_index': 'True'
-            }),
-            'site': (
-                'django.db.models.fields.CharField', [], {
-                    'max_length': '128',
-                    'null': 'True',
-                    'db_index': 'True'
-                }
+            "level": (
+                "django.db.models.fields.PositiveIntegerField",
+                [],
+                {"default": "40", "db_index": "True", "blank": "True"},
             ),
-            'traceback':
-            ('django.db.models.fields.TextField', [], {
-                'null': 'True',
-                'blank': 'True'
-            }),
-            'url': (
-                'django.db.models.fields.URLField', [], {
-                    'max_length': '200',
-                    'null': 'True',
-                    'blank': 'True'
-                }
+            "logger": (
+                "django.db.models.fields.CharField",
+                [],
+                {
+                    "default": "'root'",
+                    "max_length": "64",
+                    "db_index": "True",
+                    "blank": "True",
+                },
             ),
-            'view': (
-                'django.db.models.fields.CharField', [], {
-                    'max_length': '200',
-                    'null': 'True',
-                    'blank': 'True'
-                }
-            )
-        }
+            "message": ("django.db.models.fields.TextField", [], {}),
+            "server_name": (
+                "django.db.models.fields.CharField",
+                [],
+                {"max_length": "128", "db_index": "True"},
+            ),
+            "site": (
+                "django.db.models.fields.CharField",
+                [],
+                {"max_length": "128", "null": "True", "db_index": "True"},
+            ),
+            "traceback": (
+                "django.db.models.fields.TextField",
+                [],
+                {"null": "True", "blank": "True"},
+            ),
+            "url": (
+                "django.db.models.fields.URLField",
+                [],
+                {"max_length": "200", "null": "True", "blank": "True"},
+            ),
+            "view": (
+                "django.db.models.fields.CharField",
+                [],
+                {"max_length": "200", "null": "True", "blank": "True"},
+            ),
+        },
     }
 
-    complete_apps = ['sentry']
+    complete_apps = ["sentry"]

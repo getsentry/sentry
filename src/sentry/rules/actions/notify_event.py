@@ -17,7 +17,7 @@ from sentry.utils.safe import safe_execute
 
 
 class NotifyEventAction(EventAction):
-    label = 'Send a notification (for all legacy integrations)'
+    label = "Send a notification (for all legacy integrations)"
 
     def get_plugins(self):
         from sentry.plugins.bases.notify import NotificationPlugin
@@ -29,7 +29,9 @@ class NotifyEventAction(EventAction):
             results.append(LegacyPluginService(plugin))
 
         for plugin in plugins.for_project(self.project, version=2):
-            for notifier in (safe_execute(plugin.get_notifiers, _with_transaction=False) or ()):
+            for notifier in (
+                safe_execute(plugin.get_notifiers, _with_transaction=False) or ()
+            ):
                 results.append(LegacyPluginService(notifier))
 
         return results
@@ -45,5 +47,7 @@ class NotifyEventAction(EventAction):
             ):
                 continue
 
-            metrics.incr('notifications.sent', instance=plugin.slug, skip_internal=False)
+            metrics.incr(
+                "notifications.sent", instance=plugin.slug, skip_internal=False
+            )
             yield self.future(plugin.rule_notify)

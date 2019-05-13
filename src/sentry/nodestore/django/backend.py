@@ -36,12 +36,7 @@ class DjangoNodeStorage(NodeStorage):
 
     def set(self, id, data, ttl=None):
         create_or_update(
-            Node,
-            id=id,
-            values={
-                'data': data,
-                'timestamp': timezone.now(),
-            },
+            Node, id=id, values={"data": data, "timestamp": timezone.now()}
         )
 
     def cleanup(self, cutoff_timestamp):
@@ -50,8 +45,4 @@ class DjangoNodeStorage(NodeStorage):
         total_seconds = (timezone.now() - cutoff_timestamp).total_seconds()
         days = math.floor(total_seconds / 86400)
 
-        BulkDeleteQuery(
-            model=Node,
-            dtfield='timestamp',
-            days=days,
-        ).execute()
+        BulkDeleteQuery(model=Node, dtfield="timestamp", days=days).execute()

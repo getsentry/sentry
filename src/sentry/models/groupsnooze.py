@@ -7,7 +7,11 @@ from django.utils import timezone
 from jsonfield import JSONField
 
 from sentry.db.models import (
-    BaseManager, BoundedPositiveIntegerField, FlexibleForeignKey, Model, sane_repr
+    BaseManager,
+    BoundedPositiveIntegerField,
+    FlexibleForeignKey,
+    Model,
+    sane_repr,
 )
 
 
@@ -25,9 +29,10 @@ class GroupSnooze(Model):
 
     NOTE: `window` and `user_window` are specified in minutes
     """
+
     __core__ = False
 
-    group = FlexibleForeignKey('sentry.Group', unique=True)
+    group = FlexibleForeignKey("sentry.Group", unique=True)
     until = models.DateTimeField(null=True)
     count = BoundedPositiveIntegerField(null=True)
     window = BoundedPositiveIntegerField(null=True)
@@ -36,13 +41,13 @@ class GroupSnooze(Model):
     state = JSONField(null=True)
     actor_id = BoundedPositiveIntegerField(null=True)
 
-    objects = BaseManager(cache_fields=('group', ))
+    objects = BaseManager(cache_fields=("group",))
 
     class Meta:
-        db_table = 'sentry_groupsnooze'
-        app_label = 'sentry'
+        db_table = "sentry_groupsnooze"
+        app_label = "sentry"
 
-    __repr__ = sane_repr('group_id')
+    __repr__ = sane_repr("group_id")
 
     def is_valid(self, group=None, test_rates=False):
         if group is None:
@@ -59,14 +64,14 @@ class GroupSnooze(Model):
                 if test_rates:
                     if not self.test_frequency_rates():
                         return False
-            elif self.count <= group.times_seen - self.state['times_seen']:
+            elif self.count <= group.times_seen - self.state["times_seen"]:
                 return False
 
         if self.user_count and test_rates:
             if self.user_window:
                 if not self.test_user_rates():
                     return False
-            elif self.user_count <= group.count_users_seen() - self.state['users_seen']:
+            elif self.user_count <= group.count_users_seen() - self.state["users_seen"]:
                 return False
         return True
 
@@ -77,10 +82,7 @@ class GroupSnooze(Model):
         start = end - timedelta(minutes=self.window)
 
         rate = tsdb.get_sums(
-            model=tsdb.models.group,
-            keys=[self.group_id],
-            start=start,
-            end=end,
+            model=tsdb.models.group, keys=[self.group_id], start=start, end=end
         )[self.group_id]
         if rate >= self.count:
             return False

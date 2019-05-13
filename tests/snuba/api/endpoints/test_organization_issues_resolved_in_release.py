@@ -4,23 +4,14 @@ from uuid import uuid1
 
 import six
 
-from sentry.models import (
-    Commit,
-    GroupLink,
-    GroupResolution,
-    ReleaseCommit,
-    Repository,
-)
+from sentry.models import Commit, GroupLink, GroupResolution, ReleaseCommit, Repository
 
-from sentry.testutils import (
-    APITestCase,
-    SnubaTestCase,
-)
+from sentry.testutils import APITestCase, SnubaTestCase
 
 
 class OrganizationIssuesResolvedInReleaseEndpointTest(APITestCase, SnubaTestCase):
-    endpoint = 'sentry-api-0-organization-release-resolved'
-    method = 'get'
+    endpoint = "sentry-api-0-organization-release-resolved"
+    method = "get"
 
     def setUp(self):
         super(OrganizationIssuesResolvedInReleaseEndpointTest, self).setUp()
@@ -41,18 +32,13 @@ class OrganizationIssuesResolvedInReleaseEndpointTest(APITestCase, SnubaTestCase
     def build_grouplink(self, group=None):
         group = self.group if group is None else group
         repo = Repository.objects.create(
-            organization_id=self.org.id,
-            name=group.project.name,
+            organization_id=self.org.id, name=group.project.name
         )
         commit = Commit.objects.create(
-            organization_id=self.org.id,
-            repository_id=repo.id,
-            key=uuid1().hex,
+            organization_id=self.org.id, repository_id=repo.id, key=uuid1().hex
         )
         commit_2 = Commit.objects.create(
-            organization_id=self.org.id,
-            repository_id=repo.id,
-            key=uuid1().hex,
+            organization_id=self.org.id, repository_id=repo.id, key=uuid1().hex
         )
         ReleaseCommit.objects.create(
             organization_id=self.org.id,
@@ -84,18 +70,16 @@ class OrganizationIssuesResolvedInReleaseEndpointTest(APITestCase, SnubaTestCase
     def run_test(self, expected_groups, project_ids=None, environment_names=None):
         params = {}
         if project_ids:
-            params['project'] = project_ids
+            params["project"] = project_ids
         if environment_names:
-            params['environment'] = environment_names
+            params["environment"] = environment_names
 
         response = self.get_valid_response(
-            self.org.slug,
-            self.release.version,
-            **params
+            self.org.slug, self.release.version, **params
         )
         assert len(response.data) == len(expected_groups)
         expected = set(map(six.text_type, [g.id for g in expected_groups]))
-        assert set([item['id'] for item in response.data]) == expected
+        assert set([item["id"] for item in response.data]) == expected
 
     def test_shows_issues_from_groupresolution(self):
         """

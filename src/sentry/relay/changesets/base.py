@@ -6,7 +6,6 @@ class ChangesetError(Exception):
 
 
 class BaseChangeset(object):
-
     def __init__(self, relay):
         self.relay = relay
 

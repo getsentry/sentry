@@ -10,7 +10,11 @@ from rest_framework.response import Response
 from sentry import features
 from sentry.api.bases import OrganizationEventsEndpointBase, OrganizationEventPermission
 from sentry.api.helpers.group_index import (
-    build_query_params_from_request, delete_groups, get_by_short_id, update_groups, ValidationError
+    build_query_params_from_request,
+    delete_groups,
+    get_by_short_id,
+    update_groups,
+    ValidationError,
 )
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.group import StreamGroupSerializerSnuba
@@ -19,24 +23,28 @@ from sentry.models import Group, GroupStatus
 from sentry.search.snuba.backend import SnubaSearchBackend
 from sentry.utils.validators import is_event_id
 
-ERR_INVALID_STATS_PERIOD = "Invalid stats_period. Valid choices are '', '24h', and '14d'"
+ERR_INVALID_STATS_PERIOD = (
+    "Invalid stats_period. Valid choices are '', '24h', and '14d'"
+)
 
 
 search = SnubaSearchBackend(**settings.SENTRY_SEARCH_OPTIONS)
 
 
 class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
-    permission_classes = (OrganizationEventPermission, )
+    permission_classes = (OrganizationEventPermission,)
 
-    def _search(self, request, organization, projects, environments, extra_query_kwargs=None):
+    def _search(
+        self, request, organization, projects, environments, extra_query_kwargs=None
+    ):
         query_kwargs = build_query_params_from_request(
-            request, organization, projects, environments,
+            request, organization, projects, environments
         )
         if extra_query_kwargs is not None:
-            assert 'environment' not in extra_query_kwargs
+            assert "environment" not in extra_query_kwargs
             query_kwargs.update(extra_query_kwargs)
 
-        query_kwargs['environments'] = environments if environments else None
+        query_kwargs["environments"] = environments if environments else None
         result = search.query(**query_kwargs)
         return result, query_kwargs
 
@@ -81,13 +89,13 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
                                           issues belong to.
         :auth: required
         """
-        stats_period = request.GET.get('groupStatsPeriod')
-        if stats_period not in (None, '', '24h', '14d'):
+        stats_period = request.GET.get("groupStatsPeriod")
+        if stats_period not in (None, "", "24h", "14d"):
             return Response({"detail": ERR_INVALID_STATS_PERIOD}, status=400)
         elif stats_period is None:
             # default
-            stats_period = '24h'
-        elif stats_period == '':
+            stats_period = "24h"
+        elif stats_period == "":
             # disable stats
             stats_period = None
 
@@ -106,59 +114,56 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
             return Response([])
 
         if len(projects) > 1 and not features.has(
-                'organizations:global-views', organization, actor=request.user):
-            return Response({
-                'detail': 'You do not have the multi project stream feature enabled'
-            }, status=400)
+            "organizations:global-views", organization, actor=request.user
+        ):
+            return Response(
+                {"detail": "You do not have the multi project stream feature enabled"},
+                status=400,
+            )
 
         # we ignore date range for both short id and event ids
-        query = request.GET.get('query', '').strip()
+        query = request.GET.get("query", "").strip()
         if query:
             # check to see if we've got an event ID
             if is_event_id(query):
-                groups = list(
-                    Group.objects.filter_by_event_id(project_ids, query)
-                )
+                groups = list(Group.objects.filter_by_event_id(project_ids, query))
                 if len(groups) == 1:
                     response = Response(
                         serialize(
-                            groups, request.user, serializer(
-                                matching_event_id=query
-                            )
+                            groups, request.user, serializer(matching_event_id=query)
                         )
                     )
-                    response['X-Sentry-Direct-Hit'] = '1'
+                    response["X-Sentry-Direct-Hit"] = "1"
                     return response
 
                 if groups:
                     return Response(serialize(groups, request.user, serializer()))
 
-            group = get_by_short_id(organization.id, request.GET.get('shortIdLookup'), query)
+            group = get_by_short_id(
+                organization.id, request.GET.get("shortIdLookup"), query
+            )
             if group is not None:
                 # check all projects user has access to
                 if request.access.has_project_access(group.project):
-                    response = Response(
-                        serialize(
-                            [group], request.user, serializer()
-                        )
-                    )
-                    response['X-Sentry-Direct-Hit'] = '1'
+                    response = Response(serialize([group], request.user, serializer()))
+                    response["X-Sentry-Direct-Hit"] = "1"
                     return response
 
         try:
             start, end = get_date_range_from_params(request.GET)
         except InvalidParams as exc:
-            return Response({'detail': exc.message}, status=400)
+            return Response({"detail": exc.message}, status=400)
 
         try:
             cursor_result, query_kwargs = self._search(
-                request, organization, projects, environments, {
-                    'count_hits': True,
-                    'date_to': end,
-                    'date_from': start,
-                })
+                request,
+                organization,
+                projects,
+                environments,
+                {"count_hits": True, "date_to": end, "date_from": start},
+            )
         except ValidationError as exc:
-            return Response({'detail': six.text_type(exc)}, status=400)
+            return Response({"detail": six.text_type(exc)}, status=400)
 
         results = list(cursor_result)
 
@@ -168,11 +173,12 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
         # TODO: We should try to integrate this into the search backend, since
         # this can cause us to arbitrarily return fewer results than requested.
         status = [
-            search_filter for search_filter in query_kwargs.get('search_filters', [])
-            if search_filter.key.name == 'status'
+            search_filter
+            for search_filter in query_kwargs.get("search_filters", [])
+            if search_filter.key.name == "status"
         ]
         if status and status[0].value.raw_value == GroupStatus.UNRESOLVED:
-            context = [r for r in context if r['status'] == 'unresolved']
+            context = [r for r in context if r["status"] == "unresolved"]
 
         response = Response(context)
 
@@ -243,21 +249,21 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
 
         projects = self.get_projects(request, organization)
         if len(projects) > 1 and not features.has(
-                'organizations:global-views', organization, actor=request.user):
-            return Response({
-                'detail': 'You do not have the multi project stream feature enabled'
-            }, status=400)
+            "organizations:global-views", organization, actor=request.user
+        ):
+            return Response(
+                {"detail": "You do not have the multi project stream feature enabled"},
+                status=400,
+            )
 
         search_fn = functools.partial(
-            self._search, request, organization, projects,
+            self._search,
+            request,
+            organization,
+            projects,
             self.get_environments(request, organization),
         )
-        return update_groups(
-            request,
-            projects,
-            organization.id,
-            search_fn,
-        )
+        return update_groups(request, projects, organization.id, search_fn)
 
     def delete(self, request, organization):
         """
@@ -281,19 +287,19 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
         """
         projects = self.get_projects(request, organization)
         if len(projects) > 1 and not features.has(
-                'organizations:global-views', organization, actor=request.user):
-            return Response({
-                'detail': 'You do not have the multi project stream feature enabled'
-            }, status=400)
+            "organizations:global-views", organization, actor=request.user
+        ):
+            return Response(
+                {"detail": "You do not have the multi project stream feature enabled"},
+                status=400,
+            )
 
         search_fn = functools.partial(
-            self._search, request, organization, projects,
+            self._search,
+            request,
+            organization,
+            projects,
             self.get_environments(request, organization),
         )
 
-        return delete_groups(
-            request,
-            projects,
-            organization.id,
-            search_fn,
-        )
+        return delete_groups(request, projects, organization.id, search_fn)

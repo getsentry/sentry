@@ -25,7 +25,7 @@ class OrganizationOptionManager(BaseManager):
     def __getstate__(self):
         d = self.__dict__.copy()
         # we cant serialize weakrefs
-        d.pop('_OrganizationOptionManager__cache', None)
+        d.pop("_OrganizationOptionManager__cache", None)
         return d
 
     def __setstate__(self, state):
@@ -34,14 +34,11 @@ class OrganizationOptionManager(BaseManager):
 
     def _make_key(self, instance_id):
         assert instance_id
-        return '%s:%s' % (self.model._meta.db_table, instance_id)
+        return "%s:%s" % (self.model._meta.db_table, instance_id)
 
     def get_value_bulk(self, instances, key):
         instance_map = dict((i.id, i) for i in instances)
-        queryset = self.filter(
-            organization__in=instances,
-            key=key,
-        )
+        queryset = self.filter(organization__in=instances, key=key)
         result = dict((i, None) for i in instances)
         for obj in queryset:
             result[instance_map[obj.organization_id]] = obj.value
@@ -61,11 +58,7 @@ class OrganizationOptionManager(BaseManager):
 
     def set_value(self, organization, key, value):
         self.create_or_update(
-            organization=organization,
-            key=key,
-            values={
-                'value': value,
-            },
+            organization=organization, key=key, values={"value": value}
         )
         self.reload_cache(organization.id)
 
@@ -89,7 +82,9 @@ class OrganizationOptionManager(BaseManager):
 
     def reload_cache(self, organization_id):
         cache_key = self._make_key(organization_id)
-        result = dict((i.key, i.value) for i in self.filter(organization=organization_id))
+        result = dict(
+            (i.key, i.value) for i in self.filter(organization=organization_id)
+        )
         cache.set(cache_key, result)
         self.__cache[organization_id] = result
         return result
@@ -116,17 +111,18 @@ class OrganizationOption(Model):
     key: onboarding:complete
     value: { updated: datetime }
     """
+
     __core__ = True
 
-    organization = FlexibleForeignKey('sentry.Organization')
+    organization = FlexibleForeignKey("sentry.Organization")
     key = models.CharField(max_length=64)
     value = EncryptedPickledObjectField()
 
     objects = OrganizationOptionManager()
 
     class Meta:
-        app_label = 'sentry'
-        db_table = 'sentry_organizationoptions'
-        unique_together = (('organization', 'key', ), )
+        app_label = "sentry"
+        db_table = "sentry_organizationoptions"
+        unique_together = (("organization", "key"),)
 
-    __repr__ = sane_repr('organization_id', 'key', 'value')
+    __repr__ = sane_repr("organization_id", "key", "value")

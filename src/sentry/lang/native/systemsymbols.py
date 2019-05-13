@@ -19,15 +19,15 @@ def lookup_system_symbols(symbols, sdk_info=None, cpu_name=None):
     enabled.  If this failes or the server is disabled, `None` is
     returned.
     """
-    if not options.get('symbolserver.enabled'):
+    if not options.get("symbolserver.enabled"):
         return
 
-    url = '%s/lookup' % options.get('symbolserver.options')['url'].rstrip('/')
+    url = "%s/lookup" % options.get("symbolserver.options")["url"].rstrip("/")
     sess = Session()
     symbol_query = {
-        'sdk_id': sdk_info_to_sdk_id(sdk_info),
-        'cpu_name': cpu_name,
-        'symbols': symbols,
+        "sdk_id": sdk_info_to_sdk_id(sdk_info),
+        "cpu_name": cpu_name,
+        "symbols": symbols,
     }
 
     attempts = 0
@@ -43,11 +43,13 @@ def lookup_system_symbols(symbols, sdk_info=None, cpu_name=None):
                 if rv.status_code == 404:
                     return None
                 rv.raise_for_status()
-                return rv.json()['symbols']
+                return rv.json()["symbols"]
             except (IOError, RequestException):
                 attempts += 1
                 if attempts > MAX_ATTEMPTS:
-                    logger.error('Failed to contact system symbol server', exc_info=True)
+                    logger.error(
+                        "Failed to contact system symbol server", exc_info=True
+                    )
                     return
                 time.sleep(wait)
                 wait *= 2.0

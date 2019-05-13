@@ -15,11 +15,13 @@ class BitbucketInstalledEndpoint(Endpoint):
 
     @csrf_exempt
     def dispatch(self, request, *args, **kwargs):
-        return super(BitbucketInstalledEndpoint, self).dispatch(request, *args, **kwargs)
+        return super(BitbucketInstalledEndpoint, self).dispatch(
+            request, *args, **kwargs
+        )
 
     def post(self, request, *args, **kwargs):
         state = request.DATA
         data = BitbucketIntegrationProvider().build_integration(state)
-        ensure_integration('bitbucket', data)
+        ensure_integration("bitbucket", data)
 
         return self.respond()

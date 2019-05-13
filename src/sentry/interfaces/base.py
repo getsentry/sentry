@@ -23,8 +23,7 @@ interface_logger = logging.getLogger("sentry.interfaces")
 # return value of `sentry.models.event._should_skip_to_python` is explicitly
 # passed to interfaces.
 RUST_RENORMALIZED_DEFAULT = os.environ.get(
-    "SENTRY_TEST_USE_RUST_INTERFACE_RENORMALIZATION",
-    "false"
+    "SENTRY_TEST_USE_RUST_INTERFACE_RENORMALIZATION", "false"
 ).lower() in ("true", "1")
 
 
@@ -33,12 +32,12 @@ def get_interface(name):
         name = get_canonical_name(name)
         import_path = settings.SENTRY_INTERFACES[name]
     except KeyError:
-        raise ValueError('Invalid interface name: %s' % (name, ))
+        raise ValueError("Invalid interface name: %s" % (name,))
 
     try:
         interface = import_string(import_path)
     except Exception:
-        raise ValueError('Unable to load interface: %s' % (name, ))
+        raise ValueError("Unable to load interface: %s" % (name,))
 
     return interface
 
@@ -55,9 +54,12 @@ def get_interfaces(data, rust_renormalized=RUST_RENORMALIZED_DEFAULT):
         except ValueError:
             continue
 
-        value = safe_execute(cls.to_python, data,
-                             rust_renormalized=rust_renormalized,
-                             _with_transaction=False)
+        value = safe_execute(
+            cls.to_python,
+            data,
+            rust_renormalized=rust_renormalized,
+            _with_transaction=False,
+        )
         if not value:
             continue
 
@@ -99,7 +101,7 @@ class Interface(object):
     score = 0
     display_score = None
     ephemeral = False
-    grouping_variants = ['default']
+    grouping_variants = ["default"]
 
     def __init__(self, **data):
         self._data = data or {}
@@ -122,19 +124,19 @@ class Interface(object):
         return self._data == other._data
 
     def __getstate__(self):
-        return {'_data': self._data}
+        return {"_data": self._data}
 
     def __setstate__(self, state):
         self.__dict__.update(state)
-        if not hasattr(self, '_data'):
+        if not hasattr(self, "_data"):
             self._data = {}
 
     def __getattr__(self, name):
         return self._data[name]
 
     def __setattr__(self, name, value):
-        if name == '_data':
-            self.__dict__['_data'] = value
+        if name == "_data":
+            self.__dict__["_data"] = value
         else:
             self._data[name] = value
 
@@ -174,28 +176,31 @@ class Interface(object):
         return iter(())
 
     def to_string(self, event, is_public=False, **kwargs):
-        return ''
+        return ""
 
     def to_email_html(self, event, **kwargs):
         body = self.to_string(event)
         if not body:
-            return ''
-        return '<pre>%s</pre>' % (escape(body), )
+            return ""
+        return "<pre>%s</pre>" % (escape(body),)
 
     # deprecated stuff.  These were deprecated in late 2018, once
     # determined they are unused we can kill them.
 
     def get_path(self):
         from warnings import warn
-        warn(DeprecationWarning('Replaced with .path'))
+
+        warn(DeprecationWarning("Replaced with .path"))
         return self.path
 
     def get_alias(self):
         from warnings import warn
-        warn(DeprecationWarning('Replaced with .path'))
+
+        warn(DeprecationWarning("Replaced with .path"))
         return self.path
 
     def get_slug(self):
         from warnings import warn
-        warn(DeprecationWarning('Replaced with .path'))
+
+        warn(DeprecationWarning("Replaced with .path"))
         return self.path

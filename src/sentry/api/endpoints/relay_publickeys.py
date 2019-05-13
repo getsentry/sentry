@@ -13,7 +13,7 @@ class RelayPublicKeysEndpoint(Endpoint):
     permission_classes = (RelayPermission,)
 
     def post(self, request):
-        relay_ids = request.relay_request_data.get('relay_ids') or ()
+        relay_ids = request.relay_request_data.get("relay_ids") or ()
         rv = dict.fromkeys(relay_ids)
 
         if relay_ids:
@@ -21,6 +21,4 @@ class RelayPublicKeysEndpoint(Endpoint):
             for relay in relays:
                 rv[relay.relay_id] = relay.public_key
 
-        return Response({
-            'public_keys': rv,
-        }, status=200)
+        return Response({"public_keys": rv}, status=200)

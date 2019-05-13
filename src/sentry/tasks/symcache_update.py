@@ -5,9 +5,7 @@ from sentry.models import Project, ProjectDebugFile
 
 
 @instrumented_task(
-    name='sentry.tasks.symcache_update',
-    time_limit=65,
-    soft_time_limit=60,
+    name="sentry.tasks.symcache_update", time_limit=65, soft_time_limit=60
 )
 def symcache_update(project_id, debug_ids, **kwargs):
     try:

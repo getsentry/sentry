@@ -8,13 +8,18 @@ sentry.interfaces.message
 
 from __future__ import absolute_import
 
-__all__ = ('Message', )
+__all__ = ("Message",)
 
 import six
 
 from django.conf import settings
 
-from sentry.interfaces.base import Interface, InterfaceValidationError, prune_empty_keys, RUST_RENORMALIZED_DEFAULT
+from sentry.interfaces.base import (
+    Interface,
+    InterfaceValidationError,
+    prune_empty_keys,
+    RUST_RENORMALIZED_DEFAULT,
+)
 from sentry.utils import json
 from sentry.utils.safe import trim
 
@@ -42,28 +47,25 @@ class Message(Interface):
     >>>     "params": ["this"]
     >>> }
     """
+
     score = 0
     display_score = 2050
-    path = 'logentry'
-    external_type = 'message'
+    path = "logentry"
+    external_type = "message"
 
     @classmethod
     def to_python(cls, data, rust_renormalized=RUST_RENORMALIZED_DEFAULT):
         if rust_renormalized:
-            for key in (
-                'message',
-                'formatted',
-                'params',
-            ):
+            for key in ("message", "formatted", "params"):
                 data.setdefault(key, None)
             return cls(**data)
 
-        formatted = stringify(data.get('formatted'))
-        message = stringify(data.get('message'))
+        formatted = stringify(data.get("formatted"))
+        message = stringify(data.get("message"))
         if formatted is None and message is None:
             raise InterfaceValidationError("No message present")
 
-        params = data.get('params')
+        params = data.get("params")
         if isinstance(params, (list, tuple)):
             params = tuple(p for p in params)
         elif isinstance(params, dict):
@@ -73,9 +75,9 @@ class Message(Interface):
 
         if formatted is None and params:
             try:
-                if '%' in message:
+                if "%" in message:
                     formatted = message % params
-                elif '{}' in message and isinstance(params, tuple):
+                elif "{}" in message and isinstance(params, tuple):
                     formatted = message.format(*params)
                 # NB: Named newstyle arguments were never supported
             except Exception:
@@ -92,11 +94,13 @@ class Message(Interface):
         )
 
     def to_json(self):
-        return prune_empty_keys({
-            'message': self.message,
-            'formatted': self.formatted,
-            'params': self.params or None
-        })
+        return prune_empty_keys(
+            {
+                "message": self.message,
+                "formatted": self.formatted,
+                "params": self.params or None,
+            }
+        )
 
     def to_string(self, event, is_public=False, **kwargs):
         return self.formatted or self.message

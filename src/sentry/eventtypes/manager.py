@@ -28,4 +28,4 @@ class EventTypeManager(object):
         for eventtype in self.__values:
             if eventtype(data).has_metadata():
                 return eventtype
-        raise Exception('No event types registered which can handle data.')
+        raise Exception("No event types registered which can handle data.")

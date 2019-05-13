@@ -33,9 +33,12 @@ class ProjectFilterDetailsEndpoint(ProjectEndpoint):
         new_state = filter.enable(serializer.object)
         audit_log_state = AuditLogEntryEvent.PROJECT_ENABLE
 
-        if filter.id == 'legacy-browsers':
-            if isinstance(current_state, bool) or new_state == 0 or isinstance(
-                    new_state, six.binary_type):
+        if filter.id == "legacy-browsers":
+            if (
+                isinstance(current_state, bool)
+                or new_state == 0
+                or isinstance(new_state, six.binary_type)
+            ):
                 returned_state = new_state
 
                 if isinstance(new_state, six.binary_type):
@@ -49,7 +52,7 @@ class ProjectFilterDetailsEndpoint(ProjectEndpoint):
             elif new_state - current_state:
                 returned_state = new_state - current_state
 
-        if filter.id in ('browser-extensions', 'localhost', 'web-crawlers'):
+        if filter.id in ("browser-extensions", "localhost", "web-crawlers"):
             returned_state = filter.id
             removed = current_state - new_state
 

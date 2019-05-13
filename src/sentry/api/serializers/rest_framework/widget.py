@@ -9,9 +9,9 @@ from sentry.models import Widget, WidgetDisplayTypes, WidgetDataSourceTypes
 
 
 def get_next_dashboard_order(dashboard_id):
-    max_order = Widget.objects.filter(
-        dashboard_id=dashboard_id,
-    ).aggregate(Max('order'))['order__max']
+    max_order = Widget.objects.filter(dashboard_id=dashboard_id).aggregate(
+        Max("order")
+    )["order__max"]
 
     return max_order + 1 if max_order else 1
 
@@ -25,18 +25,24 @@ class WidgetDataSourceSerializer(serializers.Serializer):
     def validate_type(self, attrs, source):
         type = attrs[source]
         if type not in WidgetDataSourceTypes.TYPE_NAMES:
-            raise ValidationError('Widget data source type %s not recognized.' % type)
+            raise ValidationError("Widget data source type %s not recognized." % type)
         attrs[source] = WidgetDataSourceTypes.get_id_for_type_name(type)
         return attrs
 
     def validate(self, data):
         super(WidgetDataSourceSerializer, self).validate(data)
-        if data['type'] == WidgetDataSourceTypes.DISCOVER_SAVED_SEARCH:
-            serializer = DiscoverSavedQuerySerializer(data=data['data'], context=self.context)
+        if data["type"] == WidgetDataSourceTypes.DISCOVER_SAVED_SEARCH:
+            serializer = DiscoverSavedQuerySerializer(
+                data=data["data"], context=self.context
+            )
             if not serializer.is_valid():
-                raise ValidationError('Error validating DiscoverSavedQuery: %s' % serializer.errors)
+                raise ValidationError(
+                    "Error validating DiscoverSavedQuery: %s" % serializer.errors
+                )
         else:
-            raise ValidationError('Widget data source type %s not recognized.' % data['type'])
+            raise ValidationError(
+                "Widget data source type %s not recognized." % data["type"]
+            )
         return data
 
 
@@ -53,7 +59,9 @@ class WidgetSerializer(serializers.Serializer):
     def validate_displayType(self, attrs, source):
         display_type = attrs[source]
         if display_type not in WidgetDisplayTypes.TYPE_NAMES:
-            raise ValidationError('Widget displayType %s not recognized.' % display_type)
+            raise ValidationError(
+                "Widget displayType %s not recognized." % display_type
+            )
 
         attrs[source] = WidgetDisplayTypes.get_id_for_type_name(display_type)
         return attrs

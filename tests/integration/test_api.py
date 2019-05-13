@@ -12,38 +12,33 @@ from sentry.utils.linksign import generate_signed_link
 
 class AuthenticationTest(AuthProviderTestCase):
     def test_sso_auth_required(self):
-        user = self.create_user('foo@example.com', is_superuser=False)
-        organization = self.create_organization(name='foo')
-        team = self.create_team(name='bar', organization=organization)
+        user = self.create_user("foo@example.com", is_superuser=False)
+        organization = self.create_organization(name="foo")
+        team = self.create_team(name="bar", organization=organization)
         project = self.create_project(
-            name='baz', organization=organization, teams=[team])
-        member = self.create_member(
-            user=user, organization=organization, teams=[team])
-        setattr(member.flags, 'sso:linked', True)
+            name="baz", organization=organization, teams=[team]
+        )
+        member = self.create_member(user=user, organization=organization, teams=[team])
+        setattr(member.flags, "sso:linked", True)
         member.save()
         group = self.create_group(project=project)
         self.create_event(group=group)
 
         auth_provider = AuthProvider.objects.create(
-            organization=organization,
-            provider='dummy',
-            flags=0,
+            organization=organization, provider="dummy", flags=0
         )
 
-        AuthIdentity.objects.create(
-            auth_provider=auth_provider,
-            user=user,
-        )
+        AuthIdentity.objects.create(auth_provider=auth_provider, user=user)
 
         self.login_as(user)
 
         paths = (
-            u'/api/0/organizations/{}/'.format(organization.slug),
-            u'/api/0/projects/{}/{}/'.format(organization.slug, project.slug),
-            u'/api/0/teams/{}/{}/'.format(organization.slug, team.slug),
-            u'/api/0/issues/{}/'.format(group.id),
+            u"/api/0/organizations/{}/".format(organization.slug),
+            u"/api/0/projects/{}/{}/".format(organization.slug, project.slug),
+            u"/api/0/teams/{}/{}/".format(organization.slug, team.slug),
+            u"/api/0/issues/{}/".format(group.id),
             # this uses the internal API, which once upon a time was broken
-            u'/api/0/issues/{}/events/latest/'.format(group.id),
+            u"/api/0/issues/{}/events/latest/".format(group.id),
         )
 
         for path in paths:
@@ -65,41 +60,35 @@ class AuthenticationTest(AuthProviderTestCase):
         # now that SSO is marked as complete, we should be able to access dash
         for path in paths:
             resp = self.client.get(path)
-            assert resp.status_code == 200, (path,
-                                             resp.status_code, resp.content)
+            assert resp.status_code == 200, (path, resp.status_code, resp.content)
 
     def test_sso_auth_required_signed_link(self):
-        user = self.create_user('foo@example.com', is_superuser=False)
-        organization = self.create_organization(name='foo')
-        team = self.create_team(name='bar', organization=organization)
+        user = self.create_user("foo@example.com", is_superuser=False)
+        organization = self.create_organization(name="foo")
+        team = self.create_team(name="bar", organization=organization)
         project = self.create_project(
-            name='baz', organization=organization, teams=[team])
-        member = self.create_member(
-            user=user, organization=organization, teams=[team])
-        setattr(member.flags, 'sso:linked', True)
+            name="baz", organization=organization, teams=[team]
+        )
+        member = self.create_member(user=user, organization=organization, teams=[team])
+        setattr(member.flags, "sso:linked", True)
         member.save()
         group = self.create_group(project=project)
         self.create_event(group=group)
 
         auth_provider = AuthProvider.objects.create(
-            organization=organization,
-            provider='dummy',
-            flags=0,
+            organization=organization, provider="dummy", flags=0
         )
 
-        AuthIdentity.objects.create(
-            auth_provider=auth_provider,
-            user=user,
-        )
+        AuthIdentity.objects.create(auth_provider=auth_provider, user=user)
 
         self.login_as(user)
 
         unsigned_link = reverse(
-            'sentry-api-0-project-fix-processing-issues',
+            "sentry-api-0-project-fix-processing-issues",
             kwargs={
-                'project_slug': project.slug,
-                'organization_slug': organization.slug,
-            }
+                "project_slug": project.slug,
+                "organization_slug": organization.slug,
+            },
         )
 
         resp = self.client.get(unsigned_link)
@@ -107,11 +96,11 @@ class AuthenticationTest(AuthProviderTestCase):
 
         signed_link = generate_signed_link(
             user,
-            'sentry-api-0-project-fix-processing-issues',
+            "sentry-api-0-project-fix-processing-issues",
             kwargs={
-                'project_slug': project.slug,
-                'organization_slug': organization.slug,
-            }
+                "project_slug": project.slug,
+                "organization_slug": organization.slug,
+            },
         )
 
         resp = self.client.get(signed_link)

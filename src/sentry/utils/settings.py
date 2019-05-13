@@ -14,10 +14,10 @@ import sys
 from sentry.utils.imports import import_string
 
 PACKAGES = {
-    'django.db.backends.postgresql_psycopg2': 'psycopg2.extensions',
-    'sentry.db.postgres': 'psycopg2.extensions',
-    'django.core.cache.backends.memcached.MemcachedCache': 'memcache',
-    'django.core.cache.backends.memcached.PyLibMCCache': 'pylibmc'
+    "django.db.backends.postgresql_psycopg2": "psycopg2.extensions",
+    "sentry.db.postgres": "psycopg2.extensions",
+    "django.core.cache.backends.memcached.MemcachedCache": "memcache",
+    "django.core.cache.backends.memcached.PyLibMCCache": "pylibmc",
 }
 
 
@@ -49,8 +49,10 @@ def reraise_as(new_exception_or_type):
 
 
 def validate_settings(settings):
-    for key, engine_key, engine_type in \
-            [('DATABASES', 'ENGINE', 'database engine'), ('CACHES', 'BACKEND', 'caching backend')]:
+    for key, engine_key, engine_type in [
+        ("DATABASES", "ENGINE", "database engine"),
+        ("CACHES", "BACKEND", "caching backend"),
+    ]:
 
         value = getattr(settings, key, {})
         for alias in value:
@@ -65,7 +67,8 @@ def validate_dependency(settings, dependency_type, dependency, package):
         import_string(package)
     except ImportError:
         msg = ConfigurationError.get_error_message(
-            "%s %s" % (dependency_type, dependency), package)
+            "%s %s" % (dependency_type, dependency), package
+        )
         reraise_as(ConfigurationError(msg))
 
 
@@ -77,7 +80,7 @@ class ConfigurationError(ValueError):
 
     @classmethod
     def get_error_message(cls, dependency, package):
-        return """Python could not find %(package)s in your current environment (required by %(dependency)s). If you have it installed, maybe you are using the wrong python binary to run sentry?""" % {
-            "dependency": dependency,
-            "package": package
-        }
+        return (
+            """Python could not find %(package)s in your current environment (required by %(dependency)s). If you have it installed, maybe you are using the wrong python binary to run sentry?"""
+            % {"dependency": dependency, "package": package}
+        )

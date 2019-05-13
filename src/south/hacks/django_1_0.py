@@ -8,6 +8,7 @@ import six
 
 from collections import defaultdict, OrderedDict
 from django.conf import settings
+
 try:
     from django.db.backends.creation import BaseDatabaseCreation
 except ImportError:
@@ -43,7 +44,8 @@ class Hacks:
         # Make sure it contains strings
         if apps:
             assert isinstance(
-                apps[0], string_types), "The argument to set_installed_apps must be a list of strings."
+                apps[0], string_types
+            ), "The argument to set_installed_apps must be a list of strings."
 
         # Monkeypatch in!
         settings.INSTALLED_APPS, settings.OLD_INSTALLED_APPS = (
@@ -79,7 +81,10 @@ class Hacks:
         # Django 1.7+ throws a runtime error in some situations due to model validation:
         # >>> RuntimeError: Conflicting 'user' models in application 'sentry': <class 'sentry.models.user.User'> and <class 'sentry.models.User'>.
         if DJANGO_17:
-            self.old_app_models, apps.all_models = apps.all_models, defaultdict(OrderedDict)
+            self.old_app_models, apps.all_models = (
+                apps.all_models,
+                defaultdict(OrderedDict),
+            )
             apps.clear_cache()
         else:
             self.old_app_models, cache.app_models = cache.app_models, {}
@@ -118,14 +123,15 @@ class Hacks:
         def patch(f):
             def wrapper(*args, **kwargs):
                 # hold onto the original and replace flush command with a no-op
-                original_flush_command = management._commands['flush']
+                original_flush_command = management._commands["flush"]
                 try:
-                    management._commands['flush'] = SkipFlushCommand()
+                    management._commands["flush"] = SkipFlushCommand()
                     # run create_test_db
                     return f(*args, **kwargs)
                 finally:
                     # unpatch flush back to the original
-                    management._commands['flush'] = original_flush_command
+                    management._commands["flush"] = original_flush_command
+
             return wrapper
 
         BaseDatabaseCreation.create_test_db = patch(BaseDatabaseCreation.create_test_db)

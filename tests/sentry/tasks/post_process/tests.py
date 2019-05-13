@@ -15,7 +15,7 @@ from sentry.tasks.post_process import index_event_tags, post_process_group
 
 
 class PostProcessGroupTest(TestCase):
-    @patch('sentry.rules.processor.RuleProcessor')
+    @patch("sentry.rules.processor.RuleProcessor")
     def test_rule_processor(self, mock_processor):
         group = self.create_group(project=self.project)
         event = self.create_event(group=group)
@@ -23,9 +23,7 @@ class PostProcessGroupTest(TestCase):
         mock_callback = Mock()
         mock_futures = [Mock()]
 
-        mock_processor.return_value.apply.return_value = [
-            (mock_callback, mock_futures),
-        ]
+        mock_processor.return_value.apply.return_value = [(mock_callback, mock_futures)]
 
         post_process_group(
             event=event,
@@ -40,7 +38,7 @@ class PostProcessGroupTest(TestCase):
 
         mock_callback.assert_called_once_with(event, mock_futures)
 
-    @patch('sentry.rules.processor.RuleProcessor')
+    @patch("sentry.rules.processor.RuleProcessor")
     def test_group_refresh(self, mock_processor):
         group1 = self.create_group(project=self.project)
         group2 = self.create_group(project=self.project)
@@ -55,9 +53,7 @@ class PostProcessGroupTest(TestCase):
         mock_callback = Mock()
         mock_futures = [Mock()]
 
-        mock_processor.return_value.apply.return_value = [
-            (mock_callback, mock_futures),
-        ]
+        mock_processor.return_value.apply.return_value = [(mock_callback, mock_futures)]
 
         post_process_group(
             event=event,
@@ -70,14 +66,12 @@ class PostProcessGroupTest(TestCase):
         assert event.group == group2
         assert event.group_id == group2.id
 
-    @patch('sentry.rules.processor.RuleProcessor')
+    @patch("sentry.rules.processor.RuleProcessor")
     def test_invalidates_snooze(self, mock_processor):
-        group = self.create_group(
-            project=self.project, status=GroupStatus.IGNORED)
+        group = self.create_group(project=self.project, status=GroupStatus.IGNORED)
         event = self.create_event(group=group)
         snooze = GroupSnooze.objects.create(
-            group=group,
-            until=timezone.now() - timedelta(hours=1),
+            group=group, until=timezone.now() - timedelta(hours=1)
         )
 
         post_process_group(
@@ -90,20 +84,17 @@ class PostProcessGroupTest(TestCase):
 
         mock_processor.assert_called_with(event, True, False, True, True)
 
-        assert not GroupSnooze.objects.filter(
-            id=snooze.id,
-        ).exists()
+        assert not GroupSnooze.objects.filter(id=snooze.id).exists()
 
         group = Group.objects.get(id=group.id)
         assert group.status == GroupStatus.UNRESOLVED
 
-    @patch('sentry.rules.processor.RuleProcessor')
+    @patch("sentry.rules.processor.RuleProcessor")
     def test_maintains_valid_snooze(self, mock_processor):
         group = self.create_group(project=self.project)
         event = self.create_event(group=group)
         snooze = GroupSnooze.objects.create(
-            group=group,
-            until=timezone.now() + timedelta(hours=1),
+            group=group, until=timezone.now() + timedelta(hours=1)
         )
 
         post_process_group(
@@ -116,23 +107,12 @@ class PostProcessGroupTest(TestCase):
 
         mock_processor.assert_called_with(event, True, False, True, False)
 
-        assert GroupSnooze.objects.filter(
-            id=snooze.id,
-        ).exists()
+        assert GroupSnooze.objects.filter(id=snooze.id).exists()
 
     def make_ownership(self):
-        rule_a = Rule(
-            Matcher('path', 'src/*'), [
-                Owner('user', self.user.email),
-            ])
-        rule_b = Rule(
-            Matcher('path', 'tests/*'), [
-                Owner('team', self.team.name),
-            ])
-        rule_c = Rule(
-            Matcher('path', 'src/app/*'), [
-                Owner('team', self.team.name),
-            ])
+        rule_a = Rule(Matcher("path", "src/*"), [Owner("user", self.user.email)])
+        rule_b = Rule(Matcher("path", "tests/*"), [Owner("team", self.team.name)])
+        rule_c = Rule(Matcher("path", "src/app/*"), [Owner("team", self.team.name)])
 
         ProjectOwnership.objects.create(
             project_id=self.project.id,
@@ -145,15 +125,11 @@ class PostProcessGroupTest(TestCase):
         self.make_ownership()
         event = self.store_event(
             data={
-                'message': 'oh no',
-                'platform': 'python',
-                'stacktrace': {
-                    'frames': [
-                        {'filename': 'src/app/example.py'}
-                    ]
-                }
+                "message": "oh no",
+                "platform": "python",
+                "stacktrace": {"frames": [{"filename": "src/app/example.py"}]},
             },
-            project_id=self.project.id
+            project_id=self.project.id,
         )
         post_process_group(
             event=event,
@@ -170,15 +146,11 @@ class PostProcessGroupTest(TestCase):
         self.make_ownership()
         event = self.store_event(
             data={
-                'message': 'oh no',
-                'platform': 'python',
-                'stacktrace': {
-                    'frames': [
-                        {'filename': 'src/app.py'}
-                    ]
-                }
+                "message": "oh no",
+                "platform": "python",
+                "stacktrace": {"frames": [{"filename": "src/app.py"}]},
             },
-            project_id=self.project.id
+            project_id=self.project.id,
         )
         post_process_group(
             event=event,
@@ -194,15 +166,11 @@ class PostProcessGroupTest(TestCase):
     def test_owner_assignment_ownership_does_not_exist(self):
         event = self.store_event(
             data={
-                'message': 'oh no',
-                'platform': 'python',
-                'stacktrace': {
-                    'frames': [
-                        {'filename': 'src/app/example.py'}
-                    ]
-                }
+                "message": "oh no",
+                "platform": "python",
+                "stacktrace": {"frames": [{"filename": "src/app/example.py"}]},
             },
-            project_id=self.project.id
+            project_id=self.project.id,
         )
         post_process_group(
             event=event,
@@ -217,19 +185,13 @@ class PostProcessGroupTest(TestCase):
         self.make_ownership()
         event = self.store_event(
             data={
-                'message': 'oh no',
-                'platform': 'python',
-                'stacktrace': {
-                    'frames': [
-                        {'filename': 'src/app/example.py'}
-                    ]
-                }
+                "message": "oh no",
+                "platform": "python",
+                "stacktrace": {"frames": [{"filename": "src/app/example.py"}]},
             },
-            project_id=self.project.id
+            project_id=self.project.id,
         )
-        event.group.assignee_set.create(
-            team=self.team,
-            project=self.project)
+        event.group.assignee_set.create(team=self.team, project=self.project)
         post_process_group(
             event=event,
             is_new=False,
@@ -241,7 +203,7 @@ class PostProcessGroupTest(TestCase):
         assert assignee.user is None
         assert assignee.team == self.team
 
-    @patch('sentry.tasks.servicehooks.process_service_hook')
+    @patch("sentry.tasks.servicehooks.process_service_hook")
     def test_service_hook_fires_on_new_event(self, mock_process_service_hook):
         group = self.create_group(project=self.project)
         event = self.create_event(group=group)
@@ -250,10 +212,10 @@ class PostProcessGroupTest(TestCase):
             project=self.project,
             organization=self.project.organization,
             actor=self.user,
-            events=['event.created'],
+            events=["event.created"],
         )
 
-        with self.feature('projects:servicehooks'):
+        with self.feature("projects:servicehooks"):
             post_process_group(
                 event=event,
                 is_new=False,
@@ -263,31 +225,30 @@ class PostProcessGroupTest(TestCase):
             )
 
         mock_process_service_hook.delay.assert_called_once_with(
-            servicehook_id=hook.id,
-            event=event,
+            servicehook_id=hook.id, event=event
         )
 
-    @patch('sentry.tasks.servicehooks.process_service_hook')
-    @patch('sentry.rules.processor.RuleProcessor')
-    def test_service_hook_fires_on_alert(self, mock_processor, mock_process_service_hook):
+    @patch("sentry.tasks.servicehooks.process_service_hook")
+    @patch("sentry.rules.processor.RuleProcessor")
+    def test_service_hook_fires_on_alert(
+        self, mock_processor, mock_process_service_hook
+    ):
         group = self.create_group(project=self.project)
         event = self.create_event(group=group)
 
         mock_callback = Mock()
         mock_futures = [Mock()]
 
-        mock_processor.return_value.apply.return_value = [
-            (mock_callback, mock_futures),
-        ]
+        mock_processor.return_value.apply.return_value = [(mock_callback, mock_futures)]
 
         hook = self.create_service_hook(
             project=self.project,
             organization=self.project.organization,
             actor=self.user,
-            events=['event.alert'],
+            events=["event.alert"],
         )
 
-        with self.feature('projects:servicehooks'):
+        with self.feature("projects:servicehooks"):
             post_process_group(
                 event=event,
                 is_new=False,
@@ -297,14 +258,14 @@ class PostProcessGroupTest(TestCase):
             )
 
         mock_process_service_hook.delay.assert_called_once_with(
-            servicehook_id=hook.id,
-            event=event,
+            servicehook_id=hook.id, event=event
         )
 
-    @patch('sentry.tasks.servicehooks.process_service_hook')
-    @patch('sentry.rules.processor.RuleProcessor')
+    @patch("sentry.tasks.servicehooks.process_service_hook")
+    @patch("sentry.rules.processor.RuleProcessor")
     def test_service_hook_does_not_fire_without_alert(
-            self, mock_processor, mock_process_service_hook):
+        self, mock_processor, mock_process_service_hook
+    ):
         group = self.create_group(project=self.project)
         event = self.create_event(group=group)
 
@@ -314,10 +275,10 @@ class PostProcessGroupTest(TestCase):
             project=self.project,
             organization=self.project.organization,
             actor=self.user,
-            events=['event.alert'],
+            events=["event.alert"],
         )
 
-        with self.feature('projects:servicehooks'):
+        with self.feature("projects:servicehooks"):
             post_process_group(
                 event=event,
                 is_new=False,
@@ -328,7 +289,7 @@ class PostProcessGroupTest(TestCase):
 
         assert not mock_process_service_hook.delay.mock_calls
 
-    @patch('sentry.tasks.servicehooks.process_service_hook')
+    @patch("sentry.tasks.servicehooks.process_service_hook")
     def test_service_hook_does_not_fire_without_event(self, mock_process_service_hook):
         group = self.create_group(project=self.project)
         event = self.create_event(group=group)
@@ -340,7 +301,7 @@ class PostProcessGroupTest(TestCase):
             events=[],
         )
 
-        with self.feature('projects:servicehooks'):
+        with self.feature("projects:servicehooks"):
             post_process_group(
                 event=event,
                 is_new=True,
@@ -351,7 +312,7 @@ class PostProcessGroupTest(TestCase):
 
         assert not mock_process_service_hook.delay.mock_calls
 
-    @patch('sentry.tasks.sentry_apps.process_resource_change_bound.delay')
+    @patch("sentry.tasks.sentry_apps.process_resource_change_bound.delay")
     def test_processes_resource_change_task_on_new_group(self, delay):
         group = self.create_group(project=self.project)
         event = self.create_event(group=group)
@@ -365,9 +326,7 @@ class PostProcessGroupTest(TestCase):
         )
 
         delay.assert_called_once_with(
-            action='created',
-            sender='Group',
-            instance_id=group.id,
+            action="created", sender="Group", instance_id=group.id
         )
 
 
@@ -383,17 +342,17 @@ class IndexEventTagsTest(TestCase):
                 project_id=self.project.id,
                 environment_id=self.environment.id,
                 organization_id=self.project.organization_id,
-                tags=[('foo', 'bar'), ('biz', 'baz')],
+                tags=[("foo", "bar"), ("biz", "baz")],
             )
 
         assert tagstore.get_group_event_filter(
             self.project.id,
             group.id,
             [self.environment.id],
-            {'foo': 'bar', 'biz': 'baz'},
+            {"foo": "bar", "biz": "baz"},
             None,
             None,
-        ) == {'id__in': set([event.id])}
+        ) == {"id__in": set([event.id])}
 
         # ensure it safely handles repeat runs
         with self.tasks():
@@ -403,14 +362,14 @@ class IndexEventTagsTest(TestCase):
                 project_id=self.project.id,
                 environment_id=self.environment.id,
                 organization_id=self.project.organization_id,
-                tags=[('foo', 'bar'), ('biz', 'baz')],
+                tags=[("foo", "bar"), ("biz", "baz")],
             )
 
         assert tagstore.get_group_event_filter(
             self.project.id,
             group.id,
             [self.environment.id],
-            {'foo': 'bar', 'biz': 'baz'},
+            {"foo": "bar", "biz": "baz"},
             None,
             None,
-        ) == {'id__in': set([event.id])}
+        ) == {"id__in": set([event.id])}

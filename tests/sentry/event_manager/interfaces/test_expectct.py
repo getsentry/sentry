@@ -16,12 +16,14 @@ def make_expectct_snapshot(insta_snapshot):
         mgr.normalize()
         evt = Event(data=mgr.get_data())
 
-        interface = evt.interfaces.get('expectct')
+        interface = evt.interfaces.get("expectct")
 
-        insta_snapshot({
-            'errors': evt.data.get('errors'),
-            'to_json': interface and interface.to_json(),
-        })
+        insta_snapshot(
+            {
+                "errors": evt.data.get("errors"),
+                "to_json": interface and interface.to_json(),
+            }
+        )
 
     return inner
 
@@ -32,31 +34,41 @@ raw_report = {
         "hostname": "www.example.com",
         "port": 443,
         "effective-expiration-date": "2014-05-01T12:40:50Z",
-        "served-certificate-chain": ["-----BEGIN CERTIFICATE-----\n-----END CERTIFICATE-----"],
-        "validated-certificate-chain": ["-----BEGIN CERTIFICATE-----\n-----END CERTIFICATE-----"],
+        "served-certificate-chain": [
+            "-----BEGIN CERTIFICATE-----\n-----END CERTIFICATE-----"
+        ],
+        "validated-certificate-chain": [
+            "-----BEGIN CERTIFICATE-----\n-----END CERTIFICATE-----"
+        ],
         "scts": [
             {
                 "version": 1,
                 "status": "invalid",
                 "source": "embedded",
-                "serialized_sct": "ABCD=="
-            },
+                "serialized_sct": "ABCD==",
+            }
         ],
     }
 }
 interface_json = {
-    'date_time': '2014-04-06T13:00:50Z',
-    'hostname': 'www.example.com',
-    'port': 443,
-    'effective_expiration_date': '2014-05-01T12:40:50Z',
-    'served_certificate_chain': ['-----BEGIN CERTIFICATE-----\n-----END CERTIFICATE-----'],
-    'validated_certificate_chain': ['-----BEGIN CERTIFICATE-----\n-----END CERTIFICATE-----'],
-    'scts': [{
-        'status': 'invalid',
-        'source': 'embedded',
-        'serialized_sct': 'ABCD==',
-        'version': 1
-    }]
+    "date_time": "2014-04-06T13:00:50Z",
+    "hostname": "www.example.com",
+    "port": 443,
+    "effective_expiration_date": "2014-05-01T12:40:50Z",
+    "served_certificate_chain": [
+        "-----BEGIN CERTIFICATE-----\n-----END CERTIFICATE-----"
+    ],
+    "validated_certificate_chain": [
+        "-----BEGIN CERTIFICATE-----\n-----END CERTIFICATE-----"
+    ],
+    "scts": [
+        {
+            "status": "invalid",
+            "source": "embedded",
+            "serialized_sct": "ABCD==",
+            "version": 1,
+        }
+    ],
 }
 
 
@@ -70,7 +82,6 @@ def test_basic(make_expectct_snapshot):
 
 def test_invalid_format(make_expectct_snapshot):
     # invalid keys are just removed
-    make_expectct_snapshot({
-        'hostname': 'www.example.com',
-        'date_time': 'Not an RFC3339 datetime'
-    })
+    make_expectct_snapshot(
+        {"hostname": "www.example.com", "date_time": "Not an RFC3339 datetime"}
+    )

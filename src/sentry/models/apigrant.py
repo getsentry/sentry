@@ -27,35 +27,39 @@ class ApiGrant(Model):
     be swapped for an access token, as described in :rfc:`4.1.2`
     of the OAuth 2 spec.
     """
+
     __core__ = False
 
-    user = FlexibleForeignKey('sentry.User')
-    application = FlexibleForeignKey('sentry.ApiApplication')
+    user = FlexibleForeignKey("sentry.User")
+    application = FlexibleForeignKey("sentry.ApiApplication")
     code = models.CharField(max_length=64, db_index=True, default=generate_code)
-    expires_at = models.DateTimeField(
-        db_index=True, default=default_expiration
-    )
+    expires_at = models.DateTimeField(db_index=True, default=default_expiration)
     redirect_uri = models.CharField(max_length=255)
     scopes = BitField(
         flags=(
-            ('project:read', 'project:read'), ('project:write',
-                                               'project:write'), ('project:admin', 'project:admin'),
-            ('project:releases', 'project:releases'), ('team:read',
-                                                       'team:read'), ('team:write', 'team:write'),
-            ('team:admin', 'team:admin'), ('event:read',
-                                           'event:read'), ('event:write', 'event:write'),
-            ('event:admin', 'event:admin'), ('org:read', 'org:read'), ('org:write', 'org:write'),
-            ('org:admin',
-             'org:admin'), ('member:read',
-                            'member:read'), ('member:write',
-                                             'member:write'), ('member:admin', 'member:admin'),
+            ("project:read", "project:read"),
+            ("project:write", "project:write"),
+            ("project:admin", "project:admin"),
+            ("project:releases", "project:releases"),
+            ("team:read", "team:read"),
+            ("team:write", "team:write"),
+            ("team:admin", "team:admin"),
+            ("event:read", "event:read"),
+            ("event:write", "event:write"),
+            ("event:admin", "event:admin"),
+            ("org:read", "org:read"),
+            ("org:write", "org:write"),
+            ("org:admin", "org:admin"),
+            ("member:read", "member:read"),
+            ("member:write", "member:write"),
+            ("member:admin", "member:admin"),
         )
     )
     scope_list = ArrayField(of=models.TextField)
 
     class Meta:
-        app_label = 'sentry'
-        db_table = 'sentry_apigrant'
+        app_label = "sentry"
+        db_table = "sentry_apigrant"
 
     def get_scopes(self):
         if self.scope_list:

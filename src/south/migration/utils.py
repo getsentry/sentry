@@ -40,11 +40,11 @@ def get_app_label(models_module):
     """
     if isinstance(models_module, six.string_types):
         if DJANGO_17:
-            return models_module.rsplit('.')[0]
-        return models_module.rsplit('.', 1)[0]
+            return models_module.rsplit(".")[0]
+        return models_module.rsplit(".", 1)[0]
     if DJANGO_17:
-        return models_module.__name__.rsplit('.', 1)[0]
-    return models_module.__name__.rsplit('.', 1)[0]
+        return models_module.__name__.rsplit(".", 1)[0]
+    return models_module.__name__.rsplit(".", 1)[0]
 
 
 def app_label_to_app_module(app_label):
@@ -54,7 +54,7 @@ def app_label_to_app_module(app_label):
     """
     # Get the models module
     app = models.get_app(app_label)
-    module_name = app.__name__.rsplit('.', 1)[0]
+    module_name = app.__name__.rsplit(".", 1)[0]
     try:
         module = sys.modules[module_name]
     except KeyError:
@@ -74,7 +74,7 @@ def flatten(*stack):
         except StopIteration:
             stack.popleft()
             continue
-        if hasattr(x, '__iter__') and not isinstance(x, str):
+        if hasattr(x, "__iter__") and not isinstance(x, str):
             stack.appendleft(x)
         else:
             yield x
@@ -89,7 +89,7 @@ def _dfs(start, get_children, path):
 
     results = []
     if start in path:
-        raise exceptions.CircularDependency(path[path.index(start):] + [start])
+        raise exceptions.CircularDependency(path[path.index(start) :] + [start])
     path.append(start)
     results.append(start)
     children = sorted(get_children(start), key=lambda x: str(x))

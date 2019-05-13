@@ -5,8 +5,8 @@ from datetime import datetime, timedelta
 
 TOKEN_LIFE_IN_HOURS = 8
 
-AUTHORIZATION = 'authorization_code'
-REFRESH = 'refresh_token'
+AUTHORIZATION = "authorization_code"
+REFRESH = "refresh_token"
 
 
 class GrantTypes(object):
@@ -15,4 +15,4 @@ class GrantTypes(object):
 
 
 def token_expiration():
-    return (datetime.utcnow() + timedelta(hours=TOKEN_LIFE_IN_HOURS))
+    return datetime.utcnow() + timedelta(hours=TOKEN_LIFE_IN_HOURS)

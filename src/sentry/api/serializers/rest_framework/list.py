@@ -33,7 +33,7 @@ class ListField(WritableField):
             return []
 
         if not isinstance(value, list):
-            msg = 'Incorrect type. Expected a list, but got %s'
+            msg = "Incorrect type. Expected a list, but got %s"
             raise ValidationError(msg % type(value).__name__)
 
         if self.child is None:
@@ -48,17 +48,18 @@ class ListField(WritableField):
     def format_child_errors(self):
         errors = []
         for k, v in six.iteritems(self._child_errors):
-            errors.append('%s: %s' % (k, v[0]))
-        return ', '.join(errors)
+            errors.append("%s: %s" % (k, v[0]))
+        return ", ".join(errors)
 
     def validate(self, value):
         # Allow empty lists when required=True unless child is also marked as required
-        if (value is None and self.required) or \
-                (not value and self.required and self.child and self.child.required):
-            raise ValidationError(self.error_messages['required'])
+        if (value is None and self.required) or (
+            not value and self.required and self.child and self.child.required
+        ):
+            raise ValidationError(self.error_messages["required"])
 
         if not isinstance(value, list):
-            msg = 'Incorrect type. Expected a list, but got %s'
+            msg = "Incorrect type. Expected a list, but got %s"
             raise ValidationError(msg % type(value).__name__)
 
         if self.child:
@@ -68,7 +69,9 @@ class ListField(WritableField):
                 raise ValidationError(self.format_child_errors())
             for item in value:
                 if item is None and not self.allow_null:
-                    raise ValidationError('Incorrect type. Expected value, but got null')
+                    raise ValidationError(
+                        "Incorrect type. Expected value, but got null"
+                    )
                 self.child.validate(item)
                 self.add_child_errors()
 

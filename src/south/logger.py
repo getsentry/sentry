@@ -21,7 +21,9 @@ def get_logger():
                 _logger.addHandler(logging.FileHandler(logging_file))
                 _logger.setLevel(logging.DEBUG)
         else:
-            raise IOError("SOUTH_LOGGING_ON is True. You also need a SOUTH_LOGGING_FILE setting.")
+            raise IOError(
+                "SOUTH_LOGGING_ON is True. You also need a SOUTH_LOGGING_FILE setting."
+            )
 
     return _logger
 

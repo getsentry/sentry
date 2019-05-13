@@ -61,7 +61,7 @@ def test_invalid_event_id():
 
 def test_unknown_attribute():
     data = validate_and_normalize({"message": "foo", "foo": "bar"})
-    assert data['foo'] is None
+    assert data["foo"] is None
     assert len(data["errors"]) == 1
     assert data["errors"][0]["type"] == "invalid_attribute"
     assert data["errors"][0]["name"] == "foo"
@@ -76,10 +76,8 @@ def test_invalid_interface_name():
 
 
 def test_invalid_interface_import_path():
-    data = validate_and_normalize(
-        {"message": "foo", "exception2": "bar"}
-    )
-    assert data['exception2'] is None
+    data = validate_and_normalize({"message": "foo", "exception2": "bar"})
+    assert data["exception2"] is None
 
     assert len(data["errors"]) == 1
     assert data["errors"][0]["type"] == "invalid_attribute"
@@ -119,7 +117,7 @@ def test_invalid_log_level():
 
 def test_tags_as_string():
     data = validate_and_normalize({"message": "foo", "tags": "bar"})
-    assert data['tags'] == []
+    assert data["tags"] == []
 
 
 def test_tags_with_spaces():
@@ -169,7 +167,7 @@ def test_tag_value():
 
 def test_extra_as_string():
     data = validate_and_normalize({"message": "foo", "extra": "bar"})
-    assert data['extra'] == {}
+    assert data["extra"] == {}
 
 
 def test_release_tag_max_len():
@@ -186,14 +184,14 @@ def test_server_name_too_long():
     key = u"server_name"
     value = "a" * (MAX_CULPRIT_LENGTH + 1)
     data = validate_and_normalize({key: value})
-    assert len(dict(data['tags']).get(key)) == MAX_CULPRIT_LENGTH
+    assert len(dict(data["tags"]).get(key)) == MAX_CULPRIT_LENGTH
 
 
 def test_site_too_long():
     key = u"site"
     value = "a" * (MAX_CULPRIT_LENGTH + 1)
     data = validate_and_normalize({key: value})
-    assert len(dict(data['tags']).get(key)) == MAX_CULPRIT_LENGTH
+    assert len(dict(data["tags"]).get(key)) == MAX_CULPRIT_LENGTH
 
 
 def test_release_too_long():
@@ -255,14 +253,14 @@ def test_invalid_platform():
 
 def test_environment_too_long():
     data = validate_and_normalize({"environment": "a" * 65})
-    assert len(data['environment']) == 64
+    assert len(data["environment"]) == 64
 
 
 def test_environment_invalid():
     data = validate_and_normalize({"environment": "a/b"})
     assert not data.get("environment")
-    error, = data['errors']
-    error['type'] == 'invalid_data'
+    error, = data["errors"]
+    error["type"] == "invalid_data"
 
     assert error["name"] == "environment"
     assert error["value"] == "a/b"
@@ -314,15 +312,16 @@ def test_fingerprints():
 
     data = validate_and_normalize({"fingerprint": ["{{default}}", 1e100, -1e100, 1e10]})
     assert data.get("fingerprint") == ["{{default}}", "10000000000"]
-    assert data["errors"] == [{'type': 'invalid_data',
-                               'name': 'fingerprint', 'value': [1e100, -1e100]}]
+    assert data["errors"] == [
+        {"type": "invalid_data", "name": "fingerprint", "value": [1e100, -1e100]}
+    ]
 
     data = validate_and_normalize({"fingerprint": []})
     assert "fingerprint" not in data
     assert "errors" not in data
 
     data = validate_and_normalize({"fingerprint": [""]})
-    assert data['fingerprint'] == ['']
+    assert data["fingerprint"] == [""]
     assert "errors" not in data
 
 
@@ -334,14 +333,9 @@ def test_messages():
     # both 'message' and interface with no 'formatted' value, put 'message'
     # into 'formatted'.
     data = validate_and_normalize(
-        {
-            "message": "foo is bar",
-            "logentry": {"message": "something else"},
-        }
+        {"message": "foo is bar", "logentry": {"message": "something else"}}
     )
-    assert data["logentry"] == {
-        "formatted": "something else",
-    }
+    assert data["logentry"] == {"formatted": "something else"}
 
     # both 'message' and complete interface, 'message' is discarded
     data = validate_and_normalize(
@@ -368,18 +362,12 @@ def test_messages_old_behavior():
     data = validate_and_normalize(
         {
             "message": "foo is bar",
-            "logentry": {
-                "message": "something else",
-                "formatted": "something else",
-            },
+            "logentry": {"message": "something else", "formatted": "something else"},
         }
     )
     assert "message" not in data
     assert "errors" not in data
-    assert data["logentry"] == {
-        "message": "something else",
-        "formatted": "foo is bar",
-    }
+    assert data["logentry"] == {"message": "something else", "formatted": "foo is bar"}
 
     # interface discarded as invalid, replaced by new interface containing
     # wrapped 'message'

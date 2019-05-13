@@ -36,8 +36,8 @@ class RepositoryMixin(object):
         """
         organizations = self.model.organizations.all()
         Repository.objects.filter(
-            organization_id__in=organizations.values_list('id', flat=True),
-            provider='integrations:%s' % self.model.provider,
+            organization_id__in=organizations.values_list("id", flat=True),
+            provider="integrations:%s" % self.model.provider,
             integration_id=self.model.id,
         ).update(status=ObjectStatus.VISIBLE)
 

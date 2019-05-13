@@ -22,11 +22,20 @@ from django.utils.translation import ugettext_lazy as _
 
 from sentry import eventtypes, tagstore, options
 from sentry.constants import (
-    DEFAULT_LOGGER_NAME, EVENT_ORDERING_KEY, LOG_LEVELS, MAX_CULPRIT_LENGTH
+    DEFAULT_LOGGER_NAME,
+    EVENT_ORDERING_KEY,
+    LOG_LEVELS,
+    MAX_CULPRIT_LENGTH,
 )
 from sentry.db.models import (
-    BaseManager, BoundedBigIntegerField, BoundedIntegerField, BoundedPositiveIntegerField,
-    FlexibleForeignKey, GzippedDictField, Model, sane_repr
+    BaseManager,
+    BoundedBigIntegerField,
+    BoundedIntegerField,
+    BoundedPositiveIntegerField,
+    FlexibleForeignKey,
+    GzippedDictField,
+    Model,
+    sane_repr,
 )
 from sentry.utils.http import absolute_uri
 from sentry.utils.numbers import base32_decode, base32_encode
@@ -34,11 +43,11 @@ from sentry.utils.strings import strip, truncatechars
 
 logger = logging.getLogger(__name__)
 
-_short_id_re = re.compile(r'^(.*?)(?:[\s_-])([A-Za-z0-9]+)$')
+_short_id_re = re.compile(r"^(.*?)(?:[\s_-])([A-Za-z0-9]+)$")
 
 
 def looks_like_short_id(value):
-    return _short_id_re.match((value or '').strip()) is not None
+    return _short_id_re.match((value or "").strip()) is not None
 
 
 # TODO(dcramer): pull in enum library
@@ -70,7 +79,10 @@ def get_group_with_redirect(id, queryset=None):
         return getter(id=id), False
     except Group.DoesNotExist as error:
         from sentry.models import GroupRedirect
-        qs = GroupRedirect.objects.filter(previous_group_id=id).values_list('group_id', flat=True)
+
+        qs = GroupRedirect.objects.filter(previous_group_id=id).values_list(
+            "group_id", flat=True
+        )
         try:
             return queryset.get(id=qs), True
         except Group.DoesNotExist:
@@ -78,36 +90,34 @@ def get_group_with_redirect(id, queryset=None):
 
 
 class EventOrdering(Enum):
-    LATEST = ['-timestamp', '-event_id']
-    OLDEST = ['timestamp', 'event_id']
+    LATEST = ["-timestamp", "-event_id"]
+    OLDEST = ["timestamp", "event_id"]
 
 
 def get_oldest_or_latest_event_for_environments(
-        ordering, environments=(), issue_id=None, project_id=None):
+    ordering, environments=(), issue_id=None, project_id=None
+):
     from sentry.utils import snuba
     from sentry.models import SnubaEvent
 
     conditions = []
 
     if len(environments) > 0:
-        conditions.append(['environment', 'IN', environments])
+        conditions.append(["environment", "IN", environments])
 
     result = snuba.raw_query(
         start=datetime.utcfromtimestamp(0),
         end=datetime.utcnow(),
         selected_columns=SnubaEvent.selected_columns,
         conditions=conditions,
-        filter_keys={
-            'issue': [issue_id],
-            'project_id': [project_id],
-        },
+        filter_keys={"issue": [issue_id], "project_id": [project_id]},
         orderby=ordering.value,
         limit=1,
         referrer="Group.get_latest",
     )
 
-    if 'error' not in result and len(result['data']) == 1:
-        return SnubaEvent(result['data'][0])
+    if "error" not in result and len(result["data"]) == 1:
+        return SnubaEvent(result["data"][0])
 
     return None
 
@@ -125,15 +135,13 @@ class GroupManager(BaseManager):
             short_id = base32_decode(id)
             # We need to make sure the short id is not overflowing the
             # field's max or the lookup will fail with an assertion error.
-            max_id = Group._meta.get_field_by_name('short_id')[0].MAX_VALUE
+            max_id = Group._meta.get_field_by_name("short_id")[0].MAX_VALUE
             if short_id > max_id:
                 raise ValueError()
         except ValueError:
             raise Group.DoesNotExist()
         return Group.objects.get(
-            project__organization=organization_id,
-            project__slug=slug,
-            short_id=short_id,
+            project__organization=organization_id, project__slug=slug, short_id=short_id
         )
 
     def from_kwargs(self, project, **kwargs):
@@ -147,10 +155,8 @@ class GroupManager(BaseManager):
         # TODO(jess): this method maybe isn't even used?
         except HashDiscarded as exc:
             logger.info(
-                'discarded.hash', extra={
-                    'project_id': project,
-                    'description': exc.message,
-                }
+                "discarded.hash",
+                extra={"project_id": project, "description": exc.message},
             )
 
     def from_event_id(self, project, event_id):
@@ -159,6 +165,7 @@ class GroupManager(BaseManager):
         a Group for which it is found.
         """
         from sentry.models import EventMapping, Event
+
         group_id = None
 
         # Look up event_id in both Event and EventMapping,
@@ -167,9 +174,8 @@ class GroupManager(BaseManager):
         for model in Event, EventMapping:
             try:
                 group_id = model.objects.filter(
-                    project_id=project.id,
-                    event_id=event_id,
-                ).values_list('group_id', flat=True)[0]
+                    project_id=project.id, event_id=event_id
+                ).values_list("group_id", flat=True)[0]
 
                 # It's possible that group_id is NULL
                 if group_id is not None:
@@ -187,6 +193,7 @@ class GroupManager(BaseManager):
 
     def filter_by_event_id(self, project_ids, event_id):
         from sentry.models import EventMapping, Event
+
         group_ids = set()
         # see above for explanation as to why we're
         # looking at both Event and EventMapping
@@ -196,7 +203,7 @@ class GroupManager(BaseManager):
                     project_id__in=project_ids,
                     event_id=event_id,
                     group_id__isnull=False,
-                ).values_list('group_id', flat=True)
+                ).values_list("group_id", flat=True)
             )
 
         return Group.objects.filter(id__in=group_ids)
@@ -211,27 +218,39 @@ class GroupManager(BaseManager):
             else:
                 key, value, data = tag_item
 
-            tagstore.incr_tag_value_times_seen(project_id, environment.id, key, value, extra={
-                'last_seen': date,
-                'data': data,
-            })
+            tagstore.incr_tag_value_times_seen(
+                project_id,
+                environment.id,
+                key,
+                value,
+                extra={"last_seen": date, "data": data},
+            )
 
-            tagstore.incr_group_tag_value_times_seen(project_id, group.id, environment.id, key, value, extra={
-                'project_id': project_id,
-                'last_seen': date,
-            })
+            tagstore.incr_group_tag_value_times_seen(
+                project_id,
+                group.id,
+                environment.id,
+                key,
+                value,
+                extra={"project_id": project_id, "last_seen": date},
+            )
 
     def get_groups_by_external_issue(self, integration, external_issue_key):
         from sentry.models import ExternalIssue, GroupLink
+
         return Group.objects.filter(
             id__in=GroupLink.objects.filter(
                 linked_id__in=ExternalIssue.objects.filter(
                     key=external_issue_key,
                     integration_id=integration.id,
-                    organization_id__in=integration.organizations.values_list('id', flat=True),
-                ).values_list('id', flat=True),
-            ).values_list('group_id', flat=True),
-            project__organization_id__in=integration.organizations.values_list('id', flat=True),
+                    organization_id__in=integration.organizations.values_list(
+                        "id", flat=True
+                    ),
+                ).values_list("id", flat=True)
+            ).values_list("group_id", flat=True),
+            project__organization_id__in=integration.organizations.values_list(
+                "id", flat=True
+            ),
         )
 
 
@@ -239,35 +258,37 @@ class Group(Model):
     """
     Aggregated message which summarizes a set of Events.
     """
+
     __core__ = False
 
-    project = FlexibleForeignKey('sentry.Project', null=True)
+    project = FlexibleForeignKey("sentry.Project", null=True)
     logger = models.CharField(
-        max_length=64,
-        blank=True,
-        default=DEFAULT_LOGGER_NAME,
-        db_index=True)
+        max_length=64, blank=True, default=DEFAULT_LOGGER_NAME, db_index=True
+    )
     level = BoundedPositiveIntegerField(
         choices=LOG_LEVELS.items(), default=logging.ERROR, blank=True, db_index=True
     )
     message = models.TextField()
     culprit = models.CharField(
-        max_length=MAX_CULPRIT_LENGTH, blank=True, null=True, db_column='view'
+        max_length=MAX_CULPRIT_LENGTH, blank=True, null=True, db_column="view"
     )
     num_comments = BoundedPositiveIntegerField(default=0, null=True)
     platform = models.CharField(max_length=64, null=True)
     status = BoundedPositiveIntegerField(
         default=0,
         choices=(
-            (GroupStatus.UNRESOLVED, _('Unresolved')), (GroupStatus.RESOLVED, _('Resolved')),
-            (GroupStatus.IGNORED, _('Ignored')),
+            (GroupStatus.UNRESOLVED, _("Unresolved")),
+            (GroupStatus.RESOLVED, _("Resolved")),
+            (GroupStatus.IGNORED, _("Ignored")),
         ),
-        db_index=True
+        db_index=True,
     )
     times_seen = BoundedPositiveIntegerField(default=1, db_index=True)
     last_seen = models.DateTimeField(default=timezone.now, db_index=True)
     first_seen = models.DateTimeField(default=timezone.now, db_index=True)
-    first_release = FlexibleForeignKey('sentry.Release', null=True, on_delete=models.PROTECT)
+    first_release = FlexibleForeignKey(
+        "sentry.Release", null=True, on_delete=models.PROTECT
+    )
     resolved_at = models.DateTimeField(null=True, db_index=True)
     # active_at should be the same as first_seen by default
     active_at = models.DateTimeField(null=True, db_index=True)
@@ -282,15 +303,15 @@ class Group(Model):
     objects = GroupManager()
 
     class Meta:
-        app_label = 'sentry'
-        db_table = 'sentry_groupedmessage'
-        verbose_name_plural = _('grouped messages')
-        verbose_name = _('grouped message')
-        permissions = (("can_view", "Can view"), )
-        index_together = (('project', 'first_release'), )
-        unique_together = (('project', 'short_id'), )
+        app_label = "sentry"
+        db_table = "sentry_groupedmessage"
+        verbose_name_plural = _("grouped messages")
+        verbose_name = _("grouped message")
+        permissions = (("can_view", "Can view"),)
+        index_together = (("project", "first_release"),)
+        unique_together = (("project", "short_id"),)
 
-    __repr__ = sane_repr('project_id')
+    __repr__ = sane_repr("project_id")
 
     def __unicode__(self):
         return "(%s) %s" % (self.times_seen, self.error())
@@ -309,33 +330,39 @@ class Group(Model):
         if self.times_seen is None:
             self.times_seen = 1
         self.score = type(self).calculate_score(
-            times_seen=self.times_seen,
-            last_seen=self.last_seen,
+            times_seen=self.times_seen, last_seen=self.last_seen
         )
         super(Group, self).save(*args, **kwargs)
 
     def get_absolute_url(self, params=None):
         from sentry import features
-        if features.has('organizations:sentry10', self.organization):
-            url = reverse('sentry-organization-issue', args=[self.organization.slug, self.id])
+
+        if features.has("organizations:sentry10", self.organization):
+            url = reverse(
+                "sentry-organization-issue", args=[self.organization.slug, self.id]
+            )
         else:
-            url = reverse('sentry-group', args=[self.organization.slug, self.project.slug, self.id])
+            url = reverse(
+                "sentry-group",
+                args=[self.organization.slug, self.project.slug, self.id],
+            )
         if params:
-            url = url + '?' + urlencode(params)
+            url = url + "?" + urlencode(params)
         return absolute_uri(url)
 
     @property
     def qualified_short_id(self):
         if self.short_id is not None:
-            return '%s-%s' % (self.project.slug.upper(), base32_encode(self.short_id), )
+            return "%s-%s" % (self.project.slug.upper(), base32_encode(self.short_id))
 
     @property
     def event_set(self):
         from sentry.models import Event
+
         return Event.objects.filter(group_id=self.id)
 
     def is_over_resolve_age(self):
-        resolve_age = self.project.get_option('sentry:resolve_age', None)
+        resolve_age = self.project.get_option("sentry:resolve_age", None)
         if not resolve_age:
             return False
         return self.last_seen < timezone.now() - timedelta(hours=int(resolve_age))
@@ -370,10 +397,11 @@ class Group(Model):
 
     def get_share_id(self):
         from sentry.models import GroupShare
+
         try:
-            return GroupShare.objects.filter(
-                group_id=self.id,
-            ).values_list('uuid', flat=True)[0]
+            return GroupShare.objects.filter(group_id=self.id).values_list(
+                "uuid", flat=True
+            )[0]
         except IndexError:
             # Otherwise it has not been shared yet.
             return None
@@ -384,10 +412,9 @@ class Group(Model):
             raise cls.DoesNotExist
 
         from sentry.models import GroupShare
+
         return cls.objects.get(
-            id=GroupShare.objects.filter(
-                uuid=share_id,
-            ).values_list('group_id'),
+            id=GroupShare.objects.filter(uuid=share_id).values_list("group_id")
         )
 
     def get_score(self):
@@ -396,11 +423,9 @@ class Group(Model):
     def get_latest_event(self):
         from sentry.models import Event
 
-        if not hasattr(self, '_latest_event'):
+        if not hasattr(self, "_latest_event"):
             latest_events = sorted(
-                Event.objects.filter(
-                    group_id=self.id,
-                ).order_by('-datetime')[0:5],
+                Event.objects.filter(group_id=self.id).order_by("-datetime")[0:5],
                 key=EVENT_ORDERING_KEY,
                 reverse=True,
             )
@@ -411,7 +436,7 @@ class Group(Model):
         return self._latest_event
 
     def get_latest_event_for_environments(self, environments=()):
-        use_snuba = options.get('snuba.events-queries.enabled')
+        use_snuba = options.get("snuba.events-queries.enabled")
 
         # Fetch without environment if Snuba is not enabled
         if not use_snuba:
@@ -421,16 +446,15 @@ class Group(Model):
             EventOrdering.LATEST,
             environments=environments,
             issue_id=self.id,
-            project_id=self.project_id)
+            project_id=self.project_id,
+        )
 
     def get_oldest_event(self):
         from sentry.models import Event
 
-        if not hasattr(self, '_oldest_event'):
+        if not hasattr(self, "_oldest_event"):
             oldest_events = sorted(
-                Event.objects.filter(
-                    group_id=self.id,
-                ).order_by('datetime')[0:5],
+                Event.objects.filter(group_id=self.id).order_by("datetime")[0:5],
                 key=EVENT_ORDERING_KEY,
             )
             try:
@@ -440,7 +464,7 @@ class Group(Model):
         return self._oldest_event
 
     def get_oldest_event_for_environments(self, environments=()):
-        use_snuba = options.get('snuba.events-queries.enabled')
+        use_snuba = options.get("snuba.events-queries.enabled")
 
         # Fetch without environment if Snuba is not enabled
         if not use_snuba:
@@ -450,7 +474,8 @@ class Group(Model):
             EventOrdering.OLDEST,
             environments=environments,
             issue_id=self.id,
-            project_id=self.project_id)
+            project_id=self.project_id,
+        )
 
     def get_first_release(self):
         if self.first_release_id is None:
@@ -467,7 +492,7 @@ class Group(Model):
 
         See ``sentry.eventtypes``.
         """
-        return self.data.get('type', 'default')
+        return self.data.get("type", "default")
 
     def get_event_metadata(self):
         """
@@ -475,7 +500,7 @@ class Group(Model):
 
         See ``sentry.eventtypes``.
         """
-        return self.data['metadata']
+        return self.data["metadata"]
 
     @property
     def title(self):
@@ -487,14 +512,16 @@ class Group(Model):
         return et.get_location(self.get_event_metadata())
 
     def error(self):
-        warnings.warn('Group.error is deprecated, use Group.title', DeprecationWarning)
+        warnings.warn("Group.error is deprecated, use Group.title", DeprecationWarning)
         return self.title
 
-    error.short_description = _('error')
+    error.short_description = _("error")
 
     @property
     def message_short(self):
-        warnings.warn('Group.message_short is deprecated, use Group.title', DeprecationWarning)
+        warnings.warn(
+            "Group.message_short is deprecated, use Group.title", DeprecationWarning
+        )
         return self.title
 
     @property
@@ -503,19 +530,20 @@ class Group(Model):
 
     @property
     def checksum(self):
-        warnings.warn('Group.checksum is no longer used', DeprecationWarning)
-        return ''
+        warnings.warn("Group.checksum is no longer used", DeprecationWarning)
+        return ""
 
     def get_email_subject(self):
-        return '%s - %s' % (
-            self.qualified_short_id.encode('utf-8'),
-            self.title.encode('utf-8')
+        return "%s - %s" % (
+            self.qualified_short_id.encode("utf-8"),
+            self.title.encode("utf-8"),
         )
 
     def count_users_seen(self):
         return tagstore.get_groups_user_counts(
-            [self.project_id], [self.id], environment_ids=None)[self.id]
+            [self.project_id], [self.id], environment_ids=None
+        )[self.id]
 
     @classmethod
     def calculate_score(cls, times_seen, last_seen):
-        return math.log(float(times_seen or 1)) * 600 + float(last_seen.strftime('%s'))
+        return math.log(float(times_seen or 1)) * 600 + float(last_seen.strftime("%s"))

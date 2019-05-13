@@ -13,7 +13,7 @@ def strategy(id, variants, interfaces, name=None, score=None):
     """Registers a strategy"""
     if name is None:
         if len(interfaces) != 1:
-            raise RuntimeError('%r requires a name' % id)
+            raise RuntimeError("%r requires a name" % id)
         name = interfaces[0]
 
     def decorator(f):
@@ -26,6 +26,7 @@ def strategy(id, variants, interfaces, name=None, score=None):
             func=f,
         )
         return rv
+
     return decorator
 
 
@@ -34,7 +35,7 @@ def lookup_strategy(strategy_id):
     try:
         return STRATEGIES[strategy_id]
     except KeyError:
-        raise LookupError('Unknown strategy %r' % strategy_id)
+        raise LookupError("Unknown strategy %r" % strategy_id)
 
 
 class Strategy(object):
@@ -48,7 +49,7 @@ class Strategy(object):
         self.optional_variants = []
         self.variants = []
         for variant in variants:
-            if variant[:1] == '!':
+            if variant[:1] == "!":
                 self.mandatory_variants.append(variant[1:])
             else:
                 self.optional_variants.append(variant)
@@ -58,7 +59,7 @@ class Strategy(object):
         self.variant_processor_func = None
 
     def __repr__(self):
-        return '<%s id=%r variants=%r>' % (
+        return "<%s id=%r variants=%r>" % (
             self.__class__.__name__,
             self.id,
             self.variants,
@@ -68,7 +69,7 @@ class Strategy(object):
         # We forcefully override strategy here.  This lets a strategy
         # function always access its metadata and directly forward it to
         # subcomponents without having to filter out strategy.
-        kwargs['strategy'] = self
+        kwargs["strategy"] = self
         return func(*args, **kwargs)
 
     def __call__(self, *args, **kwargs):
@@ -135,11 +136,12 @@ class Strategy(object):
                     if prevent_contribution:
                         component.update(
                             contributes=False,
-                            hint='ignored because %s variant is not used' % (
+                            hint="ignored because %s variant is not used"
+                            % (
                                 mandatory_component_hashes.values()[0]
-                                if len(mandatory_component_hashes) == 1 else
-                                'other mandatory'
-                            )
+                                if len(mandatory_component_hashes) == 1
+                                else "other mandatory"
+                            ),
                         )
                     else:
                         hash = component.get_hash()
@@ -147,13 +149,15 @@ class Strategy(object):
                         if duplicate_of is not None:
                             component.update(
                                 contributes=False,
-                                hint='ignored because hash matches %s variant' % duplicate_of
+                                hint="ignored because hash matches %s variant"
+                                % duplicate_of,
                             )
                 rv[variant] = component
 
         if self.variant_processor_func is not None:
-            rv = self._invoke(self.variant_processor_func, rv,
-                              event=event, config=config)
+            rv = self._invoke(
+                self.variant_processor_func, rv, event=event, config=config
+            )
         return rv
 
 
@@ -172,10 +176,7 @@ class StrategyConfiguration(object):
         self.enhancements = enhancements
 
     def __repr__(self):
-        return '<%s %r>' % (
-            self.__class__.__name__,
-            self.id,
-        )
+        return "<%s %r>" % (self.__class__.__name__, self.id)
 
     def iter_strategies(self):
         """Iterates over all strategies by highest score to lowest."""
@@ -188,47 +189,47 @@ class StrategyConfiguration(object):
         path = interface.path
         strategy = self.delegates.get(path)
         if strategy is not None:
-            kwargs['config'] = self
+            kwargs["config"] = self
             return strategy(interface, *args, **kwargs)
         return GroupingComponent(
-            id=path,
-            hint='grouping algorithm does not consider this value',
+            id=path, hint="grouping algorithm does not consider this value"
         )
 
     @classmethod
     def as_dict(self):
         return {
-            'id': self.id,
-            'strategies': sorted(self.strategies),
-            'changelog': self.changelog,
-            'delegates': sorted(x.id for x in self.delegates.values()),
+            "id": self.id,
+            "strategies": sorted(self.strategies),
+            "changelog": self.changelog,
+            "delegates": sorted(x.id for x in self.delegates.values()),
         }
 
 
 def create_strategy_configuration(id, strategies=None, delegates=None, changelog=None):
     class NewStrategyConfiguration(StrategyConfiguration):
         pass
+
     NewStrategyConfiguration.id = id
-    NewStrategyConfiguration.config_class = id.split(':', 1)[0]
+    NewStrategyConfiguration.config_class = id.split(":", 1)[0]
     NewStrategyConfiguration.strategies = {}
     NewStrategyConfiguration.delegates = {}
 
     for strategy_id in strategies or {}:
         strategy = lookup_strategy(strategy_id)
         if strategy.score is None:
-            raise RuntimeError('Unscored strategy %s added to %s' %
-                               (strategy_id, id))
+            raise RuntimeError("Unscored strategy %s added to %s" % (strategy_id, id))
         NewStrategyConfiguration.strategies[strategy_id] = strategy
 
     for strategy_id in delegates or ():
         strategy = lookup_strategy(strategy_id)
         for interface in strategy.interfaces:
             if interface in NewStrategyConfiguration.delegates:
-                raise RuntimeError('duplicate interface match for '
-                                   'delegate %r (conflict on %r)' %
-                                   (id, interface))
+                raise RuntimeError(
+                    "duplicate interface match for "
+                    "delegate %r (conflict on %r)" % (id, interface)
+                )
             NewStrategyConfiguration.delegates[interface] = strategy
 
-    NewStrategyConfiguration.changelog = inspect.cleandoc(changelog or '')
-    NewStrategyConfiguration.__name__ = 'StrategyConfiguration(%s)' % id
+    NewStrategyConfiguration.changelog = inspect.cleandoc(changelog or "")
+    NewStrategyConfiguration.__name__ = "StrategyConfiguration(%s)" % id
     return NewStrategyConfiguration

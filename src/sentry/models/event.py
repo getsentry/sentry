@@ -30,7 +30,7 @@ from sentry.db.models import (
     Model,
     NodeData,
     NodeField,
-    sane_repr
+    sane_repr,
 )
 from sentry.db.models.manager import EventManager, SnubaEventManager
 from sentry.interfaces.base import get_interfaces
@@ -46,7 +46,7 @@ def _should_skip_to_python(event_id):
     if not event_id:
         return False
 
-    sample_rate = options.get('store.empty-interface-sample-rate')
+    sample_rate = options.get("store.empty-interface-sample-rate")
     if sample_rate == 0:
         return False
 
@@ -64,9 +64,8 @@ class EventDict(CanonicalKeyDict):
     """
 
     def __init__(self, data, skip_renormalization=False, **kwargs):
-        is_renormalized = (
-            isinstance(data, EventDict) or
-            (isinstance(data, NodeData) and isinstance(data.data, EventDict))
+        is_renormalized = isinstance(data, EventDict) or (
+            isinstance(data, NodeData) and isinstance(data.data, EventDict)
         )
 
         with configure_scope() as scope:
@@ -75,13 +74,12 @@ class EventDict(CanonicalKeyDict):
             scope.set_tag("rust.renormalized", "null")
 
         if not skip_renormalization and not is_renormalized:
-            rust_renormalized = _should_skip_to_python(data.get('event_id'))
+            rust_renormalized = _should_skip_to_python(data.get("event_id"))
             if rust_renormalized:
                 normalizer = StoreNormalizer(is_renormalize=True)
                 data = normalizer.normalize_event(dict(data))
 
-            metrics.incr('rust.renormalized',
-                         tags={'value': rust_renormalized})
+            metrics.incr("rust.renormalized", tags={"value": rust_renormalized})
 
             with configure_scope() as scope:
                 scope.set_tag("rust.renormalized", rust_renormalized)
@@ -102,7 +100,7 @@ class EventCommon(object):
         be saved under this key in nodestore so it can be retrieved using the
         same generated id when we only have project_id and event_id.
         """
-        return md5('{}:{}'.format(project_id, event_id)).hexdigest()
+        return md5("{}:{}".format(project_id, event_id)).hexdigest()
 
     # TODO (alex) We need a better way to cache these properties.  functools32
     # doesn't quite do the trick as there is a reference bug with unsaved
@@ -111,7 +109,8 @@ class EventCommon(object):
     @property
     def group(self):
         from sentry.models import Group
-        if not hasattr(self, '_group_cache'):
+
+        if not hasattr(self, "_group_cache"):
             self._group_cache = Group.objects.get(id=self.group_id)
         return self._group_cache
 
@@ -123,7 +122,8 @@ class EventCommon(object):
     @property
     def project(self):
         from sentry.models import Project
-        if not hasattr(self, '_project_cache'):
+
+        if not hasattr(self, "_project_cache"):
             self._project_cache = Project.objects.get(id=self.project_id)
         return self._project_cache
 
@@ -138,10 +138,13 @@ class EventCommon(object):
     def get_interfaces(self):
         was_renormalized = _should_skip_to_python(self.event_id)
 
-        metrics.incr('event.get_interfaces',
-                     tags={'rust_renormalized': was_renormalized})
+        metrics.incr(
+            "event.get_interfaces", tags={"rust_renormalized": was_renormalized}
+        )
 
-        return CanonicalKeyView(get_interfaces(self.data, rust_renormalized=was_renormalized))
+        return CanonicalKeyView(
+            get_interfaces(self.data, rust_renormalized=was_renormalized)
+        )
 
     @memoize
     def interfaces(self):
@@ -155,9 +158,11 @@ class EventCommon(object):
         # being used by plugin code and once the message rename is through
         # plugins should instead swithc to the actual message attribute or
         # this method could return what currently is real_message.
-        return get_path(self.data, 'logentry', 'formatted') \
-            or get_path(self.data, 'logentry', 'message') \
+        return (
+            get_path(self.data, "logentry", "formatted")
+            or get_path(self.data, "logentry", "message")
             or self.message
+        )
 
     def get_event_type(self):
         """
@@ -165,7 +170,7 @@ class EventCommon(object):
 
         See ``sentry.eventtypes``.
         """
-        return self.data.get('type', 'default')
+        return self.data.get("type", "default")
 
     def get_event_metadata(self):
         """
@@ -176,11 +181,12 @@ class EventCommon(object):
         # For some inexplicable reason we have some cases where the data
         # is completely empty.  In that case we want to hobble along
         # further.
-        return self.data.get('metadata') or {}
+        return self.data.get("metadata") or {}
 
     def get_grouping_config(self):
         """Returns the event grouping config."""
         from sentry.grouping.api import get_grouping_config_dict_for_event_data
+
         return get_grouping_config_dict_for_event_data(self.data, self.project)
 
     def get_hashes(self, force_config=None):
@@ -193,12 +199,14 @@ class EventCommon(object):
         # fall back to generating new ones from the data.  We can only use
         # this if we do not force a dfferent config.
         if force_config is None:
-            hashes = self.data.get('hashes')
+            hashes = self.data.get("hashes")
             if hashes is not None:
                 return hashes
 
-        return filter(None, [
-            x.get_hash() for x in self.get_grouping_variants(force_config).values()])
+        return filter(
+            None,
+            [x.get_hash() for x in self.get_grouping_variants(force_config).values()],
+        )
 
     def get_grouping_variants(self, force_config=None):
         """
@@ -214,7 +222,7 @@ class EventCommon(object):
             if isinstance(force_config, six.string_types):
                 stored_config = self.get_grouping_config()
                 config = dict(stored_config)
-                config['id'] = force_config
+                config["id"] = force_config
             else:
                 config = force_config
 
@@ -222,7 +230,7 @@ class EventCommon(object):
         # this is None the `get_grouping_variants_for_event` will fill in
         # the default.
         else:
-            config = self.data.get('grouping_config')
+            config = self.data.get("grouping_config")
 
         return get_grouping_variants_for_event(self, config)
 
@@ -239,7 +247,7 @@ class EventCommon(object):
     @property
     def culprit(self):
         # For a while events did not save the culprit
-        return self.data.get('culprit') or self.group.culprit
+        return self.data.get("culprit") or self.group.culprit
 
     @property
     def location(self):
@@ -252,9 +260,11 @@ class EventCommon(object):
         # XXX(mitsuhiko): this is a transitional attribute that should be
         # removed.  `message` will be renamed to `search_message` and this
         # will become `message`.
-        return get_path(self.data, 'logentry', 'formatted') \
-            or get_path(self.data, 'logentry', 'message') \
-            or ''
+        return (
+            get_path(self.data, "logentry", "formatted")
+            or get_path(self.data, "logentry", "message")
+            or ""
+        )
 
     @property
     def organization(self):
@@ -262,15 +272,15 @@ class EventCommon(object):
 
     @property
     def version(self):
-        return self.data.get('version', '5')
+        return self.data.get("version", "5")
 
     @property
     def ip_address(self):
-        ip_address = get_path(self.data, 'user', 'ip_address')
+        ip_address = get_path(self.data, "user", "ip_address")
         if ip_address:
             return ip_address
 
-        remote_addr = get_path(self.data, 'request', 'env', 'REMOTE_ADDR')
+        remote_addr = get_path(self.data, "request", "env", "REMOTE_ADDR")
         if remote_addr:
             return remote_addr
 
@@ -279,8 +289,13 @@ class EventCommon(object):
     @property
     def tags(self):
         try:
-            rv = sorted([(t, v) for t, v in get_path(
-                self.data, 'tags', filter=True) or () if t is not None and v is not None])
+            rv = sorted(
+                [
+                    (t, v)
+                    for t, v in get_path(self.data, "tags", filter=True) or ()
+                    if t is not None and v is not None
+                ]
+            )
             return rv
         except ValueError:
             # at one point Sentry allowed invalid tag sets such as (foo, bar)
@@ -299,11 +314,11 @@ class EventCommon(object):
 
     @property
     def release(self):
-        return self.get_tag('sentry:release')
+        return self.get_tag("sentry:release")
 
     @property
     def dist(self):
-        return self.get_tag('sentry:dist')
+        return self.get_tag("sentry:dist")
 
     def get_raw_data(self):
         """Returns the internal raw event data dict."""
@@ -315,27 +330,25 @@ class EventCommon(object):
 
     @property
     def transaction(self):
-        return self.get_tag('transaction')
+        return self.get_tag("transaction")
 
     def get_email_subject(self):
-        template = self.project.get_option('mail:subject_template')
+        template = self.project.get_option("mail:subject_template")
         if template:
             template = EventSubjectTemplate(template)
         else:
             template = DEFAULT_SUBJECT_TEMPLATE
         return truncatechars(
-            template.safe_substitute(
-                EventSubjectTemplateData(self),
-            ),
-            128,
-        ).encode('utf-8')
+            template.safe_substitute(EventSubjectTemplateData(self)), 128
+        ).encode("utf-8")
 
     def get_environment(self):
         from sentry.models import Environment
-        if not hasattr(self, '_environment_cache'):
+
+        if not hasattr(self, "_environment_cache"):
             self._environment_cache = Environment.objects.get(
                 organization_id=self.project.organization_id,
-                name=Environment.get_name_or_default(self.get_tag('environment')),
+                name=Environment.get_name_or_default(self.get_tag("environment")),
             )
 
         return self._environment_cache
@@ -345,36 +358,36 @@ class EventCommon(object):
         A minimal 'User' interface object that gives us enough information
         to render a user badge.
         """
-        return self.get_interface('user')
+        return self.get_interface("user")
 
     def as_dict(self):
         """Returns the data in normalized form for external consumers."""
         # We use a OrderedDict to keep elements ordered for a potential JSON serializer
         data = OrderedDict()
-        data['event_id'] = self.event_id
-        data['project'] = self.project_id
-        data['release'] = self.release
-        data['dist'] = self.dist
-        data['platform'] = self.platform
-        data['message'] = self.real_message
-        data['datetime'] = self.datetime
-        data['time_spent'] = self.time_spent
-        data['tags'] = [(k.split('sentry:', 1)[-1], v) for (k, v) in self.tags]
+        data["event_id"] = self.event_id
+        data["project"] = self.project_id
+        data["release"] = self.release
+        data["dist"] = self.dist
+        data["platform"] = self.platform
+        data["message"] = self.real_message
+        data["datetime"] = self.datetime
+        data["time_spent"] = self.time_spent
+        data["tags"] = [(k.split("sentry:", 1)[-1], v) for (k, v) in self.tags]
         for k, v in sorted(six.iteritems(self.data)):
             if k in data:
                 continue
-            if k == 'sdk':
-                v = {v_k: v_v for v_k, v_v in six.iteritems(v) if v_k != 'client_ip'}
+            if k == "sdk":
+                v = {v_k: v_v for v_k, v_v in six.iteritems(v) if v_k != "client_ip"}
             data[k] = v
 
         # for a long time culprit was not persisted.  In those cases put
         # the culprit in from the group.
-        if data.get('culprit') is None:
-            data['culprit'] = self.group.culprit
+        if data.get("culprit") is None:
+            data["culprit"] = self.group.culprit
 
         # Override title and location with dynamically generated data
-        data['title'] = self.title
-        data['location'] = self.location
+        data["title"] = self.title
+        data["location"] = self.location
 
         return data
 
@@ -397,35 +410,42 @@ class EventCommon(object):
 
     @property
     def logger(self):
-        warnings.warn('Event.logger is deprecated. Use Event.tags instead.', DeprecationWarning)
-        return self.get_tag('logger')
+        warnings.warn(
+            "Event.logger is deprecated. Use Event.tags instead.", DeprecationWarning
+        )
+        return self.get_tag("logger")
 
     @property
     def site(self):
-        warnings.warn('Event.site is deprecated. Use Event.tags instead.', DeprecationWarning)
-        return self.get_tag('site')
+        warnings.warn(
+            "Event.site is deprecated. Use Event.tags instead.", DeprecationWarning
+        )
+        return self.get_tag("site")
 
     @property
     def server_name(self):
         warnings.warn(
-            'Event.server_name is deprecated. Use Event.tags instead.',
-            DeprecationWarning)
-        return self.get_tag('server_name')
+            "Event.server_name is deprecated. Use Event.tags instead.",
+            DeprecationWarning,
+        )
+        return self.get_tag("server_name")
 
     @property
     def checksum(self):
-        warnings.warn('Event.checksum is no longer used', DeprecationWarning)
-        return ''
+        warnings.warn("Event.checksum is no longer used", DeprecationWarning)
+        return ""
 
     def error(self):  # TODO why is this not a property?
-        warnings.warn('Event.error is deprecated, use Event.title', DeprecationWarning)
+        warnings.warn("Event.error is deprecated, use Event.title", DeprecationWarning)
         return self.title
 
-    error.short_description = _('error')
+    error.short_description = _("error")
 
     @property
     def message_short(self):
-        warnings.warn('Event.message_short is deprecated, use Event.title', DeprecationWarning)
+        warnings.warn(
+            "Event.message_short is deprecated, use Event.title", DeprecationWarning
+        )
         return self.title
 
 
@@ -443,53 +463,44 @@ class SnubaEvent(EventCommon):
     # event. If the client is planning on loading the entire event body from
     # nodestore anyway, we may as well only fetch the minimum from snuba to
     # avoid duplicated work.
-    minimal_columns = [
-        'event_id',
-        'group_id',
-        'project_id',
-        'timestamp',
-    ]
+    minimal_columns = ["event_id", "group_id", "project_id", "timestamp"]
 
     # A list of all useful columns we can get from snuba.
     selected_columns = minimal_columns + [
-        'type',
-        'culprit',
-        'location',
-        'message',
-        'platform',
-        'title',
-        'type',
-
+        "type",
+        "culprit",
+        "location",
+        "message",
+        "platform",
+        "title",
+        "type",
         # Required to provide snuba-only tags
-        'tags.key',
-        'tags.value',
-
+        "tags.key",
+        "tags.value",
         # Required to provide snuba-only 'user' interface
-        'email',
-        'ip_address',
-        'user_id',
-        'username',
+        "email",
+        "ip_address",
+        "user_id",
+        "username",
     ]
 
     objects = SnubaEventManager()
 
-    __repr__ = sane_repr('project_id', 'group_id')
+    __repr__ = sane_repr("project_id", "group_id")
 
     @classmethod
     def get_event(cls, project_id, event_id, snuba_cols=selected_columns):
         from sentry.utils import snuba
+
         result = snuba.raw_query(
             start=datetime.utcfromtimestamp(0),  # will be clamped to project retention
             end=datetime.utcnow(),  # will be clamped to project retention
             selected_columns=snuba_cols,
-            filter_keys={
-                'event_id': [event_id],
-                'project_id': [project_id],
-            },
-            referrer='SnubaEvent.get_event',
+            filter_keys={"event_id": [event_id], "project_id": [project_id]},
+            referrer="SnubaEvent.get_event",
         )
-        if 'error' not in result and len(result['data']) == 1:
-            return SnubaEvent(result['data'][0])
+        if "error" not in result and len(result["data"]) == 1:
+            return SnubaEvent(result["data"][0])
         return None
 
     def __init__(self, snuba_values):
@@ -510,8 +521,8 @@ class SnubaEvent(EventCommon):
 
         # self.data is a (lazy) dict of everything we got from nodestore
         node_id = SnubaEvent.generate_node_id(
-            self.snuba_data['project_id'],
-            self.snuba_data['event_id'])
+            self.snuba_data["project_id"], self.snuba_data["event_id"]
+        )
         self.data = NodeData(None, node_id, data=None)
 
     def __getattr__(self, name):
@@ -521,7 +532,7 @@ class SnubaEvent(EventCommon):
         `data` dict (which would force a nodestore load). All unresolved
         self.foo type accesses will come through here.
         """
-        if name in ('_project_cache', '_group_cache', '_environment_cache'):
+        if name in ("_project_cache", "_group_cache", "_environment_cache"):
             raise AttributeError()
 
         if name in self.snuba_data:
@@ -540,9 +551,9 @@ class SnubaEvent(EventCommon):
         the nodestore event body. This might be useful for implementing
         tag deletions without having to rewrite nodestore blobs.
         """
-        if 'tags.key' in self.snuba_data and 'tags.value' in self.snuba_data:
-            keys = getattr(self, 'tags.key')
-            values = getattr(self, 'tags.value')
+        if "tags.key" in self.snuba_data and "tags.value" in self.snuba_data:
+            keys = getattr(self, "tags.key")
+            values = getattr(self, "tags.value")
             if keys and values and len(keys) == len(values):
                 return sorted(zip(keys, values))
             else:
@@ -552,43 +563,46 @@ class SnubaEvent(EventCommon):
 
     def get_minimal_user(self):
         from sentry.interfaces.user import User
-        return User.to_python({
-            'id': self.user_id,
-            'email': self.email,
-            'username': self.username,
-            'ip_address': self.ip_address,
-        })
+
+        return User.to_python(
+            {
+                "id": self.user_id,
+                "email": self.email,
+                "username": self.username,
+                "ip_address": self.ip_address,
+            }
+        )
 
     # If the data for these is availablle from snuba, we asssume
     # it was already normalized on the way in and we can just return
     # it, otherwise we defer to EventCommon implementation.
     def get_event_type(self):
-        if 'type' in self.snuba_data:
-            return self.snuba_data['type']
+        if "type" in self.snuba_data:
+            return self.snuba_data["type"]
         return super(SnubaEvent, self).get_event_type()
 
     @property
     def ip_address(self):
-        if 'ip_address' in self.snuba_data:
-            return self.snuba_data['ip_address']
+        if "ip_address" in self.snuba_data:
+            return self.snuba_data["ip_address"]
         return super(SnubaEvent, self).ip_address
 
     @property
     def title(self):
-        if 'title' in self.snuba_data:
-            return self.snuba_data['title']
+        if "title" in self.snuba_data:
+            return self.snuba_data["title"]
         return super(SnubaEvent, self).title
 
     @property
     def culprit(self):
-        if 'culprit' in self.snuba_data:
-            return self.snuba_data['culprit']
+        if "culprit" in self.snuba_data:
+            return self.snuba_data["culprit"]
         return super(SnubaEvent, self).culprit
 
     @property
     def location(self):
-        if 'location' in self.snuba_data:
-            return self.snuba_data['location']
+        if "location" in self.snuba_data:
+            return self.snuba_data["location"]
         return super(SnubaEvent, self).location
 
     # ====================================================
@@ -610,15 +624,15 @@ class SnubaEvent(EventCommon):
 
     @property
     def message(self):
-        if 'message' in self.snuba_data:
-            return self.snuba_data['message']
-        return self.data.get('message')
+        if "message" in self.snuba_data:
+            return self.snuba_data["message"]
+        return self.data.get("message")
 
     @property
     def platform(self):
-        if 'platform' in self.snuba_data:
-            return self.snuba_data['platform']
-        return self.data.get('platform')
+        if "platform" in self.snuba_data:
+            return self.snuba_data["platform"]
+        return self.data.get("platform")
 
     @property
     def id(self):
@@ -631,61 +645,55 @@ class SnubaEvent(EventCommon):
         from sentry.utils import snuba
 
         conditions = [
-            ['timestamp', '>=', self.timestamp],
-            [['timestamp', '>', self.timestamp], ['event_id', '>', self.event_id]]
+            ["timestamp", ">=", self.timestamp],
+            [["timestamp", ">", self.timestamp], ["event_id", ">", self.event_id]],
         ]
 
         if environments:
-            conditions.append(['environment', 'IN', environments])
+            conditions.append(["environment", "IN", environments])
 
         result = snuba.raw_query(
             start=self.datetime,  # gte current event
             end=datetime.utcnow(),  # will be clamped to project retention
-            selected_columns=['event_id'],
+            selected_columns=["event_id"],
             conditions=conditions,
-            filter_keys={
-                'project_id': [self.project_id],
-                'issue': [self.group_id],
-            },
-            orderby=['timestamp', 'event_id'],
+            filter_keys={"project_id": [self.project_id], "issue": [self.group_id]},
+            orderby=["timestamp", "event_id"],
             limit=1,
-            referrer='SnubaEvent.next_event_id',
+            referrer="SnubaEvent.next_event_id",
         )
 
-        if 'error' in result or len(result['data']) == 0:
+        if "error" in result or len(result["data"]) == 0:
             return None
 
-        return six.text_type(result['data'][0]['event_id'])
+        return six.text_type(result["data"][0]["event_id"])
 
     def prev_event_id(self, environments=None):
         from sentry.utils import snuba
 
         conditions = [
-            ['timestamp', '<=', self.timestamp],
-            [['timestamp', '<', self.timestamp], ['event_id', '<', self.event_id]]
+            ["timestamp", "<=", self.timestamp],
+            [["timestamp", "<", self.timestamp], ["event_id", "<", self.event_id]],
         ]
 
         if environments:
-            conditions.append(['environment', 'IN', environments])
+            conditions.append(["environment", "IN", environments])
 
         result = snuba.raw_query(
             start=datetime.utcfromtimestamp(0),  # will be clamped to project retention
             end=self.datetime,  # lte current event
-            selected_columns=['event_id'],
+            selected_columns=["event_id"],
             conditions=conditions,
-            filter_keys={
-                'project_id': [self.project_id],
-                'issue': [self.group_id],
-            },
-            orderby=['-timestamp', '-event_id'],
+            filter_keys={"project_id": [self.project_id], "issue": [self.group_id]},
+            orderby=["-timestamp", "-event_id"],
             limit=1,
-            referrer='SnubaEvent.prev_event_id',
+            referrer="SnubaEvent.prev_event_id",
         )
 
-        if 'error' in result or len(result['data']) == 0:
+        if "error" in result or len(result["data"]) == 0:
             return None
 
-        return six.text_type(result['data'][0]['event_id'])
+        return six.text_type(result["data"][0]["event_id"])
 
     def save(self):
         raise NotImplementedError
@@ -696,6 +704,7 @@ class Event(EventCommon, Model):
     An event backed by data stored in postgres.
 
     """
+
     __core__ = False
 
     group_id = BoundedBigIntegerField(blank=True, null=True)
@@ -716,14 +725,14 @@ class Event(EventCommon, Model):
     objects = EventManager()
 
     class Meta:
-        app_label = 'sentry'
-        db_table = 'sentry_message'
-        verbose_name = _('message')
-        verbose_name_plural = _('messages')
-        unique_together = (('project_id', 'event_id'), )
-        index_together = (('group_id', 'datetime'), )
+        app_label = "sentry"
+        db_table = "sentry_message"
+        verbose_name = _("message")
+        verbose_name_plural = _("messages")
+        unique_together = (("project_id", "event_id"),)
+        index_together = (("group_id", "datetime"),)
 
-    __repr__ = sane_repr('project_id', 'group_id')
+    __repr__ = sane_repr("project_id", "group_id")
 
     def __getstate__(self):
         state = Model.__getstate__(self)
@@ -732,10 +741,10 @@ class Event(EventCommon, Model):
         # again.  In particular if we were to pickle interfaces we would
         # pickle a CanonicalKeyView which old sentry workers do not know
         # about
-        state.pop('_project_cache', None)
-        state.pop('_environment_cache', None)
-        state.pop('_group_cache', None)
-        state.pop('interfaces', None)
+        state.pop("_project_cache", None)
+        state.pop("_environment_cache", None)
+        state.pop("_group_cache", None)
+        state.pop("interfaces", None)
 
         return state
 
@@ -746,60 +755,76 @@ class Event(EventCommon, Model):
     # granularity, this will be inaccurate if there are more than 5 events
     # in a given second.
     def next_event_id(self, environments=None):
-        events = self.__class__.objects.filter(
-            datetime__gte=self.datetime,
-            group_id=self.group_id,
-        ).exclude(id=self.id).order_by('datetime')[0:5]
+        events = (
+            self.__class__.objects.filter(
+                datetime__gte=self.datetime, group_id=self.group_id
+            )
+            .exclude(id=self.id)
+            .order_by("datetime")[0:5]
+        )
 
-        events = [e for e in events if e.datetime == self.datetime and e.id > self.id or
-                  e.datetime > self.datetime]
+        events = [
+            e
+            for e in events
+            if e.datetime == self.datetime
+            and e.id > self.id
+            or e.datetime > self.datetime
+        ]
         events.sort(key=EVENT_ORDERING_KEY)
         return six.text_type(events[0].event_id) if events else None
 
     def prev_event_id(self, environments=None):
-        events = self.__class__.objects.filter(
-            datetime__lte=self.datetime,
-            group_id=self.group_id,
-        ).exclude(id=self.id).order_by('-datetime')[0:5]
+        events = (
+            self.__class__.objects.filter(
+                datetime__lte=self.datetime, group_id=self.group_id
+            )
+            .exclude(id=self.id)
+            .order_by("-datetime")[0:5]
+        )
 
-        events = [e for e in events if e.datetime == self.datetime and e.id < self.id or
-                  e.datetime < self.datetime]
+        events = [
+            e
+            for e in events
+            if e.datetime == self.datetime
+            and e.id < self.id
+            or e.datetime < self.datetime
+        ]
         events.sort(key=EVENT_ORDERING_KEY, reverse=True)
         return six.text_type(events[0].event_id) if events else None
 
 
 class EventSubjectTemplate(string.Template):
-    idpattern = r'(tag:)?[_a-z][_a-z0-9]*'
+    idpattern = r"(tag:)?[_a-z][_a-z0-9]*"
 
 
 class EventSubjectTemplateData(object):
     tag_aliases = {
-        'release': 'sentry:release',
-        'dist': 'sentry:dist',
-        'user': 'sentry:user',
+        "release": "sentry:release",
+        "dist": "sentry:dist",
+        "user": "sentry:user",
     }
 
     def __init__(self, event):
         self.event = event
 
     def __getitem__(self, name):
-        if name.startswith('tag:'):
+        if name.startswith("tag:"):
             name = name[4:]
             value = self.event.get_tag(self.tag_aliases.get(name, name))
             if value is None:
                 raise KeyError
             return six.text_type(value)
-        elif name == 'project':
+        elif name == "project":
             return self.event.project.get_full_name()
-        elif name == 'projectID':
+        elif name == "projectID":
             return self.event.project.slug
-        elif name == 'shortID':
+        elif name == "shortID":
             return self.event.group.qualified_short_id
-        elif name == 'orgID':
+        elif name == "orgID":
             return self.event.organization.slug
-        elif name == 'title':
+        elif name == "title":
             return self.event.title
         raise KeyError
 
 
-DEFAULT_SUBJECT_TEMPLATE = EventSubjectTemplate('$shortID - $title')
+DEFAULT_SUBJECT_TEMPLATE = EventSubjectTemplate("$shortID - $title")

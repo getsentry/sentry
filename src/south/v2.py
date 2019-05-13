@@ -7,7 +7,6 @@ from south.utils import ask_for_it_by_name
 
 
 class BaseMigration(object):
-
     def gf(self, field_name):
         "Gets a field by absolute reference."
         field = ask_for_it_by_name(field_name)

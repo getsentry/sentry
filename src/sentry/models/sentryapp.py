@@ -24,35 +24,26 @@ from sentry.db.models import (
 # listening to a list of specific events. This is a mapping of what those
 # specific events are for each resource.
 EVENT_EXPANSION = {
-    'issue': [
-        'issue.created',
-        'issue.resolved',
-        'issue.ignored',
-        'issue.assigned',
-    ],
+    "issue": ["issue.created", "issue.resolved", "issue.ignored", "issue.assigned"]
 }
 
 # We present Webhook Subscriptions per-resource (Issue, Project, etc.), not
 # per-event-type (issue.created, project.deleted, etc.). These are valid
 # resources a Sentry App may subscribe to.
-VALID_EVENT_RESOURCES = (
-    'issue',
-)
+VALID_EVENT_RESOURCES = ("issue",)
 
 REQUIRED_EVENT_PERMISSIONS = {
-    'issue': 'event:read',
-    'project': 'project:read',
-    'member': 'member:read',
-    'organization': 'org:read',
-    'team': 'team:read',
+    "issue": "event:read",
+    "project": "project:read",
+    "member": "member:read",
+    "organization": "org:read",
+    "team": "team:read",
 }
 
 # The only events valid for Sentry Apps are the ones listed in the values of
 # EVENT_EXPANSION above. This list is likely a subset of all valid ServiceHook
 # events.
-VALID_EVENTS = tuple(itertools.chain(
-    *EVENT_EXPANSION.values()
-))
+VALID_EVENTS = tuple(itertools.chain(*EVENT_EXPANSION.values()))
 
 
 def default_uuid():
@@ -63,25 +54,21 @@ class SentryApp(ParanoidModel, HasApiScopes):
     __core__ = True
 
     application = models.OneToOneField(
-        'sentry.ApiApplication',
+        "sentry.ApiApplication",
         null=True,
         on_delete=models.SET_NULL,
-        related_name='sentry_app',
+        related_name="sentry_app",
     )
 
     # Much of the OAuth system in place currently depends on a User existing.
     # This "proxy user" represents the SentryApp in those cases.
     proxy_user = models.OneToOneField(
-        'sentry.User',
-        null=True,
-        on_delete=models.SET_NULL,
-        related_name='sentry_app'
+        "sentry.User", null=True, on_delete=models.SET_NULL, related_name="sentry_app"
     )
 
     # The Organization the Sentry App was created in "owns" it. Members of that
     # Org have differing access, dependent on their role within the Org.
-    owner = FlexibleForeignKey('sentry.Organization',
-                               related_name='owned_sentry_apps')
+    owner = FlexibleForeignKey("sentry.Organization", related_name="owned_sentry_apps")
 
     name = models.TextField()
     slug = models.CharField(max_length=SENTRY_APP_SLUG_MAX_LENGTH, unique=True)
@@ -91,8 +78,7 @@ class SentryApp(ParanoidModel, HasApiScopes):
         choices=SentryAppStatus.as_choices(),
         db_index=True,
     )
-    uuid = models.CharField(max_length=64,
-                            default=default_uuid)
+    uuid = models.CharField(max_length=64, default=default_uuid)
 
     redirect_url = models.URLField(null=True)
     webhook_url = models.URLField()
@@ -109,12 +95,13 @@ class SentryApp(ParanoidModel, HasApiScopes):
     date_updated = models.DateTimeField(default=timezone.now)
 
     class Meta:
-        app_label = 'sentry'
-        db_table = 'sentry_sentryapp'
+        app_label = "sentry"
+        db_table = "sentry_sentryapp"
 
     @classmethod
     def visible_for_user(cls, request):
         from sentry.auth.superuser import is_active_superuser
+
         if is_active_superuser(request):
             return cls.objects.all()
 
@@ -125,10 +112,9 @@ class SentryApp(ParanoidModel, HasApiScopes):
         if not self.pk:
             return Organization.objects.none()
 
-        return Organization \
-            .objects \
-            .select_related('sentry_app_installations') \
-            .filter(sentry_app_installations__sentry_app_id=self.id)
+        return Organization.objects.select_related("sentry_app_installations").filter(
+            sentry_app_installations__sentry_app_id=self.id
+        )
 
     @property
     def teams(self):
@@ -165,7 +151,5 @@ class SentryApp(ParanoidModel, HasApiScopes):
     def build_signature(self, body):
         secret = self.application.client_secret
         return hmac.new(
-            key=secret.encode('utf-8'),
-            msg=body.encode('utf-8'),
-            digestmod=sha256,
+            key=secret.encode("utf-8"), msg=body.encode("utf-8"), digestmod=sha256
         ).hexdigest()

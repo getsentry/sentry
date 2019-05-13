@@ -7,19 +7,10 @@ from sentry.testutils import TestCase
 
 class DeleteApiApplicationTest(TestCase):
     def test_simple(self):
-        app = ApiApplication.objects.create(
-            owner=self.user,
-        )
-        ApiToken.objects.create(
-            application=app,
-            user=self.user,
-            scopes=0,
-        )
+        app = ApiApplication.objects.create(owner=self.user)
+        ApiToken.objects.create(application=app, user=self.user, scopes=0)
         ApiGrant.objects.create(
-            application=app,
-            user=self.user,
-            scopes=0,
-            redirect_uri='http://example.com',
+            application=app, user=self.user, scopes=0, redirect_uri="http://example.com"
         )
 
         deletion = ScheduledDeletion.schedule(app, days=0)

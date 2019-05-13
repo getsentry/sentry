@@ -20,19 +20,17 @@ class AssembleTest(TestCase):
         self.organization = self.create_organization(owner=self.user)
         self.team = self.create_team(organization=self.organization)
         self.project = self.create_project(
-            teams=[
-                self.team],
-            organization=self.organization,
-            name='foo')
+            teams=[self.team], organization=self.organization, name="foo"
+        )
 
     def test_wrong_dif(self):
-        content1 = 'foo'.encode('utf-8')
+        content1 = "foo".encode("utf-8")
         fileobj1 = ContentFile(content1)
 
-        content2 = 'bar'.encode('utf-8')
+        content2 = "bar".encode("utf-8")
         fileobj2 = ContentFile(content2)
 
-        content3 = 'baz'.encode('utf-8')
+        content3 = "baz".encode("utf-8")
         fileobj3 = ContentFile(content3)
 
         total_checksum = sha1(content2 + content1 + content3).hexdigest()
@@ -46,31 +44,32 @@ class AssembleTest(TestCase):
 
         assemble_dif(
             project_id=self.project.id,
-            name='foo.sym',
+            name="foo.sym",
             checksum=total_checksum,
             chunks=chunks,
         )
 
-        assert get_assemble_status(self.project, total_checksum)[0] == ChunkFileState.ERROR
+        assert (
+            get_assemble_status(self.project, total_checksum)[0] == ChunkFileState.ERROR
+        )
 
     def test_dif_and_caches(self):
-        sym_file = self.load_fixture('crash.sym')
+        sym_file = self.load_fixture("crash.sym")
         blob1 = FileBlob.from_file(ContentFile(sym_file))
         total_checksum = sha1(sym_file).hexdigest()
 
         assemble_dif(
             project_id=self.project.id,
-            name='crash.sym',
+            name="crash.sym",
             checksum=total_checksum,
             chunks=[blob1.checksum],
         )
 
         dif = ProjectDebugFile.objects.filter(
-            project=self.project,
-            file__checksum=total_checksum,
+            project=self.project, file__checksum=total_checksum
         ).get()
 
-        assert dif.file.headers == {'Content-Type': 'text/x-breakpad'}
+        assert dif.file.headers == {"Content-Type": "text/x-breakpad"}
         assert dif.projectsymcachefile.exists()
         assert dif.projectcficachefile.exists()
 
@@ -92,18 +91,21 @@ class AssembleTest(TestCase):
             ref_bytes = reference.getvalue()
             assert blob.getfile().read(len(ref_bytes)) == ref_bytes
             FileBlobOwner.objects.filter(
-                blob=blob,
-                organization=self.organization
+                blob=blob, organization=self.organization
             ).get()
 
         rv = assemble_file(
-            self.project, 'testfile', file_checksum.hexdigest(),
-            [x[1] for x in files], 'dummy.type')
+            self.project,
+            "testfile",
+            file_checksum.hexdigest(),
+            [x[1] for x in files],
+            "dummy.type",
+        )
 
         assert rv is not None
         f, tmp = rv
         assert f.checksum == file_checksum.hexdigest()
-        assert f.type == 'dummy.type'
+        assert f.type == "dummy.type"
 
         # upload all blobs a second time
         for f, _ in files:
@@ -112,6 +114,10 @@ class AssembleTest(TestCase):
 
         # assemble a second time
         f = assemble_file(
-            self.project, 'testfile', file_checksum.hexdigest(),
-            [x[1] for x in files], 'dummy.type')[0]
+            self.project,
+            "testfile",
+            file_checksum.hexdigest(),
+            [x[1] for x in files],
+            "dummy.type",
+        )[0]
         assert f.checksum == file_checksum.hexdigest()

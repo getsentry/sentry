@@ -18,7 +18,7 @@ from six.moves import reduce
 
 from .utils import ExpressionNode, resolve_expression_node
 
-__all__ = ('update', 'create_or_update')
+__all__ = ("update", "create_or_update")
 
 
 def update(self, using=None, **kwargs):
@@ -30,10 +30,12 @@ def update(self, using=None, **kwargs):
     using = using or router.db_for_write(self.__class__, instance=self)
 
     for field in self._meta.fields:
-        if getattr(field, 'auto_now', False) and field.name not in kwargs:
+        if getattr(field, "auto_now", False) and field.name not in kwargs:
             kwargs[field.name] = field.pre_save(self, False)
 
-    affected = self.__class__._base_manager.using(using).filter(pk=self.pk).update(**kwargs)
+    affected = (
+        self.__class__._base_manager.using(using).filter(pk=self.pk).update(**kwargs)
+    )
     for k, v in six.iteritems(kwargs):
         if isinstance(v, ExpressionNode):
             v = resolve_expression_node(self, v)
@@ -48,7 +50,9 @@ def update(self, using=None, **kwargs):
             "Somehow we have updated a negative amount of rows, you seem to have a problem with your db backend."
         )
     else:
-        raise ValueError("Somehow we have updated multiple rows, and you are now royally fucked.")
+        raise ValueError(
+            "Somehow we have updated multiple rows, and you are now royally fucked."
+        )
 
 
 update.alters_data = True
@@ -67,8 +71,8 @@ def create_or_update(model, using=None, **kwargs):
     >>>     'value': F('value') + 1,
     >>> }, defaults={'created_at': timezone.now()})
     """
-    values = kwargs.pop('values', {})
-    defaults = kwargs.pop('defaults', {})
+    values = kwargs.pop("values", {})
+    defaults = kwargs.pop("defaults", {})
 
     if not using:
         using = router.db_for_write(model)
@@ -105,7 +109,7 @@ def in_iexact(column, values):
        to values in the given column."""
     from operator import or_
 
-    query = u'{}__iexact'.format(column)
+    query = u"{}__iexact".format(column)
 
     return reduce(or_, [Q(**{query: v}) for v in values])
 
@@ -115,6 +119,6 @@ def in_icontains(column, values):
        contained within values in the given column."""
     from operator import or_
 
-    query = u'{}__icontains'.format(column)
+    query = u"{}__icontains".format(column)
 
     return reduce(or_, [Q(**{query: v}) for v in values])

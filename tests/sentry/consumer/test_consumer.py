@@ -12,11 +12,11 @@ from sentry.utils import json
 
 class BasicPreprocessorPlugin(Plugin2):
     def add_foo(self, data):
-        data['foo'] = 'bar'
+        data["foo"] = "bar"
         return data
 
     def get_event_preprocessors(self, data):
-        if data.get('platform') == 'needs_process':
+        if data.get("platform") == "needs_process":
             return [self.add_foo]
 
         return []
@@ -32,26 +32,27 @@ class TestConsumer(PluginTestCase):
         args, kwargs = list(mock_produce.call_args)
         mock_produce.call_args = None
         topic = args[0]
-        value = json.loads(kwargs['value'])
+        value = json.loads(kwargs["value"])
 
         consumer = ConsumerWorker()
         consumer._handle(topic, value)
 
     def _create_event_with_platform(self, project, platform):
         from sentry.event_manager import EventManager
+
         em = EventManager({}, project=project)
         em.normalize()
         data = em.get_data()
-        data['platform'] = platform
+        data["platform"] = platform
         return data
 
-    @patch('sentry.tasks.store.save_event')
-    @patch('sentry.tasks.store.preprocess_event')
-    @patch('sentry.utils.kafka.produce_sync')
+    @patch("sentry.tasks.store.save_event")
+    @patch("sentry.tasks.store.preprocess_event")
+    @patch("sentry.utils.kafka.produce_sync")
     def test_process_path(self, mock_produce, mock_preprocess_event, mock_save_event):
-        with self.feature('projects:kafka-ingest'):
+        with self.feature("projects:kafka-ingest"):
             project = self.create_project()
-            data = self._create_event_with_platform(project, 'needs_process')
+            data = self._create_event_with_platform(project, "needs_process")
 
             helper = ClientApiHelper(project_id=self.project.id)
             helper.context.bind_project(project)
@@ -68,20 +69,21 @@ class TestConsumer(PluginTestCase):
             assert mock_preprocess_event.delay.call_count == 0
             assert mock_save_event.delay.call_count == 0
 
-            event = Event.objects.get(project_id=project.id, event_id=data['event_id'])
+            event = Event.objects.get(project_id=project.id, event_id=data["event_id"])
             saved_data = event.get_raw_data()
-            assert saved_data['foo'] == 'bar'
-            assert saved_data['platform'] == 'needs_process'
+            assert saved_data["foo"] == "bar"
+            assert saved_data["platform"] == "needs_process"
 
-    @patch('sentry.tasks.store.save_event')
-    @patch('sentry.tasks.store.process_event')
-    @patch('sentry.tasks.store.preprocess_event')
-    @patch('sentry.utils.kafka.produce_sync')
-    def test_save_path(self, mock_produce, mock_preprocess_event,
-                       mock_process_event, mock_save_event):
-        with self.feature('projects:kafka-ingest'):
+    @patch("sentry.tasks.store.save_event")
+    @patch("sentry.tasks.store.process_event")
+    @patch("sentry.tasks.store.preprocess_event")
+    @patch("sentry.utils.kafka.produce_sync")
+    def test_save_path(
+        self, mock_produce, mock_preprocess_event, mock_process_event, mock_save_event
+    ):
+        with self.feature("projects:kafka-ingest"):
             project = self.create_project()
-            data = self._create_event_with_platform(project, 'doesnt_need_process')
+            data = self._create_event_with_platform(project, "doesnt_need_process")
 
             helper = ClientApiHelper(project_id=self.project.id)
             helper.context.bind_project(project)
@@ -96,7 +98,7 @@ class TestConsumer(PluginTestCase):
             assert mock_process_event.delay.call_count == 0
             assert mock_save_event.delay.call_count == 0
 
-            event = Event.objects.get(project_id=project.id, event_id=data['event_id'])
+            event = Event.objects.get(project_id=project.id, event_id=data["event_id"])
             saved_data = event.get_raw_data()
-            assert 'foo' not in saved_data
-            assert saved_data['platform'] == 'doesnt_need_process'
+            assert "foo" not in saved_data
+            assert saved_data["platform"] == "doesnt_need_process"

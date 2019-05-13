@@ -9,17 +9,12 @@ from sentry.models import SentryAppInstallation
 class SentryAppInstallationSerializer(Serializer):
     def serialize(self, install, attrs, user):
         data = {
-            'app': {
-                'uuid': install.sentry_app.uuid,
-                'slug': install.sentry_app.slug,
-            },
-            'organization': {
-                'slug': install.organization.slug,
-            },
-            'uuid': install.uuid,
+            "app": {"uuid": install.sentry_app.uuid, "slug": install.sentry_app.slug},
+            "organization": {"slug": install.organization.slug},
+            "uuid": install.uuid,
         }
 
         if install.api_grant:
-            data['code'] = install.api_grant.code
+            data["code"] = install.api_grant.code
 
         return data

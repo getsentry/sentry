@@ -19,25 +19,24 @@ class DeprecatedSettingWarning(DeprecationWarning):
 
     def __str__(self):
         chunks = [
-            u'The {} setting is deprecated. Please use {} instead.'.format(
-                self.setting,
-                self.replacement,
+            u"The {} setting is deprecated. Please use {} instead.".format(
+                self.setting, self.replacement
             )
         ]
 
         if self.removed_in_version:
             chunks.append(
-                u'This setting will be removed in Sentry {}.'.format(
-                    self.removed_in_version,
-                ),
+                u"This setting will be removed in Sentry {}.".format(
+                    self.removed_in_version
+                )
             )
 
         # TODO(tkaemming): This will be removed from the message in the future
         # when it's added to the API payload separately.
         if self.url:
-            chunks.append(u'See {} for more information.'.format(self.url))
+            chunks.append(u"See {} for more information.".format(self.url))
 
-        return ' '.join(chunks)
+        return " ".join(chunks)
 
 
 class WarningManager(object):
@@ -63,7 +62,7 @@ class WarningManager(object):
 
         kwargs = {}
         if stacklevel is not None:
-            kwargs['stacklevel'] = stacklevel
+            kwargs["stacklevel"] = stacklevel
 
         for handler in self.__handlers:
             handler(warning, **kwargs)
@@ -89,7 +88,8 @@ class WarningSet(collections.Set):
 
     def __get_key(self, warning):
         return (
-            type(warning), warning.args if hasattr(warning, 'args') else six.text_type(warning),
+            type(warning),
+            warning.args if hasattr(warning, "args") else six.text_type(warning),
         )
 
     def add(self, warning, stacklevel=None):
@@ -99,13 +99,12 @@ class WarningSet(collections.Set):
 # Maintains all unique warnings seen since system startup.
 seen_warnings = WarningSet()
 
-manager = WarningManager((
-    lambda warning, stacklevel=1: warnings.warn(
-        warning,
-        stacklevel=stacklevel + 2,
-    ),
-    seen_warnings.add,
-))
+manager = WarningManager(
+    (
+        lambda warning, stacklevel=1: warnings.warn(warning, stacklevel=stacklevel + 2),
+        seen_warnings.add,
+    )
+)
 
 # Make this act like the standard library ``warnings`` module.
 warn = manager.warn

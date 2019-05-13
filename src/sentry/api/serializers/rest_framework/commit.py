@@ -12,7 +12,9 @@ class CommitPatchSetSerializer(serializers.Serializer):
     def validate_type(self, attrs, source):
         value = attrs[source]
         if not CommitFileChange.is_valid_type(value):
-            raise serializers.ValidationError('Commit patch_set type %s is not supported.' % value)
+            raise serializers.ValidationError(
+                "Commit patch_set type %s is not supported." % value
+            )
         return attrs
 
 
@@ -24,7 +26,5 @@ class CommitSerializer(serializers.Serializer):
     author_email = serializers.EmailField(max_length=75, required=False)
     timestamp = serializers.DateTimeField(required=False)
     patch_set = ListField(
-        child=CommitPatchSetSerializer(required=False),
-        required=False,
-        allow_null=True,
+        child=CommitPatchSetSerializer(required=False), required=False, allow_null=True
     )

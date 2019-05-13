@@ -17,11 +17,11 @@ class PlatformExternalIssue(Model):
     date_added = models.DateTimeField(default=timezone.now)
 
     class Meta:
-        app_label = 'sentry'
-        db_table = 'sentry_platformexternalissue'
-        unique_together = (('group_id', 'service_type'), )
+        app_label = "sentry"
+        db_table = "sentry_platformexternalissue"
+        unique_together = (("group_id", "service_type"),)
 
-    __repr__ = sane_repr('group_id', 'service_type', 'display_name', 'web_url')
+    __repr__ = sane_repr("group_id", "service_type", "display_name", "web_url")
 
     @classmethod
     def get_annotations(cls, group):

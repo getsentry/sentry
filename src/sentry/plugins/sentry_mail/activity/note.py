@@ -8,7 +8,7 @@ class NoteActivityEmail(ActivityEmail):
         return {}
 
     def get_template(self):
-        return 'sentry/emails/activity/note.txt'
+        return "sentry/emails/activity/note.txt"
 
     def get_html_template(self):
-        return 'sentry/emails/activity/note.html'
+        return "sentry/emails/activity/note.html"

@@ -14,30 +14,25 @@ class BitbucketDescriptorEndpoint(Endpoint):
     def get(self, request):
         return self.respond(
             {
-                'key': BITBUCKET_KEY,
-                'name': 'Sentry for Bitbucket',
-                'description': 'A Sentry integration',
-                'vendor': {
-                    'name': 'Sentry.io',
-                    'url': 'https://sentry.io/'
+                "key": BITBUCKET_KEY,
+                "name": "Sentry for Bitbucket",
+                "description": "A Sentry integration",
+                "vendor": {"name": "Sentry.io", "url": "https://sentry.io/"},
+                "baseUrl": absolute_uri(),
+                "authentication": {"type": "JWT"},
+                "lifecycle": {
+                    "installed": "/extensions/bitbucket/installed/",
+                    "uninstalled": "/extensions/bitbucket/uninstalled/",
                 },
-                'baseUrl': absolute_uri(),
-                'authentication': {
-                    'type': 'JWT',
-                },
-                'lifecycle': {
-                    'installed': '/extensions/bitbucket/installed/',
-                    'uninstalled': '/extensions/bitbucket/uninstalled/'
-                },
-                'scopes': scopes,
-                'contexts': ['account'],
+                "scopes": scopes,
+                "contexts": ["account"],
                 # When the user is redirected the URL will become:
                 # https://sentry.io/extensions/bitbucket/setup/?jwt=1212121212
-                'modules': {
-                    'postInstallRedirect': {
-                        'url': '/extensions/bitbucket/setup/',
-                        'key': 'redirect'
+                "modules": {
+                    "postInstallRedirect": {
+                        "url": "/extensions/bitbucket/setup/",
+                        "key": "redirect",
                     }
-                }
+                },
             }
         )

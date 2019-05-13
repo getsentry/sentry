@@ -20,17 +20,23 @@ from sentry.api.serializers.models.user import DetailedUserSerializer
 from sentry.api.serializers.rest_framework import ListField
 from sentry.auth.superuser import is_active_superuser
 from sentry.constants import LANGUAGES
-from sentry.models import Organization, OrganizationMember, OrganizationStatus, User, UserOption
+from sentry.models import (
+    Organization,
+    OrganizationMember,
+    OrganizationStatus,
+    User,
+    UserOption,
+)
 
-delete_logger = logging.getLogger('sentry.deletions.ui')
+delete_logger = logging.getLogger("sentry.deletions.ui")
 
 
 def _get_timezone_choices():
     results = []
     for tz in pytz.common_timezones:
         now = datetime.now(pytz.timezone(tz))
-        offset = now.strftime('%z')
-        results.append((int(offset), tz, '(UTC%s) %s' % (offset, tz)))
+        offset = now.strftime("%z")
+        results.append((int(offset), tz, "(UTC%s) %s" % (offset, tz)))
     results.sort()
 
     for i in range(len(results)):
@@ -43,11 +49,14 @@ TIMEZONE_CHOICES = _get_timezone_choices()
 
 class UserOptionsSerializer(serializers.Serializer):
     language = serializers.ChoiceField(choices=LANGUAGES, required=False)
-    stacktraceOrder = serializers.ChoiceField(choices=(
-        ('-1', _('Default (let Sentry decide)')),
-        ('1', _('Most recent call last')),
-        ('2', _('Most recent call first')),
-    ), required=False)
+    stacktraceOrder = serializers.ChoiceField(
+        choices=(
+            ("-1", _("Default (let Sentry decide)")),
+            ("1", _("Most recent call last")),
+            ("2", _("Most recent call first")),
+        ),
+        required=False,
+    )
     timezone = serializers.ChoiceField(choices=TIMEZONE_CHOICES, required=False)
     clock24Hours = serializers.BooleanField(required=False)
 
@@ -55,30 +64,34 @@ class UserOptionsSerializer(serializers.Serializer):
 class BaseUserSerializer(serializers.ModelSerializer):
     def validate_username(self, attrs, source):
         value = attrs[source]
-        if User.objects.filter(username__iexact=value).exclude(id=self.object.id).exists():
-            raise serializers.ValidationError('That username is already in use.')
+        if (
+            User.objects.filter(username__iexact=value)
+            .exclude(id=self.object.id)
+            .exists()
+        ):
+            raise serializers.ValidationError("That username is already in use.")
         return attrs
 
     def validate(self, attrs):
         attrs = super(BaseUserSerializer, self).validate(attrs)
 
         if self.object.email == self.object.username:
-            if attrs.get('username', self.object.email) != self.object.email:
+            if attrs.get("username", self.object.email) != self.object.email:
                 # ... this probably needs to handle newsletters and such?
-                attrs.setdefault('email', attrs['username'])
+                attrs.setdefault("email", attrs["username"])
 
         return attrs
 
     def restore_object(self, attrs, instance=None):
         instance = super(BaseUserSerializer, self).restore_object(attrs, instance)
-        instance.is_active = attrs.get('isActive', instance.is_active)
+        instance.is_active = attrs.get("isActive", instance.is_active)
         return instance
 
 
 class UserSerializer(BaseUserSerializer):
     class Meta:
         model = User
-        fields = ('name', 'username')
+        fields = ("name", "username")
 
     def validate(self, attrs):
         for field in settings.SENTRY_MANAGED_USER_FIELDS:
@@ -88,18 +101,20 @@ class UserSerializer(BaseUserSerializer):
 
 
 class AdminUserSerializer(BaseUserSerializer):
-    isActive = serializers.BooleanField(source='is_active')
+    isActive = serializers.BooleanField(source="is_active")
 
     class Meta:
         model = User
         # no idea wtf is up with django rest framework, but we need is_active
         # and isActive
-        fields = ('name', 'username', 'isActive')
+        fields = ("name", "username", "isActive")
         # write_only_fields = ('password',)
 
 
 class OrganizationsSerializer(serializers.Serializer):
-    organizations = ListField(child=serializers.CharField(required=False), required=True)
+    organizations = ListField(
+        child=serializers.CharField(required=False), required=True
+    )
 
 
 class UserDetailsEndpoint(UserEndpoint):
@@ -137,7 +152,8 @@ class UserDetailsEndpoint(UserEndpoint):
         serializer = serializer_cls(user, data=request.DATA, partial=True)
 
         serializer_options = UserOptionsSerializer(
-            data=request.DATA.get('options', {}), partial=True)
+            data=request.DATA.get("options", {}), partial=True
+        )
 
         # This serializer should NOT include privileged fields e.g. password
         if not serializer.is_valid() or not serializer_options.is_valid():
@@ -145,10 +161,10 @@ class UserDetailsEndpoint(UserEndpoint):
 
         # map API keys to keys in model
         key_map = {
-            'language': 'language',
-            'timezone': 'timezone',
-            'stacktraceOrder': 'stacktrace_order',
-            'clock24Hours': 'clock_24_hours',
+            "language": "language",
+            "timezone": "timezone",
+            "stacktraceOrder": "stacktrace_order",
+            "clock24Hours": "clock_24_hours",
         }
 
         options_result = serializer_options.object
@@ -156,9 +172,7 @@ class UserDetailsEndpoint(UserEndpoint):
         for key in key_map:
             if key in options_result:
                 UserOption.objects.set_value(
-                    user=user,
-                    key=key_map.get(key, key),
-                    value=options_result.get(key),
+                    user=user, key=key_map.get(key, key), value=options_result.get(key)
                 )
 
         user = serializer.save()
@@ -183,54 +197,53 @@ class UserDetailsEndpoint(UserEndpoint):
 
         # from `frontend/remove_account.py`
         org_list = Organization.objects.filter(
-            member_set__role__in=[x.id for x in roles.with_scope('org:admin')],
+            member_set__role__in=[x.id for x in roles.with_scope("org:admin")],
             member_set__user=user,
             status=OrganizationStatus.VISIBLE,
         )
 
         org_results = []
         for org in org_list:
-            org_results.append({
-                'organization': org,
-                'single_owner': org.has_single_owner(),
-            })
+            org_results.append(
+                {"organization": org, "single_owner": org.has_single_owner()}
+            )
 
-        avail_org_slugs = set([o['organization'].slug for o in org_results])
-        orgs_to_remove = set(serializer.object.get('organizations')).intersection(avail_org_slugs)
+        avail_org_slugs = set([o["organization"].slug for o in org_results])
+        orgs_to_remove = set(serializer.object.get("organizations")).intersection(
+            avail_org_slugs
+        )
 
         for result in org_results:
-            if result['single_owner']:
-                orgs_to_remove.add(result['organization'].slug)
+            if result["single_owner"]:
+                orgs_to_remove.add(result["organization"].slug)
 
         delete_logger.info(
-            'user.deactivate',
+            "user.deactivate",
             extra={
-                'actor_id': request.user.id,
-                'ip_address': request.META['REMOTE_ADDR'],
-            }
+                "actor_id": request.user.id,
+                "ip_address": request.META["REMOTE_ADDR"],
+            },
         )
 
         for org_slug in orgs_to_remove:
             client.delete(
-                path=u'/organizations/{}/'.format(org_slug),
+                path=u"/organizations/{}/".format(org_slug),
                 request=request,
-                is_sudo=True)
+                is_sudo=True,
+            )
 
         remaining_org_ids = [
-            o.id for o in org_list if o.slug in avail_org_slugs.difference(orgs_to_remove)
+            o.id
+            for o in org_list
+            if o.slug in avail_org_slugs.difference(orgs_to_remove)
         ]
 
         if remaining_org_ids:
             OrganizationMember.objects.filter(
-                organization__in=remaining_org_ids,
-                user=request.user,
+                organization__in=remaining_org_ids, user=request.user
             ).delete()
 
-        User.objects.filter(
-            id=request.user.id,
-        ).update(
-            is_active=False,
-        )
+        User.objects.filter(id=request.user.id).update(is_active=False)
 
         logout(request)
 

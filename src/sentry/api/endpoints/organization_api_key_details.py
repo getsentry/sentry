@@ -3,7 +3,10 @@ from __future__ import absolute_import
 from rest_framework import serializers, status
 from rest_framework.response import Response
 
-from sentry.api.bases.organization import OrganizationEndpoint, OrganizationAdminPermission
+from sentry.api.bases.organization import (
+    OrganizationEndpoint,
+    OrganizationAdminPermission,
+)
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
 from sentry.models import ApiKey, AuditLogEntryEvent
@@ -12,11 +15,11 @@ from sentry.models import ApiKey, AuditLogEntryEvent
 class ApiKeySerializer(serializers.ModelSerializer):
     class Meta:
         model = ApiKey
-        fields = ('label', 'scope_list', 'allowed_origins')
+        fields = ("label", "scope_list", "allowed_origins")
 
 
 class OrganizationApiKeyDetailsEndpoint(OrganizationEndpoint):
-    permission_classes = (OrganizationAdminPermission, )
+    permission_classes = (OrganizationAdminPermission,)
 
     def get(self, request, organization, api_key_id):
         """
@@ -29,10 +32,7 @@ class OrganizationApiKeyDetailsEndpoint(OrganizationEndpoint):
         :auth: required
         """
         try:
-            api_key = ApiKey.objects.get(
-                id=api_key_id,
-                organization_id=organization.id,
-            )
+            api_key = ApiKey.objects.get(id=api_key_id, organization_id=organization.id)
         except ApiKey.DoesNotExist:
             raise ResourceDoesNotExist
 
@@ -53,10 +53,7 @@ class OrganizationApiKeyDetailsEndpoint(OrganizationEndpoint):
         """
 
         try:
-            api_key = ApiKey.objects.get(
-                id=api_key_id,
-                organization_id=organization.id,
-            )
+            api_key = ApiKey.objects.get(id=api_key_id, organization_id=organization.id)
         except ApiKey.DoesNotExist:
             raise ResourceDoesNotExist
 
@@ -88,10 +85,7 @@ class OrganizationApiKeyDetailsEndpoint(OrganizationEndpoint):
         :auth: required
         """
         try:
-            api_key = ApiKey.objects.get(
-                id=api_key_id,
-                organization_id=organization.id,
-            )
+            api_key = ApiKey.objects.get(id=api_key_id, organization_id=organization.id)
         except ApiKey.DoesNotExist:
             raise ResourceDoesNotExist
 

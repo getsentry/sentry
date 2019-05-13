@@ -12,6 +12,8 @@ if six.PY3:
 
     def encode_row(row):
         return row
+
+
 else:
 
     def encode_row(row):
@@ -44,8 +46,9 @@ class CsvMixin(object):
         writer = csv.writer(pseudo_buffer)
         response = StreamingHttpResponse(
             (writer.writerow(encode_row(r)) for r in row_iter()),
-            content_type='text/csv',
+            content_type="text/csv",
         )
-        response['Content-Disposition'] = \
-            u'attachment; filename="{}.csv"'.format(filename)
+        response["Content-Disposition"] = u'attachment; filename="{}.csv"'.format(
+            filename
+        )
         return response

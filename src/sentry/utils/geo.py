@@ -24,7 +24,7 @@ def _init_geoip():
         logger.warning("GeoIP module not available.")
         return
 
-    geoip_path = getattr(settings, 'GEOIP_PATH', None)
+    geoip_path = getattr(settings, "GEOIP_PATH", None)
     if not geoip_path:
         logger.warning("settings.GEOIP_PATH not configured.")
         return
@@ -41,7 +41,7 @@ def _init_geoip():
 def _init_geoip_rust():
     global rust_geoip
 
-    geoip_path_mmdb = getattr(settings, 'GEOIP_PATH_MMDB', None)
+    geoip_path_mmdb = getattr(settings, "GEOIP_PATH_MMDB", None)
 
     if not geoip_path_mmdb:
         logger.warning("No GeoIP MMDB database configured")

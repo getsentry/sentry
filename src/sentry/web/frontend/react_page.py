@@ -13,10 +13,7 @@ from sentry.web.frontend.base import BaseView, OrganizationView
 class ReactMixin(object):
     def get_context(self, request):
         # this hook is utilized by getsentry
-        return {
-            'request': request,
-            'CSRF_COOKIE_NAME': settings.CSRF_COOKIE_NAME,
-        }
+        return {"request": request, "CSRF_COOKIE_NAME": settings.CSRF_COOKIE_NAME}
 
     def handle_react(self, request):
         context = Context(self.get_context(request))
@@ -27,10 +24,10 @@ class ReactMixin(object):
         # page. So there's no point in rendering a random `<input>` field.
         get_csrf_token(request)
 
-        template = loader.render_to_string('sentry/bases/react.html', context)
+        template = loader.render_to_string("sentry/bases/react.html", context)
 
         response = HttpResponse(template)
-        response['Content-Type'] = 'text/html'
+        response["Content-Type"] = "text/html"
 
         return response
 
@@ -48,9 +45,9 @@ class ReactPageView(OrganizationView, ReactMixin):
         return super(ReactPageView, self).handle_auth_required(request, *args, **kwargs)
 
     def handle(self, request, organization, **kwargs):
-        if 'project_id' in kwargs and request.GET.get('onboarding'):
+        if "project_id" in kwargs and request.GET.get("onboarding"):
             project = Project.objects.filter(
-                organization=organization, slug=kwargs['project_id']
+                organization=organization, slug=kwargs["project_id"]
             ).first()
             first_event_pending.send(project=project, user=request.user, sender=self)
         return self.handle_react(request)

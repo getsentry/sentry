@@ -15,7 +15,7 @@ class RelayProjectConfigsEndpoint(Endpoint):
     permission_classes = (RelayPermission,)
 
     def post(self, request):
-        project_ids = request.relay_request_data.get('projects') or ()
+        project_ids = request.relay_request_data.get("projects") or ()
         projects = {}
 
         orgs = set()
@@ -25,7 +25,9 @@ class RelayProjectConfigsEndpoint(Endpoint):
         if project_ids:
             for project in Project.objects.filter(pk__in=project_ids):
                 projects[six.text_type(project.id)] = (
-                    project, config.get_project_options(project))
+                    project,
+                    config.get_project_options(project),
+                )
                 orgs.add(project.organization_id)
 
         # In the second iteration we check if the project has access to
@@ -43,6 +45,4 @@ class RelayProjectConfigsEndpoint(Endpoint):
         for project_id in project_ids:
             configs.setdefault(six.text_type(project_id), None)
 
-        return Response({
-            'configs': configs,
-        }, status=200)
+        return Response({"configs": configs}, status=200)

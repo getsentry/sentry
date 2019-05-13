@@ -14,7 +14,7 @@ from sqlparse import tokens as T
 
 class ValueFilter(filters.TokenFilter):
     include = (T.String, T.Number)
-    exclude = (T.String.Symbol, )
+    exclude = (T.String.Symbol,)
 
     def process(self, stack, stream):
         for ttype, value in stream:
@@ -23,7 +23,7 @@ class ValueFilter(filters.TokenFilter):
                 if parent in self.exclude:
                     break
                 if parent in self.include:
-                    value = '?'
+                    value = "?"
                     break
                 if ttype.parent == parent:
                     parent = None
@@ -36,4 +36,4 @@ def parse(query):
     stack = engine.FilterStack()
     stack.preprocess.append(ValueFilter())
     stack.postprocess.append(filters.SerializerUnicode())
-    return ''.join(stack.run(query))
+    return "".join(stack.run(query))

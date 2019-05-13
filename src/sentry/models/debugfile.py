@@ -23,19 +23,31 @@ from jsonfield import JSONField
 from django.db import models, transaction, IntegrityError
 from django.db.models.fields.related import OneToOneRel
 
-from symbolic import Archive, SymbolicError, ObjectErrorUnsupportedObject, \
-    SYMCACHE_LATEST_VERSION, SymCache, SymCacheErrorMissingDebugInfo, \
-    SymCacheErrorMissingDebugSection, CfiCache, CfiErrorMissingDebugInfo, \
-    CFICACHE_LATEST_VERSION
+from symbolic import (
+    Archive,
+    SymbolicError,
+    ObjectErrorUnsupportedObject,
+    SYMCACHE_LATEST_VERSION,
+    SymCache,
+    SymCacheErrorMissingDebugInfo,
+    SymCacheErrorMissingDebugSection,
+    CfiCache,
+    CfiErrorMissingDebugInfo,
+    CFICACHE_LATEST_VERSION,
+)
 
 from sentry import options
 from sentry.cache import default_cache
 from sentry.constants import KNOWN_DIF_FORMATS
-from sentry.db.models import FlexibleForeignKey, Model, \
-    sane_repr, BaseManager, BoundedPositiveIntegerField
+from sentry.db.models import (
+    FlexibleForeignKey,
+    Model,
+    sane_repr,
+    BaseManager,
+    BoundedPositiveIntegerField,
+)
 from sentry.models.file import File
-from sentry.reprocessing import resolve_processing_issue, \
-    bump_reprocessing_revision
+from sentry.reprocessing import resolve_processing_issue, bump_reprocessing_revision
 from sentry.utils import metrics
 from sentry.utils.zip import safe_extract_zip
 from sentry.utils.decorators import classproperty
@@ -52,15 +64,15 @@ CONVERSION_ERROR_TTL = 60 * 10
 
 DIF_MIMETYPES = dict((v, k) for k, v in KNOWN_DIF_FORMATS.items())
 
-_proguard_file_re = re.compile(r'/proguard/(?:mapping-)?(.*?)\.txt$')
+_proguard_file_re = re.compile(r"/proguard/(?:mapping-)?(.*?)\.txt$")
 
 
 def _get_idempotency_id(project, checksum):
     """For some operations an idempotency ID is needed."""
-    return hashlib.sha1(b'%s|%s|project.dsym' % (
-        str(project.id).encode('ascii'),
-        checksum.encode('ascii'),
-    )).hexdigest()
+    return hashlib.sha1(
+        b"%s|%s|project.dsym"
+        % (str(project.id).encode("ascii"), checksum.encode("ascii"))
+    ).hexdigest()
 
 
 def get_assemble_status(project, checksum):
@@ -68,8 +80,7 @@ def get_assemble_status(project, checksum):
     Returns a tuple in the form ``(status, details)`` where details is either
     `None` or a string identifying an error condition or notice.
     """
-    cache_key = 'assemble-status:%s' % _get_idempotency_id(
-        project, checksum)
+    cache_key = "assemble-status:%s" % _get_idempotency_id(project, checksum)
     rv = default_cache.get(cache_key)
     if rv is None:
         return None, None
@@ -77,8 +88,7 @@ def get_assemble_status(project, checksum):
 
 
 def set_assemble_status(project, checksum, state, detail=None):
-    cache_key = 'assemble-status:%s' % _get_idempotency_id(
-        project, checksum)
+    cache_key = "assemble-status:%s" % _get_idempotency_id(project, checksum)
 
     # NB: Also cache successfully created debug files to avoid races between
     # multiple DIFs with the same identifier. On the downside, this blocks
@@ -100,7 +110,7 @@ class ProjectDebugFileManager(BaseManager):
 
         found = ProjectDebugFile.objects.filter(
             file__checksum__in=checksums, project=project
-        ).values('file__checksum')
+        ).values("file__checksum")
 
         for values in found:
             missing.discard(values.values()[0])
@@ -111,7 +121,9 @@ class ProjectDebugFileManager(BaseManager):
         if not checksums:
             return []
         checksums = [x.lower() for x in checksums]
-        return ProjectDebugFile.objects.filter(file__checksum__in=checksums, project=project)
+        return ProjectDebugFile.objects.filter(
+            file__checksum__in=checksums, project=project
+        )
 
     def find_by_debug_ids(self, project, debug_ids, features=None):
         """Finds debug information files matching the given debug identifiers.
@@ -124,10 +136,11 @@ class ProjectDebugFileManager(BaseManager):
         """
         features = frozenset(features) if features is not None else frozenset()
 
-        difs = ProjectDebugFile.objects \
-            .filter(project=project, debug_id__in=debug_ids) \
-            .select_related('file') \
-            .order_by('-id')
+        difs = (
+            ProjectDebugFile.objects.filter(project=project, debug_id__in=debug_ids)
+            .select_related("file")
+            .order_by("-id")
+        )
 
         difs_by_id = {}
         for dif in difs:
@@ -135,7 +148,7 @@ class ProjectDebugFileManager(BaseManager):
 
         rv = {}
         for debug_id, group in six.iteritems(difs_by_id):
-            with_features = [dif for dif in group if 'features' in (dif.data or ())]
+            with_features = [dif for dif in group if "features" in (dif.data or ())]
 
             # In case we've never computed features for any of these files, we
             # just take the first one and assume that it matches.
@@ -158,48 +171,49 @@ class ProjectDebugFileManager(BaseManager):
 class ProjectDebugFile(Model):
     __core__ = False
 
-    file = FlexibleForeignKey('sentry.File')
+    file = FlexibleForeignKey("sentry.File")
     object_name = models.TextField()
     cpu_name = models.CharField(max_length=40)
-    project = FlexibleForeignKey('sentry.Project', null=True)
-    debug_id = models.CharField(max_length=64, db_column='uuid')
+    project = FlexibleForeignKey("sentry.Project", null=True)
+    debug_id = models.CharField(max_length=64, db_column="uuid")
     code_id = models.CharField(max_length=64, null=True)
     data = JSONField(null=True)
     objects = ProjectDebugFileManager()
 
     class Meta:
-        index_together = (('project', 'debug_id'), ('project', 'code_id'))
-        db_table = 'sentry_projectdsymfile'
-        app_label = 'sentry'
+        index_together = (("project", "debug_id"), ("project", "code_id"))
+        db_table = "sentry_projectdsymfile"
+        app_label = "sentry"
 
-    __repr__ = sane_repr('object_name', 'cpu_name', 'debug_id')
+    __repr__ = sane_repr("object_name", "cpu_name", "debug_id")
 
     @property
     def file_format(self):
-        ct = self.file.headers.get('Content-Type', 'unknown').lower()
-        return KNOWN_DIF_FORMATS.get(ct, 'unknown')
+        ct = self.file.headers.get("Content-Type", "unknown").lower()
+        return KNOWN_DIF_FORMATS.get(ct, "unknown")
 
     @property
     def file_extension(self):
-        if self.file_format == 'breakpad':
-            return '.sym'
-        if self.file_format == 'macho':
-            return '.dSYM'
-        if self.file_format == 'proguard':
-            return '.txt'
-        if self.file_format == 'elf':
-            return '.debug'
+        if self.file_format == "breakpad":
+            return ".sym"
+        if self.file_format == "macho":
+            return ".dSYM"
+        if self.file_format == "proguard":
+            return ".txt"
+        if self.file_format == "elf":
+            return ".debug"
 
-        return ''
+        return ""
 
     @property
     def supports_caches(self):
-        return ProjectSymCacheFile.computes_from(self) \
-            or ProjectCfiCacheFile.computes_from(self)
+        return ProjectSymCacheFile.computes_from(
+            self
+        ) or ProjectCfiCacheFile.computes_from(self)
 
     @property
     def features(self):
-        return frozenset((self.data or {}).get('features', []))
+        return frozenset((self.data or {}).get("features", []))
 
     def delete(self, *args, **kwargs):
         dif_id = self.id
@@ -213,15 +227,15 @@ class ProjectDebugFile(Model):
             # Explicitly select referencing caches and delete them. Using
             # the backref does not work, since `dif.id` is None after the
             # delete.
-            symcaches = ProjectSymCacheFile.objects \
-                .filter(debug_file_id=dif_id) \
-                .select_related('cache_file')
+            symcaches = ProjectSymCacheFile.objects.filter(
+                debug_file_id=dif_id
+            ).select_related("cache_file")
             for symcache in symcaches:
                 symcache.delete()
 
-            cficaches = ProjectCfiCacheFile.objects \
-                .filter(debug_file_id=dif_id) \
-                .select_related('cache_file')
+            cficaches = ProjectCfiCacheFile.objects.filter(
+                debug_file_id=dif_id
+            ).select_related("cache_file")
             for cficache in cficaches:
                 cficache.delete()
 
@@ -230,25 +244,26 @@ class ProjectDebugFile(Model):
 
 class ProjectCacheFile(Model):
     """Abstract base class for all debug cache files."""
+
     __core__ = False
 
-    project = FlexibleForeignKey('sentry.Project', null=True)
-    cache_file = FlexibleForeignKey('sentry.File')
+    project = FlexibleForeignKey("sentry.Project", null=True)
+    cache_file = FlexibleForeignKey("sentry.File")
     debug_file = FlexibleForeignKey(
-        'sentry.ProjectDebugFile',
+        "sentry.ProjectDebugFile",
         rel_class=OneToOneRel,
-        db_column='dsym_file_id',
+        db_column="dsym_file_id",
         on_delete=models.DO_NOTHING,
     )
     checksum = models.CharField(max_length=40)
     version = BoundedPositiveIntegerField()
 
-    __repr__ = sane_repr('debug_file__debug_id', 'version')
+    __repr__ = sane_repr("debug_file__debug_id", "version")
 
     class Meta:
         abstract = True
-        unique_together = (('project', 'debug_file'),)
-        app_label = 'sentry'
+        unique_together = (("project", "debug_file"),)
+        app_label = "sentry"
 
     @classproperty
     def ignored_errors(cls):
@@ -299,7 +314,7 @@ class ProjectSymCacheFile(ProjectCacheFile):
     """Cache for native address symbolication: SymCache."""
 
     class Meta(ProjectCacheFile.Meta):
-        db_table = 'sentry_projectsymcachefile'
+        db_table = "sentry_projectsymcachefile"
 
     @classproperty
     def ignored_errors(cls):
@@ -307,7 +322,7 @@ class ProjectSymCacheFile(ProjectCacheFile):
 
     @classproperty
     def required_features(cls):
-        return ('debug',)
+        return ("debug",)
 
     @classproperty
     def cache_cls(cls):
@@ -317,7 +332,7 @@ class ProjectSymCacheFile(ProjectCacheFile):
     def computes_from(cls, debug_file):
         if debug_file.data is None:
             # Compatibility with legacy DIFs before features were introduced
-            return debug_file.file_format in ('breakpad', 'macho', 'elf')
+            return debug_file.file_format in ("breakpad", "macho", "elf")
         return super(ProjectSymCacheFile, cls).computes_from(debug_file)
 
     @property
@@ -329,7 +344,7 @@ class ProjectCfiCacheFile(ProjectCacheFile):
     """Cache for stack unwinding information: CfiCache."""
 
     class Meta(ProjectCacheFile.Meta):
-        db_table = 'sentry_projectcficachefile'
+        db_table = "sentry_projectcficachefile"
 
     @classproperty
     def ignored_errors(cls):
@@ -337,7 +352,7 @@ class ProjectCfiCacheFile(ProjectCacheFile):
 
     @classproperty
     def required_features(cls):
-        return ('unwind',)
+        return ("unwind",)
 
     @classproperty
     def cache_cls(cls):
@@ -353,10 +368,11 @@ def clean_redundant_difs(project, debug_id):
     file is considered redundant if there is a newer file with the same debug
     identifier and the same or a superset of its features.
     """
-    difs = ProjectDebugFile.objects \
-        .filter(project=project, debug_id=debug_id) \
-        .select_related('file') \
-        .order_by('-id')
+    difs = (
+        ProjectDebugFile.objects.filter(project=project, debug_id=debug_id)
+        .select_related("file")
+        .order_by("-id")
+    )
 
     all_features = set()
     for i, dif in enumerate(difs):
@@ -374,14 +390,14 @@ def create_dif_from_id(project, meta, fileobj=None, file=None):
     debug id and open file object to a debug file.  This will not verify the
     debug id (intentionally so).  Use `detect_dif_from_path` to do that.
     """
-    if meta.file_format == 'proguard':
-        object_name = 'proguard-mapping'
-    elif meta.file_format in ('macho', 'elf'):
+    if meta.file_format == "proguard":
+        object_name = "proguard-mapping"
+    elif meta.file_format in ("macho", "elf"):
         object_name = meta.name
-    elif meta.file_format == 'breakpad':
-        object_name = meta.name[:-4] if meta.name.endswith('.sym') else meta.name
+    elif meta.file_format == "breakpad":
+        object_name = meta.name[:-4] if meta.name.endswith(".sym") else meta.name
     else:
-        raise TypeError('unknown dif type %r' % (meta.file_format, ))
+        raise TypeError("unknown dif type %r" % (meta.file_format,))
 
     if file is not None:
         checksum = file.checksum
@@ -395,13 +411,19 @@ def create_dif_from_id(project, meta, fileobj=None, file=None):
         checksum = h.hexdigest()
         fileobj.seek(0, 0)
     else:
-        raise RuntimeError('missing file object')
+        raise RuntimeError("missing file object")
 
-    dif = ProjectDebugFile.objects \
-        .select_related('file') \
-        .filter(project=project, debug_id=meta.debug_id, file__checksum=checksum, data__isnull=False) \
-        .order_by('-id') \
+    dif = (
+        ProjectDebugFile.objects.select_related("file")
+        .filter(
+            project=project,
+            debug_id=meta.debug_id,
+            file__checksum=checksum,
+            data__isnull=False,
+        )
+        .order_by("-id")
         .first()
+    )
 
     if dif is not None:
         return dif, False
@@ -409,13 +431,13 @@ def create_dif_from_id(project, meta, fileobj=None, file=None):
     if file is None:
         file = File.objects.create(
             name=meta.debug_id,
-            type='project.dif',
-            headers={'Content-Type': DIF_MIMETYPES[meta.file_format]},
+            type="project.dif",
+            headers={"Content-Type": DIF_MIMETYPES[meta.file_format]},
         )
         file.putfile(fileobj)
     else:
-        file.type = 'project.dif'
-        file.headers['Content-Type'] = DIF_MIMETYPES[meta.file_format]
+        file.type = "project.dif"
+        file.headers["Content-Type"] = DIF_MIMETYPES[meta.file_format]
         file.save()
 
     dif = ProjectDebugFile.objects.create(
@@ -435,9 +457,7 @@ def create_dif_from_id(project, meta, fileobj=None, file=None):
     clean_redundant_difs(project, meta.debug_id)
 
     resolve_processing_issue(
-        project=project,
-        scope='native',
-        object='dsym:%s' % meta.debug_id,
+        project=project, scope="native", object="dsym:%s" % meta.debug_id
     )
 
     return dif, True
@@ -457,7 +477,9 @@ def _analyze_progard_filename(filename):
 
 
 class DifMeta(object):
-    def __init__(self, file_format, arch, debug_id, path, code_id=None, name=None, data=None):
+    def __init__(
+        self, file_format, arch, debug_id, path, code_id=None, name=None, data=None
+    ):
         self.file_format = file_format
         self.arch = arch
         self.debug_id = debug_id
@@ -480,10 +502,7 @@ class DifMeta(object):
             path=path,
             # TODO: Extract the object name from the object
             name=name,
-            data={
-                'type': obj.kind,
-                'features': list(obj.features),
-            },
+            data={"type": obj.kind, "features": list(obj.features)},
         )
 
     @property
@@ -500,16 +519,18 @@ def detect_dif_from_path(path, name=None):
     # (proguard/mapping-UUID.txt).
     proguard_id = _analyze_progard_filename(path)
     if proguard_id is not None:
-        data = {'features': ['mapping']}
-        return [DifMeta(
-            file_format='proguard',
-            arch='any',
-            debug_id=proguard_id,
-            code_id=None,
-            path=path,
-            name=name,
-            data=data,
-        )]
+        data = {"features": ["mapping"]}
+        return [
+            DifMeta(
+                file_format="proguard",
+                arch="any",
+                debug_id=proguard_id,
+                code_id=None,
+                path=path,
+                name=name,
+                data=data,
+            )
+        ]
 
     # native debug information files (MachO, ELF or Breakpad)
     try:
@@ -517,7 +538,7 @@ def detect_dif_from_path(path, name=None):
     except ObjectErrorUnsupportedObject as e:
         raise BadDif("Unsupported debug information file: %s" % e)
     except SymbolicError as e:
-        logger.warning('dsymfile.bad-fat-object', exc_info=True)
+        logger.warning("dsymfile.bad-fat-object", exc_info=True)
         raise BadDif("Invalid debug information file: %s" % e)
     else:
         objs = []
@@ -532,7 +553,7 @@ def create_debug_file_from_dif(to_create, project):
     """
     rv = []
     for meta in to_create:
-        with open(meta.path, 'rb') as f:
+        with open(meta.path, "rb") as f:
             dif, created = create_dif_from_id(project, meta, fileobj=f)
             if created:
                 rv.append(dif)
@@ -566,11 +587,12 @@ def create_files_from_dif_zip(fileobj, project, update_caches=True):
         # events start coming in.
         if update_caches:
             from sentry.tasks.symcache_update import symcache_update
-            ids_to_update = [six.text_type(dif.debug_id) for dif in rv
-                             if dif.supports_caches]
+
+            ids_to_update = [
+                six.text_type(dif.debug_id) for dif in rv if dif.supports_caches
+            ]
             if ids_to_update:
-                symcache_update.delay(project_id=project.id,
-                                      debug_ids=ids_to_update)
+                symcache_update.delay(project_id=project.id, debug_ids=ids_to_update)
 
         # Uploading new dsysm changes the reprocessing revision
         bump_reprocessing_revision(project)
@@ -583,7 +605,7 @@ def create_files_from_dif_zip(fileobj, project, update_caches=True):
 class DIFCache(object):
     @property
     def cache_path(self):
-        return options.get('dsym.cache-path')
+        return options.get("dsym.cache-path")
 
     def get_project_path(self, project):
         return os.path.join(self.cache_path, six.text_type(project.id))
@@ -596,24 +618,28 @@ class DIFCache(object):
         self._get_caches_impl(project, debug_ids, ProjectSymCacheFile)
         self._get_caches_impl(project, debug_ids, ProjectCfiCacheFile)
 
-    def get_symcaches(self, project, debug_ids, on_dif_referenced=None,
-                      with_conversion_errors=False):
+    def get_symcaches(
+        self, project, debug_ids, on_dif_referenced=None, with_conversion_errors=False
+    ):
         """Loads symcaches for the given debug IDs from the file system cache or
         blob store."""
         cachefiles, conversion_errors = self._get_caches_impl(
-            project, debug_ids, ProjectSymCacheFile, on_dif_referenced)
+            project, debug_ids, ProjectSymCacheFile, on_dif_referenced
+        )
 
         symcaches = self._load_cachefiles_via_fs(project, cachefiles, SymCache)
         if with_conversion_errors:
             return symcaches, dict((k, v) for k, v in conversion_errors.items())
         return symcaches
 
-    def get_cficaches(self, project, debug_ids, on_dif_referenced=None,
-                      with_conversion_errors=False):
+    def get_cficaches(
+        self, project, debug_ids, on_dif_referenced=None, with_conversion_errors=False
+    ):
         """Loads cficaches for the given debug IDs from the file system cache or
         blob store."""
         cachefiles, conversion_errors = self._get_caches_impl(
-            project, debug_ids, ProjectCfiCacheFile, on_dif_referenced)
+            project, debug_ids, ProjectCfiCacheFile, on_dif_referenced
+        )
         cficaches = self._load_cachefiles_via_fs(project, cachefiles, CfiCache)
         if with_conversion_errors:
             return cficaches, dict((k, v) for k, v in conversion_errors.items())
@@ -666,10 +692,10 @@ class DIFCache(object):
         # in our CFI generation and even without CFI information we can
         # continue processing stacktraces.
         if error is not None:
-            logger.warning('dsymfile.cfi-generation-failed', extra=dict(
-                error=error,
-                debug_id=dif.debug_id
-            ))
+            logger.warning(
+                "dsymfile.cfi-generation-failed",
+                extra=dict(error=error, debug_id=dif.debug_id),
+            )
             return None
 
         return None
@@ -678,7 +704,8 @@ class DIFCache(object):
         # Fetch debug files first and invoke the callback if we need
         debug_ids = [six.text_type(debug_id).lower() for debug_id in debug_ids]
         debug_files = ProjectDebugFile.objects.find_by_debug_ids(
-            project, debug_ids, features=cls.required_features)
+            project, debug_ids, features=cls.required_features
+        )
 
         # Notify the caller that we have used a symbol file
         if on_dif_referenced is not None:
@@ -687,9 +714,9 @@ class DIFCache(object):
 
         # Now find all the cache files we already have
         found_ids = [d.id for d in six.itervalues(debug_files)]
-        existing_caches = cls.objects \
-            .filter(project=project, debug_file_id__in=found_ids) \
-            .select_related('cache_file', 'debug_file__debug_id')
+        existing_caches = cls.objects.filter(
+            project=project, debug_file_id__in=found_ids
+        ).select_related("cache_file", "debug_file__debug_id")
 
         # Check for missing and out-of-date cache files. Outdated files are
         # removed to be re-created immediately.
@@ -706,7 +733,8 @@ class DIFCache(object):
         # If any cache files need to be updated, do that now
         if to_update:
             updated_cachefiles, conversion_errors = self._update_cachefiles(
-                project, to_update.values(), cls)
+                project, to_update.values(), cls
+            )
             caches.extend(updated_cachefiles)
         else:
             conversion_errors = {}
@@ -723,7 +751,7 @@ class DIFCache(object):
             # Find all the known bad files we could not convert last time. We
             # use the debug identifier and file checksum to identify the source
             # DIF for historic reasons (debug_file.id would do, too).
-            cache_key = 'scbe:%s:%s' % (debug_id, debug_file.file.checksum)
+            cache_key = "scbe:%s:%s" % (debug_id, debug_file.file.checksum)
             err = default_cache.get(cache_key)
             if err is not None:
                 conversion_errors[debug_id] = err
@@ -766,23 +794,28 @@ class DIFCache(object):
 
             # Check features from the actual object file, if this is a legacy
             # DIF where features have not been extracted yet.
-            if (debug_file.data or {}).get('features') is None:
+            if (debug_file.data or {}).get("features") is None:
                 if not set(cls.required_features) <= obj.features:
                     return None, None, None
 
             cache = cls.cache_cls.from_object(obj)
         except SymbolicError as e:
             if not isinstance(e, cls.ignored_errors):
-                logger.error('dsymfile.%s-build-error' % cls.cache_name,
-                             exc_info=True, extra=dict(debug_id=debug_id))
+                logger.error(
+                    "dsymfile.%s-build-error" % cls.cache_name,
+                    exc_info=True,
+                    extra=dict(debug_id=debug_id),
+                )
 
-            metrics.incr('%s.failed' % cls.cache_name, tags={
-                'error': e.__class__.__name__,
-            }, skip_internal=False)
+            metrics.incr(
+                "%s.failed" % cls.cache_name,
+                tags={"error": e.__class__.__name__},
+                skip_internal=False,
+            )
 
             return None, None, e.message
 
-        file = File.objects.create(name=debug_id, type='project.%s' % cls.cache_name)
+        file = File.objects.create(name=debug_id, type="project.%s" % cls.cache_name)
         file.putfile(cache.open_stream())
 
         # Try to insert the new Cache into the database. This only fail if
@@ -791,13 +824,17 @@ class DIFCache(object):
         # the API.
         try:
             with transaction.atomic():
-                return cls.objects.create(
-                    project=debug_file.project,
-                    cache_file=file,
-                    debug_file=debug_file,
-                    checksum=debug_file.file.checksum,
-                    version=cache.version,
-                ), cache, None
+                return (
+                    cls.objects.create(
+                        project=debug_file.project,
+                        cache_file=file,
+                        debug_file=debug_file,
+                        checksum=debug_file.file.checksum,
+                        version=cache.version,
+                    ),
+                    cache,
+                    None,
+                )
         except IntegrityError:
             file.delete()
 
@@ -805,11 +842,14 @@ class DIFCache(object):
         # could have happened (1) due to a concurrent insert, or (2) a new
         # upload that has already succeeded to compute a cache. The latter
         # case is extremely unlikely.
-        cache_file = cls.objects \
-            .filter(project=debug_file.project, debug_file__debug_id=debug_id) \
-            .select_related('cache_file') \
-            .order_by('-id') \
+        cache_file = (
+            cls.objects.filter(
+                project=debug_file.project, debug_file__debug_id=debug_id
+            )
+            .select_related("cache_file")
+            .order_by("-id")
             .first()
+        )
 
         if cache_file is not None:
             return cache_file, None, None
@@ -832,12 +872,12 @@ class DIFCache(object):
                 rv[debug_id] = cache
                 continue
             elif model is None:
-                raise RuntimeError('missing %s file to load from fs' % cls_name)
+                raise RuntimeError("missing %s file to load from fs" % cls_name)
 
             # Try to locate a cached instance from the file system and bump the
             # timestamp to indicate it is still being used. Otherwise, download
             # from the blob store and place it in the cache folder.
-            cachefile_name = '%s_%s.%s' % (model.id, model.version, cls_name)
+            cachefile_name = "%s_%s.%s" % (model.id, model.version, cls_name)
             cachefile_path = os.path.join(base, cachefile_name)
             try:
                 stat = os.stat(cachefile_path)

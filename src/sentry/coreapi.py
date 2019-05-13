@@ -28,8 +28,7 @@ from sentry import features
 from sentry.attachments import attachment_cache
 from sentry.cache import default_cache
 from sentry.models import ProjectKey
-from sentry.tasks.store import preprocess_event, \
-    preprocess_event_from_reprocessing
+from sentry.tasks.store import preprocess_event, preprocess_event_from_reprocessing
 from sentry.utils import kafka, json
 from sentry.utils.auth import parse_auth_header
 from sentry.utils.http import origin_from_request
@@ -39,13 +38,13 @@ from sentry.utils.sdk import configure_scope
 from sentry.utils.canonical import CANONICAL_TYPES
 
 
-_dist_re = re.compile(r'^[a-zA-Z0-9_.-]+$')
+_dist_re = re.compile(r"^[a-zA-Z0-9_.-]+$")
 logger = logging.getLogger("sentry.api")
 
 
 class APIError(Exception):
     http_status = 400
-    msg = 'Invalid request'
+    msg = "Invalid request"
     name = None
 
     def __init__(self, msg=None, name=None):
@@ -55,12 +54,12 @@ class APIError(Exception):
             self.name = name
 
     def __str__(self):
-        return self.msg or ''
+        return self.msg or ""
 
 
 class APIUnauthorized(APIError):
     http_status = 401
-    msg = 'Unauthorized'
+    msg = "Unauthorized"
 
 
 class APIForbidden(APIError):
@@ -69,8 +68,8 @@ class APIForbidden(APIError):
 
 class APIRateLimited(APIError):
     http_status = 429
-    msg = 'Creation of this event was denied due to rate limiting'
-    name = 'rate_limit'
+    msg = "Creation of this event was denied due to rate limiting"
+    name = "rate_limit"
 
     def __init__(self, retry_after=None):
         self.retry_after = retry_after
@@ -78,10 +77,10 @@ class APIRateLimited(APIError):
 
 class Auth(object):
     def __init__(self, auth_vars, is_public=False):
-        self.client = auth_vars.get('sentry_client')
-        self.version = six.text_type(auth_vars.get('sentry_version'))
-        self.secret_key = auth_vars.get('sentry_secret')
-        self.public_key = auth_vars.get('sentry_key')
+        self.client = auth_vars.get("sentry_client")
+        self.version = six.text_type(auth_vars.get("sentry_version"))
+        self.secret_key = auth_vars.get("sentry_secret")
+        self.public_key = auth_vars.get("sentry_key")
         self.is_public = is_public
 
 
@@ -114,36 +113,33 @@ class ClientContext(object):
 class ClientApiHelper(object):
     def __init__(self, agent=None, version=None, project_id=None, ip_address=None):
         self.context = ClientContext(
-            agent=agent,
-            version=version,
-            project_id=project_id,
-            ip_address=ip_address,
+            agent=agent, version=version, project_id=project_id, ip_address=ip_address
         )
 
     def project_key_from_auth(self, auth):
         if not auth.public_key:
-            raise APIUnauthorized('Invalid api key')
+            raise APIUnauthorized("Invalid api key")
 
         # Make sure the key even looks valid first, since it's
         # possible to get some garbage input here causing further
         # issues trying to query it from cache or the database.
         if not ProjectKey.looks_like_api_key(auth.public_key):
-            raise APIUnauthorized('Invalid api key')
+            raise APIUnauthorized("Invalid api key")
 
         try:
             pk = ProjectKey.objects.get_from_cache(public_key=auth.public_key)
         except ProjectKey.DoesNotExist:
-            raise APIUnauthorized('Invalid api key')
+            raise APIUnauthorized("Invalid api key")
 
         # a secret key may not be present which will be validated elsewhere
         if not constant_time_compare(pk.secret_key, auth.secret_key or pk.secret_key):
-            raise APIUnauthorized('Invalid api key')
+            raise APIUnauthorized("Invalid api key")
 
         if not pk.is_active:
-            raise APIUnauthorized('API key is disabled')
+            raise APIUnauthorized("API key is disabled")
 
         if not pk.roles.store:
-            raise APIUnauthorized('Key does not allow event storage access')
+            raise APIUnauthorized("Key does not allow event storage access")
 
         return pk
 
@@ -151,20 +147,21 @@ class ClientApiHelper(object):
         return self.project_key_from_auth(auth).project_id
 
     def ensure_does_not_have_ip(self, data):
-        env = get_path(data, 'request', 'env')
+        env = get_path(data, "request", "env")
         if env:
-            env.pop('REMOTE_ADDR', None)
+            env.pop("REMOTE_ADDR", None)
 
-        user = get_path(data, 'user')
+        user = get_path(data, "user")
         if user:
-            user.pop('ip_address', None)
+            user.pop("ip_address", None)
 
-        sdk = get_path(data, 'sdk')
+        sdk = get_path(data, "sdk")
         if sdk:
-            sdk.pop('client_ip', None)
+            sdk.pop("client_ip", None)
 
-    def insert_data_to_database(self, data, start_time=None,
-                                from_reprocessing=False, attachments=None):
+    def insert_data_to_database(
+        self, data, start_time=None, from_reprocessing=False, attachments=None
+    ):
         if start_time is None:
             start_time = time()
 
@@ -186,21 +183,27 @@ class ClientApiHelper(object):
         # is enough for us to do `projects:kafka-ingest` testing.
         project = self.context and self.context.project
 
-        if project and features.has('projects:kafka-ingest', project=project):
+        if project and features.has("projects:kafka-ingest", project=project):
             kafka.produce_sync(
                 settings.KAFKA_PREPROCESS,
-                value=json.dumps({
-                    'cache_key': cache_key,
-                    'start_time': start_time,
-                    'from_reprocessing': from_reprocessing,
-                    'data': data,
-                }),
+                value=json.dumps(
+                    {
+                        "cache_key": cache_key,
+                        "start_time": start_time,
+                        "from_reprocessing": from_reprocessing,
+                        "data": data,
+                    }
+                ),
             )
         else:
-            task = from_reprocessing and \
-                preprocess_event_from_reprocessing or preprocess_event
-            task.delay(cache_key=cache_key, start_time=start_time,
-                       event_id=data['event_id'])
+            task = (
+                from_reprocessing
+                and preprocess_event_from_reprocessing
+                or preprocess_event
+            )
+            task.delay(
+                cache_key=cache_key, start_time=start_time, event_id=data["event_id"]
+            )
 
 
 @six.add_metaclass(abc.ABCMeta)
@@ -217,30 +220,33 @@ class AbstractAuthHelper(object):
 class ClientAuthHelper(AbstractAuthHelper):
     @classmethod
     def auth_from_request(cls, request):
-        result = {k: request.GET[k] for k in six.iterkeys(
-            request.GET) if k[:7] == 'sentry_'}
+        result = {
+            k: request.GET[k] for k in six.iterkeys(request.GET) if k[:7] == "sentry_"
+        }
 
-        if request.META.get('HTTP_X_SENTRY_AUTH', '')[:7].lower() == 'sentry ':
+        if request.META.get("HTTP_X_SENTRY_AUTH", "")[:7].lower() == "sentry ":
             if result:
                 raise SuspiciousOperation(
-                    'Multiple authentication payloads were detected.')
-            result = parse_auth_header(request.META['HTTP_X_SENTRY_AUTH'])
-        elif request.META.get('HTTP_AUTHORIZATION', '')[:7].lower() == 'sentry ':
+                    "Multiple authentication payloads were detected."
+                )
+            result = parse_auth_header(request.META["HTTP_X_SENTRY_AUTH"])
+        elif request.META.get("HTTP_AUTHORIZATION", "")[:7].lower() == "sentry ":
             if result:
                 raise SuspiciousOperation(
-                    'Multiple authentication payloads were detected.')
-            result = parse_auth_header(request.META['HTTP_AUTHORIZATION'])
+                    "Multiple authentication payloads were detected."
+                )
+            result = parse_auth_header(request.META["HTTP_AUTHORIZATION"])
 
         if not result:
-            raise APIUnauthorized('Unable to find authentication information')
+            raise APIUnauthorized("Unable to find authentication information")
 
         origin = cls.origin_from_request(request)
         auth = Auth(result, is_public=bool(origin))
         # default client to user agent
         if not auth.client:
-            auth.client = request.META.get('HTTP_USER_AGENT')
+            auth.client = request.META.get("HTTP_USER_AGENT")
             if isinstance(auth.client, bytes):
-                auth.client = auth.client.decode('latin1')
+                auth.client = auth.client.decode("latin1")
         return auth
 
     @classmethod
@@ -248,8 +254,8 @@ class ClientAuthHelper(AbstractAuthHelper):
         """
         Returns either the Origin or Referer value from the request headers.
         """
-        if request.META.get('HTTP_ORIGIN') == 'null':
-            return 'null'
+        if request.META.get("HTTP_ORIGIN") == "null":
+            return "null"
         return origin_from_request(request)
 
 
@@ -261,15 +267,15 @@ class MinidumpAuthHelper(AbstractAuthHelper):
 
     @classmethod
     def auth_from_request(cls, request):
-        key = request.GET.get('sentry_key')
+        key = request.GET.get("sentry_key")
         if not key:
-            raise APIUnauthorized('Unable to find authentication information')
+            raise APIUnauthorized("Unable to find authentication information")
 
         # Minidump requests are always "trusted".  We at this point only
         # use is_public to identify requests that have an origin set (via
         # CORS)
-        auth = Auth({'sentry_key': key}, is_public=False)
-        auth.client = 'sentry-minidump'
+        auth = Auth({"sentry_key": key}, is_public=False)
+        auth.client = "sentry-minidump"
         return auth
 
 
@@ -283,21 +289,17 @@ class SecurityAuthHelper(AbstractAuthHelper):
 
     @classmethod
     def auth_from_request(cls, request):
-        key = request.GET.get('sentry_key')
+        key = request.GET.get("sentry_key")
         if not key:
-            raise APIUnauthorized('Unable to find authentication information')
+            raise APIUnauthorized("Unable to find authentication information")
 
-        auth = Auth(
-            {
-                'sentry_key': key,
-            }, is_public=True
-        )
-        auth.client = request.META.get('HTTP_USER_AGENT')
+        auth = Auth({"sentry_key": key}, is_public=True)
+        auth.client = request.META.get("HTTP_USER_AGENT")
         return auth
 
 
 def cache_key_for_event(data):
-    return u'e:{1}:{0}'.format(data['project'], data['event_id'])
+    return u"e:{1}:{0}".format(data["project"], data["event_id"])
 
 
 def decompress_deflate(encoded_data):
