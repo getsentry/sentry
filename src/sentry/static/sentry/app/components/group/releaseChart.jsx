@@ -5,7 +5,7 @@ import createReactClass from 'create-react-class';
 import StackedBarChart from 'app/components/stackedBarChart';
 import SentryTypes from 'app/sentryTypes';
 import {t} from 'app/locale';
-import {escape, intcomma} from 'app/utils';
+import {intcomma} from 'app/utils';
 import theme from 'app/utils/theme';
 
 const GroupReleaseChart = createReactClass({
