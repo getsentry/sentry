@@ -21,8 +21,6 @@ from sentry.utils.in_app import is_known_third_party, is_optional_package
 from sentry.net.http import Session
 from sentry.tasks.store import RetrySymbolication
 
-from symbolic import id_from_breakpad
-
 MAX_ATTEMPTS = 3
 REQUEST_CACHE_TIMEOUT = 3600
 SYMBOLICATOR_TIMEOUT = 5
@@ -369,9 +367,6 @@ def merge_symbolicator_image(raw_image, complete_image, sdk_info, handle_symboli
             statuses.add(v)
         elif not (v is None or (k, v) == ('arch', 'unknown')):
             raw_image[k] = v
-
-    if raw_image.get('debug_id'):
-        raw_image['debug_id'] = id_from_breakpad(raw_image['debug_id'])
 
     for status in set(statuses):
         handle_symbolicator_status(status, raw_image, sdk_info, handle_symbolication_failed)
