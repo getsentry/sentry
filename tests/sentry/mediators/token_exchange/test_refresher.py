@@ -3,7 +3,7 @@ from __future__ import absolute_import
 from mock import patch
 
 from sentry.coreapi import APIUnauthorized
-from sentry.models import ApiApplication, ApiToken, SentryApp
+from sentry.models import ApiApplication, ApiToken, SentryApp, SentryAppInstallation
 from sentry.mediators.token_exchange import GrantExchanger, Refresher
 from sentry.testutils import TestCase
 
@@ -30,6 +30,10 @@ class TestRefresher(TestCase):
 
     def test_happy_path(self):
         assert self.refresher.call()
+
+    def test_adds_token_to_installation(self):
+        token = self.refresher.call()
+        assert SentryAppInstallation.objects.get(id=self.install.id).api_token == token
 
     def test_deletes_refreshed_token(self):
         self.refresher.call()
