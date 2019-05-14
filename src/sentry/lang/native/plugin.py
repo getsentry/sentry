@@ -421,11 +421,8 @@ def reprocess_minidump(data):
         minidump=make_buffered_slice_reader(minidump.data, None)
     )
 
-    if not handle_symbolicator_response_status(data, response):
-        default_cache.set(minidump_is_reprocessed_cache_key, True, 3600)
-        return
-
-    merge_symbolicator_minidump_response(data, response)
+    if handle_symbolicator_response_status(data, response):
+        merge_symbolicator_minidump_response(data, response)
 
     event_cache_key = cache_key_for_event(data)
     default_cache.set(event_cache_key, dict(data), 3600)

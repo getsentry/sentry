@@ -345,17 +345,17 @@ def run_symbolicator(project, request_id_cache_key, create_task=create_payload_t
 
 def handle_symbolicator_response_status(event_data, response_json):
     if not response_json:
-        error = SymbolicationFailed(type=EventError.NATIVE_SYMBOLICATOR_FAILED)
+        error = SymbolicationFailed(type=EventError.NATIVE_INTERNAL_FAILURE)
     elif response_json['status'] == 'completed':
         return True
     elif response_json['status'] == 'failed':
         error = SymbolicationFailed(message=response_json.get('message') or None,
-                                    type=EventError.NATIVE_FAILED)
+                                    type=EventError.NATIVE_SYMBOLICATOR_FAILED)
     else:
         logger.error('Unexpected symbolicator status: %s', response_json['status'])
-        error = SymbolicationFailed(type=EventError.NATIVE_SYMBOLICATOR_FAILED)
+        error = SymbolicationFailed(type=EventError.NATIVE_INTERNAL_FAILURE)
 
-    handle_symbolication_failed(error)
+    handle_symbolication_failed(error, data=event_data)
 
 
 def _poll_symbolication_task(sess, base_url, request_id, project_id):
