@@ -213,7 +213,8 @@ def get_function_component(function, platform, legacy_function_logic,
                 hint='ignored unknown function'
             )
         elif legacy_function_logic:
-            new_function = trim_function_name(func, platform)
+            new_function = trim_function_name(func, platform,
+                                              normalize_lambdas=False)
             if new_function != func:
                 function_component.update(
                     values=[new_function],

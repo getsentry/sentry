@@ -19,6 +19,11 @@
               "function": "Scaleform::GFx::AS3::IMEManager::DispatchEvent(char const *,char const *,char const *)",
               "instruction_addr": "0x10918cd81",
               "in_app": false
+            },
+            {
+              "function": "<lambda_5db80dab47756d3e72c2dcd38b80b1dd>::operator()",
+              "instruction_addr": "0x10918dda1",
+              "in_app": false
             }
           ]
         },

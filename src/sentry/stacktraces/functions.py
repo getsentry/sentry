@@ -9,6 +9,22 @@ from sentry.stacktraces.platform import get_behavior_family_for_platform
 _windecl_hash = re.compile(r'^@?(.*?)@[0-9]+$')
 _rust_hash = re.compile(r'::h[a-z0-9]{16}$')
 _cpp_trailer_re = re.compile(r'(\bconst\b|&)$')
+_lambda_re = re.compile(r'''(?x)
+    # gcc
+    (?:
+        \{
+            lambda\(.*?\)\#\d+
+        \}
+    ) |
+    # msvc
+    (?:
+        \blambda_[a-f0-9]{32}\b
+    ) |
+    # clang
+    (?:
+        \$_\d+\b
+    )
+''')
 
 
 PAIRS = {
@@ -75,7 +91,7 @@ def split_func_tokens(s):
     return [''.join(x) for x in rv]
 
 
-def trim_function_name(function, platform):
+def trim_function_name(function, platform, normalize_lambdas=True):
     """Given a function value from the frame's function attribute this returns
     a trimmed version that can be stored in `function_name`.  This is only used
     if the client did not supply a value itself already.
@@ -107,6 +123,16 @@ def trim_function_name(function, platform):
         .replace('operator<', u'operator⟨') \
         .replace('operator()', u'operator◯')\
         .replace(' -> ', u' ⟿ ')
+
+    # normalize C++ lambdas.  This is necessary because different
+    # compilers use different rules for now to name a lambda and they are
+    # all quite inconsistent.  This does not give us perfect answers to
+    # this problem but closer.  In particular msvc will call a lambda
+    # something like `lambda_deadbeefeefffeeffeeff` whereas clang for
+    # instance will name it `main::$_0` which will tell us in which outer
+    # function it was declared.
+    if normalize_lambdas:
+        function = _lambda_re.sub('lambda', function)
 
     # Remove the arguments if there is one.
     def process_args(value, start):

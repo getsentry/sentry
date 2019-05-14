@@ -100,6 +100,26 @@ from sentry.stacktraces.functions import replace_enclosed_string, split_func_tok
             'ViewController.causeCrash(Any) -> SomeObject',
             'ViewController.causeCrash',
         ],
+        [
+            'main::$_0',
+            'main::lambda',
+        ],
+        [
+            'main::$_42',
+            'main::lambda',
+        ],
+        [
+            'main::{lambda(int)#1}',
+            'main::lambda',
+        ],
+        [
+            'main::{lambda()#42}',
+            'main::lambda',
+        ],
+        [
+            'lambda_7156c3ceaa11256748687ab67e3ef4cd',
+            'lambda',
+        ],
     ]
 )
 def test_trim_function_name(input, output):
