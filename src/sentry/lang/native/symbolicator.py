@@ -14,7 +14,7 @@ from sentry import options
 from sentry.auth.system import get_system_token
 from sentry.cache import default_cache
 from sentry.lang.native.symbolizer import SymbolicationFailed
-from sentry.lang.native.utils import image_name
+from sentry.lang.native.utils import image_name, handle_symbolication_failed
 from sentry.models.eventerror import EventError
 from sentry.utils import json, metrics
 from sentry.utils.in_app import is_known_third_party, is_optional_package
@@ -327,14 +327,9 @@ def run_symbolicator(project, request_id_cache_key, create_task=create_payload_t
                         json['request_id'],
                         REQUEST_CACHE_TIMEOUT)
                     raise RetrySymbolication(retry_after=json['retry_after'])
-                elif json['status'] == 'completed':
-                    default_cache.delete(request_id_cache_key)
-                    return rv.json()
                 else:
-                    logger.error("Unexpected status: %s", json['status'])
-
                     default_cache.delete(request_id_cache_key)
-                    return
+                    return json
 
             except (IOError, RequestException):
                 attempts += 1
@@ -346,6 +341,21 @@ def run_symbolicator(project, request_id_cache_key, create_task=create_payload_t
 
                 time.sleep(wait)
                 wait *= 2.0
+
+
+def handle_symbolicator_response_status(event_data, response_json):
+    if not response_json:
+        error = SymbolicationFailed(type=EventError.NATIVE_SYMBOLICATOR_FAILED)
+    elif response_json['status'] == 'completed':
+        return True
+    elif response_json['status'] == 'failed':
+        error = SymbolicationFailed(message=response_json.get('message') or None,
+                                    type=EventError.NATIVE_FAILED)
+    else:
+        logger.error('Unexpected symbolicator status: %s', response_json['status'])
+        error = SymbolicationFailed(type=EventError.NATIVE_SYMBOLICATOR_FAILED)
+
+    handle_symbolication_failed(error)
 
 
 def _poll_symbolication_task(sess, base_url, request_id, project_id):
