@@ -168,9 +168,9 @@ class Action(object):
         if self.range is None:
             return [seq[idx]]
         elif self.range == 'down':
-            return seq[idx + 1:]
-        elif self.range == 'up':
             return seq[:idx]
+        elif self.range == 'up':
+            return seq[idx + 1:]
         return []
 
     def apply_modifications_to_frame(self, frames, idx):
@@ -313,7 +313,10 @@ class Rule(object):
 
     @property
     def matcher_description(self):
-        return ' '.join(x.description for x in self.matchers)
+        rv = ' '.join(x.description for x in self.matchers)
+        if any(x.range is not None for x in self.actions):
+            rv += ' - ranged'
+        return rv
 
     def as_dict(self):
         matchers = {}

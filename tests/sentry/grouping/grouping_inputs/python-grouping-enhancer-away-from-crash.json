@@ -1,0 +1,259 @@
+{
+  "_grouping": {
+    "enhancement_base": "common:2019-03-23",
+    "enhancements": "path:**/release_webhook.py v-group"
+  },
+  "culprit": "/api/hooks/release/{plugin_id}/{project_id}/{signature}/",
+  "event_id": "69ce64e3cf2c4b38850de54e8b90b277",
+  "environment": "prod",
+  "platform": "python",
+  "logger": "",
+  "fingerprint": [
+    "{{ default }}"
+  ],
+  "exception": {
+    "values": [
+      {
+        "stacktrace": {
+          "frames": [
+            {
+              "function": "get_response",
+              "abs_path": "/usr/local/lib/python2.7/site-packages/django/core/handlers/base.py",
+              "pre_context": [
+                "                        break",
+                "",
+                "            if response is None:",
+                "                wrapped_callback = self.make_view_atomic(callback)",
+                "                try:"
+              ],
+              "module": "django.core.handlers.base",
+              "filename": "django/core/handlers/base.py",
+              "post_context": [
+                "                except Exception as e:",
+                "                    # If the view raised an exception, run it through exception",
+                "                    # middleware, and if the exception middleware returns a",
+                "                    # response, use that. Otherwise, reraise the exception.",
+                "                    for middleware_method in self._exception_middleware:"
+              ],
+              "in_app": false,
+              "context_line": "                    response = wrapped_callback(request, *callback_args, **callback_kwargs)",
+              "lineno": 112
+            },
+            {
+              "function": "view",
+              "abs_path": "/usr/local/lib/python2.7/site-packages/django/views/generic/base.py",
+              "pre_context": [
+                "            if hasattr(self, 'get') and not hasattr(self, 'head'):",
+                "                self.head = self.get",
+                "            self.request = request",
+                "            self.args = args",
+                "            self.kwargs = kwargs"
+              ],
+              "module": "django.views.generic.base",
+              "filename": "django/views/generic/base.py",
+              "post_context": [
+                "",
+                "        # take name and docstring from class",
+                "        update_wrapper(view, cls, updated=())",
+                "",
+                "        # and possible attributes set by decorators"
+              ],
+              "in_app": false,
+              "context_line": "            return self.dispatch(request, *args, **kwargs)",
+              "lineno": 69
+            },
+            {
+              "function": "_wrapper",
+              "abs_path": "/usr/local/lib/python2.7/site-packages/django/utils/decorators.py",
+              "pre_context": [
+                "            def bound_func(*args2, **kwargs2):",
+                "                return func(self, *args2, **kwargs2)",
+                "            # bound_func has the signature that 'decorator' expects i.e.  no",
+                "            # 'self' argument, but it is a closure over self so it can call",
+                "            # 'func' correctly."
+              ],
+              "module": "django.utils.decorators",
+              "filename": "django/utils/decorators.py",
+              "post_context": [
+                "        # In case 'decorator' adds attributes to the function it decorates, we",
+                "        # want to copy those. We don't have access to bound_func in this scope,",
+                "        # but we can cheat by using it on a dummy function.",
+                "        @decorator",
+                "        def dummy(*args, **kwargs):"
+              ],
+              "in_app": false,
+              "context_line": "            return bound_func(*args, **kwargs)",
+              "lineno": 29
+            },
+            {
+              "function": "wrapped_view",
+              "abs_path": "/usr/local/lib/python2.7/site-packages/django/views/decorators/csrf.py",
+              "pre_context": [
+                "    \"\"\"",
+                "    # We could just do view_func.csrf_exempt = True, but decorators",
+                "    # are nicer if they don't have side-effects, so we return a new",
+                "    # function.",
+                "    def wrapped_view(*args, **kwargs):"
+              ],
+              "module": "django.views.decorators.csrf",
+              "filename": "django/views/decorators/csrf.py",
+              "post_context": [
+                "    wrapped_view.csrf_exempt = True",
+                "    return wraps(view_func, assigned=available_attrs(view_func))(wrapped_view)"
+              ],
+              "in_app": false,
+              "context_line": "        return view_func(*args, **kwargs)",
+              "lineno": 57
+            },
+            {
+              "function": "bound_func",
+              "abs_path": "/usr/local/lib/python2.7/site-packages/django/utils/decorators.py",
+              "pre_context": [
+                "    # be a method of the class it is defined it.",
+                "    def _dec(func):",
+                "        def _wrapper(self, *args, **kwargs):",
+                "            @decorator",
+                "            def bound_func(*args2, **kwargs2):"
+              ],
+              "module": "django.utils.decorators",
+              "filename": "django/utils/decorators.py",
+              "post_context": [
+                "            # bound_func has the signature that 'decorator' expects i.e.  no",
+                "            # 'self' argument, but it is a closure over self so it can call",
+                "            # 'func' correctly.",
+                "            return bound_func(*args, **kwargs)",
+                "        # In case 'decorator' adds attributes to the function it decorates, we"
+              ],
+              "in_app": false,
+              "context_line": "                return func(self, *args2, **kwargs2)",
+              "lineno": 25
+            },
+            {
+              "function": "dispatch",
+              "abs_path": "/usr/src/getsentry/src/sentry/src/sentry/web/frontend/release_webhook.py",
+              "pre_context": [
+                "            ).hexdigest()",
+                "        )",
+                "",
+                "    @method_decorator(csrf_exempt)",
+                "    def dispatch(self, *args, **kwargs):"
+              ],
+              "module": "sentry.web.frontend.release_webhook",
+              "filename": "sentry/web/frontend/release_webhook.py",
+              "post_context": [
+                "",
+                "    def _handle_builtin(self, request, project):",
+                "        endpoint = u'/projects/{}/{}/releases/'.format(",
+                "            project.organization.slug,",
+                "            project.slug,"
+              ],
+              "in_app": true,
+              "context_line": "        return super(ReleaseWebhookView, self).dispatch(*args, **kwargs)",
+              "lineno": 37
+            },
+            {
+              "function": "dispatch",
+              "abs_path": "/usr/local/lib/python2.7/site-packages/django/views/generic/base.py",
+              "pre_context": [
+                "        # request method isn't on the approved list.",
+                "        if request.method.lower() in self.http_method_names:",
+                "            handler = getattr(self, request.method.lower(), self.http_method_not_allowed)",
+                "        else:",
+                "            handler = self.http_method_not_allowed"
+              ],
+              "module": "django.views.generic.base",
+              "filename": "django/views/generic/base.py",
+              "post_context": [
+                "",
+                "    def http_method_not_allowed(self, request, *args, **kwargs):",
+                "        logger.warning('Method Not Allowed (%s): %s', request.method, request.path,",
+                "            extra={",
+                "                'status_code': 405,"
+              ],
+              "in_app": false,
+              "context_line": "        return handler(request, *args, **kwargs)",
+              "lineno": 87
+            },
+            {
+              "function": "post",
+              "abs_path": "/usr/src/getsentry/src/sentry/src/sentry/web/frontend/release_webhook.py",
+              "pre_context": [
+                "            return HttpResponse(status=403)",
+                "",
+                "        cls = plugin.get_release_hook()",
+                "        hook = cls(project)",
+                "        try:"
+              ],
+              "module": "sentry.web.frontend.release_webhook",
+              "filename": "sentry/web/frontend/release_webhook.py",
+              "post_context": [
+                "        except HookValidationError as exc:",
+                "            return HttpResponse(",
+                "                status=400,",
+                "                content=json.dumps({",
+                "                    'error': six.text_type(exc)"
+              ],
+              "in_app": true,
+              "context_line": "            hook.handle(request)",
+              "lineno": 127
+            },
+            {
+              "function": "handle",
+              "abs_path": "/usr/src/getsentry/src/sentry-plugins/src/sentry_plugins/heroku/plugin.py",
+              "pre_context": [
+                "logger = logging.getLogger('sentry.plugins.heroku')",
+                "",
+                "",
+                "class HerokuReleaseHook(ReleaseHook):",
+                "    def handle(self, request):"
+              ],
+              "module": "sentry_plugins.heroku.plugin",
+              "filename": "sentry_plugins/heroku/plugin.py",
+              "post_context": [
+                "        try:",
+                "            user = User.objects.get(",
+                "                email__iexact=email,",
+                "                sentry_orgmember_set__organization__project=self.project,",
+                "            )"
+              ],
+              "in_app": true,
+              "context_line": "        email = request.POST['user']",
+              "lineno": 17
+            },
+            {
+              "function": "__getitem__",
+              "abs_path": "/usr/local/lib/python2.7/site-packages/django/utils/datastructures.py",
+              "pre_context": [
+                "        raises KeyError if not found.",
+                "        \"\"\"",
+                "        try:",
+                "            list_ = super(MultiValueDict, self).__getitem__(key)",
+                "        except KeyError:"
+              ],
+              "module": "django.utils.datastructures",
+              "filename": "django/utils/datastructures.py",
+              "post_context": [
+                "        try:",
+                "            return list_[-1]",
+                "        except IndexError:",
+                "            return []",
+                ""
+              ],
+              "in_app": false,
+              "context_line": "            raise MultiValueDictKeyError(repr(key))",
+              "lineno": 301
+            }
+          ]
+        },
+        "type": "MultiValueDictKeyError",
+        "value": "\"'user'\"",
+        "module": "django.utils.datastructures",
+        "mechanism": {
+          "type": "django",
+          "handled": false
+        }
+      }
+    ]
+  },
+  "release": "5e561c60bd275db993e5537a4830cd8ce7d66f52"
+}
