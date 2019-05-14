@@ -36,7 +36,11 @@ SAMPLE_SEARCH_RESPONSE = """
 
 SAMPLE_USER_SEARCH_RESPONSE = """
 [
-    {"name": "bob", "displayName": "Bobby", "emailAddress": "bob@example.org"}
+    {
+        "accountId": "deadbeef123",
+        "displayName": "Bobby",
+        "emailAddress": "bob@example.org"
+    }
 ]
 """
 
@@ -152,7 +156,7 @@ class JiraSearchEndpointTest(APITestCase):
         resp = self.client.get('%s?project=10000&field=assignee&query=bob' % (path,))
         assert resp.status_code == 200
         assert resp.data == [
-            {'value': 'bob', 'label': 'Bobby - bob@example.org (bob)'}
+            {'value': 'deadbeef123', 'label': 'Bobby - bob@example.org'}
         ]
 
     @responses.activate

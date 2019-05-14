@@ -411,6 +411,9 @@ class MockJiraApiClient(object):
     def transition_issue(self, issue_key, transition_id):
         pass
 
+    def user_id_field(self):
+        return 'accountId'
+
 
 class JiraIntegrationTest(APITestCase):
     @fixture
@@ -739,8 +742,8 @@ class JiraIntegrationTest(APITestCase):
             responses.GET,
             'https://example.atlassian.net/rest/api/2/user/assignable/search',
             json=[{
+                'accountId': 'deadbeef123',
                 'emailAddress': 'Bob@example.com',
-                'name': 'Bob Example'
             }],
             match_querystring=False,
         )
@@ -758,7 +761,7 @@ class JiraIntegrationTest(APITestCase):
         assign_issue_response = responses.calls[1][1]
         assert assign_issue_url in assign_issue_response.url
         assert assign_issue_response.status_code == 200
-        assert assign_issue_response.request.body == '{"name": "Bob Example"}'
+        assert assign_issue_response.request.body == '{"accountId": "deadbeef123"}'
 
     def test_update_organization_config(self):
         org = self.organization

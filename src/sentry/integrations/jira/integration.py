@@ -578,6 +578,7 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
             raise IntegrationError('Could not fetch issue create configuration from Jira.')
 
         issue_type_meta = self.get_issue_type_meta(data['issuetype'], meta)
+        user_id_field = client.user_id_field()
 
         fs = issue_type_meta['fields']
         for field in fs.keys():
@@ -607,10 +608,10 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
                         cleaned_data[field] = v
                         continue
                     if schema['type'] == 'user' or schema.get('items') == 'user':
-                        v = {'name': v}
+                        v = {user_id_field: v}
                     elif schema.get('custom') == JIRA_CUSTOM_FIELD_TYPES.get('multiuserpicker'):
                         # custom multi-picker
-                        v = [{'name': v}]
+                        v = [{user_id_field: v}]
                     elif schema['type'] == 'array' and schema.get('items') == 'option':
                         v = [{'value': vx} for vx in v]
                     elif schema['type'] == 'array' and schema.get('items') == 'string':
@@ -696,7 +697,8 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
                 return
 
         try:
-            client.assign_issue(external_issue.key, jira_user and jira_user['name'])
+            id_field = client.user_id_field()
+            client.assign_issue(external_issue.key, jira_user and jira_user.get(id_field))
         except (ApiUnauthorized, ApiError):
             # TODO(jess): do we want to email people about these types of failures?
             logger.info(

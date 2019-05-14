@@ -67,6 +67,12 @@ class JiraCloud(object):
             params=params))
         return request_spec
 
+    def user_id_field(self):
+        """
+        Jira-Cloud requires GDPR compliant API usage so we have to use accountId
+        """
+        return 'accountId'
+
 
 class JiraApiClient(ApiClient):
     COMMENTS_URL = '/rest/api/2/issue/%s/comment'
@@ -98,7 +104,16 @@ class JiraApiClient(ApiClient):
         add authentication data and transform parameters.
         """
         request_spec = self.jira_style.request_hook(method, path, data, params, **kwargs)
+        if 'headers' not in request_spec:
+            request_spec['headers'] = {}
+
+        # Force adherence to the GDPR compliant API conventions.
+        # See https://developer.atlassian.com/cloud/jira/platform/deprecation-notice-user-privacy-api-migration-guide
+        request_spec['headers']['x-atlassian-force-account-id'] = 'true'
         return self._request(**request_spec)
+
+    def user_id_field(self):
+        return self.jira_style.user_id_field()
 
     def get_cached(self, url, params=None):
         """
@@ -219,5 +234,6 @@ class JiraApiClient(ApiClient):
             'transition': {'id': transition_id},
         })
 
-    def assign_issue(self, key, username):
-        return self.put(self.ASSIGN_URL % key, data={'name': username})
+    def assign_issue(self, key, name_or_account_id):
+        user_id_field = self.user_id_field()
+        return self.put(self.ASSIGN_URL % key, data={user_id_field: name_or_account_id})
