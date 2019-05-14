@@ -12,3 +12,12 @@ def hash_from_values(values):
     for value in values:
         result.update(force_bytes(value, errors='replace'))
     return result.hexdigest()
+
+
+def get_rule_bool(value):
+    if value:
+        value = value.lower()
+        if value in ('1', 'yes', 'true'):
+            return True
+        elif value in ('0', 'no', 'false'):
+            return False
