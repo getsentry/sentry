@@ -13,6 +13,7 @@ import six
 from datetime import datetime, timedelta
 from django.conf import settings
 from django.db import connection, IntegrityError, router, transaction
+from django.db.models import Func
 from django.utils import timezone
 from django.utils.encoding import force_text
 
@@ -231,68 +232,35 @@ class HashDiscarded(Exception):
     pass
 
 
-def scoreclause_sql(sc, connection):
-    db = getattr(connection, 'alias', 'default')
-    has_values = sc.last_seen is not None and sc.times_seen is not None
-    if is_postgres(db):
-        if has_values:
-            sql = 'log(times_seen + %d) * 600 + %d' % (sc.times_seen, to_timestamp(sc.last_seen))
+class ScoreClause(Func):
+    def __init__(self, group=None, last_seen=None, times_seen=None, *args, **kwargs):
+        self.group = group
+        self.last_seen = last_seen
+        self.times_seen = times_seen
+        # times_seen is likely an F-object that needs the value extracted
+        if hasattr(self.times_seen, 'rhs'):
+            self.times_seen = self.times_seen.rhs.value
+        super(ScoreClause, self).__init__(*args, **kwargs)
+
+    def __int__(self):
+        # Calculate the score manually when coercing to an int.
+        # This is used within create_or_update and friends
+        return self.group.get_score() if self.group else 0
+
+    def as_sql(self, compiler, connection, function=None, template=None):
+        db = getattr(connection, 'alias', 'default')
+        has_values = self.last_seen is not None and self.times_seen is not None
+        if is_postgres(db):
+            if has_values:
+                sql = 'log(times_seen + %d) * 600 + %d' % (self.times_seen,
+                                                           to_timestamp(self.last_seen))
+            else:
+                sql = 'log(times_seen) * 600 + last_seen::abstime::int'
         else:
-            sql = 'log(times_seen) * 600 + last_seen::abstime::int'
-    else:
-        # XXX: if we cant do it atomically let's do it the best we can
-        sql = int(sc)
+            # XXX: if we cant do it atomically let's do it the best we can
+            sql = int(self)
 
-    return (sql, [])
-
-
-try:
-    from django.db.models import Func
-except ImportError:
-    # XXX(dramer): compatibility hack for Django 1.6
-    class ScoreClause(object):
-        def __init__(self, group=None, last_seen=None, times_seen=None, *args, **kwargs):
-            self.group = group
-            self.last_seen = last_seen
-            self.times_seen = times_seen
-            # times_seen is likely an F-object that needs the value extracted
-            if hasattr(self.times_seen, 'children'):
-                self.times_seen = self.times_seen.children[1]
-            super(ScoreClause, self).__init__(*args, **kwargs)
-
-        def __int__(self):
-            # Calculate the score manually when coercing to an int.
-            # This is used within create_or_update and friends
-            return self.group.get_score() if self.group else 0
-
-        def prepare_database_save(self, unused):
-            return self
-
-        def prepare(self, evaluator, query, allow_joins):
-            return
-
-        def evaluate(self, node, qn, connection):
-            return scoreclause_sql(self, connection)
-
-else:
-    # XXX(dramer): compatibility hack for Django 1.8+
-    class ScoreClause(Func):
-        def __init__(self, group=None, last_seen=None, times_seen=None, *args, **kwargs):
-            self.group = group
-            self.last_seen = last_seen
-            self.times_seen = times_seen
-            # times_seen is likely an F-object that needs the value extracted
-            if hasattr(self.times_seen, 'rhs'):
-                self.times_seen = self.times_seen.rhs.value
-            super(ScoreClause, self).__init__(*args, **kwargs)
-
-        def __int__(self):
-            # Calculate the score manually when coercing to an int.
-            # This is used within create_or_update and friends
-            return self.group.get_score() if self.group else 0
-
-        def as_sql(self, compiler, connection, function=None, template=None):
-            return scoreclause_sql(self, connection)
+        return (sql, [])
 
 
 def add_meta_errors(errors, meta):
