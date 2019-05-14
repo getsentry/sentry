@@ -113,11 +113,11 @@ exports[`Sentry App Installations when Apps exist displays all Apps owned by the
       p={2}
     >
       <Base
-        className="css-13p7dw9-PanelItem-SentryAppItem eac2pqx0"
+        className="css-m7gs9a-PanelItem-SentryAppItem eac2pqx0"
         p={2}
       >
         <div
-          className="css-13p7dw9-PanelItem-SentryAppItem eac2pqx0"
+          className="css-m7gs9a-PanelItem-SentryAppItem eac2pqx0"
           is={null}
         >
           <StyledFlex>

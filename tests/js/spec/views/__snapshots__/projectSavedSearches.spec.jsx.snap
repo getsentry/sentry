@@ -256,10 +256,10 @@ exports[`ProjectSavedSearches renders 1`] = `
                         py={2}
                       >
                         <Base
-                          className="css-16d6l3f-PanelItem eo8n7lk0"
+                          className="css-1ecmnvl-PanelItem eo8n7lk0"
                         >
                           <div
-                            className="css-16d6l3f-PanelItem eo8n7lk0"
+                            className="css-1ecmnvl-PanelItem eo8n7lk0"
                             is={null}
                           >
                             <Flex
@@ -572,10 +572,10 @@ exports[`ProjectSavedSearches renders 1`] = `
                         py={2}
                       >
                         <Base
-                          className="css-16d6l3f-PanelItem eo8n7lk0"
+                          className="css-1ecmnvl-PanelItem eo8n7lk0"
                         >
                           <div
-                            className="css-16d6l3f-PanelItem eo8n7lk0"
+                            className="css-1ecmnvl-PanelItem eo8n7lk0"
                             is={null}
                           >
                             <Flex

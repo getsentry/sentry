@@ -402,10 +402,10 @@ exports[`OrganizationApiKeysList renders 1`] = `
                 py={1}
               >
                 <Base
-                  className="css-lmab4b-PanelItem eo8n7lk0"
+                  className="css-vh4cj6-PanelItem eo8n7lk0"
                 >
                   <div
-                    className="css-lmab4b-PanelItem eo8n7lk0"
+                    className="css-vh4cj6-PanelItem eo8n7lk0"
                     is={null}
                   >
                     <Flex

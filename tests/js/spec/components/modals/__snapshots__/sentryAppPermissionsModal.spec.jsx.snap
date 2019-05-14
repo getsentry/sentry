@@ -91,10 +91,10 @@ exports[`SentryAppPermissionsModal installs the application 1`] = `
               p={2}
             >
               <Base
-                className="css-125s2dx-PanelItem eo8n7lk0"
+                className="css-ksa5p-PanelItem eo8n7lk0"
               >
                 <div
-                  className="css-125s2dx-PanelItem eo8n7lk0"
+                  className="css-ksa5p-PanelItem eo8n7lk0"
                   is={null}
                 >
                   <p>
@@ -319,10 +319,10 @@ exports[`SentryAppPermissionsModal renders permissions modal 1`] = `
               p={2}
             >
               <Base
-                className="css-125s2dx-PanelItem eo8n7lk0"
+                className="css-ksa5p-PanelItem eo8n7lk0"
               >
                 <div
-                  className="css-125s2dx-PanelItem eo8n7lk0"
+                  className="css-ksa5p-PanelItem eo8n7lk0"
                   is={null}
                 >
                   <p>

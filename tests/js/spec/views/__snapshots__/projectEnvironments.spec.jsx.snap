@@ -784,10 +784,10 @@ exports[`ProjectEnvironments render active renders environment list and sets sta
                   p={2}
                 >
                   <Base
-                    className="css-1uaastv-PanelItem eo8n7lk0"
+                    className="css-t53s2x-PanelItem eo8n7lk0"
                   >
                     <div
-                      className="css-1uaastv-PanelItem eo8n7lk0"
+                      className="css-t53s2x-PanelItem eo8n7lk0"
                       is={null}
                     >
                       <Flex
@@ -1005,10 +1005,10 @@ exports[`ProjectEnvironments render active renders environment list and sets sta
                   p={2}
                 >
                   <Base
-                    className="css-1uaastv-PanelItem eo8n7lk0"
+                    className="css-t53s2x-PanelItem eo8n7lk0"
                   >
                     <div
-                      className="css-1uaastv-PanelItem eo8n7lk0"
+                      className="css-t53s2x-PanelItem eo8n7lk0"
                       is={null}
                     >
                       <Flex
@@ -1282,10 +1282,10 @@ exports[`ProjectEnvironments render active renders environment list and sets sta
                   p={2}
                 >
                   <Base
-                    className="css-1uaastv-PanelItem eo8n7lk0"
+                    className="css-t53s2x-PanelItem eo8n7lk0"
                   >
                     <div
-                      className="css-1uaastv-PanelItem eo8n7lk0"
+                      className="css-t53s2x-PanelItem eo8n7lk0"
                       is={null}
                     >
                       <Flex
@@ -2308,10 +2308,10 @@ exports[`ProjectEnvironments render hidden renders environment list 1`] = `
                   p={2}
                 >
                   <Base
-                    className="css-1uaastv-PanelItem eo8n7lk0"
+                    className="css-t53s2x-PanelItem eo8n7lk0"
                   >
                     <div
-                      className="css-1uaastv-PanelItem eo8n7lk0"
+                      className="css-t53s2x-PanelItem eo8n7lk0"
                       is={null}
                     >
                       <Flex

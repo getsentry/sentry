@@ -290,11 +290,11 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                 p={2}
               >
                 <Base
-                  className="css-1usthj3-PanelItem-StyledPanelItem eqsa6vb1"
+                  className="css-wqf22u-PanelItem-StyledPanelItem eqsa6vb1"
                   p={2}
                 >
                   <div
-                    className="css-1usthj3-PanelItem-StyledPanelItem eqsa6vb1"
+                    className="css-wqf22u-PanelItem-StyledPanelItem eqsa6vb1"
                     is={null}
                   >
                     <ProjectItem
@@ -710,11 +710,11 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                 p={2}
               >
                 <Base
-                  className="css-1usthj3-PanelItem-StyledPanelItem eqsa6vb1"
+                  className="css-wqf22u-PanelItem-StyledPanelItem eqsa6vb1"
                   p={2}
                 >
                   <div
-                    className="css-1usthj3-PanelItem-StyledPanelItem eqsa6vb1"
+                    className="css-wqf22u-PanelItem-StyledPanelItem eqsa6vb1"
                     is={null}
                   >
                     <ProjectItem

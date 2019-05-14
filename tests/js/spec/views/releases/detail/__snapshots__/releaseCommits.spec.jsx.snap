@@ -121,10 +121,10 @@ Users now have access to useful links from the blogs and docs on Spike-protectio
                     p={2}
                   >
                     <Base
-                      className="css-xfqgz4-PanelItem eo8n7lk0"
+                      className="css-7ltput-PanelItem eo8n7lk0"
                     >
                       <div
-                        className="css-xfqgz4-PanelItem eo8n7lk0"
+                        className="css-7ltput-PanelItem eo8n7lk0"
                         is={null}
                       >
                         <AvatarWrapper
@@ -529,10 +529,10 @@ Users now have access to useful links from the blogs and docs on Spike-protectio
                     p={2}
                   >
                     <Base
-                      className="css-xfqgz4-PanelItem eo8n7lk0"
+                      className="css-7ltput-PanelItem eo8n7lk0"
                     >
                       <div
-                        className="css-xfqgz4-PanelItem eo8n7lk0"
+                        className="css-7ltput-PanelItem eo8n7lk0"
                         is={null}
                       >
                         <AvatarWrapper

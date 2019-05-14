@@ -332,10 +332,10 @@ exports[`OrganizationProjects Should render the projects in the store 1`] = `
                     p={0}
                   >
                     <Base
-                      className="css-1jykl04-PanelItem eo8n7lk0"
+                      className="css-cy7442-PanelItem eo8n7lk0"
                     >
                       <div
-                        className="css-1jykl04-PanelItem eo8n7lk0"
+                        className="css-cy7442-PanelItem eo8n7lk0"
                         is={null}
                       >
                         <Box

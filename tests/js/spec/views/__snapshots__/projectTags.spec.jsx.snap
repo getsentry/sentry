@@ -404,10 +404,10 @@ exports[`ProjectTags renders 1`] = `
                         p={0}
                       >
                         <Base
-                          className="ref-tag-row css-1jykl04-PanelItem eo8n7lk0"
+                          className="ref-tag-row css-cy7442-PanelItem eo8n7lk0"
                         >
                           <div
-                            className="ref-tag-row css-1jykl04-PanelItem eo8n7lk0"
+                            className="ref-tag-row css-cy7442-PanelItem eo8n7lk0"
                             is={null}
                           >
                             <Box
@@ -634,10 +634,10 @@ exports[`ProjectTags renders 1`] = `
                         p={0}
                       >
                         <Base
-                          className="ref-tag-row css-1jykl04-PanelItem eo8n7lk0"
+                          className="ref-tag-row css-cy7442-PanelItem eo8n7lk0"
                         >
                           <div
-                            className="ref-tag-row css-1jykl04-PanelItem eo8n7lk0"
+                            className="ref-tag-row css-cy7442-PanelItem eo8n7lk0"
                             is={null}
                           >
                             <Box
@@ -864,10 +864,10 @@ exports[`ProjectTags renders 1`] = `
                         p={0}
                       >
                         <Base
-                          className="ref-tag-row css-1jykl04-PanelItem eo8n7lk0"
+                          className="ref-tag-row css-cy7442-PanelItem eo8n7lk0"
                         >
                           <div
-                            className="ref-tag-row css-1jykl04-PanelItem eo8n7lk0"
+                            className="ref-tag-row css-cy7442-PanelItem eo8n7lk0"
                             is={null}
                           >
                             <Box
@@ -1094,10 +1094,10 @@ exports[`ProjectTags renders 1`] = `
                         p={0}
                       >
                         <Base
-                          className="ref-tag-row css-1jykl04-PanelItem eo8n7lk0"
+                          className="ref-tag-row css-cy7442-PanelItem eo8n7lk0"
                         >
                           <div
-                            className="ref-tag-row css-1jykl04-PanelItem eo8n7lk0"
+                            className="ref-tag-row css-cy7442-PanelItem eo8n7lk0"
                             is={null}
                           >
                             <Box
@@ -1357,10 +1357,10 @@ exports[`ProjectTags renders 1`] = `
                         p={0}
                       >
                         <Base
-                          className="ref-tag-row css-1jykl04-PanelItem eo8n7lk0"
+                          className="ref-tag-row css-cy7442-PanelItem eo8n7lk0"
                         >
                           <div
-                            className="ref-tag-row css-1jykl04-PanelItem eo8n7lk0"
+                            className="ref-tag-row css-cy7442-PanelItem eo8n7lk0"
                             is={null}
                           >
                             <Box

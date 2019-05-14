@@ -193,11 +193,11 @@ exports[`InviteMember should render roles when available and allowed, and handle
                     p={2}
                   >
                     <Base
-                      className="css-125s2dx-PanelItem eo8n7lk0"
+                      className="css-ksa5p-PanelItem eo8n7lk0"
                       onClick={[Function]}
                     >
                       <div
-                        className="css-125s2dx-PanelItem eo8n7lk0"
+                        className="css-ksa5p-PanelItem eo8n7lk0"
                         is={null}
                         onClick={[Function]}
                       >
@@ -269,11 +269,11 @@ exports[`InviteMember should render roles when available and allowed, and handle
                     p={2}
                   >
                     <Base
-                      className="css-125s2dx-PanelItem eo8n7lk0"
+                      className="css-ksa5p-PanelItem eo8n7lk0"
                       onClick={[Function]}
                     >
                       <div
-                        className="css-125s2dx-PanelItem eo8n7lk0"
+                        className="css-ksa5p-PanelItem eo8n7lk0"
                         is={null}
                         onClick={[Function]}
                       >

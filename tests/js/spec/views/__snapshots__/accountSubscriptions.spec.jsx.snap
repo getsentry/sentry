@@ -158,10 +158,10 @@ exports[`AccountSubscriptions renders list and can toggle 1`] = `
                       p={2}
                     >
                       <Base
-                        className="css-xfqgz4-PanelItem eo8n7lk0"
+                        className="css-7ltput-PanelItem eo8n7lk0"
                       >
                         <div
-                          className="css-xfqgz4-PanelItem eo8n7lk0"
+                          className="css-7ltput-PanelItem eo8n7lk0"
                           is={null}
                         >
                           <Box
@@ -267,10 +267,10 @@ exports[`AccountSubscriptions renders list and can toggle 1`] = `
                       p={2}
                     >
                       <Base
-                        className="css-xfqgz4-PanelItem eo8n7lk0"
+                        className="css-7ltput-PanelItem eo8n7lk0"
                       >
                         <div
-                          className="css-xfqgz4-PanelItem eo8n7lk0"
+                          className="css-7ltput-PanelItem eo8n7lk0"
                           is={null}
                         >
                           <Box

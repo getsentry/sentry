@@ -22,7 +22,6 @@ PanelItem.propTypes = {
 
 PanelItem.defaultProps = {
   p: 2,
-  borderless: false,
 };
 
 export default PanelItem;
