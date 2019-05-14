@@ -6,12 +6,11 @@ from datetime import timedelta
 from django.utils import timezone
 from mock import Mock, patch
 
-from sentry import tagstore
 from sentry.models import Group, GroupSnooze, GroupStatus, ProjectOwnership
 from sentry.ownership.grammar import Rule, Matcher, Owner, dump_schema
 from sentry.testutils import TestCase
 from sentry.tasks.merge import merge_groups
-from sentry.tasks.post_process import index_event_tags, post_process_group
+from sentry.tasks.post_process import post_process_group
 
 
 class PostProcessGroupTest(TestCase):
@@ -369,48 +368,3 @@ class PostProcessGroupTest(TestCase):
             sender='Group',
             instance_id=group.id,
         )
-
-
-class IndexEventTagsTest(TestCase):
-    def test_simple(self):
-        group = self.create_group(project=self.project)
-        event = self.create_event(group=group)
-
-        with self.tasks():
-            index_event_tags.delay(
-                event_id=event.id,
-                group_id=group.id,
-                project_id=self.project.id,
-                environment_id=self.environment.id,
-                organization_id=self.project.organization_id,
-                tags=[('foo', 'bar'), ('biz', 'baz')],
-            )
-
-        assert tagstore.get_group_event_filter(
-            self.project.id,
-            group.id,
-            [self.environment.id],
-            {'foo': 'bar', 'biz': 'baz'},
-            None,
-            None,
-        ) == {'id__in': set([event.id])}
-
-        # ensure it safely handles repeat runs
-        with self.tasks():
-            index_event_tags.delay(
-                event_id=event.id,
-                group_id=group.id,
-                project_id=self.project.id,
-                environment_id=self.environment.id,
-                organization_id=self.project.organization_id,
-                tags=[('foo', 'bar'), ('biz', 'baz')],
-            )
-
-        assert tagstore.get_group_event_filter(
-            self.project.id,
-            group.id,
-            [self.environment.id],
-            {'foo': 'bar', 'biz': 'baz'},
-            None,
-            None,
-        ) == {'id__in': set([event.id])}

@@ -1,23 +1,31 @@
 from __future__ import absolute_import
 
 import mock
+from datetime import timedelta
 
 from django.conf import settings
 from django.core.urlresolvers import reverse
+from django.utils import timezone
 
 from sentry import tagstore
 from sentry.tagstore import TagKeyStatus
-from sentry.testutils import APITestCase
+from sentry.testutils import (
+    APITestCase,
+    SnubaTestCase,
+)
 
 
-class ProjectTagKeyDetailsTest(APITestCase):
+class ProjectTagKeyDetailsTest(APITestCase, SnubaTestCase):
     def test_simple(self):
         project = self.create_project()
-        tagkey = tagstore.create_tag_key(
+        key = 'foo'
+        self.store_event(
+            data={
+                'fingerprint': ['put-me-in-group1'],
+                'timestamp': (timezone.now() - timedelta(hours=1)).isoformat()[:19],
+                'tags': {key: 'bar'},
+            },
             project_id=project.id,
-            environment_id=None,
-            key='foo',
-            values_seen=16
         )
 
         self.login_as(user=self.user)
@@ -27,14 +35,14 @@ class ProjectTagKeyDetailsTest(APITestCase):
             kwargs={
                 'organization_slug': project.organization.slug,
                 'project_slug': project.slug,
-                'key': tagkey.key,
+                'key': key,
             }
         )
 
         response = self.client.get(url)
 
         assert response.status_code == 200
-        assert response.data['uniqueValues'] == tagkey.values_seen
+        assert response.data['uniqueValues'] == 1
 
 
 class ProjectTagKeyDeleteTest(APITestCase):

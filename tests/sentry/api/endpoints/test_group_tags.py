@@ -83,7 +83,6 @@ class GroupTagsTest(APITestCase, SnubaTestCase):
         url = u'/api/0/issues/{}/tags/'.format(this_group.id)
         response = self.client.get(url, format='json')
         assert response.status_code == 200, response.content
-        print response.data
         assert len(response.data) == 4
 
         data = sorted(response.data, key=lambda r: r['key'])

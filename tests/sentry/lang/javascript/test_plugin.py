@@ -33,6 +33,10 @@ class JavascriptIntegrationTest(TestCase):
         settings.SENTRY_TAGSTORE == 'sentry.tagstore.v2.V2TagStorage',
         reason='Queries are completly different when using tagstore'
     )
+    @pytest.mark.skipif(
+        settings.SENTRY_TAGSTORE == 'sentry.tagstore.snuba.SnubaCompatibilityTagStorage',
+        reason='Queries are completly different when using snuba'
+    )
     def test_adds_contexts_without_device(self):
         data = {
             'message': 'hello',

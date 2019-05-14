@@ -26,7 +26,6 @@ from sentry.utils import db
 
 from . import models
 from sentry.tagstore.types import TagKey, TagValue, GroupTagKey, GroupTagValue
-from sentry.tasks.post_process import index_event_tags
 
 
 transformers = {
@@ -717,15 +716,3 @@ class LegacyTagStorage(TagStorage):
             project_id=project_id,
             event_id__in=event_ids,
         ).update(group_id=destination_id)
-
-    def delay_index_event_tags(self, organization_id, project_id, group_id,
-                               environment_id, event_id, tags, date_added):
-        index_event_tags.delay(
-            organization_id=organization_id,
-            project_id=project_id,
-            group_id=group_id,
-            environment_id=environment_id,
-            event_id=event_id,
-            tags=tags,
-            date_added=date_added,
-        )

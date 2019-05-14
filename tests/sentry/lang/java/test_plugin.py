@@ -28,6 +28,10 @@ class BasicResolvingIntegrationTest(TestCase):
         settings.SENTRY_TAGSTORE == 'sentry.tagstore.v2.V2TagStorage',
         reason='Queries are completly different when using tagstore'
     )
+    @pytest.mark.skipif(
+        settings.SENTRY_TAGSTORE == 'sentry.tagstore.snuba.SnubaCompatibilityTagStorage',
+        reason='Queries are completly different when using snuba'
+    )
     def test_basic_resolving(self):
         url = reverse(
             'sentry-api-0-dsym-files',

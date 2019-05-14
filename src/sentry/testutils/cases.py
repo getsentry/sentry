@@ -880,8 +880,6 @@ class SnubaTestCase(BaseTestCase):
         with contextlib.nested(
             mock.patch('sentry.eventstream.insert',
                        self.snuba_eventstream.insert),
-            mock.patch('sentry.tagstore.delay_index_event_tags',
-                       self.snuba_tagstore.delay_index_event_tags),
             mock.patch('sentry.tagstore.incr_tag_value_times_seen',
                        self.snuba_tagstore.incr_tag_value_times_seen),
             mock.patch('sentry.tagstore.incr_group_tag_value_times_seen',

@@ -18,7 +18,7 @@ from django.db.models import Func
 from django.utils import timezone
 from django.utils.encoding import force_text
 
-from sentry import buffer, eventtypes, eventstream, features, tagstore, tsdb, filters
+from sentry import buffer, eventtypes, eventstream, features, tsdb, filters
 from sentry.constants import (
     DEFAULT_STORE_NORMALIZER_ARGS, LOG_LEVELS, LOG_LEVELS_MAP,
     MAX_TAG_VALUE_LENGTH, MAX_SECS_IN_FUTURE, MAX_SECS_IN_PAST
@@ -835,16 +835,6 @@ class EventManager(object):
                     }
                 )
                 return event
-
-            tagstore.delay_index_event_tags(
-                organization_id=project.organization_id,
-                project_id=project.id,
-                group_id=group.id,
-                environment_id=environment.id,
-                event_id=event.id,
-                tags=event.tags,
-                date_added=event.datetime,
-            )
 
         if event_user:
             tsdb.record_multi(

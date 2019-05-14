@@ -6,13 +6,16 @@ import pytest
 
 from datetime import datetime, timedelta
 from django.utils import timezone
-from sentry import tagstore, tsdb
-from sentry.testutils import TestCase
+from sentry import tsdb
+from sentry.testutils import (
+    SnubaTestCase,
+    TestCase,
+)
 from sentry.models import GroupSnooze
 from six.moves import xrange
 
 
-class GroupSnoozeTest(TestCase):
+class GroupSnoozeTest(TestCase, SnubaTestCase):
     sequence = itertools.count()  # generates unique values, class scope doesn't matter
 
     def test_until_not_reached(self):
@@ -62,17 +65,29 @@ class GroupSnoozeTest(TestCase):
         assert snooze.is_valid(test_rates=True)
 
     def test_user_delta_reached(self):
+        event = self.store_event(
+            data={
+                'fingerprint': ['put-me-in-group1'],
+                'timestamp': (timezone.now() - timedelta(hours=1)).isoformat()[:19],
+            },
+            project_id=self.project.id,
+        )
+        group = event.group
+
         snooze = GroupSnooze.objects.create(
-            group=self.group,
-            user_count=100,
+            group=group,
+            user_count=1,
             state={'users_seen': 0},
         )
-        tagstore.create_group_tag_key(
-            project_id=self.group.project_id,
-            group_id=self.group.id,
-            environment_id=None,
-            key='sentry:user',
-            values_seen=100,
+        assert snooze.is_valid(test_rates=True)
+
+        self.store_event(
+            data={
+                'fingerprint': ['put-me-in-group1'],
+                'timestamp': (timezone.now() - timedelta(hours=1)).isoformat()[:19],
+                'user': {'email': 'test@test.com'},
+            },
+            project_id=self.project.id,
         )
         assert not snooze.is_valid(test_rates=True)
 
