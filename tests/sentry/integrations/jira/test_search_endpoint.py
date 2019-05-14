@@ -155,7 +155,6 @@ class JiraSearchEndpointTest(APITestCase):
 
         resp = self.client.get('%s?project=10000&field=assignee&query=bob' % (path,))
         assert resp.status_code == 200
-        print resp.data
         assert resp.data == [
             {'value': 'deadbeef123', 'label': 'Bobby - bob@example.org'}
         ]
