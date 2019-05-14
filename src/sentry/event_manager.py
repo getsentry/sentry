@@ -252,7 +252,8 @@ class ScoreClause(Func):
         has_values = self.last_seen is not None and self.times_seen is not None
         if is_postgres(db):
             if has_values:
-                sql = 'log(times_seen + %d) * 600 + %d' % (self.times_seen, to_timestamp(sc.last_seen))
+                sql = 'log(times_seen + %d) * 600 + %d' % (self.times_seen,
+                                                           to_timestamp(self.last_seen))
             else:
                 sql = 'log(times_seen) * 600 + last_seen::abstime::int'
         else:
