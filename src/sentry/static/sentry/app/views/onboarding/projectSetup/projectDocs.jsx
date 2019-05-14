@@ -71,10 +71,12 @@ class ProjectDocs extends React.Component {
           )}
         </Description>
         <Footer>
+          <div>
+            <Button external href={platformDocs?.link} size="small">
+              {t('Full Documentation')}
+            </Button>
+          </div>
           {project && <FirstEventIndicator orgId={orgId} projectId={project.slug} />}
-          <Button external href={platformDocs?.link} size="small">
-            {t('Full Documentation')}
-          </Button>
         </Footer>
       </StyledText>
     );
