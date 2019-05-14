@@ -1,5 +1,5 @@
 ---
-created: '2019-03-16T14:31:51.256670Z'
+created: '2019-05-11T09:56:04.447818Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -15,6 +15,9 @@ app:
           frame (frame considered in-app because no frame is in-app)
             function (function name is used only if module or filename are available)
               u'Scaleform::GFx::AS3::IMEManager::DispatchEvent(char const *,char const *,char const *)'
+          frame (frame considered in-app because no frame is in-app)
+            function (function name is used only if module or filename are available)
+              u'<lambda_5db80dab47756d3e72c2dcd38b80b1dd>::operator()'
         type*
           u'log_demo'
         value*
@@ -32,6 +35,9 @@ system:
           frame
             function (function name is used only if module or filename are available)
               u'Scaleform::GFx::AS3::IMEManager::DispatchEvent(char const *,char const *,char const *)'
+          frame
+            function (function name is used only if module or filename are available)
+              u'<lambda_5db80dab47756d3e72c2dcd38b80b1dd>::operator()'
         type*
           u'log_demo'
         value*
