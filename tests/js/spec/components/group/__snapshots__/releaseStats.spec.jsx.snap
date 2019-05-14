@@ -390,200 +390,342 @@ exports[`GroupReleaseStats renders 1`] = `
                           preserveAspectRatio="none"
                           viewBox="0 0 100 400"
                         >
-                          <Tooltip
+                          <Tooltip2
+                            containerDisplayMode="inline-block"
                             key="1517281200"
-                            title="<div style=\\"width:150px\\"><div class=\\"time-label\\"><span>Jan 29th, 7:00 pm &#8594 Jan 30th, 2:59 am</span></div><dl class=\\"legend\\"><dt class=\\"inactive\\"><span></span></dt><dd>2 events</dd><dt class=\\"environment\\"><span></span></dt><dd>2 events<small>in All Environments</small></dd></dl></div>"
-                            tooltipOptions={
-                              Object {
-                                "container": "body",
-                                "html": true,
-                                "placement": "bottom",
-                              }
+                            position="bottom"
+                            title={
+                              <div
+                                style={
+                                  Object {
+                                    "width": "150px",
+                                  }
+                                }
+                              >
+                                <div
+                                  className="time-label"
+                                >
+                                  <span>
+                                    Jan 29th, 7:00 pm
+                                    &#8594
+                                    Jan 30th, 2:59 am
+                                  </span>
+                                </div>
+                                <dl
+                                  className="legend"
+                                >
+                                  <dt
+                                    className="inactive"
+                                  >
+                                    <span />
+                                  </dt>
+                                  <dd>
+                                    2
+                                     event
+                                    s
+                                  </dd>
+                                  <React.Fragment>
+                                    <dt
+                                      className="environment"
+                                    >
+                                      <span />
+                                    </dt>
+                                    <dd>
+                                      2
+                                       event
+                                      s
+                                      <small>
+                                        in 
+                                        All Environments
+                                      </small>
+                                    </dd>
+                                  </React.Fragment>
+                                </dl>
+                              </div>
                             }
                           >
-                            <g
-                              className="tip"
-                              title="<div style=\\"width:150px\\"><div class=\\"time-label\\"><span>Jan 29th, 7:00 pm &#8594 Jan 30th, 2:59 am</span></div><dl class=\\"legend\\"><dt class=\\"inactive\\"><span></span></dt><dd>2 events</dd><dt class=\\"environment\\"><span></span></dt><dd>2 events<small>in All Environments</small></dd></dl></div>"
-                            >
-                              <rect
-                                height="100%"
-                                opacity="0"
-                                width="51.17%"
-                                x="-0.75%"
-                              />
-                              <rect
-                                className="release barchart-rect"
-                                data-test-id="chart-column"
-                                height="0%"
-                                key="0"
-                                width="49.67%"
-                                x="0%"
-                                y="100%"
-                              >
-                                0
-                              </rect>
-                              <rect
-                                className="environment barchart-rect"
-                                data-test-id="chart-column"
-                                height="19.8%"
-                                key="1"
-                                width="49.67%"
-                                x="0%"
-                                y="80.2%"
-                              >
-                                2
-                              </rect>
-                              <rect
-                                className="inactive barchart-rect"
-                                data-test-id="chart-column"
-                                height="5%"
-                                key="2"
-                                width="49.67%"
-                                x="0%"
-                                y="75.2%"
-                              >
-                                0
-                              </rect>
-                            </g>
-                          </Tooltip>
-                          <Tooltip
+                            <Manager>
+                              <Reference>
+                                <InnerReference
+                                  setReferenceNode={[Function]}
+                                >
+                                  <g
+                                    aria-describedby="tooltip-123456"
+                                    onBlur={[Function]}
+                                    onFocus={[Function]}
+                                    onMouseEnter={[Function]}
+                                    onMouseLeave={[Function]}
+                                  >
+                                    <rect
+                                      height="100%"
+                                      opacity="0"
+                                      width="51.17%"
+                                      x="-0.75%"
+                                    />
+                                    <rect
+                                      className="release barchart-rect"
+                                      data-test-id="chart-column"
+                                      height="0%"
+                                      key="0"
+                                      width="49.67%"
+                                      x="0%"
+                                      y="100%"
+                                    >
+                                      0
+                                    </rect>
+                                    <rect
+                                      className="environment barchart-rect"
+                                      data-test-id="chart-column"
+                                      height="19.8%"
+                                      key="1"
+                                      width="49.67%"
+                                      x="0%"
+                                      y="80.2%"
+                                    >
+                                      2
+                                    </rect>
+                                    <rect
+                                      className="inactive barchart-rect"
+                                      data-test-id="chart-column"
+                                      height="5%"
+                                      key="2"
+                                      width="49.67%"
+                                      x="0%"
+                                      y="75.2%"
+                                    >
+                                      0
+                                    </rect>
+                                  </g>
+                                </InnerReference>
+                              </Reference>
+                            </Manager>
+                          </Tooltip2>
+                          <Tooltip2
+                            containerDisplayMode="inline-block"
                             key="1517310000"
-                            title="<div style=\\"width:150px\\"><div class=\\"time-label\\"><span>Jan 30th, 3:00 am &#8594 Jan 30th, 10:59 am</span></div><dl class=\\"legend\\"><dt class=\\"inactive\\"><span></span></dt><dd>1 event</dd><dt class=\\"environment\\"><span></span></dt><dd>1 event<small>in All Environments</small></dd></dl></div>"
-                            tooltipOptions={
-                              Object {
-                                "container": "body",
-                                "html": true,
-                                "placement": "bottom",
-                              }
+                            position="bottom"
+                            title={
+                              <div
+                                style={
+                                  Object {
+                                    "width": "150px",
+                                  }
+                                }
+                              >
+                                <div
+                                  className="time-label"
+                                >
+                                  <span>
+                                    Jan 30th, 3:00 am
+                                    &#8594
+                                    Jan 30th, 10:59 am
+                                  </span>
+                                </div>
+                                <dl
+                                  className="legend"
+                                >
+                                  <dt
+                                    className="inactive"
+                                  >
+                                    <span />
+                                  </dt>
+                                  <dd>
+                                    1
+                                     event
+                                    
+                                  </dd>
+                                  <React.Fragment>
+                                    <dt
+                                      className="environment"
+                                    >
+                                      <span />
+                                    </dt>
+                                    <dd>
+                                      1
+                                       event
+                                      
+                                      <small>
+                                        in 
+                                        All Environments
+                                      </small>
+                                    </dd>
+                                  </React.Fragment>
+                                </dl>
+                              </div>
                             }
                           >
-                            <g
-                              className="tip"
-                              title="<div style=\\"width:150px\\"><div class=\\"time-label\\"><span>Jan 30th, 3:00 am &#8594 Jan 30th, 10:59 am</span></div><dl class=\\"legend\\"><dt class=\\"inactive\\"><span></span></dt><dd>1 event</dd><dt class=\\"environment\\"><span></span></dt><dd>1 event<small>in All Environments</small></dd></dl></div>"
-                            >
-                              <rect
-                                height="100%"
-                                opacity="0"
-                                width="51.17%"
-                                x="49.67%"
-                              />
-                              <rect
-                                className="release barchart-rect"
-                                data-test-id="chart-column"
-                                height="0%"
-                                key="0"
-                                width="49.67%"
-                                x="50.42%"
-                                y="100%"
-                              >
-                                0
-                              </rect>
-                              <rect
-                                className="environment barchart-rect"
-                                data-test-id="chart-column"
-                                height="9.9%"
-                                key="1"
-                                width="49.67%"
-                                x="50.42%"
-                                y="90.1%"
-                              >
-                                1
-                              </rect>
-                              <rect
-                                className="inactive barchart-rect"
-                                data-test-id="chart-column"
-                                height="5%"
-                                key="2"
-                                width="49.67%"
-                                x="50.42%"
-                                y="85.1%"
-                              >
-                                0
-                              </rect>
-                            </g>
-                          </Tooltip>
+                            <Manager>
+                              <Reference>
+                                <InnerReference
+                                  setReferenceNode={[Function]}
+                                >
+                                  <g
+                                    aria-describedby="tooltip-123456"
+                                    onBlur={[Function]}
+                                    onFocus={[Function]}
+                                    onMouseEnter={[Function]}
+                                    onMouseLeave={[Function]}
+                                  >
+                                    <rect
+                                      height="100%"
+                                      opacity="0"
+                                      width="51.17%"
+                                      x="49.67%"
+                                    />
+                                    <rect
+                                      className="release barchart-rect"
+                                      data-test-id="chart-column"
+                                      height="0%"
+                                      key="0"
+                                      width="49.67%"
+                                      x="50.42%"
+                                      y="100%"
+                                    >
+                                      0
+                                    </rect>
+                                    <rect
+                                      className="environment barchart-rect"
+                                      data-test-id="chart-column"
+                                      height="9.9%"
+                                      key="1"
+                                      width="49.67%"
+                                      x="50.42%"
+                                      y="90.1%"
+                                    >
+                                      1
+                                    </rect>
+                                    <rect
+                                      className="inactive barchart-rect"
+                                      data-test-id="chart-column"
+                                      height="5%"
+                                      key="2"
+                                      width="49.67%"
+                                      x="50.42%"
+                                      y="85.1%"
+                                    >
+                                      0
+                                    </rect>
+                                  </g>
+                                </InnerReference>
+                              </Reference>
+                            </Manager>
+                          </Tooltip2>
                         </svg>
                       </StyledSvg>
-                      <Tooltip
+                      <CircleSvg
                         key="m-first-seen-1554493445.963"
-                        title="<div style=\\"width:130px\\">First seen<br/>Apr 5, 2019 12:44 PM</div>"
-                        tooltipOptions={
-                          Object {
-                            "container": "body",
-                            "html": true,
-                            "placement": "bottom",
-                          }
-                        }
+                        left={100.84}
+                        offset={-7.5}
+                        size={10}
+                        viewBox="0 0 10 10"
                       >
-                        <CircleSvg
-                          className="tip"
-                          left={100.84}
+                        <svg
+                          className="css-m7l75b-CircleSvg e5t71583"
                           offset={-7.5}
                           size={10}
-                          title="<div style=\\"width:130px\\">First seen<br/>Apr 5, 2019 12:44 PM</div>"
                           viewBox="0 0 10 10"
                         >
-                          <svg
-                            className="tip css-m7l75b-CircleSvg e5t71583"
-                            offset={-7.5}
-                            size={10}
-                            title="<div style=\\"width:130px\\">First seen<br/>Apr 5, 2019 12:44 PM</div>"
-                            viewBox="0 0 10 10"
+                          <Tooltip2
+                            containerDisplayMode="inline-block"
+                            position="bottom"
+                            title={
+                              <div
+                                style={
+                                  Object {
+                                    "width": "130px",
+                                  }
+                                }
+                              >
+                                First seen
+                                <br />
+                                Apr 5, 2019 12:44 PM
+                              </div>
+                            }
                           >
-                            <circle
-                              cx="50%"
-                              cy="50%"
-                              data-test-id="chart-column"
-                              fill="#F868BC"
-                              r="4"
-                              stroke="#fff"
-                              strokeWidth="2"
-                            >
-                              First seen
-                            </circle>
-                          </svg>
-                        </CircleSvg>
-                      </Tooltip>
-                      <Tooltip
+                            <Manager>
+                              <Reference>
+                                <InnerReference
+                                  setReferenceNode={[Function]}
+                                >
+                                  <circle
+                                    aria-describedby="tooltip-123456"
+                                    cx="50%"
+                                    cy="50%"
+                                    data-test-id="chart-column"
+                                    fill="#F868BC"
+                                    onBlur={[Function]}
+                                    onFocus={[Function]}
+                                    onMouseEnter={[Function]}
+                                    onMouseLeave={[Function]}
+                                    r="4"
+                                    stroke="#fff"
+                                    strokeWidth="2"
+                                  >
+                                    First seen
+                                  </circle>
+                                </InnerReference>
+                              </Reference>
+                            </Manager>
+                          </Tooltip2>
+                        </svg>
+                      </CircleSvg>
+                      <CircleSvg
                         key="m-last-seen-1554944939"
-                        title="<div style=\\"width:130px\\">Last seen<br/>Apr 10, 2019 6:08 PM</div>"
-                        tooltipOptions={
-                          Object {
-                            "container": "body",
-                            "html": true,
-                            "placement": "bottom",
-                          }
-                        }
+                        left={100.84}
+                        offset={0}
+                        size={10}
+                        viewBox="0 0 10 10"
                       >
-                        <CircleSvg
-                          className="tip"
-                          left={100.84}
+                        <svg
+                          className="css-1yt4gr0-CircleSvg e5t71583"
                           offset={0}
                           size={10}
-                          title="<div style=\\"width:130px\\">Last seen<br/>Apr 10, 2019 6:08 PM</div>"
                           viewBox="0 0 10 10"
                         >
-                          <svg
-                            className="tip css-1yt4gr0-CircleSvg e5t71583"
-                            offset={0}
-                            size={10}
-                            title="<div style=\\"width:130px\\">Last seen<br/>Apr 10, 2019 6:08 PM</div>"
-                            viewBox="0 0 10 10"
+                          <Tooltip2
+                            containerDisplayMode="inline-block"
+                            position="bottom"
+                            title={
+                              <div
+                                style={
+                                  Object {
+                                    "width": "130px",
+                                  }
+                                }
+                              >
+                                Last seen
+                                <br />
+                                Apr 10, 2019 6:08 PM
+                              </div>
+                            }
                           >
-                            <circle
-                              cx="50%"
-                              cy="50%"
-                              data-test-id="chart-column"
-                              fill="#57be8c"
-                              r="4"
-                              stroke="#fff"
-                              strokeWidth="2"
-                            >
-                              Last seen
-                            </circle>
-                          </svg>
-                        </CircleSvg>
-                      </Tooltip>
+                            <Manager>
+                              <Reference>
+                                <InnerReference
+                                  setReferenceNode={[Function]}
+                                >
+                                  <circle
+                                    aria-describedby="tooltip-123456"
+                                    cx="50%"
+                                    cy="50%"
+                                    data-test-id="chart-column"
+                                    fill="#57be8c"
+                                    onBlur={[Function]}
+                                    onFocus={[Function]}
+                                    onMouseEnter={[Function]}
+                                    onMouseLeave={[Function]}
+                                    r="4"
+                                    stroke="#fff"
+                                    strokeWidth="2"
+                                  >
+                                    Last seen
+                                  </circle>
+                                </InnerReference>
+                              </Reference>
+                            </Manager>
+                          </Tooltip2>
+                        </svg>
+                      </CircleSvg>
                     </div>
                   </SvgContainer>
                 </figure>
@@ -811,200 +953,342 @@ exports[`GroupReleaseStats renders 1`] = `
                           preserveAspectRatio="none"
                           viewBox="0 0 100 400"
                         >
-                          <Tooltip
+                          <Tooltip2
+                            containerDisplayMode="inline-block"
                             key="1514764800"
-                            title="<div style=\\"width:150px\\"><div class=\\"time-label\\"><span>Dec 31st, 4:00 pm &#8594 Jan 3rd, 3:59 pm</span></div><dl class=\\"legend\\"><dt class=\\"inactive\\"><span></span></dt><dd>1 event</dd><dt class=\\"environment\\"><span></span></dt><dd>1 event<small>in All Environments</small></dd></dl></div>"
-                            tooltipOptions={
-                              Object {
-                                "container": "body",
-                                "html": true,
-                                "placement": "bottom",
-                              }
+                            position="bottom"
+                            title={
+                              <div
+                                style={
+                                  Object {
+                                    "width": "150px",
+                                  }
+                                }
+                              >
+                                <div
+                                  className="time-label"
+                                >
+                                  <span>
+                                    Dec 31st, 4:00 pm
+                                    &#8594
+                                    Jan 3rd, 3:59 pm
+                                  </span>
+                                </div>
+                                <dl
+                                  className="legend"
+                                >
+                                  <dt
+                                    className="inactive"
+                                  >
+                                    <span />
+                                  </dt>
+                                  <dd>
+                                    1
+                                     event
+                                    
+                                  </dd>
+                                  <React.Fragment>
+                                    <dt
+                                      className="environment"
+                                    >
+                                      <span />
+                                    </dt>
+                                    <dd>
+                                      1
+                                       event
+                                      
+                                      <small>
+                                        in 
+                                        All Environments
+                                      </small>
+                                    </dd>
+                                  </React.Fragment>
+                                </dl>
+                              </div>
                             }
                           >
-                            <g
-                              className="tip"
-                              title="<div style=\\"width:150px\\"><div class=\\"time-label\\"><span>Dec 31st, 4:00 pm &#8594 Jan 3rd, 3:59 pm</span></div><dl class=\\"legend\\"><dt class=\\"inactive\\"><span></span></dt><dd>1 event</dd><dt class=\\"environment\\"><span></span></dt><dd>1 event<small>in All Environments</small></dd></dl></div>"
-                            >
-                              <rect
-                                height="100%"
-                                opacity="0"
-                                width="51.17%"
-                                x="-0.75%"
-                              />
-                              <rect
-                                className="release barchart-rect"
-                                data-test-id="chart-column"
-                                height="0%"
-                                key="0"
-                                width="49.67%"
-                                x="0%"
-                                y="100%"
-                              >
-                                0
-                              </rect>
-                              <rect
-                                className="environment barchart-rect"
-                                data-test-id="chart-column"
-                                height="0.81%"
-                                key="1"
-                                width="49.67%"
-                                x="0%"
-                                y="99.19%"
-                              >
-                                1
-                              </rect>
-                              <rect
-                                className="inactive barchart-rect"
-                                data-test-id="chart-column"
-                                height="5%"
-                                key="2"
-                                width="49.67%"
-                                x="0%"
-                                y="94.19%"
-                              >
-                                0
-                              </rect>
-                            </g>
-                          </Tooltip>
-                          <Tooltip
+                            <Manager>
+                              <Reference>
+                                <InnerReference
+                                  setReferenceNode={[Function]}
+                                >
+                                  <g
+                                    aria-describedby="tooltip-123456"
+                                    onBlur={[Function]}
+                                    onFocus={[Function]}
+                                    onMouseEnter={[Function]}
+                                    onMouseLeave={[Function]}
+                                  >
+                                    <rect
+                                      height="100%"
+                                      opacity="0"
+                                      width="51.17%"
+                                      x="-0.75%"
+                                    />
+                                    <rect
+                                      className="release barchart-rect"
+                                      data-test-id="chart-column"
+                                      height="0%"
+                                      key="0"
+                                      width="49.67%"
+                                      x="0%"
+                                      y="100%"
+                                    >
+                                      0
+                                    </rect>
+                                    <rect
+                                      className="environment barchart-rect"
+                                      data-test-id="chart-column"
+                                      height="0.81%"
+                                      key="1"
+                                      width="49.67%"
+                                      x="0%"
+                                      y="99.19%"
+                                    >
+                                      1
+                                    </rect>
+                                    <rect
+                                      className="inactive barchart-rect"
+                                      data-test-id="chart-column"
+                                      height="5%"
+                                      key="2"
+                                      width="49.67%"
+                                      x="0%"
+                                      y="94.19%"
+                                    >
+                                      0
+                                    </rect>
+                                  </g>
+                                </InnerReference>
+                              </Reference>
+                            </Manager>
+                          </Tooltip2>
+                          <Tooltip2
+                            containerDisplayMode="inline-block"
                             key="1515024000"
-                            title="<div style=\\"width:150px\\"><div class=\\"time-label\\"><span>Jan 3rd, 4:00 pm &#8594 Jan 6th, 3:59 pm</span></div><dl class=\\"legend\\"><dt class=\\"inactive\\"><span></span></dt><dd>122 events</dd><dt class=\\"environment\\"><span></span></dt><dd>122 events<small>in All Environments</small></dd></dl></div>"
-                            tooltipOptions={
-                              Object {
-                                "container": "body",
-                                "html": true,
-                                "placement": "bottom",
-                              }
+                            position="bottom"
+                            title={
+                              <div
+                                style={
+                                  Object {
+                                    "width": "150px",
+                                  }
+                                }
+                              >
+                                <div
+                                  className="time-label"
+                                >
+                                  <span>
+                                    Jan 3rd, 4:00 pm
+                                    &#8594
+                                    Jan 6th, 3:59 pm
+                                  </span>
+                                </div>
+                                <dl
+                                  className="legend"
+                                >
+                                  <dt
+                                    className="inactive"
+                                  >
+                                    <span />
+                                  </dt>
+                                  <dd>
+                                    122
+                                     event
+                                    s
+                                  </dd>
+                                  <React.Fragment>
+                                    <dt
+                                      className="environment"
+                                    >
+                                      <span />
+                                    </dt>
+                                    <dd>
+                                      122
+                                       event
+                                      s
+                                      <small>
+                                        in 
+                                        All Environments
+                                      </small>
+                                    </dd>
+                                  </React.Fragment>
+                                </dl>
+                              </div>
                             }
                           >
-                            <g
-                              className="tip"
-                              title="<div style=\\"width:150px\\"><div class=\\"time-label\\"><span>Jan 3rd, 4:00 pm &#8594 Jan 6th, 3:59 pm</span></div><dl class=\\"legend\\"><dt class=\\"inactive\\"><span></span></dt><dd>122 events</dd><dt class=\\"environment\\"><span></span></dt><dd>122 events<small>in All Environments</small></dd></dl></div>"
-                            >
-                              <rect
-                                height="100%"
-                                opacity="0"
-                                width="51.17%"
-                                x="49.67%"
-                              />
-                              <rect
-                                className="release barchart-rect"
-                                data-test-id="chart-column"
-                                height="0%"
-                                key="0"
-                                width="49.67%"
-                                x="50.42%"
-                                y="100%"
-                              >
-                                0
-                              </rect>
-                              <rect
-                                className="environment barchart-rect"
-                                data-test-id="chart-column"
-                                height="99%"
-                                key="1"
-                                width="49.67%"
-                                x="50.42%"
-                                y="1%"
-                              >
-                                122
-                              </rect>
-                              <rect
-                                className="inactive barchart-rect"
-                                data-test-id="chart-column"
-                                height="5%"
-                                key="2"
-                                width="49.67%"
-                                x="50.42%"
-                                y="-4%"
-                              >
-                                0
-                              </rect>
-                            </g>
-                          </Tooltip>
+                            <Manager>
+                              <Reference>
+                                <InnerReference
+                                  setReferenceNode={[Function]}
+                                >
+                                  <g
+                                    aria-describedby="tooltip-123456"
+                                    onBlur={[Function]}
+                                    onFocus={[Function]}
+                                    onMouseEnter={[Function]}
+                                    onMouseLeave={[Function]}
+                                  >
+                                    <rect
+                                      height="100%"
+                                      opacity="0"
+                                      width="51.17%"
+                                      x="49.67%"
+                                    />
+                                    <rect
+                                      className="release barchart-rect"
+                                      data-test-id="chart-column"
+                                      height="0%"
+                                      key="0"
+                                      width="49.67%"
+                                      x="50.42%"
+                                      y="100%"
+                                    >
+                                      0
+                                    </rect>
+                                    <rect
+                                      className="environment barchart-rect"
+                                      data-test-id="chart-column"
+                                      height="99%"
+                                      key="1"
+                                      width="49.67%"
+                                      x="50.42%"
+                                      y="1%"
+                                    >
+                                      122
+                                    </rect>
+                                    <rect
+                                      className="inactive barchart-rect"
+                                      data-test-id="chart-column"
+                                      height="5%"
+                                      key="2"
+                                      width="49.67%"
+                                      x="50.42%"
+                                      y="-4%"
+                                    >
+                                      0
+                                    </rect>
+                                  </g>
+                                </InnerReference>
+                              </Reference>
+                            </Manager>
+                          </Tooltip2>
                         </svg>
                       </StyledSvg>
-                      <Tooltip
+                      <CircleSvg
                         key="m-first-seen-1554493445.963"
-                        title="<div style=\\"width:130px\\">First seen<br/>Apr 5, 2019 12:44 PM</div>"
-                        tooltipOptions={
-                          Object {
-                            "container": "body",
-                            "html": true,
-                            "placement": "bottom",
-                          }
-                        }
+                        left={100.84}
+                        offset={-7.5}
+                        size={10}
+                        viewBox="0 0 10 10"
                       >
-                        <CircleSvg
-                          className="tip"
-                          left={100.84}
+                        <svg
+                          className="css-m7l75b-CircleSvg e5t71583"
                           offset={-7.5}
                           size={10}
-                          title="<div style=\\"width:130px\\">First seen<br/>Apr 5, 2019 12:44 PM</div>"
                           viewBox="0 0 10 10"
                         >
-                          <svg
-                            className="tip css-m7l75b-CircleSvg e5t71583"
-                            offset={-7.5}
-                            size={10}
-                            title="<div style=\\"width:130px\\">First seen<br/>Apr 5, 2019 12:44 PM</div>"
-                            viewBox="0 0 10 10"
+                          <Tooltip2
+                            containerDisplayMode="inline-block"
+                            position="bottom"
+                            title={
+                              <div
+                                style={
+                                  Object {
+                                    "width": "130px",
+                                  }
+                                }
+                              >
+                                First seen
+                                <br />
+                                Apr 5, 2019 12:44 PM
+                              </div>
+                            }
                           >
-                            <circle
-                              cx="50%"
-                              cy="50%"
-                              data-test-id="chart-column"
-                              fill="#F868BC"
-                              r="4"
-                              stroke="#fff"
-                              strokeWidth="2"
-                            >
-                              First seen
-                            </circle>
-                          </svg>
-                        </CircleSvg>
-                      </Tooltip>
-                      <Tooltip
+                            <Manager>
+                              <Reference>
+                                <InnerReference
+                                  setReferenceNode={[Function]}
+                                >
+                                  <circle
+                                    aria-describedby="tooltip-123456"
+                                    cx="50%"
+                                    cy="50%"
+                                    data-test-id="chart-column"
+                                    fill="#F868BC"
+                                    onBlur={[Function]}
+                                    onFocus={[Function]}
+                                    onMouseEnter={[Function]}
+                                    onMouseLeave={[Function]}
+                                    r="4"
+                                    stroke="#fff"
+                                    strokeWidth="2"
+                                  >
+                                    First seen
+                                  </circle>
+                                </InnerReference>
+                              </Reference>
+                            </Manager>
+                          </Tooltip2>
+                        </svg>
+                      </CircleSvg>
+                      <CircleSvg
                         key="m-last-seen-1554944939"
-                        title="<div style=\\"width:130px\\">Last seen<br/>Apr 10, 2019 6:08 PM</div>"
-                        tooltipOptions={
-                          Object {
-                            "container": "body",
-                            "html": true,
-                            "placement": "bottom",
-                          }
-                        }
+                        left={100.84}
+                        offset={0}
+                        size={10}
+                        viewBox="0 0 10 10"
                       >
-                        <CircleSvg
-                          className="tip"
-                          left={100.84}
+                        <svg
+                          className="css-1yt4gr0-CircleSvg e5t71583"
                           offset={0}
                           size={10}
-                          title="<div style=\\"width:130px\\">Last seen<br/>Apr 10, 2019 6:08 PM</div>"
                           viewBox="0 0 10 10"
                         >
-                          <svg
-                            className="tip css-1yt4gr0-CircleSvg e5t71583"
-                            offset={0}
-                            size={10}
-                            title="<div style=\\"width:130px\\">Last seen<br/>Apr 10, 2019 6:08 PM</div>"
-                            viewBox="0 0 10 10"
+                          <Tooltip2
+                            containerDisplayMode="inline-block"
+                            position="bottom"
+                            title={
+                              <div
+                                style={
+                                  Object {
+                                    "width": "130px",
+                                  }
+                                }
+                              >
+                                Last seen
+                                <br />
+                                Apr 10, 2019 6:08 PM
+                              </div>
+                            }
                           >
-                            <circle
-                              cx="50%"
-                              cy="50%"
-                              data-test-id="chart-column"
-                              fill="#57be8c"
-                              r="4"
-                              stroke="#fff"
-                              strokeWidth="2"
-                            >
-                              Last seen
-                            </circle>
-                          </svg>
-                        </CircleSvg>
-                      </Tooltip>
+                            <Manager>
+                              <Reference>
+                                <InnerReference
+                                  setReferenceNode={[Function]}
+                                >
+                                  <circle
+                                    aria-describedby="tooltip-123456"
+                                    cx="50%"
+                                    cy="50%"
+                                    data-test-id="chart-column"
+                                    fill="#57be8c"
+                                    onBlur={[Function]}
+                                    onFocus={[Function]}
+                                    onMouseEnter={[Function]}
+                                    onMouseLeave={[Function]}
+                                    r="4"
+                                    stroke="#fff"
+                                    strokeWidth="2"
+                                  >
+                                    Last seen
+                                  </circle>
+                                </InnerReference>
+                              </Reference>
+                            </Manager>
+                          </Tooltip2>
+                        </svg>
+                      </CircleSvg>
                     </div>
                   </SvgContainer>
                 </figure>
@@ -1046,7 +1330,7 @@ exports[`GroupReleaseStats renders 1`] = `
                   <div
                     style={
                       Object {
-                        "width": 170,
+                        "width": "170px",
                       }
                     }
                   >
@@ -1185,7 +1469,7 @@ exports[`GroupReleaseStats renders 1`] = `
                   <div
                     style={
                       Object {
-                        "width": 170,
+                        "width": "170px",
                       }
                     }
                   >

@@ -10,7 +10,7 @@ import DateTime from 'app/components/dateTime';
 import ExternalLink from 'app/components/links/externalLink';
 import FileSize from 'app/components/fileSize';
 import SentryTypes from 'app/sentryTypes';
-import Tooltip from 'app/components/tooltip';
+import Tooltip2 from 'app/components/tooltip2';
 import getDynamicText from 'app/utils/getDynamicText';
 
 const formatDateDelta = (reference, observed) => {
@@ -56,29 +56,30 @@ const GroupEventToolbar = createReactClass({
     const options = user ? user.options : {};
     const format = options.clock24Hours ? 'HH:mm:ss z' : 'LTS z';
     const dateCreated = moment(evt.dateCreated);
-    let resp =
-      '<dl class="flat" style="text-align:left;margin:0;min-width:200px">' +
-      '<dt>Occurred</dt>' +
-      '<dd>' +
-      dateCreated.format('ll') +
-      '<br />' +
-      dateCreated.format(format) +
-      '</dd>';
-    if (evt.dateReceived) {
-      const dateReceived = moment(evt.dateReceived);
-      resp +=
-        '<dt>Received</dt>' +
-        '<dd>' +
-        dateReceived.format('ll') +
-        '<br />' +
-        dateReceived.format(format) +
-        '</dd>' +
-        '<dt>Latency</dt>' +
-        '<dd>' +
-        formatDateDelta(dateCreated, dateReceived) +
-        '</dd>';
-    }
-    return resp + '</dl>';
+    const dateReceived = evt.dateReceived ? moment(evt.dateReceived) : null;
+
+    return (
+      <dl className="flat" style={{textAlign: 'left', margin: 0, minWidth: '200px'}}>
+        <dt>Occurred</dt>
+        <dd>
+          {dateCreated.format('ll')}
+          <br />
+          {dateCreated.format(format)}
+        </dd>
+        {dateReceived && (
+          <React.Fragment>
+            <dt>Received</dt>
+            <dd>
+              {dateReceived.format('ll')}
+              <br />
+              {dateReceived.format(format)}
+            </dd>
+            <dt>Latency</dt>
+            <dd>{formatDateDelta(dateCreated, dateReceived)}</dd>
+          </React.Fragment>
+        )}
+      </dl>
+    );
   },
 
   render() {
@@ -176,10 +177,7 @@ const GroupEventToolbar = createReactClass({
           </Link>
         </h4>
         <span>
-          <Tooltip
-            title={this.getDateTooltip()}
-            tooltipOptions={{html: true, container: false}}
-          >
+          <Tooltip2 title={this.getDateTooltip()}>
             <span>
               <DateTime
                 date={getDynamicText({value: evt.dateCreated, fixed: 'Dummy timestamp'})}
@@ -187,7 +185,7 @@ const GroupEventToolbar = createReactClass({
               />
               {isOverLatencyThreshold && <span className="icon-alert" />}
             </span>
-          </Tooltip>
+          </Tooltip2>
           <ExternalLink href={jsonUrl} className="json-link">
             {'JSON'} (<FileSize bytes={evt.size} />)
           </ExternalLink>

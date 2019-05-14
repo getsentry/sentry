@@ -46,7 +46,7 @@ const SeenInfo = createReactClass({
     const {date, dateGlobal, title, environment} = this.props;
 
     return (
-      <div style={{width: 170}}>
+      <div style={{width: '170px'}}>
         <div className="time-label">{title}</div>
         <dl className="flat">
           {environment && [
