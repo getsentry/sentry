@@ -32,6 +32,7 @@ function:ThreadStartMac                         v-group
 family:native module:std::*                     -app
 module:core::*                                  -app
 family:javascript path:*/test.js                -app
+family:javascript app:1 path:*/test.js          -app
 ''', bases=['common:v1'])
 
     dumped = enhancement.dumps()
@@ -96,6 +97,32 @@ def test_family_matching():
 
     assert bool(native_rule.get_matching_frame_actions({
         'function': 'std::whatever',
+    }, 'native'))
+
+
+def test_app_matching():
+    enhancement = Enhancements.from_config_string('''
+        family:javascript path:**/test.js app:yes       +app
+        family:native path:**/test.c app:no            -group
+    ''')
+    app_yes_rule, app_no_rule = enhancement.rules
+
+    assert bool(app_yes_rule.get_matching_frame_actions({
+        'abs_path': 'http://example.com/foo/TEST.js',
+        'in_app': True
+    }, 'javascript'))
+    assert not bool(app_yes_rule.get_matching_frame_actions({
+        'abs_path': 'http://example.com/foo/TEST.js',
+        'in_app': False
+    }, 'javascript'))
+
+    assert bool(app_no_rule.get_matching_frame_actions({
+        'abs_path': '/test.c',
+        'in_app': False
+    }, 'native'))
+    assert not bool(app_no_rule.get_matching_frame_actions({
+        'abs_path': '/test.c',
+        'in_app': True
     }, 'native'))
 
 

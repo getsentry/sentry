@@ -16,6 +16,7 @@ def test_basic_parsing(insta_snapshot):
 # This is a config
 type:DatabaseUnavailable                        -> DatabaseUnavailable
 function:assertion_failed module:foo            -> AssertionFailed, foo
+app:true                                        -> aha
 ''')
     assert rules._to_config_structure() == {
         'rules': [
@@ -23,7 +24,9 @@ function:assertion_failed module:foo            -> AssertionFailed, foo
              'fingerprint': ['DatabaseUnavailable']},
             {'matchers': [['function', 'assertion_failed'],
                           ['module', 'foo']],
-             'fingerprint': ['AssertionFailed', 'foo']}
+             'fingerprint': ['AssertionFailed', 'foo']},
+            {'matchers': [['app', 'true']],
+             'fingerprint': ['aha']},
         ],
         'version': 1
     }

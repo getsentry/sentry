@@ -11,6 +11,7 @@ from parsimonious.grammar import Grammar, NodeVisitor
 from parsimonious.exceptions import ParseError
 
 from sentry.stacktraces.platform import get_behavior_family_for_platform
+from sentry.grouping.utils import get_rule_bool
 from sentry.utils.compat import implements_to_string
 from sentry.utils.glob import glob_match
 
@@ -26,7 +27,7 @@ rule = _ matchers actions
 
 matchers       = matcher+
 matcher        = _ matcher_type sep argument
-matcher_type   = "path" / "function" / "module" / "family" / "package"
+matcher_type   = "path" / "function" / "module" / "family" / "package" / "app"
 
 actions        = action+
 action         = _ range? flag action_name
@@ -63,6 +64,7 @@ MATCH_KEYS = {
     'module': 'm',
     'family': 'F',
     'package': 'P',
+    'app': 'a',
 }
 SHORT_MATCH_KEYS = dict((v, k) for k, v in six.iteritems(MATCH_KEYS))
 
@@ -118,6 +120,11 @@ class Match(object):
             family = get_behavior_family_for_platform(frame_data.get('platform') or platform)
             return family in flags
 
+        # in-app matching is just a bool
+        if self.key == 'app':
+            ref_val = get_rule_bool(self.pattern)
+            return ref_val is not None and ref_val == frame_data.get('in_app')
+
         # all other matches are case sensitive
         if self.key == 'function':
             from sentry.stacktraces.functions import get_function_name_for_frame
@@ -132,6 +139,8 @@ class Match(object):
     def _to_config_structure(self):
         if self.key == 'family':
             arg = ''.join(filter(None, [FAMILIES.get(x) for x in self.pattern.split(',')]))
+        elif self.key == 'app':
+            arg = {True: '1', False: '0'}.get(get_rule_bool(self.pattern), '')
         else:
             arg = self.pattern
         return MATCH_KEYS[self.key] + arg

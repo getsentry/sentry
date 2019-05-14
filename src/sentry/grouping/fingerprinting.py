@@ -7,6 +7,7 @@ from parsimonious.grammar import Grammar, NodeVisitor
 from parsimonious.exceptions import ParseError
 
 from sentry.stacktraces.platform import get_behavior_family_for_platform
+from sentry.grouping.utils import get_rule_bool
 from sentry.utils.safe import get_path
 from sentry.utils.glob import glob_match
 
@@ -25,7 +26,7 @@ rule = _ matchers _ follow _ fingerprint
 
 matchers       = matcher+
 matcher        = _ matcher_type sep argument
-matcher_type   = "path" / "function" / "module" / "family" / "type" / "value" / "message" / "package"
+matcher_type   = "path" / "function" / "module" / "family" / "type" / "value" / "message" / "package" / "app"
 argument       = quoted / unquoted
 
 fingerprint    = fp_value+
@@ -96,6 +97,7 @@ class EventAccess(object):
                     'module': frame.get('module'),
                     'family': get_behavior_family_for_platform(platform),
                     'package': frame.get('package'),
+                    'app': frame.get('in_app'),
                 })
 
             have_errors = False
@@ -214,6 +216,10 @@ class Match(object):
         elif self.key == 'family':
             flags = self.pattern.split(',')
             if 'all' in flags or value in flags:
+                return True
+        elif self.key == 'app':
+            ref_val = get_rule_bool(self.pattern)
+            if ref_val is not None and ref_val == value:
                 return True
         elif glob_match(value, self.pattern, ignorecase=self.key in ('message', 'value')):
             return True
