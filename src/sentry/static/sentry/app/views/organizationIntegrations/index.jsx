@@ -135,7 +135,7 @@ class OrganizationIntegrations extends AsyncComponent {
   renderProvider(provider) {
     return (
       <IntegrationRow key={`row-${provider.key}`}>
-        <StyledProviderRow
+        <ProviderRow
           key={provider.key}
           provider={provider}
           orgId={this.props.params.orgId}
@@ -232,23 +232,20 @@ class OrganizationIntegrations extends AsyncComponent {
   }
 }
 
-const IntegrationRow = styled('div')``;
+const IntegrationRow = styled('div')`
+  border-top: 1px solid ${p => p.theme.borderLight};
+  /*
+    it is very difficult to know the first and last ProviderRow,
+    so instead we hide the first border with a negative margin
+  */
+  margin-top: -1px;
+`;
 
 const StyledLoadingIndicator = styled(LoadingIndicator)`
   position: absolute;
   right: 7px;
   top: 50%;
   transform: translateY(-16px);
-`;
-
-const StyledProviderRow = styled(ProviderRow)`
-  border-top: 1px solid ${p => p.theme.borderLight};
-  border-bottom: 0;
-  /*
-    it is very difficult to know the first and last ProviderRow,
-    so instead we hide the first border with a negative margin
-  */
-  margin-top: -1px;
 `;
 
 export default withOrganization(OrganizationIntegrations);

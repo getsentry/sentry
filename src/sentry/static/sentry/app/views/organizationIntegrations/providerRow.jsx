@@ -105,7 +105,7 @@ export default class ProviderRow extends React.Component {
         direction="column"
         data-test-id={provider.key}
         className={className}
-        forceBorder={true}
+        borderless
       >
         <Flex align="center" p={2}>
           <PluginIcon size={36} pluginId={provider.key} />

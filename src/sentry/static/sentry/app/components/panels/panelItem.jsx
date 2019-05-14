@@ -3,21 +3,26 @@ import PropTypes from 'prop-types';
 import styled from 'react-emotion';
 import isPropValid from '@emotion/is-prop-valid';
 
-const PanelItem = styled(Flex, {shouldForwardProp: isPropValid})`
-  border-bottom: 1px solid ${p => p.theme.borderLight};
+const getBorders = p => `
+  border-bottom:  1px solid ${p.theme.borderLight};
 
   &:last-child {
-    border: ${p => (p.forceBorder ? null : 0)};
+    border-bottom: 0;
   }
+`;
+
+const PanelItem = styled(Flex, {shouldForwardProp: isPropValid})`
+  ${p => !p.borderless && getBorders(p)};
 `;
 
 PanelItem.propTypes = {
   p: PropTypes.number,
-  forceBorder: PropTypes.bool,
+  borderless: PropTypes.bool,
 };
 
 PanelItem.defaultProps = {
   p: 2,
+  borderless: false,
 };
 
 export default PanelItem;
