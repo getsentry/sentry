@@ -367,7 +367,7 @@ describe('OrganizationIntegrations', () => {
       it('displays an Update when the Plugin is enabled but a new Integration is not', () => {
         expect(
           wrapper
-            .find('ProviderRow')
+            .find('StyledProviderRow')
             .filterWhere(n => n.key() === 'vsts')
             .find('Button')
             .first()
@@ -378,7 +378,7 @@ describe('OrganizationIntegrations', () => {
       it('displays Add Another button when both Integration and Plugin are enabled', () => {
         expect(
           wrapper
-            .find('ProviderRow')
+            .find('StyledProviderRow')
             .filterWhere(n => n.key() === 'github')
             .find('Button')
             .first()
@@ -389,7 +389,7 @@ describe('OrganizationIntegrations', () => {
       it('display an Install button when its not an upgradable Integration', () => {
         expect(
           wrapper
-            .find('ProviderRow')
+            .find('StyledProviderRow')
             .filterWhere(n => n.key() === 'jira')
             .find('Button')
             .first()

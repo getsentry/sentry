@@ -30,6 +30,7 @@ export default class ProviderRow extends React.Component {
     onDisable: PropTypes.func.isRequired,
     onReinstall: PropTypes.func.isRequired,
     enabledPlugins: PropTypes.array,
+    className: PropTypes.string,
   };
 
   static defaultProps = {
@@ -96,17 +97,20 @@ export default class ProviderRow extends React.Component {
   }
 
   render() {
+    const {provider, className} = this.props;
+
     return (
       <PanelItem
         p={0}
-        forceBorder={true}
         direction="column"
-        data-test-id={this.props.provider.key}
+        data-test-id={provider.key}
+        className={className}
+        forceBorder={true}
       >
         <Flex align="center" p={2}>
-          <PluginIcon size={36} pluginId={this.props.provider.key} />
+          <PluginIcon size={36} pluginId={provider.key} />
           <Box px={2} flex={1}>
-            <ProviderName>{this.props.provider.name}</ProviderName>
+            <ProviderName>{provider.name}</ProviderName>
             <ProviderDetails>
               <Status enabled={this.isEnabled} />
               <StyledLink onClick={this.openModal}>Learn More</StyledLink>
