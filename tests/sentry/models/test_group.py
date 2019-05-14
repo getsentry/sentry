@@ -8,14 +8,16 @@ import pytest
 from django.db.models import ProtectedError
 from django.utils import timezone
 
-from sentry import tagstore
 from sentry.models import (
     Group, GroupRedirect, GroupSnooze, GroupStatus, Release, get_group_with_redirect
 )
-from sentry.testutils import TestCase
+from sentry.testutils import (
+    SnubaTestCase,
+    TestCase,
+)
 
 
-class GroupTest(TestCase):
+class GroupTest(TestCase, SnubaTestCase):
     def test_is_resolved(self):
         group = self.create_group(status=GroupStatus.RESOLVED)
         assert group.is_resolved()
@@ -174,17 +176,18 @@ class GroupTest(TestCase):
         )
         release.add_project(project)
 
-        group = self.create_group(
-            project=project,
-            first_release=release,
+        event = self.store_event(
+            data={
+                'fingerprint': ['put-me-in-group1'],
+                'timestamp': (timezone.now() - timedelta(minutes=5)).isoformat()[:19],
+                'tags': {
+                    'sentry:release': release.version,
+                },
+            },
+            project_id=self.project.id,
         )
+        group = event.group
 
-        tagstore.create_group_tag_value(
-            project_id=project.id, group_id=group.id, environment_id=self.environment.id,
-            key='sentry:release', value=release.version
-        )
-
-        assert group.first_release == release
         assert group.get_first_release() == release.version
         assert group.get_last_release() == release.version
 
@@ -196,14 +199,17 @@ class GroupTest(TestCase):
         )
         release.add_project(project)
 
-        group = self.create_group(
-            project=project,
+        event = self.store_event(
+            data={
+                'fingerprint': ['put-me-in-group1'],
+                'timestamp': (timezone.now() - timedelta(minutes=5)).isoformat()[:19],
+                'tags': {
+                    'sentry:release': release.version,
+                },
+            },
+            project_id=self.project.id,
         )
-
-        tagstore.create_group_tag_value(
-            project_id=project.id, group_id=group.id, environment_id=self.environment.id,
-            key='sentry:release', value=release.version
-        )
+        group = event.group
 
         assert group.first_release is None
         assert group.get_first_release() == release.version

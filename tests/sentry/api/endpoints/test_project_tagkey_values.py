@@ -1,53 +1,57 @@
 from __future__ import absolute_import
 
+from datetime import timedelta
+
 from django.core.urlresolvers import reverse
+from django.utils import timezone
 
-from sentry import tagstore
-from sentry.testutils import APITestCase
+from sentry.testutils import (
+    APITestCase,
+    SnubaTestCase,
+)
 
 
-class ProjectTagKeyValuesTest(APITestCase):
+class ProjectTagKeyValuesTest(APITestCase, SnubaTestCase):
     def test_simple(self):
+        key = 'foo'
+        value = 'bar'
         project = self.create_project()
-        tagkey = tagstore.create_tag_key(
+        self.store_event(
+            data={
+                'fingerprint': ['put-me-in-group1'],
+                'timestamp': (timezone.now() - timedelta(minutes=5)).isoformat()[:19],
+                'tags': {key: value}
+            },
             project_id=project.id,
-            environment_id=None,
-            key='foo')
-        tagstore.create_tag_value(
-            project_id=project.id,
-            environment_id=None,
-            key='foo',
-            value='bar')
+        )
 
         self.login_as(user=self.user)
-
         url = reverse(
             'sentry-api-0-project-tagkey-values',
             kwargs={
                 'organization_slug': project.organization.slug,
                 'project_slug': project.slug,
-                'key': tagkey.key,
+                'key': key,
             }
         )
 
         response = self.client.get(url)
-
         assert response.status_code == 200
         assert len(response.data) == 1
-
-        assert response.data[0]['value'] == 'bar'
+        assert response.data[0]['value'] == value
 
     def test_query(self):
         project = self.create_project()
-        tagkey = tagstore.create_tag_key(
+        key = 'foo'
+        value = 'bar'
+        self.store_event(
+            data={
+                'fingerprint': ['put-me-in-group1'],
+                'timestamp': (timezone.now() - timedelta(minutes=5)).isoformat()[:19],
+                'tags': {key: value}
+            },
             project_id=project.id,
-            environment_id=None,
-            key='foo')
-        tagstore.create_tag_value(
-            project_id=project.id,
-            environment_id=None,
-            key='foo',
-            value='bar')
+        )
 
         self.login_as(user=self.user)
 
@@ -56,17 +60,17 @@ class ProjectTagKeyValuesTest(APITestCase):
             kwargs={
                 'organization_slug': project.organization.slug,
                 'project_slug': project.slug,
-                'key': tagkey.key,
+                'key': key,
             }
         )
-        response = self.client.get(url + '?query=bar')
+        response = self.client.get(url + '?query=%s' % value)
 
         assert response.status_code == 200
         assert len(response.data) == 1
 
         assert response.data[0]['value'] == 'bar'
 
-        response = self.client.get(url + '?query=foo')
+        response = self.client.get(url + '?query=%s' % key)
 
         assert response.status_code == 200
         assert len(response.data) == 0

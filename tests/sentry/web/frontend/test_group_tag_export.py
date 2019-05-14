@@ -3,39 +3,36 @@ from __future__ import absolute_import
 from datetime import timedelta
 from django.utils import timezone
 
-from sentry import tagstore
-from sentry.testutils import TestCase
+from sentry.testutils import (
+    SnubaTestCase,
+    TestCase,
+)
 
 
-class GroupTagExportTest(TestCase):
+class GroupTagExportTest(TestCase, SnubaTestCase):
     def test_simple(self):
         key, value = 'foo', u'b\xe4r'
 
-        now = timezone.now()
-
         project = self.create_project()
-        group = self.create_group(project=project)
-        tagstore.create_tag_key(
+        first_event = self.store_event(
+            data={
+                'fingerprint': ['put-me-in-group1'],
+                'environment': self.environment.name,
+                'timestamp': (timezone.now() - timedelta(hours=1)).isoformat()[:19],
+                'tags': {key: value},
+            },
             project_id=project.id,
-            environment_id=self.environment.id,
-            key=key
         )
-        tagstore.create_tag_value(
+        last_event = self.store_event(
+            data={
+                'fingerprint': ['put-me-in-group1'],
+                'environment': self.environment.name,
+                'timestamp': (timezone.now() - timedelta(minutes=5)).isoformat()[:19],
+                'tags': {key: value},
+            },
             project_id=project.id,
-            environment_id=self.environment.id,
-            key=key,
-            value=value,
         )
-        group_tag_value = tagstore.create_group_tag_value(
-            project_id=project.id,
-            group_id=group.id,
-            environment_id=self.environment.id,
-            key=key,
-            value=value,
-            times_seen=1,
-            first_seen=now - timedelta(hours=1),
-            last_seen=now,
-        )
+        group = first_event.group
 
         self.login_as(user=self.user)
 
@@ -57,6 +54,6 @@ class GroupTagExportTest(TestCase):
                 assert bits == ['value', 'times_seen', 'last_seen', 'first_seen']
             else:
                 assert bits[0] == value
-                assert bits[1] == '1'
-                assert bits[2] == group_tag_value.last_seen.strftime('%Y-%m-%dT%H:%M:%S.%fZ')
-                assert bits[3] == group_tag_value.first_seen.strftime('%Y-%m-%dT%H:%M:%S.%fZ')
+                assert bits[1] == '2'
+                assert bits[2] == last_event.datetime.strftime('%Y-%m-%dT%H:%M:%S.%fZ')
+                assert bits[3] == first_event.datetime.strftime('%Y-%m-%dT%H:%M:%S.%fZ')

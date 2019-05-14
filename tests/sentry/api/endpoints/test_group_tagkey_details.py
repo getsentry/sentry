@@ -1,51 +1,40 @@
 from __future__ import absolute_import
 
+from datetime import timedelta
+
 import six
+from django.utils import timezone
 
-from sentry import tagstore
-from sentry.testutils import APITestCase
+from sentry.testutils import (
+    APITestCase,
+    SnubaTestCase,
+)
 
 
-class GroupTagDetailsTest(APITestCase):
+class GroupTagDetailsTest(APITestCase, SnubaTestCase):
     def test_simple(self):
-        group = self.create_group()
-        group.data['tags'] = (['foo', 'bar'], )
-        group.save()
+        key = 'foo'
+        for _ in range(3):
+            event = self.store_event(
+                data={
+                    'fingerprint': ['put-me-in-group1'],
+                    'environment': 'production',
+                    'timestamp': (timezone.now() - timedelta(minutes=5)).isoformat()[:19],
+                    'tags': {
+                        key: 'oof',
+                        'bar': 'rab',
+                    },
 
-        key, value = group.data['tags'][0]
-        tagkey = tagstore.create_tag_key(
-            project_id=group.project_id,
-            environment_id=None,
-            key=key,
-            values_seen=2
-        )
-        tagstore.create_tag_value(
-            project_id=group.project_id,
-            environment_id=None,
-            key=key,
-            value=value,
-            times_seen=4
-        )
-        tagstore.create_group_tag_key(
-            project_id=group.project_id,
-            group_id=group.id,
-            environment_id=None,
-            key=key,
-            values_seen=1,
-        )
-        tagstore.create_group_tag_value(
-            project_id=group.project_id,
-            group_id=group.id,
-            environment_id=None,
-            key=key,
-            value=value,
-            times_seen=3,
-        )
+                },
+                project_id=self.project.id,
+            )
+
+        group = event.group
 
         self.login_as(user=self.user)
 
-        url = u'/api/0/issues/{}/tags/{}/'.format(group.id, tagkey.key)
+        url = u'/api/0/issues/{}/tags/{}/'.format(group.id, key)
         response = self.client.get(url, format='json')
         assert response.status_code == 200, response.content
-        assert response.data['key'] == six.text_type(tagkey.key)
+        assert response.data['key'] == six.text_type(key)
         assert response.data['totalValues'] == 3

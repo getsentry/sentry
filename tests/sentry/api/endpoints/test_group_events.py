@@ -8,12 +8,15 @@ from freezegun import freeze_time
 from mock import patch
 from rest_framework.response import Response
 
-from sentry import options, tagstore
+from sentry import options
 from sentry.models import Environment
-from sentry.testutils import APITestCase
+from sentry.testutils import (
+    APITestCase,
+    SnubaTestCase,
+)
 
 
-class GroupEventsTest(APITestCase):
+class GroupEventsTest(APITestCase, SnubaTestCase):
     def setUp(self):
         super(GroupEventsTest, self).setUp()
         options.set('snuba.events-queries.enabled', False)
@@ -40,53 +43,33 @@ class GroupEventsTest(APITestCase):
     def test_tags(self):
         self.login_as(user=self.user)
 
-        group = self.create_group()
-        event_1 = self.create_event(event_id='a' * 32, group=group)
-        event_2 = self.create_event(event_id='b' * 32, group=group)
+        event_1 = self.store_event(
+            data={
+                'fingerprint': ['put-me-in-group1'],
+                'environment': self.environment.name,
+                'timestamp': (timezone.now() - timedelta(minutes=5)).isoformat()[:19],
+                'tags': {
+                    'foo': 'baz',
+                    'bar': 'buz',
+                },
 
-        tagkey_1 = tagstore.create_tag_key(
-            project_id=group.project_id,
-            environment_id=self.environment.id,
-            key='foo')
-        tagkey_2 = tagstore.create_tag_key(
-            project_id=group.project_id,
-            environment_id=self.environment.id,
-            key='bar')
-        tagvalue_1 = tagstore.create_tag_value(
-            project_id=group.project_id,
-            environment_id=self.environment.id,
-            key='foo',
-            value='baz')
-        tagvalue_2 = tagstore.create_tag_value(
-            project_id=group.project_id,
-            environment_id=self.environment.id,
-            key='bar',
-            value='biz')
-        tagvalue_3 = tagstore.create_tag_value(
-            project_id=group.project_id,
-            environment_id=self.environment.id,
-            key='bar',
-            value='buz')
+            },
+            project_id=self.project.id,
+        )
+        event_2 = self.store_event(
+            data={
+                'fingerprint': ['put-me-in-group1'],
+                'environment': self.environment.name,
+                'timestamp': (timezone.now() - timedelta(minutes=5)).isoformat()[:19],
+                'tags': {
+                    'bar': 'biz',
+                },
 
-        tagstore.create_event_tags(
-            project_id=group.project_id,
-            group_id=group.id,
-            environment_id=self.environment.id,
-            event_id=event_1.id,
-            tags=[
-                (tagkey_1.key, tagvalue_1.value),
-                (tagkey_2.key, tagvalue_3.value),
-            ],
+            },
+            project_id=self.project.id,
         )
-        tagstore.create_event_tags(
-            project_id=group.project_id,
-            group_id=group.id,
-            environment_id=self.environment.id,
-            event_id=event_2.id,
-            tags=[
-                (tagkey_2.key, tagvalue_2.value),
-            ],
-        )
+
+        group = event_1.group
 
         url = u'/api/0/issues/{}/events/'.format(group.id)
         response = self.client.get(url + '?query=foo:baz', format='json')
@@ -182,41 +165,24 @@ class GroupEventsTest(APITestCase):
 
     def test_environment(self):
         self.login_as(user=self.user)
-
-        group = self.create_group()
         events = {}
 
         for name in ['production', 'development']:
-            environment = Environment.get_or_create(group.project, name)
+            environment = Environment.get_or_create(self.project, name)
+            events[name] = event = self.store_event(
+                data={
+                    'fingerprint': ['put-me-in-group1'],
+                    'environment': environment.name,
+                    'timestamp': (timezone.now() - timedelta(minutes=5)).isoformat()[:19],
+                    'tags': {
+                        'foo': 'baz',
+                        'bar': 'buz',
+                    },
 
-            tagstore.get_or_create_tag_key(
-                project_id=group.project_id,
-                environment_id=environment.id,
-                key='environment',
+                },
+                project_id=self.project.id,
             )
-
-            tagstore.create_tag_value(
-                project_id=group.project_id,
-                environment_id=environment.id,
-                key='environment',
-                value=name,
-            )
-
-            events[name] = event = self.create_event(
-                group=group,
-                tags={'environment': name},
-            )
-
-            tagstore.create_event_tags(
-                project_id=group.project_id,
-                group_id=group.id,
-                environment_id=environment.id,
-                event_id=event.id,
-                tags=[
-                    ('environment', name),
-                ],
-            )
-
+        group = event.group
         url = u'/api/0/issues/{}/events/'.format(group.id)
         response = self.client.get(url + '?environment=production', format='json')
 

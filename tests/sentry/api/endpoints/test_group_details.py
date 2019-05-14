@@ -6,16 +6,18 @@ import six
 from datetime import timedelta
 from django.utils import timezone
 
-from sentry import tagstore
 from sentry.models import (
     Activity, Environment, Group, GroupHash, GroupAssignee, GroupBookmark,
     GroupResolution, GroupSeen, GroupSnooze, GroupSubscription, GroupStatus,
     GroupTombstone, Release
 )
-from sentry.testutils import APITestCase
+from sentry.testutils import (
+    APITestCase,
+    SnubaTestCase,
+)
 
 
-class GroupDetailsTest(APITestCase):
+class GroupDetailsTest(APITestCase, SnubaTestCase):
     def test_simple(self):
         self.login_as(user=self.user)
 
@@ -31,22 +33,26 @@ class GroupDetailsTest(APITestCase):
     def test_with_first_release(self):
         self.login_as(user=self.user)
 
-        group = self.create_group()
         release = Release.objects.create(
-            organization_id=group.project.organization_id,
+            organization_id=self.project.organization_id,
             version='1.0',
         )
-        release.add_project(group.project)
-        tagstore.create_group_tag_value(
-            group_id=group.id,
-            project_id=group.project_id,
-            environment_id=self.environment.id,
-            key='sentry:release',
-            value=release.version,
+        release.add_project(self.project)
+        event = self.store_event(
+            data={
+                'fingerprint': ['put-me-in-group1'],
+                'environment': 'production',
+                'timestamp': (timezone.now() - timedelta(minutes=5)).isoformat()[:19],
+                'tags': {
+                    'sentry:release': release.version,
+                },
+
+            },
+            project_id=self.project.id,
         )
+        group = event.group
 
         url = u'/api/0/issues/{}/'.format(group.id)
-
         response = self.client.get(url, format='json')
 
         assert response.status_code == 200, response.content

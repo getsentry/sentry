@@ -23,10 +23,13 @@ from sentry.models import (
     User,
     UserEmail,
 )
-from sentry.testutils import TestCase
+from sentry.testutils import (
+    SnubaTestCase,
+    TestCase,
+)
 
 
-class ReleaseSerializerTest(TestCase):
+class ReleaseSerializerTest(TestCase, SnubaTestCase):
     def test_simple(self):
         user = self.create_user()
         project = self.create_project()
@@ -61,23 +64,21 @@ class ReleaseSerializerTest(TestCase):
         )
         key = 'sentry:release'
         value = release.version
-        tagstore.create_tag_value(
+        self.store_event(
+            data={
+                'fingerprint': ['put-me-in-group1'],
+                'timestamp': (timezone.now() - datetime.timedelta(minutes=1)).isoformat()[:19],
+                'tags': {key: value}
+            },
             project_id=project.id,
-            environment_id=None,
-            key=key,
-            value=value,
-            first_seen=timezone.now(),
-            last_seen=timezone.now(),
-            times_seen=5,
         )
-        tagstore.create_tag_value(
+        self.store_event(
+            data={
+                'fingerprint': ['put-me-in-group2'],
+                'timestamp': (timezone.now() - datetime.timedelta(minutes=5)).isoformat()[:19],
+                'tags': {key: value}
+            },
             project_id=project2.id,
-            environment_id=None,
-            key=key,
-            value=value,
-            first_seen=timezone.now() - datetime.timedelta(days=2),
-            last_seen=timezone.now() - datetime.timedelta(days=1),
-            times_seen=5,
         )
         commit_author = CommitAuthor.objects.create(
             name='stebe',

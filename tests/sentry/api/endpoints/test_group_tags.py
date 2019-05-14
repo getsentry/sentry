@@ -1,10 +1,17 @@
 from __future__ import absolute_import
 
+from datetime import timedelta
+
+from django.utils import timezone
+
 from sentry import tagstore
-from sentry.testutils import APITestCase
+from sentry.testutils import (
+    APITestCase,
+    SnubaTestCase,
+)
 
 
-class GroupTagsTest(APITestCase):
+class GroupTagsTest(APITestCase, SnubaTestCase):
     def _create_tags(self, group, environment_id=None):
         for key, values in group.data['tags']:
             tagstore.create_tag_key(
@@ -37,25 +44,47 @@ class GroupTagsTest(APITestCase):
                 )
 
     def test_simple(self):
-        this_group = self.create_group()
-        this_group.data['tags'] = (['foo', ['bar', 'quux']], ['biz', 'baz'], [
-                                   'sentry:release', 'releaseme'])
+        this_event = self.store_event(
+            data={
+                'fingerprint': ['put-me-in-group1'],
+                'timestamp': (timezone.now() - timedelta(minutes=5)).isoformat()[:19],
+                'tags': {
+                    'foo': 'bar',
+                    'biz': 'baz',
+                    'sentry:release': 'releaseme',
+                },
+            },
+            project_id=self.project.id,
+        )
+        self.store_event(
+            data={
+                'fingerprint': ['put-me-in-group1'],
+                'timestamp': (timezone.now() - timedelta(minutes=5)).isoformat()[:19],
+                'tags': {
+                    'foo': 'quux',
+                },
+            },
+            project_id=self.project.id,
+        )
+        this_group = this_event.group
 
-        this_group.save()
-
-        other_group = self.create_group()
-        other_group.data['tags'] = (['abc', 'xyz'],)
-        other_group.save()
-
-        for group in (this_group, other_group):
-            self._create_tags(group)
-
+        self.store_event(
+            data={
+                'fingerprint': ['put-me-in-group2'],
+                'timestamp': (timezone.now() - timedelta(minutes=5)).isoformat()[:19],
+                'tags': {
+                    'abc': 'xyz',
+                },
+            },
+            project_id=self.project.id,
+        )
         self.login_as(user=self.user)
 
         url = u'/api/0/issues/{}/tags/'.format(this_group.id)
         response = self.client.get(url, format='json')
         assert response.status_code == 200, response.content
-        assert len(response.data) == 3
+        print response.data
+        assert len(response.data) == 4
 
         data = sorted(response.data, key=lambda r: r['key'])
         assert data[0]['key'] == 'biz'
@@ -64,8 +93,11 @@ class GroupTagsTest(APITestCase):
         assert data[1]['key'] == 'foo'
         assert len(data[1]['topValues']) == 2
 
-        assert data[2]['key'] == 'release'  # Formatted from sentry:release
+        assert data[2]['key'] == 'level'
         assert len(data[2]['topValues']) == 1
+
+        assert data[3]['key'] == 'release'  # Formatted from sentry:release
+        assert len(data[3]['topValues']) == 1
 
         # Use the key= queryparam to grab results for specific tags
         url = u'/api/0/issues/{}/tags/?key=foo&key=sentry:release'.format(this_group.id)
@@ -90,15 +122,23 @@ class GroupTagsTest(APITestCase):
         assert response.status_code == 404
 
     def test_valid_env(self):
-        group = self.create_group()
-        group.data['tags'] = (['foo', 'bar'], ['biz', 'baz'])
-        group.save()
-
-        env = self.create_environment(project=group.project)
-        self._create_tags(group, environment_id=env.id)
+        env = self.create_environment(project=self.project)
+        event = self.store_event(
+            data={
+                'fingerprint': ['put-me-in-group1'],
+                'environment': env.name,
+                'timestamp': (timezone.now() - timedelta(minutes=5)).isoformat()[:19],
+                'tags': {
+                    'foo': 'bar',
+                    'biz': 'baz',
+                },
+            },
+            project_id=self.project.id,
+        )
+        group = event.group
 
         self.login_as(user=self.user)
         url = u'/api/0/issues/{}/tags/'.format(group.id)
         response = self.client.get(url, {'environment': env.name}, format='json')
         assert response.status_code == 200
-        assert len(response.data) == 2
+        assert len(response.data) == 4
