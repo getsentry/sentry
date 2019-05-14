@@ -44,12 +44,14 @@ export default class MonitorStats extends AsyncComponent {
     const timeLabel = chart.getTimeLabel(point);
     const [error, ok] = point.y;
 
-    const value = `${ok.toLocaleString()} successful<br>${error.toLocaleString()} failed`;
-
     return (
       <div style={{width: '150px'}}>
         <div className="time-label">{timeLabel}</div>
-        <div className="value-label">{value}</div>
+        <div className="value-label">
+          {t('%s successful', ok.toLocaleString())}
+          <br />
+          {t('%s failed', error.toLocaleString())}
+        </div>
       </div>
     );
   }
