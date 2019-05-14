@@ -45,6 +45,8 @@ def get_project(value):
 # and child proc
 _STOP_WORKER = '91650ec271ae4b3e8a67cdc909d80f8c'
 
+API_TOKEN_TTL_IN_DAYS = 30
+
 
 def multiprocess_worker(task_queue):
     # Configure within each Process
@@ -222,7 +224,7 @@ def cleanup(days, project, concurrency, silent, model, router, timed):
                 click.echo(u'>> Skipping {}'.format(model.__name__))
         else:
             model.objects.filter(
-                expires_at__lt=(timezone.now() - timedelta(days=days)),
+                expires_at__lt=(timezone.now() - timedelta(days=API_TOKEN_TTL_IN_DAYS)),
             ).delete()
 
     project_id = None
