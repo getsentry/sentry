@@ -39,7 +39,7 @@ const TASKS = [
     description: t('Bring your team aboard'),
     detailedDescription: t(
       `Let Sentry help your team triage and assign issues. Improve your workflow
-           by unlocking mentions, assignment, and suggested issue owners.`
+          by unlocking mentions, assignment, and suggested issue owners.`
     ),
     skippable: true,
     prereq: [],
