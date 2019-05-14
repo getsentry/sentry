@@ -24,13 +24,7 @@ class Refresher(Mediator):
     def call(self):
         self._validate()
         self._delete_token()
-
-        return ApiToken.objects.create(
-            user=self.user,
-            application=self.application,
-            scope_list=self.sentry_app.scope_list,
-            expires_at=token_expiration(),
-        )
+        return self._create_new_token()
 
     def record_analytics(self):
         analytics.record(
@@ -54,6 +48,17 @@ class Refresher(Mediator):
 
     def _delete_token(self):
         self.token.delete()
+
+    def _create_new_token(self):
+        token = ApiToken.objects.create(
+            user=self.user,
+            application=self.application,
+            scope_list=self.sentry_app.scope_list,
+            expires_at=token_expiration(),
+        )
+        self.install.api_token = token
+        self.install.save()
+        return token
 
     @memoize
     def token(self):
