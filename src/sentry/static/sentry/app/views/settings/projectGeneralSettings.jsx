@@ -189,7 +189,7 @@ class ProjectGeneralSettings extends AsyncView {
                 </TextBlock>
                 <TextBlock>
                   {t(
-                    'Please enter the email of an organization owner for the org to which you would like to transfer this project.'
+                    'Please enter the email of an organization owner to whom you would like to transfer this project.'
                   )}
                 </TextBlock>
                 <Panel>

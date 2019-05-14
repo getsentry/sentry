@@ -2067,7 +2067,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                               "prereq": Array [],
                               "skippable": true,
                               "task": 3,
-                              "title": "Invite team member",
+                              "title": "Invite team members",
                             }
                           }
                         >
@@ -2364,7 +2364,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                           task={
                             Object {
                               "description": "Add Sentry to a second platform",
-                              "detailedDescription": "Cross platform functionality to support both your frontend and backend.",
+                              "detailedDescription": "Capture errors from both your front and back ends.",
                               "display": true,
                               "featureLocation": "organization",
                               "location": "projects/new/",
@@ -2673,7 +2673,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                             Object {
                               "description": "Know who is being affected by crashes",
                               "detailedDescription": "Unlock features that let you
-          drill down into the number of users affected by an issue as well as get a broader sense about the quality of the application.",
+          drill down into the number of users affected by an issue and get a broader sense about the quality of your application.",
                               "display": true,
                               "featureLocation": "absolute",
                               "location": "https://docs.sentry.io/enriching-error-data/context/#capturing-the-user",
@@ -3290,7 +3290,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                           task={
                             Object {
                               "description": "Deminify JavaScript stack traces",
-                              "detailedDescription": "View source code context obtained from stack traces in their
+                              "detailedDescription": "View source code context obtained from stack traces in its
           original untransformed form, which is particularly useful for debugging minified code.",
                               "display": true,
                               "featureLocation": "absolute",
