@@ -23,9 +23,12 @@ USER_FIXABLE_ERRORS = (
     EventError.NATIVE_BAD_DSYM,
     EventError.NATIVE_MISSING_SYMBOL,
 
-    # XXX: user can't fix this, but they should see it regardless to see it's
-    # not their fault. Also better than silently creating an unsymbolicated event
+    # Emitted for e.g. broken minidumps
     EventError.NATIVE_SYMBOLICATOR_FAILED,
+
+    # We want to let the user know when calling symbolicator failed, even
+    # though it's not user fixable.
+    EventError.NATIVE_INTERNAL_FAILURE,
 )
 
 

@@ -14,12 +14,11 @@ from sentry.plugins import Plugin2
 from sentry.lang.native.cfi import reprocess_minidump_with_cfi
 from sentry.lang.native.minidump import get_attached_minidump, is_minidump_event, merge_symbolicator_minidump_response
 from sentry.lang.native.symbolizer import Symbolizer, SymbolicationFailed
-from sentry.lang.native.symbolicator import run_symbolicator, merge_symbolicator_image, create_minidump_task
+from sentry.lang.native.symbolicator import run_symbolicator, merge_symbolicator_image, create_minidump_task, handle_symbolicator_response_status
 from sentry.lang.native.utils import get_sdk_from_event, handle_symbolication_failed, cpu_name_from_data, \
     merge_symbolicated_frame, rebase_addr, signal_from_data
 from sentry.lang.native.systemsymbols import lookup_system_symbols
 from sentry.models import Project
-from sentry.models.eventerror import EventError
 from sentry.utils import metrics
 from sentry.utils.in_app import is_known_third_party
 from sentry.utils.safe import get_path
@@ -278,11 +277,7 @@ class NativeStacktraceProcessor(StacktraceProcessor):
             signal=self.signal
         )
 
-        if not rv:
-            handle_symbolication_failed(
-                SymbolicationFailed(type=EventError.NATIVE_SYMBOLICATOR_FAILED),
-                data=self.data,
-            )
+        if not handle_symbolicator_response_status(self.data, rv):
             return
 
         # TODO(markus): Set signal and os context from symbolicator response,
@@ -428,15 +423,8 @@ def reprocess_minidump(data):
         minidump=make_buffered_slice_reader(minidump.data, None)
     )
 
-    if not response:
-        handle_symbolication_failed(
-            SymbolicationFailed(type=EventError.NATIVE_SYMBOLICATOR_FAILED),
-            data=data,
-        )
-        default_cache.set(minidump_is_reprocessed_cache_key, True, 3600)
-        return
-
-    merge_symbolicator_minidump_response(data, response)
+    if handle_symbolicator_response_status(data, response):
+        merge_symbolicator_minidump_response(data, response)
 
     event_cache_key = cache_key_for_event(data)
     default_cache.set(event_cache_key, dict(data), 3600)
