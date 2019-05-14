@@ -240,7 +240,7 @@ def merge_symbolicator_minidump_response(data, response):
             # from user json).
             if data_stacktrace['frames'] and is_unreal_exception_stacktrace(data):
                 continue
-            del data_stacktrace['frames'][:]
+            data_stacktrace['frames'] = []
         else:
             data_thread['stacktrace'] = data_stacktrace = {'frames': []}
 
