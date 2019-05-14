@@ -36,19 +36,25 @@ class OrganizationStats extends React.Component {
     const timeLabel = chart.getTimeLabel(point);
     const [accepted, rejected, blacklisted] = point.y;
 
-    let value = `${intcomma(accepted)} accepted`;
-    if (rejected) {
-      value += `<br>${intcomma(rejected)} rate limited`;
-    }
-    if (blacklisted) {
-      value += `<br>${intcomma(blacklisted)} filtered`;
-    }
-
     return (
-      '<div style="width:150px">' +
-      `<div class="time-label">${timeLabel}</div>` +
-      `<div class="value-label">${value}</div>` +
-      '</div>'
+      <div style={{width: '150px'}}>
+        <div className="time-label">{timeLabel}</div>
+        <div className="value-label">
+          {intcomma(accepted)} accepted
+          {rejected > 0 && (
+            <React.Fragment>
+              <br />
+              {intcomma(rejected)} rate limited
+            </React.Fragment>
+          )}
+          {blacklisted > 0 && (
+            <React.Fragment>
+              <br />
+              {intcomma(blacklisted)} filtered
+            </React.Fragment>
+          )}
+        </div>
+      </div>
     );
   }
 
