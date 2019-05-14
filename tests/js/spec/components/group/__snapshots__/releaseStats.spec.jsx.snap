@@ -1330,7 +1330,7 @@ exports[`GroupReleaseStats renders 1`] = `
                   <div
                     style={
                       Object {
-                        "width": 170,
+                        "width": "170px",
                       }
                     }
                   >
@@ -1469,7 +1469,7 @@ exports[`GroupReleaseStats renders 1`] = `
                   <div
                     style={
                       Object {
-                        "width": 170,
+                        "width": "170px",
                       }
                     }
                   >
