@@ -4,7 +4,7 @@ from mock import patch
 from datetime import datetime, timedelta
 
 from sentry.coreapi import APIUnauthorized
-from sentry.models import ApiApplication, SentryApp, ApiGrant
+from sentry.models import ApiApplication, SentryApp, SentryAppInstallation, ApiGrant
 from sentry.mediators.token_exchange import GrantExchanger
 from sentry.testutils import TestCase
 
@@ -25,6 +25,10 @@ class TestGrantExchanger(TestCase):
 
     def test_happy_path(self):
         assert self.grant_exchanger.call()
+
+    def test_adds_token_to_installation(self):
+        token = self.grant_exchanger.call()
+        assert SentryAppInstallation.objects.get(id=self.install.id).api_token == token
 
     @patch('sentry.mediators.token_exchange.Validator.run')
     def test_validate_generic_token_exchange_requirements(self, validator):
