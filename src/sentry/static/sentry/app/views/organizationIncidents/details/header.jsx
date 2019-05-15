@@ -1,21 +1,22 @@
-import React from 'react';
 import PropTypes from 'prop-types';
+import React from 'react';
 import styled from 'react-emotion';
 
-import {t} from 'app/locale';
-import SentryTypes from 'app/sentryTypes';
-import PageHeading from 'app/components/pageHeading';
-import Link from 'app/components/links/link';
-import InlineSvg from 'app/components/inlineSvg';
 import {PageHeader} from 'app/styles/organization';
-import space from 'app/styles/space';
-import SubscribeButton from 'app/components/subscribeButton';
-import DropdownControl from 'app/components/dropdownControl';
-import MenuItem from 'app/components/menuItem';
+import {t} from 'app/locale';
 import Access from 'app/components/acl/access';
+import Count from 'app/components/count';
+import DropdownControl from 'app/components/dropdownControl';
+import InlineSvg from 'app/components/inlineSvg';
+import Link from 'app/components/links/link';
+import MenuItem from 'app/components/menuItem';
+import PageHeading from 'app/components/pageHeading';
+import SentryTypes from 'app/sentryTypes';
+import SubscribeButton from 'app/components/subscribeButton';
+import space from 'app/styles/space';
 
-import Status from '../status';
 import {isOpen} from '../utils';
+import Status from '../status';
 
 export default class DetailsHeader extends React.Component {
   static propTypes = {
@@ -56,7 +57,7 @@ export default class DetailsHeader extends React.Component {
                 {t('Incidents')}
               </IncidentsLink>
               <Chevron src="icon-chevron-right" size={space(2)} />
-              {params.incidentId}
+              <Count value={params.incidentId} />
             </Title>
             <div>{incident && incident.title}</div>
           </PageHeading>
@@ -69,11 +70,15 @@ export default class DetailsHeader extends React.Component {
             </HeaderItem>
             <HeaderItem>
               <ItemTitle>{t('Event count')}</ItemTitle>
-              <ItemValue>{incident.totalEvents}</ItemValue>
+              <ItemValue>
+                <Count value={incident.totalEvents} />
+              </ItemValue>
             </HeaderItem>
             <HeaderItem>
               <ItemTitle>{t('Users affected')}</ItemTitle>
-              <ItemValue>{incident.uniqueUsers}</ItemValue>
+              <ItemValue>
+                <Count value={incident.uniqueUsers} />
+              </ItemValue>
             </HeaderItem>
             <HeaderItem>
               <ItemTitle>{t('Notifications')}</ItemTitle>
