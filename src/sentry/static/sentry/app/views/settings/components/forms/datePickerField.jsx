@@ -24,7 +24,8 @@ export default class DatePickerField extends React.Component {
       <InputField
         {...this.props}
         field={({onChange, onBlur, value, disabled, name, id, ...props}) => {
-          const inputValue = !value ? new Date() : new Date(value);
+          const dateObj = new Date(value);
+          const inputValue = !isNaN(dateObj.getTime()) ? dateObj : new Date();
           const dateString = moment(inputValue).format('LL');
 
           return (
@@ -47,7 +48,7 @@ export default class DatePickerField extends React.Component {
                     <CalendarMenu {...getMenuProps({isStyled: true})}>
                       <Calendar
                         disabled={disabled}
-                        date={!value ? new Date() : new Date(value)}
+                        date={inputValue}
                         onChange={date => this.onChange(onChange, onBlur, date)}
                       />
                     </CalendarMenu>
