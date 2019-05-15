@@ -4,6 +4,7 @@ import React from 'react';
 
 import {createIncident} from 'app/actionCreators/incident';
 import {t} from 'app/locale';
+import DatePickerField from 'app/views/settings/components/forms/datePickerField';
 import Form from 'app/views/settings/components/forms/form';
 import SentryTypes from 'app/sentryTypes';
 import TextField from 'app/views/settings/components/forms/textField';
@@ -26,7 +27,13 @@ class CreateIncidentModal extends React.Component {
     setFormSavingState();
 
     try {
-      const incident = await createIncident(api, organization, data.title, issues);
+      const incident = await createIncident(
+        api,
+        organization,
+        data.title,
+        issues,
+        data.dateStarted
+      );
       onSuccess(incident);
     } catch (err) {
       onError(err);
@@ -63,12 +70,24 @@ class CreateIncidentModal extends React.Component {
             onSubmit={this.handleSubmit}
             onSubmitSuccess={this.handleSuccess}
             requireChanges
+            initialData={{
+              date: new Date(),
+            }}
           >
             <TextField
               name="title"
               label={t('Incident Name')}
               placeholder={t('Incident Name')}
               help={t('Give a name to help identify the incident')}
+              required
+              stacked
+              inline={false}
+              flexibleControlStateSize
+            />
+            <DatePickerField
+              name="dateStarted"
+              label={t('Date Started')}
+              help={t('This should be around when the incident first began.')}
               required
               stacked
               inline={false}
