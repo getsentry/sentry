@@ -96,7 +96,6 @@ class OrganizationIncidentDetails extends React.Component {
     const {incident, hasError} = this.state;
     const {params} = this.props;
 
-    console.log(incident);
     return (
       <React.Fragment>
         <DetailsHeader
