@@ -164,3 +164,10 @@ class SymbolicatorMinidumpIntegrationTest(MinidumpIntegrationTestBase, Transacti
 
             # Teardown:
             assert not symbolize_app_frame.called
+
+
+class SymbolicatorRefactoredMinidumpIntegrationTest(SymbolicatorMinidumpIntegrationTest):
+    @pytest.fixture(autouse=True)
+    def _set_refactor_option(self):
+        with self.options({"symbolicator.minidump-refactor-projects-opt-in": [self.project.id]}):
+            yield
