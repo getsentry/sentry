@@ -240,7 +240,7 @@ exports[`ResolveActions with confirmation step renders 1`] = `
                   role="presentation"
                   title={null}
                 >
-                  <Tooltip2
+                  <Tooltip
                     containerDisplayMode="block"
                     position="top"
                     title="Set up release tracking in order to use this feature."
@@ -348,8 +348,8 @@ exports[`ResolveActions with confirmation step renders 1`] = `
                         </InnerReference>
                       </Reference>
                     </Manager>
-                  </Tooltip2>
-                  <Tooltip2
+                  </Tooltip>
+                  <Tooltip
                     containerDisplayMode="block"
                     position="top"
                     title="Set up release tracking in order to use this feature."
@@ -457,8 +457,8 @@ exports[`ResolveActions with confirmation step renders 1`] = `
                         </InnerReference>
                       </Reference>
                     </Manager>
-                  </Tooltip2>
-                  <Tooltip2
+                  </Tooltip>
+                  <Tooltip
                     containerDisplayMode="block"
                     position="top"
                     title="Set up release tracking in order to use this feature."
@@ -506,7 +506,7 @@ exports[`ResolveActions with confirmation step renders 1`] = `
                         </InnerReference>
                       </Reference>
                     </Manager>
-                  </Tooltip2>
+                  </Tooltip>
                 </li>
               </MenuItem>
             </ul>
@@ -693,7 +693,7 @@ exports[`ResolveActions without confirmation renders 1`] = `
                   role="presentation"
                   title={null}
                 >
-                  <Tooltip2
+                  <Tooltip
                     containerDisplayMode="block"
                     position="top"
                     title="Set up release tracking in order to use this feature."
@@ -740,8 +740,8 @@ exports[`ResolveActions without confirmation renders 1`] = `
                         </InnerReference>
                       </Reference>
                     </Manager>
-                  </Tooltip2>
-                  <Tooltip2
+                  </Tooltip>
+                  <Tooltip
                     containerDisplayMode="block"
                     position="top"
                     title="Set up release tracking in order to use this feature."
@@ -788,8 +788,8 @@ exports[`ResolveActions without confirmation renders 1`] = `
                         </InnerReference>
                       </Reference>
                     </Manager>
-                  </Tooltip2>
-                  <Tooltip2
+                  </Tooltip>
+                  <Tooltip
                     containerDisplayMode="block"
                     position="top"
                     title="Set up release tracking in order to use this feature."
@@ -836,7 +836,7 @@ exports[`ResolveActions without confirmation renders 1`] = `
                         </InnerReference>
                       </Reference>
                     </Manager>
-                  </Tooltip2>
+                  </Tooltip>
                 </li>
               </MenuItem>
             </ul>

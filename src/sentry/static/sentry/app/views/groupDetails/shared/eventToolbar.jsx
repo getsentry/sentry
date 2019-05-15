@@ -10,7 +10,7 @@ import DateTime from 'app/components/dateTime';
 import ExternalLink from 'app/components/links/externalLink';
 import FileSize from 'app/components/fileSize';
 import SentryTypes from 'app/sentryTypes';
-import Tooltip2 from 'app/components/tooltip2';
+import Tooltip from 'app/components/tooltip';
 import getDynamicText from 'app/utils/getDynamicText';
 
 const formatDateDelta = (reference, observed) => {
@@ -177,7 +177,7 @@ const GroupEventToolbar = createReactClass({
           </Link>
         </h4>
         <span>
-          <Tooltip2 title={this.getDateTooltip()}>
+          <Tooltip title={this.getDateTooltip()}>
             <span>
               <DateTime
                 date={getDynamicText({value: evt.dateCreated, fixed: 'Dummy timestamp'})}
@@ -185,7 +185,7 @@ const GroupEventToolbar = createReactClass({
               />
               {isOverLatencyThreshold && <span className="icon-alert" />}
             </span>
-          </Tooltip2>
+          </Tooltip>
           <ExternalLink href={jsonUrl} className="json-link">
             {'JSON'} (<FileSize bytes={evt.size} />)
           </ExternalLink>

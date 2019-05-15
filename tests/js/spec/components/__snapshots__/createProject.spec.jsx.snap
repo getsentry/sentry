@@ -58,7 +58,7 @@ exports[`CreateProject should block if you have access to no teams 1`] = `
             placeholder="Select a Team"
             value={0}
           />
-          <Tooltip2
+          <Tooltip
             containerDisplayMode="inline-block"
             position="top"
             title="Create a team"
@@ -71,7 +71,7 @@ exports[`CreateProject should block if you have access to no teams 1`] = `
               onClick={[Function]}
               type="button"
             />
-          </Tooltip2>
+          </Tooltip>
         </TeamSelectInput>
       </div>
       <div>
@@ -1469,7 +1469,7 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
                   </ForwardRef(SelectPicker)>
                 </StyledSelect>
               </SelectControl>
-              <Tooltip2
+              <Tooltip
                 containerDisplayMode="inline-block"
                 position="top"
                 title="Create a team"
@@ -1595,7 +1595,7 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
                     </InnerReference>
                   </Reference>
                 </Manager>
-              </Tooltip2>
+              </Tooltip>
             </div>
           </TeamSelectInput>
         </div>
@@ -2450,7 +2450,7 @@ exports[`CreateProject should fill in platform name if its provided by url 1`] =
                   </ForwardRef(SelectPicker)>
                 </StyledSelect>
               </SelectControl>
-              <Tooltip2
+              <Tooltip
                 containerDisplayMode="inline-block"
                 position="top"
                 title="Create a team"
@@ -2576,7 +2576,7 @@ exports[`CreateProject should fill in platform name if its provided by url 1`] =
                     </InnerReference>
                   </Reference>
                 </Manager>
-              </Tooltip2>
+              </Tooltip>
             </div>
           </TeamSelectInput>
         </div>
@@ -4131,7 +4131,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
                   </ForwardRef(SelectPicker)>
                 </StyledSelect>
               </SelectControl>
-              <Tooltip2
+              <Tooltip
                 containerDisplayMode="inline-block"
                 position="top"
                 title="Create a team"
@@ -4257,7 +4257,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
                     </InnerReference>
                   </Reference>
                 </Manager>
-              </Tooltip2>
+              </Tooltip>
             </div>
           </TeamSelectInput>
         </div>

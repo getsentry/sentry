@@ -12,7 +12,7 @@ import LinkWithConfirmation from 'app/components/links/linkWithConfirmation';
 import PermissionAlert from 'app/views/settings/project/permissionAlert';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import TextBlock from 'app/views/settings/components/text/textBlock';
-import Tooltip2 from 'app/components/tooltip2';
+import Tooltip from 'app/components/tooltip';
 
 export default class ProjectTags extends AsyncView {
   getEndpoints() {
@@ -87,7 +87,7 @@ export default class ProjectTags extends AsyncView {
                         <span>{key}</span>
                       </Box>
                       <Flex align="center" p={2}>
-                        <Tooltip2
+                        <Tooltip
                           disabled={enabled}
                           title={
                             hasAccess
@@ -108,7 +108,7 @@ export default class ProjectTags extends AsyncView {
                               disabled={!enabled}
                             />
                           </LinkWithConfirmation>
-                        </Tooltip2>
+                        </Tooltip>
                       </Flex>
                     </PanelItem>
                   );
