@@ -2,6 +2,7 @@ from __future__ import absolute_import
 
 from datetime import timedelta
 
+import six
 from django.db import transaction
 from django.utils import timezone
 
@@ -21,6 +22,10 @@ from sentry.utils.snuba import (
 )
 
 MAX_INITIAL_INCIDENT_PERIOD = timedelta(days=7)
+
+
+class StatusAlreadyChangedError(Exception):
+    pass
 
 
 def create_incident(
@@ -77,6 +82,41 @@ def create_incident(
     return incident
 
 
+def update_incident_status(incident, status, user=None, comment=None):
+    """
+    Updates the status of an Incident and write an IncidentActivity row to log
+    the change. When the status is CLOSED we also set the date closed to the
+    current time and (todo) take a snapshot of the current incident state.
+    """
+    if incident.status == status.value:
+        # If the status isn't actually changing just no-op.
+        raise StatusAlreadyChangedError()
+    with transaction.atomic():
+        create_incident_activity(
+            incident,
+            IncidentActivityType.STATUS_CHANGE,
+            user=user,
+            value=status.value,
+            previous_value=incident.status,
+            comment=comment,
+        )
+        kwargs = {
+            'status': status.value,
+        }
+        if status == IncidentStatus.CLOSED:
+            kwargs['date_closed'] = timezone.now()
+            # TODO: Take a snapshot of the current state once we implement
+            # snapshots
+        elif incident.status == IncidentStatus.CLOSED.value:
+            # If we're moving back out of closed status then unset the closed
+            # date
+            kwargs['date_closed'] = None
+            # TODO: Delete snapshot? Not sure if needed
+
+        incident.update(**kwargs)
+        return incident
+
+
 def create_initial_event_stats_snapshot(incident):
     """
     Creates an event snapshot representing the state at the beginning of
@@ -101,6 +141,8 @@ def create_incident_activity(
     comment=None,
     event_stats_snapshot=None,
 ):
+    value = six.text_type(value) if value is not None else value
+    previous_value = six.text_type(previous_value) if previous_value is not None else previous_value
     return IncidentActivity.objects.create(
         incident=incident,
         type=activity_type.value,

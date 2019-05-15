@@ -15,6 +15,8 @@ from sentry.incidents.logic import (
     create_initial_event_stats_snapshot,
     get_incident_aggregates,
     get_incident_event_stats,
+    StatusAlreadyChangedError,
+    update_incident_status,
 )
 from sentry.incidents.models import (
     IncidentActivity,
@@ -65,6 +67,58 @@ class CreateIncidentTest(TestCase):
             type=IncidentActivityType.CREATED.value,
             event_stats_snapshot__isnull=False,
         ).count() == 1
+
+
+@freeze_time()
+class UpdateIncidentStatus(TestCase):
+    def get_most_recent_incident_activity(self, incident):
+        return IncidentActivity.objects.filter(incident=incident).order_by('-id')[:1].get()
+
+    def test_status_already_set(self):
+        incident = self.create_incident(IncidentStatus.DETECTED.value)
+        with self.assertRaises(StatusAlreadyChangedError):
+            update_incident_status(incident, IncidentStatus.DETECTED)
+
+    def run_test(
+        self,
+        incident,
+        status,
+        expected_date_closed,
+        user=None,
+        comment=None,
+    ):
+        prev_status = incident.status
+        update_incident_status(incident, status, user=user, comment=comment)
+        assert incident.status == status.value
+        assert incident.date_closed == expected_date_closed
+        activity = self.get_most_recent_incident_activity(incident)
+        assert activity.type == IncidentActivityType.STATUS_CHANGE.value
+        assert activity.user == user
+        assert activity.value == six.text_type(status.value)
+        assert activity.previous_value == six.text_type(prev_status)
+        assert activity.comment == comment
+        assert activity.event_stats_snapshot is None
+
+    def test_closed(self):
+        incident = self.create_incident()
+        self.run_test(incident, IncidentStatus.CLOSED, timezone.now())
+
+    def test_reopened(self):
+        incident = self.create_incident(
+            status=IncidentStatus.CLOSED.value,
+            date_closed=timezone.now()
+        )
+        self.run_test(incident, IncidentStatus.DETECTED, None)
+
+    def test_all_params(self):
+        incident = self.create_incident()
+        self.run_test(
+            incident,
+            IncidentStatus.CLOSED,
+            timezone.now(),
+            user=self.user,
+            comment='lol',
+        )
 
 
 class BaseIncidentsTest(SnubaTestCase):
