@@ -95,10 +95,10 @@ def signal_from_data(data):
     return None
 
 
-def merge_symbolicated_frame(new_frame, sfrm, platform=None):
+def merge_symbolicated_frame(new_frame, sfrm):
     if sfrm.get('function'):
         raw_func = trim(sfrm['function'], 256)
-        func = trim(trim_function_name(sfrm['function'], platform), 256)
+        func = trim(trim_function_name(sfrm['function'], 'native'), 256)
 
         # if function and raw function match, we can get away without
         # storing a raw function
