@@ -11,11 +11,9 @@ import theme from 'app/utils/theme';
 
 import IncidentsSuspects from './suspects';
 import Activity from './activity';
-import RelatedIncidents from './relatedIncidents';
 
 const TABS = {
   activity: {name: t('Activity'), component: Activity},
-  related: {name: t('Related incidents'), component: RelatedIncidents},
 };
 
 export default class DetailsBody extends React.Component {
