@@ -7,34 +7,8 @@ import FileSize from 'app/components/fileSize';
 
 import {t} from 'app/locale';
 import {Panel, PanelBody, PanelItem} from 'app/components/panels';
-import SentryTypes from 'app/sentryTypes';
 import withApi from 'app/utils/withApi';
-import withOrganization from 'app/utils/withOrganization';
-import ConfigStore from 'app/stores/configStore';
-import MemberListStore from 'app/stores/memberListStore';
-
-function isRoleFulfilled(availableRoles, requiredRole) {
-  const user = ConfigStore.get('user');
-  if (!user) {
-    return false;
-  }
-
-  if (user.isSuperuser) {
-    return true;
-  }
-
-  if (!Array.isArray(availableRoles)) {
-    return false;
-  }
-
-  const member = MemberListStore.getById(user.id);
-  const currentRole = member && member.role;
-
-  const roleIds = availableRoles.map(role => role.id);
-  const requiredIndex = roleIds.indexOf(requiredRole);
-  const currentIndex = roleIds.indexOf(currentRole);
-  return currentIndex >= requiredIndex;
-}
+import AttachmentUrl from 'app/utils/attachmentUrl';
 
 class EventAttachments extends React.Component {
   static propTypes = {
@@ -42,7 +16,6 @@ class EventAttachments extends React.Component {
     event: PropTypes.object.isRequired,
     orgId: PropTypes.string.isRequired,
     projectId: PropTypes.string.isRequired,
-    organization: SentryTypes.Organization,
   };
 
   state = {
@@ -92,25 +65,11 @@ class EventAttachments extends React.Component {
     );
   }
 
-  getDownloadUrl(attachment) {
-    const {orgId, event, projectId} = this.props;
-    return `/api/0/projects/${orgId}/${projectId}/events/${event.id}/attachments/${
-      attachment.id
-    }/?download=1`;
-  }
-
-  hasAttachmentsRole() {
-    const {organization} = this.props;
-    return isRoleFulfilled(organization.availableRoles, organization.attachmentsRole);
-  }
-
   render() {
     const {attachmentList} = this.state;
     if (!(attachmentList && attachmentList.length)) {
       return null;
     }
-
-    const hasAttachmentsAccess = this.hasAttachmentsRole();
 
     return (
       <div className="box">
@@ -134,21 +93,28 @@ class EventAttachments extends React.Component {
                       <FileSize bytes={attachment.size} />
                     </Box>
                     <Box flex={1} textAlign="center">
-                      <Button
-                        size="xsmall"
-                        icon="icon-download"
-                        onClick={
-                          hasAttachmentsAccess &&
-                          (() => (window.location = this.getDownloadUrl(attachment)))
-                        }
-                        disabled={!hasAttachmentsAccess}
-                        title={
-                          !hasAttachmentsAccess &&
-                          t('Insufficient permissions to download artifacts')
-                        }
+                      <AttachmentUrl
+                        projectId={this.props.projectId}
+                        event={this.props.event}
+                        attachment={attachment}
                       >
-                        {t('Download')}
-                      </Button>
+                        {downloadUrl => (
+                          <Button
+                            size="xsmall"
+                            icon="icon-download"
+                            onClick={
+                              downloadUrl && (() => (window.location = downloadUrl))
+                            }
+                            disabled={!downloadUrl}
+                            title={
+                              !downloadUrl &&
+                              t('Insufficient permissions to download artifacts')
+                            }
+                          >
+                            {t('Download')}
+                          </Button>
+                        )}
+                      </AttachmentUrl>
                     </Box>
                   </PanelItem>
                 );
@@ -161,4 +127,4 @@ class EventAttachments extends React.Component {
   }
 }
 
-export default withApi(withOrganization(EventAttachments));
+export default withApi(EventAttachments);
