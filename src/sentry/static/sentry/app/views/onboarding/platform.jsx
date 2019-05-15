@@ -14,8 +14,8 @@ const platformListStyle = css`
   max-height: 420px;
   overflow-y: scroll;
   /* Needed to fix overflow cropping of the de-select button */
-  margin-top: -5px;
-  padding-top: 5px;
+  margin-top: -8px;
+  padding-top: 8px;
 `;
 
 class OnboardingPlatform extends React.Component {

@@ -3,6 +3,7 @@ import posed, {PoseGroup} from 'react-pose';
 import styled from 'react-emotion';
 
 import {t} from 'app/locale';
+import HookOrDefault from 'app/components/hookOrDefault';
 import InlineSvg from 'app/components/inlineSvg';
 import Tooltip2 from 'app/components/tooltip2';
 
@@ -54,9 +55,16 @@ const SETUP_CHOICES = [
   },
 ];
 
+// Member invitation works a bit differently in Sentry's SaaS product, this
+// provides a hook for that.
+const InviteMembersComponent = HookOrDefault({
+  hookName: 'onboarding:invite-members',
+  defaultComponent: InviteMembers,
+});
+
 const SETUP_COMPONENTS = {
   install_guide: ProjectDocs,
-  invite_members: InviteMembers,
+  invite_members: InviteMembersComponent,
   learn_more: LearnMore,
 };
 

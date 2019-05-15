@@ -124,7 +124,7 @@ const Description = styled('p')`
 const Footer = styled('div')`
   display: grid;
   grid-gap: ${space(1)};
-  grid-template-columns: 1fr max-content;
+  grid-template-columns: max-content 1fr;
   align-items: center;
 `;
 

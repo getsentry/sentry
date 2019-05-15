@@ -7,7 +7,6 @@ import {t, tct} from 'app/locale';
 import Alert from 'app/components/alert';
 import EmailField from 'app/views/settings/components/forms/emailField';
 import Form from 'app/views/settings/components/forms/form';
-import HookOrDefault from 'app/components/hookOrDefault';
 import Panel from 'app/components/panels/panel';
 import SelectField from 'app/views/settings/components/forms/selectField';
 import SentryTypes from 'app/sentryTypes';
@@ -22,6 +21,7 @@ class InviteMembers extends React.Component {
     orgId: PropTypes.string.isRequired,
     project: SentryTypes.Project.isRequired,
     config: SentryTypes.Config.isRequired,
+    formProps: PropTypes.object,
   };
 
   state = {
@@ -52,7 +52,7 @@ class InviteMembers extends React.Component {
 
   render() {
     const {invitedEmails, roleList} = this.state;
-    const {project, orgId} = this.props;
+    const {project, formProps, orgId} = this.props;
 
     return (
       <React.Fragment>
@@ -69,12 +69,13 @@ class InviteMembers extends React.Component {
             submitLabel={t('Invite Member')}
             onSubmitSuccess={this.handleSubmitSuccess}
             initialData={{teams: [project.team.slug]}}
+            {...formProps}
           >
             <HelpText>
               {t(
                 `Enter the emails of team members you'd like in your
-                 organization. We'll send out their invitation and make sure
-                 they get set up.`
+                 organization. We'll send out their invitation and guide your
+                 teammates through this same setup.`
               )}
             </HelpText>
             <EmailField
@@ -121,9 +122,4 @@ const RoleDescriptiom = styled('div')`
   font-size: 0.8em;
 `;
 
-// Member invitation works a bit differently in Sentry's SaaS product, this
-// provides a hook for that.
-export default HookOrDefault({
-  hookName: 'onboarding:invite-members',
-  defaultComponent: withApi(withConfig(InviteMembers)),
-});
+export default withApi(withConfig(InviteMembers));

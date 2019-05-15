@@ -31,15 +31,14 @@ FirstEventIndicator.propTypes = {
 
 const Waiting = props => (
   <StatusWrapper {...props}>
+    <div />
     <WaitingIndicator />
     <PosedText>{t('Waiting for verification event')}</PosedText>
   </StatusWrapper>
 );
 
-const Success = ({orgId, firstIssue}) => (
-  <StatusWrapper>
-    <ReceivedIndicator src="icon-checkmark-sm" />
-    <PosedText>{t('First event was recieved!')}</PosedText>
+const Success = ({orgId, firstIssue, ...props}) => (
+  <StatusWrapper {...props}>
     {firstIssue !== true && (
       <PosedButton
         size="small"
@@ -49,6 +48,8 @@ const Success = ({orgId, firstIssue}) => (
         {t('Take me to my event')}
       </PosedButton>
     )}
+    <ReceivedIndicator src="icon-checkmark-sm" />
+    <PosedText>{t('First event was recieved!')}</PosedText>
   </StatusWrapper>
 );
 
@@ -64,7 +65,7 @@ const PosedText = posed.div(indicatorPoses);
 
 const StatusWrapper = styled(posed.div({enter: {staggerChildren: 350}}))`
   display: grid;
-  grid-template-columns: max-content 1fr max-content;
+  grid-template-columns: 1fr max-content max-content;
   grid-gap: ${space(1)};
   align-items: center;
   font-size: 0.9em;
@@ -129,7 +130,7 @@ const PosedButton = posed(
     </div>
   ))
 )({
-  init: {x: -20, opacity: 0},
+  init: {x: 20, opacity: 0},
   enter: {x: 0, opacity: 1},
 });
 

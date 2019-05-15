@@ -140,13 +140,13 @@ class OnboardingWizard extends React.Component {
         <DocumentTitle title="Get Started on Sentry" />
         <Header>
           <Container>
-            <HeaderColumn>
-              <LogoSvg src="logo" />
-            </HeaderColumn>
-            <HeaderColumn>{this.renderProgressBar()}</HeaderColumn>
-            <HeaderColumn>
-              <ProgressStatus>{this.activeStep.title}</ProgressStatus>
-            </HeaderColumn>
+            <LogoSvg src="logo" />
+            {this.renderProgressBar()}
+            <PoseGroup preEnterPose="init">
+              <ProgressStatus key={this.activeStep.id}>
+                {this.activeStep.title}
+              </ProgressStatus>
+            </PoseGroup>
           </Container>
         </Header>
         <Container>
@@ -167,6 +167,7 @@ const Theme = {
 const OnboardingWrapper = styled('main')`
   background: ${Theme.colors.gray[0]};
   padding-bottom: 50vh;
+  min-height: 100vh;
 `;
 
 const Container = styled.div`
@@ -185,17 +186,9 @@ const Header = styled('header')`
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.02);
 
   ${Container} {
-    display: flex;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
     align-items: center;
-    justify-content: space-between;
-  }
-`;
-
-const HeaderColumn = styled('div')`
-  width: 33.3%;
-
-  &:last-child {
-    text-align: right;
   }
 `;
 
@@ -204,11 +197,6 @@ const LogoSvg = styled(InlineSvg)`
   height: 30px;
   color: ${p => p.theme.gray5};
 `;
-
-const PosedOnboardingStep = posed.div({
-  enter: {opacity: 1, y: 0},
-  exit: {opacity: 0, y: 100},
-});
 
 const ProgressBar = styled('div')`
   margin: 0 ${space(4)};
@@ -238,12 +226,24 @@ const ProgressStep = styled('div')`
   background: #fff;
 `;
 
-const ProgressStatus = styled('div')`
+const PosedProgressStatus = posed.div({
+  init: {opacity: 0, y: -10},
+  enter: {opacity: 1, y: 0},
+  exit: {opacity: 0, y: 10},
+});
+
+const ProgressStatus = styled(PosedProgressStatus)`
   color: ${p => p.theme.gray3};
   font-size: ${p => p.theme.fontSizeMedium};
+  text-align: right;
 `;
 
-export const OnboardingStep = styled(PosedOnboardingStep)`
+const PosedOnboardingStep = posed.div({
+  enter: {opacity: 1, y: 0},
+  exit: {opacity: 0, y: 100},
+});
+
+const OnboardingStep = styled(PosedOnboardingStep)`
   margin: 70px 0;
   margin-left: -20px;
   padding-left: 18px;
