@@ -258,7 +258,7 @@ const OnboardingStep = styled(PosedOnboardingStep)`
     justify-content: center;
     width: 30px;
     height: 30px;
-    top: -4px;
+    top: -5px;
     left: -30px;
     background-color: ${p => (p.active ? Theme.colors.pink : p.theme.gray2)};
     border-radius: 50%;
