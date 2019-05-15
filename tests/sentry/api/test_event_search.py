@@ -1124,12 +1124,6 @@ class GetSnubaQueryArgsTest(TestCase):
             'has_boolean_terms': True,
         }
 
-    def test_boolean_special_cases(self):
-        # TODO(lb): CAn you say things like:
-        # get_snuba_query_args('project_id:1 OR project_id:2')
-        # get_snuba_query_args('start:1 AND end:2')
-        pass
-
 
 class ConvertEndpointParamsTests(TestCase):
     def test_simple(self):
