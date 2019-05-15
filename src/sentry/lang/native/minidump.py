@@ -249,7 +249,7 @@ def merge_symbolicator_minidump_response(data, response):
 
         for complete_frame in reversed(complete_stacktrace['frames']):
             new_frame = {}
-            merge_symbolicated_frame(new_frame, complete_frame)
+            merge_symbolicated_frame(new_frame, complete_frame, platform=data['platform'])
             data_stacktrace['frames'].append(new_frame)
 
     # TODO(markus): Add exception data here once merge_process_state_event is gone
