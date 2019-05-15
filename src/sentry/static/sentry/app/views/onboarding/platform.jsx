@@ -145,6 +145,7 @@ class OnboardingPlatform extends React.Component {
           )}
         </p>
         <PlatformPicker
+          noAutoFilter
           listProps={{className: platformListStyle, id: scrollTargetId}}
           platform={selectedPlatform}
           setPlatform={this.handleSetPlatform}
