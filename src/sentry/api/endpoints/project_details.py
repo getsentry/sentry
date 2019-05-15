@@ -11,7 +11,7 @@ from django.utils import timezone
 from rest_framework import serializers, status
 from rest_framework.response import Response
 
-from sentry import features, roles
+from sentry import features
 from sentry.utils.data_filters import FilterTypes
 from sentry.api.base import DocSection
 from sentry.api.bases.project import ProjectEndpoint, ProjectPermission
@@ -99,7 +99,6 @@ class ProjectAdminSerializer(ProjectMemberSerializer):
     sensitiveFields = ListField(child=serializers.CharField(), required=False)
     safeFields = ListField(child=serializers.CharField(), required=False)
     storeCrashReports = serializers.BooleanField(required=False)
-    attachmentsRole = serializers.CharField(required=False)
     relayPiiConfig = serializers.CharField(required=False)
     builtinSymbolSources = ListField(child=serializers.CharField(), required=False)
     symbolSources = serializers.CharField(required=False)
@@ -176,17 +175,6 @@ class ProjectAdminSerializer(ProjectMemberSerializer):
             raise serializers.ValidationError(
                 'Organization does not have the relay feature enabled'
             )
-        return attrs
-
-    def validate_attachmentsRole(self, attrs, source):
-        value = attrs.get(source)
-        if not value:
-            return attrs
-
-        try:
-            roles.get(value)
-        except KeyError:
-            raise serializers.ValidationError('Invalid role')
         return attrs
 
     def validate_builtinSymbolSources(self, attrs, source):
@@ -501,12 +489,6 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         if result.get('storeCrashReports') is not None:
             if project.update_option('sentry:store_crash_reports', result['storeCrashReports']):
                 changed_proj_settings['sentry:store_crash_reports'] = result['storeCrashReports']
-        if result.get('attachmentsRole') is not None:
-            if project.update_option('sentry:attachments_role', result['attachmentsRole']):
-                changed_proj_settings['sentry:attachments_role'] = result['attachmentsRole']
-        else:
-            if project.delete_option('sentry:attachments_role', None):
-                changed_proj_settings['sentry:attachments_role'] = None
         if result.get('relayPiiConfig') is not None:
             if project.update_option('sentry:relay_pii_config', result['relayPiiConfig']):
                 changed_proj_settings['sentry:relay_pii_config'] = result['relayPiiConfig'].strip(

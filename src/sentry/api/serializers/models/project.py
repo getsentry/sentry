@@ -412,7 +412,6 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
             'sentry:scrub_defaults',
             'sentry:safe_fields',
             'sentry:store_crash_reports',
-            'sentry:attachments_role',
             'sentry:builtin_symbol_sources',
             'sentry:symbol_sources',
             'sentry:sensitive_fields',
@@ -539,7 +538,6 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
                 'safeFields':
                 attrs['options'].get('sentry:safe_fields', []),
                 'storeCrashReports': bool(attrs['options'].get('sentry:store_crash_reports', False)),
-                'attachmentsRole': attrs['options'].get('sentry:attachments_role', None),
                 'sensitiveFields':
                 attrs['options'].get('sentry:sensitive_fields', []),
                 'subjectTemplate':

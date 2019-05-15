@@ -11,6 +11,7 @@ except ImportError:
 from sentry import features, options, roles
 from sentry.api.bases.project import ProjectEndpoint, ProjectPermission
 from sentry.models import Event, SnubaEvent, EventAttachment, OrganizationMember
+from sentry.api.serializers.models.organization import ATTACHMENTS_ROLE_DEFAULT
 
 
 class EventAttachmentDetailsPermission(ProjectPermission):
@@ -25,12 +26,12 @@ class EventAttachmentDetailsPermission(ProjectPermission):
             return False
 
         organization = project.organization
-        required_role = project.get_option('sentry:attachments_role') \
-            or organization.get_option('sentry:attachments_role')
+        required_role = organization.get_option('sentry:attachments_role') \
+            or ATTACHMENTS_ROLE_DEFAULT
 
         try:
             current_role = OrganizationMember.objects.filter(
-                organization=project.organization,
+                organization=organization,
                 user=request.user,
             ).values_list('role', flat=True).get()
         except OrganizationMember.DoesNotExist:

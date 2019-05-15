@@ -10,7 +10,6 @@ import {Panel, PanelBody, PanelItem} from 'app/components/panels';
 import SentryTypes from 'app/sentryTypes';
 import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
-import withProject from 'app/utils/withProject';
 import ConfigStore from 'app/stores/configStore';
 import MemberListStore from 'app/stores/memberListStore';
 
@@ -43,7 +42,6 @@ class EventAttachments extends React.Component {
     event: PropTypes.object.isRequired,
     orgId: PropTypes.string.isRequired,
     projectId: PropTypes.string.isRequired,
-    project: SentryTypes.Project,
     organization: SentryTypes.Organization,
   };
 
@@ -102,9 +100,8 @@ class EventAttachments extends React.Component {
   }
 
   hasAttachmentsRole() {
-    const {project, organization} = this.props;
-    const attachmentsRole = project.attachmentsRole || organization.attachmentsRole;
-    return isRoleFulfilled(organization.availableRoles, attachmentsRole);
+    const {organization} = this.props;
+    return isRoleFulfilled(organization.availableRoles, organization.attachmentsRole);
   }
 
   render() {
@@ -164,4 +161,4 @@ class EventAttachments extends React.Component {
   }
 }
 
-export default withApi(withProject(withOrganization(EventAttachments)));
+export default withApi(withOrganization(EventAttachments));
