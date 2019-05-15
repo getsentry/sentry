@@ -89,9 +89,12 @@ def run():
 @click.option(
     '--noinput', default=False, is_flag=True, help='Do not prompt the user for input of any kind.'
 )
+@click.option(
+    '--uwsgi/--no-uwsgi', default=True, is_flag=True, help='Use uWSGI (default) or non-uWSGI (useful for debuggers such as PyCharm\'s)'
+)
 @log_options()
 @configuration
-def web(bind, workers, upgrade, with_lock, noinput):
+def web(bind, workers, upgrade, with_lock, noinput, uwsgi):
     "Run web service."
     if upgrade:
         click.echo('Performing upgrade before service startup...')
@@ -111,13 +114,36 @@ def web(bind, workers, upgrade, with_lock, noinput):
             else:
                 raise
 
-    from sentry.services.http import SentryHTTPServer
     with managed_bgtasks(role='web'):
-        SentryHTTPServer(
-            host=bind[0],
-            port=bind[1],
-            workers=workers,
-        ).run()
+        if not uwsgi:
+            click.echo(
+                'Running simple HTTP server. Note that chunked file '
+                'uploads will likely not work.',
+                err=True
+            )
+
+            from django.conf import settings
+
+            host = bind[0] or settings.SENTRY_WEB_HOST
+            port = bind[1] or settings.SENTRY_WEB_PORT
+            click.echo('Address: http://%s:%s/' % (host, port))
+
+            from wsgiref.simple_server import make_server
+            from sentry.wsgi import application
+
+            httpd = make_server(
+                host,
+                port,
+                application
+            )
+            httpd.serve_forever()
+        else:
+            from sentry.services.http import SentryHTTPServer
+            SentryHTTPServer(
+                host=bind[0],
+                port=bind[1],
+                workers=workers,
+            ).run()
 
 
 @run.command()
