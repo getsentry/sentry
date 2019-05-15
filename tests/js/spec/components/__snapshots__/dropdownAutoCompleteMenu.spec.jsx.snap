@@ -60,7 +60,6 @@ exports[`DropdownAutoCompleteMenu renders with a group 1`] = `
             <StyledMenu
               blendCorner={true}
               innerRef={[Function]}
-              itemCount={2}
               onClick={[Function]}
               onMouseDown={[Function]}
               onMouseEnter={[Function]}
@@ -240,7 +239,6 @@ exports[`DropdownAutoCompleteMenu renders without a group 1`] = `
             <StyledMenu
               blendCorner={true}
               innerRef={[Function]}
-              itemCount={3}
               onClick={[Function]}
               onMouseDown={[Function]}
               onMouseEnter={[Function]}

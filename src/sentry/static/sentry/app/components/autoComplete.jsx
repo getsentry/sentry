@@ -222,6 +222,9 @@ class AutoComplete extends React.Component {
 
   moveHighlightedIndex = (step, e) => {
     let newIndex = this.state.highlightedIndex + step;
+
+    // when this component is in virtualized mode, only a subset of items will be passed
+    // down, making the array length inaccurate. instead we manually pass the length as itemCount
     const listSize = this.itemCount || this.items.size;
 
     // Make sure new index is within bounds
