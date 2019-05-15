@@ -139,9 +139,9 @@ class OnboardingPlatform extends React.Component {
         </p>
         <p>
           {tct(
-            `Not seeing your platform in the list below? [selectOther:Select
-             the other platform], and use a community client!`,
-            {selectOther: <a href="#" onClick={this.handleSelectOther} />}
+            `Not seeing your platform in the list below? Select the
+             [strong:other platform], and use a community client!`,
+            {strong: <strong />}
           )}
         </p>
         <PlatformPicker
