@@ -279,7 +279,8 @@ class Sidebar extends React.Component {
                 </Feature>
 
                 <Feature
-                  features={['events']}
+                  features={['events', 'events-v2']}
+                  requireAll={false}
                   hookName="events-sidebar-item"
                   organization={organization}
                 >

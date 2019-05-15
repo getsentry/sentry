@@ -814,6 +814,8 @@ SENTRY_FEATURES = {
     'organizations:symbol-sources': False,
     # Enable the events stream interface.
     'organizations:events': False,
+    # Enable events v2 instead of the events stream
+    'organizations:events-v2': False,
     # Enable multi project selection
     'organizations:global-views': False,
     # Turns on grouping info.
