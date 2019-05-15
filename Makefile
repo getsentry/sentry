@@ -71,7 +71,7 @@ install-system-pkgs: node-version-check
 	@echo "--> Installing system packages (from Brewfile)"
 	@command -v brew 2>&1 > /dev/null && brew bundle || (echo 'WARNING: homebrew not found or brew bundle failed - skipping system dependencies.')
 	@echo "--> Installing yarn $(YARN_VERSION) (via npm)"
-	@$(notion --version 2>&1 > /dev/null || npm install -g "yarn@$(YARN_VERSION)")
+	@$(volta --version 2>&1 > /dev/null || notion --version 2>&1 > /dev/null || npm install -g "yarn@$(YARN_VERSION)")
 
 install-yarn-pkgs:
 	@echo "--> Installing Yarn packages (for development)"
