@@ -27,6 +27,8 @@ class DropdownControl extends React.Component {
     alwaysRenderMenu: PropTypes.bool,
     // Align the dropdown menu to the right. (Default aligns to left)
     alignRight: PropTypes.bool,
+    // Props to pass to DropdownButton
+    buttonProps: PropTypes.object,
   };
 
   static defaultProps = {
@@ -36,12 +38,15 @@ class DropdownControl extends React.Component {
   };
 
   renderButton(isOpen, getActorProps) {
-    const {label, button} = this.props;
+    const {label, button, buttonProps} = this.props;
     if (button) {
       return button({isOpen, getActorProps});
     }
     return (
-      <StyledDropdownButton {...getActorProps({isStyled: true})} isOpen={isOpen}>
+      <StyledDropdownButton
+        {...getActorProps({...buttonProps, isStyled: true})}
+        isOpen={isOpen}
+      >
         {label}
       </StyledDropdownButton>
     );
