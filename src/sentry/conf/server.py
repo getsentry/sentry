@@ -451,7 +451,7 @@ CELERY_IMPORTS = (
     'sentry.tasks.digests', 'sentry.tasks.email', 'sentry.tasks.merge',
     'sentry.tasks.options', 'sentry.tasks.ping', 'sentry.tasks.post_process',
     'sentry.tasks.process_buffer', 'sentry.tasks.reports', 'sentry.tasks.reprocessing',
-    'sentry.tasks.scheduler', 'sentry.tasks.signals', 'sentry.tasks.store', 'sentry.tasks.unmerge',
+    'sentry.tasks.signals', 'sentry.tasks.store', 'sentry.tasks.unmerge',
     'sentry.tasks.symcache_update', 'sentry.tasks.servicehooks',
     'sentry.tagstore.tasks', 'sentry.tasks.assemble', 'sentry.tasks.integrations',
     'sentry.tasks.files', 'sentry.tasks.sentry_apps',
@@ -521,13 +521,6 @@ CELERYBEAT_SCHEDULE = {
             'expires': 60,
             'queue': 'auth',
         }
-    },
-    'enqueue-scheduled-jobs': {
-        'task': 'sentry.tasks.enqueue_scheduled_jobs',
-        'schedule': timedelta(minutes=1),
-        'options': {
-            'expires': 60,
-        },
     },
     'send-beacon': {
         'task': 'sentry.tasks.send_beacon',
