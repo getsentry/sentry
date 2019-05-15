@@ -2,9 +2,6 @@ import React from 'react';
 import PropTypes from 'prop-types';
 
 import {addErrorMessage} from 'app/actionCreators/indicator';
-import LoadingIndicator from 'app/components/loadingIndicator';
-import LoadingError from 'app/components/loadingError';
-import {PageContent} from 'app/styles/organization';
 import withApi from 'app/utils/withApi';
 import {t} from 'app/locale';
 
@@ -96,28 +93,25 @@ class OrganizationIncidentDetails extends React.Component {
   };
 
   render() {
-    const {incident, isLoading, hasError} = this.state;
+    const {incident, hasError} = this.state;
     const {params} = this.props;
 
+    console.log(incident);
     return (
       <React.Fragment>
         <DetailsHeader
+          hasIncidentDetailsError={hasError}
           params={params}
           incident={incident}
           onSubscriptionChange={this.handleSubscriptionChange}
           onStatusChange={this.handleStatusChange}
         />
-        <DetailsBody params={params} incident={incident} />
-        {isLoading && (
-          <PageContent>
-            <LoadingIndicator />
-          </PageContent>
-        )}
-        {hasError && (
-          <PageContent>
-            <LoadingError />
-          </PageContent>
-        )}
+
+        <DetailsBody
+          hasIncidentDetailsError={hasError}
+          params={params}
+          incident={incident}
+        />
       </React.Fragment>
     );
   }
