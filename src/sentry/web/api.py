@@ -78,6 +78,20 @@ kafka_publisher = QueuedPublisherService(
 ) if getattr(settings, 'KAFKA_RAW_EVENTS_PUBLISHER_ENABLED', False) else None
 
 
+def _minidump_refactor_enabled(project_id):
+    if project_id in options.get('symbolicator.minidump-refactor-projects-opt-out'):
+        return False
+
+    if project_id in options.get('symbolicator.minidump-refactor-projects-opt-in'):
+        return True
+
+    rate = options.get('symbolicator.minidump-refactor-random-sampling') or 0.0
+    if rate and random.random() <= rate:
+        return True
+
+    return False
+
+
 def api(func):
     @wraps(func)
     def wrapped(request, *args, **kwargs):
@@ -751,7 +765,7 @@ class MinidumpView(StoreView):
             if has_event_attachments:
                 attachments.append(CachedAttachment.from_upload(file))
 
-        if project.id in (options.get('symbolicator.minidump-refactor-projects-opt-in') or ()):
+        if _minidump_refactor_enabled(project.id):
             write_minidump_dummy_data(data)
         else:
             try:

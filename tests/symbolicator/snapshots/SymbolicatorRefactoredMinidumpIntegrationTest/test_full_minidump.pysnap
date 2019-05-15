@@ -1,13 +1,15 @@
 ---
-created: '2019-05-15T15:52:26.578851Z'
+created: '2019-05-15T18:30:09.034314Z'
 creator: sentry
 source: tests/symbolicator/test_minidump_full.py
 ---
 contexts:
   device:
     arch: x86
+    type: device
   os:
-    name: Windows
+    build: ''
+    name: Windows NT
     type: os
     version: 10.0.14393
 debug_meta:

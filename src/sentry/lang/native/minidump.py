@@ -12,7 +12,7 @@ from sentry.lang.native.utils import get_sdk_from_event, handle_symbolication_fa
 from sentry.lang.native.symbolicator import merge_symbolicator_image
 from sentry.attachments import attachment_cache
 from sentry.coreapi import cache_key_for_event
-from sentry.utils.safe import get_path, set_path
+from sentry.utils.safe import get_path, set_path, setdefault_path
 
 minidumps_logger = logging.getLogger('sentry.minidumps')
 
@@ -61,22 +61,26 @@ def process_minidump(minidump, cfi=None):
 
 
 def write_minidump_dummy_data(data):
+    # Minidump events must be native platform.
     data['platform'] = 'native'
-    data['level'] = 'fatal'
 
-    data['exception'] = {'values': [{
-        'type': '<unprocessed minidump>',
+    # Create a placeholder exception. This signals normalization that this is an
+    # error event and also serves as a placeholder if processing of the minidump
+    # fails.
+    exception = {
+        'type': 'Minidump',
         'mechanism': {
             'type': 'minidump',
             'handled': False,
-            'synthetic': True
+            'synthetic': True,
         }
-    }]}
+    }
+    data['exception'] = {'values': [exception]}
 
 
 def merge_process_state_event(data, state, cfi=None):
     data['platform'] = 'native'
-    data['level'] = 'fatal' if state.crashed else 'info'
+    data.setdefault('level', 'fatal' if state.crashed else 'info')
 
     if state.timestamp:
         data['timestamp'] = float(state.timestamp)
@@ -212,30 +216,28 @@ def get_attached_minidump(data):
     return next((a for a in attachments if a.type == MINIDUMP_ATTACHMENT_TYPE), None)
 
 
+def merge_symbolicator_minidump_system_info(data, system_info):
+    set_path(data, 'contexts', 'os', 'type', value='os')  # Required by "get_sdk_from_event"
+    setdefault_path(data, 'contexts', 'os', 'name', value=system_info.get('os_name'))
+    setdefault_path(data, 'contexts', 'os', 'version', value=system_info.get('os_version'))
+    setdefault_path(data, 'contexts', 'os', 'build', value=system_info.get('os_build'))
+
+    set_path(data, 'contexts', 'device', 'type', value='device')
+    setdefault_path(data, 'contexts', 'device', 'arch', value=system_info.get('cpu_arch'))
+
+
 def merge_symbolicator_minidump_response(data, response):
     sdk_info = get_sdk_from_event(data)
 
     data['platform'] = 'native'
-    data['level'] = 'fatal' if response['crashed'] else 'info'
+    if response.get('crashed') is not None:
+        data['level'] = 'fatal' if response['crashed'] else 'info'
 
     if response.get('timestamp'):
         data['timestamp'] = float(response['timestamp'])
 
     if response.get('system_info'):
-        info = response['system_info']
-        set_path(data, 'contexts', 'os', 'type', value='os')  # Required by "get_sdk_from_event"
-        if info.get('os_name'):
-            set_path(data, 'contexts', 'os', 'name',
-                     value=MINIDUMP_OS_TYPES.get(info['os_name'], info['os_name']))
-
-        if info.get('os_version'):
-            set_path(data, 'contexts', 'os', 'version', value=info['os_version'])
-
-        if info.get('os_build'):
-            set_path(data, 'contexts', 'os', 'build', value=info['os_build'])
-
-        if info.get('cpu_arch'):
-            set_path(data, 'contexts', 'device', 'arch', value=info['cpu_arch'])
+        merge_symbolicator_minidump_system_info(data, response['system_info'])
 
     images = []
     set_path(data, 'debug_meta', 'images', value=images)

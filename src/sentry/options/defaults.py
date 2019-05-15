@@ -178,3 +178,5 @@ register('store.empty-interface-sample-rate', default=0.0)
 
 # Symbolicator
 register('symbolicator.minidump-refactor-projects-opt-in', type=Sequence, default=[])
+register('symbolicator.minidump-refactor-projects-opt-out', type=Sequence, default=[])
+register('symbolicator.minidump-refactor-random-sampling', default=0.0)
