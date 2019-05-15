@@ -117,7 +117,7 @@ def web(bind, workers, upgrade, with_lock, noinput, uwsgi):
     with managed_bgtasks(role='web'):
         if not uwsgi:
             click.echo(
-                'Running simple WSGI server. Note that chunked file '
+                'Running simple HTTP server. Note that chunked file '
                 'uploads will likely not work.',
                 err=True
             )
