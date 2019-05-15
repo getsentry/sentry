@@ -8,14 +8,17 @@ import styled from 'react-emotion';
 
 import {sortProjects} from 'app/utils';
 import {t} from 'app/locale';
+import Button from 'app/components/button';
 import ConfigStore from 'app/stores/configStore';
 import Feature from 'app/components/acl/feature';
 import IdBadge from 'app/components/idBadge';
 import NoProjectMessage from 'app/components/noProjectMessage';
+import PageHeading from 'app/components/pageHeading';
 import ProjectsStatsStore from 'app/stores/projectsStatsStore';
 import SentryTypes from 'app/sentryTypes';
 import getProjectsByTeams from 'app/utils/getProjectsByTeams';
 import getRouteStringFromRoutes from 'app/utils/getRouteStringFromRoutes';
+import space from 'app/styles/space';
 import withOrganization from 'app/utils/withOrganization';
 import withProjects from 'app/utils/withProjects';
 import withTeams from 'app/utils/withTeams';
@@ -55,6 +58,7 @@ class Dashboard extends React.Component {
     const teamSlugs = Object.keys(projectsByTeam).sort();
     const favorites = projects.filter(project => project.isBookmarked);
     const access = new Set(organization.access);
+    const canCreateProjects = access.has('project:admin');
     const teamsMap = new Map(teams.map(teamObj => [teamObj.slug, teamObj]));
 
     const hasTeamAdminAccess = access.has('team:admin');
@@ -65,6 +69,24 @@ class Dashboard extends React.Component {
 
     return (
       <React.Fragment>
+        {hasSentry10 && projects.length > 0 && (
+          <ProjectsHeader>
+            <PageHeading>Projects</PageHeading>
+            <Button
+              size="small"
+              disabled={!canCreateProjects}
+              title={
+                !canCreateProjects
+                  ? t('You do not have permission to create projects')
+                  : undefined
+              }
+              to={`/organizations/${organization.slug}/projects/new/`}
+              icon="icon-circle-add"
+            >
+              {t('Create Project')}
+            </Button>
+          </ProjectsHeader>
+        )}
         {!hasSentry10 && favorites.length > 0 && (
           <TeamSection
             data-test-id="favorites"
@@ -89,10 +111,10 @@ class Dashboard extends React.Component {
                 title={
                   hasTeamAdminAccess ? (
                     <TeamLink to={`/settings/${organization.slug}/teams/${team.slug}/`}>
-                      <IdBadge team={team} />
+                      <IdBadge team={team} avatarSize={22} />
                     </TeamLink>
                   ) : (
-                    <IdBadge team={team} />
+                    <IdBadge team={team} avatarSize={22} />
                   )
                 }
                 projects={projectsByTeam[slug]}
@@ -127,6 +149,13 @@ const OrganizationDashboard = createReactClass({
 const TeamLink = styled(Link)`
   display: flex;
   align-items: center;
+`;
+
+const ProjectsHeader = styled('div')`
+  padding: ${space(3)} ${space(4)} 0 ${space(4)};
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
 `;
 
 export {Dashboard};

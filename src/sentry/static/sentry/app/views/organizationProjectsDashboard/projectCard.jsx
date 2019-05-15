@@ -52,7 +52,7 @@ class ProjectCard extends React.Component {
             <StyledProjectCardHeader>
               <StyledIdBadge
                 project={project}
-                avatarSize={24}
+                avatarSize={18}
                 displayName={
                   hasProjectAccess ? (
                     <Link
