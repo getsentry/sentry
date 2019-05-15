@@ -1490,8 +1490,8 @@ SDK_VERSIONS = {
     'raven-ruby': '2.7.1',
     'sentry-cocoa': '3.11.1',
     'sentry-java': '1.6.4',
-    'sentry-laravel': '0.8.0',
-    'sentry-php': '1.8.2',
+    'sentry-laravel': '1.0.2',
+    'sentry-php': '2.0.1',
     'sentry-python': '0.7.14',
 }
 
@@ -1502,8 +1502,8 @@ SDK_URLS = {
     'raven-ruby': 'https://docs.sentry.io/clients/ruby/',
     'raven-swift': 'https://docs.sentry.io/clients/cocoa/',
     'sentry-java': 'https://docs.sentry.io/clients/java/',
-    'sentry-php': 'https://docs.sentry.io/clients/php/',
-    'sentry-laravel': 'https://docs.sentry.io/clients/php/integrations/laravel/',
+    'sentry-php': 'https://docs.sentry.io/platforms/php/',
+    'sentry-laravel': 'https://docs.sentry.io/platforms/php/laravel/',
     'sentry-swift': 'https://docs.sentry.io/clients/cocoa/',
     'sentry-python': 'https://docs.sentry.io/platforms/python/',
 }
