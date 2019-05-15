@@ -13,6 +13,7 @@ import PageHeading from 'app/components/pageHeading';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 import withOrganization from 'app/utils/withOrganization';
 import {PageContent, PageHeader} from 'app/styles/organization';
+import LazyLoad from 'app/components/lazyLoad';
 
 import SearchBar from './searchBar';
 
@@ -41,6 +42,21 @@ class OrganizationEventsContainer extends React.Component {
 
   render() {
     const {organization, location, children} = this.props;
+
+    const hasEventsV2 = new Set(organization.features).has('events-v2');
+
+    if (hasEventsV2) {
+      return (
+        <LazyLoad
+          component={() =>
+            import(/* webpackChunkName: "organizationEventsV2" */ 'app/views/organizationEventsV2').then(
+              mod => mod.default
+            )
+          }
+          organization={organization}
+        />
+      );
+    }
 
     return (
       <Feature features={['events']} hookName="events-page" renderDisabled>
