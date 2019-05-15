@@ -96,7 +96,7 @@ exports[`ProjectCard renders 1`] = `
                 className="css-v59cbs-StyledProjectCardHeader ei886av1"
               >
                 <StyledIdBadge
-                  avatarSize={24}
+                  avatarSize={18}
                   displayName={
                     <span>
                       project-slug
@@ -127,7 +127,7 @@ exports[`ProjectCard renders 1`] = `
                   }
                 >
                   <IdBadge
-                    avatarSize={24}
+                    avatarSize={18}
                     className="css-1gy4gs4-StyledIdBadge ei886av5"
                     displayName={
                       <span>
@@ -166,7 +166,7 @@ exports[`ProjectCard renders 1`] = `
                         mini={true}
                       >
                         <ProjectBadge
-                          avatarSize={24}
+                          avatarSize={18}
                           className="css-1gy4gs4-StyledIdBadge ei886av5"
                           displayName={
                             <span>
@@ -201,7 +201,7 @@ exports[`ProjectCard renders 1`] = `
                         >
                           <BaseBadge
                             avatarProps={Object {}}
-                            avatarSize={24}
+                            avatarSize={18}
                             className="css-1gy4gs4-StyledIdBadge ei886av5"
                             displayName={
                               <span>
@@ -271,7 +271,7 @@ exports[`ProjectCard renders 1`] = `
                                         "teams": Array [],
                                       }
                                     }
-                                    size={24}
+                                    size={18}
                                   >
                                     <Avatar
                                       className="css-robds0-StyledAvatar e165dl3i0"
@@ -299,7 +299,7 @@ exports[`ProjectCard renders 1`] = `
                                           "teams": Array [],
                                         }
                                       }
-                                      size={24}
+                                      size={18}
                                     >
                                       <ProjectAvatar
                                         className="css-robds0-StyledAvatar e165dl3i0"
@@ -327,7 +327,7 @@ exports[`ProjectCard renders 1`] = `
                                             "teams": Array [],
                                           }
                                         }
-                                        size={24}
+                                        size={18}
                                       >
                                         <PlatformList
                                           className="css-robds0-StyledAvatar e165dl3i0"
@@ -340,39 +340,39 @@ exports[`ProjectCard renders 1`] = `
                                               "javascript",
                                             ]
                                           }
-                                          size={24}
+                                          size={18}
                                         >
                                           <PlatformIcons
                                             className="css-robds0-StyledAvatar e165dl3i0"
                                             consistentWidth={false}
                                             direction="right"
                                             max={1}
-                                            size={24}
+                                            size={18}
                                           >
                                             <div
                                               className="e165dl3i0 css-1cou1l3-PlatformIcons-StyledAvatar ezvce7z0"
                                               direction="right"
                                               max={1}
-                                              size={24}
+                                              size={18}
                                             >
                                               <StyledPlatformIcon
                                                 key="javascript"
                                                 platform="javascript"
-                                                size={24}
+                                                size={18}
                                               >
                                                 <Component
-                                                  className="css-1rk01z5-StyledPlatformIcon ezvce7z1"
+                                                  className="css-13qi1e0-StyledPlatformIcon ezvce7z1"
                                                   platform="javascript"
-                                                  size={24}
+                                                  size={18}
                                                 >
                                                   <Platformicon
-                                                    className="css-1rk01z5-StyledPlatformIcon ezvce7z1"
+                                                    className="css-13qi1e0-StyledPlatformIcon ezvce7z1"
                                                     platform="javascript"
-                                                    size="24px"
+                                                    size="18px"
                                                   >
                                                     <img
-                                                      className="css-1rk01z5-StyledPlatformIcon ezvce7z1"
-                                                      height="24px"
+                                                      className="css-13qi1e0-StyledPlatformIcon ezvce7z1"
+                                                      height="18px"
                                                       src={
                                                         Object {
                                                           "default": Object {
@@ -381,7 +381,7 @@ exports[`ProjectCard renders 1`] = `
                                                           },
                                                         }
                                                       }
-                                                      width="24px"
+                                                      width="18px"
                                                     />
                                                   </Platformicon>
                                                 </Component>
