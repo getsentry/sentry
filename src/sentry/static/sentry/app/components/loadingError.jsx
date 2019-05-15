@@ -1,5 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
+import classNames from 'classnames';
 import {t} from 'app/locale';
 
 class LoadingError extends React.Component {
@@ -17,13 +18,14 @@ class LoadingError extends React.Component {
   }
 
   render() {
+    const {className, message, onRetry} = this.props;
     return (
-      <div className="alert alert-error alert-block">
+      <div className={classNames('alert alert-error alert-block', className)}>
         <p>
-          {this.props.message}
-          {this.props.onRetry && (
+          {message}
+          {onRetry && (
             <a
-              onClick={this.props.onRetry}
+              onClick={onRetry}
               className="btn btn-default btn-sm"
               style={{marginLeft: 5}}
             >
