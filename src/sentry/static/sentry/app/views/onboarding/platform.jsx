@@ -105,11 +105,6 @@ class OnboardingPlatform extends React.Component {
     }
   };
 
-  handleSelectOther = e => {
-    e.preventDefault();
-    this.handleSetPlatform('other');
-  };
-
   handleContinue = async () => {
     this.setState({progressing: true});
     // Create their first project if they don't already have one. This is a
