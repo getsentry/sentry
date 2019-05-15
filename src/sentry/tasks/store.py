@@ -60,6 +60,12 @@ def should_process(data):
         if processors:
             return True
 
+        enhancers = safe_execute(
+            plugin.get_event_enhancers, data=data, _with_transaction=False
+        )
+        if enhancers:
+            return True
+
     if should_process_for_stacktraces(data):
         return True
 

@@ -1,5 +1,5 @@
 ---
-created: '2019-05-15T10:57:11.067174Z'
+created: '2019-05-15T15:03:37.235503Z'
 creator: sentry
 source: tests/symbolicator/test_unreal_full.py
 ---
@@ -13,7 +13,7 @@ contexts:
     type: gpu
   os:
     build: ''
-    name: Windows 10
+    name: Windows
     type: os
     version: 10.0.17134
 exception:

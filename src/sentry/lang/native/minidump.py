@@ -60,6 +60,20 @@ def process_minidump(minidump, cfi=None):
         return ProcessState.from_minidump_buffer(minidump, cfi)
 
 
+def write_minidump_dummy_data(data):
+    data['platform'] = 'native'
+    data['level'] = 'fatal'
+
+    data['exception'] = {'values': [{
+        'type': '<unprocessed minidump>',
+        'mechanism': {
+            'type': 'minidump',
+            'handled': False,
+            'synthetic': True
+        }
+    }]}
+
+
 def merge_process_state_event(data, state, cfi=None):
     data['platform'] = 'native'
     data['level'] = 'fatal' if state.crashed else 'info'
@@ -201,8 +215,27 @@ def get_attached_minidump(data):
 def merge_symbolicator_minidump_response(data, response):
     sdk_info = get_sdk_from_event(data)
 
-    # TODO(markus): Add OS context here when `merge_process_state_event` is no
-    # longer called for symbolicator projects
+    data['platform'] = 'native'
+    data['level'] = 'fatal' if response['crashed'] else 'info'
+
+    if response.get('timestamp'):
+        data['timestamp'] = float(response['timestamp'])
+
+    if response.get('system_info'):
+        info = response['system_info']
+        set_path(data, 'contexts', 'os', 'type', value='os')  # Required by "get_sdk_from_event"
+        if info.get('os_name'):
+            set_path(data, 'contexts', 'os', 'name',
+                     value=MINIDUMP_OS_TYPES.get(info['os_name'], info['os_name']))
+
+        if info.get('os_version'):
+            set_path(data, 'contexts', 'os', 'version', value=info['os_version'])
+
+        if info.get('os_build'):
+            set_path(data, 'contexts', 'os', 'build', value=info['os_build'])
+
+        if info.get('cpu_arch'):
+            set_path(data, 'contexts', 'device', 'arch', value=info['cpu_arch'])
 
     images = []
     set_path(data, 'debug_meta', 'images', value=images)
@@ -215,10 +248,18 @@ def merge_symbolicator_minidump_response(data, response):
         )
         images.append(image)
 
+    # Extract the crash reason and infos
+    data_exception = get_path(data, 'exception', 'values', 0)
+    exc_value = (
+        'Assertion Error: %s' % response.get('assertion')
+        if response.get('assertion')
+        else 'Fatal Error: %s' % response.get('crash_reason')
+    )
+    data_exception['value'] = exc_value
+    data_exception['type'] = response.get('crash_reason')
+
     data_threads = []
     data['threads'] = {'values': data_threads}
-
-    data_exception = get_path(data, 'exception', 'values', 0)
 
     for complete_stacktrace in response['stacktraces']:
         is_requesting = complete_stacktrace.get('is_requesting')
@@ -231,14 +272,14 @@ def merge_symbolicator_minidump_response(data, response):
         data_threads.append(data_thread)
 
         if is_requesting:
-            data_stacktrace = get_path(data_exception, 'stacktrace')
-            assert isinstance(data_stacktrace, dict), data_stacktrace
+            data_exception['thread_id'] = thread_id
+            data_stacktrace = data_exception.setdefault('stacktrace', {})
             # Make exemption specifically for unreal portable callstacks
             # TODO(markus): Allow overriding stacktrace more generically
             # (without looking into unreal context) once we no longer parse
             # minidump in the endpoint (right now we can't distinguish that
             # from user json).
-            if data_stacktrace['frames'] and is_unreal_exception_stacktrace(data):
+            if data_stacktrace.get('frames') and is_unreal_exception_stacktrace(data):
                 continue
             data_stacktrace['frames'] = []
         else:
