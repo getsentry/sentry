@@ -16,7 +16,7 @@ from sentry.api.serializers.models.organization import ATTACHMENTS_ROLE_DEFAULT
 
 class EventAttachmentDetailsPermission(ProjectPermission):
     def has_object_permission(self, request, view, project):
-        result = super(ProjectPermission, self) \
+        result = super(EventAttachmentDetailsPermission, self) \
             .has_object_permission(request, view, project.organization)
 
         if not result:
