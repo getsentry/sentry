@@ -25,7 +25,7 @@ export default class DatePickerField extends React.Component {
         {...this.props}
         field={({onChange, onBlur, value, disabled, name, id, ...props}) => {
           const inputValue = !value ? new Date() : new Date(value);
-          const dateString = moment(inputValue).format('lll');
+          const dateString = moment(inputValue).format('LL');
 
           return (
             <DropdownMenu>
