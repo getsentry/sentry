@@ -15,7 +15,7 @@ class IncidentPermission(OrganizationPermission):
     scope_map = {
         'GET': ['org:read', 'org:write', 'org:admin'],
         'POST': ['org:write', 'org:admin', 'project:read', 'project:write', 'project:admin'],
-        'PUT': ['org:write', 'org:admin'],
+        'PUT': ['org:write', 'org:admin', 'project:read', 'project:write', 'project:admin'],
     }
 
 
