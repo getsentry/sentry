@@ -75,6 +75,7 @@ describe('Sentry Application Details', function() {
       wrapper.find('form').simulate('submit');
 
       const data = {
+        internal: false,
         name: 'Test App',
         author: 'Sentry',
         organization: org.slug,

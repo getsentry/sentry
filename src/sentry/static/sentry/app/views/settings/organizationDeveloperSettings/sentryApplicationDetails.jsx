@@ -105,6 +105,7 @@ export default class SentryApplicationDetails extends AsyncView {
           initialData={{
             organization: orgId,
             isAlertable: false,
+            internal: app && app.status == 'internal' ? true : false,
             schema: {},
             scopes: [],
             ...app,
@@ -119,28 +120,51 @@ export default class SentryApplicationDetails extends AsyncView {
           {app && (
             <Panel>
               <PanelHeader>{t('Credentials')}</PanelHeader>
-              <PanelBody>
-                <FormField name="clientId" label="Client ID" overflow>
-                  {({value}) => {
-                    return (
-                      <TextCopyInput>
-                        {getDynamicText({value, fixed: 'PERCY_CLIENT_ID'})}
-                      </TextCopyInput>
-                    );
-                  }}
-                </FormField>
-                <FormField overflow name="clientSecret" label="Client Secret">
-                  {({value}) => {
-                    return value ? (
-                      <TextCopyInput>
-                        {getDynamicText({value, fixed: 'PERCY_CLIENT_SECRET'})}
-                      </TextCopyInput>
-                    ) : (
-                      <em>hidden</em>
-                    );
-                  }}
-                </FormField>
-              </PanelBody>
+              {app.status == 'internal' ? (
+                <PanelBody>
+                  <FormField name="token" label="Token" overflow>
+                    {({value}) => {
+                      return (
+                        <TextCopyInput>
+                          {getDynamicText({value, fixed: 'PERCY_CLIENT_ID'})}
+                        </TextCopyInput>
+                      );
+                    }}
+                  </FormField>
+                  <FormField overflow name="installation" label="Installation ID">
+                    {({value}) => {
+                      return (
+                        <TextCopyInput>
+                          {getDynamicText({value: value.uuid, fixed: 'PERCY_CLIENT_ID'})}
+                        </TextCopyInput>
+                      );
+                    }}
+                  </FormField>
+                </PanelBody>
+              ) : (
+                <PanelBody>
+                  <FormField name="clientId" label="Client ID" overflow>
+                    {({value}) => {
+                      return (
+                        <TextCopyInput>
+                          {getDynamicText({value, fixed: 'PERCY_CLIENT_ID'})}
+                        </TextCopyInput>
+                      );
+                    }}
+                  </FormField>
+                  <FormField overflow name="clientSecret" label="Client Secret">
+                    {({value}) => {
+                      return value ? (
+                        <TextCopyInput>
+                          {getDynamicText({value, fixed: 'PERCY_CLIENT_SECRET'})}
+                        </TextCopyInput>
+                      ) : (
+                        <em>hidden</em>
+                      );
+                    }}
+                  </FormField>
+                </PanelBody>
+              )}
             </Panel>
           )}
         </Form>

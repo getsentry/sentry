@@ -7,6 +7,12 @@ const forms = [
     title: 'Integration Details',
     fields: [
       {
+        name: 'internal',
+        label: 'Internal',
+        type: 'boolean',
+        help: 'Choose this to make your integration Internal.',
+      },
+      {
         name: 'name',
         type: 'string',
         required: true,
