@@ -44,7 +44,7 @@ class IncidentSerializer(Serializer):
         aggregates = attrs['aggregates']
         return {
             'id': six.text_type(obj.id),
-            'identifier': obj.identifier,
+            'identifier': six.text_type(obj.identifier),
             'organizationId': six.text_type(obj.organization_id),
             'projects': attrs['projects'],
             'status': obj.status,

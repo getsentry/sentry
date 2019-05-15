@@ -397,7 +397,7 @@ export const SavedSearch = PropTypes.shape({
 
 export const Incident = PropTypes.shape({
   id: PropTypes.string.isRequired,
-  identifier: PropTypes.number.isRequired,
+  identifier: PropTypes.string.isRequired,
   title: PropTypes.string.isRequired,
   status: PropTypes.number.isRequired,
   query: PropTypes.string,
