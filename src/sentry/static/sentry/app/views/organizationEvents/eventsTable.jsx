@@ -53,6 +53,8 @@ class EventsTableBody extends React.PureComponent {
             </EventTitle>
           </TableData>
 
+          <TableData>{event['event.type']}</TableData>
+
           <TableData>
             {hasSentry10 ? (
               idBadge
@@ -140,6 +142,7 @@ class EventsTable extends React.Component {
         <PanelHeader>
           <TableLayout>
             <div>{t('Event')}</div>
+            <div>{t('Event Type')}</div>
             <div>{t('Project')}</div>
             <div>{t('User')}</div>
             <div>{t('Time')}</div>
@@ -148,7 +151,7 @@ class EventsTable extends React.Component {
         {loading && <LoadingIndicator />}
         {!loading && !hasEvents && (
           <EmptyStateWarning>
-            <p>No events</p>
+            <p>{t('No events')}</p>
           </EmptyStateWarning>
         )}
         {hasEvents && (
@@ -177,7 +180,7 @@ const StyledPanelBody = styled(PanelBody)`
 
 const TableLayout = styled('div')`
   display: grid;
-  grid-template-columns: 0.8fr 0.15fr 0.25fr 200px;
+  grid-template-columns: 0.8fr 0.15fr 0.15fr 0.25fr 200px;
   grid-column-gap: ${space(1.5)};
   width: 100%;
 `;

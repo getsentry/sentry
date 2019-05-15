@@ -4,15 +4,8 @@ import {mount} from 'enzyme';
 import IncidentDetails from 'app/views/organizationIncidents/details';
 
 describe('IncidentDetails', function() {
-  const mockIncident = {
-    id: '123',
-    name: 'Too many Chrome errors',
-    status: 'resolved',
-    projects: [],
-    suspects: [],
-    eventCount: 100,
-    usersAffected: 20,
-  };
+  const mockIncident = TestStubs.Incident();
+  const routerContext = TestStubs.routerContext();
 
   beforeAll(function() {
     MockApiClient.addMockResponse({
@@ -31,7 +24,8 @@ describe('IncidentDetails', function() {
 
   it('loads incident', async function() {
     const wrapper = mount(
-      <IncidentDetails params={{orgId: 'org-slug', incidentId: mockIncident.id}} />
+      <IncidentDetails params={{orgId: 'org-slug', incidentId: mockIncident.id}} />,
+      routerContext
     );
     expect(wrapper.find('LoadingIndicator')).toHaveLength(1);
     await tick();
@@ -41,7 +35,8 @@ describe('IncidentDetails', function() {
 
   it('handles invalid incident', async function() {
     const wrapper = mount(
-      <IncidentDetails params={{orgId: 'org-slug', incidentId: '456'}} />
+      <IncidentDetails params={{orgId: 'org-slug', incidentId: '456'}} />,
+      routerContext
     );
     await tick();
     wrapper.update();

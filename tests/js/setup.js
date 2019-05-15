@@ -52,6 +52,7 @@ jest.mock('lodash/debounce', () => jest.fn(fn => fn));
 jest.mock('app/utils/recreateRoute');
 jest.mock('app/translations');
 jest.mock('app/api');
+jest.mock('app/utils/domId');
 jest.mock('app/utils/withOrganization');
 jest.mock('scroll-to-element', () => {});
 jest.mock('react-router', () => {
@@ -110,6 +111,7 @@ jest.mock('@sentry/browser', () => {
     captureException: jest.fn(),
     showReportDialog: jest.fn(),
     lastEventId: jest.fn(),
+    getCurrentHub: jest.spyOn(SentryBrowser, 'getCurrentHub'),
     withScope: jest.spyOn(SentryBrowser, 'withScope'),
   };
 });

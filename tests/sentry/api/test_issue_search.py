@@ -142,6 +142,20 @@ class ParseSearchQueryTest(TestCase):
             ):
                 parse_search_query(invalid_query)
 
+    def test_boolean_operators_not_allowed(self):
+        invalid_queries = [
+            'user.email:foo@example.com OR user.email:bar@example.com',
+            'user.email:foo@example.com AND user.email:bar@example.com',
+            'user.email:foo@example.com OR user.email:bar@example.com OR user.email:foobar@example.com',
+            'user.email:foo@example.com AND user.email:bar@example.com AND user.email:foobar@example.com',
+        ]
+        for invalid_query in invalid_queries:
+            with self.assertRaises(
+                InvalidSearchQuery,
+                expected_regex='Boolean statements containing "OR" or "AND" are not supported in this search',
+            ):
+                parse_search_query(invalid_query)
+
 
 class ConvertQueryValuesTest(TestCase):
 

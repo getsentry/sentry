@@ -8,17 +8,16 @@ from __future__ import absolute_import, print_function
 
 import jsonschema
 import logging
-import random
 import six
-import time
 
 from datetime import datetime, timedelta
 from django.conf import settings
 from django.db import connection, IntegrityError, router, transaction
+from django.db.models import Func
 from django.utils import timezone
 from django.utils.encoding import force_text
 
-from sentry import buffer, eventtypes, eventstream, features, tagstore, tsdb, filters, options
+from sentry import buffer, eventtypes, eventstream, features, tagstore, tsdb, filters
 from sentry.constants import (
     LOG_LEVELS, LOG_LEVELS_MAP, VALID_PLATFORMS, MAX_TAG_VALUE_LENGTH,
 )
@@ -45,7 +44,7 @@ from sentry.models import (
 from sentry.plugins import plugins
 from sentry.signals import event_discarded, event_saved, first_event_received
 from sentry.tasks.integrations import kick_off_status_syncs
-from sentry.utils import json, metrics
+from sentry.utils import metrics
 from sentry.utils.cache import default_cache
 from sentry.utils.canonical import CanonicalKeyDict
 from sentry.utils.contexts_normalization import normalize_user_agent
@@ -54,12 +53,10 @@ from sentry.utils.data_filters import (
     is_valid_release,
     is_valid_error_message,
     FilterStatKeys,
-    FILTER_STAT_KEYS_TO_VALUES
 )
-from sentry.utils.dates import to_timestamp, to_datetime
+from sentry.utils.dates import to_timestamp
 from sentry.utils.db import is_postgres
 from sentry.utils.geo import rust_geoip
-from sentry.utils.pubsub import QueuedPublisherService, KafkaPublisher
 from sentry.utils.safe import safe_execute, trim, get_path, setdefault_path
 from sentry.utils.validators import is_float
 from sentry.stacktraces.processing import normalize_stacktraces_for_grouping
@@ -236,68 +233,35 @@ class HashDiscarded(Exception):
     pass
 
 
-def scoreclause_sql(sc, connection):
-    db = getattr(connection, 'alias', 'default')
-    has_values = sc.last_seen is not None and sc.times_seen is not None
-    if is_postgres(db):
-        if has_values:
-            sql = 'log(times_seen + %d) * 600 + %d' % (sc.times_seen, to_timestamp(sc.last_seen))
+class ScoreClause(Func):
+    def __init__(self, group=None, last_seen=None, times_seen=None, *args, **kwargs):
+        self.group = group
+        self.last_seen = last_seen
+        self.times_seen = times_seen
+        # times_seen is likely an F-object that needs the value extracted
+        if hasattr(self.times_seen, 'rhs'):
+            self.times_seen = self.times_seen.rhs.value
+        super(ScoreClause, self).__init__(*args, **kwargs)
+
+    def __int__(self):
+        # Calculate the score manually when coercing to an int.
+        # This is used within create_or_update and friends
+        return self.group.get_score() if self.group else 0
+
+    def as_sql(self, compiler, connection, function=None, template=None):
+        db = getattr(connection, 'alias', 'default')
+        has_values = self.last_seen is not None and self.times_seen is not None
+        if is_postgres(db):
+            if has_values:
+                sql = 'log(times_seen + %d) * 600 + %d' % (self.times_seen,
+                                                           to_timestamp(self.last_seen))
+            else:
+                sql = 'log(times_seen) * 600 + last_seen::abstime::int'
         else:
-            sql = 'log(times_seen) * 600 + last_seen::abstime::int'
-    else:
-        # XXX: if we cant do it atomically let's do it the best we can
-        sql = int(sc)
+            # XXX: if we cant do it atomically let's do it the best we can
+            sql = int(self)
 
-    return (sql, [])
-
-
-try:
-    from django.db.models import Func
-except ImportError:
-    # XXX(dramer): compatibility hack for Django 1.6
-    class ScoreClause(object):
-        def __init__(self, group=None, last_seen=None, times_seen=None, *args, **kwargs):
-            self.group = group
-            self.last_seen = last_seen
-            self.times_seen = times_seen
-            # times_seen is likely an F-object that needs the value extracted
-            if hasattr(self.times_seen, 'children'):
-                self.times_seen = self.times_seen.children[1]
-            super(ScoreClause, self).__init__(*args, **kwargs)
-
-        def __int__(self):
-            # Calculate the score manually when coercing to an int.
-            # This is used within create_or_update and friends
-            return self.group.get_score() if self.group else 0
-
-        def prepare_database_save(self, unused):
-            return self
-
-        def prepare(self, evaluator, query, allow_joins):
-            return
-
-        def evaluate(self, node, qn, connection):
-            return scoreclause_sql(self, connection)
-
-else:
-    # XXX(dramer): compatibility hack for Django 1.8+
-    class ScoreClause(Func):
-        def __init__(self, group=None, last_seen=None, times_seen=None, *args, **kwargs):
-            self.group = group
-            self.last_seen = last_seen
-            self.times_seen = times_seen
-            # times_seen is likely an F-object that needs the value extracted
-            if hasattr(self.times_seen, 'rhs'):
-                self.times_seen = self.times_seen.rhs.value
-            super(ScoreClause, self).__init__(*args, **kwargs)
-
-        def __int__(self):
-            # Calculate the score manually when coercing to an int.
-            # This is used within create_or_update and friends
-            return self.group.get_score() if self.group else 0
-
-        def as_sql(self, compiler, connection, function=None, template=None):
-            return scoreclause_sql(self, connection)
+        return (sql, [])
 
 
 def add_meta_errors(errors, meta):
@@ -330,84 +294,6 @@ def _decode_event(data, content_encoding):
     return CanonicalKeyDict(data)
 
 
-outcomes = settings.KAFKA_TOPICS[settings.KAFKA_OUTCOMES]
-outcomes_publisher = None
-
-
-def track_outcome(org_id, project_id, key_id, outcome, reason=None, timestamp=None):
-    """
-    This is a central point to track org/project counters per incoming event.
-    NB: This should only ever be called once per incoming event, which means
-    it should only be called at the point we know the final outcome for the
-    event (invalid, rate_limited, accepted, discarded, etc.)
-
-    This increments all the relevant legacy RedisTSDB counters, as well as
-    sending a single metric event to Kafka which can be used to reconstruct the
-    counters with SnubaTSDB.
-    """
-    global outcomes_publisher
-    if outcomes_publisher is None:
-        outcomes_publisher = QueuedPublisherService(
-            KafkaPublisher(
-                settings.KAFKA_CLUSTERS[outcomes['cluster']]
-            )
-        )
-
-    timestamp = timestamp or to_datetime(time.time())
-    increment_list = []
-    if outcome != 'invalid':
-        # This simply preserves old behavior. We never counted invalid events
-        # (too large, duplicate, CORS) toward regular `received` counts.
-        increment_list.extend([
-            (tsdb.models.project_total_received, project_id),
-            (tsdb.models.organization_total_received, org_id),
-            (tsdb.models.key_total_received, key_id),
-        ])
-
-    if outcome == 'filtered':
-        increment_list.extend([
-            (tsdb.models.project_total_blacklisted, project_id),
-            (tsdb.models.organization_total_blacklisted, org_id),
-            (tsdb.models.key_total_blacklisted, key_id),
-        ])
-    elif outcome == 'rate_limited':
-        increment_list.extend([
-            (tsdb.models.project_total_rejected, project_id),
-            (tsdb.models.organization_total_rejected, org_id),
-            (tsdb.models.key_total_rejected, key_id),
-        ])
-
-    if reason in FILTER_STAT_KEYS_TO_VALUES:
-        increment_list.append((FILTER_STAT_KEYS_TO_VALUES[reason], project_id))
-
-    increment_list = [(model, key) for model, key in increment_list if key is not None]
-    if increment_list:
-        tsdb.incr_multi(increment_list, timestamp=timestamp)
-
-    # Send a snuba metrics payload.
-    if random.random() <= options.get('snuba.track-outcomes-sample-rate'):
-        outcomes_publisher.publish(
-            outcomes['topic'],
-            json.dumps({
-                'timestamp': timestamp,
-                'org_id': org_id,
-                'project_id': project_id,
-                'key_id': key_id,
-                'outcome': outcome,
-                'reason': reason,
-            })
-        )
-
-    metrics.incr(
-        'events.outcomes',
-        skip_internal=True,
-        tags={
-            'outcome': outcome,
-            'reason': reason,
-        },
-    )
-
-
 class EventManager(object):
     """
     Handles normalization in both the store endpoint and the save task. The
@@ -426,6 +312,7 @@ class EventManager(object):
         key=None,
         content_encoding=None,
         is_renormalize=False,
+        remove_other=None
     ):
         self._data = _decode_event(data, content_encoding=content_encoding)
         self.version = version
@@ -438,6 +325,7 @@ class EventManager(object):
         self._auth = auth
         self._key = key
         self._is_renormalize = is_renormalize
+        self._remove_other = remove_other
         self._normalized = False
 
     def process_csp_report(self):
@@ -491,21 +379,12 @@ class EventManager(object):
         self._data = data
 
     def normalize(self):
-        tags = {
-            'use_rust_normalize': True
-        }
-
-        with metrics.timer('events.store.normalize.duration', tags=tags):
+        with metrics.timer('events.store.normalize.duration'):
             self._normalize_impl()
-
-        data = self.get_data()
-
-        data['use_rust_normalize'] = True
 
         metrics.timing(
             'events.store.normalize.errors',
-            len(data.get("errors") or ()),
-            tags=tags,
+            len(self._data.get("errors") or ()),
         )
 
     def _normalize_impl(self):
@@ -528,7 +407,8 @@ class EventManager(object):
             max_secs_in_future=MAX_SECS_IN_FUTURE,
             max_secs_in_past=MAX_SECS_IN_PAST,
             enable_trimming=True,
-            is_renormalize=self._is_renormalize
+            is_renormalize=self._is_renormalize,
+            remove_other=self._remove_other,
         )
 
         self._data = CanonicalKeyDict(

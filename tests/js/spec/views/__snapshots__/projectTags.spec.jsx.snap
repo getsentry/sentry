@@ -196,7 +196,7 @@ exports[`ProjectTags renders 1`] = `
                 Each event in Sentry may be annotated with various tags (key and value pairs).
                  Learn how to 
               </span>
-              <ExternalLink
+              <ForwardRef
                 href="https://docs.sentry.io/hosted/learn/context/"
                 key="2"
                 rel="noreferrer noopener"
@@ -213,7 +213,7 @@ exports[`ProjectTags renders 1`] = `
                     add custom tags
                   </span>
                 </a>
-              </ExternalLink>
+              </ForwardRef>
               <span
                 key="3"
               >
@@ -446,8 +446,10 @@ exports[`ProjectTags renders 1`] = `
                                   className="css-p3ab1k"
                                   is={null}
                                 >
-                                  <Tooltip
+                                  <Tooltip2
+                                    containerDisplayMode="inline-block"
                                     disabled={true}
+                                    position="top"
                                     title="This tag cannot be deleted."
                                   >
                                     <LinkWithConfirmation
@@ -620,7 +622,7 @@ exports[`ProjectTags renders 1`] = `
                                         </Modal>
                                       </Confirm>
                                     </LinkWithConfirmation>
-                                  </Tooltip>
+                                  </Tooltip2>
                                 </div>
                               </Base>
                             </Flex>
@@ -676,8 +678,10 @@ exports[`ProjectTags renders 1`] = `
                                   className="css-p3ab1k"
                                   is={null}
                                 >
-                                  <Tooltip
+                                  <Tooltip2
+                                    containerDisplayMode="inline-block"
                                     disabled={true}
+                                    position="top"
                                     title="This tag cannot be deleted."
                                   >
                                     <LinkWithConfirmation
@@ -850,7 +854,7 @@ exports[`ProjectTags renders 1`] = `
                                         </Modal>
                                       </Confirm>
                                     </LinkWithConfirmation>
-                                  </Tooltip>
+                                  </Tooltip2>
                                 </div>
                               </Base>
                             </Flex>
@@ -906,8 +910,10 @@ exports[`ProjectTags renders 1`] = `
                                   className="css-p3ab1k"
                                   is={null}
                                 >
-                                  <Tooltip
+                                  <Tooltip2
+                                    containerDisplayMode="inline-block"
                                     disabled={true}
+                                    position="top"
                                     title="This tag cannot be deleted."
                                   >
                                     <LinkWithConfirmation
@@ -1080,7 +1086,7 @@ exports[`ProjectTags renders 1`] = `
                                         </Modal>
                                       </Confirm>
                                     </LinkWithConfirmation>
-                                  </Tooltip>
+                                  </Tooltip2>
                                 </div>
                               </Base>
                             </Flex>
@@ -1136,188 +1142,216 @@ exports[`ProjectTags renders 1`] = `
                                   className="css-p3ab1k"
                                   is={null}
                                 >
-                                  <Tooltip
+                                  <Tooltip2
+                                    containerDisplayMode="inline-block"
                                     disabled={false}
+                                    position="top"
                                     title="This tag cannot be deleted."
                                   >
-                                    <LinkWithConfirmation
-                                      className="tip"
-                                      disabled={true}
-                                      message="Are you sure you want to remove this tag?"
-                                      onConfirm={[Function]}
-                                      title="This tag cannot be deleted."
-                                    >
-                                      <Confirm
-                                        cancelText="Cancel"
-                                        confirmText="Confirm"
-                                        disableConfirmButton={false}
-                                        disabled={true}
-                                        message="Are you sure you want to remove this tag?"
-                                        onConfirm={[Function]}
-                                        priority="primary"
-                                        stopPropagation={false}
-                                      >
-                                        <a
-                                          className="tip disabled"
-                                          disabled={true}
-                                          onClick={[Function]}
-                                          title="This tag cannot be deleted."
+                                    <Manager>
+                                      <Reference>
+                                        <InnerReference
+                                          setReferenceNode={[Function]}
                                         >
-                                          <Button
-                                            data-test-id="delete"
-                                            disabled={true}
-                                            icon="icon-trash"
-                                            size="xsmall"
+                                          <Container
+                                            aria-describedby="tooltip-123456"
+                                            containerDisplayMode="inline-block"
+                                            innerRef={[Function]}
+                                            onBlur={[Function]}
+                                            onFocus={[Function]}
+                                            onMouseEnter={[Function]}
+                                            onMouseLeave={[Function]}
                                           >
-                                            <StyledButton
-                                              aria-disabled={true}
-                                              data-test-id="delete"
-                                              disabled={true}
-                                              href={null}
-                                              onClick={[Function]}
-                                              role="button"
-                                              size="xsmall"
-                                              to={null}
+                                            <span
+                                              aria-describedby="tooltip-123456"
+                                              className="css-1m3e0hg-Container e7ebgxc0"
+                                              onBlur={[Function]}
+                                              onFocus={[Function]}
+                                              onMouseEnter={[Function]}
+                                              onMouseLeave={[Function]}
                                             >
-                                              <ForwardRef
-                                                aria-disabled={true}
-                                                className="css-bzxnfi-StyledButton-getColors e12ma6z0"
-                                                data-test-id="delete"
+                                              <LinkWithConfirmation
                                                 disabled={true}
-                                                href={null}
-                                                onClick={[Function]}
-                                                role="button"
-                                                size="xsmall"
-                                                to={null}
+                                                message="Are you sure you want to remove this tag?"
+                                                onConfirm={[Function]}
+                                                title="Remove tag?"
                                               >
-                                                <button
-                                                  aria-disabled={true}
-                                                  className="css-bzxnfi-StyledButton-getColors e12ma6z0"
-                                                  data-test-id="delete"
-                                                  href={null}
-                                                  onClick={[Function]}
-                                                  role="button"
-                                                  size="xsmall"
-                                                  to={null}
+                                                <Confirm
+                                                  cancelText="Cancel"
+                                                  confirmText="Confirm"
+                                                  disableConfirmButton={false}
+                                                  disabled={true}
+                                                  message="Are you sure you want to remove this tag?"
+                                                  onConfirm={[Function]}
+                                                  priority="primary"
+                                                  stopPropagation={false}
                                                 >
-                                                  <ButtonLabel
-                                                    size="xsmall"
+                                                  <a
+                                                    className="disabled"
+                                                    disabled={true}
+                                                    onClick={[Function]}
+                                                    title="Remove tag?"
                                                   >
-                                                    <Component
-                                                      className="css-uthd1f-ButtonLabel e12ma6z1"
+                                                    <Button
+                                                      data-test-id="delete"
+                                                      disabled={true}
+                                                      icon="icon-trash"
                                                       size="xsmall"
                                                     >
-                                                      <span
-                                                        className="css-uthd1f-ButtonLabel e12ma6z1"
+                                                      <StyledButton
+                                                        aria-disabled={true}
+                                                        data-test-id="delete"
+                                                        disabled={true}
+                                                        href={null}
+                                                        onClick={[Function]}
+                                                        role="button"
+                                                        size="xsmall"
+                                                        to={null}
                                                       >
-                                                        <Icon
-                                                          hasChildren={false}
+                                                        <ForwardRef
+                                                          aria-disabled={true}
+                                                          className="css-bzxnfi-StyledButton-getColors e12ma6z0"
+                                                          data-test-id="delete"
+                                                          disabled={true}
+                                                          href={null}
+                                                          onClick={[Function]}
+                                                          role="button"
                                                           size="xsmall"
+                                                          to={null}
                                                         >
-                                                          <Component
-                                                            className="css-ljhpxy-Icon e12ma6z2"
-                                                            hasChildren={false}
+                                                          <button
+                                                            aria-disabled={true}
+                                                            className="css-bzxnfi-StyledButton-getColors e12ma6z0"
+                                                            data-test-id="delete"
+                                                            href={null}
+                                                            onClick={[Function]}
+                                                            role="button"
                                                             size="xsmall"
+                                                            to={null}
                                                           >
-                                                            <span
-                                                              className="css-ljhpxy-Icon e12ma6z2"
+                                                            <ButtonLabel
                                                               size="xsmall"
                                                             >
-                                                              <StyledInlineSvg
-                                                                size="12px"
-                                                                src="icon-trash"
+                                                              <Component
+                                                                className="css-uthd1f-ButtonLabel e12ma6z1"
+                                                                size="xsmall"
                                                               >
-                                                                <InlineSvg
-                                                                  className="css-1ov3rcq-StyledInlineSvg e12ma6z3"
-                                                                  size="12px"
-                                                                  src="icon-trash"
+                                                                <span
+                                                                  className="css-uthd1f-ButtonLabel e12ma6z1"
                                                                 >
-                                                                  <StyledSvg
-                                                                    className="css-1ov3rcq-StyledInlineSvg e12ma6z3"
-                                                                    height="12px"
-                                                                    viewBox={Object {}}
-                                                                    width="12px"
+                                                                  <Icon
+                                                                    hasChildren={false}
+                                                                    size="xsmall"
                                                                   >
-                                                                    <svg
-                                                                      className="e12ma6z3 css-1jjmnki-StyledSvg-StyledInlineSvg e2idor0"
-                                                                      height="12px"
-                                                                      viewBox={Object {}}
-                                                                      width="12px"
+                                                                    <Component
+                                                                      className="css-ljhpxy-Icon e12ma6z2"
+                                                                      hasChildren={false}
+                                                                      size="xsmall"
                                                                     >
-                                                                      <use
-                                                                        href="#test"
-                                                                        xlinkHref="#test"
-                                                                      />
-                                                                    </svg>
-                                                                  </StyledSvg>
-                                                                </InlineSvg>
-                                                              </StyledInlineSvg>
-                                                            </span>
-                                                          </Component>
-                                                        </Icon>
-                                                      </span>
-                                                    </Component>
-                                                  </ButtonLabel>
-                                                </button>
-                                              </ForwardRef>
-                                            </StyledButton>
-                                          </Button>
-                                        </a>
-                                        <Modal
-                                          animation={false}
-                                          autoFocus={true}
-                                          backdrop={true}
-                                          bsClass="modal"
-                                          dialogComponentClass={[Function]}
-                                          enforceFocus={true}
-                                          keyboard={true}
-                                          manager={
-                                            ModalManager {
-                                              "add": [Function],
-                                              "containers": Array [],
-                                              "data": Array [],
-                                              "handleContainerOverflow": true,
-                                              "hideSiblingNodes": true,
-                                              "isTopModal": [Function],
-                                              "modals": Array [],
-                                              "remove": [Function],
-                                            }
-                                          }
-                                          onHide={[Function]}
-                                          renderBackdrop={[Function]}
-                                          restoreFocus={true}
-                                          show={false}
-                                        >
-                                          <Modal
-                                            autoFocus={true}
-                                            backdrop={true}
-                                            backdropClassName="modal-backdrop"
-                                            containerClassName="modal-open"
-                                            enforceFocus={true}
-                                            keyboard={true}
-                                            manager={
-                                              ModalManager {
-                                                "add": [Function],
-                                                "containers": Array [],
-                                                "data": Array [],
-                                                "handleContainerOverflow": true,
-                                                "hideSiblingNodes": true,
-                                                "isTopModal": [Function],
-                                                "modals": Array [],
-                                                "remove": [Function],
-                                              }
-                                            }
-                                            onEntering={[Function]}
-                                            onExited={[Function]}
-                                            onHide={[Function]}
-                                            renderBackdrop={[Function]}
-                                            restoreFocus={true}
-                                            show={false}
-                                          />
-                                        </Modal>
-                                      </Confirm>
-                                    </LinkWithConfirmation>
-                                  </Tooltip>
+                                                                      <span
+                                                                        className="css-ljhpxy-Icon e12ma6z2"
+                                                                        size="xsmall"
+                                                                      >
+                                                                        <StyledInlineSvg
+                                                                          size="12px"
+                                                                          src="icon-trash"
+                                                                        >
+                                                                          <InlineSvg
+                                                                            className="css-1ov3rcq-StyledInlineSvg e12ma6z3"
+                                                                            size="12px"
+                                                                            src="icon-trash"
+                                                                          >
+                                                                            <StyledSvg
+                                                                              className="css-1ov3rcq-StyledInlineSvg e12ma6z3"
+                                                                              height="12px"
+                                                                              viewBox={Object {}}
+                                                                              width="12px"
+                                                                            >
+                                                                              <svg
+                                                                                className="e12ma6z3 css-1jjmnki-StyledSvg-StyledInlineSvg e2idor0"
+                                                                                height="12px"
+                                                                                viewBox={Object {}}
+                                                                                width="12px"
+                                                                              >
+                                                                                <use
+                                                                                  href="#test"
+                                                                                  xlinkHref="#test"
+                                                                                />
+                                                                              </svg>
+                                                                            </StyledSvg>
+                                                                          </InlineSvg>
+                                                                        </StyledInlineSvg>
+                                                                      </span>
+                                                                    </Component>
+                                                                  </Icon>
+                                                                </span>
+                                                              </Component>
+                                                            </ButtonLabel>
+                                                          </button>
+                                                        </ForwardRef>
+                                                      </StyledButton>
+                                                    </Button>
+                                                  </a>
+                                                  <Modal
+                                                    animation={false}
+                                                    autoFocus={true}
+                                                    backdrop={true}
+                                                    bsClass="modal"
+                                                    dialogComponentClass={[Function]}
+                                                    enforceFocus={true}
+                                                    keyboard={true}
+                                                    manager={
+                                                      ModalManager {
+                                                        "add": [Function],
+                                                        "containers": Array [],
+                                                        "data": Array [],
+                                                        "handleContainerOverflow": true,
+                                                        "hideSiblingNodes": true,
+                                                        "isTopModal": [Function],
+                                                        "modals": Array [],
+                                                        "remove": [Function],
+                                                      }
+                                                    }
+                                                    onHide={[Function]}
+                                                    renderBackdrop={[Function]}
+                                                    restoreFocus={true}
+                                                    show={false}
+                                                  >
+                                                    <Modal
+                                                      autoFocus={true}
+                                                      backdrop={true}
+                                                      backdropClassName="modal-backdrop"
+                                                      containerClassName="modal-open"
+                                                      enforceFocus={true}
+                                                      keyboard={true}
+                                                      manager={
+                                                        ModalManager {
+                                                          "add": [Function],
+                                                          "containers": Array [],
+                                                          "data": Array [],
+                                                          "handleContainerOverflow": true,
+                                                          "hideSiblingNodes": true,
+                                                          "isTopModal": [Function],
+                                                          "modals": Array [],
+                                                          "remove": [Function],
+                                                        }
+                                                      }
+                                                      onEntering={[Function]}
+                                                      onExited={[Function]}
+                                                      onHide={[Function]}
+                                                      renderBackdrop={[Function]}
+                                                      restoreFocus={true}
+                                                      show={false}
+                                                    />
+                                                  </Modal>
+                                                </Confirm>
+                                              </LinkWithConfirmation>
+                                            </span>
+                                          </Container>
+                                        </InnerReference>
+                                      </Reference>
+                                    </Manager>
+                                  </Tooltip2>
                                 </div>
                               </Base>
                             </Flex>
@@ -1373,187 +1407,215 @@ exports[`ProjectTags renders 1`] = `
                                   className="css-p3ab1k"
                                   is={null}
                                 >
-                                  <Tooltip
+                                  <Tooltip2
+                                    containerDisplayMode="inline-block"
+                                    position="top"
                                     title="This tag cannot be deleted."
                                   >
-                                    <LinkWithConfirmation
-                                      className="tip"
-                                      disabled={true}
-                                      message="Are you sure you want to remove this tag?"
-                                      onConfirm={[Function]}
-                                      title="This tag cannot be deleted."
-                                    >
-                                      <Confirm
-                                        cancelText="Cancel"
-                                        confirmText="Confirm"
-                                        disableConfirmButton={false}
-                                        disabled={true}
-                                        message="Are you sure you want to remove this tag?"
-                                        onConfirm={[Function]}
-                                        priority="primary"
-                                        stopPropagation={false}
-                                      >
-                                        <a
-                                          className="tip disabled"
-                                          disabled={true}
-                                          onClick={[Function]}
-                                          title="This tag cannot be deleted."
+                                    <Manager>
+                                      <Reference>
+                                        <InnerReference
+                                          setReferenceNode={[Function]}
                                         >
-                                          <Button
-                                            data-test-id="delete"
-                                            disabled={true}
-                                            icon="icon-trash"
-                                            size="xsmall"
+                                          <Container
+                                            aria-describedby="tooltip-123456"
+                                            containerDisplayMode="inline-block"
+                                            innerRef={[Function]}
+                                            onBlur={[Function]}
+                                            onFocus={[Function]}
+                                            onMouseEnter={[Function]}
+                                            onMouseLeave={[Function]}
                                           >
-                                            <StyledButton
-                                              aria-disabled={true}
-                                              data-test-id="delete"
-                                              disabled={true}
-                                              href={null}
-                                              onClick={[Function]}
-                                              role="button"
-                                              size="xsmall"
-                                              to={null}
+                                            <span
+                                              aria-describedby="tooltip-123456"
+                                              className="css-1m3e0hg-Container e7ebgxc0"
+                                              onBlur={[Function]}
+                                              onFocus={[Function]}
+                                              onMouseEnter={[Function]}
+                                              onMouseLeave={[Function]}
                                             >
-                                              <ForwardRef
-                                                aria-disabled={true}
-                                                className="css-bzxnfi-StyledButton-getColors e12ma6z0"
-                                                data-test-id="delete"
+                                              <LinkWithConfirmation
                                                 disabled={true}
-                                                href={null}
-                                                onClick={[Function]}
-                                                role="button"
-                                                size="xsmall"
-                                                to={null}
+                                                message="Are you sure you want to remove this tag?"
+                                                onConfirm={[Function]}
+                                                title="Remove tag?"
                                               >
-                                                <button
-                                                  aria-disabled={true}
-                                                  className="css-bzxnfi-StyledButton-getColors e12ma6z0"
-                                                  data-test-id="delete"
-                                                  href={null}
-                                                  onClick={[Function]}
-                                                  role="button"
-                                                  size="xsmall"
-                                                  to={null}
+                                                <Confirm
+                                                  cancelText="Cancel"
+                                                  confirmText="Confirm"
+                                                  disableConfirmButton={false}
+                                                  disabled={true}
+                                                  message="Are you sure you want to remove this tag?"
+                                                  onConfirm={[Function]}
+                                                  priority="primary"
+                                                  stopPropagation={false}
                                                 >
-                                                  <ButtonLabel
-                                                    size="xsmall"
+                                                  <a
+                                                    className="disabled"
+                                                    disabled={true}
+                                                    onClick={[Function]}
+                                                    title="Remove tag?"
                                                   >
-                                                    <Component
-                                                      className="css-uthd1f-ButtonLabel e12ma6z1"
+                                                    <Button
+                                                      data-test-id="delete"
+                                                      disabled={true}
+                                                      icon="icon-trash"
                                                       size="xsmall"
                                                     >
-                                                      <span
-                                                        className="css-uthd1f-ButtonLabel e12ma6z1"
+                                                      <StyledButton
+                                                        aria-disabled={true}
+                                                        data-test-id="delete"
+                                                        disabled={true}
+                                                        href={null}
+                                                        onClick={[Function]}
+                                                        role="button"
+                                                        size="xsmall"
+                                                        to={null}
                                                       >
-                                                        <Icon
-                                                          hasChildren={false}
+                                                        <ForwardRef
+                                                          aria-disabled={true}
+                                                          className="css-bzxnfi-StyledButton-getColors e12ma6z0"
+                                                          data-test-id="delete"
+                                                          disabled={true}
+                                                          href={null}
+                                                          onClick={[Function]}
+                                                          role="button"
                                                           size="xsmall"
+                                                          to={null}
                                                         >
-                                                          <Component
-                                                            className="css-ljhpxy-Icon e12ma6z2"
-                                                            hasChildren={false}
+                                                          <button
+                                                            aria-disabled={true}
+                                                            className="css-bzxnfi-StyledButton-getColors e12ma6z0"
+                                                            data-test-id="delete"
+                                                            href={null}
+                                                            onClick={[Function]}
+                                                            role="button"
                                                             size="xsmall"
+                                                            to={null}
                                                           >
-                                                            <span
-                                                              className="css-ljhpxy-Icon e12ma6z2"
+                                                            <ButtonLabel
                                                               size="xsmall"
                                                             >
-                                                              <StyledInlineSvg
-                                                                size="12px"
-                                                                src="icon-trash"
+                                                              <Component
+                                                                className="css-uthd1f-ButtonLabel e12ma6z1"
+                                                                size="xsmall"
                                                               >
-                                                                <InlineSvg
-                                                                  className="css-1ov3rcq-StyledInlineSvg e12ma6z3"
-                                                                  size="12px"
-                                                                  src="icon-trash"
+                                                                <span
+                                                                  className="css-uthd1f-ButtonLabel e12ma6z1"
                                                                 >
-                                                                  <StyledSvg
-                                                                    className="css-1ov3rcq-StyledInlineSvg e12ma6z3"
-                                                                    height="12px"
-                                                                    viewBox={Object {}}
-                                                                    width="12px"
+                                                                  <Icon
+                                                                    hasChildren={false}
+                                                                    size="xsmall"
                                                                   >
-                                                                    <svg
-                                                                      className="e12ma6z3 css-1jjmnki-StyledSvg-StyledInlineSvg e2idor0"
-                                                                      height="12px"
-                                                                      viewBox={Object {}}
-                                                                      width="12px"
+                                                                    <Component
+                                                                      className="css-ljhpxy-Icon e12ma6z2"
+                                                                      hasChildren={false}
+                                                                      size="xsmall"
                                                                     >
-                                                                      <use
-                                                                        href="#test"
-                                                                        xlinkHref="#test"
-                                                                      />
-                                                                    </svg>
-                                                                  </StyledSvg>
-                                                                </InlineSvg>
-                                                              </StyledInlineSvg>
-                                                            </span>
-                                                          </Component>
-                                                        </Icon>
-                                                      </span>
-                                                    </Component>
-                                                  </ButtonLabel>
-                                                </button>
-                                              </ForwardRef>
-                                            </StyledButton>
-                                          </Button>
-                                        </a>
-                                        <Modal
-                                          animation={false}
-                                          autoFocus={true}
-                                          backdrop={true}
-                                          bsClass="modal"
-                                          dialogComponentClass={[Function]}
-                                          enforceFocus={true}
-                                          keyboard={true}
-                                          manager={
-                                            ModalManager {
-                                              "add": [Function],
-                                              "containers": Array [],
-                                              "data": Array [],
-                                              "handleContainerOverflow": true,
-                                              "hideSiblingNodes": true,
-                                              "isTopModal": [Function],
-                                              "modals": Array [],
-                                              "remove": [Function],
-                                            }
-                                          }
-                                          onHide={[Function]}
-                                          renderBackdrop={[Function]}
-                                          restoreFocus={true}
-                                          show={false}
-                                        >
-                                          <Modal
-                                            autoFocus={true}
-                                            backdrop={true}
-                                            backdropClassName="modal-backdrop"
-                                            containerClassName="modal-open"
-                                            enforceFocus={true}
-                                            keyboard={true}
-                                            manager={
-                                              ModalManager {
-                                                "add": [Function],
-                                                "containers": Array [],
-                                                "data": Array [],
-                                                "handleContainerOverflow": true,
-                                                "hideSiblingNodes": true,
-                                                "isTopModal": [Function],
-                                                "modals": Array [],
-                                                "remove": [Function],
-                                              }
-                                            }
-                                            onEntering={[Function]}
-                                            onExited={[Function]}
-                                            onHide={[Function]}
-                                            renderBackdrop={[Function]}
-                                            restoreFocus={true}
-                                            show={false}
-                                          />
-                                        </Modal>
-                                      </Confirm>
-                                    </LinkWithConfirmation>
-                                  </Tooltip>
+                                                                      <span
+                                                                        className="css-ljhpxy-Icon e12ma6z2"
+                                                                        size="xsmall"
+                                                                      >
+                                                                        <StyledInlineSvg
+                                                                          size="12px"
+                                                                          src="icon-trash"
+                                                                        >
+                                                                          <InlineSvg
+                                                                            className="css-1ov3rcq-StyledInlineSvg e12ma6z3"
+                                                                            size="12px"
+                                                                            src="icon-trash"
+                                                                          >
+                                                                            <StyledSvg
+                                                                              className="css-1ov3rcq-StyledInlineSvg e12ma6z3"
+                                                                              height="12px"
+                                                                              viewBox={Object {}}
+                                                                              width="12px"
+                                                                            >
+                                                                              <svg
+                                                                                className="e12ma6z3 css-1jjmnki-StyledSvg-StyledInlineSvg e2idor0"
+                                                                                height="12px"
+                                                                                viewBox={Object {}}
+                                                                                width="12px"
+                                                                              >
+                                                                                <use
+                                                                                  href="#test"
+                                                                                  xlinkHref="#test"
+                                                                                />
+                                                                              </svg>
+                                                                            </StyledSvg>
+                                                                          </InlineSvg>
+                                                                        </StyledInlineSvg>
+                                                                      </span>
+                                                                    </Component>
+                                                                  </Icon>
+                                                                </span>
+                                                              </Component>
+                                                            </ButtonLabel>
+                                                          </button>
+                                                        </ForwardRef>
+                                                      </StyledButton>
+                                                    </Button>
+                                                  </a>
+                                                  <Modal
+                                                    animation={false}
+                                                    autoFocus={true}
+                                                    backdrop={true}
+                                                    bsClass="modal"
+                                                    dialogComponentClass={[Function]}
+                                                    enforceFocus={true}
+                                                    keyboard={true}
+                                                    manager={
+                                                      ModalManager {
+                                                        "add": [Function],
+                                                        "containers": Array [],
+                                                        "data": Array [],
+                                                        "handleContainerOverflow": true,
+                                                        "hideSiblingNodes": true,
+                                                        "isTopModal": [Function],
+                                                        "modals": Array [],
+                                                        "remove": [Function],
+                                                      }
+                                                    }
+                                                    onHide={[Function]}
+                                                    renderBackdrop={[Function]}
+                                                    restoreFocus={true}
+                                                    show={false}
+                                                  >
+                                                    <Modal
+                                                      autoFocus={true}
+                                                      backdrop={true}
+                                                      backdropClassName="modal-backdrop"
+                                                      containerClassName="modal-open"
+                                                      enforceFocus={true}
+                                                      keyboard={true}
+                                                      manager={
+                                                        ModalManager {
+                                                          "add": [Function],
+                                                          "containers": Array [],
+                                                          "data": Array [],
+                                                          "handleContainerOverflow": true,
+                                                          "hideSiblingNodes": true,
+                                                          "isTopModal": [Function],
+                                                          "modals": Array [],
+                                                          "remove": [Function],
+                                                        }
+                                                      }
+                                                      onEntering={[Function]}
+                                                      onExited={[Function]}
+                                                      onHide={[Function]}
+                                                      renderBackdrop={[Function]}
+                                                      restoreFocus={true}
+                                                      show={false}
+                                                    />
+                                                  </Modal>
+                                                </Confirm>
+                                              </LinkWithConfirmation>
+                                            </span>
+                                          </Container>
+                                        </InnerReference>
+                                      </Reference>
+                                    </Manager>
+                                  </Tooltip2>
                                 </div>
                               </Base>
                             </Flex>

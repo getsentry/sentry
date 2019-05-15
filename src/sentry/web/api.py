@@ -34,7 +34,7 @@ from sentry.coreapi import (
     Auth, APIError, APIForbidden, APIRateLimited, ClientApiHelper, ClientAuthHelper,
     SecurityAuthHelper, MinidumpAuthHelper, safely_load_json_string, logger as api_logger
 )
-from sentry.event_manager import EventManager, track_outcome
+from sentry.event_manager import EventManager
 from sentry.interfaces import schemas
 from sentry.interfaces.base import get_interface
 from sentry.lang.native.unreal import process_unreal_crash, merge_apple_crash_report, \
@@ -53,6 +53,7 @@ from sentry.utils.http import (
     get_origins,
     is_same_domain,
 )
+from sentry.utils.outcomes import Outcome, track_outcome
 from sentry.utils.pubsub import QueuedPublisherService, KafkaPublisher
 from sentry.utils.safe import safe_execute
 from sentry.web.helpers import render_to_response
@@ -97,9 +98,22 @@ def process_event(event_manager, project, key, remote_addr, helper, attachments)
     event_received.send_robust(ip=remote_addr, project=project, sender=process_event)
 
     start_time = time()
+
+    data = event_manager.get_data()
     should_filter, filter_reason = event_manager.should_filter()
+    del event_manager
+
+    event_id = data['event_id']
+
     if should_filter:
-        track_outcome(project.organization_id, project.id, key.id, 'filtered', filter_reason)
+        track_outcome(
+            project.organization_id,
+            project.id,
+            key.id,
+            Outcome.FILTERED,
+            filter_reason,
+            event_id=event_id
+        )
         metrics.incr(
             'events.blacklisted', tags={'reason': filter_reason}, skip_internal=False
         )
@@ -124,7 +138,14 @@ def process_event(event_manager, project, key, remote_addr, helper, attachments)
             api_logger.debug('Dropped event due to error with rate limiter')
 
         reason = rate_limit.reason_code if rate_limit else None
-        track_outcome(project.organization_id, project.id, key.id, 'rate_limited', reason)
+        track_outcome(
+            project.organization_id,
+            project.id,
+            key.id,
+            Outcome.RATE_LIMITED,
+            reason,
+            event_id=event_id
+        )
         metrics.incr(
             'events.dropped',
             tags={
@@ -144,17 +165,19 @@ def process_event(event_manager, project, key, remote_addr, helper, attachments)
     org_options = OrganizationOption.objects.get_all_values(
         project.organization_id)
 
-    data = event_manager.get_data()
-    del event_manager
-
-    event_id = data['event_id']
-
     # TODO(dcramer): ideally we'd only validate this if the event_id was
     # supplied by the user
     cache_key = 'ev:%s:%s' % (project.id, event_id, )
 
     if cache.get(cache_key) is not None:
-        track_outcome(project.organization_id, project.id, key.id, 'invalid', 'duplicate')
+        track_outcome(
+            project.organization_id,
+            project.id,
+            key.id,
+            Outcome.INVALID,
+            'duplicate',
+            event_id=event_id
+        )
         raise APIForbidden(
             'An event with the same ID already exists (%s)' % (event_id, ))
 
@@ -214,22 +237,31 @@ class APIView(BaseView):
         if not project_id:
             return
         if not project_id.isdigit():
+            track_outcome(0, 0, None, Outcome.INVALID, "project_id")
             raise APIError('Invalid project_id: %r' % project_id)
         try:
             return Project.objects.get_from_cache(id=project_id)
         except Project.DoesNotExist:
+            track_outcome(0, 0, None, Outcome.INVALID, "project_id")
             raise APIError('Invalid project_id: %r' % project_id)
 
     def _parse_header(self, request, helper, project):
         auth = self.auth_helper_cls.auth_from_request(request)
 
         if auth.version not in PROTOCOL_VERSIONS:
+            track_outcome(
+                project.organization_id,
+                project.id,
+                None,
+                Outcome.INVALID,
+                "auth_version")
             raise APIError(
                 'Client using unsupported server protocol version (%r)' %
                 six.text_type(auth.version or '')
             )
 
         if not auth.client:
+            track_outcome(project.organization_id, project.id, None, Outcome.INVALID, "auth_client")
             raise APIError("Client did not send 'client' identifier")
 
         return auth
@@ -369,7 +401,7 @@ class APIView(BaseView):
                     project.organization_id,
                     project.id,
                     None,
-                    'invalid',
+                    Outcome.INVALID,
                     FilterStatKeys.CORS)
                 raise APIForbidden('Invalid origin: %s' % (origin, ))
 
@@ -494,6 +526,7 @@ class StoreView(APIView):
         metrics.incr('events.total', skip_internal=False)
 
         if not data:
+            track_outcome(project.organization_id, project.id, key.id, Outcome.INVALID, "no_data")
             raise APIError('No JSON data was found')
 
         remote_addr = request.META['REMOTE_ADDR']
@@ -519,7 +552,14 @@ class StoreView(APIView):
 
         if data_size > 10000000:
             metrics.timing('events.size.rejected', data_size)
-            track_outcome(project.organization_id, project.id, key.id, 'invalid', 'too_large')
+            track_outcome(
+                project.organization_id,
+                project.id,
+                key.id,
+                Outcome.INVALID,
+                'too_large',
+                event_id=dict_data.get('event_id')
+            )
             raise APIForbidden("Event size exceeded 10MB after normalization.")
 
         metrics.timing(
@@ -545,12 +585,14 @@ class MinidumpView(StoreView):
         # without Origin or Referer headers. Therefore, we cannot validate the
         # origin of the request, but we *can* validate the "prod" key in future.
         if request.method != 'POST':
+            track_outcome(0, 0, None, Outcome.INVALID, "disallowed_method")
             return HttpResponseNotAllowed(['POST'])
 
         content_type = request.META.get('CONTENT_TYPE')
         # In case of multipart/form-data, the Content-Type header also includes
         # a boundary. Therefore, we cannot check for an exact match.
         if content_type is None or not content_type.startswith(self.content_types):
+            track_outcome(0, 0, None, Outcome.INVALID, "content_type")
             raise APIError('Invalid Content-Type')
 
         request.user = AnonymousUser()
@@ -565,6 +607,12 @@ class MinidumpView(StoreView):
 
         key = helper.project_key_from_auth(auth)
         if key.project_id != project.id:
+            track_outcome(
+                project.organization_id,
+                project.id,
+                None,
+                Outcome.INVALID,
+                "multi_project_id")
             raise APIError('Two different projects were specified')
 
         helper.context.bind_auth(auth)
@@ -612,6 +660,12 @@ class MinidumpView(StoreView):
         try:
             minidump = request.FILES['upload_file_minidump']
         except KeyError:
+            track_outcome(
+                project.organization_id,
+                project.id,
+                None,
+                Outcome.INVALID,
+                "missing_minidump_upload")
             raise APIError('Missing minidump upload')
 
         # Breakpad on linux sometimes stores the entire HTTP request body as
@@ -644,9 +698,21 @@ class MinidumpView(StoreView):
             try:
                 minidump = files['upload_file_minidump']
             except KeyError:
+                track_outcome(
+                    project.organization_id,
+                    project.id,
+                    None,
+                    Outcome.INVALID,
+                    "missing_minidump_upload")
                 raise APIError('Missing minidump upload')
 
         if minidump.size == 0:
+            track_outcome(
+                project.organization_id,
+                project.id,
+                None,
+                Outcome.INVALID,
+                "empty_minidump")
             raise APIError('Empty minidump upload received')
 
         if settings.SENTRY_MINIDUMP_CACHE:
@@ -689,6 +755,12 @@ class MinidumpView(StoreView):
             merge_process_state_event(data, state)
         except ProcessMinidumpError as e:
             minidumps_logger.exception(e)
+            track_outcome(
+                project.organization_id,
+                project.id,
+                None,
+                Outcome.INVALID,
+                "process_minidump")
             raise APIError(e.message.split('\n', 1)[0])
 
         event_id = self.process(
@@ -713,10 +785,12 @@ class UnrealView(StoreView):
 
     def _dispatch(self, request, helper, sentry_key, project_id=None, origin=None, *args, **kwargs):
         if request.method != 'POST':
+            track_outcome(0, 0, None, Outcome.INVALID, "disallowed_method")
             return HttpResponseNotAllowed(['POST'])
 
         content_type = request.META.get('CONTENT_TYPE')
         if content_type is None or not content_type.startswith(self.content_types):
+            track_outcome(0, 0, None, Outcome.INVALID, "content_type")
             raise APIError('Invalid Content-Type')
 
         request.user = AnonymousUser()
@@ -729,6 +803,12 @@ class UnrealView(StoreView):
 
         key = helper.project_key_from_auth(auth)
         if key.project_id != project.id:
+            track_outcome(
+                project.organization_id,
+                project.id,
+                None,
+                Outcome.INVALID,
+                "multi_project_id")
             raise APIError('Two different projects were specified')
 
         helper.context.bind_auth(auth)
@@ -753,9 +833,17 @@ class UnrealView(StoreView):
                 if apple_crash_report:
                     merge_apple_crash_report(apple_crash_report, event)
                 else:
+                    track_outcome(project.organization_id, project.id, None,
+                                  Outcome.INVALID, "missing_minidump_unreal")
                     raise APIError("missing minidump in unreal crash report")
         except (ProcessMinidumpError, Unreal4Error) as e:
             minidumps_logger.exception(e)
+            track_outcome(
+                project.organization_id,
+                project.id,
+                None,
+                Outcome.INVALID,
+                "process_minidump_unreal")
             raise APIError(e.message.split('\n', 1)[0])
 
         try:
@@ -831,9 +919,11 @@ class SecurityReportView(StoreView):
         # that triggered the report. The Content-Type is supposed to be
         # `application/csp-report`, but FireFox sends it as `application/json`.
         if request.method != 'POST':
+            track_outcome(0, 0, None, Outcome.INVALID, "disallowed_method")
             return HttpResponseNotAllowed(['POST'])
 
         if request.META.get('CONTENT_TYPE') not in self.content_types:
+            track_outcome(0, 0, None, Outcome.INVALID, "content_type")
             raise APIError('Invalid Content-Type')
 
         request.user = AnonymousUser()
@@ -848,6 +938,12 @@ class SecurityReportView(StoreView):
 
         key = helper.project_key_from_auth(auth)
         if key.project_id != project.id:
+            track_outcome(
+                project.organization_id,
+                project.id,
+                None,
+                Outcome.INVALID,
+                "multi_project_id")
             raise APIError('Two different projects were specified')
 
         helper.context.bind_auth(auth)
@@ -860,12 +956,24 @@ class SecurityReportView(StoreView):
         json_body = safely_load_json_string(request.body)
         report_type = self.security_report_type(json_body)
         if report_type is None:
+            track_outcome(
+                project.organization_id,
+                project.id,
+                key.id,
+                Outcome.INVALID,
+                "security_report_type")
             raise APIError('Unrecognized security report type')
         interface = get_interface(report_type)
 
         try:
             instance = interface.from_raw(json_body)
         except jsonschema.ValidationError as e:
+            track_outcome(
+                project.organization_id,
+                project.id,
+                key.id,
+                Outcome.INVALID,
+                "security_report")
             raise APIError('Invalid security report: %s' % str(e).splitlines()[0])
 
         # Do origin check based on the `document-uri` key as explained in `_dispatch`.
@@ -876,7 +984,7 @@ class SecurityReportView(StoreView):
                     project.organization_id,
                     project.id,
                     key.id,
-                    'invalid',
+                    Outcome.INVALID,
                     FilterStatKeys.CORS)
             raise APIForbidden('Invalid origin')
 

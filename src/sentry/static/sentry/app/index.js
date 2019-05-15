@@ -1,4 +1,3 @@
-/* global module */
 import '@babel/polyfill';
 import 'bootstrap/js/alert';
 import 'bootstrap/js/tab';
@@ -20,13 +19,12 @@ import * as ReactEmotion from 'react-emotion';
 import Reflux from 'reflux';
 import * as Router from 'react-router';
 import * as Sentry from '@sentry/browser';
-import {ExtraErrorData} from '@sentry/integrations';
+import {ExtraErrorData, Tracing} from '@sentry/integrations';
 import createReactClass from 'create-react-class';
 import jQuery from 'jquery';
 import moment from 'moment';
 
 import {metric} from 'app/utils/analytics';
-import * as tracing from 'app/utils/tracing';
 import ConfigStore from 'app/stores/configStore';
 import Main from 'app/main';
 import ajaxCsrfSetup from 'app/utils/ajaxCsrfSetup';
@@ -38,7 +36,16 @@ import plugins from 'app/plugins';
 // window.__SENTRY__OPTIONS will be emmited by sdk-config.html before loading this script
 Sentry.init({
   ...window.__SENTRY__OPTIONS,
-  integrations: [new ExtraErrorData()],
+  integrations: [
+    new ExtraErrorData({
+      // 6 is arbitrary, seems like a nice number
+      depth: 6,
+    }),
+    new Tracing({
+      tracingOrigins: ['localhost', 'sentry.io', /^\//],
+      autoStartOnDomReady: false,
+    }),
+  ],
 });
 
 Sentry.configureScope(scope => {
@@ -48,14 +55,6 @@ Sentry.configureScope(scope => {
   if (window.__SENTRY__VERSION) {
     scope.setTag('sentry_version', window.__SENTRY__VERSION);
   }
-
-  // There's no setTransaction API *yet*, so we have to be explicit here
-  scope.addEventProcessor(event => {
-    return {
-      ...event,
-      transaction: tracing.getRoute(),
-    };
-  });
 });
 
 function __raven_deprecated() {
@@ -170,9 +169,6 @@ const globals = {
     addSuccessMessage: require('app/actionCreators/indicator').addSuccessMessage,
     addErrorMessage: require('app/actionCreators/indicator').addErrorMessage,
     Button: require('app/components/button').default,
-    mixins: {
-      ApiMixin: require('app/mixins/apiMixin').default,
-    },
     BarChart: require('app/components/barChart').default,
     i18n: il8n,
     ConfigStore: require('app/stores/configStore').default,

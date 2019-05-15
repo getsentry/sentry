@@ -397,19 +397,24 @@ export const SavedSearch = PropTypes.shape({
 
 export const Incident = PropTypes.shape({
   id: PropTypes.string.isRequired,
-  name: PropTypes.string.isRequired,
-  status: PropTypes.string.isRequired,
+  identifier: PropTypes.number.isRequired,
+  title: PropTypes.string.isRequired,
+  status: PropTypes.number.isRequired,
   query: PropTypes.string,
   projects: PropTypes.array.isRequired,
-  eventCount: PropTypes.number.isRequired,
-  usersAffected: PropTypes.number.isRequired,
-  suspects: PropTypes.arrayOf(
-    PropTypes.shape({
-      id: PropTypes.string,
-      type: PropTypes.string,
-      likelihood: PropTypes.string,
-    })
-  ).isRequired,
+  totalEvents: PropTypes.number.isRequired,
+  uniqueUsers: PropTypes.number.isRequired,
+  isSubscribed: PropTypes.bool.isRequired,
+});
+
+export const Activity = PropTypes.shape({
+  id: PropTypes.string.isRequired,
+  type: PropTypes.string.isRequired,
+  dateCreated: PropTypes.string.isRequired,
+  user: User,
+  data: PropTypes.shape({
+    text: PropTypes.string,
+  }),
 });
 
 export const GlobalSelection = PropTypes.shape({
@@ -930,6 +935,7 @@ const SentryTypes = {
     id: PropTypes.string.isRequired,
   }),
   Actor,
+  Activity,
   AuthProvider,
   Config,
   Deploy,

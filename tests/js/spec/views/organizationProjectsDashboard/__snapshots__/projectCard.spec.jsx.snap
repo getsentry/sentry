@@ -703,74 +703,144 @@ exports[`ProjectCard renders 1`] = `
                                       preserveAspectRatio="none"
                                       viewBox="0 0 100 400"
                                     >
-                                      <Tooltip
+                                      <Tooltip2
+                                        containerDisplayMode="inline-block"
                                         key="1525042800"
-                                        title="<div style=\\"width:130px\\"><div class=\\"time-label\\"><span>April 29, 2018<br />11:00 PM  &#8594; 11:59 PM</span></div></div><div class=\\"value-label\\">1 events</div>"
-                                        tooltipOptions={
-                                          Object {
-                                            "container": "body",
-                                            "html": true,
-                                            "placement": "bottom",
-                                          }
+                                        position="bottom"
+                                        title={
+                                          <React.Fragment>
+                                            <div
+                                              style={
+                                                Object {
+                                                  "width": "130px",
+                                                }
+                                              }
+                                            >
+                                              <div
+                                                className="time-label"
+                                              >
+                                                <span>
+                                                  April 29, 2018
+                                                  <br />
+                                                  11:00 PM
+                                                  →
+                                                  11:59 PM
+                                                </span>
+                                              </div>
+                                            </div>
+                                            <div
+                                              className="value-label"
+                                            >
+                                              1
+                                               
+                                              events
+                                            </div>
+                                          </React.Fragment>
                                         }
                                       >
-                                        <g
-                                          className="tip"
-                                          title="<div style=\\"width:130px\\"><div class=\\"time-label\\"><span>April 29, 2018<br />11:00 PM  &#8594; 11:59 PM</span></div></div><div class=\\"value-label\\">1 events</div>"
-                                        >
-                                          <rect
-                                            height="100%"
-                                            opacity="0"
-                                            width="52.3%"
-                                            x="-1.5%"
-                                          />
-                                          <rect
-                                            className="chart-bar barchart-rect"
-                                            data-test-id="chart-column"
-                                            height="9.9%"
-                                            key="0"
-                                            width="49.3%"
-                                            x="0%"
-                                            y="90.1%"
-                                          >
-                                            1
-                                          </rect>
-                                        </g>
-                                      </Tooltip>
-                                      <Tooltip
+                                        <Manager>
+                                          <Reference>
+                                            <InnerReference
+                                              setReferenceNode={[Function]}
+                                            >
+                                              <g
+                                                aria-describedby="tooltip-123456"
+                                                onBlur={[Function]}
+                                                onFocus={[Function]}
+                                                onMouseEnter={[Function]}
+                                                onMouseLeave={[Function]}
+                                              >
+                                                <rect
+                                                  height="100%"
+                                                  opacity="0"
+                                                  width="52.3%"
+                                                  x="-1.5%"
+                                                />
+                                                <rect
+                                                  className="chart-bar barchart-rect"
+                                                  data-test-id="chart-column"
+                                                  height="9.9%"
+                                                  key="0"
+                                                  width="49.3%"
+                                                  x="0%"
+                                                  y="90.1%"
+                                                >
+                                                  1
+                                                </rect>
+                                              </g>
+                                            </InnerReference>
+                                          </Reference>
+                                        </Manager>
+                                      </Tooltip2>
+                                      <Tooltip2
+                                        containerDisplayMode="inline-block"
                                         key="1525046400"
-                                        title="<div style=\\"width:130px\\"><div class=\\"time-label\\"><span>April 30, 2018<br />12:00 AM  &#8594; 12:59 AM</span></div></div><div class=\\"value-label\\">2 events</div>"
-                                        tooltipOptions={
-                                          Object {
-                                            "container": "body",
-                                            "html": true,
-                                            "placement": "bottom",
-                                          }
+                                        position="bottom"
+                                        title={
+                                          <React.Fragment>
+                                            <div
+                                              style={
+                                                Object {
+                                                  "width": "130px",
+                                                }
+                                              }
+                                            >
+                                              <div
+                                                className="time-label"
+                                              >
+                                                <span>
+                                                  April 30, 2018
+                                                  <br />
+                                                  12:00 AM
+                                                  →
+                                                  12:59 AM
+                                                </span>
+                                              </div>
+                                            </div>
+                                            <div
+                                              className="value-label"
+                                            >
+                                              2
+                                               
+                                              events
+                                            </div>
+                                          </React.Fragment>
                                         }
                                       >
-                                        <g
-                                          className="tip"
-                                          title="<div style=\\"width:130px\\"><div class=\\"time-label\\"><span>April 30, 2018<br />12:00 AM  &#8594; 12:59 AM</span></div></div><div class=\\"value-label\\">2 events</div>"
-                                        >
-                                          <rect
-                                            height="100%"
-                                            opacity="0"
-                                            width="52.3%"
-                                            x="49.3%"
-                                          />
-                                          <rect
-                                            className="chart-bar barchart-rect"
-                                            data-test-id="chart-column"
-                                            height="19.8%"
-                                            key="0"
-                                            width="49.3%"
-                                            x="50.8%"
-                                            y="80.2%"
-                                          >
-                                            2
-                                          </rect>
-                                        </g>
-                                      </Tooltip>
+                                        <Manager>
+                                          <Reference>
+                                            <InnerReference
+                                              setReferenceNode={[Function]}
+                                            >
+                                              <g
+                                                aria-describedby="tooltip-123456"
+                                                onBlur={[Function]}
+                                                onFocus={[Function]}
+                                                onMouseEnter={[Function]}
+                                                onMouseLeave={[Function]}
+                                              >
+                                                <rect
+                                                  height="100%"
+                                                  opacity="0"
+                                                  width="52.3%"
+                                                  x="49.3%"
+                                                />
+                                                <rect
+                                                  className="chart-bar barchart-rect"
+                                                  data-test-id="chart-column"
+                                                  height="19.8%"
+                                                  key="0"
+                                                  width="49.3%"
+                                                  x="50.8%"
+                                                  y="80.2%"
+                                                >
+                                                  2
+                                                </rect>
+                                              </g>
+                                            </InnerReference>
+                                          </Reference>
+                                        </Manager>
+                                      </Tooltip2>
                                     </svg>
                                   </StyledSvg>
                                 </div>
@@ -914,7 +984,7 @@ exports[`ProjectCard renders 1`] = `
                                   role="button"
                                   size="xsmall"
                                 >
-                                  <ExternalLink
+                                  <ForwardRef
                                     aria-disabled={false}
                                     aria-label="Track deploys"
                                     className="css-o6814l-StyledButton-getColors e12ma6z0"
@@ -951,7 +1021,7 @@ exports[`ProjectCard renders 1`] = `
                                         </Component>
                                       </ButtonLabel>
                                     </a>
-                                  </ExternalLink>
+                                  </ForwardRef>
                                 </ForwardRef>
                               </StyledButton>
                             </Button>

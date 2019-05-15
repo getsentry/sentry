@@ -3,7 +3,7 @@ import React from 'react';
 import classNames from 'classnames';
 
 import FormField from 'app/components/forms/formField';
-import Tooltip from 'app/components/tooltip';
+import Tooltip2 from 'app/components/tooltip2';
 
 import {defined} from 'app/utils';
 
@@ -65,11 +65,11 @@ export default class MultipleCheckboxField extends FormField {
             >
               {label}
               {shouldShowDisabledReason && (
-                <Tooltip title={disabledReason}>
+                <Tooltip2 title={disabledReason}>
                   <span className="disabled-indicator">
                     <span className="icon-question" />
                   </span>
-                </Tooltip>
+                </Tooltip2>
               )}
             </label>
             {help && <p className="help-block">{help}</p>}

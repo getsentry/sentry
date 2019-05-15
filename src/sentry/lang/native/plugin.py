@@ -2,28 +2,27 @@ from __future__ import absolute_import
 
 import uuid
 import logging
-import posixpath
 
 from symbolic import parse_addr, find_best_instruction, arch_get_ip_reg_name, \
     ObjectLookup
+from symbolic.utils import make_buffered_slice_reader
 
 from sentry import options
+from sentry.cache import default_cache
+from sentry.coreapi import cache_key_for_event
 from sentry.plugins import Plugin2
 from sentry.lang.native.cfi import reprocess_minidump_with_cfi
-from sentry.lang.native.minidump import is_minidump_event
+from sentry.lang.native.minidump import get_attached_minidump, is_minidump_event, merge_symbolicator_minidump_response
 from sentry.lang.native.symbolizer import Symbolizer, SymbolicationFailed
-from sentry.lang.native.symbolicator import run_symbolicator, merge_symbolicator_image
-from sentry.lang.native.utils import get_sdk_from_event, cpu_name_from_data, \
-    rebase_addr, signal_from_data
+from sentry.lang.native.symbolicator import run_symbolicator, merge_symbolicator_image, create_minidump_task, handle_symbolicator_response_status
+from sentry.lang.native.utils import get_sdk_from_event, handle_symbolication_failed, cpu_name_from_data, \
+    merge_symbolicated_frame, rebase_addr, signal_from_data
 from sentry.lang.native.systemsymbols import lookup_system_symbols
-from sentry.models.eventerror import EventError
+from sentry.models import Project
 from sentry.utils import metrics
 from sentry.utils.in_app import is_known_third_party
 from sentry.utils.safe import get_path
 from sentry.stacktraces.processing import StacktraceProcessor
-from sentry.stacktraces.functions import trim_function_name
-from sentry.utils.safe import trim
-from sentry.reprocessing import report_processing_issue
 
 logger = logging.getLogger(__name__)
 
@@ -34,13 +33,27 @@ SYMBOLICATOR_FRAME_ATTRS = ("instruction_addr", "package", "lang", "symbol",
                             "line_addr")
 
 
-def _is_symbolicator_enabled(project):
-    return options.get('symbolicator.enabled') and \
-        project.get_option('sentry:symbolicator-enabled')
+def _is_symbolicator_enabled(project, data):
+    if not options.get('symbolicator.enabled'):
+        return False
+
+    if project.get_option('sentry:symbolicator-enabled'):
+        return True
+
+    percentage = options.get('sentry:symbolicator-percent-opt-in') or 0
+    if percentage > 0:
+        id_bit = int(data['event_id'][4:6], 16)
+        return id_bit < percentage * 256
+
+    return False
 
 
 def request_id_cache_key_for_event(data):
     return u'symbolicator:{1}:{0}'.format(data['project'], data['event_id'])
+
+
+def minidump_reprocessed_cache_key_for_event(data):
+    return u'symbolicator-minidump-processed:{1}:{0}'.format(data['project'], data['event_id'])
 
 
 class NativeStacktraceProcessor(StacktraceProcessor):
@@ -55,7 +68,9 @@ class NativeStacktraceProcessor(StacktraceProcessor):
         # service for native symbolication, which also means symbolic is not
         # used at all anymore.
         # The (iOS) symbolserver is still used regardless of this value.
-        self.use_symbolicator = _is_symbolicator_enabled(self.project)
+        self.use_symbolicator = _is_symbolicator_enabled(self.project, self.data)
+
+        metrics.incr('native.use_symbolicator', tags={'value': self.use_symbolicator})
 
         self.arch = cpu_name_from_data(self.data)
         self.signal = signal_from_data(self.data)
@@ -129,9 +144,20 @@ class NativeStacktraceProcessor(StacktraceProcessor):
         )
 
     def handles_frame(self, frame, stacktrace_info):
+        if not self.available:
+            return False
+
         platform = frame.get('platform') or self.data.get('platform')
-        return (platform in self.supported_platforms and self.available
-                and 'instruction_addr' in frame)
+        if platform not in self.supported_platforms:
+            return False
+
+        if frame.get('data', {}).get('symbolicator_status'):
+            return False
+
+        if 'instruction_addr' not in frame:
+            return False
+
+        return True
 
     def preprocess_frame(self, processable_frame):
         instr_addr = self.find_best_instruction(processable_frame)
@@ -179,6 +205,7 @@ class NativeStacktraceProcessor(StacktraceProcessor):
             self.project,
             self.object_lookup,
             referenced_images=referenced_images,
+            use_symbolicator=self.use_symbolicator
         )
 
         if options.get('symbolserver.enabled'):
@@ -201,6 +228,8 @@ class NativeStacktraceProcessor(StacktraceProcessor):
 
         stacktraces = []
         processable_stacktraces = []
+        has_frames = False
+
         for stacktrace_info, pf_list in processing_task.iter_processable_stacktraces():
             registers = stacktrace_info.stacktrace.get('registers') or {}
 
@@ -229,6 +258,7 @@ class NativeStacktraceProcessor(StacktraceProcessor):
                 if pf.get('trust') is not None:
                     frame['trust'] = pf['trust']
                 frames.append(frame)
+                has_frames = True
 
             stacktraces.append({
                 'registers': registers,
@@ -237,15 +267,17 @@ class NativeStacktraceProcessor(StacktraceProcessor):
 
             processable_stacktraces.append(pf_list)
 
-        rv = run_symbolicator(stacktraces=stacktraces, modules=self.images,
-                              project=self.project, arch=self.arch,
-                              signal=self.signal,
-                              request_id_cache_key=request_id_cache_key)
-        if not rv:
-            self._handle_symbolication_failed(
-                SymbolicationFailed(type=EventError.NATIVE_SYMBOLICATOR_FAILED),
-                self.data.setdefault('errors', [])
-            )
+        if not has_frames:
+            return
+
+        rv = run_symbolicator(
+            project=self.project,
+            request_id_cache_key=request_id_cache_key,
+            stacktraces=stacktraces, modules=self.images,
+            signal=self.signal
+        )
+
+        if not handle_symbolicator_response_status(self.data, rv):
             return
 
         # TODO(markus): Set signal and os context from symbolicator response,
@@ -254,8 +286,10 @@ class NativeStacktraceProcessor(StacktraceProcessor):
         assert len(self.images) == len(rv['modules']), (self.images, rv)
 
         for image, complete_image in zip(self.images, rv['modules']):
-            merge_symbolicator_image(image, complete_image, self.sdk_info,
-                                     self._handle_symbolication_failed)
+            merge_symbolicator_image(
+                image, complete_image, self.sdk_info,
+                lambda e: handle_symbolication_failed(e, data=self.data)
+            )
 
         assert len(stacktraces) == len(rv['stacktraces'])
 
@@ -307,35 +341,6 @@ class NativeStacktraceProcessor(StacktraceProcessor):
                     continue
                 pf.data['symbolserver_match'] = symrv
 
-    def _handle_symbolication_failed(self, e, errors=None):
-        # User fixable but fatal errors are reported as processing
-        # issues
-        if e.is_user_fixable and e.is_fatal:
-            report_processing_issue(
-                self.data,
-                scope='native',
-                object='dsym:%s' % e.image_uuid,
-                type=e.type,
-                data=e.get_data()
-            )
-
-        # This in many ways currently does not really do anything.
-        # The reason is that once a processing issue is reported
-        # the event will only be stored as a raw event and no
-        # group will be generated.  As a result it also means that
-        # we will not have any user facing event or error showing
-        # up at all.  We want to keep this here though in case we
-        # do not want to report some processing issues (eg:
-        # optional difs)
-        if errors is None:
-            errors = self.data.setdefault('errors', [])
-
-        if e.is_user_fixable or e.is_sdk_failure:
-            errors.append(e.get_data())
-        else:
-            logger.debug('Failed to symbolicate with native backend',
-                         exc_info=True)
-
     def process_frame(self, processable_frame, processing_task):
         frame = processable_frame.frame
         raw_frame = dict(frame)
@@ -372,7 +377,7 @@ class NativeStacktraceProcessor(StacktraceProcessor):
                         return None, [raw_frame], []
             except SymbolicationFailed as e:
                 errors = []
-                self._handle_symbolication_failed(e, errors=errors)
+                handle_symbolication_failed(e, data=self.data, errors=errors)
                 return [raw_frame], [raw_frame], errors
 
             _ignored = None  # Used to be in_app
@@ -385,35 +390,47 @@ class NativeStacktraceProcessor(StacktraceProcessor):
         new_frames = []
         for sfrm in symbolicated_frames:
             new_frame = dict(raw_frame)
-
-            raw_func = trim(sfrm['function'], 256)
-            func = trim(trim_function_name(sfrm['function'], platform), 256)
-
-            # if function and raw function match, we can get away without
-            # storing a raw function
-            if func == raw_func:
-                new_frame['function'] = raw_func
-            # otherwise we store both
-            else:
-                new_frame['raw_function'] = raw_func
-                new_frame['function'] = func
-
-            if sfrm.get('symbol'):
-                new_frame['symbol'] = sfrm['symbol']
-            if sfrm.get('abs_path'):
-                new_frame['abs_path'] = sfrm['abs_path']
-                new_frame['filename'] = posixpath.basename(sfrm['abs_path'])
-            if sfrm.get('filename'):
-                new_frame['filename'] = sfrm['filename']
-            if sfrm.get('lineno'):
-                new_frame['lineno'] = sfrm['lineno']
-            if sfrm.get('colno'):
-                new_frame['colno'] = sfrm['colno']
-            if sfrm.get('package'):
-                new_frame['package'] = sfrm['package']
+            merge_symbolicated_frame(new_frame, sfrm, platform=platform)
             new_frames.append(new_frame)
 
         return new_frames, [raw_frame], []
+
+
+def reprocess_minidump(data):
+    project = Project.objects.get_from_cache(id=data['project'])
+
+    minidump_is_reprocessed_cache_key = minidump_reprocessed_cache_key_for_event(data)
+    if default_cache.get(minidump_is_reprocessed_cache_key):
+        return
+
+    if not _is_symbolicator_enabled(project, data):
+        rv = reprocess_minidump_with_cfi(data)
+        default_cache.set(minidump_is_reprocessed_cache_key, True, 3600)
+        return rv
+
+    minidump = get_attached_minidump(data)
+
+    if not minidump:
+        logger.error("Missing minidump for minidump event")
+        return
+
+    request_id_cache_key = request_id_cache_key_for_event(data)
+
+    response = run_symbolicator(
+        project=project,
+        request_id_cache_key=request_id_cache_key,
+        create_task=create_minidump_task,
+        minidump=make_buffered_slice_reader(minidump.data, None)
+    )
+
+    if handle_symbolicator_response_status(data, response):
+        merge_symbolicator_minidump_response(data, response)
+
+    event_cache_key = cache_key_for_event(data)
+    default_cache.set(event_cache_key, dict(data), 3600)
+    default_cache.set(minidump_is_reprocessed_cache_key, True, 3600)
+
+    return data
 
 
 class NativePlugin(Plugin2):
@@ -421,7 +438,7 @@ class NativePlugin(Plugin2):
 
     def get_event_enhancers(self, data):
         if is_minidump_event(data):
-            return [reprocess_minidump_with_cfi]
+            return [reprocess_minidump]
 
     def get_stacktrace_processors(self, data, stacktrace_infos, platforms, **kwargs):
         if any(platform in NativeStacktraceProcessor.supported_platforms for platform in platforms):

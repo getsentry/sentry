@@ -70,6 +70,7 @@ const theme = {
   dropShadowHeavy: '0 1px 4px 1px rgba(47,40,55,0.08), 0 4px 16px 0 rgba(47,40,55,0.12)',
 
   background: '#fff',
+  placeholderBackground: '#f5f5f5',
 
   // Try to keep these ordered plz
   zIndex: {
@@ -89,6 +90,9 @@ const theme = {
     globalSelectionHeader: 1009,
     sidebar: 1010,
     orgAndUserMenu: 1011,
+
+    // tooltips and hovercards
+    tooltip: 1070,
 
     // Sentry user feedback modal
     sentryErrorEmbed: 1090,

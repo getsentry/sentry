@@ -3,7 +3,7 @@ import React from 'react';
 import createReactClass from 'create-react-class';
 import styled from 'react-emotion';
 
-import Tooltip from 'app/components/tooltip';
+import Tooltip2 from 'app/components/tooltip2';
 import withApi from 'app/utils/withApi';
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
 import space from 'app/styles/space';
@@ -143,7 +143,7 @@ const TeamProjects = createReactClass({
       sortProjects(projects).map((project, i) => (
         <StyledPanelItem key={project.id}>
           <ProjectListItem project={project} organization={this.context.organization} />
-          <Tooltip
+          <Tooltip2
             disabled={canWrite}
             title={t('You do not have enough permission to change project association.')}
           >
@@ -156,7 +156,7 @@ const TeamProjects = createReactClass({
             >
               <RemoveIcon /> {t('Remove')}
             </Button>
-          </Tooltip>
+          </Tooltip2>
         </StyledPanelItem>
       ))
     ) : (

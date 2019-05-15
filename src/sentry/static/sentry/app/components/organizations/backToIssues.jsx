@@ -13,8 +13,6 @@ const BackToIssues = styled(Link)`
   height: ${space(1.5)};
   border-radius: 50%;
   box-sizing: content-box;
-  margin: 0 -${space(2)} 0 ${space(2)};
-  position: relative;
   z-index: 1;
   transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 

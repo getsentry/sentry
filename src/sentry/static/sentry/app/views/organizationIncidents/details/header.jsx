@@ -9,15 +9,43 @@ import Link from 'app/components/links/link';
 import InlineSvg from 'app/components/inlineSvg';
 import {PageHeader} from 'app/styles/organization';
 import space from 'app/styles/space';
+import SubscribeButton from 'app/components/subscribeButton';
+import DropdownControl from 'app/components/dropdownControl';
+import MenuItem from 'app/components/menuItem';
+import Access from 'app/components/acl/access';
 
-export default class IncidentHeader extends React.Component {
+import Status from '../status';
+import {isOpen} from '../utils';
+
+export default class DetailsHeader extends React.Component {
   static propTypes = {
-    params: PropTypes.object.isRequired,
     incident: SentryTypes.Incident,
+    params: PropTypes.object.isRequired,
+    onSubscriptionChange: PropTypes.func.isRequired,
+    onStatusChange: PropTypes.func.isRequired,
   };
 
+  renderStatus() {
+    const {incident, onStatusChange} = this.props;
+
+    const isIncidentOpen = isOpen(incident);
+
+    return (
+      <Access
+        access={['org:write']}
+        renderNoAccessMessage={() => <Status incident={incident} />}
+      >
+        <DropdownControl label={<Status incident={incident} />} menuWidth="160px">
+          <StyledMenuItem onSelect={onStatusChange}>
+            {isIncidentOpen ? t('Close this incident') : t('Reopen this incident')}
+          </StyledMenuItem>
+        </DropdownControl>
+      </Access>
+    );
+  }
+
   render() {
-    const {incident, params} = this.props;
+    const {incident, params, onSubscriptionChange} = this.props;
 
     return (
       <Header>
@@ -30,18 +58,31 @@ export default class IncidentHeader extends React.Component {
               <Chevron src="icon-chevron-right" size={space(2)} />
               {params.incidentId}
             </Title>
-            <div>{incident && incident.name}</div>
+            <div>{incident && incident.title}</div>
           </PageHeading>
         </HeaderItem>
         {incident && (
           <GroupedHeaderItems>
             <HeaderItem>
+              <ItemTitle>{t('Status')}</ItemTitle>
+              <ItemValue>{this.renderStatus()}</ItemValue>
+            </HeaderItem>
+            <HeaderItem>
               <ItemTitle>{t('Event count')}</ItemTitle>
-              <ItemValue>{incident.eventCount}</ItemValue>
+              <ItemValue>{incident.totalEvents}</ItemValue>
             </HeaderItem>
             <HeaderItem>
               <ItemTitle>{t('Users affected')}</ItemTitle>
-              <ItemValue>{incident.usersAffected}</ItemValue>
+              <ItemValue>{incident.uniqueUsers}</ItemValue>
+            </HeaderItem>
+            <HeaderItem>
+              <ItemTitle>{t('Notifications')}</ItemTitle>
+              <ItemValue>
+                <SubscribeButton
+                  isSubscribed={!!incident.isSubscribed}
+                  onClick={onSubscriptionChange}
+                />
+              </ItemValue>
             </HeaderItem>
           </GroupedHeaderItems>
         )}
@@ -71,11 +112,14 @@ const ItemTitle = styled('h6')`
   text-transform: uppercase;
   color: ${p => p.theme.gray2};
   letter-spacing: 0.1px;
-  border-bottom: 1px dotted ${p => p.theme.gray2};
 `;
 
-const ItemValue = styled('span')`
+const ItemValue = styled('div')`
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
   font-size: ${p => p.theme.headerFontSize};
+  height: 34px;
 `;
 
 const Title = styled('div')`
@@ -89,4 +133,10 @@ const IncidentsLink = styled(Link)`
 const Chevron = styled(InlineSvg)`
   color: ${p => p.theme.gray1};
   margin: 0 ${space(0.5)};
+`;
+
+const StyledMenuItem = styled(MenuItem)`
+  font-size: ${p => p.theme.fontSizeMedium};
+  text-align: left;
+  padding: ${space(1)};
 `;

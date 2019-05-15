@@ -22,15 +22,15 @@ LINK_SHARED_EVENT = """{
         },
         {
             "domain": "example.com",
-            "url": "http://testserver/sentry/sentry/issues/%(group1)s/"
+            "url": "http://testserver/organizations/sentry/issues/%(group1)s/"
         },
         {
             "domain": "example.com",
-            "url": "http://testserver/sentry/sentry/issues/%(group2)s/bar/"
+            "url": "http://testserver/organizations/sentry/issues/%(group2)s/bar/"
         },
         {
             "domain": "example.com",
-            "url": "http://testserver/sentry/sentry/issues/%(group1)s/bar/"
+            "url": "http://testserver/organizations/sentry/issues/%(group1)s/bar/"
         },
         {
             "domain": "another-example.com",

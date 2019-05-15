@@ -1,7 +1,7 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import createReactClass from 'create-react-class';
-import Tooltip from 'app/components/tooltip';
+import Tooltip2 from 'app/components/tooltip2';
 import {t} from 'app/locale';
 import GuideAnchor from 'app/components/assistant/guideAnchor';
 
@@ -93,11 +93,11 @@ const CrashHeader = createReactClass({
           {this.props.title}
           <small style={{marginLeft: 5}}>
             (
-            <Tooltip title={t('Toggle stacktrace order')}>
+            <Tooltip2 title={t('Toggle stacktrace order')}>
               <a onClick={this.toggleOrder} style={{borderBottom: '1px dotted #aaa'}}>
                 {newestFirst ? t('most recent call first') : t('most recent call last')}
               </a>
-            </Tooltip>
+            </Tooltip2>
             )
           </small>
         </h3>

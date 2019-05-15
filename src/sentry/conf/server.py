@@ -236,7 +236,6 @@ MIDDLEWARE_CLASSES = (
     # TODO(dcramer): kill this once we verify its safe
     # 'sentry.middleware.social_auth.SentrySocialAuthExceptionMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
-    'sentry.middleware.tracing.SentryTracingMiddleware',
     'sentry.debug.middleware.DebugMiddleware',
 )
 
@@ -262,13 +261,13 @@ TEMPLATE_CONTEXT_PROCESSORS = (
 INSTALLED_APPS = (
     'django.contrib.admin', 'django.contrib.auth', 'django.contrib.contenttypes',
     'django.contrib.messages', 'django.contrib.sessions', 'django.contrib.sites',
-    'django.contrib.staticfiles', 'crispy_forms', 'debug_toolbar',
+    'crispy_forms', 'debug_toolbar',
     'rest_framework', 'sentry', 'sentry.analytics', 'sentry.incidents',
     'sentry.analytics.events', 'sentry.nodestore', 'sentry.search', 'sentry.lang.java',
     'sentry.lang.javascript', 'sentry.lang.native', 'sentry.plugins.sentry_interface_types',
     'sentry.plugins.sentry_mail', 'sentry.plugins.sentry_urls', 'sentry.plugins.sentry_useragents',
     'sentry.plugins.sentry_webhooks', 'social_auth', 'sudo', 'sentry.tagstore',
-    'sentry.eventstream', 'sentry.auth.providers.google',
+    'sentry.eventstream', 'sentry.auth.providers.google', 'django.contrib.staticfiles',
 )
 
 import django
@@ -799,6 +798,8 @@ SENTRY_FEATURES = {
     'organizations:advanced-search': True,
     # Enable obtaining and using API keys.
     'organizations:api-keys': False,
+    # Enable explicit use of AND and OR in search.
+    'organizations:boolean-search': False,
     # Enable creating organizations within sentry (if SENTRY_SINGLE_ORGANIZATION
     # is not enabled).
     'organizations:create': True,
@@ -1485,12 +1486,13 @@ SUDO_URL = 'sentry-sudo'
 SDK_VERSIONS = {
     'raven-js': '3.21.0',
     'raven-node': '2.3.0',
-    'raven-python': '6.4.0',
+    'raven-python': '6.10.0',
     'raven-ruby': '2.7.1',
     'sentry-cocoa': '3.11.1',
     'sentry-java': '1.6.4',
     'sentry-laravel': '0.8.0',
     'sentry-php': '1.8.2',
+    'sentry-python': '0.7.14',
 }
 
 SDK_URLS = {
@@ -1503,6 +1505,7 @@ SDK_URLS = {
     'sentry-php': 'https://docs.sentry.io/clients/php/',
     'sentry-laravel': 'https://docs.sentry.io/clients/php/integrations/laravel/',
     'sentry-swift': 'https://docs.sentry.io/clients/cocoa/',
+    'sentry-python': 'https://docs.sentry.io/platforms/python/',
 }
 
 DEPRECATED_SDKS = {
@@ -1516,6 +1519,7 @@ DEPRECATED_SDKS = {
     'raven-php': 'sentry-php',
     'sentry-android': 'raven-java',
     'sentry-swift': 'sentry-cocoa',
+    'raven-python': 'sentry-python',
 
     # The Ruby SDK used to go by the name 'sentry-raven'...
     'sentry-raven': 'raven-ruby',

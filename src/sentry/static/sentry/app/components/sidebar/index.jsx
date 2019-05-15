@@ -11,7 +11,7 @@ import queryString from 'query-string';
 
 import {extractSelectionParameters} from 'app/components/organizations/globalSelectionHeader/utils';
 import {hideSidebar, showSidebar} from 'app/actionCreators/preferences';
-import {load as loadIncidents} from 'app/actionCreators/incidents';
+import {load as loadIncidents} from 'app/actionCreators/serviceIncidents';
 import {t} from 'app/locale';
 import ConfigStore from 'app/stores/configStore';
 import Feature from 'app/components/acl/feature';
@@ -295,6 +295,22 @@ class Sidebar extends React.Component {
                     label={t('Events')}
                     to={`/organizations/${organization.slug}/events/`}
                     id="events"
+                  />
+                </Feature>
+
+                <Feature features={['incidents']} organization={organization}>
+                  <SidebarItem
+                    {...sidebarItemProps}
+                    onClick={(_id, evt) =>
+                      this.navigateWithGlobalSelection(
+                        `/organizations/${organization.slug}/incidents/`,
+                        evt
+                      )
+                    }
+                    icon={<InlineSvg src="icon-incidents" />}
+                    label={t('Incidents')}
+                    to={`/organizations/${organization.slug}/incidents/`}
+                    id="incidents"
                   />
                 </Feature>
 

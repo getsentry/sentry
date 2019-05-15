@@ -1,11 +1,12 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import createReactClass from 'create-react-class';
-import {t} from 'app/locale';
 
-import withApi from 'app/utils/withApi';
-import OrganizationState from 'app/mixins/organizationState';
+import {t} from 'app/locale';
+import SentryTypes from 'app/sentryTypes';
 import TodoItem from 'app/components/onboardingWizard/toDoItem';
+import withApi from 'app/utils/withApi';
+import withOrganization from 'app/utils/withOrganization';
 
 const TASKS = [
   {
@@ -138,9 +139,8 @@ const TodoList = createReactClass({
 
   propTypes: {
     api: PropTypes.object,
+    organization: SentryTypes.Organization,
   },
-
-  mixins: [OrganizationState],
 
   getInitialState() {
     return {
@@ -151,11 +151,11 @@ const TodoList = createReactClass({
 
   componentWillMount() {
     // Map server task state (who finished what) to TodoList.TASK objects
-    const org = this.getOrganization();
+    const org = this.props.organization;
     const tasks = TASKS.map(task => {
-      for (const server_task of org.onboardingTasks) {
-        if (server_task.task == task.task) {
-          Object.assign(task, server_task);
+      for (const serverTask of org.onboardingTasks) {
+        if (serverTask.task == task.task) {
+          Object.assign(task, serverTask);
           break;
         }
       }
@@ -164,22 +164,21 @@ const TodoList = createReactClass({
     this.setState({tasks});
   },
 
-  skipTask(skipped_task) {
-    const org = this.getOrganization();
+  skipTask(skippedTask) {
+    const org = this.props.organization;
     this.props.api.request('/organizations/' + org.slug + '/onboarding-tasks/', {
       method: 'POST',
-      data: {task: skipped_task, status: 'skipped'},
+      data: {task: skippedTask, status: 'skipped'},
       success: () => {
-        const new_state = this.state.tasks.map(task => {
-          if (task.task == skipped_task) {
+        const newState = this.state.tasks.map(task => {
+          if (task.task == skippedTask) {
             task.status = 'skipped';
           }
           return task;
         });
-        this.setState({tasks: new_state});
+        this.setState({tasks: newState});
       },
     });
-    this.getOnboardingTasks();
   },
 
   render() {
@@ -201,4 +200,4 @@ const TodoList = createReactClass({
 
 export {TodoList, TASKS};
 
-export default withApi(TodoList);
+export default withApi(withOrganization(TodoList));

@@ -8,7 +8,6 @@ import SentryTypes from 'app/sentryTypes';
 import Access from 'app/components/acl/access';
 import Feature from 'app/components/acl/feature';
 import Button from 'app/components/button';
-import Tooltip from 'app/components/tooltip';
 import {createSavedSearch} from 'app/actionCreators/savedSearches';
 import {addLoadingMessage, clearIndicators} from 'app/actionCreators/indicator';
 import {TextField} from 'app/components/forms';
@@ -94,17 +93,16 @@ class CreateSavedSearchButton extends React.Component {
     return (
       <Feature organization={organization} features={['sentry10']}>
         <Access organization={organization} access={['org:write']}>
-          <Tooltip title={t('Add to organization filter list')}>
-            <StyledButton
-              size="zero"
-              borderless
-              type="button"
-              onClick={this.onToggle}
-              data-test-id="save-current-search"
-              aria-label={t('Add to organization filter list')}
-              icon="icon-add-to-list"
-            />
-          </Tooltip>
+          <StyledButton
+            title={t('Add to organization filter list')}
+            size="zero"
+            borderless
+            type="button"
+            onClick={this.onToggle}
+            data-test-id="save-current-search"
+            aria-label={t('Add to organization filter list')}
+            icon="icon-add-to-list"
+          />
           <Modal show={isModalOpen} animation={false} onHide={this.onToggle}>
             <form onSubmit={this.onSubmit}>
               <div className="modal-header">

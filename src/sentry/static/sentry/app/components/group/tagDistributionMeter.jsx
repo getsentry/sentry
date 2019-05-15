@@ -5,14 +5,14 @@ import createReactClass from 'create-react-class';
 import styled from 'react-emotion';
 import isPropValid from '@emotion/is-prop-valid';
 
-import {escape, percent} from 'app/utils';
+import {percent} from 'app/utils';
 import {t} from 'app/locale';
 import DeviceName, {
   deviceNameMapper,
   loadDeviceListModule,
 } from 'app/components/deviceName';
 import SentryTypes from 'app/sentryTypes';
-import Tooltip from 'app/components/tooltip';
+import Tooltip2 from 'app/components/tooltip2';
 import withEnvironment from 'app/utils/withEnvironment';
 
 const TagDistributionMeter = createReactClass({
@@ -108,15 +108,17 @@ const TagDistributionMeter = createReactClass({
           const pct = percent(value.count, totalValues);
           const pctLabel = Math.floor(pct);
 
-          const tooltipHtml =
-            '<div class="truncate">' +
-            escape(deviceNameMapper(value.name || '', this.state.iOSDeviceList) || '') +
-            '</div>' +
-            pctLabel +
-            '%';
+          const tooltipHtml = (
+            <React.Fragment>
+              <div className="truncate">
+                {deviceNameMapper(value.name || '', this.state.iOSDeviceList) || ''}
+              </div>
+              {pctLabel}%
+            </React.Fragment>
+          );
 
           return (
-            <Tooltip key={value.value} title={tooltipHtml} tooltipOptions={{html: true}}>
+            <Tooltip2 key={value.value} title={tooltipHtml} containerDisplayMode="inline">
               <Segment
                 style={{width: pct + '%'}}
                 to={url}
@@ -131,14 +133,20 @@ const TagDistributionMeter = createReactClass({
                   </Label>
                 </Description>
               </Segment>
-            </Tooltip>
+            </Tooltip2>
           );
         })}
         {hasOther && (
-          <Tooltip
+          <Tooltip2
             key="other"
-            title={`Other<br/>${otherPctLabel}%`}
-            tooltipOptions={{html: true}}
+            containerDisplayMode="inline"
+            title={
+              <React.Fragment>
+                Other
+                <br />
+                {otherPctLabel}%
+              </React.Fragment>
+            }
           >
             <Segment
               index={9}
@@ -152,7 +160,7 @@ const TagDistributionMeter = createReactClass({
                 <Label>{t('Other')}</Label>
               </Description>
             </Segment>
-          </Tooltip>
+          </Tooltip2>
         )}
       </React.Fragment>
     );

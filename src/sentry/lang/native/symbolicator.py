@@ -14,7 +14,7 @@ from sentry import options
 from sentry.auth.system import get_system_token
 from sentry.cache import default_cache
 from sentry.lang.native.symbolizer import SymbolicationFailed
-from sentry.lang.native.utils import image_name
+from sentry.lang.native.utils import image_name, handle_symbolication_failed
 from sentry.models.eventerror import EventError
 from sentry.utils import json, metrics
 from sentry.utils.in_app import is_known_third_party, is_optional_package
@@ -226,7 +226,49 @@ def get_sources_for_project(project):
     return sources
 
 
-def run_symbolicator(stacktraces, modules, project, arch, signal, request_id_cache_key):
+def _get_default_headers(project_id):
+    # Required for load balancing
+    return {'x-sentry-project-id': project_id}
+
+
+def create_minidump_task(sess, base_url, project_id, sources, minidump):
+    files = {
+        'upload_file_minidump': minidump,
+    }
+
+    data = {
+        'sources': json.dumps(sources)
+    }
+
+    url = '{base_url}/minidump?timeout={timeout}&scope={scope}'.format(
+        base_url=base_url,
+        timeout=SYMBOLICATOR_TIMEOUT,
+        scope=project_id
+    )
+
+    return sess.post(url, data=data, files=files, headers=_get_default_headers(project_id))
+
+
+def create_payload_task(sess, base_url, project_id, sources, signal,
+                        stacktraces, modules):
+    request = {
+        'signal': signal,
+        'sources': sources,
+        'request': {
+            'timeout': SYMBOLICATOR_TIMEOUT,
+        },
+        'stacktraces': stacktraces,
+        'modules': modules,
+    }
+    url = '{base_url}/symbolicate?timeout={timeout}&scope={scope}'.format(
+        base_url=base_url,
+        timeout=SYMBOLICATOR_TIMEOUT,
+        scope=project_id,
+    )
+    return sess.post(url, json=request, headers=_get_default_headers(project_id))
+
+
+def run_symbolicator(project, request_id_cache_key, create_task=create_payload_task, **kwargs):
     symbolicator_options = options.get('symbolicator.options')
     base_url = symbolicator_options['url'].rstrip('/')
     assert base_url
@@ -247,16 +289,17 @@ def run_symbolicator(stacktraces, modules, project, arch, signal, request_id_cac
                 if request_id:
                     rv = _poll_symbolication_task(
                         sess=sess, base_url=base_url,
-                        request_id=request_id
+                        request_id=request_id, project_id=project_id,
                     )
                 else:
                     if sources is None:
                         sources = get_sources_for_project(project)
 
-                    rv = _create_symbolication_task(
+                    rv = create_task(
                         sess=sess, base_url=base_url,
-                        project_id=project_id, sources=sources,
-                        signal=signal, stacktraces=stacktraces, modules=modules
+                        project_id=project_id,
+                        sources=sources,
+                        **kwargs
                     )
 
                 metrics.incr('events.symbolicator.status_code', tags={
@@ -284,14 +327,9 @@ def run_symbolicator(stacktraces, modules, project, arch, signal, request_id_cac
                         json['request_id'],
                         REQUEST_CACHE_TIMEOUT)
                     raise RetrySymbolication(retry_after=json['retry_after'])
-                elif json['status'] == 'completed':
-                    default_cache.delete(request_id_cache_key)
-                    return rv.json()
                 else:
-                    logger.error("Unexpected status: %s", json['status'])
-
                     default_cache.delete(request_id_cache_key)
-                    return
+                    return json
 
             except (IOError, RequestException):
                 attempts += 1
@@ -305,32 +343,28 @@ def run_symbolicator(stacktraces, modules, project, arch, signal, request_id_cac
                 wait *= 2.0
 
 
-def _poll_symbolication_task(sess, base_url, request_id):
+def handle_symbolicator_response_status(event_data, response_json):
+    if not response_json:
+        error = SymbolicationFailed(type=EventError.NATIVE_INTERNAL_FAILURE)
+    elif response_json['status'] == 'completed':
+        return True
+    elif response_json['status'] == 'failed':
+        error = SymbolicationFailed(message=response_json.get('message') or None,
+                                    type=EventError.NATIVE_SYMBOLICATOR_FAILED)
+    else:
+        logger.error('Unexpected symbolicator status: %s', response_json['status'])
+        error = SymbolicationFailed(type=EventError.NATIVE_INTERNAL_FAILURE)
+
+    handle_symbolication_failed(error, data=event_data)
+
+
+def _poll_symbolication_task(sess, base_url, request_id, project_id):
     url = '{base_url}/requests/{request_id}?timeout={timeout}'.format(
         base_url=base_url,
         request_id=request_id,
         timeout=SYMBOLICATOR_TIMEOUT,
     )
-    return sess.get(url)
-
-
-def _create_symbolication_task(sess, base_url, project_id, sources,
-                               signal, stacktraces, modules):
-    request = {
-        'signal': signal,
-        'sources': sources,
-        'request': {
-            'timeout': SYMBOLICATOR_TIMEOUT,
-        },
-        'stacktraces': stacktraces,
-        'modules': modules,
-    }
-    url = '{base_url}/symbolicate?timeout={timeout}&scope={scope}'.format(
-        base_url=base_url,
-        timeout=SYMBOLICATOR_TIMEOUT,
-        scope=project_id,
-    )
-    return sess.post(url, json=request)
+    return sess.get(url, headers=_get_default_headers(project_id))
 
 
 def merge_symbolicator_image(raw_image, complete_image, sdk_info, handle_symbolication_failed):

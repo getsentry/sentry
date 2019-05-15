@@ -619,21 +619,6 @@ class DIFCache(object):
             return cficaches, dict((k, v) for k, v in conversion_errors.items())
         return cficaches
 
-    def generate_caches(self, project, dif, filepath=None):
-        """Generates a SymCache and CfiCache for the given debug information
-        file if it supports these formats. Otherwise, a no - op. The caches are
-        computed sequentially.
-        The first error to occur is returned, otherwise None.
-        """
-        if not dif.supports_caches:
-            return None
-
-        if filepath:
-            return self._generate_caches_impl(dif, filepath)
-
-        with dif.file.getfile(as_tempfile=True) as tf:
-            return self._generate_caches_impl(dif, tf.name)
-
     def fetch_difs(self, project, debug_ids, features=None):
         """Given some ids returns an id to path mapping for where the
         debug symbol files are on the FS.
@@ -653,26 +638,6 @@ class DIFCache(object):
             rv[debug_id] = dif_path
 
         return rv
-
-    def _generate_caches_impl(self, dif, filepath):
-        _, _, error = self._update_cachefile(dif, filepath, ProjectSymCacheFile)
-        if error is not None:
-            return error
-
-        _, _, error = self._update_cachefile(dif, filepath, ProjectCfiCacheFile)
-
-        # CFI generation will never fail to the user.  We instead log it here
-        # for reference only.  This is because we have currently limited trust
-        # in our CFI generation and even without CFI information we can
-        # continue processing stacktraces.
-        if error is not None:
-            logger.warning('dsymfile.cfi-generation-failed', extra=dict(
-                error=error,
-                debug_id=dif.debug_id
-            ))
-            return None
-
-        return None
 
     def _get_caches_impl(self, project, debug_ids, cls, on_dif_referenced=None):
         # Fetch debug files first and invoke the callback if we need

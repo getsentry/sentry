@@ -3,12 +3,15 @@ from __future__ import absolute_import
 import re
 import six
 import logging
+import posixpath
 
 from collections import namedtuple
 from symbolic import parse_addr
 
 from sentry.interfaces.contexts import DeviceContextType
-from sentry.utils.safe import get_path
+from sentry.reprocessing import report_processing_issue
+from sentry.stacktraces.functions import trim_function_name
+from sentry.utils.safe import get_path, trim
 
 logger = logging.getLogger(__name__)
 
@@ -90,3 +93,67 @@ def signal_from_data(data):
         return int(signal)
 
     return None
+
+
+def merge_symbolicated_frame(new_frame, sfrm, platform=None):
+    if sfrm.get('function'):
+        raw_func = trim(sfrm['function'], 256)
+        func = trim(trim_function_name(sfrm['function'], platform), 256)
+
+        # if function and raw function match, we can get away without
+        # storing a raw function
+        if func == raw_func:
+            new_frame['function'] = raw_func
+        # otherwise we store both
+        else:
+            new_frame['raw_function'] = raw_func
+            new_frame['function'] = func
+    if sfrm.get('instruction_addr'):
+        new_frame['instruction_addr'] = sfrm['instruction_addr']
+    if sfrm.get('symbol'):
+        new_frame['symbol'] = sfrm['symbol']
+    if sfrm.get('abs_path'):
+        new_frame['abs_path'] = sfrm['abs_path']
+        new_frame['filename'] = posixpath.basename(sfrm['abs_path'])
+    if sfrm.get('filename'):
+        new_frame['filename'] = sfrm['filename']
+    if sfrm.get('lineno'):
+        new_frame['lineno'] = sfrm['lineno']
+    if sfrm.get('colno'):
+        new_frame['colno'] = sfrm['colno']
+    if sfrm.get('package'):
+        new_frame['package'] = sfrm['package']
+    if sfrm.get('trust'):
+        new_frame['trust'] = sfrm['trust']
+    if sfrm.get('status'):
+        frame_meta = new_frame.setdefault('data', {})
+        frame_meta['symbolicator_status'] = sfrm['status']
+
+
+def handle_symbolication_failed(e, data, errors=None):
+    # User fixable but fatal errors are reported as processing
+    # issues
+    if e.is_user_fixable and e.is_fatal:
+        report_processing_issue(
+            data,
+            scope='native',
+            object='dsym:%s' % e.image_uuid,
+            type=e.type,
+            data=e.get_data()
+        )
+
+    # This in many ways currently does not really do anything.
+    # The reason is that once a processing issue is reported
+    # the event will only be stored as a raw event and no
+    # group will be generated.  As a result it also means that
+    # we will not have any user facing event or error showing
+    # up at all.  We want to keep this here though in case we
+    # do not want to report some processing issues (eg:
+    # optional difs)
+    if e.is_user_fixable or e.is_sdk_failure:
+        if errors is None:
+            errors = data.setdefault('errors', [])
+        errors.append(e.get_data())
+    else:
+        logger.debug('Failed to symbolicate with native backend',
+                     exc_info=True)

@@ -1,27 +1,28 @@
 import {browserHistory} from 'react-router';
 import {omit, isEqual, sortBy} from 'lodash';
 import Cookies from 'js-cookie';
+import DocumentTitle from 'react-document-title';
 import PropTypes from 'prop-types';
 import React from 'react';
 import Reflux from 'reflux';
 import classNames from 'classnames';
 import createReactClass from 'create-react-class';
-import DocumentTitle from 'react-document-title';
 import qs from 'query-string';
 
 import {Panel, PanelBody} from 'app/components/panels';
 import {analytics} from 'app/utils/analytics';
+import {fetchProjectSavedSearches} from 'app/actionCreators/savedSearches';
+import {fetchProjectTagValues} from 'app/actionCreators/tags';
 import {
   setActiveEnvironment,
   setActiveEnvironmentName,
 } from 'app/actionCreators/environments';
 import {t, tct} from 'app/locale';
-import withApi from 'app/utils/withApi';
 import ConfigStore from 'app/stores/configStore';
+import EmptyStateWarning from 'app/components/emptyStateWarning';
 import EnvironmentStore from 'app/stores/environmentStore';
 import ErrorRobot from 'app/components/errorRobot';
-import {fetchProjectSavedSearches} from 'app/actionCreators/savedSearches';
-import {fetchProjectTagValues} from 'app/actionCreators/tags';
+import Feature from 'app/components/acl/feature';
 import GroupStore from 'app/stores/groupStore';
 import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
@@ -30,7 +31,6 @@ import ProcessingIssueList from 'app/components/stream/processingIssueList';
 import ProjectState from 'app/mixins/projectState';
 import SentryTypes from 'app/sentryTypes';
 import StreamActions from 'app/views/stream/actions';
-import EmptyStateWarning from 'app/components/emptyStateWarning';
 import StreamFilters from 'app/views/stream/filters';
 import StreamGroup from 'app/components/stream/group';
 import StreamSidebar from 'app/views/stream/sidebar';
@@ -38,6 +38,7 @@ import parseApiError from 'app/utils/parseApiError';
 import parseLinkHeader from 'app/utils/parseLinkHeader';
 import queryString from 'app/utils/queryString';
 import utils from 'app/utils';
+import withApi from 'app/utils/withApi';
 
 const MAX_ITEMS = 25;
 const DEFAULT_SORT = 'date';
@@ -678,7 +679,6 @@ const Stream = createReactClass({
     const {organization} = this.context;
 
     const searchId = this.state.searchId;
-    const projectFeatures = this.getProjectFeatures();
     const project = this.getProject();
 
     // for compatibility with new filters/stream component
@@ -713,22 +713,30 @@ const Stream = createReactClass({
               tags={this.props.tags}
             />
             <Panel>
-              <StreamActions
-                orgId={organization.slug}
-                projectId={project.slug}
-                selection={selection}
-                hasReleases={projectFeatures.has('releases')}
-                latestRelease={this.context.project.latestRelease}
-                environment={this.state.environment}
-                query={this.state.query}
-                queryCount={this.state.queryCount}
-                onSelectStatsPeriod={this.onSelectStatsPeriod}
-                onRealtimeChange={this.onRealtimeChange}
-                realtimeActive={this.state.realtimeActive}
-                statsPeriod={this.state.statsPeriod}
-                groupIds={this.state.groupIds}
-                allResultsVisible={this.allResultsVisible()}
-              />
+              <Feature
+                features={['projects:releases']}
+                organization={organization}
+                project={project}
+              >
+                {({hasFeature}) => (
+                  <StreamActions
+                    orgId={organization.slug}
+                    projectId={project.slug}
+                    selection={selection}
+                    hasReleases={hasFeature}
+                    latestRelease={this.context.project.latestRelease}
+                    environment={this.state.environment}
+                    query={this.state.query}
+                    queryCount={this.state.queryCount}
+                    onSelectStatsPeriod={this.onSelectStatsPeriod}
+                    onRealtimeChange={this.onRealtimeChange}
+                    realtimeActive={this.state.realtimeActive}
+                    statsPeriod={this.state.statsPeriod}
+                    groupIds={this.state.groupIds}
+                    allResultsVisible={this.allResultsVisible()}
+                  />
+                )}
+              </Feature>
               <PanelBody>
                 <ProcessingIssueList
                   organization={organization}

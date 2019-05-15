@@ -1,7 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import Avatar from 'app/components/avatar';
-import Tooltip from 'app/components/tooltip';
+import AvatarList from 'app/components/avatar/avatarList';
 import InlineSvg from 'app/components/inlineSvg';
 
 class FileChange extends React.PureComponent {
@@ -26,16 +25,8 @@ class FileChange extends React.PureComponent {
             <InlineSvg src="icon-file" className="icon-file-generic" size="15" />
             {filename}
           </div>
-          <div className="col-sm-2 avatar-grid align-right">
-            {authors.map((author, i) => {
-              return (
-                <Tooltip key={i} title={`${author.name} ${author.email}`}>
-                  <span className="avatar-grid-item m-b-0">
-                    <Avatar user={author} />
-                  </span>
-                </Tooltip>
-              );
-            })}
+          <div className="col-sm-2 align-right">
+            <AvatarList users={authors} avatarSize={25} typeMember="authors" />
           </div>
         </div>
       </li>

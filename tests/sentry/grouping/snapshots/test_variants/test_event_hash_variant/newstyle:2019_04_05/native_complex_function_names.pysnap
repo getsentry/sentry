@@ -1,5 +1,5 @@
 ---
-created: '2019-04-09T18:49:36.714864Z'
+created: '2019-05-11T09:56:05.696521Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -15,11 +15,14 @@ app:
           frame (non app frame)
             function* (isolated function)
               u'Scaleform::GFx::AS3::IMEManager::DispatchEvent'
+          frame (non app frame)
+            function*
+              u'<lambda_5db80dab47756d3e72c2dcd38b80b1dd>::operator()'
         type (ignored because exception is synthetic)
           u'log_demo'
 --------------------------------------------------------------------------
 system:
-  hash: '9b78cced1eefcd0c655a0a3d8ce2cdd2'
+  hash: 'e4dcc3896f798a517fb40f50daace658'
   component:
     system*
       exception*
@@ -30,5 +33,8 @@ system:
           frame*
             function* (isolated function)
               u'Scaleform::GFx::AS3::IMEManager::DispatchEvent'
+          frame*
+            function*
+              u'<lambda_5db80dab47756d3e72c2dcd38b80b1dd>::operator()'
         type (ignored because exception is synthetic)
           u'log_demo'

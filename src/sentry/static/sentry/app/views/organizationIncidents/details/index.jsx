@@ -1,14 +1,22 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 
+import {addErrorMessage} from 'app/actionCreators/indicator';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import LoadingError from 'app/components/loadingError';
 import {PageContent} from 'app/styles/organization';
 import withApi from 'app/utils/withApi';
+import {t} from 'app/locale';
 
-import IncidentHeader from './header';
-import Incidents from './incidents';
-import {fetchIncident} from '../utils';
+import DetailsHeader from './header';
+import DetailsBody from './body';
+import {
+  INCIDENT_STATUS,
+  fetchIncident,
+  updateSubscription,
+  updateStatus,
+  isOpen,
+} from '../utils';
 
 class OrganizationIncidentDetails extends React.Component {
   static propTypes = {
@@ -24,7 +32,7 @@ class OrganizationIncidentDetails extends React.Component {
     this.fetchData();
   }
 
-  fetchData() {
+  fetchData = () => {
     this.setState({isLoading: true, hasError: false});
     const {
       api,
@@ -38,14 +46,68 @@ class OrganizationIncidentDetails extends React.Component {
       .catch(() => {
         this.setState({isLoading: false, hasError: true});
       });
-  }
+  };
+
+  handleSubscriptionChange = () => {
+    const {
+      api,
+      params: {orgId, incidentId},
+    } = this.props;
+
+    const isSubscribed = this.state.incident.isSubscribed;
+
+    const newIsSubscribed = !isSubscribed;
+
+    this.setState(state => ({
+      incident: {...state.incident, isSubscribed: newIsSubscribed},
+    }));
+
+    updateSubscription(api, orgId, incidentId, isSubscribed).catch(() => {
+      this.setState(state => ({
+        incident: {...state.incident, isSubscribed},
+      }));
+      addErrorMessage(t('An error occurred, your subscription status was not changed.'));
+    });
+  };
+
+  handleStatusChange = () => {
+    const {
+      api,
+      params: {orgId, incidentId},
+    } = this.props;
+
+    const {status} = this.state.incident;
+
+    const newStatus = isOpen(this.state.incident)
+      ? INCIDENT_STATUS.CLOSED
+      : INCIDENT_STATUS.CREATED;
+
+    this.setState(state => ({
+      incident: {...state.incident, newStatus},
+    }));
+
+    updateStatus(api, orgId, incidentId, status).catch(() => {
+      this.setState(state => ({
+        incident: {...state.incident, status},
+      }));
+
+      addErrorMessage(t('An error occurred, your incident status was not changed.'));
+    });
+  };
 
   render() {
     const {incident, isLoading, hasError} = this.state;
+    const {params} = this.props;
+
     return (
       <React.Fragment>
-        <IncidentHeader params={this.props.params} incident={incident} />
-        {incident && <Incidents incident={incident} />}
+        <DetailsHeader
+          params={params}
+          incident={incident}
+          onSubscriptionChange={this.handleSubscriptionChange}
+          onStatusChange={this.handleStatusChange}
+        />
+        <DetailsBody params={params} incident={incident} />
         {isLoading && (
           <PageContent>
             <LoadingIndicator />

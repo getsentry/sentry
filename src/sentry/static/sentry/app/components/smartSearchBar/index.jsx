@@ -23,7 +23,6 @@ import CreateSavedSearchButton from 'app/views/stream/createSavedSearchButton';
 import InlineSvg from 'app/components/inlineSvg';
 import MemberListStore from 'app/stores/memberListStore';
 import SentryTypes from 'app/sentryTypes';
-import Tooltip from 'app/components/tooltip';
 import space from 'app/styles/space';
 import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
@@ -117,6 +116,10 @@ class SmartSearchBar extends React.Component {
     // This is because we don't want to treat environment as a tag in some places
     // such as the stream view where it is a top level concept
     excludeEnvironment: PropTypes.bool,
+  };
+
+  static contextTypes = {
+    router: PropTypes.object,
   };
 
   /**
@@ -536,6 +539,8 @@ class SmartSearchBar extends React.Component {
       pinnedSearch,
     } = this.props;
 
+    const {router} = this.context;
+
     evt.preventDefault();
     evt.stopPropagation();
 
@@ -543,11 +548,18 @@ class SmartSearchBar extends React.Component {
       return;
     }
 
+    // eslint-disable-next-line no-unused-vars
+    const {cursor: _cursor, page: _page, ...currentQuery} = router.location.query;
+
     if (!!pinnedSearch) {
       unpinSearch(api, organization.slug, savedSearchType, pinnedSearch).then(() => {
         browserHistory.push({
+          ...router.location,
           pathname: `/organizations/${organization.slug}/issues/`,
-          query: {query: pinnedSearch.query},
+          query: {
+            ...currentQuery,
+            query: pinnedSearch.query,
+          },
         });
       });
     } else {
@@ -558,9 +570,11 @@ class SmartSearchBar extends React.Component {
         removeSpace(this.state.query)
       ).then(resp => {
         if (resp && resp.id) {
-          browserHistory.push(
-            `/organizations/${organization.slug}/issues/searches/${resp.id}/`
-          );
+          browserHistory.push({
+            ...router.location,
+            pathname: `/organizations/${organization.slug}/issues/searches/${resp.id}/`,
+            query: currentQuery,
+          });
         }
       });
     }
@@ -609,10 +623,13 @@ class SmartSearchBar extends React.Component {
         const [nextGroupIndex, nextChildrenIndex] =
           findSearchItemByIndex(searchItems, nextActiveSearchItem) || [];
 
-        searchItems[nextGroupIndex].children[nextChildrenIndex] = {
-          ...searchItems[nextGroupIndex].children[nextChildrenIndex],
-          active: true,
-        };
+        // Make sure search items exist (e.g. both groups could be empty)
+        if (searchItems[nextGroupIndex] && searchItems[nextGroupIndex].children) {
+          searchItems[nextGroupIndex].children[nextChildrenIndex] = {
+            ...searchItems[nextGroupIndex].children[nextChildrenIndex],
+            active: true,
+          };
+        }
 
         return {
           activeSearchItem: nextActiveSearchItem,
@@ -752,18 +769,18 @@ class SmartSearchBar extends React.Component {
               query={this.state.query}
               organization={organization}
             />
-            <Tooltip title={pinTooltip}>
-              <Button
-                type="button"
-                borderless
-                aria-label={pinTooltip}
-                size="zero"
-                onClick={this.onTogglePinnedSearch}
-              >
-                <PinIcon isPinned={!!pinnedSearch} src={pinIconSrc} />
-              </Button>
-            </Tooltip>
+            <Button
+              type="button"
+              title={pinTooltip}
+              borderless
+              aria-label={pinTooltip}
+              size="zero"
+              onClick={this.onTogglePinnedSearch}
+            >
+              <PinIcon isPinned={!!pinnedSearch} src={pinIconSrc} />
+            </Button>
             <SidebarButton
+              title={t('Toggle search builder')}
               borderless
               size="zero"
               aria-label={t('Toggle search builder')}
@@ -879,6 +896,7 @@ const Container = styled('div')`
 
 const ButtonBar = styled('div')`
   display: flex;
+  padding-top: 9px;
   justify-content: flex-end;
   margin-right: ${space(1)};
 
@@ -909,7 +927,8 @@ const StyledInput = styled('input')`
 
   font-size: ${p => p.theme.fontSizeMedium};
   width: 100%;
-  height: 100%;
+  height: 40px;
+  line-height: 40px;
   padding: 0 0 0 ${space(1)};
 
   &::placeholder {

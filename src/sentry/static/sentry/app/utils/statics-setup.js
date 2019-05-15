@@ -1,4 +1,7 @@
 /* eslint no-native-reassign:0 */
+
+// This (global) errors for some reason :|
+/* eslint-disable-next-line no-unused-vars */
 /* global __webpack_public_path__ */
 
 /**

@@ -3,6 +3,7 @@ from __future__ import absolute_import
 from django.core.urlresolvers import reverse
 
 from sentry.testutils import APITestCase
+import responses
 
 
 class SentryAppInstallationDetailsTest(APITestCase):
@@ -72,7 +73,12 @@ class GetSentryAppInstallationDetailsTest(SentryAppInstallationDetailsTest):
 
 
 class DeleteSentryAppInstallationDetailsTest(SentryAppInstallationDetailsTest):
+    @responses.activate
     def test_delete_install(self):
+        responses.add(
+            url='https://example.com/webhook',
+            method=responses.POST,
+            body={})
         self.login_as(user=self.user)
         response = self.client.delete(self.url, format='json')
 

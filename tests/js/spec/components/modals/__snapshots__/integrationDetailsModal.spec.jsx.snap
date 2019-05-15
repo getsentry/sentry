@@ -298,7 +298,7 @@ exports[`IntegrationDetailsModal renders simple integration 1`] = `
               className="css-roynbj"
               is={null}
             >
-              <ExternalLink
+              <ForwardRef
                 href="http://example.com/integration_source_url"
                 rel="noreferrer noopener"
                 target="_blank"
@@ -310,8 +310,8 @@ exports[`IntegrationDetailsModal renders simple integration 1`] = `
                 >
                   View Source
                 </a>
-              </ExternalLink>
-              <ExternalLink
+              </ForwardRef>
+              <ForwardRef
                 href="http://example.com/integration_issue_url"
                 rel="noreferrer noopener"
                 target="_blank"
@@ -323,7 +323,7 @@ exports[`IntegrationDetailsModal renders simple integration 1`] = `
                 >
                   Report Issue
                 </a>
-              </ExternalLink>
+              </ForwardRef>
             </div>
           </Base>
         </Box>
@@ -628,8 +628,10 @@ exports[`IntegrationDetailsModal renders simple integration 1`] = `
             renderNoAccessMessage={false}
             requireAll={true}
           >
-            <Tooltip
+            <Tooltip2
+              containerDisplayMode="inline-block"
               disabled={true}
+              position="top"
               title="You must be an Owner, Manager or Admin to install this."
             >
               <AddButton
@@ -683,8 +685,10 @@ exports[`IntegrationDetailsModal renders simple integration 1`] = `
                     }
                   }
                 >
-                  <Tooltip
+                  <Tooltip2
+                    containerDisplayMode="inline-block"
                     disabled={true}
+                    position="top"
                     title="Integration cannot be added on Sentry. Enable this integration via the GitHub instance."
                   >
                     <AddIntegration
@@ -803,10 +807,10 @@ exports[`IntegrationDetailsModal renders simple integration 1`] = `
                         </StyledButton>
                       </Button>
                     </AddIntegration>
-                  </Tooltip>
+                  </Tooltip2>
                 </AddIntegrationButton>
               </AddButton>
-            </Tooltip>
+            </Tooltip2>
           </Access>
         </AccessContainer>
       </withConfig(AccessContainer)>

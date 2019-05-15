@@ -5,7 +5,7 @@ from django.core.urlresolvers import reverse
 from ua_parser.user_agent_parser import Parse
 
 from sentry.filters.legacy_browsers import LegacyBrowsersFilter
-from sentry.models import ProjectOption
+from sentry.models import ProjectOption, AuditLogEntry, AuditLogEntryEvent
 from sentry.testutils import APITestCase, TestCase
 from sentry.utils.canonical import CanonicalKeyView
 
@@ -110,6 +110,11 @@ class SetLegacyBrowserFilterTest(APITestCase):
         options = ProjectOption.objects.get_value(project=project, key='filters:legacy-browsers')
         assert options == {'opera_pre_15'}
 
+        assert AuditLogEntry.objects.filter(
+            organization=project.organization,
+            event=AuditLogEntryEvent.PROJECT_ENABLE,
+        ).exists()
+
     def test_set_opera_mini(self):
         self.login_as(user=self.user)
         project = self.create_project()
@@ -127,6 +132,11 @@ class SetLegacyBrowserFilterTest(APITestCase):
 
         options = ProjectOption.objects.get_value(project=project, key='filters:legacy-browsers')
         assert options == {'opera_mini_pre_8'}
+
+        assert AuditLogEntry.objects.filter(
+            organization=project.organization,
+            event=AuditLogEntryEvent.PROJECT_ENABLE,
+        ).exists()
 
     def test_set_ie9(self):
         self.login_as(user=self.user)
@@ -146,6 +156,11 @@ class SetLegacyBrowserFilterTest(APITestCase):
         options = ProjectOption.objects.get_value(project=project, key='filters:legacy-browsers')
         assert options == {'ie9'}
 
+        assert AuditLogEntry.objects.filter(
+            organization=project.organization,
+            event=AuditLogEntryEvent.PROJECT_ENABLE,
+        ).exists()
+
     def test_set_ie8(self):
         self.login_as(user=self.user)
         project = self.create_project()
@@ -163,6 +178,11 @@ class SetLegacyBrowserFilterTest(APITestCase):
 
         options = ProjectOption.objects.get_value(project=project, key='filters:legacy-browsers')
         assert options == {'ie_pre_9'}
+
+        assert AuditLogEntry.objects.filter(
+            organization=project.organization,
+            event=AuditLogEntryEvent.PROJECT_ENABLE,
+        ).exists()
 
     def test_set_android(self):
         self.login_as(user=self.user)
@@ -182,6 +202,11 @@ class SetLegacyBrowserFilterTest(APITestCase):
         options = ProjectOption.objects.get_value(project=project, key='filters:legacy-browsers')
         assert options == {'android_pre_4'}
 
+        assert AuditLogEntry.objects.filter(
+            organization=project.organization,
+            event=AuditLogEntryEvent.PROJECT_ENABLE,
+        ).exists()
+
     def test_set_safari(self):
         self.login_as(user=self.user)
         project = self.create_project()
@@ -199,6 +224,11 @@ class SetLegacyBrowserFilterTest(APITestCase):
 
         options = ProjectOption.objects.get_value(project=project, key='filters:legacy-browsers')
         assert options == {'safari_pre_6'}
+
+        assert AuditLogEntry.objects.filter(
+            organization=project.organization,
+            event=AuditLogEntryEvent.PROJECT_ENABLE,
+        ).exists()
 
 
 class LegacyBrowsersFilterTest(TestCase):

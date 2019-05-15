@@ -1,13 +1,12 @@
 import React from 'react';
 import moment from 'moment';
-import _ from 'lodash';
 import styled from 'react-emotion';
 
 import SentryTypes from 'app/sentryTypes';
 import ConfigStore from 'app/stores/configStore';
 import AvatarList from 'app/components/avatar/avatarList';
 import {userDisplayName} from 'app/utils/formatters';
-import Tooltip from 'app/components/tooltip';
+import Tooltip2 from 'app/components/tooltip2';
 import {t} from 'app/locale';
 
 export default class GroupSeenBy extends React.Component {
@@ -39,13 +38,18 @@ export default class GroupSeenBy extends React.Component {
           avatarSize={28}
           maxVisibleAvatars={10}
           tooltipOptions={{html: true}}
-          renderTooltip={user => `${_.escape(userDisplayName(user))} <br/>
-            ${moment(user.lastSeen).format('LL')}`}
+          renderTooltip={user => (
+            <React.Fragment>
+              {userDisplayName(user)}
+              <br />
+              {moment(user.lastSeen).format('LL')}
+            </React.Fragment>
+          )}
         />
         <IconWrapper>
-          <Tooltip title={t("People who've viewed this issue")}>
+          <Tooltip2 title={t("People who've viewed this issue")}>
             <EyeIcon className="icon-eye" />
-          </Tooltip>
+          </Tooltip2>
         </IconWrapper>
       </SeenByWrapper>
     );

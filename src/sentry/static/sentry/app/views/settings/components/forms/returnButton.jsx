@@ -1,7 +1,9 @@
 import React from 'react';
 import styled from 'react-emotion';
-import Tooltip from 'app/components/tooltip';
+
+import {t} from 'app/locale';
 import InlineSvg from 'app/components/inlineSvg';
+import Tooltip2 from 'app/components/tooltip2';
 
 const SubmitButton = styled('div')`
   background: transparent;
@@ -35,11 +37,11 @@ const ClickTargetStyled = styled('div')`
 const returnButton = props => {
   return (
     <ClickTargetStyled {...props}>
-      <Tooltip title="Save">
+      <Tooltip2 title={t('Save')}>
         <SubmitButton>
           <InlineSvg size="0.75em" src="icon-return-key" />
         </SubmitButton>
-      </Tooltip>
+      </Tooltip2>
     </ClickTargetStyled>
   );
 };

@@ -620,8 +620,10 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                         </div>
                       </Container>
                     </ProjectItem>
-                    <Tooltip
+                    <Tooltip2
+                      containerDisplayMode="inline-block"
                       disabled={true}
+                      position="top"
                       title="You do not have enough permission to change project association."
                     >
                       <Button
@@ -699,7 +701,7 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                           </ForwardRef>
                         </StyledButton>
                       </Button>
-                    </Tooltip>
+                    </Tooltip2>
                   </div>
                 </Base>
               </StyledPanelItem>
@@ -990,8 +992,10 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                         </div>
                       </Container>
                     </ProjectItem>
-                    <Tooltip
+                    <Tooltip2
+                      containerDisplayMode="inline-block"
                       disabled={true}
+                      position="top"
                       title="You do not have enough permission to change project association."
                     >
                       <Button
@@ -1069,7 +1073,7 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                           </ForwardRef>
                         </StyledButton>
                       </Button>
-                    </Tooltip>
+                    </Tooltip2>
                   </div>
                 </Base>
               </StyledPanelItem>

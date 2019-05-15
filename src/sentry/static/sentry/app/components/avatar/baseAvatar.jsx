@@ -5,7 +5,7 @@ import qs from 'query-string';
 import styled from 'react-emotion';
 
 import LetterAvatar from 'app/components/letterAvatar';
-import Tooltip from 'app/components/tooltip';
+import Tooltip2 from 'app/components/tooltip2';
 
 import {imageStyle} from './styles';
 import Gravatar from './gravatar';
@@ -25,7 +25,13 @@ class BaseAvatar extends React.Component {
      * Default gravatar to display
      */
     default: PropTypes.string,
+    /**
+     * Enable to display tooltips.
+     */
     hasTooltip: PropTypes.bool,
+    /**
+     * The type of avatar being rendered.
+     */
     type: PropTypes.string,
     /**
      * Path to uploaded avatar (differs based on model type)
@@ -40,7 +46,13 @@ class BaseAvatar extends React.Component {
     gravatarId: PropTypes.string,
     letterId: PropTypes.string,
     title: PropTypes.string,
-    tooltip: PropTypes.string,
+    /**
+     * The content for the tooltip. Requires hasTooltip to display
+     */
+    tooltip: PropTypes.oneOfType([PropTypes.string, PropTypes.element]),
+    /**
+     * Additional props for the tooltip
+     */
     tooltipOptions: PropTypes.object,
     /**
      * Should avatar be round instead of a square
@@ -151,7 +163,7 @@ class BaseAvatar extends React.Component {
     }
 
     return (
-      <Tooltip title={tooltip} tooltipOptions={tooltipOptions} disabled={!hasTooltip}>
+      <Tooltip2 title={tooltip} disabled={!hasTooltip} {...tooltipOptions}>
         <StyledBaseAvatar
           loaded={this.state.hasLoaded}
           className={classNames('avatar', className)}
@@ -164,7 +176,7 @@ class BaseAvatar extends React.Component {
           {this.state.showBackupAvatar && this.renderLetterAvatar()}
           {this.renderImg()}
         </StyledBaseAvatar>
-      </Tooltip>
+      </Tooltip2>
     );
   }
 }

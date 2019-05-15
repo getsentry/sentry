@@ -204,7 +204,7 @@ exports[`ProjectPluginRow renders 1`] = `
                           </div>
                         </PluginName>
                         <div>
-                          <ExternalLink
+                          <ForwardRef
                             className="css-8vm1xp-grayText"
                             href="https://github.com/getsentry/sentry"
                             rel="noreferrer noopener"
@@ -218,7 +218,7 @@ exports[`ProjectPluginRow renders 1`] = `
                             >
                               Sentry Team
                             </a>
-                          </ExternalLink>
+                          </ForwardRef>
                           <span>
                              
                             ·

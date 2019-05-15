@@ -5,6 +5,7 @@ import {Link, browserHistory} from 'react-router';
 import DocumentTitle from 'react-document-title';
 import qs from 'query-string';
 import {omit, isEqual} from 'lodash';
+import styled from 'react-emotion';
 
 import SentryTypes from 'app/sentryTypes';
 import withApi from 'app/utils/withApi';
@@ -15,6 +16,7 @@ import CompactIssue from 'app/components/compactIssue';
 import EventUserFeedback from 'app/components/events/userFeedback';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
 import {t, tct} from 'app/locale';
+import space from 'app/styles/space';
 import withEnvironmentInQueryString from 'app/utils/withEnvironmentInQueryString';
 import withOrganization from 'app/utils/withOrganization';
 
@@ -204,7 +206,7 @@ const ProjectUserFeedback = createReactClass({
 
       return (
         <CompactIssue key={item.id} id={issue.id} data={issue}>
-          <EventUserFeedback
+          <StyledEventUserFeedback
             report={item}
             orgId={orgId}
             projectId={projectId}
@@ -244,3 +246,7 @@ export {ProjectUserFeedback};
 export default withApi(
   withOrganization(withEnvironmentInQueryString(ProjectUserFeedback))
 );
+
+const StyledEventUserFeedback = styled(EventUserFeedback)`
+  margin: ${space(2)} 0 ${space(1)};
+`;

@@ -204,16 +204,16 @@ def _do_process_event(cache_key, start_time, event_id, process_task,
     # Fetch the reprocessing revision
     reprocessing_rev = reprocessing.get_reprocessing_revision(project_id)
 
-    # Event enhancers.  These run before anything else.
-    for plugin in plugins.all(version=2):
-        enhancers = safe_execute(plugin.get_event_enhancers, data=data)
-        for enhancer in (enhancers or ()):
-            enhanced = safe_execute(enhancer, data)
-            if enhanced:
-                data = enhanced
-                has_changed = True
-
     try:
+        # Event enhancers.  These run before anything else.
+        for plugin in plugins.all(version=2):
+            enhancers = safe_execute(plugin.get_event_enhancers, data=data)
+            for enhancer in (enhancers or ()):
+                enhanced = safe_execute(enhancer, data, _passthrough_errors=(RetrySymbolication,))
+                if enhanced:
+                    data = enhanced
+                    has_changed = True
+
         # Stacktrace based event processors.
         new_data = process_stacktraces(data)
         if new_data is not None:
@@ -435,9 +435,10 @@ def _do_save_event(cache_key=None, data=None, start_time=None, event_id=None,
     """
     Saves an event to the database.
     """
-    from sentry.event_manager import HashDiscarded, EventManager, track_outcome
+    from sentry.event_manager import HashDiscarded, EventManager
     from sentry import quotas
     from sentry.models import ProjectKey
+    from sentry.utils.outcomes import Outcome, track_outcome
 
     if cache_key and data is None:
         data = default_cache.get(cache_key)
@@ -454,6 +455,8 @@ def _do_save_event(cache_key=None, data=None, start_time=None, event_id=None,
         project_id = data.pop('project')
 
     key_id = None if data is None else data.get('key_id')
+    if key_id is not None:
+        key_id = int(key_id)
     timestamp = to_datetime(start_time) if start_time is not None else None
 
     delete_raw_event(project_id, event_id, allow_hint_clear=True)
@@ -497,9 +500,11 @@ def _do_save_event(cache_key=None, data=None, start_time=None, event_id=None,
             event.project.organization_id,
             event.project.id,
             key_id,
-            'accepted',
+            Outcome.ACCEPTED,
             None,
-            timestamp)
+            timestamp,
+            event_id
+        )
 
     except HashDiscarded:
         project = Project.objects.get_from_cache(id=project_id)
@@ -512,7 +517,15 @@ def _do_save_event(cache_key=None, data=None, start_time=None, event_id=None,
             pass
 
         quotas.refund(project, key=project_key, timestamp=start_time)
-        track_outcome(project.organization_id, project_id, key_id, 'filtered', reason, timestamp)
+        track_outcome(
+            project.organization_id,
+            project_id,
+            key_id,
+            Outcome.FILTERED,
+            reason,
+            timestamp,
+            event_id
+        )
 
     finally:
         if cache_key:

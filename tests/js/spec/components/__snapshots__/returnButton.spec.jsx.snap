@@ -2,7 +2,9 @@
 
 exports[`returnButton renders 1`] = `
 <ClickTargetStyled>
-  <Tooltip
+  <Tooltip2
+    containerDisplayMode="inline-block"
+    position="top"
     title="Save"
   >
     <SubmitButton>
@@ -11,6 +13,6 @@ exports[`returnButton renders 1`] = `
         src="icon-return-key"
       />
     </SubmitButton>
-  </Tooltip>
+  </Tooltip2>
 </ClickTargetStyled>
 `;

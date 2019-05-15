@@ -80,6 +80,8 @@ class LegacyBrowsersFilter(Filter):
             value=option_val,
         )
 
+        return option_val
+
     def get_user_agent(self, data):
         try:
             for key, value in get_path(data, 'request', 'headers', filter=True) or ():

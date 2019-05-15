@@ -48,6 +48,7 @@ from .endpoints.group_tagkey_values import GroupTagKeyValuesEndpoint
 from .endpoints.group_tombstone_details import GroupTombstoneDetailsEndpoint
 from .endpoints.group_tombstone import GroupTombstoneEndpoint
 from .endpoints.group_user_reports import GroupUserReportsEndpoint
+from .endpoints.organization_incident_details import OrganizationIncidentDetailsEndpoint
 from .endpoints.index import IndexEndpoint
 from .endpoints.internal_queue_tasks import InternalQueueTasksEndpoint
 from .endpoints.internal_quotas import InternalQuotasEndpoint
@@ -412,6 +413,18 @@ urlpatterns = patterns(
         name='sentry-api-0-user-subscriptions'
     ),
 
+    # Incidents
+    url(
+        r'^organizations/(?P<organization_slug>[^\/]+)/incidents/$',
+        OrganizationIncidentIndexEndpoint.as_view(),
+        name='sentry-api-0-organization-incident-index'
+    ),
+    url(
+        r'^organizations/(?P<organization_slug>[^\/]+)/incidents/(?P<incident_id>[^\/]+)/$',
+        OrganizationIncidentDetailsEndpoint.as_view(),
+        name='sentry-api-0-organization-incident-details'
+    ),
+
     # Organizations
 
     url(
@@ -570,11 +583,6 @@ urlpatterns = patterns(
         r'^organizations/(?P<organization_slug>[^\/]+)/issues/$',
         OrganizationGroupIndexEndpoint.as_view(),
         name='sentry-api-0-organization-group-index'
-    ),
-    url(
-        r'^organizations/(?P<organization_slug>[^\/]+)/incidents/$',
-        OrganizationIncidentIndexEndpoint.as_view(),
-        name='sentry-api-0-organization-incident-index'
     ),
     url(
         r'^organizations/(?P<organization_slug>[^\/]+)/integrations/$',

@@ -156,60 +156,76 @@ exports[`Sentry App Installations when Apps exist displays all Apps owned by the
                         >
                           Sample App
                           <BetaTag>
-                            <Tooltip
+                            <Tooltip2
+                              containerDisplayMode="inline-block"
+                              position="right"
                               title="This feature is in beta and may change in the future."
-                              tooltipOptions={
-                                Object {
-                                  "placement": "right",
-                                }
-                              }
                             >
-                              <StyledTag
-                                className="tip"
-                                priority="beta"
-                                size="small"
-                                title="This feature is in beta and may change in the future."
-                              >
-                                <Tag
-                                  className="tip css-f9iwbc-StyledTag e1xs0x250"
-                                  priority="beta"
-                                  size="small"
-                                  title="This feature is in beta and may change in the future."
-                                >
-                                  <TagTextStyled
-                                    className="tip css-f9iwbc-StyledTag e1xs0x250"
-                                    priority="beta"
-                                    size="small"
-                                    title="This feature is in beta and may change in the future."
+                              <Manager>
+                                <Reference>
+                                  <InnerReference
+                                    setReferenceNode={[Function]}
                                   >
-                                    <Component
-                                      className="tip e1xs0x250 css-4og6iv-TagTextStyled-StyledTag e6q9yfr0"
-                                      priority="beta"
-                                      size="small"
-                                      title="This feature is in beta and may change in the future."
+                                    <Container
+                                      aria-describedby="tooltip-123456"
+                                      containerDisplayMode="inline-block"
+                                      innerRef={[Function]}
+                                      onBlur={[Function]}
+                                      onFocus={[Function]}
+                                      onMouseEnter={[Function]}
+                                      onMouseLeave={[Function]}
                                     >
-                                      <Box
-                                        className="tip e1xs0x250 css-4og6iv-TagTextStyled-StyledTag e6q9yfr0"
-                                        title="This feature is in beta and may change in the future."
+                                      <span
+                                        aria-describedby="tooltip-123456"
+                                        className="css-1m3e0hg-Container e7ebgxc0"
+                                        onBlur={[Function]}
+                                        onFocus={[Function]}
+                                        onMouseEnter={[Function]}
+                                        onMouseLeave={[Function]}
                                       >
-                                        <Base
-                                          className="tip e1xs0x250 e6q9yfr0 css-1r8ewb4-TagTextStyled-StyledTag"
-                                          title="This feature is in beta and may change in the future."
+                                        <StyledTag
+                                          priority="beta"
+                                          size="small"
                                         >
-                                          <div
-                                            className="tip e1xs0x250 e6q9yfr0 css-1r8ewb4-TagTextStyled-StyledTag"
-                                            is={null}
-                                            title="This feature is in beta and may change in the future."
+                                          <Tag
+                                            className="css-f9iwbc-StyledTag e1xs0x250"
+                                            priority="beta"
+                                            size="small"
                                           >
-                                            beta
-                                          </div>
-                                        </Base>
-                                      </Box>
-                                    </Component>
-                                  </TagTextStyled>
-                                </Tag>
-                              </StyledTag>
-                            </Tooltip>
+                                            <TagTextStyled
+                                              className="css-f9iwbc-StyledTag e1xs0x250"
+                                              priority="beta"
+                                              size="small"
+                                            >
+                                              <Component
+                                                className="e1xs0x250 css-4og6iv-TagTextStyled-StyledTag e6q9yfr0"
+                                                priority="beta"
+                                                size="small"
+                                              >
+                                                <Box
+                                                  className="e1xs0x250 css-4og6iv-TagTextStyled-StyledTag e6q9yfr0"
+                                                >
+                                                  <Base
+                                                    className="e1xs0x250 e6q9yfr0 css-1r8ewb4-TagTextStyled-StyledTag"
+                                                  >
+                                                    <div
+                                                      className="e1xs0x250 e6q9yfr0 css-1r8ewb4-TagTextStyled-StyledTag"
+                                                      is={null}
+                                                    >
+                                                      beta
+                                                    </div>
+                                                  </Base>
+                                                </Box>
+                                              </Component>
+                                            </TagTextStyled>
+                                          </Tag>
+                                        </StyledTag>
+                                      </span>
+                                    </Container>
+                                  </InnerReference>
+                                </Reference>
+                              </Manager>
+                            </Tooltip2>
                           </BetaTag>
                         </div>
                       </SentryAppName>
@@ -392,6 +408,7 @@ exports[`Sentry App Installations when Apps exist displays all Apps owned by the
                                       "pink": "#F868BC",
                                       "pinkDark": "#DF4FA3",
                                       "pinkLight": "#FF82D6",
+                                      "placeholderBackground": "#f5f5f5",
                                       "purple": "#6C5FC7",
                                       "purple2": "#6f617c",
                                       "purpleDark": "#5346AE",
@@ -464,6 +481,7 @@ exports[`Sentry App Installations when Apps exist displays all Apps owned by the
                                         "sentryErrorEmbed": 1090,
                                         "sidebar": 1010,
                                         "toast": 10001,
+                                        "tooltip": 1070,
                                       },
                                     }
                                   }
@@ -663,6 +681,7 @@ exports[`Sentry App Installations when Apps exist displays all Apps owned by the
                                               "pink": "#F868BC",
                                               "pinkDark": "#DF4FA3",
                                               "pinkLight": "#FF82D6",
+                                              "placeholderBackground": "#f5f5f5",
                                               "purple": "#6C5FC7",
                                               "purple2": "#6f617c",
                                               "purpleDark": "#5346AE",
@@ -735,6 +754,7 @@ exports[`Sentry App Installations when Apps exist displays all Apps owned by the
                                                 "sentryErrorEmbed": 1090,
                                                 "sidebar": 1010,
                                                 "toast": 10001,
+                                                "tooltip": 1070,
                                               },
                                             }
                                           }

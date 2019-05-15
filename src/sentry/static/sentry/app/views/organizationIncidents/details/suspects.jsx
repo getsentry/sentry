@@ -1,14 +1,15 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
 
-import {t} from 'app/locale';
-import SentryTypes from 'app/sentryTypes';
 import {Panel, PanelBody, PanelItem} from 'app/components/panels';
+import {t} from 'app/locale';
 import space from 'app/styles/space';
 
 export default class Suspects extends React.Component {
   static propTypes = {
-    incident: SentryTypes.Incident.isRequired,
+    // TODO: Make this a shape once we figure out data model
+    suspects: PropTypes.array,
   };
 
   renderEmpty() {
@@ -16,12 +17,12 @@ export default class Suspects extends React.Component {
   }
 
   render() {
-    const {suspects} = this.props.incident;
+    const {suspects} = this.props;
 
     return (
       <Container>
         <h6>{t('Suspects')}</h6>
-        {suspects.length > 0 && (
+        {suspects && suspects.length > 0 && (
           <Panel>
             <PanelBody>
               {suspects.map(suspect => (
@@ -32,7 +33,7 @@ export default class Suspects extends React.Component {
             </PanelBody>
           </Panel>
         )}
-        {suspects.length === 0 && this.renderEmpty()}
+        {(!suspects || suspects.length === 0) && this.renderEmpty()}
       </Container>
     );
   }

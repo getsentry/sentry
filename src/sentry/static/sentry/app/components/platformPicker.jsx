@@ -25,20 +25,17 @@ class PlatformPicker extends React.Component {
     setPlatform: PropTypes.func.isRequired,
     platform: PropTypes.string,
     showOther: PropTypes.bool,
-    listClass: PropTypes.string,
+    listProps: PropTypes.object,
   };
 
   static defaultProps = {
     showOther: true,
   };
 
-  constructor(props, ...args) {
-    super(props, ...args);
-    this.state = {
-      category: PLATFORM_CATEGORIES[0].id,
-      filter: props.platform?.split('-')[0],
-    };
-  }
+  state = {
+    category: PLATFORM_CATEGORIES[0].id,
+    filter: this.props.platform?.split('-')[0],
+  };
 
   get platformList() {
     const {category} = this.state;
@@ -74,7 +71,7 @@ class PlatformPicker extends React.Component {
 
   render() {
     const platformList = this.platformList;
-    const {setPlatform, listClass} = this.props;
+    const {setPlatform, listProps} = this.props;
     const {filter, category} = this.state;
 
     return (
@@ -108,7 +105,7 @@ class PlatformPicker extends React.Component {
             />
           </SearchBar>
         </NavContainer>
-        <PlatformList className={listClass}>
+        <PlatformList {...listProps}>
           {platformList.map(platform => (
             <PlatformCard
               data-test-id={`platform-${platform.id}`}

@@ -1,21 +1,25 @@
-import React from 'react';
-import DocumentTitle from 'react-document-title';
-import styled from 'react-emotion';
 import {omit} from 'lodash';
+import DocumentTitle from 'react-document-title';
+import React from 'react';
+import moment from 'moment';
+import styled from 'react-emotion';
 
+import {PageContent, PageHeader} from 'app/styles/organization';
+import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
 import {t} from 'app/locale';
 import AsyncComponent from 'app/components/asyncComponent';
-import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
-import Link from 'app/components/links/link';
-import Button from 'app/components/button';
-import EmptyStateWarning from 'app/components/emptyStateWarning';
-import Pagination from 'app/components/pagination';
-import {PageContent, PageHeader} from 'app/styles/organization';
-import PageHeading from 'app/components/pageHeading';
 import BetaTag from 'app/components/betaTag';
+import Button from 'app/components/button';
+import Duration from 'app/components/duration';
+import EmptyStateWarning from 'app/components/emptyStateWarning';
+import Link from 'app/components/links/link';
+import PageHeading from 'app/components/pageHeading';
+import Pagination from 'app/components/pagination';
 import space from 'app/styles/space';
 
-const DEFAULT_QUERY_STATUS = 'unresolved';
+import Status from '../status';
+
+const DEFAULT_QUERY_STATUS = 'open';
 
 class OrganizationIncidentsBody extends AsyncComponent {
   getEndpoints() {
@@ -33,17 +37,24 @@ class OrganizationIncidentsBody extends AsyncComponent {
 
   renderListItem(incident) {
     const {orgId} = this.props.params;
+    const duration = moment
+      .duration(
+        moment(incident.dateClosed || new Date()).diff(moment(incident.dateStarted))
+      )
+      .as('seconds');
 
     return (
       <PanelItem key={incident.id}>
         <TableLayout>
-          <Link to={`/organizations/${orgId}/incidents/${incident.id}/`}>
-            {incident.name}
+          <Link to={`/organizations/${orgId}/incidents/${incident.identifier}/`}>
+            {incident.title}
           </Link>
-          <div>{incident.status}</div>
-          <div>{incident.duration}</div>
-          <div>{incident.usersAffected}</div>
-          <div>{incident.eventCount}</div>
+          <Status incident={incident} />
+          <div>
+            <Duration seconds={duration} />
+          </div>
+          <div>{incident.uniqueUsers}</div>
+          <div>{incident.totalEvents}</div>
         </TableLayout>
       </PanelItem>
     );
@@ -87,7 +98,7 @@ class OrganizationIncidents extends React.Component {
   render() {
     const {pathname, query} = this.props.location;
 
-    const unresolvedQuery = omit(query, 'status');
+    const openIncidentsQuery = omit(query, 'status');
     const allIncidentsQuery = {...query, status: ''};
 
     const status = query.status === undefined ? DEFAULT_QUERY_STATUS : query.status;
@@ -102,18 +113,18 @@ class OrganizationIncidents extends React.Component {
 
             <div className="btn-group">
               <Button
-                to={{pathname, query: unresolvedQuery}}
+                to={{pathname, query: openIncidentsQuery}}
                 size="small"
-                className={'btn' + (status === 'unresolved' ? ' active' : '')}
+                className={'btn' + (status === 'open' ? ' active' : '')}
               >
-                {t('Unresolved')}
+                {t('Open')}
               </Button>
               <Button
                 to={{pathname, query: allIncidentsQuery}}
                 size="small"
                 className={'btn' + (status === '' ? ' active' : '')}
               >
-                {t('All Issues')}
+                {t('All Incidents')}
               </Button>
             </div>
           </PageHeader>

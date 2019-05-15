@@ -53,7 +53,6 @@ def _capture_stats(event, is_new):
     platform = platform.split('-', 1)[0].split('_', 1)[0]
     tags = {
         'platform': platform,
-        'use_rust_normalize': event.data.get('use_rust_normalize', 'unknown')
     }
 
     if is_new:

@@ -285,8 +285,10 @@ exports[`Sidebar SidebarDropdown can open Sidebar org/name dropdown menu 1`] = `
                 type="letter_avatar"
                 uploadPath="organization-avatar"
               >
-                <Tooltip
+                <Tooltip2
+                  containerDisplayMode="inline-block"
                   disabled={true}
+                  position="top"
                   title="org-slug"
                 >
                   <StyledBaseAvatar
@@ -347,7 +349,7 @@ exports[`Sidebar SidebarDropdown can open Sidebar org/name dropdown menu 1`] = `
                       </LetterAvatar>
                     </span>
                   </StyledBaseAvatar>
-                </Tooltip>
+                </Tooltip2>
               </BaseAvatar>
             </OrganizationAvatar>
           </Avatar>
@@ -753,8 +755,10 @@ exports[`Sidebar SidebarDropdown can open Sidebar org/name dropdown menu 1`] = `
                                     type="letter_avatar"
                                     uploadPath="avatar"
                                   >
-                                    <Tooltip
+                                    <Tooltip2
+                                      containerDisplayMode="inline-block"
                                       disabled={true}
+                                      position="top"
                                       title="Foo Bar (foo@example.com)"
                                     >
                                       <StyledBaseAvatar
@@ -818,7 +822,7 @@ exports[`Sidebar SidebarDropdown can open Sidebar org/name dropdown menu 1`] = `
                                           </LetterAvatar>
                                         </span>
                                       </StyledBaseAvatar>
-                                    </Tooltip>
+                                    </Tooltip2>
                                   </BaseAvatar>
                                 </UserAvatar>
                               </Avatar>
@@ -1165,7 +1169,7 @@ exports[`Sidebar SidebarPanel can display Broadcasts panel and mark as seen 1`] 
         <div
           className="css-7bhqyd-Text er110872"
         >
-          <ExternalLink
+          <ForwardRef
             href="https://docs.sentry.io/hosted/clients/javascript/sourcemaps/#uploading-source-maps-to-sentry"
             rel="noreferrer noopener"
             target="_blank"
@@ -1177,7 +1181,7 @@ exports[`Sidebar SidebarPanel can display Broadcasts panel and mark as seen 1`] 
             >
               Read More
             </a>
-          </ExternalLink>
+          </ForwardRef>
         </div>
       </Text>
     </div>
@@ -1266,7 +1270,7 @@ exports[`Sidebar SidebarPanel can show Incidents in Sidebar Panel 1`] = `
                 role="button"
                 size="small"
               >
-                <ExternalLink
+                <ForwardRef
                   aria-disabled={false}
                   aria-label="Learn more"
                   className="css-o6814l-StyledButton-getColors e12ma6z0"
@@ -1303,7 +1307,7 @@ exports[`Sidebar SidebarPanel can show Incidents in Sidebar Panel 1`] = `
                       </Component>
                     </ButtonLabel>
                   </a>
-                </ExternalLink>
+                </ForwardRef>
               </ForwardRef>
             </StyledButton>
           </Button>
@@ -1359,385 +1363,417 @@ exports[`Sidebar can have onboarding feature 1`] = `
           <div
             className="css-1pl3kd6-SidebarPanelBody e1cvaskl2"
           >
-            <withApi(TodoList)>
-              <TodoList
+            <withApi(WithOrganizationMockWrapper)>
+              <WithOrganizationMockWrapper
                 api={Client {}}
               >
-                <div>
-                  <div
-                    className="onboarding-wrapper"
-                  >
-                    <ul
-                      className="list-unstyled"
+                <TodoList
+                  api={Client {}}
+                  organization={
+                    Object {
+                      "access": Array [
+                        "org:read",
+                        "org:write",
+                        "org:admin",
+                        "org:integrations",
+                        "project:read",
+                        "project:write",
+                        "project:admin",
+                        "team:read",
+                        "team:write",
+                        "team:admin",
+                      ],
+                      "features": Array [],
+                      "id": "3",
+                      "name": "Organization Name",
+                      "onboardingTasks": Array [],
+                      "projects": Array [],
+                      "scrapeJavaScript": true,
+                      "slug": "org-slug",
+                      "status": Object {
+                        "id": "active",
+                        "name": "active",
+                      },
+                      "teams": Array [],
+                    }
+                  }
+                >
+                  <div>
+                    <div
+                      className="onboarding-wrapper"
                     >
-                      <TodoItem
-                        key="1"
-                        onSkip={[Function]}
-                        task={
-                          Object {
-                            "description": "Create your first Sentry project",
-                            "detailedDescription": "Follow our quick and easy steps to set up a project and start sending errors.",
-                            "display": true,
-                            "featureLocation": "organization",
-                            "location": "projects/new/",
-                            "prereq": Array [],
-                            "skippable": false,
-                            "task": 1,
-                            "title": "Create a project",
-                          }
-                        }
+                      <ul
+                        className="list-unstyled"
                       >
-                        <li
-                          className=""
-                          onMouseOut={[Function]}
-                          onMouseOver={[Function]}
+                        <TodoItem
+                          key="1"
+                          onSkip={[Function]}
+                          task={
+                            Object {
+                              "description": "Create your first Sentry project",
+                              "detailedDescription": "Follow our quick and easy steps to set up a project and start sending errors.",
+                              "display": true,
+                              "featureLocation": "organization",
+                              "location": "projects/new/",
+                              "prereq": Array [],
+                              "skippable": false,
+                              "task": 1,
+                              "title": "Create a project",
+                            }
+                          }
                         >
-                          <div
-                            className="todo-content"
+                          <li
+                            className=""
+                            onMouseOut={[Function]}
+                            onMouseOver={[Function]}
                           >
                             <div
-                              className="ob-checkbox"
-                            />
-                            <a
-                              href="/organizations/org-slug/projects/new/"
-                              onClick={[Function]}
+                              className="todo-content"
                             >
-                              <h4>
-                                Create a project
-                              </h4>
-                            </a>
-                            <div>
-                              <p>
-                                Create your first Sentry project
-                                 
-                              </p>
+                              <div
+                                className="ob-checkbox"
+                              />
+                              <a
+                                href="/organizations/org-slug/projects/new/"
+                                onClick={[Function]}
+                              >
+                                <h4>
+                                  Create a project
+                                </h4>
+                              </a>
+                              <div>
+                                <p>
+                                  Create your first Sentry project
+                                   
+                                </p>
+                              </div>
                             </div>
-                          </div>
-                        </li>
-                      </TodoItem>
-                      <TodoItem
-                        key="2"
-                        onSkip={[Function]}
-                        task={
-                          Object {
-                            "description": "Install Sentry's client",
-                            "detailedDescription": "Choose your platform and send an event.",
-                            "display": true,
-                            "featureLocation": "project",
-                            "location": "settings/install/",
-                            "prereq": Array [
-                              1,
-                            ],
-                            "skippable": false,
-                            "task": 2,
-                            "title": "Send your first event",
+                          </li>
+                        </TodoItem>
+                        <TodoItem
+                          key="2"
+                          onSkip={[Function]}
+                          task={
+                            Object {
+                              "description": "Install Sentry's client",
+                              "detailedDescription": "Choose your platform and send an event.",
+                              "display": true,
+                              "featureLocation": "project",
+                              "location": "settings/install/",
+                              "prereq": Array [
+                                1,
+                              ],
+                              "skippable": false,
+                              "task": 2,
+                              "title": "Send your first event",
+                            }
                           }
-                        }
-                      >
-                        <li
-                          className=""
-                          onMouseOut={[Function]}
-                          onMouseOver={[Function]}
                         >
-                          <div
-                            className="todo-content"
+                          <li
+                            className=""
+                            onMouseOut={[Function]}
+                            onMouseOver={[Function]}
                           >
                             <div
-                              className="ob-checkbox"
-                            />
-                            <a
-                              href="/organizations/org-slug/projects/choose/?onboarding=1&task=2"
-                              onClick={[Function]}
+                              className="todo-content"
                             >
-                              <h4>
-                                Send your first event
-                              </h4>
-                            </a>
-                            <div>
-                              <p>
-                                Install Sentry's client
-                                 
-                              </p>
+                              <div
+                                className="ob-checkbox"
+                              />
+                              <a
+                                href="/organizations/org-slug/projects/choose/?onboarding=1&task=2"
+                                onClick={[Function]}
+                              >
+                                <h4>
+                                  Send your first event
+                                </h4>
+                              </a>
+                              <div>
+                                <p>
+                                  Install Sentry's client
+                                   
+                                </p>
+                              </div>
                             </div>
-                          </div>
-                        </li>
-                      </TodoItem>
-                      <TodoItem
-                        key="3"
-                        onSkip={[Function]}
-                        task={
-                          Object {
-                            "description": "Bring your team aboard",
-                            "detailedDescription": "Let Sentry help your team triage and assign issues. Improve your workflow
+                          </li>
+                        </TodoItem>
+                        <TodoItem
+                          key="3"
+                          onSkip={[Function]}
+                          task={
+                            Object {
+                              "description": "Bring your team aboard",
+                              "detailedDescription": "Let Sentry help your team triage and assign issues. Improve your workflow
           by unlocking suggested owners, mentions, and assignment.",
-                            "display": true,
-                            "featureLocation": "organization",
-                            "location": "members/",
-                            "prereq": Array [],
-                            "skippable": true,
-                            "task": 3,
-                            "title": "Invite team member",
+                              "display": true,
+                              "featureLocation": "organization",
+                              "location": "members/",
+                              "prereq": Array [],
+                              "skippable": true,
+                              "task": 3,
+                              "title": "Invite team member",
+                            }
                           }
-                        }
-                      >
-                        <li
-                          className=""
-                          onMouseOut={[Function]}
-                          onMouseOver={[Function]}
                         >
-                          <div
-                            className="todo-content"
+                          <li
+                            className=""
+                            onMouseOut={[Function]}
+                            onMouseOver={[Function]}
                           >
                             <div
-                              className="ob-checkbox"
-                            />
-                            <a
-                              href="/organizations/org-slug/members/"
-                              onClick={[Function]}
+                              className="todo-content"
                             >
-                              <h4>
-                                Invite team member
-                              </h4>
-                            </a>
-                            <div>
-                              <p>
-                                Bring your team aboard
-                                 
-                              </p>
+                              <div
+                                className="ob-checkbox"
+                              />
+                              <a
+                                href="/organizations/org-slug/members/"
+                                onClick={[Function]}
+                              >
+                                <h4>
+                                  Invite team member
+                                </h4>
+                              </a>
+                              <div>
+                                <p>
+                                  Bring your team aboard
+                                   
+                                </p>
+                              </div>
+                              <a
+                                className="skip-btn btn btn-default"
+                                onClick={[Function]}
+                              >
+                                Skip
+                              </a>
                             </div>
-                            <a
-                              className="skip-btn btn btn-default"
-                              onClick={[Function]}
-                            >
-                              Skip
-                            </a>
-                          </div>
-                        </li>
-                      </TodoItem>
-                      <TodoItem
-                        key="4"
-                        onSkip={[Function]}
-                        task={
-                          Object {
-                            "description": "Add Sentry to a second platform",
-                            "detailedDescription": "Cross platform functionality to support both your frontend and backend.",
-                            "display": true,
-                            "featureLocation": "organization",
-                            "location": "projects/new/",
-                            "prereq": Array [
-                              1,
-                              2,
-                            ],
-                            "skippable": true,
-                            "task": 4,
-                            "title": "Add a second platform",
+                          </li>
+                        </TodoItem>
+                        <TodoItem
+                          key="4"
+                          onSkip={[Function]}
+                          task={
+                            Object {
+                              "description": "Add Sentry to a second platform",
+                              "detailedDescription": "Cross platform functionality to support both your frontend and backend.",
+                              "display": true,
+                              "featureLocation": "organization",
+                              "location": "projects/new/",
+                              "prereq": Array [
+                                1,
+                                2,
+                              ],
+                              "skippable": true,
+                              "task": 4,
+                              "title": "Add a second platform",
+                            }
                           }
-                        }
-                      >
-                        <li
-                          className=""
-                          onMouseOut={[Function]}
-                          onMouseOver={[Function]}
                         >
-                          <div
-                            className="todo-content"
+                          <li
+                            className=""
+                            onMouseOut={[Function]}
+                            onMouseOver={[Function]}
                           >
                             <div
-                              className="ob-checkbox"
-                            />
-                            <a
-                              href="/organizations/org-slug/projects/new/"
-                              onClick={[Function]}
+                              className="todo-content"
                             >
-                              <h4>
-                                Add a second platform
-                              </h4>
-                            </a>
-                            <div>
-                              <p>
-                                Add Sentry to a second platform
-                                 
-                              </p>
+                              <div
+                                className="ob-checkbox"
+                              />
+                              <a
+                                href="/organizations/org-slug/projects/new/"
+                                onClick={[Function]}
+                              >
+                                <h4>
+                                  Add a second platform
+                                </h4>
+                              </a>
+                              <div>
+                                <p>
+                                  Add Sentry to a second platform
+                                   
+                                </p>
+                              </div>
+                              <a
+                                className="skip-btn btn btn-default"
+                                onClick={[Function]}
+                              >
+                                Skip
+                              </a>
                             </div>
-                            <a
-                              className="skip-btn btn btn-default"
-                              onClick={[Function]}
-                            >
-                              Skip
-                            </a>
-                          </div>
-                        </li>
-                      </TodoItem>
-                      <TodoItem
-                        key="5"
-                        onSkip={[Function]}
-                        task={
-                          Object {
-                            "description": "Know who is being affected by crashes",
-                            "detailedDescription": "Unlock features that let you
+                          </li>
+                        </TodoItem>
+                        <TodoItem
+                          key="5"
+                          onSkip={[Function]}
+                          task={
+                            Object {
+                              "description": "Know who is being affected by crashes",
+                              "detailedDescription": "Unlock features that let you
           drill down into the number of users affected by an issue as well as get a broader sense about the quality of the application.",
-                            "display": true,
-                            "featureLocation": "absolute",
-                            "location": "https://docs.sentry.io/enriching-error-data/context/#capturing-the-user",
-                            "prereq": Array [
-                              1,
-                              2,
-                            ],
-                            "skippable": true,
-                            "task": 5,
-                            "title": "Add user context",
+                              "display": true,
+                              "featureLocation": "absolute",
+                              "location": "https://docs.sentry.io/enriching-error-data/context/#capturing-the-user",
+                              "prereq": Array [
+                                1,
+                                2,
+                              ],
+                              "skippable": true,
+                              "task": 5,
+                              "title": "Add user context",
+                            }
                           }
-                        }
-                      >
-                        <li
-                          className=""
-                          onMouseOut={[Function]}
-                          onMouseOver={[Function]}
                         >
-                          <div
-                            className="todo-content"
+                          <li
+                            className=""
+                            onMouseOut={[Function]}
+                            onMouseOver={[Function]}
                           >
                             <div
-                              className="ob-checkbox"
-                            />
-                            <a
-                              href="https://docs.sentry.io/enriching-error-data/context/#capturing-the-user"
-                              onClick={[Function]}
+                              className="todo-content"
                             >
-                              <h4>
-                                Add user context
-                              </h4>
-                            </a>
-                            <div>
-                              <p>
-                                Know who is being affected by crashes
-                                 
-                              </p>
+                              <div
+                                className="ob-checkbox"
+                              />
+                              <a
+                                href="https://docs.sentry.io/enriching-error-data/context/#capturing-the-user"
+                                onClick={[Function]}
+                              >
+                                <h4>
+                                  Add user context
+                                </h4>
+                              </a>
+                              <div>
+                                <p>
+                                  Know who is being affected by crashes
+                                   
+                                </p>
+                              </div>
+                              <a
+                                className="skip-btn btn btn-default"
+                                onClick={[Function]}
+                              >
+                                Skip
+                              </a>
                             </div>
-                            <a
-                              className="skip-btn btn btn-default"
-                              onClick={[Function]}
-                            >
-                              Skip
-                            </a>
-                          </div>
-                        </li>
-                      </TodoItem>
-                      <TodoItem
-                        key="6"
-                        onSkip={[Function]}
-                        task={
-                          Object {
-                            "description": "See what releases are generating errors",
-                            "detailedDescription": "Set up commits for additional context when determining the cause of an issue
+                          </li>
+                        </TodoItem>
+                        <TodoItem
+                          key="6"
+                          onSkip={[Function]}
+                          task={
+                            Object {
+                              "description": "See what releases are generating errors",
+                              "detailedDescription": "Set up commits for additional context when determining the cause of an issue
           e.g. suggested owners and resolve issues via commit messages.",
-                            "display": true,
-                            "featureLocation": "project",
-                            "location": "settings/release-tracking/",
-                            "prereq": Array [
-                              1,
-                              2,
-                            ],
-                            "skippable": true,
-                            "task": 6,
-                            "title": "Set up release tracking",
+                              "display": true,
+                              "featureLocation": "project",
+                              "location": "settings/release-tracking/",
+                              "prereq": Array [
+                                1,
+                                2,
+                              ],
+                              "skippable": true,
+                              "task": 6,
+                              "title": "Set up release tracking",
+                            }
                           }
-                        }
-                      >
-                        <li
-                          className=""
-                          onMouseOut={[Function]}
-                          onMouseOver={[Function]}
                         >
-                          <div
-                            className="todo-content"
+                          <li
+                            className=""
+                            onMouseOut={[Function]}
+                            onMouseOver={[Function]}
                           >
                             <div
-                              className="ob-checkbox"
-                            />
-                            <a
-                              href="/organizations/org-slug/projects/choose/?onboarding=1&task=6"
-                              onClick={[Function]}
+                              className="todo-content"
                             >
-                              <h4>
-                                Set up release tracking
-                              </h4>
-                            </a>
-                            <div>
-                              <p>
-                                See what releases are generating errors
-                                 
-                              </p>
+                              <div
+                                className="ob-checkbox"
+                              />
+                              <a
+                                href="/organizations/org-slug/projects/choose/?onboarding=1&task=6"
+                                onClick={[Function]}
+                              >
+                                <h4>
+                                  Set up release tracking
+                                </h4>
+                              </a>
+                              <div>
+                                <p>
+                                  See what releases are generating errors
+                                   
+                                </p>
+                              </div>
+                              <a
+                                className="skip-btn btn btn-default"
+                                onClick={[Function]}
+                              >
+                                Skip
+                              </a>
                             </div>
-                            <a
-                              className="skip-btn btn btn-default"
-                              onClick={[Function]}
-                            >
-                              Skip
-                            </a>
-                          </div>
-                        </li>
-                      </TodoItem>
-                      <TodoItem
-                        key="7"
-                        onSkip={[Function]}
-                        task={
-                          Object {
-                            "description": "Deminify JavaScript stack traces",
-                            "detailedDescription": "View source code context obtained from stack traces in their
+                          </li>
+                        </TodoItem>
+                        <TodoItem
+                          key="7"
+                          onSkip={[Function]}
+                          task={
+                            Object {
+                              "description": "Deminify JavaScript stack traces",
+                              "detailedDescription": "View source code context obtained from stack traces in their
           original untransformed form, which is particularly useful for debugging minified code.",
-                            "display": true,
-                            "featureLocation": "absolute",
-                            "location": "https://docs.sentry.io/platforms/javascript/sourcemaps/",
-                            "prereq": Array [
-                              1,
-                              2,
-                            ],
-                            "skippable": true,
-                            "task": 7,
-                            "title": "Upload source maps",
+                              "display": true,
+                              "featureLocation": "absolute",
+                              "location": "https://docs.sentry.io/platforms/javascript/sourcemaps/",
+                              "prereq": Array [
+                                1,
+                                2,
+                              ],
+                              "skippable": true,
+                              "task": 7,
+                              "title": "Upload source maps",
+                            }
                           }
-                        }
-                      >
-                        <li
-                          className=""
-                          onMouseOut={[Function]}
-                          onMouseOver={[Function]}
                         >
-                          <div
-                            className="todo-content"
+                          <li
+                            className=""
+                            onMouseOut={[Function]}
+                            onMouseOver={[Function]}
                           >
                             <div
-                              className="ob-checkbox"
-                            />
-                            <a
-                              href="https://docs.sentry.io/platforms/javascript/sourcemaps/"
-                              onClick={[Function]}
+                              className="todo-content"
                             >
-                              <h4>
-                                Upload source maps
-                              </h4>
-                            </a>
-                            <div>
-                              <p>
-                                Deminify JavaScript stack traces
-                                 
-                              </p>
+                              <div
+                                className="ob-checkbox"
+                              />
+                              <a
+                                href="https://docs.sentry.io/platforms/javascript/sourcemaps/"
+                                onClick={[Function]}
+                              >
+                                <h4>
+                                  Upload source maps
+                                </h4>
+                              </a>
+                              <div>
+                                <p>
+                                  Deminify JavaScript stack traces
+                                   
+                                </p>
+                              </div>
+                              <a
+                                className="skip-btn btn btn-default"
+                                onClick={[Function]}
+                              >
+                                Skip
+                              </a>
                             </div>
-                            <a
-                              className="skip-btn btn btn-default"
-                              onClick={[Function]}
-                            >
-                              Skip
-                            </a>
-                          </div>
-                        </li>
-                      </TodoItem>
-                    </ul>
+                          </li>
+                        </TodoItem>
+                      </ul>
+                    </div>
                   </div>
-                </div>
-              </TodoList>
-            </withApi(TodoList)>
+                </TodoList>
+              </WithOrganizationMockWrapper>
+            </withApi(WithOrganizationMockWrapper)>
           </div>
         </SidebarPanelBody>
       </div>
@@ -1954,8 +1990,10 @@ exports[`Sidebar renders without org and router 1`] = `
                                     type="letter_avatar"
                                     uploadPath="avatar"
                                   >
-                                    <Tooltip
+                                    <Tooltip2
+                                      containerDisplayMode="inline-block"
                                       disabled={true}
+                                      position="top"
                                       title="Foo Bar (foo@example.com)"
                                     >
                                       <StyledBaseAvatar
@@ -2019,7 +2057,7 @@ exports[`Sidebar renders without org and router 1`] = `
                                           </LetterAvatar>
                                         </span>
                                       </StyledBaseAvatar>
-                                    </Tooltip>
+                                    </Tooltip2>
                                   </BaseAvatar>
                                 </UserAvatar>
                               </Avatar>

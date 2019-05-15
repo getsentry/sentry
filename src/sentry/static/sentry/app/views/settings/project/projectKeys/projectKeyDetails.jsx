@@ -13,7 +13,6 @@ import {
 } from 'app/actionCreators/indicator';
 import {t, tct} from 'app/locale';
 import Access from 'app/components/acl/access';
-import ApiMixin from 'app/mixins/apiMixin';
 import AsyncView from 'app/views/asyncView';
 import BooleanField from 'app/views/settings/components/forms/booleanField';
 import Button from 'app/components/button';
@@ -56,8 +55,9 @@ const RATE_LIMIT_FORMAT_MAP = new Map([
 const formatRateLimitWindow = val => RATE_LIMIT_FORMAT_MAP.get(val);
 
 const KeyStats = createReactClass({
-  displayName: 'KeyStats',
-  mixins: [ApiMixin],
+  propTypes: {
+    api: PropTypes.object.isRequired,
+  },
 
   getInitialState() {
     const until = Math.floor(new Date().getTime() / 1000);
@@ -79,7 +79,7 @@ const KeyStats = createReactClass({
 
   fetchData() {
     const {keyId, orgId, projectId} = this.props.params;
-    this.api.request(`/projects/${orgId}/${projectId}/keys/${keyId}/stats/`, {
+    this.props.api.request(`/projects/${orgId}/${projectId}/keys/${keyId}/stats/`, {
       query: {
         since: this.state.since,
         until: this.state.until,
@@ -113,19 +113,25 @@ const KeyStats = createReactClass({
     const timeLabel = chart.getTimeLabel(point);
     const [accepted, dropped, filtered] = point.y;
 
-    let value = `${accepted.toLocaleString()} accepted`;
-    if (dropped) {
-      value += `<br>${dropped.toLocaleString()} rate limited`;
-    }
-    if (filtered) {
-      value += `<br>${filtered.toLocaleString()} filtered`;
-    }
-
     return (
-      '<div style="width:150px">' +
-      `<div class="time-label">${timeLabel}</div>` +
-      `<div class="value-label">${value}</div>` +
-      '</div>'
+      <div style={{width: '150px'}}>
+        <div className="time-label">{timeLabel}</div>
+        <div className="value-label">
+          {accepted.toLocaleString()} accepted
+          {dropped > 0 && (
+            <React.Fragment>
+              <br />
+              {dropped.toLocaleString()} rate limited
+            </React.Fragment>
+          )}
+          {filtered > 0 && (
+            <React.Fragment>
+              <br />
+              {filtered.toLocaleString()} filtered
+            </React.Fragment>
+          )}
+        </div>
+      </div>
     );
   },
 
@@ -297,11 +303,10 @@ const KeySettings = createReactClass({
   displayName: 'KeySettings',
 
   propTypes: {
+    api: PropTypes.object.isRequired,
     data: SentryTypes.ProjectKey.isRequired,
     onRemove: PropTypes.func.isRequired,
   },
-
-  mixins: [ApiMixin],
 
   getInitialState() {
     return {loading: false};
@@ -314,7 +319,7 @@ const KeySettings = createReactClass({
 
     const loadingIndicator = addLoadingMessage(t('Saving changes..'));
     const {keyId, orgId, projectId} = this.props.params;
-    this.api.request(`/projects/${orgId}/${projectId}/keys/${keyId}/`, {
+    this.props.api.request(`/projects/${orgId}/${projectId}/keys/${keyId}/`, {
       method: 'DELETE',
       success: (d, _, jqXHR) => {
         this.props.onRemove();
@@ -496,9 +501,14 @@ export default class ProjectKeyDetails extends AsyncView {
         <SettingsPageHeader title={t('Key Details')} />
         <PermissionAlert />
 
-        <KeyStats params={params} />
+        <KeyStats api={this.api} params={params} />
 
-        <KeySettings params={params} data={data} onRemove={this.handleRemove} />
+        <KeySettings
+          api={this.api}
+          params={params}
+          data={data}
+          onRemove={this.handleRemove}
+        />
       </div>
     );
   }
