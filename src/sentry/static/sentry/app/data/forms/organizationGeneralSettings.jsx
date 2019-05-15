@@ -209,6 +209,19 @@ const formGroups = [
         visible: ({features}) => features.has('event-attachments'),
       },
       {
+        name: 'attachmentsRole',
+        type: 'array',
+        choices: ({initialData} = {}) =>
+          (initialData.availableRoles &&
+            initialData.availableRoles.map(r => [r.id, r.name])) ||
+          [],
+        label: t('Attachments Access'),
+        help: t(
+          'Permissions required to download event attachments, such as native crash reports or log files'
+        ),
+        visible: ({features}) => features.has('event-attachments'),
+      },
+      {
         name: 'trustedRelays',
         type: 'string',
         multiline: true,

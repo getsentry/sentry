@@ -8,12 +8,42 @@ try:
 except ImportError:
     from django.http import StreamingHttpResponse
 
-from sentry import features, options
-from sentry.api.bases.project import ProjectEndpoint
-from sentry.models import Event, SnubaEvent, EventAttachment
+from sentry import features, options, roles
+from sentry.api.bases.project import ProjectEndpoint, ProjectPermission
+from sentry.models import Event, SnubaEvent, EventAttachment, OrganizationMember
+
+
+class EventAttachmentDetailsPermission(ProjectPermission):
+    def has_object_permission(self, request, view, project):
+        result = super(ProjectPermission, self) \
+            .has_object_permission(request, view, project.organization)
+
+        if not result:
+            return result
+
+        if not request.user.is_authenticated():
+            return False
+
+        organization = project.organization
+        required_role = project.get_option('sentry:attachments_role') \
+            or organization.get_option('sentry:attachments_role')
+
+        try:
+            current_role = OrganizationMember.objects.filter(
+                organization=project.organization,
+                user=request.user,
+            ).values_list('role', flat=True).get()
+        except OrganizationMember.DoesNotExist:
+            return False
+
+        required_role = roles.get(required_role)
+        current_role = roles.get(current_role)
+        return current_role.priority >= required_role.priority
 
 
 class EventAttachmentDetailsEndpoint(ProjectEndpoint):
+    permission_classes = (EventAttachmentDetailsPermission, )
+
     def download(self, attachment):
         file = attachment.file
         fp = file.getfile()

@@ -326,6 +326,24 @@ export const fields = {
     ),
     visible: ({features}) => features.has('event-attachments'),
   },
+  attachmentsRole: {
+    name: 'attachmentsRole',
+    type: 'array',
+    choices: ({organization} = {}) => {
+      const roles = [[null, '(inherit for organization)']];
+
+      if (organization && organization.availableRoles) {
+        roles.push(...organization.availableRoles.map(r => [r.id, r.name]));
+      }
+
+      return roles;
+    },
+    label: t('Attachments Access'),
+    help: t(
+      'Permissions required to download event attachments, such as native crash reports or log files (defaults to organization setting if blank)'
+    ),
+    visible: ({features}) => features.has('event-attachments'),
+  },
   relayPiiConfig: {
     name: 'relayPiiConfig',
     type: 'string',

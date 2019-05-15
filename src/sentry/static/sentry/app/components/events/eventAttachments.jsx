@@ -2,11 +2,40 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import {Box} from 'grid-emotion';
 
+import Button from 'app/components/button';
 import FileSize from 'app/components/fileSize';
 
 import {t} from 'app/locale';
 import {Panel, PanelBody, PanelItem} from 'app/components/panels';
+import SentryTypes from 'app/sentryTypes';
 import withApi from 'app/utils/withApi';
+import withOrganization from 'app/utils/withOrganization';
+import withProject from 'app/utils/withProject';
+import ConfigStore from 'app/stores/configStore';
+import MemberListStore from 'app/stores/memberListStore';
+
+function isRoleFulfilled(availableRoles, requiredRole) {
+  const user = ConfigStore.get('user');
+  if (!user) {
+    return false;
+  }
+
+  if (user.isSuperuser) {
+    return true;
+  }
+
+  if (!Array.isArray(availableRoles)) {
+    return false;
+  }
+
+  const member = MemberListStore.getById(user.id);
+  const currentRole = member && member.role;
+
+  const roleIds = availableRoles.map(role => role.id);
+  const requiredIndex = roleIds.indexOf(requiredRole);
+  const currentIndex = roleIds.indexOf(currentRole);
+  return currentIndex >= requiredIndex;
+}
 
 class EventAttachments extends React.Component {
   static propTypes = {
@@ -14,6 +43,8 @@ class EventAttachments extends React.Component {
     event: PropTypes.object.isRequired,
     orgId: PropTypes.string.isRequired,
     projectId: PropTypes.string.isRequired,
+    project: SentryTypes.Project,
+    organization: SentryTypes.Organization,
   };
 
   state = {
@@ -70,11 +101,19 @@ class EventAttachments extends React.Component {
     }/?download=1`;
   }
 
+  hasAttachmentsRole() {
+    const {project, organization} = this.props;
+    const attachmentsRole = project.attachmentsRole || organization.attachmentsRole;
+    return isRoleFulfilled(organization.availableRoles, attachmentsRole);
+  }
+
   render() {
     const {attachmentList} = this.state;
     if (!(attachmentList && attachmentList.length)) {
       return null;
     }
+
+    const hasAttachmentsAccess = this.hasAttachmentsRole();
 
     return (
       <div className="box">
@@ -92,12 +131,27 @@ class EventAttachments extends React.Component {
                       pr={1}
                       style={{wordWrap: 'break-word', wordBreak: 'break-all'}}
                     >
-                      <a href={this.getDownloadUrl(attachment)}>
-                        <strong>{attachment.name}</strong>
-                      </a>
+                      <strong>{attachment.name}</strong>
                     </Box>
                     <Box flex={1} textAlign="right">
                       <FileSize bytes={attachment.size} />
+                    </Box>
+                    <Box flex={1} textAlign="center">
+                      <Button
+                        size="xsmall"
+                        icon="icon-download"
+                        onClick={
+                          hasAttachmentsAccess &&
+                          (() => (window.location = this.getDownloadUrl(attachment)))
+                        }
+                        disabled={!hasAttachmentsAccess}
+                        title={
+                          !hasAttachmentsAccess &&
+                          t('Insufficient permissions to download artifacts')
+                        }
+                      >
+                        {t('Download')}
+                      </Button>
                     </Box>
                   </PanelItem>
                 );
@@ -110,4 +164,4 @@ class EventAttachments extends React.Component {
   }
 }
 
-export default withApi(EventAttachments);
+export default withApi(withProject(withOrganization(EventAttachments)));
