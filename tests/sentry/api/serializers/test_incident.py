@@ -19,7 +19,7 @@ class IncidentSerializerTest(TestCase):
         result = serialize(incident)
 
         assert result['id'] == six.text_type(incident.id)
-        assert result['identifier'] == incident.identifier
+        assert result['identifier'] == six.text_type(incident.identifier)
         assert result['organizationId'] == six.text_type(incident.organization_id)
         assert result['projects'] == [p.slug for p in incident.projects.all()]
         assert result['status'] == incident.status
