@@ -10,17 +10,22 @@ except ImportError:
 
 from sentry import features, options, roles
 from sentry.api.bases.project import ProjectEndpoint, ProjectPermission
-from sentry.models import Event, SnubaEvent, EventAttachment, OrganizationMember
 from sentry.api.serializers.models.organization import ATTACHMENTS_ROLE_DEFAULT
+from sentry.auth.superuser import is_active_superuser
+from sentry.auth.system import is_system_auth
+from sentry.models import Event, SnubaEvent, EventAttachment, OrganizationMember
 
 
 class EventAttachmentDetailsPermission(ProjectPermission):
     def has_object_permission(self, request, view, project):
         result = super(EventAttachmentDetailsPermission, self) \
-            .has_object_permission(request, view, project.organization)
+            .has_object_permission(request, view, project)
 
         if not result:
             return result
+
+        if is_system_auth(request.auth) or is_active_superuser(request):
+            return True
 
         if not request.user.is_authenticated():
             return False
