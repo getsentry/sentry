@@ -1,39 +1,34 @@
 import moment from 'moment';
 import PropTypes from 'prop-types';
 import React from 'react';
-import createReactClass from 'create-react-class';
 import classNames from 'classnames';
 import * as Sentry from '@sentry/browser';
 
 import {t, tct} from 'app/locale';
 import {analytics} from 'app/utils/analytics';
-import OrganizationState from 'app/mixins/organizationState';
+import SentryTypes from 'app/sentryTypes';
+import withOrganization from 'app/utils/withOrganization';
 import Confirmation from 'app/components/onboardingWizard/confirmation';
 
-const TodoItem = createReactClass({
-  displayName: 'TodoItem',
-
-  propTypes: {
+class TodoItem extends React.Component {
+  static propTypes = {
     task: PropTypes.object.isRequired,
     onSkip: PropTypes.func.isRequired,
-  },
+    organization: SentryTypes.Organization,
+  };
 
-  mixins: [OrganizationState],
+  state = {
+    showConfirmation: false,
+    isExpanded: false,
+  };
 
-  getInitialState() {
-    return {
-      showConfirmation: false,
-      isExpanded: false,
-    };
-  },
-
-  toggleDescription() {
+  toggleDescription = () => {
     this.setState({isExpanded: !this.state.isExpanded});
-  },
+  };
 
-  toggleConfirmation() {
+  toggleConfirmation = () => {
     this.setState({showConfirmation: !this.state.showConfirmation});
-  },
+  };
 
   formatDescription() {
     const {task} = this.props;
@@ -41,13 +36,14 @@ const TodoItem = createReactClass({
 
     return (
       <p>
-        {task.description} {isExpanded && '. ' + task.detailedDescription}
+        {task.description}
+        {isExpanded && '. ' + task.detailedDescription}
       </p>
     );
-  },
+  }
 
   learnMoreUrlCreator() {
-    const org = this.getOrganization();
+    const org = this.props.organization;
     const {task} = this.props;
     let learnMoreUrl;
     if (task.featureLocation === 'project') {
@@ -66,10 +62,10 @@ const TodoItem = createReactClass({
       });
     }
     return learnMoreUrl;
-  },
+  }
 
   recordAnalytics(action) {
-    const org = this.getOrganization();
+    const org = this.props.organization;
     const {task} = this.props;
     analytics('onboarding.wizard_clicked', {
       org_id: parseInt(org.id, 10),
@@ -77,18 +73,18 @@ const TodoItem = createReactClass({
       todo_title: task.title,
       action,
     });
-  },
+  }
 
-  onSkip(task) {
+  onSkip = task => {
     this.recordAnalytics('skipped');
     this.props.onSkip(task);
     this.setState({showConfirmation: false});
-  },
+  };
 
-  handleClick(e) {
+  handleClick = e => {
     this.recordAnalytics('clickthrough');
     e.stopPropagation();
-  },
+  };
 
   render() {
     const {task, className} = this.props;
@@ -119,19 +115,23 @@ const TodoItem = createReactClass({
         description = this.formatDescription();
     }
 
-    const classes = classNames(className, task.status, {
-      blur: showConfirmation,
-    });
-
     const showSkipButton =
       task.skippable &&
       task.status !== 'skipped' &&
       task.status !== 'complete' &&
       !showConfirmation;
 
+    const taskClasses = classNames(className, task.status, {
+      blur: showConfirmation,
+    });
+
+    const skipClasses = classNames('skip-btn btn btn-default', {
+      hide: !showSkipButton,
+    });
+
     return (
       <li
-        className={classes}
+        className={taskClasses}
         onMouseOver={this.toggleDescription}
         onMouseOut={this.toggleDescription}
       >
@@ -146,22 +146,19 @@ const TodoItem = createReactClass({
             <h4>{task.title}</h4>
           </a>
           <div>{description}</div>
-          {showSkipButton && (
-            <a className="skip-btn btn btn-default" onClick={this.toggleConfirmation}>
-              {t('Skip')}
-            </a>
-          )}
+          <a className={skipClasses} onClick={this.toggleConfirmation}>
+            {t('Skip')}
+          </a>
         </div>
-        {showConfirmation && (
-          <Confirmation
-            task={task.task}
-            onSkip={() => this.onSkip(task.task)}
-            dismiss={this.toggleConfirmation}
-          />
-        )}
+        <Confirmation
+          task={task.task}
+          onSkip={() => this.onSkip(task.task)}
+          dismiss={this.toggleConfirmation}
+          hide={!showConfirmation}
+        />
       </li>
     );
-  },
-});
+  }
+}
 
-export default TodoItem;
+export default withOrganization(TodoItem);
