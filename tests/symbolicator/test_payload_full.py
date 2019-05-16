@@ -10,10 +10,8 @@ from six import BytesIO
 from django.core.urlresolvers import reverse
 from django.core.files.uploadedfile import SimpleUploadedFile
 
-from sentry.testutils import TestCase, TransactionTestCase
+from sentry.testutils import TransactionTestCase
 from sentry.models import Event, File, ProjectDebugFile
-
-from symbolic import SymbolicError, SymCache
 
 from tests.symbolicator import insta_snapshot_stacktrace_data
 
@@ -171,102 +169,6 @@ class ResolvingIntegrationTestBase(object):
         insta_snapshot_stacktrace_data(self, event.data)
 
 
-class SymbolicResolvingIntegrationTest(ResolvingIntegrationTestBase, TestCase):
-    @pytest.fixture(autouse=True)
-    def inject_pytest_monkeypatch(self, monkeypatch):
-        self.pytest_monkeypatch = monkeypatch
-
-    def test_broken_conversion(self):
-        url = reverse(
-            'sentry-api-0-dsym-files',
-            kwargs={
-                'organization_slug': self.project.organization.slug,
-                'project_slug': self.project.slug,
-            }
-        )
-
-        self.login_as(user=self.user)
-
-        out = BytesIO()
-        f = zipfile.ZipFile(out, 'w')
-        f.write(os.path.join(os.path.dirname(__file__), 'fixtures', 'hello.dsym'),
-                'dSYM/hello')
-        f.close()
-
-        @classmethod
-        def broken_make_symcache(cls, obj):
-            raise SymbolicError('shit on fire')
-
-        self.pytest_monkeypatch.setattr(SymCache, 'from_object', broken_make_symcache)
-
-        response = self.client.post(
-            url, {
-                'file':
-                SimpleUploadedFile(
-                    'symbols.zip',
-                    out.getvalue(),
-                    content_type='application/zip'),
-            },
-            format='multipart'
-        )
-        assert response.status_code == 201, response.content
-        assert len(response.data) == 1
-
-        event_data = {
-            "project": self.project.id,
-            "platform": "cocoa",
-            "debug_meta": {
-                "images": [{
-                    "type": "apple",
-                    "arch": "x86_64",
-                    "uuid": "502fc0a5-1ec1-3e47-9998-684fa139dca7",
-                    "image_vmaddr": "0x0000000100000000",
-                    "image_size": 4096,
-                    "image_addr": "0x0000000100000000",
-                    "name": "Foo.app/Contents/Foo"
-                }],
-                "sdk_info": {
-                    "dsym_type": "macho",
-                    "sdk_name": "macOS",
-                    "version_major": 10,
-                    "version_minor": 12,
-                    "version_patchlevel": 4,
-                }
-            },
-            "exception": {
-                "values": [
-                    {
-                        'stacktrace': {
-                            "frames": [
-                                {
-                                    "function": "unknown",
-                                    "instruction_addr": "0x0000000100000fa0"
-                                },
-                            ]
-                        },
-                        "type": "Fail",
-                        "value": "fail"
-                    }
-                ]
-            },
-        }
-
-        for _ in range(3):
-            resp = self._postWithHeader(event_data)
-            assert resp.status_code == 200
-            event = Event.objects.get(project_id=self.project.id)
-            errors = event.data['errors']
-            assert len(errors) == 1
-            assert errors[0] == {
-                'image_arch': u'x86_64',
-                'image_path': u'Foo.app/Contents/Foo',
-                'image_uuid': u'502fc0a5-1ec1-3e47-9998-684fa139dca7',
-                'message': u'shit on fire',
-                'type': 'native_bad_dsym'
-            }
-            event.delete()
-
-
 class SymbolicatorResolvingIntegrationTest(ResolvingIntegrationTestBase, TransactionTestCase):
     # For these tests to run, write `symbolicator.enabled: true` into your
     # `~/.sentry/config.yml` and run `sentry devservices up`
@@ -275,14 +177,8 @@ class SymbolicatorResolvingIntegrationTest(ResolvingIntegrationTestBase, Transac
     def initialize(self, live_server):
         new_prefix = live_server.url
 
-        with patch('sentry.lang.native.symbolizer.Symbolizer._symbolize_app_frame') \
-            as symbolize_app_frame, \
-                patch('sentry.lang.native.plugin._is_symbolicator_enabled', return_value=True), \
-                patch('sentry.auth.system.is_internal_ip', return_value=True), \
+        with patch('sentry.auth.system.is_internal_ip', return_value=True), \
                 self.options({"system.url-prefix": new_prefix}):
 
             # Run test case:
             yield
-
-            # Teardown:
-            assert not symbolize_app_frame.called
