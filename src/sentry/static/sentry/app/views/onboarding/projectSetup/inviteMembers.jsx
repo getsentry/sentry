@@ -3,6 +3,7 @@ import React from 'react';
 import styled from 'react-emotion';
 
 import {addSuccessMessage} from 'app/actionCreators/indicator';
+import {analytics} from 'app/utils/analytics';
 import {t, tct} from 'app/locale';
 import Alert from 'app/components/alert';
 import EmailField from 'app/views/settings/components/forms/emailField';
@@ -14,11 +15,19 @@ import TextBlock from 'app/views/settings/components/text/textBlock';
 import space from 'app/styles/space';
 import withApi from 'app/utils/withApi';
 import withConfig from 'app/utils/withConfig';
+import withOrganization from 'app/utils/withOrganization';
+
+const recordAnalyticsUserInvited = ({organization, project}) =>
+  analytics('onboarding_v2.user_invited', {
+    org_id: parseInt(organization.id, 10),
+    project_id: parseInt(project.id, 10),
+  });
 
 class InviteMembers extends React.Component {
   static propTypes = {
     api: PropTypes.object.isRequired,
     orgId: PropTypes.string.isRequired,
+    organization: SentryTypes.Organization.isRequired,
     project: SentryTypes.Project.isRequired,
     config: SentryTypes.Config.isRequired,
     formProps: PropTypes.object,
@@ -48,6 +57,9 @@ class InviteMembers extends React.Component {
     model.fields.set('email', '');
     this.setState(state => ({invitedEmails: [...state.invitedEmails, data.email]}));
     addSuccessMessage(t('Invited %s to your organization', data.email));
+
+    const {organization, project} = this.props;
+    recordAnalyticsUserInvited({organization, project});
   };
 
   render() {
@@ -122,4 +134,4 @@ const RoleDescriptiom = styled('div')`
   font-size: 0.8em;
 `;
 
-export default withApi(withConfig(InviteMembers));
+export default withOrganization(withApi(withConfig(InviteMembers)));
