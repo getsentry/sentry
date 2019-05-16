@@ -66,6 +66,7 @@ class CreateIncidentModal extends React.Component {
         </Header>
         <Body>
           <Form
+            data-test-id="create-new-incident-form"
             submitLabel={t('Create Incident')}
             onSubmit={this.handleSubmit}
             onSubmitSuccess={this.handleSuccess}
