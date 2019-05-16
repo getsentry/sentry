@@ -1,7 +1,7 @@
 import React from 'react';
 import {mount} from 'enzyme';
 
-import {TagDistributionMeter} from 'app/components/group/tagDistributionMeter';
+import {GroupTagDistributionMeter} from 'app/components/group/tagDistributionMeter';
 
 describe('TagDistributionMeter', function() {
   let element;
@@ -13,7 +13,7 @@ describe('TagDistributionMeter', function() {
     organization = TestStubs.Organization();
 
     element = mount(
-      <TagDistributionMeter
+      <GroupTagDistributionMeter
         key="element"
         tag="browser"
         group={{id: '1337'}}
@@ -25,7 +25,7 @@ describe('TagDistributionMeter', function() {
     );
 
     emptyElement = mount(
-      <TagDistributionMeter
+      <GroupTagDistributionMeter
         key="emptyElement"
         tag="browser"
         group={{id: '1337'}}
