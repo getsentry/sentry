@@ -261,7 +261,7 @@ class VarAction(Action):
 class StackState(object):
 
     def __init__(self):
-        self.vars = {}
+        self.vars = {'max-frames': 0}
         self.setters = {}
 
     def set(self, var, value, rule=None):
@@ -315,7 +315,7 @@ class Enhancements(object):
 
         # Use the stack state to update frame contributions again
         max_frames = stack_state.get('max-frames')
-        if max_frames is not None:
+        if max_frames > 0:
             ignored = 0
             for component in reversed(components):
                 if not component.contributes:
