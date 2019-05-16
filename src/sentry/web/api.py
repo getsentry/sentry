@@ -40,7 +40,8 @@ from sentry.interfaces.base import get_interface
 from sentry.lang.native.unreal import process_unreal_crash, merge_apple_crash_report, \
     unreal_attachment_type, merge_unreal_context_event, merge_unreal_logs_event
 from sentry.lang.native.minidump import merge_process_state_event, process_minidump, \
-    merge_attached_event, merge_attached_breadcrumbs, MINIDUMP_ATTACHMENT_TYPE
+    merge_attached_event, merge_attached_breadcrumbs, write_minidump_placeholder, \
+    MINIDUMP_ATTACHMENT_TYPE
 from sentry.models import Project, OrganizationOption, Organization
 from sentry.signals import (
     event_accepted, event_dropped, event_filtered, event_received)
@@ -75,6 +76,20 @@ kafka_publisher = QueuedPublisherService(
             None),
         asynchronous=False)
 ) if getattr(settings, 'KAFKA_RAW_EVENTS_PUBLISHER_ENABLED', False) else None
+
+
+def _minidump_refactor_enabled(project_id):
+    if project_id in options.get('symbolicator.minidump-refactor-projects-opt-out'):
+        return False
+
+    if project_id in options.get('symbolicator.minidump-refactor-projects-opt-in'):
+        return True
+
+    rate = options.get('symbolicator.minidump-refactor-random-sampling') or 0.0
+    if rate and random.random() <= rate:
+        return True
+
+    return False
 
 
 def api(func):
@@ -750,18 +765,28 @@ class MinidumpView(StoreView):
             if has_event_attachments:
                 attachments.append(CachedAttachment.from_upload(file))
 
-        try:
-            state = process_minidump(minidump)
-            merge_process_state_event(data, state)
-        except ProcessMinidumpError as e:
-            minidumps_logger.exception(e)
-            track_outcome(
-                project.organization_id,
-                project.id,
-                None,
-                Outcome.INVALID,
-                "process_minidump")
-            raise APIError(e.message.split('\n', 1)[0])
+        refactor_enabled = _minidump_refactor_enabled(project.id)
+        metrics.incr(
+            'symbolicator.minidump-refactor-enabled',
+            tags={'value': refactor_enabled}
+        )
+
+        if refactor_enabled:
+            write_minidump_placeholder(data)
+        else:
+            try:
+                with metrics.timer("symbolicator.old-process-minidump"):
+                    state = process_minidump(minidump)
+                merge_process_state_event(data, state)
+            except ProcessMinidumpError as e:
+                minidumps_logger.exception(e)
+                track_outcome(
+                    project.organization_id,
+                    project.id,
+                    None,
+                    Outcome.INVALID,
+                    "process_minidump")
+                raise APIError(e.message.split('\n', 1)[0])
 
         event_id = self.process(
             request,

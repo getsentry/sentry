@@ -175,3 +175,8 @@ register('store.projects-normalize-in-rust-percent-opt-in', default=0.0)  # unus
 
 # From 0.0 to 1.0: Randomly disable normalization code in interfaces when loading from db
 register('store.empty-interface-sample-rate', default=0.0)
+
+# Symbolicator
+register('symbolicator.minidump-refactor-projects-opt-in', type=Sequence, default=[])
+register('symbolicator.minidump-refactor-projects-opt-out', type=Sequence, default=[])
+register('symbolicator.minidump-refactor-random-sampling', default=0.0)

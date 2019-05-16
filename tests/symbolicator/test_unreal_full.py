@@ -102,3 +102,10 @@ class SymbolicatorUnrealIntegrationTest(UnrealIntegrationTestBase, TransactionTe
 
             # Run test case:
             yield
+
+
+class SymbolicatorRefactoredUnrealIntegrationTest(SymbolicatorUnrealIntegrationTest):
+    @pytest.fixture(autouse=True)
+    def _set_refactor_option(self):
+        with self.options({"symbolicator.minidump-refactor-projects-opt-in": [self.project.id]}):
+            yield
