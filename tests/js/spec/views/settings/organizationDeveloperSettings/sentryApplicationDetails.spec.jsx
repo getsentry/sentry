@@ -97,7 +97,58 @@ describe('Sentry Application Details', function() {
     });
   });
 
-  describe('editing an existing Sentry App', () => {
+  describe('Renders application data and credentials', function() {
+    beforeEach(() => {
+      sentryApp = TestStubs.SentryApp();
+      sentryApp.events = ['issue'];
+
+      Client.addMockResponse({
+        url: `/sentry-apps/${sentryApp.slug}/`,
+        body: sentryApp,
+      });
+
+      wrapper = mount(
+        <SentryApplicationDetails params={{appSlug: sentryApp.slug, orgId}} />,
+        TestStubs.routerContext()
+      );
+    });
+
+    it('it shows application data', function() {
+      // data should be filled out
+      expect(wrapper.find('PermissionsObserver').prop('scopes')).toEqual([
+        'project:read',
+      ]);
+    });
+
+    it('renders clientId and clientSecret for non-internal apps', function() {
+      expect(wrapper.find('#clientId').exists()).toBe(true);
+      expect(wrapper.find('#clientSecret').exists()).toBe(true);
+    });
+
+    it('renders installationId and token for internal apps', function() {
+      sentryApp = TestStubs.SentryApp({
+        status: 'internal',
+        installation: {uuid: 'xxxxxx'},
+        token: 'xxxx',
+      });
+      sentryApp.events = ['issue'];
+
+      Client.addMockResponse({
+        url: `/sentry-apps/${sentryApp.slug}/`,
+        body: sentryApp,
+      });
+
+      wrapper = mount(
+        <SentryApplicationDetails params={{appSlug: sentryApp.slug, orgId}} />,
+        TestStubs.routerContext()
+      );
+
+      expect(wrapper.find('#installation').exists()).toBe(true);
+      expect(wrapper.find('#token').exists()).toBe(true);
+    });
+  });
+
+  describe('Editing an existing Sentry App', () => {
     beforeEach(() => {
       sentryApp = TestStubs.SentryApp();
       sentryApp.events = ['issue'];
@@ -117,21 +168,6 @@ describe('Sentry Application Details', function() {
         <SentryApplicationDetails params={{appSlug: sentryApp.slug, orgId}} />,
         TestStubs.routerContext()
       );
-    });
-
-    it('it shows application data and credentials', function() {
-      // data should be filled out
-      expect(wrapper.find('PermissionsObserver').prop('scopes')).toEqual([
-        'project:read',
-      ]);
-
-      // 'Credentials' should be last PanelHeader when editing an application.
-      expect(
-        wrapper
-          .find('PanelHeader')
-          .last()
-          .text()
-      ).toBe('Credentials');
     });
 
     it('it updates app with correct data', function() {
