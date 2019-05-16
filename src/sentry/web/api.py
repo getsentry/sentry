@@ -768,7 +768,7 @@ class MinidumpView(StoreView):
         refactor_enabled = _minidump_refactor_enabled(project.id)
         metrics.incr(
             'symbolicator.minidump-refactor-enabled',
-            tags={'value': refactor_enabled}
+            tags={'value': six.text_type(refactor_enabled)}
         )
 
         if refactor_enabled:
