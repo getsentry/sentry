@@ -21,7 +21,7 @@ import withProjects from 'app/utils/withProjects';
 const recordAnalyticStepComplete = ({organization, project, step}) =>
   analytics('onboarding_v2.step_compete', {
     org_id: parseInt(organization.id, 10),
-    project_id: project ? parseInt(project.id, 10) : null,
+    project: project ? project.slug : null,
     step: step.id,
   });
 

@@ -21,7 +21,7 @@ import withOrganization from 'app/utils/withOrganization';
 const recordAnalyticsUserInvited = ({organization, project}) =>
   analytics('onboarding_v2.user_invited', {
     org_id: parseInt(organization.id, 10),
-    project_id: parseInt(project.id, 10),
+    project: project.slug,
   });
 
 class InviteMembers extends React.Component {

@@ -20,7 +20,7 @@ import withOrganization from 'app/utils/withOrganization';
 const recordAnalyticsDocsClicked = ({organization, project, platform}) =>
   analytics('onboarding_v2.full_docs_clicked', {
     org_id: parseInt(organization.id, 10),
-    project_id: parseInt(organization.id, 10),
+    project: project.slug,
     platform,
   });
 
