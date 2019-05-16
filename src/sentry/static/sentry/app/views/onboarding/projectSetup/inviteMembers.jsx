@@ -4,6 +4,7 @@ import styled from 'react-emotion';
 
 import {addSuccessMessage} from 'app/actionCreators/indicator';
 import {analytics} from 'app/utils/analytics';
+import {getCurrentMember} from 'app/actionCreators/members';
 import {t, tct} from 'app/locale';
 import Alert from 'app/components/alert';
 import EmailField from 'app/views/settings/components/forms/emailField';
@@ -45,7 +46,7 @@ class InviteMembers extends React.Component {
   async fetchRoleDetails() {
     const {api, orgId} = this.props;
 
-    const member = await api.requestPromise(`/organizations/${orgId}/members/me/`);
+    const member = await getCurrentMember(api, orgId);
     this.setState({roleList: member.roles});
   }
 
