@@ -25,6 +25,10 @@ class DropdownControl extends React.Component {
     // Should the menu contents always be rendered?  Defaults to true.
     // Set to false to have menu contents removed from the DOM on close.
     alwaysRenderMenu: PropTypes.bool,
+    // Align the dropdown menu to the right. (Default aligns to left)
+    alignRight: PropTypes.bool,
+    // Props to pass to DropdownButton
+    buttonProps: PropTypes.object,
   };
 
   static defaultProps = {
@@ -34,19 +38,22 @@ class DropdownControl extends React.Component {
   };
 
   renderButton(isOpen, getActorProps) {
-    const {label, button} = this.props;
+    const {label, button, buttonProps} = this.props;
     if (button) {
       return button({isOpen, getActorProps});
     }
     return (
-      <StyledDropdownButton {...getActorProps({isStyled: true})} isOpen={isOpen}>
+      <StyledDropdownButton
+        {...getActorProps({...buttonProps, isStyled: true})}
+        isOpen={isOpen}
+      >
         {label}
       </StyledDropdownButton>
     );
   }
 
   render() {
-    const {children, alwaysRenderMenu, menuOffset, menuWidth} = this.props;
+    const {children, alwaysRenderMenu, alignRight, menuOffset, menuWidth} = this.props;
 
     return (
       <Container>
@@ -57,6 +64,7 @@ class DropdownControl extends React.Component {
                 {this.renderButton(isOpen, getActorProps)}
                 <MenuContainer
                   {...getMenuProps({isStyled: true})}
+                  alignRight={alignRight}
                   menuWidth={menuWidth}
                   menuOffset={menuOffset}
                   isOpen={isOpen}
@@ -91,6 +99,7 @@ const MenuContainer = styled('ul')`
 
   position: absolute;
   top: ${p => p.menuOffset};
+  ${p => p.alignRight && 'right: 0'};
   padding: 0;
   margin: 0;
   z-index: ${p => p.theme.zIndex.dropdownAutocomplete.menu};

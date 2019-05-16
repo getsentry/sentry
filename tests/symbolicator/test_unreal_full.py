@@ -10,7 +10,7 @@ from six import BytesIO
 from django.core.urlresolvers import reverse
 from django.core.files.uploadedfile import SimpleUploadedFile
 
-from sentry.testutils import TestCase, TransactionTestCase
+from sentry.testutils import TransactionTestCase
 from sentry.models import Event, EventAttachment
 
 
@@ -89,10 +89,6 @@ class UnrealIntegrationTestBase(object):
         assert log.file.checksum == '24d1c5f75334cd0912cc2670168d593d5fe6c081'
 
 
-class SymbolicUnrealIntegrationTest(UnrealIntegrationTestBase, TestCase):
-    pass
-
-
 class SymbolicatorUnrealIntegrationTest(UnrealIntegrationTestBase, TransactionTestCase):
     # For these tests to run, write `symbolicator.enabled: true` into your
     # `~/.sentry/config.yml` and run `sentry devservices up`
@@ -101,17 +97,11 @@ class SymbolicatorUnrealIntegrationTest(UnrealIntegrationTestBase, TransactionTe
     def initialize(self, live_server):
         new_prefix = live_server.url
 
-        with patch('sentry.lang.native.symbolizer.Symbolizer._symbolize_app_frame') \
-            as symbolize_app_frame, \
-                patch('sentry.lang.native.plugin._is_symbolicator_enabled', return_value=True), \
-                patch('sentry.auth.system.is_internal_ip', return_value=True), \
+        with patch('sentry.auth.system.is_internal_ip', return_value=True), \
                 self.options({"system.url-prefix": new_prefix}):
 
             # Run test case:
             yield
-
-            # Teardown:
-            assert not symbolize_app_frame.called
 
 
 class SymbolicatorRefactoredUnrealIntegrationTest(SymbolicatorUnrealIntegrationTest):

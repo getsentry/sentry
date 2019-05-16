@@ -267,6 +267,9 @@ INSTALLED_APPS = (
     'sentry.lang.javascript', 'sentry.lang.native', 'sentry.plugins.sentry_interface_types',
     'sentry.plugins.sentry_mail', 'sentry.plugins.sentry_urls', 'sentry.plugins.sentry_useragents',
     'sentry.plugins.sentry_webhooks', 'social_auth', 'sudo', 'sentry.tagstore',
+    # we import the legacy tagstore to ensure models stay registered as they're still
+    # referenced in the core sentry migrations (tagstore migrations are not in their own app)
+    'sentry.tagstore.legacy',
     'sentry.eventstream', 'sentry.auth.providers.google', 'django.contrib.staticfiles',
 )
 
@@ -811,6 +814,8 @@ SENTRY_FEATURES = {
     'organizations:symbol-sources': False,
     # Enable the events stream interface.
     'organizations:events': False,
+    # Enable events v2 instead of the events stream
+    'organizations:events-v2': False,
     # Enable multi project selection
     'organizations:global-views': False,
     # Turns on grouping info.
