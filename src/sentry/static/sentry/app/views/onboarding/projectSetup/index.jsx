@@ -25,28 +25,25 @@ const InviteMembersComponent = HookOrDefault({
   defaultComponent: InviteMembers,
 });
 
-const SETUP_COMPONENTS = {
-  install_guide: ProjectDocs,
-  invite_members: InviteMembersComponent,
-  learn_more: LearnMore,
-};
-
 const SETUP_CHOICES = [
   {
-    id: 'install_guide',
+    id: 'install-guide',
     title: t('Installation Guide'),
+    component: ProjectDocs,
   },
   {
-    id: 'invite_members',
+    id: 'invite-members',
     title: t('Invite Team Members'),
+    component: InviteMembersComponent,
   },
   {
-    id: 'learn_more',
+    id: 'learn-more',
     title: t('How Does Sentry Work?'),
+    component: LearnMore,
   },
 ];
 
-const DEFAULT_SETUP_OPTION = 'install_guide';
+const DEFAULT_SETUP_OPTION = 'install-guide';
 
 class OnboardingProjectSetup extends React.Component {
   static propTypes = {
@@ -65,7 +62,8 @@ class OnboardingProjectSetup extends React.Component {
 
   render() {
     const {selectedChoice} = this.state;
-    const SelectedComponent = SETUP_COMPONENTS[selectedChoice];
+    const SelectedComponent = SETUP_CHOICES.find(item => item.id === selectedChoice)
+      .component;
 
     // NOTE: We give the PoseGroup different enter/exit/init poses than default
     // so that when poses propegate down to children they do not animate enter
