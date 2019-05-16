@@ -2,6 +2,7 @@ import {css} from 'react-emotion';
 import PropTypes from 'prop-types';
 import React from 'react';
 
+import {createProject} from 'app/actionCreators/projects';
 import {t, tct} from 'app/locale';
 import Button from 'app/components/button';
 import PlatformPicker from 'app/components/platformPicker';
@@ -86,11 +87,7 @@ class OnboardingPlatform extends React.Component {
 
     this.setState({firstProjectCreated: true});
 
-    const data = await api.requestPromise(`/teams/${orgId}/${teams[0].slug}/projects/`, {
-      method: 'POST',
-      data: {name: orgId, platform},
-    });
-
+    const data = await createProject(api, orgId, teams[0].slug, orgId, platform);
     ProjectActions.createSuccess(data);
   }
 

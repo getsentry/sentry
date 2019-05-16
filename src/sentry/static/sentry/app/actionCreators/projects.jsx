@@ -279,6 +279,22 @@ export function sendSampleEvent(api, orgSlug, projectSlug) {
 }
 
 /**
+ * Creates a project
+ *
+ * @param {Client} api API Client
+ * @param {String} orgSlug Organization Slug
+ * @param {String} team The team slug to assign the project to
+ * @param {String} name Name of the project
+ * @param {String} platform The platform key of the project
+ */
+export function createProject(api, orgSlug, team, name, platform) {
+  return api.requestPromise(`/teams/${orgSlug}/${team}/projects/`, {
+    method: 'POST',
+    data: {name, platform},
+  });
+}
+
+/**
  * Load platform documentation specific to the project. The DSN and various
  * other project specific secrets will be included in the documentation.
  *
