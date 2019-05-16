@@ -4,11 +4,7 @@ import React from 'react';
 import NavTabs from 'app/components/navTabs';
 
 const itemsShape = PropTypes.shape({
-  id: PropTypes.string.isRequired,
-  icon: PropTypes.string.isRequired,
   title: PropTypes.string.isRequired,
-  subtext: PropTypes.string.isRequired,
-  extra: PropTypes.node,
 });
 
 /**
@@ -28,7 +24,7 @@ class SetupChoices extends React.Component {
 
     return (
       <NavTabs underlined={true}>
-        {choices.map(({id, title, icon, subtext, extra}) => (
+        {choices.map(({id, title}) => (
           <li key={id} className={id === selectedChoice ? 'active' : null}>
             <a
               href="#"

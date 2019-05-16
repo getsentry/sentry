@@ -2,16 +2,29 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
 
+import {analytics} from 'app/utils/analytics';
 import {t, tct} from 'app/locale';
 import Button from 'app/components/button';
 import SentryTypes from 'app/sentryTypes';
 import withConfig from 'app/utils/withConfig';
+import withOrganization from 'app/utils/withOrganization';
+
+const recordAnalyticsOnboardingSkipped = ({organization}) =>
+  analytics('onboarding_v2.skipped', {
+    org_id: parseInt(organization.id, 10),
+  });
 
 class OnboardingWelcome extends React.Component {
   static propTypes = {
     active: PropTypes.bool.isRequired,
     onComplete: PropTypes.func.isRequired,
     config: SentryTypes.Config.isRequired,
+    organization: SentryTypes.Organization,
+  };
+
+  skipOnboarding = e => {
+    const {organization} = this.props;
+    recordAnalyticsOnboardingSkipped({organization});
   };
 
   render() {
@@ -47,7 +60,7 @@ class OnboardingWelcome extends React.Component {
           </Button>
           <SecondaryAction>
             {tct('Not your first Sentry rodeo? [exitLink:Skip this onboarding].', {
-              exitLink: <Button priority="link" to="/" />,
+              exitLink: <Button priority="link" onClick={this.skipOnboarding} to="/" />,
             })}
           </SecondaryAction>
         </ActionGroup>
@@ -66,4 +79,4 @@ const SecondaryAction = styled('small')`
   color: ${p => p.theme.gray3};
 `;
 
-export default withConfig(OnboardingWelcome);
+export default withOrganization(withConfig(OnboardingWelcome));

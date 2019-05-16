@@ -3,6 +3,7 @@ import React from 'react';
 import posed, {PoseGroup} from 'react-pose';
 import styled from 'react-emotion';
 
+import {analytics} from 'app/utils/analytics';
 import {loadDocs} from 'app/actionCreators/projects';
 import {t, tct} from 'app/locale';
 import Button from 'app/components/button';
@@ -14,11 +15,19 @@ import SentryTypes from 'app/sentryTypes';
 import platforms from 'app/data/platforms';
 import space from 'app/styles/space';
 import withApi from 'app/utils/withApi';
+import withOrganization from 'app/utils/withOrganization';
+
+const recordAnalyticsDocsClicked = ({organization, project, platform}) =>
+  analytics('onboarding_v2.full_docs_clicked', {
+    org_id: parseInt(organization.id, 10),
+    project_id: parseInt(organization.id, 10),
+    platform,
+  });
 
 class ProjectDocs extends React.Component {
   static propTypes = {
     api: PropTypes.object,
-    orgId: PropTypes.string.isRequired,
+    organization: SentryTypes.Organization,
     project: SentryTypes.Project,
     platform: PropTypes.string,
     scrollTargetId: PropTypes.string,
@@ -43,18 +52,23 @@ class ProjectDocs extends React.Component {
   }
 
   async fetchData() {
-    const {api, project, orgId, platform} = this.props;
+    const {api, project, organization, platform} = this.props;
 
     if (!project) {
       return;
     }
 
-    const platformDocs = await loadDocs(api, orgId, project.slug, platform);
+    const platformDocs = await loadDocs(api, organization.slug, project.slug, platform);
     this.setState({platformDocs, loadedPlatform: platform});
   }
 
+  handleFullDocsClick = e => {
+    const {organization, project, platform} = this.props;
+    recordAnalyticsDocsClicked({organization, project, platform});
+  };
+
   render() {
-    const {orgId, project, platform, scrollTargetId} = this.props;
+    const {organization, project, platform, scrollTargetId} = this.props;
     const {loadedPlatform, platformDocs} = this.state;
 
     const introduction = (
@@ -73,9 +87,16 @@ class ProjectDocs extends React.Component {
             )}
           </Description>
           <Footer>
-            {project && <FirstEventIndicator orgId={orgId} projectId={project.slug} />}
+            {project && (
+              <FirstEventIndicator organization={organization} project={project} />
+            )}
             <div>
-              <Button external href={platformDocs?.link} size="small">
+              <Button
+                external
+                onClick={this.handleFullDocsClick}
+                href={platformDocs?.link}
+                size="small"
+              >
                 {t('Full Documentation')}
               </Button>
             </div>
@@ -182,4 +203,4 @@ const DocsWrapper = styled(posed.div(docsTransition))`
   }
 `;
 
-export default withApi(ProjectDocs);
+export default withOrganization(withApi(ProjectDocs));

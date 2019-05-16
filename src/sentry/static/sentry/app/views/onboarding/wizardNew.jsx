@@ -6,6 +6,7 @@ import posed, {PoseGroup} from 'react-pose';
 import scrollToElemennt from 'scroll-to-element';
 import styled from 'react-emotion';
 
+import {analytics} from 'app/utils/analytics';
 import {t} from 'app/locale';
 import InlineSvg from 'app/components/inlineSvg';
 import OnboardingPlatform from 'app/views/onboarding/platform';
@@ -14,7 +15,15 @@ import OnboardingWelcome from 'app/views/onboarding/welcome';
 import PageHeading from 'app/components/pageHeading';
 import SentryTypes from 'app/sentryTypes';
 import space from 'app/styles/space';
+import withOrganization from 'app/utils/withOrganization';
 import withProjects from 'app/utils/withProjects';
+
+const recordAnalyticStepComplete = ({organization, project, step}) =>
+  analytics('onboarding_v2.project_created', {
+    org_id: parseInt(organization.id, 10),
+    project_id: project ? parseInt(project.id, 10) : null,
+    step: step.id,
+  });
 
 const ONBOARDING_STEPS = [
   {
@@ -37,6 +46,7 @@ const ONBOARDING_STEPS = [
 class OnboardingWizard extends React.Component {
   static propTypes = {
     projects: PropTypes.arrayOf(SentryTypes.Project),
+    organization: SentryTypes.Organization,
   };
 
   state = {};
@@ -74,6 +84,13 @@ class OnboardingWizard extends React.Component {
 
     const {orgId} = this.props.params;
     const nextStep = ONBOARDING_STEPS[this.activeStepIndex + 1];
+
+    recordAnalyticStepComplete({
+      organization: this.props.organization,
+      project: this.firstProject,
+      step: nextStep,
+    });
+
     browserHistory.push(`/onboarding/${orgId}/${nextStep.id}/`);
   };
 
@@ -108,7 +125,9 @@ class OnboardingWizard extends React.Component {
     const {orgId} = this.props.params;
 
     if (activeStepIndex === -1) {
-      // TODO: Redirect here?
+      // XXX(epurkhiser): Not super great to have a side effect during render,
+      // but I can live with it for now.
+      browserHistory.push(`/onboarding/${orgId}/welcome/`);
     }
 
     const visibleSteps = ONBOARDING_STEPS.slice(0, activeStepIndex + 1);
@@ -267,4 +286,4 @@ const OnboardingStep = styled(PosedOnboardingStep)`
   }
 `;
 
-export default withProjects(OnboardingWizard);
+export default withOrganization(withProjects(OnboardingWizard));

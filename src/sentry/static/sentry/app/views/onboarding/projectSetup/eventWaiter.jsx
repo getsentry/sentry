@@ -1,9 +1,18 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 
+import {analytics} from 'app/utils/analytics';
+import SentryTypes from 'app/sentryTypes';
 import withApi from 'app/utils/withApi';
+import withOrganization from 'app/utils/withOrganization';
 
 const DEFAULT_POLL_INTERVAL = 5000;
+
+const recordAnalyticsFirstEvent = ({organization, project}) =>
+  analytics('onboarding_v2.first_event_recieved', {
+    org_id: parseInt(organization.id, 10),
+    project: parseInt(project.id, 10),
+  });
 
 /**
  * This is a render prop component that can be used to wait for the first event
@@ -18,8 +27,8 @@ const DEFAULT_POLL_INTERVAL = 5000;
 class EventWaiter extends React.Component {
   static propTypes = {
     api: PropTypes.object,
-    orgId: PropTypes.string,
-    projectId: PropTypes.string,
+    organization: SentryTypes.Organization,
+    project: SentryTypes.Project,
     disabled: PropTypes.bool,
     children: PropTypes.func,
     pollInterval: PropTypes.number,
@@ -50,9 +59,11 @@ class EventWaiter extends React.Component {
   intervalId = null;
 
   pollHandler = async () => {
-    const {api, orgId, projectId} = this.props;
+    const {api, organization, project} = this.props;
 
-    const {firstEvent} = await api.requestPromise(`/projects/${orgId}/${projectId}/`);
+    const {firstEvent} = await api.requestPromise(
+      `/projects/${organization.slug}/${project.slug}/`
+    );
 
     if (firstEvent === null) {
       return;
@@ -62,19 +73,23 @@ class EventWaiter extends React.Component {
     // *not* include sample events, while just looking at the issues list will.
     // We will wait until the project.firstEvent is set and then locate the
     // event given that event datetime
-    const issues = await api.requestPromise(`/projects/${orgId}/${projectId}/issues/`);
+    const issues = await api.requestPromise(
+      `/projects/${organization.slug}/${project.slug}/issues/`
+    );
 
     // The event may have expired, default to true
     const firstIssue = issues.find(issue => issue.firstSeen === firstEvent);
+
+    recordAnalyticsFirstEvent({organization, project});
 
     this.stopPolling();
     this.setState({firstIssue});
   };
 
   startPolling() {
-    const {disabled, orgId, projectId} = this.props;
+    const {disabled, organization, project} = this.props;
 
-    if (disabled || !orgId || !projectId || this.state.firstIssue) {
+    if (disabled || !organization || !project || this.state.firstIssue) {
       return;
     }
 
@@ -90,4 +105,4 @@ class EventWaiter extends React.Component {
   }
 }
 
-export default withApi(EventWaiter);
+export default withApi(withOrganization(EventWaiter));
