@@ -76,7 +76,10 @@ class Quota(Service):
         # XXX(epurkhiser): Avoid excessive feature manager checks (which can be
         # expensive depending on feature handlers) for project rate limits.
         # This happens on /store.
-        cache_key = u'project:{}:rate-limits'.format(key.project.id)
+        cache_key = u'project:{}:key:{}:rate-limits'.format(
+            key.project.id,
+            key.id,
+        )
 
         rate_limit = default_cache.get(cache_key)
         if rate_limit is None:
