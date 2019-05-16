@@ -7,7 +7,7 @@ import CustomResolutionModal from 'app/components/customResolutionModal';
 import MenuItem from 'app/components/menuItem';
 import DropdownLink from 'app/components/dropdownLink';
 import ActionLink from 'app/components/actions/actionLink';
-import Tooltip2 from 'app/components/tooltip2';
+import Tooltip from 'app/components/tooltip';
 import GuideAnchor from 'app/components/assistant/guideAnchor';
 
 export default class ResolveActions extends React.Component {
@@ -57,7 +57,7 @@ export default class ResolveActions extends React.Component {
     if (isAutoResolved) {
       return (
         <div className="btn-group">
-          <Tooltip2
+          <Tooltip
             title={t(
               'This event is resolved due to the Auto Resolve configuration for this project'
             )}
@@ -65,13 +65,13 @@ export default class ResolveActions extends React.Component {
             <a className={this.getButtonClass('active')}>
               <span className="icon-checkmark" />
             </a>
-          </Tooltip2>
+          </Tooltip>
         </div>
       );
     } else {
       return (
         <div className="btn-group">
-          <Tooltip2 title={t('Unresolve')}>
+          <Tooltip title={t('Unresolve')}>
             <a
               data-test-id="button-unresolve"
               className={this.getButtonClass('active')}
@@ -79,7 +79,7 @@ export default class ResolveActions extends React.Component {
             >
               <span className="icon-checkmark" />
             </a>
-          </Tooltip2>
+          </Tooltip>
         </div>
       );
     }
@@ -148,7 +148,7 @@ export default class ResolveActions extends React.Component {
           >
             <MenuItem header={true}>{t('Resolved In')}</MenuItem>
             <MenuItem noAnchor={true}>
-              <Tooltip2 title={actionTitle} containerDisplayMode="block">
+              <Tooltip title={actionTitle} containerDisplayMode="block">
                 <ActionLink
                   {...actionLinkProps}
                   onAction={() => {
@@ -165,8 +165,8 @@ export default class ResolveActions extends React.Component {
                 >
                   {t('The next release')}
                 </ActionLink>
-              </Tooltip2>
-              <Tooltip2 title={actionTitle} containerDisplayMode="block">
+              </Tooltip>
+              <Tooltip title={actionTitle} containerDisplayMode="block">
                 <ActionLink
                   {...actionLinkProps}
                   onAction={() => {
@@ -188,8 +188,8 @@ export default class ResolveActions extends React.Component {
                       )
                     : t('The current release')}
                 </ActionLink>
-              </Tooltip2>
-              <Tooltip2 title={actionTitle} containerDisplayMode="block">
+              </Tooltip>
+              <Tooltip title={actionTitle} containerDisplayMode="block">
                 <ActionLink
                   {...actionLinkProps}
                   onAction={() => hasRelease && this.setState({modal: true})}
@@ -197,7 +197,7 @@ export default class ResolveActions extends React.Component {
                 >
                   {t('Another version\u2026')}
                 </ActionLink>
-              </Tooltip2>
+              </Tooltip>
             </MenuItem>
           </DropdownLink>
         </div>

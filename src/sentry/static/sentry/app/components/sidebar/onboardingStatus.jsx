@@ -1,7 +1,7 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 
-import Tooltip2 from 'app/components/tooltip2';
+import Tooltip from 'app/components/tooltip';
 import {analytics} from 'app/utils/analytics';
 import {tct} from 'app/locale';
 import SidebarPanel from './sidebarPanel';
@@ -70,7 +70,7 @@ class OnboardingStatus extends React.Component {
 
     return (
       <div className={currentPanel === 'todos' ? 'onboarding active' : 'onboarding'}>
-        <Tooltip2 title={title}>
+        <Tooltip title={title}>
           <div
             data-test-id="onboarding-progress-bar"
             className="onboarding-progress-bar"
@@ -78,7 +78,7 @@ class OnboardingStatus extends React.Component {
           >
             <div className="slider" style={style} />
           </div>
-        </Tooltip2>
+        </Tooltip>
         {showPanel && currentPanel === 'todos' && (
           <SidebarPanel
             collapsed={collapsed}

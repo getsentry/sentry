@@ -10,7 +10,7 @@ import Alert from 'app/components/alert';
 import Button from 'app/components/button';
 import Confirm from 'app/components/confirm';
 import IntegrationItem from 'app/views/organizationIntegrations/integrationItem';
-import Tooltip2 from 'app/components/tooltip2';
+import Tooltip from 'app/components/tooltip';
 
 const CONFIGURABLE_FEATURES = ['commits', 'alert-rule'];
 
@@ -128,7 +128,7 @@ export default class InstalledIntegration extends React.Component {
                 />
               )}
               {integration.status === 'active' && (
-                <Tooltip2
+                <Tooltip
                   disabled={this.hasConfiguration()}
                   position="left"
                   title="Integration not configurable"
@@ -144,7 +144,7 @@ export default class InstalledIntegration extends React.Component {
                   >
                     Configure
                   </StyledButton>
-                </Tooltip2>
+                </Tooltip>
               )}
             </Box>
             <Box>

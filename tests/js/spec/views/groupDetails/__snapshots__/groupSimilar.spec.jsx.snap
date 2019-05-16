@@ -881,7 +881,7 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                                             <div
                                               className="css-1oawdkn-GroupLevel eex8od5"
                                             >
-                                              <Tooltip2
+                                              <Tooltip
                                                 containerDisplayMode="inline-block"
                                                 position="top"
                                                 title="Error level: Error"
@@ -901,7 +901,7 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                                                     </InnerReference>
                                                   </Reference>
                                                 </Manager>
-                                              </Tooltip2>
+                                              </Tooltip>
                                             </div>
                                           </GroupLevel>
                                           <EventOrGroupTitle

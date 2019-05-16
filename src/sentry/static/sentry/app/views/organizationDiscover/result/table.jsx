@@ -5,7 +5,7 @@ import styled from 'react-emotion';
 import {t} from 'app/locale';
 import SentryTypes from 'app/sentryTypes';
 import Link from 'app/components/links/link';
-import Tooltip2 from 'app/components/tooltip2';
+import Tooltip from 'app/components/tooltip';
 import Panel from 'app/components/panels/panel';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
 import withOrganization from 'app/utils/withOrganization';
@@ -100,11 +100,11 @@ class ResultTable extends React.Component {
       : `/${slug}/${projectSlug}/`;
 
     return (
-      <Tooltip2 title={t('Open event')}>
+      <Tooltip title={t('Open event')}>
         <Link href={`${basePath}events/${event.id}/`} target="_blank">
           {event.id}
         </Link>
-      </Tooltip2>
+      </Tooltip>
     );
   };
 
@@ -118,11 +118,11 @@ class ResultTable extends React.Component {
       : `/${slug}/${projectSlug}/`;
 
     return (
-      <Tooltip2 title={t('Open issue')}>
+      <Tooltip title={t('Open issue')}>
         <Link to={`${basePath}issues/${event['issue.id']}`} target="_blank">
           {event['issue.id']}
         </Link>
-      </Tooltip2>
+      </Tooltip>
     );
   };
 

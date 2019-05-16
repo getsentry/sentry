@@ -16,7 +16,7 @@ import PlatformPicker from 'app/components/platformPicker';
 import ProjectActions from 'app/actions/projectActions';
 import SelectControl from 'app/components/forms/selectControl';
 import SentryTypes from 'app/sentryTypes';
-import Tooltip2 from 'app/components/tooltip2';
+import Tooltip from 'app/components/tooltip';
 import getPlatformName from 'app/utils/getPlatformName';
 import space from 'app/styles/space';
 import withApi from 'app/utils/withApi';
@@ -178,7 +178,7 @@ class CreateProject extends React.Component {
                     value: slug,
                   }))}
                 />
-                <Tooltip2 title={t('Create a team')}>
+                <Tooltip title={t('Create a team')}>
                   <Button
                     borderless
                     data-test-id="create-team"
@@ -191,7 +191,7 @@ class CreateProject extends React.Component {
                       })
                     }
                   />
-                </Tooltip2>
+                </Tooltip>
               </TeamSelectInput>
             </div>
             <div>

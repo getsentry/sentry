@@ -324,7 +324,7 @@ describe('OrganizationMemberDetail', function() {
     });
 
     const button = 'Button[data-test-id="reset-2fa"]';
-    const tooltip = 'Tooltip2[data-test-id="reset-2fa-tooltip"]';
+    const tooltip = 'Tooltip[data-test-id="reset-2fa-tooltip"]';
 
     const expectButtonEnabled = () => {
       expect(wrapper.find(button).text()).toEqual('Reset two-factor authentication');

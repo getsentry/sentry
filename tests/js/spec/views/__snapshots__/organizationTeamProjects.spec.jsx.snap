@@ -620,7 +620,7 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                         </div>
                       </Container>
                     </ProjectItem>
-                    <Tooltip2
+                    <Tooltip
                       containerDisplayMode="inline-block"
                       disabled={true}
                       position="top"
@@ -701,7 +701,7 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                           </ForwardRef>
                         </StyledButton>
                       </Button>
-                    </Tooltip2>
+                    </Tooltip>
                   </div>
                 </Base>
               </StyledPanelItem>
@@ -992,7 +992,7 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                         </div>
                       </Container>
                     </ProjectItem>
-                    <Tooltip2
+                    <Tooltip
                       containerDisplayMode="inline-block"
                       disabled={true}
                       position="top"
@@ -1073,7 +1073,7 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                           </ForwardRef>
                         </StyledButton>
                       </Button>
-                    </Tooltip2>
+                    </Tooltip>
                   </div>
                 </Base>
               </StyledPanelItem>

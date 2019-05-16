@@ -13,7 +13,7 @@ exports[`SubscriptionBox renders resource checkbox 1`] = `
     <div
       className="css-8xqq56-SubscriptionGridItemWrapper e139qogw2"
     >
-      <Tooltip2
+      <Tooltip
         containerDisplayMode="inline-block"
         disabled={true}
         position="top"
@@ -71,7 +71,7 @@ exports[`SubscriptionBox renders resource checkbox 1`] = `
             </Checkbox>
           </div>
         </SubscriptionGridItem>
-      </Tooltip2>
+      </Tooltip>
     </div>
   </SubscriptionGridItemWrapper>
 </SubscriptionBox>

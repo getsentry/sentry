@@ -8,7 +8,7 @@ import {capitalize} from 'lodash';
 import ProjectLink from 'app/components/projectLink';
 import {Metadata} from 'app/sentryTypes';
 import EventOrGroupTitle from 'app/components/eventOrGroupTitle';
-import Tooltip2 from 'app/components/tooltip2';
+import Tooltip from 'app/components/tooltip';
 import {isNativePlatform} from 'app/utils/platform';
 
 /**
@@ -110,9 +110,9 @@ class EventOrGroupHeader extends React.Component {
       >
         {!hideLevel && level && (
           <GroupLevel level={data.level}>
-            <Tooltip2 title={`Error level: ${capitalize(level)}`}>
+            <Tooltip title={`Error level: ${capitalize(level)}`}>
               <span />
-            </Tooltip2>
+            </Tooltip>
           </GroupLevel>
         )}
         {!hideIcons && data.status === 'ignored' && <Muted className="icon-soundoff" />}

@@ -11,7 +11,7 @@ import Pagination from 'app/components/pagination';
 import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
 import SelectField from 'app/components/forms/selectField';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
-import Tooltip2 from 'app/components/tooltip2';
+import Tooltip from 'app/components/tooltip';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 
 const UserInfo = styled(Box)`
@@ -116,12 +116,12 @@ class AuditLogList extends React.Component {
                     </UserInfo>
                     <Box w={150}>{entry.event}</Box>
                     <Box w={130}>
-                      <Tooltip2
+                      <Tooltip
                         title={entry.ipAddress}
                         disabled={entry.ipAddress && entry.ipAddress.length <= ipv4Length}
                       >
                         <OverflowBox>{entry.ipAddress}</OverflowBox>
-                      </Tooltip2>
+                      </Tooltip>
                     </Box>
                     <Box w={150} p={1}>
                       <DateTime date={entry.dateCreated} />

@@ -628,7 +628,7 @@ exports[`IntegrationDetailsModal renders simple integration 1`] = `
             renderNoAccessMessage={false}
             requireAll={true}
           >
-            <Tooltip2
+            <Tooltip
               containerDisplayMode="inline-block"
               disabled={true}
               position="top"
@@ -685,7 +685,7 @@ exports[`IntegrationDetailsModal renders simple integration 1`] = `
                     }
                   }
                 >
-                  <Tooltip2
+                  <Tooltip
                     containerDisplayMode="inline-block"
                     disabled={true}
                     position="top"
@@ -807,10 +807,10 @@ exports[`IntegrationDetailsModal renders simple integration 1`] = `
                         </StyledButton>
                       </Button>
                     </AddIntegration>
-                  </Tooltip2>
+                  </Tooltip>
                 </AddIntegrationButton>
               </AddButton>
-            </Tooltip2>
+            </Tooltip>
           </Access>
         </AccessContainer>
       </withConfig(AccessContainer)>

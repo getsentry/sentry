@@ -15,7 +15,7 @@ exports[`ProjectTeams renders 1`] = `
       menuHeader={
         <StyledTeamsLabel>
           Teams
-          <Tooltip2
+          <Tooltip
             containerDisplayMode="inline-block"
             disabled={true}
             position="top"
@@ -27,7 +27,7 @@ exports[`ProjectTeams renders 1`] = `
             >
               Create Team
             </StyledCreateTeamLink>
-          </Tooltip2>
+          </Tooltip>
         </StyledTeamsLabel>
       }
       onAddTeam={[Function]}

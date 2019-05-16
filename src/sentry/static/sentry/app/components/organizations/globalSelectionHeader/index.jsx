@@ -28,7 +28,7 @@ import MultipleEnvironmentSelector from 'app/components/organizations/multipleEn
 import MultipleProjectSelector from 'app/components/organizations/multipleProjectSelector';
 import SentryTypes from 'app/sentryTypes';
 import TimeRangeSelector from 'app/components/organizations/timeRangeSelector';
-import Tooltip2 from 'app/components/tooltip2';
+import Tooltip from 'app/components/tooltip';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 import ConfigStore from 'app/stores/configStore';
 import withProjects from 'app/utils/withProjects';
@@ -332,13 +332,13 @@ class GlobalSelectionHeader extends React.Component {
     const {organization, location} = this.props;
     return (
       <BackButtonWrapper>
-        <Tooltip2 title={t('Back to Issues Stream')} position="bottom">
+        <Tooltip title={t('Back to Issues Stream')} position="bottom">
           <BackToIssues
             to={`/organizations/${organization.slug}/issues/${location.search}`}
           >
             <InlineSvg src="icon-arrow-left" />
           </BackToIssues>
-        </Tooltip2>
+        </Tooltip>
       </BackButtonWrapper>
     );
   };

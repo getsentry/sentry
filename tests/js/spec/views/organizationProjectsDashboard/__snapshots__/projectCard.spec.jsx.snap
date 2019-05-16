@@ -703,7 +703,7 @@ exports[`ProjectCard renders 1`] = `
                                       preserveAspectRatio="none"
                                       viewBox="0 0 100 400"
                                     >
-                                      <Tooltip2
+                                      <Tooltip
                                         containerDisplayMode="inline-block"
                                         key="1525042800"
                                         position="bottom"
@@ -771,8 +771,8 @@ exports[`ProjectCard renders 1`] = `
                                             </InnerReference>
                                           </Reference>
                                         </Manager>
-                                      </Tooltip2>
-                                      <Tooltip2
+                                      </Tooltip>
+                                      <Tooltip
                                         containerDisplayMode="inline-block"
                                         key="1525046400"
                                         position="bottom"
@@ -840,7 +840,7 @@ exports[`ProjectCard renders 1`] = `
                                             </InnerReference>
                                           </Reference>
                                         </Manager>
-                                      </Tooltip2>
+                                      </Tooltip>
                                     </svg>
                                   </StyledSvg>
                                 </div>

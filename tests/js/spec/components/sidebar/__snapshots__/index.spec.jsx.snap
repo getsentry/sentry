@@ -285,7 +285,7 @@ exports[`Sidebar SidebarDropdown can open Sidebar org/name dropdown menu 1`] = `
                 type="letter_avatar"
                 uploadPath="organization-avatar"
               >
-                <Tooltip2
+                <Tooltip
                   containerDisplayMode="inline-block"
                   disabled={true}
                   position="top"
@@ -349,7 +349,7 @@ exports[`Sidebar SidebarDropdown can open Sidebar org/name dropdown menu 1`] = `
                       </LetterAvatar>
                     </span>
                   </StyledBaseAvatar>
-                </Tooltip2>
+                </Tooltip>
               </BaseAvatar>
             </OrganizationAvatar>
           </Avatar>
@@ -755,7 +755,7 @@ exports[`Sidebar SidebarDropdown can open Sidebar org/name dropdown menu 1`] = `
                                     type="letter_avatar"
                                     uploadPath="avatar"
                                   >
-                                    <Tooltip2
+                                    <Tooltip
                                       containerDisplayMode="inline-block"
                                       disabled={true}
                                       position="top"
@@ -822,7 +822,7 @@ exports[`Sidebar SidebarDropdown can open Sidebar org/name dropdown menu 1`] = `
                                           </LetterAvatar>
                                         </span>
                                       </StyledBaseAvatar>
-                                    </Tooltip2>
+                                    </Tooltip>
                                   </BaseAvatar>
                                 </UserAvatar>
                               </Avatar>
@@ -1990,7 +1990,7 @@ exports[`Sidebar renders without org and router 1`] = `
                                     type="letter_avatar"
                                     uploadPath="avatar"
                                   >
-                                    <Tooltip2
+                                    <Tooltip
                                       containerDisplayMode="inline-block"
                                       disabled={true}
                                       position="top"
@@ -2057,7 +2057,7 @@ exports[`Sidebar renders without org and router 1`] = `
                                           </LetterAvatar>
                                         </span>
                                       </StyledBaseAvatar>
-                                    </Tooltip2>
+                                    </Tooltip>
                                   </BaseAvatar>
                                 </UserAvatar>
                               </Avatar>

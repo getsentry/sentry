@@ -10,7 +10,7 @@ import DateTime from 'app/components/dateTime';
 import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
 import TextBlock from 'app/views/settings/components/text/textBlock';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
-import Tooltip2 from 'app/components/tooltip2';
+import Tooltip from 'app/components/tooltip';
 
 /**
  * List u2f devices w/ ability to remove a single device
@@ -77,12 +77,12 @@ class U2fEnrolledDetails extends React.Component {
                     }
                   >
                     <Button size="small" priority="danger">
-                      <Tooltip2
+                      <Tooltip
                         disabled={!isLastDevice}
                         title={t('Can not remove last U2F device')}
                       >
                         <span className="icon icon-trash" />
-                      </Tooltip2>
+                      </Tooltip>
                     </Button>
                   </Confirm>
                 </Box>

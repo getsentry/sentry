@@ -9,7 +9,7 @@ import AsyncComponent from 'app/components/asyncComponent';
 import Avatar from 'app/components/avatar';
 import EventOrGroupHeader from 'app/components/eventOrGroupHeader';
 import LinkWithConfirmation from 'app/components/links/linkWithConfirmation';
-import Tooltip2 from 'app/components/tooltip2';
+import Tooltip from 'app/components/tooltip';
 import {Panel, PanelItem} from 'app/components/panels';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
 
@@ -43,7 +43,7 @@ class GroupTombstoneRow extends React.Component {
           )}
         </Box>
         <Box w={30}>
-          <Tooltip2 title={t('Undiscard')}>
+          <Tooltip title={t('Undiscard')}>
             <LinkWithConfirmation
               className="group-remove btn btn-default btn-sm"
               message={t(
@@ -59,7 +59,7 @@ class GroupTombstoneRow extends React.Component {
             >
               <span className="icon-trash undiscard" />
             </LinkWithConfirmation>
-          </Tooltip2>
+          </Tooltip>
         </Box>
       </PanelItem>
     );

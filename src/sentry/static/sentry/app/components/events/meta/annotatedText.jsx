@@ -4,7 +4,7 @@ import React from 'react';
 import styled from 'react-emotion';
 
 import InlineSvg from 'app/components/inlineSvg';
-import Tooltip2 from 'app/components/tooltip2';
+import Tooltip from 'app/components/tooltip';
 import {t, tn} from 'app/locale';
 
 const Chunks = styled('span')`
@@ -46,9 +46,9 @@ function renderChunk(chunk) {
   if (chunk.type === 'redaction') {
     const title = t('%s due to PII rule "%s"', REMARKS[chunk.remark], chunk.rule_id);
     return (
-      <Tooltip2 title={title}>
+      <Tooltip title={title}>
         <Redaction>{chunk.text}</Redaction>
-      </Tooltip2>
+      </Tooltip>
     );
   }
 
@@ -81,7 +81,7 @@ function renderValue(value, chunks, errors, remarks) {
 
   if (remarks && remarks.length) {
     const title = t('%s due to PII rule "%s"', REMARKS[remarks[0][1]], remarks[0][0]);
-    element = <Tooltip2 title={title}>{element}</Tooltip2>;
+    element = <Tooltip title={title}>{element}</Tooltip>;
   }
 
   return element;
@@ -104,9 +104,9 @@ function renderErrors(errors) {
   );
 
   return (
-    <Tooltip2 title={tooltip}>
+    <Tooltip title={tooltip}>
       <ErrorIcon src="icon-circle-exclamation" />
-    </Tooltip2>
+    </Tooltip>
   );
 }
 

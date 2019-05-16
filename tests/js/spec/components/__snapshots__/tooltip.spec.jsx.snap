@@ -2,13 +2,26 @@
 
 exports[`Tooltip renders 1`] = `
 <Tooltip
+  containerDisplayMode="inline-block"
+  position="top"
   title="test"
 >
-  <span
-    className="tip"
-    title="test"
-  >
-    My Button
-  </span>
+  <Manager>
+    <Reference>
+      <InnerReference
+        setReferenceNode={[Function]}
+      >
+        <span
+          aria-describedby="tooltip-123456"
+          onBlur={[Function]}
+          onFocus={[Function]}
+          onMouseEnter={[Function]}
+          onMouseLeave={[Function]}
+        >
+          My Button
+        </span>
+      </InnerReference>
+    </Reference>
+  </Manager>
 </Tooltip>
 `;

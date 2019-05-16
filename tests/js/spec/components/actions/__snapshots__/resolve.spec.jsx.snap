@@ -240,7 +240,7 @@ exports[`ResolveActions with confirmation step renders 1`] = `
                   role="presentation"
                   title={null}
                 >
-                  <Tooltip2
+                  <Tooltip
                     containerDisplayMode="block"
                     position="top"
                     title="Set up release tracking in order to use this feature."
@@ -261,7 +261,7 @@ exports[`ResolveActions with confirmation step renders 1`] = `
                           >
                             <span
                               aria-describedby="tooltip-123456"
-                              className="css-zt6512-Container e7ebgxc0"
+                              className="css-zt6512-Container erna86q0"
                               onBlur={[Function]}
                               onFocus={[Function]}
                               onMouseEnter={[Function]}
@@ -348,8 +348,8 @@ exports[`ResolveActions with confirmation step renders 1`] = `
                         </InnerReference>
                       </Reference>
                     </Manager>
-                  </Tooltip2>
-                  <Tooltip2
+                  </Tooltip>
+                  <Tooltip
                     containerDisplayMode="block"
                     position="top"
                     title="Set up release tracking in order to use this feature."
@@ -370,7 +370,7 @@ exports[`ResolveActions with confirmation step renders 1`] = `
                           >
                             <span
                               aria-describedby="tooltip-123456"
-                              className="css-zt6512-Container e7ebgxc0"
+                              className="css-zt6512-Container erna86q0"
                               onBlur={[Function]}
                               onFocus={[Function]}
                               onMouseEnter={[Function]}
@@ -457,8 +457,8 @@ exports[`ResolveActions with confirmation step renders 1`] = `
                         </InnerReference>
                       </Reference>
                     </Manager>
-                  </Tooltip2>
-                  <Tooltip2
+                  </Tooltip>
+                  <Tooltip
                     containerDisplayMode="block"
                     position="top"
                     title="Set up release tracking in order to use this feature."
@@ -479,7 +479,7 @@ exports[`ResolveActions with confirmation step renders 1`] = `
                           >
                             <span
                               aria-describedby="tooltip-123456"
-                              className="css-zt6512-Container e7ebgxc0"
+                              className="css-zt6512-Container erna86q0"
                               onBlur={[Function]}
                               onFocus={[Function]}
                               onMouseEnter={[Function]}
@@ -506,7 +506,7 @@ exports[`ResolveActions with confirmation step renders 1`] = `
                         </InnerReference>
                       </Reference>
                     </Manager>
-                  </Tooltip2>
+                  </Tooltip>
                 </li>
               </MenuItem>
             </ul>
@@ -693,7 +693,7 @@ exports[`ResolveActions without confirmation renders 1`] = `
                   role="presentation"
                   title={null}
                 >
-                  <Tooltip2
+                  <Tooltip
                     containerDisplayMode="block"
                     position="top"
                     title="Set up release tracking in order to use this feature."
@@ -714,7 +714,7 @@ exports[`ResolveActions without confirmation renders 1`] = `
                           >
                             <span
                               aria-describedby="tooltip-123456"
-                              className="css-zt6512-Container e7ebgxc0"
+                              className="css-zt6512-Container erna86q0"
                               onBlur={[Function]}
                               onFocus={[Function]}
                               onMouseEnter={[Function]}
@@ -740,8 +740,8 @@ exports[`ResolveActions without confirmation renders 1`] = `
                         </InnerReference>
                       </Reference>
                     </Manager>
-                  </Tooltip2>
-                  <Tooltip2
+                  </Tooltip>
+                  <Tooltip
                     containerDisplayMode="block"
                     position="top"
                     title="Set up release tracking in order to use this feature."
@@ -762,7 +762,7 @@ exports[`ResolveActions without confirmation renders 1`] = `
                           >
                             <span
                               aria-describedby="tooltip-123456"
-                              className="css-zt6512-Container e7ebgxc0"
+                              className="css-zt6512-Container erna86q0"
                               onBlur={[Function]}
                               onFocus={[Function]}
                               onMouseEnter={[Function]}
@@ -788,8 +788,8 @@ exports[`ResolveActions without confirmation renders 1`] = `
                         </InnerReference>
                       </Reference>
                     </Manager>
-                  </Tooltip2>
-                  <Tooltip2
+                  </Tooltip>
+                  <Tooltip
                     containerDisplayMode="block"
                     position="top"
                     title="Set up release tracking in order to use this feature."
@@ -810,7 +810,7 @@ exports[`ResolveActions without confirmation renders 1`] = `
                           >
                             <span
                               aria-describedby="tooltip-123456"
-                              className="css-zt6512-Container e7ebgxc0"
+                              className="css-zt6512-Container erna86q0"
                               onBlur={[Function]}
                               onFocus={[Function]}
                               onMouseEnter={[Function]}
@@ -836,7 +836,7 @@ exports[`ResolveActions without confirmation renders 1`] = `
                         </InnerReference>
                       </Reference>
                     </Manager>
-                  </Tooltip2>
+                  </Tooltip>
                 </li>
               </MenuItem>
             </ul>

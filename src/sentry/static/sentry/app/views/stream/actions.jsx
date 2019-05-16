@@ -21,7 +21,7 @@ import ResolveActions from 'app/components/actions/resolve';
 import SelectedGroupStore from 'app/stores/selectedGroupStore';
 import SentryTypes from 'app/sentryTypes';
 import ToolbarHeader from 'app/components/toolbarHeader';
-import Tooltip2 from 'app/components/tooltip2';
+import Tooltip from 'app/components/tooltip';
 import withApi from 'app/utils/withApi';
 
 const BULK_LIMIT = 1000;
@@ -484,7 +484,7 @@ const StreamActions = createReactClass({
               </DropdownLink>
             </div>
             <div className="btn-group">
-              <Tooltip2
+              <Tooltip
                 title={t(
                   '%s real-time updates',
                   realtimeActive ? t('Pause') : t('Enable')
@@ -500,7 +500,7 @@ const StreamActions = createReactClass({
                     <span className="icon icon-play" />
                   )}
                 </a>
-              </Tooltip2>
+              </Tooltip>
             </div>
           </ActionSet>
           <Box w={160} mx={2} className="hidden-xs hidden-sm">

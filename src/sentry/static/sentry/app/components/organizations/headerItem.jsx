@@ -4,7 +4,7 @@ import styled from 'react-emotion';
 import {Link} from 'react-router';
 
 import InlineSvg from 'app/components/inlineSvg';
-import Tooltip2 from 'app/components/tooltip2';
+import Tooltip from 'app/components/tooltip';
 import space from 'app/styles/space';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 
@@ -76,9 +76,9 @@ class HeaderItem extends React.Component {
           </StyledChevron>
         )}
         {locked && (
-          <Tooltip2 title={lockedMessage || 'This selection is locked'} position="bottom">
+          <Tooltip title={lockedMessage || 'This selection is locked'} position="bottom">
             <StyledLock src="icon-lock" />
-          </Tooltip2>
+          </Tooltip>
         )}
       </StyledHeaderItem>
     );
