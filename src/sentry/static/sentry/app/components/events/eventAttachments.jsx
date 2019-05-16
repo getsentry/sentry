@@ -102,13 +102,11 @@ class EventAttachments extends React.Component {
                           <Button
                             size="xsmall"
                             icon="icon-download"
-                            onClick={
-                              downloadUrl && (() => (window.location = downloadUrl))
-                            }
+                            href={downloadUrl}
                             disabled={!downloadUrl}
                             title={
                               !downloadUrl &&
-                              t('Insufficient permissions to download artifacts')
+                              t('Insufficient permissions to download attachments')
                             }
                           >
                             {t('Download')}
