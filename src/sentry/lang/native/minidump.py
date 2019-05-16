@@ -64,6 +64,12 @@ def write_minidump_dummy_data(data):
     # Minidump events must be native platform.
     data['platform'] = 'native'
 
+    # Assume that this minidump is the result of a crash and assign the fatal
+    # level. Note that the use of `setdefault` here doesn't generally allow the
+    # user to override the minidump's level as processing will overwrite it
+    # later.
+    setdefault_path(data, 'level', value='fatal')
+
     # Create a placeholder exception. This signals normalization that this is an
     # error event and also serves as a placeholder if processing of the minidump
     # fails.
@@ -80,7 +86,7 @@ def write_minidump_dummy_data(data):
 
 def merge_process_state_event(data, state, cfi=None):
     data['platform'] = 'native'
-    data.setdefault('level', 'fatal' if state.crashed else 'info')
+    data['level'] = 'fatal' if state.crashed else 'info'
 
     if state.timestamp:
         data['timestamp'] = float(state.timestamp)
