@@ -12,6 +12,7 @@ import {action} from '@storybook/addon-actions';
 import {boolean} from '@storybook/addon-knobs';
 import {storiesOf} from '@storybook/react';
 import {withInfo} from '@storybook/addon-info';
+import DatePickerField from 'app/views/settings/components/forms/datePickerField';
 import Form from 'app/views/settings/components/forms/form';
 import FormField from 'app/views/settings/components/forms/formField';
 import NewBooleanField from 'app/views/settings/components/forms/booleanField';
@@ -219,6 +220,17 @@ storiesOf('Forms|Fields', module)
     })(() => (
       <Form>
         <NewBooleanField name="field" label="New Boolean Field" />
+      </Form>
+    ))
+  )
+  .add(
+    'DatePickerField',
+    withInfo({
+      text: 'Date picker field with a popup calendar picker (for a single date)',
+      propTablesExclude: [Form],
+    })(() => (
+      <Form>
+        <DatePickerField name="field" label="Date Picker Field" />
       </Form>
     ))
   )
