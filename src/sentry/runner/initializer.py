@@ -380,7 +380,7 @@ def validate_options(settings):
 
 
 def fix_south(settings):
-    settings.SOUTH_DATABASE_ADAPTERS = {}
+    settings.SOUTH_DATABASE_ADAPTERS = getattr(settings, 'SOUTH_DATABASE_ADAPTERS', {})
 
     # South needs an adapter defined conditionally
     for key, value in six.iteritems(settings.DATABASES):
