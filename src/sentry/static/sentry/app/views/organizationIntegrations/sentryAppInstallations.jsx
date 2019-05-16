@@ -12,7 +12,6 @@ import {
 } from 'app/actionCreators/sentryAppInstallations';
 import {addQueryParamsToExistingUrl} from 'app/utils/queryString';
 import {openSentryAppPermissionModal} from 'app/actionCreators/modal';
-import withApi from 'app/utils/withApi';
 
 class SentryAppInstallations extends React.Component {
   static propTypes = {
@@ -107,5 +106,4 @@ class SentryAppInstallations extends React.Component {
   }
 }
 
-export default withApi(SentryAppInstallations);
-export {SentryAppInstallations};
+export default SentryAppInstallations;
