@@ -75,6 +75,7 @@ def write_minidump_placeholder(data):
     # fails.
     exception = {
         'type': 'Minidump',
+        'value': 'Invalid Minidump',
         'mechanism': {
             'type': 'minidump',
             'handled': False,
