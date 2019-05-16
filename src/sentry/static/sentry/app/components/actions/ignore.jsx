@@ -9,7 +9,7 @@ import Duration from 'app/components/duration';
 import CustomIgnoreCountModal from 'app/components/customIgnoreCountModal';
 import CustomIgnoreDurationModal from 'app/components/customIgnoreDurationModal';
 import ActionLink from 'app/components/actions/actionLink';
-import Tooltip2 from 'app/components/tooltip2';
+import Tooltip from 'app/components/tooltip';
 import GuideAnchor from 'app/components/assistant/guideAnchor';
 
 export default class IgnoreActions extends React.Component {
@@ -82,7 +82,7 @@ export default class IgnoreActions extends React.Component {
     if (isIgnored) {
       return (
         <div className="btn-group">
-          <Tooltip2 title={t('Change status to unresolved')}>
+          <Tooltip title={t('Change status to unresolved')}>
             <a
               className={linkClassName}
               data-test-id="button-unresolve"
@@ -90,7 +90,7 @@ export default class IgnoreActions extends React.Component {
             >
               <span className="icon-ban" />
             </a>
-          </Tooltip2>
+          </Tooltip>
         </div>
       );
     }

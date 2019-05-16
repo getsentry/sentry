@@ -156,7 +156,7 @@ exports[`Sentry App Installations when Apps exist displays all Apps owned by the
                         >
                           Sample App
                           <BetaTag>
-                            <Tooltip2
+                            <Tooltip
                               containerDisplayMode="inline-block"
                               position="right"
                               title="This feature is in beta and may change in the future."
@@ -177,7 +177,7 @@ exports[`Sentry App Installations when Apps exist displays all Apps owned by the
                                     >
                                       <span
                                         aria-describedby="tooltip-123456"
-                                        className="css-1m3e0hg-Container e7ebgxc0"
+                                        className="css-1m3e0hg-Container erna86q0"
                                         onBlur={[Function]}
                                         onFocus={[Function]}
                                         onMouseEnter={[Function]}
@@ -225,7 +225,7 @@ exports[`Sentry App Installations when Apps exist displays all Apps owned by the
                                   </InnerReference>
                                 </Reference>
                               </Manager>
-                            </Tooltip2>
+                            </Tooltip>
                           </BetaTag>
                         </div>
                       </SentryAppName>

@@ -5,7 +5,7 @@ import {Flex} from 'grid-emotion';
 
 import SentryTypes from 'app/sentryTypes';
 import Avatar from 'app/components/avatar';
-import Tooltip2 from 'app/components/tooltip2';
+import Tooltip from 'app/components/tooltip';
 
 export default class AvatarList extends React.Component {
   static propTypes = {
@@ -44,12 +44,12 @@ export default class AvatarList extends React.Component {
     return (
       <Flex direction="row-reverse">
         {!!numCollapsedUsers && (
-          <Tooltip2 title={`${numCollapsedUsers} other ${typeMembers}`}>
+          <Tooltip title={`${numCollapsedUsers} other ${typeMembers}`}>
             <CollapsedUsers size={avatarSize}>
               {numCollapsedUsers < 99 && <Plus>+</Plus>}
               {numCollapsedUsers}
             </CollapsedUsers>
-          </Tooltip2>
+          </Tooltip>
         )}
         {visibleUsers.map(user => {
           return (

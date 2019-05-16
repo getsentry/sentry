@@ -116,6 +116,21 @@ jest.mock('@sentry/browser', () => {
   };
 });
 
+jest.mock('popper.js', () => {
+  const PopperJS = jest.requireActual('popper.js');
+
+  return class {
+    static placements = PopperJS.placements;
+
+    constructor() {
+      return {
+        destroy: () => {},
+        scheduleUpdate: () => {},
+      };
+    }
+  };
+});
+
 // We generally use actual jQuery, and jest mocks takes precedence over node_modules
 jest.unmock('jquery');
 

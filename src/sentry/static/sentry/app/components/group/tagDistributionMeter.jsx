@@ -12,7 +12,7 @@ import DeviceName, {
   loadDeviceListModule,
 } from 'app/components/deviceName';
 import SentryTypes from 'app/sentryTypes';
-import Tooltip2 from 'app/components/tooltip2';
+import Tooltip from 'app/components/tooltip';
 import withEnvironment from 'app/utils/withEnvironment';
 
 const TagDistributionMeter = createReactClass({
@@ -118,7 +118,7 @@ const TagDistributionMeter = createReactClass({
           );
 
           return (
-            <Tooltip2 key={value.value} title={tooltipHtml} containerDisplayMode="inline">
+            <Tooltip key={value.value} title={tooltipHtml} containerDisplayMode="inline">
               <Segment
                 style={{width: pct + '%'}}
                 to={url}
@@ -133,11 +133,11 @@ const TagDistributionMeter = createReactClass({
                   </Label>
                 </Description>
               </Segment>
-            </Tooltip2>
+            </Tooltip>
           );
         })}
         {hasOther && (
-          <Tooltip2
+          <Tooltip
             key="other"
             containerDisplayMode="inline"
             title={
@@ -160,7 +160,7 @@ const TagDistributionMeter = createReactClass({
                 <Label>{t('Other')}</Label>
               </Description>
             </Segment>
-          </Tooltip2>
+          </Tooltip>
         )}
       </React.Fragment>
     );

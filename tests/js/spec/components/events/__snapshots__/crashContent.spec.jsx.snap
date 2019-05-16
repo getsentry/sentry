@@ -121,7 +121,7 @@ exports[`CrashContent renders with meta data 1`] = `
                     value="python err A949AE01EBB07300D62AE0178F0944DD21F8C98C err"
                   >
                     <span>
-                      <Tooltip2
+                      <Tooltip
                         containerDisplayMode="inline-block"
                         position="top"
                         title="Pseudonymized due to PII rule \\"device_id\\""
@@ -142,7 +142,7 @@ exports[`CrashContent renders with meta data 1`] = `
                               >
                                 <span
                                   aria-describedby="tooltip-123456"
-                                  className="css-1m3e0hg-Container e7ebgxc0"
+                                  className="css-1m3e0hg-Container erna86q0"
                                   onBlur={[Function]}
                                   onFocus={[Function]}
                                   onMouseEnter={[Function]}
@@ -160,7 +160,7 @@ exports[`CrashContent renders with meta data 1`] = `
                             </InnerReference>
                           </Reference>
                         </Manager>
-                      </Tooltip2>
+                      </Tooltip>
                        
                     </span>
                   </AnnotatedText>

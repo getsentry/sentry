@@ -218,7 +218,7 @@ Users now have access to useful links from the blogs and docs on Spike-protectio
                                     uploadId={null}
                                     uploadPath="avatar"
                                   >
-                                    <Tooltip2
+                                    <Tooltip
                                       containerDisplayMode="inline-block"
                                       disabled={true}
                                       position="top"
@@ -285,7 +285,7 @@ Users now have access to useful links from the blogs and docs on Spike-protectio
                                           </LetterAvatar>
                                         </span>
                                       </StyledBaseAvatar>
-                                    </Tooltip2>
+                                    </Tooltip>
                                   </BaseAvatar>
                                 </UserAvatar>
                               </Avatar>
@@ -628,7 +628,7 @@ Users now have access to useful links from the blogs and docs on Spike-protectio
                                     uploadId={null}
                                     uploadPath="avatar"
                                   >
-                                    <Tooltip2
+                                    <Tooltip
                                       containerDisplayMode="inline-block"
                                       disabled={true}
                                       position="top"
@@ -695,7 +695,7 @@ Users now have access to useful links from the blogs and docs on Spike-protectio
                                           </LetterAvatar>
                                         </span>
                                       </StyledBaseAvatar>
-                                    </Tooltip2>
+                                    </Tooltip>
                                   </BaseAvatar>
                                 </UserAvatar>
                               </Avatar>

@@ -446,7 +446,7 @@ exports[`ProjectTags renders 1`] = `
                                   className="css-p3ab1k"
                                   is={null}
                                 >
-                                  <Tooltip2
+                                  <Tooltip
                                     containerDisplayMode="inline-block"
                                     disabled={true}
                                     position="top"
@@ -622,7 +622,7 @@ exports[`ProjectTags renders 1`] = `
                                         </Modal>
                                       </Confirm>
                                     </LinkWithConfirmation>
-                                  </Tooltip2>
+                                  </Tooltip>
                                 </div>
                               </Base>
                             </Flex>
@@ -678,7 +678,7 @@ exports[`ProjectTags renders 1`] = `
                                   className="css-p3ab1k"
                                   is={null}
                                 >
-                                  <Tooltip2
+                                  <Tooltip
                                     containerDisplayMode="inline-block"
                                     disabled={true}
                                     position="top"
@@ -854,7 +854,7 @@ exports[`ProjectTags renders 1`] = `
                                         </Modal>
                                       </Confirm>
                                     </LinkWithConfirmation>
-                                  </Tooltip2>
+                                  </Tooltip>
                                 </div>
                               </Base>
                             </Flex>
@@ -910,7 +910,7 @@ exports[`ProjectTags renders 1`] = `
                                   className="css-p3ab1k"
                                   is={null}
                                 >
-                                  <Tooltip2
+                                  <Tooltip
                                     containerDisplayMode="inline-block"
                                     disabled={true}
                                     position="top"
@@ -1086,7 +1086,7 @@ exports[`ProjectTags renders 1`] = `
                                         </Modal>
                                       </Confirm>
                                     </LinkWithConfirmation>
-                                  </Tooltip2>
+                                  </Tooltip>
                                 </div>
                               </Base>
                             </Flex>
@@ -1142,7 +1142,7 @@ exports[`ProjectTags renders 1`] = `
                                   className="css-p3ab1k"
                                   is={null}
                                 >
-                                  <Tooltip2
+                                  <Tooltip
                                     containerDisplayMode="inline-block"
                                     disabled={false}
                                     position="top"
@@ -1164,7 +1164,7 @@ exports[`ProjectTags renders 1`] = `
                                           >
                                             <span
                                               aria-describedby="tooltip-123456"
-                                              className="css-1m3e0hg-Container e7ebgxc0"
+                                              className="css-1m3e0hg-Container erna86q0"
                                               onBlur={[Function]}
                                               onFocus={[Function]}
                                               onMouseEnter={[Function]}
@@ -1351,7 +1351,7 @@ exports[`ProjectTags renders 1`] = `
                                         </InnerReference>
                                       </Reference>
                                     </Manager>
-                                  </Tooltip2>
+                                  </Tooltip>
                                 </div>
                               </Base>
                             </Flex>
@@ -1407,7 +1407,7 @@ exports[`ProjectTags renders 1`] = `
                                   className="css-p3ab1k"
                                   is={null}
                                 >
-                                  <Tooltip2
+                                  <Tooltip
                                     containerDisplayMode="inline-block"
                                     position="top"
                                     title="This tag cannot be deleted."
@@ -1428,7 +1428,7 @@ exports[`ProjectTags renders 1`] = `
                                           >
                                             <span
                                               aria-describedby="tooltip-123456"
-                                              className="css-1m3e0hg-Container e7ebgxc0"
+                                              className="css-1m3e0hg-Container erna86q0"
                                               onBlur={[Function]}
                                               onFocus={[Function]}
                                               onMouseEnter={[Function]}
@@ -1615,7 +1615,7 @@ exports[`ProjectTags renders 1`] = `
                                         </InnerReference>
                                       </Reference>
                                     </Manager>
-                                  </Tooltip2>
+                                  </Tooltip>
                                 </div>
                               </Base>
                             </Flex>
