@@ -1372,7 +1372,7 @@ exports[`GroupReleaseStats renders 1`] = `
                       >
                         <span
                           aria-describedby="tooltip-123456"
-                          className="css-1m3e0hg-Container e7ebgxc0"
+                          className="css-1m3e0hg-Container erna86q0"
                           onBlur={[Function]}
                           onFocus={[Function]}
                           onMouseEnter={[Function]}
@@ -1511,7 +1511,7 @@ exports[`GroupReleaseStats renders 1`] = `
                       >
                         <span
                           aria-describedby="tooltip-123456"
-                          className="css-1m3e0hg-Container e7ebgxc0"
+                          className="css-1m3e0hg-Container erna86q0"
                           onBlur={[Function]}
                           onFocus={[Function]}
                           onMouseEnter={[Function]}
