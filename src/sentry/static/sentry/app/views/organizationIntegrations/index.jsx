@@ -13,9 +13,9 @@ import LoadingIndicator from 'app/components/loadingIndicator';
 import MigrationWarnings from 'app/views/organizationIntegrations/migrationWarnings';
 import PermissionAlert from 'app/views/settings/organization/permissionAlert';
 import ProviderRow from 'app/views/organizationIntegrations/providerRow';
-import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import SentryAppInstallations from 'app/views/organizationIntegrations/sentryAppInstallations';
 import SentryTypes from 'app/sentryTypes';
+import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import withOrganization from 'app/utils/withOrganization';
 
 class OrganizationIntegrations extends AsyncComponent {
@@ -157,6 +157,7 @@ class OrganizationIntegrations extends AsyncComponent {
       <SentryAppInstallations
         key={`sentry-app-row-${key}`}
         data-test-id="integration-row"
+        api={this.api}
         organization={organization}
         installs={appInstalls}
         applications={apps}

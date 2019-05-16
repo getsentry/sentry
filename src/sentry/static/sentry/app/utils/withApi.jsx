@@ -16,9 +16,7 @@ const withApi = WrappedComponent => {
       this.api.clear();
     }
     render() {
-      const {['data-test-id']: _, ...props} = this.props;
-
-      return <WrappedComponent api={this.api} {...props} />;
+      return <WrappedComponent api={this.api} {...this.props} />;
     }
   }
 
