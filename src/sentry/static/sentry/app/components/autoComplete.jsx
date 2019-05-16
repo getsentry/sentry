@@ -221,11 +221,14 @@ class AutoComplete extends React.Component {
   };
 
   moveHighlightedIndex = (step, e) => {
-    const listSize = this.items.size - 1;
     let newIndex = this.state.highlightedIndex + step;
 
+    // when this component is in virtualized mode, only a subset of items will be passed
+    // down, making the array length inaccurate. instead we manually pass the length as itemCount
+    const listSize = this.itemCount || this.items.size;
+
     // Make sure new index is within bounds
-    newIndex = Math.max(0, Math.min(newIndex, listSize));
+    newIndex = Math.max(0, Math.min(newIndex, listSize - 1));
 
     this.setState({
       highlightedIndex: newIndex,
@@ -298,10 +301,14 @@ class AutoComplete extends React.Component {
     };
   };
 
-  getMenuProps = menuProps => ({
-    ...menuProps,
-    onMouseDown: this.handleMenuMouseDown.bind(this, menuProps),
-  });
+  getMenuProps = menuProps => {
+    this.itemCount = menuProps.itemCount;
+
+    return {
+      ...menuProps,
+      onMouseDown: this.handleMenuMouseDown.bind(this, menuProps),
+    };
+  };
 
   render() {
     const {children, onMenuOpen} = this.props;

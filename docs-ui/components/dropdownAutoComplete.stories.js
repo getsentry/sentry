@@ -34,6 +34,10 @@ const groupedItems = [
         value: 'other recent thing',
         label: 'other recent thing',
       },
+      {
+        value: 'yet another recent thing',
+        label: 'yet another recent thing',
+      },
     ],
   },
   {
