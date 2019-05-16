@@ -40,7 +40,7 @@ from sentry.interfaces.base import get_interface
 from sentry.lang.native.unreal import process_unreal_crash, merge_apple_crash_report, \
     unreal_attachment_type, merge_unreal_context_event, merge_unreal_logs_event
 from sentry.lang.native.minidump import merge_process_state_event, process_minidump, \
-    merge_attached_event, merge_attached_breadcrumbs, write_minidump_dummy_data, \
+    merge_attached_event, merge_attached_breadcrumbs, write_minidump_placeholder, \
     MINIDUMP_ATTACHMENT_TYPE
 from sentry.models import Project, OrganizationOption, Organization
 from sentry.signals import (
@@ -766,7 +766,7 @@ class MinidumpView(StoreView):
                 attachments.append(CachedAttachment.from_upload(file))
 
         if _minidump_refactor_enabled(project.id):
-            write_minidump_dummy_data(data)
+            write_minidump_placeholder(data)
         else:
             try:
                 state = process_minidump(minidump)

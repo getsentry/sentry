@@ -60,7 +60,7 @@ def process_minidump(minidump, cfi=None):
         return ProcessState.from_minidump_buffer(minidump, cfi)
 
 
-def write_minidump_dummy_data(data):
+def write_minidump_placeholder(data):
     # Minidump events must be native platform.
     data['platform'] = 'native'
 
