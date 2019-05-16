@@ -39,13 +39,13 @@ export default class DetailsBody extends React.Component {
     const ActiveComponent = TABS[activeTab].component;
 
     const detectedTs = incident && moment.utc(incident.dateStarted).unix();
-    let closestTimestampIndex;
+    const closestTimestampIndex =
+      incident &&
+      (incident.eventStats.data.findIndex(([ts], i) => ts > detectedTs) ||
+        incident.eventStats.data.length - 1);
     const chartData =
       incident &&
       incident.eventStats.data.map(([ts, val], i) => {
-        if (ts > detectedTs) {
-          closestTimestampIndex = i > 0 ? i - 1 : 0;
-        }
         return [
           ts * 1000,
           val.length ? val.reduce((acc, {count} = {count: 0}) => acc + count, 0) : 0,
@@ -80,6 +80,7 @@ export default class DetailsBody extends React.Component {
                       symbol: `image://${detectedSymbol}`,
                       data: [
                         {
+                          name: t('Incident Detected'),
                           coord: markPointCoordinate,
                         },
                       ],
