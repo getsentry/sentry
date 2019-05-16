@@ -10,7 +10,8 @@ const forms = [
         name: 'internal',
         label: 'Internal',
         type: 'boolean',
-        help: 'Choose this to make your integration Internal.',
+        help:
+          'If enabled, your integration will automatically be installed and for use within your organization only.',
       },
       {
         name: 'name',
@@ -49,7 +50,7 @@ const forms = [
         type: 'boolean',
         label: 'Alert Rule Action',
         help: tct(
-          'If enabled, this application will be an action under alert rules in Sentry. The notification destination is the Webhook URL specified above. More on actions [learn_more:Here].',
+          'If enabled, this integration will be an action under alert rules in Sentry. The notification destination is the Webhook URL specified above. More on actions [learn_more:Here].',
           {
             learn_more: (
               <a href="https://docs.sentry.io/product/notifications/#actions" />
