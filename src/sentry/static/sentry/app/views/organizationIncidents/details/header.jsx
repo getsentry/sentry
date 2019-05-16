@@ -47,6 +47,10 @@ export default class DetailsHeader extends React.Component {
 
   render() {
     const {incident, params, onSubscriptionChange} = this.props;
+    const incidentIdAsInt = parseInt(params.incidentId, 10);
+    const formattedIncidentId = !isNaN(incidentIdAsInt)
+      ? incidentIdAsInt.toLocaleString()
+      : t('Invalid Incident');
 
     return (
       <Header>
@@ -57,7 +61,7 @@ export default class DetailsHeader extends React.Component {
                 {t('Incidents')}
               </IncidentsLink>
               <Chevron src="icon-chevron-right" size={space(2)} />
-              <Count value={params.incidentId} />
+              {formattedIncidentId}
             </Title>
             <div>{incident && incident.title}</div>
           </PageHeading>
