@@ -8,6 +8,7 @@ import DateTime from 'app/components/dateTime';
 import DeviceName from 'app/components/deviceName';
 import FileSize from 'app/components/fileSize';
 import withOrganization from 'app/utils/withOrganization';
+import AttachmentUrl from 'app/utils/attachmentUrl';
 
 class EventsTableRow extends React.Component {
   static propTypes = {
@@ -39,20 +40,25 @@ class EventsTableRow extends React.Component {
   };
 
   renderCrashFileLink() {
-    const {orgId, event, projectId} = this.props;
+    const {event} = this.props;
     if (!event.crashFile) {
       return null;
     }
-    const url = `/api/0/projects/${orgId}/${projectId}/events/${event.id}/attachments/${
-      event.crashFile.id
-    }/?download=1`;
+
     const crashFileType =
       event.crashFile.type === 'event.minidump' ? 'Minidump' : 'Crash file';
+
     return (
-      <small>
-        {crashFileType}: <a href={url}>{event.crashFile.name}</a> (
-        <FileSize bytes={event.crashFile.size} />)
-      </small>
+      <AttachmentUrl>
+        {downloadUrl =>
+          downloadUrl && (
+            <small>
+              {crashFileType}: <a href={downloadUrl}>{event.crashFile.name}</a> (
+              <FileSize bytes={event.crashFile.size} />)
+            </small>
+          )
+        }
+      </AttachmentUrl>
     );
   }
 
