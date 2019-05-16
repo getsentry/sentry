@@ -21,7 +21,7 @@ class UserEmail(Model):
     __core__ = True
 
     user = FlexibleForeignKey(settings.AUTH_USER_MODEL, related_name='emails')
-    email = models.EmailField(_('email address'))
+    email = models.EmailField(_('email address'), max_length=75)
     validation_hash = models.CharField(
         max_length=32, default=default_validation_hash
     )
