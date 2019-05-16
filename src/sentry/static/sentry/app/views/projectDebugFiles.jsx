@@ -196,7 +196,7 @@ class ProjectDebugSymbols extends AsyncComponent {
                 <Button
                   size="xsmall"
                   icon="icon-download"
-                  onClick={() => (window.location = url)}
+                  href={url}
                   disabled={!hasAccess}
                   css={{
                     marginRight: space(0.5),
