@@ -362,13 +362,13 @@ exports[`GroupReleaseStats renders 1`] = `
                   <span
                     className="max-y"
                   >
-                    <count
+                    <Count
                       value={10}
                     >
                       <span>
                         10
                       </span>
-                    </count>
+                    </Count>
                   </span>
                   <span
                     className="min-y"
@@ -925,13 +925,13 @@ exports[`GroupReleaseStats renders 1`] = `
                   <span
                     className="max-y"
                   >
-                    <count
+                    <Count
                       value={122}
                     >
                       <span>
                         122
                       </span>
-                    </count>
+                    </Count>
                   </span>
                   <span
                     className="min-y"

@@ -675,13 +675,13 @@ exports[`ProjectCard renders 1`] = `
                               <span
                                 className="max-y"
                               >
-                                <count
+                                <Count
                                   value={10}
                                 >
                                   <span>
                                     10
                                   </span>
-                                </count>
+                                </Count>
                               </span>
                               <span
                                 className="min-y"
