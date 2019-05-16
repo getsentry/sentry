@@ -54,8 +54,9 @@ class SavedSearch(Model):
     class Meta:
         app_label = 'sentry'
         db_table = 'sentry_savedsearch'
-        # Note that we also have a partial unique constraint on
-        # (organization_id, name, type) where owner_id is null
+        # Note that we also have a partial unique constraint on:
+        #   (organization_id, name, type) WHERE owner_id IS NULL
+        #   (is_global, name) WHERE is_global
         unique_together = (
             ('project', 'name'),
             # Each user can have one default search per org

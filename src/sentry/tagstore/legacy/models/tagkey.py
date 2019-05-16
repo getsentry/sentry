@@ -13,7 +13,7 @@ from django.utils.translation import ugettext_lazy as _
 
 from sentry.tagstore import TagKeyStatus
 from sentry.constants import MAX_TAG_KEY_LENGTH
-from sentry.db.models import (Model, BoundedPositiveIntegerField, sane_repr)
+from sentry.db.models import (Model, BoundedBigIntegerField, BoundedPositiveIntegerField, sane_repr)
 
 
 class TagKey(Model):
@@ -22,7 +22,7 @@ class TagKey(Model):
     """
     __core__ = False
 
-    project_id = BoundedPositiveIntegerField(db_index=True)
+    project_id = BoundedBigIntegerField(db_index=True)
     key = models.CharField(max_length=MAX_TAG_KEY_LENGTH)
     values_seen = BoundedPositiveIntegerField(default=0)
     label = models.CharField(max_length=64, null=True)
