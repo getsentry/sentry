@@ -765,11 +765,18 @@ class MinidumpView(StoreView):
             if has_event_attachments:
                 attachments.append(CachedAttachment.from_upload(file))
 
-        if _minidump_refactor_enabled(project.id):
+        refactor_enabled = _minidump_refactor_enabled(project.id)
+        metrics.incr(
+            'symbolicator.minidump-refactor-enabled',
+            tags={'value': refactor_enabled}
+        )
+
+        if refactor_enabled:
             write_minidump_placeholder(data)
         else:
             try:
-                state = process_minidump(minidump)
+                with metrics.timer("symbolicator.old-process-minidump"):
+                    state = process_minidump(minidump)
                 merge_process_state_event(data, state)
             except ProcessMinidumpError as e:
                 minidumps_logger.exception(e)
