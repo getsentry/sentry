@@ -198,6 +198,16 @@ export const Event = PropTypes.shape({
   user: PropTypes.object,
 });
 
+export const EventAttachment = PropTypes.shape({
+  id: PropTypes.string.isRequired,
+  name: PropTypes.string.isRequired,
+  headers: PropTypes.object,
+  size: PropTypes.number.isRequired,
+  sha1: PropTypes.string.isRequired,
+  dateCreated: PropTypes.number,
+  type: PropTypes.string.isRequired,
+});
+
 export const EventError = PropTypes.shape({
   type: PropTypes.string.isRequired,
   message: PropTypes.string.isRequired,
@@ -944,6 +954,7 @@ const SentryTypes = {
   DiscoverResults,
   Environment,
   Event,
+  EventAttachment,
   Organization: PropTypes.shape({
     id: PropTypes.string.isRequired,
   }),

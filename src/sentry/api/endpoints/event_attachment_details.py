@@ -8,12 +8,48 @@ try:
 except ImportError:
     from django.http import StreamingHttpResponse
 
-from sentry import features, options
-from sentry.api.bases.project import ProjectEndpoint
-from sentry.models import Event, SnubaEvent, EventAttachment
+from sentry import features, options, roles
+from sentry.api.bases.project import ProjectEndpoint, ProjectPermission
+from sentry.api.serializers.models.organization import ATTACHMENTS_ROLE_DEFAULT
+from sentry.auth.superuser import is_active_superuser
+from sentry.auth.system import is_system_auth
+from sentry.models import Event, SnubaEvent, EventAttachment, OrganizationMember
+
+
+class EventAttachmentDetailsPermission(ProjectPermission):
+    def has_object_permission(self, request, view, project):
+        result = super(EventAttachmentDetailsPermission, self) \
+            .has_object_permission(request, view, project)
+
+        if not result:
+            return result
+
+        if is_system_auth(request.auth) or is_active_superuser(request):
+            return True
+
+        if not request.user.is_authenticated():
+            return False
+
+        organization = project.organization
+        required_role = organization.get_option('sentry:attachments_role') \
+            or ATTACHMENTS_ROLE_DEFAULT
+
+        try:
+            current_role = OrganizationMember.objects.filter(
+                organization=organization,
+                user=request.user,
+            ).values_list('role', flat=True).get()
+        except OrganizationMember.DoesNotExist:
+            return False
+
+        required_role = roles.get(required_role)
+        current_role = roles.get(current_role)
+        return current_role.priority >= required_role.priority
 
 
 class EventAttachmentDetailsEndpoint(ProjectEndpoint):
+    permission_classes = (EventAttachmentDetailsPermission, )
+
     def download(self, attachment):
         file = attachment.file
         fp = file.getfile()
