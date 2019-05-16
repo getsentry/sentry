@@ -25,21 +25,26 @@ line = _ (comment / rule / empty) newline?
 
 rule = _ matchers actions
 
-matchers       = matcher+
-matcher        = _ matcher_type sep argument
-matcher_type   = "path" / "function" / "module" / "family" / "package" / "app"
+matchers         = matcher+
+matcher          = _ matcher_type sep argument
+matcher_type     = "path" / "function" / "module" / "family" / "package" / "app"
 
-actions        = action+
-action         = _ range? flag action_name
-action_name    = "group" / "app"
-flag           = "+" / "-"
-range          = "^" / "v"
+actions          = action+
+action           = flag_action / var_action
+var_action       = _ var_name _ "=" _ expr
+var_name         = "max-frames"
+flag_action      = _ range? flag flag_action_name
+flag_action_name = "group" / "app"
+flag             = "+" / "-"
+range            = "^" / "v"
+expr             = int
+int              = ~r"[0-9]+"
 
-comment        = ~r"#[^\r\n]*"
+comment          = ~r"#[^\r\n]*"
 
-argument       = quoted / unquoted
-quoted         = ~r'"([^"\\]*(?:\\.[^"\\]*)*)"'
-unquoted       = ~r"\S+"
+argument         = quoted / unquoted
+quoted           = ~r'"([^"\\]*(?:\\.[^"\\]*)*)"'
+unquoted         = ~r"\S+"
 
 sep     = ":"
 space   = " "
@@ -155,8 +160,27 @@ class Match(object):
         return cls(key, arg)
 
 
-@implements_to_string
 class Action(object):
+
+    def apply_modifications_to_frame(self, frames, idx):
+        pass
+
+    def update_frame_components_contributions(self, components, idx, rule=None):
+        pass
+
+    def modify_stack_state(self, state, rule):
+        pass
+
+    @classmethod
+    def _from_config_structure(cls, val):
+        if isinstance(val, list):
+            return VarAction(val[0], val[1])
+        flag, range = REVERSE_ACTION_FLAGS[val >> 4]
+        return FlagAction(ACTIONS[val & 0xf], flag, range)
+
+
+@implements_to_string
+class FlagAction(Action):
 
     def __init__(self, key, flag, range):
         self.key = key
@@ -215,10 +239,43 @@ class Action(object):
                         self.flag and 'in-app' or 'out of app', rule_hint)
                 )
 
-    @classmethod
-    def _from_config_structure(cls, num):
-        flag, range = REVERSE_ACTION_FLAGS[num >> 4]
-        return cls(ACTIONS[num & 0xf], flag, range)
+
+@implements_to_string
+class VarAction(Action):
+    range = None
+
+    def __init__(self, var, value):
+        self.var = var
+        self.value = value
+
+    def __str__(self):
+        return '%s=%s' % (self.var, self.value)
+
+    def _to_config_structure(self):
+        return [self.var, self.value]
+
+    def modify_stack_state(self, state, rule):
+        state.set(self.var, self.value, rule)
+
+
+class StackState(object):
+
+    def __init__(self):
+        self.vars = {}
+        self.setters = {}
+
+    def set(self, var, value, rule=None):
+        self.vars[var] = value
+        if rule is not None:
+            self.setters[var] = rule
+
+    def get(self, var):
+        return self.vars.get(var)
+
+    def describe_var_rule(self, var):
+        rule = self.setters.get(var)
+        if rule is not None:
+            return rule.matcher_description
 
 
 class Enhancements(object):
@@ -245,12 +302,35 @@ class Enhancements(object):
                     action.apply_modifications_to_frame(frames, idx)
 
     def update_frame_components_contributions(self, components, frames, platform):
+        stack_state = StackState()
+
+        # Apply direct frame actions and update the stack state alongside
         for rule in self.iter_rules():
             for idx, (component, frame) in enumerate(izip(components, frames)):
                 actions = rule.get_matching_frame_actions(frame, platform)
                 for action in actions or ():
                     action.update_frame_components_contributions(
                         components, idx, rule=rule)
+                    action.modify_stack_state(stack_state, rule)
+
+        # Use the stack state to update frame contributions again
+        max_frames = stack_state.get('max-frames')
+        if max_frames is not None:
+            ignored = 0
+            for component in reversed(components):
+                if not component.contributes:
+                    continue
+                ignored += 1
+                if ignored <= max_frames:
+                    continue
+                hint = 'ignored because only %d %s considered' % (
+                    max_frames,
+                    'frames are' if max_frames != 1 else 'frame is',
+                )
+                description = stack_state.describe_var_rule('max-frames')
+                if description is not None:
+                    hint = '%s by grouping enhancement rule (%s)' % (hint, description)
+                component.update(hint=hint, contributes=False)
 
     def as_dict(self, with_rules=False):
         rv = {
@@ -405,11 +485,25 @@ class EnhancmentsVisitor(NodeVisitor):
     def visit_argument(self, node, children):
         return children[0]
 
-    def visit_action(self, node, children):
-        _, rng, flag, action_name = children
-        return Action(action_name, flag, rng[0] if rng else None)
+    def visit_var(self, node, children):
+        _, var_name, _, _, _, arg = children
+        return Action('set_var', (var_name, arg))
 
-    def visit_action_name(self, node, children):
+    def visit_action(self, node, children):
+        return children[0]
+
+    def visit_flag_action(self, node, children):
+        _, rng, flag, action_name = children
+        return FlagAction(action_name, flag, rng[0] if rng else None)
+
+    def visit_flag_action_name(self, node, children):
+        return node.text
+
+    def visit_var_action(self, node, children):
+        _, var_name, _, _, _, arg = children
+        return VarAction(var_name, arg)
+
+    def visit_var_name(self, node, children):
         return node.text
 
     def visit_flag(self, node, children):
@@ -419,6 +513,12 @@ class EnhancmentsVisitor(NodeVisitor):
         if node.text == '^':
             return 'up'
         return 'down'
+
+    def visit_expr(self, node, children):
+        return children[0]
+
+    def visit_int(self, node, children):
+        return int(node.text)
 
     def visit_quoted(self, node, children):
         return node.text[1:-1] \
