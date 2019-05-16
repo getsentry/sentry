@@ -1,6 +1,7 @@
 import React from 'react';
 import styled from 'react-emotion';
 import InlineSvg from 'app/components/inlineSvg';
+import space from 'app/styles/space';
 
 /* styles common to the guide and support cue/drawer. */
 const AssistantContainer = styled('div')`
@@ -9,10 +10,11 @@ const AssistantContainer = styled('div')`
   width: 25vw;
   max-width: 450px;
   min-width: 300px;
+  min-height: 40px;
   bottom: 1vw;
-  border-radius: 1.45em;
-  font-weight: bold;
+  border-radius: ${p => p.theme.borderRadius};
   box-shadow: ${p => p.theme.dropShadowHeavy};
+  padding: ${space(2)};
 `;
 
 const CueContainer = styled(AssistantContainer)`
@@ -31,16 +33,15 @@ const CueIcon = styled(({hasGuide, ...props}) => (
     {...props}
   />
 ))`
-  width: 2.75em;
-  height: 2.75em;
-  color: ${p => (p.hasGuide ? p.theme.greenLight : p.theme.purple)};
+  width: 1.33em;
+  height: 1.33em;
 `;
 
 const CloseIcon = styled(props => <InlineSvg src="icon-close-lg" {...props} />)`
   stroke-width: 3px;
   width: 0.75em;
   height: 0.75em;
-  margin: 0 0.875em 0 0.66em;
+  margin: 0 0 0 ${space(1.5)};
   cursor: pointer;
 `;
 
