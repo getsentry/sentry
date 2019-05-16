@@ -2,6 +2,7 @@ from __future__ import absolute_import
 
 import datetime
 import pytest
+import six
 from datetime import timedelta
 
 from django.utils import timezone
@@ -918,14 +919,42 @@ class ParseBooleanSearchQueryTest(TestCase):
         )]
 
     def test_malformed_groups(self):
-        with pytest.raises(IncompleteParseError):
+        error_text = "Rule 'search' matched in its entirety, but it didn't consume all the text. The non-matching portion of the text begins with"
+        with pytest.raises(IncompleteParseError) as error:
             parse_search_query(
                 '(user.email:foo@example.com OR user.email:bar@example.com'
             )
-        with pytest.raises(IncompleteParseError):
+        assert six.text_type(error.value) == '%s %s' % (
+            error_text, "'(user.email:foo@exam' (line 1, column 1).")
+        with pytest.raises(IncompleteParseError) as error:
             parse_search_query(
                 '((user.email:foo@example.com OR user.email:bar@example.com AND  user.email:bar@example.com)'
             )
+        assert six.text_type(error.value) == '%s %s' % (
+            error_text, "'((user.email:foo@exa' (line 1, column 1).")
+        with pytest.raises(IncompleteParseError) as error:
+            parse_search_query(
+                'user.email:foo@example.com OR user.email:bar@example.com)'
+            )
+        assert six.text_type(error.value) == '%s %s' % (error_text, "')' (line 1, column 57).")
+        with pytest.raises(IncompleteParseError) as error:
+            parse_search_query(
+                '(user.email:foo@example.com OR user.email:bar@example.com AND  user.email:bar@example.com))'
+            )
+        assert six.text_type(error.value) == '%s %s' % (error_text, "')' (line 1, column 91).")
+
+    def test_grouping_without_boolean_terms(self):
+        with pytest.raises(IncompleteParseError) as error:
+            parse_search_query(
+                'undefined is not an object (evaluating \'function.name\')'
+            ) == [SearchFilter(
+                key=SearchKey(name='message'),
+                operator='=',
+                value=SearchValue(
+                    raw_value='undefined is not an object (evaluating "function.name")'),
+            )]
+        assert six.text_type(
+            error.value) == "Rule 'search' matched in its entirety, but it didn't consume all the text. The non-matching portion of the text begins with '(evaluating 'functio' (line 1, column 28)."
 
 
 class GetSnubaQueryArgsTest(TestCase):
