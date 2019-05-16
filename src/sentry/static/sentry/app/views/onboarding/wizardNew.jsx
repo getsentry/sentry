@@ -75,7 +75,7 @@ class OnboardingWizard extends React.Component {
     this.setState(data);
   };
 
-  handleNextStep = step => data => {
+  handleNextStep(step, data) {
     this.handleUpdate(data);
 
     if (step !== this.activeStep) {
@@ -92,14 +92,14 @@ class OnboardingWizard extends React.Component {
     });
 
     browserHistory.push(`/onboarding/${orgId}/${nextStep.id}/`);
-  };
+  }
 
-  handleReturnToStep = step => data => {
+  handleReturnToStep(step, data) {
     const {orgId} = this.props.params;
 
     this.handleUpdate(data);
     browserHistory.push(`/onboarding/${orgId}/${step.id}/`);
-  };
+  }
 
   scrollToActiveStep = () => {
     const step = this.activeStep;
@@ -145,8 +145,8 @@ class OnboardingWizard extends React.Component {
           orgId={orgId}
           project={this.firstProject}
           platform={this.projectPlatform}
-          onReturnToStep={this.handleReturnToStep(step)}
-          onComplete={this.handleNextStep(step)}
+          onReturnToStep={data => this.handleReturnToStep(step, data)}
+          onComplete={data => this.handleNextStep(step, data)}
           onUpdate={this.handleUpdate}
         />
       </OnboardingStep>
