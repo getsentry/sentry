@@ -1570,7 +1570,7 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                 <div
                   className="similar-score-columns"
                 >
-                  <count
+                  <Count
                     className="similar-score-column"
                     value="90"
                   >
@@ -1579,7 +1579,7 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                     >
                       90
                     </span>
-                  </count>
+                  </Count>
                   <div
                     className="similar-score-column"
                     key="exception"
