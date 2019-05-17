@@ -66,7 +66,7 @@ class OnboardingProjectSetup extends React.Component {
       .component;
 
     // NOTE: We give the PoseGroup different enter/exit/init poses than default
-    // so that when poses propegate down to children they do not animate enter
+    // so that when poses propagate down to children they do not animate enter
     // or exit when switching setup choices.
     return (
       <React.Fragment>
