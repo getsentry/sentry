@@ -401,7 +401,7 @@ const StreamActions = createReactClass({
                     openCreateIncidentModal({organization, issues: Array.from(issues)})
                   }
                 >
-                  <InlineSvg src="icon-circle-add" />
+                  <InlineSvg data-test-id="create-incident" src="icon-circle-add" />
                 </ActionLink>
               </div>
             </Feature>
