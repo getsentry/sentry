@@ -8,6 +8,9 @@ export function Incident(params) {
     totalEvents: 100,
     uniqueUsers: 20,
     isSubscribed: true,
+    eventStats: {
+      data: [],
+    },
     ...params,
   };
 }
