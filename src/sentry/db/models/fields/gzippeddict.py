@@ -12,8 +12,9 @@ import logging
 import six
 
 from django.conf import settings
-from django.db import models
+from django.db.models import TextField
 
+from sentry.db.models.utils import Creator
 from sentry.utils.compat import pickle
 from sentry.utils.strings import decompress, compress
 
@@ -22,11 +23,19 @@ __all__ = ('GzippedDictField', )
 logger = logging.getLogger('sentry')
 
 
-class GzippedDictField(models.TextField):
+class GzippedDictField(TextField):
     """
     Slightly different from a JSONField in the sense that the default
     value is a dictionary.
     """
+
+    def contribute_to_class(self, cls, name):
+        """
+        Add a descriptor for backwards compatibility
+        with previous Django behavior.
+        """
+        super(GzippedDictField, self).contribute_to_class(cls, name)
+        setattr(cls, name, Creator(self))
 
     def to_python(self, value):
         if isinstance(value, six.string_types) and value:
@@ -53,9 +62,6 @@ class GzippedDictField(models.TextField):
         value = self._get_val_from_obj(obj)
         return self.get_prep_value(value)
 
-
-if hasattr(models, 'SubfieldBase'):
-    GzippedDictField = six.add_metaclass(models.SubfieldBase)(GzippedDictField)
 
 if 'south' in settings.INSTALLED_APPS:
     from south.modelsinspector import add_introspection_rules
