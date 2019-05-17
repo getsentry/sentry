@@ -160,6 +160,8 @@ class ApiClient(object):
         full_url = self.build_url(path)
         host = urlparse(full_url).netloc
         session = build_session()
+
+        metrics.incr('integrations.http_request', tags={'host': host})
         try:
             resp = getattr(session, method.lower())(
                 url=full_url,
