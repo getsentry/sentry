@@ -273,6 +273,15 @@ INSTALLED_APPS = (
     'sentry.eventstream', 'sentry.auth.providers.google', 'django.contrib.staticfiles',
 )
 
+
+# Silence internal hints from Django's system checks
+SILENCED_SYSTEM_CHECKS = (
+    # Django recommends to use OneToOneField over ForeignKey(unique=True)
+    # however this changes application behavior in ways that break association
+    # loading
+    'fields.W342'
+)
+
 import django
 if django.VERSION < (1, 9):
     INSTALLED_APPS += ('south', )
