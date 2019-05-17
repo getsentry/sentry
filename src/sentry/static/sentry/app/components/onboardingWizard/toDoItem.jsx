@@ -218,12 +218,10 @@ const IndicatorIcon = styled(({status, ...props}) => (
   <InlineSvg {...props} src={indicatorStyles[status][0]} />
 ))`
   position: relative;
-  color: ${p => {
-    return p.theme[indicatorStyles[p.status][1]];
-  }};
+  color: ${p => p.theme[indicatorStyles[p.status][1]]};
   font-size: 20px;
-  left: 9px;
   top: 9px;
+  left: 9px;
 `;
 
 const Description = styled('p')`

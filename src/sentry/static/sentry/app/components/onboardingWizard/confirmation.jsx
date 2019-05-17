@@ -41,16 +41,14 @@ class Confirmation extends React.Component {
 const Container = styled('div')`
   position: absolute;
   top: 0px;
-  display: ${p => {
-    return p.hide ? 'none' : 'flex';
-  }};
+  left: 0px;
   bottom: 0px;
+  display: ${p => (p.hide ? 'none' : 'flex')};
   align-items: center;
   flex-direction: column;
   justify-content: center;
   background: rgba(255, 255, 255, 0.65);
   width: 100%;
-  left: 0px;
 `;
 
 const Header = styled('h4')`
