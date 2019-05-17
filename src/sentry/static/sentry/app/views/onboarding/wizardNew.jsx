@@ -49,7 +49,23 @@ class OnboardingWizard extends React.Component {
     organization: SentryTypes.Organization,
   };
 
+  constructor(...args) {
+    super(...args);
+    this.validateActiveStep();
+  }
+
   state = {};
+
+  componentDidUpdate() {
+    this.validateActiveStep();
+  }
+
+  validateActiveStep() {
+    if (this.activeStepIndex == -1) {
+      const firstStep = ONBOARDING_STEPS[0].id;
+      browserHistory.replace(`/onboarding/${this.props.params.orgId}/${firstStep}/`);
+    }
+  }
 
   get activeStepIndex() {
     return ONBOARDING_STEPS.findIndex(({id}) => this.props.params.step === id);
@@ -121,15 +137,8 @@ class OnboardingWizard extends React.Component {
   }
 
   renderOnboardingSteps() {
-    const activeStepIndex = this.activeStepIndex;
     const {orgId} = this.props.params;
-
-    if (activeStepIndex === -1) {
-      // XXX(epurkhiser): Not super great to have a side effect during render,
-      // but I can live with it for now.
-      browserHistory.push(`/onboarding/${orgId}/welcome/`);
-    }
-
+    const activeStepIndex = this.activeStepIndex;
     const visibleSteps = ONBOARDING_STEPS.slice(0, activeStepIndex + 1);
 
     return visibleSteps.map((step, index) => (
@@ -154,6 +163,10 @@ class OnboardingWizard extends React.Component {
   }
 
   render() {
+    if (this.activeStepIndex === -1) {
+      return null;
+    }
+
     return (
       <OnboardingWrapper>
         <DocumentTitle title="Get Started on Sentry" />
