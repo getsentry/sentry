@@ -94,3 +94,25 @@ export async function updateIncidentNote(api, incidentId, item, note) {
     throw err;
   }
 }
+
+// This doesn't return anything because you shouldn't need to do anything with
+// the result success or fail
+export async function markIncidentAsSeen(api, orgId, incident) {
+  if (!incident || incident.hasSeen) {
+    return;
+  }
+
+  try {
+    await api.requestPromise(
+      `/organizations/${orgId}/incidents/${incident.identifier}/`,
+      {
+        method: 'PUT',
+        data: {
+          hasSeen: true,
+        },
+      }
+    );
+  } catch (err) {
+    // do nothing
+  }
+}
