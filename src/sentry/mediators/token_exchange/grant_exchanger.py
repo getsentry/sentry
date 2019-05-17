@@ -25,11 +25,12 @@ class GrantExchanger(Mediator):
 
     def call(self):
         self._validate()
+        self._create_token()
 
         # Once it's exchanged it's no longer valid and should not be
         # exchangable, so we delete it.
         self._delete_grant()
-        self._create_token()
+
         return self.token
 
     def record_analytics(self):
