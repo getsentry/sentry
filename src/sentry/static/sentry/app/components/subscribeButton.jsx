@@ -8,15 +8,16 @@ import {t} from 'app/locale';
 
 export default class SubscribeButton extends React.Component {
   static propTypes = {
-    isSubscribed: PropTypes.bool.isRequired,
+    isSubscribed: PropTypes.bool,
     onClick: PropTypes.func.isRequired,
+    disabled: PropTypes.bool,
   };
 
   render() {
-    const {isSubscribed, onClick} = this.props;
+    const {isSubscribed, onClick, disabled} = this.props;
 
     return (
-      <Button size="small" onClick={onClick}>
+      <Button size="small" onClick={onClick} disabled={disabled}>
         <Content>
           <SignalIcon className="icon-signal" isSubscribed={isSubscribed} />
           {isSubscribed ? t('Unsubscribe') : t('Subscribe')}

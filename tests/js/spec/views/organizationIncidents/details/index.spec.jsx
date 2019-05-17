@@ -24,13 +24,31 @@ describe('IncidentDetails', function() {
 
   it('loads incident', async function() {
     const wrapper = mount(
-      <IncidentDetails params={{orgId: 'org-slug', incidentId: mockIncident.id}} />,
+      <IncidentDetails
+        params={{orgId: 'org-slug', incidentId: mockIncident.identifier}}
+      />,
       routerContext
     );
-    expect(wrapper.find('LoadingIndicator')).toHaveLength(1);
+
+    expect(wrapper.find('IncidentTitle').text()).toBe('Loading');
+    expect(wrapper.find('SubscribeButton').prop('disabled')).toBe(true);
+
     await tick();
     wrapper.update();
-    expect(wrapper.find('LoadingIndicator')).toHaveLength(0);
+
+    expect(wrapper.find('IncidentTitle').text()).toBe('Too many Chrome errors');
+    expect(
+      wrapper
+        .find('ItemValue')
+        .at(1)
+        .text()
+    ).toBe('100');
+    expect(
+      wrapper
+        .find('ItemValue')
+        .at(2)
+        .text()
+    ).toBe('20');
   });
 
   it('handles invalid incident', async function() {
