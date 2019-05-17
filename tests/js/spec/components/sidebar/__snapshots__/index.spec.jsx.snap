@@ -1398,16 +1398,57 @@ exports[`Sidebar can have onboarding feature 1`] = `
                     }
                   }
                 >
-                  <div>
-                    <div
-                      className="onboarding-wrapper"
+                  <StyledTodoList>
+                    <ul
+                      className="css-1j5mlad-StyledTodoList e1575y5o0"
                     >
-                      <ul
-                        className="list-unstyled"
+                      <WithOrganizationMockWrapper
+                        key="1"
+                        onSkip={[Function]}
+                        task={
+                          Object {
+                            "description": "Create your first Sentry project",
+                            "detailedDescription": "Follow our quick and easy steps to set up a project and start sending errors.",
+                            "display": true,
+                            "featureLocation": "organization",
+                            "location": "projects/new/",
+                            "prereq": Array [],
+                            "skippable": false,
+                            "task": 1,
+                            "title": "Create a project",
+                          }
+                        }
                       >
-                        <WithOrganizationMockWrapper
-                          key="1"
+                        <TodoItem
                           onSkip={[Function]}
+                          organization={
+                            Object {
+                              "access": Array [
+                                "org:read",
+                                "org:write",
+                                "org:admin",
+                                "org:integrations",
+                                "project:read",
+                                "project:write",
+                                "project:admin",
+                                "team:read",
+                                "team:write",
+                                "team:admin",
+                              ],
+                              "features": Array [],
+                              "id": "3",
+                              "name": "Organization Name",
+                              "onboardingTasks": Array [],
+                              "projects": Array [],
+                              "scrapeJavaScript": true,
+                              "slug": "org-slug",
+                              "status": Object {
+                                "id": "active",
+                                "name": "active",
+                              },
+                              "teams": Array [],
+                            }
+                          }
                           task={
                             Object {
                               "description": "Create your first Sentry project",
@@ -1422,81 +1463,113 @@ exports[`Sidebar can have onboarding feature 1`] = `
                             }
                           }
                         >
-                          <TodoItem
-                            onSkip={[Function]}
-                            organization={
-                              Object {
-                                "access": Array [
-                                  "org:read",
-                                  "org:write",
-                                  "org:admin",
-                                  "org:integrations",
-                                  "project:read",
-                                  "project:write",
-                                  "project:admin",
-                                  "team:read",
-                                  "team:write",
-                                  "team:admin",
-                                ],
-                                "features": Array [],
-                                "id": "3",
-                                "name": "Organization Name",
-                                "onboardingTasks": Array [],
-                                "projects": Array [],
-                                "scrapeJavaScript": true,
-                                "slug": "org-slug",
-                                "status": Object {
-                                  "id": "active",
-                                  "name": "active",
-                                },
-                                "teams": Array [],
-                              }
-                            }
-                            task={
-                              Object {
-                                "description": "Create your first Sentry project",
-                                "detailedDescription": "Follow our quick and easy steps to set up a project and start sending errors.",
-                                "display": true,
-                                "featureLocation": "organization",
-                                "location": "projects/new/",
-                                "prereq": Array [],
-                                "skippable": false,
-                                "task": 1,
-                                "title": "Create a project",
-                              }
-                            }
+                          <Item
+                            onMouseOut={[Function]}
+                            onMouseOver={[Function]}
                           >
                             <li
-                              className=""
+                              className="css-djxgjv-Item e1a4o5470"
                               onMouseOut={[Function]}
                               onMouseOver={[Function]}
                             >
-                              <div
-                                className="todo-content"
+                              <Content
+                                blur={false}
                               >
                                 <div
-                                  className="ob-checkbox"
-                                />
-                                <a
-                                  href="/organizations/org-slug/projects/new/"
-                                  onClick={[Function]}
+                                  className="css-qpu70d-Content e1a4o5471"
                                 >
-                                  <h4>
-                                    Create a project
-                                  </h4>
-                                </a>
-                                <div>
-                                  <p>
-                                    Create your first Sentry project
-                                  </p>
+                                  <Checkbox>
+                                    <div
+                                      className="css-6neou0-Checkbox e1a4o5472"
+                                    />
+                                  </Checkbox>
+                                  <StyledLink
+                                    href="/organizations/org-slug/projects/new/"
+                                    onClick={[Function]}
+                                  >
+                                    <a
+                                      className="css-1ylws2h-StyledLink e1a4o5475"
+                                      href="/organizations/org-slug/projects/new/"
+                                      onClick={[Function]}
+                                    >
+                                      <ItemHeader>
+                                        <h4
+                                          className="css-158to6c-ItemHeader e1a4o5476"
+                                        >
+                                          Create a project
+                                        </h4>
+                                      </ItemHeader>
+                                    </a>
+                                  </StyledLink>
+                                  <Description>
+                                    <p
+                                      className="css-rz8513-Description e1a4o5474"
+                                    >
+                                      Create your first Sentry project
+                                    </p>
+                                  </Description>
+                                  <SkipButton
+                                    disabled={false}
+                                    hide={true}
+                                    onClick={[Function]}
+                                    size="xsmall"
+                                  >
+                                    <Button
+                                      className="css-1q81x7o-SkipButton e1a4o5477"
+                                      disabled={false}
+                                      hide={true}
+                                      onClick={[Function]}
+                                      size="xsmall"
+                                    >
+                                      <StyledButton
+                                        aria-disabled={false}
+                                        aria-label="Skip task"
+                                        className="css-1q81x7o-SkipButton e1a4o5477"
+                                        disabled={false}
+                                        hide={true}
+                                        onClick={[Function]}
+                                        role="button"
+                                        size="xsmall"
+                                      >
+                                        <ForwardRef
+                                          aria-disabled={false}
+                                          aria-label="Skip task"
+                                          className="e1a4o5477 css-1dq8t6k-StyledButton-getColors-SkipButton e12ma6z0"
+                                          disabled={false}
+                                          hide={true}
+                                          onClick={[Function]}
+                                          role="button"
+                                          size="xsmall"
+                                        >
+                                          <button
+                                            aria-disabled={false}
+                                            aria-label="Skip task"
+                                            className="e1a4o5477 css-1dq8t6k-StyledButton-getColors-SkipButton e12ma6z0"
+                                            onClick={[Function]}
+                                            role="button"
+                                            size="xsmall"
+                                          >
+                                            <ButtonLabel
+                                              size="xsmall"
+                                            >
+                                              <Component
+                                                className="css-uthd1f-ButtonLabel e12ma6z1"
+                                                size="xsmall"
+                                              >
+                                                <span
+                                                  className="css-uthd1f-ButtonLabel e12ma6z1"
+                                                >
+                                                  Skip task
+                                                </span>
+                                              </Component>
+                                            </ButtonLabel>
+                                          </button>
+                                        </ForwardRef>
+                                      </StyledButton>
+                                    </Button>
+                                  </SkipButton>
                                 </div>
-                                <a
-                                  className="skip-btn btn btn-default hide"
-                                  onClick={[Function]}
-                                >
-                                  Skip
-                                </a>
-                              </div>
+                              </Content>
                               <withRouter(WithOrganizationMockWrapper)
                                 dismiss={[Function]}
                                 hide={true}
@@ -2165,37 +2238,93 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                     }
                                     task={1}
                                   >
-                                    <div
-                                      className="ob-confirmation hide"
+                                    <Container
+                                      hide={true}
                                       onClick={[Function]}
                                     >
-                                      <h4>
-                                        Want help?
-                                      </h4>
-                                      <p>
-                                        <a
-                                          onClick={[Function]}
-                                        >
-                                          Go to Support
-                                        </a>
-                                         
-                                        · 
-                                        <a
-                                          onClick={[Function]}
-                                        >
-                                          Skip
-                                        </a>
-                                      </p>
-                                    </div>
+                                      <div
+                                        className="css-1eqy2vd-Container e18z0fp40"
+                                        onClick={[Function]}
+                                      >
+                                        <Header>
+                                          <h4
+                                            className="css-134yp1m-Header e18z0fp41"
+                                          >
+                                            Want help?
+                                          </h4>
+                                        </Header>
+                                        <div>
+                                          <a
+                                            onClick={[Function]}
+                                          >
+                                            Go to Support
+                                          </a>
+                                           ·
+                                           
+                                          <a
+                                            onClick={[Function]}
+                                          >
+                                            Skip
+                                          </a>
+                                        </div>
+                                      </div>
+                                    </Container>
                                   </Confirmation>
                                 </WithOrganizationMockWrapper>
                               </withRouter(WithOrganizationMockWrapper)>
                             </li>
-                          </TodoItem>
-                        </WithOrganizationMockWrapper>
-                        <WithOrganizationMockWrapper
-                          key="2"
+                          </Item>
+                        </TodoItem>
+                      </WithOrganizationMockWrapper>
+                      <WithOrganizationMockWrapper
+                        key="2"
+                        onSkip={[Function]}
+                        task={
+                          Object {
+                            "description": "Install Sentry's client",
+                            "detailedDescription": "Choose your platform and send an event.",
+                            "display": true,
+                            "featureLocation": "project",
+                            "location": "settings/install/",
+                            "prereq": Array [
+                              1,
+                            ],
+                            "skippable": false,
+                            "task": 2,
+                            "title": "Send your first event",
+                          }
+                        }
+                      >
+                        <TodoItem
                           onSkip={[Function]}
+                          organization={
+                            Object {
+                              "access": Array [
+                                "org:read",
+                                "org:write",
+                                "org:admin",
+                                "org:integrations",
+                                "project:read",
+                                "project:write",
+                                "project:admin",
+                                "team:read",
+                                "team:write",
+                                "team:admin",
+                              ],
+                              "features": Array [],
+                              "id": "3",
+                              "name": "Organization Name",
+                              "onboardingTasks": Array [],
+                              "projects": Array [],
+                              "scrapeJavaScript": true,
+                              "slug": "org-slug",
+                              "status": Object {
+                                "id": "active",
+                                "name": "active",
+                              },
+                              "teams": Array [],
+                            }
+                          }
                           task={
                             Object {
                               "description": "Install Sentry's client",
@@ -2212,83 +2341,113 @@ exports[`Sidebar can have onboarding feature 1`] = `
                             }
                           }
                         >
-                          <TodoItem
-                            onSkip={[Function]}
-                            organization={
-                              Object {
-                                "access": Array [
-                                  "org:read",
-                                  "org:write",
-                                  "org:admin",
-                                  "org:integrations",
-                                  "project:read",
-                                  "project:write",
-                                  "project:admin",
-                                  "team:read",
-                                  "team:write",
-                                  "team:admin",
-                                ],
-                                "features": Array [],
-                                "id": "3",
-                                "name": "Organization Name",
-                                "onboardingTasks": Array [],
-                                "projects": Array [],
-                                "scrapeJavaScript": true,
-                                "slug": "org-slug",
-                                "status": Object {
-                                  "id": "active",
-                                  "name": "active",
-                                },
-                                "teams": Array [],
-                              }
-                            }
-                            task={
-                              Object {
-                                "description": "Install Sentry's client",
-                                "detailedDescription": "Choose your platform and send an event.",
-                                "display": true,
-                                "featureLocation": "project",
-                                "location": "settings/install/",
-                                "prereq": Array [
-                                  1,
-                                ],
-                                "skippable": false,
-                                "task": 2,
-                                "title": "Send your first event",
-                              }
-                            }
+                          <Item
+                            onMouseOut={[Function]}
+                            onMouseOver={[Function]}
                           >
                             <li
-                              className=""
+                              className="css-djxgjv-Item e1a4o5470"
                               onMouseOut={[Function]}
                               onMouseOver={[Function]}
                             >
-                              <div
-                                className="todo-content"
+                              <Content
+                                blur={false}
                               >
                                 <div
-                                  className="ob-checkbox"
-                                />
-                                <a
-                                  href="/organizations/org-slug/projects/choose/?onboarding=1&task=2"
-                                  onClick={[Function]}
+                                  className="css-qpu70d-Content e1a4o5471"
                                 >
-                                  <h4>
-                                    Send your first event
-                                  </h4>
-                                </a>
-                                <div>
-                                  <p>
-                                    Install Sentry's client
-                                  </p>
+                                  <Checkbox>
+                                    <div
+                                      className="css-6neou0-Checkbox e1a4o5472"
+                                    />
+                                  </Checkbox>
+                                  <StyledLink
+                                    href="/organizations/org-slug/projects/choose/?onboarding=1&task=2"
+                                    onClick={[Function]}
+                                  >
+                                    <a
+                                      className="css-1ylws2h-StyledLink e1a4o5475"
+                                      href="/organizations/org-slug/projects/choose/?onboarding=1&task=2"
+                                      onClick={[Function]}
+                                    >
+                                      <ItemHeader>
+                                        <h4
+                                          className="css-158to6c-ItemHeader e1a4o5476"
+                                        >
+                                          Send your first event
+                                        </h4>
+                                      </ItemHeader>
+                                    </a>
+                                  </StyledLink>
+                                  <Description>
+                                    <p
+                                      className="css-rz8513-Description e1a4o5474"
+                                    >
+                                      Install Sentry's client
+                                    </p>
+                                  </Description>
+                                  <SkipButton
+                                    disabled={false}
+                                    hide={true}
+                                    onClick={[Function]}
+                                    size="xsmall"
+                                  >
+                                    <Button
+                                      className="css-1q81x7o-SkipButton e1a4o5477"
+                                      disabled={false}
+                                      hide={true}
+                                      onClick={[Function]}
+                                      size="xsmall"
+                                    >
+                                      <StyledButton
+                                        aria-disabled={false}
+                                        aria-label="Skip task"
+                                        className="css-1q81x7o-SkipButton e1a4o5477"
+                                        disabled={false}
+                                        hide={true}
+                                        onClick={[Function]}
+                                        role="button"
+                                        size="xsmall"
+                                      >
+                                        <ForwardRef
+                                          aria-disabled={false}
+                                          aria-label="Skip task"
+                                          className="e1a4o5477 css-1dq8t6k-StyledButton-getColors-SkipButton e12ma6z0"
+                                          disabled={false}
+                                          hide={true}
+                                          onClick={[Function]}
+                                          role="button"
+                                          size="xsmall"
+                                        >
+                                          <button
+                                            aria-disabled={false}
+                                            aria-label="Skip task"
+                                            className="e1a4o5477 css-1dq8t6k-StyledButton-getColors-SkipButton e12ma6z0"
+                                            onClick={[Function]}
+                                            role="button"
+                                            size="xsmall"
+                                          >
+                                            <ButtonLabel
+                                              size="xsmall"
+                                            >
+                                              <Component
+                                                className="css-uthd1f-ButtonLabel e12ma6z1"
+                                                size="xsmall"
+                                              >
+                                                <span
+                                                  className="css-uthd1f-ButtonLabel e12ma6z1"
+                                                >
+                                                  Skip task
+                                                </span>
+                                              </Component>
+                                            </ButtonLabel>
+                                          </button>
+                                        </ForwardRef>
+                                      </StyledButton>
+                                    </Button>
+                                  </SkipButton>
                                 </div>
-                                <a
-                                  className="skip-btn btn btn-default hide"
-                                  onClick={[Function]}
-                                >
-                                  Skip
-                                </a>
-                              </div>
+                              </Content>
                               <withRouter(WithOrganizationMockWrapper)
                                 dismiss={[Function]}
                                 hide={true}
@@ -2957,37 +3116,92 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                     }
                                     task={2}
                                   >
-                                    <div
-                                      className="ob-confirmation hide"
+                                    <Container
+                                      hide={true}
                                       onClick={[Function]}
                                     >
-                                      <h4>
-                                        Want help?
-                                      </h4>
-                                      <p>
-                                        <a
-                                          onClick={[Function]}
-                                        >
-                                          Go to Support
-                                        </a>
-                                         
-                                        · 
-                                        <a
-                                          onClick={[Function]}
-                                        >
-                                          Skip
-                                        </a>
-                                      </p>
-                                    </div>
+                                      <div
+                                        className="css-1eqy2vd-Container e18z0fp40"
+                                        onClick={[Function]}
+                                      >
+                                        <Header>
+                                          <h4
+                                            className="css-134yp1m-Header e18z0fp41"
+                                          >
+                                            Want help?
+                                          </h4>
+                                        </Header>
+                                        <div>
+                                          <a
+                                            onClick={[Function]}
+                                          >
+                                            Go to Support
+                                          </a>
+                                           ·
+                                           
+                                          <a
+                                            onClick={[Function]}
+                                          >
+                                            Skip
+                                          </a>
+                                        </div>
+                                      </div>
+                                    </Container>
                                   </Confirmation>
                                 </WithOrganizationMockWrapper>
                               </withRouter(WithOrganizationMockWrapper)>
                             </li>
-                          </TodoItem>
-                        </WithOrganizationMockWrapper>
-                        <WithOrganizationMockWrapper
-                          key="3"
+                          </Item>
+                        </TodoItem>
+                      </WithOrganizationMockWrapper>
+                      <WithOrganizationMockWrapper
+                        key="3"
+                        onSkip={[Function]}
+                        task={
+                          Object {
+                            "description": "Bring your team aboard",
+                            "detailedDescription": "Let Sentry help your team triage and assign issues. Improve your workflow
+          by unlocking suggested owners, mentions, and assignment.",
+                            "display": true,
+                            "featureLocation": "organization",
+                            "location": "members/",
+                            "prereq": Array [],
+                            "skippable": true,
+                            "task": 3,
+                            "title": "Invite team member",
+                          }
+                        }
+                      >
+                        <TodoItem
                           onSkip={[Function]}
+                          organization={
+                            Object {
+                              "access": Array [
+                                "org:read",
+                                "org:write",
+                                "org:admin",
+                                "org:integrations",
+                                "project:read",
+                                "project:write",
+                                "project:admin",
+                                "team:read",
+                                "team:write",
+                                "team:admin",
+                              ],
+                              "features": Array [],
+                              "id": "3",
+                              "name": "Organization Name",
+                              "onboardingTasks": Array [],
+                              "projects": Array [],
+                              "scrapeJavaScript": true,
+                              "slug": "org-slug",
+                              "status": Object {
+                                "id": "active",
+                                "name": "active",
+                              },
+                              "teams": Array [],
+                            }
+                          }
                           task={
                             Object {
                               "description": "Bring your team aboard",
@@ -3003,82 +3217,113 @@ exports[`Sidebar can have onboarding feature 1`] = `
                             }
                           }
                         >
-                          <TodoItem
-                            onSkip={[Function]}
-                            organization={
-                              Object {
-                                "access": Array [
-                                  "org:read",
-                                  "org:write",
-                                  "org:admin",
-                                  "org:integrations",
-                                  "project:read",
-                                  "project:write",
-                                  "project:admin",
-                                  "team:read",
-                                  "team:write",
-                                  "team:admin",
-                                ],
-                                "features": Array [],
-                                "id": "3",
-                                "name": "Organization Name",
-                                "onboardingTasks": Array [],
-                                "projects": Array [],
-                                "scrapeJavaScript": true,
-                                "slug": "org-slug",
-                                "status": Object {
-                                  "id": "active",
-                                  "name": "active",
-                                },
-                                "teams": Array [],
-                              }
-                            }
-                            task={
-                              Object {
-                                "description": "Bring your team aboard",
-                                "detailedDescription": "Let Sentry help your team triage and assign issues. Improve your workflow
-          by unlocking suggested owners, mentions, and assignment.",
-                                "display": true,
-                                "featureLocation": "organization",
-                                "location": "members/",
-                                "prereq": Array [],
-                                "skippable": true,
-                                "task": 3,
-                                "title": "Invite team member",
-                              }
-                            }
+                          <Item
+                            onMouseOut={[Function]}
+                            onMouseOver={[Function]}
                           >
                             <li
-                              className=""
+                              className="css-djxgjv-Item e1a4o5470"
                               onMouseOut={[Function]}
                               onMouseOver={[Function]}
                             >
-                              <div
-                                className="todo-content"
+                              <Content
+                                blur={false}
                               >
                                 <div
-                                  className="ob-checkbox"
-                                />
-                                <a
-                                  href="/organizations/org-slug/members/"
-                                  onClick={[Function]}
+                                  className="css-qpu70d-Content e1a4o5471"
                                 >
-                                  <h4>
-                                    Invite team member
-                                  </h4>
-                                </a>
-                                <div>
-                                  <p>
-                                    Bring your team aboard
-                                  </p>
+                                  <Checkbox>
+                                    <div
+                                      className="css-6neou0-Checkbox e1a4o5472"
+                                    />
+                                  </Checkbox>
+                                  <StyledLink
+                                    href="/organizations/org-slug/members/"
+                                    onClick={[Function]}
+                                  >
+                                    <a
+                                      className="css-1ylws2h-StyledLink e1a4o5475"
+                                      href="/organizations/org-slug/members/"
+                                      onClick={[Function]}
+                                    >
+                                      <ItemHeader>
+                                        <h4
+                                          className="css-158to6c-ItemHeader e1a4o5476"
+                                        >
+                                          Invite team member
+                                        </h4>
+                                      </ItemHeader>
+                                    </a>
+                                  </StyledLink>
+                                  <Description>
+                                    <p
+                                      className="css-rz8513-Description e1a4o5474"
+                                    >
+                                      Bring your team aboard
+                                    </p>
+                                  </Description>
+                                  <SkipButton
+                                    disabled={false}
+                                    hide={true}
+                                    onClick={[Function]}
+                                    size="xsmall"
+                                  >
+                                    <Button
+                                      className="css-1q81x7o-SkipButton e1a4o5477"
+                                      disabled={false}
+                                      hide={true}
+                                      onClick={[Function]}
+                                      size="xsmall"
+                                    >
+                                      <StyledButton
+                                        aria-disabled={false}
+                                        aria-label="Skip task"
+                                        className="css-1q81x7o-SkipButton e1a4o5477"
+                                        disabled={false}
+                                        hide={true}
+                                        onClick={[Function]}
+                                        role="button"
+                                        size="xsmall"
+                                      >
+                                        <ForwardRef
+                                          aria-disabled={false}
+                                          aria-label="Skip task"
+                                          className="e1a4o5477 css-1dq8t6k-StyledButton-getColors-SkipButton e12ma6z0"
+                                          disabled={false}
+                                          hide={true}
+                                          onClick={[Function]}
+                                          role="button"
+                                          size="xsmall"
+                                        >
+                                          <button
+                                            aria-disabled={false}
+                                            aria-label="Skip task"
+                                            className="e1a4o5477 css-1dq8t6k-StyledButton-getColors-SkipButton e12ma6z0"
+                                            onClick={[Function]}
+                                            role="button"
+                                            size="xsmall"
+                                          >
+                                            <ButtonLabel
+                                              size="xsmall"
+                                            >
+                                              <Component
+                                                className="css-uthd1f-ButtonLabel e12ma6z1"
+                                                size="xsmall"
+                                              >
+                                                <span
+                                                  className="css-uthd1f-ButtonLabel e12ma6z1"
+                                                >
+                                                  Skip task
+                                                </span>
+                                              </Component>
+                                            </ButtonLabel>
+                                          </button>
+                                        </ForwardRef>
+                                      </StyledButton>
+                                    </Button>
+                                  </SkipButton>
                                 </div>
-                                <a
-                                  className="skip-btn btn btn-default"
-                                  onClick={[Function]}
-                                >
-                                  Skip
-                                </a>
-                              </div>
+                              </Content>
                               <withRouter(WithOrganizationMockWrapper)
                                 dismiss={[Function]}
                                 hide={true}
@@ -3747,37 +3992,94 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                     }
                                     task={3}
                                   >
-                                    <div
-                                      className="ob-confirmation hide"
+                                    <Container
+                                      hide={true}
                                       onClick={[Function]}
                                     >
-                                      <h4>
-                                        Want help?
-                                      </h4>
-                                      <p>
-                                        <a
-                                          onClick={[Function]}
-                                        >
-                                          Go to Support
-                                        </a>
-                                         
-                                        · 
-                                        <a
-                                          onClick={[Function]}
-                                        >
-                                          Skip
-                                        </a>
-                                      </p>
-                                    </div>
+                                      <div
+                                        className="css-1eqy2vd-Container e18z0fp40"
+                                        onClick={[Function]}
+                                      >
+                                        <Header>
+                                          <h4
+                                            className="css-134yp1m-Header e18z0fp41"
+                                          >
+                                            Want help?
+                                          </h4>
+                                        </Header>
+                                        <div>
+                                          <a
+                                            onClick={[Function]}
+                                          >
+                                            Go to Support
+                                          </a>
+                                           ·
+                                           
+                                          <a
+                                            onClick={[Function]}
+                                          >
+                                            Skip
+                                          </a>
+                                        </div>
+                                      </div>
+                                    </Container>
                                   </Confirmation>
                                 </WithOrganizationMockWrapper>
                               </withRouter(WithOrganizationMockWrapper)>
                             </li>
-                          </TodoItem>
-                        </WithOrganizationMockWrapper>
-                        <WithOrganizationMockWrapper
-                          key="4"
+                          </Item>
+                        </TodoItem>
+                      </WithOrganizationMockWrapper>
+                      <WithOrganizationMockWrapper
+                        key="4"
+                        onSkip={[Function]}
+                        task={
+                          Object {
+                            "description": "Add Sentry to a second platform",
+                            "detailedDescription": "Cross platform functionality to support both your frontend and backend.",
+                            "display": true,
+                            "featureLocation": "organization",
+                            "location": "projects/new/",
+                            "prereq": Array [
+                              1,
+                              2,
+                            ],
+                            "skippable": true,
+                            "task": 4,
+                            "title": "Add a second platform",
+                          }
+                        }
+                      >
+                        <TodoItem
                           onSkip={[Function]}
+                          organization={
+                            Object {
+                              "access": Array [
+                                "org:read",
+                                "org:write",
+                                "org:admin",
+                                "org:integrations",
+                                "project:read",
+                                "project:write",
+                                "project:admin",
+                                "team:read",
+                                "team:write",
+                                "team:admin",
+                              ],
+                              "features": Array [],
+                              "id": "3",
+                              "name": "Organization Name",
+                              "onboardingTasks": Array [],
+                              "projects": Array [],
+                              "scrapeJavaScript": true,
+                              "slug": "org-slug",
+                              "status": Object {
+                                "id": "active",
+                                "name": "active",
+                              },
+                              "teams": Array [],
+                            }
+                          }
                           task={
                             Object {
                               "description": "Add Sentry to a second platform",
@@ -3795,84 +4097,113 @@ exports[`Sidebar can have onboarding feature 1`] = `
                             }
                           }
                         >
-                          <TodoItem
-                            onSkip={[Function]}
-                            organization={
-                              Object {
-                                "access": Array [
-                                  "org:read",
-                                  "org:write",
-                                  "org:admin",
-                                  "org:integrations",
-                                  "project:read",
-                                  "project:write",
-                                  "project:admin",
-                                  "team:read",
-                                  "team:write",
-                                  "team:admin",
-                                ],
-                                "features": Array [],
-                                "id": "3",
-                                "name": "Organization Name",
-                                "onboardingTasks": Array [],
-                                "projects": Array [],
-                                "scrapeJavaScript": true,
-                                "slug": "org-slug",
-                                "status": Object {
-                                  "id": "active",
-                                  "name": "active",
-                                },
-                                "teams": Array [],
-                              }
-                            }
-                            task={
-                              Object {
-                                "description": "Add Sentry to a second platform",
-                                "detailedDescription": "Cross platform functionality to support both your frontend and backend.",
-                                "display": true,
-                                "featureLocation": "organization",
-                                "location": "projects/new/",
-                                "prereq": Array [
-                                  1,
-                                  2,
-                                ],
-                                "skippable": true,
-                                "task": 4,
-                                "title": "Add a second platform",
-                              }
-                            }
+                          <Item
+                            onMouseOut={[Function]}
+                            onMouseOver={[Function]}
                           >
                             <li
-                              className=""
+                              className="css-djxgjv-Item e1a4o5470"
                               onMouseOut={[Function]}
                               onMouseOver={[Function]}
                             >
-                              <div
-                                className="todo-content"
+                              <Content
+                                blur={false}
                               >
                                 <div
-                                  className="ob-checkbox"
-                                />
-                                <a
-                                  href="/organizations/org-slug/projects/new/"
-                                  onClick={[Function]}
+                                  className="css-qpu70d-Content e1a4o5471"
                                 >
-                                  <h4>
-                                    Add a second platform
-                                  </h4>
-                                </a>
-                                <div>
-                                  <p>
-                                    Add Sentry to a second platform
-                                  </p>
+                                  <Checkbox>
+                                    <div
+                                      className="css-6neou0-Checkbox e1a4o5472"
+                                    />
+                                  </Checkbox>
+                                  <StyledLink
+                                    href="/organizations/org-slug/projects/new/"
+                                    onClick={[Function]}
+                                  >
+                                    <a
+                                      className="css-1ylws2h-StyledLink e1a4o5475"
+                                      href="/organizations/org-slug/projects/new/"
+                                      onClick={[Function]}
+                                    >
+                                      <ItemHeader>
+                                        <h4
+                                          className="css-158to6c-ItemHeader e1a4o5476"
+                                        >
+                                          Add a second platform
+                                        </h4>
+                                      </ItemHeader>
+                                    </a>
+                                  </StyledLink>
+                                  <Description>
+                                    <p
+                                      className="css-rz8513-Description e1a4o5474"
+                                    >
+                                      Add Sentry to a second platform
+                                    </p>
+                                  </Description>
+                                  <SkipButton
+                                    disabled={false}
+                                    hide={true}
+                                    onClick={[Function]}
+                                    size="xsmall"
+                                  >
+                                    <Button
+                                      className="css-1q81x7o-SkipButton e1a4o5477"
+                                      disabled={false}
+                                      hide={true}
+                                      onClick={[Function]}
+                                      size="xsmall"
+                                    >
+                                      <StyledButton
+                                        aria-disabled={false}
+                                        aria-label="Skip task"
+                                        className="css-1q81x7o-SkipButton e1a4o5477"
+                                        disabled={false}
+                                        hide={true}
+                                        onClick={[Function]}
+                                        role="button"
+                                        size="xsmall"
+                                      >
+                                        <ForwardRef
+                                          aria-disabled={false}
+                                          aria-label="Skip task"
+                                          className="e1a4o5477 css-1dq8t6k-StyledButton-getColors-SkipButton e12ma6z0"
+                                          disabled={false}
+                                          hide={true}
+                                          onClick={[Function]}
+                                          role="button"
+                                          size="xsmall"
+                                        >
+                                          <button
+                                            aria-disabled={false}
+                                            aria-label="Skip task"
+                                            className="e1a4o5477 css-1dq8t6k-StyledButton-getColors-SkipButton e12ma6z0"
+                                            onClick={[Function]}
+                                            role="button"
+                                            size="xsmall"
+                                          >
+                                            <ButtonLabel
+                                              size="xsmall"
+                                            >
+                                              <Component
+                                                className="css-uthd1f-ButtonLabel e12ma6z1"
+                                                size="xsmall"
+                                              >
+                                                <span
+                                                  className="css-uthd1f-ButtonLabel e12ma6z1"
+                                                >
+                                                  Skip task
+                                                </span>
+                                              </Component>
+                                            </ButtonLabel>
+                                          </button>
+                                        </ForwardRef>
+                                      </StyledButton>
+                                    </Button>
+                                  </SkipButton>
                                 </div>
-                                <a
-                                  className="skip-btn btn btn-default"
-                                  onClick={[Function]}
-                                >
-                                  Skip
-                                </a>
-                              </div>
+                              </Content>
                               <withRouter(WithOrganizationMockWrapper)
                                 dismiss={[Function]}
                                 hide={true}
@@ -4541,37 +4872,95 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                     }
                                     task={4}
                                   >
-                                    <div
-                                      className="ob-confirmation hide"
+                                    <Container
+                                      hide={true}
                                       onClick={[Function]}
                                     >
-                                      <h4>
-                                        Want help?
-                                      </h4>
-                                      <p>
-                                        <a
-                                          onClick={[Function]}
-                                        >
-                                          Go to Support
-                                        </a>
-                                         
-                                        · 
-                                        <a
-                                          onClick={[Function]}
-                                        >
-                                          Skip
-                                        </a>
-                                      </p>
-                                    </div>
+                                      <div
+                                        className="css-1eqy2vd-Container e18z0fp40"
+                                        onClick={[Function]}
+                                      >
+                                        <Header>
+                                          <h4
+                                            className="css-134yp1m-Header e18z0fp41"
+                                          >
+                                            Want help?
+                                          </h4>
+                                        </Header>
+                                        <div>
+                                          <a
+                                            onClick={[Function]}
+                                          >
+                                            Go to Support
+                                          </a>
+                                           ·
+                                           
+                                          <a
+                                            onClick={[Function]}
+                                          >
+                                            Skip
+                                          </a>
+                                        </div>
+                                      </div>
+                                    </Container>
                                   </Confirmation>
                                 </WithOrganizationMockWrapper>
                               </withRouter(WithOrganizationMockWrapper)>
                             </li>
-                          </TodoItem>
-                        </WithOrganizationMockWrapper>
-                        <WithOrganizationMockWrapper
-                          key="5"
+                          </Item>
+                        </TodoItem>
+                      </WithOrganizationMockWrapper>
+                      <WithOrganizationMockWrapper
+                        key="5"
+                        onSkip={[Function]}
+                        task={
+                          Object {
+                            "description": "Know who is being affected by crashes",
+                            "detailedDescription": "Unlock features that let you
+          drill down into the number of users affected by an issue as well as get a broader sense about the quality of the application.",
+                            "display": true,
+                            "featureLocation": "absolute",
+                            "location": "https://docs.sentry.io/enriching-error-data/context/#capturing-the-user",
+                            "prereq": Array [
+                              1,
+                              2,
+                            ],
+                            "skippable": true,
+                            "task": 5,
+                            "title": "Add user context",
+                          }
+                        }
+                      >
+                        <TodoItem
                           onSkip={[Function]}
+                          organization={
+                            Object {
+                              "access": Array [
+                                "org:read",
+                                "org:write",
+                                "org:admin",
+                                "org:integrations",
+                                "project:read",
+                                "project:write",
+                                "project:admin",
+                                "team:read",
+                                "team:write",
+                                "team:admin",
+                              ],
+                              "features": Array [],
+                              "id": "3",
+                              "name": "Organization Name",
+                              "onboardingTasks": Array [],
+                              "projects": Array [],
+                              "scrapeJavaScript": true,
+                              "slug": "org-slug",
+                              "status": Object {
+                                "id": "active",
+                                "name": "active",
+                              },
+                              "teams": Array [],
+                            }
+                          }
                           task={
                             Object {
                               "description": "Know who is being affected by crashes",
@@ -4590,85 +4979,113 @@ exports[`Sidebar can have onboarding feature 1`] = `
                             }
                           }
                         >
-                          <TodoItem
-                            onSkip={[Function]}
-                            organization={
-                              Object {
-                                "access": Array [
-                                  "org:read",
-                                  "org:write",
-                                  "org:admin",
-                                  "org:integrations",
-                                  "project:read",
-                                  "project:write",
-                                  "project:admin",
-                                  "team:read",
-                                  "team:write",
-                                  "team:admin",
-                                ],
-                                "features": Array [],
-                                "id": "3",
-                                "name": "Organization Name",
-                                "onboardingTasks": Array [],
-                                "projects": Array [],
-                                "scrapeJavaScript": true,
-                                "slug": "org-slug",
-                                "status": Object {
-                                  "id": "active",
-                                  "name": "active",
-                                },
-                                "teams": Array [],
-                              }
-                            }
-                            task={
-                              Object {
-                                "description": "Know who is being affected by crashes",
-                                "detailedDescription": "Unlock features that let you
-          drill down into the number of users affected by an issue as well as get a broader sense about the quality of the application.",
-                                "display": true,
-                                "featureLocation": "absolute",
-                                "location": "https://docs.sentry.io/enriching-error-data/context/#capturing-the-user",
-                                "prereq": Array [
-                                  1,
-                                  2,
-                                ],
-                                "skippable": true,
-                                "task": 5,
-                                "title": "Add user context",
-                              }
-                            }
+                          <Item
+                            onMouseOut={[Function]}
+                            onMouseOver={[Function]}
                           >
                             <li
-                              className=""
+                              className="css-djxgjv-Item e1a4o5470"
                               onMouseOut={[Function]}
                               onMouseOver={[Function]}
                             >
-                              <div
-                                className="todo-content"
+                              <Content
+                                blur={false}
                               >
                                 <div
-                                  className="ob-checkbox"
-                                />
-                                <a
-                                  href="https://docs.sentry.io/enriching-error-data/context/#capturing-the-user"
-                                  onClick={[Function]}
+                                  className="css-qpu70d-Content e1a4o5471"
                                 >
-                                  <h4>
-                                    Add user context
-                                  </h4>
-                                </a>
-                                <div>
-                                  <p>
-                                    Know who is being affected by crashes
-                                  </p>
+                                  <Checkbox>
+                                    <div
+                                      className="css-6neou0-Checkbox e1a4o5472"
+                                    />
+                                  </Checkbox>
+                                  <StyledLink
+                                    href="https://docs.sentry.io/enriching-error-data/context/#capturing-the-user"
+                                    onClick={[Function]}
+                                  >
+                                    <a
+                                      className="css-1ylws2h-StyledLink e1a4o5475"
+                                      href="https://docs.sentry.io/enriching-error-data/context/#capturing-the-user"
+                                      onClick={[Function]}
+                                    >
+                                      <ItemHeader>
+                                        <h4
+                                          className="css-158to6c-ItemHeader e1a4o5476"
+                                        >
+                                          Add user context
+                                        </h4>
+                                      </ItemHeader>
+                                    </a>
+                                  </StyledLink>
+                                  <Description>
+                                    <p
+                                      className="css-rz8513-Description e1a4o5474"
+                                    >
+                                      Know who is being affected by crashes
+                                    </p>
+                                  </Description>
+                                  <SkipButton
+                                    disabled={false}
+                                    hide={true}
+                                    onClick={[Function]}
+                                    size="xsmall"
+                                  >
+                                    <Button
+                                      className="css-1q81x7o-SkipButton e1a4o5477"
+                                      disabled={false}
+                                      hide={true}
+                                      onClick={[Function]}
+                                      size="xsmall"
+                                    >
+                                      <StyledButton
+                                        aria-disabled={false}
+                                        aria-label="Skip task"
+                                        className="css-1q81x7o-SkipButton e1a4o5477"
+                                        disabled={false}
+                                        hide={true}
+                                        onClick={[Function]}
+                                        role="button"
+                                        size="xsmall"
+                                      >
+                                        <ForwardRef
+                                          aria-disabled={false}
+                                          aria-label="Skip task"
+                                          className="e1a4o5477 css-1dq8t6k-StyledButton-getColors-SkipButton e12ma6z0"
+                                          disabled={false}
+                                          hide={true}
+                                          onClick={[Function]}
+                                          role="button"
+                                          size="xsmall"
+                                        >
+                                          <button
+                                            aria-disabled={false}
+                                            aria-label="Skip task"
+                                            className="e1a4o5477 css-1dq8t6k-StyledButton-getColors-SkipButton e12ma6z0"
+                                            onClick={[Function]}
+                                            role="button"
+                                            size="xsmall"
+                                          >
+                                            <ButtonLabel
+                                              size="xsmall"
+                                            >
+                                              <Component
+                                                className="css-uthd1f-ButtonLabel e12ma6z1"
+                                                size="xsmall"
+                                              >
+                                                <span
+                                                  className="css-uthd1f-ButtonLabel e12ma6z1"
+                                                >
+                                                  Skip task
+                                                </span>
+                                              </Component>
+                                            </ButtonLabel>
+                                          </button>
+                                        </ForwardRef>
+                                      </StyledButton>
+                                    </Button>
+                                  </SkipButton>
                                 </div>
-                                <a
-                                  className="skip-btn btn btn-default"
-                                  onClick={[Function]}
-                                >
-                                  Skip
-                                </a>
-                              </div>
+                              </Content>
                               <withRouter(WithOrganizationMockWrapper)
                                 dismiss={[Function]}
                                 hide={true}
@@ -5337,40 +5754,98 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                     }
                                     task={5}
                                   >
-                                    <div
-                                      className="ob-confirmation hide"
+                                    <Container
+                                      hide={true}
                                       onClick={[Function]}
                                     >
-                                      <h4>
-                                        Want help?
-                                      </h4>
-                                      <p>
-                                        <a
-                                          onClick={[Function]}
-                                        >
-                                          Go to Support
-                                        </a>
-                                         
-                                        · 
-                                        <a
-                                          onClick={[Function]}
-                                        >
-                                          Skip
-                                        </a>
-                                      </p>
-                                    </div>
+                                      <div
+                                        className="css-1eqy2vd-Container e18z0fp40"
+                                        onClick={[Function]}
+                                      >
+                                        <Header>
+                                          <h4
+                                            className="css-134yp1m-Header e18z0fp41"
+                                          >
+                                            Want help?
+                                          </h4>
+                                        </Header>
+                                        <div>
+                                          <a
+                                            onClick={[Function]}
+                                          >
+                                            Go to Support
+                                          </a>
+                                           ·
+                                           
+                                          <a
+                                            onClick={[Function]}
+                                          >
+                                            Skip
+                                          </a>
+                                        </div>
+                                      </div>
+                                    </Container>
                                   </Confirmation>
                                 </WithOrganizationMockWrapper>
                               </withRouter(WithOrganizationMockWrapper)>
                             </li>
-                          </TodoItem>
-                        </WithOrganizationMockWrapper>
-                        <WithOrganizationMockWrapper
-                          key="6"
+                          </Item>
+                        </TodoItem>
+                      </WithOrganizationMockWrapper>
+                      <WithOrganizationMockWrapper
+                        key="6"
+                        onSkip={[Function]}
+                        task={
+                          Object {
+                            "description": "See which releases cause errors",
+                            "detailedDescription": "Set up commits for additional context when determining the cause of an issue
+          e.g. suggested owners and resolve issues via commit messages.",
+                            "display": true,
+                            "featureLocation": "project",
+                            "location": "settings/release-tracking/",
+                            "prereq": Array [
+                              1,
+                              2,
+                            ],
+                            "skippable": true,
+                            "task": 6,
+                            "title": "Set up release tracking",
+                          }
+                        }
+                      >
+                        <TodoItem
                           onSkip={[Function]}
+                          organization={
+                            Object {
+                              "access": Array [
+                                "org:read",
+                                "org:write",
+                                "org:admin",
+                                "org:integrations",
+                                "project:read",
+                                "project:write",
+                                "project:admin",
+                                "team:read",
+                                "team:write",
+                                "team:admin",
+                              ],
+                              "features": Array [],
+                              "id": "3",
+                              "name": "Organization Name",
+                              "onboardingTasks": Array [],
+                              "projects": Array [],
+                              "scrapeJavaScript": true,
+                              "slug": "org-slug",
+                              "status": Object {
+                                "id": "active",
+                                "name": "active",
+                              },
+                              "teams": Array [],
+                            }
+                          }
                           task={
                             Object {
-                              "description": "See what releases are generating errors",
+                              "description": "See which releases cause errors",
                               "detailedDescription": "Set up commits for additional context when determining the cause of an issue
           e.g. suggested owners and resolve issues via commit messages.",
                               "display": true,
@@ -5386,85 +5861,113 @@ exports[`Sidebar can have onboarding feature 1`] = `
                             }
                           }
                         >
-                          <TodoItem
-                            onSkip={[Function]}
-                            organization={
-                              Object {
-                                "access": Array [
-                                  "org:read",
-                                  "org:write",
-                                  "org:admin",
-                                  "org:integrations",
-                                  "project:read",
-                                  "project:write",
-                                  "project:admin",
-                                  "team:read",
-                                  "team:write",
-                                  "team:admin",
-                                ],
-                                "features": Array [],
-                                "id": "3",
-                                "name": "Organization Name",
-                                "onboardingTasks": Array [],
-                                "projects": Array [],
-                                "scrapeJavaScript": true,
-                                "slug": "org-slug",
-                                "status": Object {
-                                  "id": "active",
-                                  "name": "active",
-                                },
-                                "teams": Array [],
-                              }
-                            }
-                            task={
-                              Object {
-                                "description": "See what releases are generating errors",
-                                "detailedDescription": "Set up commits for additional context when determining the cause of an issue
-          e.g. suggested owners and resolve issues via commit messages.",
-                                "display": true,
-                                "featureLocation": "project",
-                                "location": "settings/release-tracking/",
-                                "prereq": Array [
-                                  1,
-                                  2,
-                                ],
-                                "skippable": true,
-                                "task": 6,
-                                "title": "Set up release tracking",
-                              }
-                            }
+                          <Item
+                            onMouseOut={[Function]}
+                            onMouseOver={[Function]}
                           >
                             <li
-                              className=""
+                              className="css-djxgjv-Item e1a4o5470"
                               onMouseOut={[Function]}
                               onMouseOver={[Function]}
                             >
-                              <div
-                                className="todo-content"
+                              <Content
+                                blur={false}
                               >
                                 <div
-                                  className="ob-checkbox"
-                                />
-                                <a
-                                  href="/organizations/org-slug/projects/choose/?onboarding=1&task=6"
-                                  onClick={[Function]}
+                                  className="css-qpu70d-Content e1a4o5471"
                                 >
-                                  <h4>
-                                    Set up release tracking
-                                  </h4>
-                                </a>
-                                <div>
-                                  <p>
-                                    See what releases are generating errors
-                                  </p>
+                                  <Checkbox>
+                                    <div
+                                      className="css-6neou0-Checkbox e1a4o5472"
+                                    />
+                                  </Checkbox>
+                                  <StyledLink
+                                    href="/organizations/org-slug/projects/choose/?onboarding=1&task=6"
+                                    onClick={[Function]}
+                                  >
+                                    <a
+                                      className="css-1ylws2h-StyledLink e1a4o5475"
+                                      href="/organizations/org-slug/projects/choose/?onboarding=1&task=6"
+                                      onClick={[Function]}
+                                    >
+                                      <ItemHeader>
+                                        <h4
+                                          className="css-158to6c-ItemHeader e1a4o5476"
+                                        >
+                                          Set up release tracking
+                                        </h4>
+                                      </ItemHeader>
+                                    </a>
+                                  </StyledLink>
+                                  <Description>
+                                    <p
+                                      className="css-rz8513-Description e1a4o5474"
+                                    >
+                                      See which releases cause errors
+                                    </p>
+                                  </Description>
+                                  <SkipButton
+                                    disabled={false}
+                                    hide={true}
+                                    onClick={[Function]}
+                                    size="xsmall"
+                                  >
+                                    <Button
+                                      className="css-1q81x7o-SkipButton e1a4o5477"
+                                      disabled={false}
+                                      hide={true}
+                                      onClick={[Function]}
+                                      size="xsmall"
+                                    >
+                                      <StyledButton
+                                        aria-disabled={false}
+                                        aria-label="Skip task"
+                                        className="css-1q81x7o-SkipButton e1a4o5477"
+                                        disabled={false}
+                                        hide={true}
+                                        onClick={[Function]}
+                                        role="button"
+                                        size="xsmall"
+                                      >
+                                        <ForwardRef
+                                          aria-disabled={false}
+                                          aria-label="Skip task"
+                                          className="e1a4o5477 css-1dq8t6k-StyledButton-getColors-SkipButton e12ma6z0"
+                                          disabled={false}
+                                          hide={true}
+                                          onClick={[Function]}
+                                          role="button"
+                                          size="xsmall"
+                                        >
+                                          <button
+                                            aria-disabled={false}
+                                            aria-label="Skip task"
+                                            className="e1a4o5477 css-1dq8t6k-StyledButton-getColors-SkipButton e12ma6z0"
+                                            onClick={[Function]}
+                                            role="button"
+                                            size="xsmall"
+                                          >
+                                            <ButtonLabel
+                                              size="xsmall"
+                                            >
+                                              <Component
+                                                className="css-uthd1f-ButtonLabel e12ma6z1"
+                                                size="xsmall"
+                                              >
+                                                <span
+                                                  className="css-uthd1f-ButtonLabel e12ma6z1"
+                                                >
+                                                  Skip task
+                                                </span>
+                                              </Component>
+                                            </ButtonLabel>
+                                          </button>
+                                        </ForwardRef>
+                                      </StyledButton>
+                                    </Button>
+                                  </SkipButton>
                                 </div>
-                                <a
-                                  className="skip-btn btn btn-default"
-                                  onClick={[Function]}
-                                >
-                                  Skip
-                                </a>
-                              </div>
+                              </Content>
                               <withRouter(WithOrganizationMockWrapper)
                                 dismiss={[Function]}
                                 hide={true}
@@ -6133,37 +6636,95 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                     }
                                     task={6}
                                   >
-                                    <div
-                                      className="ob-confirmation hide"
+                                    <Container
+                                      hide={true}
                                       onClick={[Function]}
                                     >
-                                      <h4>
-                                        Want help?
-                                      </h4>
-                                      <p>
-                                        <a
-                                          onClick={[Function]}
-                                        >
-                                          Go to Support
-                                        </a>
-                                         
-                                        · 
-                                        <a
-                                          onClick={[Function]}
-                                        >
-                                          Skip
-                                        </a>
-                                      </p>
-                                    </div>
+                                      <div
+                                        className="css-1eqy2vd-Container e18z0fp40"
+                                        onClick={[Function]}
+                                      >
+                                        <Header>
+                                          <h4
+                                            className="css-134yp1m-Header e18z0fp41"
+                                          >
+                                            Want help?
+                                          </h4>
+                                        </Header>
+                                        <div>
+                                          <a
+                                            onClick={[Function]}
+                                          >
+                                            Go to Support
+                                          </a>
+                                           ·
+                                           
+                                          <a
+                                            onClick={[Function]}
+                                          >
+                                            Skip
+                                          </a>
+                                        </div>
+                                      </div>
+                                    </Container>
                                   </Confirmation>
                                 </WithOrganizationMockWrapper>
                               </withRouter(WithOrganizationMockWrapper)>
                             </li>
-                          </TodoItem>
-                        </WithOrganizationMockWrapper>
-                        <WithOrganizationMockWrapper
-                          key="7"
+                          </Item>
+                        </TodoItem>
+                      </WithOrganizationMockWrapper>
+                      <WithOrganizationMockWrapper
+                        key="7"
+                        onSkip={[Function]}
+                        task={
+                          Object {
+                            "description": "Deminify JavaScript stack traces",
+                            "detailedDescription": "View source code context obtained from stack traces in their
+          original untransformed form, which is particularly useful for debugging minified code.",
+                            "display": true,
+                            "featureLocation": "absolute",
+                            "location": "https://docs.sentry.io/platforms/javascript/sourcemaps/",
+                            "prereq": Array [
+                              1,
+                              2,
+                            ],
+                            "skippable": true,
+                            "task": 7,
+                            "title": "Upload source maps",
+                          }
+                        }
+                      >
+                        <TodoItem
                           onSkip={[Function]}
+                          organization={
+                            Object {
+                              "access": Array [
+                                "org:read",
+                                "org:write",
+                                "org:admin",
+                                "org:integrations",
+                                "project:read",
+                                "project:write",
+                                "project:admin",
+                                "team:read",
+                                "team:write",
+                                "team:admin",
+                              ],
+                              "features": Array [],
+                              "id": "3",
+                              "name": "Organization Name",
+                              "onboardingTasks": Array [],
+                              "projects": Array [],
+                              "scrapeJavaScript": true,
+                              "slug": "org-slug",
+                              "status": Object {
+                                "id": "active",
+                                "name": "active",
+                              },
+                              "teams": Array [],
+                            }
+                          }
                           task={
                             Object {
                               "description": "Deminify JavaScript stack traces",
@@ -6182,85 +6743,113 @@ exports[`Sidebar can have onboarding feature 1`] = `
                             }
                           }
                         >
-                          <TodoItem
-                            onSkip={[Function]}
-                            organization={
-                              Object {
-                                "access": Array [
-                                  "org:read",
-                                  "org:write",
-                                  "org:admin",
-                                  "org:integrations",
-                                  "project:read",
-                                  "project:write",
-                                  "project:admin",
-                                  "team:read",
-                                  "team:write",
-                                  "team:admin",
-                                ],
-                                "features": Array [],
-                                "id": "3",
-                                "name": "Organization Name",
-                                "onboardingTasks": Array [],
-                                "projects": Array [],
-                                "scrapeJavaScript": true,
-                                "slug": "org-slug",
-                                "status": Object {
-                                  "id": "active",
-                                  "name": "active",
-                                },
-                                "teams": Array [],
-                              }
-                            }
-                            task={
-                              Object {
-                                "description": "Deminify JavaScript stack traces",
-                                "detailedDescription": "View source code context obtained from stack traces in their
-          original untransformed form, which is particularly useful for debugging minified code.",
-                                "display": true,
-                                "featureLocation": "absolute",
-                                "location": "https://docs.sentry.io/platforms/javascript/sourcemaps/",
-                                "prereq": Array [
-                                  1,
-                                  2,
-                                ],
-                                "skippable": true,
-                                "task": 7,
-                                "title": "Upload source maps",
-                              }
-                            }
+                          <Item
+                            onMouseOut={[Function]}
+                            onMouseOver={[Function]}
                           >
                             <li
-                              className=""
+                              className="css-djxgjv-Item e1a4o5470"
                               onMouseOut={[Function]}
                               onMouseOver={[Function]}
                             >
-                              <div
-                                className="todo-content"
+                              <Content
+                                blur={false}
                               >
                                 <div
-                                  className="ob-checkbox"
-                                />
-                                <a
-                                  href="https://docs.sentry.io/platforms/javascript/sourcemaps/"
-                                  onClick={[Function]}
+                                  className="css-qpu70d-Content e1a4o5471"
                                 >
-                                  <h4>
-                                    Upload source maps
-                                  </h4>
-                                </a>
-                                <div>
-                                  <p>
-                                    Deminify JavaScript stack traces
-                                  </p>
+                                  <Checkbox>
+                                    <div
+                                      className="css-6neou0-Checkbox e1a4o5472"
+                                    />
+                                  </Checkbox>
+                                  <StyledLink
+                                    href="https://docs.sentry.io/platforms/javascript/sourcemaps/"
+                                    onClick={[Function]}
+                                  >
+                                    <a
+                                      className="css-1ylws2h-StyledLink e1a4o5475"
+                                      href="https://docs.sentry.io/platforms/javascript/sourcemaps/"
+                                      onClick={[Function]}
+                                    >
+                                      <ItemHeader>
+                                        <h4
+                                          className="css-158to6c-ItemHeader e1a4o5476"
+                                        >
+                                          Upload source maps
+                                        </h4>
+                                      </ItemHeader>
+                                    </a>
+                                  </StyledLink>
+                                  <Description>
+                                    <p
+                                      className="css-rz8513-Description e1a4o5474"
+                                    >
+                                      Deminify JavaScript stack traces
+                                    </p>
+                                  </Description>
+                                  <SkipButton
+                                    disabled={false}
+                                    hide={true}
+                                    onClick={[Function]}
+                                    size="xsmall"
+                                  >
+                                    <Button
+                                      className="css-1q81x7o-SkipButton e1a4o5477"
+                                      disabled={false}
+                                      hide={true}
+                                      onClick={[Function]}
+                                      size="xsmall"
+                                    >
+                                      <StyledButton
+                                        aria-disabled={false}
+                                        aria-label="Skip task"
+                                        className="css-1q81x7o-SkipButton e1a4o5477"
+                                        disabled={false}
+                                        hide={true}
+                                        onClick={[Function]}
+                                        role="button"
+                                        size="xsmall"
+                                      >
+                                        <ForwardRef
+                                          aria-disabled={false}
+                                          aria-label="Skip task"
+                                          className="e1a4o5477 css-1dq8t6k-StyledButton-getColors-SkipButton e12ma6z0"
+                                          disabled={false}
+                                          hide={true}
+                                          onClick={[Function]}
+                                          role="button"
+                                          size="xsmall"
+                                        >
+                                          <button
+                                            aria-disabled={false}
+                                            aria-label="Skip task"
+                                            className="e1a4o5477 css-1dq8t6k-StyledButton-getColors-SkipButton e12ma6z0"
+                                            onClick={[Function]}
+                                            role="button"
+                                            size="xsmall"
+                                          >
+                                            <ButtonLabel
+                                              size="xsmall"
+                                            >
+                                              <Component
+                                                className="css-uthd1f-ButtonLabel e12ma6z1"
+                                                size="xsmall"
+                                              >
+                                                <span
+                                                  className="css-uthd1f-ButtonLabel e12ma6z1"
+                                                >
+                                                  Skip task
+                                                </span>
+                                              </Component>
+                                            </ButtonLabel>
+                                          </button>
+                                        </ForwardRef>
+                                      </StyledButton>
+                                    </Button>
+                                  </SkipButton>
                                 </div>
-                                <a
-                                  className="skip-btn btn btn-default"
-                                  onClick={[Function]}
-                                >
-                                  Skip
-                                </a>
-                              </div>
+                              </Content>
                               <withRouter(WithOrganizationMockWrapper)
                                 dismiss={[Function]}
                                 hide={true}
@@ -6929,37 +7518,46 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                     }
                                     task={7}
                                   >
-                                    <div
-                                      className="ob-confirmation hide"
+                                    <Container
+                                      hide={true}
                                       onClick={[Function]}
                                     >
-                                      <h4>
-                                        Want help?
-                                      </h4>
-                                      <p>
-                                        <a
-                                          onClick={[Function]}
-                                        >
-                                          Go to Support
-                                        </a>
-                                         
-                                        · 
-                                        <a
-                                          onClick={[Function]}
-                                        >
-                                          Skip
-                                        </a>
-                                      </p>
-                                    </div>
+                                      <div
+                                        className="css-1eqy2vd-Container e18z0fp40"
+                                        onClick={[Function]}
+                                      >
+                                        <Header>
+                                          <h4
+                                            className="css-134yp1m-Header e18z0fp41"
+                                          >
+                                            Want help?
+                                          </h4>
+                                        </Header>
+                                        <div>
+                                          <a
+                                            onClick={[Function]}
+                                          >
+                                            Go to Support
+                                          </a>
+                                           ·
+                                           
+                                          <a
+                                            onClick={[Function]}
+                                          >
+                                            Skip
+                                          </a>
+                                        </div>
+                                      </div>
+                                    </Container>
                                   </Confirmation>
                                 </WithOrganizationMockWrapper>
                               </withRouter(WithOrganizationMockWrapper)>
                             </li>
-                          </TodoItem>
-                        </WithOrganizationMockWrapper>
-                      </ul>
-                    </div>
-                  </div>
+                          </Item>
+                        </TodoItem>
+                      </WithOrganizationMockWrapper>
+                    </ul>
+                  </StyledTodoList>
                 </TodoList>
               </WithOrganizationMockWrapper>
             </withApi(WithOrganizationMockWrapper)>
