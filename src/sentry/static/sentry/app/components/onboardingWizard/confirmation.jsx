@@ -1,10 +1,10 @@
 import PropTypes from 'prop-types';
-import {withRouter} from 'react-router';
 import React from 'react';
 import styled from 'react-emotion';
 import {t} from 'app/locale';
 
 import SentryTypes from 'app/sentryTypes';
+import Button from 'app/components/button';
 import withOrganization from 'app/utils/withOrganization';
 import space from 'app/styles/space';
 
@@ -13,7 +13,6 @@ class Confirmation extends React.Component {
     onSkip: PropTypes.func.isRequired,
     dismiss: PropTypes.func.isRequired,
     hide: PropTypes.bool.isRequired,
-    router: PropTypes.object,
     organization: SentryTypes.Organization,
   };
 
@@ -22,21 +21,17 @@ class Confirmation extends React.Component {
     this.props.onSkip();
   };
 
-  toSupport = e => {
-    e.preventDefault();
-    const {router, organization} = this.props;
-    router.push(`/settings/${organization.slug}/support/`);
-  };
-
   render() {
-    const {dismiss, hide} = this.props;
+    const {dismiss, hide, organization} = this.props;
 
     return (
       <Container hide={hide} onClick={dismiss}>
         <Header>{t('Want help?')}</Header>
         <div>
-          <a onClick={this.toSupport}>{t('Go to Support')}</a> ·{' '}
-          <a onClick={this.skip}>{t('Skip')}</a>
+          <Button priority="link" to={`/settings/${organization.slug}/support/`}>
+            {t('Go to Support')}
+          </Button>{' '}
+          · <a onClick={this.skip}>{t('Skip')}</a>
         </div>
       </Container>
     );
@@ -62,4 +57,4 @@ const Header = styled('h4')`
   margin-bottom: ${space(1)};
 `;
 
-export default withRouter(withOrganization(Confirmation));
+export default withOrganization(Confirmation);
