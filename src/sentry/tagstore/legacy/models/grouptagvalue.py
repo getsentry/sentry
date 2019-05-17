@@ -12,7 +12,7 @@ from django.utils import timezone
 
 from sentry.constants import MAX_TAG_KEY_LENGTH, MAX_TAG_VALUE_LENGTH
 from sentry.db.models import (
-    Model, BoundedBigIntegerField, BoundedPositiveIntegerField, BaseManager, sane_repr)
+    Model, BoundedPositiveIntegerField, BaseManager, sane_repr)
 
 
 class GroupTagValue(Model):
@@ -22,8 +22,8 @@ class GroupTagValue(Model):
     """
     __core__ = False
 
-    project_id = BoundedBigIntegerField(db_index=True, null=True)
-    group_id = BoundedBigIntegerField(db_index=True)
+    project_id = BoundedPositiveIntegerField(db_index=True, null=True)
+    group_id = BoundedPositiveIntegerField(db_index=True)
     times_seen = BoundedPositiveIntegerField(default=0)
     key = models.CharField(max_length=MAX_TAG_KEY_LENGTH)
     value = models.CharField(max_length=MAX_TAG_VALUE_LENGTH)

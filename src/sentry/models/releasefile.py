@@ -11,7 +11,7 @@ from __future__ import absolute_import
 from django.db import models
 from six.moves.urllib.parse import urlsplit, urlunsplit
 
-from sentry.db.models import BoundedBigIntegerField, FlexibleForeignKey, Model, sane_repr
+from sentry.db.models import BoundedPositiveIntegerField, FlexibleForeignKey, Model, sane_repr
 from sentry.utils.hashlib import sha1_text
 
 
@@ -26,7 +26,7 @@ class ReleaseFile(Model):
 
     organization = FlexibleForeignKey('sentry.Organization')
     # DEPRECATED
-    project_id = BoundedBigIntegerField(null=True)
+    project_id = BoundedPositiveIntegerField(null=True)
     release = FlexibleForeignKey('sentry.Release')
     file = FlexibleForeignKey('sentry.File')
     ident = models.CharField(max_length=40)

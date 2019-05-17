@@ -20,7 +20,7 @@ from time import time
 
 from sentry.app import locks
 from sentry.db.models import (
-    ArrayField, BoundedBigIntegerField, BoundedPositiveIntegerField, FlexibleForeignKey, Model, sane_repr
+    ArrayField, BoundedPositiveIntegerField, FlexibleForeignKey, Model, sane_repr
 )
 
 from sentry.models import CommitFileChange
@@ -65,7 +65,7 @@ class Release(Model):
         'sentry.Project', related_name='releases', through=ReleaseProject
     )
     # DEPRECATED
-    project_id = BoundedBigIntegerField(null=True)
+    project_id = BoundedPositiveIntegerField(null=True)
     version = models.CharField(max_length=DB_VERSION_LENGTH)
     # ref might be the branch name being released
     ref = models.CharField(max_length=DB_VERSION_LENGTH, null=True, blank=True)
