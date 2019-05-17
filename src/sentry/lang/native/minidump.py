@@ -10,6 +10,8 @@ from symbolic import normalize_arch, ProcessState, id_from_breakpad
 
 from sentry.lang.native.utils import get_sdk_from_event, handle_symbolication_failed, merge_symbolicated_frame
 from sentry.lang.native.symbolicator import merge_symbolicator_image
+from sentry.lang.native.symbolizer import SymbolicationFailed
+from sentry.models.eventerror import EventError
 from sentry.attachments import attachment_cache
 from sentry.coreapi import cache_key_for_event
 from sentry.utils.safe import get_path, set_path, setdefault_path
@@ -268,7 +270,12 @@ def merge_symbolicator_minidump_response(data, response):
     data_exception['type'] = response.get('crash_reason')
 
     data_threads = []
-    data['threads'] = {'values': data_threads}
+    if response['stacktraces']:
+        data['threads'] = {'values': data_threads}
+    else:
+        error = SymbolicationFailed(message='minidump has no thread list',
+                                    type=EventError.NATIVE_SYMBOLICATOR_FAILED)
+        handle_symbolication_failed(error, data=data)
 
     for complete_stacktrace in response['stacktraces']:
         is_requesting = complete_stacktrace.get('is_requesting')
@@ -301,5 +308,3 @@ def merge_symbolicator_minidump_response(data, response):
             new_frame = {}
             merge_symbolicated_frame(new_frame, complete_frame)
             data_stacktrace['frames'].append(new_frame)
-
-    # TODO(markus): Add exception data here once merge_process_state_event is gone
