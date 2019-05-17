@@ -8,6 +8,7 @@ import Button from 'app/components/button';
 import PlatformPicker from 'app/components/platformPicker';
 import ProjectActions from 'app/actions/projectActions';
 import SentryTypes from 'app/sentryTypes';
+import space from 'app/styles/space';
 import withApi from 'app/utils/withApi';
 import withTeams from 'app/utils/withTeams';
 
@@ -15,8 +16,8 @@ const platformListStyle = css`
   max-height: 420px;
   overflow-y: scroll;
   /* Needed to fix overflow cropping of the de-select button */
-  margin-top: -8px;
-  padding-top: 8px;
+  margin-top: -${space(2)};
+  padding-top: ${space(2)};
 `;
 
 class OnboardingPlatform extends React.Component {
