@@ -1,5 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
+import classNames from 'classnames';
 import moment from 'moment';
 import styled from 'react-emotion';
 
@@ -21,6 +22,8 @@ export default class SeenByList extends React.Component {
     // Tooltip message for the "Seen By" icon
     iconTooltip: PropTypes.string,
 
+    iconPosition: PropTypes.oneOf(['left', 'right']),
+
     // Max avatars to display
     maxVisibleAvatars: PropTypes.number,
   };
@@ -28,13 +31,21 @@ export default class SeenByList extends React.Component {
   static defaultProps = {
     avatarSize: 28,
     iconTooltip: t('People who have viewed this'),
+    iconPosition: 'left',
     maxVisibleAvatars: 10,
     seenBy: [],
   };
 
   render() {
     const activeUser = ConfigStore.get('user');
-    const {avatarSize, maxVisibleAvatars, seenBy, iconTooltip} = this.props;
+    const {
+      className,
+      avatarSize,
+      maxVisibleAvatars,
+      seenBy,
+      iconPosition,
+      iconTooltip,
+    } = this.props;
 
     // NOTE: Sometimes group.seenBy is undefined, even though the /groups/{id} API
     //       endpoint guarantees an array. We haven't figured out HOW GroupSeenBy
@@ -49,7 +60,10 @@ export default class SeenByList extends React.Component {
 
     // Note className="seen-by" is required for responsive design
     return (
-      <SeenByWrapper className="seen-by">
+      <SeenByWrapper
+        iconPosition={iconPosition}
+        className={classNames('seen-by', className)}
+      >
         <AvatarList
           users={seenBy.filter(user => activeUser.id !== user.id)}
           avatarSize={avatarSize}
@@ -74,9 +88,9 @@ export default class SeenByList extends React.Component {
 
 const SeenByWrapper = styled('div')`
   display: flex;
-  flex-direction: row-reverse;
   margin-top: 15px;
   float: right;
+  ${p => (p.iconPosition === 'left' ? 'flex-direction: row-reverse' : '')};
 `;
 
 const IconWrapper = styled('div')`
