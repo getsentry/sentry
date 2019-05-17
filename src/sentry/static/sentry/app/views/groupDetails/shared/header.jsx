@@ -209,7 +209,10 @@ const GroupHeader = createReactClass({
             </div>
           </div>
         </div>
-        <SeenByList seenBy={group.seenBy} />
+        <SeenByList
+          seenBy={group.seenBy}
+          iconTooltip={t('People who have viewed this issue')}
+        />
         <GroupActions group={group} project={project} />
         <NavTabs>
           <ListLink
