@@ -1,28 +1,29 @@
+import {Link} from 'react-router';
+import {omit} from 'lodash';
 import PropTypes from 'prop-types';
 import React from 'react';
-import styled from 'react-emotion';
 import createReactClass from 'create-react-class';
-import {Link} from 'react-router';
-import withApi from 'app/utils/withApi';
-import {omit} from 'lodash';
 import qs from 'query-string';
+import styled from 'react-emotion';
+
 import {fetchOrgMembers} from 'app/actionCreators/members';
+import {t} from 'app/locale';
 import AssigneeSelector from 'app/components/assigneeSelector';
 import Count from 'app/components/count';
+import EventOrGroupTitle from 'app/components/eventOrGroupTitle';
+import GuideAnchor from 'app/components/assistant/guideAnchor';
 import IndicatorStore from 'app/stores/indicatorStore';
 import ListLink from 'app/components/links/listLink';
 import NavTabs from 'app/components/navTabs';
-import ShortId from 'app/components/shortId';
-import EventOrGroupTitle from 'app/components/eventOrGroupTitle';
-import GuideAnchor from 'app/components/assistant/guideAnchor';
 import OrganizationState from 'app/mixins/organizationState';
 import ProjectBadge from 'app/components/idBadge/projectBadge';
-import Tooltip from 'app/components/tooltip';
-import {t} from 'app/locale';
+import SeenByList from 'app/components/seenByList';
 import SentryTypes from 'app/sentryTypes';
+import ShortId from 'app/components/shortId';
+import Tooltip from 'app/components/tooltip';
+import withApi from 'app/utils/withApi';
 
 import GroupActions from './actions';
-import GroupSeenBy from './seenBy';
 
 const GroupHeader = createReactClass({
   displayName: 'GroupHeader',
@@ -208,7 +209,7 @@ const GroupHeader = createReactClass({
             </div>
           </div>
         </div>
-        <GroupSeenBy group={group} />
+        <SeenByList seenBy={group.seenBy} />
         <GroupActions group={group} project={project} />
         <NavTabs>
           <ListLink
