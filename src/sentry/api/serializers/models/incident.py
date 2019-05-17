@@ -30,6 +30,7 @@ class IncidentSerializer(Serializer):
             incident_projects[incident_project.incident_id].append(incident_project.project.slug)
 
         results = {}
+
         for incident in item_list:
             results[incident] = {
                 'projects': incident_projects.get(incident.id, []),
@@ -54,6 +55,7 @@ class IncidentSerializer(Serializer):
             'dateDetected': obj.date_detected,
             'dateAdded': obj.date_added,
             'dateClosed': obj.date_closed,
+            'hasSeen': attrs['has_seen'],
             'eventStats': serializer.serialize(attrs['event_stats']),
             'totalEvents': aggregates['count'],
             'uniqueUsers': aggregates['unique_users'],
@@ -61,6 +63,21 @@ class IncidentSerializer(Serializer):
 
 
 class DetailedIncidentSerializer(IncidentSerializer):
+    def get_attrs(self, item_list, user, **kwargs):
+        results = super(DetailedIncidentSerializer, self).get_attrs(item_list, user)
+        seen_incidents = dict(
+            IncidentSeen.objects.filter(
+                incident__in=item_list
+            ).select_related('user').values_list('incident_id', 'last_seen')
+        )
+
+        for incident in item_list:
+            active_date = incident.date_started
+            results[incident]['has_seen'] = seen_incidents.get(
+                incident.id, active_date) > active_date
+
+        return results
+
     def _get_incident_seen_list(self, incident):
         incident_seen = list(IncidentSeen.objects.filter(
             incident=incident
@@ -70,6 +87,7 @@ class DetailedIncidentSerializer(IncidentSerializer):
     def serialize(self, obj, attrs, user):
         context = super(DetailedIncidentSerializer, self).serialize(obj, attrs, user)
         context.update({
-            'seenBy': self._get_incident_seen_list(obj)
+            'seenBy': self._get_incident_seen_list(obj),
+            'hasSeen': attrs['has_seen'],
         })
         return context

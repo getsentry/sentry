@@ -79,12 +79,6 @@ class UpdateIncidentStatus(TestCase):
         with self.assertRaises(StatusAlreadyChangedError):
             update_incident_status(incident, IncidentStatus.DETECTED)
 
-    def test_noop(self):
-        incident = self.create_incident()
-        prev_activity_count = IncidentActivity.objects.filter(incident=incident).count()
-        update_incident_status(incident, IncidentStatus(incident.status))
-        assert prev_activity_count == IncidentActivity.objects.filter(incident=incident).count()
-
     def run_test(
         self,
         incident,
