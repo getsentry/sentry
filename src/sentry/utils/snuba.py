@@ -276,6 +276,11 @@ def get_snuba_column_name(name):
     the column is assumed to be a tag. If name is falsy or name is a quoted literal
     (e.g. "'name'"), leave unchanged.
     """
+    no_conversion = set(['project_id', 'start', 'end'])
+
+    if name in no_conversion:
+        return name
+
     if not name or QUOTED_LITERAL_RE.match(name):
         return name
 
@@ -366,7 +371,7 @@ def get_arrayjoin(column):
         return match.groups()[0]
 
 
-def transform_aliases_and_query(**kwargs):
+def transform_aliases_and_query(*args, **kwargs):
     """
     Convert aliases in selected_columns, groupby, aggregation, conditions,
     orderby and arrayjoin fields to their internal Snuba format and post the
@@ -382,33 +387,38 @@ def transform_aliases_and_query(**kwargs):
     translated_columns = {}
     derived_columns = set()
 
-    selected_columns = kwargs['selected_columns']
-    groupby = kwargs['groupby']
-    aggregations = kwargs['aggregations']
-    conditions = kwargs['conditions'] or []
+    selected_columns = kwargs.get('selected_columns')
+    groupby = kwargs.get('groupby')
+    aggregations = kwargs.get('aggregations')
+    conditions = kwargs.get('conditions')
     filter_keys = kwargs['filter_keys']
+    arrayjoin = kwargs.get('arrayjoin')
+    rollup = kwargs.get('rollup')
+    orderby = kwargs.get('orderby')
 
-    for (idx, col) in enumerate(selected_columns):
-        if isinstance(col, list):
-            # if list, means there are potentially nested functions and need to
-            # iterate and translate potential columns
-            parse_columns_in_functions(col)
-            selected_columns[idx] = col
-            translated_columns[col[2]] = col[2]
-            derived_columns.add(col[2])
-        else:
-            name = get_snuba_column_name(col)
-            selected_columns[idx] = name
+    if selected_columns:
+        for (idx, col) in enumerate(selected_columns):
+            if isinstance(col, list):
+                # if list, means there are potentially nested functions and need to
+                # iterate and translate potential columns
+                parse_columns_in_functions(col)
+                selected_columns[idx] = col
+                translated_columns[col[2]] = col[2]
+                derived_columns.add(col[2])
+            else:
+                name = get_snuba_column_name(col)
+                selected_columns[idx] = name
+                translated_columns[name] = col
+
+    if groupby:
+        for (idx, col) in enumerate(groupby):
+            if col not in derived_columns:
+                name = get_snuba_column_name(col)
+            else:
+                name = col
+
+            groupby[idx] = name
             translated_columns[name] = col
-
-    for (idx, col) in enumerate(groupby):
-        if col not in derived_columns:
-            name = get_snuba_column_name(col)
-        else:
-            name = col
-
-        groupby[idx] = name
-        translated_columns[name] = col
 
     for aggregation in aggregations or []:
         derived_columns.add(aggregation[2])
@@ -430,18 +440,20 @@ def transform_aliases_and_query(**kwargs):
                 cond[1][0] = get_snuba_column_name(cond[1][0])
         return cond
 
-    kwargs['conditions'] = [handle_condition(condition) for condition in conditions]
+    if conditions:
+        kwargs['conditions'] = [handle_condition(condition) for condition in conditions]
 
-    order_by_column = kwargs['orderby'].lstrip('-')
-    kwargs['orderby'] = u'{}{}'.format(
-        '-' if kwargs['orderby'].startswith('-') else '',
-        order_by_column if order_by_column in derived_columns else get_snuba_column_name(
-            order_by_column)
-    ) or None
+    if orderby:
+        order_by_column = orderby.lstrip('-')
+        kwargs['orderby'] = u'{}{}'.format(
+            '-' if orderby.startswith('-') else '',
+            order_by_column if order_by_column in derived_columns else get_snuba_column_name(
+                order_by_column)
+        ) or None
 
-    kwargs['arrayjoin'] = arrayjoin_map.get(kwargs['arrayjoin'], kwargs['arrayjoin'])
+    kwargs['arrayjoin'] = arrayjoin_map.get(arrayjoin, arrayjoin)
 
-    result = raw_query(**kwargs)
+    result = raw_query(*args, **kwargs)
 
     # Translate back columns that were converted to snuba format
     for col in result['meta']:
@@ -452,7 +464,7 @@ def transform_aliases_and_query(**kwargs):
 
     if len(translated_columns):
         result['data'] = [get_row(row) for row in result['data']]
-        if kwargs['rollup'] > 0:
+        if rollup and rollup > 0:
             result['data'] = zerofill(
                 result['data'],
                 kwargs['start'],

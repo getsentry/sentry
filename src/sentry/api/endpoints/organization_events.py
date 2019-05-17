@@ -16,11 +16,17 @@ from sentry.utils.snuba import (
     raw_query,
     SnubaTSResult,
 )
+from sentry import features
+
+from sentry.api.endpoints.organization_events_v2 import OrganizationEventsV2Endpoint
 
 
 class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
 
     def get(self, request, organization):
+        if features.has('organizations:events-v2', organization, actor=request.user):
+            return OrganizationEventsV2Endpoint().get(request, organization)
+
         # Check for a direct hit on event ID
         query = request.GET.get('query', '').strip()
 
