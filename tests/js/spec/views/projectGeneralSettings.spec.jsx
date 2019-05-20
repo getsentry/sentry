@@ -212,7 +212,7 @@ describe('projectGeneralSettings', function() {
         .first()
         .text()
     ).toBe(
-      'These settings can only be edited by users with the owner, manager, or admin role.'
+      'These settings can only be edited by users with the organization owner, manager, or admin role.'
     );
   });
 

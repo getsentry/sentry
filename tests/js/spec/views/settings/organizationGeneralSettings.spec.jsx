@@ -124,7 +124,7 @@ describe('OrganizationGeneralSettings', function() {
         .first()
         .text()
     ).toEqual(
-      'These settings can only be edited by users with the owner or manager role.'
+      'These settings can only be edited by users with the organization owner or manager role.'
     );
   });
 

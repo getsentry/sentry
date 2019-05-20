@@ -140,7 +140,9 @@ export default class SentryApplicationRow extends React.PureComponent {
                       {!hasAccess && (
                         <Button
                           disabled
-                          title={t('Owner permissions are required for this action.')}
+                          title={t(
+                            'Organization owner permissions are required for this action.'
+                          )}
                           size="small"
                           icon="icon-trash"
                         />

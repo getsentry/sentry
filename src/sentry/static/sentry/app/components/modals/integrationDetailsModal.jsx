@@ -173,7 +173,9 @@ class IntegrationDetailsModal extends React.Component {
               <Access organization={organization} access={['org:integrations']}>
                 {({hasAccess}) => (
                   <Tooltip
-                    title={t('You must be an Owner, Manager or Admin to install this.')}
+                    title={t(
+                      'You must be an organization owner, manager or admin to install this.'
+                    )}
                     disabled={hasAccess}
                   >
                     <AddButton

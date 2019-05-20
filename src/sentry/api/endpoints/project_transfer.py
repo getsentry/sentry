@@ -65,7 +65,7 @@ class ProjectTransferEndpoint(ProjectEndpoint):
                 user__is_active=True,
             )[0]
         except IndexError:
-            return Response({'detail': 'Could not find owner with that email'},
+            return Response({'detail': 'Could not find an organization owner with that email'},
                             status=status.HTTP_404_NOT_FOUND)
 
         transaction_id = uuid4().hex
