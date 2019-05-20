@@ -57,7 +57,7 @@ CLEAN_MODULE_RE = re.compile(
 )
 VERSION_RE = re.compile(r'^[a-f0-9]{32}|[a-f0-9]{40}$', re.I)
 NODE_MODULES_RE = re.compile(r'\bnode_modules/')
-SOURCE_MAPPING_URL_RE = re.compile(r'\/\/# sourceMappingURL=(.*)$')
+SOURCE_MAPPING_URL_RE = re.compile(r'\/\/# sourceMappingURL=([^<]*)$')
 CACHE_CONTROL_RE = re.compile(r'max-age=(\d+)')
 CACHE_CONTROL_MAX = 7200
 CACHE_CONTROL_MIN = 60
