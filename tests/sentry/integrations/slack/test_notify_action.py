@@ -22,7 +22,6 @@ class SlackNotifyActionTest(RuleTestCase):
             external_id='TXXXXXXX1',
             metadata={
                 'access_token': 'xoxp-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx',
-                'bot_access_token': 'xoxb-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx',
             }
         )
         self.integration.add_organization(event.project.organization, self.user)

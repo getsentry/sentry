@@ -8,10 +8,9 @@ class SlackIdentityProvider(OAuth2Provider):
     key = 'slack'
     name = 'Slack'
 
-    # TODO(epurkhiser): This identity provider is actually used for authorizing
-    # the Slack application through their Workspace Token OAuth flow, not a
-    # standard user access token flow.
-    oauth_access_token_url = 'https://slack.com/api/oauth.token'
+    # This identity provider is used for authorizing the Slack application
+    # through their Bot token (or legacy Workspace Token if enabled) flow.
+    oauth_access_token_url = 'https://slack.com/api/oauth.access'
     oauth_authorize_url = 'https://slack.com/oauth/authorize'
 
     oauth_scopes = (
@@ -25,11 +24,18 @@ class SlackIdentityProvider(OAuth2Provider):
     def get_oauth_client_secret(self):
         return options.get('slack.client-secret')
 
+    def get_oauth_data(self, payload):
+        # TODO(epurkhiser): This flow isn't actually used right now in sentry.
+        # In slack-bot world we would need to make an API call to the 'me'
+        # endpoint to get their user ID here.
+        return super(SlackIdentityProvider, self).get_oauth_data(self, payload)
+
     def build_identity(self, data):
         data = data['data']
 
         return {
             'type': 'slack',
+            # TODO(epurkhiser): See note above
             'id': data['user']['id'],
             'email': data['user']['email'],
             'scopes': sorted(data['scope'].split(',')),
