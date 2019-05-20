@@ -50,6 +50,7 @@ class OrganizationIncidentDetailsEndpoint(IncidentEndpoint):
         serializer = IncidentSerializer(data=request.DATA)
         if serializer.is_valid():
             result = serializer.object
+
             try:
                 incident = update_incident_status(
                     incident=incident,
@@ -62,5 +63,7 @@ class OrganizationIncidentDetailsEndpoint(IncidentEndpoint):
                     'Status is already set to {}'.format(result['status']),
                     status=400,
                 )
-            return Response(serialize(incident, request.user), status=200)
+
+            return Response(serialize(incident, request.user,
+                                      DetailedIncidentSerializer()), status=200)
         return Response(serializer.errors, status=400)
