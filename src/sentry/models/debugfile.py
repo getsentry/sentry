@@ -21,7 +21,6 @@ import tempfile
 
 from jsonfield import JSONField
 from django.db import models
-from django.db.models.fields.related import OneToOneRel
 
 from symbolic import Archive, SymbolicError, ObjectErrorUnsupportedObject
 
@@ -29,7 +28,7 @@ from sentry import options
 from sentry.cache import default_cache
 from sentry.constants import KNOWN_DIF_FORMATS
 from sentry.db.models import FlexibleForeignKey, Model, \
-    sane_repr, BaseManager, BoundedPositiveIntegerField
+    sane_repr, BaseManager, BoundedPositiveIntegerField, BoundedBigIntegerField
 from sentry.models.file import File
 from sentry.reprocessing import resolve_processing_issue, \
     bump_reprocessing_revision
@@ -202,12 +201,7 @@ class ProjectCacheFile(Model):
 
     project = FlexibleForeignKey('sentry.Project', null=True)
     cache_file = FlexibleForeignKey('sentry.File')
-    debug_file = FlexibleForeignKey(
-        'sentry.ProjectDebugFile',
-        rel_class=OneToOneRel,
-        db_column='dsym_file_id',
-        on_delete=models.DO_NOTHING,
-    )
+    debug_file = BoundedBigIntegerField(db_column='dsym_file_id')
     checksum = models.CharField(max_length=40)
     version = BoundedPositiveIntegerField()
 
