@@ -32,6 +32,10 @@ class OrganizationEventsV2EndpointTest(OrganizationEventsTestBase):
                 'event_id': 'a' * 32,
                 'environment': 'staging',
                 'timestamp': self.two_min_ago,
+                'user': {
+                    'ip_address': '127.0.0.1',
+                    'email': 'foo@example.com',
+                },
             },
             project_id=project.id,
         )
@@ -40,6 +44,10 @@ class OrganizationEventsV2EndpointTest(OrganizationEventsTestBase):
                 'event_id': 'b' * 32,
                 'environment': 'staging',
                 'timestamp': self.min_ago,
+                'user': {
+                    'ip_address': '127.0.0.1',
+                    'email': 'foo@example.com',
+                },
             },
             project_id=project2.id,
         )
@@ -49,7 +57,7 @@ class OrganizationEventsV2EndpointTest(OrganizationEventsTestBase):
                 self.url,
                 format='json',
                 data={
-                    'fields': ['id', 'project.id'],
+                    'fields': ['id', 'project.id', 'user.email', 'user.ip', 'time'],
                     'orderby': '-timestamp',
                 },
             )
@@ -58,6 +66,7 @@ class OrganizationEventsV2EndpointTest(OrganizationEventsTestBase):
         assert len(response.data) == 2
         assert response.data[0]['id'] == 'b' * 32
         assert response.data[0]['project.id'] == project2.id
+        assert response.data[0]['user.email'] == 'foo@example.com'
 
     def test_groupby(self):
         self.login_as(user=self.user)
