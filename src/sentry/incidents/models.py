@@ -159,6 +159,15 @@ class TimeSeriesSnapshot(Model):
         app_label = 'sentry'
         db_table = 'sentry_timeseriessnapshot'
 
+    @property
+    def snuba_values(self):
+        """
+        Returns values matching the snuba format, a list of dicts with 'time'
+        and 'count' keys.
+        :return:
+        """
+        return {'data': [{'time': time, 'count': count} for time, count in self.values]}
+
 
 class IncidentActivityType(Enum):
     CREATED = 0

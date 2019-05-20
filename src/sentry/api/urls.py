@@ -81,6 +81,7 @@ from .endpoints.organization_shortid import ShortIdLookupEndpoint
 from .endpoints.organization_environments import OrganizationEnvironmentsEndpoint
 from .endpoints.organization_eventid import EventIdLookupEndpoint
 from .endpoints.organization_slugs import SlugsUpdateEndpoint
+from .endpoints.organization_incident_activity_index import OrganizationIncidentActivityIndexEndpoint
 from .endpoints.organization_incident_comment_index import OrganizationIncidentCommentIndexEndpoint
 from .endpoints.organization_incident_index import OrganizationIncidentIndexEndpoint
 from .endpoints.organization_issues_new import OrganizationIssuesNewEndpoint
@@ -417,9 +418,14 @@ urlpatterns = patterns(
 
     # Incidents
     url(
-        r'^organizations/(?P<organization_slug>[^\/]+)/incidents/$',
-        OrganizationIncidentIndexEndpoint.as_view(),
-        name='sentry-api-0-organization-incident-index'
+        r'^organizations/(?P<organization_slug>[^\/]+)/incidents/(?P<incident_identifier>[^\/]+)/activity/$',
+        OrganizationIncidentActivityIndexEndpoint.as_view(),
+        name='sentry-api-0-organization-incident-activity'
+    ),
+    url(
+        r'^organizations/(?P<organization_slug>[^\/]+)/incidents/(?P<incident_identifier>[^\/]+)/comments/$',
+        OrganizationIncidentCommentIndexEndpoint.as_view(),
+        name='sentry-api-0-organization-incident-comments'
     ),
     url(
         r'^organizations/(?P<organization_slug>[^\/]+)/incidents/(?P<incident_identifier>[^\/]+)/$',
@@ -427,9 +433,9 @@ urlpatterns = patterns(
         name='sentry-api-0-organization-incident-details'
     ),
     url(
-        r'^organizations/(?P<organization_slug>[^\/]+)/incidents/(?P<incident_identifier>[^\/]+)/comments/$',
-        OrganizationIncidentCommentIndexEndpoint.as_view(),
-        name='sentry-api-0-organization-incident-comments'
+        r'^organizations/(?P<organization_slug>[^\/]+)/incidents/$',
+        OrganizationIncidentIndexEndpoint.as_view(),
+        name='sentry-api-0-organization-incident-index'
     ),
 
     url(
