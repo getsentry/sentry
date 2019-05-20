@@ -4,6 +4,8 @@ import json
 import re
 import six
 
+from django.conf import settings
+
 from sentry import http
 from sentry.api.base import Endpoint
 from sentry.models import Group, Project
@@ -58,8 +60,13 @@ class SlackEventEndpoint(Endpoint):
         if not results:
             return
 
+        if settings.SLACK_INTEGRATION_USE_WST:
+            access_token = integration.metadata['access_token'],
+        else:
+            access_token = integration.metadata['user_access_token'],
+
         payload = {
-            'token': integration.metadata['access_token'],
+            'token': access_token,
             'channel': data['channel'],
             'ts': data['message_ts'],
             'unfurls': json.dumps({
