@@ -26,18 +26,18 @@ export default class OrganizationEventsV2 extends React.Component {
 
     return (
       <NavTabs underlined={true}>
-        {ALL_VIEWS.map(view => {
-          const query = view.id === 'all' ? '' : `?view=${view.id}`;
-          return (
-            <ListLink
-              key={view.id}
-              to={`/organizations/${organization.slug}/events/${query}`}
-              isActive={() => view.id === currentView.id}
-            >
-              {view.name}
-            </ListLink>
-          );
-        })}
+        {ALL_VIEWS.map(view => (
+          <ListLink
+            key={view.id}
+            to={{
+              pathname: `/organizations/${organization.slug}/events/`,
+              query: {...this.props.location.query, view: view.id},
+            }}
+            isActive={() => view.id === currentView.id}
+          >
+            {view.name}
+          </ListLink>
+        ))}
       </NavTabs>
     );
   }
