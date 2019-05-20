@@ -13,7 +13,7 @@ from sentry.incidents.models import Incident
 
 class IncidentPermission(OrganizationPermission):
     scope_map = {
-        'GET': ['org:read', 'org:write', 'org:admin'],
+        'GET': ['org:read', 'org:write', 'org:admin', 'project:read', 'project:write', 'project:admin'],
         'POST': ['org:write', 'org:admin', 'project:read', 'project:write', 'project:admin'],
         'PUT': ['org:write', 'org:admin', 'project:read', 'project:write', 'project:admin'],
     }
