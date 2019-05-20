@@ -47,7 +47,7 @@ class OrganizationIncidentCommentCreateEndpointTest(APITestCase):
         assert activity.type == IncidentActivityType.COMMENT.value
         assert activity.user == self.user
         assert activity.comment == comment
-        assert resp.data == serialize([activity])[0]
+        assert resp.data == serialize([activity], self.user)[0]
 
     def test_access(self):
         other_user = self.create_user()

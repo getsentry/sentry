@@ -246,3 +246,9 @@ def get_incident_aggregates(incident):
 
 def subscribe_to_incident(incident, user):
     return IncidentSubscription.objects.get_or_create(incident=incident, user=user)
+
+
+def get_incident_activity(incident):
+    return IncidentActivity.objects.filter(
+        incident=incident,
+    ).select_related('user', 'event_stats_snapshot', 'incident')
