@@ -1,5 +1,5 @@
 ---
-created: '2019-05-20T13:26:53.072229Z'
+created: '2019-05-20T15:08:58.046203Z'
 creator: sentry
 source: tests/symbolicator/test_unreal_full.py
 ---
@@ -17,6 +17,18 @@ contexts:
     raw_description: Mac OS X 10.14.0 (18A391)
     type: os
     version: 10.14.0
+  unreal:
+    portable_call_stack: YetAnotherMac 0x000000000864e000 + a52132 YetAnotherMac 0x000000000864e000
+      + 35ed85b YetAnotherMac 0x000000000864e000 + 3611c29 YetAnotherMac 0x000000000864e000
+      + 3610b21 YetAnotherMac 0x000000000864e000 + 499a0be YetAnotherMac 0x000000000864e000
+      + 3c96621 YetAnotherMac 0x000000000864e000 + 495fb9e YetAnotherMac 0x000000000864e000
+      + 48018f5 YetAnotherMac 0x000000000864e000 + 47fae4a YetAnotherMac 0x000000000864e000
+      + 3c58f41 YetAnotherMac 0x000000000864e000 + 3c3847e YetAnotherMac 0x000000000864e000
+      + 507d76 YetAnotherMac 0x000000000864e000 + 517169 YetAnotherMac 0x000000000864e000
+      + 521d8e YetAnotherMac 0x000000000864e000 + f5cb27 Foundation 0x0000000036d38000
+      + 12234 libsystem_pthread 0x00000000ffffffff + ffffffff libsystem_pthread 0x00000000ffffffff
+      + ffffffff libsystem_pthread 0x00000000ffffffff + ffffffff
+    type: unreal
 exception: null
 extra:
   app_default_locate: en-AT

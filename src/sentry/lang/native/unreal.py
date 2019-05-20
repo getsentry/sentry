@@ -31,13 +31,16 @@ def reprocess_unreal_crash(data):
 
     images = get_path(data, 'debug_meta', 'images', filter=True, default=())
     exception = get_path(data, 'exception', 'values', 0)
-    if not exception:
-        return
 
     frames = parse_portable_callstack(portable_call_stack, images)
-    if frames:
+    if not frames:
+        return
+
+    if exception:
         exception['mechanism'] = {'type': 'unreal', 'handled': False, 'synthetic': True}
         exception['stacktrace'] = {'frames': frames}
+    else:
+        data['stacktrace'] = {'frames': frames}
 
     return data
 

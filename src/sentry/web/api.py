@@ -845,7 +845,7 @@ class UnrealView(StoreView):
         attachments_enabled = features.has('organizations:event-attachments',
                                            project.organization, actor=request.user)
 
-        has_crash_data = False
+        is_apple_crash_report = False
 
         attachments = []
         event = {'event_id': uuid.uuid4().hex}
@@ -871,7 +871,7 @@ class UnrealView(StoreView):
                 apple_crash_report = unreal.get_apple_crash_report()
                 if apple_crash_report:
                     merge_apple_crash_report(apple_crash_report, event)
-                    has_crash_data = True
+                    is_apple_crash_report = True
         except (ProcessMinidumpError, Unreal4Error) as e:
             minidumps_logger.exception(e)
             track_outcome(
@@ -899,6 +899,8 @@ class UnrealView(StoreView):
             # we'll continue without the breadcrumbs
             minidumps_logger.exception(e)
 
+        is_minidump = False
+
         for file in unreal.files():
             # Known attachment: msgpack event
             if file.name == "__sentry-event":
@@ -908,10 +910,8 @@ class UnrealView(StoreView):
                 merge_attached_breadcrumbs(file.open_stream(), event)
                 continue
 
-            if file.type == "minidump":
-                if refactor_enabled:
-                    write_minidump_placeholder(event)
-                has_crash_data = True
+            if file.type == "minidump" and not is_apple_crash_report:
+                is_minidump = True
 
             # Always store the minidump in attachments so we can access it during
             # processing, regardless of the event-attachments feature. This will
@@ -923,7 +923,10 @@ class UnrealView(StoreView):
                     type=unreal_attachment_type(file),
                 ))
 
-        if not has_crash_data:
+        if is_minidump and refactor_enabled:
+            write_minidump_placeholder(event)
+
+        if not refactor_enabled and not is_apple_crash_report and not is_minidump:
             track_outcome(project.organization_id, project.id, None,
                           Outcome.INVALID, "missing_minidump_unreal")
             raise APIError("missing minidump or apple crash report in unreal \
