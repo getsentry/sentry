@@ -429,7 +429,8 @@ class GroupListTest(APITestCase, SnubaTestCase):
             response = self.get_response(sort_by='date', query='!has:user')
             assert response.status_code == 400, response.data
             assert (
-                'You need access to the advanced search feature to use negative '
+                'You need access to the advanced search feature (available on '
+                'the new Developer, Team, and Business plans) to use negative '
                 'search' == response.data['detail']
             )
 
