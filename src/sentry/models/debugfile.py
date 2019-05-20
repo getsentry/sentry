@@ -201,7 +201,7 @@ class ProjectCacheFile(Model):
 
     project = FlexibleForeignKey('sentry.Project', null=True)
     cache_file = FlexibleForeignKey('sentry.File')
-    debug_file = BoundedBigIntegerField(db_column='dsym_file_id')
+    debug_file = BoundedBigIntegerField(db_column='dsym_file_id', db_index=True)
     checksum = models.CharField(max_length=40)
     version = BoundedPositiveIntegerField()
 
