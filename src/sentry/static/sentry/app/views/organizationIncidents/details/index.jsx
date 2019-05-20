@@ -1,12 +1,11 @@
-import React from 'react';
 import PropTypes from 'prop-types';
+import React from 'react';
 
 import {addErrorMessage} from 'app/actionCreators/indicator';
-import withApi from 'app/utils/withApi';
+import {markIncidentAsSeen} from 'app/actionCreators/incident';
 import {t} from 'app/locale';
+import withApi from 'app/utils/withApi';
 
-import DetailsHeader from './header';
-import DetailsBody from './body';
 import {
   INCIDENT_STATUS,
   fetchIncident,
@@ -14,6 +13,8 @@ import {
   updateStatus,
   isOpen,
 } from '../utils';
+import DetailsBody from './body';
+import DetailsHeader from './header';
 
 class OrganizationIncidentDetails extends React.Component {
   static propTypes = {
@@ -39,6 +40,7 @@ class OrganizationIncidentDetails extends React.Component {
     fetchIncident(api, orgId, incidentId)
       .then(incident => {
         this.setState({incident, isLoading: false, hasError: false});
+        markIncidentAsSeen(api, orgId, incident);
       })
       .catch(() => {
         this.setState({isLoading: false, hasError: true});
