@@ -31,7 +31,7 @@ class OrganizationEventsV2EndpointTest(OrganizationEventsTestBase):
             data={
                 'event_id': 'a' * 32,
                 'environment': 'staging',
-                'timestamp': self.min_ago,
+                'timestamp': self.two_min_ago,
             },
             project_id=project.id,
         )
