@@ -82,10 +82,17 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsEndpointBase):
 
         rollup = int(interval.total_seconds())
 
+        y_axis = request.GET.get('y_axis', None)
+        if not y_axis or y_axis == 'event_count':
+            aggregations = [('count()', '', 'count')]
+        elif y_axis == 'user_count':
+            aggregations = [('count(ip_address)', '', 'count')]
+        else:
+            return Response(
+                {'detail': 'Param y_axis value %s not recognized.' % y_axis}, status=400)
+
         result = raw_query(
-            aggregations=[
-                ('count()', '', 'count'),
-            ],
+            aggregations=aggregations,
             orderby='time',
             groupby=['time'],
             rollup=rollup,
