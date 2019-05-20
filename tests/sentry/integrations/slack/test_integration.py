@@ -3,6 +3,7 @@ from __future__ import absolute_import
 import responses
 import six
 
+from django.test.utils import override_settings
 from six.moves.urllib.parse import parse_qs, urlencode, urlparse
 
 from sentry.integrations.slack import SlackIntegrationProvider
@@ -13,7 +14,8 @@ from sentry.testutils import IntegrationTestCase
 class SlackIntegrationTest(IntegrationTestCase):
     provider = SlackIntegrationProvider
 
-    def assert_setup_flow(self, team_id='TXXXXXXX1', authorizing_user_id='UXXXXXXX1'):
+    def assert_setup_flow(self, team_id='TXXXXXXX1', authorizing_user_id='UXXXXXXX1',
+                          access_token='xoxp-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx', access_extras=None):
         responses.reset()
 
         resp = self.client.get(self.init_path)
@@ -32,14 +34,27 @@ class SlackIntegrationTest(IntegrationTestCase):
         # easier
         authorize_params = {k: v[0] for k, v in six.iteritems(params)}
 
+        access_json = {
+            'ok': True,
+            'access_token': access_token,
+            'team_id': team_id,
+            'team_name': 'Example',
+            'authorizing_user_id': authorizing_user_id,
+        }
+
+        if access_extras is not None:
+            access_json.update(access_extras)
+
         responses.add(
-            responses.POST, 'https://slack.com/api/oauth.token',
+            responses.POST, 'https://slack.com/api/oauth.access',
+            json=access_json,
+        )
+
+        responses.add(
+            responses.GET, 'https://slack.com/api/auth.test',
             json={
                 'ok': True,
-                'access_token': 'xoxp-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx',
-                'team_id': team_id,
-                'team_name': 'Example',
-                'authorizing_user_id': authorizing_user_id,
+                'user_id': authorizing_user_id,
             }
         )
 
@@ -74,8 +89,50 @@ class SlackIntegrationTest(IntegrationTestCase):
         self.assertDialogSuccess(resp)
 
     @responses.activate
-    def test_basic_flow(self):
-        self.assert_setup_flow()
+    def test_bot_flow(self):
+        self.assert_setup_flow(
+            access_token='xoxa-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx',
+            access_extras={
+                'bot': {
+                    'bot_access_token': 'xoxb-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx',
+                }
+            })
+
+        integration = Integration.objects.get(provider=self.provider.key)
+        assert integration.external_id == 'TXXXXXXX1'
+        assert integration.name == 'Example'
+        assert integration.metadata == {
+            'access_token': 'xoxb-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx',
+            'user_access_token': 'xoxa-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx',
+            'scopes': sorted(self.provider.identity_oauth_scopes),
+            'icon': 'http://example.com/ws_icon.jpg',
+            'domain_name': 'test-slack-workspace.slack.com',
+        }
+        oi = OrganizationIntegration.objects.get(
+            integration=integration,
+            organization=self.organization,
+        )
+        assert oi.config == {}
+
+        idp = IdentityProvider.objects.get(
+            type='slack',
+            external_id='TXXXXXXX1',
+        )
+        identity = Identity.objects.get(
+            idp=idp,
+            user=self.user,
+            external_id='UXXXXXXX1',
+        )
+        assert identity.status == IdentityStatus.VALID
+
+    @override_settings(SLACK_INTEGRATION_USE_WST=True)
+    def assert_wst_setup_flow(self, *args, **kwargs):
+        self.assert_setup_flow(*args, **kwargs)
+
+    @responses.activate
+    @override_settings(SLACK_INTEGRATION_USE_WST=True)
+    def test_wst_flow(self):
+        self.assert_wst_setup_flow()
 
         integration = Integration.objects.get(provider=self.provider.key)
         assert integration.external_id == 'TXXXXXXX1'
@@ -104,9 +161,10 @@ class SlackIntegrationTest(IntegrationTestCase):
         assert identity.status == IdentityStatus.VALID
 
     @responses.activate
+    @override_settings(SLACK_INTEGRATION_USE_WST=True)
     def test_multiple_integrations(self):
-        self.assert_setup_flow()
-        self.assert_setup_flow(team_id='TXXXXXXX2', authorizing_user_id='UXXXXXXX2')
+        self.assert_wst_setup_flow()
+        self.assert_wst_setup_flow(team_id='TXXXXXXX2', authorizing_user_id='UXXXXXXX2')
 
         integrations = Integration.objects.filter(provider=self.provider.key)
 
@@ -131,11 +189,12 @@ class SlackIntegrationTest(IntegrationTestCase):
         assert identities[0].idp != identities[1].idp
 
     @responses.activate
+    @override_settings(SLACK_INTEGRATION_USE_WST=True)
     def test_reassign_user(self):
-        self.assert_setup_flow()
+        self.assert_wst_setup_flow()
         identity = Identity.objects.get()
         assert identity.external_id == 'UXXXXXXX1'
 
-        self.assert_setup_flow(authorizing_user_id='UXXXXXXX2')
+        self.assert_wst_setup_flow(authorizing_user_id='UXXXXXXX2')
         identity = Identity.objects.get()
         assert identity.external_id == 'UXXXXXXX2'
