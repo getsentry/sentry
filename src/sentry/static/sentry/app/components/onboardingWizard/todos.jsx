@@ -1,6 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import createReactClass from 'create-react-class';
+import styled from 'react-emotion';
 
 import {t} from 'app/locale';
 import SentryTypes from 'app/sentryTypes';
@@ -77,7 +77,7 @@ const TASKS = [
   {
     task: 6,
     title: t('Set up release tracking'),
-    description: t('See what releases are generating errors'),
+    description: t('See which releases cause errors'),
     detailedDescription: t(
       `Set up commits for additional context when determining the cause of an issue
           e.g. suggested owners and resolve issues via commit messages.`
@@ -134,20 +134,16 @@ const TASKS = [
   },
 ];
 
-const TodoList = createReactClass({
-  displayName: 'TodoList',
-
-  propTypes: {
+class TodoList extends React.Component {
+  static propTypes = {
     api: PropTypes.object,
     organization: SentryTypes.Organization,
-  },
+  };
 
-  getInitialState() {
-    return {
-      tasks: [],
-      seeAll: false, // Show all tasks, included those completed
-    };
-  },
+  state = {
+    tasks: [],
+    seeAll: false, // Show all tasks, included those completed
+  };
 
   componentWillMount() {
     // Map server task state (who finished what) to TodoList.TASK objects
@@ -162,9 +158,9 @@ const TodoList = createReactClass({
       return task;
     });
     this.setState({tasks});
-  },
+  }
 
-  skipTask(skippedTask) {
+  skipTask = skippedTask => {
     const org = this.props.organization;
     this.props.api.request('/organizations/' + org.slug + '/onboarding-tasks/', {
       method: 'POST',
@@ -179,7 +175,7 @@ const TodoList = createReactClass({
         this.setState({tasks: newState});
       },
     });
-  },
+  };
 
   render() {
     const nextTasks = this.state.tasks.filter(task => task.display);
@@ -188,15 +184,14 @@ const TodoList = createReactClass({
       return <TodoItem key={task.task} task={task} onSkip={this.skipTask} />;
     });
 
-    return (
-      <div>
-        <div className="onboarding-wrapper">
-          <ul className="list-unstyled">{todoListTasks}</ul>
-        </div>
-      </div>
-    );
-  },
-});
+    return <StyledTodoList>{todoListTasks}</StyledTodoList>;
+  }
+}
+
+const StyledTodoList = styled('ul')`
+  padding-left: 0;
+  list-style: none;
+`;
 
 export {TodoList, TASKS};
 
