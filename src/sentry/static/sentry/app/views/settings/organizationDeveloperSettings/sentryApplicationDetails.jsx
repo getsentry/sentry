@@ -126,7 +126,7 @@ export default class SentryApplicationDetails extends AsyncView {
                     {({value}) => {
                       return (
                         <TextCopyInput>
-                          {getDynamicText({value, fixed: 'PERCY_CLIENT_ID'})}
+                          {getDynamicText({value, fixed: 'PERCY_ACCESS_TOKEN'})}
                         </TextCopyInput>
                       );
                     }}
@@ -135,7 +135,10 @@ export default class SentryApplicationDetails extends AsyncView {
                     {({value}) => {
                       return (
                         <TextCopyInput>
-                          {getDynamicText({value: value.uuid, fixed: 'PERCY_CLIENT_ID'})}
+                          {getDynamicText({
+                            value: value.uuid,
+                            fixed: 'PERCY_INSTALLATION_ID',
+                          })}
                         </TextCopyInput>
                       );
                     }}
