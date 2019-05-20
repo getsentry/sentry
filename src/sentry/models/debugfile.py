@@ -27,8 +27,7 @@ from symbolic import Archive, SymbolicError, ObjectErrorUnsupportedObject
 from sentry import options
 from sentry.cache import default_cache
 from sentry.constants import KNOWN_DIF_FORMATS
-from sentry.db.models import FlexibleForeignKey, Model, \
-    sane_repr, BaseManager, BoundedPositiveIntegerField, BoundedBigIntegerField
+from sentry.db.models import FlexibleForeignKey, Model, sane_repr, BaseManager
 from sentry.models.file import File
 from sentry.reprocessing import resolve_processing_issue, \
     bump_reprocessing_revision
@@ -193,42 +192,6 @@ class ProjectDebugFile(Model):
     def delete(self, *args, **kwargs):
         super(ProjectDebugFile, self).delete(*args, **kwargs)
         self.file.delete()
-
-
-class ProjectCacheFile(Model):
-    """Abstract base class for all debug cache files."""
-    __core__ = False
-
-    project = FlexibleForeignKey('sentry.Project', null=True)
-    cache_file = FlexibleForeignKey('sentry.File')
-    debug_file = BoundedBigIntegerField(db_column='dsym_file_id', db_index=True)
-    checksum = models.CharField(max_length=40)
-    version = BoundedPositiveIntegerField()
-
-    __repr__ = sane_repr('debug_file__debug_id', 'version')
-
-    class Meta:
-        abstract = True
-        unique_together = (('project', 'debug_file'),)
-        app_label = 'sentry'
-
-    def delete(self, *args, **kwargs):
-        super(ProjectCacheFile, self).delete(*args, **kwargs)
-        self.cache_file.delete()
-
-
-class ProjectSymCacheFile(ProjectCacheFile):
-    """Cache for native address symbolication: SymCache."""
-
-    class Meta(ProjectCacheFile.Meta):
-        db_table = 'sentry_projectsymcachefile'
-
-
-class ProjectCfiCacheFile(ProjectCacheFile):
-    """Cache for stack unwinding information: CfiCache."""
-
-    class Meta(ProjectCacheFile.Meta):
-        db_table = 'sentry_projectcficachefile'
 
 
 def clean_redundant_difs(project, debug_id):
