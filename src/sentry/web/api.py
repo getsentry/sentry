@@ -768,7 +768,7 @@ class MinidumpView(StoreView):
         refactor_enabled = _minidump_refactor_enabled(project.id)
         metrics.incr(
             'symbolicator.minidump-refactor-enabled',
-            tags={'value': refactor_enabled}
+            tags={'value': refactor_enabled, 'endpoint': 'minidump'}
         )
 
         if refactor_enabled:
@@ -845,22 +845,33 @@ class UnrealView(StoreView):
         attachments_enabled = features.has('organizations:event-attachments',
                                            project.organization, actor=request.user)
 
+        has_crash_data = False
+
         attachments = []
         event = {'event_id': uuid.uuid4().hex}
         try:
             unreal = process_unreal_crash(request.body, request.GET.get(
                 'UserID'), request.GET.get('AppEnvironment'), event)
-            process_state = unreal.process_minidump()
+
+            refactor_enabled = _minidump_refactor_enabled(project.id)
+            metrics.incr(
+                'symbolicator.minidump-refactor-enabled',
+                tags={'value': refactor_enabled, 'endpoint': 'unreal'}
+            )
+
+            if refactor_enabled:
+                process_state = None
+            else:
+                process_state = unreal.process_minidump()
+
             if process_state:
                 merge_process_state_event(event, process_state)
             else:
+                # TODO(markus): Remove after refactor rolled out
                 apple_crash_report = unreal.get_apple_crash_report()
                 if apple_crash_report:
                     merge_apple_crash_report(apple_crash_report, event)
-                else:
-                    track_outcome(project.organization_id, project.id, None,
-                                  Outcome.INVALID, "missing_minidump_unreal")
-                    raise APIError("missing minidump in unreal crash report")
+                    has_crash_data = True
         except (ProcessMinidumpError, Unreal4Error) as e:
             minidumps_logger.exception(e)
             track_outcome(
@@ -874,7 +885,8 @@ class UnrealView(StoreView):
         try:
             unreal_context = unreal.get_context()
             if unreal_context is not None:
-                merge_unreal_context_event(unreal_context, event, project)
+                merge_unreal_context_event(unreal_context, event, project,
+                                           refactor_enabled=refactor_enabled)
         except Unreal4Error as e:
             # we'll continue without the context data
             minidumps_logger.exception(e)
@@ -896,6 +908,11 @@ class UnrealView(StoreView):
                 merge_attached_breadcrumbs(file.open_stream(), event)
                 continue
 
+            if file.type == "minidump":
+                if refactor_enabled:
+                    write_minidump_placeholder(event)
+                has_crash_data = True
+
             # Always store the minidump in attachments so we can access it during
             # processing, regardless of the event-attachments feature. This will
             # allow us to stack walk again with CFI once symbols are loaded.
@@ -905,6 +922,12 @@ class UnrealView(StoreView):
                     data=file.open_stream().read(),
                     type=unreal_attachment_type(file),
                 ))
+
+        if not has_crash_data:
+            track_outcome(project.organization_id, project.id, None,
+                          Outcome.INVALID, "missing_minidump_unreal")
+            raise APIError("missing minidump or apple crash report in unreal \
+                           crash report")
 
         event_id = self.process(
             request,
