@@ -58,7 +58,7 @@ class OrganizationIncidentDetailsEndpoint(IncidentEndpoint):
                     comment=result.get('comment'),
                 )
             except StatusAlreadyChangedError:
-                raise Response(
+                return Response(
                     'Status is already set to {}'.format(result['status']),
                     status=400,
                 )
