@@ -104,9 +104,9 @@ export async function markIncidentAsSeen(api, orgId, incident) {
 
   try {
     await api.requestPromise(
-      `/organizations/${orgId}/incidents/${incident.identifier}/`,
+      `/organizations/${orgId}/incidents/${incident.identifier}/seen/`,
       {
-        method: 'PUT',
+        method: 'POST',
         data: {
           hasSeen: true,
         },
