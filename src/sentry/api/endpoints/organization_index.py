@@ -65,7 +65,8 @@ class OrganizationIndexEndpoint(Endpoint):
 
         :qparam bool member: restrict results to organizations which you have
                              membership
-        :qparam bool owner: restrict results to organizations which are owner
+        :qparam bool owner: restrict results to organizations in which you are
+                            an organization owner
 
         :auth: required
         """

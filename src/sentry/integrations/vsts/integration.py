@@ -396,7 +396,7 @@ class VstsIntegrationProvider(IntegrationProvider):
             if e.code != 400 or 'permission' not in e.message:
                 raise e
             raise IntegrationError(
-                'You do not have sufficent account access to create an integration.\nPlease check with the owner of this account.'
+                'You do not have sufficent account access to create an integration.\nPlease check with the owner of this Azure DevOps account.'
             )
 
         subscription_id = subscription['id']

@@ -575,7 +575,7 @@ exports[`RuleBuilder renders 1`] = `
                 loadOptions={[Function]}
                 onChange={[Function]}
                 onInputChange={[Function]}
-                placeholder="Add Owners"
+                placeholder="owners"
                 value={Array []}
                 valueComponent={[Function]}
               >
@@ -591,7 +591,7 @@ exports[`RuleBuilder renders 1`] = `
                   multiple={true}
                   onChange={[Function]}
                   onInputChange={[Function]}
-                  placeholder="Add Owners"
+                  placeholder="owners"
                   value={Array []}
                   valueComponent={[Function]}
                 >
@@ -611,7 +611,7 @@ exports[`RuleBuilder renders 1`] = `
                     multiple={true}
                     onChange={[Function]}
                     onInputChange={[Function]}
-                    placeholder="Add Owners"
+                    placeholder="owners"
                     value={Array []}
                     valueComponent={[Function]}
                   >
@@ -631,7 +631,7 @@ exports[`RuleBuilder renders 1`] = `
                       multiple={true}
                       onChange={[Function]}
                       onInputChange={[Function]}
-                      placeholder="Add Owners"
+                      placeholder="owners"
                       value={Array []}
                       valueComponent={[Function]}
                     >
@@ -652,7 +652,7 @@ exports[`RuleBuilder renders 1`] = `
                         multiple={true}
                         onChange={[Function]}
                         onInputChange={[Function]}
-                        placeholder="Add Owners"
+                        placeholder="owners"
                         value={Array []}
                         valueComponent={[Function]}
                       >
@@ -676,7 +676,7 @@ exports[`RuleBuilder renders 1`] = `
                           onChange={[Function]}
                           onInputChange={[Function]}
                           options={Array []}
-                          placeholder="Add Owners"
+                          placeholder="owners"
                           searchPromptText="Type to search"
                           value={Array []}
                           valueComponent={[Function]}
@@ -862,7 +862,7 @@ exports[`RuleBuilder renders 1`] = `
                               ]
                             }
                             pageSize={5}
-                            placeholder="Add Owners"
+                            placeholder="owners"
                             removeSelected={true}
                             required={false}
                             rtl={false}
@@ -894,7 +894,7 @@ exports[`RuleBuilder renders 1`] = `
                                   <div
                                     className="Select-placeholder"
                                   >
-                                    Add Owners
+                                    owners
                                   </div>
                                   <AutosizeInput
                                     aria-activedescendant="react-select-3--value"
@@ -1911,7 +1911,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                 loadOptions={[Function]}
                 onChange={[Function]}
                 onInputChange={[Function]}
-                placeholder="Add Owners"
+                placeholder="owners"
                 value={
                   Array [
                     Object {
@@ -1965,7 +1965,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                   multiple={true}
                   onChange={[Function]}
                   onInputChange={[Function]}
-                  placeholder="Add Owners"
+                  placeholder="owners"
                   value={
                     Array [
                       Object {
@@ -2023,7 +2023,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                     multiple={true}
                     onChange={[Function]}
                     onInputChange={[Function]}
-                    placeholder="Add Owners"
+                    placeholder="owners"
                     value={
                       Array [
                         Object {
@@ -2081,7 +2081,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                       multiple={true}
                       onChange={[Function]}
                       onInputChange={[Function]}
-                      placeholder="Add Owners"
+                      placeholder="owners"
                       value={
                         Array [
                           Object {
@@ -2140,7 +2140,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                         multiple={true}
                         onChange={[Function]}
                         onInputChange={[Function]}
-                        placeholder="Add Owners"
+                        placeholder="owners"
                         value={
                           Array [
                             Object {
@@ -2202,7 +2202,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                           onChange={[Function]}
                           onInputChange={[Function]}
                           options={Array []}
-                          placeholder="Add Owners"
+                          placeholder="owners"
                           searchPromptText="Type to search"
                           value={
                             Array [
@@ -2426,7 +2426,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                               ]
                             }
                             pageSize={5}
-                            placeholder="Add Owners"
+                            placeholder="owners"
                             removeSelected={true}
                             required={false}
                             rtl={false}
@@ -2500,7 +2500,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                                     key="value-0-user:1"
                                     onClick={null}
                                     onRemove={[Function]}
-                                    placeholder="Add Owners"
+                                    placeholder="owners"
                                     value={
                                       Object {
                                         "actor": Object {

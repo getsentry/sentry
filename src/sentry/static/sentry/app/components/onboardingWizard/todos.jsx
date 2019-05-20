@@ -35,11 +35,11 @@ const TASKS = [
   },
   {
     task: 3,
-    title: t('Invite team member'),
+    title: t('Invite team members'),
     description: t('Bring your team aboard'),
     detailedDescription: t(
       `Let Sentry help your team triage and assign issues. Improve your workflow
-          by unlocking suggested owners, mentions, and assignment.`
+          by unlocking mentions, assignment, and suggested issue owners.`
     ),
     skippable: true,
     prereq: [],
@@ -51,9 +51,7 @@ const TASKS = [
     task: 4,
     title: t('Add a second platform'),
     description: t('Add Sentry to a second platform'),
-    detailedDescription: t(
-      'Cross platform functionality to support both your frontend and backend.'
-    ),
+    detailedDescription: t('Capture errors from both your front and back ends.'),
     skippable: true,
     prereq: [1, 2],
     featureLocation: 'organization',
@@ -66,7 +64,7 @@ const TASKS = [
     description: t('Know who is being affected by crashes'),
     detailedDescription: t(
       `Unlock features that let you
-          drill down into the number of users affected by an issue as well as get a broader sense about the quality of the application.`
+          drill down into the number of users affected by an issue and get a broader sense about the quality of your application.`
     ),
     skippable: true,
     prereq: [1, 2],
@@ -79,8 +77,8 @@ const TASKS = [
     title: t('Set up release tracking'),
     description: t('See which releases cause errors'),
     detailedDescription: t(
-      `Set up commits for additional context when determining the cause of an issue
-          e.g. suggested owners and resolve issues via commit messages.`
+      `Set up releases and associate commits to gain additional context when determining the cause of an issue
+          and unlock the ability to resolve issues via commit message.`
     ),
     skippable: true,
     prereq: [1, 2],
@@ -93,7 +91,7 @@ const TASKS = [
     title: t('Upload source maps'),
     description: t('Deminify JavaScript stack traces'),
     detailedDescription: t(
-      `View source code context obtained from stack traces in their
+      `View source code context obtained from stack traces in its
           original untransformed form, which is particularly useful for debugging minified code.`
     ),
     skippable: true,
@@ -125,7 +123,7 @@ const TASKS = [
   {
     task: 10,
     title: t('Set up an alerts service'),
-    description: t('Receive Sentry alerts in Slack'),
+    description: t('Receive Sentry alerts in Slack, PagerDuty, and more.'),
     skippable: true,
     prereq: [1, 2],
     featureLocation: 'project',

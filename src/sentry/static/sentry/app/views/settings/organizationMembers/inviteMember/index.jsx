@@ -42,9 +42,9 @@ const STATIC_ROLE_LIST = [
   },
   {
     id: 'owner',
-    name: 'Owner',
+    name: 'Organization Owner',
     desc:
-      'Gains full permission across the organization. Can manage members as well as perform catastrophic operations such as removing the organization.',
+      'Unrestricted access to the organization, its data, and its settings. Can add, modify, and delete projects and members, as well as make billing and plan changes.',
   },
 ];
 

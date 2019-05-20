@@ -2015,14 +2015,14 @@ exports[`Sidebar can have onboarding feature 1`] = `
                           Object {
                             "description": "Bring your team aboard",
                             "detailedDescription": "Let Sentry help your team triage and assign issues. Improve your workflow
-          by unlocking suggested owners, mentions, and assignment.",
+          by unlocking mentions, assignment, and suggested issue owners.",
                             "display": true,
                             "featureLocation": "organization",
                             "location": "members/",
                             "prereq": Array [],
                             "skippable": true,
                             "task": 3,
-                            "title": "Invite team member",
+                            "title": "Invite team members",
                           }
                         }
                       >
@@ -2060,14 +2060,14 @@ exports[`Sidebar can have onboarding feature 1`] = `
                             Object {
                               "description": "Bring your team aboard",
                               "detailedDescription": "Let Sentry help your team triage and assign issues. Improve your workflow
-          by unlocking suggested owners, mentions, and assignment.",
+          by unlocking mentions, assignment, and suggested issue owners.",
                               "display": true,
                               "featureLocation": "organization",
                               "location": "members/",
                               "prereq": Array [],
                               "skippable": true,
                               "task": 3,
-                              "title": "Invite team member",
+                              "title": "Invite team members",
                             }
                           }
                         >
@@ -2104,7 +2104,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                         <h4
                                           className="css-158to6c-ItemHeader e1a4o5476"
                                         >
-                                          Invite team member
+                                          Invite team members
                                         </h4>
                                       </ItemHeader>
                                     </a>
@@ -2317,7 +2317,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                         task={
                           Object {
                             "description": "Add Sentry to a second platform",
-                            "detailedDescription": "Cross platform functionality to support both your frontend and backend.",
+                            "detailedDescription": "Capture errors from both your front and back ends.",
                             "display": true,
                             "featureLocation": "organization",
                             "location": "projects/new/",
@@ -2364,7 +2364,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                           task={
                             Object {
                               "description": "Add Sentry to a second platform",
-                              "detailedDescription": "Cross platform functionality to support both your frontend and backend.",
+                              "detailedDescription": "Capture errors from both your front and back ends.",
                               "display": true,
                               "featureLocation": "organization",
                               "location": "projects/new/",
@@ -2625,7 +2625,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                           Object {
                             "description": "Know who is being affected by crashes",
                             "detailedDescription": "Unlock features that let you
-          drill down into the number of users affected by an issue as well as get a broader sense about the quality of the application.",
+          drill down into the number of users affected by an issue and get a broader sense about the quality of your application.",
                             "display": true,
                             "featureLocation": "absolute",
                             "location": "https://docs.sentry.io/enriching-error-data/context/#capturing-the-user",
@@ -2673,7 +2673,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                             Object {
                               "description": "Know who is being affected by crashes",
                               "detailedDescription": "Unlock features that let you
-          drill down into the number of users affected by an issue as well as get a broader sense about the quality of the application.",
+          drill down into the number of users affected by an issue and get a broader sense about the quality of your application.",
                               "display": true,
                               "featureLocation": "absolute",
                               "location": "https://docs.sentry.io/enriching-error-data/context/#capturing-the-user",
@@ -2933,8 +2933,8 @@ exports[`Sidebar can have onboarding feature 1`] = `
                         task={
                           Object {
                             "description": "See which releases cause errors",
-                            "detailedDescription": "Set up commits for additional context when determining the cause of an issue
-          e.g. suggested owners and resolve issues via commit messages.",
+                            "detailedDescription": "Set up releases and associate commits to gain additional context when determining the cause of an issue
+          and unlock the ability to resolve issues via commit message.",
                             "display": true,
                             "featureLocation": "project",
                             "location": "settings/release-tracking/",
@@ -2981,8 +2981,8 @@ exports[`Sidebar can have onboarding feature 1`] = `
                           task={
                             Object {
                               "description": "See which releases cause errors",
-                              "detailedDescription": "Set up commits for additional context when determining the cause of an issue
-          e.g. suggested owners and resolve issues via commit messages.",
+                              "detailedDescription": "Set up releases and associate commits to gain additional context when determining the cause of an issue
+          and unlock the ability to resolve issues via commit message.",
                               "display": true,
                               "featureLocation": "project",
                               "location": "settings/release-tracking/",
@@ -3242,7 +3242,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                         task={
                           Object {
                             "description": "Deminify JavaScript stack traces",
-                            "detailedDescription": "View source code context obtained from stack traces in their
+                            "detailedDescription": "View source code context obtained from stack traces in its
           original untransformed form, which is particularly useful for debugging minified code.",
                             "display": true,
                             "featureLocation": "absolute",
@@ -3290,7 +3290,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                           task={
                             Object {
                               "description": "Deminify JavaScript stack traces",
-                              "detailedDescription": "View source code context obtained from stack traces in their
+                              "detailedDescription": "View source code context obtained from stack traces in its
           original untransformed form, which is particularly useful for debugging minified code.",
                               "display": true,
                               "featureLocation": "absolute",

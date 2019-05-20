@@ -314,7 +314,7 @@ export default class SelectOwners extends React.Component {
         disabled={this.props.disabled}
         cache={false}
         valueComponent={ValueComponent}
-        placeholder={t('Add Owners')}
+        placeholder={t('owners')}
         onInputChange={this.handleInputChange}
         onChange={this.handleChange}
         value={this.props.value}
