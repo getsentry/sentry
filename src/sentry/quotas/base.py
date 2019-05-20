@@ -76,19 +76,14 @@ class Quota(Service):
         # XXX(epurkhiser): Avoid excessive feature manager checks (which can be
         # expensive depending on feature handlers) for project rate limits.
         # This happens on /store.
-        cache_key = u'project:{}:key:{}:rate-limits'.format(
-            key.project.id,
-            key.id,
-        )
+        cache_key = u'project:{}:features:rate-limits'.format(key.project.id)
 
-        rate_limit = default_cache.get(cache_key)
-        if rate_limit is None:
+        has_rate_limits = default_cache.get(cache_key)
+        if has_rate_limits is None:
             has_rate_limits = features.has('projects:rate-limits', key.project)
-            rate_limit = key.rate_limit if has_rate_limits else (0, 0)
+            default_cache.set(cache_key, has_rate_limits, 600)
 
-            default_cache.set(cache_key, rate_limit, 600)
-
-        return rate_limit
+        return key.rate_limit if has_rate_limits else (0, 0)
 
     def get_project_quota(self, project):
         from sentry.models import Organization, OrganizationOption
