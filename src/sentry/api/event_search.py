@@ -6,7 +6,8 @@ from datetime import datetime
 
 import six
 from django.utils.functional import cached_property
-from parsimonious.exceptions import ParseError
+from parsimonious.expressions import Optional
+from parsimonious.exceptions import IncompleteParseError, ParseError
 from parsimonious.nodes import Node
 from parsimonious.grammar import Grammar, NodeVisitor
 
@@ -81,15 +82,15 @@ def translate(pat):
 # ?              // allow to be empty (allow empty quotes)
 # "              // quote literal
 
-
 event_search_grammar = Grammar(r"""
-search               = (boolean_term / search_term)*
-boolean_term         = search_term (boolean_operator search_term)+
+search               = (boolean_term / paren_term / search_term)*
+boolean_term         = (paren_term / search_term) space? (boolean_operator space? (paren_term / search_term) space?)+
+paren_term           = space? open_paren space? (paren_term / boolean_term)+ space? closed_paren space?
 search_term          = key_val_term / quoted_raw_search / raw_search
 key_val_term         = space? (time_filter / rel_time_filter / specific_time_filter
                        / numeric_filter / has_filter / is_filter / basic_filter)
                        space?
-raw_search           = (!key_val_term ~r"\ *([^\ ^\n]+)\ *" )*
+raw_search           = (!key_val_term ~r"\ *([^\ ^\n ()]+)\ *" )*
 quoted_raw_search    = spaces quoted_value spaces
 
 # standard key:val filter
@@ -109,7 +110,7 @@ is_filter            = negation? "is" sep search_value
 
 search_key           = key / quoted_key
 search_value         = quoted_value / value
-value                = ~r"\S*"
+value                = ~r"[^()\s]*"
 quoted_value         = ~r"\"((?:[^\"]|(?<=\\)[\"])*)?\""s
 key                  = ~r"[a-zA-Z0-9_\.-]+"
 # only allow colons in quoted keys
@@ -123,6 +124,8 @@ rel_date_format      = ~r"[\+\-][0-9]+[wdhm](?=\s|$)"
 # even if the operator is <=
 boolean_operator     = "OR" / "AND"
 operator             = ">=" / "<=" / ">" / "<" / "=" / "!="
+open_paren           = "("
+closed_paren         = ")"
 sep                  = ":"
 space                = " "
 negation             = "!"
@@ -248,6 +251,16 @@ class SearchVisitor(NodeVisitor):
 
         return children
 
+    def remove_optional_nodes(self, children):
+        def is_not_optional(child):
+            return not(isinstance(child, Node) and isinstance(child.expr, Optional))
+        return filter(is_not_optional, children)
+
+    def remove_space(self, children):
+        def is_not_space(child):
+            return not(isinstance(child, Node) and child.text == ' ')
+        return filter(is_not_space, children)
+
     def visit_search(self, node, children):
         return self.flatten(children)
 
@@ -300,7 +313,17 @@ class SearchVisitor(NodeVisitor):
             return result
 
         children = self.flatten(children)
+        children = self.remove_optional_nodes(children)
+        children = self.remove_space(children)
+
         return [build_boolean_tree(children, 0, len(children))]
+
+    def visit_paren_term(self, node, children):
+        children = self.flatten(children)
+        children = self.remove_optional_nodes(children)
+        children = self.remove_space(children)
+
+        return self.flatten(children[1])
 
     def visit_numeric_filter(self, node, children):
         (search_key, _, operator, search_value) = children
@@ -436,6 +459,12 @@ class SearchVisitor(NodeVisitor):
     def visit_search_value(self, node, children):
         return SearchValue(children[0])
 
+    def visit_closed_paren(self, node, children):
+        return node.text
+
+    def visit_open_paren(self, node, children):
+        return node.text
+
     def visit_boolean_operator(self, node, children):
         return node.text
 
@@ -557,6 +586,11 @@ def get_snuba_query_args(query=None, params=None):
         except ParseError as e:
             raise InvalidSearchQuery(
                 u'Parse error: %r (column %d)' % (e.expr.name, e.column())
+            )
+        except IncompleteParseError as e:
+            raise InvalidSearchQuery(
+                'Parse error: Search did not parse completely. This is commonly caused by unmatched-parenthesis. '
+                + six.text_type(e)
             )
 
     # Keys included as url params take precedent if same key is included in search
