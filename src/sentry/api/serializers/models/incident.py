@@ -55,7 +55,6 @@ class IncidentSerializer(Serializer):
             'dateDetected': obj.date_detected,
             'dateAdded': obj.date_added,
             'dateClosed': obj.date_closed,
-            'hasSeen': attrs['has_seen'],
             'eventStats': serializer.serialize(attrs['event_stats']),
             'totalEvents': aggregates['count'],
             'uniqueUsers': aggregates['unique_users'],
@@ -63,31 +62,29 @@ class IncidentSerializer(Serializer):
 
 
 class DetailedIncidentSerializer(IncidentSerializer):
-    def get_attrs(self, item_list, user, **kwargs):
-        results = super(DetailedIncidentSerializer, self).get_attrs(item_list, user)
-        seen_incidents = dict(
-            IncidentSeen.objects.filter(
-                incident__in=item_list
-            ).select_related('user').values_list('incident_id', 'last_seen')
-        )
-
-        for incident in item_list:
-            active_date = incident.date_started
-            results[incident]['has_seen'] = seen_incidents.get(
-                incident.id, active_date) > active_date
-
-        return results
-
-    def _get_incident_seen_list(self, incident):
+    def _get_incident_seen_list(self, incident, user):
         incident_seen = list(IncidentSeen.objects.filter(
             incident=incident
         ).select_related('user').order_by('-last_seen'))
-        return [serialize(seenby) for seenby in incident_seen]
+
+        seen_by_list = []
+        has_seen = False
+
+        for seen_by in incident_seen:
+            if seen_by.user == user:
+                has_seen = True
+            seen_by_list.append(serialize(seen_by))
+
+        return {
+            'seen_by': seen_by_list,
+            'has_seen': has_seen,
+        }
 
     def serialize(self, obj, attrs, user):
         context = super(DetailedIncidentSerializer, self).serialize(obj, attrs, user)
+        seen_list = self._get_incident_seen_list(obj, user)
         context.update({
-            'seenBy': self._get_incident_seen_list(obj),
-            'hasSeen': attrs['has_seen'],
+            'seenBy': seen_list['seen_by'],
+            'hasSeen': seen_list['has_seen'],
         })
         return context

@@ -12,7 +12,6 @@ from sentry.api.serializers import serialize
 from sentry.incidents.models import (
     Incident,
     IncidentActivity,
-    IncidentSeen,
     IncidentStatus,
 )
 from sentry.testutils import APITestCase
@@ -125,29 +124,3 @@ class OrganizationIncidentUpdateStatusTest(BaseIncidentDetailsTest, APITestCase)
             )
             assert resp.status_code == 400
             assert resp.data['status'][0].startswith('Invalid value for status')
-
-    def test_set_has_seen(self):
-        incident = self.create_incident()
-        with self.feature('organizations:incidents'):
-            new_user = self.create_user()
-            self.create_member(user=new_user, organization=self.organization, teams=[self.team])
-            self.login_as(new_user)
-
-            resp = self.get_response(
-                incident.organization.slug,
-                incident.identifier,
-                hasSeen=True
-            )
-
-            assert resp.status_code == 200
-            assert resp.data['hasSeen']
-            assert len(resp.data['seenBy']) == 1
-            assert resp.data['seenBy'][0]['username'] == new_user.username
-
-        seen_incidents = IncidentSeen.objects.filter(incident=incident)
-        assert len(seen_incidents) == 1
-        assert seen_incidents[0].user == new_user
-
-        # does not change status
-        incident = Incident.objects.get(id=incident.id)
-        assert incident.status == IncidentStatus.DETECTED.value

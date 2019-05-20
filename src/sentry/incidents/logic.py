@@ -120,15 +120,14 @@ def update_incident_status(incident, status, user=None, comment=None):
 
 def set_incident_seen(incident, user=None):
     """
-    Updates the status of an Incident and write an IncidentActivity row to log
-    the change. When the status is CLOSED we also set the date closed to the
-    current time and (todo) take a snapshot of the current incident state.
+    Updates the incident to be seen
     """
     incident_seen, created = IncidentSeen.objects.create_or_update(
         incident=incident,
         user=user,
-        last_seen=timezone.now(),
+        values={'last_seen': timezone.now()}
     )
+
     return incident_seen
 
 

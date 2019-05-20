@@ -49,6 +49,7 @@ from .endpoints.group_tombstone_details import GroupTombstoneDetailsEndpoint
 from .endpoints.group_tombstone import GroupTombstoneEndpoint
 from .endpoints.group_user_reports import GroupUserReportsEndpoint
 from .endpoints.organization_incident_details import OrganizationIncidentDetailsEndpoint
+from .endpoints.organization_incident_seen import OrganizationIncidentSeenEndpoint
 from .endpoints.index import IndexEndpoint
 from .endpoints.internal_queue_tasks import InternalQueueTasksEndpoint
 from .endpoints.internal_quotas import InternalQuotasEndpoint
@@ -429,6 +430,12 @@ urlpatterns = patterns(
         r'^organizations/(?P<organization_slug>[^\/]+)/incidents/(?P<incident_identifier>[^\/]+)/comments/$',
         OrganizationIncidentCommentIndexEndpoint.as_view(),
         name='sentry-api-0-organization-incident-comments'
+    ),
+
+    url(
+        r'^organizations/(?P<organization_slug>[^\/]+)/incidents/(?P<incident_identifier>[^\/]+)/seen/$',
+        OrganizationIncidentSeenEndpoint.as_view(),
+        name='sentry-api-0-organization-incident-seen'
     ),
 
     # Organizations
