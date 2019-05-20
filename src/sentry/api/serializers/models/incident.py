@@ -30,6 +30,7 @@ class IncidentSerializer(Serializer):
             incident_projects[incident_project.incident_id].append(incident_project.project.slug)
 
         results = {}
+
         for incident in item_list:
             results[incident] = {
                 'projects': incident_projects.get(incident.id, []),
@@ -61,15 +62,29 @@ class IncidentSerializer(Serializer):
 
 
 class DetailedIncidentSerializer(IncidentSerializer):
-    def _get_incident_seen_list(self, incident):
+    def _get_incident_seen_list(self, incident, user):
         incident_seen = list(IncidentSeen.objects.filter(
             incident=incident
         ).select_related('user').order_by('-last_seen'))
-        return [serialize(seenby) for seenby in incident_seen]
+
+        seen_by_list = []
+        has_seen = False
+
+        for seen_by in incident_seen:
+            if seen_by.user == user:
+                has_seen = True
+            seen_by_list.append(serialize(seen_by))
+
+        return {
+            'seen_by': seen_by_list,
+            'has_seen': has_seen,
+        }
 
     def serialize(self, obj, attrs, user):
         context = super(DetailedIncidentSerializer, self).serialize(obj, attrs, user)
+        seen_list = self._get_incident_seen_list(obj, user)
         context.update({
-            'seenBy': self._get_incident_seen_list(obj)
+            'seenBy': seen_list['seen_by'],
+            'hasSeen': seen_list['has_seen'],
         })
         return context
