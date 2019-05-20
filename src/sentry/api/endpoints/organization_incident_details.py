@@ -21,16 +21,15 @@ class IncidentSerializer(serializers.Serializer):
     comment = serializers.CharField(required=False)
 
     def validate_status(self, attrs, source):
-        if source in attrs:
-            value = attrs[source]
-            try:
-                attrs[source] = IncidentStatus(value)
-            except Exception:
-                raise serializers.ValidationError(
-                    'Invalid value for status. Valid values: {}'.format(
-                        [e.value for e in IncidentStatus],
-                    ),
-                )
+        value = attrs[source]
+        try:
+            attrs[source] = IncidentStatus(value)
+        except Exception:
+            raise serializers.ValidationError(
+                'Invalid value for status. Valid values: {}'.format(
+                    [e.value for e in IncidentStatus],
+                ),
+            )
         return attrs
 
 
