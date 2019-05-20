@@ -80,10 +80,10 @@ class OrganizationIncidentDetails extends React.Component {
       : INCIDENT_STATUS.CREATED;
 
     this.setState(state => ({
-      incident: {...state.incident, newStatus},
+      incident: {...state.incident, status: newStatus},
     }));
 
-    updateStatus(api, orgId, incidentId, status).catch(() => {
+    updateStatus(api, orgId, incidentId, newStatus).catch(() => {
       this.setState(state => ({
         incident: {...state.incident, status},
       }));
