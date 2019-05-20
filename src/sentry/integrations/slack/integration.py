@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 from django.utils.translation import ugettext_lazy as _
+from django.conf import settings
 
 from sentry import http
 from sentry.identity.pipeline import IdentityProviderPipeline
@@ -68,7 +69,12 @@ class SlackIntegrationProvider(IntegrationProvider):
         IntegrationFeatures.ALERT_RULE,
     ])
 
+    # Scopes differ depending on if it's a workspace app
     identity_oauth_scopes = frozenset([
+        'bot',
+        'links:read',
+        'links:write',
+    ]) if not settings.SLACK_INTEGRATION_USE_WST else frozenset([
         'channels:read',
         'groups:read',
         'users:read',
@@ -110,25 +116,51 @@ class SlackIntegrationProvider(IntegrationProvider):
 
         return resp['team']
 
+    def get_identity(self, user_token):
+        payload = {
+            'token': user_token,
+        }
+
+        session = http.build_session()
+        resp = session.get('https://slack.com/api/auth.test', params=payload)
+        resp.raise_for_status()
+        resp = resp.json()
+
+        return resp['user_id']
+
     def build_integration(self, state):
         data = state['identity']['data']
         assert data['ok']
 
+        if settings.SLACK_INTEGRATION_USE_WST:
+            access_token = data['access_token']
+            user_id_slack = data['authorizing_user_id']
+        else:
+            access_token = data['bot']['bot_access_token']
+            user_id_slack = self.get_identity(data['access_token'])
+
         scopes = sorted(self.identity_oauth_scopes)
-        team_data = self.get_team_info(data['access_token'])
+        team_data = self.get_team_info(access_token)
+
+        metadata = {
+            'access_token': access_token,
+            'scopes': scopes,
+            'icon': team_data['icon']['image_132'],
+            'domain_name': team_data['domain'] + '.slack.com',
+        }
+
+        # When using bot tokens, we must use the user auth token for URL
+        # unfurling
+        if not settings.SLACK_INTEGRATION_USE_WST:
+            metadata['user_access_token'] = data['access_token']
 
         return {
             'name': data['team_name'],
             'external_id': data['team_id'],
-            'metadata': {
-                'access_token': data['access_token'],
-                'scopes': scopes,
-                'icon': team_data['icon']['image_132'],
-                'domain_name': team_data['domain'] + '.slack.com',
-            },
+            'metadata': metadata,
             'user_identity': {
                 'type': 'slack',
-                'external_id': data['authorizing_user_id'],
+                'external_id': user_id_slack,
                 'scopes': [],
                 'data': {},
             },

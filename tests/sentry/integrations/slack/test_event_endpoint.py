@@ -2,6 +2,7 @@ from __future__ import absolute_import
 
 import json
 import responses
+from django.test.utils import override_settings
 
 from sentry import options
 from sentry.models import Integration, OrganizationIntegration
@@ -40,6 +41,7 @@ LINK_SHARED_EVENT = """{
 }"""
 
 
+@override_settings(SLACK_INTEGRATION_USE_WST=True)
 class BaseEventTest(APITestCase):
     def setUp(self):
         super(BaseEventTest, self).setUp()
@@ -50,7 +52,6 @@ class BaseEventTest(APITestCase):
             external_id='TXXXXXXX1',
             metadata={
                 'access_token': 'xoxp-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx',
-                'bot_access_token': 'xoxb-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx',
             }
         )
         OrganizationIntegration.objects.create(
