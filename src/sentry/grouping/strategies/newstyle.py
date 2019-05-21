@@ -130,6 +130,11 @@ def get_module_component_v1(abs_path, module, platform):
                 values=['sun.reflect.GeneratedMethodAccessor'],
                 hint='removed reflection marker',
             )
+        elif module[:44] == 'jdk.internal.reflect.GeneratedMethodAccessor':
+            module_component.update(
+                values=['jdk.internal.reflect.GeneratedMethodAccessor'],
+                hint='removed reflection marker',
+            )
         else:
             old_module = module
             module = _java_reflect_enhancer_re.sub(r'\1<auto>', module)
