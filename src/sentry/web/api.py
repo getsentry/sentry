@@ -28,7 +28,7 @@ from functools import wraps
 from querystring_parser import parser
 from symbolic import ProcessMinidumpError, Unreal4Error
 
-from sentry import features, quotas, options
+from sentry import features, quotas
 from sentry.attachments import CachedAttachment
 from sentry.coreapi import (
     Auth, APIError, APIForbidden, APIRateLimited, ClientApiHelper, ClientAuthHelper,
@@ -41,7 +41,7 @@ from sentry.lang.native.unreal import process_unreal_crash, merge_apple_crash_re
     unreal_attachment_type, merge_unreal_context_event, merge_unreal_logs_event
 from sentry.lang.native.minidump import merge_process_state_event, process_minidump, \
     merge_attached_event, merge_attached_breadcrumbs, MINIDUMP_ATTACHMENT_TYPE
-from sentry.models import Project, OrganizationOption, Organization
+from sentry.models import Project, OrganizationOption
 from sentry.signals import (
     event_accepted, event_dropped, event_filtered, event_received)
 from sentry.quotas.base import RateLimit
@@ -57,6 +57,7 @@ from sentry.utils.outcomes import Outcome, track_outcome
 from sentry.utils.pubsub import QueuedPublisherService, KafkaPublisher
 from sentry.utils.safe import safe_execute
 from sentry.web.helpers import render_to_response
+from sentry.web.relay_config import get_full_relay_config
 
 logger = logging.getLogger('sentry')
 minidumps_logger = logging.getLogger('sentry.minidumps')
@@ -167,7 +168,7 @@ def process_event(event_manager, project, key, remote_addr, helper, attachments)
 
     # TODO(dcramer): ideally we'd only validate this if the event_id was
     # supplied by the user
-    cache_key = 'ev:%s:%s' % (project.id, event_id, )
+    cache_key = 'ev:%s:%s' % (project.id, event_id,)
 
     if cache.get(cache_key) is not None:
         track_outcome(
@@ -233,40 +234,30 @@ def process_event(event_manager, project, key, remote_addr, helper, attachments)
 class APIView(BaseView):
     auth_helper_cls = ClientAuthHelper
 
-    def _get_project_from_id(self, project_id):
-        if not project_id:
-            return
-        if not project_id.isdigit():
-            track_outcome(0, 0, None, Outcome.INVALID, "project_id")
-            raise APIError('Invalid project_id: %r' % project_id)
-        try:
-            return Project.objects.get_from_cache(id=project_id)
-        except Project.DoesNotExist:
-            track_outcome(0, 0, None, Outcome.INVALID, "project_id")
-            raise APIError('Invalid project_id: %r' % project_id)
-
     def _parse_header(self, request, helper, project):
         auth = self.auth_helper_cls.auth_from_request(request)
 
         if auth.version not in PROTOCOL_VERSIONS:
-            track_outcome(
-                project.organization_id,
-                project.id,
-                None,
-                Outcome.INVALID,
-                "auth_version")
+            if project is not None:
+                track_outcome(
+                    project.organization_id,
+                    project.id,
+                    None,
+                    Outcome.INVALID,
+                    "auth_version")
             raise APIError(
                 'Client using unsupported server protocol version (%r)' %
                 six.text_type(auth.version or '')
             )
 
         if not auth.client:
-            track_outcome(project.organization_id, project.id, None, Outcome.INVALID, "auth_client")
+            if project is not None:
+                track_outcome(project.organization_id, project.id, None, Outcome.INVALID, "auth_client")
             raise APIError("Client did not send 'client' identifier")
 
         return auth
 
-    def _publish_to_kafka(self, request):
+    def _publish_to_kafka(self, request, relay_config):
         """
         Sends raw event data to Kafka for later offline processing.
         """
@@ -274,11 +265,13 @@ class APIView(BaseView):
             # This may fail when we e.g. send a multipart form. We ignore those errors for now.
             data = request.body
 
-            if not data or len(data) > options.get('kafka-publisher.max-event-size'):
+            max_event_size = relay_config.kafka_max_event_size
+            if not data or max_event_size is None or len(data) > max_event_size:
                 return
 
             # Sampling
-            if random.random() >= options.get('kafka-publisher.raw-event-sample-rate'):
+            raw_event_sample_rate = relay_config.kafka_raw_event_sample_rate
+            if raw_event_sample_rate is None or random.random() >= raw_event_sample_rate:
                 return
 
             # We want to send only serializable items from request.META
@@ -302,21 +295,27 @@ class APIView(BaseView):
     @csrf_exempt
     @never_cache
     def dispatch(self, request, project_id=None, *args, **kwargs):
-        helper = ClientApiHelper(
-            agent=request.META.get('HTTP_USER_AGENT'),
-            project_id=project_id,
-            ip_address=request.META['REMOTE_ADDR'],
-        )
-        origin = None
-
-        if kafka_publisher is not None:
-            self._publish_to_kafka(request)
-
         try:
+            origin = None
+            helper = ClientApiHelper(
+                agent=request.META.get('HTTP_USER_AGENT'),
+                project_id=project_id,
+                ip_address=request.META['REMOTE_ADDR'],
+            )
+            relay_config = get_full_relay_config(project_id, request, helper, self.auth_helper_cls)
+
+            project = relay_config.project
+            if project:
+                helper.context.bind_project(project)
+
+            if kafka_publisher is not None:
+                self._publish_to_kafka(request, relay_config)
+
             origin = self.auth_helper_cls.origin_from_request(request)
 
             response = self._dispatch(
-                request, helper, project_id=project_id, origin=origin, *args, **kwargs
+                request, helper, project_id=project_id, origin=origin,
+                relay_config=relay_config, *args, **kwargs
             )
         except APIError as e:
             context = {
@@ -349,7 +348,7 @@ class APIView(BaseView):
         # tsdb could optimize this
         metrics.incr('client-api.all-versions.requests', skip_internal=False)
         metrics.incr('client-api.all-versions.responses.%s' %
-                     (response.status_code, ), skip_internal=False)
+                     (response.status_code,), skip_internal=False)
         metrics.incr(
             'client-api.all-versions.responses.%sxx' % (six.text_type(response.status_code)[0],),
             skip_internal=False,
@@ -357,7 +356,7 @@ class APIView(BaseView):
 
         if helper.context.version:
             metrics.incr(
-                'client-api.v%s.requests' % (helper.context.version, ),
+                'client-api.v%s.requests' % (helper.context.version,),
                 skip_internal=False,
             )
             metrics.incr(
@@ -385,12 +384,11 @@ class APIView(BaseView):
 
         return response
 
-    def _dispatch(self, request, helper, project_id=None, origin=None, *args, **kwargs):
+    def _dispatch(self, request, helper, project_id=None, origin=None, relay_config=None, *args,
+                  **kwargs):
         request.user = AnonymousUser()
 
-        project = self._get_project_from_id(project_id)
-        if project:
-            helper.context.bind_project(project)
+        project = relay_config.project
 
         if origin is not None:
             # This check is specific for clients who need CORS support
@@ -414,20 +412,10 @@ class APIView(BaseView):
             key = helper.project_key_from_auth(auth)
 
             # Legacy API was /api/store/ and the project ID was only available elsewhere
-            if not project:
-                project = Project.objects.get_from_cache(id=key.project_id)
-                helper.context.bind_project(project)
-            elif key.project_id != project.id:
+            if project and key.project_id != project.id:
                 raise APIError('Two different projects were specified')
 
             helper.context.bind_auth(auth)
-
-            # Explicitly bind Organization so we don't implicitly query it later
-            # this just allows us to comfortably assure that `project.organization` is safe.
-            # This also allows us to pull the object from cache, instead of being
-            # implicitly fetched from database.
-            project.organization = Organization.objects.get_from_cache(
-                id=project.organization_id)
 
             response = super(APIView, self).dispatch(
                 request=request, project=project, auth=auth, helper=helper, key=key, **kwargs
@@ -576,7 +564,8 @@ class MinidumpView(StoreView):
     auth_helper_cls = MinidumpAuthHelper
     content_types = ('multipart/form-data', )
 
-    def _dispatch(self, request, helper, project_id=None, origin=None, *args, **kwargs):
+    def _dispatch(self, request, helper, project_id=None, origin=None, relay_config=None, config_flags=None, *args,
+                  **kwargs):
         # TODO(ja): Refactor shared code with CspReportView. Especially, look at
         # the sentry_key override and test it.
 
@@ -597,7 +586,7 @@ class MinidumpView(StoreView):
 
         request.user = AnonymousUser()
 
-        project = self._get_project_from_id(project_id)
+        project = relay_config.project
         helper.context.bind_project(project)
 
         # This is yanking the auth from the querystring since it's not
@@ -783,7 +772,8 @@ class MinidumpView(StoreView):
 class UnrealView(StoreView):
     content_types = ('application/octet-stream', )
 
-    def _dispatch(self, request, helper, sentry_key, project_id=None, origin=None, *args, **kwargs):
+    def _dispatch(self, request, helper, sentry_key, project_id=None, origin=None, relay_config=None,
+                  config_flags=None, *args, **kwargs):
         if request.method != 'POST':
             track_outcome(0, 0, None, Outcome.INVALID, "disallowed_method")
             return HttpResponseNotAllowed(['POST'])
@@ -795,8 +785,7 @@ class UnrealView(StoreView):
 
         request.user = AnonymousUser()
 
-        project = self._get_project_from_id(project_id)
-        helper.context.bind_project(project)
+        project = relay_config.project
 
         auth = Auth({'sentry_key': sentry_key}, is_public=False)
         auth.client = 'sentry.unreal_engine'
@@ -911,7 +900,8 @@ class SecurityReportView(StoreView):
         'application/expect-staple-report',
     )
 
-    def _dispatch(self, request, helper, project_id=None, origin=None, *args, **kwargs):
+    def _dispatch(self, request, helper, project_id=None, origin=None, relay_config=None,
+                  config_flags=None, *args, **kwargs):
         # A CSP report is sent as a POST request with no Origin or Referer
         # header. What we're left with is a 'document-uri' key which is
         # inside of the JSON body of the request. This 'document-uri' value
@@ -928,7 +918,7 @@ class SecurityReportView(StoreView):
 
         request.user = AnonymousUser()
 
-        project = self._get_project_from_id(project_id)
+        project = relay_config.project
         helper.context.bind_project(project)
 
         # This is yanking the auth from the querystring since it's not
