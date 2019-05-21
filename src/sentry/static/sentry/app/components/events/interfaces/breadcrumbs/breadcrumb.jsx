@@ -57,7 +57,7 @@ class Breadcrumb extends React.Component {
             <span className="icon" />
           </span>
           {defined(crumb.timestamp) ? (
-            <Tooltip title={moment(crumb.timestamp).format()}>
+            <Tooltip title={moment(crumb.timestamp).format('lll')}>
               <span className="dt">{moment(crumb.timestamp).format('HH:mm:ss')}</span>
             </Tooltip>
           ) : (
