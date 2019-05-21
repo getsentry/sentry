@@ -13,7 +13,6 @@ from requests.exceptions import ConnectionError, Timeout, HTTPError
 from sentry.exceptions import InvalidIdentity
 from sentry.http import build_session
 from sentry.utils import metrics
-from six.moves.urllib.parse import urlparse
 
 from .exceptions import (
     ApiHostError,
@@ -129,7 +128,10 @@ class ApiClient(object):
 
     allow_redirects = None
 
-    logger = logging.getLogger('sentry.plugins')
+    logger = logging.getLogger('sentry.integrations')
+
+    # Used in metrics and logging.
+    integration_name = 'undefined'
 
     def __init__(self, verify_ssl=True):
         self.verify_ssl = verify_ssl
@@ -158,10 +160,9 @@ class ApiClient(object):
             timeout = 30
 
         full_url = self.build_url(path)
-        host = urlparse(full_url).netloc
         session = build_session()
 
-        metrics.incr('integrations.http_request', tags={'host': host})
+        metrics.incr('integrations.http_request', tags={'integration': self.integration_name})
         try:
             resp = getattr(session, method.lower())(
                 url=full_url,
@@ -177,28 +178,29 @@ class ApiClient(object):
             resp.raise_for_status()
         except ConnectionError as e:
             metrics.incr('integrations.http_response', tags={
-                'host': host,
+                'integration': self.integration_name,
                 'status': 'connection_error'
             })
             raise ApiHostError.from_exception(e)
         except Timeout as e:
             metrics.incr('integrations.http_response', tags={
-                'host': host,
+                'integration': self.integration_name,
                 'status': 'timeout'
             })
             raise ApiTimeoutError.from_exception(e)
         except HTTPError as e:
             resp = e.response
             if resp is None:
-                track_response_code(host, 'unknown')
+                track_response_code(self.integration_name, 'unknown')
                 self.logger.exception('request.error', extra={
+                    'integration': self.integration_name,
                     'url': full_url,
                 })
                 raise ApiError('Internal Error')
-            track_response_code(host, resp.status_code)
+            track_response_code(self.integration_name, resp.status_code)
             raise ApiError.from_response(resp)
 
-        track_response_code(host, resp.status_code)
+        track_response_code(self.integration_name, resp.status_code)
         if resp.status_code == 204:
             return {}
 
