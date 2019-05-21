@@ -41,7 +41,7 @@ class OrganizationEventsContainer extends React.Component {
   };
 
   render() {
-    const {organization, location, children} = this.props;
+    const {organization, location, children, ...props} = this.props;
 
     const hasEventsV2 = new Set(organization.features).has('events-v2');
 
@@ -54,6 +54,8 @@ class OrganizationEventsContainer extends React.Component {
             )
           }
           organization={organization}
+          location={location}
+          {...props}
         />
       );
     }

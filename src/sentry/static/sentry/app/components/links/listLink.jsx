@@ -9,7 +9,7 @@ class ListLink extends React.Component {
 
   static propTypes = {
     activeClassName: PropTypes.string.isRequired,
-    to: PropTypes.string.isRequired,
+    to: PropTypes.oneOfType([PropTypes.object, PropTypes.string]).isRequired,
     query: PropTypes.object,
     onClick: PropTypes.func,
     index: PropTypes.bool,
