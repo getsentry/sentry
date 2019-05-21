@@ -92,6 +92,8 @@ class AuditLogEntryEvent(object):
     MONITOR_EDIT = 121
     MONITOR_REMOVE = 122
 
+    INTERNAL_INTEGRATION_ADD = 130
+
 
 class AuditLogEntry(Model):
     __core__ = False
@@ -163,6 +165,7 @@ class AuditLogEntry(Model):
             (AuditLogEntryEvent.SENTRY_APP_REMOVE, 'sentry-app.remove'),
             (AuditLogEntryEvent.SENTRY_APP_INSTALL, 'sentry-app.install'),
             (AuditLogEntryEvent.SENTRY_APP_UNINSTALL, 'sentry-app.uninstall'),
+            (AuditLogEntryEvent.INTERNAL_INTEGRATION_ADD, 'internal-integration.create'),
 
             (AuditLogEntryEvent.SET_ONDEMAND, 'ondemand.edit'),
             (AuditLogEntryEvent.TRIAL_STARTED, 'trial.started'),

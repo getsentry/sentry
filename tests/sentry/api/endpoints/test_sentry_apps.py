@@ -4,6 +4,7 @@ import six
 
 from django.core.urlresolvers import reverse
 
+from sentry.constants import SentryAppStatus
 from sentry.utils import json
 from sentry.testutils import APITestCase
 from sentry.testutils.helpers import with_feature
@@ -303,6 +304,16 @@ class PostSentryAppsTest(SentryAppsTest):
 
         assert response.status_code == 201, response.content
         assert response.data['scopes'] == []
+
+    @with_feature('organizations:sentry-apps')
+    def test_creates_internal_integration(self):
+        self.create_project(organization=self.org)
+        self.login_as(self.user)
+
+        response = self._post(isInternal=True)
+
+        assert response.data['slug'] == 'myapp'
+        assert response.data['status'] == SentryAppStatus.as_str(SentryAppStatus.INTERNAL)
 
     def _post(self, **kwargs):
         body = {

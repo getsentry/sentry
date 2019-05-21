@@ -678,34 +678,37 @@ class Factories(object):
         UserPermission.objects.create(user=user, permission=permission)
 
     @staticmethod
-    def create_sentry_app(name=None, author='Sentry', organization=None, published=False, scopes=(),
-                          webhook_url=None, user=None, **kwargs):
-        if not name:
-            name = petname.Generate(2, ' ', letters=10).title()
-        if not organization:
-            organization = Factories.create_organization()
-        if not webhook_url:
-            webhook_url = 'https://example.com/webhook'
+    def create_sentry_app(**kwargs):
+        app = sentry_apps.Creator.run(
+            **Factories._sentry_app_kwargs(**kwargs)
+        )
 
+        if kwargs.get('published'):
+            app.update(status=SentryAppStatus.PUBLISHED)
+
+        return app
+
+    @staticmethod
+    def create_internal_integration(**kwargs):
+        return sentry_apps.InternalCreator.run(
+            **Factories._sentry_app_kwargs(**kwargs)
+        )
+
+    @staticmethod
+    def _sentry_app_kwargs(**kwargs):
         _kwargs = {
-            'user': (user or Factories.create_user()),
-            'name': name,
-            'organization': organization,
-            'author': author,
-            'scopes': scopes,
-            'webhook_url': webhook_url,
+            'user': kwargs.get('user', Factories.create_user()),
+            'name': kwargs.get('name', petname.Generate(2, ' ', letters=10).title()),
+            'organization': kwargs.get('organization', Factories.create_organization()),
+            'author': kwargs.get('author', 'A Company'),
+            'scopes': kwargs.get('scopes', ()),
+            'webhook_url': kwargs.get('webhook_url', 'https://example.com/webhook'),
             'events': [],
             'schema': {},
         }
 
-        _kwargs.update(kwargs)
-
-        app = sentry_apps.Creator.run(**_kwargs)
-
-        if published:
-            app.update(status=SentryAppStatus.PUBLISHED)
-
-        return app
+        _kwargs.update(**kwargs)
+        return _kwargs
 
     @staticmethod
     def create_sentry_app_installation(organization=None, slug=None, user=None):

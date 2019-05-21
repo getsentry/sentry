@@ -5,9 +5,14 @@ import six
 from collections import Iterable
 
 from sentry import analytics
-from sentry.utils.audit import create_audit_entry
 from sentry.mediators import Mediator, Param
-from sentry.models import (AuditLogEntryEvent, ApiApplication, SentryApp, SentryAppComponent, User,)
+from sentry.models import (
+    AuditLogEntryEvent,
+    ApiApplication,
+    SentryApp,
+    SentryAppComponent,
+    User,
+)
 
 
 class Creator(Mediator):
@@ -71,6 +76,7 @@ class Creator(Mediator):
             )
 
     def audit(self):
+        from sentry.utils.audit import create_audit_entry
         if self.request:
             create_audit_entry(
                 request=self.request,

@@ -59,6 +59,18 @@ class GetOrganizationSentryAppsTest(OrganizationSentryAppsTest):
             }
         }])
 
+    def test_includes_internal_integrations(self):
+        self.create_project(organization=self.org)
+        internal_integration = self.create_internal_integration(
+            organization=self.org,
+        )
+
+        self.login_as(self.user)
+        response = self.client.get(self.url, format='json')
+
+        assert response.status_code == 200
+        assert internal_integration.uuid in [a['uuid'] for a in response.data]
+
     def test_cannot_see_apps_in_other_orgs(self):
         self.login_as(user=self.user)
         url = reverse('sentry-api-0-organization-sentry-apps', args=[self.super_org.slug])

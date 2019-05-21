@@ -382,6 +382,15 @@ class SentryAppStatus(object):
             (cls.INTERNAL, 'internal'),
         )
 
+    @classmethod
+    def as_str(cls, status):
+        if status == cls.UNPUBLISHED:
+            return 'unpublished'
+        elif status == cls.PUBLISHED:
+            return 'published'
+        elif status == cls.INTERNAL:
+            return 'internal'
+
 
 StatsPeriod = namedtuple('StatsPeriod', ('segments', 'interval'))
 
