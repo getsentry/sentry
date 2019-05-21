@@ -40,7 +40,7 @@ class EventsTableRow extends React.Component {
   };
 
   renderCrashFileLink() {
-    const {event} = this.props;
+    const {event, projectId} = this.props;
     if (!event.crashFile) {
       return null;
     }
@@ -49,7 +49,7 @@ class EventsTableRow extends React.Component {
       event.crashFile.type === 'event.minidump' ? 'Minidump' : 'Crash file';
 
     return (
-      <AttachmentUrl>
+      <AttachmentUrl projectId={projectId} event={event} attachment={event.crashFile}>
         {downloadUrl =>
           downloadUrl && (
             <small>
