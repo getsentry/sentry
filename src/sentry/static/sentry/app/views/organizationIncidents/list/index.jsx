@@ -10,6 +10,7 @@ import {t} from 'app/locale';
 import AsyncComponent from 'app/components/asyncComponent';
 import BetaTag from 'app/components/betaTag';
 import Button from 'app/components/button';
+import Count from 'app/components/count';
 import Duration from 'app/components/duration';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
 import Link from 'app/components/links/link';
@@ -53,8 +54,12 @@ class OrganizationIncidentsBody extends AsyncComponent {
           <div>
             <Duration seconds={duration} />
           </div>
-          <div>{incident.uniqueUsers}</div>
-          <div>{incident.totalEvents}</div>
+          <div>
+            <Count value={incident.uniqueUsers} />
+          </div>
+          <div>
+            <Count value={incident.totalEvents} />
+          </div>
         </TableLayout>
       </PanelItem>
     );

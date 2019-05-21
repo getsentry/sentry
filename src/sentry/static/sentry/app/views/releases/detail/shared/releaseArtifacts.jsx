@@ -14,7 +14,7 @@ import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import Pagination from 'app/components/pagination';
 import SentryTypes from 'app/sentryTypes';
-import Tooltip2 from 'app/components/tooltip2';
+import Tooltip from 'app/components/tooltip';
 import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
 
@@ -160,7 +160,7 @@ class ReleaseArtifacts extends React.Component {
                           <span className="icon icon-open" />
                         </a>
                       ) : (
-                        <Tooltip2
+                        <Tooltip
                           title={t(
                             'You do not have the required permission to download this artifact.'
                           )}
@@ -168,7 +168,7 @@ class ReleaseArtifacts extends React.Component {
                           <div className="btn btn-sm btn-default disabled">
                             <span className="icon icon-open" />
                           </div>
-                        </Tooltip2>
+                        </Tooltip>
                       )}
                       <div style={{marginLeft: 5}}>
                         <LinkWithConfirmation

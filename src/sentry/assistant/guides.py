@@ -94,10 +94,10 @@ GUIDES = {
                 'target': 'ignore_delete_discard',
             },
             {
-                'title': _('Owners'),
+                'title': _('Issue Owners'),
                 'message': _(
                     'Define users or teams that are responsible for specific paths or URLS so '
-                    'that notifications can be routed to the correct owner. Learn more '
+                    'that notifications can be routed to the correct people. Learn more '
                     '<a href="https://docs.sentry.io/learn/issue-owners/" target="_blank">here</a>.'),
                 'target': 'owners',
             },
@@ -110,8 +110,8 @@ GUIDES = {
         'steps': [
             {
                 'title': _('Releases'),
-                'message': _('A release is a specific version of your code deployed to an '
-                             'environment. When you tell Sentry about your releases, it can '
+                'message': _('A release is a specific version of your code.'
+                             'When you tell Sentry about your releases, it can '
                              'predict which commits caused an error and who might be a likely '
                              'owner.'),
                 'target': 'releases',

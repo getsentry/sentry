@@ -13,7 +13,13 @@ import {t} from 'app/locale';
  * @param {String} title Title of the incident
  * @param {String[]} groups List of group ids
  */
-export async function createIncident(api, organization, title, groups) {
+export async function createIncident(
+  api,
+  organization,
+  title,
+  groups,
+  dateStarted = new Date()
+) {
   addLoadingMessage(t('Creating new incident...'));
 
   try {
@@ -24,7 +30,7 @@ export async function createIncident(api, organization, title, groups) {
         data: {
           title,
           groups,
-          dateStarted: new Date(),
+          dateStarted,
           query: '',
         },
       }
@@ -86,5 +92,27 @@ export async function updateIncidentNote(api, incidentId, item, note) {
   } catch (err) {
     addErrorMessage(t('Unable to update comment'));
     throw err;
+  }
+}
+
+// This doesn't return anything because you shouldn't need to do anything with
+// the result success or fail
+export async function markIncidentAsSeen(api, orgId, incident) {
+  if (!incident || incident.hasSeen) {
+    return;
+  }
+
+  try {
+    await api.requestPromise(
+      `/organizations/${orgId}/incidents/${incident.identifier}/seen/`,
+      {
+        method: 'POST',
+        data: {
+          hasSeen: true,
+        },
+      }
+    );
+  } catch (err) {
+    // do nothing
   }
 }

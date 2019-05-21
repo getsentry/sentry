@@ -619,12 +619,12 @@ class PermissionTestCase(TestCase):
         self.team = self.create_team(organization=self.organization)
 
     def assert_can_access(self, user, path, method='GET', **kwargs):
-        self.login_as(user)
+        self.login_as(user, superuser=user.is_superuser)
         resp = getattr(self.client, method.lower())(path, **kwargs)
         assert resp.status_code >= 200 and resp.status_code < 300
 
     def assert_cannot_access(self, user, path, method='GET', **kwargs):
-        self.login_as(user)
+        self.login_as(user, superuser=user.is_superuser)
         resp = getattr(self.client, method.lower())(path, **kwargs)
         assert resp.status_code >= 300
 

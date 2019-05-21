@@ -49,6 +49,7 @@ from .endpoints.group_tombstone_details import GroupTombstoneDetailsEndpoint
 from .endpoints.group_tombstone import GroupTombstoneEndpoint
 from .endpoints.group_user_reports import GroupUserReportsEndpoint
 from .endpoints.organization_incident_details import OrganizationIncidentDetailsEndpoint
+from .endpoints.organization_incident_seen import OrganizationIncidentSeenEndpoint
 from .endpoints.index import IndexEndpoint
 from .endpoints.internal_queue_tasks import InternalQueueTasksEndpoint
 from .endpoints.internal_quotas import InternalQuotasEndpoint
@@ -80,6 +81,7 @@ from .endpoints.organization_shortid import ShortIdLookupEndpoint
 from .endpoints.organization_environments import OrganizationEnvironmentsEndpoint
 from .endpoints.organization_eventid import EventIdLookupEndpoint
 from .endpoints.organization_slugs import SlugsUpdateEndpoint
+from .endpoints.organization_incident_comment_index import OrganizationIncidentCommentIndexEndpoint
 from .endpoints.organization_incident_index import OrganizationIncidentIndexEndpoint
 from .endpoints.organization_issues_new import OrganizationIssuesNewEndpoint
 from .endpoints.organization_issues_resolved_in_release import OrganizationIssuesResolvedInReleaseEndpoint
@@ -420,9 +422,20 @@ urlpatterns = patterns(
         name='sentry-api-0-organization-incident-index'
     ),
     url(
-        r'^organizations/(?P<organization_slug>[^\/]+)/incidents/(?P<incident_id>[^\/]+)/$',
+        r'^organizations/(?P<organization_slug>[^\/]+)/incidents/(?P<incident_identifier>[^\/]+)/$',
         OrganizationIncidentDetailsEndpoint.as_view(),
         name='sentry-api-0-organization-incident-details'
+    ),
+    url(
+        r'^organizations/(?P<organization_slug>[^\/]+)/incidents/(?P<incident_identifier>[^\/]+)/comments/$',
+        OrganizationIncidentCommentIndexEndpoint.as_view(),
+        name='sentry-api-0-organization-incident-comments'
+    ),
+
+    url(
+        r'^organizations/(?P<organization_slug>[^\/]+)/incidents/(?P<incident_identifier>[^\/]+)/seen/$',
+        OrganizationIncidentSeenEndpoint.as_view(),
+        name='sentry-api-0-organization-incident-seen'
     ),
 
     # Organizations

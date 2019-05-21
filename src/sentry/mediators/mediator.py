@@ -153,15 +153,15 @@ class Mediator(object):
             param.setup(cls, name)
 
     @classmethod
-    @transaction.atomic
     def run(cls, *args, **kwargs):
-        obj = cls(*args, **kwargs)
+        with transaction.atomic():
+            obj = cls(*args, **kwargs)
 
-        with obj.log():
-            result = obj.call()
-            obj.audit()
-            obj.record_analytics()
-            return result
+            with obj.log():
+                result = obj.call()
+                obj.audit()
+                obj.record_analytics()
+                return result
 
     def __init__(self, *args, **kwargs):
         self.kwargs = kwargs

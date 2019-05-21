@@ -198,6 +198,16 @@ export const Event = PropTypes.shape({
   user: PropTypes.object,
 });
 
+export const EventAttachment = PropTypes.shape({
+  id: PropTypes.string.isRequired,
+  name: PropTypes.string.isRequired,
+  headers: PropTypes.object,
+  size: PropTypes.number.isRequired,
+  sha1: PropTypes.string.isRequired,
+  dateCreated: PropTypes.number,
+  type: PropTypes.string.isRequired,
+});
+
 export const EventError = PropTypes.shape({
   type: PropTypes.string.isRequired,
   message: PropTypes.string.isRequired,
@@ -397,7 +407,7 @@ export const SavedSearch = PropTypes.shape({
 
 export const Incident = PropTypes.shape({
   id: PropTypes.string.isRequired,
-  identifier: PropTypes.number.isRequired,
+  identifier: PropTypes.string.isRequired,
   title: PropTypes.string.isRequired,
   status: PropTypes.number.isRequired,
   query: PropTypes.string,
@@ -944,6 +954,7 @@ const SentryTypes = {
   DiscoverResults,
   Environment,
   Event,
+  EventAttachment,
   Organization: PropTypes.shape({
     id: PropTypes.string.isRequired,
   }),

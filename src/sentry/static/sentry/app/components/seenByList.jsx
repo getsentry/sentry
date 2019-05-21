@@ -1,22 +1,51 @@
+import PropTypes from 'prop-types';
 import React from 'react';
+import classNames from 'classnames';
 import moment from 'moment';
 import styled from 'react-emotion';
 
-import SentryTypes from 'app/sentryTypes';
-import ConfigStore from 'app/stores/configStore';
-import AvatarList from 'app/components/avatar/avatarList';
-import {userDisplayName} from 'app/utils/formatters';
-import Tooltip2 from 'app/components/tooltip2';
 import {t} from 'app/locale';
+import {userDisplayName} from 'app/utils/formatters';
+import AvatarList from 'app/components/avatar/avatarList';
+import ConfigStore from 'app/stores/configStore';
+import SentryTypes from 'app/sentryTypes';
+import Tooltip from 'app/components/tooltip';
 
-export default class GroupSeenBy extends React.Component {
+export default class SeenByList extends React.Component {
   static propTypes = {
-    group: SentryTypes.Group.isRequired,
+    // Avatar size
+    avatarSize: PropTypes.number,
+
+    // List of *all* users that have seen something
+    seenBy: PropTypes.arrayOf(SentryTypes.User).isRequired,
+
+    // Tooltip message for the "Seen By" icon
+    iconTooltip: PropTypes.string,
+
+    iconPosition: PropTypes.oneOf(['left', 'right']),
+
+    // Max avatars to display
+    maxVisibleAvatars: PropTypes.number,
+  };
+
+  static defaultProps = {
+    avatarSize: 28,
+    iconTooltip: t('People who have viewed this'),
+    iconPosition: 'left',
+    maxVisibleAvatars: 10,
+    seenBy: [],
   };
 
   render() {
     const activeUser = ConfigStore.get('user');
-    const group = this.props.group;
+    const {
+      className,
+      avatarSize,
+      maxVisibleAvatars,
+      seenBy,
+      iconPosition,
+      iconTooltip,
+    } = this.props;
 
     // NOTE: Sometimes group.seenBy is undefined, even though the /groups/{id} API
     //       endpoint guarantees an array. We haven't figured out HOW GroupSeenBy
@@ -25,19 +54,20 @@ export default class GroupSeenBy extends React.Component {
     //
     // See: https://github.com/getsentry/sentry/issues/2387
 
-    const seenBy = group.seenBy || [];
     if (seenBy.length === 0) {
       return null;
     }
 
     // Note className="seen-by" is required for responsive design
     return (
-      <SeenByWrapper className="seen-by">
+      <SeenByWrapper
+        iconPosition={iconPosition}
+        className={classNames('seen-by', className)}
+      >
         <AvatarList
           users={seenBy.filter(user => activeUser.id !== user.id)}
-          avatarSize={28}
-          maxVisibleAvatars={10}
-          tooltipOptions={{html: true}}
+          avatarSize={avatarSize}
+          maxVisibleAvatars={maxVisibleAvatars}
           renderTooltip={user => (
             <React.Fragment>
               {userDisplayName(user)}
@@ -47,9 +77,9 @@ export default class GroupSeenBy extends React.Component {
           )}
         />
         <IconWrapper>
-          <Tooltip2 title={t("People who've viewed this issue")}>
+          <Tooltip title={iconTooltip}>
             <EyeIcon className="icon-eye" />
-          </Tooltip2>
+          </Tooltip>
         </IconWrapper>
       </SeenByWrapper>
     );
@@ -58,9 +88,9 @@ export default class GroupSeenBy extends React.Component {
 
 const SeenByWrapper = styled('div')`
   display: flex;
-  flex-direction: row-reverse;
   margin-top: 15px;
   float: right;
+  ${p => (p.iconPosition === 'left' ? 'flex-direction: row-reverse' : '')};
 `;
 
 const IconWrapper = styled('div')`

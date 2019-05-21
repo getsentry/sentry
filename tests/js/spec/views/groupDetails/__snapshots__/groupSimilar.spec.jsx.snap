@@ -881,7 +881,7 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                                             <div
                                               className="css-1oawdkn-GroupLevel eex8od5"
                                             >
-                                              <Tooltip2
+                                              <Tooltip
                                                 containerDisplayMode="inline-block"
                                                 position="top"
                                                 title="Error level: Error"
@@ -901,7 +901,7 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                                                     </InnerReference>
                                                   </Reference>
                                                 </Manager>
-                                              </Tooltip2>
+                                              </Tooltip>
                                             </div>
                                           </GroupLevel>
                                           <EventOrGroupTitle
@@ -1570,7 +1570,7 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                 <div
                   className="similar-score-columns"
                 >
-                  <count
+                  <Count
                     className="similar-score-column"
                     value="90"
                   >
@@ -1579,7 +1579,7 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                     >
                       90
                     </span>
-                  </count>
+                  </Count>
                   <div
                     className="similar-score-column"
                     key="exception"

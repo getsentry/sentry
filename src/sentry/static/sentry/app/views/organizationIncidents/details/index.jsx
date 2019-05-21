@@ -1,15 +1,11 @@
-import React from 'react';
 import PropTypes from 'prop-types';
+import React from 'react';
 
 import {addErrorMessage} from 'app/actionCreators/indicator';
-import LoadingIndicator from 'app/components/loadingIndicator';
-import LoadingError from 'app/components/loadingError';
-import {PageContent} from 'app/styles/organization';
-import withApi from 'app/utils/withApi';
+import {markIncidentAsSeen} from 'app/actionCreators/incident';
 import {t} from 'app/locale';
+import withApi from 'app/utils/withApi';
 
-import DetailsHeader from './header';
-import DetailsBody from './body';
 import {
   INCIDENT_STATUS,
   fetchIncident,
@@ -17,6 +13,8 @@ import {
   updateStatus,
   isOpen,
 } from '../utils';
+import DetailsBody from './body';
+import DetailsHeader from './header';
 
 class OrganizationIncidentDetails extends React.Component {
   static propTypes = {
@@ -42,6 +40,7 @@ class OrganizationIncidentDetails extends React.Component {
     fetchIncident(api, orgId, incidentId)
       .then(incident => {
         this.setState({incident, isLoading: false, hasError: false});
+        markIncidentAsSeen(api, orgId, incident);
       })
       .catch(() => {
         this.setState({isLoading: false, hasError: true});
@@ -96,28 +95,24 @@ class OrganizationIncidentDetails extends React.Component {
   };
 
   render() {
-    const {incident, isLoading, hasError} = this.state;
+    const {incident, hasError} = this.state;
     const {params} = this.props;
 
     return (
       <React.Fragment>
         <DetailsHeader
+          hasIncidentDetailsError={hasError}
           params={params}
           incident={incident}
           onSubscriptionChange={this.handleSubscriptionChange}
           onStatusChange={this.handleStatusChange}
         />
-        <DetailsBody params={params} incident={incident} />
-        {isLoading && (
-          <PageContent>
-            <LoadingIndicator />
-          </PageContent>
-        )}
-        {hasError && (
-          <PageContent>
-            <LoadingError />
-          </PageContent>
-        )}
+
+        <DetailsBody
+          hasIncidentDetailsError={hasError}
+          params={params}
+          incident={incident}
+        />
       </React.Fragment>
     );
   }

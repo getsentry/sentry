@@ -1,26 +1,29 @@
-import React from 'react';
+import {Link} from 'react-router';
 import PropTypes from 'prop-types';
+import React from 'react';
 import styled from 'react-emotion';
 
-import {t} from 'app/locale';
-import SentryTypes from 'app/sentryTypes';
-import PageHeading from 'app/components/pageHeading';
-import Link from 'app/components/links/link';
-import InlineSvg from 'app/components/inlineSvg';
 import {PageHeader} from 'app/styles/organization';
-import space from 'app/styles/space';
-import SubscribeButton from 'app/components/subscribeButton';
-import DropdownControl from 'app/components/dropdownControl';
-import MenuItem from 'app/components/menuItem';
+import {t} from 'app/locale';
 import Access from 'app/components/acl/access';
+import Count from 'app/components/count';
+import DropdownControl from 'app/components/dropdownControl';
+import InlineSvg from 'app/components/inlineSvg';
+import LoadingError from 'app/components/loadingError';
+import MenuItem from 'app/components/menuItem';
+import PageHeading from 'app/components/pageHeading';
+import SentryTypes from 'app/sentryTypes';
+import SubscribeButton from 'app/components/subscribeButton';
+import space from 'app/styles/space';
 
-import Status from '../status';
 import {isOpen} from '../utils';
+import Status from '../status';
 
 export default class DetailsHeader extends React.Component {
   static propTypes = {
     incident: SentryTypes.Incident,
     params: PropTypes.object.isRequired,
+    hasIncidentDetailsError: PropTypes.bool.isRequired,
     onSubscriptionChange: PropTypes.func.isRequired,
     onStatusChange: PropTypes.func.isRequired,
   };
@@ -28,14 +31,19 @@ export default class DetailsHeader extends React.Component {
   renderStatus() {
     const {incident, onStatusChange} = this.props;
 
-    const isIncidentOpen = isOpen(incident);
+    const isIncidentOpen = incident && isOpen(incident);
 
     return (
       <Access
         access={['org:write']}
-        renderNoAccessMessage={() => <Status incident={incident} />}
+        renderNoAccessMessage={() => incident && <Status incident={incident} />}
       >
-        <DropdownControl label={<Status incident={incident} />} menuWidth="160px">
+        <DropdownControl
+          label={incident && <Status incident={incident} />}
+          menuWidth="160px"
+          alignRight
+          buttonProps={!incident ? {disabled: true} : null}
+        >
           <StyledMenuItem onSelect={onStatusChange}>
             {isIncidentOpen ? t('Close this incident') : t('Reopen this incident')}
           </StyledMenuItem>
@@ -45,23 +53,32 @@ export default class DetailsHeader extends React.Component {
   }
 
   render() {
-    const {incident, params, onSubscriptionChange} = this.props;
+    const {hasIncidentDetailsError, incident, params, onSubscriptionChange} = this.props;
+    const incidentIdAsInt = parseInt(params.incidentId, 10);
+    const formattedIncidentId = !isNaN(incidentIdAsInt)
+      ? incidentIdAsInt.toLocaleString()
+      : t('Invalid Incident');
+    const isIncidentReady = !!incident && !hasIncidentDetailsError;
 
     return (
       <Header>
         <HeaderItem>
           <PageHeading>
-            <Title>
+            <Breadcrumb>
               <IncidentsLink to={`/organizations/${params.orgId}/incidents/`}>
                 {t('Incidents')}
               </IncidentsLink>
               <Chevron src="icon-chevron-right" size={space(2)} />
-              {params.incidentId}
-            </Title>
-            <div>{incident && incident.title}</div>
+              {formattedIncidentId}
+            </Breadcrumb>
+            <IncidentTitle loading={!isIncidentReady}>
+              {isIncidentReady ? incident.title : 'Loading'}
+            </IncidentTitle>
           </PageHeading>
         </HeaderItem>
-        {incident && (
+        {hasIncidentDetailsError ? (
+          <StyledLoadingError />
+        ) : (
           <GroupedHeaderItems>
             <HeaderItem>
               <ItemTitle>{t('Status')}</ItemTitle>
@@ -69,17 +86,26 @@ export default class DetailsHeader extends React.Component {
             </HeaderItem>
             <HeaderItem>
               <ItemTitle>{t('Event count')}</ItemTitle>
-              <ItemValue>{incident.totalEvents}</ItemValue>
+              {isIncidentReady && (
+                <ItemValue>
+                  <Count value={incident.totalEvents} />
+                </ItemValue>
+              )}
             </HeaderItem>
             <HeaderItem>
               <ItemTitle>{t('Users affected')}</ItemTitle>
-              <ItemValue>{incident.uniqueUsers}</ItemValue>
+              {isIncidentReady && (
+                <ItemValue>
+                  <Count value={incident.uniqueUsers} />
+                </ItemValue>
+              )}
             </HeaderItem>
             <HeaderItem>
               <ItemTitle>{t('Notifications')}</ItemTitle>
               <ItemValue>
                 <SubscribeButton
-                  isSubscribed={!!incident.isSubscribed}
+                  disabled={!isIncidentReady}
+                  isSubscribed={incident && !!incident.isSubscribed}
                   onClick={onSubscriptionChange}
                 />
               </ItemValue>
@@ -95,6 +121,15 @@ const Header = styled(PageHeader)`
   background-color: ${p => p.theme.white};
   border-bottom: 1px solid ${p => p.theme.borderDark};
   margin-bottom: 0;
+  padding: ${space(3)} 0;
+`;
+
+const StyledLoadingError = styled(LoadingError)`
+  flex: 1;
+
+  &.alert.alert-block {
+    margin: 0 20px;
+  }
 `;
 
 const GroupedHeaderItems = styled('div')`
@@ -103,7 +138,7 @@ const GroupedHeaderItems = styled('div')`
 `;
 
 const HeaderItem = styled('div')`
-  padding: ${space(3)};
+  padding: 0 ${space(3)};
 `;
 
 const ItemTitle = styled('h6')`
@@ -119,11 +154,15 @@ const ItemValue = styled('div')`
   justify-content: flex-end;
   align-items: center;
   font-size: ${p => p.theme.headerFontSize};
-  height: 34px;
+  height: 40px; /* This is the height of the Status dropdown */
 `;
 
-const Title = styled('div')`
+const Breadcrumb = styled('div')`
   margin-bottom: ${space(2)};
+`;
+
+const IncidentTitle = styled('div')`
+  ${p => p.loading && 'opacity: 0'};
 `;
 
 const IncidentsLink = styled(Link)`

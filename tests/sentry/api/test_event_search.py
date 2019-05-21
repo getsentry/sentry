@@ -1,6 +1,8 @@
 from __future__ import absolute_import
 
 import datetime
+import pytest
+import six
 from datetime import timedelta
 
 from django.utils import timezone
@@ -708,6 +710,16 @@ class ParseBooleanSearchQueryTest(TestCase):
             operator="=",
             value=SearchValue(raw_value='foobar@example.com'),
         )
+        self.term4 = SearchFilter(
+            key=SearchKey(name='user.email'),
+            operator="=",
+            value=SearchValue(raw_value='hello@example.com'),
+        )
+        self.term5 = SearchFilter(
+            key=SearchKey(name='user.email'),
+            operator="=",
+            value=SearchValue(raw_value='hi@example.com'),
+        )
 
     def test_simple(self):
         assert parse_search_query(
@@ -770,12 +782,6 @@ class ParseBooleanSearchQueryTest(TestCase):
             )
         )]
 
-        term4 = SearchFilter(
-            key=SearchKey(name='user.email'),
-            operator="=",
-            value=SearchValue(raw_value='hello@example.com'),
-        )
-
         # longer even number of terms
         assert parse_search_query(
             'user.email:foo@example.com AND user.email:bar@example.com OR user.email:foobar@example.com AND user.email:hello@example.com'
@@ -789,15 +795,9 @@ class ParseBooleanSearchQueryTest(TestCase):
             right_term=SearchBoolean(
                 left_term=self.term3,
                 operator='AND',
-                right_term=term4
+                right_term=self.term4
             )
         )]
-
-        term5 = SearchFilter(
-            key=SearchKey(name='user.email'),
-            operator="=",
-            value=SearchValue(raw_value='hi@example.com'),
-        )
 
         # longer odd number of terms
         assert parse_search_query(
@@ -814,9 +814,9 @@ class ParseBooleanSearchQueryTest(TestCase):
                     left_term=self.term3,
                     operator='AND',
                     right_term=SearchBoolean(
-                        left_term=term4,
+                        left_term=self.term4,
                         operator='AND',
-                        right_term=term5
+                        right_term=self.term5
                     )
                 )
             )]
@@ -835,9 +835,9 @@ class ParseBooleanSearchQueryTest(TestCase):
                     left_term=self.term3,
                     operator='AND',
                     right_term=SearchBoolean(
-                        left_term=term4,
+                        left_term=self.term4,
                         operator='AND',
-                        right_term=term5)),
+                        right_term=self.term5)),
                 operator='OR',
                 right_term=SearchBoolean(
                     left_term=SearchBoolean(
@@ -849,14 +849,112 @@ class ParseBooleanSearchQueryTest(TestCase):
                         left_term=self.term3,
                         operator='AND',
                         right_term=SearchBoolean(
-                            left_term=term4,
+                            left_term=self.term4,
                             operator='AND',
-                            right_term=term5
+                            right_term=self.term5
                         )
                     )
                 )
             )
         )]
+
+    def test_grouping_simple(self):
+        result = parse_search_query(
+            '(user.email:foo@example.com OR user.email:bar@example.com)'
+        )
+        assert result == [SearchBoolean(left_term=self.term1, operator="OR", right_term=self.term2)]
+        result = parse_search_query(
+            '(user.email:foo@example.com OR user.email:bar@example.com) AND user.email:foobar@example.com'
+        )
+        assert result == [SearchBoolean(
+            left_term=SearchBoolean(
+                left_term=self.term1,
+                operator='OR',
+                right_term=self.term2),
+            operator='AND',
+            right_term=self.term3)]
+
+        result = parse_search_query(
+            'user.email:foo@example.com AND (user.email:bar@example.com OR user.email:foobar@example.com)'
+        )
+        assert result == [SearchBoolean(
+            left_term=self.term1,
+            operator='AND',
+            right_term=SearchBoolean(
+                left_term=self.term2,
+                operator='OR',
+                right_term=self.term3))]
+
+    def test_nested_grouping(self):
+        result = parse_search_query(
+            '(user.email:foo@example.com OR (user.email:bar@example.com OR user.email:foobar@example.com))'
+        )
+        assert result == [SearchBoolean(
+            left_term=self.term1,
+            operator="OR",
+            right_term=SearchBoolean(
+                left_term=self.term2,
+                operator="OR",
+                right_term=self.term3))
+        ]
+        result = parse_search_query(
+            '(user.email:foo@example.com OR (user.email:bar@example.com OR (user.email:foobar@example.com AND user.email:hello@example.com OR user.email:hi@example.com)))'
+        )
+        assert result == [SearchBoolean(
+            left_term=self.term1,
+            operator="OR",
+            right_term=SearchBoolean(
+                left_term=self.term2,
+                operator="OR",
+                right_term=SearchBoolean(
+                    left_term=SearchBoolean(
+                        left_term=self.term3,
+                        operator="AND",
+                        right_term=self.term4
+                    ),
+                    operator="OR",
+                    right_term=self.term5,
+                )
+            )
+        )]
+
+    def test_malformed_groups(self):
+        error_text = "Rule 'search' matched in its entirety, but it didn't consume all the text. The non-matching portion of the text begins with"
+        with pytest.raises(IncompleteParseError) as error:
+            parse_search_query(
+                '(user.email:foo@example.com OR user.email:bar@example.com'
+            )
+        assert six.text_type(error.value) == '%s %s' % (
+            error_text, "'(user.email:foo@exam' (line 1, column 1).")
+        with pytest.raises(IncompleteParseError) as error:
+            parse_search_query(
+                '((user.email:foo@example.com OR user.email:bar@example.com AND  user.email:bar@example.com)'
+            )
+        assert six.text_type(error.value) == '%s %s' % (
+            error_text, "'((user.email:foo@exa' (line 1, column 1).")
+        with pytest.raises(IncompleteParseError) as error:
+            parse_search_query(
+                'user.email:foo@example.com OR user.email:bar@example.com)'
+            )
+        assert six.text_type(error.value) == '%s %s' % (error_text, "')' (line 1, column 57).")
+        with pytest.raises(IncompleteParseError) as error:
+            parse_search_query(
+                '(user.email:foo@example.com OR user.email:bar@example.com AND  user.email:bar@example.com))'
+            )
+        assert six.text_type(error.value) == '%s %s' % (error_text, "')' (line 1, column 91).")
+
+    def test_grouping_without_boolean_terms(self):
+        with pytest.raises(IncompleteParseError) as error:
+            parse_search_query(
+                'undefined is not an object (evaluating \'function.name\')'
+            ) == [SearchFilter(
+                key=SearchKey(name='message'),
+                operator='=',
+                value=SearchValue(
+                    raw_value='undefined is not an object (evaluating "function.name")'),
+            )]
+        assert six.text_type(
+            error.value) == "Rule 'search' matched in its entirety, but it didn't consume all the text. The non-matching portion of the text begins with '(evaluating 'functio' (line 1, column 28)."
 
 
 class GetSnubaQueryArgsTest(TestCase):
@@ -962,6 +1060,68 @@ class GetSnubaQueryArgsTest(TestCase):
                 '=',
                 0,
             ]]
+        }
+
+    def test_malformed_groups(self):
+        with pytest.raises(InvalidSearchQuery):
+            get_snuba_query_args('(user.email:foo@example.com OR user.email:bar@example.com')
+
+    def test_boolean_term_simple(self):
+        assert get_snuba_query_args('user.email:foo@example.com AND user.email:bar@example.com') == {
+            'conditions': [
+                ['and', [
+                    ['email', '=', 'foo@example.com'],
+                    ['email', '=', 'bar@example.com']
+                ]]
+            ],
+            'filter_keys': {},
+            'has_boolean_terms': True,
+        }
+        assert get_snuba_query_args('user.email:foo@example.com OR user.email:bar@example.com') == {
+            'conditions': [
+                ['or', [
+                    ['email', '=', 'foo@example.com'],
+                    ['email', '=', 'bar@example.com']
+                ]]
+            ],
+            'filter_keys': {},
+            'has_boolean_terms': True,
+        }
+        assert get_snuba_query_args(
+            'user.email:foo@example.com AND user.email:bar@example.com OR user.email:foobar@example.com AND user.email:hello@example.com AND user.email:hi@example.com OR user.email:foo@example.com AND user.email:bar@example.com OR user.email:foobar@example.com AND user.email:hello@example.com AND user.email:hi@example.com'
+        ) == {
+            'conditions': [
+                ['or', [
+                    ['and', [
+                        ['email', '=', 'foo@example.com'],
+                        ['email', '=', 'bar@example.com']
+                    ]],
+                    ['or', [
+                        ['and', [
+                            ['email', '=', 'foobar@example.com'],
+                            ['and', [
+                                ['email', '=', 'hello@example.com'],
+                                ['email', '=', 'hi@example.com']
+                            ]]
+                        ]],
+                        ['or', [
+                            ['and', [
+                                ['email', '=', 'foo@example.com'],
+                                ['email', '=', 'bar@example.com']
+                            ]],
+                            ['and', [
+                                ['email', '=', 'foobar@example.com'],
+                                ['and', [
+                                    ['email', '=', 'hello@example.com'],
+                                    ['email', '=', 'hi@example.com']
+                                ]]
+                            ]]
+                        ]]
+                    ]]
+                ]]
+            ],
+            'filter_keys': {},
+            'has_boolean_terms': True,
         }
 
 

@@ -19,7 +19,7 @@ import ActorAvatar from 'app/components/actorAvatar';
 import SentryTypes from 'app/sentryTypes';
 import Button from 'app/components/button';
 import InlineSvg from 'app/components/inlineSvg';
-import Tooltip2 from 'app/components/tooltip2';
+import Tooltip from 'app/components/tooltip';
 
 class ValueComponent extends React.Component {
   static propTypes = {
@@ -105,12 +105,12 @@ export default class SelectOwners extends React.Component {
       disabled: true,
       label: (
         <DisabledLabel>
-          <Tooltip2
+          <Tooltip
             position="left"
             title={t('%s is not a member of project', user.name || user.email)}
           >
             {this.renderUserBadge(user)}
-          </Tooltip2>
+          </Tooltip>
         </DisabledLabel>
       ),
     };
@@ -139,14 +139,14 @@ export default class SelectOwners extends React.Component {
       label: (
         <Flex justify="space-between">
           <DisabledLabel>
-            <Tooltip2
+            <Tooltip
               position="left"
               title={t('%s is not a member of project', `#${team.slug}`)}
             >
               <IdBadge team={team} />
-            </Tooltip2>
+            </Tooltip>
           </DisabledLabel>
-          <Tooltip2
+          <Tooltip
             title={
               canAddTeam
                 ? t('Add %s to project', `#${team.slug}`)
@@ -161,7 +161,7 @@ export default class SelectOwners extends React.Component {
             >
               <InlineSvg src="icon-circle-add" />
             </AddToProjectButton>
-          </Tooltip2>
+          </Tooltip>
         </Flex>
       ),
     };
@@ -314,7 +314,7 @@ export default class SelectOwners extends React.Component {
         disabled={this.props.disabled}
         cache={false}
         valueComponent={ValueComponent}
-        placeholder={t('Add Owners')}
+        placeholder={t('owners')}
         onInputChange={this.handleInputChange}
         onChange={this.handleChange}
         value={this.props.value}

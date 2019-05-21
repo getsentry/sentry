@@ -267,7 +267,19 @@ INSTALLED_APPS = (
     'sentry.lang.javascript', 'sentry.lang.native', 'sentry.plugins.sentry_interface_types',
     'sentry.plugins.sentry_mail', 'sentry.plugins.sentry_urls', 'sentry.plugins.sentry_useragents',
     'sentry.plugins.sentry_webhooks', 'social_auth', 'sudo', 'sentry.tagstore',
+    # we import the legacy tagstore to ensure models stay registered as they're still
+    # referenced in the core sentry migrations (tagstore migrations are not in their own app)
+    'sentry.tagstore.legacy',
     'sentry.eventstream', 'sentry.auth.providers.google', 'django.contrib.staticfiles',
+)
+
+
+# Silence internal hints from Django's system checks
+SILENCED_SYSTEM_CHECKS = (
+    # Django recommends to use OneToOneField over ForeignKey(unique=True)
+    # however this changes application behavior in ways that break association
+    # loading
+    'fields.W342'
 )
 
 import django
@@ -449,9 +461,8 @@ CELERY_IMPORTS = (
     'sentry.tasks.options', 'sentry.tasks.ping', 'sentry.tasks.post_process',
     'sentry.tasks.process_buffer', 'sentry.tasks.reports', 'sentry.tasks.reprocessing',
     'sentry.tasks.scheduler', 'sentry.tasks.signals', 'sentry.tasks.store', 'sentry.tasks.unmerge',
-    'sentry.tasks.symcache_update', 'sentry.tasks.servicehooks',
-    'sentry.tagstore.tasks', 'sentry.tasks.assemble', 'sentry.tasks.integrations',
-    'sentry.tasks.files', 'sentry.tasks.sentry_apps',
+    'sentry.tasks.servicehooks', 'sentry.tagstore.tasks', 'sentry.tasks.assemble',
+    'sentry.tasks.integrations', 'sentry.tasks.files', 'sentry.tasks.sentry_apps',
 )
 CELERY_QUEUES = [
     Queue('activity.notify', routing_key='activity.notify'),
@@ -811,6 +822,8 @@ SENTRY_FEATURES = {
     'organizations:symbol-sources': False,
     # Enable the events stream interface.
     'organizations:events': False,
+    # Enable events v2 instead of the events stream
+    'organizations:events-v2': False,
     # Enable multi project selection
     'organizations:global-views': False,
     # Turns on grouping info.
@@ -1269,8 +1282,8 @@ SENTRY_ROLES = (
         ),
     }, {
         'id': 'owner',
-        'name': 'Owner',
-        'desc': 'Gains full permission across the organization. Can manage members as well as perform catastrophic operations such as removing the organization.',
+        'name': 'Organization Owner',
+        'desc': 'Unrestricted access to the organization, its data, and its settings. Can add, modify, and delete projects and members, as well as make billing and plan changes.',
         'is_global': True,
         'scopes': set(
             [
@@ -1608,3 +1621,8 @@ KAFKA_TOPICS = {
         'topic': KAFKA_OUTCOMES,
     },
 }
+
+# Enable this to use the legacy Slack Workspace Token apps. You will likely
+# never need to switch this unless you created a workspace app before slack
+# disabled them.
+SLACK_INTEGRATION_USE_WST = False

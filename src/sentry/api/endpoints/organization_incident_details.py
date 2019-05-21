@@ -1,39 +1,40 @@
 from __future__ import absolute_import
 
+from rest_framework import serializers
 from rest_framework.response import Response
 
-from sentry import features
-from sentry.api.bases.incident import IncidentPermission
-from sentry.api.bases.organization import OrganizationEndpoint
-from sentry.api.exceptions import ResourceDoesNotExist
+from sentry.api.bases.incident import (
+    IncidentEndpoint,
+    IncidentPermission,
+)
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.incident import DetailedIncidentSerializer
-from sentry.incidents.models import Incident
+from sentry.incidents.logic import (
+    StatusAlreadyChangedError,
+    update_incident_status,
+)
+from sentry.incidents.models import IncidentStatus
 
 
-class OrganizationIncidentDetailsEndpoint(OrganizationEndpoint):
-    permission_classes = (IncidentPermission, )
+class IncidentSerializer(serializers.Serializer):
+    status = serializers.IntegerField()
+    comment = serializers.CharField(required=False)
 
-    def convert_args(self, request, incident_id, *args, **kwargs):
-        args, kwargs = super(OrganizationIncidentDetailsEndpoint, self).convert_args(
-            request,
-            *args,
-            **kwargs
-        )
-        organization = kwargs['organization']
-
-        if not features.has('organizations:incidents', organization, actor=request.user):
-            raise ResourceDoesNotExist
-
+    def validate_status(self, attrs, source):
+        value = attrs[source]
         try:
-            kwargs['incident'] = Incident.objects.get(
-                organization=organization,
-                identifier=incident_id,
+            attrs[source] = IncidentStatus(value)
+        except Exception:
+            raise serializers.ValidationError(
+                'Invalid value for status. Valid values: {}'.format(
+                    [e.value for e in IncidentStatus],
+                ),
             )
-        except Incident.DoesNotExist:
-            raise ResourceDoesNotExist
+        return attrs
 
-        return args, kwargs
+
+class OrganizationIncidentDetailsEndpoint(IncidentEndpoint):
+    permission_classes = (IncidentPermission, )
 
     def get(self, request, organization, incident):
         """
@@ -44,3 +45,25 @@ class OrganizationIncidentDetailsEndpoint(OrganizationEndpoint):
         data = serialize(incident, request.user, DetailedIncidentSerializer())
 
         return Response(data)
+
+    def put(self, request, organization, incident):
+        serializer = IncidentSerializer(data=request.DATA)
+        if serializer.is_valid():
+            result = serializer.object
+
+            try:
+                incident = update_incident_status(
+                    incident=incident,
+                    status=result['status'],
+                    user=request.user,
+                    comment=result.get('comment'),
+                )
+            except StatusAlreadyChangedError:
+                return Response(
+                    'Status is already set to {}'.format(result['status']),
+                    status=400,
+                )
+
+            return Response(serialize(incident, request.user,
+                                      DetailedIncidentSerializer()), status=200)
+        return Response(serializer.errors, status=400)

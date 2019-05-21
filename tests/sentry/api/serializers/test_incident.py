@@ -19,7 +19,7 @@ class IncidentSerializerTest(TestCase):
         result = serialize(incident)
 
         assert result['id'] == six.text_type(incident.id)
-        assert result['identifier'] == incident.identifier
+        assert result['identifier'] == six.text_type(incident.identifier)
         assert result['organizationId'] == six.text_type(incident.organization_id)
         assert result['projects'] == [p.slug for p in incident.projects.all()]
         assert result['status'] == incident.status
@@ -29,7 +29,7 @@ class IncidentSerializerTest(TestCase):
         assert result['dateDetected'] == incident.date_detected
         assert result['dateAdded'] == incident.date_added
         assert result['dateClosed'] == incident.date_closed
-        assert len(result['eventStats']['data']) == 22
-        assert [data[1] for data in result['eventStats']['data']] == [[]] * 22
+        assert len(result['eventStats']['data']) == 52
+        assert [data[1] for data in result['eventStats']['data']] == [[]] * 52
         assert result['totalEvents'] == 0
         assert result['uniqueUsers'] == 0

@@ -12,7 +12,7 @@ import InlineSvg from 'app/components/inlineSvg';
 import Link from 'app/components/links/link';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import SentryTypes from 'app/sentryTypes';
-import Tooltip2 from 'app/components/tooltip2';
+import Tooltip from 'app/components/tooltip';
 import recreateRoute from 'app/utils/recreateRoute';
 import {conditionalGuideAnchor} from 'app/components/assistant/guideAnchor';
 
@@ -160,9 +160,9 @@ export default class OrganizationMemberRow extends React.PureComponent {
             ) : (
               <div>
                 {!has2fa ? (
-                  <Tooltip2 title={t('Two-factor auth not enabled')}>
+                  <Tooltip title={t('Two-factor auth not enabled')}>
                     <NoTwoFactorIcon />
-                  </Tooltip2>
+                  </Tooltip>
                 ) : (
                   <HasTwoFactorIcon />
                 )}
@@ -234,7 +234,9 @@ export default class OrganizationMemberRow extends React.PureComponent {
                 size="small"
                 icon="icon-exit"
                 disabled
-                title={t('You cannot leave the organization as you are the only owner.')}
+                title={t(
+                  'You cannot leave this organization as you are the only organization owner.'
+                )}
               >
                 {t('Leave')}
               </Button>

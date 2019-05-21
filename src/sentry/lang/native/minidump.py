@@ -10,9 +10,11 @@ from symbolic import normalize_arch, ProcessState, id_from_breakpad
 
 from sentry.lang.native.utils import get_sdk_from_event, handle_symbolication_failed, merge_symbolicated_frame
 from sentry.lang.native.symbolicator import merge_symbolicator_image
+from sentry.lang.native.symbolizer import SymbolicationFailed
+from sentry.models.eventerror import EventError
 from sentry.attachments import attachment_cache
 from sentry.coreapi import cache_key_for_event
-from sentry.utils.safe import get_path, set_path
+from sentry.utils.safe import get_path, set_path, setdefault_path
 
 minidumps_logger = logging.getLogger('sentry.minidumps')
 
@@ -58,6 +60,31 @@ def process_minidump(minidump, cfi=None):
         return ProcessState.from_minidump(minidump.temporary_file_path(), cfi)
     else:
         return ProcessState.from_minidump_buffer(minidump, cfi)
+
+
+def write_minidump_placeholder(data):
+    # Minidump events must be native platform.
+    data['platform'] = 'native'
+
+    # Assume that this minidump is the result of a crash and assign the fatal
+    # level. Note that the use of `setdefault` here doesn't generally allow the
+    # user to override the minidump's level as processing will overwrite it
+    # later.
+    setdefault_path(data, 'level', value='fatal')
+
+    # Create a placeholder exception. This signals normalization that this is an
+    # error event and also serves as a placeholder if processing of the minidump
+    # fails.
+    exception = {
+        'type': 'Minidump',
+        'value': 'Invalid Minidump',
+        'mechanism': {
+            'type': 'minidump',
+            'handled': False,
+            'synthetic': True,
+        }
+    }
+    data['exception'] = {'values': [exception]}
 
 
 def merge_process_state_event(data, state, cfi=None):
@@ -198,11 +225,28 @@ def get_attached_minidump(data):
     return next((a for a in attachments if a.type == MINIDUMP_ATTACHMENT_TYPE), None)
 
 
+def merge_symbolicator_minidump_system_info(data, system_info):
+    set_path(data, 'contexts', 'os', 'type', value='os')  # Required by "get_sdk_from_event"
+    setdefault_path(data, 'contexts', 'os', 'name', value=system_info.get('os_name'))
+    setdefault_path(data, 'contexts', 'os', 'version', value=system_info.get('os_version'))
+    setdefault_path(data, 'contexts', 'os', 'build', value=system_info.get('os_build'))
+
+    set_path(data, 'contexts', 'device', 'type', value='device')
+    setdefault_path(data, 'contexts', 'device', 'arch', value=system_info.get('cpu_arch'))
+
+
 def merge_symbolicator_minidump_response(data, response):
     sdk_info = get_sdk_from_event(data)
 
-    # TODO(markus): Add OS context here when `merge_process_state_event` is no
-    # longer called for symbolicator projects
+    data['platform'] = 'native'
+    if response.get('crashed') is not None:
+        data['level'] = 'fatal' if response['crashed'] else 'info'
+
+    if response.get('timestamp'):
+        data['timestamp'] = float(response['timestamp'])
+
+    if response.get('system_info'):
+        merge_symbolicator_minidump_system_info(data, response['system_info'])
 
     images = []
     set_path(data, 'debug_meta', 'images', value=images)
@@ -215,10 +259,23 @@ def merge_symbolicator_minidump_response(data, response):
         )
         images.append(image)
 
-    data_threads = []
-    data['threads'] = {'values': data_threads}
-
+    # Extract the crash reason and infos
     data_exception = get_path(data, 'exception', 'values', 0)
+    exc_value = (
+        'Assertion Error: %s' % response.get('assertion')
+        if response.get('assertion')
+        else 'Fatal Error: %s' % response.get('crash_reason')
+    )
+    data_exception['value'] = exc_value
+    data_exception['type'] = response.get('crash_reason')
+
+    data_threads = []
+    if response['stacktraces']:
+        data['threads'] = {'values': data_threads}
+    else:
+        error = SymbolicationFailed(message='minidump has no thread list',
+                                    type=EventError.NATIVE_SYMBOLICATOR_FAILED)
+        handle_symbolication_failed(error, data=data)
 
     for complete_stacktrace in response['stacktraces']:
         is_requesting = complete_stacktrace.get('is_requesting')
@@ -231,14 +288,14 @@ def merge_symbolicator_minidump_response(data, response):
         data_threads.append(data_thread)
 
         if is_requesting:
-            data_stacktrace = get_path(data_exception, 'stacktrace')
-            assert isinstance(data_stacktrace, dict), data_stacktrace
+            data_exception['thread_id'] = thread_id
+            data_stacktrace = data_exception.setdefault('stacktrace', {})
             # Make exemption specifically for unreal portable callstacks
             # TODO(markus): Allow overriding stacktrace more generically
             # (without looking into unreal context) once we no longer parse
             # minidump in the endpoint (right now we can't distinguish that
             # from user json).
-            if data_stacktrace['frames'] and is_unreal_exception_stacktrace(data):
+            if data_stacktrace.get('frames') and is_unreal_exception_stacktrace(data):
                 continue
             data_stacktrace['frames'] = []
         else:
@@ -251,5 +308,3 @@ def merge_symbolicator_minidump_response(data, response):
             new_frame = {}
             merge_symbolicated_frame(new_frame, complete_frame)
             data_stacktrace['frames'].append(new_frame)
-
-    # TODO(markus): Add exception data here once merge_process_state_event is gone

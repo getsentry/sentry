@@ -6,7 +6,8 @@ from datetime import datetime
 
 import six
 from django.utils.functional import cached_property
-from parsimonious.exceptions import ParseError
+from parsimonious.expressions import Optional
+from parsimonious.exceptions import IncompleteParseError, ParseError
 from parsimonious.nodes import Node
 from parsimonious.grammar import Grammar, NodeVisitor
 
@@ -81,15 +82,15 @@ def translate(pat):
 # ?              // allow to be empty (allow empty quotes)
 # "              // quote literal
 
-
 event_search_grammar = Grammar(r"""
-search               = (boolean_term / search_term)*
-boolean_term         = search_term (boolean_operator search_term)+
+search               = (boolean_term / paren_term / search_term)*
+boolean_term         = (paren_term / search_term) space? (boolean_operator space? (paren_term / search_term) space?)+
+paren_term           = space? open_paren space? (paren_term / boolean_term)+ space? closed_paren space?
 search_term          = key_val_term / quoted_raw_search / raw_search
 key_val_term         = space? (time_filter / rel_time_filter / specific_time_filter
                        / numeric_filter / has_filter / is_filter / basic_filter)
                        space?
-raw_search           = (!key_val_term ~r"\ *([^\ ^\n]+)\ *" )*
+raw_search           = (!key_val_term ~r"\ *([^\ ^\n ()]+)\ *" )*
 quoted_raw_search    = spaces quoted_value spaces
 
 # standard key:val filter
@@ -109,7 +110,7 @@ is_filter            = negation? "is" sep search_value
 
 search_key           = key / quoted_key
 search_value         = quoted_value / value
-value                = ~r"\S*"
+value                = ~r"[^()\s]*"
 quoted_value         = ~r"\"((?:[^\"]|(?<=\\)[\"])*)?\""s
 key                  = ~r"[a-zA-Z0-9_\.-]+"
 # only allow colons in quoted keys
@@ -123,6 +124,8 @@ rel_date_format      = ~r"[\+\-][0-9]+[wdhm](?=\s|$)"
 # even if the operator is <=
 boolean_operator     = "OR" / "AND"
 operator             = ">=" / "<=" / ">" / "<" / "=" / "!="
+open_paren           = "("
+closed_paren         = ")"
 sep                  = ":"
 space                = " "
 negation             = "!"
@@ -144,13 +147,6 @@ no_conversion = set(['project_id', 'start', 'end'])
 
 class InvalidSearchQuery(Exception):
     pass
-
-
-def has_boolean_search_terms(search_terms):
-    for term in search_terms:
-        if isinstance(term, SearchBoolean):
-            return True
-    return False
 
 
 class SearchBoolean(namedtuple('SearchBoolean', 'left_term operator right_term')):
@@ -248,6 +244,16 @@ class SearchVisitor(NodeVisitor):
 
         return children
 
+    def remove_optional_nodes(self, children):
+        def is_not_optional(child):
+            return not(isinstance(child, Node) and isinstance(child.expr, Optional))
+        return filter(is_not_optional, children)
+
+    def remove_space(self, children):
+        def is_not_space(child):
+            return not(isinstance(child, Node) and child.text == ' ')
+        return filter(is_not_space, children)
+
     def visit_search(self, node, children):
         return self.flatten(children)
 
@@ -300,7 +306,17 @@ class SearchVisitor(NodeVisitor):
             return result
 
         children = self.flatten(children)
+        children = self.remove_optional_nodes(children)
+        children = self.remove_space(children)
+
         return [build_boolean_tree(children, 0, len(children))]
+
+    def visit_paren_term(self, node, children):
+        children = self.flatten(children)
+        children = self.remove_optional_nodes(children)
+        children = self.remove_space(children)
+
+        return self.flatten(children[1])
 
     def visit_numeric_filter(self, node, children):
         (search_key, _, operator, search_value) = children
@@ -324,7 +340,7 @@ class SearchVisitor(NodeVisitor):
             try:
                 search_value = parse_datetime_string(search_value)
             except InvalidQuery as exc:
-                raise InvalidSearchQuery(exc.message)
+                raise InvalidSearchQuery(six.text_type(exc))
             return SearchFilter(search_key, operator, SearchValue(search_value))
         else:
             search_value = operator + search_value if operator != '=' else search_value
@@ -336,7 +352,7 @@ class SearchVisitor(NodeVisitor):
             try:
                 from_val, to_val = parse_datetime_range(value.text)
             except InvalidQuery as exc:
-                raise InvalidSearchQuery(exc.message)
+                raise InvalidSearchQuery(six.text_type(exc))
 
             # TODO: Handle negations
             if from_val is not None:
@@ -360,7 +376,7 @@ class SearchVisitor(NodeVisitor):
         try:
             from_val, to_val = parse_datetime_value(date_value)
         except InvalidQuery as exc:
-            raise InvalidSearchQuery(exc.message)
+            raise InvalidSearchQuery(six.text_type(exc))
 
         # TODO: Handle negations here. This is tricky because these will be
         # separate filters, and to negate this range we need (< val or >= val).
@@ -436,6 +452,12 @@ class SearchVisitor(NodeVisitor):
     def visit_search_value(self, node, children):
         return SearchValue(children[0])
 
+    def visit_closed_paren(self, node, children):
+        return node.text
+
+    def visit_open_paren(self, node, children):
+        return node.text
+
     def visit_boolean_operator(self, node, children):
         return node.text
 
@@ -458,6 +480,27 @@ class SearchVisitor(NodeVisitor):
 def parse_search_query(query):
     tree = event_search_grammar.parse(query)
     return SearchVisitor().visit(tree)
+
+
+def convert_search_boolean_to_snuba_query(search_boolean):
+    def convert_term(term):
+        if isinstance(term, SearchFilter):
+            return convert_search_filter_to_snuba_query(term)
+        elif isinstance(term, SearchBoolean):
+            return convert_search_boolean_to_snuba_query(term)
+        else:
+            raise InvalidSearchQuery(
+                'Attempted to convert term of unrecognized type %s into a snuba expression' %
+                term.__class__.__name__)
+
+    if not search_boolean:
+        return search_boolean
+
+    left = convert_term(search_boolean.left_term)
+    right = convert_term(search_boolean.right_term)
+    operator = search_boolean.operator.lower()
+
+    return [operator, [left, right]]
 
 
 def convert_endpoint_params(params):
@@ -550,40 +593,42 @@ def convert_search_filter_to_snuba_query(search_filter):
 
 def get_snuba_query_args(query=None, params=None):
     # NOTE: this function assumes project permissions check already happened
-    parsed_filters = []
+    parsed_terms = []
     if query is not None:
         try:
-            parsed_filters = parse_search_query(query)
+            parsed_terms = parse_search_query(query)
         except ParseError as e:
             raise InvalidSearchQuery(
                 u'Parse error: %r (column %d)' % (e.expr.name, e.column())
             )
+        except IncompleteParseError as e:
+            raise InvalidSearchQuery(
+                'Parse error: Search did not parse completely. This is commonly caused by unmatched-parenthesis. '
+                + six.text_type(e)
+            )
 
     # Keys included as url params take precedent if same key is included in search
     if params is not None:
-        parsed_filters.extend(convert_endpoint_params(params))
+        parsed_terms.extend(convert_endpoint_params(params))
 
     kwargs = {
         'conditions': [],
         'filter_keys': {},
     }
 
-    # TODO(lb): remove when boolean terms fully functional
-    if has_boolean_search_terms(parsed_filters):
-        kwargs['has_boolean_terms'] = True
+    for term in parsed_terms:
+        if isinstance(term, SearchFilter):
+            snuba_name = term.key.snuba_name
 
-    for _filter in parsed_filters:
-        # TODO(lb): remove when boolean terms fully functional
-        if isinstance(_filter, SearchBoolean):
-            continue
-
-        snuba_name = _filter.key.snuba_name
-
-        if snuba_name in ('start', 'end'):
-            kwargs[snuba_name] = _filter.value.value
-        elif snuba_name in ('project_id', 'issue'):
-            kwargs['filter_keys'][snuba_name] = _filter.value.value
-        else:
-            converted_filter = convert_search_filter_to_snuba_query(_filter)
-            kwargs['conditions'].append(converted_filter)
+            if snuba_name in ('start', 'end'):
+                kwargs[snuba_name] = term.value.value
+            elif snuba_name in ('project_id', 'issue'):
+                kwargs['filter_keys'][snuba_name] = term.value.value
+            else:
+                converted_filter = convert_search_filter_to_snuba_query(term)
+                kwargs['conditions'].append(converted_filter)
+        else:  # SearchBoolean
+            # TODO(lb): remove when boolean terms fully functional
+            kwargs['has_boolean_terms'] = True
+            kwargs['conditions'].append(convert_search_boolean_to_snuba_query(term))
     return kwargs

@@ -362,13 +362,13 @@ exports[`GroupReleaseStats renders 1`] = `
                   <span
                     className="max-y"
                   >
-                    <count
+                    <Count
                       value={10}
                     >
                       <span>
                         10
                       </span>
-                    </count>
+                    </Count>
                   </span>
                   <span
                     className="min-y"
@@ -390,7 +390,7 @@ exports[`GroupReleaseStats renders 1`] = `
                           preserveAspectRatio="none"
                           viewBox="0 0 100 400"
                         >
-                          <Tooltip2
+                          <Tooltip
                             containerDisplayMode="inline-block"
                             key="1517281200"
                             position="bottom"
@@ -499,8 +499,8 @@ exports[`GroupReleaseStats renders 1`] = `
                                 </InnerReference>
                               </Reference>
                             </Manager>
-                          </Tooltip2>
-                          <Tooltip2
+                          </Tooltip>
+                          <Tooltip
                             containerDisplayMode="inline-block"
                             key="1517310000"
                             position="bottom"
@@ -609,7 +609,7 @@ exports[`GroupReleaseStats renders 1`] = `
                                 </InnerReference>
                               </Reference>
                             </Manager>
-                          </Tooltip2>
+                          </Tooltip>
                         </svg>
                       </StyledSvg>
                       <CircleSvg
@@ -625,7 +625,7 @@ exports[`GroupReleaseStats renders 1`] = `
                           size={10}
                           viewBox="0 0 10 10"
                         >
-                          <Tooltip2
+                          <Tooltip
                             containerDisplayMode="inline-block"
                             position="bottom"
                             title={
@@ -666,7 +666,7 @@ exports[`GroupReleaseStats renders 1`] = `
                                 </InnerReference>
                               </Reference>
                             </Manager>
-                          </Tooltip2>
+                          </Tooltip>
                         </svg>
                       </CircleSvg>
                       <CircleSvg
@@ -682,7 +682,7 @@ exports[`GroupReleaseStats renders 1`] = `
                           size={10}
                           viewBox="0 0 10 10"
                         >
-                          <Tooltip2
+                          <Tooltip
                             containerDisplayMode="inline-block"
                             position="bottom"
                             title={
@@ -723,7 +723,7 @@ exports[`GroupReleaseStats renders 1`] = `
                                 </InnerReference>
                               </Reference>
                             </Manager>
-                          </Tooltip2>
+                          </Tooltip>
                         </svg>
                       </CircleSvg>
                     </div>
@@ -925,13 +925,13 @@ exports[`GroupReleaseStats renders 1`] = `
                   <span
                     className="max-y"
                   >
-                    <count
+                    <Count
                       value={122}
                     >
                       <span>
                         122
                       </span>
-                    </count>
+                    </Count>
                   </span>
                   <span
                     className="min-y"
@@ -953,7 +953,7 @@ exports[`GroupReleaseStats renders 1`] = `
                           preserveAspectRatio="none"
                           viewBox="0 0 100 400"
                         >
-                          <Tooltip2
+                          <Tooltip
                             containerDisplayMode="inline-block"
                             key="1514764800"
                             position="bottom"
@@ -1062,8 +1062,8 @@ exports[`GroupReleaseStats renders 1`] = `
                                 </InnerReference>
                               </Reference>
                             </Manager>
-                          </Tooltip2>
-                          <Tooltip2
+                          </Tooltip>
+                          <Tooltip
                             containerDisplayMode="inline-block"
                             key="1515024000"
                             position="bottom"
@@ -1172,7 +1172,7 @@ exports[`GroupReleaseStats renders 1`] = `
                                 </InnerReference>
                               </Reference>
                             </Manager>
-                          </Tooltip2>
+                          </Tooltip>
                         </svg>
                       </StyledSvg>
                       <CircleSvg
@@ -1188,7 +1188,7 @@ exports[`GroupReleaseStats renders 1`] = `
                           size={10}
                           viewBox="0 0 10 10"
                         >
-                          <Tooltip2
+                          <Tooltip
                             containerDisplayMode="inline-block"
                             position="bottom"
                             title={
@@ -1229,7 +1229,7 @@ exports[`GroupReleaseStats renders 1`] = `
                                 </InnerReference>
                               </Reference>
                             </Manager>
-                          </Tooltip2>
+                          </Tooltip>
                         </svg>
                       </CircleSvg>
                       <CircleSvg
@@ -1245,7 +1245,7 @@ exports[`GroupReleaseStats renders 1`] = `
                           size={10}
                           viewBox="0 0 10 10"
                         >
-                          <Tooltip2
+                          <Tooltip
                             containerDisplayMode="inline-block"
                             position="bottom"
                             title={
@@ -1286,7 +1286,7 @@ exports[`GroupReleaseStats renders 1`] = `
                                 </InnerReference>
                               </Reference>
                             </Manager>
-                          </Tooltip2>
+                          </Tooltip>
                         </svg>
                       </CircleSvg>
                     </div>
@@ -1323,7 +1323,7 @@ exports[`GroupReleaseStats renders 1`] = `
             <dd
               key="1"
             >
-              <Tooltip2
+              <Tooltip
                 containerDisplayMode="inline-block"
                 position="top"
                 title={
@@ -1372,7 +1372,7 @@ exports[`GroupReleaseStats renders 1`] = `
                       >
                         <span
                           aria-describedby="tooltip-123456"
-                          className="css-1m3e0hg-Container e7ebgxc0"
+                          className="css-1m3e0hg-Container erna86q0"
                           onBlur={[Function]}
                           onFocus={[Function]}
                           onMouseEnter={[Function]}
@@ -1396,7 +1396,7 @@ exports[`GroupReleaseStats renders 1`] = `
                     </InnerReference>
                   </Reference>
                 </Manager>
-              </Tooltip2>
+              </Tooltip>
               <br />
               <small>
                 <DateTime
@@ -1462,7 +1462,7 @@ exports[`GroupReleaseStats renders 1`] = `
             <dd
               key="1"
             >
-              <Tooltip2
+              <Tooltip
                 containerDisplayMode="inline-block"
                 position="top"
                 title={
@@ -1511,7 +1511,7 @@ exports[`GroupReleaseStats renders 1`] = `
                       >
                         <span
                           aria-describedby="tooltip-123456"
-                          className="css-1m3e0hg-Container e7ebgxc0"
+                          className="css-1m3e0hg-Container erna86q0"
                           onBlur={[Function]}
                           onFocus={[Function]}
                           onMouseEnter={[Function]}
@@ -1535,7 +1535,7 @@ exports[`GroupReleaseStats renders 1`] = `
                     </InnerReference>
                   </Reference>
                 </Manager>
-              </Tooltip2>
+              </Tooltip>
               <br />
               <small>
                 <DateTime

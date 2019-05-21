@@ -1,6 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import createReactClass from 'create-react-class';
+import styled from 'react-emotion';
 
 import {t} from 'app/locale';
 import SentryTypes from 'app/sentryTypes';
@@ -35,11 +35,11 @@ const TASKS = [
   },
   {
     task: 3,
-    title: t('Invite team member'),
+    title: t('Invite team members'),
     description: t('Bring your team aboard'),
     detailedDescription: t(
       `Let Sentry help your team triage and assign issues. Improve your workflow
-          by unlocking suggested owners, mentions, and assignment.`
+          by unlocking mentions, assignment, and suggested issue owners.`
     ),
     skippable: true,
     prereq: [],
@@ -51,9 +51,7 @@ const TASKS = [
     task: 4,
     title: t('Add a second platform'),
     description: t('Add Sentry to a second platform'),
-    detailedDescription: t(
-      'Cross platform functionality to support both your frontend and backend.'
-    ),
+    detailedDescription: t('Capture errors from both your front and back ends.'),
     skippable: true,
     prereq: [1, 2],
     featureLocation: 'organization',
@@ -66,7 +64,7 @@ const TASKS = [
     description: t('Know who is being affected by crashes'),
     detailedDescription: t(
       `Unlock features that let you
-          drill down into the number of users affected by an issue as well as get a broader sense about the quality of the application.`
+          drill down into the number of users affected by an issue and get a broader sense about the quality of your application.`
     ),
     skippable: true,
     prereq: [1, 2],
@@ -77,10 +75,10 @@ const TASKS = [
   {
     task: 6,
     title: t('Set up release tracking'),
-    description: t('See what releases are generating errors'),
+    description: t('See which releases cause errors'),
     detailedDescription: t(
-      `Set up commits for additional context when determining the cause of an issue
-          e.g. suggested owners and resolve issues via commit messages.`
+      `Set up releases and associate commits to gain additional context when determining the cause of an issue
+          and unlock the ability to resolve issues via commit message.`
     ),
     skippable: true,
     prereq: [1, 2],
@@ -93,7 +91,7 @@ const TASKS = [
     title: t('Upload source maps'),
     description: t('Deminify JavaScript stack traces'),
     detailedDescription: t(
-      `View source code context obtained from stack traces in their
+      `View source code context obtained from stack traces in its
           original untransformed form, which is particularly useful for debugging minified code.`
     ),
     skippable: true,
@@ -125,7 +123,7 @@ const TASKS = [
   {
     task: 10,
     title: t('Set up an alerts service'),
-    description: t('Receive Sentry alerts in Slack'),
+    description: t('Receive Sentry alerts in Slack, PagerDuty, and more.'),
     skippable: true,
     prereq: [1, 2],
     featureLocation: 'project',
@@ -134,20 +132,16 @@ const TASKS = [
   },
 ];
 
-const TodoList = createReactClass({
-  displayName: 'TodoList',
-
-  propTypes: {
+class TodoList extends React.Component {
+  static propTypes = {
     api: PropTypes.object,
     organization: SentryTypes.Organization,
-  },
+  };
 
-  getInitialState() {
-    return {
-      tasks: [],
-      seeAll: false, // Show all tasks, included those completed
-    };
-  },
+  state = {
+    tasks: [],
+    seeAll: false, // Show all tasks, included those completed
+  };
 
   componentWillMount() {
     // Map server task state (who finished what) to TodoList.TASK objects
@@ -162,9 +156,9 @@ const TodoList = createReactClass({
       return task;
     });
     this.setState({tasks});
-  },
+  }
 
-  skipTask(skippedTask) {
+  skipTask = skippedTask => {
     const org = this.props.organization;
     this.props.api.request('/organizations/' + org.slug + '/onboarding-tasks/', {
       method: 'POST',
@@ -179,7 +173,7 @@ const TodoList = createReactClass({
         this.setState({tasks: newState});
       },
     });
-  },
+  };
 
   render() {
     const nextTasks = this.state.tasks.filter(task => task.display);
@@ -188,15 +182,14 @@ const TodoList = createReactClass({
       return <TodoItem key={task.task} task={task} onSkip={this.skipTask} />;
     });
 
-    return (
-      <div>
-        <div className="onboarding-wrapper">
-          <ul className="list-unstyled">{todoListTasks}</ul>
-        </div>
-      </div>
-    );
-  },
-});
+    return <StyledTodoList>{todoListTasks}</StyledTodoList>;
+  }
+}
+
+const StyledTodoList = styled('ul')`
+  padding-left: 0;
+  list-style: none;
+`;
 
 export {TodoList, TASKS};
 

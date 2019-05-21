@@ -13,8 +13,8 @@ describe('OrganizationIncidentsList', function() {
     mock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/incidents/',
       body: [
-        TestStubs.Incident({id: '123', identifier: 1, title: 'First incident'}),
-        TestStubs.Incident({id: '342', identifier: 2, title: 'Second incident'}),
+        TestStubs.Incident({id: '123', identifier: '1', title: 'First incident'}),
+        TestStubs.Incident({id: '342', identifier: '2', title: 'Second incident'}),
       ],
     });
   });

@@ -19,7 +19,7 @@ import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader
 import Tag from 'app/views/settings/components/tag';
 import TextBlock from 'app/views/settings/components/text/textBlock';
 import TimeSince from 'app/components/timeSince';
-import Tooltip2 from 'app/components/tooltip2';
+import Tooltip from 'app/components/tooltip';
 import space from 'app/styles/space';
 
 function getFileType(dsym) {
@@ -184,9 +184,9 @@ class ProjectDebugSymbols extends AsyncComponent {
 
               {features &&
                 features.map(feature => (
-                  <Tooltip2 key={feature} title={getFeatureTooltip(feature)}>
+                  <Tooltip key={feature} title={getFeatureTooltip(feature)}>
                     <Tag inline>{feature}</Tag>
-                  </Tooltip2>
+                  </Tooltip>
                 ))}
             </DebugSymbolDetails>
           </Box>
@@ -196,7 +196,7 @@ class ProjectDebugSymbols extends AsyncComponent {
                 <Button
                   size="xsmall"
                   icon="icon-download"
-                  onClick={() => (window.location = url)}
+                  href={url}
                   disabled={!hasAccess}
                   css={{
                     marginRight: space(0.5),
@@ -208,7 +208,7 @@ class ProjectDebugSymbols extends AsyncComponent {
             </Access>
             <Access access={['project:write']}>
               {({hasAccess}) => (
-                <Tooltip2
+                <Tooltip
                   disabled={hasAccess}
                   title={t('You do not have permission to delete debug files.')}
                 >
@@ -225,7 +225,7 @@ class ProjectDebugSymbols extends AsyncComponent {
                       disabled={!hasAccess}
                     />
                   </Confirm>
-                </Tooltip2>
+                </Tooltip>
               )}
             </Access>
           </Box>

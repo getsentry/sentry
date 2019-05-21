@@ -36,7 +36,7 @@ class User(BaseModel, AbstractBaseUser):
     # this column is called first_name for legacy reasons, but it is the entire
     # display name
     name = models.CharField(_('name'), max_length=200, blank=True, db_column='first_name')
-    email = models.EmailField(_('email address'), blank=True)
+    email = models.EmailField(_('email address'), blank=True, max_length=75)
     is_staff = models.BooleanField(
         _('staff status'),
         default=False,

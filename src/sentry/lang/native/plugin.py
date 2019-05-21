@@ -11,7 +11,6 @@ from sentry import options
 from sentry.cache import default_cache
 from sentry.coreapi import cache_key_for_event
 from sentry.plugins import Plugin2
-from sentry.lang.native.cfi import reprocess_minidump_with_cfi
 from sentry.lang.native.minidump import get_attached_minidump, is_minidump_event, merge_symbolicator_minidump_response
 from sentry.lang.native.symbolizer import Symbolizer, SymbolicationFailed
 from sentry.lang.native.symbolicator import run_symbolicator, merge_symbolicator_image, create_minidump_task, handle_symbolicator_response_status
@@ -33,21 +32,6 @@ SYMBOLICATOR_FRAME_ATTRS = ("instruction_addr", "package", "lang", "symbol",
                             "line_addr")
 
 
-def _is_symbolicator_enabled(project, data):
-    if not options.get('symbolicator.enabled'):
-        return False
-
-    if project.get_option('sentry:symbolicator-enabled'):
-        return True
-
-    percentage = options.get('sentry:symbolicator-percent-opt-in') or 0
-    if percentage > 0:
-        id_bit = int(data['event_id'][4:6], 16)
-        return id_bit < percentage * 256
-
-    return False
-
-
 def request_id_cache_key_for_event(data):
     return u'symbolicator:{1}:{0}'.format(data['project'], data['event_id'])
 
@@ -63,14 +47,6 @@ class NativeStacktraceProcessor(StacktraceProcessor):
 
     def __init__(self, *args, **kwargs):
         StacktraceProcessor.__init__(self, *args, **kwargs)
-
-        # If true, the project has been opted into using the symbolicator
-        # service for native symbolication, which also means symbolic is not
-        # used at all anymore.
-        # The (iOS) symbolserver is still used regardless of this value.
-        self.use_symbolicator = _is_symbolicator_enabled(self.project, self.data)
-
-        metrics.incr('native.use_symbolicator', tags={'value': self.use_symbolicator})
 
         self.arch = cpu_name_from_data(self.data)
         self.signal = signal_from_data(self.data)
@@ -170,12 +146,10 @@ class NativeStacktraceProcessor(StacktraceProcessor):
             'symbolserver_match': None,
 
             # `[]` is used to indicate to the symbolizer that the symbolicator
-            # deliberately discarded this frame, while `None` means the
-            # symbolicator didn't run (because `self.use_symbolicator` is
-            # false).
+            # deliberately discarded this frame.
             # If the symbolicator did run and was not able to symbolize the
             # frame, this value will be a list with the raw frame as only item.
-            'symbolicator_match': [] if self.use_symbolicator else None,
+            'symbolicator_match': []
         }
 
         if obj is not None:
@@ -196,23 +170,12 @@ class NativeStacktraceProcessor(StacktraceProcessor):
         if not self.available:
             return False
 
-        referenced_images = set(
-            pf.data['debug_id'] for pf in processing_task.iter_processable_frames(self)
-            if pf.cache_value is None and pf.data['debug_id'] is not None
-        )
-
-        self.sym = Symbolizer(
-            self.project,
-            self.object_lookup,
-            referenced_images=referenced_images,
-            use_symbolicator=self.use_symbolicator
-        )
+        self.sym = Symbolizer()
 
         if options.get('symbolserver.enabled'):
             self.fetch_ios_system_symbols(processing_task)
 
-        if self.use_symbolicator:
-            self.run_symbolicator(processing_task)
+        self.run_symbolicator(processing_task)
 
     def run_symbolicator(self, processing_task):
         # TODO(markus): Make this work with minidumps. An unprocessed minidump
@@ -386,11 +349,10 @@ class NativeStacktraceProcessor(StacktraceProcessor):
         else:  # processable_frame.cache_value is present
             _ignored, symbolicated_frames = processable_frame.cache_value
 
-        platform = raw_frame.get('platform') or self.data.get('platform')
         new_frames = []
         for sfrm in symbolicated_frames:
             new_frame = dict(raw_frame)
-            merge_symbolicated_frame(new_frame, sfrm, platform=platform)
+            merge_symbolicated_frame(new_frame, sfrm)
             new_frames.append(new_frame)
 
         return new_frames, [raw_frame], []
@@ -402,11 +364,6 @@ def reprocess_minidump(data):
     minidump_is_reprocessed_cache_key = minidump_reprocessed_cache_key_for_event(data)
     if default_cache.get(minidump_is_reprocessed_cache_key):
         return
-
-    if not _is_symbolicator_enabled(project, data):
-        rv = reprocess_minidump_with_cfi(data)
-        default_cache.set(minidump_is_reprocessed_cache_key, True, 3600)
-        return rv
 
     minidump = get_attached_minidump(data)
 

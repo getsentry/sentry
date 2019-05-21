@@ -380,6 +380,12 @@ class DropdownAutoCompleteMenu extends React.Component {
           // emptyHidesInput is set to true.
           const showInput = !hideInput && (hasItems || !emptyHidesInput);
 
+          // When virtualization is turned on, we need to pass in the number of
+          // selecteable items for arrow-key limits
+          const itemCount =
+            this.props.virtualizedHeight &&
+            autoCompleteResults.filter(i => !i.groupLabel).length;
+
           const renderedFooter =
             typeof menuFooter === 'function' ? menuFooter({actions}) : menuFooter;
 
@@ -404,6 +410,7 @@ class DropdownAutoCompleteMenu extends React.Component {
                     style,
                     isStyled: true,
                     css: this.props.css,
+                    itemCount,
                     blendCorner,
                     alignMenu,
                     menuWithArrow,
