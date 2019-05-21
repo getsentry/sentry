@@ -142,6 +142,20 @@ def create_keys_for_project(instance, created, app=None, **kwargs):
         )
 
 
+def freeze_option_epoch_for_project(instance, created, app=None, **kwargs):
+    if app and app.__name__ != 'sentry.models':
+        return
+
+    if not created or kwargs.get('raw'):
+        return
+
+    from sentry import projectoptions
+    projectoptions.default_manager.freeze_option_epoch(
+        project=instance,
+        force=False
+    )
+
+
 # Anything that relies on default objects that may not exist with default
 # fields should be wrapped in handle_db_failure
 post_syncdb.connect(
@@ -153,5 +167,11 @@ post_save.connect(
     handle_db_failure(create_keys_for_project),
     sender=Project,
     dispatch_uid="create_keys_for_project",
+    weak=False,
+)
+post_save.connect(
+    handle_db_failure(freeze_option_epoch_for_project),
+    sender=Project,
+    dispatch_uid="freeze_option_epoch_for_project",
     weak=False,
 )

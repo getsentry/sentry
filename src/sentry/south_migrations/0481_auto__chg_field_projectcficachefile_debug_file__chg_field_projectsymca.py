@@ -14,18 +14,32 @@ class Migration(SchemaMigration):
     def forwards(self, orm):
 
         # Changing field 'ProjectCfiCacheFile.debug_file'
-        db.alter_column('sentry_projectcficachefile', 'dsym_file_id', self.gf('sentry.db.models.fields.bounded.BoundedBigIntegerField')(db_column='dsym_file_id'))
+        db.alter_column('sentry_projectcficachefile', 'dsym_file_id', self.gf(
+            'sentry.db.models.fields.bounded.BoundedBigIntegerField')(db_column='dsym_file_id'))
 
         # Changing field 'ProjectSymCacheFile.debug_file'
-        db.alter_column('sentry_projectsymcachefile', 'dsym_file_id', self.gf('sentry.db.models.fields.bounded.BoundedBigIntegerField')(db_column='dsym_file_id'))
+        db.alter_column('sentry_projectsymcachefile', 'dsym_file_id', self.gf(
+            'sentry.db.models.fields.bounded.BoundedBigIntegerField')(db_column='dsym_file_id'))
 
     def backwards(self, orm):
 
         # Changing field 'ProjectCfiCacheFile.debug_file'
-        db.alter_column('sentry_projectcficachefile', 'dsym_file_id', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(to=orm['sentry.ProjectDebugFile'], db_column='dsym_file_id', on_delete=models.DO_NOTHING))
+        db.alter_column(
+            'sentry_projectcficachefile',
+            'dsym_file_id',
+            self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(
+                to=orm['sentry.ProjectDebugFile'],
+                db_column='dsym_file_id',
+                on_delete=models.DO_NOTHING))
 
         # Changing field 'ProjectSymCacheFile.debug_file'
-        db.alter_column('sentry_projectsymcachefile', 'dsym_file_id', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(to=orm['sentry.ProjectDebugFile'], db_column='dsym_file_id', on_delete=models.DO_NOTHING))
+        db.alter_column(
+            'sentry_projectsymcachefile',
+            'dsym_file_id',
+            self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(
+                to=orm['sentry.ProjectDebugFile'],
+                db_column='dsym_file_id',
+                on_delete=models.DO_NOTHING))
 
     models = {
         'sentry.activity': {

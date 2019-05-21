@@ -6,7 +6,7 @@ from django.conf import settings
 
 from sentry.relay import config
 from sentry.utils import metrics
-from sentry.models import ProjectKey
+from sentry.models import ProjectKey, Project
 from sentry.web.frontend.base import BaseView
 from sentry.web.helpers import render_to_response
 from sentry.loader.browsersdkversion import get_browser_sdk_version
@@ -49,6 +49,8 @@ class JavaScriptSdkLoader(BaseView):
             )
         except ProjectKey.DoesNotExist:
             pass
+        else:
+            key.project = Project.objects.get_from_cache(id=key.project_id)
 
         context, sdk_version, sdk_url = self._get_context(key)
 

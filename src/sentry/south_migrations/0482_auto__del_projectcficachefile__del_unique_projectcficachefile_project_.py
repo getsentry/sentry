@@ -24,15 +24,17 @@ class Migration(SchemaMigration):
         # Deleting model 'ProjectSymCacheFile'
         db.delete_table(u'sentry_projectsymcachefile')
 
-
     def backwards(self, orm):
         # Adding model 'ProjectCfiCacheFile'
         db.create_table(u'sentry_projectcficachefile', (
-            ('project', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(to=orm['sentry.Project'], null=True)),
+            ('project', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(
+                to=orm['sentry.Project'], null=True)),
             ('version', self.gf('sentry.db.models.fields.bounded.BoundedPositiveIntegerField')()),
             ('checksum', self.gf('django.db.models.fields.CharField')(max_length=40)),
-            ('debug_file', self.gf('sentry.db.models.fields.bounded.BoundedBigIntegerField')(db_column='dsym_file_id', db_index=True)),
-            ('cache_file', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(to=orm['sentry.File'])),
+            ('debug_file', self.gf('sentry.db.models.fields.bounded.BoundedBigIntegerField')(
+                db_column='dsym_file_id', db_index=True)),
+            ('cache_file', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(
+                to=orm['sentry.File'])),
             ('id', self.gf('sentry.db.models.fields.bounded.BoundedBigAutoField')(primary_key=True)),
         ))
         db.send_create_signal('sentry', ['ProjectCfiCacheFile'])
@@ -42,18 +44,20 @@ class Migration(SchemaMigration):
 
         # Adding model 'ProjectSymCacheFile'
         db.create_table(u'sentry_projectsymcachefile', (
-            ('project', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(to=orm['sentry.Project'], null=True)),
+            ('project', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(
+                to=orm['sentry.Project'], null=True)),
             ('version', self.gf('sentry.db.models.fields.bounded.BoundedPositiveIntegerField')()),
             ('checksum', self.gf('django.db.models.fields.CharField')(max_length=40)),
-            ('debug_file', self.gf('sentry.db.models.fields.bounded.BoundedBigIntegerField')(db_column='dsym_file_id', db_index=True)),
-            ('cache_file', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(to=orm['sentry.File'])),
+            ('debug_file', self.gf('sentry.db.models.fields.bounded.BoundedBigIntegerField')(
+                db_column='dsym_file_id', db_index=True)),
+            ('cache_file', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(
+                to=orm['sentry.File'])),
             ('id', self.gf('sentry.db.models.fields.bounded.BoundedBigAutoField')(primary_key=True)),
         ))
         db.send_create_signal('sentry', ['ProjectSymCacheFile'])
 
         # Adding unique constraint on 'ProjectSymCacheFile', fields ['project', 'debug_file']
         db.create_unique(u'sentry_projectsymcachefile', [u'project_id', 'dsym_file_id'])
-
 
     models = {
         'sentry.activity': {

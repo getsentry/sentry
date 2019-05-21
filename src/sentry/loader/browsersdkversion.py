@@ -17,7 +17,6 @@ logger = logging.getLogger('sentry')
 
 _version_regexp = re.compile(r'^\d+\.\d+\.\d+$')  # We really only want stable releases
 LOADER_FOLDER = os.path.abspath(os.path.join(os.path.dirname(sentry.__file__), 'loader'))
-DEFAULT_VERSION = '4.x'  # DEFAULT_VERSION must exists, in case of 5.0 a new constant should be introduced
 
 
 @lru_cache(maxsize=10)
@@ -39,7 +38,7 @@ def get_highest_browser_sdk_version(versions):
 
 
 def get_browser_sdk_version_versions():
-    return ['latest', '5.x', DEFAULT_VERSION]
+    return ['latest', '5.x', '4.x']
 
 
 def get_browser_sdk_version_choices():
@@ -75,4 +74,9 @@ def get_browser_sdk_version(project_key):
 
 
 def get_selected_browser_sdk_version(project_key):
-    return project_key.data.get('browserSdkVersion', DEFAULT_VERSION)
+    return project_key.data.get('browserSdkVersion') or \
+        get_default_sdk_version_for_project(project_key.project)
+
+
+def get_default_sdk_version_for_project(project):
+    return project.get_option('sentry:default_loader_version')
