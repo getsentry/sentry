@@ -15,7 +15,8 @@ class SlackIntegrationTest(IntegrationTestCase):
     provider = SlackIntegrationProvider
 
     def assert_setup_flow(self, team_id='TXXXXXXX1', authorizing_user_id='UXXXXXXX1',
-                          access_token='xoxp-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx', access_extras=None):
+                          access_token='xoxp-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx', access_extras=None,
+                          use_oauth_token_endpoint=True):
         responses.reset()
 
         resp = self.client.get(self.init_path)
@@ -45,10 +46,18 @@ class SlackIntegrationTest(IntegrationTestCase):
         if access_extras is not None:
             access_json.update(access_extras)
 
-        responses.add(
-            responses.POST, 'https://slack.com/api/oauth.access',
-            json=access_json,
-        )
+        # XXX(epurkhiser): The slack workspace token app uses oauth.token, the
+        # slack bot app uses oauth.access.
+        if use_oauth_token_endpoint:
+            responses.add(
+                responses.POST, 'https://slack.com/api/oauth.token',
+                json=access_json,
+            )
+        else:
+            responses.add(
+                responses.POST, 'https://slack.com/api/oauth.access',
+                json=access_json,
+            )
 
         responses.add(
             responses.GET, 'https://slack.com/api/auth.test',
@@ -91,6 +100,7 @@ class SlackIntegrationTest(IntegrationTestCase):
     @responses.activate
     def test_bot_flow(self):
         self.assert_setup_flow(
+            use_oauth_token_endpoint=False,
             access_token='xoxa-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx',
             access_extras={
                 'bot': {
