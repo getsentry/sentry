@@ -1,6 +1,6 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import {shallow} from 'enzyme';
+import {mount, shallow} from 'enzyme';
 import {browserHistory} from 'react-router';
 
 import {GroupEvents} from 'app/views/groupDetails/organization/groupEvents';
@@ -9,32 +9,59 @@ const OrgnanizationGroupEvents = GroupEvents;
 
 describe('groupEvents', function() {
   let request;
+  const routerContext = TestStubs.routerContext();
+
   beforeEach(function() {
     request = MockApiClient.addMockResponse({
       url: '/issues/1/events/',
-      body: TestStubs.Events(),
+      body: [
+        TestStubs.Event({
+          eventID: '12345',
+          id: '1',
+          message: 'ApiException',
+          groupID: '1',
+        }),
+        TestStubs.Event({
+          crashFile: {
+            sha1: 'sha1',
+            name: 'name.dmp',
+            dateCreated: '2019-05-21T18:01:48.762Z',
+            headers: {'Content-Type': 'application/octet-stream'},
+            id: '12345',
+            size: 123456,
+            type: 'event.minidump',
+          },
+          culprit: '',
+          dateCreated: '2019-05-21T18:00:23Z',
+          'event.type': 'error',
+          eventID: '123456',
+          groupID: '1',
+          id: '98654',
+          location: 'main.js',
+          message: 'TestException',
+          platform: 'native',
+          projectID: '123',
+          tags: [{value: 'production', key: 'production'}],
+          title: 'TestException',
+        }),
+      ],
     });
 
     browserHistory.push = jest.fn();
   });
 
   it('renders', function() {
-    const component = shallow(
+    const component = mount(
       <OrgnanizationGroupEvents
         api={new MockApiClient()}
         group={TestStubs.Group()}
         params={{orgId: 'orgId', projectId: 'projectId', groupId: '1'}}
         location={{query: {}}}
       />,
-      {
-        context: {...TestStubs.router()},
-        childContextTypes: {
-          router: PropTypes.object,
-        },
-      }
+      routerContext
     );
 
-    expect(component).toMatchSnapshot();
+    expect(component.find('tr')).toMatchSnapshot();
   });
 
   it('handles search', function() {
