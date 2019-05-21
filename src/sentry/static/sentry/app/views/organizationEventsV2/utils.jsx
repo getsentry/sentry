@@ -79,7 +79,7 @@ export function getCurrentView(requestedView) {
  *
  * @param {Object} api
  * @param {String} orgSlug
- * @param {Object} data
+ * @param {Object} view
  * @returns {Promise<Object>}
  */
 export function fetchOrganizationEvents(api, orgSlug, view) {
