@@ -1,5 +1,9 @@
 import React from 'react';
-import {tct} from 'app/locale';
+import {t, tct} from 'app/locale';
+
+const INTERNAL_OPTION_DISABLED_REASON = t(
+  "This option can't be changed once selected. Please make a new integration if you no longer want it to be internal."
+);
 
 const forms = [
   {
@@ -7,9 +11,11 @@ const forms = [
     title: 'Integration Details',
     fields: [
       {
-        name: 'internal',
+        name: 'isInternal',
         label: 'Internal',
         type: 'boolean',
+        disabled: ({statusDisabled}) => statusDisabled,
+        disabledReason: INTERNAL_OPTION_DISABLED_REASON,
         help:
           'If enabled, your integration will automatically be installed and for use within your organization only.',
       },

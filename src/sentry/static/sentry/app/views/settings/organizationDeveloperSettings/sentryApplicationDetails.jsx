@@ -91,7 +91,7 @@ export default class SentryApplicationDetails extends AsyncView {
     const {app} = this.state;
     const scopes = (app && [...app.scopes]) || [];
     const events = (app && this.normalize(app.events)) || [];
-
+    const statusDisabled = app && app.status == 'internal' ? true : false;
     const method = app ? 'PUT' : 'POST';
     const endpoint = app ? `/sentry-apps/${app.slug}/` : '/sentry-apps/';
 
@@ -105,7 +105,7 @@ export default class SentryApplicationDetails extends AsyncView {
           initialData={{
             organization: orgId,
             isAlertable: false,
-            internal: app && app.status == 'internal' ? true : false,
+            isInternal: app && app.status == 'internal' ? true : false,
             schema: {},
             scopes: [],
             ...app,
@@ -113,7 +113,11 @@ export default class SentryApplicationDetails extends AsyncView {
           model={this.form}
           onSubmitSuccess={this.onSubmitSuccess}
         >
-          <JsonForm location={this.props.location} forms={sentryApplicationForm} />
+          <JsonForm
+            additionalFieldProps={{statusDisabled}}
+            location={this.props.location}
+            forms={sentryApplicationForm}
+          />
 
           <PermissionsObserver scopes={scopes} events={events} />
 

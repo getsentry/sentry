@@ -75,7 +75,6 @@ describe('Sentry Application Details', function() {
       wrapper.find('form').simulate('submit');
 
       const data = {
-        internal: false,
         name: 'Test App',
         author: 'Sentry',
         organization: org.slug,
@@ -83,6 +82,7 @@ describe('Sentry Application Details', function() {
         webhookUrl: 'https://webhook.com',
         scopes: observable(['member:read', 'member:admin', 'event:read', 'event:admin']),
         events: observable(['issue']),
+        isInternal: false,
         isAlertable: true,
         schema: {},
       };
@@ -97,7 +97,7 @@ describe('Sentry Application Details', function() {
     });
   });
 
-  describe('Renders application data and credentials', function() {
+  describe('Renders for non-internal apps', function() {
     beforeEach(() => {
       sentryApp = TestStubs.SentryApp();
       sentryApp.events = ['issue'];
@@ -124,8 +124,10 @@ describe('Sentry Application Details', function() {
       expect(wrapper.find('#clientId').exists()).toBe(true);
       expect(wrapper.find('#clientSecret').exists()).toBe(true);
     });
+  });
 
-    it('renders installationId and token for internal apps', function() {
+  describe('Renders for internal apps', () => {
+    beforeEach(() => {
       sentryApp = TestStubs.SentryApp({
         status: 'internal',
         installation: {uuid: 'xxxxxx'},
@@ -142,7 +144,16 @@ describe('Sentry Application Details', function() {
         <SentryApplicationDetails params={{appSlug: sentryApp.slug, orgId}} />,
         TestStubs.routerContext()
       );
-
+    });
+    it('has internal option disabled', function() {
+      expect(
+        wrapper
+          .find('Field[name="isInternal"]')
+          .find('FieldControl')
+          .prop('disabled')
+      ).toBe(true);
+    });
+    it('shows installationId and token', function() {
       expect(wrapper.find('#installation').exists()).toBe(true);
       expect(wrapper.find('#token').exists()).toBe(true);
     });

@@ -30,6 +30,16 @@ class SentryAppsEndpoint(SentryAppsBaseEndpoint):
                     status=SentryAppStatus.UNPUBLISHED,
                     owner__in=request.user.get_orgs(),
                 )
+        elif status == 'internal':
+            if is_active_superuser(request):
+                queryset = SentryApp.objects.filter(
+                    status=SentryAppStatus.INTERNAL,
+                )
+            else:
+                queryset = SentryApp.objects.filter(
+                    status=SentryAppStatus.INTERNAL,
+                    owner__in=request.user.get_orgs(),
+                )
         else:
             if is_active_superuser(request):
                 queryset = SentryApp.objects.all()
