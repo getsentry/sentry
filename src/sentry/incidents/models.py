@@ -14,7 +14,10 @@ from sentry.db.models import (
     Model,
     UUIDField,
 )
-from sentry.db.models import ArrayField
+from sentry.db.models import (
+    ArrayField,
+    sane_repr,
+)
 from sentry.db.models.manager import BaseManager
 from sentry.utils.retries import TimedRetryPolicy
 
@@ -179,3 +182,18 @@ class IncidentActivity(Model):
     class Meta:
         app_label = 'sentry'
         db_table = 'sentry_incidentactivity'
+
+
+class IncidentSubscription(Model):
+    __core__ = True
+
+    incident = FlexibleForeignKey('sentry.Incident', db_index=False)
+    user = FlexibleForeignKey(settings.AUTH_USER_MODEL)
+    date_added = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        app_label = 'sentry'
+        db_table = 'sentry_incidentsubscription'
+        unique_together = (('incident', 'user'), )
+
+    __repr__ = sane_repr('incident_id', 'user_id')
