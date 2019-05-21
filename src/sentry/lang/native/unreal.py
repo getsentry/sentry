@@ -160,7 +160,7 @@ def parse_portable_callstack(portable_callstack, images):
     return frames
 
 
-def merge_unreal_context_event(unreal_context, event, project, refactor_enabled=False):
+def merge_unreal_context_event(unreal_context, event, project):
     """Merges the context from an Unreal Engine 4 crash
     with the given event."""
     runtime_prop = unreal_context.get('runtime_properties')
@@ -204,23 +204,11 @@ def merge_unreal_context_event(unreal_context, event, project, refactor_enabled=
 
     portable_callstack = runtime_prop.pop('portable_call_stack', None)
     if portable_callstack is not None:
-        if refactor_enabled:
-            set_path(event, 'contexts', 'unreal', 'type', value='unreal')
-            set_path(event, 'contexts', 'unreal', 'portable_call_stack',
-                     value=portable_callstack)
-            # TODO(markus): Add other stuff from extra here. Make sure trimming
-            # will not be a problem for portable_call_stack then!
-        else:
-            # TODO(markus): Remove after refactor rolled out
-            images = get_path(event, 'debug_meta', 'images', filter=True, default=())
-            frames = parse_portable_callstack(portable_callstack, images)
-
-            if len(frames) > 0:
-                exception = get_path(event, 'exception', 'values', 0)
-                if exception:
-                    # This property is required for correct behavior of symbolicator codepath.
-                    exception['mechanism'] = {'type': 'unreal', 'handled': False, 'synthetic': True}
-                event['stacktrace'] = {'frames': frames}
+        set_path(event, 'contexts', 'unreal', 'type', value='unreal')
+        set_path(event, 'contexts', 'unreal', 'portable_call_stack',
+                 value=portable_callstack)
+        # TODO(markus): Add other stuff from extra here. Make sure trimming
+        # will not be a problem for portable_call_stack then!
 
     # drop modules. minidump processing adds 'images loaded'
     runtime_prop.pop('modules', None)
