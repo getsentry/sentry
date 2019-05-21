@@ -19,6 +19,11 @@ function Collapsed(props) {
   );
 }
 
+Collapsed.propTypes = {
+  onClick: PropTypes.func.isRequired,
+  count: PropTypes.number.isRequired,
+};
+
 function moduleToCategory(module) {
   if (!module) {
     return null;
@@ -29,11 +34,6 @@ function moduleToCategory(module) {
   }
   return module.split(/./)[0];
 }
-
-Collapsed.propTypes = {
-  onClick: PropTypes.func.isRequired,
-  count: PropTypes.number.isRequired,
-};
 
 class BreadcrumbsInterface extends React.Component {
   static propTypes = {
