@@ -2,6 +2,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
 
+import Tooltip from 'app/components/tooltip';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 
 class Category extends React.Component {
@@ -24,6 +25,16 @@ class Category extends React.Component {
       title = title.replace('%s', value);
     } else {
       title = value;
+    }
+    // Display has room for approximately 10 wide chars before
+    // overflowing to an ellipsis. We also don't want tooltips on 'exception'
+    // which is 9 characters.
+    if (title.length > 10) {
+      return (
+        <Tooltip title={title} containerDisplayMode="block">
+          <CrumbCategory>{title}</CrumbCategory>
+        </Tooltip>
+      );
     }
     return <CrumbCategory title={title}>{title}</CrumbCategory>;
   }
