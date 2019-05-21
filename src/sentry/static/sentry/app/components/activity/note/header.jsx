@@ -12,7 +12,7 @@ import EditorTools from './editorTools';
 
 class NoteHeader extends React.Component {
   static propTypes = {
-    author: PropTypes.object.isRequired,
+    authorName: PropTypes.string.isRequired,
     user: SentryTypes.User,
     onEdit: PropTypes.func.isRequired,
     onDelete: PropTypes.func.isRequired,
@@ -24,11 +24,11 @@ class NoteHeader extends React.Component {
   };
 
   render() {
-    const {author, onEdit, onDelete} = this.props;
+    const {authorName, onEdit, onDelete} = this.props;
 
     return (
       <div>
-        <ActivityAuthor>{author.name}</ActivityAuthor>
+        <ActivityAuthor>{authorName}</ActivityAuthor>
         {this.canEdit() && (
           <EditorTools>
             <Edit onClick={onEdit}>{t('Edit')}</Edit>

@@ -12,7 +12,6 @@ import {t} from 'app/locale';
 import {uniqueId} from 'app/utils/guid';
 import ActivityAuthor from 'app/components/activity/author';
 import ActivityItem from 'app/components/activity/item';
-import Avatar from 'app/components/avatar';
 import ConfigStore from 'app/stores/configStore';
 import ErrorBoundary from 'app/components/errorBoundary';
 import GroupActivityItem from 'app/views/groupDetails/shared/groupActivityItem';
@@ -45,13 +44,13 @@ class GroupActivity extends React.Component {
   getMemberList = (memberList, sessionUser) =>
     _.uniqBy(memberList, ({id}) => id).filter(({id}) => sessionUser.id !== id);
 
-  handleNoteDelete = async item => {
+  handleNoteDelete = async ({modelId, text: oldText}) => {
     const {api, group} = this.props;
 
     addLoadingMessage(t('Removing comment...'));
 
     try {
-      await deleteNote(api, group, item);
+      await deleteNote(api, group, modelId, oldText);
       clearIndicators();
     } catch (_err) {
       addErrorMessage(t('Failed to delete comment'));
@@ -92,7 +91,7 @@ class GroupActivity extends React.Component {
     }
   };
 
-  handleNoteUpdate = async (note, item) => {
+  handleNoteUpdate = async (note, {modelId, text: oldText}) => {
     const {api, group} = this.props;
 
     this.setState({
@@ -101,7 +100,7 @@ class GroupActivity extends React.Component {
     addLoadingMessage(t('Updating comment...'));
 
     try {
-      await updateNote(api, group, item, note);
+      await updateNote(api, group, note, modelId, oldText);
       this.setState({
         updateBusy: false,
       });
@@ -164,13 +163,11 @@ class GroupActivity extends React.Component {
                 return (
                   <ErrorBoundary mini key={`note-${item.id}`}>
                     <Note
-                      item={item}
                       text={item.data.text}
-                      id={`note-${item.id}`}
-                      author={{
-                        name: authorName,
-                        avatar: <Avatar user={item.user} size={38} />,
-                      }}
+                      modelId={item.id}
+                      user={item.user}
+                      dateCreated={item.dateCreated}
+                      authorName={authorName}
                       onDelete={this.handleNoteDelete}
                       onUpdate={this.handleNoteUpdate}
                       busy={this.state.updateBusy}

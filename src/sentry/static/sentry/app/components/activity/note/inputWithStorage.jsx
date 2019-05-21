@@ -10,6 +10,7 @@ class NoteInputWithStorage extends React.Component {
   static propTypes = {
     storageKey: PropTypes.string.isRequired,
     itemKey: PropTypes.string.isRequired,
+    text: PropTypes.string,
     onLoad: PropTypes.func.isRequired,
     onSave: PropTypes.func.isRequired,
     onChange: PropTypes.func,
@@ -55,7 +56,11 @@ class NoteInputWithStorage extends React.Component {
   };
 
   getValue = () => {
-    const {itemKey, onLoad} = this.props;
+    const {itemKey, text, onLoad} = this.props;
+
+    if (text) {
+      return text;
+    }
 
     const storageObj = this.fetchFromStorage();
 
@@ -121,8 +126,8 @@ class NoteInputWithStorage extends React.Component {
     // Make sure `this.props` does not override `onChange` and `onCreate`
     return (
       <NoteInput
-        defaultText={this.getValue()}
         {...this.props}
+        text={this.getValue()}
         onCreate={this.handleCreate}
         onChange={this.handleChange}
       />

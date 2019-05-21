@@ -57,10 +57,7 @@ describe('NoteInput', function() {
   describe('Existing Item', function() {
     const defaultProps = {
       group: {project: {}, id: 'groupId'},
-      item: {
-        id: 'item-id',
-        data: {text: 'an existing item'},
-      },
+      modelId: 'item-id',
       text: 'an existing item',
       memberList: [],
       teams: [],
@@ -102,10 +99,7 @@ describe('NoteInput', function() {
 
       wrapper.find('textarea').simulate('keyDown', {key: 'Enter', ctrlKey: true});
 
-      expect(onUpdate).toHaveBeenCalledWith(
-        {text: 'new item'},
-        {id: 'item-id', data: {text: 'an existing item'}}
-      );
+      expect(onUpdate).toHaveBeenCalledWith({text: 'new item'});
     });
 
     it('canels editing and moves to preview mode', async function() {

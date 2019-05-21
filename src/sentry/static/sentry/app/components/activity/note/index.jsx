@@ -13,9 +13,21 @@ import NoteInput from './input';
 
 class Note extends React.Component {
   static propTypes = {
-    author: PropTypes.object.isRequired,
-    item: PropTypes.object.isRequired,
+    // String for author name to be displayed in header
+    // This is not completely derived from `props.user` because we can set a default from parent component
+    authorName: PropTypes.string.isRequired,
+
+    // This is the id of the note object from the server
+    // This is to indicate you are editing an existing item
+    modelId: PropTypes.string,
+
+    // The note text itself
     text: PropTypes.string.isRequired,
+
+    user: SentryTypes.User,
+
+    dateCreated: PropTypes.oneOfType([PropTypes.instanceOf(Date), PropTypes.string]),
+
     memberList: PropTypes.array.isRequired,
     teams: PropTypes.arrayOf(SentryTypes.Team).isRequired,
 
@@ -35,12 +47,9 @@ class Note extends React.Component {
     onUpdate: PropTypes.func,
   };
 
-  constructor(...args) {
-    super(...args);
-    this.state = {
-      editing: false,
-    };
-  }
+  state = {
+    editing: false,
+  };
 
   handleEdit = () => {
     this.setState({editing: true});
@@ -51,9 +60,9 @@ class Note extends React.Component {
   };
 
   handleDelete = () => {
-    const {item, onDelete} = this.props;
+    const {onDelete} = this.props;
 
-    onDelete(item);
+    onDelete(this.props);
   };
 
   handleCreate = note => {
@@ -63,17 +72,19 @@ class Note extends React.Component {
   };
 
   handleUpdate = note => {
-    const {item, onUpdate} = this.props;
+    const {onUpdate} = this.props;
 
-    onUpdate(note, item);
+    onUpdate(note, this.props);
     this.setState({editing: false});
   };
 
   render() {
     const {
-      item,
+      modelId,
+      user,
+      dateCreated,
       text,
-      author,
+      authorName,
       teams,
       memberList,
       hideDate,
@@ -84,9 +95,9 @@ class Note extends React.Component {
     const activityItemProps = {
       hideDate,
       showTime,
-      id: `activity-item-${item.id}`,
-      author: {type: 'user', user: item.user},
-      date: item.dateCreated,
+      id: `activity-item-${modelId}`,
+      author: {type: 'user', user},
+      date: dateCreated,
     };
 
     if (!this.state.editing) {
@@ -95,8 +106,8 @@ class Note extends React.Component {
           {...activityItemProps}
           header={
             <NoteHeader
-              author={author}
-              user={item.user}
+              authorName={authorName}
+              user={user}
               onEdit={this.handleEdit}
               onDelete={this.handleDelete}
             />
@@ -113,8 +124,8 @@ class Note extends React.Component {
       <StyledActivityItem {...activityItemProps}>
         {() => (
           <NoteInput
+            modelId={modelId}
             minHeight={minHeight}
-            item={item}
             text={text}
             onEditFinish={this.handleEditFinish}
             onUpdate={this.handleUpdate}

@@ -22,11 +22,12 @@ class NoteInput extends React.Component {
     teams: PropTypes.arrayOf(SentryTypes.Team).isRequired,
     memberList: PropTypes.array.isRequired,
 
-    item: PropTypes.shape({
-      id: PropTypes.string,
-    }),
+    // This is the id of the note object from the server
+    // This is to indicate you are editing an existing item
+    modelId: PropTypes.string,
+
+    // The note text itself
     text: PropTypes.string,
-    defaultText: PropTypes.string,
     error: PropTypes.bool,
     errorJSON: PropTypes.shape({
       detail: PropTypes.shape({
@@ -51,7 +52,6 @@ class NoteInput extends React.Component {
 
   static defaultProps = {
     placeholder: t('Add a comment.\nTag users with @, or teams with #'),
-    defaultText: '',
     minHeight: 140,
     busy: false,
   };
@@ -59,9 +59,8 @@ class NoteInput extends React.Component {
   constructor(props) {
     super(props);
 
-    const {item, text} = props;
-    const existing = !!item && !!item.id;
-    const defaultText = existing ? text || '' : props.defaultText;
+    const {text} = props;
+    const defaultText = text || '';
 
     this.memberMentions = [];
     this.teamMentions = [];
@@ -99,7 +98,7 @@ class NoteInput extends React.Component {
   }
 
   submitForm = () => {
-    if (!!this.props.item) {
+    if (!!this.props.modelId) {
       this.update();
     } else {
       this.create();
@@ -121,12 +120,9 @@ class NoteInput extends React.Component {
     const {onUpdate} = this.props;
 
     if (onUpdate) {
-      onUpdate(
-        {
-          text: this.state.value,
-        },
-        this.props.item
-      );
+      onUpdate({
+        text: this.state.value,
+      });
     }
   };
 
@@ -160,7 +156,7 @@ class NoteInput extends React.Component {
     this.setState({value: e.target.value});
 
     if (this.props.onChange) {
-      this.props.onChange(e, {updating: !!this.props.item});
+      this.props.onChange(e, {updating: !!this.props.modelId});
     }
   };
 
@@ -190,9 +186,9 @@ class NoteInput extends React.Component {
 
   render() {
     const {preview, value} = this.state;
-    const {busy, item, error, placeholder, minHeight, errorJSON} = this.props;
+    const {modelId, busy, error, placeholder, minHeight, errorJSON} = this.props;
 
-    const existingItem = !!item;
+    const existingItem = !!modelId;
     const btnText = existingItem ? t('Save Comment') : t('Post Comment');
 
     const errorMessage =
