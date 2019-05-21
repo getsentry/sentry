@@ -8,7 +8,9 @@ import LineChart from 'app/components/charts/lineChart';
 import Link from 'app/components/links/link';
 import MarkPoint from 'app/components/charts/components/markPoint';
 import NavTabs from 'app/components/navTabs';
+import SeenByList from 'app/components/seenByList';
 import SentryTypes from 'app/sentryTypes';
+import space from 'app/styles/space';
 import theme from 'app/utils/theme';
 
 import Activity from './activity';
@@ -57,13 +59,23 @@ export default class DetailsBody extends React.Component {
       <StyledPageContent>
         <Main>
           <PageContent>
-            <NavTabs underlined={true}>
+            <StyledNavTabs underlined={true}>
               {Object.entries(TABS).map(([id, {name}]) => (
                 <li key={id} className={activeTab === id ? 'active' : ''}>
                   <Link onClick={() => this.handleToggle(id)}>{name}</Link>
                 </li>
               ))}
-            </NavTabs>
+
+              <SeenByTab>
+                {incident && (
+                  <StyledSeenByList
+                    iconPosition="right"
+                    seenBy={incident.seenBy}
+                    iconTooltip={t('People who have viewed this incident')}
+                  />
+                )}
+              </SeenByTab>
+            </StyledNavTabs>
             <ActiveComponent params={params} incident={incident} />
           </PageContent>
         </Main>
@@ -120,4 +132,20 @@ const StyledPageContent = styled(PageContent)`
   @media (max-width: ${theme.breakpoints[0]}) {
     flex-direction: column;
   }
+`;
+
+const StyledNavTabs = styled(NavTabs)`
+  display: flex;
+`;
+const SeenByTab = styled('li')`
+  flex: 1;
+  margin-left: ${space(2)};
+
+  .nav-tabs > & {
+    margin-right: 0;
+  }
+`;
+
+const StyledSeenByList = styled(SeenByList)`
+  margin-top: 0;
 `;

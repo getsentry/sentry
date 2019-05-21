@@ -36,7 +36,7 @@ export default class DetailsHeader extends React.Component {
     return (
       <Access
         access={['org:write']}
-        renderNoAccessMessage={() => incident && <Status incident={incident} />}
+        renderNoAccessMessage={() => (incident ? <Status incident={incident} /> : null)}
       >
         <DropdownControl
           data-test-id="status-dropdown"
