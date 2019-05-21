@@ -8,11 +8,9 @@ from django.utils import timezone
 from collections import namedtuple, OrderedDict
 
 from sentry.models import Project, Release
-from sentry.utils.in_app import is_known_third_party
 from sentry.utils.cache import cache
 from sentry.utils.hashlib import hash_values
 from sentry.utils.safe import get_path, safe_execute
-from sentry.stacktraces.platform import get_behavior_family_for_platform
 from sentry.stacktraces.functions import trim_function_name
 
 
@@ -216,19 +214,6 @@ def _normalize_in_app(stacktrace, platform=None, sdk_info=None):
     """
     Ensures consistent values of in_app across a stacktrace.
     """
-    # Native frames have special rules regarding in_app. Apply them before other
-    # normalization, just like grouping enhancers.
-    # TODO(ja): Clean up those rules and put them in enhancers instead
-    for frame in stacktrace:
-        if frame.get('in_app') is not None:
-            continue
-
-        family = get_behavior_family_for_platform(frame.get('platform') or platform)
-        if family == 'native':
-            frame_package = frame.get('package')
-            frame['in_app'] = bool(frame_package) and \
-                not is_known_third_party(frame_package, sdk_info=sdk_info)
-
     has_system_frames = _has_system_frames(stacktrace)
     for frame in stacktrace:
         # If all frames are in_app, flip all of them. This is expected by the UI

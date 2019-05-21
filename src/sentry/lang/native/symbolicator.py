@@ -390,6 +390,9 @@ def handle_symbolicator_status(status, image, sdk_info, handle_symbolication_fai
         'missing'
     ):
         package = image.get('code_file')
+        # TODO(mitsuhiko): This check seems wrong?  This call seems to
+        # mirror the one in the ios symbol server support.  If we change
+        # one we need to change the other.
         if not package or is_known_third_party(package, sdk_info=sdk_info):
             return
 
