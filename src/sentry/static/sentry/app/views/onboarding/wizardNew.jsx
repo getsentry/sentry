@@ -15,6 +15,7 @@ import OnboardingWelcome from 'app/views/onboarding/welcome';
 import PageHeading from 'app/components/pageHeading';
 import SentryTypes from 'app/sentryTypes';
 import space from 'app/styles/space';
+import testablePose from 'app/utils/testablePose';
 import withOrganization from 'app/utils/withOrganization';
 import withProjects from 'app/utils/withProjects';
 
@@ -43,10 +44,21 @@ const ONBOARDING_STEPS = [
   },
 ];
 
+const stepShape = PropTypes.shape({
+  id: PropTypes.string,
+  title: PropTypes.string,
+  Component: PropTypes.func,
+});
+
 class OnboardingWizard extends React.Component {
   static propTypes = {
+    steps: PropTypes.arrayOf(stepShape),
     projects: PropTypes.arrayOf(SentryTypes.Project),
     organization: SentryTypes.Organization,
+  };
+
+  static defaultProps = {
+    steps: ONBOARDING_STEPS,
   };
 
   constructor(...args) {
@@ -62,22 +74,22 @@ class OnboardingWizard extends React.Component {
 
   validateActiveStep() {
     if (this.activeStepIndex == -1) {
-      const firstStep = ONBOARDING_STEPS[0].id;
+      const firstStep = this.props.steps[0].id;
       browserHistory.replace(`/onboarding/${this.props.params.orgId}/${firstStep}/`);
     }
   }
 
   get activeStepIndex() {
-    return ONBOARDING_STEPS.findIndex(({id}) => this.props.params.step === id);
+    return this.props.steps.findIndex(({id}) => this.props.params.step === id);
   }
 
   get activeStep() {
-    return ONBOARDING_STEPS[this.activeStepIndex];
+    return this.props.steps[this.activeStepIndex];
   }
 
   get firstProject() {
     const sortedProjects = this.props.projects.sort(
-      (a, b) => new Date(b.dateCreated) - new Date(a.dateCreated)
+      (a, b) => new Date(a.dateCreated) - new Date(b.dateCreated)
     );
 
     return sortedProjects.length > 0 ? sortedProjects[0] : null;
@@ -99,7 +111,7 @@ class OnboardingWizard extends React.Component {
     }
 
     const {orgId} = this.props.params;
-    const nextStep = ONBOARDING_STEPS[this.activeStepIndex + 1];
+    const nextStep = this.props.steps[this.activeStepIndex + 1];
 
     recordAnalyticStepComplete({
       organization: this.props.organization,
@@ -129,7 +141,7 @@ class OnboardingWizard extends React.Component {
     const activeStepIndex = this.activeStepIndex;
     return (
       <ProgressBar>
-        {ONBOARDING_STEPS.map((step, index) => (
+        {this.props.steps.map((step, index) => (
           <ProgressStep active={activeStepIndex === index} key={step.id} />
         ))}
       </ProgressBar>
@@ -139,7 +151,7 @@ class OnboardingWizard extends React.Component {
   renderOnboardingSteps() {
     const {orgId} = this.props.params;
     const activeStepIndex = this.activeStepIndex;
-    const visibleSteps = ONBOARDING_STEPS.slice(0, activeStepIndex + 1);
+    const visibleSteps = this.props.steps.slice(0, activeStepIndex + 1);
 
     return visibleSteps.map((step, index) => (
       <OnboardingStep
@@ -258,11 +270,13 @@ const ProgressStep = styled('div')`
   background: #fff;
 `;
 
-const PosedProgressStatus = posed.div({
-  init: {opacity: 0, y: -10},
-  enter: {opacity: 1, y: 0},
-  exit: {opacity: 0, y: 10},
-});
+const PosedProgressStatus = posed.div(
+  testablePose({
+    init: {opacity: 0, y: -10},
+    enter: {opacity: 1, y: 0},
+    exit: {opacity: 0, y: 10},
+  })
+);
 
 const ProgressStatus = styled(PosedProgressStatus)`
   color: ${p => p.theme.gray3};
@@ -270,10 +284,12 @@ const ProgressStatus = styled(PosedProgressStatus)`
   text-align: right;
 `;
 
-const PosedOnboardingStep = posed.div({
-  enter: {opacity: 1, y: 0},
-  exit: {opacity: 0, y: 100},
-});
+const PosedOnboardingStep = posed.div(
+  testablePose({
+    enter: {opacity: 1, y: 0},
+    exit: {opacity: 0, y: 100},
+  })
+);
 
 const OnboardingStep = styled(PosedOnboardingStep)`
   margin: 70px 0;
@@ -298,5 +314,16 @@ const OnboardingStep = styled(PosedOnboardingStep)`
     font-size: 1.5rem;
   }
 `;
+
+export const stepPropTypes = {
+  scrollTargetId: PropTypes.string,
+  active: PropTypes.bool,
+  orgId: PropTypes.string,
+  project: SentryTypes.Project,
+  platform: PropTypes.string,
+  onReturnToStep: PropTypes.func,
+  onComplete: PropTypes.func,
+  onUpdate: PropTypes.func,
+};
 
 export default withOrganization(withProjects(OnboardingWizard));

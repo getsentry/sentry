@@ -78,7 +78,7 @@ class EventWaiter extends React.Component {
     );
 
     // The event may have expired, default to true
-    const firstIssue = issues.find(issue => issue.firstSeen === firstEvent);
+    const firstIssue = issues.find(issue => issue.firstSeen === firstEvent) || true;
 
     recordAnalyticsFirstEvent({organization, project});
 

@@ -1,8 +1,8 @@
-import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
 
 import {analytics} from 'app/utils/analytics';
+import {stepPropTypes} from 'app/views/onboarding/wizardNew';
 import {t, tct} from 'app/locale';
 import Button from 'app/components/button';
 import SentryTypes from 'app/sentryTypes';
@@ -16,10 +16,8 @@ const recordAnalyticsOnboardingSkipped = ({organization}) =>
 
 class OnboardingWelcome extends React.Component {
   static propTypes = {
-    active: PropTypes.bool.isRequired,
-    onComplete: PropTypes.func.isRequired,
+    ...stepPropTypes,
     config: SentryTypes.Config.isRequired,
-    organization: SentryTypes.Organization,
   };
 
   skipOnboarding = e => {

@@ -2,6 +2,7 @@ import React from 'react';
 import posed, {PoseGroup} from 'react-pose';
 
 import {analytics} from 'app/utils/analytics';
+import {stepPropTypes} from 'app/views/onboarding/wizardNew';
 import {t} from 'app/locale';
 import HookOrDefault from 'app/components/hookOrDefault';
 import SentryTypes from 'app/sentryTypes';
@@ -47,6 +48,7 @@ const DEFAULT_SETUP_OPTION = 'install-guide';
 
 class OnboardingProjectSetup extends React.Component {
   static propTypes = {
+    ...stepPropTypes,
     organization: SentryTypes.Organization,
   };
 

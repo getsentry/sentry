@@ -2,7 +2,9 @@ import {css} from 'react-emotion';
 import PropTypes from 'prop-types';
 import React from 'react';
 
+import {addErrorMessage} from 'app/actionCreators/indicator';
 import {createProject} from 'app/actionCreators/projects';
+import {stepPropTypes} from 'app/views/onboarding/wizardNew';
 import {t, tct} from 'app/locale';
 import Button from 'app/components/button';
 import PlatformPicker from 'app/components/platformPicker';
@@ -22,25 +24,18 @@ const platformListStyle = css`
 
 class OnboardingPlatform extends React.Component {
   static propTypes = {
+    ...stepPropTypes,
     api: PropTypes.object,
-    orgId: PropTypes.string.isRequired,
     teams: PropTypes.arrayOf(SentryTypes.Team),
-    project: SentryTypes.Project,
-    platform: PropTypes.string,
-    active: PropTypes.bool,
-    scrollTargetId: PropTypes.string,
-    onComplete: PropTypes.func.isRequired,
-    onUpdate: PropTypes.func.isRequired,
-    onReturnToStep: PropTypes.func.isRequired,
   };
 
   state = {
     /**
-     * This will be flipped to true after creating the first project. We use
-     * state here to avoid the intermittent prop value where the project is
-     * created but the store hasn't propagated its value to the component yet,
-     * leaving a brief period where the button will flash between labels /
-     * disabled states.
+     * This will be flipped to true immedaitely before  creating the first
+     * project. We use state here to avoid the intermittent prop value where
+     * the project is created but the store hasn't propagated its value to the
+     * component yet, leaving a brief period where the button will flash
+     * between labels / disabled states.
      */
     firstProjectCreated: false,
     /**
@@ -78,7 +73,7 @@ class OnboardingPlatform extends React.Component {
   async createFirstProject(platform) {
     const {api, orgId, teams} = this.props;
 
-    if (this.props.project) {
+    if (this.hasFirstProject) {
       return;
     }
 
@@ -88,8 +83,13 @@ class OnboardingPlatform extends React.Component {
 
     this.setState({firstProjectCreated: true});
 
-    const data = await createProject(api, orgId, teams[0].slug, orgId, platform);
-    ProjectActions.createSuccess(data);
+    try {
+      const data = await createProject(api, orgId, teams[0].slug, orgId, platform);
+      ProjectActions.createSuccess(data);
+    } catch (error) {
+      addErrorMessage(t('Failed to create project'));
+      throw error;
+    }
   }
 
   handleSetPlatform = platform => {

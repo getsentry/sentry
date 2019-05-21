@@ -9,24 +9,30 @@ import Button from 'app/components/button';
 import EventWaiter from 'app/views/onboarding/projectSetup/eventWaiter';
 import InlineSvg from 'app/components/inlineSvg';
 import space from 'app/styles/space';
+import testablePose from 'app/utils/testablePose';
 
 const FirstEventIndicator = props => (
   <EventWaiter {...props}>
-    {({firstIssue}) => (
-      <PoseGroup preEnterPose="init">
-        {!firstIssue ? (
-          <Waiting key="waiting" />
-        ) : (
-          <Success key="recieved" firstIssue={firstIssue} {...props} />
-        )}
-      </PoseGroup>
-    )}
+    {({firstIssue}) => <Indicator firstIssue={firstIssue} {...props} />}
   </EventWaiter>
 );
 
 FirstEventIndicator.propTypes = {
   orgId: PropTypes.string,
-  projectId: PropTypes.string,
+};
+
+const Indicator = ({firstIssue, ...props}) => (
+  <PoseGroup preEnterPose="init">
+    {!firstIssue ? (
+      <Waiting key="waiting" />
+    ) : (
+      <Success key="recieved" firstIssue={firstIssue} {...props} />
+    )}
+  </PoseGroup>
+);
+
+Indicator.propTypes = {
+  firstIssue: PropTypes.oneOfType([PropTypes.bool, PropTypes.object]),
 };
 
 const Waiting = props => (
@@ -54,17 +60,17 @@ const Success = ({orgId, firstIssue, ...props}) => (
 
 Success.propTypes = FirstEventIndicator.propTypes;
 
-const indicatorPoses = {
+const indicatorPoses = testablePose({
   init: {opacity: 0, y: -10},
   enter: {opacity: 1, y: 0},
   exit: {opacity: 0, y: 10},
-};
+});
 
 const PosedText = posed.div(indicatorPoses);
 
-const StatusWrapper = styled(posed.div({enter: {staggerChildren: 350}}))`
+const StatusWrapper = styled(posed.div(testablePose({enter: {staggerChildren: 350}})))`
   display: grid;
-  grid-template-columns: max-content max-content 1fr;
+  grid-template-columns: max-content 1fr max-content;
   grid-gap: ${space(1)};
   align-items: center;
   font-size: 0.9em;
@@ -125,12 +131,16 @@ const ReceivedIndicator = styled(PosedReceivedIndicator)`
 const PosedButton = posed(
   React.forwardRef((props, ref) => (
     <div ref={ref}>
-      <Button {...props} innerRef={ref} />
+      <Button {...props} />
     </div>
   ))
-)({
-  init: {x: -20, opacity: 0},
-  enter: {x: 0, opacity: 1},
-});
+)(
+  testablePose({
+    init: {x: -20, opacity: 0},
+    enter: {x: 0, opacity: 1},
+  })
+);
+
+export {Indicator};
 
 export default FirstEventIndicator;
