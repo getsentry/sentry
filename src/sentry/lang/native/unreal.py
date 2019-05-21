@@ -36,6 +36,9 @@ def reprocess_unreal_crash(data):
         return
 
     exception = get_path(data, 'exception', 'values', 0)
+    if len(get_path(exception, 'stacktrace', 'frames', filter=True) or ()) > 1:
+        return
+
     if not exception:
         assert not data.get('stacktrace')
         exception = {'type': 'Unreal'}
