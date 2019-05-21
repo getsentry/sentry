@@ -48,6 +48,7 @@ def is_minidump_event(data):
 
 
 def is_unreal_exception_stacktrace(data):
+    # TODO(markus): Remove after unreal portable callstacks are parsed in enhancers
     exceptions = get_path(data, 'exception', 'values', filter=True)
     return get_path(exceptions, 0, 'mechanism', 'type') == 'unreal'
 
