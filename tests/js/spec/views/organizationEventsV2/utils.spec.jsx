@@ -1,4 +1,4 @@
-import {ALL_VIEWS, getCurrentView} from 'app/views/organizationEventsV2/utils';
+import {ALL_VIEWS, getCurrentView, getQuery} from 'app/views/organizationEventsV2/utils';
 
 describe('getCurrentView()', function() {
   it('returns current view', function() {
@@ -10,5 +10,27 @@ describe('getCurrentView()', function() {
   it('returns default if invalid', function() {
     expect(getCurrentView(undefined)).toBe(ALL_VIEWS[0]);
     expect(getCurrentView('blah')).toBe(ALL_VIEWS[0]);
+  });
+});
+
+describe('getQuery()', function() {
+  it('expands special "event" and "user" fields', function() {
+    const view = {
+      id: 'test',
+      name: 'test view',
+      data: {
+        query: '',
+        fields: ['event', 'user', 'issue.id'],
+      },
+      tags: [],
+    };
+
+    expect(getQuery(view).fields).toEqual([
+      'id',
+      'title',
+      'user.email',
+      'user.ip',
+      'issue.id',
+    ]);
   });
 });
