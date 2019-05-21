@@ -12,6 +12,7 @@ from sentry.cache import default_cache
 from sentry.coreapi import cache_key_for_event
 from sentry.plugins import Plugin2
 from sentry.lang.native.minidump import get_attached_minidump, is_minidump_event, merge_symbolicator_minidump_response
+from sentry.lang.native.unreal import is_unreal_event, reprocess_unreal_crash
 from sentry.lang.native.symbolizer import Symbolizer, SymbolicationFailed
 from sentry.lang.native.symbolicator import run_symbolicator, merge_symbolicator_image, create_minidump_task, handle_symbolicator_response_status
 from sentry.lang.native.utils import get_sdk_from_event, handle_symbolication_failed, cpu_name_from_data, \
@@ -273,7 +274,8 @@ class NativeStacktraceProcessor(StacktraceProcessor):
 
             obj = pf.data['obj']
             package = obj and obj.code_file
-            # TODO(ja): This should check for iOS specifically
+            # TODO(ja): This should check for iOS specifically.  Also
+            # check in symbolicator.py for handle_symbolicator_status
             if not package or not is_known_third_party(package):
                 continue
 
@@ -394,8 +396,14 @@ class NativePlugin(Plugin2):
     can_disable = False
 
     def get_event_enhancers(self, data):
+        rv = []
         if is_minidump_event(data):
-            return [reprocess_minidump]
+            rv.append(reprocess_minidump)
+
+        if is_unreal_event(data):
+            rv.append(reprocess_unreal_crash)
+
+        return rv
 
     def get_stacktrace_processors(self, data, stacktrace_infos, platforms, **kwargs):
         if any(platform in NativeStacktraceProcessor.supported_platforms for platform in platforms):

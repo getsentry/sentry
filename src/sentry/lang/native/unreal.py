@@ -16,6 +16,38 @@ _portable_callstack_regexp = re.compile(r'''(?x)
 ''')
 
 
+def is_unreal_event(data):
+    """Whether this event is an Unreal crash that should be processed in
+    enhancers. For the legacy codepath this still returns False."""
+    return get_path(data, 'contexts', 'unreal', 'type') == 'unreal'
+
+
+def reprocess_unreal_crash(data):
+    context = get_path(data, 'contexts', 'unreal')
+    portable_call_stack = get_path(context, 'portable_call_stack')
+
+    if not portable_call_stack:
+        return
+
+    images = get_path(data, 'debug_meta', 'images', filter=True, default=())
+
+    frames = parse_portable_callstack(portable_call_stack, images)
+    if not frames:
+        return
+
+    exception = get_path(data, 'exception', 'values', 0)
+    if not exception:
+        assert not data.get('stacktrace')
+        exception = {'type': 'Unreal'}
+        data['exception'] = {'values': [exception]}
+
+    exception['mechanism'] = {'type': 'unreal', 'handled': False, 'synthetic': True}
+    exception['stacktrace'] = {'frames': frames}
+    exception.pop('raw_stacktrace', None)
+
+    return data
+
+
 def process_unreal_crash(payload, user_id, environment, event):
     """Initial processing of the event from the Unreal Crash Reporter data.
     Processes the raw bytes of the unreal crash by returning a Unreal4Crash"""
@@ -53,6 +85,9 @@ def merge_apple_crash_report(apple_crash_report, event):
     event['threads'] = []
     for thread in apple_crash_report['threads']:
         crashed = thread.get('crashed')
+
+        # We don't create an exception because an apple crash report can have
+        # multiple crashed threads.
         event['threads'].append({
             'id': thread.get('id'),
             'name': thread.get('name'),
@@ -67,6 +102,7 @@ def merge_apple_crash_report(apple_crash_report, event):
                 'registers': thread.get('registers', []),
             },
         })
+
         if crashed:
             event['level'] = 'fatal'
 
@@ -124,7 +160,7 @@ def parse_portable_callstack(portable_callstack, images):
     return frames
 
 
-def merge_unreal_context_event(unreal_context, event, project):
+def merge_unreal_context_event(unreal_context, event, project, refactor_enabled=False):
     """Merges the context from an Unreal Engine 4 crash
     with the given event."""
     runtime_prop = unreal_context.get('runtime_properties')
@@ -168,15 +204,23 @@ def merge_unreal_context_event(unreal_context, event, project):
 
     portable_callstack = runtime_prop.pop('portable_call_stack', None)
     if portable_callstack is not None:
-        images = get_path(event, 'debug_meta', 'images', filter=True, default=())
-        frames = parse_portable_callstack(portable_callstack, images)
+        if refactor_enabled:
+            set_path(event, 'contexts', 'unreal', 'type', value='unreal')
+            set_path(event, 'contexts', 'unreal', 'portable_call_stack',
+                     value=portable_callstack)
+            # TODO(markus): Add other stuff from extra here. Make sure trimming
+            # will not be a problem for portable_call_stack then!
+        else:
+            # TODO(markus): Remove after refactor rolled out
+            images = get_path(event, 'debug_meta', 'images', filter=True, default=())
+            frames = parse_portable_callstack(portable_callstack, images)
 
-        if len(frames) > 0:
-            exception = get_path(event, 'exception', 'values', 0)
-            if exception:
-                # This property is required for correct behavior of symbolicator codepath.
-                exception['mechanism'] = {'type': 'unreal', 'handled': False, 'synthetic': True}
-            event['stacktrace'] = {'frames': frames}
+            if len(frames) > 0:
+                exception = get_path(event, 'exception', 'values', 0)
+                if exception:
+                    # This property is required for correct behavior of symbolicator codepath.
+                    exception['mechanism'] = {'type': 'unreal', 'handled': False, 'synthetic': True}
+                event['stacktrace'] = {'frames': frames}
 
     # drop modules. minidump processing adds 'images loaded'
     runtime_prop.pop('modules', None)
