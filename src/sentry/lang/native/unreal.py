@@ -31,15 +31,16 @@ def reprocess_unreal_crash(data):
 
     images = get_path(data, 'debug_meta', 'images', filter=True, default=())
     exception = get_path(data, 'exception', 'values', 0)
-    if not exception:
-        return
 
     frames = parse_portable_callstack(portable_call_stack, images)
     if not frames:
         return
 
-    exception['mechanism'] = {'type': 'unreal', 'handled': False, 'synthetic': True}
-    exception['stacktrace'] = {'frames': frames}
+    if exception:
+        exception['mechanism'] = {'type': 'unreal', 'handled': False, 'synthetic': True}
+        exception['stacktrace'] = {'frames': frames}
+    else:
+        data['stacktrace'] = {'frames': frames}
 
     return data
 
@@ -73,44 +74,33 @@ def unreal_attachment_type(unreal_file):
 
 def merge_apple_crash_report(apple_crash_report, event):
     event['platform'] = 'native'
-    event['level'] = 'info'
 
     timestamp = apple_crash_report.get('timestamp')
     if timestamp:
         event['timestamp'] = timestamp
 
-    exception = get_path(event, 'exception', 'values', 0)
-
     event['threads'] = []
-
     for thread in apple_crash_report['threads']:
         crashed = thread.get('crashed')
-        event_thread = {
+        event['threads'].append({
             'id': thread.get('id'),
             'name': thread.get('name'),
             'crashed': crashed,
-        }
-        event['threads'].append(event_thread)
-
-        stacktrace = {
-            'frames': [{
-                'instruction_addr': frame.get('instruction_addr'),
-                'package': frame.get('module'),
-                'lineno': frame.get('lineno'),
-                'filename': frame.get('filename'),
-            } for frame in reversed(thread.get('frames', []))],
-            'registers': thread.get('registers', []),
-        }
-
+            'stacktrace': {
+                'frames': [{
+                    'instruction_addr': frame.get('instruction_addr'),
+                    'package': frame.get('module'),
+                    'lineno': frame.get('lineno'),
+                    'filename': frame.get('filename'),
+                } for frame in reversed(thread.get('frames', []))],
+                'registers': thread.get('registers', []),
+            },
+        })
         if crashed:
             event['level'] = 'fatal'
 
-        if crashed and exception:
-            exception['mechanism'] = {'type': 'unreal', 'handled': False, 'synthetic': True}
-            exception['stacktrace'] = stacktrace
-        else:
-            # TODO(markus): Remove after unreal endpoint refactor is rolled out
-            event_thread['stacktrace'] = stacktrace
+    if event.get('level') is None:
+        event['level'] = 'info'
 
     metadata = apple_crash_report.get('metadata')
     if metadata:
@@ -171,12 +161,8 @@ def merge_unreal_context_event(unreal_context, event, project, refactor_enabled=
         return
 
     message = runtime_prop.pop('error_message', None)
-    exception = get_path(event, 'exception', 'values', 0)
     if message is not None:
         event['message'] = message
-        if exception:
-            exception.pop('type', None)
-            exception['value'] = message
 
     username = runtime_prop.pop('username', None)
     if username is not None:
@@ -223,6 +209,7 @@ def merge_unreal_context_event(unreal_context, event, project, refactor_enabled=
             frames = parse_portable_callstack(portable_callstack, images)
 
             if len(frames) > 0:
+                exception = get_path(event, 'exception', 'values', 0)
                 if exception:
                     # This property is required for correct behavior of symbolicator codepath.
                     exception['mechanism'] = {'type': 'unreal', 'handled': False, 'synthetic': True}

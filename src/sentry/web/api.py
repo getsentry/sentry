@@ -849,20 +849,15 @@ class UnrealView(StoreView):
 
         attachments = []
         event = {'event_id': uuid.uuid4().hex}
-
-        refactor_enabled = _minidump_refactor_enabled(project.id)
-
-        metrics.incr(
-            'symbolicator.minidump-refactor-enabled',
-            tags={'value': refactor_enabled, 'endpoint': 'unreal'}
-        )
-
-        if refactor_enabled:
-            write_minidump_placeholder(event)
-
         try:
             unreal = process_unreal_crash(request.body, request.GET.get(
                 'UserID'), request.GET.get('AppEnvironment'), event)
+
+            refactor_enabled = _minidump_refactor_enabled(project.id)
+            metrics.incr(
+                'symbolicator.minidump-refactor-enabled',
+                tags={'value': refactor_enabled, 'endpoint': 'unreal'}
+            )
 
             if refactor_enabled:
                 process_state = None
@@ -927,6 +922,9 @@ class UnrealView(StoreView):
                     data=file.open_stream().read(),
                     type=unreal_attachment_type(file),
                 ))
+
+        if is_minidump and refactor_enabled:
+            write_minidump_placeholder(event)
 
         if not refactor_enabled and not is_apple_crash_report and not is_minidump:
             track_outcome(project.organization_id, project.id, None,
