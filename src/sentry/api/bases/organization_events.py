@@ -53,6 +53,8 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
         fields = request.GET.getlist('fields')
         if fields:
             snuba_args['selected_columns'] = fields
+        else:
+            raise OrganizationEventsError('No fields requested.')
 
         groupby = request.GET.getlist('groupby')
         if groupby:
