@@ -273,7 +273,8 @@ class NativeStacktraceProcessor(StacktraceProcessor):
 
             obj = pf.data['obj']
             package = obj and obj.code_file
-            # TODO(ja): This should check for iOS specifically
+            # TODO(ja): This should check for iOS specifically.  Also
+            # check in symbolicator.py for handle_symbolicator_status
             if not package or not is_known_third_party(package):
                 continue
 
