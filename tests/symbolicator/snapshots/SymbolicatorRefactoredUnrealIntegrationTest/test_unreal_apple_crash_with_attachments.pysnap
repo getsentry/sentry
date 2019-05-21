@@ -1,5 +1,5 @@
 ---
-created: '2019-05-20T15:08:58.046203Z'
+created: '2019-05-21T08:47:39.066704Z'
 creator: sentry
 source: tests/symbolicator/test_unreal_full.py
 ---
@@ -29,7 +29,145 @@ contexts:
       + 12234 libsystem_pthread 0x00000000ffffffff + ffffffff libsystem_pthread 0x00000000ffffffff
       + ffffffff libsystem_pthread 0x00000000ffffffff + ffffffff
     type: unreal
-exception: null
+exception:
+  values:
+  - mechanism:
+      handled: false
+      synthetic: true
+      type: unreal
+    raw_stacktrace:
+      frames:
+      - in_app: false
+        instruction_addr: '0x7fff30932234'
+        package: /System/Library/Frameworks/AVFoundation.framework/Versions/A/AVFoundation
+        trust: prewalked
+      - in_app: false
+        instruction_addr: '0x1095aab27'
+        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
+        trust: prewalked
+      - in_app: false
+        instruction_addr: '0x108b6fd8e'
+        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
+        trust: prewalked
+      - in_app: false
+        instruction_addr: '0x108b65169'
+        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
+        trust: prewalked
+      - in_app: false
+        instruction_addr: '0x108b55d76'
+        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
+        trust: prewalked
+      - in_app: false
+        instruction_addr: '0x10c28647e'
+        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
+        trust: prewalked
+      - in_app: false
+        instruction_addr: '0x10c2a6f41'
+        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
+        trust: prewalked
+      - in_app: false
+        instruction_addr: '0x10ce48e4a'
+        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
+        trust: prewalked
+      - in_app: false
+        instruction_addr: '0x10ce4f8f5'
+        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
+        trust: prewalked
+      - in_app: false
+        instruction_addr: '0x10cfadb9e'
+        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
+        trust: prewalked
+      - in_app: false
+        instruction_addr: '0x10c2e4621'
+        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
+        trust: prewalked
+      - in_app: false
+        instruction_addr: '0x10cfe80be'
+        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
+        trust: prewalked
+      - in_app: false
+        instruction_addr: '0x10bc5eb21'
+        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
+        trust: prewalked
+      - in_app: false
+        instruction_addr: '0x10bc5fc29'
+        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
+        trust: prewalked
+      - in_app: false
+        instruction_addr: '0x10bc3b85b'
+        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
+        trust: prewalked
+      - in_app: false
+        instruction_addr: '0x1090a0132'
+        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
+        trust: prewalked
+    stacktrace:
+      frames:
+      - in_app: false
+        instruction_addr: '0x7fff30932234'
+        package: /System/Library/Frameworks/AVFoundation.framework/Versions/A/AVFoundation
+        trust: prewalked
+      - in_app: false
+        instruction_addr: '0x1095aab27'
+        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
+        trust: prewalked
+      - in_app: false
+        instruction_addr: '0x108b6fd8e'
+        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
+        trust: prewalked
+      - in_app: false
+        instruction_addr: '0x108b65169'
+        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
+        trust: prewalked
+      - in_app: false
+        instruction_addr: '0x108b55d76'
+        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
+        trust: prewalked
+      - in_app: false
+        instruction_addr: '0x10c28647e'
+        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
+        trust: prewalked
+      - in_app: false
+        instruction_addr: '0x10c2a6f41'
+        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
+        trust: prewalked
+      - in_app: false
+        instruction_addr: '0x10ce48e4a'
+        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
+        trust: prewalked
+      - in_app: false
+        instruction_addr: '0x10ce4f8f5'
+        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
+        trust: prewalked
+      - in_app: false
+        instruction_addr: '0x10cfadb9e'
+        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
+        trust: prewalked
+      - in_app: false
+        instruction_addr: '0x10c2e4621'
+        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
+        trust: prewalked
+      - in_app: false
+        instruction_addr: '0x10cfe80be'
+        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
+        trust: prewalked
+      - in_app: false
+        instruction_addr: '0x10bc5eb21'
+        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
+        trust: prewalked
+      - in_app: false
+        instruction_addr: '0x10bc5fc29'
+        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
+        trust: prewalked
+      - in_app: false
+        instruction_addr: '0x10bc3b85b'
+        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
+        trust: prewalked
+      - in_app: false
+        instruction_addr: '0x1090a0132'
+        package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
+        trust: prewalked
+    value: ' SEGV_MAPERR at 0x88'
 extra:
   app_default_locate: en-AT
   base_dir: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/UE4/YetAnotherMac/Binaries/Mac/
@@ -107,72 +245,7 @@ extra:
   root_dir: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/UE4/
   seconds_since_start: 0
   time_of_crash: 636826526632420000
-stacktrace:
-  frames:
-  - in_app: false
-    instruction_addr: '0x7fff30932234'
-    package: /System/Library/Frameworks/AVFoundation.framework/Versions/A/AVFoundation
-    trust: prewalked
-  - in_app: false
-    instruction_addr: '0x1095aab27'
-    package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-    trust: prewalked
-  - in_app: false
-    instruction_addr: '0x108b6fd8e'
-    package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-    trust: prewalked
-  - in_app: false
-    instruction_addr: '0x108b65169'
-    package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-    trust: prewalked
-  - in_app: false
-    instruction_addr: '0x108b55d76'
-    package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-    trust: prewalked
-  - in_app: false
-    instruction_addr: '0x10c28647e'
-    package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-    trust: prewalked
-  - in_app: false
-    instruction_addr: '0x10c2a6f41'
-    package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-    trust: prewalked
-  - in_app: false
-    instruction_addr: '0x10ce48e4a'
-    package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-    trust: prewalked
-  - in_app: false
-    instruction_addr: '0x10ce4f8f5'
-    package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-    trust: prewalked
-  - in_app: false
-    instruction_addr: '0x10cfadb9e'
-    package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-    trust: prewalked
-  - in_app: false
-    instruction_addr: '0x10c2e4621'
-    package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-    trust: prewalked
-  - in_app: false
-    instruction_addr: '0x10cfe80be'
-    package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-    trust: prewalked
-  - in_app: false
-    instruction_addr: '0x10bc5eb21'
-    package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-    trust: prewalked
-  - in_app: false
-    instruction_addr: '0x10bc5fc29'
-    package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-    trust: prewalked
-  - in_app: false
-    instruction_addr: '0x10bc3b85b'
-    package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-    trust: prewalked
-  - in_app: false
-    instruction_addr: '0x1090a0132'
-    package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
-    trust: prewalked
+stacktrace: null
 threads:
   values:
   - crashed: false
@@ -345,168 +418,6 @@ threads:
         package: libsystem_kernel.dylib
   - crashed: true
     id: 5
-    raw_stacktrace:
-      frames:
-      - in_app: false
-        instruction_addr: '0x7fff61c7f425'
-        package: libsystem_pthread.dylib
-      - in_app: false
-        instruction_addr: '0x7fff61c832a7'
-        package: libsystem_pthread.dylib
-      - in_app: false
-        instruction_addr: '0x7fff61c8033d'
-        package: libsystem_pthread.dylib
-      - in_app: false
-        instruction_addr: '0x7fff36d4a234'
-        package: Foundation
-      - in_app: false
-        instruction_addr: '0x1095aab27'
-        package: YetAnotherMac
-      - in_app: false
-        instruction_addr: '0x108b6fd8e'
-        package: YetAnotherMac
-      - in_app: false
-        instruction_addr: '0x108b65169'
-        package: YetAnotherMac
-      - in_app: false
-        instruction_addr: '0x108b55d76'
-        package: YetAnotherMac
-      - in_app: false
-        instruction_addr: '0x10c28647e'
-        package: YetAnotherMac
-      - in_app: false
-        instruction_addr: '0x10c2a6f41'
-        package: YetAnotherMac
-      - in_app: false
-        instruction_addr: '0x10ce48e4a'
-        package: YetAnotherMac
-      - in_app: false
-        instruction_addr: '0x10ce4f8f5'
-        package: YetAnotherMac
-      - in_app: false
-        instruction_addr: '0x10cfadb9e'
-        package: YetAnotherMac
-      - in_app: false
-        instruction_addr: '0x10c2e4621'
-        package: YetAnotherMac
-      - in_app: false
-        instruction_addr: '0x10cfe80be'
-        package: YetAnotherMac
-      - in_app: false
-        instruction_addr: '0x10bc5eb21'
-        package: YetAnotherMac
-      - in_app: false
-        instruction_addr: '0x10bc5fc29'
-        package: YetAnotherMac
-      - in_app: false
-        instruction_addr: '0x10bc3b85b'
-        package: YetAnotherMac
-      - in_app: false
-        instruction_addr: '0x1090a0132'
-        package: YetAnotherMac
-      registers:
-        cs: '0x2b'
-        fs: '0x0'
-        gs: '0x0'
-        r10: '0x0'
-        r11: '0xffffffff'
-        r12: '0x8'
-        r13: '0x11e800b00'
-        r14: '0x1'
-        r15: '0x0'
-        r8: '0x3'
-        r9: '0x10'
-        rax: '0x20261bb4775b008f'
-        rbp: '0x700015a616d0'
-        rbx: '0x0'
-        rcx: '0x1288266c0'
-        rdi: '0x0'
-        rdx: '0x1'
-        rflags: '0x10206'
-        rip: '0x1090a0132'
-        rsi: '0x0'
-        rsp: '0x700015a613f0'
-    stacktrace:
-      frames:
-      - in_app: false
-        instruction_addr: '0x7fff61c7f425'
-        package: libsystem_pthread.dylib
-      - in_app: false
-        instruction_addr: '0x7fff61c832a7'
-        package: libsystem_pthread.dylib
-      - in_app: false
-        instruction_addr: '0x7fff61c8033d'
-        package: libsystem_pthread.dylib
-      - in_app: false
-        instruction_addr: '0x7fff36d4a234'
-        package: Foundation
-      - in_app: false
-        instruction_addr: '0x1095aab27'
-        package: YetAnotherMac
-      - in_app: false
-        instruction_addr: '0x108b6fd8e'
-        package: YetAnotherMac
-      - in_app: false
-        instruction_addr: '0x108b65169'
-        package: YetAnotherMac
-      - in_app: false
-        instruction_addr: '0x108b55d76'
-        package: YetAnotherMac
-      - in_app: false
-        instruction_addr: '0x10c28647e'
-        package: YetAnotherMac
-      - in_app: false
-        instruction_addr: '0x10c2a6f41'
-        package: YetAnotherMac
-      - in_app: false
-        instruction_addr: '0x10ce48e4a'
-        package: YetAnotherMac
-      - in_app: false
-        instruction_addr: '0x10ce4f8f5'
-        package: YetAnotherMac
-      - in_app: false
-        instruction_addr: '0x10cfadb9e'
-        package: YetAnotherMac
-      - in_app: false
-        instruction_addr: '0x10c2e4621'
-        package: YetAnotherMac
-      - in_app: false
-        instruction_addr: '0x10cfe80be'
-        package: YetAnotherMac
-      - in_app: false
-        instruction_addr: '0x10bc5eb21'
-        package: YetAnotherMac
-      - in_app: false
-        instruction_addr: '0x10bc5fc29'
-        package: YetAnotherMac
-      - in_app: false
-        instruction_addr: '0x10bc3b85b'
-        package: YetAnotherMac
-      - in_app: false
-        instruction_addr: '0x1090a0132'
-        package: YetAnotherMac
-      registers:
-        cs: '0x2b'
-        fs: '0x0'
-        gs: '0x0'
-        r10: '0x0'
-        r11: '0xffffffff'
-        r12: '0x8'
-        r13: '0x11e800b00'
-        r14: '0x1'
-        r15: '0x0'
-        r8: '0x3'
-        r9: '0x10'
-        rax: '0x20261bb4775b008f'
-        rbp: '0x700015a616d0'
-        rbx: '0x0'
-        rcx: '0x1288266c0'
-        rdi: '0x0'
-        rdx: '0x1'
-        rflags: '0x10206'
-        rip: '0x1090a0132'
-        rsi: '0x0'
-        rsp: '0x700015a613f0'
   - crashed: false
     id: 6
     raw_stacktrace:
