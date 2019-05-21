@@ -56,7 +56,10 @@ export default class OrganizationEventsV2 extends React.Component {
               </PageHeading>
             </PageHeader>
             {this.renderTabs()}
-            <Events view={getCurrentView(location.query.view)} />
+            <Events
+              organization={organization}
+              view={getCurrentView(location.query.view)}
+            />
           </PageContent>
         </React.Fragment>
       </DocumentTitle>
