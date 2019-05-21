@@ -20,7 +20,8 @@ class WellKnownProjectOption(object):
     def __init__(self, key, default=None, epoch_defaults=None):
         self.key = key
         self.default = default
-        self.epoch_defaults = sorted((epoch_defaults or {}).items())
+        self.epoch_defaults = epoch_defaults
+        self._epoch_default_list = sorted(epoch_defaults or ())
 
     def get_default(self, project=None, epoch=None):
         if self.epoch_defaults:
@@ -29,11 +30,9 @@ class WellKnownProjectOption(object):
                     epoch = 1
                 else:
                     epoch = project.get_option('sentry:option-epoch') or 1
-            idx = bisect.bisect(self.epoch_defaults, (epoch, None))
-            try:
-                return self.epoch_defaults[idx][1]
-            except IndexError:
-                pass
+            idx = bisect.bisect(self._epoch_default_list, epoch)
+            if idx > 0:
+                return self.epoch_defaults[self._epoch_default_list[idx - 1]]
         return self.default
 
 
