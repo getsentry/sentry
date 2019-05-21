@@ -30,17 +30,20 @@ def reprocess_unreal_crash(data):
         return
 
     images = get_path(data, 'debug_meta', 'images', filter=True, default=())
-    exception = get_path(data, 'exception', 'values', 0)
 
     frames = parse_portable_callstack(portable_call_stack, images)
     if not frames:
         return
 
-    if exception:
-        exception['mechanism'] = {'type': 'unreal', 'handled': False, 'synthetic': True}
-        exception['stacktrace'] = {'frames': frames}
-    else:
-        data['stacktrace'] = {'frames': frames}
+    exception = get_path(data, 'exception', 'values', 0)
+    if not exception:
+        assert not data.get('stacktrace')
+        exception = {'type': 'Unreal'}
+        data['exception'] = {'values': [exception]}
+
+    exception['mechanism'] = {'type': 'unreal', 'handled': False, 'synthetic': True}
+    exception['stacktrace'] = {'frames': frames}
+    exception.pop('raw_stacktrace', None)
 
     return data
 
@@ -82,6 +85,9 @@ def merge_apple_crash_report(apple_crash_report, event):
     event['threads'] = []
     for thread in apple_crash_report['threads']:
         crashed = thread.get('crashed')
+
+        # We don't create an exception because an apple crash report can have
+        # multiple crashed threads.
         event['threads'].append({
             'id': thread.get('id'),
             'name': thread.get('name'),
@@ -96,6 +102,7 @@ def merge_apple_crash_report(apple_crash_report, event):
                 'registers': thread.get('registers', []),
             },
         })
+
         if crashed:
             event['level'] = 'fatal'
 
