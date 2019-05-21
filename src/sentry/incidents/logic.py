@@ -102,6 +102,9 @@ def update_incident_status(incident, status, user=None, comment=None):
             previous_value=incident.status,
             comment=comment,
         )
+        if user:
+            subscribe_to_incident(incident, user)
+
         kwargs = {
             'status': status.value,
         }
@@ -147,6 +150,7 @@ def create_initial_event_stats_snapshot(incident):
     return create_event_stat_snapshot(incident, start, end)
 
 
+@transaction.atomic
 def create_incident_activity(
     incident,
     activity_type,
@@ -156,6 +160,8 @@ def create_incident_activity(
     comment=None,
     event_stats_snapshot=None,
 ):
+    if activity_type == IncidentActivityType.COMMENT and user:
+        subscribe_to_incident(incident, user)
     value = six.text_type(value) if value is not None else value
     previous_value = six.text_type(previous_value) if previous_value is not None else previous_value
     return IncidentActivity.objects.create(
