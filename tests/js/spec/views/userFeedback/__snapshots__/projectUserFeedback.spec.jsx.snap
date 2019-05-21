@@ -96,10 +96,12 @@ exports[`projectUserFeedback renders 1`] = `
             "dateCreated": "2018-12-20T00:00:00.000Z",
             "email": "lyn@sentry.io",
             "event": Object {
+              "dateCreated": "2019-05-21T18:01:48.762Z",
               "eventID": "12345678901234567890123456789012",
               "groupID": "1",
               "id": "1",
               "message": "ApiException",
+              "tags": Array [],
             },
             "id": "123",
             "issue": Object {

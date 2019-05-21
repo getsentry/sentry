@@ -76,6 +76,7 @@ exports[`SharedGroupDetails renders 1`] = `
                         "lastRelease": null,
                         "lastSeen": "2019-04-11T01:08:59Z",
                         "latestEvent": Object {
+                          "dateCreated": "2019-05-21T18:01:48.762Z",
                           "entries": Array [
                             Object {
                               "data": Object {
@@ -89,6 +90,7 @@ exports[`SharedGroupDetails renders 1`] = `
                           "groupID": "1",
                           "id": "1",
                           "message": "ApiException",
+                          "tags": Array [],
                         },
                         "level": "warning",
                         "logger": null,
@@ -187,6 +189,7 @@ exports[`SharedGroupDetails renders 1`] = `
                       <WithOrganizationMockWrapper
                         event={
                           Object {
+                            "dateCreated": "2019-05-21T18:01:48.762Z",
                             "entries": Array [
                               Object {
                                 "data": Object {
@@ -200,6 +203,7 @@ exports[`SharedGroupDetails renders 1`] = `
                             "groupID": "1",
                             "id": "1",
                             "message": "ApiException",
+                            "tags": Array [],
                           }
                         }
                         group={
@@ -219,6 +223,7 @@ exports[`SharedGroupDetails renders 1`] = `
                             "lastRelease": null,
                             "lastSeen": "2019-04-11T01:08:59Z",
                             "latestEvent": Object {
+                              "dateCreated": "2019-05-21T18:01:48.762Z",
                               "entries": Array [
                                 Object {
                                   "data": Object {
@@ -232,6 +237,7 @@ exports[`SharedGroupDetails renders 1`] = `
                               "groupID": "1",
                               "id": "1",
                               "message": "ApiException",
+                              "tags": Array [],
                             },
                             "level": "warning",
                             "logger": null,
@@ -315,6 +321,7 @@ exports[`SharedGroupDetails renders 1`] = `
                         <withApi(EventEntries)
                           event={
                             Object {
+                              "dateCreated": "2019-05-21T18:01:48.762Z",
                               "entries": Array [
                                 Object {
                                   "data": Object {
@@ -328,6 +335,7 @@ exports[`SharedGroupDetails renders 1`] = `
                               "groupID": "1",
                               "id": "1",
                               "message": "ApiException",
+                              "tags": Array [],
                             }
                           }
                           group={
@@ -347,6 +355,7 @@ exports[`SharedGroupDetails renders 1`] = `
                               "lastRelease": null,
                               "lastSeen": "2019-04-11T01:08:59Z",
                               "latestEvent": Object {
+                                "dateCreated": "2019-05-21T18:01:48.762Z",
                                 "entries": Array [
                                   Object {
                                     "data": Object {
@@ -360,6 +369,7 @@ exports[`SharedGroupDetails renders 1`] = `
                                 "groupID": "1",
                                 "id": "1",
                                 "message": "ApiException",
+                                "tags": Array [],
                               },
                               "level": "warning",
                               "logger": null,
@@ -472,6 +482,7 @@ exports[`SharedGroupDetails renders 1`] = `
                             api={Client {}}
                             event={
                               Object {
+                                "dateCreated": "2019-05-21T18:01:48.762Z",
                                 "entries": Array [
                                   Object {
                                     "data": Object {
@@ -485,6 +496,7 @@ exports[`SharedGroupDetails renders 1`] = `
                                 "groupID": "1",
                                 "id": "1",
                                 "message": "ApiException",
+                                "tags": Array [],
                               }
                             }
                             group={
@@ -504,6 +516,7 @@ exports[`SharedGroupDetails renders 1`] = `
                                 "lastRelease": null,
                                 "lastSeen": "2019-04-11T01:08:59Z",
                                 "latestEvent": Object {
+                                  "dateCreated": "2019-05-21T18:01:48.762Z",
                                   "entries": Array [
                                     Object {
                                       "data": Object {
@@ -517,6 +530,7 @@ exports[`SharedGroupDetails renders 1`] = `
                                   "groupID": "1",
                                   "id": "1",
                                   "message": "ApiException",
+                                  "tags": Array [],
                                 },
                                 "level": "warning",
                                 "logger": null,
@@ -632,6 +646,7 @@ exports[`SharedGroupDetails renders 1`] = `
                               <EventTags
                                 event={
                                   Object {
+                                    "dateCreated": "2019-05-21T18:01:48.762Z",
                                     "entries": Array [
                                       Object {
                                         "data": Object {
@@ -645,6 +660,7 @@ exports[`SharedGroupDetails renders 1`] = `
                                     "groupID": "1",
                                     "id": "1",
                                     "message": "ApiException",
+                                    "tags": Array [],
                                   }
                                 }
                                 group={
@@ -664,6 +680,7 @@ exports[`SharedGroupDetails renders 1`] = `
                                     "lastRelease": null,
                                     "lastSeen": "2019-04-11T01:08:59Z",
                                     "latestEvent": Object {
+                                      "dateCreated": "2019-05-21T18:01:48.762Z",
                                       "entries": Array [
                                         Object {
                                           "data": Object {
@@ -677,6 +694,7 @@ exports[`SharedGroupDetails renders 1`] = `
                                       "groupID": "1",
                                       "id": "1",
                                       "message": "ApiException",
+                                      "tags": Array [],
                                     },
                                     "level": "warning",
                                     "logger": null,
@@ -778,6 +796,7 @@ exports[`SharedGroupDetails renders 1`] = `
                                 }
                                 event={
                                   Object {
+                                    "dateCreated": "2019-05-21T18:01:48.762Z",
                                     "entries": Array [
                                       Object {
                                         "data": Object {
@@ -791,6 +810,7 @@ exports[`SharedGroupDetails renders 1`] = `
                                     "groupID": "1",
                                     "id": "1",
                                     "message": "ApiException",
+                                    "tags": Array [],
                                   }
                                 }
                                 group={
@@ -810,6 +830,7 @@ exports[`SharedGroupDetails renders 1`] = `
                                     "lastRelease": null,
                                     "lastSeen": "2019-04-11T01:08:59Z",
                                     "latestEvent": Object {
+                                      "dateCreated": "2019-05-21T18:01:48.762Z",
                                       "entries": Array [
                                         Object {
                                           "data": Object {
@@ -823,6 +844,7 @@ exports[`SharedGroupDetails renders 1`] = `
                                       "groupID": "1",
                                       "id": "1",
                                       "message": "ApiException",
+                                      "tags": Array [],
                                     },
                                     "level": "warning",
                                     "logger": null,
@@ -892,6 +914,7 @@ exports[`SharedGroupDetails renders 1`] = `
                                 <GroupEventDataSection
                                   event={
                                     Object {
+                                      "dateCreated": "2019-05-21T18:01:48.762Z",
                                       "entries": Array [
                                         Object {
                                           "data": Object {
@@ -905,6 +928,7 @@ exports[`SharedGroupDetails renders 1`] = `
                                       "groupID": "1",
                                       "id": "1",
                                       "message": "ApiException",
+                                      "tags": Array [],
                                     }
                                   }
                                   group={
@@ -924,6 +948,7 @@ exports[`SharedGroupDetails renders 1`] = `
                                       "lastRelease": null,
                                       "lastSeen": "2019-04-11T01:08:59Z",
                                       "latestEvent": Object {
+                                        "dateCreated": "2019-05-21T18:01:48.762Z",
                                         "entries": Array [
                                           Object {
                                             "data": Object {
@@ -937,6 +962,7 @@ exports[`SharedGroupDetails renders 1`] = `
                                         "groupID": "1",
                                         "id": "1",
                                         "message": "ApiException",
+                                        "tags": Array [],
                                       },
                                       "level": "warning",
                                       "logger": null,
