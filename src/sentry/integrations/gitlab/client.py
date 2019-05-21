@@ -45,6 +45,8 @@ class GitLabSetupClient(ApiClient):
     needed to build installation metadata
     """
 
+    integration_name = 'gitlab_setup'
+
     def __init__(self, base_url, access_token, verify_ssl):
         self.base_url = base_url
         self.token = access_token
@@ -74,6 +76,7 @@ class GitLabSetupClient(ApiClient):
 
 
 class GitLabApiClient(ApiClient):
+    integration_name = 'gitlab'
 
     def __init__(self, installation):
         self.installation = installation

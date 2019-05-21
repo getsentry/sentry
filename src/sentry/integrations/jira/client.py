@@ -90,6 +90,8 @@ class JiraApiClient(ApiClient):
     ASSIGN_URL = '/rest/api/2/issue/%s/assignee'
     TRANSITION_URL = '/rest/api/2/issue/%s/transitions'
 
+    integration_name = 'jira'
+
     def __init__(self, base_url, jira_style, verify_ssl):
         self.base_url = base_url
         # `jira_style` encapsulates differences between jira server & jira cloud.
@@ -108,7 +110,8 @@ class JiraApiClient(ApiClient):
             request_spec['headers'] = {}
 
         # Force adherence to the GDPR compliant API conventions.
-        # See https://developer.atlassian.com/cloud/jira/platform/deprecation-notice-user-privacy-api-migration-guide
+        # See
+        # https://developer.atlassian.com/cloud/jira/platform/deprecation-notice-user-privacy-api-migration-guide
         request_spec['headers']['x-atlassian-force-account-id'] = 'true'
         return self._request(**request_spec)
 

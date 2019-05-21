@@ -39,6 +39,7 @@ class VstsApiPath(object):
 class VstsApiClient(ApiClient, OAuth2RefreshMixin):
     api_version = '4.1'
     api_version_preview = '-preview.1'
+    integration_name = 'vsts'
 
     def __init__(self, identity, oauth_redirect_url, *args, **kwargs):
         super(VstsApiClient, self).__init__(*args, **kwargs)
