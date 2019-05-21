@@ -272,7 +272,7 @@ class ActivityContainer extends React.Component {
       this.setState(state => {
         const activities = [
           newNote,
-          ...state.activities.filter(activity => activity === newActivity),
+          ...state.activities.filter(activity => activity !== newActivity),
         ];
 
         return {
