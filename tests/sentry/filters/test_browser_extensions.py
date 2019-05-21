@@ -1,14 +1,15 @@
 from __future__ import absolute_import
 
-from sentry.filters.browser_extensions import BrowserExtensionsFilter
+from sentry.message_filters import _browser_extensions_filter
+from sentry.web.relay_config import FullRelayConfig
 from sentry.testutils import TestCase
 
 
 class BrowserExtensionsFilterTest(TestCase):
-    filter_cls = BrowserExtensionsFilter
 
     def apply_filter(self, data):
-        return self.filter_cls(self.project).test(data)
+        relay_config = FullRelayConfig(self.project)
+        return _browser_extensions_filter(relay_config, data)
 
     def get_mock_data(self, exc_value=None, exc_source=None):
         return {

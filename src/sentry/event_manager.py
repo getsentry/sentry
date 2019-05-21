@@ -18,11 +18,12 @@ from django.db.models import Func
 from django.utils import timezone
 from django.utils.encoding import force_text
 
-from sentry import buffer, eventtypes, eventstream, features, tagstore, tsdb, filters
+from sentry import buffer, eventtypes, eventstream, features, tagstore, tsdb
 from sentry.constants import (
     DEFAULT_STORE_NORMALIZER_ARGS, LOG_LEVELS, LOG_LEVELS_MAP,
     MAX_TAG_VALUE_LENGTH, MAX_SECS_IN_FUTURE, MAX_SECS_IN_PAST,
 )
+from sentry.message_filters import is_event_filtered
 from sentry.grouping.api import (
     get_grouping_config_dict_for_project,
     get_grouping_config_dict_for_event_data, load_grouping_config,
@@ -291,6 +292,7 @@ class EventManager(object):
         self._is_renormalize = is_renormalize
         self._remove_other = remove_other
         self._normalized = False
+        self.relay_config = relay_config
 
     def process_csp_report(self):
         """Only called from the CSP report endpoint."""
@@ -408,12 +410,7 @@ class EventManager(object):
             if message and not is_valid_error_message(self._project, message):
                 return (True, FilterStatKeys.ERROR_MESSAGE)
 
-        for filter_cls in filters.all():
-            filter_obj = filter_cls(self._project)
-            if filter_obj.is_enabled() and filter_obj.test(self._data):
-                return (True, six.text_type(filter_obj.id))
-
-        return (False, None)
+        return is_event_filtered(self.relay_config, self._data)
 
     def get_data(self):
         return self._data

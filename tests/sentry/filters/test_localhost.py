@@ -1,14 +1,15 @@
 from __future__ import absolute_import
 
-from sentry.filters.localhost import LocalhostFilter
+from sentry.message_filters import _local_host_filter
+from sentry.web.relay_config import FullRelayConfig
 from sentry.testutils import TestCase
 
 
 class LocalhostFilterTest(TestCase):
-    filter_cls = LocalhostFilter
 
     def apply_filter(self, data):
-        return self.filter_cls(self.project).test(data)
+        relay_config = FullRelayConfig(self.project)
+        return _local_host_filter(relay_config, data)
 
     def get_mock_data(self, client_ip=None, url=None):
         return {
