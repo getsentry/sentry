@@ -14,7 +14,6 @@ import {
 import {t} from 'app/locale';
 import {uniqueId} from 'app/utils/guid';
 import ActivityItem from 'app/components/activity/item';
-import Avatar from 'app/components/avatar';
 import ConfigStore from 'app/stores/configStore';
 import ErrorBoundary from 'app/components/errorBoundary';
 import LoadingError from 'app/components/loadingError';
@@ -175,13 +174,10 @@ class Activity extends React.Component {
                         <ErrorBoundary mini key={`note-${activity.id}`}>
                           <Note
                             showTime
-                            item={activity}
+                            user={activity.user}
+                            modelId={activity.id}
                             text={activity.comment}
-                            id={`note-${activity.id}`}
-                            author={{
-                              name: authorName,
-                              avatar: <Avatar user={activity.user} size={38} />,
-                            }}
+                            authorName={authorName}
                             onDelete={this.handleDeleteNote}
                             onUpdate={this.handleUpdateNote}
                             busy={this.state.updateBusy}
