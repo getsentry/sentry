@@ -75,13 +75,13 @@ class SentrySMTPServer(Service, SMTPServer):
         if message.is_multipart():
             for msg in message.walk():
                 if msg.get_content_type() == 'text/plain':
-                    payload = msg.get_payload()
+                    payload = msg.get_payload(decode=True)
                     break
             if payload is None:
                 # No text/plain part, bailing
                 return STATUS[200]
         else:
-            payload = message.get_payload()
+            payload = message.get_payload(decode=True)
 
         payload = EmailReplyParser.parse_reply(payload).strip()
         if not payload:
