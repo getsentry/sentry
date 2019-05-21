@@ -95,7 +95,20 @@ if (window.__initialData) {
 
 const render = Component => {
   const rootEl = document.getElementById('blk_router');
-  ReactDOM.render(<Component />, rootEl);
+
+  try {
+    ReactDOM.render(<Component />, rootEl);
+  } catch (err) {
+    // eslint-disable-next-line no-console
+    console.error(
+      new Error(
+        'An unencoded "%" has appeared, it is super effective! (See https://github.com/ReactTraining/history/issues/505)'
+      )
+    );
+    if (err.message === 'URI malformed') {
+      window.location.assign(window.location.pathname);
+    }
+  }
 };
 
 // The password strength component is very heavyweight as it includes the

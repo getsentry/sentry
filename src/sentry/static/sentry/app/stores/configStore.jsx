@@ -32,8 +32,16 @@ const ConfigStore = Reflux.createStore({
       config.user.permissions = new Set(config.user.permissions);
       moment.tz.setDefault(config.user.options.timezone);
 
+      let queryString = {};
+
       // Parse query string for `lang`
-      const queryString = qs.parse(window.location.search) || {};
+      try {
+        queryString = qs.parse(window.location.search) || {};
+      } catch (err) {
+        // ignore if this fails to parse
+        // this can happen if we have an invalid query string
+        // e.g. unencoded "%"
+      }
 
       // Priority:
       // "?lang=en" --> user configuration options --> django request.LANGUAGE_CODE --> "en"
