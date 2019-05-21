@@ -217,7 +217,7 @@ export const EventAttachment = PropTypes.shape({
   headers: PropTypes.object,
   size: PropTypes.number.isRequired,
   sha1: PropTypes.string.isRequired,
-  dateCreated: PropTypes.number,
+  dateCreated: PropTypes.oneOfType([PropTypes.string, PropTypes.instanceOf(Date)]),
   type: PropTypes.string.isRequired,
 });
 
