@@ -1,11 +1,12 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import {css} from 'react-emotion';
+import styled, {css} from 'react-emotion';
 
 import withApi from 'app/utils/withApi';
 import SentryTypes from 'app/sentryTypes';
 import {Panel, PanelHeader, PanelBody, PanelItem} from 'app/components/panels';
 import LoadingIndicator from 'app/components/loadingIndicator';
+import overflowEllipsis from 'app/styles/overflowEllipsis';
 
 import {fetchOrganizationEvents} from './utils';
 
@@ -26,10 +27,10 @@ class Table extends React.Component {
   }
 
   fetchData = async () => {
-    const {api, organization} = this.props;
+    const {api, organization, view} = this.props;
     this.setState({isLoading: true, hasError: false});
     try {
-      const events = await fetchOrganizationEvents(api, organization.slug);
+      const events = await fetchOrganizationEvents(api, organization.slug, view);
       this.setState({
         events,
         isLoading: false,
@@ -48,11 +49,13 @@ class Table extends React.Component {
     }
 
     return events.map(event => (
-      <PanelItem key={event.id} className={getGridStyle(fields.length)}>
+      <Row key={event.id} className={getGridStyle(fields.length)}>
         {fields.map(field => (
-          <div key={field}>{event[field]}</div>
+          <Cell key={field}>
+            <Data>{event[field]}</Data>
+          </Cell>
         ))}
-      </PanelItem>
+      </Row>
     ));
   }
 
@@ -77,6 +80,18 @@ export default withApi(Table);
 function getGridStyle(colCount) {
   return css`
     display: grid;
-    grid-template-columns: 2fr repeat(${colCount - 1}, 1fr);
+    grid-template-columns: 3fr repeat(${colCount - 1}, 1fr);
   `;
 }
+
+const Row = styled(PanelItem)`
+  font-size: ${p => p.theme.fontSizeMedium};
+`;
+
+const Cell = styled('div')`
+  overflow: hidden;
+`;
+
+const Data = styled('div')`
+  ${overflowEllipsis}
+`;
