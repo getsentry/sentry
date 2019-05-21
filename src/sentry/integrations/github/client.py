@@ -10,6 +10,7 @@ class GitHubClientMixin(ApiClient):
     allow_redirects = True
 
     base_url = 'https://api.github.com'
+    integration_name = 'github'
 
     def get_jwt(self):
         return get_jwt()
