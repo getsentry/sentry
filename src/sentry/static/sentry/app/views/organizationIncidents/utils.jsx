@@ -4,6 +4,13 @@ export const INCIDENT_STATUS = {
   CLOSED: 2,
 };
 
+export const INCIDENT_ACTIVITY_TYPE = {
+  CREATED: 0,
+  DETECTED: 1,
+  STATUS_CHANGE: 2,
+  COMMENT: 3,
+};
+
 export function fetchIncident(api, orgId, incidentId) {
   return api.requestPromise(`/organizations/${orgId}/incidents/${incidentId}/`);
 }

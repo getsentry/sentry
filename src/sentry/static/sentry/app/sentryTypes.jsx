@@ -440,6 +440,15 @@ export const Activity = PropTypes.shape({
   }),
 });
 
+export const IncidentActivity = PropTypes.shape({
+  id: PropTypes.string.isRequired,
+  type: PropTypes.number.isRequired,
+  dateCreated: PropTypes.oneOfType([PropTypes.instanceOf(Date), PropTypes.string])
+    .isRequired,
+  user: User,
+  comment: PropTypes.string,
+});
+
 export const GlobalSelection = PropTypes.shape({
   projects: PropTypes.arrayOf(PropTypes.number),
   environments: PropTypes.arrayOf(PropTypes.string),
@@ -975,6 +984,7 @@ const SentryTypes = {
   GlobalSelection,
   Group,
   Incident,
+  IncidentActivity,
   Tag,
   Monitor,
   PageLinks,

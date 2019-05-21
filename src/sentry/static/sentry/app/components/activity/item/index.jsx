@@ -20,7 +20,7 @@ class ActivityItem extends React.Component {
     /**
      * If supplied, will show the time since this date
      */
-    date: PropTypes.string,
+    date: PropTypes.oneOfType([PropTypes.instanceOf(Date), PropTypes.string]),
 
     /**
      * Used to render an avatar for the author. Currently can be a user, otherwise

@@ -51,13 +51,23 @@ export async function fetchIncidentActivities(api, orgId, incidentId) {}
 /**
  * Creates a note for an incident
  */
-export async function createIncidentNote(api, incidentId, note) {
+export async function createIncidentNote(api, orgId, incidentId, note) {
   addLoadingMessage(t('Posting comment...'));
 
   try {
-    // TODO: Implement me
+    const result = await api.requestPromise(
+      `/organizations/${orgId}/incidents/${incidentId}/comments/`,
+      {
+        method: 'POST',
+        data: {
+          comment: note.text,
+        },
+      }
+    );
 
     clearIndicators();
+
+    return result;
   } catch (err) {
     addErrorMessage(t('Unable to post comment'));
     throw err;
