@@ -18,6 +18,7 @@ from sentry.incidents.models import (
     Incident,
     IncidentProject,
     IncidentSeen,
+    IncidentSubscription,
 )
 
 
@@ -62,6 +63,23 @@ class IncidentSerializer(Serializer):
 
 
 class DetailedIncidentSerializer(IncidentSerializer):
+    def get_attrs(self, item_list, user, **kwargs):
+        results = super(DetailedIncidentSerializer, self).get_attrs(
+            item_list,
+            user=user,
+            **kwargs
+        )
+        subscribed_incidents = set()
+        if user.is_authenticated():
+            subscribed_incidents = set(IncidentSubscription.objects.filter(
+                incident__in=item_list,
+                user=user,
+            ).values_list('incident_id', flat=True))
+
+        for item in item_list:
+            results[item]['subscribed'] = item.id in subscribed_incidents
+        return results
+
     def _get_incident_seen_list(self, incident, user):
         incident_seen = list(IncidentSeen.objects.filter(
             incident=incident
@@ -82,6 +100,7 @@ class DetailedIncidentSerializer(IncidentSerializer):
 
     def serialize(self, obj, attrs, user):
         context = super(DetailedIncidentSerializer, self).serialize(obj, attrs, user)
+        context['subscribed'] = attrs['subscribed']
         seen_list = self._get_incident_seen_list(obj, user)
         context.update({
             'seenBy': seen_list['seen_by'],

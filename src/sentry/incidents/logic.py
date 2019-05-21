@@ -15,6 +15,7 @@ from sentry.incidents.models import (
     IncidentProject,
     IncidentSeen,
     IncidentStatus,
+    IncidentSubscription,
     TimeSeriesSnapshot,
 )
 from sentry.utils.snuba import (
@@ -241,3 +242,7 @@ def get_incident_aggregates(incident):
         limit=10000,
         **kwargs
     )['data'][0]
+
+
+def subscribe_to_incident(incident, user):
+    return IncidentSubscription.objects.get_or_create(incident=incident, user=user)

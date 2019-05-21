@@ -9,6 +9,8 @@ from django.utils import timezone
 from freezegun import freeze_time
 
 from sentry.api.serializers import serialize
+from sentry.api.serializers.models.incident import DetailedIncidentSerializer
+from sentry.incidents.logic import subscribe_to_incident
 from sentry.testutils import TestCase
 
 
@@ -33,3 +35,14 @@ class IncidentSerializerTest(TestCase):
         assert [data[1] for data in result['eventStats']['data']] == [[]] * 52
         assert result['totalEvents'] == 0
         assert result['uniqueUsers'] == 0
+
+
+class DetailedIncidentSerializerTest(TestCase):
+    def test_subscribed(self):
+        incident = self.create_incident(date_started=timezone.now() - timedelta(minutes=5))
+        serializer = DetailedIncidentSerializer()
+        result = serialize(incident, serializer=serializer, user=self.user)
+        assert not result['subscribed']
+        subscribe_to_incident(incident, self.user)
+        result = serialize(incident, serializer=serializer, user=self.user)
+        assert result['subscribed']
