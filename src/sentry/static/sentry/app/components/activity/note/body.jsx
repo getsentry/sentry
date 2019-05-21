@@ -5,13 +5,13 @@ import marked from 'app/utils/marked';
 
 class NoteBody extends React.Component {
   static propTypes = {
-    item: PropTypes.object.isRequired,
+    text: PropTypes.string.isRequired,
   };
 
   render() {
-    const {className, item} = this.props;
+    const {className, text} = this.props;
 
-    const noteBody = marked(item.data.text);
+    const noteBody = marked(text);
     return (
       <div
         className={className}

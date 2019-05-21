@@ -58,10 +58,10 @@ describe('NoteInput', function() {
     const defaultProps = {
       group: {project: {}, id: 'groupId'},
       item: {
-        data: {
-          text: 'an existing item',
-        },
+        id: 'item-id',
+        data: {text: 'an existing item'},
       },
+      text: 'an existing item',
       memberList: [],
       teams: [],
     };
@@ -104,7 +104,7 @@ describe('NoteInput', function() {
 
       expect(onUpdate).toHaveBeenCalledWith(
         {text: 'new item'},
-        {data: {text: 'an existing item'}}
+        {id: 'item-id', data: {text: 'an existing item'}}
       );
     });
 

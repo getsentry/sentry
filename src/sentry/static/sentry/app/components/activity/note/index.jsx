@@ -15,6 +15,7 @@ class Note extends React.Component {
   static propTypes = {
     author: PropTypes.object.isRequired,
     item: PropTypes.object.isRequired,
+    text: PropTypes.string.isRequired,
     memberList: PropTypes.array.isRequired,
     teams: PropTypes.arrayOf(SentryTypes.Team).isRequired,
 
@@ -69,7 +70,16 @@ class Note extends React.Component {
   };
 
   render() {
-    const {item, author, teams, memberList, hideDate, minHeight, showTime} = this.props;
+    const {
+      item,
+      text,
+      author,
+      teams,
+      memberList,
+      hideDate,
+      minHeight,
+      showTime,
+    } = this.props;
 
     const activityItemProps = {
       hideDate,
@@ -92,7 +102,7 @@ class Note extends React.Component {
             />
           }
         >
-          <NoteBody item={item} />
+          <NoteBody text={text} />
         </ActivityItemWithEditing>
       );
     }
@@ -105,6 +115,7 @@ class Note extends React.Component {
           <NoteInput
             minHeight={minHeight}
             item={item}
+            text={text}
             onEditFinish={this.handleEditFinish}
             onUpdate={this.handleUpdate}
             onCreate={this.handleCreate}

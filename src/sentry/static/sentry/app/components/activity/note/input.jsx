@@ -23,10 +23,9 @@ class NoteInput extends React.Component {
     memberList: PropTypes.array.isRequired,
 
     item: PropTypes.shape({
-      data: PropTypes.shape({
-        text: PropTypes.string,
-      }),
+      id: PropTypes.string,
     }),
+    text: PropTypes.string,
     defaultText: PropTypes.string,
     error: PropTypes.bool,
     errorJSON: PropTypes.shape({
@@ -60,9 +59,9 @@ class NoteInput extends React.Component {
   constructor(props) {
     super(props);
 
-    const {item} = props;
-    const existing = !!item;
-    const defaultText = existing ? item.data.text || '' : props.defaultText;
+    const {item, text} = props;
+    const existing = !!item && !!item.id;
+    const defaultText = existing ? text || '' : props.defaultText;
 
     this.memberMentions = [];
     this.teamMentions = [];

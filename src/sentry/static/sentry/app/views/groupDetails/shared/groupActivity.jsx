@@ -165,6 +165,7 @@ class GroupActivity extends React.Component {
                   <ErrorBoundary mini key={`note-${item.id}`}>
                     <Note
                       item={item}
+                      text={item.data.text}
                       id={`note-${item.id}`}
                       author={{
                         name: authorName,
