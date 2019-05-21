@@ -12,7 +12,7 @@ from sentry.api.serializers import serialize
 from sentry.models import AuditLogEntryEvent, ProjectKey, ProjectKeyStatus
 from sentry.utils.apidocs import scenario, attach_scenarios
 from sentry.loader.browsersdkversion import (
-    DEFAULT_VERSION,
+    get_default_sdk_version_for_project,
     get_browser_sdk_version_choices
 )
 
@@ -92,6 +92,7 @@ class ProjectKeyDetailsEndpoint(ProjectEndpoint):
             raise ResourceDoesNotExist
 
         serializer = KeySerializer(data=request.DATA, partial=True)
+        default_version = get_default_sdk_version_for_project(project)
 
         if serializer.is_valid():
             result = serializer.object
@@ -99,10 +100,10 @@ class ProjectKeyDetailsEndpoint(ProjectEndpoint):
             if result.get('name'):
                 key.label = result['name']
 
-            if result.get('browserSdkVersion') == '':
-                key.data = {'browserSdkVersion': DEFAULT_VERSION}
+            if not result.get('browserSdkVersion'):
+                key.data = {'browserSdkVersion': default_version}
             else:
-                key.data = {'browserSdkVersion': result.get('browserSdkVersion', DEFAULT_VERSION)}
+                key.data = {'browserSdkVersion': result['browserSdkVersion']}
 
             if result.get('isActive') is True:
                 key.status = ProjectKeyStatus.ACTIVE

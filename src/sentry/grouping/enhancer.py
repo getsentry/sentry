@@ -543,9 +543,4 @@ def _load_configs():
 
 
 ENHANCEMENT_BASES = _load_configs()
-LATEST_ENHANCEMENT_BASE = sorted(x for x in ENHANCEMENT_BASES
-                                 if x.startswith('common:'))[-1]
-DEFAULT_ENHANCEMENT_BASE = 'legacy:2019-03-12'
-DEFAULT_ENHANCEMENTS_CONFIG = Enhancements(rules=[], bases=[DEFAULT_ENHANCEMENT_BASE]).dumps()
-assert DEFAULT_ENHANCEMENT_BASE in ENHANCEMENT_BASES
 del _load_configs
