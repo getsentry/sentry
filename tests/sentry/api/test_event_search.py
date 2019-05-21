@@ -7,7 +7,6 @@ from datetime import timedelta
 
 from django.utils import timezone
 from freezegun import freeze_time
-from parsimonious.exceptions import IncompleteParseError
 
 from sentry.api.event_search import (
     convert_endpoint_params, event_search_grammar, get_snuba_query_args,
@@ -400,7 +399,7 @@ class ParseSearchQueryTest(TestCase):
         ]
 
     def test_newline_outside_quote(self):
-        with self.assertRaises(IncompleteParseError):
+        with self.assertRaises(InvalidSearchQuery):
             parse_search_query('release:a\nrelease')
 
     def test_tab_within_quote(self):
@@ -920,31 +919,45 @@ class ParseBooleanSearchQueryTest(TestCase):
 
     def test_malformed_groups(self):
         error_text = "Rule 'search' matched in its entirety, but it didn't consume all the text. The non-matching portion of the text begins with"
-        with pytest.raises(IncompleteParseError) as error:
+        with pytest.raises(InvalidSearchQuery) as error:
             parse_search_query(
                 '(user.email:foo@example.com OR user.email:bar@example.com'
             )
-        assert six.text_type(error.value) == '%s %s' % (
-            error_text, "'(user.email:foo@exam' (line 1, column 1).")
-        with pytest.raises(IncompleteParseError) as error:
+        assert six.text_type(error.value) == '%s %s %s' % (
+            error_text,
+            "'(user.email:foo@exam' (line 1, column 1).",
+            'This is commonly caused by unmatched-parentheses.'
+        )
+        with pytest.raises(InvalidSearchQuery) as error:
             parse_search_query(
                 '((user.email:foo@example.com OR user.email:bar@example.com AND  user.email:bar@example.com)'
             )
-        assert six.text_type(error.value) == '%s %s' % (
-            error_text, "'((user.email:foo@exa' (line 1, column 1).")
-        with pytest.raises(IncompleteParseError) as error:
+        assert six.text_type(error.value) == '%s %s %s' % (
+            error_text,
+            "'((user.email:foo@exa' (line 1, column 1).",
+            'This is commonly caused by unmatched-parentheses.',
+        )
+        with pytest.raises(InvalidSearchQuery) as error:
             parse_search_query(
                 'user.email:foo@example.com OR user.email:bar@example.com)'
             )
-        assert six.text_type(error.value) == '%s %s' % (error_text, "')' (line 1, column 57).")
-        with pytest.raises(IncompleteParseError) as error:
+        assert six.text_type(error.value) == '%s %s %s' % (
+            error_text,
+            "')' (line 1, column 57).",
+            'This is commonly caused by unmatched-parentheses.'
+        )
+        with pytest.raises(InvalidSearchQuery) as error:
             parse_search_query(
                 '(user.email:foo@example.com OR user.email:bar@example.com AND  user.email:bar@example.com))'
             )
-        assert six.text_type(error.value) == '%s %s' % (error_text, "')' (line 1, column 91).")
+        assert six.text_type(error.value) == '%s %s %s' % (
+            error_text,
+            "')' (line 1, column 91).",
+            'This is commonly caused by unmatched-parentheses.'
+        )
 
     def test_grouping_without_boolean_terms(self):
-        with pytest.raises(IncompleteParseError) as error:
+        with pytest.raises(InvalidSearchQuery) as error:
             parse_search_query(
                 'undefined is not an object (evaluating \'function.name\')'
             ) == [SearchFilter(
@@ -953,8 +966,10 @@ class ParseBooleanSearchQueryTest(TestCase):
                 value=SearchValue(
                     raw_value='undefined is not an object (evaluating "function.name")'),
             )]
-        assert six.text_type(
-            error.value) == "Rule 'search' matched in its entirety, but it didn't consume all the text. The non-matching portion of the text begins with '(evaluating 'functio' (line 1, column 28)."
+        assert six.text_type(error.value) == '%s %s' % (
+            "Rule 'search' matched in its entirety, but it didn't consume all the text. The non-matching portion of the text begins with '(evaluating 'functio' (line 1, column 28).",
+            'This is commonly caused by unmatched-parentheses.',
+        )
 
 
 class GetSnubaQueryArgsTest(TestCase):
