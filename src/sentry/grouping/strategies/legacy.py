@@ -88,6 +88,8 @@ def remove_module_outliers_legacy(module, platform):
     if platform == 'java':
         if module[:35] == 'sun.reflect.GeneratedMethodAccessor':
             return 'sun.reflect.GeneratedMethodAccessor', 'removed reflection marker'
+        if module[:44] == 'jdk.internal.reflect.GeneratedMethodAccessor':
+            return 'jdk.internal.reflect.GeneratedMethodAccessor', 'removed reflection marker'
         old_module = module
         module = _java_reflect_enhancer_re.sub(r'\1<auto>', module)
         module = _java_cglib_enhancer_re.sub(r'\1<auto>', module)
