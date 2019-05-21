@@ -23,6 +23,10 @@ def is_unreal_event(data):
 
 
 def reprocess_unreal_crash(data):
+    exception = get_path(data, 'exception', 'values', 0)
+    if len(get_path(exception, 'stacktrace', 'frames', filter=True) or ()) > 1:
+        return
+
     context = get_path(data, 'contexts', 'unreal')
     portable_call_stack = get_path(context, 'portable_call_stack')
 
@@ -35,7 +39,6 @@ def reprocess_unreal_crash(data):
     if not frames:
         return
 
-    exception = get_path(data, 'exception', 'values', 0)
     if not exception:
         assert not data.get('stacktrace')
         exception = {'type': 'Unreal'}
