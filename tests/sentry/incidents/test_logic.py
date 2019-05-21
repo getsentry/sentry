@@ -24,6 +24,7 @@ from sentry.incidents.models import (
     IncidentGroup,
     IncidentProject,
     IncidentStatus,
+    IncidentSubscription,
 )
 from sentry.testutils import (
     TestCase,
@@ -94,6 +95,8 @@ class UpdateIncidentStatus(TestCase):
         activity = self.get_most_recent_incident_activity(incident)
         assert activity.type == IncidentActivityType.STATUS_CHANGE.value
         assert activity.user == user
+        if user:
+            assert IncidentSubscription.objects.filter(incident=incident, user=user).exists()
         assert activity.value == six.text_type(status.value)
         assert activity.previous_value == six.text_type(prev_status)
         assert activity.comment == comment
@@ -286,6 +289,30 @@ class CreateIncidentActivityTest(TestCase, BaseIncidentsTest):
         assert activity.previous_value is None
 
         assert event_stats_snapshot == activity.event_stats_snapshot
+
+    def test_comment(self):
+        incident = self.create_incident()
+        comment = 'hello'
+        with self.assertChanges(
+            lambda: IncidentSubscription.objects.filter(
+                incident=incident,
+                user=self.user,
+            ).exists(),
+            before=False,
+            after=True,
+        ):
+            activity = create_incident_activity(
+                incident,
+                IncidentActivityType.COMMENT,
+                user=self.user,
+                comment=comment,
+            )
+        assert activity.incident == incident
+        assert activity.type == IncidentActivityType.COMMENT.value
+        assert activity.user == self.user
+        assert activity.comment == comment
+        assert activity.value is None
+        assert activity.previous_value is None
 
 
 @freeze_time()
