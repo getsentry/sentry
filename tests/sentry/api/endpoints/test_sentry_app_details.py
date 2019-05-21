@@ -13,6 +13,7 @@ class SentryAppDetailsTest(APITestCase):
         self.superuser = self.create_user(email='a@example.com', is_superuser=True)
         self.user = self.create_user(email='boop@example.com')
         self.org = self.create_organization(owner=self.user)
+        self.project = self.create_project(organization=self.org)
         self.super_org = self.create_organization(owner=self.superuser)
         self.published_app = self.create_sentry_app(
             name='Test',
@@ -30,6 +31,10 @@ class SentryAppDetailsTest(APITestCase):
             organization=self.create_organization(),
             scopes=(),
             webhook_url='https://example.com',
+        )
+
+        self.internal_integration = self.create_internal_integration(
+            organization=self.org,
         )
 
         self.url = reverse(
@@ -76,6 +81,31 @@ class GetSentryAppDetailsTest(SentryAppDetailsTest):
 
         response = self.client.get(url, format='json')
         assert response.status_code == 200
+
+    @with_feature('organizations:sentry-apps')
+    def test_retrieving_internal_integrations_as_org_member(self):
+        self.login_as(self.user)
+
+        url = reverse(
+            'sentry-api-0-sentry-app-details',
+            args=[self.internal_integration.slug],
+        )
+
+        response = self.client.get(url, format='json')
+        assert response.status_code == 200
+
+    @with_feature('organizations:sentry-apps')
+    def test_internal_integrations_are_not_public(self):
+        # User not in Org who owns the Integration
+        self.login_as(self.create_user())
+
+        url = reverse(
+            'sentry-api-0-sentry-app-details',
+            args=[self.internal_integration.slug],
+        )
+
+        response = self.client.get(url, format='json')
+        assert response.status_code == 404
 
     @with_feature('organizations:sentry-apps')
     def test_users_do_not_see_unowned_unpublished_apps(self):
