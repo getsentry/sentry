@@ -4,6 +4,7 @@ import React from 'react';
 import moment from 'moment';
 import styled from 'react-emotion';
 
+import {INCIDENT_ACTIVITY_TYPE} from 'app/views/organizationIncidents/utils';
 import {
   createIncidentNote,
   deleteIncidentNote,
@@ -43,11 +44,15 @@ class Activity extends React.Component {
     loading: PropTypes.bool,
     error: PropTypes.bool,
     me: SentryTypes.User,
-    activities: PropTypes.arrayOf(SentryTypes.Activity),
+    activities: PropTypes.arrayOf(SentryTypes.IncidentActivity),
+
+    createError: PropTypes.bool,
+    createBusy: PropTypes.bool,
+    createErrorJSON: PropTypes.object,
+    onCreateNote: PropTypes.func.isRequired,
   };
 
   state = {
-    createBusy: false,
     updateBusy: false,
     requestError: false,
     errorJSON: null,
@@ -58,30 +63,9 @@ class Activity extends React.Component {
    * This can be abstracted a bit if we create more objects that can have activities
    */
   handleCreateNote = async note => {
-    const {api, incidentId} = this.props;
+    const {onCreateNote} = this.props;
 
-    this.setState({
-      createBusy: true,
-    });
-
-    try {
-      await createIncidentNote(api, incidentId, note);
-
-      this.setState({
-        createBusy: false,
-
-        // This is used as a `key` to Note Input so that after successful post
-        // we reset the value of the input
-        inputId: uniqueId(),
-      });
-    } catch (error) {
-      // TODO: Optimistic update
-      this.setState({
-        createBusy: false,
-        requestError: true,
-        errorJSON: error.responseJSON || makeDefaultErrorJson(),
-      });
-    }
+    onCreateNote(note);
   };
 
   handleDeleteNote = async item => {
@@ -117,13 +101,22 @@ class Activity extends React.Component {
   };
 
   render() {
-    const {loading, error, me, incidentId, activities} = this.props;
+    const {
+      loading,
+      error,
+      me,
+      incidentId,
+      activities,
+      createBusy,
+      createError,
+      createErrorJSON,
+    } = this.props;
+
     const noteProps = {
       memberList: [],
       teams: [],
       minHeight: 80,
     };
-
     const activitiesByDate = groupBy(activities, ({dateCreated}) =>
       moment(dateCreated).format('ll')
     );
@@ -137,9 +130,9 @@ class Activity extends React.Component {
               storageKey="incidentIdinput"
               itemKey={incidentId}
               onCreate={this.handleCreateNote}
-              busy={this.state.createBusy}
-              error={this.state.requestError}
-              errorJSON={this.state.errorJSON}
+              busy={createBusy}
+              error={createError}
+              errorJSON={createErrorJSON}
               placeholder={t(
                 'Leave a comment, paste a tweet, or link any other relevant information about this Incident...'
               )}
@@ -177,7 +170,7 @@ class Activity extends React.Component {
                   activitiesForDate.map(activity => {
                     const authorName = activity.user ? activity.user.name : 'Sentry';
 
-                    if (activity.type === 'note') {
+                    if (activity.type === INCIDENT_ACTIVITY_TYPE.COMMENT) {
                       return (
                         <ErrorBoundary mini key={`note-${activity.id}`}>
                           <Note
@@ -229,6 +222,9 @@ class ActivityContainer extends React.Component {
   state = {
     loading: true,
     error: false,
+    createBusy: false,
+    createError: false,
+    activities: null,
   };
 
   componentDidMount() {
@@ -247,8 +243,58 @@ class ActivityContainer extends React.Component {
     }
   }
 
+  handleCreateNote = async note => {
+    const {api, params} = this.props;
+    const {incidentId, orgId} = params;
+
+    this.setState({
+      createBusy: true,
+    });
+
+    const newActivity = {
+      comment: note.text,
+      type: INCIDENT_ACTIVITY_TYPE.COMMENT,
+      dateCreated: new Date(),
+      user: ConfigStore.get('user'),
+      id: uniqueId(),
+      incidentIdentifier: incidentId,
+    };
+
+    this.setState(state => ({
+      createBusy: false,
+
+      activities: [newActivity, ...(state.activities || [])],
+    }));
+
+    try {
+      const newNote = await createIncidentNote(api, orgId, incidentId, note);
+
+      this.setState(state => {
+        const activities = [
+          newNote,
+          ...state.activities.filter(activity => activity !== newActivity),
+        ];
+
+        return {
+          createBusy: false,
+          activities,
+        };
+      });
+    } catch (error) {
+      this.setState(state => {
+        const activities = state.activities.filter(activity => activity !== newActivity);
+
+        return {
+          activities,
+          createBusy: false,
+          createError: true,
+          createErrorJSON: error.responseJSON || makeDefaultErrorJson(),
+        };
+      });
+    }
+  };
+
   render() {
-    const {loading, error, activities} = this.state;
     const {api, params, ...props} = this.props;
     const {incidentId, orgId} = params;
     const me = ConfigStore.get('user');
@@ -257,11 +303,10 @@ class ActivityContainer extends React.Component {
       <Activity
         incidentId={incidentId}
         orgId={orgId}
-        loading={loading}
-        error={error}
         me={me}
-        activities={activities}
         api={api}
+        {...this.state}
+        onCreateNote={this.handleCreateNote}
         {...props}
       />
     );
