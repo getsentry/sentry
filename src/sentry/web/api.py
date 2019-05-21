@@ -823,7 +823,7 @@ class UnrealView(StoreView):
         project = self._get_project_from_id(project_id)
         helper.context.bind_project(project)
 
-        auth = Auth({'sentry_key': sentry_key}, is_public=False)
+        auth = Auth(public_key=sentry_key, is_public=False)
         auth.client = 'sentry.unreal_engine'
 
         key = helper.project_key_from_auth(auth)
