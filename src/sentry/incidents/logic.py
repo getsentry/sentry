@@ -248,6 +248,10 @@ def subscribe_to_incident(incident, user):
     return IncidentSubscription.objects.get_or_create(incident=incident, user=user)
 
 
+def unsubscribe_from_incident(incident, user):
+    return IncidentSubscription.objects.filter(incident=incident, user=user).delete()
+
+
 def get_incident_activity(incident):
     return IncidentActivity.objects.filter(
         incident=incident,
