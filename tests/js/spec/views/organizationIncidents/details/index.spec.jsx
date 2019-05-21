@@ -7,6 +7,15 @@ describe('IncidentDetails', function() {
   const mockIncident = TestStubs.Incident();
   const routerContext = TestStubs.routerContext();
 
+  const createWrapper = props =>
+    mount(
+      <IncidentDetails
+        params={{orgId: 'org-slug', incidentId: mockIncident.identifier}}
+        {...props}
+      />,
+      routerContext
+    );
+
   beforeAll(function() {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/incidents/123/',
@@ -23,13 +32,7 @@ describe('IncidentDetails', function() {
   });
 
   it('loads incident', async function() {
-    const wrapper = mount(
-      <IncidentDetails
-        params={{orgId: 'org-slug', incidentId: mockIncident.identifier}}
-      />,
-      routerContext
-    );
-
+    const wrapper = createWrapper();
     expect(wrapper.find('IncidentTitle').text()).toBe('Loading');
     expect(wrapper.find('SubscribeButton').prop('disabled')).toBe(true);
 
@@ -52,12 +55,42 @@ describe('IncidentDetails', function() {
   });
 
   it('handles invalid incident', async function() {
-    const wrapper = mount(
-      <IncidentDetails params={{orgId: 'org-slug', incidentId: '456'}} />,
-      routerContext
-    );
+    const wrapper = createWrapper({params: {orgId: 'org-slug', incidentId: '456'}});
     await tick();
     wrapper.update();
     expect(wrapper.find('LoadingError')).toHaveLength(1);
+  });
+
+  it('changes status to closed', async function() {
+    const updateStatus = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/incidents/123/',
+      method: 'PUT',
+      body: TestStubs.Incident({
+        status: 2,
+      }),
+    });
+
+    const wrapper = createWrapper();
+
+    await tick();
+    wrapper.update();
+
+    expect(wrapper.find('Status').text()).toBe('Open');
+    wrapper.find('[data-test-id="status-dropdown"] DropdownButton').simulate('click');
+    wrapper
+      .find('[data-test-id="status-dropdown"] MenuItem a')
+      .at(0)
+      .simulate('click');
+
+    await tick();
+
+    expect(updateStatus).toHaveBeenCalledWith(
+      '/organizations/org-slug/incidents/123/',
+      expect.objectContaining({
+        data: {status: 2},
+      })
+    );
+
+    expect(wrapper.find('Status').text()).toBe('Closed');
   });
 });

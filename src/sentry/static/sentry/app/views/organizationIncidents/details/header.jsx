@@ -39,6 +39,7 @@ export default class DetailsHeader extends React.Component {
         renderNoAccessMessage={() => incident && <Status incident={incident} />}
       >
         <DropdownControl
+          data-test-id="status-dropdown"
           label={incident && <Status incident={incident} />}
           menuWidth="160px"
           alignRight
