@@ -68,6 +68,32 @@ class OrganizationEventsV2EndpointTest(OrganizationEventsTestBase):
         assert response.data[0]['project.id'] == project2.id
         assert response.data[0]['user.email'] == 'foo@example.com'
 
+    def test_project_name(self):
+        self.login_as(user=self.user)
+        project = self.create_project()
+        self.store_event(
+            data={
+                'event_id': 'a' * 32,
+                'environment': 'staging',
+                'timestamp': self.min_ago,
+            },
+            project_id=project.id,
+        )
+
+        with self.feature('organizations:events-v2'):
+            response = self.client.get(
+                self.url,
+                format='json',
+                data={
+                    'fields': ['project.name', 'environment'],
+                },
+            )
+
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 1
+        assert response.data[0]['project.name'] == project.slug
+        assert response.data[0]['environment'] == 'staging'
+
     def test_groupby(self):
         self.login_as(user=self.user)
         project = self.create_project()

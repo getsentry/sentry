@@ -50,8 +50,16 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
         except InvalidSearchQuery as exc:
             raise OrganizationEventsError(exc.message)
 
-        fields = request.GET.getlist('fields')
+        fields = request.GET.getlist('fields')[:]
+
         if fields:
+            # If project.name is requested, get the project.id from Snuba so we
+            # can use this to look up the name in Sentry
+            if 'project.name' in fields:
+                fields.remove('project.name')
+                if 'project.id' not in fields:
+                    fields.append('project.id')
+
             snuba_args['selected_columns'] = fields
         else:
             raise OrganizationEventsError('No fields requested.')

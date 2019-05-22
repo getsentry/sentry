@@ -88,8 +88,24 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
 
             return self.paginate(
                 request=request,
-                paginator=GenericOffsetPaginator(data_fn=data_fn)
+                paginator=GenericOffsetPaginator(data_fn=data_fn),
+                on_results=lambda results: self.handle_results(request, organization, results),
             )
+
+    def handle_results(self, request, organization, results):
+        projects = {}
+        for project in self.get_projects(request, organization):
+            projects[project.id] = project.slug
+
+        fields = request.GET.getlist('fields')
+
+        if 'project.name' in fields:
+            for result in results:
+                result['project.name'] = projects[result['project.id']]
+                if 'project.id' not in fields:
+                    del result['project.id']
+
+        return results
 
 
 class OrganizationEventsStatsEndpoint(OrganizationEventsEndpointBase):
