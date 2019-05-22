@@ -219,6 +219,11 @@ class Fixtures(object):
             organization=organization, projects=projects, *args, **kwargs
         )
 
+    def create_incident_comment(self, incident, *args, **kwargs):
+        return Factories.create_incident_comment(
+            incident=incident, *args, **kwargs
+        )
+
     @pytest.fixture(autouse=True)
     def _init_insta_snapshot(self, insta_snapshot):
         self.insta_snapshot = insta_snapshot
