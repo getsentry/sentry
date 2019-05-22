@@ -46,7 +46,9 @@ export async function createIncident(
 /**
  * Fetches a list of activities for an incident
  */
-export async function fetchIncidentActivities(api, orgId, incidentId) {}
+export async function fetchIncidentActivities(api, orgId, incidentId) {
+  return api.requestPromise(`/organizations/${orgId}/incidents/${incidentId}/activity/`);
+}
 
 /**
  * Creates a note for an incident

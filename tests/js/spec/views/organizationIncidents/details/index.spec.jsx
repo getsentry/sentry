@@ -58,7 +58,9 @@ describe('IncidentDetails', function() {
     const wrapper = createWrapper({params: {orgId: 'org-slug', incidentId: '456'}});
     await tick();
     wrapper.update();
-    expect(wrapper.find('LoadingError')).toHaveLength(1);
+
+    // Activtiy will additionally have a LoadingError
+    expect(wrapper.find('LoadingError')).toHaveLength(2);
   });
 
   it('changes status to closed', async function() {
