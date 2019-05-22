@@ -4,6 +4,7 @@ import six
 
 from collections import defaultdict
 from datetime import timedelta
+from django.db import connection
 from django.db.models import Q
 from django.db.models.aggregates import Count
 from django.utils import timezone
@@ -18,7 +19,7 @@ from sentry.constants import StatsPeriod
 from sentry.digests import backend as digests
 from sentry.models import (
     EnvironmentProject, Project, ProjectAvatar, ProjectBookmark, ProjectOption, ProjectPlatform,
-    ProjectStatus, ProjectTeam, Release, ReleaseProjectEnvironment, Deploy, UserOption, DEFAULT_SUBJECT_TEMPLATE
+    ProjectStatus, ProjectTeam, Release, UserOption, DEFAULT_SUBJECT_TEMPLATE
 )
 from sentry.utils.data_filters import FilterTypes
 from sentry.utils.db import is_postgres
@@ -283,33 +284,47 @@ class ProjectSummarySerializer(ProjectWithTeamSerializer):
             environments_by_project[project_env['project_id']].append(
                 project_env['environment__name'])
 
-        release_project_envs = list(ReleaseProjectEnvironment.objects.filter(
-            project__in=item_list,
-            last_deploy_id__isnull=False
-        ).values('release__version', 'environment__name', 'last_deploy_id', 'project__id'))
-
-        deploys = dict(
-            Deploy.objects.filter(
-                id__in=[
-                    rpe['last_deploy_id'] for rpe in release_project_envs]).values_list(
-                'id',
-                'date_finished'))
-
+        cursor = connection.cursor()
+        cursor.execute(
+            """
+            select srpe.project_id, se.name, sr.version, date_finished
+            from (
+                select *
+                -- Finally, filter to the top row for each project/environment.
+                from (
+                    -- Next we join to deploys and rank based recency of latest deploy for each project/environment.
+                    select srpe.project_id, srpe.release_id, srpe.environment_id, sd.date_finished,
+                    row_number() OVER (partition by (srpe.project_id, srpe.environment_id) order by sd.date_finished desc) row_num
+                    from
+                    (
+                        -- First we fetch all related ReleaseProjectEnvironments, then filter to the x most recent for
+                        -- each project/environment that actually have a deploy. This cuts out a lot of data volume
+                        select *
+                        from (
+                            select *, row_number() OVER (partition by (srpe.project_id, srpe.environment_id) order by srpe.id desc) row_num
+                            from sentry_releaseprojectenvironment srpe
+                            where srpe.last_deploy_id is not null
+                            and project_id = ANY(%s)
+                        ) srpe
+                        where row_num <= %s
+                    ) srpe
+                    inner join sentry_deploy sd on sd.id = srpe.last_deploy_id
+                    where sd.date_finished is not null
+                ) srpe
+                where row_num = 1
+            ) srpe
+            inner join sentry_release sr on sr.id = srpe.release_id
+            inner join sentry_environment se on se.id = srpe.environment_id;
+            """,
+            ([p.id for p in item_list], 10),
+        )
         deploys_by_project = defaultdict(dict)
 
-        for rpe in release_project_envs:
-            env_name = rpe['environment__name']
-            project_id = rpe['project__id']
-            date_finished = deploys[rpe['last_deploy_id']]
-
-            if (
-                env_name not in deploys_by_project[project_id] or
-                deploys_by_project[project_id][env_name]['dateFinished'] < date_finished
-            ):
-                deploys_by_project[project_id][env_name] = {
-                    'version': rpe['release__version'],
-                    'dateFinished': date_finished
-                }
+        for project_id, env_name, release_version, date_finished in cursor.fetchall():
+            deploys_by_project[project_id][env_name] = {
+                'version': release_version,
+                'dateFinished': date_finished,
+            }
 
         # We  just return the version key here so that we cut down on response
         # size
