@@ -21,13 +21,19 @@ class SentryAppsEndpoint(SentryAppsBaseEndpoint):
             queryset = SentryApp.objects.filter(status=SentryAppStatus.PUBLISHED)
 
         elif status == 'unpublished':
-            if is_active_superuser(request):
-                queryset = SentryApp.objects.filter(
-                    status=SentryAppStatus.UNPUBLISHED
+            queryset = SentryApp.objects.filter(
+                status=SentryAppStatus.UNPUBLISHED,
+            )
+            if not is_active_superuser(request):
+                queryset = queryset.filter(
+                    owner__in=request.user.get_orgs(),
                 )
-            else:
-                queryset = SentryApp.objects.filter(
-                    status=SentryAppStatus.UNPUBLISHED,
+        elif status == 'internal':
+            queryset = SentryApp.objects.filter(
+                status=SentryAppStatus.INTERNAL,
+            )
+            if not is_active_superuser(request):
+                queryset = queryset.filter(
                     owner__in=request.user.get_orgs(),
                 )
         else:
