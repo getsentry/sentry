@@ -17,7 +17,7 @@ class ValidateSearchFilterPermissionsTest(TestCase):
 
     def assert_analytics_recorded(self, mock_record):
         mock_record.assert_called_with(
-            'advanced_search.gated',
+            'advanced_search.feature_gated',
             user_id=self.user.id,
             default_user_id=self.user.id,
             organization_id=self.organization.id,
