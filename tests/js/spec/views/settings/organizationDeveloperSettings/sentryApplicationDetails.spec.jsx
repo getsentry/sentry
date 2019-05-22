@@ -82,6 +82,7 @@ describe('Sentry Application Details', function() {
         webhookUrl: 'https://webhook.com',
         scopes: observable(['member:read', 'member:admin', 'event:read', 'event:admin']),
         events: observable(['issue']),
+        isInternal: false,
         isAlertable: true,
         schema: {},
       };
@@ -96,7 +97,69 @@ describe('Sentry Application Details', function() {
     });
   });
 
-  describe('editing an existing Sentry App', () => {
+  describe('Renders for non-internal apps', function() {
+    beforeEach(() => {
+      sentryApp = TestStubs.SentryApp();
+      sentryApp.events = ['issue'];
+
+      Client.addMockResponse({
+        url: `/sentry-apps/${sentryApp.slug}/`,
+        body: sentryApp,
+      });
+
+      wrapper = mount(
+        <SentryApplicationDetails params={{appSlug: sentryApp.slug, orgId}} />,
+        TestStubs.routerContext()
+      );
+    });
+
+    it('it shows application data', function() {
+      // data should be filled out
+      expect(wrapper.find('PermissionsObserver').prop('scopes')).toEqual([
+        'project:read',
+      ]);
+    });
+
+    it('renders clientId and clientSecret for non-internal apps', function() {
+      expect(wrapper.find('#clientId').exists()).toBe(true);
+      expect(wrapper.find('#clientSecret').exists()).toBe(true);
+    });
+  });
+
+  describe('Renders for internal apps', () => {
+    beforeEach(() => {
+      sentryApp = TestStubs.SentryApp({
+        status: 'internal',
+        installation: {uuid: 'xxxxxx'},
+        token: 'xxxx',
+      });
+      sentryApp.events = ['issue'];
+
+      Client.addMockResponse({
+        url: `/sentry-apps/${sentryApp.slug}/`,
+        body: sentryApp,
+      });
+
+      wrapper = mount(
+        <SentryApplicationDetails params={{appSlug: sentryApp.slug, orgId}} />,
+        TestStubs.routerContext()
+      );
+    });
+    it('has internal option disabled', function() {
+      expect(
+        wrapper
+          .find('Field[name="isInternal"]')
+          .find('FieldControl')
+          .prop('disabled')
+      ).toBe(true);
+    });
+    it('shows installationId and token', function() {
+      expect(wrapper.find('#installation').exists()).toBe(true);
+      expect(wrapper.find('#token').exists()).toBe(true);
+    });
+  });
+
+  describe('Editing an existing Sentry App', () => {
     beforeEach(() => {
       sentryApp = TestStubs.SentryApp();
       sentryApp.events = ['issue'];
@@ -116,21 +179,6 @@ describe('Sentry Application Details', function() {
         <SentryApplicationDetails params={{appSlug: sentryApp.slug, orgId}} />,
         TestStubs.routerContext()
       );
-    });
-
-    it('it shows application data and credentials', function() {
-      // data should be filled out
-      expect(wrapper.find('PermissionsObserver').prop('scopes')).toEqual([
-        'project:read',
-      ]);
-
-      // 'Credentials' should be last PanelHeader when editing an application.
-      expect(
-        wrapper
-          .find('PanelHeader')
-          .last()
-          .text()
-      ).toBe('Credentials');
     });
 
     it('it updates app with correct data', function() {

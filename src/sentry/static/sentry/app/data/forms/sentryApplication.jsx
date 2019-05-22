@@ -1,11 +1,24 @@
 import React from 'react';
-import {tct} from 'app/locale';
+import {t, tct} from 'app/locale';
+
+const INTERNAL_OPTION_DISABLED_REASON = t(
+  "This option can't be changed once selected. Please make a new integration if you no longer want it to be internal."
+);
 
 const forms = [
   {
     // Form "section"/"panel"
     title: 'Integration Details',
     fields: [
+      {
+        name: 'isInternal',
+        label: 'Internal',
+        type: 'boolean',
+        disabled: ({statusDisabled}) => statusDisabled,
+        disabledReason: INTERNAL_OPTION_DISABLED_REASON,
+        help:
+          'If enabled, your integration will automatically be installed and for use within your organization only.',
+      },
       {
         name: 'name',
         type: 'string',
@@ -43,7 +56,7 @@ const forms = [
         type: 'boolean',
         label: 'Alert Rule Action',
         help: tct(
-          'If enabled, this application will be an action under alert rules in Sentry. The notification destination is the Webhook URL specified above. More on actions [learn_more:Here].',
+          'If enabled, this integration will be an action under alert rules in Sentry. The notification destination is the Webhook URL specified above. More on actions [learn_more:Here].',
           {
             learn_more: (
               <a href="https://docs.sentry.io/product/notifications/#actions" />
