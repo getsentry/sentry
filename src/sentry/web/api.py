@@ -39,8 +39,7 @@ from sentry.interfaces import schemas
 from sentry.interfaces.base import get_interface
 from sentry.lang.native.unreal import process_unreal_crash, merge_apple_crash_report, \
     unreal_attachment_type, merge_unreal_context_event, merge_unreal_logs_event
-from sentry.lang.native.minidump import merge_process_state_event, process_minidump, \
-    merge_attached_event, merge_attached_breadcrumbs, write_minidump_placeholder, \
+from sentry.lang.native.minidump import merge_attached_event, merge_attached_breadcrumbs, write_minidump_placeholder, \
     MINIDUMP_ATTACHMENT_TYPE
 from sentry.models import Project, OrganizationOption, Organization
 from sentry.signals import (
@@ -76,20 +75,6 @@ kafka_publisher = QueuedPublisherService(
             None),
         asynchronous=False)
 ) if getattr(settings, 'KAFKA_RAW_EVENTS_PUBLISHER_ENABLED', False) else None
-
-
-def _minidump_refactor_enabled(project_id):
-    if project_id in options.get('symbolicator.minidump-refactor-projects-opt-out'):
-        return False
-
-    if project_id in options.get('symbolicator.minidump-refactor-projects-opt-in'):
-        return True
-
-    rate = options.get('symbolicator.minidump-refactor-random-sampling') or 0.0
-    if rate and random.random() <= rate:
-        return True
-
-    return False
 
 
 def api(func):
@@ -765,28 +750,7 @@ class MinidumpView(StoreView):
             if has_event_attachments:
                 attachments.append(CachedAttachment.from_upload(file))
 
-        refactor_enabled = _minidump_refactor_enabled(project.id)
-        metrics.incr(
-            'symbolicator.minidump-refactor-enabled',
-            tags={'value': refactor_enabled, 'endpoint': 'minidump'}
-        )
-
-        if refactor_enabled:
-            write_minidump_placeholder(data)
-        else:
-            try:
-                with metrics.timer("symbolicator.old-process-minidump"):
-                    state = process_minidump(minidump)
-                merge_process_state_event(data, state)
-            except ProcessMinidumpError as e:
-                minidumps_logger.exception(e)
-                track_outcome(
-                    project.organization_id,
-                    project.id,
-                    None,
-                    Outcome.INVALID,
-                    "process_minidump")
-                raise APIError(e.message.split('\n', 1)[0])
+        write_minidump_placeholder(data)
 
         event_id = self.process(
             request,
@@ -853,25 +817,10 @@ class UnrealView(StoreView):
             unreal = process_unreal_crash(request.body, request.GET.get(
                 'UserID'), request.GET.get('AppEnvironment'), event)
 
-            refactor_enabled = _minidump_refactor_enabled(project.id)
-            metrics.incr(
-                'symbolicator.minidump-refactor-enabled',
-                tags={'value': refactor_enabled, 'endpoint': 'unreal'}
-            )
-
-            if refactor_enabled:
-                process_state = None
-            else:
-                process_state = unreal.process_minidump()
-
-            if process_state:
-                merge_process_state_event(event, process_state)
-            else:
-                # TODO(markus): Remove after refactor rolled out
-                apple_crash_report = unreal.get_apple_crash_report()
-                if apple_crash_report:
-                    merge_apple_crash_report(apple_crash_report, event)
-                    is_apple_crash_report = True
+            apple_crash_report = unreal.get_apple_crash_report()
+            if apple_crash_report:
+                merge_apple_crash_report(apple_crash_report, event)
+                is_apple_crash_report = True
         except (ProcessMinidumpError, Unreal4Error) as e:
             minidumps_logger.exception(e)
             track_outcome(
@@ -885,8 +834,7 @@ class UnrealView(StoreView):
         try:
             unreal_context = unreal.get_context()
             if unreal_context is not None:
-                merge_unreal_context_event(unreal_context, event, project,
-                                           refactor_enabled=refactor_enabled)
+                merge_unreal_context_event(unreal_context, event, project)
         except Unreal4Error as e:
             # we'll continue without the context data
             minidumps_logger.exception(e)
@@ -923,14 +871,8 @@ class UnrealView(StoreView):
                     type=unreal_attachment_type(file),
                 ))
 
-        if is_minidump and refactor_enabled:
+        if is_minidump:
             write_minidump_placeholder(event)
-
-        if not refactor_enabled and not is_apple_crash_report and not is_minidump:
-            track_outcome(project.organization_id, project.id, None,
-                          Outcome.INVALID, "missing_minidump_unreal")
-            raise APIError("missing minidump or apple crash report in unreal \
-                           crash report")
 
         event_id = self.process(
             request,

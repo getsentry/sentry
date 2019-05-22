@@ -1,5 +1,5 @@
 ---
-created: '2019-05-08T12:46:10.449505Z'
+created: '2019-05-15T18:30:09.034314Z'
 creator: sentry
 source: tests/symbolicator/test_minidump_full.py
 ---
@@ -9,7 +9,7 @@ contexts:
     type: device
   os:
     build: ''
-    name: Windows
+    name: Windows NT
     type: os
     version: 10.0.14393
 debug_meta:
@@ -134,10 +134,7 @@ debug_meta:
     image_addr: '0x77170000'
     image_size: 1585152
     type: pe
-errors:
-- name: timestamp
-  type: past_timestamp
-  value: 1521713273.0
+errors: null
 exception:
   values:
   - mechanism:
