@@ -67,7 +67,17 @@ const formFields = [
     help: t(
       'Configures which built-in repositories Sentry should use to resolve debug files.'
     ),
-    choices: [['microsoft', t('Microsoft Symbol Server')]],
+    choices: [
+      ['microsoft', t('Microsoft')],
+      ['citrix', t('Citrix')],
+      ['intel', t('Intel')],
+      ['amd', t('AMD')],
+      ['nvidia', t('NVIDIA')],
+      ['chromium', t('Chromium')],
+      ['unity', t('Unity')],
+      ['mozilla', t('Mozilla')],
+      ['autodesk', t('Autodesk')],
+    ],
   },
   {
     name: 'symbolSources',

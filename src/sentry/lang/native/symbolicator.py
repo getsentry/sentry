@@ -40,6 +40,80 @@ BUILTIN_SOURCES = {
         'url': 'https://msdl.microsoft.com/download/symbols/',
         'is_public': True,
     },
+    'citrix': {
+        'type': 'http',
+        'id': 'sentry:citrix',
+        'layout': {'type': 'symstore'},
+        'filters': {
+            'filetypes': ['pdb', 'pe']
+        },
+        'url': 'http://ctxsym.citrix.com/symbols/',
+        'is_public': True,
+    },
+    'intel': {
+        'type': 'http',
+        'id': 'sentry:intel',
+        'layout': {'type': 'symstore'},
+        'filters': {
+            'filetypes': ['pdb', 'pe']
+        },
+        'url': 'https://software.intel.com/sites/downloads/symbols/',
+        'is_public': True,
+    },
+    'amd': {
+        'type': 'http',
+        'id': 'sentry:amd',
+        'layout': {'type': 'symstore'},
+        'filters': {
+            'filetypes': ['pdb', 'pe']
+        },
+        'url': 'https://download.amd.com/dir/bin/',
+        'is_public': True,
+    },
+    'nvidia': {
+        'type': 'http',
+        'id': 'sentry:nvidia',
+        'layout': {'type': 'symstore'},
+        'filters': {
+            'filetypes': ['pdb', 'pe']
+        },
+        'url': 'https://driver-symbols.nvidia.com/',
+        'is_public': True,
+    },
+    'chromium': {
+        'type': 'http',
+        'id': 'sentry:chromium',
+        'layout': {'type': 'symstore'},
+        'filters': {
+            'filetypes': ['pdb', 'pe']
+        },
+        'url': 'https://chromium-browser-symsrv.commondatastorage.googleapis.com/',
+        'is_public': True,
+    },
+    'unity': {
+        'type': 'http',
+        'id': 'sentry:unity',
+        'layout': {'type': 'symstore'},
+        'filters': {
+            'filetypes': ['pdb', 'pe']
+        },
+        'url': 'https://symbolserver.unity3d.com/',
+        'is_public': True,
+    },
+    'mozilla': {
+        'type': 'http',
+        'id': 'sentry:mozilla',
+        'layout': {'type': 'symstore'},
+        'url': 'https://symbols.mozilla.org/',
+        'is_public': True,
+    },
+    'autodesk': {
+        'type': 'http',
+        'id': 'sentry:autodesk',
+        'layout': {'type': 'symstore'},
+        'url': 'http://symbols.autodesk.com/',
+        'is_public': True,
+    }
 }
 
 VALID_LAYOUTS = (
