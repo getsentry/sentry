@@ -202,20 +202,12 @@ def merge_unreal_context_event(unreal_context, event, project):
             comments=user_desc,
         )
 
-    portable_callstack = runtime_prop.pop('portable_call_stack', None)
-    if portable_callstack is not None:
-        set_path(event, 'contexts', 'unreal', 'type', value='unreal')
-        set_path(event, 'contexts', 'unreal', 'portable_call_stack',
-                 value=portable_callstack)
-        # TODO(markus): Add other stuff from extra here. Make sure trimming
-        # will not be a problem for portable_call_stack then!
-
     # drop modules. minidump processing adds 'images loaded'
     runtime_prop.pop('modules', None)
 
     # add everything else as extra
-    extra = event.setdefault('extra', {})
-    extra.update(**runtime_prop)
+    set_path(event, 'contexts', 'unreal', 'type', value='unreal')
+    event['contexts']['unreal'].update(**runtime_prop)
 
     # add sdk info
     event['sdk'] = {
