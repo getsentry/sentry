@@ -6,6 +6,8 @@ import SentryTypes from 'app/sentryTypes';
 import {Panel, PanelHeader, PanelBody, PanelItem} from 'app/components/panels';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
+import EmptyStateWarning from 'app/components/emptyStateWarning';
+import {t} from 'app/locale';
 
 export default class Table extends React.Component {
   static propTypes = {
@@ -20,6 +22,14 @@ export default class Table extends React.Component {
 
     if (isLoading) {
       return <LoadingIndicator />;
+    }
+
+    if (data && data.length === 0) {
+      return (
+        <EmptyStateWarning>
+          <p>{t('No results found')}</p>
+        </EmptyStateWarning>
+      );
     }
 
     return data.map((row, idx) => (
