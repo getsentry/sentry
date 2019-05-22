@@ -9,7 +9,7 @@ import threading
 import six
 from django.utils.functional import empty, LazyObject
 
-from sentry.utils import warnings
+from sentry.utils import warnings, metrics
 from sentry.utils.concurrent import FutureSet, ThreadedExecutor
 
 from .imports import import_string
@@ -55,7 +55,7 @@ class LazyServiceWrapper(LazyObject):
     >>> service.expose(locals())
     """
 
-    def __init__(self, backend_base, backend_path, options, dangerous=()):
+    def __init__(self, backend_base, backend_path, options, dangerous=(), metrics_path=None):
         super(LazyServiceWrapper, self).__init__()
         self.__dict__.update(
             {
@@ -63,13 +63,27 @@ class LazyServiceWrapper(LazyObject):
                 '_options': options,
                 '_base': backend_base,
                 '_dangerous': dangerous,
+                '_metrics_path': metrics_path,
             }
         )
 
     def __getattr__(self, name):
         if self._wrapped is empty:
             self._setup()
-        return getattr(self._wrapped, name)
+
+        attr = getattr(self._wrapped, name)
+
+        # If we want to wrap in metrics, we need to make sure it's some callable,
+        # and within our list of exposed attributes. Then we can safely wrap
+        # in our metrics decorator.
+        if self._metrics_path and callable(attr) and name in self._base.__all__:
+            return metrics.wraps(
+                self._metrics_path,
+                instance=name,
+                tags={'backend': self._backend}
+            )(attr)
+
+        return attr
 
     def _setup(self):
         backend = import_string(self._backend)

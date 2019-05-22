@@ -4,6 +4,7 @@ __all__ = ['timing', 'incr']
 
 import logging
 
+import functools
 from contextlib import contextmanager
 from django.conf import settings
 from random import random
@@ -130,3 +131,13 @@ def timer(key, instance=None, tags=None):
         tags['result'] = 'success'
     finally:
         timing(key, time() - start, instance, tags)
+
+
+def wraps(key, instance=None, tags=None):
+    def wrapper(f):
+        @functools.wraps(f)
+        def inner(*args, **kwargs):
+            with timer(key, instance=instance, tags=tags):
+                return f(*args, **kwargs)
+        return inner
+    return wrapper
