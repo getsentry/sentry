@@ -678,19 +678,19 @@ class OrganizationEventsStatsEndpointTest(OrganizationEventsTestBase):
             event_id='a' * 32,
             group=self.group,
             datetime=self.day_ago + timedelta(minutes=1),
-            user=self.user.id,
+            tags={'sentry:user': self.user.email},
         )
         self.create_event(
             event_id='b' * 32,
             group=self.group2,
             datetime=self.day_ago + timedelta(hours=1, minutes=1),
-            user=self.user.id,
+            tags={'sentry:user': self.user2.email},
         )
         self.create_event(
             event_id='c' * 32,
             group=self.group2,
             datetime=self.day_ago + timedelta(hours=1, minutes=2),
-            user=self.user2.id,
+            tags={'sentry:user': self.user2.email},
         )
 
     def test_simple(self):
@@ -729,14 +729,12 @@ class OrganizationEventsStatsEndpointTest(OrganizationEventsTestBase):
         assert len(response.data['data']) == 0
 
     def test_user_count(self):
-        # same user seeing an event in the same group more than once
         self.create_event(
             event_id='d' * 32,
             group=self.group2,
-            datetime=self.day_ago + timedelta(hours=1, minutes=1),
-            user=self.user.id,
+            datetime=self.day_ago + timedelta(minutes=2),
+            tags={'sentry:user': self.user2.email},
         )
-
         url = reverse(
             'sentry-api-0-organization-events-stats',
             kwargs={
@@ -751,10 +749,11 @@ class OrganizationEventsStatsEndpointTest(OrganizationEventsTestBase):
         })), format='json')
 
         assert response.status_code == 200, response.content
+
         assert [attrs for time, attrs in response.data['data']] == [
             [],
-            [{'count': 1}],
             [{'count': 2}],
+            [{'count': 1}],
         ]
 
     def test_with_event_count_flag(self):
@@ -762,13 +761,13 @@ class OrganizationEventsStatsEndpointTest(OrganizationEventsTestBase):
             'sentry-api-0-organization-events-stats',
             kwargs={
                 'organization_slug': self.project.organization.slug,
-                'y_axis': 'event_count',
             }
         )
         response = self.client.get('%s?%s' % (url, urlencode({
             'start': self.day_ago.isoformat()[:19],
             'end': (self.day_ago + timedelta(hours=1, minutes=59)).isoformat()[:19],
             'interval': '1h',
+            'y_axis': 'event_count',
         })), format='json')
 
         assert response.status_code == 200, response.content

@@ -86,7 +86,10 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsEndpointBase):
         if not y_axis or y_axis == 'event_count':
             aggregations = [('count()', '', 'count')]
         elif y_axis == 'user_count':
-            aggregations = [('count(ip_address)', '', 'count')]
+            aggregations = [
+                ('uniq', 'tags[sentry:user]', 'count'),
+            ]
+            snuba_args['filter_keys']['tags_key'] = ['sentry:user']
         else:
             return Response(
                 {'detail': 'Param y_axis value %s not recognized.' % y_axis}, status=400)
