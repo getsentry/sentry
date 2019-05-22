@@ -114,6 +114,45 @@ class GetSentryAppsTest(SentryAppsTest):
         assert self.unpublished_app.uuid not in response_uuids
         assert self.unowned_unpublished_app.uuid not in response_uuids
 
+    def test_superusers_filter_on_internal_apps(self):
+        new_org = self.create_organization()
+        self.create_project(organization=new_org)
+
+        internal_app = self.create_internal_integration(
+            name='Internal Nosee',
+            organization=new_org,
+        )
+
+        self.login_as(user=self.superuser, superuser=True)
+        url = u'{}?status=internal'.format(self.url)
+        response = self.client.get(url, format='json')
+
+        assert response.status_code == 200
+        assert {
+            'name': self.internal_app.name,
+            'author': self.internal_app.author,
+            'slug': self.internal_app.slug,
+            'scopes': [],
+            'events': [],
+            'status': self.internal_app.get_status_display(),
+            'uuid': self.internal_app.uuid,
+            'webhookUrl': self.internal_app.webhook_url,
+            'redirectUrl': self.internal_app.redirect_url,
+            'isAlertable': self.internal_app.is_alertable,
+            'overview': self.internal_app.overview,
+            'schema': {},
+            'installation': {
+                'uuid': self.install.uuid,
+            },
+            'token': self.install.api_token.token
+        } in json.loads(response.content)
+
+        response_uuids = set(o['uuid'] for o in response.data)
+        assert internal_app.uuid in response_uuids
+        assert self.published_app.uuid not in response_uuids
+        assert self.unpublished_app.uuid not in response_uuids
+        assert self.unowned_unpublished_app.uuid not in response_uuids
+
     def test_superuser_filter_on_published(self):
         self.login_as(user=self.superuser, superuser=True)
         url = u'{}?status=published'.format(self.url)
