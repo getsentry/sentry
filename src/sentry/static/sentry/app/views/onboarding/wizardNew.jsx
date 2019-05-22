@@ -3,7 +3,7 @@ import DocumentTitle from 'react-document-title';
 import PropTypes from 'prop-types';
 import React from 'react';
 import posed, {PoseGroup} from 'react-pose';
-import scrollToElemennt from 'scroll-to-element';
+import scrollToElement from 'scroll-to-element';
 import styled from 'react-emotion';
 
 import {analytics} from 'app/utils/analytics';
@@ -131,7 +131,7 @@ class OnboardingWizard extends React.Component {
 
   scrollToActiveStep = () => {
     const step = this.activeStep;
-    scrollToElemennt(`#onboarding_step_${step.id}`, {
+    scrollToElement(`#onboarding_step_${step.id}`, {
       align: 'middle',
       duration: 300,
     });
