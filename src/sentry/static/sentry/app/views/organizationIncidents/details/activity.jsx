@@ -236,7 +236,7 @@ class ActivityContainer extends React.Component {
       const activities = await fetchIncidentActivities(api, orgId, incidentId);
       this.setState({activities, loading: false});
     } catch (err) {
-      this.setState({loading: false, error: err});
+      this.setState({loading: false, error: !!err});
     }
   }
 
