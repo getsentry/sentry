@@ -1,5 +1,5 @@
 ---
-created: '2019-05-22T09:06:35.248561Z'
+created: '2019-05-22T14:32:28.800586Z'
 creator: sentry
 source: tests/symbolicator/test_unreal.py
 ---
@@ -95,7 +95,6 @@ contexts:
     type: unreal
 environment: Production
 event_id: 12852a74acc943a790c8f1cd23907caa
-extra: {}
 message: Access violation - code c0000005 (first/second chance not available)
 sdk:
   name: sentry.unreal.crashreporter
