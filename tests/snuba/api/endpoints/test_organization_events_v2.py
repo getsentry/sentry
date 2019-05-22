@@ -23,6 +23,14 @@ class OrganizationEventsTestBase(APITestCase, SnubaTestCase):
 
 
 class OrganizationEventsV2EndpointTest(OrganizationEventsTestBase):
+    def test_no_projects(self):
+        self.login_as(user=self.user)
+        with self.feature('organizations:events-v2'):
+            response = self.client.get(self.url, format='json')
+
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 0
+
     def test_raw_data(self):
         self.login_as(user=self.user)
         project = self.create_project()

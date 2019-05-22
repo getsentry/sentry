@@ -76,9 +76,7 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
         except OrganizationEventsError as exc:
             return Response({'detail': exc.message}, status=400)
         except NoProjects:
-            # return empty result if org doesn't have projects
-            # or user doesn't have access to projects in org
-            data_fn = lambda *args, **kwargs: []
+            return Response([])
         else:
             data_fn = partial(
                 lambda *args, **kwargs: transform_aliases_and_query(*args, **kwargs)['data'],
