@@ -14,6 +14,8 @@ from sentry.pipeline import Pipeline
 from sentry.web.helpers import render_to_response
 from . import default_manager
 
+import six
+
 
 def ensure_integration(key, data):
     defaults = {
@@ -43,7 +45,8 @@ class IntegrationPipeline(Pipeline):
             self.get_logger().info(
                 'build-integration.failure',
                 extra={
-                    'error_message': e.message,
+                    'error_message': six.string_type(e),
+                    'error_status': getattr(e, 'code', None),
                     'provider_key': self.provider.key,
                 }
             )
