@@ -1096,6 +1096,8 @@ class EventManagerTest(TestCase):
         assert event.data['sdk'] == {
             'name': 'sentry-unity',
             'version': '1.0',
+            'integrations': None,
+            'packages': None
         }
 
     def test_no_message(self):
@@ -1124,6 +1126,8 @@ class EventManagerTest(TestCase):
 
         assert event.data['logentry'] == {
             'formatted': '1234',
+            'message': None,
+            'params': None
         }
 
     def test_bad_message(self):
@@ -1145,6 +1149,8 @@ class EventManagerTest(TestCase):
         event = manager.save(self.project.id)
         assert event.data['logentry'] == {
             'formatted': 'hello world',
+            'message': None,
+            'params': None
         }
 
     def test_message_attribute_shadowing(self):
@@ -1163,6 +1169,8 @@ class EventManagerTest(TestCase):
         event = manager.save(self.project.id)
         assert event.data['logentry'] == {
             'formatted': 'hello world',
+            'message': None,
+            'params': None
         }
 
     def test_message_attribute_interface_both_strings(self):
@@ -1178,6 +1186,8 @@ class EventManagerTest(TestCase):
         event = manager.save(self.project.id)
         assert event.data['logentry'] == {
             'formatted': 'a plain string',
+            'message': None,
+            'params': None
         }
 
     def test_throws_when_matches_discarded_hash(self):
