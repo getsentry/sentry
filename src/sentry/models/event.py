@@ -512,7 +512,7 @@ class SnubaEvent(EventCommon):
         node_id = SnubaEvent.generate_node_id(
             self.snuba_data['project_id'],
             self.snuba_data['event_id'])
-        self.data = NodeData(None, node_id, data=None)
+        self.data = NodeData(None, node_id, data=None, wrapper=EventDict)
 
     def __getattr__(self, name):
         """
