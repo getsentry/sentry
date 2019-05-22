@@ -745,7 +745,7 @@ class OrganizationEventsStatsEndpointTest(OrganizationEventsTestBase):
             'start': self.day_ago.isoformat()[:19],
             'end': (self.day_ago + timedelta(hours=1, minutes=59)).isoformat()[:19],
             'interval': '1h',
-            'y_axis': 'user_count',
+            'yAxis': 'user_count',
         })), format='json')
 
         assert response.status_code == 200, response.content
@@ -767,7 +767,7 @@ class OrganizationEventsStatsEndpointTest(OrganizationEventsTestBase):
             'start': self.day_ago.isoformat()[:19],
             'end': (self.day_ago + timedelta(hours=1, minutes=59)).isoformat()[:19],
             'interval': '1h',
-            'y_axis': 'event_count',
+            'yAxis': 'event_count',
         })), format='json')
 
         assert response.status_code == 200, response.content
