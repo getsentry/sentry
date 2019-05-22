@@ -137,6 +137,30 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsEndpointBase):
         )
 
 
+class OrganizationEventsTagsEndpoint(OrganizationEventsEndpointBase):
+    def get(self, request, organization):
+        try:
+            snuba_args = self.get_snuba_query_args(request, organization)
+        except OrganizationEventsError as exc:
+            return Response({'detail': exc.message}, status=400)
+        except NoProjects:
+            return Response({'count': 0})
+
+        keys = request.GET.get('keys')
+        if not keys:
+            return Response({'detail': 'Event tag keys must be specified'}, status=400)
+        snuba_args['filter_keys']['tags_key'] = keys
+        result = raw_query(
+            aggregations=[['count()', '', 'count']],
+            groupby=['tags_value'],
+            referrer='api.organization-events-tags',
+            limit=10000,
+            **snuba_args
+        )
+
+        return Response(serialize(result, request.user))
+
+
 class OrganizationEventsMetaEndpoint(OrganizationEventsEndpointBase):
 
     def get(self, request, organization):

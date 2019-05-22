@@ -5,7 +5,7 @@ from six.moves.urllib.parse import urlencode
 from datetime import timedelta
 from django.utils import timezone
 from django.core.urlresolvers import reverse
-
+from uuid import uuid4
 from sentry.testutils import APITestCase, SnubaTestCase
 
 
@@ -776,6 +776,40 @@ class OrganizationEventsStatsEndpointTest(OrganizationEventsTestBase):
             [{'count': 1}],
             [{'count': 2}],
         ]
+
+
+class OrganizationEventsTagsEndpointTest(OrganizationEventsTestBase):
+    def setUp(self):
+        super(OrganizationEventsTagsEndpointTest, self).setUp()
+        self.login_as(user=self.user)
+
+        self.project = self.create_project()
+        project2 = self.create_project()
+        self.group = self.create_group(project=self.project)
+        group2 = self.create_group(project=project2)
+        self.create_event(event_id='a' * 32, group=self.group, datetime=self.min_ago)
+        self.create_event(event_id='m' * 32, group=group2, datetime=self.min_ago)
+
+    def test_simple(self):
+        for i in range(0, 20):
+            self.create_event(
+                event_id=uuid4().hex, group=self.group, datetime=self.day_ago, tags={
+                    'num': '%d' % i},
+            )
+        url = reverse(
+            'sentry-api-0-organization-events-tags',
+            kwargs={
+                'organization_slug': self.project.organization.slug,
+            }
+        )
+
+        response = self.client.get(
+            '%s?%s' % (url, 'keys=num'),
+            format='json'
+        )
+        assert response.status_code == 200, response.content
+        # this is not exact because of turbo=True
+        assert response.data['count'] == 10
 
 
 class OrganizationEventsMetaEndpoint(OrganizationEventsTestBase):
