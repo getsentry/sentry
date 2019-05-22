@@ -17,9 +17,7 @@ const FirstEventIndicator = props => (
   </EventWaiter>
 );
 
-FirstEventIndicator.propTypes = {
-  orgId: PropTypes.string,
-};
+FirstEventIndicator.propTypes = EventWaiter.propTypes;
 
 const Indicator = ({firstIssue, ...props}) => (
   <PoseGroup preEnterPose="init">
