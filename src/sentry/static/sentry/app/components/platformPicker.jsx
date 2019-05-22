@@ -26,6 +26,7 @@ class PlatformPicker extends React.Component {
     platform: PropTypes.string,
     showOther: PropTypes.bool,
     listProps: PropTypes.object,
+    noAutoFilter: PropTypes.bool,
   };
 
   static defaultProps = {
@@ -34,7 +35,7 @@ class PlatformPicker extends React.Component {
 
   state = {
     category: PLATFORM_CATEGORIES[0].id,
-    filter: this.props.platform?.split('-')[0],
+    filter: this.props.noAutoFilter ? '' : this.props.platform?.split('-')[0],
   };
 
   get platformList() {
