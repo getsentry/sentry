@@ -61,12 +61,11 @@ class OnboardingWizard extends React.Component {
     steps: ONBOARDING_STEPS,
   };
 
-  constructor(...args) {
-    super(...args);
+  state = {};
+
+  componentDidMount() {
     this.validateActiveStep();
   }
-
-  state = {};
 
   componentDidUpdate() {
     this.validateActiveStep();
