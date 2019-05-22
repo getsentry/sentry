@@ -1490,10 +1490,12 @@ SDK_VERSIONS = {
     'raven-ruby': '2.7.1',
     'sentry-cocoa': '3.11.1',
     'sentry-java': '1.6.4',
-    'sentry.javascript': '5.2.1',
+    'sentry.javascript.browser': '5.2.1',
+    'sentry.javascript.electron': '0.17.1',
+    'sentry.javascript.node': '5.2.0',
     'sentry-laravel': '1.0.2',
     'sentry-php': '2.0.1',
-    'sentry-python': '0.7.14',
+    'sentry.python': '0.7.14',
 }
 
 SDK_URLS = {
@@ -1503,11 +1505,13 @@ SDK_URLS = {
     'raven-ruby': 'https://docs.sentry.io/clients/ruby/',
     'raven-swift': 'https://docs.sentry.io/clients/cocoa/',
     'sentry-java': 'https://docs.sentry.io/clients/java/',
-    'sentry.javascript': 'https://docs.sentry.io/platforms/javascript/',
+    'sentry.javascript.browser': 'https://docs.sentry.io/platforms/javascript/',
+    'sentry.javascript.electron': 'https://docs.sentry.io/platforms/javascript/electron/',
+    'sentry.javascript.node': 'https://docs.sentry.io/platforms/javascript/',
     'sentry-php': 'https://docs.sentry.io/platforms/php/',
     'sentry-laravel': 'https://docs.sentry.io/platforms/php/laravel/',
+    'sentry.python': 'https://docs.sentry.io/platforms/python/',
     'sentry-swift': 'https://docs.sentry.io/clients/cocoa/',
-    'sentry-python': 'https://docs.sentry.io/platforms/python/',
 }
 
 DEPRECATED_SDKS = {
@@ -1517,11 +1521,13 @@ DEPRECATED_SDKS = {
     'raven-java:log4j': 'sentry-java',
     'raven-java:log4j2': 'sentry-java',
     'raven-java:logback': 'sentry-java',
+    'raven-js': 'sentry.javascript.browser',
+    'raven-node': 'sentry.javascript.node',
     'raven-objc': 'sentry-swift',
     'raven-php': 'sentry-php',
+    'raven-python': 'sentry.python',
     'sentry-android': 'raven-java',
     'sentry-swift': 'sentry-cocoa',
-    'raven-python': 'sentry-python',
 
     # The Ruby SDK used to go by the name 'sentry-raven'...
     'sentry-raven': 'raven-ruby',
