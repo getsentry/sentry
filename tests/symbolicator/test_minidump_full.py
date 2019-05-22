@@ -90,10 +90,3 @@ class SymbolicatorMinidumpIntegrationTest(MinidumpIntegrationTestBase, Transacti
 
             # Run test case:
             yield
-
-
-class SymbolicatorRefactoredMinidumpIntegrationTest(SymbolicatorMinidumpIntegrationTest):
-    @pytest.fixture(autouse=True)
-    def _set_refactor_option(self):
-        with self.options({"symbolicator.minidump-refactor-projects-opt-in": [self.project.id]}):
-            yield

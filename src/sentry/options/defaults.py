@@ -178,6 +178,6 @@ register('store.empty-interface-sample-rate', default=0.0)
 
 # Symbolicator refactors
 # - Disabling minidump stackwalking in endpoints
-register('symbolicator.minidump-refactor-projects-opt-in', type=Sequence, default=[])
-register('symbolicator.minidump-refactor-projects-opt-out', type=Sequence, default=[])
-register('symbolicator.minidump-refactor-random-sampling', default=0.0)
+register('symbolicator.minidump-refactor-projects-opt-in', type=Sequence, default=[])  # unused
+register('symbolicator.minidump-refactor-projects-opt-out', type=Sequence, default=[])  # unused
+register('symbolicator.minidump-refactor-random-sampling', default=0.0)  # unused

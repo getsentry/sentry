@@ -1,8 +1,7 @@
 from __future__ import absolute_import
-import os
 import io
 import msgpack
-from sentry.lang.native.minidump import process_minidump, merge_process_state_event, merge_attached_breadcrumbs, is_minidump_event, merge_attached_event
+from sentry.lang.native.minidump import merge_attached_breadcrumbs, is_minidump_event, merge_attached_event
 
 
 def test_is_minidump():
@@ -65,36 +64,6 @@ def test_is_minidump():
     assert not is_minidump_event({
         'exception': None
     })
-
-
-def test_minidump_linux(insta_snapshot):
-    event = {'release': 'test-1.0.0'}
-    minidump = os.path.join(os.path.dirname(__file__), 'fixtures', 'linux.dmp')
-    with open(minidump, 'rb') as f:
-        state = process_minidump(f.read())
-        merge_process_state_event(event, state)
-
-    insta_snapshot(event)
-
-
-def test_minidump_macos(insta_snapshot):
-    event = {'release': 'test-1.0.0'}
-    minidump = os.path.join(os.path.dirname(__file__), 'fixtures', 'macos.dmp')
-    with open(minidump, 'rb') as f:
-        state = process_minidump(f.read())
-        merge_process_state_event(event, state)
-
-    insta_snapshot(event)
-
-
-def test_minidump_windows(insta_snapshot):
-    event = {'release': 'test-1.0.0'}
-    minidump = os.path.join(os.path.dirname(__file__), 'fixtures', 'windows.dmp')
-    with open(minidump, 'rb') as f:
-        state = process_minidump(f.read())
-        merge_process_state_event(event, state)
-
-    insta_snapshot(event)
 
 
 class MockFile(object):
