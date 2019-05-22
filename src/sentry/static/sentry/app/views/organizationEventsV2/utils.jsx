@@ -1,6 +1,6 @@
-import {cloneDeep} from 'lodash';
+import {deepFreeze} from 'app/utils';
 
-export const ALL_VIEWS = [
+export const ALL_VIEWS = deepFreeze([
   {
     id: 'all',
     name: 'All Events',
@@ -50,7 +50,7 @@ export const ALL_VIEWS = [
       'effective-directive',
     ],
   },
-];
+]);
 
 /**
  * "Special fields" do not map 1:1 to an single column in the event database,
@@ -96,7 +96,7 @@ export function fetchOrganizationEvents(api, orgSlug, view) {
  * @returns {Object}
  */
 export function getQuery(view) {
-  const data = cloneDeep(view.data);
+  const data = {...view.data};
   data.fields = data.fields.reduce((fields, field) => {
     if (SPECIAL_FIELDS.hasOwnProperty(field)) {
       fields.push(...SPECIAL_FIELDS[field]);
