@@ -45,7 +45,7 @@ const Waiting = props => (
 const Success = ({orgId, firstIssue, ...props}) => (
   <StatusWrapper {...props}>
     <ReceivedIndicator src="icon-checkmark-sm" />
-    <PosedText>{t('First event was recieved!')}</PosedText>
+    <PosedText>{t('First event was received!')}</PosedText>
     {firstIssue !== true && (
       <PosedButton
         size="small"

@@ -31,7 +31,7 @@ class OnboardingPlatform extends React.Component {
 
   state = {
     /**
-     * This will be flipped to true immedaitely before  creating the first
+     * This will be flipped to true immediately before creating the first
      * project. We use state here to avoid the intermittent prop value where
      * the project is created but the store hasn't propagated its value to the
      * component yet, leaving a brief period where the button will flash
