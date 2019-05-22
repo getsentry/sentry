@@ -46,7 +46,7 @@ class NodeData(collections.MutableMapping):
         data={...} means, this is an object that should be saved to nodestore.
     """
 
-    def __init__(self, field, id, data=None):
+    def __init__(self, field, id, data=None, wrapper=None):
         self.field = field
         self.id = id
         self.ref = None
@@ -54,6 +54,9 @@ class NodeData(collections.MutableMapping):
         # (this does not mean the Event is mutable, it just removes ref checking
         #  in the case of something changing on the data model)
         self.ref_version = None
+        self.wrapper = wrapper
+        if data is not None and self.wrapper is not None:
+            data = self.wrapper(data)
         self._node_data = data
 
     def __getstate__(self):
@@ -130,8 +133,8 @@ class NodeData(collections.MutableMapping):
             raise NodeIntegrityFailure(
                 'Node reference for %s is invalid: %s != %s' % (self.id, ref, self.ref, )
             )
-        if self.field is not None and self.field.wrapper is not None:
-            data = self.field.wrapper(data)
+        if self.wrapper is not None:
+            data = self.wrapper(data)
         self._node_data = data
 
     def bind_ref(self, instance):
@@ -216,10 +219,7 @@ class NodeField(GzippedDictField):
             # to load data from, and no data to save.
             value = None
 
-        if value is not None and self.wrapper is not None:
-            value = self.wrapper(value)
-
-        return NodeData(self, node_id, value)
+        return NodeData(self, node_id, value, wrapper=self.wrapper)
 
     def get_prep_value(self, value):
         """
