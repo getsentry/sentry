@@ -21,12 +21,6 @@ MINIDUMP_ATTACHMENT_TYPE = 'event.minidump'
 MAX_MSGPACK_BREADCRUMB_SIZE_BYTES = 50000
 MAX_MSGPACK_EVENT_SIZE_BYTES = 100000
 
-# Mapping of well-known minidump OS constants to our internal names
-MINIDUMP_OS_TYPES = {
-    'Mac OS X': 'macOS',
-    'Windows NT': 'Windows',
-}
-
 
 def is_minidump_event(data):
     exceptions = get_path(data, 'exception', 'values', filter=True)
