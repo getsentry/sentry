@@ -33,13 +33,13 @@ describe('api', function() {
       ).toEqual({query: 'is:unresolved'});
     });
 
-    it('should convert params w/o itemIds or query to undefined', function() {
+    it('should convert params w/o itemIds or query to empty object', function() {
       expect(
         paramsToQueryArgs({
           foo: 'bar',
           bar: 'baz', // paramsToQueryArgs ignores these
         })
-      ).toBeUndefined();
+      ).toEqual({});
     });
 
     it('should keep environment when query is provided', function() {
@@ -58,6 +58,29 @@ describe('api', function() {
           environment: null,
         })
       ).toEqual({query: 'is:unresolved'});
+    });
+
+    it('should handle non-empty projects', function() {
+      expect(
+        paramsToQueryArgs({
+          itemIds: [1, 2, 3],
+          project: [1],
+        })
+      ).toEqual({id: [1, 2, 3], project: [1]});
+
+      expect(
+        paramsToQueryArgs({
+          itemIds: [1, 2, 3],
+          project: [],
+        })
+      ).toEqual({id: [1, 2, 3]});
+
+      expect(
+        paramsToQueryArgs({
+          itemIds: [1, 2, 3],
+          project: null,
+        })
+      ).toEqual({id: [1, 2, 3]});
     });
   });
 
@@ -171,6 +194,22 @@ describe('api', function() {
       expect(api._wrapRequest).toHaveBeenCalledWith(
         '/projects/1337/1337/issues/',
         expect.objectContaining({query: {query: 'is:resolved'}}),
+        undefined
+      );
+    });
+
+    it('should apply project option', function() {
+      api.bulkUpdate({
+        orgId: '1337',
+        project: [99],
+        itemIds: [1, 2, 3],
+        data: {status: 'unresolved'},
+      });
+
+      expect(api._wrapRequest).toHaveBeenCalledTimes(1);
+      expect(api._wrapRequest).toHaveBeenCalledWith(
+        '/organizations/1337/issues/',
+        expect.objectContaining({query: {id: [1, 2, 3], project: [99]}}),
         undefined
       );
     });
