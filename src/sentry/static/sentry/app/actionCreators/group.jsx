@@ -107,18 +107,20 @@ export function assignToActor({id, actor}) {
     });
 }
 
-export function deleteNote(api, group, item) {
-  const index = GroupStore.removeActivity(group.id, item.id);
+export function deleteNote(api, group, id, oldText) {
+  const index = GroupStore.removeActivity(group.id, id);
   if (index === -1) {
     // I dunno, the id wasn't found in the GroupStore
     return Promise.reject(new Error('Group was not found in store'));
   }
 
-  const promise = api.requestPromise(`/issues/${group.id}/comments/${item.id}/`, {
+  const promise = api.requestPromise(`/issues/${group.id}/comments/${id}/`, {
     method: 'DELETE',
   });
 
-  promise.catch(() => GroupStore.addActivity(group.id, item, index));
+  promise.catch(() =>
+    GroupStore.addActivity(group.id, {id, data: {text: oldText}}, index)
+  );
 
   return promise;
 }
@@ -134,16 +136,15 @@ export function createNote(api, group, note) {
   return promise;
 }
 
-export function updateNote(api, group, item, note) {
-  const oldNote = item.data.text;
-  GroupStore.updateActivity(group.id, item.id, {text: note.text});
+export function updateNote(api, group, note, id, oldText) {
+  GroupStore.updateActivity(group.id, id, {text: note.text});
 
-  const promise = api.requestPromise(`/issues/${group.id}/comments/${item.id}/`, {
+  const promise = api.requestPromise(`/issues/${group.id}/comments/${id}/`, {
     method: 'PUT',
     data: note,
   });
 
-  promise.catch(() => GroupStore.updateActivity(group.id, item.id, {text: oldNote}));
+  promise.catch(() => GroupStore.updateActivity(group.id, id, {text: oldText}));
 
   return promise;
 }
