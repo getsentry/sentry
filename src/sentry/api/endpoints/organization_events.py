@@ -108,10 +108,20 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsEndpointBase):
 
         rollup = int(interval.total_seconds())
 
+        y_axis = request.GET.get('yAxis', None)
+        if not y_axis or y_axis == 'event_count':
+            aggregations = [('count()', '', 'count')]
+        elif y_axis == 'user_count':
+            aggregations = [
+                ('uniq', 'tags[sentry:user]', 'count'),
+            ]
+            snuba_args['filter_keys']['tags_key'] = ['sentry:user']
+        else:
+            return Response(
+                {'detail': 'Param yAxis value %s not recognized.' % y_axis}, status=400)
+
         result = raw_query(
-            aggregations=[
-                ('count()', '', 'count'),
-            ],
+            aggregations=aggregations,
             orderby='time',
             groupby=['time'],
             rollup=rollup,
