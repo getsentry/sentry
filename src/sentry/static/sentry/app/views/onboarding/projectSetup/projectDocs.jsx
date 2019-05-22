@@ -8,6 +8,7 @@ import {loadDocs} from 'app/actionCreators/projects';
 import {t, tct} from 'app/locale';
 import Button from 'app/components/button';
 import FirstEventIndicator from 'app/views/onboarding/projectSetup/firstEventIndicator';
+import LoadingError from 'app/components/loadingError';
 import Panel from 'app/components/panels/panel';
 import PanelBody from 'app/components/panels/panelBody';
 import PlatformIcon from 'app/components/platformIcon';
@@ -36,6 +37,7 @@ class ProjectDocs extends React.Component {
   state = {
     platformDocs: null,
     loadedPlatform: null,
+    hasError: false,
   };
 
   componentDidMount() {
@@ -51,16 +53,28 @@ class ProjectDocs extends React.Component {
     }
   }
 
-  async fetchData() {
+  fetchData = async () => {
     const {api, project, organization, platform} = this.props;
 
     if (!project) {
       return;
     }
 
-    const platformDocs = await loadDocs(api, organization.slug, project.slug, platform);
-    this.setState({platformDocs, loadedPlatform: platform});
-  }
+    try {
+      const platformDocs = await loadDocs(api, organization.slug, project.slug, platform);
+      this.setState({platformDocs, loadedPlatform: platform, hasError: false});
+    } catch (error) {
+      if (platform === 'other') {
+        // TODO(epurkhiser): There are currently no docs for the other
+        // platform. We should add generic documentation, in which case, this
+        // check should go away.
+        return;
+      }
+
+      this.setState({hasError: error});
+      throw error;
+    }
+  };
 
   handleFullDocsClick = e => {
     const {organization, project, platform} = this.props;
@@ -69,7 +83,7 @@ class ProjectDocs extends React.Component {
 
   render() {
     const {organization, project, platform, scrollTargetId} = this.props;
-    const {loadedPlatform, platformDocs} = this.state;
+    const {loadedPlatform, platformDocs, hasError} = this.state;
 
     const introduction = (
       <Panel>
@@ -117,7 +131,14 @@ class ProjectDocs extends React.Component {
     return (
       <React.Fragment>
         {introduction}
-        {docs}
+        {!hasError ? (
+          docs
+        ) : (
+          <LoadingError
+            message={t('Failed to load documentation for the %s platform.', platform)}
+            onRetry={this.fetchData}
+          />
+        )}
       </React.Fragment>
     );
   }
