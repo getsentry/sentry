@@ -1,4 +1,7 @@
+import React from 'react';
+
 import {deepFreeze} from 'app/utils';
+import Link from 'app/components/links/link';
 
 export const ALL_VIEWS = deepFreeze([
   {
@@ -6,7 +9,7 @@ export const ALL_VIEWS = deepFreeze([
     name: 'All Events',
     data: {
       query: '',
-      fields: ['title', 'event.type', 'project.name', 'user.email', 'time'],
+      fields: ['event', 'event.type', 'project.name', 'user', 'time'],
       groupBy: [],
       aggregations: [],
       sort: '',
@@ -55,12 +58,25 @@ export const ALL_VIEWS = deepFreeze([
 /**
  * "Special fields" do not map 1:1 to an single column in the event database,
  * they are a UI concept that combines the results of multiple fields and
- * displays with some custom formatting. This map lists the underlying data
- * that we need to fetch in order to populate each of these special field.
+ * displays with a custom render function.
  */
-const SPECIAL_FIELDS = {
-  event: ['id', 'title'],
-  user: ['user.email', 'user.ip'],
+export const SPECIAL_FIELDS = {
+  event: {
+    fields: ['title', 'id', 'project.id'],
+    renderFunc: (data, org) => (
+      <Link
+        to={`/organizations/${org.slug}/projects/${data['project.name']}/events/${
+          data.id
+        }/`}
+      >
+        {data.title}
+      </Link>
+    ),
+  },
+  user: {
+    fields: ['user.email', 'user.ip'],
+    renderFunc: data => data['user.email'] || data['user.ip'],
+  },
 };
 
 /**
@@ -75,21 +91,6 @@ export function getCurrentView(requestedView) {
 }
 
 /**
- * Fetch organization events given view object
- *
- * @param {Object} api
- * @param {String} orgSlug
- * @param {Object} view
- * @returns {Promise<Object>}
- */
-export function fetchOrganizationEvents(api, orgSlug, view) {
-  const query = getQuery(view);
-  return api.requestPromise(`/organizations/${orgSlug}/events/`, {
-    query,
-  });
-}
-
-/**
  * Takes a view and converts it into the format required for the events API
  *
  * @param {Object} view
@@ -97,13 +98,16 @@ export function fetchOrganizationEvents(api, orgSlug, view) {
  */
 export function getQuery(view) {
   const data = {...view.data};
-  data.fields = data.fields.reduce((fields, field) => {
+  const fields = data.fields.reduce((list, field) => {
     if (SPECIAL_FIELDS.hasOwnProperty(field)) {
-      fields.push(...SPECIAL_FIELDS[field]);
+      list.push(...SPECIAL_FIELDS[field].fields);
     } else {
-      fields.push(field);
+      list.push(field);
     }
-    return fields;
+    return list;
   }, []);
+
+  data.fields = [...new Set(fields)];
+
   return data;
 }

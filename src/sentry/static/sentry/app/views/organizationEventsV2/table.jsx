@@ -7,15 +7,18 @@ import {Panel, PanelHeader, PanelBody, PanelItem} from 'app/components/panels';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 
+import {SPECIAL_FIELDS} from './utils';
+
 export default class Table extends React.Component {
   static propTypes = {
     view: SentryTypes.EventView.isRequired,
     data: PropTypes.arrayOf(PropTypes.object),
     isLoading: PropTypes.bool,
+    organization: SentryTypes.Organization.isRequired,
   };
 
   renderBody() {
-    const {view, data, isLoading} = this.props;
+    const {view, data, isLoading, organization} = this.props;
     const {fields} = view.data;
 
     if (isLoading) {
@@ -26,7 +29,11 @@ export default class Table extends React.Component {
       <Row key={idx} className={getGridStyle(fields.length)}>
         {fields.map(field => (
           <Cell key={field}>
-            <Data>{row[field]}</Data>
+            <Data>
+              {SPECIAL_FIELDS.hasOwnProperty(field)
+                ? SPECIAL_FIELDS[field].renderFunc(row, organization)
+                : row[field]}
+            </Data>
           </Cell>
         ))}
       </Row>
