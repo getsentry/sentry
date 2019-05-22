@@ -80,3 +80,7 @@ export function resendMemberInvite(api, params) {
     })
   );
 }
+
+export function getCurrentMember(api, orgId) {
+  return api.requestPromise(`/organizations/${orgId}/members/me/`);
+}
