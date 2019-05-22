@@ -482,10 +482,11 @@ class SnubaEvent(EventCommon):
 
         self.__dict__ = snuba_values
 
-        # This should be lazy loaded and will only be accessed if we access any
-        # properties on self.data
-        node_id = SnubaEvent.generate_node_id(self.project_id, self.event_id)
-        self.data = NodeData(None, node_id, data=None)
+        # self.data is a (lazy) dict of everything we got from nodestore
+        node_id = SnubaEvent.generate_node_id(
+            self.snuba_data['project_id'],
+            self.snuba_data['event_id'])
+        self.data = NodeData(None, node_id, data=None, wrapper=EventDict)
 
     # ============================================
     # Snuba-only implementations of properties that
