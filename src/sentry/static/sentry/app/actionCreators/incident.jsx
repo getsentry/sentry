@@ -79,13 +79,19 @@ export async function createIncidentNote(api, orgId, incidentId, note) {
 /**
  * Deletes a note for an incident
  */
-export async function deleteIncidentNote(api, incidentId, item) {
+export async function deleteIncidentNote(api, orgId, incidentId, noteId) {
   addLoadingMessage(t('Removing comment...'));
 
   try {
-    // TODO: Implement me
+    const result = await api.requestPromise(
+      `/organizations/${orgId}/incidents/${incidentId}/comments/${noteId}/`,
+      {
+        method: 'DELETE',
+      }
+    );
 
     clearIndicators();
+    return result;
   } catch (err) {
     addErrorMessage(t('Failed to delete comment'));
     throw err;
@@ -95,12 +101,21 @@ export async function deleteIncidentNote(api, incidentId, item) {
 /**
  * Updates a note for an incident
  */
-export async function updateIncidentNote(api, incidentId, item, note) {
+export async function updateIncidentNote(api, orgId, incidentId, noteId, note) {
   addLoadingMessage(t('Updating comment...'));
 
   try {
-    // TODO: Implement me
+    const result = await api.requestPromise(
+      `/organizations/${orgId}/incidents/${incidentId}/comments/${noteId}/`,
+      {
+        method: 'PUT',
+        data: {
+          comment: note.text,
+        },
+      }
+    );
     clearIndicators();
+    return result;
   } catch (err) {
     addErrorMessage(t('Unable to update comment'));
     throw err;
