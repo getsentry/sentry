@@ -13,7 +13,7 @@ from requests.exceptions import RequestException
 from sentry import options
 from sentry.auth.system import get_system_token
 from sentry.cache import default_cache
-from sentry.lang.native.symbolizer import SymbolicationFailed
+from sentry.lang.native.error import SymbolicationFailed
 from sentry.lang.native.utils import image_name
 from sentry.models.eventerror import EventError
 from sentry.utils import json, metrics

@@ -128,7 +128,7 @@ class NativeStacktraceProcessor(StacktraceProcessor):
             'debug_id': obj.debug_id if obj is not None else None,
             'symbolserver_match': None,
 
-            # `[]` is used to indicate to the symbolizer that the symbolicator
+            # `[]` is used to indicate that the symbolicator
             # deliberately discarded this frame.
             # If the symbolicator did run and was not able to symbolize the
             # frame, this value will be a list with the raw frame as only item.
@@ -141,7 +141,7 @@ class NativeStacktraceProcessor(StacktraceProcessor):
                     FRAME_CACHE_VERSION,
                     # Because the images can move around, we want to rebase
                     # the address for the cache key to be within the image
-                    # the same way as we do it in the symbolizer.
+                    # the same way as we do it in symbolicator
                     rebase_addr(instr_addr, obj),
                     obj.debug_id,
                     obj.arch,

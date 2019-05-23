@@ -7,7 +7,7 @@ from msgpack import unpack, Unpacker, UnpackException, ExtraData
 
 from sentry.lang.native.utils import get_sdk_from_event, merge_symbolicated_frame
 from sentry.lang.native.symbolicator import merge_symbolicator_image
-from sentry.lang.native.symbolizer import SymbolicationFailed
+from sentry.lang.native.error import SymbolicationFailed
 from sentry.models.eventerror import EventError
 from sentry.attachments import attachment_cache
 from sentry.coreapi import cache_key_for_event
