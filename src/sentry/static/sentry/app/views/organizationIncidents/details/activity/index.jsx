@@ -24,9 +24,10 @@ function makeDefaultErrorJson() {
  * Allows user to leave a comment on an incidentId as well as
  * fetch and render existing activity items.
  */
-class ActivityContainer extends React.Component {
+class ActivityContainer extends React.PureComponent {
   static propTypes = {
     api: PropTypes.object.isRequired,
+    incidentStatus: PropTypes.number,
   };
 
   state = {
@@ -41,6 +42,12 @@ class ActivityContainer extends React.Component {
 
   componentDidMount() {
     this.fetchData();
+  }
+
+  componentDidUpdate(prevProps) {
+    if (prevProps.incidentStatus !== this.props.incidentStatus) {
+      this.fetchData();
+    }
   }
 
   async fetchData() {
