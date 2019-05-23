@@ -13,18 +13,14 @@ __all__ = ('Http', )
 import re
 import six
 
-from django.conf import settings
 from django.utils.translation import ugettext as _
 from django.utils.http import urlencode
-from six.moves.urllib.parse import parse_qsl, urlsplit, urlunsplit
+from six.moves.urllib.parse import parse_qsl
 
-from sentry.interfaces.base import Interface, InterfaceValidationError, prune_empty_keys
-from sentry.interfaces.schemas import validate_and_default_interface
+from sentry.interfaces.base import Interface, prune_empty_keys
 from sentry.utils import json
 from sentry.utils.strings import to_unicode
-from sentry.utils.safe import trim, trim_dict, trim_pairs, get_path
-from sentry.utils.http import heuristic_decode
-from sentry.utils.validators import validate_ip
+from sentry.utils.safe import get_path
 from sentry.web.helpers import render_to_string
 
 # Instead of relying on a list of hardcoded methods, just loosly match

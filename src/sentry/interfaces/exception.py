@@ -15,11 +15,9 @@ import six
 
 from django.conf import settings
 
-from sentry.interfaces.base import Interface, InterfaceValidationError, prune_empty_keys
-from sentry.interfaces.schemas import validate_and_default_interface
+from sentry.interfaces.base import Interface, prune_empty_keys
 from sentry.interfaces.stacktrace import Stacktrace, slim_frame_data
-from sentry.utils import json
-from sentry.utils.safe import get_path, trim
+from sentry.utils.safe import get_path
 
 _type_value_re = re.compile('^(\w+):(.*)$')
 

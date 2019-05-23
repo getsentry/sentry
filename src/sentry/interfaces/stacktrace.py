@@ -11,17 +11,13 @@ from __future__ import absolute_import
 __all__ = ('Stacktrace', )
 
 import six
-from itertools import islice, chain
 
 from django.conf import settings
 from django.utils.translation import ugettext as _
-from six.moves.urllib.parse import urlparse
 
 from sentry.app import env
-from sentry.interfaces.base import Interface, InterfaceValidationError, prune_empty_keys
-from sentry.interfaces.schemas import validate_and_default_interface
+from sentry.interfaces.base import Interface, prune_empty_keys
 from sentry.models import UserOption
-from sentry.utils.safe import trim, trim_dict
 from sentry.web.helpers import render_to_string
 
 
@@ -220,7 +216,6 @@ class Frame(Interface):
         ):
             data.setdefault(key, None)
         return cls(**data)
-
 
     def to_json(self):
         return prune_empty_keys({
@@ -488,7 +483,6 @@ class Stacktrace(Interface):
         data.setdefault('registers', None)
         data.setdefault('frames_omitted', None)
         return cls(**data)
-
 
     def get_has_system_frames(self):
         # This is a simplified logic from how the normalizer works.

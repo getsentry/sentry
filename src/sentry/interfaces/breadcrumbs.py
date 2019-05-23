@@ -10,11 +10,8 @@ from __future__ import absolute_import
 
 __all__ = ('Breadcrumbs', )
 
-import six
-
-from sentry.constants import LOG_LEVELS_MAP
-from sentry.interfaces.base import Interface, InterfaceValidationError, prune_empty_keys
-from sentry.utils.safe import get_path, trim
+from sentry.interfaces.base import Interface, prune_empty_keys
+from sentry.utils.safe import get_path
 from sentry.utils.dates import to_timestamp, to_datetime, parse_timestamp
 
 

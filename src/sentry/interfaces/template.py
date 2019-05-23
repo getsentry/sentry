@@ -9,10 +9,8 @@ from __future__ import absolute_import
 
 __all__ = ('Template', )
 
-from sentry.interfaces.base import Interface, InterfaceValidationError
-from sentry.interfaces.schemas import validate_and_default_interface
+from sentry.interfaces.base import Interface
 from sentry.interfaces.stacktrace import get_context
-from sentry.utils.safe import trim
 
 
 class Template(Interface):

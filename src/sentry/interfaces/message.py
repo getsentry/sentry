@@ -12,11 +12,8 @@ __all__ = ('Message', )
 
 import six
 
-from django.conf import settings
-
-from sentry.interfaces.base import Interface, InterfaceValidationError, prune_empty_keys
+from sentry.interfaces.base import Interface, prune_empty_keys
 from sentry.utils import json
-from sentry.utils.safe import trim
 
 
 def stringify(value):
@@ -56,7 +53,6 @@ class Message(Interface):
         ):
             data.setdefault(key, None)
         return cls(**data)
-
 
     def to_json(self):
         return prune_empty_keys({

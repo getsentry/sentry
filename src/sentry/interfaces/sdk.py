@@ -5,8 +5,7 @@ __all__ = ('Sdk', )
 from distutils.version import LooseVersion
 from django.conf import settings
 
-from sentry.interfaces.base import Interface, InterfaceValidationError, prune_empty_keys
-from sentry.utils.safe import trim
+from sentry.interfaces.base import Interface, prune_empty_keys
 
 
 def get_with_prefix(d, k, default=None, delimiter=":"):
