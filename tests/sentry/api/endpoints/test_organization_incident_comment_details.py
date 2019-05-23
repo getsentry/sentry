@@ -9,7 +9,7 @@ from sentry.incidents.models import (
 from sentry.testutils import APITestCase
 
 
-class OrganizationIncidentCommentDetailBase(object):
+class BaseIncidentCommentDetailsTest(object):
     endpoint = 'sentry-api-0-organization-incident-comment-details'
 
     def setUp(self):
@@ -64,7 +64,7 @@ class OrganizationIncidentCommentDetailBase(object):
 
 
 class OrganizationIncidentCommentUpdateEndpointTest(
-        OrganizationIncidentCommentDetailBase, APITestCase):
+        BaseIncidentCommentDetailsTest, APITestCase):
     method = 'put'
 
     def test_simple(self):
@@ -84,7 +84,7 @@ class OrganizationIncidentCommentUpdateEndpointTest(
 
 
 class OrganizationIncidentCommentDeleteEndpointTest(
-        OrganizationIncidentCommentDetailBase, APITestCase):
+        BaseIncidentCommentDetailsTest, APITestCase):
     method = 'delete'
 
     def test_simple(self):
