@@ -98,7 +98,7 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
             organization=organization,
             id__in=project_ids).values('id', 'slug')}
 
-        fields = request.GET.getlist('fields')
+        fields = request.GET.getlist('field')
 
         if 'project.name' in fields:
             for result in results:

@@ -13,7 +13,7 @@ export const ALL_VIEWS = deepFreeze([
     data: {
       query: '',
       fields: ['event', 'event.type', 'project.name', 'user', 'time'],
-      groupBy: [],
+      groupby: [],
       aggregations: [],
       sort: '',
     },
@@ -31,9 +31,9 @@ export const ALL_VIEWS = deepFreeze([
     name: 'Errors',
     data: {
       query: '',
-      fields: ['project.name', 'fingerprint', 'count', 'user_count'],
-      groupBy: ['count', 'user_count', 'project.name'],
-      aggregations: [['count', null, 'count'], ['count', 'user', 'user_count']],
+      fields: [],
+      groupby: ['issue.id'],
+      aggregations: [['uniq', 'id', 'event_count'], ['uniq', 'user', 'user_count']],
       sort: '',
     },
     tags: ['error.type', 'project.name'],
@@ -43,9 +43,9 @@ export const ALL_VIEWS = deepFreeze([
     name: 'CSP',
     data: {
       query: '',
-      fields: ['project.name', 'count', 'user_count'],
-      groupBy: ['count', 'user_count', 'project.name'],
-      aggregations: [['count', null, 'count'], ['count', 'user', 'user_count']],
+      fields: [],
+      groupby: ['issue.id'],
+      aggregations: [['uniq', 'id', 'event_count'], ['uniq', 'user', 'user_count']],
       sort: '',
     },
     tags: [

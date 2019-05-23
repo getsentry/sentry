@@ -65,7 +65,7 @@ class OrganizationEventsV2EndpointTest(OrganizationEventsTestBase):
                 self.url,
                 format='json',
                 data={
-                    'fields': ['id', 'project.id', 'user.email', 'user.ip', 'time'],
+                    'field': ['id', 'project.id', 'user.email', 'user.ip', 'time'],
                     'orderby': '-timestamp',
                 },
             )
@@ -93,7 +93,7 @@ class OrganizationEventsV2EndpointTest(OrganizationEventsTestBase):
                 self.url,
                 format='json',
                 data={
-                    'fields': ['project.name', 'environment'],
+                    'field': ['project.name', 'environment'],
                 },
             )
 
@@ -136,7 +136,7 @@ class OrganizationEventsV2EndpointTest(OrganizationEventsTestBase):
                 self.url,
                 format='json',
                 data={
-                    'fields': ['project.id', 'environment'],
+                    'field': ['project.id', 'environment'],
                     'groupby': ['project.id', 'environment'],
                     'orderby': 'environment',
                 },
@@ -149,7 +149,7 @@ class OrganizationEventsV2EndpointTest(OrganizationEventsTestBase):
         assert response.data[1]['project.id'] == project.id
         assert response.data[1]['environment'] == 'staging'
 
-    def test_event_count(self):
+    def test_event_and_user_counts(self):
         self.login_as(user=self.user)
         project = self.create_project()
         self.store_event(
@@ -157,6 +157,9 @@ class OrganizationEventsV2EndpointTest(OrganizationEventsTestBase):
                 'event_id': 'a' * 32,
                 'timestamp': self.min_ago,
                 'fingerprint': ['group_1'],
+                'user': {
+                    'email': 'foo@example.com',
+                },
             },
             project_id=project.id,
         )
@@ -164,7 +167,10 @@ class OrganizationEventsV2EndpointTest(OrganizationEventsTestBase):
             data={
                 'event_id': 'b' * 32,
                 'timestamp': self.min_ago,
-                'fingerprint': ['group_1'],
+                'fingerprint': ['group_2'],
+                'user': {
+                    'email': 'foo@example.com',
+                },
             },
             project_id=project.id,
         )
@@ -173,6 +179,9 @@ class OrganizationEventsV2EndpointTest(OrganizationEventsTestBase):
                 'event_id': 'c' * 32,
                 'timestamp': self.min_ago,
                 'fingerprint': ['group_2'],
+                'user': {
+                    'email': 'bar@example.com',
+                },
             },
             project_id=project.id,
         )
@@ -184,8 +193,8 @@ class OrganizationEventsV2EndpointTest(OrganizationEventsTestBase):
                 self.url,
                 format='json',
                 data={
-                    'fields': ['issue.id'],
                     'groupby': ['issue.id'],
+                    'aggregation': ['uniq,id,event_count', 'uniq,sentry:user,user_count'],
                     'orderby': 'issue.id'
                 },
             )
@@ -193,4 +202,8 @@ class OrganizationEventsV2EndpointTest(OrganizationEventsTestBase):
         assert response.status_code == 200, response.content
         assert len(response.data) == 2
         assert response.data[0]['issue.id'] == groups[0].id
+        assert response.data[0]['event_count'] == 1
+        assert response.data[0]['user_count'] == 1
         assert response.data[1]['issue.id'] == groups[1].id
+        assert response.data[1]['event_count'] == 2
+        assert response.data[1]['user_count'] == 2
