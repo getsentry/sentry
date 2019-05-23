@@ -352,7 +352,8 @@ class GlobalSelectionHeader extends React.Component {
   handleUpdateProjects = () => {
     const {projects} = this.state;
     updateProjects(projects, this.getRouter(), this.getUpdateOptions());
-    this.setState({projects: null});
+    updateEnvironments(null, this.getRouter(), this.getUpdateOptions());
+    this.setState({projects: null, environments: null});
     callIfFunction(this.props.onUpdateProjects, projects);
   };
 
