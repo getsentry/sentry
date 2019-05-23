@@ -16,6 +16,7 @@ from sentry.incidents.logic import (
 )
 from sentry.incidents.models import (
     Incident,
+    IncidentGroup,
     IncidentProject,
     IncidentSeen,
     IncidentSubscription,
@@ -76,8 +77,15 @@ class DetailedIncidentSerializer(IncidentSerializer):
                 user=user,
             ).values_list('incident_id', flat=True))
 
+        incident_groups = defaultdict(list)
+        for incident_id, group_id in IncidentGroup.objects.filter(
+            incident__in=item_list,
+        ).values_list('incident_id', 'group_id'):
+            incident_groups[incident_id].append(group_id)
+
         for item in item_list:
             results[item]['is_subscribed'] = item.id in subscribed_incidents
+            results[item]['groups'] = incident_groups.get(item.id, [])
         return results
 
     def _get_incident_seen_list(self, incident, user):
@@ -105,5 +113,6 @@ class DetailedIncidentSerializer(IncidentSerializer):
         context['isSubscribed'] = attrs['is_subscribed']
         context['seenBy'] = seen_list['seen_by']
         context['hasSeen'] = seen_list['has_seen']
+        context['groups'] = attrs['groups']
 
         return context
