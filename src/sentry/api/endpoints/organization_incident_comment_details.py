@@ -10,7 +10,7 @@ from sentry.api.bases.incident import (
     IncidentPermission,
 )
 from sentry.api.serializers import serialize
-from sentry.incidents.models import IncidentActivity
+from sentry.incidents.models import IncidentActivity, IncidentActivityType
 from sentry.incidents.logic import (
     delete_comment,
     update_comment,
@@ -21,40 +21,60 @@ class CommentSerializer(serializers.Serializer):
     comment = serializers.CharField(required=False)
 
 
-class OrganizationIncidentCommentDetailsEndpoint(IncidentEndpoint):
-    # See GroupNotesDetailsEndpoint:
-    #   We explicitly don't allow a request with an ApiKey
-    #   since an ApiKey is bound to the Organization, not
-    #   an individual. Not sure if we'd want to allow an ApiKey
-    #   to delete/update other users' comments
+class CommentDetailsEndpoint(IncidentEndpoint):
+    def convert_args(self, request, incident_identifier, activity_id, *args, **kwargs):
+        # See GroupNotesDetailsEndpoint:
+        #   We explicitly don't allow a request with an ApiKey
+        #   since an ApiKey is bound to the Organization, not
+        #   an individual. Not sure if we'd want to allow an ApiKey
+        #   to delete/update other users' comments
+        if not request.user.is_authenticated():
+            raise PermissionDenied(detail="Key doesn't have permission to delete Note")
+
+        args, kwargs = super(CommentDetailsEndpoint, self).convert_args(
+            request,
+            incident_identifier,
+            *args,
+            **kwargs
+        )
+
+        try:
+            kwargs['activity'] = IncidentActivity.objects.get(
+                id=activity_id,
+                user=request.user,
+                incident=kwargs['incident'],
+                # Only allow modifying comments
+                type=IncidentActivityType.COMMENT.value,
+            )
+        except IncidentActivity.DoesNotExist:
+            raise ResourceDoesNotExist
+
+        return args, kwargs
+
+
+class OrganizationIncidentCommentDetailsEndpoint(CommentDetailsEndpoint):
     permission_classes = (IncidentPermission, )
 
-    def delete(self, request, organization, incident, activity_id):
+    def delete(self, request, organization, incident, activity):
         """
         Delete a comment
         ````````````````
         :auth: required
         """
 
-        if not request.user.is_authenticated():
-            raise PermissionDenied(detail="Key doesn't have permission to delete Note")
-
         try:
-            delete_comment(incident=incident, user=request.user, activity_id=activity_id)
+            delete_comment(activity)
         except IncidentActivity.DoesNotExist:
             raise ResourceDoesNotExist
 
         return Response(status=204)
 
-    def put(self, request, organization, incident, activity_id):
+    def put(self, request, organization, incident, activity):
         """
         Update an existing comment
         ``````````````````````````
         :auth: required
         """
-
-        if not request.user.is_authenticated():
-            raise PermissionDenied(detail="Key doesn't have permission to delete Note")
 
         serializer = CommentSerializer(data=request.DATA)
         if serializer.is_valid():
@@ -62,9 +82,7 @@ class OrganizationIncidentCommentDetailsEndpoint(IncidentEndpoint):
 
             try:
                 comment = update_comment(
-                    incident=incident,
-                    activity_id=activity_id,
-                    user=request.user,
+                    activity=activity,
                     comment=result.get('comment'),
                 )
             except IncidentActivity.DoesNotExist:

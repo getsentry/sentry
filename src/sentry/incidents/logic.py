@@ -175,21 +175,20 @@ def create_incident_activity(
     )
 
 
-def update_comment(incident, activity_id, user, comment):
+def update_comment(activity, comment):
     """
     Specifically updates an IncidentActivity with type IncidentActivityType.COMMENT
     """
 
-    return IncidentActivity.objects.get(
-        id=activity_id, user=user, incident=incident).update(comment=comment)
+    return activity.update(comment=comment)
 
 
-def delete_comment(incident, activity_id, user):
+def delete_comment(activity):
     """
     Specifically deletes an IncidentActivity with type IncidentActivityType.COMMENT
     """
 
-    return IncidentActivity.objects.get(id=activity_id, user=user, incident=incident).delete()
+    return activity.delete()
 
 
 def create_event_stat_snapshot(incident, start, end):

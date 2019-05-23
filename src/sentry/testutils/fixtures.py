@@ -1,6 +1,7 @@
 from __future__ import absolute_import, print_function, unicode_literals
 
 from sentry.models import Activity, OrganizationMember, OrganizationMemberTeam
+from sentry.incidents.models import IncidentActivityType
 
 import pytest
 from django.utils.functional import cached_property
@@ -219,10 +220,14 @@ class Fixtures(object):
             organization=organization, projects=projects, *args, **kwargs
         )
 
-    def create_incident_comment(self, incident, *args, **kwargs):
-        return Factories.create_incident_comment(
+    def create_incident_activity(self, incident, *args, **kwargs):
+        return Factories.create_incident_activity(
             incident=incident, *args, **kwargs
         )
+
+    def create_incident_comment(self, incident, *args, **kwargs):
+        return self.create_incident_activity(
+            incident, type=IncidentActivityType.COMMENT.value, *args, **kwargs)
 
     @pytest.fixture(autouse=True)
     def _init_insta_snapshot(self, insta_snapshot):

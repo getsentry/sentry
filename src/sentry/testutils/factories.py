@@ -26,7 +26,6 @@ from sentry.incidents.models import (
     IncidentProject,
     IncidentSeen,
     IncidentActivity,
-    IncidentActivityType,
 )
 from sentry.mediators import sentry_apps, sentry_app_installations, service_hooks
 from sentry.models import (
@@ -876,11 +875,7 @@ class Factories(object):
         return incident
 
     @staticmethod
-    def create_incident_comment(
-            incident, type=IncidentActivityType.COMMENT.value,
-            comment="test comment",
-            user=None,
-    ):
+    def create_incident_activity(incident, type, comment=None, user=None):
         return IncidentActivity.objects.create(
             incident=incident,
             type=type,
