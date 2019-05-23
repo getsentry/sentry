@@ -22,7 +22,7 @@ from sentry.utils.files import get_max_file_size
 CHUNK_UPLOAD_BLOB_SIZE = 8 * 1024 * 1024  # 8MB
 MAX_CHUNKS_PER_REQUEST = 64
 MAX_REQUEST_SIZE = 32 * 1024 * 1024
-MAX_CONCURRENCY = settings.DEBUG and 1 or 4
+MAX_CONCURRENCY = settings.DEBUG and 1 or 8
 HASH_ALGORITHM = 'sha1'
 
 
