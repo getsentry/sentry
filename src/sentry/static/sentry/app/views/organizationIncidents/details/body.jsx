@@ -14,39 +14,22 @@ import theme from 'app/utils/theme';
 import Activity from './activity';
 import IncidentsSuspects from './suspects';
 
-const TABS = {
-  activity: {name: t('Activity'), component: Activity},
-};
-
 export default class DetailsBody extends React.Component {
   static propTypes = {
     incident: SentryTypes.Incident,
   };
-  constructor(props) {
-    super(props);
-    this.state = {
-      activeTab: Object.keys(TABS)[0],
-    };
-  }
-  handleToggle(tab) {
-    this.setState({activeTab: tab});
-  }
 
   render() {
     const {params, incident} = this.props;
-    const {activeTab} = this.state;
-    const ActiveComponent = TABS[activeTab].component;
 
     return (
       <StyledPageContent>
         <Main>
           <PageContent>
             <StyledNavTabs underlined={true}>
-              {Object.entries(TABS).map(([id, {name}]) => (
-                <li key={id} className={activeTab === id ? 'active' : ''}>
-                  <Link onClick={() => this.handleToggle(id)}>{name}</Link>
-                </li>
-              ))}
+              <li className="active">
+                <Link>{t('Activity')}</Link>
+              </li>
 
               <SeenByTab>
                 {incident && (
@@ -58,7 +41,7 @@ export default class DetailsBody extends React.Component {
                 )}
               </SeenByTab>
             </StyledNavTabs>
-            <ActiveComponent params={params} incident={incident} />
+            <Activity params={params} incidentStatus={incident && incident.status} />
           </PageContent>
         </Main>
         <Sidebar>
