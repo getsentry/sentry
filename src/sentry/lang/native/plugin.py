@@ -8,8 +8,6 @@ from symbolic import parse_addr, find_best_instruction, arch_get_ip_reg_name, \
 from symbolic.utils import make_buffered_slice_reader
 
 from sentry import options
-from sentry.cache import default_cache
-from sentry.coreapi import cache_key_for_event
 from sentry.plugins import Plugin2
 from sentry.lang.native.minidump import get_attached_minidump, is_minidump_event, merge_symbolicator_minidump_response
 from sentry.lang.native.unreal import is_unreal_event, reprocess_unreal_crash
@@ -33,10 +31,6 @@ SYMBOLICATOR_FRAME_ATTRS = ("instruction_addr", "package", "lang", "symbol",
 
 def request_id_cache_key_for_event(data):
     return u'symbolicator:{1}:{0}'.format(data['project'], data['event_id'])
-
-
-def minidump_reprocessed_cache_key_for_event(data):
-    return u'symbolicator-minidump-processed:{1}:{0}'.format(data['project'], data['event_id'])
 
 
 class NativeStacktraceProcessor(StacktraceProcessor):
@@ -338,10 +332,6 @@ class NativeStacktraceProcessor(StacktraceProcessor):
 def reprocess_minidump(data):
     project = Project.objects.get_from_cache(id=data['project'])
 
-    minidump_is_reprocessed_cache_key = minidump_reprocessed_cache_key_for_event(data)
-    if default_cache.get(minidump_is_reprocessed_cache_key):
-        return
-
     minidump = get_attached_minidump(data)
 
     if not minidump:
@@ -359,10 +349,6 @@ def reprocess_minidump(data):
 
     if handle_symbolicator_response_status(data, response):
         merge_symbolicator_minidump_response(data, response)
-
-    event_cache_key = cache_key_for_event(data)
-    default_cache.set(event_cache_key, dict(data), 3600)
-    default_cache.set(minidump_is_reprocessed_cache_key, True, 3600)
 
     return data
 
