@@ -25,7 +25,7 @@ from sentry.search.utils import (
     parse_query,
 )
 from sentry.utils.apidocs import scenario, attach_scenarios
-from sentry.utils.validators import is_event_id
+from sentry.utils.validators import normalize_event_id
 from sentry.utils.snuba import raw_query
 
 
@@ -147,8 +147,9 @@ class GroupEventsEndpoint(GroupEndpoint, EnvironmentMixin):
         if query:
             q = Q(message__icontains=query)
 
-            if is_event_id(query):
-                q |= Q(event_id__exact=query)
+            event_id = normalize_event_id(query)
+            if event_id:
+                q |= Q(event_id__exact=event_id)
 
             events = events.filter(q)
 
