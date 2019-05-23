@@ -35,7 +35,7 @@ const validHookNames = new Set([
 
   // Onboarding experience
   // TODO(epurkhiser): These all should become less getsentry specific
-  'routes:onboarding',
+  'routes:onboarding-survey',
   'utils:onboarding-survey-url',
   'sidebar:onboarding-assets',
   'onboarding:invite-members',
