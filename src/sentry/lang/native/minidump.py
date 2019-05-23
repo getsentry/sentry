@@ -5,7 +5,7 @@ import logging
 import dateutil.parser as dp
 from msgpack import unpack, Unpacker, UnpackException, ExtraData
 
-from sentry.lang.native.utils import get_sdk_from_event, handle_symbolication_failed, merge_symbolicated_frame
+from sentry.lang.native.utils import get_sdk_from_event, merge_symbolicated_frame
 from sentry.lang.native.symbolicator import merge_symbolicator_image
 from sentry.lang.native.symbolizer import SymbolicationFailed
 from sentry.models.eventerror import EventError
@@ -150,7 +150,7 @@ def merge_symbolicator_minidump_response(data, response):
         image = {}
         merge_symbolicator_image(
             image, complete_image, sdk_info,
-            lambda e: handle_symbolication_failed(e, data=data)
+            lambda e: e.write_error(data)
         )
         images.append(image)
 
@@ -170,7 +170,7 @@ def merge_symbolicator_minidump_response(data, response):
     else:
         error = SymbolicationFailed(message='minidump has no thread list',
                                     type=EventError.NATIVE_SYMBOLICATOR_FAILED)
-        handle_symbolication_failed(error, data=data)
+        error.write_error(data)
 
     for complete_stacktrace in response['stacktraces']:
         is_requesting = complete_stacktrace.get('is_requesting')
