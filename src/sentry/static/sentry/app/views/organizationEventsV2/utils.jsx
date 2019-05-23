@@ -62,7 +62,7 @@ export const ALL_VIEWS = deepFreeze([
  */
 export const SPECIAL_FIELDS = {
   event: {
-    fields: ['title', 'id', 'project.id'],
+    fields: ['title', 'id', 'project.name'],
     renderFunc: (data, org) => (
       <Link
         to={`/organizations/${org.slug}/projects/${data['project.name']}/events/${
