@@ -22,7 +22,7 @@ class CommentSerializer(serializers.Serializer):
 
 
 class CommentDetailsEndpoint(IncidentEndpoint):
-    def convert_args(self, request, incident_identifier, activity_id, *args, **kwargs):
+    def convert_args(self, request, activity_id, *args, **kwargs):
         # See GroupNotesDetailsEndpoint:
         #   We explicitly don't allow a request with an ApiKey
         #   since an ApiKey is bound to the Organization, not
@@ -33,7 +33,6 @@ class CommentDetailsEndpoint(IncidentEndpoint):
 
         args, kwargs = super(CommentDetailsEndpoint, self).convert_args(
             request,
-            incident_identifier,
             *args,
             **kwargs
         )
