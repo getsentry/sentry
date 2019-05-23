@@ -103,7 +103,7 @@ class Browser(object):
 
         return self
 
-    def wait_until_clickable(self, selector=None, timeout=3):
+    def wait_until_clickable(self, selector=None, timeout=10):
         """
         Waits until ``selector`` is visible and enabled to be clicked, or until ``timeout``
         is hit, whichever happens first.
@@ -121,7 +121,7 @@ class Browser(object):
 
         return self
 
-    def wait_until(self, selector=None, xpath=None, title=None, timeout=3):
+    def wait_until(self, selector=None, xpath=None, title=None, timeout=10):
         """
         Waits until ``selector`` is found in the browser, or until ``timeout``
         is hit, whichever happens first.
@@ -146,7 +146,7 @@ class Browser(object):
     def wait_until_test_id(self, selector):
         return self.wait_until('[data-test-id="%s"]' % (selector))
 
-    def wait_until_not(self, selector=None, title=None, timeout=3):
+    def wait_until_not(self, selector=None, title=None, timeout=10):
         """
         Waits until ``selector`` is NOT found in the browser, or until
         ``timeout`` is hit, whichever happens first.
