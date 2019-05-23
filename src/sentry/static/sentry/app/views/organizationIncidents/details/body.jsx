@@ -22,8 +22,21 @@ const TABS = {
   activity: {name: t('Activity'), component: Activity},
 };
 
-function getClosestIndex(data, needle) {
-  const index = data.findIndex(([ts], i) => ts > needle);
+/**
+ * So we'll have to see how this looks with real data, but echarts requires
+ * an explicit (x,y) value to draw a symbol (incident detected/closed bubble).
+ *
+ * This uses the closest date *without* going over.
+ *
+ * AFAICT we can't give it an x-axis value and have it draw on the line,
+ * so we probably need to calculate the y-axis value ourselves if we want it placed
+ * at the exact time.
+ */
+function getNearbyIndex(data, needle) {
+  // `data` is sorted, return the first index whose value (timestamp) is > `needle`
+  const index = data.findIndex(([ts]) => ts > needle);
+
+  // this shouldn't happen, as we try to buffer dates before start/end dates
   if (index === 0) {
     return 0;
   }
@@ -64,9 +77,9 @@ export default class DetailsBody extends React.Component {
       incident && incident.dateClosed && moment.utc(incident.dateClosed).unix();
 
     const closestDetectedTimestampIndex =
-      detectedTs && getClosestIndex(incident.eventStats.data, detectedTs);
+      detectedTs && getNearbyIndex(incident.eventStats.data, detectedTs);
     const closestClosedTimestampIndex =
-      closedTs && getClosestIndex(incident.eventStats.data, closedTs);
+      closedTs && getNearbyIndex(incident.eventStats.data, closedTs);
 
     const detectedCoordinate = chartData && chartData[closestDetectedTimestampIndex];
     const closedCoordinate =
