@@ -766,7 +766,7 @@ function routes() {
             path=":projectId/configure/:platform/"
             component={errorHandler(OnboardingConfigure)}
           />
-          {hook('routes:onboarding')}
+          {hook('routes:onboarding-survey')}
         </Route>
       </Route>
       <Route component={errorHandler(OrganizationDetails)}>
