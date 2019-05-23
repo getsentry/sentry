@@ -77,7 +77,7 @@ class DetailedIncidentSerializer(IncidentSerializer):
             ).values_list('incident_id', flat=True))
 
         for item in item_list:
-            results[item]['subscribed'] = item.id in subscribed_incidents
+            results[item]['is_subscribed'] = item.id in subscribed_incidents
         return results
 
     def _get_incident_seen_list(self, incident, user):
@@ -100,10 +100,10 @@ class DetailedIncidentSerializer(IncidentSerializer):
 
     def serialize(self, obj, attrs, user):
         context = super(DetailedIncidentSerializer, self).serialize(obj, attrs, user)
-        context['subscribed'] = attrs['subscribed']
         seen_list = self._get_incident_seen_list(obj, user)
-        context.update({
-            'seenBy': seen_list['seen_by'],
-            'hasSeen': seen_list['has_seen'],
-        })
+
+        context['isSubscribed'] = attrs['is_subscribed']
+        context['seenBy'] = seen_list['seen_by']
+        context['hasSeen'] = seen_list['has_seen']
+
         return context

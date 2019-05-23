@@ -42,7 +42,7 @@ class DetailedIncidentSerializerTest(TestCase):
         incident = self.create_incident(date_started=timezone.now() - timedelta(minutes=5))
         serializer = DetailedIncidentSerializer()
         result = serialize(incident, serializer=serializer, user=self.user)
-        assert not result['subscribed']
+        assert not result['isSubscribed']
         subscribe_to_incident(incident, self.user)
         result = serialize(incident, serializer=serializer, user=self.user)
-        assert result['subscribed']
+        assert result['isSubscribed']
