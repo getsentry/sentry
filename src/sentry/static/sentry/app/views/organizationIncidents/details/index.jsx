@@ -61,7 +61,7 @@ class OrganizationIncidentDetails extends React.Component {
       incident: {...state.incident, isSubscribed: newIsSubscribed},
     }));
 
-    updateSubscription(api, orgId, incidentId, isSubscribed).catch(() => {
+    updateSubscription(api, orgId, incidentId, newIsSubscribed).catch(() => {
       this.setState(state => ({
         incident: {...state.incident, isSubscribed},
       }));

@@ -16,12 +16,13 @@ export function fetchIncident(api, orgId, incidentId) {
 }
 
 export function updateSubscription(api, orgId, incidentId, isSubscribed) {
-  return api.requestPromise(`/organizations/${orgId}/incidents/${incidentId}/`, {
-    method: 'PUT',
-    data: {
-      isSubscribed,
-    },
-  });
+  const method = isSubscribed ? 'POST' : 'DELETE';
+  return api.requestPromise(
+    `/organizations/${orgId}/incidents/${incidentId}/subscriptions/`,
+    {
+      method,
+    }
+  );
 }
 
 export function updateStatus(api, orgId, incidentId, status) {
