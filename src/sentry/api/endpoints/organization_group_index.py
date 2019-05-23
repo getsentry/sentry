@@ -17,7 +17,7 @@ from sentry.api.serializers.models.group import StreamGroupSerializerSnuba
 from sentry.api.utils import get_date_range_from_params, InvalidParams
 from sentry.models import Group, GroupStatus
 from sentry.search.snuba.backend import SnubaSearchBackend
-from sentry.utils.validators import is_event_id
+from sentry.utils.validators import normalize_event_id
 
 ERR_INVALID_STATS_PERIOD = "Invalid stats_period. Valid choices are '', '24h', and '14d'"
 
@@ -115,15 +115,16 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
         query = request.GET.get('query', '').strip()
         if query:
             # check to see if we've got an event ID
-            if is_event_id(query):
+            event_id = normalize_event_id(query)
+            if event_id:
                 groups = list(
-                    Group.objects.filter_by_event_id(project_ids, query)
+                    Group.objects.filter_by_event_id(project_ids, event_id)
                 )
                 if len(groups) == 1:
                     response = Response(
                         serialize(
                             groups, request.user, serializer(
-                                matching_event_id=query
+                                matching_event_id=event_id
                             )
                         )
                     )
