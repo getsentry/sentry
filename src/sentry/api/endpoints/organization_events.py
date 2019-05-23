@@ -18,6 +18,7 @@ from sentry.utils.snuba import (
     SnubaTSResult,
 )
 from sentry import features
+from sentry.models.project import Project
 
 
 class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
@@ -72,7 +73,8 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
 
     def get_v2(self, request, organization):
         try:
-            snuba_args = self.get_snuba_query_args_v2(request, organization)
+            params = self.get_filter_params(request, organization)
+            snuba_args = self.get_snuba_query_args_v2(request, organization, params)
         except OrganizationEventsError as exc:
             return Response({'detail': exc.message}, status=400)
         except NoProjects:
@@ -86,8 +88,25 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
 
             return self.paginate(
                 request=request,
-                paginator=GenericOffsetPaginator(data_fn=data_fn)
+                paginator=GenericOffsetPaginator(data_fn=data_fn),
+                on_results=lambda results: self.handle_results(
+                    request, organization, params['project_id'], results),
             )
+
+    def handle_results(self, request, organization, project_ids, results):
+        projects = {p['id']: p['slug'] for p in Project.objects.filter(
+            organization=organization,
+            id__in=project_ids).values('id', 'slug')}
+
+        fields = request.GET.getlist('fields')
+
+        if 'project.name' in fields:
+            for result in results:
+                result['project.name'] = projects[result['project.id']]
+                if 'project.id' not in fields:
+                    del result['project.id']
+
+        return results
 
 
 class OrganizationEventsStatsEndpoint(OrganizationEventsEndpointBase):

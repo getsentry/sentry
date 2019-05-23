@@ -41,17 +41,23 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
                 'Boolean search operator OR and AND not allowed in this search.')
         return snuba_args
 
-    def get_snuba_query_args_v2(self, request, organization):
-        params = self.get_filter_params(request, organization)
-
+    def get_snuba_query_args_v2(self, request, organization, params):
         query = request.GET.get('query')
         try:
             snuba_args = get_snuba_query_args(query=query, params=params)
         except InvalidSearchQuery as exc:
             raise OrganizationEventsError(exc.message)
 
-        fields = request.GET.getlist('fields')
+        fields = request.GET.getlist('fields')[:]
+
         if fields:
+            # If project.name is requested, get the project.id from Snuba so we
+            # can use this to look up the name in Sentry
+            if 'project.name' in fields:
+                fields.remove('project.name')
+                if 'project.id' not in fields:
+                    fields.append('project.id')
+
             snuba_args['selected_columns'] = fields
         else:
             raise OrganizationEventsError('No fields requested.')
