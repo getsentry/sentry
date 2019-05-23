@@ -9,6 +9,7 @@ import time
 from django.core.urlresolvers import reverse
 
 from requests.exceptions import RequestException
+from six.moves.urllib.parse import urljoin
 
 from sentry import options
 from sentry.auth.system import get_system_token
@@ -205,6 +206,63 @@ IMAGE_STATUS_FIELDS = frozenset((
 ))
 
 
+class Symbolicator(object):
+    def __init__(self, project, request_id_cache_key):
+        symbolicator_options = options.get('symbolicator.options')
+        base_url = symbolicator_options['url'].rstrip('/')
+        assert base_url
+
+        self.sess = SymbolicatorSession(
+            url=base_url,
+            project_id=six.text_type(project.id),
+            timeout=SYMBOLICATOR_TIMEOUT,
+            sources=get_sources_for_project(project)
+        )
+
+        self.request_id_cache_key = request_id_cache_key
+
+    def _process(self, process_impl):
+        request_id = default_cache.get(self.request_id_cache_key)
+
+        with self.sess:
+            if request_id:
+                try:
+                    json = self.sess.query_task(request_id)
+                except RequestIdNotFound:
+                    default_cache.delete(self.request_id_cache_key)
+                    raise RetrySymbolication(retry_after=0)
+                except ServiceUnavailable:
+                    raise RetrySymbolication(retry_after=10)
+
+            else:
+                json = process_impl()
+
+            if json['status'] == 'pending':
+                default_cache.set(
+                    self.request_id_cache_key,
+                    json['request_id'],
+                    REQUEST_CACHE_TIMEOUT)
+                raise RetrySymbolication(retry_after=json['retry_after'])
+            else:
+                default_cache.delete(self.request_id_cache_key)
+                return json
+
+    def process_minidump(self, minidump):
+        return self._process(lambda: self.sess.upload_minidump(minidump))
+
+    def process_payload(self, stacktraces, modules, signal=None):
+        return self._process(lambda: self.sess.symbolicate_stacktraces(
+            stacktraces=stacktraces, modules=modules, signal=signal))
+
+
+class RequestIdNotFound(Exception):
+    pass
+
+
+class ServiceUnavailable(Exception):
+    pass
+
+
 class InvalidSourcesError(Exception):
     pass
 
@@ -300,123 +358,6 @@ def get_sources_for_project(project):
     return sources
 
 
-def _get_default_headers(project_id):
-    # Required for load balancing
-    return {'x-sentry-project-id': project_id}
-
-
-def create_minidump_task(sess, base_url, project_id, sources, minidump):
-    files = {
-        'upload_file_minidump': minidump,
-    }
-
-    data = {
-        'sources': json.dumps(sources)
-    }
-
-    url = '{base_url}/minidump?timeout={timeout}&scope={scope}'.format(
-        base_url=base_url,
-        timeout=SYMBOLICATOR_TIMEOUT,
-        scope=project_id
-    )
-
-    return sess.post(url, data=data, files=files, headers=_get_default_headers(project_id))
-
-
-def create_payload_task(sess, base_url, project_id, sources, signal,
-                        stacktraces, modules):
-    request = {
-        'signal': signal,
-        'sources': sources,
-        'request': {
-            'timeout': SYMBOLICATOR_TIMEOUT,
-        },
-        'stacktraces': stacktraces,
-        'modules': modules,
-    }
-    url = '{base_url}/symbolicate?timeout={timeout}&scope={scope}'.format(
-        base_url=base_url,
-        timeout=SYMBOLICATOR_TIMEOUT,
-        scope=project_id,
-    )
-    return sess.post(url, json=request, headers=_get_default_headers(project_id))
-
-
-def run_symbolicator(project, request_id_cache_key, create_task=create_payload_task, **kwargs):
-    symbolicator_options = options.get('symbolicator.options')
-    base_url = symbolicator_options['url'].rstrip('/')
-    assert base_url
-
-    project_id = six.text_type(project.id)
-    request_id = default_cache.get(request_id_cache_key)
-    sess = Session()
-
-    # Will be set lazily when a symbolicator request is fired
-    sources = None
-
-    attempts = 0
-    wait = 0.5
-
-    with sess:
-        while True:
-            try:
-                if request_id:
-                    rv = _poll_symbolication_task(
-                        sess=sess, base_url=base_url,
-                        request_id=request_id, project_id=project_id,
-                    )
-                else:
-                    if sources is None:
-                        sources = get_sources_for_project(project)
-
-                    rv = create_task(
-                        sess=sess, base_url=base_url,
-                        project_id=project_id,
-                        sources=sources,
-                        **kwargs
-                    )
-
-                metrics.incr('events.symbolicator.status_code', tags={
-                    'status_code': rv.status_code,
-                    'project_id': project_id,
-                })
-
-                if rv.status_code == 404 and request_id:
-                    default_cache.delete(request_id_cache_key)
-                    request_id = None
-                    continue
-                elif rv.status_code == 503:
-                    raise RetrySymbolication(retry_after=10)
-
-                rv.raise_for_status()
-                json = rv.json()
-                metrics.incr('events.symbolicator.response', tags={
-                    'response': json['status'],
-                    'project_id': project_id,
-                })
-
-                if json['status'] == 'pending':
-                    default_cache.set(
-                        request_id_cache_key,
-                        json['request_id'],
-                        REQUEST_CACHE_TIMEOUT)
-                    raise RetrySymbolication(retry_after=json['retry_after'])
-                else:
-                    default_cache.delete(request_id_cache_key)
-                    return json
-
-            except (IOError, RequestException):
-                attempts += 1
-                if attempts > MAX_ATTEMPTS:
-                    logger.error('Failed to contact symbolicator', exc_info=True)
-
-                    default_cache.delete(request_id_cache_key)
-                    return
-
-                time.sleep(wait)
-                wait *= 2.0
-
-
 def handle_symbolicator_response_status(event_data, response_json):
     if not response_json:
         error = SymbolicationFailed(type=EventError.NATIVE_INTERNAL_FAILURE)
@@ -430,15 +371,6 @@ def handle_symbolicator_response_status(event_data, response_json):
         error = SymbolicationFailed(type=EventError.NATIVE_INTERNAL_FAILURE)
 
     write_error(error, event_data)
-
-
-def _poll_symbolication_task(sess, base_url, request_id, project_id):
-    url = '{base_url}/requests/{request_id}?timeout={timeout}'.format(
-        base_url=base_url,
-        request_id=request_id,
-        timeout=SYMBOLICATOR_TIMEOUT,
-    )
-    return sess.get(url, headers=_get_default_headers(project_id))
 
 
 def merge_symbolicator_image(raw_image, complete_image, sdk_info, handle_symbolication_failed):
@@ -495,3 +427,113 @@ def handle_symbolicator_status(status, image, sdk_info, handle_symbolication_fai
     error.image_name = image_name(image.get('code_file'))
     error.image_uuid = image.get('debug_id')
     handle_symbolication_failed(error)
+
+
+class SymbolicatorSession(object):
+    def __init__(self, url=None, sources=None, project_id=None, timeout=None):
+        self.url = url
+        self.project_id = project_id
+        self.sources = sources or []
+        self.timeout = timeout
+        self.session = None
+
+        self._query_params = {'timeout': timeout, 'scope': project_id}
+
+    def __enter__(self):
+        self.open()
+        return self
+
+    def __exit__(self, *args):
+        self.close()
+
+    def open(self):
+        if self.session is None:
+            self.session = Session()
+
+    def close(self):
+        if self.session is not None:
+            self.session.close()
+            self.session = None
+
+    def _ensure_open(self):
+        if not self.session:
+            raise RuntimeError('Session not opened')
+
+    def _request(self, method, path, **kwargs):
+        self._ensure_open()
+
+        url = urljoin(self.url, path)
+
+        # required for load balancing
+        kwargs.setdefault('headers', {})['x-sentry-project-id'] = self.project_id
+
+        attempts = 0
+        wait = 0.5
+
+        while True:
+            try:
+                response = self.session.request(method, url, **kwargs)
+
+                metrics.incr('events.symbolicator.status_code', tags={
+                    'status_code': response.status_code,
+                    'project_id': self.project_id,
+                })
+
+                if (
+                    method.lower() == 'get' and
+                    path.startswith('requests/') and
+                    response.status_code == 404
+                ):
+                    raise RequestIdNotFound()
+
+                if response.status_code == 503:
+                    raise ServiceUnavailable()
+
+                response.raise_for_status()
+
+                json = response.json()
+
+                metrics.incr('events.symbolicator.response', tags={
+                    'response': json.get('status') or 'null',
+                    'project_id': self.project_id,
+                })
+
+                return json
+            except (IOError, RequestException):
+                attempts += 1
+                if attempts > MAX_ATTEMPTS:
+                    logger.error('Failed to contact symbolicator', exc_info=True)
+                    return
+
+                time.sleep(wait)
+                wait *= 2.0
+
+    def symbolicate_stacktraces(self, stacktraces, modules, signal=None):
+        json = {
+            'sources': self.sources,
+            'stacktraces': stacktraces,
+            'modules': modules,
+        }
+
+        if signal:
+            json['signal'] = signal
+
+        return self._request('post', 'symbolicate', params=self._query_params, json=json)
+
+    def upload_minidump(self, minidump):
+        files = {
+            'upload_file_minidump': minidump
+        }
+
+        data = {
+            'sources': json.dumps(self.sources),
+        }
+
+        return self._request('post', 'minidump', params=self._query_params, data=data, files=files)
+
+    def query_task(self, task_id):
+        task_url = 'requests/%s' % (task_id, )
+        return self._request('get', task_url, params=self._query_params)
+
+    def healthcheck(self):
+        return self._request('get', 'healthcheck')
