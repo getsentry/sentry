@@ -478,7 +478,15 @@ class SearchVisitor(NodeVisitor):
 
 
 def parse_search_query(query):
-    tree = event_search_grammar.parse(query)
+    try:
+        tree = event_search_grammar.parse(query)
+    except IncompleteParseError as e:
+        raise InvalidSearchQuery(
+            '%s %s' % (
+                u'Parse error: %r (column %d).' % (e.expr.name, e.column()),
+                'This is commonly caused by unmatched-parentheses.',
+            )
+        )
     return SearchVisitor().visit(tree)
 
 
@@ -600,11 +608,6 @@ def get_snuba_query_args(query=None, params=None):
         except ParseError as e:
             raise InvalidSearchQuery(
                 u'Parse error: %r (column %d)' % (e.expr.name, e.column())
-            )
-        except IncompleteParseError as e:
-            raise InvalidSearchQuery(
-                'Parse error: Search did not parse completely. This is commonly caused by unmatched-parenthesis. '
-                + six.text_type(e)
             )
 
     # Keys included as url params take precedent if same key is included in search

@@ -155,7 +155,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsTestBase):
         response = self.client.get(url, {'query': 'hi \n there'}, format='json')
 
         assert response.status_code == 400, response.content
-        assert response.data['detail'] == "Parse error: 'search' (column 4)"
+        assert response.data['detail'] == "Parse error: 'search' (column 4). This is commonly caused by unmatched-parentheses."
 
     def test_project_filtering(self):
         user = self.create_user(is_staff=False, is_superuser=False)
