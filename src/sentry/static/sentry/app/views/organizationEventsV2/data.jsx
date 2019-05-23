@@ -1,6 +1,7 @@
 import React from 'react';
 
 import {deepFreeze} from 'app/utils';
+import DynamicWrapper from 'app/components/dynamicWrapper';
 import Link from 'app/components/links/link';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import {getUtcDateString} from 'app/utils/dates';
@@ -82,6 +83,11 @@ export const SPECIAL_FIELDS = {
   },
   time: {
     fields: ['time'],
-    renderFunc: data => <span css={overflowEllipsis}>{getUtcDateString(data)}</span>,
+    renderFunc: data => (
+      <DynamicWrapper
+        value={<span css={overflowEllipsis}>{getUtcDateString(data)}</span>}
+        fixed="time"
+      />
+    ),
   },
 };
