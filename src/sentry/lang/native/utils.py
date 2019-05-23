@@ -6,7 +6,7 @@ import logging
 import posixpath
 
 from collections import namedtuple
-from symbolic import LineInfo, parse_addr
+from symbolic import parse_addr
 
 from sentry.interfaces.contexts import DeviceContextType
 from sentry.stacktraces.functions import trim_function_name
@@ -127,34 +127,3 @@ def merge_symbolicated_frame(new_frame, sfrm):
     if sfrm.get('status'):
         frame_meta = new_frame.setdefault('data', {})
         frame_meta['symbolicator_status'] = sfrm['status']
-
-
-def convert_ios_symbolserver_match(instruction_addr, symbolserver_match):
-    if not symbolserver_match:
-        return []
-
-    symbol = symbolserver_match['symbol']
-    if symbol[:1] == '_':
-        symbol = symbol[1:]
-
-    # We still use this construct from symbolic for demangling (at least)
-    line_info = LineInfo(
-        sym_addr=parse_addr(symbolserver_match['addr']),
-        instr_addr=parse_addr(instruction_addr),
-        line=None,
-        lang=None,
-        symbol=symbol
-    )
-
-    function = line_info.function_name
-    package = symbolserver_match['object_name']
-
-    return {
-        'sym_addr': '0x%x' % (line_info.sym_addr,),
-        'instruction_addr': '0x%x' % (line_info.instr_addr,),
-        'function': function,
-        'symbol': symbol if function != symbol else None,
-        'filename': trim(line_info.rel_path, 256),
-        'abs_path': trim(line_info.abs_path, 256),
-        'package': package,
-    }

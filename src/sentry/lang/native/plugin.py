@@ -3,7 +3,7 @@ from __future__ import absolute_import
 import uuid
 import logging
 
-from symbolic import parse_addr, find_best_instruction, arch_get_ip_reg_name, \
+from symbolic import LineInfo, parse_addr, find_best_instruction, arch_get_ip_reg_name, \
     ObjectLookup
 from symbolic.utils import make_buffered_slice_reader
 
@@ -14,11 +14,11 @@ from sentry.lang.native.minidump import get_attached_minidump, is_minidump_event
 from sentry.lang.native.unreal import is_unreal_event, reprocess_unreal_crash
 from sentry.lang.native.symbolicator import run_symbolicator, merge_symbolicator_image, create_minidump_task, handle_symbolicator_response_status
 from sentry.lang.native.utils import get_sdk_from_event, cpu_name_from_data, \
-    merge_symbolicated_frame, rebase_addr, signal_from_data, convert_ios_symbolserver_match
+    merge_symbolicated_frame, rebase_addr, signal_from_data
 from sentry.lang.native.systemsymbols import lookup_system_symbols
 from sentry.models import Project
 from sentry.utils.in_app import is_known_third_party
-from sentry.utils.safe import get_path
+from sentry.utils.safe import get_path, trim
 from sentry.stacktraces.processing import StacktraceProcessor
 
 logger = logging.getLogger(__name__)
@@ -352,6 +352,37 @@ def reprocess_minidump(data):
         merge_symbolicator_minidump_response(data, response)
 
     return data
+
+
+def convert_ios_symbolserver_match(instruction_addr, symbolserver_match):
+    if not symbolserver_match:
+        return []
+
+    symbol = symbolserver_match['symbol']
+    if symbol[:1] == '_':
+        symbol = symbol[1:]
+
+    # We still use this construct from symbolic for demangling (at least)
+    line_info = LineInfo(
+        sym_addr=parse_addr(symbolserver_match['addr']),
+        instr_addr=parse_addr(instruction_addr),
+        line=None,
+        lang=None,
+        symbol=symbol
+    )
+
+    function = line_info.function_name
+    package = symbolserver_match['object_name']
+
+    return {
+        'sym_addr': '0x%x' % (line_info.sym_addr,),
+        'instruction_addr': '0x%x' % (line_info.instr_addr,),
+        'function': function,
+        'symbol': symbol if function != symbol else None,
+        'filename': trim(line_info.rel_path, 256),
+        'abs_path': trim(line_info.abs_path, 256),
+        'package': package,
+    }
 
 
 class NativePlugin(Plugin2):
