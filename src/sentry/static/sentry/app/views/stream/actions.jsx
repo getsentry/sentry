@@ -277,6 +277,12 @@ const StreamActions = createReactClass({
     });
   },
 
+  onCreateIncident() {
+    const {organization} = this.props;
+    const issues = this.state.selectedIds;
+    openCreateIncidentModal({organization, issues: Array.from(issues)});
+  },
+
   onSelectedGroupChange() {
     this.setState({
       pageSelected: SelectedGroupStore.allSelected(),
@@ -324,7 +330,6 @@ const StreamActions = createReactClass({
       query,
       realtimeActive,
       statsPeriod,
-      organization,
     } = this.props;
     const issues = this.state.selectedIds;
     const numIssues = issues.size;
@@ -379,7 +384,7 @@ const StreamActions = createReactClass({
             </div>
             <div className="btn-group hidden-xs">
               <ActionLink
-                className="btn btn-default btn-sm action-bookmark hidden-sm hidden-xs"
+                className="btn btn-default btn-sm action-bookmark hidden-md hidden-sm hidden-xs"
                 onAction={() => this.onUpdate({isBookmarked: true})}
                 shouldConfirm={this.shouldConfirm('bookmark')}
                 message={confirm('bookmark', false)}
@@ -397,13 +402,13 @@ const StreamActions = createReactClass({
                   className="btn btn-default btn-sm hidden-sm hidden-xs"
                   title={t('Create new incident')}
                   disabled={!anySelected}
-                  onAction={() =>
-                    openCreateIncidentModal({organization, issues: Array.from(issues)})
-                  }
+                  onAction={this.onCreateIncident}
                 >
                   <IncidentLabel>
                     <IncidentIcon data-test-id="create-incident" src="icon-circle-add" />
-                    {t('Create Incident')}
+                    <CreateIncidentText className="hidden-md">
+                      {t('Create Incident')}
+                    </CreateIncidentText>
                   </IncidentLabel>
                 </ActionLink>
               </div>
@@ -430,10 +435,20 @@ const StreamActions = createReactClass({
                     {t('Merge')}
                   </ActionLink>
                 </MenuItem>
+                <MenuItem noAnchor={true}>
+                  <ActionLink
+                    className="hidden-md hidden-lg hidden-xl"
+                    disabled={!anySelected}
+                    onAction={this.onCreateIncident}
+                    title={t('Create new incident')}
+                  >
+                    {t('Create Incident')}
+                  </ActionLink>
+                </MenuItem>
                 <MenuItem divider={true} className="hidden-md hidden-lg hidden-xl" />
                 <MenuItem noAnchor={true}>
                   <ActionLink
-                    className="action-bookmark hidden-md hidden-lg hidden-xl"
+                    className="action-bookmark hidden-lg hidden-xl"
                     disabled={!anySelected}
                     onAction={() => this.onUpdate({isBookmarked: true})}
                     shouldConfirm={this.shouldConfirm('bookmark')}
@@ -444,7 +459,7 @@ const StreamActions = createReactClass({
                     {t('Add to Bookmarks')}
                   </ActionLink>
                 </MenuItem>
-                <MenuItem divider={true} className="hidden-md hidden-lg hidden-xl" />
+                <MenuItem divider={true} className="hidden-lg hidden-xl" />
                 <MenuItem noAnchor={true}>
                   <ActionLink
                     className="action-remove-bookmark"
@@ -630,7 +645,10 @@ const IncidentLabel = styled('div')`
   align-items: center;
 `;
 const IncidentIcon = styled(InlineSvg)`
-  margin-right: 5px; /* consistent with other items in bar */
+  height: 18px;
+`;
+const CreateIncidentText = styled('span')`
+  margin-left: 5px; /* consistent with other items in bar */
 `;
 
 export {StreamActions};
