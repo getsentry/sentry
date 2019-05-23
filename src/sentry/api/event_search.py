@@ -483,7 +483,7 @@ def parse_search_query(query):
     except IncompleteParseError as e:
         raise InvalidSearchQuery(
             '%s %s' % (
-                six.text_type(e),
+                u'Parse error: %r (column %d).' % (e.expr.name, e.column()),
                 'This is commonly caused by unmatched-parentheses.',
             )
         )
