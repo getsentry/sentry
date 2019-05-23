@@ -9,6 +9,7 @@ from symbolic.utils import make_buffered_slice_reader
 
 from sentry import options
 from sentry.plugins import Plugin2
+from sentry.lang.native.error import write_error
 from sentry.lang.native.minidump import get_attached_minidump, is_minidump_event, merge_symbolicator_minidump_response
 from sentry.lang.native.unreal import is_unreal_event, reprocess_unreal_crash
 from sentry.lang.native.symbolicator import run_symbolicator, merge_symbolicator_image, create_minidump_task, handle_symbolicator_response_status
@@ -232,7 +233,7 @@ class NativeStacktraceProcessor(StacktraceProcessor):
         for image, complete_image in zip(self.images, rv['modules']):
             merge_symbolicator_image(
                 image, complete_image, self.sdk_info,
-                lambda e: e.write_error(self.data)
+                lambda e: write_error(e, self.data)
             )
 
         assert len(stacktraces) == len(rv['stacktraces'])
