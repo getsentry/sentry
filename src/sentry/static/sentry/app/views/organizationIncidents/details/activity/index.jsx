@@ -73,8 +73,8 @@ class ActivityContainer extends React.Component {
       // This is passed as a key to NoteInput that re-mounts
       // (basically so we can reset text input to empty string)
       noteInputId: uniqueId(),
-      activities: [newActivity, ...(state.activities || [])],
       noteInputText: '',
+      activities: [newActivity, ...(state.activities || [])],
     }));
 
     try {
