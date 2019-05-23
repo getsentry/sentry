@@ -79,19 +79,29 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
             return Response({'detail': exc.message}, status=400)
         except NoProjects:
             return Response([])
-        else:
-            data_fn = partial(
-                lambda *args, **kwargs: transform_aliases_and_query(*args, **kwargs)['data'],
-                referrer='api.organization-events-v2',
-                **snuba_args
-            )
 
-            return self.paginate(
-                request=request,
-                paginator=GenericOffsetPaginator(data_fn=data_fn),
-                on_results=lambda results: self.handle_results(
-                    request, organization, params['project_id'], results),
-            )
+        filters = snuba_args.get('filter_keys', {})
+        has_global_views = features.has(
+            'organizations:global-views',
+            organization,
+            actor=request.user)
+        if not has_global_views and len(filters.get('project_id', [])) > 1:
+            return Response({
+                'detail': 'You cannot view events from multiple projects.'
+            }, status=400)
+
+        data_fn = partial(
+            lambda *args, **kwargs: transform_aliases_and_query(*args, **kwargs)['data'],
+            referrer='api.organization-events-v2',
+            **snuba_args
+        )
+
+        return self.paginate(
+            request=request,
+            paginator=GenericOffsetPaginator(data_fn=data_fn),
+            on_results=lambda results: self.handle_results(
+                request, organization, params['project_id'], results),
+        )
 
     def handle_results(self, request, organization, project_ids, results):
         projects = {p['id']: p['slug'] for p in Project.objects.filter(
