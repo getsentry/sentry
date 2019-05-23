@@ -45,7 +45,7 @@ class IntegrationPipeline(Pipeline):
             self.get_logger().info(
                 'build-integration.failure',
                 extra={
-                    'error_message': six.string_type(e),
+                    'error_message': six.text_type(e),
                     'error_status': getattr(e, 'code', None),
                     'provider_key': self.provider.key,
                 }
