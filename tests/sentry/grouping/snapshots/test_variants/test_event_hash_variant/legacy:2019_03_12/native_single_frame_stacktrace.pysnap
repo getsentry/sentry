@@ -1,0 +1,108 @@
+---
+created: '2019-05-23T09:51:41.175182Z'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app:
+  hash: None
+  component:
+    app (exception of system takes precedence)
+      exception (ignored because hash matches system variant)
+        stacktrace*
+          frame (non app frame)
+            function (function name is used only if module or filename are available)
+              u'start'
+          frame* (marked in-app by grouping enhancement rule (family:native package:/var/containers/Bundle/Application/**))
+            filename* (stripped to basename)
+              u'main.mm'
+            symbol*
+              u'main'
+            function (symbol takes precedence)
+              u'main'
+            lineno (symbol takes precedence)
+              25
+          frame (non app frame)
+            function (function name is used only if module or filename are available)
+              u'UIApplicationMain'
+          frame (non app frame)
+            function (function name is used only if module or filename are available)
+              u'GSEventRunModal'
+          frame (non app frame)
+            function (function name is used only if module or filename are available)
+              u'CFRunLoopRunSpecific'
+          frame (non app frame)
+            function (function name is used only if module or filename are available)
+              u'__CFRunLoopRun'
+          frame (non app frame)
+            function (function name is used only if module or filename are available)
+              u'_CFAutoreleasePoolPop'
+          frame (non app frame)
+            symbol (symbol is used only if module or filename are available)
+              u'_ZN12_GLOBAL__N_119AutoreleasePoolPage3popEPv'
+            function (function name is used only if module or filename are available)
+              u'(anonymous namespace)::AutoreleasePoolPage::pop(void*)'
+          frame (non app frame)
+            symbol (symbol is used only if module or filename are available)
+              u'_ZN11objc_object17sidetable_releaseEb'
+            function (function name is used only if module or filename are available)
+              u'objc_object::sidetable_release(bool)'
+          frame (non app frame)
+            function (function name is used only if module or filename are available)
+              u'objc_msgSend'
+        type*
+          u'EXC_BAD_ACCESS'
+        value (stacktrace and type take precedence)
+          u'dealloc > XTUM >\nAttempted to dereference garbage pointer 0x204aa0ae4.'
+      threads (ignored because contains 64 threads)
+--------------------------------------------------------------------------
+system:
+  hash: '273a31ec3c2404ac14222418a4618ef7'
+  component:
+    system*
+      exception*
+        stacktrace*
+          frame (marked out of app by grouping enhancement rule (family:native package:/usr/lib/**))
+            function (function name is used only if module or filename are available)
+              u'start'
+          frame* (marked in-app by grouping enhancement rule (family:native package:/var/containers/Bundle/Application/**))
+            filename* (stripped to basename)
+              u'main.mm'
+            symbol*
+              u'main'
+            function (symbol takes precedence)
+              u'main'
+            lineno (symbol takes precedence)
+              25
+          frame
+            function (function name is used only if module or filename are available)
+              u'UIApplicationMain'
+          frame
+            function (function name is used only if module or filename are available)
+              u'GSEventRunModal'
+          frame
+            function (function name is used only if module or filename are available)
+              u'CFRunLoopRunSpecific'
+          frame
+            function (function name is used only if module or filename are available)
+              u'__CFRunLoopRun'
+          frame
+            function (function name is used only if module or filename are available)
+              u'_CFAutoreleasePoolPop'
+          frame (marked out of app by grouping enhancement rule (family:native package:/usr/lib/**))
+            symbol (symbol is used only if module or filename are available)
+              u'_ZN12_GLOBAL__N_119AutoreleasePoolPage3popEPv'
+            function (function name is used only if module or filename are available)
+              u'(anonymous namespace)::AutoreleasePoolPage::pop(void*)'
+          frame (marked out of app by grouping enhancement rule (family:native package:/usr/lib/**))
+            symbol (symbol is used only if module or filename are available)
+              u'_ZN11objc_object17sidetable_releaseEb'
+            function (function name is used only if module or filename are available)
+              u'objc_object::sidetable_release(bool)'
+          frame (marked out of app by grouping enhancement rule (family:native package:/usr/lib/**))
+            function (function name is used only if module or filename are available)
+              u'objc_msgSend'
+        type*
+          u'EXC_BAD_ACCESS'
+        value (stacktrace and type take precedence)
+          u'dealloc > XTUM >\nAttempted to dereference garbage pointer 0x204aa0ae4.'
+      threads (ignored because contains 64 threads)

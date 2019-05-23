@@ -109,15 +109,15 @@ register_strategy_config(
         'expect-staple:v1',
         'hpkp:v1',
         'csp:v1',
-        'threads:v1',
-        'stacktrace:v1',
-        'chained-exception:v1',
+        'threads:v2',
+        'stacktrace:v2',
+        'chained-exception:v2',
         'template:v1',
         'message:v2',
     ],
     delegates=[
         'frame:v3',
-        'stacktrace:v1',
+        'stacktrace:v2',
         'single-exception:v2',
     ],
     changelog='''
@@ -127,6 +127,8 @@ register_strategy_config(
           versions.
         * JavaScript stacktraces involving source maps are likely to group
           better.
+        * single frames in a stacktrace are not considered if another variant
+          has more frames.
     '''
 )
 

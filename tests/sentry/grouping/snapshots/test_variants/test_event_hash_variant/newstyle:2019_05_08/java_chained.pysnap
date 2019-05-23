@@ -1,13 +1,13 @@
 ---
-created: '2019-05-08T07:29:42.412753Z'
+created: '2019-05-23T10:21:47.720189Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app:
-  hash: '750486b8d8c51500fa0dfbb6f1577af0'
+  hash: None
   component:
-    app*
-      chained-exception*
+    app (exception of system takes precedence)
+      chained-exception (ignored because this variant's stacktrace only has a single meaningful frame)
         exception*
           stacktrace
             frame (non app frame)
@@ -394,8 +394,8 @@ app:
 default:
   hash: None
   component:
-    default (exception of app takes precedence)
-      message (exception of app takes precedence)
+    default (exception of system takes precedence)
+      message (exception of system takes precedence)
         u'Failed to start connector [Connector[HTTP/<float><int>]]'
 --------------------------------------------------------------------------
 system:

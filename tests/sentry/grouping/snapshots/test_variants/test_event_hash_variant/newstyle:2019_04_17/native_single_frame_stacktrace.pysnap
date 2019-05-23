@@ -1,0 +1,92 @@
+---
+created: '2019-05-23T09:51:44.821865Z'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app:
+  hash: '273a31ec3c2404ac14222418a4618ef7'
+  component:
+    app*
+      exception*
+        stacktrace*
+          frame (non app frame)
+            function*
+              u'start'
+          frame* (marked in-app by grouping enhancement rule (family:native package:/var/containers/Bundle/Application/**))
+            filename*
+              u'main.mm'
+            function*
+              u'main'
+          frame (non app frame)
+            function*
+              u'UIApplicationMain'
+          frame (non app frame)
+            function*
+              u'GSEventRunModal'
+          frame (non app frame)
+            function*
+              u'CFRunLoopRunSpecific'
+          frame (non app frame)
+            function*
+              u'__CFRunLoopRun'
+          frame (non app frame)
+            function*
+              u'_CFAutoreleasePoolPop'
+          frame (non app frame)
+            function*
+              u'(anonymous namespace)::AutoreleasePoolPage::pop'
+          frame (non app frame)
+            function*
+              u'objc_object::sidetable_release'
+          frame (non app frame)
+            function*
+              u'objc_msgSend'
+        type*
+          u'EXC_BAD_ACCESS'
+        value (ignored because stacktrace takes precedence)
+          u'dealloc > XTUM >\nAttempted to dereference garbage pointer 0x204aa0ae4.'
+      threads (ignored because contains 64 threads)
+--------------------------------------------------------------------------
+system:
+  hash: 'a9b819dcd26864d66c32e5a74df2b5cc'
+  component:
+    system*
+      exception*
+        stacktrace*
+          frame*
+            function*
+              u'start'
+          frame* (marked in-app by grouping enhancement rule (family:native package:/var/containers/Bundle/Application/**))
+            filename*
+              u'main.mm'
+            function*
+              u'main'
+          frame*
+            function*
+              u'UIApplicationMain'
+          frame*
+            function*
+              u'GSEventRunModal'
+          frame*
+            function*
+              u'CFRunLoopRunSpecific'
+          frame*
+            function*
+              u'__CFRunLoopRun'
+          frame*
+            function*
+              u'_CFAutoreleasePoolPop'
+          frame*
+            function*
+              u'(anonymous namespace)::AutoreleasePoolPage::pop'
+          frame*
+            function*
+              u'objc_object::sidetable_release'
+          frame*
+            function*
+              u'objc_msgSend'
+        type*
+          u'EXC_BAD_ACCESS'
+        value (ignored because stacktrace takes precedence)
+          u'dealloc > XTUM >\nAttempted to dereference garbage pointer 0x204aa0ae4.'
+      threads (ignored because contains 64 threads)

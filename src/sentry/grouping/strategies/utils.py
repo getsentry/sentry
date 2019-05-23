@@ -2,29 +2,48 @@ from __future__ import absolute_import
 
 import six
 
+from itertools import chain
 
-def remove_non_stacktrace_variants(variants):
+
+def remove_non_stacktrace_variants(variants, reject_single_frame=False):
     """This is a utility function that when given multiple variants will
     mark all variants as non contributing that do not contain any stacktraces
     if any of the other variants contain a stacktrace that contributes.
+
+    `reject_single_frame` rejects variants with only a single frame in the
+    stacktrace if any other stacktrace has more than one frame that
+    contributes.
     """
     if len(variants) <= 1:
         return variants
     any_stacktrace_contributes = False
     non_contributing_components = []
+    single_frame_components = []
+    multi_frame_stacktraces_found = False
     stacktrace_variants = set()
 
     # In case any of the variants has a contributing stacktrace, we want
     # to make all other variants non contributing.
     for key, component in six.iteritems(variants):
-        stacktrace_iter = component.iter_subcomponents(
+        stacktraces = list(component.iter_subcomponents(
             id='stacktrace',
             recursive=True,
             only_contributing=True
-        )
-        if next(stacktrace_iter, None) is not None:
-            any_stacktrace_contributes = True
+        ))
+        if stacktraces:
             stacktrace_variants.add(key)
+            any_stacktrace_contributes = True
+            if not reject_single_frame:
+                continue
+            frame_iter = chain.from_iterable(x.iter_subcomponents(
+                id='frame',
+                only_contributing=True
+            ) for x in stacktraces)
+            if next(frame_iter, None) is not None:
+                if next(frame_iter, None) is None:
+                    single_frame_components.append(component)
+                else:
+                    multi_frame_stacktraces_found = True
         else:
             non_contributing_components.append(component)
 
@@ -36,12 +55,21 @@ def remove_non_stacktrace_variants(variants):
             # variants right now, but this is so this does not break in
             # the future.
             hint_suffix = 'others do'
+
         for component in non_contributing_components:
             component.update(
                 contributes=False,
                 hint='ignored because this variant does not have a contributing '
                 'stacktrace, but %s' % hint_suffix
             )
+
+        if reject_single_frame and multi_frame_stacktraces_found:
+            for component in single_frame_components:
+                component.update(
+                    contributes=False,
+                    hint='ignored because this variant\'s '
+                    'stacktrace only has a single meaningful frame'
+                )
 
     return variants
 

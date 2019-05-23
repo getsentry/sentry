@@ -388,13 +388,7 @@ def get_frame_component(frame, event, meta, legacy_function_logic=False,
     return rv
 
 
-@strategy(
-    id='stacktrace:v1',
-    interfaces=['stacktrace'],
-    variants=['!system', 'app'],
-    score=1800,
-)
-def stacktrace_v1(stacktrace, config, variant, **meta):
+def get_stacktrace_component(stacktrace, config, variant, meta):
     frames = stacktrace.frames
     hint = None
     all_frames_considered_in_app = False
@@ -432,9 +426,34 @@ def stacktrace_v1(stacktrace, config, variant, **meta):
     )
 
 
+@strategy(
+    id='stacktrace:v1',
+    interfaces=['stacktrace'],
+    variants=['!system', 'app'],
+    score=1800,
+)
+def stacktrace_v1(stacktrace, config, variant, **meta):
+    return get_stacktrace_component(stacktrace, config, variant, meta)
+
+
 @stacktrace_v1.variant_processor
 def stacktrace_v1_variant_processor(variants, config, **meta):
     return remove_non_stacktrace_variants(variants)
+
+
+@strategy(
+    id='stacktrace:v2',
+    interfaces=['stacktrace'],
+    variants=['!system', 'app'],
+    score=1800,
+)
+def stacktrace_v2(stacktrace, config, variant, **meta):
+    return get_stacktrace_component(stacktrace, config, variant, meta)
+
+
+@stacktrace_v2.variant_processor
+def stacktrace_v2_variant_processor(variants, config, **meta):
+    return remove_non_stacktrace_variants(variants, reject_single_frame=True)
 
 
 def single_exception_common(exception, config, meta, with_value):
@@ -502,13 +521,7 @@ def single_exception_v2(exception, config, **meta):
     return single_exception_common(exception, config, meta, with_value=True)
 
 
-@strategy(
-    id='chained-exception:v1',
-    interfaces=['exception'],
-    variants=['!system', 'app'],
-    score=2000,
-)
-def chained_exception_v1(chained_exception, config, **meta):
+def get_chained_exception_component(chained_exception, config, meta):
     # Case 1: we have a single exception, use the single exception
     # component directly to avoid a level of nesting
     exceptions = chained_exception.exceptions()
@@ -524,18 +537,37 @@ def chained_exception_v1(chained_exception, config, **meta):
     )
 
 
+@strategy(
+    id='chained-exception:v1',
+    interfaces=['exception'],
+    variants=['!system', 'app'],
+    score=2000,
+)
+def chained_exception_v1(chained_exception, config, **meta):
+    return get_chained_exception_component(chained_exception, config, meta)
+
+
 @chained_exception_v1.variant_processor
 def chained_exception_v1_variant_processor(variants, config, **meta):
     return remove_non_stacktrace_variants(variants)
 
 
 @strategy(
-    id='threads:v1',
-    interfaces=['threads'],
+    id='chained-exception:v2',
+    interfaces=['exception'],
     variants=['!system', 'app'],
-    score=1900,
+    score=2000,
 )
-def threads_v1(threads_interface, config, **meta):
+def chained_exception_v2(chained_exception, config, **meta):
+    return get_chained_exception_component(chained_exception, config, meta)
+
+
+@chained_exception_v2.variant_processor
+def chained_exception_v2_variant_processor(variants, config, **meta):
+    return remove_non_stacktrace_variants(variants, reject_single_frame=True)
+
+
+def get_threads_component(threads_interface, config, meta):
     thread_count = len(threads_interface.values)
     if thread_count != 1:
         return GroupingComponent(
@@ -558,6 +590,31 @@ def threads_v1(threads_interface, config, **meta):
     )
 
 
+@strategy(
+    id='threads:v1',
+    interfaces=['threads'],
+    variants=['!system', 'app'],
+    score=1900,
+)
+def threads_v1(threads_interface, config, **meta):
+    return get_threads_component(threads_interface, config, meta)
+
+
 @threads_v1.variant_processor
 def threads_v1_variant_processor(variants, config, **meta):
     return remove_non_stacktrace_variants(variants)
+
+
+@strategy(
+    id='threads:v2',
+    interfaces=['threads'],
+    variants=['!system', 'app'],
+    score=1900,
+)
+def threads_v2(threads_interface, config, **meta):
+    return get_threads_component(threads_interface, config, meta)
+
+
+@threads_v2.variant_processor
+def threads_v2_variant_processor(variants, config, **meta):
+    return remove_non_stacktrace_variants(variants, reject_single_frame=True)
