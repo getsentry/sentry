@@ -76,14 +76,14 @@ export default class DetailsBody extends React.Component {
     const closedTs =
       incident && incident.dateClosed && moment.utc(incident.dateClosed).unix();
 
-    const closestDetectedTimestampIndex =
+    const nearbyDetectedTimestampIndex =
       detectedTs && getNearbyIndex(incident.eventStats.data, detectedTs);
-    const closestClosedTimestampIndex =
+    const nearbyClosedTimestampIndex =
       closedTs && getNearbyIndex(incident.eventStats.data, closedTs);
 
-    const detectedCoordinate = chartData && chartData[closestDetectedTimestampIndex];
+    const detectedCoordinate = chartData && chartData[nearbyDetectedTimestampIndex];
     const closedCoordinate =
-      chartData && closedTs && chartData[closestClosedTimestampIndex];
+      chartData && closedTs && chartData[nearbyClosedTimestampIndex];
 
     return (
       <StyledPageContent>
