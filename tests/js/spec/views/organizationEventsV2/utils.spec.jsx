@@ -26,8 +26,9 @@ describe('getQuery()', function() {
     };
 
     expect(getQuery(view).fields).toEqual([
-      'id',
       'title',
+      'id',
+      'project.name',
       'user.email',
       'user.ip',
       'issue.id',
