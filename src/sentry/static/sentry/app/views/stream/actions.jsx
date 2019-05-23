@@ -401,7 +401,10 @@ const StreamActions = createReactClass({
                     openCreateIncidentModal({organization, issues: Array.from(issues)})
                   }
                 >
-                  <InlineSvg data-test-id="create-incident" src="icon-circle-add" />
+                  <IncidentLabel>
+                    <IncidentIcon data-test-id="create-incident" src="icon-circle-add" />
+                    {t('Create Incident')}
+                  </IncidentLabel>
                 </ActionLink>
               </div>
             </Feature>
@@ -620,6 +623,14 @@ const GraphToggle = styled('a')`
   &:active {
     color: ${p => (p.active ? p.theme.gray4 : p.theme.disabled)};
   }
+`;
+
+const IncidentLabel = styled('div')`
+  display: flex;
+  align-items: center;
+`;
+const IncidentIcon = styled(InlineSvg)`
+  margin-right: 5px; /* consistent with other items in bar */
 `;
 
 export {StreamActions};
