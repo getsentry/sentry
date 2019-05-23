@@ -5,6 +5,7 @@ import SentryTypes from 'app/sentryTypes';
 import space from 'app/styles/space';
 import SearchBar from 'app/views/organizationEvents/searchBar';
 import AsyncComponent from 'app/components/asyncComponent';
+import Pagination from 'app/components/pagination';
 
 import {getParams} from 'app/views/organizationEvents/utils/getParams';
 
@@ -22,7 +23,7 @@ class Events extends AsyncComponent {
     const {organization, view} = this.props;
     return [
       [
-        'events',
+        'data',
         `/organizations/${organization.slug}/events/`,
         {
           query: getQuery(view),
@@ -42,9 +43,13 @@ class Events extends AsyncComponent {
     });
   };
 
+  renderLoading() {
+    return this.renderBody();
+  }
+
   renderBody() {
     const {organization, view, location} = this.props;
-    const {events} = this.state;
+    const {data, dataPageLinks, loading} = this.state;
     const query = location.query.query || '';
 
     return (
@@ -55,7 +60,13 @@ class Events extends AsyncComponent {
             query={query}
             onSearch={this.handleSearch}
           />
-          <Table view={view} organization={organization} data={events} />
+          <Table
+            view={view}
+            organization={organization}
+            data={data}
+            isLoading={loading}
+          />
+          <Pagination pageLinks={dataPageLinks} />
         </div>
         <Tags view={view} />
       </Container>
