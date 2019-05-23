@@ -92,6 +92,7 @@ class OrganizationEventsV2EndpointTest(OrganizationEventsTestBase):
         assert response.status_code == 200, response.content
         assert len(response.data) == 1
         assert response.data[0]['project.name'] == project.slug
+        assert 'project.id' not in response.data[0]
         assert response.data[0]['environment'] == 'staging'
 
     def test_groupby(self):
