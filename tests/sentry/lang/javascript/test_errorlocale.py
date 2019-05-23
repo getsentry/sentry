@@ -2,8 +2,8 @@ from __future__ import absolute_import, unicode_literals
 
 from copy import deepcopy
 
-from sentry.testutils import TestCase
 from sentry.lang.javascript.errorlocale import translate_message, translate_exception
+from unittest import TestCase
 
 
 class ErrorLocaleTest(TestCase):
