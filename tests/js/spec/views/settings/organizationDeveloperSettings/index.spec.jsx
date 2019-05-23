@@ -113,6 +113,24 @@ describe('Organization Developer Settings', function() {
     });
   });
 
+  describe('with Internal Integrations', () => {
+    const internalIntegration = TestStubs.SentryApp({status: 'internal'});
+
+    Client.addMockResponse({
+      url: `/organizations/${org.slug}/sentry-apps/`,
+      body: [internalIntegration],
+    });
+
+    const wrapper = mount(
+      <OrganizationDeveloperSettings params={{orgId: org.slug}} organization={org} />,
+      routerContext
+    );
+
+    it('allows deleting', () => {
+      expect(wrapper.find('[icon="icon-trash"]').prop('disabled')).toEqual(false);
+    });
+  });
+
   describe('without Owner permissions', () => {
     const newOrg = TestStubs.Organization({access: ['org:read']});
     Client.addMockResponse({

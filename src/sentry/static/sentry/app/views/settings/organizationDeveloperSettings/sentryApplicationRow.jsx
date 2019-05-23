@@ -133,7 +133,7 @@ export default class SentryApplicationRow extends React.PureComponent {
             </Box>
           ) : (
             <Box>
-              {app.status === 'unpublished' ? (
+              {app.status !== 'published' ? (
                 <Access access={['org:admin']}>
                   {({hasAccess}) => (
                     <React.Fragment>
@@ -147,6 +147,7 @@ export default class SentryApplicationRow extends React.PureComponent {
                           icon="icon-trash"
                         />
                       )}
+
                       {hasAccess && this.renderRemoveApp(app)}
                     </React.Fragment>
                   )}
