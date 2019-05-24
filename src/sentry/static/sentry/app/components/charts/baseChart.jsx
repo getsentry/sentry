@@ -271,6 +271,9 @@ class BaseChart extends React.Component {
                       color: theme.gray1,
                       type: 'dotted',
                     },
+                    itemStyle: {
+                      color: theme.gray1,
+                    },
                   })
                 ),
               ],
