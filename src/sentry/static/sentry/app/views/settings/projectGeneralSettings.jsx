@@ -135,15 +135,16 @@ class ProjectGeneralSettings extends AsyncView {
         <Confirm
           onConfirm={() => {
             addLoadingMessage(t('Changing grouping...'));
-            this.api.requestPromise(`/projects/${orgId}/${projectId}/`, {
-              method: 'PUT',
-              data: newData,
-            }).then((resp) => {
-              clearIndicators();
-              ProjectActions.updateSuccess(resp);
-              this.fetchData();
-            },
-            handleXhrErrorResponse('Unable to upgrade config'))
+            this.api
+              .requestPromise(`/projects/${orgId}/${projectId}/`, {
+                method: 'PUT',
+                data: newData,
+              })
+              .then(resp => {
+                clearIndicators();
+                ProjectActions.updateSuccess(resp);
+                this.fetchData();
+              }, handleXhrErrorResponse('Unable to upgrade config'));
           }}
           priority="danger"
           title={t('Upgrade grouping strategy?')}
@@ -152,11 +153,17 @@ class ProjectGeneralSettings extends AsyncView {
             <div>
               <TextBlock>
                 <strong>
-                  {t('This will upgrade grouping and cause new events to group differently.')}
+                  {t(
+                    'This will upgrade grouping and cause new events to group differently.'
+                  )}
                 </strong>
               </TextBlock>
               <TextBlock>
-                {t('From this moment onwards new events are likely to generate new groups.')}<br/><br/>
+                {t(
+                  'From this moment onwards new events are likely to generate new groups.'
+                )}
+                <br />
+                <br />
                 <strong>{t('New Behavior')}</strong>
                 <div dangerouslySetInnerHTML={{__html: marked(updateNotes)}} />
               </TextBlock>
@@ -164,7 +171,11 @@ class ProjectGeneralSettings extends AsyncView {
           }
         >
           <div>
-            <Button className="ref-upgrade-grouping-strategy" type="button" priority="primary">
+            <Button
+              className="ref-upgrade-grouping-strategy"
+              type="button"
+              priority="primary"
+            >
               {t('Update Grouping Strategy')}
             </Button>
           </div>
@@ -370,7 +381,8 @@ class ProjectGeneralSettings extends AsyncView {
             fields={[fields.resolveAge]}
           />
 
-          {(jsonFormProps.features.has('set-grouping-config') || jsonFormProps.features.has('tweak-grouping-config')) && (
+          {(jsonFormProps.features.has('set-grouping-config') ||
+            jsonFormProps.features.has('tweak-grouping-config')) && (
             <JsonForm
               {...jsonFormProps}
               title={t('Grouping Settings')}
@@ -389,7 +401,8 @@ class ProjectGeneralSettings extends AsyncView {
                       )}
                     </TextBlock>
                   </PanelAlert>
-                  {jsonFormProps.features.has('tweak-grouping-config') && this.renderUpgradeGrouping()}
+                  {jsonFormProps.features.has('tweak-grouping-config') &&
+                    this.renderUpgradeGrouping()}
                 </>
               )}
             />
