@@ -154,7 +154,7 @@ class ProjectGeneralSettings extends AsyncView {
             <div>
               <TextBlock>
                 <strong>
-                  {t('This upgrade grouping and causes new events to group differently.')}
+                  {t('This will upgrade grouping and cause new events to group differently.')}
                 </strong>
               </TextBlock>
               <TextBlock>
