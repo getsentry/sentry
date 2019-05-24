@@ -60,6 +60,15 @@ export default class DetailsHeader extends React.Component {
       ? incidentIdAsInt.toLocaleString()
       : t('Invalid Incident');
     const isIncidentReady = !!incident && !hasIncidentDetailsError;
+    const eventLink = incident && {
+      pathname: `/organizations/${params.orgId}/events/`,
+
+      // Note we don't have project selector on here so there should be
+      // no query params to forward
+      query: {
+        group: incident.groups,
+      },
+    };
 
     return (
       <Header>
@@ -90,6 +99,9 @@ export default class DetailsHeader extends React.Component {
               {isIncidentReady && (
                 <ItemValue>
                   <Count value={incident.totalEvents} />
+                  <OpenLink to={eventLink}>
+                    <InlineSvg src="icon-open" />
+                  </OpenLink>
                 </ItemValue>
               )}
             </HeaderItem>
@@ -179,4 +191,11 @@ const StyledMenuItem = styled(MenuItem)`
   font-size: ${p => p.theme.fontSizeMedium};
   text-align: left;
   padding: ${space(1)};
+`;
+
+const OpenLink = styled(Link)`
+  display: flex;
+  font-size: 16px;
+  color: ${p => p.theme.gray2};
+  margin-left: ${space(1)};
 `;
