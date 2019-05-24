@@ -16,6 +16,11 @@ import Table from './table';
 import Tags from './tags';
 import {getQuery} from './utils';
 
+const CHART_AXIS_OPTIONS = [
+  {label: 'Count', value: 'event_count'},
+  {label: 'Users', value: 'user_count'},
+];
+
 class Events extends AsyncComponent {
   static propTypes = {
     router: PropTypes.object,
@@ -70,6 +75,8 @@ class Events extends AsyncComponent {
             query={location.query.query}
             organization={organization}
             onZoom={this.handleZoom}
+            showLegend
+            yAxisOptions={CHART_AXIS_OPTIONS}
           />
         </Panel>
         <StyledSearchBar
