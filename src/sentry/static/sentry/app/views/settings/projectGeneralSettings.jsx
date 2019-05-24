@@ -118,7 +118,7 @@ class ProjectGeneralSettings extends AsyncView {
       }
     });
 
-    if (Object.keys(newData).length == 0) {
+    if (Object.keys(newData).length === 0) {
       return null;
     }
 
