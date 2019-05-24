@@ -244,14 +244,7 @@ class FormModel {
   doApiRequest({apiEndpoint, apiMethod, data}) {
     const endpoint = apiEndpoint || this.options.apiEndpoint;
     const method = apiMethod || this.options.apiMethod;
-    return new Promise((resolve, reject) => {
-      this.api.request(endpoint, {
-        method,
-        data,
-        success: response => resolve(response),
-        error: error => reject(error),
-      });
-    });
+    return this.api.requestPromise(endpoint, {method, data});
   }
 
   @action
