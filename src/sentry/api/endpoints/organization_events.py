@@ -151,11 +151,10 @@ class OrganizationEventsTagsEndpoint(OrganizationEventsEndpointBase):
         lookup_key = tagstore.prefix_reserved_key(key)
         project_ids = snuba_args['filter_keys']['project_id']
         environment_ids = snuba_args['filter_keys'].get('environment_id')
-        aggregations = snuba_args.get('aggregations')
-        conditions = snuba_args.get('conditions')
+
         try:
             tag_key = tagstore.get_tag_key(
-                project_ids, environment_ids, lookup_key, conditions=conditions, aggregations=aggregations)
+                project_ids, environment_ids, lookup_key, **snuba_args)
         except tagstore.TagKeyNotFound:
             raise ResourceDoesNotExist
 

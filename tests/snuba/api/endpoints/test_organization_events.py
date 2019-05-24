@@ -783,6 +783,7 @@ class OrganizationEventsTagsEndpointTest(OrganizationEventsTestBase):
         super(OrganizationEventsTagsEndpointTest, self).setUp()
         self.login_as(user=self.user)
         self.project = self.create_project()
+        self.group = self.create_group(project=self.project)
         self.url = reverse(
             'sentry-api-0-organization-events-tags',
             kwargs={
@@ -798,31 +799,30 @@ class OrganizationEventsTagsEndpointTest(OrganizationEventsTestBase):
             assert output[index]['value'] == value
 
     def test_simple(self):
-        group = self.create_group(project=self.project)
         self.create_event(
             event_id='w' * 32,
-            group=group,
+            group=self.group,
             message="how to make fast",
             datetime=self.min_ago,
             tags={'world': 'hello'},
         )
         self.create_event(
             event_id='x' * 32,
-            group=group,
+            group=self.group,
             message="how to make fast",
             datetime=self.min_ago,
             tags={'color': 'yellow'},
         )
         self.create_event(
             event_id='y' * 32,
-            group=group,
+            group=self.group,
             message="Delet the Data",
             datetime=self.min_ago,
             tags={'color': 'red'},
         )
         self.create_event(
             event_id='z' * 32,
-            group=group,
+            group=self.group,
             message="Data the Delet ",
             datetime=self.min_ago,
             tags={'color': 'yellow'},
@@ -838,25 +838,23 @@ class OrganizationEventsTagsEndpointTest(OrganizationEventsTestBase):
         self.assert_top_values(response.data['topValues'], [(2, 'yellow'), (1, 'red')])
 
     def test_tags_with_query(self):
-        project = self.create_project()
-        group = self.create_group(project=project)
         self.create_event(
             event_id='x' * 32,
-            group=group,
+            group=self.group,
             message="how to make fast",
             datetime=self.min_ago,
             tags={'color': 'green'},
         )
         self.create_event(
             event_id='y' * 32,
-            group=group,
+            group=self.group,
             message="Delet the Data",
             datetime=self.min_ago,
             tags={'color': 'red'},
         )
         self.create_event(
             event_id='z' * 32,
-            group=group,
+            group=self.group,
             message="Data the Delet ",
             datetime=self.min_ago,
             tags={'color': 'yellow'},
@@ -869,6 +867,53 @@ class OrganizationEventsTagsEndpointTest(OrganizationEventsTestBase):
         assert response.data['name'] == 'Color'
         assert response.data['key'] == 'color'
         self.assert_top_values(response.data['topValues'], [(1, 'yellow'), (1, 'red')])
+
+    def test_start_end(self):
+        two_days_ago = self.day_ago - timedelta(days=1)
+        hour_ago = self.min_ago - timedelta(hours=1)
+        self.create_event(
+            event_id='x' * 32,
+            group=self.group,
+            message="Delet the Data",
+            datetime=two_days_ago,
+            tags={'color': 'red'},
+        )
+        self.create_event(
+            event_id='y' * 32,
+            group=self.group,
+            message="Delet the Data",
+            datetime=hour_ago,
+            tags={'color': 'red'},
+        )
+        self.create_event(
+            event_id='z' * 32,
+            group=self.group,
+            message="Data the Delet ",
+            datetime=hour_ago,
+            tags={'color': 'red'},
+        )
+        self.create_event(
+            event_id='a' * 32,
+            group=self.group,
+            message="Delet the Data",
+            datetime=timezone.now(),
+            tags={'color': 'red'},
+        )
+
+        response = self.client.get(
+            self.url,
+            {
+                'start': self.day_ago.isoformat()[:19],
+                'end': self.min_ago.isoformat()[:19],
+            },
+            format='json'
+        )
+
+        assert response.status_code == 200, response.content
+        assert response.data['uniqueValues'] == 1
+        assert response.data['name'] == 'Color'
+        assert response.data['key'] == 'color'
+        self.assert_top_values(response.data['topValues'], [(2, 'red')])
 
     def test_no_projects(self):
         org = self.create_organization(owner=self.user)

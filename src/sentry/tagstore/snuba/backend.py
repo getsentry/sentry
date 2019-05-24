@@ -100,10 +100,12 @@ class SnubaTagStorage(TagStorage):
                 return GroupTagKey(group_id=group_id, **data)
 
     def __get_tag_key_and_top_values(self, project_id, group_id, environment_id,
-                                     key, limit=3, raise_on_empty=True,
-                                     conditions=None, aggregations=None):
+                                     key, limit=3, raise_on_empty=True, **kwargs):
 
-        start, end = self.get_time_range()
+        default_start, default_end = self.get_time_range()
+        start = kwargs.get('start', default_start)
+        end = kwargs.get('end', default_end)
+
         tag = u'tags[{}]'.format(key)
         filters = {
             'project_id': project_id if isinstance(project_id, Iterable) else [project_id],
@@ -112,10 +114,8 @@ class SnubaTagStorage(TagStorage):
             filters['environment'] = [environment_id]
         if group_id is not None:
             filters['issue'] = [group_id]
-        if not conditions:
-            conditions = []
-        if not aggregations:
-            aggregations = []
+        conditions = kwargs.get('conditions', [])
+        aggregations = kwargs.get('aggregations', [])
 
         conditions.append([tag, '!=', ''])
         aggregations += [
@@ -252,10 +252,10 @@ class SnubaTagStorage(TagStorage):
                 return GroupTagValue(group_id=group_id, **fix_tag_value_data(data))
 
     def get_tag_key(self, project_id, environment_id, key, status=TagKeyStatus.VISIBLE,
-                    conditions=None, aggregations=None):
+                    **kwargs):
         assert status is TagKeyStatus.VISIBLE
         return self.__get_tag_key_and_top_values(
-            project_id, None, environment_id, key, conditions=conditions, aggregations=aggregations)
+            project_id, None, environment_id, key, **kwargs)
 
     def get_tag_keys(
         self, project_id, environment_id, status=TagKeyStatus.VISIBLE,
