@@ -32,6 +32,8 @@ class ActivityContainer extends React.Component {
   state = {
     loading: true,
     error: false,
+    noteInputId: uniqueId(),
+    noteInputText: '',
     createBusy: false,
     createError: false,
     activities: null,
@@ -57,10 +59,6 @@ class ActivityContainer extends React.Component {
     const {api, params} = this.props;
     const {incidentId, orgId} = params;
 
-    this.setState({
-      createBusy: true,
-    });
-
     const newActivity = {
       comment: note.text,
       type: INCIDENT_ACTIVITY_TYPE.COMMENT,
@@ -71,15 +69,19 @@ class ActivityContainer extends React.Component {
     };
 
     this.setState(state => ({
-      createBusy: false,
-
+      createBusy: true,
+      // This is passed as a key to NoteInput that re-mounts
+      // (basically so we can reset text input to empty string)
+      noteInputId: uniqueId(),
       activities: [newActivity, ...(state.activities || [])],
+      noteInputText: '',
     }));
 
     try {
       const newNote = await createIncidentNote(api, orgId, incidentId, note);
 
       this.setState(state => {
+        // Update activities to find our fake new activity with activity object from server
         const activities = [
           newNote,
           ...state.activities.filter(activity => activity !== newActivity),
@@ -95,6 +97,9 @@ class ActivityContainer extends React.Component {
         const activities = state.activities.filter(activity => activity !== newActivity);
 
         return {
+          // We clear the textarea immediately when submitting, restore
+          // value when there has been an error
+          noteInputText: note.text,
           activities,
           createBusy: false,
           createError: true,
@@ -158,10 +163,14 @@ class ActivityContainer extends React.Component {
 
     return (
       <Activity
+        noteInputId={this.state.noteInputId}
         incidentId={incidentId}
         orgId={orgId}
         me={me}
         api={api}
+        noteProps={{
+          text: this.state.noteInputText,
+        }}
         {...this.state}
         onCreateNote={this.handleCreateNote}
         onUpdateNote={this.handleUpdateNote}

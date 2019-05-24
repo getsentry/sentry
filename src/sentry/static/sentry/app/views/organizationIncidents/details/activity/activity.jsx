@@ -32,6 +32,8 @@ class Activity extends React.Component {
     error: PropTypes.bool,
     me: SentryTypes.User,
     activities: PropTypes.arrayOf(SentryTypes.IncidentActivity),
+    noteInputId: PropTypes.string,
+    noteInputProps: PropTypes.object,
 
     createError: PropTypes.bool,
     createBusy: PropTypes.bool,
@@ -58,6 +60,7 @@ class Activity extends React.Component {
       me,
       incidentId,
       activities,
+      noteInputId,
       createBusy,
       createError,
       createErrorJSON,
@@ -68,6 +71,7 @@ class Activity extends React.Component {
       memberList: [],
       teams: [],
       minHeight: 80,
+      ...this.props.noteInputProps,
     };
     const activitiesByDate = groupBy(activities, ({dateCreated}) =>
       moment(dateCreated).format('ll')
@@ -79,6 +83,7 @@ class Activity extends React.Component {
         <ActivityItem author={{type: 'user', user: me}}>
           {() => (
             <NoteInputWithStorage
+              key={noteInputId}
               storageKey="incidentIdinput"
               itemKey={incidentId}
               onCreate={onCreateNote}
