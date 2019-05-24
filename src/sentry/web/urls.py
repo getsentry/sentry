@@ -605,6 +605,11 @@ urlpatterns += patterns(
         name='sentry-stream'
     ),
     url(
+        r'^organizations/(?P<organization_slug>[\w_-]+)/incidents/(?P<incident_id>\d+)/$',
+        react_page_view,
+        name='sentry-incident',
+    ),
+    url(
         r'^(?P<organization_slug>[\w_-]+)/(?P<project_slug>[\w_-]+)/issues/(?P<group_id>\d+)/tags/(?P<key>[^\/]+)/export/$',
         GroupTagExportView.as_view(),
         name='sentry-group-tag-export'

@@ -1,7 +1,9 @@
 from __future__ import absolute_import
 
-from datetime import timedelta
+from exam import patcher
 from freezegun import freeze_time
+
+from datetime import timedelta
 from uuid import uuid4
 
 import six
@@ -15,6 +17,8 @@ from sentry.incidents.logic import (
     create_initial_event_stats_snapshot,
     get_incident_aggregates,
     get_incident_event_stats,
+    get_incident_subscribers,
+    subscribe_to_incident,
     StatusAlreadyChangedError,
     update_incident_status,
 )
@@ -244,6 +248,13 @@ class CreateEventStatTest(TestCase, BaseIncidentsTest):
 
 @freeze_time()
 class CreateIncidentActivityTest(TestCase, BaseIncidentsTest):
+    send_subscriber_notifications = patcher('sentry.incidents.logic.send_subscriber_notifications')
+
+    def assert_notifications_sent(self, activity):
+        self.send_subscriber_notifications.apply_async.assert_called_once_with(
+            kwargs={'activity_id': activity.id},
+            countdown=10,
+        )
 
     def test_no_snapshot(self):
         incident = self.create_incident()
@@ -259,6 +270,7 @@ class CreateIncidentActivityTest(TestCase, BaseIncidentsTest):
         assert activity.user == self.user
         assert activity.value == six.text_type(IncidentStatus.CLOSED.value)
         assert activity.previous_value == six.text_type(IncidentStatus.CREATED.value)
+        self.assert_notifications_sent(activity)
 
     def test_snapshot(self):
         self.create_event(self.now - timedelta(minutes=2))
@@ -289,6 +301,7 @@ class CreateIncidentActivityTest(TestCase, BaseIncidentsTest):
         assert activity.previous_value is None
 
         assert event_stats_snapshot == activity.event_stats_snapshot
+        self.assert_notifications_sent(activity)
 
     def test_comment(self):
         incident = self.create_incident()
@@ -313,6 +326,7 @@ class CreateIncidentActivityTest(TestCase, BaseIncidentsTest):
         assert activity.comment == comment
         assert activity.value is None
         assert activity.previous_value is None
+        self.assert_notifications_sent(activity)
 
 
 @freeze_time()
@@ -338,3 +352,12 @@ class CreateInitialEventStatsSnapshotTest(TestCase, BaseIncidentsTest):
         event_stat_snapshot = create_initial_event_stats_snapshot(incident)
         assert event_stat_snapshot.start == self.now - timedelta(minutes=40)
         assert [row[1] for row in event_stat_snapshot.values] == [1, 1, 2, 1]
+
+
+class GetIncidentSuscribersTest(TestCase, BaseIncidentsTest):
+
+    def test_simple(self):
+        incident = self.create_incident()
+        assert list(get_incident_subscribers(incident)) == []
+        subscription = subscribe_to_incident(incident, self.user)[0]
+        assert list(get_incident_subscribers(incident)) == [subscription]
