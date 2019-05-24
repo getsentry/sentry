@@ -44,9 +44,7 @@ export default class Table extends React.Component {
             {SPECIAL_FIELDS.hasOwnProperty(field) ? (
               SPECIAL_FIELDS[field].renderFunc(row, organization)
             ) : (
-              <Data onClick={() => onSearch(`${[field]}:${row[field]}`)}>
-                {row[field]}
-              </Data>
+              <Data onClick={() => onSearch(`${field}:${row[field]}`)}>{row[field]}</Data>
             )}
           </Cell>
         ))}
