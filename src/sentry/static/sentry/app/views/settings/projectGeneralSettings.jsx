@@ -11,7 +11,7 @@ import {
   removeProject,
   transferProject,
 } from 'app/actionCreators/projects';
-import {addLoadingMessage, addErrorMessage, clearIndicators} from 'app/actionCreators/indicator';
+import {addLoadingMessage, clearIndicators} from 'app/actionCreators/indicator';
 import {fields} from 'app/data/forms/projectGeneralSettings';
 import {getOrganizationState} from 'app/mixins/organizationState';
 import {t, tct} from 'app/locale';
@@ -143,9 +143,7 @@ class ProjectGeneralSettings extends AsyncView {
               ProjectActions.updateSuccess(resp);
               this.fetchData();
             },
-            error => {
-              addErrorMessage(t('Error upgrading grouping config'));
-            })
+            handleXhrErrorResponse('Unable to upgrade config'))
           }}
           priority="danger"
           title={t('Upgrade grouping strategy?')}
@@ -341,6 +339,10 @@ class ProjectGeneralSettings extends AsyncView {
           apiMethod="PUT"
           apiEndpoint={endpoint}
           onSubmitSuccess={resp => {
+            // this is necessary for the grouping upgrade button to be
+            // updating based on the current selection of the grouping
+            // config.
+            this.setState({data: resp});
             if (projectId !== resp.slug) {
               changeProjectSlug(projectId, resp.slug);
               // Container will redirect after stores get updated with new slug
