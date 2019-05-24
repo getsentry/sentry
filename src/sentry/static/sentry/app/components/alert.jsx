@@ -1,12 +1,12 @@
-import React from 'react';
+import {css, cx} from 'emotion';
 import PropTypes from 'prop-types';
-import {cx} from 'emotion';
-import styled from 'react-emotion';
-import isPropValid from '@emotion/is-prop-valid';
+import React from 'react';
 import color from 'color';
+import styled from 'react-emotion';
 
-import TextBlock from 'app/views/settings/components/text/textBlock';
 import InlineSvg from 'app/components/inlineSvg';
+import TextBlock from 'app/views/settings/components/text/textBlock';
+import isPropValid from '@emotion/is-prop-valid';
 import space from 'app/styles/space';
 
 const StyledInlineSvg = styled(InlineSvg)`
@@ -34,24 +34,28 @@ const getSystemAlertColorStyles = ({backgroundLight, border, iconColor}) => `
   }
 `;
 
-const AlertWrapper = styled('div', {shouldForwardProp: isPropValid})`
+const alertStyles = ({theme, type, system}) => css`
   display: flex;
   margin: 0 0 ${space(3)};
   padding: ${space(2)};
   font-size: 15px;
-  box-shadow: ${p => p.theme.dropShadowLight};
-  border-radius: ${p => p.theme.borderRadius};
-  background: ${p => p.theme.whiteDark};
-  border: 1px solid ${p => p.theme.borderDark};
+  box-shadow: ${theme.dropShadowLight};
+  border-radius: ${theme.borderRadius};
+  background: ${theme.whiteDark};
+  border: 1px solid ${theme.borderDark};
   align-items: center;
 
   a {
-    color: ${p => p.theme.textColor};
-    border-bottom: 1px dotted ${p => p.theme.textColor};
+    color: ${theme.textColor};
+    border-bottom: 1px dotted ${theme.textColor};
   }
 
-  ${p => getAlertColorStyles(p.theme.alert[p.type])};
-  ${p => p.system && getSystemAlertColorStyles(p.theme.alert[p.type])};
+  ${getAlertColorStyles(theme.alert[type])};
+  ${system && getSystemAlertColorStyles(theme.alert[type])};
+`;
+
+const AlertWrapper = styled('div', {shouldForwardProp: isPropValid})`
+  ${alertStyles}
 `;
 
 const StyledTextBlock = styled(TextBlock)`
@@ -86,5 +90,7 @@ Alert.defaultProps = {
   iconSize: '24px',
   type: 'info',
 };
+
+export {alertStyles};
 
 export default Alert;
