@@ -7,16 +7,10 @@ from decimal import Decimal
 
 from django.core.exceptions import ValidationError
 from django.conf import settings
-from django.db import models, DatabaseError, transaction
+from django.db import models
 from django.utils.translation import ugettext_lazy as _
-from django.core.cache import cache
 
-__version__ = '0.9.13'
-
-DB_TYPE_CACHE_KEY = (
-    'django-jsonfield:db-type:%s' % __version__ +
-    '%(ENGINE)s:%(HOST)s:%(PORT)s:%(NAME)s'
-)
+from sentry.db.models.utils import Creator
 
 
 def default(o):
@@ -38,9 +32,16 @@ def default(o):
     raise TypeError(repr(o) + " is not JSON serializable")
 
 
-class JSONField(six.with_metaclass(models.SubfieldBase, models.Field)):
+class JSONField(models.TextField):
     """
     A field that will ensure the data entered into it is valid JSON.
+
+    Originally from https://github.com/adamchainz/django-jsonfield/blob/0.9.13/jsonfield/fields.py
+    Adapted to fit our requirements of:
+
+    - always using a text field
+    - being able to serialize dates/decimals
+    - not emitting deprecation warnings
     """
     default_error_messages = {
         'invalid': _("'%s' is not a valid JSON string.")
@@ -55,6 +56,14 @@ class JSONField(six.with_metaclass(models.SubfieldBase, models.Field)):
         }
         super(JSONField, self).__init__(*args, **kwargs)
         self.validate(self.get_default(), None)
+
+    def contribute_to_class(self, cls, name):
+        """
+        Add a descriptor for backwards compatibility
+        with previous Django behavior.
+        """
+        super(JSONField, self).contribute_to_class(cls, name)
+        setattr(cls, name, Creator(self))
 
     def validate(self, value, model_instance):
         if not self.null and value is None:
@@ -78,23 +87,7 @@ class JSONField(six.with_metaclass(models.SubfieldBase, models.Field)):
         return 'TextField'
 
     def db_type(self, connection):
-        cache_key = DB_TYPE_CACHE_KEY % connection.settings_dict
-        db_type = cache.get(cache_key)
-
-        if not db_type:
-            # Test to see if we support JSON querying.
-            cursor = connection.cursor()
-            try:
-                sid = transaction.savepoint(using=connection.alias)
-                cursor.execute('SELECT \'{}\'::json = \'{}\'::json;')
-            except DatabaseError:
-                transaction.savepoint_rollback(sid, using=connection.alias)
-                db_type = 'text'
-            else:
-                db_type = 'json'
-            cache.set(cache_key, db_type)
-
-        return db_type
+        return 'text'
 
     def to_python(self, value):
         if isinstance(value, six.string_types):
@@ -144,46 +137,6 @@ class JSONField(six.with_metaclass(models.SubfieldBase, models.Field)):
         return self._get_val_from_obj(obj)
 
 
-class TypedJSONField(JSONField):
-    """
-
-    """
-
-    def __init__(self, *args, **kwargs):
-        self.json_required_fields = kwargs.pop('required_fields', {})
-        self.json_validators = kwargs.pop('validators', [])
-
-        super(TypedJSONField, self).__init__(*args, **kwargs)
-
-    def cast_required_fields(self, obj):
-        if not obj:
-            return
-        for field_name, field_type in self.json_required_fields.items():
-            obj[field_name] = field_type.to_python(obj[field_name])
-
-    def to_python(self, value):
-        value = super(TypedJSONField, self).to_python(value)
-
-        if isinstance(value, list):
-            for item in value:
-                self.cast_required_fields(item)
-        else:
-            self.cast_required_fields(value)
-
-        return value
-
-    def validate(self, value, model_instance):
-        super(TypedJSONField, self).validate(value, model_instance)
-
-        for v in self.json_validators:
-            if isinstance(value, list):
-                for item in value:
-                    v(item)
-            else:
-                v(value)
-
-
 if 'south' in settings.INSTALLED_APPS:
     from south.modelsinspector import add_introspection_rules
-    add_introspection_rules([], ['^jsonfield\.fields\.JSONField'])
-    add_introspection_rules([], ['^jsonfield\.fields\.TypedJSONField'])
+    add_introspection_rules([], ['^sentry\.db\.models\.fields\.JSONField'])
