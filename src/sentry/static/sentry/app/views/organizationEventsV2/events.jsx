@@ -53,23 +53,25 @@ class Events extends AsyncComponent {
     const query = location.query.query || '';
 
     return (
-      <Container>
-        <div>
-          <StyledSearchBar
-            organization={organization}
-            query={query}
-            onSearch={this.handleSearch}
-          />
-          <Table
-            view={view}
-            organization={organization}
-            data={data}
-            isLoading={loading}
-          />
-          <Pagination pageLinks={dataPageLinks} />
-        </div>
-        <Tags view={view} />
-      </Container>
+      <div>
+        <StyledSearchBar
+          organization={organization}
+          query={query}
+          onSearch={this.handleSearch}
+        />
+        <Container>
+          <div>
+            <Table
+              view={view}
+              organization={organization}
+              data={data}
+              isLoading={loading}
+            />
+            <Pagination pageLinks={dataPageLinks} />
+          </div>
+          <Tags view={view} />
+        </Container>
+      </div>
     );
   }
 }
