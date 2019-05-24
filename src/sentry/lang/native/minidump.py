@@ -5,6 +5,7 @@ import logging
 import dateutil.parser as dp
 from msgpack import unpack, Unpacker, UnpackException, ExtraData
 
+from sentry.event_manager import validate_and_set_timestamp
 from sentry.lang.native.utils import get_sdk_from_event, handle_symbolication_failed, merge_symbolicated_frame
 from sentry.lang.native.symbolicator import merge_symbolicator_image
 from sentry.lang.native.symbolizer import SymbolicationFailed
@@ -131,8 +132,7 @@ def merge_symbolicator_minidump_response(data, response):
     if response.get('crashed') is not None:
         data['level'] = 'fatal' if response['crashed'] else 'info'
 
-    if response.get('timestamp'):
-        data['timestamp'] = float(response['timestamp'])
+    validate_and_set_timestamp(data, response.get('timestamp'))
 
     if response.get('system_info'):
         merge_symbolicator_minidump_system_info(data, response['system_info'])
