@@ -27,12 +27,6 @@ def is_minidump_event(data):
     return get_path(exceptions, 0, 'mechanism', 'type') in ('minidump', 'unreal')
 
 
-def is_unreal_exception_stacktrace(data):
-    # TODO(markus): Remove after unreal portable callstacks are parsed in enhancers
-    exceptions = get_path(data, 'exception', 'values', filter=True)
-    return get_path(exceptions, 0, 'mechanism', 'type') == 'unreal'
-
-
 def write_minidump_placeholder(data):
     # Minidump events must be native platform.
     data['platform'] = 'native'
@@ -185,13 +179,6 @@ def merge_symbolicator_minidump_response(data, response):
         if is_requesting:
             data_exception['thread_id'] = thread_id
             data_stacktrace = data_exception.setdefault('stacktrace', {})
-            # Make exemption specifically for unreal portable callstacks
-            # TODO(markus): Allow overriding stacktrace more generically
-            # (without looking into unreal context) once we no longer parse
-            # minidump in the endpoint (right now we can't distinguish that
-            # from user json).
-            if data_stacktrace.get('frames') and is_unreal_exception_stacktrace(data):
-                continue
             data_stacktrace['frames'] = []
         else:
             data_thread['stacktrace'] = data_stacktrace = {'frames': []}
