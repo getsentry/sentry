@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+from mock import patch
+
 from sentry.api.helpers.group_index import (
     validate_search_filter_permissions,
     ValidationError,
@@ -11,9 +13,18 @@ from sentry.testutils import TestCase
 class ValidateSearchFilterPermissionsTest(TestCase):
 
     def run_test(self, query):
-        validate_search_filter_permissions(self.organization, parse_search_query(query))
+        validate_search_filter_permissions(self.organization, parse_search_query(query), self.user)
 
-    def test_negative(self):
+    def assert_analytics_recorded(self, mock_record):
+        mock_record.assert_called_with(
+            'advanced_search.feature_gated',
+            user_id=self.user.id,
+            default_user_id=self.user.id,
+            organization_id=self.organization.id,
+        )
+
+    @patch('sentry.analytics.record')
+    def test_negative(self, mock_record):
         query = '!has:user'
         with self.feature(
                 {'organizations:advanced-search': False},
@@ -21,6 +32,7 @@ class ValidateSearchFilterPermissionsTest(TestCase):
             self.run_test(query)
 
         self.run_test(query)
+        self.assert_analytics_recorded(mock_record)
 
         query = '!something:123'
         with self.feature(
@@ -29,8 +41,10 @@ class ValidateSearchFilterPermissionsTest(TestCase):
             self.run_test(query)
 
         self.run_test(query)
+        self.assert_analytics_recorded(mock_record)
 
-    def test_wildcard(self):
+    @patch('sentry.analytics.record')
+    def test_wildcard(self, mock_record):
         query = 'abc:hello*'
         with self.feature(
                 {'organizations:advanced-search': False},
@@ -38,6 +52,7 @@ class ValidateSearchFilterPermissionsTest(TestCase):
             self.run_test(query)
 
         self.run_test(query)
+        self.assert_analytics_recorded(mock_record)
 
         query = 'raw * search'
         with self.feature(
@@ -46,3 +61,4 @@ class ValidateSearchFilterPermissionsTest(TestCase):
             self.run_test(query)
 
         self.run_test(query)
+        self.assert_analytics_recorded(mock_record)

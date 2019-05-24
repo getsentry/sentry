@@ -34,7 +34,7 @@ from sentry.api.issue_search import (
     parse_search_query,
 )
 from sentry.signals import (
-    issue_deleted, issue_ignored, issue_resolved
+    issue_deleted, issue_ignored, issue_resolved, advanced_search_feature_gated
 )
 from sentry.tasks.deletion import delete_groups as delete_groups_task
 from sentry.tasks.integrations import kick_off_status_syncs
@@ -81,7 +81,7 @@ def build_query_params_from_request(request, organization, projects, environment
         except InvalidSearchQuery as e:
             raise ValidationError(u'Your search query could not be parsed: {}'.format(e.message))
 
-        validate_search_filter_permissions(organization, search_filters)
+        validate_search_filter_permissions(organization, search_filters, request.user)
         query_kwargs['search_filters'] = search_filters
 
     return query_kwargs
@@ -95,7 +95,7 @@ advanced_search_features = [
 ]
 
 
-def validate_search_filter_permissions(organization, search_filters):
+def validate_search_filter_permissions(organization, search_filters, user):
     """
     Verifies that an organization is allowed to perform the query that they
     submitted.
@@ -112,6 +112,11 @@ def validate_search_filter_permissions(organization, search_filters):
     for search_filter in search_filters:
         for feature_condition, feature_name in advanced_search_features:
             if feature_condition(search_filter):
+                advanced_search_feature_gated.send_robust(
+                    user=user,
+                    organization=organization,
+                    sender=validate_search_filter_permissions,
+                )
                 raise ValidationError(
                     u'You need access to the advanced search feature to use {}'.format(
                         feature_name),

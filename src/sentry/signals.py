@@ -88,6 +88,7 @@ issue_resolved = BetterSignal(
         "resolution_type"])
 
 advanced_search = BetterSignal(providing_args=["project"])
+advanced_search_feature_gated = BetterSignal(providing_args=["organization", "user"])
 save_search_created = BetterSignal(providing_args=["project", "user"])
 inbound_filter_toggled = BetterSignal(providing_args=["project"])
 sso_enabled = BetterSignal(providing_args=["organization", "user", "provider"])
