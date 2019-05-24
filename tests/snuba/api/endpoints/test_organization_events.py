@@ -5,7 +5,7 @@ from six.moves.urllib.parse import urlencode
 from datetime import timedelta
 from django.utils import timezone
 from django.core.urlresolvers import reverse
-from uuid import uuid4
+
 from sentry.testutils import APITestCase, SnubaTestCase
 
 
@@ -782,34 +782,106 @@ class OrganizationEventsTagsEndpointTest(OrganizationEventsTestBase):
     def setUp(self):
         super(OrganizationEventsTagsEndpointTest, self).setUp()
         self.login_as(user=self.user)
-
         self.project = self.create_project()
-        project2 = self.create_project()
-        self.group = self.create_group(project=self.project)
-        group2 = self.create_group(project=project2)
-        self.create_event(event_id='a' * 32, group=self.group, datetime=self.min_ago)
-        self.create_event(event_id='m' * 32, group=group2, datetime=self.min_ago)
-
-    def test_simple(self):
-        for i in range(0, 20):
-            self.create_event(
-                event_id=uuid4().hex, group=self.group, datetime=self.day_ago, tags={
-                    'num': '%d' % i},
-            )
-        url = reverse(
+        self.url = reverse(
             'sentry-api-0-organization-events-tags',
             kwargs={
                 'organization_slug': self.project.organization.slug,
+                'key': 'color',
             }
         )
 
-        response = self.client.get(
-            '%s?%s' % (url, 'keys=num'),
-            format='json'
+    def assert_top_values(self, output, expected):
+        assert len(output) == len(expected)
+        for index, (count, value) in enumerate(expected):
+            assert output[index]['count'] == count
+            assert output[index]['value'] == value
+
+    def test_simple(self):
+        group = self.create_group(project=self.project)
+        self.create_event(
+            event_id='w' * 32,
+            group=group,
+            message="how to make fast",
+            datetime=self.min_ago,
+            tags={'world': 'hello'},
         )
+        self.create_event(
+            event_id='x' * 32,
+            group=group,
+            message="how to make fast",
+            datetime=self.min_ago,
+            tags={'color': 'yellow'},
+        )
+        self.create_event(
+            event_id='y' * 32,
+            group=group,
+            message="Delet the Data",
+            datetime=self.min_ago,
+            tags={'color': 'red'},
+        )
+        self.create_event(
+            event_id='z' * 32,
+            group=group,
+            message="Data the Delet ",
+            datetime=self.min_ago,
+            tags={'color': 'yellow'},
+        )
+
+        response = self.client.get(self.url, format='json')
+
         assert response.status_code == 200, response.content
-        # this is not exact because of turbo=True
-        assert response.data['count'] == 10
+        assert response.data['uniqueValues'] == 2
+        assert response.data['name'] == 'Color'
+        assert response.data['key'] == 'color'
+
+        self.assert_top_values(response.data['topValues'], [(2, 'yellow'), (1, 'red')])
+
+    def test_tags_with_query(self):
+        project = self.create_project()
+        group = self.create_group(project=project)
+        self.create_event(
+            event_id='x' * 32,
+            group=group,
+            message="how to make fast",
+            datetime=self.min_ago,
+            tags={'color': 'green'},
+        )
+        self.create_event(
+            event_id='y' * 32,
+            group=group,
+            message="Delet the Data",
+            datetime=self.min_ago,
+            tags={'color': 'red'},
+        )
+        self.create_event(
+            event_id='z' * 32,
+            group=group,
+            message="Data the Delet ",
+            datetime=self.min_ago,
+            tags={'color': 'yellow'},
+        )
+
+        response = self.client.get(self.url, {'query': 'delet'}, format='json')
+
+        assert response.status_code == 200, response.content
+        assert response.data['uniqueValues'] == 2
+        assert response.data['name'] == 'Color'
+        assert response.data['key'] == 'color'
+        self.assert_top_values(response.data['topValues'], [(1, 'yellow'), (1, 'red')])
+
+    def test_no_projects(self):
+        org = self.create_organization(owner=self.user)
+        url = reverse(
+            'sentry-api-0-organization-events-tags',
+            kwargs={
+                'organization_slug': org.slug,
+                'key': 'color',
+            }
+        )
+        response = self.client.get(url, format='json')
+        assert response.status_code == 400, response.content
+        assert response.data == {'detail': 'A valid project must be included.'}
 
 
 class OrganizationEventsMetaEndpoint(OrganizationEventsTestBase):

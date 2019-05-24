@@ -9,7 +9,7 @@ sentry.tagstore.snuba.backend
 from __future__ import absolute_import
 
 import functools
-from collections import defaultdict
+from collections import defaultdict, Iterable
 from datetime import timedelta
 from dateutil.parser import parse as parse_datetime
 from django.utils import timezone
@@ -100,18 +100,25 @@ class SnubaTagStorage(TagStorage):
                 return GroupTagKey(group_id=group_id, **data)
 
     def __get_tag_key_and_top_values(self, project_id, group_id, environment_id,
-                                     key, limit=3, raise_on_empty=True):
+                                     key, limit=3, raise_on_empty=True,
+                                     conditions=None, aggregations=None):
+
         start, end = self.get_time_range()
         tag = u'tags[{}]'.format(key)
         filters = {
-            'project_id': [project_id],
+            'project_id': project_id if isinstance(project_id, Iterable) else [project_id],
         }
         if environment_id:
             filters['environment'] = [environment_id]
         if group_id is not None:
             filters['issue'] = [group_id]
-        conditions = [[tag, '!=', '']]
-        aggregations = [
+        if not conditions:
+            conditions = []
+        if not aggregations:
+            aggregations = []
+
+        conditions.append([tag, '!=', ''])
+        aggregations += [
             ['uniq', tag, 'values_seen'],
             ['count()', '', 'count'],
             ['min', SEEN_COLUMN, 'first_seen'],
@@ -244,9 +251,11 @@ class SnubaTagStorage(TagStorage):
             else:
                 return GroupTagValue(group_id=group_id, **fix_tag_value_data(data))
 
-    def get_tag_key(self, project_id, environment_id, key, status=TagKeyStatus.VISIBLE):
+    def get_tag_key(self, project_id, environment_id, key, status=TagKeyStatus.VISIBLE,
+                    conditions=None, aggregations=None):
         assert status is TagKeyStatus.VISIBLE
-        return self.__get_tag_key_and_top_values(project_id, None, environment_id, key)
+        return self.__get_tag_key_and_top_values(
+            project_id, None, environment_id, key, conditions=conditions, aggregations=aggregations)
 
     def get_tag_keys(
         self, project_id, environment_id, status=TagKeyStatus.VISIBLE,

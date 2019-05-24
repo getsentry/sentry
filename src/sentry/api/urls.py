@@ -596,7 +596,7 @@ urlpatterns = patterns(
         name='sentry-api-0-organization-events-stats'
     ),
     url(
-        r'^organizations/(?P<organization_slug>[^\/]+)/events-tags/$',
+        r'^organizations/(?P<organization_slug>[^\/]+)/events-tags/(?P<key>[^/]+)/$',
         OrganizationEventsTagsEndpoint.as_view(),
         name='sentry-api-0-organization-events-tags'
     ),

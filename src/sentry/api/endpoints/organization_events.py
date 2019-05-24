@@ -5,7 +5,9 @@ from functools import partial
 
 from rest_framework.response import Response
 
+from sentry import tagstore
 from sentry.api.bases import OrganizationEventsEndpointBase, OrganizationEventsError, NoProjects
+from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.helpers.events import get_direct_hit_response
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.serializers import EventSerializer, serialize, SimpleEventSerializer
@@ -138,27 +140,26 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsEndpointBase):
 
 
 class OrganizationEventsTagsEndpoint(OrganizationEventsEndpointBase):
-    def get(self, request, organization):
+    def get(self, request, organization, key):
         try:
             snuba_args = self.get_snuba_query_args(request, organization)
         except OrganizationEventsError as exc:
             return Response({'detail': exc.message}, status=400)
         except NoProjects:
-            return Response({'count': 0})
+            return Response({'detail': 'A valid project must be included.'}, status=400)
 
-        keys = request.GET.get('keys')
-        if not keys:
-            return Response({'detail': 'Event tag keys must be specified'}, status=400)
-        snuba_args['filter_keys']['tags_key'] = keys
-        result = raw_query(
-            aggregations=[['count()', '', 'count']],
-            groupby=['tags_value'],
-            referrer='api.organization-events-tags',
-            limit=10000,
-            **snuba_args
-        )
+        lookup_key = tagstore.prefix_reserved_key(key)
+        project_ids = snuba_args['filter_keys']['project_id']
+        environment_ids = snuba_args['filter_keys'].get('environment_id')
+        aggregations = snuba_args.get('aggregations')
+        conditions = snuba_args.get('conditions')
+        try:
+            tag_key = tagstore.get_tag_key(
+                project_ids, environment_ids, lookup_key, conditions=conditions, aggregations=aggregations)
+        except tagstore.TagKeyNotFound:
+            raise ResourceDoesNotExist
 
-        return Response(serialize(result, request.user))
+        return Response(serialize(tag_key, request.user))
 
 
 class OrganizationEventsMetaEndpoint(OrganizationEventsEndpointBase):
