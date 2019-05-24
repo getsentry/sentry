@@ -6,6 +6,7 @@ sentry.event_manager
 """
 from __future__ import absolute_import, print_function
 
+import time
 import jsonschema
 import logging
 import six
@@ -58,7 +59,6 @@ from sentry.utils.dates import to_timestamp
 from sentry.utils.db import is_postgres
 from sentry.utils.geo import rust_geoip
 from sentry.utils.safe import safe_execute, trim, get_path, setdefault_path
-from sentry.utils.validators import is_float
 from sentry.stacktraces.processing import normalize_stacktraces_for_grouping
 from sentry.culprit import generate_culprit
 
@@ -108,6 +108,35 @@ def time_limit(silence):  # ~ 3600 per hour
     return settings.SENTRY_MAX_SAMPLE_TIME
 
 
+def validate_and_set_timestamp(data, timestamp):
+    """
+    Helper function for event processors/enhancers to avoid setting broken timestamps.
+
+    If we set a too old or too new timestamp then this affects event retention
+    and search.
+    """
+    # XXX(markus): We should figure out if we could run normalization
+    # after event processing again. Right now we duplicate code between here
+    # and event normalization
+    if timestamp:
+        current = time.time()
+
+        if current - MAX_SECS_IN_PAST > timestamp:
+            data.setdefault('errors', []).append({
+                'ty': EventError.PAST_TIMESTAMP,
+                'name': 'timestamp',
+                'value': timestamp,
+            })
+        elif timestamp > current + MAX_SECS_IN_FUTURE:
+            data.setdefault('errors', []).append({
+                'ty': EventError.FUTURE_TIMESTAMP,
+                'name': 'timestamp',
+                'value': timestamp,
+            })
+        else:
+            data['timestamp'] = float(timestamp)
+
+
 def parse_client_as_sdk(value):
     if not value:
         return {}
@@ -148,74 +177,6 @@ def plugin_is_regression(group, event):
         if result is not None:
             return result
     return True
-
-
-def process_timestamp(value, meta, current_datetime=None):
-    original_value = value
-    if value is None:
-        return None
-
-    if is_float(value):
-        try:
-            value = datetime.fromtimestamp(float(value))
-        except Exception:
-            meta.add_error(EventError.INVALID_DATA, original_value)
-            return None
-    elif isinstance(value, six.string_types):
-        # all timestamps are in UTC, but the marker is optional
-        if value.endswith('Z'):
-            value = value[:-1]
-        if '.' in value:
-            # Python doesn't support long microsecond values
-            # https://github.com/getsentry/sentry/issues/1610
-            ts_bits = value.split('.', 1)
-            value = '%s.%s' % (ts_bits[0], ts_bits[1][:2])
-            fmt = '%Y-%m-%dT%H:%M:%S.%f'
-        else:
-            fmt = '%Y-%m-%dT%H:%M:%S'
-        try:
-            value = datetime.strptime(value, fmt)
-        except Exception:
-            meta.add_error(EventError.INVALID_DATA, original_value)
-            return None
-    elif not isinstance(value, datetime):
-        meta.add_error(EventError.INVALID_DATA, original_value)
-        return None
-
-    if current_datetime is None:
-        current_datetime = datetime.now()
-
-    if value > current_datetime + ALLOWED_FUTURE_DELTA:
-        meta.add_error(EventError.FUTURE_TIMESTAMP, original_value)
-        return None
-
-    if value < current_datetime - timedelta(days=30):
-        meta.add_error(EventError.PAST_TIMESTAMP, original_value)
-        return None
-
-    return float(value.strftime('%s'))
-
-
-def sanitize_fingerprint(value):
-    # Special case floating point values: Only permit floats that have an exact
-    # integer representation in JSON to avoid rounding issues.
-    if isinstance(value, float):
-        return six.text_type(int(value)) if abs(value) < (1 << 53) else None
-
-    # Stringify known types
-    if isinstance(value, six.string_types + six.integer_types):
-        return six.text_type(value)
-
-    # Silently skip all other values
-    return None
-
-
-def cast_fingerprint(value):
-    # Return incompatible values so that schema validation can emit errors
-    if not isinstance(value, list):
-        return value
-
-    return list(f for f in map(sanitize_fingerprint, value) if f is not None)
 
 
 def has_pending_commit_resolution(group):
