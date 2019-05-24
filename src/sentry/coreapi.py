@@ -77,11 +77,12 @@ class APIRateLimited(APIError):
 
 
 class Auth(object):
-    def __init__(self, auth_vars, is_public=False):
-        self.client = auth_vars.get('sentry_client')
-        self.version = six.text_type(auth_vars.get('sentry_version'))
-        self.secret_key = auth_vars.get('sentry_secret')
-        self.public_key = auth_vars.get('sentry_key')
+    def __init__(self, client=None, version=None, secret_key=None,
+                 public_key=None, is_public=False):
+        self.client = client
+        self.version = version
+        self.secret_key = secret_key
+        self.public_key = public_key
         self.is_public = is_public
 
 
@@ -235,7 +236,11 @@ class ClientAuthHelper(AbstractAuthHelper):
             raise APIUnauthorized('Unable to find authentication information')
 
         origin = cls.origin_from_request(request)
-        auth = Auth(result, is_public=bool(origin))
+        auth = Auth(client=result.get('sentry_client'),
+                    version=six.text_type(result.get('sentry_version')),
+                    secret_key=result.get('sentry_secret'),
+                    public_key=result.get('sentry_key'),
+                    is_public=bool(origin))
         # default client to user agent
         if not auth.client:
             auth.client = request.META.get('HTTP_USER_AGENT')
@@ -268,8 +273,7 @@ class MinidumpAuthHelper(AbstractAuthHelper):
         # Minidump requests are always "trusted".  We at this point only
         # use is_public to identify requests that have an origin set (via
         # CORS)
-        auth = Auth({'sentry_key': key}, is_public=False)
-        auth.client = 'sentry-minidump'
+        auth = Auth(public_key=key, client='sentry-minidump', is_public=False)
         return auth
 
 
@@ -287,11 +291,7 @@ class SecurityAuthHelper(AbstractAuthHelper):
         if not key:
             raise APIUnauthorized('Unable to find authentication information')
 
-        auth = Auth(
-            {
-                'sentry_key': key,
-            }, is_public=True
-        )
+        auth = Auth(public_key=key, is_public=True)
         auth.client = request.META.get('HTTP_USER_AGENT')
         return auth
 

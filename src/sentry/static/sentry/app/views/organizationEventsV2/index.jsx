@@ -10,9 +10,11 @@ import PageHeading from 'app/components/pageHeading';
 import BetaTag from 'app/components/betaTag';
 import NavTabs from 'app/components/navTabs';
 import ListLink from 'app/components/links/listLink';
+import NoProjectMessage from 'app/components/noProjectMessage';
 
 import Events from './events';
-import {ALL_VIEWS, getCurrentView} from './utils';
+import {ALL_VIEWS} from './data';
+import {getCurrentView} from './utils';
 
 export default class OrganizationEventsV2 extends React.Component {
   static propTypes = {
@@ -50,16 +52,18 @@ export default class OrganizationEventsV2 extends React.Component {
         <React.Fragment>
           <GlobalSelectionHeader organization={organization} />
           <PageContent>
-            <PageHeader>
-              <PageHeading>
-                {t('Events')} <BetaTag />
-              </PageHeading>
-            </PageHeader>
-            {this.renderTabs()}
-            <Events
-              organization={organization}
-              view={getCurrentView(location.query.view)}
-            />
+            <NoProjectMessage organization={organization}>
+              <PageHeader>
+                <PageHeading>
+                  {t('Events')} <BetaTag />
+                </PageHeading>
+              </PageHeader>
+              {this.renderTabs()}
+              <Events
+                organization={organization}
+                view={getCurrentView(location.query.view)}
+              />
+            </NoProjectMessage>
           </PageContent>
         </React.Fragment>
       </DocumentTitle>

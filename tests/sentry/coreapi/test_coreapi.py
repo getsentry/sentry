@@ -32,25 +32,25 @@ class BaseAPITest(TestCase):
 class ProjectIdFromAuthTest(BaseAPITest):
     def test_invalid_if_missing_key(self):
         with pytest.raises(APIUnauthorized):
-            self.helper.project_id_from_auth(Auth({}))
+            self.helper.project_id_from_auth(Auth())
 
     def test_valid_with_key(self):
-        auth = Auth({'sentry_key': self.pk.public_key})
+        auth = Auth(public_key=self.pk.public_key)
         result = self.helper.project_id_from_auth(auth)
         assert result == self.project.id
 
     def test_invalid_key(self):
-        auth = Auth({'sentry_key': 'z'})
+        auth = Auth(public_key='z')
         with pytest.raises(APIUnauthorized):
             self.helper.project_id_from_auth(auth)
 
     def test_invalid_secret(self):
-        auth = Auth({'sentry_key': self.pk.public_key, 'sentry_secret': 'z'})
+        auth = Auth(public_key=self.pk.public_key, secret_key='z')
         with pytest.raises(APIUnauthorized):
             self.helper.project_id_from_auth(auth)
 
     def test_nonascii_key(self):
-        auth = Auth({'sentry_key': '\xc3\xbc'})
+        auth = Auth(public_key='\xc3\xbc')
         with pytest.raises(APIUnauthorized):
             self.helper.project_id_from_auth(auth)
 

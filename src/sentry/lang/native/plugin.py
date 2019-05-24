@@ -11,7 +11,6 @@ from sentry import options
 from sentry.plugins import Plugin2
 from sentry.lang.native.error import write_error
 from sentry.lang.native.minidump import get_attached_minidump, is_minidump_event, merge_symbolicator_minidump_response
-from sentry.lang.native.unreal import is_unreal_event, reprocess_unreal_crash
 from sentry.lang.native.symbolicator import run_symbolicator, merge_symbolicator_image, create_minidump_task, handle_symbolicator_response_status
 from sentry.lang.native.utils import get_sdk_from_event, cpu_name_from_data, \
     merge_symbolicated_frame, rebase_addr, signal_from_data
@@ -392,9 +391,6 @@ class NativePlugin(Plugin2):
         rv = []
         if is_minidump_event(data):
             rv.append(reprocess_minidump)
-
-        if is_unreal_event(data):
-            rv.append(reprocess_unreal_crash)
 
         return rv
 

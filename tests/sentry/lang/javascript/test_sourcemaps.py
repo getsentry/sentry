@@ -3,7 +3,7 @@
 from __future__ import absolute_import
 
 from symbolic import SourceMapView, SourceMapTokenMatch
-from sentry.testutils import TestCase
+from unittest import TestCase
 
 from sentry.utils import json
 

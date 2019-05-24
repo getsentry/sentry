@@ -8,16 +8,20 @@ import LoadingIndicator from 'app/components/loadingIndicator';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
 import {t} from 'app/locale';
+import space from 'app/styles/space';
+
+import {SPECIAL_FIELDS} from './data';
 
 export default class Table extends React.Component {
   static propTypes = {
     view: SentryTypes.EventView.isRequired,
     data: PropTypes.arrayOf(PropTypes.object),
     isLoading: PropTypes.bool,
+    organization: SentryTypes.Organization.isRequired,
   };
 
   renderBody() {
-    const {view, data, isLoading} = this.props;
+    const {view, data, isLoading, organization} = this.props;
     const {fields} = view.data;
 
     if (isLoading) {
@@ -36,7 +40,11 @@ export default class Table extends React.Component {
       <Row key={idx} className={getGridStyle(fields.length)}>
         {fields.map(field => (
           <Cell key={field}>
-            <Data>{row[field]}</Data>
+            {SPECIAL_FIELDS.hasOwnProperty(field) ? (
+              SPECIAL_FIELDS[field].renderFunc(row, organization)
+            ) : (
+              <Data>{row[field]}</Data>
+            )}
           </Cell>
         ))}
       </Row>
@@ -63,6 +71,7 @@ function getGridStyle(colCount) {
   return css`
     display: grid;
     grid-template-columns: 3fr repeat(${colCount - 1}, 1fr);
+    grid-gap: ${space(1)};
   `;
 }
 

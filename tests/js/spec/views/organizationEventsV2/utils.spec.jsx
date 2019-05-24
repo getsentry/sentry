@@ -1,4 +1,5 @@
-import {ALL_VIEWS, getCurrentView, getQuery} from 'app/views/organizationEventsV2/utils';
+import {getCurrentView, getQuery} from 'app/views/organizationEventsV2/utils';
+import {ALL_VIEWS} from 'app/views/organizationEventsV2/data';
 
 describe('getCurrentView()', function() {
   it('returns current view', function() {
@@ -26,8 +27,9 @@ describe('getQuery()', function() {
     };
 
     expect(getQuery(view).fields).toEqual([
-      'id',
       'title',
+      'id',
+      'project.name',
       'user.email',
       'user.ip',
       'issue.id',

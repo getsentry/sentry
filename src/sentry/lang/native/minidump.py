@@ -5,6 +5,7 @@ import logging
 import dateutil.parser as dp
 from msgpack import unpack, Unpacker, UnpackException, ExtraData
 
+from sentry.event_manager import validate_and_set_timestamp
 from sentry.lang.native.utils import get_sdk_from_event, merge_symbolicated_frame
 from sentry.lang.native.symbolicator import merge_symbolicator_image
 from sentry.lang.native.error import SymbolicationFailed, write_error
@@ -25,12 +26,6 @@ MAX_MSGPACK_EVENT_SIZE_BYTES = 100000
 def is_minidump_event(data):
     exceptions = get_path(data, 'exception', 'values', filter=True)
     return get_path(exceptions, 0, 'mechanism', 'type') in ('minidump', 'unreal')
-
-
-def is_unreal_exception_stacktrace(data):
-    # TODO(markus): Remove after unreal portable callstacks are parsed in enhancers
-    exceptions = get_path(data, 'exception', 'values', filter=True)
-    return get_path(exceptions, 0, 'mechanism', 'type') == 'unreal'
 
 
 def write_minidump_placeholder(data):
@@ -137,8 +132,7 @@ def merge_symbolicator_minidump_response(data, response):
     if response.get('crashed') is not None:
         data['level'] = 'fatal' if response['crashed'] else 'info'
 
-    if response.get('timestamp'):
-        data['timestamp'] = float(response['timestamp'])
+    validate_and_set_timestamp(data, response.get('timestamp'))
 
     if response.get('system_info'):
         merge_symbolicator_minidump_system_info(data, response['system_info'])
@@ -185,13 +179,6 @@ def merge_symbolicator_minidump_response(data, response):
         if is_requesting:
             data_exception['thread_id'] = thread_id
             data_stacktrace = data_exception.setdefault('stacktrace', {})
-            # Make exemption specifically for unreal portable callstacks
-            # TODO(markus): Allow overriding stacktrace more generically
-            # (without looking into unreal context) once we no longer parse
-            # minidump in the endpoint (right now we can't distinguish that
-            # from user json).
-            if data_stacktrace.get('frames') and is_unreal_exception_stacktrace(data):
-                continue
             data_stacktrace['frames'] = []
         else:
             data_thread['stacktrace'] = data_stacktrace = {'frames': []}
