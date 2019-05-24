@@ -72,7 +72,7 @@ class Events extends AsyncComponent {
         <Panel>
           <EventsChart
             router={router}
-            query={location.query.query}
+            query={query}
             organization={organization}
             onZoom={this.handleZoom}
             showLegend
