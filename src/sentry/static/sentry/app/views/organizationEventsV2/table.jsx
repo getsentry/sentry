@@ -8,8 +8,9 @@ import LoadingIndicator from 'app/components/loadingIndicator';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
 import {t} from 'app/locale';
+import space from 'app/styles/space';
 
-import {SPECIAL_FIELDS} from './utils';
+import {SPECIAL_FIELDS} from './data';
 
 export default class Table extends React.Component {
   static propTypes = {
@@ -39,11 +40,11 @@ export default class Table extends React.Component {
       <Row key={idx} className={getGridStyle(fields.length)}>
         {fields.map(field => (
           <Cell key={field}>
-            <Data>
-              {SPECIAL_FIELDS.hasOwnProperty(field)
-                ? SPECIAL_FIELDS[field].renderFunc(row, organization)
-                : row[field]}
-            </Data>
+            {SPECIAL_FIELDS.hasOwnProperty(field) ? (
+              SPECIAL_FIELDS[field].renderFunc(row, organization)
+            ) : (
+              <Data>{row[field]}</Data>
+            )}
           </Cell>
         ))}
       </Row>
@@ -70,6 +71,7 @@ function getGridStyle(colCount) {
   return css`
     display: grid;
     grid-template-columns: 3fr repeat(${colCount - 1}, 1fr);
+    grid-gap: ${space(1)};
   `;
 }
 

@@ -13,7 +13,8 @@ import ListLink from 'app/components/links/listLink';
 import NoProjectMessage from 'app/components/noProjectMessage';
 
 import Events from './events';
-import {ALL_VIEWS, getCurrentView} from './utils';
+import {ALL_VIEWS} from './data';
+import {getCurrentView} from './utils';
 
 export default class OrganizationEventsV2 extends React.Component {
   static propTypes = {
