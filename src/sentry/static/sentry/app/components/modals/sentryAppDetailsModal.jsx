@@ -9,9 +9,31 @@ import PluginIcon from 'app/plugins/components/pluginIcon';
 import SentryTypes from 'app/sentryTypes';
 import space from 'app/styles/space';
 import {t} from 'app/locale';
-import marked from 'app/utils/marked';
 
-export default class SentryAppDetailsModal extends React.Component {
+import AsyncComponent from 'app/components/asyncComponent';
+import HookStore from 'app/stores/hookStore';
+import marked, {singleLineRenderer} from 'app/utils/marked';
+import InlineSvg from 'app/components/inlineSvg';
+import Tag from 'app/views/settings/components/tag';
+
+const defaultFeatureGateComponents = {
+  IntegrationFeatures: p =>
+    p.children({
+      disabled: false,
+      disabledReason: null,
+      ungatedFeatures: p.features,
+      gatedFeatureGroups: [],
+    }),
+  FeatureList: p => (
+    <ul>
+      {p.features.map((f, i) => (
+        <li key={i}>{f.description}</li>
+      ))}
+    </ul>
+  ),
+};
+
+export default class SentryAppDetailsModal extends AsyncComponent {
   static propTypes = {
     sentryApp: SentryTypes.SentryApplication.isRequired,
     organization: SentryTypes.Organization.isRequired,
@@ -20,10 +42,35 @@ export default class SentryAppDetailsModal extends React.Component {
     closeModal: PropTypes.func.isRequired,
   };
 
-  render() {
+  getEndpoints() {
+    const {sentryApp} = this.props;
+    return [['featureData', `/sentry-apps/${sentryApp.slug}/features/`]];
+  }
+
+  featureTags(features) {
+    return features.map(feature => {
+      const feat = feature.featureGate.replace(/integrations/g, '');
+      return <StyledTag key={feat}>{feat.replace(/-/g, ' ')}</StyledTag>;
+    });
+  }
+
+  renderBody() {
     const {sentryApp, closeModal, onInstall, isInstalled, organization} = this.props;
+    const {featureData} = this.state;
+    // Prepare the features list
+    const features = (featureData || []).map(f => ({
+      featureGate: f.featureGate,
+      description: (
+        <span dangerouslySetInnerHTML={{__html: singleLineRenderer(f.description)}} />
+      ),
+    }));
+
+    const featureListHooks = HookStore.get('integrations:feature-gates');
+    featureListHooks.push(() => defaultFeatureGateComponents);
 
     const overview = sentryApp.overview || '';
+    const {FeatureList, IntegrationFeatures} = featureListHooks[0]();
+    const featureProps = {organization, features};
 
     return (
       <React.Fragment>
@@ -32,36 +79,43 @@ export default class SentryAppDetailsModal extends React.Component {
 
           <Flex pl={1} align="flex-start" direction="column" justify="center">
             <Name>{sentryApp.name}</Name>
+            <Flex>{features.length && this.featureTags(features)}</Flex>
           </Flex>
         </Flex>
 
         <Description dangerouslySetInnerHTML={{__html: marked(overview)}} />
+        <FeatureList {...featureProps} provider={{...sentryApp, key: sentryApp.slug}} />
 
         <Metadata>
           <Author flex={1}>{t('By %s', sentryApp.author)}</Author>
         </Metadata>
 
-        <div className="modal-footer">
-          <Button size="small" onClick={closeModal}>
-            {t('Cancel')}
-          </Button>
+        <IntegrationFeatures {...featureProps}>
+          {({disabled, disabledReason}) => (
+            <div className="modal-footer">
+              {disabled && <DisabledNotice reason={disabledReason} />}
+              <Button size="small" onClick={closeModal}>
+                {t('Cancel')}
+              </Button>
 
-          <Access organization={organization} access={['org:integrations']}>
-            {({hasAccess}) =>
-              hasAccess && (
-                <Button
-                  size="small"
-                  priority="primary"
-                  disabled={isInstalled}
-                  onClick={onInstall}
-                  style={{marginLeft: space(1)}}
-                >
-                  {t('Install')}
-                </Button>
-              )
-            }
-          </Access>
-        </div>
+              <Access organization={organization} access={['org:integrations']}>
+                {({hasAccess}) =>
+                  hasAccess && (
+                    <Button
+                      size="small"
+                      priority="primary"
+                      disabled={isInstalled || disabled}
+                      onClick={onInstall}
+                      style={{marginLeft: space(1)}}
+                    >
+                      {t('Install')}
+                    </Button>
+                  )
+                }
+              </Access>
+            </div>
+          )}
+        </IntegrationFeatures>
       </React.Fragment>
     );
   }
@@ -94,4 +148,20 @@ const Metadata = styled(Flex)`
 
 const Author = styled(Box)`
   color: ${p => p.theme.gray2};
+`;
+
+const DisabledNotice = styled(({reason, ...p}) => (
+  <Flex align="center" flex={1} {...p}>
+    <InlineSvg src="icon-circle-exclamation" size="1.5em" />
+    <Box ml={1}>{reason}</Box>
+  </Flex>
+))`
+  color: ${p => p.theme.red};
+  font-size: 0.9em;
+`;
+
+const StyledTag = styled(Tag)`
+  &:not(:first-child) {
+    margin-left: ${space(0.5)};
+  }
 `;
