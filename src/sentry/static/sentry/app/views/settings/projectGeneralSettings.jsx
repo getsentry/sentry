@@ -11,7 +11,7 @@ import {
   removeProject,
   transferProject,
 } from 'app/actionCreators/projects';
-import IndicatorStore from 'app/stores/indicatorStore';
+import {addLoadingMessage, addErrorMessage, clearIndicators} from 'app/actionCreators/indicator';
 import {fields} from 'app/data/forms/projectGeneralSettings';
 import {getOrganizationState} from 'app/mixins/organizationState';
 import {t, tct} from 'app/locale';
@@ -134,18 +134,18 @@ class ProjectGeneralSettings extends AsyncView {
       >
         <Confirm
           onConfirm={() => {
-            const loadingIndicator = IndicatorStore.add(t('Changing grouping..'));
-            this.api.request(`/projects/${orgId}/${projectId}/`, {
+            addLoadingMessage(t('Changing grouping...'));
+            this.api.requestPromise(`/projects/${orgId}/${projectId}/`, {
               method: 'PUT',
               data: newData,
-              success: (resp) => {
-                IndicatorStore.remove(loadingIndicator);
-                ProjectActions.updateSuccess(resp);
-              },
-              error: () => {
-                IndicatorStore.remove(loadingIndicator);
-              },
-            });
+            }).then((resp) => {
+              clearIndicators();
+              ProjectActions.updateSuccess(resp);
+              this.fetchData();
+            },
+            error => {
+              addErrorMessage(t('Error upgrading grouping config'));
+            })
           }}
           priority="danger"
           title={t('Upgrade grouping strategy?')}
@@ -340,7 +340,6 @@ class ProjectGeneralSettings extends AsyncView {
           }}
           apiMethod="PUT"
           apiEndpoint={endpoint}
-          ref={(x) => this.form = x}
           onSubmitSuccess={resp => {
             if (projectId !== resp.slug) {
               changeProjectSlug(projectId, resp.slug);
