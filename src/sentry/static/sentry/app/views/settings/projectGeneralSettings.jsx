@@ -54,7 +54,7 @@ class ProjectGeneralSettings extends AsyncView {
     const endpoints = [['data', `/projects/${orgId}/${projectId}/`]];
     const {organization} = this.context;
     const features = new Set(organization.features);
-    if (features.has('set-grouping-config')) {
+    if (features.has('set-grouping-config') || features.has('tweak-grouping-config')) {
       endpoints.push(['groupingConfigs', '/grouping-configs/']);
       endpoints.push(['groupingEnhancementBases', '/grouping-enhancements/']);
     }
@@ -370,7 +370,7 @@ class ProjectGeneralSettings extends AsyncView {
             fields={[fields.resolveAge]}
           />
 
-          {jsonFormProps.features.has('set-grouping-config') && (
+          {(jsonFormProps.features.has('set-grouping-config') || jsonFormProps.features.has('tweak-grouping-config')) && (
             <JsonForm
               {...jsonFormProps}
               title={t('Grouping Settings')}
@@ -389,7 +389,7 @@ class ProjectGeneralSettings extends AsyncView {
                       )}
                     </TextBlock>
                   </PanelAlert>
-                  {this.renderUpgradeGrouping()}
+                  {jsonFormProps.features.has('tweak-grouping-config') && this.renderUpgradeGrouping()}
                 </>
               )}
             />
