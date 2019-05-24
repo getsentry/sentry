@@ -4,7 +4,6 @@ from datetime import timedelta
 from django.utils import timezone
 from django.core.urlresolvers import reverse
 from exam import fixture
-from uuid import uuid4
 
 from sentry.testutils import APITestCase, SnubaTestCase
 
@@ -133,11 +132,3 @@ class OrganizationTagKeyValuesTest(APITestCase, SnubaTestCase):
 
     def test_no_projects(self):
         self.run_test('fruit', expected=[])
-
-    def test_large_number_categories(self):
-        for i in range(0, 20):
-            self.create_event(
-                event_id=uuid4().hex, group=self.group, datetime=self.day_ago, tags={
-                    'num': '%d' % i},
-            )
-        self.run_test('num', expected=[('3', 1), ('2', 1), ('1', 2)])
