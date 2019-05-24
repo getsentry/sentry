@@ -914,7 +914,6 @@ urlpatterns = patterns(
         name='sentry-api-0-event-apple-crash-report'
     ),
     url(
-        # /api/0/projects/sentry/1/events/cccf3e32a23641c0b3f2cf5cc1029b52/attachments/
         r'^projects/(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/events/(?P<event_id>[\w-]+)/attachments/$',
         EventAttachmentsEndpoint.as_view(),
         name='sentry-api-0-event-attachments'

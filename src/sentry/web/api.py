@@ -42,7 +42,7 @@ from sentry.lang.native.unreal import process_unreal_crash, merge_apple_crash_re
 from sentry.lang.native.minidump import merge_process_state_event, process_minidump, \
     merge_attached_event, merge_attached_breadcrumbs, write_minidump_placeholder, \
     MINIDUMP_ATTACHMENT_TYPE
-from sentry.models import Project, OrganizationOption, Organization
+from sentry.models import Project, OrganizationOption, Organization, File, EventAttachment
 from sentry.signals import (
     event_accepted, event_dropped, event_filtered, event_received)
 from sentry.quotas.base import RateLimit
@@ -585,6 +585,32 @@ class StoreView(APIView):
 
         return process_event(event_manager, project,
                              key, remote_addr, helper, attachments)
+
+
+class EventAttachmentStoreView(StoreView):
+
+    def post(self, request, project, event_id, **kwargs):
+        if not features.has('organizations:event-attachments',
+                            project.organization, actor=request.user):
+            return self.respond(status=405)
+
+        for name, uploaded_file in six.iteritems(request.FILES):
+            file = File.objects.create(
+                name=uploaded_file.name,
+                type='event.attachment',
+                headers={'Content-Type': uploaded_file.content_type},
+            )
+            file.putfile(uploaded_file)
+
+            EventAttachment.objects.create(
+                project_id=project.id,
+                # group_id=event.group_id,
+                event_id=event_id,
+                name=uploaded_file.name,
+                file=file,
+            )
+
+        return HttpResponse(status=201)
 
 
 class MinidumpView(StoreView):
