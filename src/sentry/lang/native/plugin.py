@@ -373,7 +373,7 @@ def convert_ios_symbolserver_match(instruction_addr, symbolserver_match):
     function = line_info.function_name
     package = symbolserver_match['object_name']
 
-    return {
+    return [{
         'sym_addr': '0x%x' % (line_info.sym_addr,),
         'instruction_addr': '0x%x' % (line_info.instr_addr,),
         'function': function,
@@ -381,7 +381,7 @@ def convert_ios_symbolserver_match(instruction_addr, symbolserver_match):
         'filename': trim(line_info.rel_path, 256),
         'abs_path': trim(line_info.abs_path, 256),
         'package': package,
-    }
+    }]
 
 
 class NativePlugin(Plugin2):
