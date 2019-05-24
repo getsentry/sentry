@@ -8,6 +8,6 @@ from sentry.models import IntegrationFeature
 class ServiceHookSerializer(Serializer):
     def serialize(self, obj, attrs, user):
         return {
-            'description': obj.description['data'].strip(),
+            'description': obj.description.strip(),
             'featureGate': obj.feature_str(),
         }

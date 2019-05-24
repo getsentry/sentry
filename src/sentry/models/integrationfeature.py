@@ -3,7 +3,7 @@ from __future__ import absolute_import
 from django.db import models
 from django.utils import timezone
 
-from sentry.db.models import BoundedPositiveIntegerField, EncryptedJsonField, FlexibleForeignKey, Model
+from sentry.db.models import BoundedPositiveIntegerField, FlexibleForeignKey, Model
 
 
 class Feature(object):
@@ -32,11 +32,23 @@ class Feature(object):
         elif feature == cls.EVENT_HOOKS:
             return 'integrations-event-hooks'
 
+    @classmethod
+    def description(cls, feature):
+        if feature == cls.API:
+            return "This integration can utilize the Sentry API (with the permissions granted) to pull data or update resources in Sentry!"
+        elif feature == cls.ISSUE_LINK:
+            return "This integration can allow your organization to create or link Sentry issues to another service!"
+        elif feature == cls.STACKTRACE_LINK:
+            return "This integration allows your organization to open a line in Sentry's stack trace in another service!"
+        elif feature == cls.EVENT_HOOKS:
+            return "This integration allows your organization to forward events to another service!"
+
 
 class IntegrationFeature(Model):
     __core__ = False
 
-    description = EncryptedJsonField(default=dict)
+    sentry_app = FlexibleForeignKey('sentry.SentryApp')
+    user_description = models.TextField(null=True)
     feature = BoundedPositiveIntegerField(
         default=0,
         choices=Feature.as_choices(),
@@ -50,13 +62,9 @@ class IntegrationFeature(Model):
     def feature_str(self):
         return Feature.as_str(self.feature)
 
-
-class SentryAppIntegrationFeature(Model):
-    __core__ = False
-
-    feature = FlexibleForeignKey('sentry.IntegrationFeature')
-    sentry_app = FlexibleForeignKey('sentry.SentryApp')
-
-    class Meta:
-        app_label = 'sentry'
-        db_table = 'sentry_sentryappintegrationfeature'
+    @property
+    def description(self):
+        if self.user_description:
+            return self.user_description
+        else:
+            return Feature.description(self.feature)
