@@ -95,6 +95,8 @@ API_ERRORS = {
 
 
 class GitHubEnterpriseIntegration(IntegrationInstallation, GitHubIssueBasic, RepositoryMixin):
+    repo_search = True
+
     def get_client(self):
         base_url = self.model.metadata['domain_name'].split('/')[0]
         return GitHubEnterpriseAppsClient(
@@ -106,10 +108,19 @@ class GitHubEnterpriseIntegration(IntegrationInstallation, GitHubIssueBasic, Rep
         )
 
     def get_repositories(self, query=None):
-        data = []
-        for repo in self.get_client().get_repositories():
-            data.append({'name': repo['name'], 'identifier': repo['full_name']})
-        return data
+        if not query:
+            return [{
+                'name': i['name'],
+                'identifier': i['full_name']
+            } for i in self.get_client().get_repositories()]
+
+        account_type = 'user' if self.model.metadata['account_type'] == 'User' else 'org'
+        full_query = (u'%s:%s %s' % (account_type, self.model.name, query)).encode('utf-8')
+        response = self.get_client().search_repositories(full_query)
+        return [{
+            'name': i['name'],
+            'identifier': i['full_name']
+        } for i in response.get('items', [])]
 
     def search_issues(self, query):
         return self.get_client().search_issues(query)
