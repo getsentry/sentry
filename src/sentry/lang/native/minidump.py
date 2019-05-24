@@ -1,6 +1,6 @@
 from __future__ import absolute_import
 
-from datetime import datetime, timedelta
+import time
 import logging
 
 import dateutil.parser as dp
@@ -141,16 +141,27 @@ def merge_symbolicator_minidump_response(data, response):
 
     # If we set a too old timestamp then this affects event retention and
     # search. XXX(markus): We should figure out if we could run normalization
-    # after event processing again.
+    # after event processing again. Right now we duplicate code between here
+    # and event normalization
 
     timestamp = response.get('timestamp')
-    current = datetime.now()
-    if timestamp and (
-        current - timedelta(seconds=MAX_SECS_IN_PAST) <=
-        datetime.fromtimestamp(float(timestamp)) <=
-        current + timedelta(seconds=MAX_SECS_IN_FUTURE)
-    ):
-        data['timestamp'] = float(response['timestamp'])
+    if timestamp:
+        current = time.time()
+
+        if current - MAX_SECS_IN_PAST > timestamp:
+            data.setdefault('errors', []).append({
+                'ty': EventError.PAST_TIMESTAMP,
+                'name': 'timestamp',
+                'value': timestamp,
+            })
+        elif timestamp > current + MAX_SECS_IN_FUTURE:
+            data.setdefault('errors', []).append({
+                'ty': EventError.FUTURE_TIMESTAMP,
+                'name': 'timestamp',
+                'value': timestamp,
+            })
+        else:
+            data['timestamp'] = float(response['timestamp'])
 
     if response.get('system_info'):
         merge_symbolicator_minidump_system_info(data, response['system_info'])
