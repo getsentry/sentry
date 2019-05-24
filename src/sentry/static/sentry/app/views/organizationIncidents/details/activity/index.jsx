@@ -45,7 +45,15 @@ class ActivityContainer extends React.PureComponent {
   }
 
   componentDidUpdate(prevProps) {
-    if (prevProps.incidentStatus !== this.props.incidentStatus) {
+    // Only refetch if incidentStatus changes.
+    //
+    // This component can mount before incident details is fully loaded.
+    // In which case, `incidentStatus` is null and we will be fetching via `cDM`
+    // There's no need to fetch this gets updated due to incident details being loaded
+    if (
+      prevProps.incidentStatus !== null &&
+      prevProps.incidentStatus !== this.props.incidentStatus
+    ) {
       this.fetchData();
     }
   }
