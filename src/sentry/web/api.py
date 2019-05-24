@@ -592,7 +592,10 @@ class EventAttachmentStoreView(StoreView):
     def post(self, request, project, event_id, **kwargs):
         if not features.has('organizations:event-attachments',
                             project.organization, actor=request.user):
-            return self.respond(status=405)
+            return HttpResponse(status=405)
+
+        if len(request.FILES) == 0:
+            return HttpResponse(status=400)
 
         for name, uploaded_file in six.iteritems(request.FILES):
             file = File.objects.create(
