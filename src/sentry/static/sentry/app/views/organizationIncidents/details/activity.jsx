@@ -276,7 +276,7 @@ class ActivityContainer extends React.Component {
       await deleteIncidentNote(api, orgId, incidentId, activity.id);
     } catch (error) {
       this.setState(state => ({
-        activities: insertAtArrayIndex(state.activities, index, oldActivity),
+        activities: replaceAtArrayIndex(state.activities, index, oldActivity),
       }));
     }
   };
@@ -288,7 +288,7 @@ class ActivityContainer extends React.Component {
     const [index, oldActivity] = this.getIndexAndActivityFromState(activity);
 
     this.setState(state => ({
-      activities: insertAtArrayIndex(state.activities, index, {
+      activities: replaceAtArrayIndex(state.activities, index, {
         ...oldActivity,
         comment: note.text,
       }),
@@ -298,7 +298,7 @@ class ActivityContainer extends React.Component {
       await updateIncidentNote(api, orgId, incidentId, activity.id, note);
     } catch (error) {
       this.setState(state => ({
-        activities: insertAtArrayIndex(state.activities, index, oldActivity),
+        activities: replaceAtArrayIndex(state.activities, index, oldActivity),
       }));
     }
   };
@@ -327,11 +327,15 @@ class ActivityContainer extends React.Component {
 export default withApi(ActivityContainer);
 
 function removeFromArrayIndex(array, index) {
-  return [...array.slice(0, index), ...array.slice(index + 1)];
+  const newArray = [...array];
+  newArray.splice(index, 1);
+  return newArray;
 }
 
-function insertAtArrayIndex(array, index, obj) {
-  return [...array.slice(0, index), obj, ...array.slice(index + 1)];
+function replaceAtArrayIndex(array, index, obj) {
+  const newArray = [...array];
+  newArray.splice(index, 1, obj);
+  return newArray;
 }
 
 const StyledTimeSince = styled(TimeSince)`
