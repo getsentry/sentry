@@ -1,8 +1,10 @@
+import {css} from 'emotion';
 import PropTypes from 'prop-types';
 import React from 'react';
 import posed, {PoseGroup} from 'react-pose';
 import styled from 'react-emotion';
 
+import {alertStyles} from 'app/components/alert';
 import {analytics} from 'app/utils/analytics';
 import {loadDocs} from 'app/actionCreators/projects';
 import {t, tct} from 'app/locale';
@@ -208,6 +210,14 @@ AnimatedPlatformHeading.propTypes = {
   platform: PropTypes.string.isRequired,
 };
 
+const mapAlertStyles = p => type =>
+  css`
+    .alert-${type} {
+      ${alertStyles({theme: p.theme, type})};
+      display: block;
+    }
+  `;
+
 const DocsWrapper = styled(posed.div(docsTransition))`
   h1,
   h2,
@@ -219,9 +229,27 @@ const DocsWrapper = styled(posed.div(docsTransition))`
     margin-bottom: 18px;
   }
 
+  code {
+    font-size: 87.5%;
+    color: #e83e8c;
+  }
+
+  pre code {
+    color: inherit;
+    font-size: inherit;
+    white-space: pre;
+  }
+
   h2 {
     font-size: 1.4em;
   }
+
+  .alert h5 {
+    font-size: 1em;
+    margin-bottom: 1rem;
+  }
+
+  ${p => Object.keys(p.theme.alert).map(mapAlertStyles(p))}
 `;
 
 export default withOrganization(withApi(ProjectDocs));
