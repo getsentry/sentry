@@ -1,10 +1,12 @@
 from __future__ import absolute_import
 
+from datetime import datetime, timedelta
 import logging
 
 import dateutil.parser as dp
 from msgpack import unpack, Unpacker, UnpackException, ExtraData
 
+from sentry.event_manager import MAX_SECS_IN_FUTURE, MAX_SECS_IN_PAST
 from sentry.lang.native.utils import get_sdk_from_event, handle_symbolication_failed, merge_symbolicated_frame
 from sentry.lang.native.symbolicator import merge_symbolicator_image
 from sentry.lang.native.symbolizer import SymbolicationFailed
@@ -137,7 +139,17 @@ def merge_symbolicator_minidump_response(data, response):
     if response.get('crashed') is not None:
         data['level'] = 'fatal' if response['crashed'] else 'info'
 
-    if response.get('timestamp'):
+    # If we set a too old timestamp then this affects event retention and
+    # search. XXX(markus): We should figure out if we could run normalization
+    # after event processing again.
+
+    timestamp = response.get('timestamp')
+    current = datetime.now()
+    if timestamp and (
+        current - timedelta(seconds=MAX_SECS_IN_PAST) <=
+        datetime.fromtimestamp(float(timestamp)) <=
+        current + timedelta(seconds=MAX_SECS_IN_FUTURE)
+    ):
         data['timestamp'] = float(response['timestamp'])
 
     if response.get('system_info'):
