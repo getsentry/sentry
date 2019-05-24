@@ -13,8 +13,8 @@ from requests.exceptions import RequestException
 from sentry import options
 from sentry.auth.system import get_system_token
 from sentry.cache import default_cache
-from sentry.lang.native.symbolizer import SymbolicationFailed
-from sentry.lang.native.utils import image_name, handle_symbolication_failed
+from sentry.lang.native.error import SymbolicationFailed, write_error
+from sentry.lang.native.utils import image_name
 from sentry.models.eventerror import EventError
 from sentry.utils import json, metrics
 from sentry.utils.in_app import is_known_third_party, is_optional_package
@@ -429,7 +429,7 @@ def handle_symbolicator_response_status(event_data, response_json):
         logger.error('Unexpected symbolicator status: %s', response_json['status'])
         error = SymbolicationFailed(type=EventError.NATIVE_INTERNAL_FAILURE)
 
-    handle_symbolication_failed(error, data=event_data)
+    write_error(error, event_data)
 
 
 def _poll_symbolication_task(sess, base_url, request_id, project_id):

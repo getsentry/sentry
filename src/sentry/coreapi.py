@@ -77,7 +77,8 @@ class APIRateLimited(APIError):
 
 
 class Auth(object):
-    def __init__(self, client=None, version=None, secret_key=None, public_key=None, is_public=False):
+    def __init__(self, client=None, version=None, secret_key=None,
+                 public_key=None, is_public=False):
         self.client = client
         self.version = version
         self.secret_key = secret_key
