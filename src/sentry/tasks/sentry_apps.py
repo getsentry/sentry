@@ -142,9 +142,8 @@ def _process_resource_change(action, sender, instance_id, retryer=None, *args, *
     org = None
 
     if isinstance(instance, Group):
-        org = Organization.objects.get_from_cache(
-            Project.objects.get_from_cache(instance.project_id).organization_id
-        )
+        project = Project.objects.get_from_cache(instance.project_id)
+        org = Organization.objects.get_from_cache(project.organization_id)
 
     installations = filter(
         lambda i: event in i.sentry_app.events,
