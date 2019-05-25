@@ -12,7 +12,7 @@ from sentry.tasks.base import instrumented_task, retry
 from sentry.utils.http import absolute_uri
 from sentry.api.serializers import serialize, AppPlatformEvent
 from sentry.models import (
-    SentryAppInstallation, Group, User, ServiceHook, ServiceHookProject, SentryApp,
+    SentryAppInstallation, Group, Project, Organization, User, ServiceHook, ServiceHookProject, SentryApp,
 )
 from sentry.models.sentryapp import VALID_EVENTS
 
@@ -40,12 +40,13 @@ TYPES = {
 @retry(on=(RequestException, ))
 def send_alert_event(event, rule, sentry_app_id):
     group = event.group
-    project = group.project
+    project = Project.objects.get_from_cache(id=group.project_id)
+    organization = Organization.objects.get_from_cache(id=project.organization_id)
 
     extra = {
         'sentry_app_id': sentry_app_id,
         'project': project.slug,
-        'organization': project.organization.slug,
+        'organization': organization.slug,
         'rule': rule,
     }
 
@@ -57,7 +58,7 @@ def send_alert_event(event, rule, sentry_app_id):
 
     try:
         install = SentryAppInstallation.objects.get(
-            organization=event.project.organization_id,
+            organization=organization.id,
             sentry_app=sentry_app,
         )
     except SentryAppInstallation.DoesNotExist:
@@ -71,15 +72,15 @@ def send_alert_event(event, rule, sentry_app_id):
         event.id,
     ]))
 
-    if features.has('organizations:sentry10', project.organization):
+    if features.has('organizations:sentry10', organization):
         event_context['web_url'] = absolute_uri(reverse('sentry-organization-event-detail', args=[
-            project.organization.slug,
+            organization.slug,
             group.id,
             event.id,
         ]))
     else:
         event_context['web_url'] = absolute_uri(reverse('sentry-group-event', args=[
-            project.organization.slug,
+            organization.slug,
             project.slug,
             group.id,
             event.id,
@@ -141,7 +142,11 @@ def _process_resource_change(action, sender, instance_id, retryer=None, *args, *
     org = None
 
     if isinstance(instance, Group):
-        org = instance.organization
+        org = Organization.objects.get_from_cache(
+            id=Project.objects.get_from_cache(
+                id=instance.project_id
+            ).organization_id
+        )
 
     installations = filter(
         lambda i: event in i.sentry_app.events,
