@@ -1,25 +1,23 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import createReactClass from 'create-react-class';
 import styled from 'react-emotion';
 
+import RadioGroup from 'app/views/settings/components/forms/controls/radioGroup';
+import {t} from 'app/locale';
+import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
+import withApi from 'app/utils/withApi';
 import Well from 'app/components/well';
 import {Panel, PanelBody, PanelHeader} from './panels';
-import {addErrorMessage, addSuccessMessage} from '../actionCreators/indicator';
-import {t} from '../locale';
-import ApiMixin from '../mixins/apiMixin';
 import Avatar from './avatar';
 import AvatarCropper from './avatarCropper';
 import Button from './button';
-import ExternalLink from './externalLink';
+import ExternalLink from './links/externalLink';
 import LoadingError from './loadingError';
 import LoadingIndicator from './loadingIndicator';
-import RadioGroup from '../views/settings/components/forms/controls/radioGroup';
 
-const AvatarChooser = createReactClass({
-  displayName: 'AvatarChooser',
-
-  propTypes: {
+class AvatarChooser extends React.Component {
+  static propTypes = {
+    api: PropTypes.object,
     endpoint: PropTypes.string.isRequired,
     allowGravatar: PropTypes.bool,
     allowLetter: PropTypes.bool,
@@ -35,68 +33,65 @@ const AvatarChooser = createReactClass({
     savedDataUrl: PropTypes.string,
     onSave: PropTypes.func,
     disabled: PropTypes.bool,
-  },
+  };
 
-  mixins: [ApiMixin],
+  static defaultProps = {
+    allowGravatar: true,
+    allowLetter: true,
+    allowUpload: true,
+    onSave: () => {},
+  };
 
-  getDefaultProps() {
-    return {
-      allowGravatar: true,
-      allowLetter: true,
-      allowUpload: true,
-      onSave: () => {},
-    };
-  },
-
-  getInitialState() {
-    return {
+  constructor(props) {
+    super(props);
+    this.state = {
       model: this.props.model,
       savedDataUrl: null,
       dataUrl: null,
       hasError: false,
     };
-  },
+  }
 
   componentWillReceiveProps(nextProps) {
     // Update local state if defined in props
     if (typeof nextProps.model !== 'undefined') {
       this.setState({model: nextProps.model});
     }
-  },
+  }
 
   updateState(model) {
     this.setState({model});
-  },
+  }
 
-  updateDataUrlState(dataUrlState) {
+  updateDataUrlState = dataUrlState => {
     this.setState(dataUrlState);
-  },
+  };
 
   handleError(msg) {
     addErrorMessage(msg);
-  },
+  }
 
   handleSuccess(model) {
-    let {onSave} = this.props;
+    const {onSave} = this.props;
     this.setState({model});
     onSave(model);
     addSuccessMessage(t('Successfully saved avatar preferences'));
-  },
+  }
 
-  handleSaveSettings(ev) {
-    let {endpoint} = this.props;
-    let {model, dataUrl} = this.state;
+  handleSaveSettings = ev => {
+    const {endpoint, api} = this.props;
+    const {model, dataUrl} = this.state;
     ev.preventDefault();
     let data = {};
-    let avatarType = model && model.avatar ? model.avatar.avatarType : undefined;
-    let avatarPhoto = dataUrl ? dataUrl.split(',')[1] : null;
+    const avatarType = model && model.avatar ? model.avatar.avatarType : undefined;
+    const avatarPhoto = dataUrl ? dataUrl.split(',')[1] : null;
 
     data = {
       avatar_photo: avatarPhoto,
       avatar_type: avatarType,
     };
 
-    this.api.request(endpoint, {
+    api.request(endpoint, {
       method: 'PUT',
       data,
       success: resp => {
@@ -105,16 +100,16 @@ const AvatarChooser = createReactClass({
       },
       error: this.handleError.bind(this, 'There was an error saving your preferences.'),
     });
-  },
+  };
 
   handleChange(id) {
-    let model = {...this.state.model};
+    const model = {...this.state.model};
     model.avatar.avatarType = id;
     this.updateState(model);
-  },
+  }
 
   render() {
-    let {
+    const {
       allowGravatar,
       allowUpload,
       allowLetter,
@@ -123,7 +118,7 @@ const AvatarChooser = createReactClass({
       isUser,
       disabled,
     } = this.props;
-    let {hasError, model} = this.state;
+    const {hasError, model} = this.state;
 
     if (hasError) {
       return <LoadingError />;
@@ -132,13 +127,13 @@ const AvatarChooser = createReactClass({
       return <LoadingIndicator />;
     }
 
-    let avatarType = (model.avatar && model.avatar.avatarType) || 'letter_avatar';
-    let isLetter = avatarType === 'letter_avatar';
+    const avatarType = (model.avatar && model.avatar.avatarType) || 'letter_avatar';
+    const isLetter = avatarType === 'letter_avatar';
     // let isUpload = avatarType === 'upload';
-    let isTeam = type === 'team';
-    let isOrganization = type === 'organization';
-    let isProject = type === 'project';
-    let choices = [];
+    const isTeam = type === 'team';
+    const isOrganization = type === 'organization';
+    const isProject = type === 'project';
+    const choices = [];
 
     if (allowLetter) {
       choices.push(['letter_avatar', 'Use initials']);
@@ -178,13 +173,12 @@ const AvatarChooser = createReactClass({
             </AvatarGroup>
 
             <AvatarUploadSection>
-              {allowGravatar &&
-                avatarType === 'gravatar' && (
-                  <Well>
-                    {t('Gravatars are managed through ')}
-                    <ExternalLink href="http://gravatar.com">Gravatar.com</ExternalLink>
-                  </Well>
-                )}
+              {allowGravatar && avatarType === 'gravatar' && (
+                <Well>
+                  {t('Gravatars are managed through ')}
+                  <ExternalLink href="http://gravatar.com">Gravatar.com</ExternalLink>
+                </Well>
+              )}
 
               {avatarType === 'upload' && (
                 <AvatarCropper
@@ -209,10 +203,10 @@ const AvatarChooser = createReactClass({
         </PanelBody>
       </Panel>
     );
-  },
-});
+  }
+}
 
-const AvatarGroup = styled.div`
+const AvatarGroup = styled('div')`
   display: flex;
   flex-direction: ${p => (p.inline ? 'row' : 'column')};
 `;
@@ -232,4 +226,4 @@ const AvatarUploadSection = styled('div')`
   margin-top: 1em;
 `;
 
-export default AvatarChooser;
+export default withApi(AvatarChooser);

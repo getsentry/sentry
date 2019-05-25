@@ -42,6 +42,14 @@ def random_ip():
     )
 
 
+def random_geo():
+    return random.choice([
+        {'country_code': 'US', 'region': 'CA', 'city': 'San Francisco'},
+        {'country_code': 'AU', 'region': 'VIC', 'city': 'Melbourne'},
+        {'country_code': 'GB', 'region': 'H9', 'city': 'London'},
+    ])
+
+
 def random_username():
     return random.choice(
         [
@@ -88,6 +96,7 @@ def generate_user(username=None, email=None, ip_address=None, id=None):
             'email': email,
             'ip_address': ip_address or random_ip(),
             'name': name_for_username(username),
+            'geo': random_geo(),
         }
     ).to_json()
 
@@ -134,14 +143,16 @@ def load_data(platform, default=None, sample_name=None):
         return data
 
     data['platform'] = platform
-    data['message'] = 'This is an example %s exception' % (sample_name or platform, )
-    data['user'] = generate_user(
+    # XXX: Message is a legacy alias for logentry. Do not overwrite if set.
+    if 'message' not in data:
+        data['message'] = 'This is an example %s exception' % (sample_name or platform, )
+    data.setdefault('user', generate_user(
         ip_address='127.0.0.1',
         username='sentry',
         id=1,
         email='sentry@example.com',
-    )
-    data['extra'] = {
+    ))
+    data.setdefault('extra', {
         'session': {
             'foo': 'bar',
         },
@@ -151,11 +162,11 @@ def load_data(platform, default=None, sample_name=None):
         'length': 10837790,
         'unauthorized': False,
         'url': 'http://example.org/foo/bar/',
-    }
-    data['modules'] = {
+    })
+    data.setdefault('modules', {
         'my.package': '1.0.0',
-    }
-    data['request'] = {
+    })
+    data.setdefault('request', {
         "cookies": 'foo=bar;biz=baz',
         "url": "http://example.com/foo",
         "headers": {
@@ -172,7 +183,7 @@ def load_data(platform, default=None, sample_name=None):
         "query_string": "foo=bar",
         "data": '{"hello": "world"}',
         "method": "GET"
-    }
+    })
 
     return data
 

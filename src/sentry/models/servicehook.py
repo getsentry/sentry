@@ -18,11 +18,26 @@ from sentry.db.models import (
     FlexibleForeignKey,
     sane_repr,
 )
+from sentry.models import SentryApp
 
 SERVICE_HOOK_EVENTS = [
     'event.alert',
     'event.created',
+    # 'issue.created', This is only allowed for Sentry Apps, but listing it
+    #                  here for discoverability purposes.
 ]
+
+
+class ServiceHookProject(Model):
+    __core__ = False
+
+    service_hook = FlexibleForeignKey('sentry.ServiceHook')
+    project_id = BoundedPositiveIntegerField(db_index=True)
+
+    class Meta:
+        app_label = 'sentry'
+        db_table = 'sentry_servicehookproject'
+        unique_together = (('service_hook', 'project_id'), )
 
 
 def generate_secret():
@@ -37,6 +52,7 @@ class ServiceHook(Model):
     application = FlexibleForeignKey('sentry.ApiApplication', null=True)
     actor_id = BoundedPositiveIntegerField(db_index=True)
     project_id = BoundedPositiveIntegerField(db_index=True)
+    organization_id = BoundedPositiveIntegerField(db_index=True, null=True)
     url = models.URLField(max_length=512)
     secret = EncryptedTextField(default=generate_secret)
     events = ArrayField(of=models.TextField)
@@ -58,6 +74,17 @@ class ServiceHook(Model):
 
     __repr__ = sane_repr('guid', 'project_id')
 
+    @property
+    def created_by_sentry_app(self):
+        return (self.application_id and self.sentry_app)
+
+    @property
+    def sentry_app(self):
+        try:
+            return SentryApp.objects.get(application_id=self.application_id)
+        except SentryApp.DoesNotExist:
+            return
+
     def __init__(self, *args, **kwargs):
         super(ServiceHook, self).__init__(*args, **kwargs)
         if self.guid is None:
@@ -75,3 +102,13 @@ class ServiceHook(Model):
 
     def get_audit_log_data(self):
         return {'url': self.url}
+
+    def add_project(self, project):
+        """
+        Add a project to the service hook.
+
+        """
+        ServiceHookProject.objects.create(
+            project_id=project.id,
+            service_hook_id=self.id,
+        )

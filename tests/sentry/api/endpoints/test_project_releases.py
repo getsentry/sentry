@@ -3,9 +3,22 @@ from __future__ import absolute_import
 from datetime import datetime, timedelta
 from django.utils import timezone
 from django.core.urlresolvers import reverse
+from exam import fixture
 
-from sentry.models import Environment, Release, ReleaseCommit, ReleaseEnvironment, ReleaseProject, ReleaseProjectEnvironment
-from sentry.testutils import APITestCase
+from sentry.api.endpoints.project_releases import ReleaseWithVersionSerializer
+from sentry.constants import VERSION_LENGTH
+from sentry.models import (
+    BAD_RELEASE_CHARS,
+    CommitAuthor,
+    CommitFileChange,
+    Environment,
+    Release,
+    ReleaseCommit,
+    ReleaseProject,
+    ReleaseProjectEnvironment,
+    Repository,
+)
+from sentry.testutils import APITestCase, ReleaseCommitPatchTest, TestCase
 
 
 class ProjectReleaseListTest(APITestCase):
@@ -125,12 +138,6 @@ class ProjectReleaseListEnvironmentsTest(APITestCase):
             date_added=self.datetime,
         )
         release1.add_project(project1)
-        ReleaseEnvironment.objects.create(
-            organization_id=project1.organization_id,
-            project_id=project1.id,
-            release_id=release1.id,
-            environment_id=env1.id,
-        )
         ReleaseProjectEnvironment.objects.create(
             release_id=release1.id,
             project_id=project1.id,
@@ -145,12 +152,6 @@ class ProjectReleaseListEnvironmentsTest(APITestCase):
             date_added=self.datetime,
         )
         release2.add_project(project2)
-        ReleaseEnvironment.objects.create(
-            organization_id=project2.organization_id,
-            project_id=project2.id,
-            release_id=release2.id,
-            environment_id=env2.id,
-        )
         ReleaseProjectEnvironment.objects.create(
             release_id=release2.id,
             project_id=project2.id,
@@ -166,12 +167,6 @@ class ProjectReleaseListEnvironmentsTest(APITestCase):
             date_released=self.datetime,
         )
         release3.add_project(project1)
-        ReleaseEnvironment.objects.create(
-            organization_id=project1.organization_id,
-            project_id=project1.id,
-            release_id=release3.id,
-            environment_id=env3.id,
-        )
         ReleaseProjectEnvironment.objects.create(
             release_id=release3.id,
             project_id=project1.id,
@@ -286,12 +281,6 @@ class ProjectReleaseListEnvironmentsTest(APITestCase):
             first_seen=self.datetime + timedelta(seconds=120),
             last_seen=self.datetime + timedelta(seconds=700),
             new_issues_count=7,
-        )
-        ReleaseEnvironment.objects.create(
-            organization_id=self.project1.organization_id,
-            project_id=self.project1.id,
-            release_id=self.release1.id,
-            environment_id=self.env3.id,
         )
 
         # TODO(LB): This is testing all environmetns but it will not work
@@ -583,3 +572,225 @@ class ProjectReleaseCreateTest(APITestCase):
         assert len(rc_list) == 2
         for rc in rc_list:
             assert rc.organization_id
+
+
+class ProjectReleaseCreateCommitPatch(ReleaseCommitPatchTest):
+    @fixture
+    def url(self):
+        return reverse(
+            'sentry-api-0-project-releases',
+            kwargs={
+                'organization_slug': self.project.organization.slug,
+                'project_slug': self.project.slug,
+            }
+        )
+
+    def test_commits_with_patch_set(self):
+        response = self.client.post(
+            self.url,
+            data={
+                "version": "2d1ab93fe4bb42db80890f01f8358fc9f8fbff3b",
+                "projects": [self.project.slug],
+                "commits": [
+                    {
+                        "patch_set": [{"path": "hello.py", "type": "M"}, {"path": "templates/hola.html", "type": "D"}],
+                        "repository": "laurynsentry/helloworld",
+                        "author_email": "lauryndbrown@gmail.com",
+                        "timestamp": "2018-11-29T18:50:28+03:00",
+                        "author_name": "Lauryn Brown",
+                        "message": "made changes to hello.",
+                        "id": "2d1ab93fe4bb42db80890f01f8358fc9f8fbff3b"
+                    }, {
+                        "patch_set": [{"path": "templates/hello.html", "type": "M"}, {"path": "templates/goodbye.html", "type": "A"}],
+                        "repository": "laurynsentry/helloworld",
+                        "author_email": "lauryndbrown@gmail.com",
+                        "timestamp": "2018-11-30T22:51:14+03:00",
+                        "author_name": "Lauryn Brown",
+                        "message": "Changed release",
+                        "id": "be2fe070f6d1b8a572b67defc87af2582f9b0d78"
+                    }
+                ]
+            }
+        )
+
+        assert response.status_code == 201, (response.status_code, response.content)
+        assert response.data['version']
+
+        release = Release.objects.get(
+            organization_id=self.org.id,
+            version=response.data['version'],
+        )
+
+        repo = Repository.objects.get(
+            organization_id=self.org.id,
+            name='laurynsentry/helloworld',
+        )
+        assert repo.provider is None
+
+        rc_list = list(
+            ReleaseCommit.objects.filter(
+                release=release,
+            ).select_related('commit', 'commit__author')
+        )
+        assert len(rc_list) == 2
+        for rc in rc_list:
+            assert rc.organization_id
+
+        author = CommitAuthor.objects.get(
+            organization_id=self.org.id,
+            email='lauryndbrown@gmail.com'
+        )
+        assert author.name == 'Lauryn Brown'
+
+        commits = [rc.commit for rc in rc_list]
+        commits.sort(key=lambda c: c.date_added)
+
+        self.assert_commit(
+            commit=commits[0],
+            repo_id=repo.id,
+            key='2d1ab93fe4bb42db80890f01f8358fc9f8fbff3b',
+            author_id=author.id,
+            message='made changes to hello.',
+        )
+
+        self.assert_commit(
+            commit=commits[1],
+            repo_id=repo.id,
+            key='be2fe070f6d1b8a572b67defc87af2582f9b0d78',
+            author_id=author.id,
+            message='Changed release',
+        )
+
+        file_changes = CommitFileChange.objects.filter(
+            organization_id=self.org.id
+        ).order_by('filename')
+
+        self.assert_file_change(file_changes[0], 'M', 'hello.py', commits[0].id)
+        self.assert_file_change(file_changes[1], 'A', 'templates/goodbye.html', commits[1].id)
+        self.assert_file_change(file_changes[2], 'M', 'templates/hello.html', commits[1].id)
+        self.assert_file_change(file_changes[3], 'D', 'templates/hola.html', commits[0].id)
+
+    def test_invalid_patch_type(self):
+        response = self.client.post(
+            self.url,
+            data={
+                "version": "2d1ab93fe4bb42db80890f01f8358fc9f8fbff3b",
+                "projects": [self.project.slug],
+                "commits": [
+                    {
+                        "patch_set": [{"path": "hello.py", "type": "Z"}, {"path": "templates/hola.html", "type": "D"}],
+                        "repository": "laurynsentry/helloworld",
+                        "author_email": "lauryndbrown@gmail.com",
+                        "timestamp": "2018-11-29T18:50:28+03:00",
+                        "author_name": "Lauryn Brown",
+                        "message": "made changes to hello.",
+                        "id": "2d1ab93fe4bb42db80890f01f8358fc9f8fbff3b"
+                    },
+                ]
+            }
+        )
+
+        assert response.status_code == 400
+        assert response.data == {
+            'commits': [u'patch_set: type: Commit patch_set type Z is not supported.']}
+
+
+class ReleaseSerializerTest(TestCase):
+    def setUp(self):
+        super(ReleaseSerializerTest, self).setUp()
+        self.version = '1234567890'
+        self.repo_name = 'repo/name'
+        self.repo2_name = 'repo2/name'
+        self.commits = [{'id': 'a' * 40}, {'id': 'b' * 40}]
+        self.ref = 'master'
+        self.url = 'https://example.com'
+        self.dateReleased = '1000-10-10T06:06'
+
+    def test_simple(self):
+        serializer = ReleaseWithVersionSerializer(data={
+            'version': self.version,
+            'owner': self.user.username,
+            'ref': self.ref,
+            'url': self.url,
+            'dateReleased': self.dateReleased,
+            'commits': self.commits,
+
+        })
+
+        assert serializer.is_valid()
+        assert sorted(serializer.fields.keys()) == sorted(
+            ['version', 'owner', 'ref', 'url', 'dateReleased', 'commits'])
+
+        result = serializer.object
+        assert result['version'] == self.version
+        assert result['owner'] == self.user
+        assert result['ref'] == self.ref
+        assert result['url'] == self.url
+        assert result['dateReleased'] == datetime(1000, 10, 10, 6, 6)
+        assert result['commits'] == self.commits
+
+    def test_fields_not_required(self):
+        serializer = ReleaseWithVersionSerializer(data={'version': self.version})
+        assert serializer.is_valid()
+
+    def test_do_not_allow_null_commits(self):
+        serializer = ReleaseWithVersionSerializer(data={
+            'version': self.version,
+            'commits': None,
+        })
+        assert not serializer.is_valid()
+
+    def test_ref_limited_by_max_version_length(self):
+        serializer = ReleaseWithVersionSerializer(data={
+            'version': self.version,
+            'ref': 'a' * VERSION_LENGTH,
+        })
+        assert serializer.is_valid()
+        serializer = ReleaseWithVersionSerializer(data={
+            'version': self.version,
+            'ref': 'a' * (VERSION_LENGTH + 1),
+        })
+        assert not serializer.is_valid()
+
+    def test_version_limited_by_max_version_length(self):
+        serializer = ReleaseWithVersionSerializer(data={
+            'version': 'a' * VERSION_LENGTH,
+        })
+        assert serializer.is_valid()
+        serializer = ReleaseWithVersionSerializer(data={
+            'version': 'a' * (VERSION_LENGTH + 1),
+        })
+        assert not serializer.is_valid()
+
+    def test_version_does_not_allow_whitespace(self):
+        for char in BAD_RELEASE_CHARS:
+            serializer = ReleaseWithVersionSerializer(data={
+                'version': char,
+            })
+            assert not serializer.is_valid()
+
+    def test_version_does_not_allow_current_dir_path(self):
+        serializer = ReleaseWithVersionSerializer(data={
+            'version': '.',
+        })
+        assert not serializer.is_valid()
+        serializer = ReleaseWithVersionSerializer(data={
+            'version': '..',
+        })
+        assert not serializer.is_valid()
+
+    def test_version_does_not_allow_null_or_empty_value(self):
+        serializer = ReleaseWithVersionSerializer(data={
+            'version': None,
+        })
+        assert not serializer.is_valid()
+        serializer = ReleaseWithVersionSerializer(data={
+            'version': '',
+        })
+        assert not serializer.is_valid()
+
+    def test_version_cannot_be_latest(self):
+        serializer = ReleaseWithVersionSerializer(data={
+            'version': 'Latest',
+        })
+        assert not serializer.is_valid()

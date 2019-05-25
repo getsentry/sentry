@@ -4,7 +4,7 @@ from __future__ import absolute_import
 
 from sentry.constants import MAX_CULPRIT_LENGTH
 from sentry.event_manager import generate_culprit
-from sentry.event_hashing import md5_from_hash
+from sentry.grouping.utils import hash_from_values
 
 
 def test_with_exception_interface():
@@ -177,6 +177,6 @@ def test_truncation():
     assert len(generate_culprit(data)) == MAX_CULPRIT_LENGTH
 
 
-def test_md5_from_hash():
-    result = md5_from_hash(['foo', 'bar', u'foô'])
+def test_hash_from_values():
+    result = hash_from_values(['foo', 'bar', u'foô'])
     assert result == '6d81588029ed4190110b2779ba952a00'

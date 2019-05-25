@@ -1,0 +1,21 @@
+{
+  "culprit": "script-src",
+  "event_id": "cb3cc0da56914dc684761a765db9b83e",
+  "platform": "other",
+  "logger": "csp",
+  "csp": {
+    "blocked_uri": "https://YYY",
+    "script_sample": "",
+    "referrer": "",
+    "violated_directive": "script-src",
+    "document_uri": "https://sentry.io/organizations/XXX/",
+    "original_policy": "default-src *; script-src 'self' 'unsafe-eval' 'unsafe-inline' s1.sentry-cdn.com cdn.ravenjs.com static.zdassets.com ajax.googleapis.com ssl.google-analytics.com www.googleadservices.com analytics.twitter.com platform.twitter.com *.pingdom.net js.stripe.com api.stripe.com statuspage-production.s3.amazonaws.com s3.amazonaws.com *.google.com www.gstatic.com aui-cdn.atlassian.com *.atlassian.net *.jira.com js.sentry-cdn.com browser.sentry-cdn.com; font-src * data:; connect-src *; style-src 'self' 'unsafe-inline' s1.sentry-cdn.com s3.amazonaws.com aui-cdn.atlassian.com fonts.googleapis.com; img-src * data: blob:; report-uri https://sentry.io/api/54785/csp-report/?sentry_key=f724a8a027db45f5b21507e7142ff78e&sentry_release=03c6b061237d939a87c32ae832097e99b29f02f8",
+    "disposition": "enforce",
+    "status_code": 0,
+    "effective_directive": "script-src"
+  },
+  "logentry": {
+    "formatted": "Blocked 'script' from 'YYY'"
+  },
+  "release": "03c6b061237d939a87c32ae832097e99b29f02f8"
+}

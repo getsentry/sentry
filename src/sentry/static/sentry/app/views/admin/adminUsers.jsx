@@ -26,7 +26,7 @@ class AdminUsers extends React.Component {
   };
 
   render() {
-    let columns = [
+    const columns = [
       <th>User</th>,
       <th style={{textAlign: 'center', width: 150}}>Joined</th>,
       <th style={{textAlign: 'center', width: 150}}>Last Login</th>,
@@ -37,7 +37,7 @@ class AdminUsers extends React.Component {
         <h3>{t('Users')}</h3>
         <ResultGrid
           path="/manage/users/"
-          endpoint={'/users/'}
+          endpoint="/users/"
           method="GET"
           columns={columns}
           columnsForRow={this.getRow}

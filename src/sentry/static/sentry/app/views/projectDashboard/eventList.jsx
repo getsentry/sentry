@@ -1,26 +1,26 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import createReactClass from 'create-react-class';
-import jQuery from 'jquery';
-import SentryTypes from 'app/sentryTypes';
-import ApiMixin from 'app/mixins/apiMixin';
+import queryString from 'query-string';
+
+import {Panel, PanelHeader, PanelBody} from 'app/components/panels';
+import {t, tct} from 'app/locale';
+import withApi from 'app/utils/withApi';
 import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
-import {t, tct} from 'app/locale';
-import {Panel, PanelHeader, PanelBody} from 'app/components/panels';
+import SentryTypes from 'app/sentryTypes';
 
-import EventNode from 'app/views/projectDashboard/eventNode';
+import EventNode from './eventNode';
 
 const EventList = createReactClass({
   displayName: 'EventList',
 
   propTypes: {
+    api: PropTypes.object,
     type: PropTypes.oneOf(['new', 'priority']).isRequired,
     environment: SentryTypes.Environment,
     dateSince: PropTypes.number,
   },
-
-  mixins: [ApiMixin],
 
   getInitialState() {
     return {
@@ -50,7 +50,7 @@ const EventList = createReactClass({
   getEndpoint() {
     const {params, type, environment} = this.props;
 
-    let qs = {
+    const qs = {
       sort: type,
       query: 'is:unresolved',
       since: this.props.dateSince,
@@ -61,7 +61,9 @@ const EventList = createReactClass({
       qs.query = `${qs.query} environment:${environment.name}`;
     }
 
-    return `/projects/${params.orgId}/${params.projectId}/issues/?${jQuery.param(qs)}`;
+    return `/projects/${params.orgId}/${params.projectId}/issues/?${queryString.stringify(
+      qs
+    )}`;
   },
 
   getMinutes() {
@@ -80,7 +82,7 @@ const EventList = createReactClass({
     const endpoint = this.getEndpoint();
     const minutes = this.getMinutes();
 
-    this.api.request(endpoint, {
+    this.props.api.request(endpoint, {
       query: {
         limit: 5,
         minutes,
@@ -149,4 +151,6 @@ const EventList = createReactClass({
   },
 });
 
-export default EventList;
+export {EventList};
+
+export default withApi(EventList);

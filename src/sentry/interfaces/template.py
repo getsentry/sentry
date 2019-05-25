@@ -9,7 +9,7 @@ from __future__ import absolute_import
 
 __all__ = ('Template', )
 
-from sentry.interfaces.base import Interface, InterfaceValidationError
+from sentry.interfaces.base import Interface, InterfaceValidationError, RUST_RENORMALIZED_DEFAULT
 from sentry.interfaces.schemas import validate_and_default_interface
 from sentry.interfaces.stacktrace import get_context
 from sentry.utils.safe import trim
@@ -42,7 +42,19 @@ class Template(Interface):
     score = 1100
 
     @classmethod
-    def to_python(cls, data):
+    def to_python(cls, data, rust_renormalized=RUST_RENORMALIZED_DEFAULT):
+        if rust_renormalized:
+            for key in (
+                'abs_path',
+                'filename',
+                'context_line',
+                'lineno',
+                'pre_context',
+                'post_context',
+            ):
+                data.setdefault(key, None)
+            return cls(**data)
+
         is_valid, errors = validate_and_default_interface(data, cls.path)
         if not is_valid:
             raise InterfaceValidationError("Invalid template")
@@ -58,16 +70,12 @@ class Template(Interface):
         }
         return cls(**kwargs)
 
-    def get_hash(self):
-        return [self.filename, self.context_line]
-
     def to_string(self, event, is_public=False, **kwargs):
         context = get_context(
             lineno=self.lineno,
             context_line=self.context_line,
             pre_context=self.pre_context,
             post_context=self.post_context,
-            filename=self.filename,
         )
 
         result = ['Stacktrace (most recent call last):', '', self.get_traceback(event, context)]
@@ -85,7 +93,7 @@ class Template(Interface):
 
         return '\n'.join(result)
 
-    def get_api_context(self, is_public=False):
+    def get_api_context(self, is_public=False, platform=None):
         return {
             'lineNo': self.lineno,
             'filename': self.filename,
@@ -94,11 +102,10 @@ class Template(Interface):
                 context_line=self.context_line,
                 pre_context=self.pre_context,
                 post_context=self.post_context,
-                filename=self.filename,
             ),
         }
 
-    def get_api_meta(self, meta, is_public=False):
+    def get_api_meta(self, meta, is_public=False, platform=None):
         return {
             '': meta.get(''),
             'lineNo': meta.get('lineno'),
@@ -108,6 +115,5 @@ class Template(Interface):
                 context_line=meta.get('context_line'),
                 pre_context=meta.get('pre_context'),
                 post_context=meta.get('post_context'),
-                filename=meta.get('filename'),
             ),
         }

@@ -11,15 +11,16 @@ import logging
 import math
 import re
 import warnings
+from enum import Enum
 
-from datetime import timedelta
+from datetime import datetime, timedelta
 from django.core.urlresolvers import reverse
 from django.db import models
 from django.utils import timezone
 from django.utils.http import urlencode
 from django.utils.translation import ugettext_lazy as _
 
-from sentry import eventtypes, tagstore
+from sentry import eventtypes, tagstore, options
 from sentry.constants import (
     DEFAULT_LOGGER_NAME, EVENT_ORDERING_KEY, LOG_LEVELS, MAX_CULPRIT_LENGTH
 )
@@ -74,6 +75,41 @@ def get_group_with_redirect(id, queryset=None):
             return queryset.get(id=qs), True
         except Group.DoesNotExist:
             raise error  # raise original `DoesNotExist`
+
+
+class EventOrdering(Enum):
+    LATEST = ['-timestamp', '-event_id']
+    OLDEST = ['timestamp', 'event_id']
+
+
+def get_oldest_or_latest_event_for_environments(
+        ordering, environments=(), issue_id=None, project_id=None):
+    from sentry.utils import snuba
+    from sentry.models import SnubaEvent
+
+    conditions = []
+
+    if len(environments) > 0:
+        conditions.append(['environment', 'IN', environments])
+
+    result = snuba.raw_query(
+        start=datetime.utcfromtimestamp(0),
+        end=datetime.utcnow(),
+        selected_columns=SnubaEvent.selected_columns,
+        conditions=conditions,
+        filter_keys={
+            'issue': [issue_id],
+            'project_id': [project_id],
+        },
+        orderby=ordering.value,
+        limit=1,
+        referrer="Group.get_latest",
+    )
+
+    if 'error' not in result and len(result['data']) == 1:
+        return SnubaEvent(result['data'][0])
+
+    return None
 
 
 class GroupManager(BaseManager):
@@ -149,6 +185,22 @@ class GroupManager(BaseManager):
 
         return Group.objects.get(id=group_id)
 
+    def filter_by_event_id(self, project_ids, event_id):
+        from sentry.models import EventMapping, Event
+        group_ids = set()
+        # see above for explanation as to why we're
+        # looking at both Event and EventMapping
+        for model in Event, EventMapping:
+            group_ids.update(
+                model.objects.filter(
+                    project_id__in=project_ids,
+                    event_id=event_id,
+                    group_id__isnull=False,
+                ).values_list('group_id', flat=True)
+            )
+
+        return Group.objects.filter(id__in=group_ids)
+
     def add_tags(self, group, environment, tags):
         project_id = group.project_id
         date = group.last_seen
@@ -221,7 +273,6 @@ class Group(Model):
     active_at = models.DateTimeField(null=True, db_index=True)
     time_spent_total = BoundedIntegerField(default=0)
     time_spent_count = BoundedIntegerField(default=0)
-    # score will be incorrect in sqlite as it doesnt support the required functions
     score = BoundedIntegerField(default=0)
     # deprecated, do not use. GroupShare has superseded
     is_public = models.NullBooleanField(default=False, null=True)
@@ -264,7 +315,11 @@ class Group(Model):
         super(Group, self).save(*args, **kwargs)
 
     def get_absolute_url(self, params=None):
-        url = reverse('sentry-group', args=[self.organization.slug, self.project.slug, self.id])
+        from sentry import features
+        if features.has('organizations:sentry10', self.organization):
+            url = reverse('sentry-organization-issue', args=[self.organization.slug, self.id])
+        else:
+            url = reverse('sentry-group', args=[self.organization.slug, self.project.slug, self.id])
         if params:
             url = url + '?' + urlencode(params)
         return absolute_uri(url)
@@ -355,6 +410,19 @@ class Group(Model):
                 self._latest_event = None
         return self._latest_event
 
+    def get_latest_event_for_environments(self, environments=()):
+        use_snuba = options.get('snuba.events-queries.enabled')
+
+        # Fetch without environment if Snuba is not enabled
+        if not use_snuba:
+            return self.get_latest_event()
+
+        return get_oldest_or_latest_event_for_environments(
+            EventOrdering.LATEST,
+            environments=environments,
+            issue_id=self.id,
+            project_id=self.project_id)
+
     def get_oldest_event(self):
         from sentry.models import Event
 
@@ -370,6 +438,19 @@ class Group(Model):
             except IndexError:
                 self._oldest_event = None
         return self._oldest_event
+
+    def get_oldest_event_for_environments(self, environments=()):
+        use_snuba = options.get('snuba.events-queries.enabled')
+
+        # Fetch without environment if Snuba is not enabled
+        if not use_snuba:
+            return self.get_oldest_event()
+
+        return get_oldest_or_latest_event_for_environments(
+            EventOrdering.OLDEST,
+            environments=environments,
+            issue_id=self.id,
+            project_id=self.project_id)
 
     def get_first_release(self):
         if self.first_release_id is None:
@@ -394,13 +475,16 @@ class Group(Model):
 
         See ``sentry.eventtypes``.
         """
-        from sentry.event_manager import get_event_metadata_compat
-        return get_event_metadata_compat(self.data, self.message)
+        return self.data['metadata']
 
     @property
     def title(self):
-        et = eventtypes.get(self.get_event_type())(self.data)
-        return et.to_string(self.get_event_metadata())
+        et = eventtypes.get(self.get_event_type())()
+        return et.get_title(self.get_event_metadata())
+
+    def location(self):
+        et = eventtypes.get(self.get_event_type())()
+        return et.get_location(self.get_event_metadata())
 
     def error(self):
         warnings.warn('Group.error is deprecated, use Group.title', DeprecationWarning)
@@ -430,7 +514,7 @@ class Group(Model):
 
     def count_users_seen(self):
         return tagstore.get_groups_user_counts(
-            self.project_id, [self.id], environment_id=None)[self.id]
+            [self.project_id], [self.id], environment_ids=None)[self.id]
 
     @classmethod
     def calculate_score(cls, times_seen, last_seen):

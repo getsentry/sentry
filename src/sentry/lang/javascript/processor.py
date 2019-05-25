@@ -26,14 +26,14 @@ except ImportError:
 
 from sentry import http
 from sentry.interfaces.stacktrace import Stacktrace
-from sentry.models import EventError, ReleaseFile
+from sentry.models import EventError, ReleaseFile, Organization
 from sentry.utils.cache import cache
 from sentry.utils.files import compress_file
 from sentry.utils.hashlib import md5_text
 from sentry.utils.http import is_valid_origin
 from sentry.utils.safe import get_path
 from sentry.utils import metrics
-from sentry.stacktraces import StacktraceProcessor
+from sentry.stacktraces.processing import StacktraceProcessor
 
 from .cache import SourceCache, SourceMapCache
 
@@ -251,7 +251,6 @@ def fetch_release_file(filename, release, dist=None):
                     z_body, body = compress_file(fp)
         except Exception:
             logger.error('sourcemap.compress_read_failed', exc_info=sys.exc_info())
-            cache.set(cache_key, -1, 3600)
             result = None
         else:
             headers = {k.lower(): v for k, v in releasefile.file.headers.items()}
@@ -477,9 +476,17 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
 
     def __init__(self, *args, **kwargs):
         StacktraceProcessor.__init__(self, *args, **kwargs)
+
+        # Make sure we only fetch organization from cache
+        # We don't need to persist it back since we don't want
+        # to bloat the Event object.
+        organization = getattr(self.project, '_organization_cache', None)
+        if not organization:
+            organization = Organization.objects.get_from_cache(id=self.project.organization_id)
+
         self.max_fetches = MAX_RESOURCE_FETCHES
         self.allow_scraping = (
-            self.project.organization.get_option('sentry:scrape_javascript', True) is not False
+            organization.get_option('sentry:scrape_javascript', True) is not False
             and self.project.get_option('sentry:scrape_javascript', True)
         )
         self.fetch_count = 0

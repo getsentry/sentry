@@ -1,28 +1,31 @@
 import moment from 'moment';
 import {Client} from 'app/api';
+import {isEqual, pick} from 'lodash';
+import qs from 'query-string';
 import {isValidAggregation} from './aggregations/utils';
 import {NON_SNUBA_FIELDS} from './data';
 
-export function getQueryFromQueryString(queryString) {
-  const validQueryKeys = new Set([
-    'projects',
-    'fields',
-    'conditions',
-    'aggregations',
-    'range',
-    'start',
-    'end',
-    'orderby',
-    'limit',
-  ]);
+const VALID_QUERY_KEYS = [
+  'projects',
+  'fields',
+  'conditions',
+  'aggregations',
+  'range',
+  'start',
+  'end',
+  'orderby',
+  'limit',
+];
 
+export function getQueryFromQueryString(queryString) {
+  const queryKeys = new Set([...VALID_QUERY_KEYS, 'utc']);
   const result = {};
   let parsedQuery = queryString;
   parsedQuery = parsedQuery.replace(/^\?|\/$/g, '').split('&');
   parsedQuery.forEach(item => {
     if (item.includes('=')) {
       const [key, value] = item.split('=');
-      if (validQueryKeys.has(key)) {
+      if (queryKeys.has(key)) {
         result[key] = JSON.parse(decodeURIComponent(value));
       }
     }
@@ -31,15 +34,19 @@ export function getQueryFromQueryString(queryString) {
   return result;
 }
 
-export function getQueryStringFromQuery(query) {
+export function getQueryStringFromQuery(query, queryParams = {}) {
   const queryProperties = Object.entries(query).map(([key, value]) => {
     return key + '=' + encodeURIComponent(JSON.stringify(value));
   });
 
-  return `?${queryProperties.join('&')}`;
+  Object.entries(queryParams).forEach(([key, value]) => {
+    queryProperties.push(`${key}=${value}`);
+  });
+
+  return `?${queryProperties.sort().join('&')}`;
 }
 
-export function getOrderByOptions(queryBuilder) {
+export function getOrderbyFields(queryBuilder) {
   const columns = queryBuilder.getColumns();
   const query = queryBuilder.getInternal();
 
@@ -65,22 +72,14 @@ export function getOrderByOptions(queryBuilder) {
       return acc;
     }
 
-    return [
-      ...acc,
-      {value: name, label: `${name} asc`},
-      {value: `-${name}`, label: `${name} desc`},
-    ];
+    return [...acc, {value: name, label: name}];
   }, []);
 
   const aggregationOptions = [
     // Ensure aggregations are unique (since users might input duplicates)
     ...new Set(validAggregations.map(aggregation => aggregation[2])),
   ].reduce((acc, agg) => {
-    return [
-      ...acc,
-      {value: agg, label: `${agg} asc`},
-      {value: `-${agg}`, label: `${agg} desc`},
-    ];
+    return [...acc, {value: agg, label: agg}];
   }, []);
 
   return [...columnOptions, ...aggregationOptions];
@@ -105,6 +104,21 @@ export function getView(params, requestedView) {
     default:
       return 'query';
   }
+}
+
+/**
+ * Returns true if the underlying discover query has changed based on the
+ * querystring, otherwise false.
+ *
+ * @param {String} prev previous location.search string
+ * @param {String} next next location.search string
+ * @returns {Boolean}
+ */
+export function queryHasChanged(prev, next) {
+  return !isEqual(
+    pick(qs.parse(prev), VALID_QUERY_KEYS),
+    pick(qs.parse(next), VALID_QUERY_KEYS)
+  );
 }
 
 /**

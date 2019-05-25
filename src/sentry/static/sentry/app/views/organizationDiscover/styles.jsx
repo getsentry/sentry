@@ -1,17 +1,18 @@
-import React from 'react';
-import styled from 'react-emotion';
 import {Flex, Box} from 'grid-emotion';
 import {keyframes} from 'emotion';
-
-import space from 'app/styles/space';
-import {slideInLeft} from 'app/styles/animations';
+import React from 'react';
+import styled from 'react-emotion';
 
 import {Panel, PanelItem} from 'app/components/panels';
+import {slideInLeft} from 'app/styles/animations';
 import Button from 'app/components/button';
+import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
+import Link from 'app/components/links/link';
 import NavTabs from 'app/components/navTabs';
-import Link from 'app/components/link';
-import Header from 'app/components/organizations/header';
+import space from 'app/styles/space';
 import theme from 'app/utils/theme';
+import InlineSvg from 'app/components/inlineSvg';
+import ExternalLink from 'app/components/links/externalLink';
 
 const HEADER_HEIGHT = 60;
 
@@ -31,13 +32,13 @@ export const DiscoverContainer = styled(Flex)`
   }
 `;
 
-export const DiscoverHeader = styled(Header)`
+export const DiscoverGlobalSelectionHeader = styled(GlobalSelectionHeader)`
   position: absolute;
   top: 0;
   left: 0;
 `;
 
-export const PageTitle = styled.h2`
+export const PageTitle = styled('h2')`
   display: flex;
   font-size: 20px;
   font-weight: normal;
@@ -87,9 +88,51 @@ export const Sidebar = styled(props => (
   <Flex {...props} direction="column" w={[300, 300, 300, 360]} />
 ))`
   border-right: 1px solid ${p => p.theme.borderDark};
+  background: #fff;
   min-width: 320px;
   position: relative;
   padding-top: ${HEADER_HEIGHT}px;
+`;
+
+export const QueryFieldsSidebar = styled(Flex)`
+  height: 100%;
+  flex-direction: column;
+  justify-content: flex-start;
+`;
+
+export const DocsSeparator = styled('div')`
+  flex-grow: 1;
+  margin: ${space(3)} ${space(3)} 0;
+  border-bottom: 1px solid ${p => p.theme.borderLight};
+`;
+
+export const DocsLink = styled(ExternalLink)`
+  color: ${p => p.theme.gray4};
+  &:hover {
+    color: ${p => p.theme.blue};
+  }
+`;
+
+export const StyledInlineSvg = styled(InlineSvg)`
+  justify-content: flex-end;
+`;
+
+export const DiscoverDocs = styled('span')`
+  align-items: center;
+  display: flex;
+  margin: 25px ${space(3)};
+  justify-content: space-between;
+`;
+
+export const DocsLabel = styled('span')`
+  font-size: 15px;
+  flex-grow: 1;
+`;
+
+export const DocsIcon = styled(InlineSvg)`
+  width: 20px;
+  height: 20px;
+  margin-right: 8px;
 `;
 
 export const Body = styled(Flex)`
@@ -119,7 +162,7 @@ export const SidebarTabs = styled(props => <NavTabs {...props} underlined={true}
   margin: 0;
 `;
 
-export const PlaceholderText = styled.div`
+export const PlaceholderText = styled('div')`
   color: ${p => p.theme.gray6};
   font-size: 15px;
 `;
@@ -130,23 +173,15 @@ export const HeadingContainer = styled(Flex)`
   align-items: center;
 `;
 
-export const Heading = styled.h2`
-  font-size: ${p => p.theme.headerFontSize};
-  line-height: ${p => p.theme.headerFontSize};
-  font-weight: normal;
-  color: ${p => p.theme.gray4};
-  margin: 0;
-`;
-
-export const Fieldset = styled.fieldset`
-  margin: ${space(3)};
+export const Fieldset = styled('fieldset')`
+  margin: ${space(2)} ${space(3)};
 `;
 
 export const SelectListItem = styled(Flex)`
   margin-top: ${space(0.5)};
 `;
 
-export const SidebarLabel = styled.label`
+export const SidebarLabel = styled('label')`
   text-transform: uppercase;
   font-size: ${p => p.theme.fontSizeSmall};
   color: ${p => p.theme.gray3};
@@ -157,7 +192,7 @@ export const QueryFieldsContainer = styled('div')`
   overflow-y: scroll;
 `;
 
-export const AddText = styled.span`
+export const AddText = styled('span')`
   font-style: italic;
   text-decoration: underline;
   margin-left: 4px;
@@ -175,7 +210,7 @@ const spin = keyframes`
   }
 `;
 
-export const ButtonSpinner = styled.div`
+export const ButtonSpinner = styled('div')`
   animation: ${spin} 0.4s linear infinite;
   width: 14px;
   height: 14px;

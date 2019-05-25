@@ -9,12 +9,14 @@ from mock import patch
 from exam import fixture
 from pprint import pprint
 
+from sentry.api.endpoints.organization_details import ERR_NO_2FA, ERR_SSO_ENABLED
 from sentry.constants import RESERVED_ORGANIZATION_SLUGS
 from sentry.models import (
     AuditLogEntry,
     Authenticator,
     AuthProvider,
     DeletedOrganization,
+    ObjectStatus,
     Organization,
     OrganizationAvatar,
     OrganizationOption,
@@ -26,13 +28,10 @@ from sentry.testutils import APITestCase, TwoFactorAPITestCase
 
 class OrganizationDetailsTest(APITestCase):
     def test_simple(self):
-        org = self.create_organization(owner=self.user)
-        self.create_team(
-            name='appy',
-            organization=org,
-            members=[self.user])
+        user = self.create_user('owner@example.org')
+        org = self.create_organization(owner=user)
 
-        self.login_as(user=self.user)
+        self.login_as(user=user)
         url = reverse(
             'sentry-api-0-organization-details', kwargs={
                 'organization_slug': org.slug,
@@ -42,23 +41,78 @@ class OrganizationDetailsTest(APITestCase):
         assert response.data['onboardingTasks'] == []
         assert response.status_code == 200, response.content
         assert response.data['id'] == six.text_type(org.id)
-        assert len(response.data['teams']) == 1
+        assert len(response.data['teams']) == 0
+        assert len(response.data['projects']) == 0
 
-        for i in range(5):
+    def test_with_projects(self):
+        user = self.create_user('owner@example.org')
+        org = self.create_organization(owner=user)
+        team = self.create_team(
+            name='appy',
+            organization=org,
+            members=[user])
+        # Create non-member team to test response shape
+        self.create_team(name='no-member', organization=org)
+
+        # Ensure deleted teams don't come back.
+        self.create_team(
+            name='deleted',
+            organization=org,
+            members=[user],
+            status=ObjectStatus.PENDING_DELETION)
+
+        # Some projects with membership and some without.
+        for i in range(2):
+            self.create_project(organization=org, teams=[team])
+        for i in range(2):
             self.create_project(organization=org)
+
+        # Should not show up.
+        self.create_project(
+            slug='deleted',
+            organization=org,
+            teams=[team],
+            status=ObjectStatus.PENDING_DELETION)
 
         url = reverse(
             'sentry-api-0-organization-details', kwargs={
                 'organization_slug': org.slug,
             }
         )
+        self.login_as(user=user)
+
         # TODO(dcramer): we need to pare this down -- lots of duplicate queries
         # for membership data
-        with self.assertNumQueries(33, using='default'):
+        with self.assertNumQueries(35, using='default'):
             from django.db import connections
             response = self.client.get(url, format='json')
             pprint(connections['default'].queries)
+
+        project_slugs = [p['slug'] for p in response.data['projects']]
+        assert len(project_slugs) == 4
+        assert 'deleted' not in project_slugs
+
+        team_slugs = [t['slug'] for t in response.data['teams']]
+        assert len(team_slugs) == 2
+        assert 'deleted' not in team_slugs
+
+    def test_as_superuser(self):
+        self.user = self.create_user('super@example.org', is_superuser=True)
+        org = self.create_organization(owner=self.user)
+        team = self.create_team(name='appy', organization=org)
+
+        self.login_as(user=self.user)
+        for i in range(5):
+            self.create_project(organization=org, teams=[team])
+
+        url = reverse(
+            'sentry-api-0-organization-details', kwargs={
+                'organization_slug': org.slug,
+            }
+        )
+        response = self.client.get(url, format='json')
         assert len(response.data['projects']) == 5
+        assert len(response.data['teams']) == 1
 
     def test_onboarding_tasks(self):
         org = self.create_organization(owner=self.user)
@@ -250,6 +304,36 @@ class OrganizationUpdateTest(APITestCase):
         assert u'to {}'.format(data['safeFields']) in log.data['safeFields']
         assert u'to {}'.format(data['scrubIPAddresses']) in log.data['scrubIPAddresses']
         assert u'to {}'.format(data['scrapeJavaScript']) in log.data['scrapeJavaScript']
+
+    def test_disable_new_visibility_features(self):
+        org = self.create_organization(owner=self.user)
+        assert not org.flags.disable_new_visibility_features
+        self.login_as(user=self.user)
+        url = reverse(
+            'sentry-api-0-organization-details', kwargs={
+                'organization_slug': org.slug,
+            }
+        )
+
+        response = self.client.put(
+            url,
+            data={
+                'disableNewVisibilityFeatures': True,
+            }
+        )
+        assert response.status_code == 200, response.content
+        org = Organization.objects.get(id=org.id)
+        assert org.flags.disable_new_visibility_features
+
+        response = self.client.put(
+            url,
+            data={
+                'disableNewVisibilityFeatures': False,
+            }
+        )
+        assert response.status_code == 200, response.content
+        org = Organization.objects.get(id=org.id)
+        assert not org.flags.disable_new_visibility_features
 
     def test_setting_trusted_relays_forbidden(self):
         org = self.create_organization(owner=self.user)
@@ -579,18 +663,25 @@ class OrganizationDeleteTest(APITestCase):
 
 class OrganizationSettings2FATest(TwoFactorAPITestCase):
     def setUp(self):
+        # 2FA enforced org
         self.org_2fa = self.create_organization(owner=self.create_user())
         self.enable_org_2fa(self.org_2fa)
         self.no_2fa_user = self.create_user()
         self.create_member(organization=self.org_2fa, user=self.no_2fa_user, role="member")
 
-        # 2FA not enforced org and members
+        # 2FA not enforced org
         self.owner = self.create_user()
         self.organization = self.create_organization(owner=self.owner)
         self.manager = self.create_user()
         self.create_member(organization=self.organization, user=self.manager, role="manager")
         self.org_user = self.create_user()
         self.create_member(organization=self.organization, user=self.org_user, role="member")
+
+        # 2FA enrolled user
+        self.has_2fa = self.create_user()
+        TotpInterface().enroll(self.has_2fa)
+        self.create_member(organization=self.organization, user=self.has_2fa, role="manager")
+        assert Authenticator.objects.user_has_2fa(self.has_2fa)
 
     @fixture
     def path(self):
@@ -612,23 +703,29 @@ class OrganizationSettings2FATest(TwoFactorAPITestCase):
 
     def test_cannot_enforce_2fa_without_2fa_enabled(self):
         assert not Authenticator.objects.user_has_2fa(self.owner)
-        self.assert_cannot_enable_org_2fa(self.organization, self.owner, 400)
+        self.assert_cannot_enable_org_2fa(self.organization, self.owner, 400, ERR_NO_2FA)
+
+    def test_cannot_enforce_2fa_with_sso_enabled(self):
+        self.auth_provider = AuthProvider.objects.create(
+            provider='github',
+            organization=self.organization,
+        )
+        # bypass SSO login
+        self.auth_provider.flags.allow_unlinked = True
+        self.auth_provider.save()
+
+        self.assert_cannot_enable_org_2fa(self.organization, self.has_2fa, 400, ERR_SSO_ENABLED)
 
     def test_cannot_enforce_2fa_with_saml_enabled(self):
         self.auth_provider = AuthProvider.objects.create(
             provider='saml2',
-            organization=self.org_2fa,
+            organization=self.organization,
         )
-        self.assert_cannot_enable_org_2fa(self.organization, self.owner, 400)
+        # bypass SSO login
+        self.auth_provider.flags.allow_unlinked = True
+        self.auth_provider.save()
 
-    def test_can_enforce_2fa_with_non_saml_sso_enabled(self):
-        org = self.create_organization(owner=self.owner)
-        TotpInterface().enroll(self.owner)
-        self.auth_provider = AuthProvider.objects.create(
-            provider='github',
-            organization=org,
-        )
-        self.assert_can_enable_org_2fa(self.organization, self.owner)
+        self.assert_cannot_enable_org_2fa(self.organization, self.has_2fa, 400, ERR_SSO_ENABLED)
 
     def test_owner_can_set_2fa_single_member(self):
         org = self.create_organization(owner=self.owner)
@@ -693,3 +790,8 @@ class OrganizationSettings2FATest(TwoFactorAPITestCase):
 
         Authenticator.objects.get(user=self.no_2fa_user).delete()
         self.assert_cannot_access_org_details(self.path)
+
+    def test_superuser_can_access_org_details(self):
+        user = self.create_user(is_superuser=True)
+        self.login_as(user, superuser=True)
+        self.assert_can_access_org_details(self.path)

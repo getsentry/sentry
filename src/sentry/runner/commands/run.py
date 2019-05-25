@@ -89,9 +89,12 @@ def run():
 @click.option(
     '--noinput', default=False, is_flag=True, help='Do not prompt the user for input of any kind.'
 )
+@click.option(
+    '--uwsgi/--no-uwsgi', default=True, is_flag=True, help='Use uWSGI (default) or non-uWSGI (useful for debuggers such as PyCharm\'s)'
+)
 @log_options()
 @configuration
-def web(bind, workers, upgrade, with_lock, noinput):
+def web(bind, workers, upgrade, with_lock, noinput, uwsgi):
     "Run web service."
     if upgrade:
         click.echo('Performing upgrade before service startup...')
@@ -111,13 +114,36 @@ def web(bind, workers, upgrade, with_lock, noinput):
             else:
                 raise
 
-    from sentry.services.http import SentryHTTPServer
     with managed_bgtasks(role='web'):
-        SentryHTTPServer(
-            host=bind[0],
-            port=bind[1],
-            workers=workers,
-        ).run()
+        if not uwsgi:
+            click.echo(
+                'Running simple HTTP server. Note that chunked file '
+                'uploads will likely not work.',
+                err=True
+            )
+
+            from django.conf import settings
+
+            host = bind[0] or settings.SENTRY_WEB_HOST
+            port = bind[1] or settings.SENTRY_WEB_PORT
+            click.echo('Address: http://%s:%s/' % (host, port))
+
+            from wsgiref.simple_server import make_server
+            from sentry.wsgi import application
+
+            httpd = make_server(
+                host,
+                port,
+                application
+            )
+            httpd.serve_forever()
+        else:
+            from sentry.services.http import SentryHTTPServer
+            SentryHTTPServer(
+                host=bind[0],
+                port=bind[1],
+                workers=workers,
+            ).run()
 
 
 @run.command()
@@ -253,7 +279,7 @@ def cron(**options):
         ).run()
 
 
-@run.command()
+@run.command('post-process-forwarder')
 @click.option('--consumer-group', default='snuba-post-processor',
               help='Consumer group used to track event offsets that have been enqueued for post-processing.')
 @click.option('--commit-log-topic', default='snuba-commit-log',
@@ -266,19 +292,19 @@ def cron(**options):
               help='Position in the commit log topic to begin reading from when no prior offset has been recorded.')
 @log_options()
 @configuration
-def relay(**options):
+def post_process_forwarder(**options):
     from sentry import eventstream
-    from sentry.eventstream.base import RelayNotRequired
+    from sentry.eventstream.base import ForwarderNotRequired
     try:
-        eventstream.relay(
+        eventstream.run_post_process_forwarder(
             consumer_group=options['consumer_group'],
             commit_log_topic=options['commit_log_topic'],
             synchronize_commit_group=options['synchronize_commit_group'],
             commit_batch_size=options['commit_batch_size'],
             initial_offset_reset=options['initial_offset_reset'],
         )
-    except RelayNotRequired:
+    except ForwarderNotRequired:
         sys.stdout.write(
-            'The configured event stream backend does not need a relay '
-            'process to enqueue post-processing tasks. Exiting...\n')
+            'The configured event stream backend does not need a forwarder '
+            'process to enqueue post-process tasks. Exiting...\n')
         return

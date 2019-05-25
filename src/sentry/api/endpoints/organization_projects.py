@@ -82,6 +82,21 @@ class OrganizationProjectsEndpoint(OrganizationEndpoint, EnvironmentMixin):
                 organization=organization,
             ).prefetch_related('teams')
 
+        order_by = ['slug']
+
+        if request.user.is_authenticated():
+            queryset = queryset.extra(
+                select={
+                    'is_bookmarked': """exists (
+                        select *
+                        from sentry_projectbookmark spb
+                        where spb.project_id = sentry_project.id and spb.user_id = %s
+                    )""",
+                },
+                select_params=(request.user.id,),
+            )
+            order_by.insert(0, '-is_bookmarked')
+
         query = request.GET.get('query')
         if query:
             tokens = tokenize_query(query)
@@ -91,6 +106,12 @@ class OrganizationProjectsEndpoint(OrganizationEndpoint, EnvironmentMixin):
                     queryset = queryset.filter(Q(name__icontains=value) | Q(slug__icontains=value))
                 elif key == 'id':
                     queryset = queryset.filter(id__in=value)
+                elif key == "team":
+                    team_list = list(Team.objects.filter(slug__in=value))
+                    queryset = queryset.filter(teams__in=team_list)
+                elif key == "!team":
+                    team_list = list(Team.objects.filter(slug__in=value))
+                    queryset = queryset.exclude(teams__in=team_list)
                 else:
                     queryset = queryset.none()
 
@@ -99,7 +120,7 @@ class OrganizationProjectsEndpoint(OrganizationEndpoint, EnvironmentMixin):
         return self.paginate(
             request=request,
             queryset=queryset,
-            order_by='slug',
+            order_by=order_by,
             on_results=lambda x: serialize(x, request.user, ProjectSummarySerializer(
                 environment_id=self._get_environment_id_from_request(
                     request,

@@ -6,6 +6,7 @@ from sentry.plugins import plugins
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.organization_plugin import OrganizationPluginSerializer
+from sentry.api.serializers.models.plugin import PluginSerializer
 from sentry.models import ProjectOption
 
 
@@ -16,6 +17,10 @@ class OrganizationPluginsEndpoint(OrganizationEndpoint):
         ])
 
         if 'plugins' in request.GET:
+            if request.GET.get('plugins') == '_all':
+                return Response(serialize([p for p in plugins.all()],
+                                          request.user, PluginSerializer()))
+
             desired_plugins = set(request.GET.getlist('plugins'))
         else:
             desired_plugins = set(all_plugins.keys())

@@ -3,8 +3,7 @@ from __future__ import absolute_import
 from django.core.urlresolvers import reverse
 
 from sentry.testutils import APITestCase
-from sentry.testutils.helpers import with_feature
-from sentry.mediators.sentry_app_installations import Creator
+import responses
 
 
 class SentryAppInstallationDetailsTest(APITestCase):
@@ -20,7 +19,7 @@ class SentryAppInstallationDetailsTest(APITestCase):
             published=True,
         )
 
-        self.installation, _ = Creator.run(
+        self.installation = self.create_sentry_app_installation(
             slug=self.published_app.slug,
             organization=self.super_org,
             user=self.superuser,
@@ -31,7 +30,7 @@ class SentryAppInstallationDetailsTest(APITestCase):
             organization=self.org,
         )
 
-        self.installation2, _ = Creator.run(
+        self.installation2 = self.create_sentry_app_installation(
             slug=self.unpublished_app.slug,
             organization=self.org,
             user=self.user,
@@ -44,7 +43,6 @@ class SentryAppInstallationDetailsTest(APITestCase):
 
 
 class GetSentryAppInstallationDetailsTest(SentryAppInstallationDetailsTest):
-    @with_feature('organizations:internal-catchall')
     def test_access_within_installs_organization(self):
         self.login_as(user=self.user)
         response = self.client.get(self.url, format='json')
@@ -59,9 +57,9 @@ class GetSentryAppInstallationDetailsTest(SentryAppInstallationDetailsTest):
                 'slug': self.org.slug,
             },
             'uuid': self.installation2.uuid,
+            'code': self.installation2.api_grant.code,
         }
 
-    @with_feature('organizations:internal-catchall')
     def test_no_access_outside_install_organization(self):
         self.login_as(user=self.user)
 
@@ -73,22 +71,19 @@ class GetSentryAppInstallationDetailsTest(SentryAppInstallationDetailsTest):
         response = self.client.get(url, format='json')
         assert response.status_code == 404
 
-    def test_no_access_without_internal_catchall(self):
-        self.login_as(user=self.user)
-
-        response = self.client.get(self.url, format='json')
-        assert response.status_code == 404
-
 
 class DeleteSentryAppInstallationDetailsTest(SentryAppInstallationDetailsTest):
-    @with_feature('organizations:internal-catchall')
+    @responses.activate
     def test_delete_install(self):
+        responses.add(
+            url='https://example.com/webhook',
+            method=responses.POST,
+            body={})
         self.login_as(user=self.user)
         response = self.client.delete(self.url, format='json')
 
         assert response.status_code == 204
 
-    @with_feature('organizations:internal-catchall')
     def test_member_cannot_delete_install(self):
         user = self.create_user('bar@example.com')
         self.create_member(

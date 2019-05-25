@@ -1,7 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import {debounce} from 'lodash';
-import idx from 'idx';
 
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
@@ -15,6 +14,7 @@ import Pagination from 'app/components/pagination';
 import SentryTypes from 'app/sentryTypes';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import recreateRoute from 'app/utils/recreateRoute';
+import {redirectToRemainingOrganization} from 'app/actionCreators/organizations';
 
 import OrganizationAccessRequests from './organizationAccessRequests';
 import OrganizationMemberRow from './organizationMemberRow';
@@ -31,8 +31,8 @@ class OrganizationMembersView extends AsyncView {
 
   componentWillReceiveProps(nextProps, nextContext) {
     super.componentWillReceiveProps(nextProps, nextContext);
-    let searchQuery = idx(nextProps, _ => _.location.query.query);
-    if (searchQuery !== idx(this.props, _ => _.location.query.query)) {
+    const searchQuery = nextProps?.location?.query?.query;
+    if (searchQuery !== this.props?.location?.query?.query) {
       this.setState({searchQuery});
     }
   }
@@ -40,13 +40,13 @@ class OrganizationMembersView extends AsyncView {
   // XXX(billy): setState causes re-render of the entire view...
   // we should not do this
   getDefaultState() {
-    let state = super.getDefaultState();
+    const state = super.getDefaultState();
     return {
       ...state,
       members: [],
       invited: new Map(),
       accessRequestBusy: new Map(),
-      searchQuery: idx(this.props, _ => _.location.query.query) || '',
+      searchQuery: this.props?.location?.query?.query || '',
     };
   }
 
@@ -57,7 +57,7 @@ class OrganizationMembersView extends AsyncView {
         `/organizations/${this.props.params.orgId}/members/`,
         {
           query: {
-            query: idx(this.props, _ => _.location.query.query),
+            query: this.props?.location?.query?.query,
           },
         },
         {paginate: true},
@@ -78,13 +78,13 @@ class OrganizationMembersView extends AsyncView {
   }
 
   getTitle() {
-    let org = this.context.organization;
+    const org = this.context.organization;
     return `${org.name} Members`;
   }
 
   removeMember = id => {
-    let {params} = this.props;
-    let {orgId} = params || {};
+    const {params} = this.props;
+    const {orgId} = params || {};
 
     return new Promise((resolve, reject) => {
       this.api.request(`/organizations/${orgId}/members/${id}/`, {
@@ -102,8 +102,8 @@ class OrganizationMembersView extends AsyncView {
   };
 
   approveOrDeny = (isApproved, id) => {
-    let {params} = this.props;
-    let {orgId} = params || {};
+    const {params} = this.props;
+    const {orgId} = params || {};
 
     this.setState(state => ({
       accessRequestBusy: state.accessRequestBusy.set(id, true),
@@ -135,8 +135,8 @@ class OrganizationMembersView extends AsyncView {
   handleDeny = id => this.approveOrDeny(false, id);
 
   handleRemove = ({id, name}, e) => {
-    let {organization} = this.context;
-    let {slug: orgName} = organization;
+    const {organization} = this.context;
+    const {slug: orgName} = organization;
 
     this.removeMember(id).then(
       () =>
@@ -157,16 +157,19 @@ class OrganizationMembersView extends AsyncView {
   };
 
   handleLeave = ({id}, e) => {
-    let {organization} = this.context;
-    let {slug: orgName} = organization;
+    const {organization} = this.context;
+    const {slug: orgName} = organization;
 
     this.removeMember(id).then(
-      () =>
+      () => {
+        redirectToRemainingOrganization({orgId: orgName, removeOrg: true});
+
         addSuccessMessage(
           tct('You left [orgName]', {
             orgName,
           })
-        ),
+        );
+      },
       () =>
         addErrorMessage(
           tct('Error leaving [orgName]', {
@@ -198,14 +201,14 @@ class OrganizationMembersView extends AsyncView {
   };
 
   handleChange = evt => {
-    let searchQuery = evt.target.value;
+    const searchQuery = evt.target.value;
     this.getMembers(searchQuery);
     this.setState({searchQuery});
   };
 
   getMembers = debounce(searchQuery => {
-    let {params} = this.props;
-    let {orgId} = params || {};
+    const {params} = this.props;
+    const {orgId} = params || {};
 
     this.api.request(`/organizations/${orgId}/members/?query=${searchQuery}`, {
       method: 'GET',
@@ -216,20 +219,20 @@ class OrganizationMembersView extends AsyncView {
   }, 200);
 
   renderBody() {
-    let {params, routes} = this.props;
-    let {membersPageLinks, members, requestList} = this.state;
-    let {organization} = this.context;
-    let {orgId} = params || {};
-    let {name: orgName, access} = organization;
-    let canAddMembers = access.indexOf('org:write') > -1;
-    let canRemove = access.indexOf('member:admin') > -1;
-    let currentUser = ConfigStore.get('user');
+    const {params, routes} = this.props;
+    const {membersPageLinks, members, requestList} = this.state;
+    const {organization} = this.context;
+    const {orgId} = params || {};
+    const {name: orgName, access} = organization;
+    const canAddMembers = access.indexOf('org:write') > -1;
+    const canRemove = access.indexOf('member:admin') > -1;
+    const currentUser = ConfigStore.get('user');
     // Find out if current user is the only owner
-    let isOnlyOwner = !members.find(
+    const isOnlyOwner = !members.find(
       ({role, email}) => role === 'owner' && email !== currentUser.email
     );
     // Only admins/owners can remove members
-    let requireLink = !!this.state.authProvider && this.state.authProvider.require_link;
+    const requireLink = !!this.state.authProvider && this.state.authProvider.require_link;
 
     let action = (
       <Button
@@ -243,17 +246,19 @@ class OrganizationMembersView extends AsyncView {
         }
         to={recreateRoute('new/', {routes, params})}
         icon="icon-circle-add"
+        data-test-id="invite-member"
       >
         {t('Invite Member')}
       </Button>
     );
 
-    if (canAddMembers)
+    if (canAddMembers) {
       action = (
         <GuideAnchor target="member_add" type="invisible">
           {action}
         </GuideAnchor>
       );
+    }
 
     return (
       <div>
@@ -266,7 +271,7 @@ class OrganizationMembersView extends AsyncView {
           requestList={requestList}
         />
 
-        <Panel>
+        <Panel data-test-id="org-member-list">
           <PanelHeader hasButtons>
             {t('Member')}
 

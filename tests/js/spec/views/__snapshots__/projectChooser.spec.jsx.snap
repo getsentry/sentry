@@ -5,6 +5,7 @@ exports[`ProjectChooser renders 1`] = `
   className="css-arqurf container"
 >
   <SettingsPageHeading
+    noTitleStyles={false}
     title="Projects"
   />
   <Panel>

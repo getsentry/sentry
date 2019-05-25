@@ -1,22 +1,13 @@
-import sdk from 'app/utils/sdk';
+import * as Sentry from '@sentry/browser';
 
 export function logException(ex, context) {
-  sdk.captureException(ex, {
-    extra: context,
+  Sentry.withScope(scope => {
+    if (context) {
+      scope.setExtra('context', context);
+    }
+
+    Sentry.captureException(ex);
   });
   /*eslint no-console:0*/
   window.console && console.error && console.error(ex);
-}
-
-export function logAjaxError(error, context) {
-  let errorString = error.responseJSON
-    ? error.responseJSON.detail || JSON.stringify(error.responseJSON, null, 2)
-    : error.responseText ? error.responseText.substr(0, 255) : '<unknown response>'; // occassionally responseText is undefined
-
-  let message = `HTTP ${error.status}: ${errorString}`;
-  sdk.captureMessage(message, {
-    extra: context,
-  });
-  /*eslint no-console:0*/
-  window.console && console.error && console.error(message);
 }

@@ -2,8 +2,8 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import styled, {css} from 'react-emotion';
 
-import Link from 'app/components/link';
-import ExternalLink from 'app/components/externalLink';
+import Link from 'app/components/links/link';
+import ExternalLink from 'app/components/links/externalLink';
 
 import {OrgSummary} from './sidebarOrgSummary';
 
@@ -23,8 +23,8 @@ class SidebarMenuItem extends React.Component {
     external: PropTypes.bool,
   };
   render() {
-    let {children, to, href, ...props} = this.props;
-    let hasMenu = !to && !href;
+    const {children, to, href, ...props} = this.props;
+    const hasMenu = !to && !href;
 
     return (
       <MenuItemLink to={to} href={href} {...props}>
@@ -54,7 +54,7 @@ const MenuItemLink = styled(({to, href, external, ...props}) => {
   }
 
   if (href) {
-    let Component = external ? ExternalLink : Link;
+    const Component = external ? ExternalLink : Link;
     return <Component href={href} {...props} />;
   }
 

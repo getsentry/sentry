@@ -1,11 +1,14 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import {Link} from 'react-router';
+import styled from 'react-emotion';
 
 import GroupStore from 'app/stores/groupStore';
 import IssueList from 'app/components/issueList';
+import PageHeading from 'app/components/pageHeading';
 import OrganizationHomeContainer from 'app/components/organizations/homeContainer';
 import {t} from 'app/locale';
+import space from 'app/styles/space';
 
 class OrganizationIssueList extends React.Component {
   static propTypes = {
@@ -31,16 +34,16 @@ class OrganizationIssueList extends React.Component {
   }
 
   getQueryStringState = props => {
-    let query = props.location.query;
-    let status = 'status' in query ? query.status : 'unresolved';
+    const query = props.location.query;
+    const status = 'status' in query ? query.status : 'unresolved';
     return {
       status,
     };
   };
 
   render() {
-    let path = this.props.location.pathname;
-    let {status} = this.state;
+    const path = this.props.location.pathname;
+    const {status} = this.state;
     return (
       <OrganizationHomeContainer>
         <div className="pull-right">
@@ -61,7 +64,7 @@ class OrganizationIssueList extends React.Component {
             </Link>
           </div>
         </div>
-        <h4>{this.props.title}</h4>
+        <StyledPageHeading>{this.props.title}</StyledPageHeading>
         <IssueList
           endpoint={this.props.endpoint}
           emptyText={this.props.emptyText}
@@ -77,5 +80,10 @@ class OrganizationIssueList extends React.Component {
     );
   }
 }
+
+const StyledPageHeading = styled(PageHeading)`
+  margin-top: ${space(0.25)};
+  margin-bottom: 24px;
+`;
 
 export default OrganizationIssueList;

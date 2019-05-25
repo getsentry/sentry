@@ -38,7 +38,7 @@ class ApiApplicationDetails extends AsyncView {
   }
 
   renderBody() {
-    let urlPrefix = ConfigStore.get('urlPrefix');
+    const urlPrefix = ConfigStore.get('urlPrefix');
 
     return (
       <div>
@@ -99,7 +99,7 @@ class ApiApplicationDetails extends AsyncView {
 
                 <FormField name="" label="Token URL">
                   {() => {
-                    let value = `${urlPrefix}/oauth/token/`;
+                    const value = `${urlPrefix}/oauth/token/`;
                     return <TextCopyInput>{value}</TextCopyInput>;
                   }}
                 </FormField>

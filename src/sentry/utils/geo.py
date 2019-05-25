@@ -50,7 +50,7 @@ def _init_geoip_rust():
     from semaphore.processing import GeoIpLookup
 
     try:
-        rust_geoip = GeoIpLookup(geoip_path_mmdb)
+        rust_geoip = GeoIpLookup.from_path(geoip_path_mmdb)
     except Exception:
         logger.warning("Error opening GeoIP database in Rust: %s" % geoip_path_mmdb)
 

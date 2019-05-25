@@ -7,6 +7,7 @@ sentry.runner.commands.cleanup
 """
 from __future__ import absolute_import, print_function
 
+import os
 from datetime import timedelta
 from uuid import uuid4
 
@@ -43,6 +44,8 @@ def get_project(value):
 # an identity on an object() isn't guaranteed to work between parent
 # and child proc
 _STOP_WORKER = '91650ec271ae4b3e8a67cdc909d80f8c'
+
+API_TOKEN_TTL_IN_DAYS = 30
 
 
 def multiprocess_worker(task_queue):
@@ -140,6 +143,8 @@ def cleanup(days, project, concurrency, silent, model, router, timed):
         click.echo('Error: Minimum concurrency is 1', err=True)
         raise click.Abort()
 
+    os.environ['_SENTRY_CLEANUP'] = '1'
+
     # Make sure we fork off multiprocessing pool
     # before we import or configure the app
     from multiprocessing import Process, JoinableQueue as Queue
@@ -203,6 +208,13 @@ def cleanup(days, project, concurrency, silent, model, router, timed):
             date_added__lte=timezone.now() - timedelta(hours=48)
         ).delete()
 
+    if is_filtered(models.OrganizationMember) and not silent:
+        click.echo('>> Skipping OrganizationMember')
+    else:
+        click.echo('Removing expired values for OrganizationMember')
+        expired_threshold = timezone.now() - timedelta(days=days)
+        models.OrganizationMember.delete_expired(expired_threshold)
+
     for model in [models.ApiGrant, models.ApiToken]:
         if not silent:
             click.echo(u'Removing expired values for {}'.format(model.__name__))
@@ -211,7 +223,9 @@ def cleanup(days, project, concurrency, silent, model, router, timed):
             if not silent:
                 click.echo(u'>> Skipping {}'.format(model.__name__))
         else:
-            model.objects.filter(expires_at__lt=timezone.now()).delete()
+            model.objects.filter(
+                expires_at__lt=(timezone.now() - timedelta(days=API_TOKEN_TTL_IN_DAYS)),
+            ).delete()
 
     project_id = None
     if project:

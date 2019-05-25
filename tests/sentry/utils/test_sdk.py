@@ -21,7 +21,7 @@ class SentryInternalClientTest(TestCase):
         event = Event.objects.get()
         assert event.project_id == settings.SENTRY_PROJECT
         assert event.event_id == event_id
-        assert event.data['logentry']['message'] == \
+        assert event.data['logentry']['formatted'] == \
             'internal client test'
 
     def test_encoding(self):
@@ -38,5 +38,5 @@ class SentryInternalClientTest(TestCase):
 
         event = Event.objects.get()
         assert event.project_id == settings.SENTRY_PROJECT
-        assert event.data['logentry']['message'] == 'check the req'
+        assert event.data['logentry']['formatted'] == 'check the req'
         assert 'NotJSONSerializable' in event.data['extra']['request']

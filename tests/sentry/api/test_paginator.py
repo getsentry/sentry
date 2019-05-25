@@ -1,11 +1,11 @@
 from __future__ import absolute_import
 
-import pytest
 from datetime import timedelta
 from django.utils import timezone
 from unittest import TestCase as SimpleTestCase
 
 from sentry.api.paginator import (
+    BadPaginationError,
     Paginator,
     DateTimePaginator,
     OffsetPaginator,
@@ -15,7 +15,6 @@ from sentry.api.paginator import (
 from sentry.models import User
 from sentry.testutils import TestCase
 from sentry.utils.cursors import Cursor
-from sentry.utils.db import is_mysql
 
 
 class PaginatorTest(TestCase):
@@ -114,6 +113,50 @@ class OffsetPaginatorTest(TestCase):
         assert result5[0] == res3
         assert not result5.next
         assert result5.prev
+
+    def test_order_by_multiple(self):
+        res1 = self.create_user('foo@example.com')
+        self.create_user('bar@example.com')
+        res3 = self.create_user('baz@example.com')
+
+        queryset = User.objects.all()
+
+        paginator = OffsetPaginator(queryset, 'id')
+        result = paginator.get_result(limit=1, cursor=None)
+        assert len(result) == 1, result
+        assert result[0] == res1
+        assert result.next
+        assert not result.prev
+
+        res3.update(is_active=False)
+
+        paginator = OffsetPaginator(queryset, ('is_active', 'id'))
+        result = paginator.get_result(limit=1, cursor=None)
+        assert len(result) == 1, result
+        assert result[0] == res3
+        assert result.next
+        assert not result.prev
+
+        result = paginator.get_result(limit=1, cursor=result.next)
+        assert len(result) == 1, (result, list(result))
+        assert result[0] == res1
+        assert result.next
+        assert result.prev
+
+    def test_max_offset(self):
+        self.create_user('foo@example.com')
+        self.create_user('bar@example.com')
+        self.create_user('baz@example.com')
+
+        queryset = User.objects.all()
+
+        paginator = OffsetPaginator(queryset, max_offset=10)
+        result1 = paginator.get_result(cursor=None)
+        assert len(result1) == 3, result1
+
+        paginator = OffsetPaginator(queryset, max_offset=0)
+        with self.assertRaises(BadPaginationError):
+            paginator.get_result()
 
 
 class DateTimePaginatorTest(TestCase):
@@ -215,8 +258,7 @@ class DateTimePaginatorTest(TestCase):
         result4 = paginator.get_result(limit=10, cursor=result1.next)
         assert len(result4) == 0, result4
 
-    @pytest.mark.skipif(is_mysql(), reason='MySQL does not support above second accuracy')
-    def test_roudning_offset(self):
+    def test_rounding_offset(self):
         joined = timezone.now()
 
         res1 = self.create_user('foo@example.com', date_joined=joined)
@@ -248,6 +290,60 @@ class DateTimePaginatorTest(TestCase):
 
         result5 = paginator.get_result(limit=10, cursor=result4.prev)
         assert len(result5) == 0, list(result5)
+
+    def test_same_row_updated(self):
+        joined = timezone.now()
+        res1 = self.create_user('foo@example.com', date_joined=joined)
+        queryset = User.objects.all()
+
+        paginator = DateTimePaginator(queryset, '-date_joined')
+        result1 = paginator.get_result(limit=3, cursor=None)
+        assert len(result1) == 1, result1
+        assert result1[0] == res1
+
+        # Prev page should return no results
+        result2 = paginator.get_result(limit=3, cursor=result1.prev)
+        assert len(result2) == 0, result2
+
+        # If the same row has an updated join date then it should
+        # show up on the prev page
+        res1.update(date_joined=joined + timedelta(seconds=1))
+        result3 = paginator.get_result(limit=3, cursor=result1.prev)
+        assert len(result3) == 1, result3
+        assert result3[0] == res1
+
+        # Make sure updates work as expected with extra rows
+        res1.update(date_joined=res1.date_joined + timedelta(seconds=1))
+        res2 = self.create_user(
+            'bar@example.com',
+            date_joined=res1.date_joined + timedelta(seconds=1),
+        )
+        res3 = self.create_user(
+            'baz@example.com',
+            date_joined=res1.date_joined + timedelta(seconds=2),
+        )
+        res4 = self.create_user(
+            'bat@example.com',
+            date_joined=res1.date_joined + timedelta(seconds=3),
+        )
+        result4 = paginator.get_result(limit=1, cursor=result3.prev)
+        assert len(result4) == 1, result4
+        assert result4[0] == res1
+
+        result5 = paginator.get_result(limit=3, cursor=result3.prev)
+        assert len(result5) == 3, result5
+        assert result5[0] == res3
+        assert result5[1] == res2
+        assert result5[2] == res1
+
+        result6 = paginator.get_result(limit=3, cursor=result5.prev)
+        assert len(result6) == 1, result6
+        assert result6[0] == res4
+
+        res4.update(date_joined=res4.date_joined + timedelta(seconds=1))
+        result7 = paginator.get_result(limit=3, cursor=result6.prev)
+        assert len(result7) == 1, result7
+        assert result7[0] == res4
 
 
 def test_reverse_bisect_left():
@@ -290,6 +386,8 @@ def test_reverse_bisect_left():
     assert reverse_bisect_left([2, 2, 1], 0) == 3
     assert reverse_bisect_left([2, 2, 1], 1) == 2
     assert reverse_bisect_left([2, 2, 1], 2) == 0
+
+    assert reverse_bisect_left([3, 2, 1], 2, hi=10) == 1
 
 
 class SequencePaginatorTestCase(SimpleTestCase):

@@ -6,22 +6,26 @@ sentry.event_manager
 """
 from __future__ import absolute_import, print_function
 
-import logging
-import os
-import six
+import time
 import jsonschema
+import logging
+import six
 
 from datetime import datetime, timedelta
 from django.conf import settings
 from django.db import connection, IntegrityError, router, transaction
+from django.db.models import Func
 from django.utils import timezone
 from django.utils.encoding import force_text
 
-from sentry import buffer, eventtypes, eventstream, features, tsdb, filters
+from sentry import buffer, eventtypes, eventstream, features, tagstore, tsdb, filters
 from sentry.constants import (
-    CLIENT_RESERVED_ATTRS, LOG_LEVELS, LOG_LEVELS_MAP, DEFAULT_LOG_LEVEL,
-    DEFAULT_LOGGER_NAME, MAX_CULPRIT_LENGTH, VALID_PLATFORMS, MAX_TAG_VALUE_LENGTH
+    LOG_LEVELS, LOG_LEVELS_MAP, VALID_PLATFORMS, MAX_TAG_VALUE_LENGTH,
 )
+from sentry.grouping.api import get_grouping_config_dict_for_project, \
+    get_grouping_config_dict_for_event_data, load_grouping_config, \
+    apply_server_fingerprinting, get_fingerprinting_config_for_project, \
+    GroupingConfigNotFound
 from sentry.coreapi import (
     APIError,
     APIForbidden,
@@ -31,15 +35,12 @@ from sentry.coreapi import (
     decode_data,
     safely_load_json_string,
 )
-from sentry.interfaces.base import get_interface, prune_empty_keys, InterfaceValidationError
-from sentry.interfaces.exception import normalize_mechanism_meta
-from sentry.interfaces.schemas import validate_and_default_interface
-from sentry.lang.native.utils import get_sdk_from_event
+from sentry.interfaces.base import get_interface
 from sentry.models import (
-    Activity, Environment, Event, EventError, EventMapping, EventUser, Group,
-    GroupEnvironment, GroupHash, GroupRelease, GroupResolution, GroupStatus,
+    Activity, Environment, Event, EventDict, EventError, EventMapping, EventUser, Group,
+    GroupEnvironment, GroupHash, GroupLink, GroupRelease, GroupResolution, GroupStatus,
     Project, Release, ReleaseEnvironment, ReleaseProject,
-    ReleaseProjectEnvironment, UserReport
+    ReleaseProjectEnvironment, UserReport, Organization,
 )
 from sentry.plugins import plugins
 from sentry.signals import event_discarded, event_saved, first_event_received
@@ -47,6 +48,7 @@ from sentry.tasks.integrations import kick_off_status_syncs
 from sentry.utils import metrics
 from sentry.utils.cache import default_cache
 from sentry.utils.canonical import CanonicalKeyDict
+from sentry.utils.contexts_normalization import normalize_user_agent
 from sentry.utils.data_filters import (
     is_valid_ip,
     is_valid_release,
@@ -54,14 +56,11 @@ from sentry.utils.data_filters import (
     FilterStatKeys,
 )
 from sentry.utils.dates import to_timestamp
-from sentry.utils.db import is_postgres, is_mysql
-from sentry.utils.meta import Meta
-from sentry.utils.safe import safe_execute, trim, trim_dict, get_path, set_path, setdefault_path
-from sentry.utils.strings import truncatechars
+from sentry.utils.db import is_postgres
 from sentry.utils.geo import rust_geoip
-from sentry.utils.validators import is_float
-from sentry.utils.contexts_normalization import normalize_user_agent
-from sentry.stacktraces import normalize_in_app
+from sentry.utils.safe import safe_execute, trim, get_path, setdefault_path
+from sentry.stacktraces.processing import normalize_stacktraces_for_grouping
+from sentry.culprit import generate_culprit
 
 
 logger = logging.getLogger("sentry.events")
@@ -77,24 +76,20 @@ SECURITY_REPORT_INTERFACES = (
     "expectstaple",
 )
 
-ENABLE_RUST = os.environ.get("SENTRY_USE_RUST_NORMALIZER", "false").lower() in ("1", "true")
+
+def pop_tag(data, key):
+    data['tags'] = [kv for kv in data['tags'] if kv is None or kv[0] != key]
 
 
 def set_tag(data, key, value):
-    data['tags'] = [(k, v) for k, v in data['tags'] if k != key]
-    data['tags'].append((key, value))
+    pop_tag(data, key)
+    data['tags'].append((key, trim(value, MAX_TAG_VALUE_LENGTH)))
 
 
-def get_event_metadata_compat(data, fallback_message):
-    """This is a fallback path to getting the event metadata.  This is used
-    by some code paths that could potentially deal with old sentry events that
-    do not have metadata yet.  This does not happen in practice any more but
-    the testsuite was never adapted so the tests hit this code path constantly.
-    """
-    etype = data.get('type') or 'default'
-    if 'metadata' not in data:
-        return eventtypes.get(etype)(data).get_metadata()
-    return data['metadata']
+def get_tag(data, key):
+    for k, v in get_path(data, 'tags', filter=True):
+        if k == key:
+            return v
 
 
 def count_limit(count):
@@ -111,6 +106,35 @@ def time_limit(silence):  # ~ 3600 per hour
         if silence >= amount:
             return sample_rate
     return settings.SENTRY_MAX_SAMPLE_TIME
+
+
+def validate_and_set_timestamp(data, timestamp):
+    """
+    Helper function for event processors/enhancers to avoid setting broken timestamps.
+
+    If we set a too old or too new timestamp then this affects event retention
+    and search.
+    """
+    # XXX(markus): We should figure out if we could run normalization
+    # after event processing again. Right now we duplicate code between here
+    # and event normalization
+    if timestamp:
+        current = time.time()
+
+        if current - MAX_SECS_IN_PAST > timestamp:
+            data.setdefault('errors', []).append({
+                'ty': EventError.PAST_TIMESTAMP,
+                'name': 'timestamp',
+                'value': timestamp,
+            })
+        elif timestamp > current + MAX_SECS_IN_FUTURE:
+            data.setdefault('errors', []).append({
+                'ty': EventError.FUTURE_TIMESTAMP,
+                'name': 'timestamp',
+                'value': timestamp,
+            })
+        else:
+            data['timestamp'] = float(timestamp)
 
 
 def parse_client_as_sdk(value):
@@ -144,31 +168,6 @@ else:
         return True
 
 
-def generate_culprit(data, platform=None):
-    exceptions = get_path(data, 'exception', 'values')
-    if exceptions:
-        stacktraces = [e['stacktrace'] for e in exceptions if get_path(e, 'stacktrace', 'frames')]
-    else:
-        stacktrace = data.get('stacktrace')
-        if stacktrace and stacktrace.get('frames'):
-            stacktraces = [stacktrace]
-        else:
-            stacktraces = None
-
-    culprit = None
-
-    if not culprit and stacktraces:
-        from sentry.interfaces.stacktrace import Stacktrace
-        culprit = Stacktrace.to_python(stacktraces[-1]).get_culprit_string(
-            platform=platform,
-        )
-
-    if not culprit and data.get('request'):
-        culprit = get_path(data, 'request', 'url')
-
-    return truncatechars(culprit or '', MAX_CULPRIT_LENGTH)
-
-
 def plugin_is_regression(group, event):
     project = event.project
     for plugin in plugins.for_project(project):
@@ -180,116 +179,64 @@ def plugin_is_regression(group, event):
     return True
 
 
-def process_timestamp(value, current_datetime=None):
-    if is_float(value):
-        try:
-            value = datetime.fromtimestamp(float(value))
-        except Exception:
-            raise InvalidTimestamp(EventError.INVALID_DATA)
-    elif not isinstance(value, datetime):
-        # all timestamps are in UTC, but the marker is optional
-        if value.endswith('Z'):
-            value = value[:-1]
-        if '.' in value:
-            # Python doesn't support long microsecond values
-            # https://github.com/getsentry/sentry/issues/1610
-            ts_bits = value.split('.', 1)
-            value = '%s.%s' % (ts_bits[0], ts_bits[1][:2])
-            fmt = '%Y-%m-%dT%H:%M:%S.%f'
-        else:
-            fmt = '%Y-%m-%dT%H:%M:%S'
-        try:
-            value = datetime.strptime(value, fmt)
-        except Exception:
-            raise InvalidTimestamp(EventError.INVALID_DATA)
-
-    if current_datetime is None:
-        current_datetime = datetime.now()
-
-    if value > current_datetime + ALLOWED_FUTURE_DELTA:
-        raise InvalidTimestamp(EventError.FUTURE_TIMESTAMP)
-
-    if value < current_datetime - timedelta(days=30):
-        raise InvalidTimestamp(EventError.PAST_TIMESTAMP)
-
-    return float(value.strftime('%s'))
+def has_pending_commit_resolution(group):
+    return GroupLink.objects.filter(
+        group_id=group.id,
+        linked_type=GroupLink.LinkedType.commit,
+        relationship=GroupLink.Relationship.resolves,
+    ).extra(
+        where=[
+            "NOT EXISTS(SELECT 1 FROM sentry_releasecommit where commit_id = sentry_grouplink.linked_id)"]
+    ).exists()
 
 
 class HashDiscarded(Exception):
     pass
 
 
-def scoreclause_sql(sc, connection):
-    db = getattr(connection, 'alias', 'default')
-    has_values = sc.last_seen is not None and sc.times_seen is not None
-    if is_postgres(db):
-        if has_values:
-            sql = 'log(times_seen + %d) * 600 + %d' % (sc.times_seen, to_timestamp(sc.last_seen))
+class ScoreClause(Func):
+    def __init__(self, group=None, last_seen=None, times_seen=None, *args, **kwargs):
+        self.group = group
+        self.last_seen = last_seen
+        self.times_seen = times_seen
+        # times_seen is likely an F-object that needs the value extracted
+        if hasattr(self.times_seen, 'rhs'):
+            self.times_seen = self.times_seen.rhs.value
+        super(ScoreClause, self).__init__(*args, **kwargs)
+
+    def __int__(self):
+        # Calculate the score manually when coercing to an int.
+        # This is used within create_or_update and friends
+        return self.group.get_score() if self.group else 0
+
+    def as_sql(self, compiler, connection, function=None, template=None):
+        db = getattr(connection, 'alias', 'default')
+        has_values = self.last_seen is not None and self.times_seen is not None
+        if is_postgres(db):
+            if has_values:
+                sql = 'log(times_seen + %d) * 600 + %d' % (self.times_seen,
+                                                           to_timestamp(self.last_seen))
+            else:
+                sql = 'log(times_seen) * 600 + last_seen::abstime::int'
         else:
-            sql = 'log(times_seen) * 600 + last_seen::abstime::int'
-    elif is_mysql(db):
-        if has_values:
-            sql = 'log(times_seen + %d) * 600 + %d' % (sc.times_seen, to_timestamp(sc.last_seen))
-        else:
-            sql = 'log(times_seen) * 600 + unix_timestamp(last_seen)'
-    else:
-        # XXX: if we cant do it atomically let's do it the best we can
-        sql = int(sc)
+            # XXX: if we cant do it atomically let's do it the best we can
+            sql = int(self)
 
-    return (sql, [])
+        return (sql, [])
 
 
-try:
-    from django.db.models import Func
-except ImportError:
-    # XXX(dramer): compatibility hack for Django 1.6
-    class ScoreClause(object):
-        def __init__(self, group=None, last_seen=None, times_seen=None, *args, **kwargs):
-            self.group = group
-            self.last_seen = last_seen
-            self.times_seen = times_seen
-            # times_seen is likely an F-object that needs the value extracted
-            if hasattr(self.times_seen, 'children'):
-                self.times_seen = self.times_seen.children[1]
-            super(ScoreClause, self).__init__(*args, **kwargs)
+def add_meta_errors(errors, meta):
+    for field_meta in meta:
+        original_value = field_meta.get().get('val')
 
-        def __int__(self):
-            # Calculate the score manually when coercing to an int.
-            # This is used within create_or_update and friends
-            return self.group.get_score() if self.group else 0
-
-        def prepare_database_save(self, unused):
-            return self
-
-        def prepare(self, evaluator, query, allow_joins):
-            return
-
-        def evaluate(self, node, qn, connection):
-            return scoreclause_sql(self, connection)
-
-else:
-    # XXX(dramer): compatibility hack for Django 1.8+
-    class ScoreClause(Func):
-        def __init__(self, group=None, last_seen=None, times_seen=None, *args, **kwargs):
-            self.group = group
-            self.last_seen = last_seen
-            self.times_seen = times_seen
-            # times_seen is likely an F-object that needs the value extracted
-            if hasattr(self.times_seen, 'rhs'):
-                self.times_seen = self.times_seen.rhs.value
-            super(ScoreClause, self).__init__(*args, **kwargs)
-
-        def __int__(self):
-            # Calculate the score manually when coercing to an int.
-            # This is used within create_or_update and friends
-            return self.group.get_score() if self.group else 0
-
-        def as_sql(self, compiler, connection, function=None, template=None):
-            return scoreclause_sql(self, connection)
-
-
-class InvalidTimestamp(Exception):
-    pass
+        for i, (err_type, err_data) in enumerate(field_meta.iter_errors()):
+            error = dict(err_data)
+            error['type'] = err_type
+            if field_meta.path:
+                error['name'] = field_meta.path
+            if i == 0 and original_value is not None:
+                error['value'] = original_value
+            errors.append(error)
 
 
 def _decode_event(data, content_encoding):
@@ -319,21 +266,27 @@ class EventManager(object):
         data,
         version='5',
         project=None,
+        grouping_config=None,
         client_ip=None,
         user_agent=None,
         auth=None,
         key=None,
         content_encoding=None,
-        for_store=True,
+        is_renormalize=False,
+        remove_other=None
     ):
         self._data = _decode_event(data, content_encoding=content_encoding)
         self.version = version
         self._project = project
+        if grouping_config is None and project is not None:
+            grouping_config = get_grouping_config_dict_for_project(self._project)
+        self._grouping_config = grouping_config
         self._client_ip = client_ip
         self._user_agent = user_agent
         self._auth = auth
         self._key = key
-        self._for_store = for_store
+        self._is_renormalize = is_renormalize
+        self._remove_other = remove_other
         self._normalized = False
 
     def process_csp_report(self):
@@ -387,278 +340,43 @@ class EventManager(object):
         self._data = data
 
     def normalize(self):
+        with metrics.timer('events.store.normalize.duration'):
+            self._normalize_impl()
+
+        metrics.timing(
+            'events.store.normalize.errors',
+            len(self._data.get("errors") or ()),
+        )
+
+    def _normalize_impl(self):
         if self._normalized:
             raise RuntimeError('Already normalized')
         self._normalized = True
 
-        if ENABLE_RUST:
-            from semaphore.processing import StoreNormalizer
-            rust_normalizer = StoreNormalizer(
-                geoip_lookup=rust_geoip,
-                project_id=self._project.id if self._project else None,
-                client_ip=self._client_ip,
-                client=self._auth.client if self._auth else None,
-                is_public_auth=self._auth.is_public if self._auth else False,
-                key_id=self._key.id if self._key else None,
-                protocol_version=self.version,
-                stacktrace_frames_hard_limit=settings.SENTRY_STACKTRACE_FRAMES_HARD_LIMIT,
-                valid_platforms=list(VALID_PLATFORMS),
-                max_secs_in_future=MAX_SECS_IN_FUTURE,
-                max_secs_in_past=MAX_SECS_IN_PAST
-            )
+        from semaphore.processing import StoreNormalizer
+        rust_normalizer = StoreNormalizer(
+            geoip_lookup=rust_geoip,
+            project_id=self._project.id if self._project else None,
+            client_ip=self._client_ip,
+            client=self._auth.client if self._auth else None,
+            key_id=six.text_type(self._key.id) if self._key else None,
+            grouping_config=self._grouping_config,
+            protocol_version=six.text_type(self.version) if self.version is not None else None,
+            stacktrace_frames_hard_limit=settings.SENTRY_STACKTRACE_FRAMES_HARD_LIMIT,
+            max_stacktrace_frames=settings.SENTRY_MAX_STACKTRACE_FRAMES,
+            valid_platforms=list(VALID_PLATFORMS),
+            max_secs_in_future=MAX_SECS_IN_FUTURE,
+            max_secs_in_past=MAX_SECS_IN_PAST,
+            enable_trimming=True,
+            is_renormalize=self._is_renormalize,
+            remove_other=self._remove_other,
+        )
 
-            self._data = CanonicalKeyDict(rust_normalizer.normalize_event(dict(self._data)))
-            return
+        self._data = CanonicalKeyDict(
+            rust_normalizer.normalize_event(dict(self._data))
+        )
 
-        data = self._data
-
-        if self._for_store:
-            if self._project is not None:
-                data['project'] = self._project.id
-            if self._key is not None:
-                data['key_id'] = self._key.id
-            if self._auth is not None:
-                data['sdk'] = data.get('sdk') or parse_client_as_sdk(self._auth.client)
-
-        # permit the client to transmit errors as well.
-        errors = data.get('errors')
-        if not errors:
-            errors = data['errors'] = []
-
-        # Before validating with a schema, attempt to cast values to their desired types
-        # so that the schema doesn't have to take every type variation into account.
-        text = six.text_type
-        fp_types = six.string_types + six.integer_types + (float, )
-
-        def to_values(v):
-            return {'values': v} if v and isinstance(v, (tuple, list)) else v
-
-        def stringify(f):
-            if isinstance(f, float):
-                return text(int(f)) if abs(f) < (1 << 53) else None
-            return text(f)
-
-        casts = {
-            'environment': lambda v: text(v) if v is not None else v,
-            'event_id': lambda v: v.lower(),
-            'fingerprint': lambda v: list(x for x in map(stringify, v) if x is not None) if isinstance(v, list) and all(isinstance(f, fp_types) for f in v) else v,
-            'release': lambda v: text(v) if v is not None else v,
-            'dist': lambda v: text(v).strip() if v is not None else v,
-            'time_spent': lambda v: int(v) if v is not None else v,
-            'tags': lambda v: [(text(v_k).replace(' ', '-').strip(), text(v_v).strip()) for (v_k, v_v) in dict(v).items()],
-            'timestamp': lambda v: process_timestamp(v),
-            'platform': lambda v: v if v in VALID_PLATFORMS else 'other',
-            'logentry': lambda v: v if isinstance(v, dict) else {'message': v},
-
-            # These can be sent as lists and need to be converted to {'values': [...]}
-            'exception': to_values,
-            'breadcrumbs': to_values,
-            'threads': to_values,
-        }
-
-        meta = Meta(data.get('_meta'))
-
-        for c in casts:
-            if data.get(c) is not None:
-                try:
-                    data[c] = casts[c](data[c])
-                except InvalidTimestamp as it:
-                    errors.append({'type': it.args[0], 'name': c, 'value': data[c]})
-                    meta.enter(c).add_error(it, data[c])
-                    del data[c]
-                except Exception as e:
-                    errors.append({'type': EventError.INVALID_DATA, 'name': c, 'value': data[c]})
-                    meta.enter(c).add_error(e, data[c])
-                    del data[c]
-
-        # raw 'message' is coerced to the Message interface.  Longer term
-        # we want to treat 'message' as a pure alias for 'logentry' but
-        # for now that won't be the case.
-        #
-        # TODO(mitsuhiko): the logic we want to apply here long term is
-        # to
-        #
-        # 1. make logentry.message optional
-        # 2. make logentry.formatted the primary value
-        # 3. always treat a string as an alias for `logentry.formatted`
-        # 4. remove the custom coercion logic here
-        msg_str = data.pop('message', None)
-        if msg_str:
-            msg_if = data.get('logentry')
-
-            if not msg_if:
-                msg_if = data['logentry'] = {'message': msg_str}
-                meta.enter('logentry', 'message').merge(meta.enter('message'))
-
-            if msg_if.get('message') != msg_str and not msg_if.get('formatted'):
-                msg_if['formatted'] = msg_str
-                meta.enter('logentry', 'formatted').merge(meta.enter('message'))
-
-        # Fill in ip addresses marked as {{auto}}
-        if self._client_ip:
-            if get_path(data, 'request', 'env', 'REMOTE_ADDR') == '{{auto}}':
-                data['request']['env']['REMOTE_ADDR'] = self._client_ip
-
-            if get_path(data, 'user', 'ip_address') == '{{auto}}':
-                data['user']['ip_address'] = self._client_ip
-
-        # Validate main event body and tags against schema.
-        # XXX(ja): jsonschema does not like CanonicalKeyDict, so we need to pass
-        #          in the inner data dict.
-        is_valid, event_errors = validate_and_default_interface(data.data, 'event')
-        errors.extend(event_errors)
-        if data.get('tags') is not None:
-            is_valid, tag_errors = validate_and_default_interface(data['tags'], 'tags', name='tags')
-            errors.extend(tag_errors)
-
-        # Validate interfaces
-        for k in list(iter(data)):
-            if k in CLIENT_RESERVED_ATTRS:
-                continue
-
-            value = data.pop(k)
-
-            if not value:
-                logger.debug('Ignored empty interface value: %s', k)
-                continue
-
-            try:
-                interface = get_interface(k)
-            except ValueError:
-                logger.debug('Ignored unknown attribute: %s', k)
-                errors.append({'type': EventError.INVALID_ATTRIBUTE, 'name': k})
-                continue
-
-            try:
-                inst = interface.to_python(value)
-                data[inst.path] = inst.to_json()
-            except Exception as e:
-                log = logger.debug if isinstance(
-                    e, InterfaceValidationError) else logger.error
-                log('Discarded invalid value for interface: %s (%r)', k, value, exc_info=True)
-                errors.append({'type': EventError.INVALID_DATA, 'name': k, 'value': value})
-                meta.enter(k).add_error(e, value)
-
-        # Additional data coercion and defaulting we only do for store.
-        if self._for_store:
-            level = data.get('level') or DEFAULT_LOG_LEVEL
-            if isinstance(level, int) or (isinstance(level, six.string_types) and level.isdigit()):
-                level = LOG_LEVELS.get(int(level), DEFAULT_LOG_LEVEL)
-            if level not in LOG_LEVELS_MAP:
-                level = DEFAULT_LOG_LEVEL
-            data['level'] = level
-
-            if data.get('dist') and not data.get('release'):
-                data['dist'] = None
-
-            timestamp = data.get('timestamp')
-            if not timestamp:
-                timestamp = timezone.now()
-
-            # TODO (alex) can this all be replaced by utcnow?
-            # it looks like the only time that this would even be hit is when timestamp
-            # is not defined, as the earlier process_timestamp already converts existing
-            # timestamps to floats.
-            if isinstance(timestamp, datetime):
-                # We must convert date to local time so Django doesn't mess it up
-                # based on TIME_ZONE
-                if settings.TIME_ZONE:
-                    if not timezone.is_aware(timestamp):
-                        timestamp = timestamp.replace(tzinfo=timezone.utc)
-                elif timezone.is_aware(timestamp):
-                    timestamp = timestamp.replace(tzinfo=None)
-                timestamp = float(timestamp.strftime('%s'))
-
-            data['timestamp'] = timestamp
-            data['received'] = float(timezone.now().strftime('%s'))
-
-            setdefault_path(data, 'extra', value={})
-            setdefault_path(data, 'logger', value=DEFAULT_LOGGER_NAME)
-            setdefault_path(data, 'tags', value=[])
-
-            # Fix case where legacy apps pass 'environment' as a tag
-            # instead of a top level key.
-            # TODO (alex) save() just reinserts the environment into the tags
-            if not data.get('environment'):
-                tagsdict = dict(data['tags'])
-                if 'environment' in tagsdict:
-                    data['environment'] = tagsdict['environment']
-                    del tagsdict['environment']
-                    data['tags'] = tagsdict.items()
-
-            # the SDKs currently do not describe event types, and we must infer
-            # them from available attributes
-            data['type'] = eventtypes.infer(data).key
-            data['version'] = self.version
-
-        exceptions = get_path(data, 'exception', 'values', filter=True)
-        stacktrace = data.get('stacktrace')
-        if stacktrace and exceptions and len(exceptions) == 1:
-            exceptions[0]['stacktrace'] = stacktrace
-            stacktrace_meta = meta.enter('stacktrace')
-            meta.enter('exception', 'values', 0, 'stacktrace').merge(stacktrace_meta)
-            del data['stacktrace']
-            # TODO(ja): Remove meta data of data['stacktrace'] here, too
-
-        # Exception mechanism needs SDK information to resolve proper names in
-        # exception meta (such as signal names). "SDK Information" really means
-        # the operating system version the event was generated on. Some
-        # normalization still works without sdk_info, such as mach_exception
-        # names (they can only occur on macOS).
-        if exceptions:
-            sdk_info = get_sdk_from_event(data)
-            for ex in exceptions:
-                if 'mechanism' in ex:
-                    normalize_mechanism_meta(ex['mechanism'], sdk_info)
-
-        # This function parses the User Agent from the request if present and fills
-        # contexts with it.
-        normalize_user_agent(data)
-
-        if not get_path(data, "user", "ip_address"):
-            # If there is no User ip_address, update it either from the Http
-            # interface or the client_ip of the request.
-            is_public = self._auth and self._auth.is_public
-            add_ip_platforms = ('javascript', 'cocoa', 'objc')
-
-            http_ip = get_path(data, 'request', 'env', 'REMOTE_ADDR')
-            if http_ip:
-                set_path(data, 'user', 'ip_address', value=http_ip)
-            elif self._client_ip and (is_public or data.get('platform') in add_ip_platforms):
-                set_path(data, 'user', 'ip_address', value=self._client_ip)
-
-        # Trim values
-        if data.get('logger'):
-            data['logger'] = trim(data['logger'].strip(), 64)
-
-        if data.get('extra'):
-            trim_dict(data['extra'], max_size=settings.SENTRY_MAX_EXTRA_VARIABLE_SIZE)
-
-        if data.get('culprit'):
-            data['culprit'] = trim(data['culprit'], MAX_CULPRIT_LENGTH)
-
-        if data.get('transaction'):
-            # XXX: This will be trimmed again when inserted into tag values
-            data['transaction'] = trim(data['transaction'], MAX_CULPRIT_LENGTH)
-
-        # Move some legacy data into tags
-        site = data.pop('site', None)
-        if site is not None:
-            set_tag(data, 'site', site)
-        server_name = data.pop('server_name', None)
-        if server_name is not None:
-            set_tag(data, 'server_name', server_name)
-
-        for key in ('errors', 'tags', 'extra', 'fingerprint'):
-            if not data.get(key):
-                data.pop(key, None)
-
-        if meta.raw():
-            data['_meta'] = meta.raw()
-        elif '_meta' in data:
-            del data['_meta']
-
-        self._data = prune_empty_keys(data)
+        normalize_user_agent(self._data)
 
     def should_filter(self):
         '''
@@ -713,10 +431,12 @@ class EventManager(object):
         date = date.replace(tzinfo=timezone.utc)
         time_spent = data.get('time_spent')
 
+        data['node_id'] = Event.generate_node_id(project_id, event_id)
+
         return Event(
             project_id=project_id or self._project.id,
             event_id=event_id,
-            data=data,
+            data=EventDict(data, skip_renormalization=True),
             time_spent=time_spent,
             datetime=date,
             platform=platform
@@ -727,13 +447,28 @@ class EventManager(object):
         return force_text(
             self._data.get('culprit') or
             self._data.get('transaction') or
-            generate_culprit(self._data, platform=self._data['platform']) or
+            generate_culprit(self._data) or
             ''
         )
 
     def get_event_type(self):
         """Returns the event type."""
-        return eventtypes.get(self._data.get('type', 'default'))(self._data)
+        return eventtypes.get(self._data.get('type', 'default'))()
+
+    def materialize_metadata(self):
+        """Returns the materialized metadata to be merged with group or
+        event data.  This currently produces the keys `type`, `metadata`,
+        `title` and `location`.  This should most likely also produce
+        `culprit` here.
+        """
+        event_type = self.get_event_type()
+        event_metadata = event_type.get_metadata(self._data)
+        return {
+            'type': event_type.key,
+            'metadata': event_metadata,
+            'title': event_type.get_title(event_metadata),
+            'location': event_type.get_location(event_metadata),
+        }
 
     def get_search_message(self, event_metadata=None, culprit=None):
         """This generates the internal event.message attribute which is used
@@ -741,7 +476,7 @@ class EventManager(object):
         the culprit.
         """
         if event_metadata is None:
-            event_metadata = self.get_event_type().get_metadata()
+            event_metadata = self.get_event_type().get_metadata(self._data)
         if culprit is None:
             culprit = self.get_culprit()
 
@@ -771,11 +506,11 @@ class EventManager(object):
                 self.normalize()
             self._normalized = True
 
-        from sentry.tasks.post_process import index_event_tags
-
         data = self._data
 
         project = Project.objects.get_from_cache(id=project_id)
+        project._organization_cache = Organization.objects.get_from_cache(
+            id=project.organization_id)
 
         # Check to make sure we're not about to do a bunch of work that's
         # already been done if we've processed an event with this ID. (This
@@ -790,6 +525,8 @@ class EventManager(object):
         except Event.DoesNotExist:
             pass
         else:
+            # Make sure we cache on the project before returning
+            event._project_cache = project
             logger.info(
                 'duplicate.found',
                 exc_info=True,
@@ -816,7 +553,6 @@ class EventManager(object):
 
         transaction_name = data.get('transaction')
         logger_name = data.get('logger')
-        fingerprint = data.get('fingerprint') or ['{{ default }}']
         release = data.get('release')
         dist = data.get('dist')
         environment = data.get('environment')
@@ -840,82 +576,100 @@ class EventManager(object):
         # into tags (logger, level, environment, transaction).  These are
         # different from legacy attributes which are normalized into tags
         # ahead of time (site, server_name).
-        tags = dict(data.get('tags') or [])
-        tags['level'] = level
+        setdefault_path(data, 'tags', value=[])
+        set_tag(data, 'level', level)
         if logger_name:
-            tags['logger'] = logger_name
+            set_tag(data, 'logger', logger_name)
         if environment:
-            tags['environment'] = trim(environment, MAX_TAG_VALUE_LENGTH)
+            set_tag(data, 'environment', environment)
         if transaction_name:
-            tags['transaction'] = trim(transaction_name, MAX_TAG_VALUE_LENGTH)
+            set_tag(data, 'transaction', transaction_name)
 
         if release:
             # dont allow a conflicting 'release' tag
-            if 'release' in tags:
-                del tags['release']
+            pop_tag(data, 'release')
             release = Release.get_or_create(
                 project=project,
                 version=release,
                 date_added=date,
             )
-
-            tags['sentry:release'] = release.version
+            set_tag(data, 'sentry:release', release.version)
 
         if dist and release:
             dist = release.add_dist(dist, date)
             # dont allow a conflicting 'dist' tag
-            if 'dist' in tags:
-                del tags['dist']
-            tags['sentry:dist'] = dist.name
+            pop_tag(data, 'dist')
+            set_tag(data, 'sentry:dist', dist.name)
         else:
             dist = None
 
         event_user = self._get_event_user(project, data)
         if event_user:
             # dont allow a conflicting 'user' tag
-            if 'user' in tags:
-                del tags['user']
-            tags['sentry:user'] = event_user.tag_value
+            pop_tag(data, 'user')
+            set_tag(data, 'sentry:user', event_user.tag_value)
 
         # At this point we want to normalize the in_app values in case the
         # clients did not set this appropriately so far.
-        normalize_in_app(data)
+        grouping_config = load_grouping_config(
+            get_grouping_config_dict_for_event_data(data, project))
+        normalize_stacktraces_for_grouping(data, grouping_config)
 
         for plugin in plugins.for_project(project, version=None):
             added_tags = safe_execute(plugin.get_tags, event, _with_transaction=False)
             if added_tags:
                 # plugins should not override user provided tags
                 for key, value in added_tags:
-                    tags.setdefault(key, value)
+                    if get_tag(data, key) is None:
+                        set_tag(data, key, value)
 
         for path, iface in six.iteritems(event.interfaces):
             for k, v in iface.iter_tags():
-                tags[k] = v
+                set_tag(data, k, v)
             # Get rid of ephemeral interface data
             if iface.ephemeral:
                 data.pop(iface.path, None)
 
-        # tags are stored as a tuple
-        tags = tags.items()
+        # The active grouping config was put into the event in the
+        # normalize step before.  We now also make sure that the
+        # fingerprint was set to `'{{ default }}' just in case someone
+        # removed it from the payload.  The call to get_hashes will then
+        # look at `grouping_config` to pick the right paramters.
+        data['fingerprint'] = data.get('fingerprint') or ['{{ default }}']
+        apply_server_fingerprinting(data, get_fingerprinting_config_for_project(project))
 
-        # Put the actual tags and fingerprint back
-        data['tags'] = tags
-        data['fingerprint'] = fingerprint
+        # Here we try to use the grouping config that was requested in the
+        # event.  If that config has since been deleted (because it was an
+        # experimental grouping config) we fall back to the default.
+        try:
+            hashes = event.get_hashes()
+        except GroupingConfigNotFound:
+            data['grouping_config'] = get_grouping_config_dict_for_project(project)
+            hashes = event.get_hashes()
 
-        hashes = event.get_hashes()
-
-        event_type = self.get_event_type()
-        event_metadata = event_type.get_metadata()
-
-        data['type'] = event_type.key
-        data['metadata'] = event_metadata
         data['hashes'] = hashes
+
+        # we want to freeze not just the metadata and type in but also the
+        # derived attributes.  The reason for this is that we push this
+        # data into kafka for snuba processing and our postprocessing
+        # picks up the data right from the snuba topic.  For most usage
+        # however the data is dynamically overriden by Event.title and
+        # Event.location (See Event.as_dict)
+        materialized_metadata = self.materialize_metadata()
+        event_metadata = materialized_metadata['metadata']
+        data.update(materialized_metadata)
+        data['culprit'] = culprit
 
         # index components into ``Event.message``
         # See GH-3248
         event.message = self.get_search_message(event_metadata, culprit)
         received_timestamp = event.data.get('received') or float(event.datetime.strftime('%s'))
 
+        # The group gets the same metadata as the event when it's flushed but
+        # additionally the `last_received` key is set.  This key is used by
+        # _save_aggregate.
+        group_metadata = dict(materialized_metadata)
+        group_metadata['last_received'] = received_timestamp
         kwargs = {
             'platform': platform,
             'message': event.message,
@@ -925,13 +679,7 @@ class EventManager(object):
             'last_seen': date,
             'first_seen': date,
             'active_at': date,
-            'data': {
-                'last_received': received_timestamp,
-                'type': event_type.key,
-                # we cache the events metadata on the group to ensure its
-                # accessible in the stream
-                'metadata': event_metadata,
-            },
+            'data': group_metadata,
         }
 
         if release:
@@ -998,7 +746,7 @@ class EventManager(object):
             group_id=group.id,
             environment_id=environment.id,
             defaults={
-                'first_release_id': release.id if release else None,
+                'first_release': release if release else None,
             },
         )
 
@@ -1089,13 +837,13 @@ class EventManager(object):
                 )
                 return event
 
-            index_event_tags.delay(
+            tagstore.delay_index_event_tags(
                 organization_id=project.organization_id,
                 project_id=project.id,
                 group_id=group.id,
                 environment_id=environment.id,
                 event_id=event.id,
-                tags=tags,
+                tags=event.tags,
                 date_added=event.datetime,
             )
 
@@ -1125,7 +873,12 @@ class EventManager(object):
                     }
                 )
 
-        safe_execute(Group.objects.add_tags, group, environment, tags, _with_transaction=False)
+        safe_execute(
+            Group.objects.add_tags,
+            group,
+            environment,
+            event.get_tags(),
+            _with_transaction=False)
 
         if not raw:
             if not project.first_event:
@@ -1154,6 +907,12 @@ class EventManager(object):
             tags={
                 'project_id': project.id,
             },
+        )
+
+        metrics.timing(
+            'events.size.data.post_save',
+            event.size,
+            tags={'project_id': project.id}
         )
 
         return event
@@ -1319,6 +1078,9 @@ class EventManager(object):
         # we only mark it as a regression if the event's release is newer than
         # the release which we originally marked this as resolved
         elif GroupResolution.has_resolution(group, release):
+            return
+
+        elif has_pending_commit_resolution(group):
             return
 
         if not plugin_is_regression(group, event):

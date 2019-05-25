@@ -1,4 +1,5 @@
 import PropTypes from 'prop-types';
+import SentryTypes from 'app/sentryTypes';
 import React from 'react';
 import createReactClass from 'create-react-class';
 //import GroupEventDataSection from "../eventDataSection";
@@ -15,6 +16,7 @@ const StacktraceContent = createReactClass({
     expandFirstFrame: PropTypes.bool,
     platform: PropTypes.string,
     newestFirst: PropTypes.bool,
+    group: SentryTypes.Group,
   },
 
   mixins: [OrganizationState],
@@ -27,11 +29,11 @@ const StacktraceContent = createReactClass({
   },
 
   renderOmittedFrames(firstFrameOmitted, lastFrameOmitted) {
-    let props = {
+    const props = {
       className: 'frame frames-omitted',
       key: 'omitted',
     };
-    let text = t(
+    const text = t(
       'Frames %d until %d were omitted and not available.',
       firstFrameOmitted,
       lastFrameOmitted
@@ -46,7 +48,7 @@ const StacktraceContent = createReactClass({
   },
 
   render() {
-    let data = this.props.data;
+    const data = this.props.data;
     let firstFrameOmitted, lastFrameOmitted;
 
     if (data.framesOmitted) {
@@ -59,19 +61,21 @@ const StacktraceContent = createReactClass({
 
     let lastFrameIdx = null;
     data.frames.forEach((frame, frameIdx) => {
-      if (frame.inApp) lastFrameIdx = frameIdx;
+      if (frame.inApp) {
+        lastFrameIdx = frameIdx;
+      }
     });
     if (lastFrameIdx === null) {
       lastFrameIdx = data.frames.length - 1;
     }
 
-    let expandFirstFrame = this.props.expandFirstFrame;
-    let frames = [];
+    const expandFirstFrame = this.props.expandFirstFrame;
+    const frames = [];
     let nRepeats = 0;
     data.frames.forEach((frame, frameIdx) => {
-      let prevFrame = data.frames[frameIdx - 1];
-      let nextFrame = data.frames[frameIdx + 1];
-      let repeatedFrame =
+      const prevFrame = data.frames[frameIdx - 1];
+      const nextFrame = data.frames[frameIdx + 1];
+      const repeatedFrame =
         nextFrame &&
         frame.lineNo === nextFrame.lineNo &&
         frame.instructionAddr === nextFrame.instructionAddr &&
@@ -95,6 +99,7 @@ const StacktraceContent = createReactClass({
             prevFrame={prevFrame}
             platform={this.props.platform}
             timesRepeated={nRepeats}
+            group={this.props.group}
           />
         );
       }
@@ -109,9 +114,9 @@ const StacktraceContent = createReactClass({
     });
 
     if (frames.length > 0 && data.registers) {
-      let lastFrame = frames.length - 1;
+      const lastFrame = frames.length - 1;
       frames[lastFrame] = React.cloneElement(frames[lastFrame], {
-        registers: data.registers
+        registers: data.registers,
       });
     }
 

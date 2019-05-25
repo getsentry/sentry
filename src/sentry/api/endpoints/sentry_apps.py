@@ -2,43 +2,83 @@ from __future__ import absolute_import
 
 from rest_framework.response import Response
 
+from sentry.auth.superuser import is_active_superuser
 from sentry.api.bases import SentryAppsBaseEndpoint
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework import SentryAppSerializer
+from sentry.constants import SentryAppStatus
 from sentry.features.helpers import requires_feature
-from sentry.mediators.sentry_apps import Creator
+from sentry.mediators.sentry_apps import Creator, InternalCreator
 from sentry.models import SentryApp
 
 
 class SentryAppsEndpoint(SentryAppsBaseEndpoint):
-    @requires_feature('organizations:internal-catchall', any_org=True)
     def get(self, request):
+        status = request.GET.get('status')
+
+        if status == 'published':
+            queryset = SentryApp.objects.filter(status=SentryAppStatus.PUBLISHED)
+
+        elif status == 'unpublished':
+            queryset = SentryApp.objects.filter(
+                status=SentryAppStatus.UNPUBLISHED,
+            )
+            if not is_active_superuser(request):
+                queryset = queryset.filter(
+                    owner__in=request.user.get_orgs(),
+                )
+        elif status == 'internal':
+            queryset = SentryApp.objects.filter(
+                status=SentryAppStatus.INTERNAL,
+            )
+            if not is_active_superuser(request):
+                queryset = queryset.filter(
+                    owner__in=request.user.get_orgs(),
+                )
+        else:
+            if is_active_superuser(request):
+                queryset = SentryApp.objects.all()
+            else:
+                queryset = SentryApp.objects.filter(status=SentryAppStatus.PUBLISHED)
+
         return self.paginate(
             request=request,
-            queryset=SentryApp.visible_for_user(request.user),
+            queryset=queryset,
             order_by='-date_added',
             paginator_cls=OffsetPaginator,
             on_results=lambda x: serialize(x, request.user),
         )
 
-    @requires_feature('organizations:internal-catchall', any_org=True)
+    @requires_feature('organizations:sentry-apps', any_org=True)
     def post(self, request, organization):
-        serializer = SentryAppSerializer(data=request.json_body)
-        if not serializer.is_valid():
-            return Response({'errors': serializer.errors}, status=422)
+        data = {
+            'name': request.json_body.get('name'),
+            'user': request.user,
+            'author': request.json_body.get('author'),
+            'organization': self._get_user_org(request),
+            'webhookUrl': request.json_body.get('webhookUrl'),
+            'redirectUrl': request.json_body.get('redirectUrl'),
+            'isAlertable': request.json_body.get('isAlertable'),
+            'isInternal': request.json_body.get('isInternal'),
+            'scopes': request.json_body.get('scopes', []),
+            'events': request.json_body.get('events', []),
+            'schema': request.json_body.get('schema', {}),
+            'overview': request.json_body.get('overview'),
+        }
 
-        sentry_app = Creator.run(
-            name=request.json_body.get('name'),
-            organization=self._get_user_org(request),
-            scopes=request.json_body.get('scopes'),
-            webhook_url=request.json_body.get('webhookUrl'),
-            redirect_url=request.json_body.get('redirectUrl'),
-            is_alertable=request.json_body.get('isAlertable'),
-            overview=request.json_body.get('overview'),
-        )
+        serializer = SentryAppSerializer(data=data)
 
-        return Response(serialize(sentry_app), status=201)
+        if serializer.is_valid():
+            data['redirect_url'] = data['redirectUrl']
+            data['webhook_url'] = data['webhookUrl']
+            data['is_alertable'] = data['isAlertable']
+
+            creator = InternalCreator if data.get('isInternal') else Creator
+            sentry_app = creator.run(request=request, **data)
+
+            return Response(serialize(sentry_app), status=201)
+        return Response(serializer.errors, status=400)
 
     def _get_user_org(self, request):
         return next(

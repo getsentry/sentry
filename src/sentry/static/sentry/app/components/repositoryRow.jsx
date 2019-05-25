@@ -1,29 +1,16 @@
 import {Box, Flex} from 'grid-emotion';
+import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
-import PropTypes from 'prop-types';
 
+import {Repository} from 'app/sentryTypes';
 import {deleteRepository, cancelDeleteRepository} from 'app/actionCreators/integrations';
+import {t} from 'app/locale';
+import Access from 'app/components/acl/access';
 import Button from 'app/components/button';
 import Confirm from 'app/components/confirm';
 import SpreadLayout from 'app/components/spreadLayout';
-import {Repository} from 'app/sentryTypes';
-import {t} from 'app/locale';
-
-const StyledRow = styled(SpreadLayout)`
-  border-bottom: 1px solid ${p => p.theme.borderLight};
-
-  ${p =>
-    p.status === 'disabled' &&
-    `
-    filter: grayscale(1);
-    opacity: 0.4;
-  `};
-
-  &:last-child {
-    border-bottom: none;
-  }
-`;
+import space from 'app/styles/space';
 
 class RepositoryRow extends React.Component {
   static propTypes = {
@@ -54,20 +41,24 @@ class RepositoryRow extends React.Component {
   }
 
   cancelDelete = () => {
-    let {api, orgId, repository, onRepositoryChange} = this.props;
+    const {api, orgId, repository, onRepositoryChange} = this.props;
     cancelDeleteRepository(api, orgId, repository.id).then(
       data => {
-        if (onRepositoryChange) onRepositoryChange(data);
+        if (onRepositoryChange) {
+          onRepositoryChange(data);
+        }
       },
       () => {}
     );
   };
 
   deleteRepo = () => {
-    let {api, orgId, repository, onRepositoryChange} = this.props;
+    const {api, orgId, repository, onRepositoryChange} = this.props;
     deleteRepository(api, orgId, repository.id).then(
       data => {
-        if (onRepositoryChange) onRepositoryChange(data);
+        if (onRepositoryChange) {
+          onRepositoryChange(data);
+        }
       },
       () => {}
     );
@@ -78,50 +69,81 @@ class RepositoryRow extends React.Component {
   }
 
   render() {
-    let {repository, showProvider} = this.props;
-    let isActive = this.isActive;
+    const {repository, showProvider} = this.props;
+    const isActive = this.isActive;
 
     return (
-      <StyledRow status={repository.status}>
-        <Box p={2} flex="1">
-          <Flex direction="column">
-            <Box pb={1}>
-              <strong>{repository.name}</strong>
-              {!isActive && <small> — {this.getStatusLabel(repository)}</small>}
-              {repository.status === 'pending_deletion' && (
-                <small>
-                  {' '}
-                  (
-                  <a onClick={this.cancelDelete}>{t('Cancel')}</a>
-                  )
-                </small>
-              )}
-            </Box>
-            <Box>
-              {showProvider && (
-                <small>{repository.provider.name}&nbsp;&mdash;&nbsp;</small>
-              )}
-              {repository.url && (
-                <small>
-                  <a href={repository.url}>{repository.url.replace('https://', '')}</a>
-                </small>
-              )}
-            </Box>
-          </Flex>
-        </Box>
+      <Access access={['org:admin']}>
+        {({hasAccess}) => (
+          <StyledRow status={repository.status}>
+            <Flex direction="column">
+              <RepositoryTitle>
+                <strong>{repository.name}</strong>
+                {!isActive && <small> &mdash; {this.getStatusLabel(repository)}</small>}
+                {repository.status === 'pending_deletion' && (
+                  <StyledButton
+                    size="xsmall"
+                    onClick={this.cancelDelete}
+                    disabled={!hasAccess}
+                    data-test-id="repo-cancel"
+                  >
+                    {t('Cancel')}
+                  </StyledButton>
+                )}
+              </RepositoryTitle>
+              <Box>
+                {showProvider && <small>{repository.provider.name}</small>}
+                {showProvider && repository.url && <span>&nbsp;&mdash;&nbsp;</span>}
+                {repository.url && (
+                  <small>
+                    <a href={repository.url}>{repository.url.replace('https://', '')}</a>
+                  </small>
+                )}
+              </Box>
+            </Flex>
 
-        <Box p={2}>
-          <Confirm
-            disabled={!isActive && repository.status !== 'disabled'}
-            onConfirm={this.deleteRepo}
-            message={t('Are you sure you want to remove this repository?')}
-          >
-            <Button size="xsmall" icon="icon-trash" />
-          </Confirm>
-        </Box>
-      </StyledRow>
+            <Confirm
+              disabled={!hasAccess || (!isActive && repository.status !== 'disabled')}
+              onConfirm={this.deleteRepo}
+              message={t(
+                'Are you sure you want to remove this repository? All associated commit data will be removed in addition to the repository.'
+              )}
+            >
+              <Button size="xsmall" icon="icon-trash" disabled={!hasAccess} />
+            </Confirm>
+          </StyledRow>
+        )}
+      </Access>
     );
   }
 }
+
+const StyledRow = styled(SpreadLayout)`
+  border-bottom: 1px solid ${p => p.theme.borderLight};
+  /* shorter top padding because of title lineheight */
+  padding: ${space(1)} ${space(2)} ${space(2)};
+  flex: 1;
+
+  ${p =>
+    p.status === 'disabled' &&
+    `
+    filter: grayscale(1);
+    opacity: 0.4;
+  `};
+
+  &:last-child {
+    border-bottom: none;
+  }
+`;
+
+const StyledButton = styled(Button)`
+  margin-left: ${space(1)};
+`;
+
+const RepositoryTitle = styled(Box)`
+  margin-bottom: ${space(1)};
+  /* accomodate cancel button height */
+  line-height: 26px;
+`;
 
 export default RepositoryRow;

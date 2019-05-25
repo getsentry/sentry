@@ -8,10 +8,12 @@ sentry.db.models.fields.node
 
 from __future__ import absolute_import, print_function
 
+from base64 import b64encode
 import collections
 import logging
 import six
 import warnings
+from uuid import uuid4
 
 from django.conf import settings
 from django.db import models
@@ -25,13 +27,9 @@ from sentry.utils.canonical import CANONICAL_TYPES, CanonicalKeyDict
 
 from .gzippeddict import GzippedDictField
 
-__all__ = ('NodeField', )
+__all__ = ('NodeField', 'NodeData')
 
 logger = logging.getLogger('sentry')
-
-
-class NodeUnpopulated(Exception):
-    pass
 
 
 class NodeIntegrityFailure(Exception):
@@ -39,7 +37,16 @@ class NodeIntegrityFailure(Exception):
 
 
 class NodeData(collections.MutableMapping):
-    def __init__(self, field, id, data=None):
+    """
+        A wrapper for nodestore data that fetches the underlying data
+        from nodestore.
+
+        Initializing with:
+        data=None means, this is a node that needs to be fetched from nodestore.
+        data={...} means, this is an object that should be saved to nodestore.
+    """
+
+    def __init__(self, field, id, data=None, wrapper=None):
         self.field = field
         self.id = id
         self.ref = None
@@ -47,6 +54,9 @@ class NodeData(collections.MutableMapping):
         # (this does not mean the Event is mutable, it just removes ref checking
         #  in the case of something changing on the data model)
         self.ref_version = None
+        self.wrapper = wrapper
+        if data is not None and self.wrapper is not None:
+            data = self.wrapper(data)
         self._node_data = data
 
     def __getstate__(self):
@@ -90,41 +100,41 @@ class NodeData(collections.MutableMapping):
         return '<%s: id=%s>' % (cls_name, self.id, )
 
     def get_ref(self, instance):
-        ref_func = self.field.ref_func
-        if not ref_func:
+        if not self.field or not self.field.ref_func:
             return
-        return ref_func(instance)
+        return self.field.ref_func(instance)
 
     def copy(self):
         return self.data.copy()
 
     @memoize
     def data(self):
+        """
+        Get the current data object, fetching from nodestore if necessary.
+        """
+
         if self._node_data is not None:
             return self._node_data
 
         elif self.id:
-            if settings.DEBUG:
-                raise NodeUnpopulated('You should populate node data before accessing it.')
-            else:
-                warnings.warn('You should populate node data before accessing it.')
+            warnings.warn('You should populate node data before accessing it.')
             self.bind_data(nodestore.get(self.id) or {})
             return self._node_data
 
         rv = {}
-        if self.field.wrapper is not None:
+        if self.field is not None and self.field.wrapper is not None:
             rv = self.field.wrapper(rv)
         return rv
 
     def bind_data(self, data, ref=None):
         self.ref = data.pop('_ref', ref)
         self.ref_version = data.pop('_ref_version', None)
-        if self.ref_version == self.field.ref_version and ref is not None and self.ref != ref:
+        if self.field is not None and self.ref_version == self.field.ref_version and ref is not None and self.ref != ref:
             raise NodeIntegrityFailure(
                 'Node reference for %s is invalid: %s != %s' % (self.id, ref, self.ref, )
             )
-        if self.field.wrapper is not None:
-            data = self.field.wrapper(data)
+        if self.wrapper is not None:
+            data = self.wrapper(data)
         self._node_data = data
 
     def bind_ref(self, instance):
@@ -132,6 +142,24 @@ class NodeData(collections.MutableMapping):
         if ref:
             self.data['_ref'] = ref
             self.data['_ref_version'] = self.field.ref_version
+
+    def save(self):
+        """
+        Write current data back to nodestore.
+        """
+
+        # We never loaded any data for reading or writing, so there
+        # is nothing to save.
+        if self._node_data is None:
+            return
+
+        # We can't put our wrappers into the nodestore, so we need to
+        # ensure that the data is converted into a plain old dict
+        to_write = self._node_data
+        if isinstance(to_write, CANONICAL_TYPES):
+            to_write = dict(to_write.items())
+
+        nodestore.set(self.id, to_write)
 
 
 class NodeField(GzippedDictField):
@@ -144,6 +172,7 @@ class NodeField(GzippedDictField):
         self.ref_func = kwargs.pop('ref_func', None)
         self.ref_version = kwargs.pop('ref_version', None)
         self.wrapper = kwargs.pop('wrapper', None)
+        self.id_func = kwargs.pop('id_func', lambda: b64encode(uuid4().bytes))
         super(NodeField, self).__init__(*args, **kwargs)
 
     def contribute_to_class(self, cls, name):
@@ -158,45 +187,55 @@ class NodeField(GzippedDictField):
         nodestore.delete(value.id)
 
     def to_python(self, value):
-        if isinstance(value, six.string_types) and value:
+        node_id = None
+        # If value is a string, we assume this is a value we've loaded from the
+        # database, it should be decompressed/unpickled, and we should end up
+        # with a dict.
+        if value and isinstance(value, six.string_types):
             try:
                 value = pickle.loads(decompress(value))
             except Exception as e:
+                # TODO this is a bit dangerous as a failure to read/decode the
+                # node_id will end up with this record being replaced with an
+                # empty value under a new key, potentially orphaning an
+                # original value in nodestore. OTOH if we can't decode the info
+                # here, the node was already effectively orphaned.
                 logger.exception(e)
-                value = {}
-        elif not value:
-            value = {}
+                value = None
 
-        if 'node_id' in value:
-            node_id = value.pop('node_id')
-            data = None
+        if value:
+            if 'node_id' in value:
+                node_id = value.pop('node_id')
+                # If the value is now empty, that means that it only had the
+                # node_id in it, which means that we should be looking to *load*
+                # the event body from nodestore. If it does have other stuff in
+                # it, that means we got an event body with a precomputed id in
+                # it, and we want to *save* the rest of the body to nodestore.
+                if value == {}:
+                    value = None
         else:
-            node_id = None
-            data = value
+            # Either we were passed a null/empty value in the constructor, or
+            # we failed to decode the value from the database so we have no id
+            # to load data from, and no data to save.
+            value = None
 
-        if self.wrapper is not None and data is not None:
-            data = self.wrapper(data)
-
-        return NodeData(self, node_id, data)
+        return NodeData(self, node_id, value, wrapper=self.wrapper)
 
     def get_prep_value(self, value):
+        """
+            Prepares the NodeData to be written in a Model.save() call.
+
+            Makes sure the event body is written to nodestore and
+            returns the node_id reference to be written to rowstore.
+        """
         if not value and self.null:
             # save ourselves some storage
             return None
 
-        # We can't put our wrappers into the nodestore, so we need to
-        # ensure that the data is converted into a plain old dict
-        data = value.data
-        if isinstance(data, CANONICAL_TYPES):
-            data = dict(data.items())
+        if value.id is None:
+            value.id = self.id_func()
 
-        # TODO(dcramer): we should probably do this more intelligently
-        # and manually
-        if not value.id:
-            value.id = nodestore.create(data)
-        else:
-            nodestore.set(value.id, data)
-
+        value.save()
         return compress(pickle.dumps({'node_id': value.id}))
 
 

@@ -6,6 +6,7 @@ from ..base import ModelDeletionTask, ModelRelation
 class GroupDeletionTask(ModelDeletionTask):
     def get_child_relations(self, instance):
         from sentry import models
+        from sentry.incidents.models import IncidentGroup
 
         relations = []
 
@@ -30,6 +31,7 @@ class GroupDeletionTask(ModelDeletionTask):
             models.GroupSubscription,
             models.UserReport,
             models.EventAttachment,
+            IncidentGroup,
             # Event is last as its the most time consuming
             models.Event,
         )

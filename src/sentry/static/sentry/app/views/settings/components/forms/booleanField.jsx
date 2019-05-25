@@ -19,13 +19,13 @@ export default class BooleanField extends InputField {
 
   handleChange = (value, onChange, onBlur, e) => {
     // We need to toggle current value because Switch is not an input
-    let newValue = this.coerceValue(!value);
+    const newValue = this.coerceValue(!value);
     onChange(newValue, e);
     onBlur(newValue, e);
   };
 
   render() {
-    let {confirm, ...fieldProps} = this.props;
+    const {confirm, ...fieldProps} = this.props;
 
     return (
       <InputField
@@ -33,9 +33,9 @@ export default class BooleanField extends InputField {
         resetOnError
         field={({onChange, onBlur, value, disabled, ...props}) => {
           // Create a function with required args bound
-          let handleChange = this.handleChange.bind(this, value, onChange, onBlur);
+          const handleChange = this.handleChange.bind(this, value, onChange, onBlur);
 
-          let switchProps = {
+          const switchProps = {
             size: 'lg',
             ...props,
             isActive: !!value,

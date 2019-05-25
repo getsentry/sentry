@@ -2,8 +2,8 @@ import {withRouter} from 'react-router';
 import $ from 'jquery';
 import PropTypes from 'prop-types';
 import React from 'react';
+import * as Sentry from '@sentry/browser';
 
-import sdk from 'app/utils/sdk';
 import getRouteStringFromRoutes from 'app/utils/getRouteStringFromRoutes';
 
 class RouteError extends React.Component {
@@ -12,6 +12,7 @@ class RouteError extends React.Component {
      * Disable logging to Sentry
      */
     disableLogSentry: PropTypes.bool,
+    disableReport: PropTypes.bool,
     error: PropTypes.object.isRequired,
     routes: PropTypes.array,
   };
@@ -22,31 +23,36 @@ class RouteError extends React.Component {
   };
 
   componentWillMount() {
-    let {disableLogSentry, routes, error} = this.props;
-    let {organization, project} = this.context;
+    let {error} = this.props;
+    const {disableLogSentry, disableReport, routes} = this.props;
+    const {organization, project} = this.context;
 
-    if (disableLogSentry) return;
-    if (!error) return;
+    if (disableLogSentry) {
+      return;
+    }
+    if (!error) {
+      return;
+    }
 
-    let route = getRouteStringFromRoutes(routes);
+    const route = getRouteStringFromRoutes(routes);
     if (route) {
       error = new Error(error.message + `: ${route}`);
     }
     // TODO(dcramer): show something in addition to embed (that contains it?)
     // throw this in a timeout so if it errors we dont fall over
     this._timeout = window.setTimeout(() => {
-      sdk.captureException(error, {
-        fingerprint: ['route-error', ...(route ? [route] : [])],
-        extra: {
-          route,
-          orgFeatures: (organization && organization.features) || [],
-          orgAccess: (organization && organization.access) || [],
-          projectFeatures: (project && project.features) || [],
-        },
+      Sentry.withScope(scope => {
+        scope.setFingerprint(['route-error', ...(route ? [route] : [])]);
+        scope.setExtra('route', route);
+        scope.setExtra('orgFeatures', (organization && organization.features) || []);
+        scope.setExtra('orgAccess', (organization && organization.access) || []);
+        scope.setExtra('projectFeatures', (project && project.features) || []);
+        Sentry.captureException(error);
       });
-      // TODO(dcramer): we do not have errorId until send() is called which
-      // has latency in production so this will literally never fire
-      sdk.showReportDialog();
+
+      if (!disableReport) {
+        Sentry.showReportDialog();
+      }
     });
   }
 
@@ -71,13 +77,12 @@ class RouteError extends React.Component {
         </p>
         <p>If you're daring, you may want to try the following:</p>
         <ul>
-          {window &&
-            window.adblockSuspected && (
-              <li>
-                We detected something AdBlock-like. Try disabling it, as it's known to
-                cause issues.
-              </li>
-            )}
+          {window && window.adblockSuspected && (
+            <li>
+              We detected something AdBlock-like. Try disabling it, as it's known to cause
+              issues.
+            </li>
+          )}
           <li>
             Give it a few seconds and{' '}
             <a
@@ -86,7 +91,8 @@ class RouteError extends React.Component {
               }}
             >
               reload the page
-            </a>.
+            </a>
+            .
           </li>
           <li>
             If all else fails,{' '}

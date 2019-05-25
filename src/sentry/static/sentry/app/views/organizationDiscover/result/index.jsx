@@ -1,4 +1,5 @@
 import React from 'react';
+import {browserHistory} from 'react-router';
 import PropTypes from 'prop-types';
 import {throttle} from 'lodash';
 
@@ -8,14 +9,20 @@ import getDynamicText from 'app/utils/getDynamicText';
 import BarChart from 'app/components/charts/barChart';
 import LineChart from 'app/components/charts/lineChart';
 import InlineSvg from 'app/components/inlineSvg';
+import PageHeading from 'app/components/pageHeading';
 
-import {getChartData, getChartDataByDay, getRowsPageRange, downloadAsCsv} from './utils';
+import {
+  getChartData,
+  getChartDataByDay,
+  getRowsPageRange,
+  downloadAsCsv,
+  getVisualization,
+} from './utils';
 import Table from './table';
 import Pagination from './pagination';
 import VisualizationsToggle from './visualizationsToggle';
 import {
   HeadingContainer,
-  Heading,
   ResultSummary,
   ResultContainer,
   ResultInnerContainer,
@@ -25,19 +32,26 @@ import {
   ResultSummaryAndButtons,
 } from '../styles';
 import {NUMBER_OF_SERIES_BY_DAY} from '../data';
+import {
+  queryHasChanged,
+  getQueryFromQueryString,
+  getQueryStringFromQuery,
+} from '../utils';
 
-export default class Result extends React.Component {
+class Result extends React.Component {
   static propTypes = {
     data: PropTypes.object.isRequired,
+    location: PropTypes.object.isRequired,
     savedQuery: SentryTypes.DiscoverSavedQuery, // Provided if it's a saved search
     onFetchPage: PropTypes.func.isRequired,
     onToggleEdit: PropTypes.func,
+    utc: PropTypes.bool,
   };
 
-  constructor() {
-    super();
+  constructor(props) {
+    super(props);
     this.state = {
-      view: 'table',
+      view: getVisualization(props.data, props.location.query.visualization),
       height: null,
       width: null,
     };
@@ -48,20 +62,18 @@ export default class Result extends React.Component {
   }
 
   componentWillReceiveProps(nextProps) {
-    const {baseQuery, byDayQuery} = nextProps.data;
+    const {data, location} = nextProps;
+    const visualization = getVisualization(data, location.query.visualization);
 
-    if (!byDayQuery.data && ['line-by-day', 'bar-by-day'].includes(this.state.view)) {
-      this.setState({
-        view: 'table',
+    if (queryHasChanged(this.props.location.search, nextProps.location.search)) {
+      const search = getQueryStringFromQuery(getQueryFromQueryString(location.search), {
+        visualization,
       });
-    }
 
-    if (
-      !baseQuery.query.aggregations.length &&
-      ['line', 'bar'].includes(this.state.view)
-    ) {
-      this.setState({
-        view: 'table',
+      this.setState({view: visualization});
+      browserHistory.replace({
+        pathname: location.pathname,
+        search,
       });
     }
   }
@@ -78,7 +90,9 @@ export default class Result extends React.Component {
   };
 
   updateDimensions = () => {
-    if (!this.container) return;
+    if (!this.container) {
+      return;
+    }
 
     this.setState({
       height: this.container.clientHeight,
@@ -89,8 +103,18 @@ export default class Result extends React.Component {
   throttledUpdateDimensions = throttle(this.updateDimensions, 200, {trailing: true});
 
   handleToggleVisualizations = opt => {
+    const {location} = this.props;
     this.setState({
       view: opt,
+    });
+
+    const search = getQueryStringFromQuery(getQueryFromQueryString(location.search), {
+      visualization: opt,
+    });
+
+    browserHistory.push({
+      pathname: location.pathname,
+      search,
     });
   };
 
@@ -152,9 +176,9 @@ export default class Result extends React.Component {
   renderSavedQueryHeader() {
     return (
       <React.Fragment>
-        <Heading>
+        <PageHeading>
           {getDynamicText({value: this.props.savedQuery.name, fixed: 'saved query'})}
-        </Heading>
+        </PageHeading>
         <SavedQueryAction onClick={this.props.onToggleEdit}>
           <InlineSvg src="icon-edit" />
         </SavedQueryAction>
@@ -163,11 +187,16 @@ export default class Result extends React.Component {
   }
 
   renderQueryResultHeader() {
-    return <Heading>{t('Result')}</Heading>;
+    return <PageHeading>{t('Result')}</PageHeading>;
   }
 
   render() {
-    const {data: {baseQuery, byDayQuery}, savedQuery, onFetchPage} = this.props;
+    const {
+      data: {baseQuery, byDayQuery},
+      savedQuery,
+      onFetchPage,
+      utc,
+    } = this.props;
 
     const {view} = this.state;
 
@@ -186,7 +215,7 @@ export default class Result extends React.Component {
     };
 
     return (
-      <ResultContainer>
+      <ResultContainer data-test-id="result">
         <div>
           <HeadingContainer>
             {savedQuery ? this.renderSavedQueryHeader() : this.renderQueryResultHeader()}
@@ -223,6 +252,7 @@ export default class Result extends React.Component {
                 legend={{data: [baseQuery.query.aggregations[0][2]], truncate: 80}}
                 xAxis={{truncate: 80}}
                 renderer="canvas"
+                options={{animation: false}}
               />
             </ChartWrapper>
           )}
@@ -234,6 +264,8 @@ export default class Result extends React.Component {
                 tooltip={tooltipOptions}
                 legend={legendData}
                 renderer="canvas"
+                isGroupedByDate={true}
+                utc={utc}
               />
               {this.renderNote()}
             </ChartWrapper>
@@ -247,6 +279,9 @@ export default class Result extends React.Component {
                 tooltip={tooltipOptions}
                 legend={legendData}
                 renderer="canvas"
+                isGroupedByDate={true}
+                utc={utc}
+                options={{animation: false}}
               />
               {this.renderNote()}
             </ChartWrapper>
@@ -267,3 +302,5 @@ export default class Result extends React.Component {
     );
   }
 }
+
+export default Result;

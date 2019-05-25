@@ -3,7 +3,7 @@ import React from 'react';
 
 import {t, tct} from 'app/locale';
 import AsyncView from 'app/views/asyncView';
-import ExternalLink from 'app/components/externalLink';
+import ExternalLink from 'app/components/links/externalLink';
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
 import PreviewFeature from 'app/components/previewFeature';
 import ReportUri, {
@@ -22,7 +22,7 @@ export default class ProjectExpectCtReports extends AsyncView {
   }
 
   getEndpoints() {
-    let {orgId, projectId} = this.props.params;
+    const {orgId, projectId} = this.props.params;
     return [['keyList', `/projects/${orgId}/${projectId}/keys/`]];
   }
 

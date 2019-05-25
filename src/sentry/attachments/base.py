@@ -66,7 +66,7 @@ class BaseAttachmentCache(object):
             self.inner.set(u'{}:{}'.format(key, index), compressed, timeout, raw=True)
 
             metrics_tags = {'type': attachment.type}
-            metrics.incr('attachments.received', tags=metrics_tags)
+            metrics.incr('attachments.received', tags=metrics_tags, skip_internal=False)
             metrics.timing('attachments.blob-size.raw', len(attachment.data), tags=metrics_tags)
             metrics.timing('attachments.blob-size.compressed', len(compressed), tags=metrics_tags)
 

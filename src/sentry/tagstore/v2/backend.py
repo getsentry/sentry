@@ -27,6 +27,7 @@ from sentry.utils import db
 
 from . import models
 from sentry.tagstore.types import TagKey, TagValue, GroupTagKey, GroupTagValue
+from sentry.tasks.post_process import index_event_tags
 
 
 logger = logging.getLogger('sentry.tagstore.v2')
@@ -156,7 +157,7 @@ class V2TagStorage(TagStorage):
 
                 # required to deal with custom SQL queries and the ORM
                 # in `bulk_delete_objects`
-                key_id_field_name = 'key_id' if (db.is_postgres() or db.is_mysql()) else '_key_id'
+                key_id_field_name = 'key_id' if (db.is_postgres()) else '_key_id'
 
                 relations = [
                     ModelRelation(m, query={
@@ -440,7 +441,10 @@ class V2TagStorage(TagStorage):
 
         return transformers[models.TagKey](instance)
 
-    def get_tag_keys(self, project_id, environment_id, status=TagKeyStatus.VISIBLE):
+    def get_tag_keys(
+        self, project_id, environment_id, status=TagKeyStatus.VISIBLE,
+        include_values_seen=False,
+    ):
         qs = models.TagKey.objects.filter(
             project_id=project_id,
         )
@@ -511,7 +515,13 @@ class V2TagStorage(TagStorage):
 
         return transformers[models.GroupTagKey](instance)
 
-    def get_group_tag_keys(self, project_id, group_id, environment_id, limit=None, keys=None):
+    def get_group_tag_keys(self, project_id, group_id, environment_ids, limit=None, keys=None):
+        # only the snuba backend supports multi env
+        if environment_ids and len(environment_ids) > 1:
+            raise NotImplementedError
+
+        environment_id = environment_ids[0] if environment_ids else None
+
         qs = models.GroupTagKey.objects.select_related('_key').filter(
             project_id=project_id,
             group_id=group_id,
@@ -536,9 +546,9 @@ class V2TagStorage(TagStorage):
         from sentry.tagstore.exceptions import GroupTagValueNotFound
 
         value = self.get_group_list_tag_value(
-            project_id,
+            [project_id],
             [group_id],
-            environment_id,
+            [environment_id],
             key,
             value,
         ).get(group_id)
@@ -566,17 +576,21 @@ class V2TagStorage(TagStorage):
             )
         )
 
-    def get_group_list_tag_value(self, project_id, group_id_list, environment_id, key, value):
+    def get_group_list_tag_value(self, project_ids, group_id_list, environment_ids, key, value):
+        # only the snuba backend supports multi project/env
+        if len(project_ids) > 1 or environment_ids and len(environment_ids) > 1:
+            raise NotImplementedError
+
         qs = models.GroupTagValue.objects.select_related('_key', '_value').filter(
-            project_id=project_id,
+            project_id=project_ids[0],
             group_id__in=group_id_list,
-            _key__project_id=project_id,
+            _key__project_id=project_ids[0],
             _key__key=key,
-            _value__project_id=project_id,
+            _value__project_id=project_ids[0],
             _value__value=value,
         )
 
-        qs = self._add_environment_filter(qs, environment_id)
+        qs = self._add_environment_filter(qs, environment_ids[0])
         t = transformers[models.GroupTagValue]
         return {result.group_id: t(result) for result in qs}
 
@@ -659,11 +673,18 @@ class V2TagStorage(TagStorage):
                         },
                         extra=extra)
 
-    def get_group_event_filter(self, project_id, group_id, environment_id, tags):
+    def get_group_event_filter(self, project_id, group_id, environment_ids, tags, start, end):
         # NOTE: `environment_id=None` needs to be filtered differently in this method.
         # EventTag never has NULL `environment_id` fields (individual Events always have an environment),
         # and so `environment_id=None` needs to query EventTag for *all* environments (except, ironically
         # the aggregate environment).
+        if environment_ids:
+            # only the snuba backend supports multi env
+            if len(environment_ids) > 1:
+                raise NotImplementedError
+            environment_id = environment_ids[0]
+        else:
+            environment_id = None
 
         if environment_id is None:
             # filter for all 'real' environments
@@ -703,12 +724,19 @@ class V2TagStorage(TagStorage):
         # Django doesnt support union, so we limit results and try to find
         # reasonable matches
 
+        date_filters = Q()
+        if start:
+            date_filters &= Q(date_added__gte=start)
+        if end:
+            date_filters &= Q(date_added__lte=end)
+
         # get initial matches to start the filter
         kv_pairs = tag_lookups.pop()
         matches = list(
             models.EventTag.objects.filter(
                 reduce(or_, (Q(key_id=k, value_id=v)
                              for k, v in kv_pairs)),
+                date_filters,
                 project_id=project_id,
                 group_id=group_id,
             ).values_list('event_id', flat=True)[:1000]
@@ -721,6 +749,7 @@ class V2TagStorage(TagStorage):
                 models.EventTag.objects.filter(
                     reduce(or_, (Q(key_id=k, value_id=v)
                                  for k, v in kv_pairs)),
+                    date_filters,
                     project_id=project_id,
                     group_id=group_id,
                     event_id__in=matches,
@@ -731,15 +760,19 @@ class V2TagStorage(TagStorage):
 
         return {'id__in': set(matches)}
 
-    def get_groups_user_counts(self, project_id, group_ids, environment_id):
+    def get_groups_user_counts(self, project_ids, group_ids, environment_ids, start=None, end=None):
+        # only the snuba backend supports multi project/env
+        if len(project_ids) > 1 or environment_ids and len(environment_ids) > 1:
+            raise NotImplementedError
+
         qs = models.GroupTagKey.objects.filter(
-            project_id=project_id,
+            project_id=project_ids[0],
             group_id__in=group_ids,
-            _key__project_id=project_id,
+            _key__project_id=project_ids[0],
             _key__key='sentry:user',
         )
 
-        qs = self._add_environment_filter(qs, environment_id)
+        qs = self._add_environment_filter(qs, environment_ids and environment_ids[0])
 
         return defaultdict(int, qs.values_list('group_id', 'values_seen'))
 
@@ -783,7 +816,8 @@ class V2TagStorage(TagStorage):
         qs = self._add_environment_filter(qs, environment_id)
         return qs.aggregate(t=Sum('times_seen'))['t']
 
-    def get_top_group_tag_values(self, project_id, group_id, environment_id, key, limit=TOP_VALUES_DEFAULT_LIMIT):
+    def get_top_group_tag_values(self, project_id, group_id,
+                                 environment_id, key, limit=TOP_VALUES_DEFAULT_LIMIT):
         if db.is_postgres():
             environment_id = AGGREGATE_ENVIRONMENT_ID if environment_id is None else environment_id
 
@@ -921,55 +955,6 @@ class V2TagStorage(TagStorage):
             )
         )
 
-    def get_group_ids_for_search_filter(
-            self, project_id, environment_id, tags, candidates=None, limit=1000):
-
-        from sentry.search.base import ANY
-        # Django doesnt support union, so we limit results and try to find
-        # reasonable matches
-
-        # ANY matches should come last since they're the least specific and
-        # will provide the largest range of matches
-        tag_lookups = sorted(six.iteritems(tags), key=lambda k_v: k_v[1] == ANY)
-
-        # get initial matches to start the filter
-        matches = candidates or []
-
-        # for each remaining tag, find matches contained in our
-        # existing set, pruning it down each iteration
-        for k, v in tag_lookups:
-            if v != ANY:
-                base_qs = models.GroupTagValue.objects.filter(
-                    project_id=project_id,
-                    _key__project_id=project_id,
-                    _key__key=k,
-                    _value__project_id=project_id,
-                    _value___key=F('_key'),
-                    _value__value=v,
-                )
-                base_qs = self._add_environment_filter(base_qs, environment_id)
-
-            else:
-                base_qs = models.GroupTagValue.objects.filter(
-                    project_id=project_id,
-                    _key__project_id=project_id,
-                    _key__key=k,
-                )
-                base_qs = self._add_environment_filter(base_qs, environment_id).distinct()
-
-            if matches:
-                base_qs = base_qs.filter(group_id__in=matches)
-            else:
-                # restrict matches to only the most recently seen issues
-                base_qs = base_qs.order_by('-last_seen')
-
-            matches = list(base_qs.values_list('group_id', flat=True)[:limit])
-
-            if not matches:
-                return []
-
-        return matches
-
     def update_group_tag_key_values_seen(self, project_id, group_ids):
         gtk_qs = models.GroupTagKey.objects.filter(
             project_id=project_id,
@@ -1056,19 +1041,6 @@ class V2TagStorage(TagStorage):
         qs = self._add_environment_filter(qs, environment_id)
         return qs
 
-    def get_event_tag_qs(self, project_id, environment_id, key, value):
-        qs = models.EventTag.objects.filter(
-            project_id=project_id,
-            key__project_id=project_id,
-            key__key=key,
-            value__project_id=project_id,
-            value__value=value,
-        )
-
-        qs = self._add_environment_filter(qs, environment_id)
-
-        return qs
-
     def update_group_for_events(self, project_id, event_ids, destination_id):
         return models.EventTag.objects.filter(
             project_id=project_id,
@@ -1091,3 +1063,15 @@ class V2TagStorage(TagStorage):
             return queryset.filter(_key__environment_id=environment_id)
         else:
             raise ValueError("queryset of unsupported model '%s' provided" % queryset.model)
+
+    def delay_index_event_tags(self, organization_id, project_id, group_id,
+                               environment_id, event_id, tags, date_added):
+        index_event_tags.delay(
+            organization_id=organization_id,
+            project_id=project_id,
+            group_id=group_id,
+            environment_id=environment_id,
+            event_id=event_id,
+            tags=tags,
+            date_added=date_added,
+        )

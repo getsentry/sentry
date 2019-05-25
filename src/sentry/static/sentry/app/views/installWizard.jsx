@@ -15,12 +15,12 @@ export default class InstallWizard extends AsyncView {
 
   componentWillMount() {
     super.componentWillMount();
-    jQuery(document.body).addClass('install-wizard');
+    document.body.classList.add('install-wizard');
   }
 
   componentWillUnmount() {
     super.componentWillUnmount();
-    jQuery(document.body).removeClass('install-wizard');
+    document.body.classList.remove('install-wizard');
   }
 
   getEndpoints() {
@@ -28,7 +28,7 @@ export default class InstallWizard extends AsyncView {
   }
 
   renderFormFields() {
-    let options = this.state.data;
+    const options = this.state.data;
 
     let missingOptions = new Set(
       Object.keys(options).filter(option => !options[option].field.isSet)
@@ -43,10 +43,10 @@ export default class InstallWizard extends AsyncView {
     }
 
     // A mapping of option name to Field object
-    let fields = {};
+    const fields = {};
 
-    for (let key of missingOptions) {
-      let option = options[key];
+    for (const key of missingOptions) {
+      const option = options[key];
       if (option.field.disabled) {
         continue;
       }
@@ -57,11 +57,24 @@ export default class InstallWizard extends AsyncView {
   }
 
   getInitialData() {
-    let options = this.state.data;
-    let data = {};
+    const options = this.state.data;
+    const data = {};
     Object.keys(options).forEach(optionName => {
-      let option = options[optionName];
-      if (!option.field.isSet) {
+      const option = options[optionName];
+      if (option.field.disabled) {
+        return;
+      }
+      // XXX(dcramer): we need the user to explicitly choose beacon.anonymous
+      // vs using an implied default so effectively this is binding
+      // all values to their server-defaults (as client-side defaults dont really work)
+      // TODO(dcramer): we need to rethink this logic as doing multiple "is this value actually set"
+      // is problematic
+      if (
+        option.value !== undefined &&
+        option.value !== '' &&
+        option.value !== null &&
+        (option.field.isSet || optionName != 'beacon.anonymous')
+      ) {
         data[optionName] = option.value;
       }
     });
@@ -73,7 +86,7 @@ export default class InstallWizard extends AsyncView {
   }
 
   render() {
-    let version = ConfigStore.get('version');
+    const version = ConfigStore.get('version');
     return (
       <DocumentTitle title={this.getTitle()}>
         <div className="app">
@@ -86,8 +99,8 @@ export default class InstallWizard extends AsyncView {
             {this.state.loading
               ? this.renderLoading()
               : this.state.error
-                ? this.renderError(new Error('Unable to load all required endpoints'))
-                : this.renderBody()}
+              ? this.renderError(new Error('Unable to load all required endpoints'))
+              : this.renderBody()}
           </div>
         </div>
       </DocumentTitle>

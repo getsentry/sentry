@@ -7,6 +7,7 @@ sentry.models.organization
 """
 from __future__ import absolute_import, print_function
 
+import logging
 import six
 
 from datetime import timedelta
@@ -137,6 +138,9 @@ class Organization(Model):
             ), (
                 'require_2fa',
                 'Require and enforce two-factor authentication for all members.'
+            ), (
+                'disable_new_visibility_features',
+                'Temporarily opt out of new visibility features and ui',
             ),
         ),
         default=1
@@ -227,7 +231,10 @@ class Organization(Model):
         from sentry.models import (
             ApiKey,
             AuditLogEntry,
+            AuthProvider,
             Commit,
+            OrganizationAvatar,
+            OrganizationIntegration,
             OrganizationMember,
             OrganizationMemberTeam,
             Project,
@@ -244,6 +251,7 @@ class Organization(Model):
         for from_member in OrganizationMember.objects.filter(
             organization=from_org, user__isnull=False
         ):
+            logger = logging.getLogger('sentry.merge')
             try:
                 to_member = OrganizationMember.objects.get(
                     organization=to_org,
@@ -265,58 +273,113 @@ class Organization(Model):
                             'is_active': True,
                         },
                     )
+            logger.info('user.migrate', extra={
+                'instance_id': from_member.id,
+                'new_member_id': to_member.id,
+                'from_organization_id': from_org.id,
+                'to_organization_id': to_org.id,
+            })
 
-        for team in Team.objects.filter(organization=from_org):
+        for from_team in Team.objects.filter(organization=from_org):
             try:
                 with transaction.atomic():
-                    team.update(organization=to_org)
+                    from_team.update(organization=to_org)
             except IntegrityError:
-                slugify_instance(team, team.name, organization=to_org)
-                team.update(
+                slugify_instance(from_team, from_team.name, organization=to_org)
+                from_team.update(
                     organization=to_org,
-                    slug=team.slug,
+                    slug=from_team.slug,
                 )
+            logger.info('team.migrate', extra={
+                'instance_id': from_team.id,
+                'new_slug': from_team.slug,
+                'from_organization_id': from_org.id,
+                'to_organization_id': to_org.id,
+            })
 
-        for project in Project.objects.filter(organization=from_org):
+        for from_project in Project.objects.filter(organization=from_org):
             try:
                 with transaction.atomic():
-                    project.update(organization=to_org)
+                    from_project.update(organization=to_org)
             except IntegrityError:
                 slugify_instance(
-                    project,
-                    project.name,
+                    from_project,
+                    from_project.name,
                     organization=to_org,
                     reserved=RESERVED_PROJECT_SLUGS)
-                project.update(
+                from_project.update(
                     organization=to_org,
-                    slug=project.slug,
+                    slug=from_project.slug,
                 )
+            logger.info('project.migrate', extra={
+                'instance_id': from_project.id,
+                'new_slug': from_project.slug,
+                'from_organization_id': from_org.id,
+                'to_organization_id': to_org.id,
+            })
 
         # TODO(jess): update this when adding unique constraint
         # on version, organization for releases
-        for release in Release.objects.filter(organization=from_org):
+        for from_release in Release.objects.filter(organization=from_org):
             try:
-                to_release = Release.objects.get(version=release.version, organization=to_org)
+                to_release = Release.objects.get(version=from_release.version, organization=to_org)
             except Release.DoesNotExist:
-                Release.objects.filter(id=release.id).update(organization=to_org)
+                Release.objects.filter(id=from_release.id).update(organization=to_org)
             else:
-                Release.merge(to_release, [release])
+                Release.merge(to_release, [from_release])
+            logger.info('release.migrate', extra={
+                'instance_id': from_release.id,
+                'from_organization_id': from_org.id,
+                'to_organization_id': to_org.id,
+            })
 
-        for model in (ApiKey, AuditLogEntry, ReleaseFile):
-            model.objects.filter(
-                organization=from_org,
-            ).update(organization=to_org)
-
-        for model in (
-            Commit, ReleaseCommit, ReleaseEnvironment, ReleaseHeadCommit, Repository, Environment
-        ):
+        def do_update(queryset, params):
+            model_name = queryset.model.__name__.lower()
             try:
                 with transaction.atomic():
-                    model.objects.filter(
-                        organization_id=from_org.id,
-                    ).update(organization_id=to_org.id)
+                    queryset.update(**params)
             except IntegrityError:
-                pass
+                for instance in queryset:
+                    try:
+                        with transaction.atomic():
+                            instance.update(**params)
+                    except IntegrityError:
+                        logger.info('{}.migrate-skipped'.format(model_name), extra={
+                            'from_organization_id': from_org.id,
+                            'to_organization_id': to_org.id,
+                        })
+                    else:
+                        logger.info('{}.migrate'.format(model_name), extra={
+                            'instance_id': instance.id,
+                            'from_organization_id': from_org.id,
+                            'to_organization_id': to_org.id,
+                        })
+            else:
+                logger.info('{}.migrate'.format(model_name), extra={
+                    'from_organization_id': from_org.id,
+                    'to_organization_id': to_org.id,
+                })
+
+        INST_MODEL_LIST = (
+            AuthProvider, ApiKey, AuditLogEntry, OrganizationAvatar,
+            OrganizationIntegration, ReleaseEnvironment, ReleaseFile,
+        )
+
+        ATTR_MODEL_LIST = (
+            Commit, ReleaseCommit, ReleaseHeadCommit, Repository, Environment,
+        )
+
+        for model in INST_MODEL_LIST:
+            queryset = model.objects.filter(
+                organization=from_org,
+            )
+            do_update(queryset, {'organization': to_org})
+
+        for model in ATTR_MODEL_LIST:
+            queryset = model.objects.filter(
+                organization_id=from_org.id,
+            )
+            do_update(queryset, {'organization_id': to_org.id})
 
     # TODO: Make these a mixin
     def update_option(self, *args, **kwargs):
@@ -378,3 +441,13 @@ class Organization(Model):
             actor_key_id=api_key_id,
             ip_address=ip_address
         )
+
+    def get_url_viewname(self):
+        from sentry import features
+        if features.has('organizations:sentry10', self):
+            return 'sentry-organization-issue-list'
+        else:
+            return 'sentry-organization-home'
+
+    def get_url(self):
+        return reverse(self.get_url_viewname(), args=[self.slug])

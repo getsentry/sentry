@@ -1,7 +1,6 @@
 /* global __dirname */
 import {channel, createBroadcast} from 'emotion-theming';
 import jQuery from 'jquery';
-import sinon from 'sinon';
 import Adapter from 'enzyme-adapter-react-16';
 import Enzyme from 'enzyme';
 import MockDate from 'mockdate';
@@ -53,6 +52,7 @@ jest.mock('lodash/debounce', () => jest.fn(fn => fn));
 jest.mock('app/utils/recreateRoute');
 jest.mock('app/translations');
 jest.mock('app/api');
+jest.mock('app/utils/domId');
 jest.mock('app/utils/withOrganization');
 jest.mock('scroll-to-element', () => {});
 jest.mock('react-router', () => {
@@ -100,14 +100,36 @@ jest.mock('echarts-for-react/lib/core', () => {
   };
 });
 
-jest.mock('app/utils/sdk', () => ({
-  captureBreadcrumb: jest.fn(),
-  addBreadcrumb: jest.fn(),
-  captureMessage: jest.fn(),
-  captureException: jest.fn(),
-  showReportDialog: jest.fn(),
-  lastEventId: jest.fn(),
-}));
+jest.mock('@sentry/browser', () => {
+  const SentryBrowser = require.requireActual('@sentry/browser');
+  return {
+    init: jest.fn(),
+    configureScope: jest.fn(),
+    captureBreadcrumb: jest.fn(),
+    addBreadcrumb: jest.fn(),
+    captureMessage: jest.fn(),
+    captureException: jest.fn(),
+    showReportDialog: jest.fn(),
+    lastEventId: jest.fn(),
+    getCurrentHub: jest.spyOn(SentryBrowser, 'getCurrentHub'),
+    withScope: jest.spyOn(SentryBrowser, 'withScope'),
+  };
+});
+
+jest.mock('popper.js', () => {
+  const PopperJS = jest.requireActual('popper.js');
+
+  return class {
+    static placements = PopperJS.placements;
+
+    constructor() {
+      return {
+        destroy: () => {},
+        scheduleUpdate: () => {},
+      };
+    }
+  };
+});
 
 // We generally use actual jQuery, and jest mocks takes precedence over node_modules
 jest.unmock('jquery');
@@ -120,7 +142,6 @@ jest.unmock('jquery');
 window.tick = () => new Promise(resolve => setTimeout(resolve));
 
 window.$ = window.jQuery = jQuery;
-window.sinon = sinon;
 window.scrollTo = jest.fn();
 
 // this is very commonly used, so expose it globally

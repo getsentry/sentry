@@ -4,7 +4,9 @@ const GET_META = Symbol('GET_META');
 const IS_PROXY = Symbol('IS_PROXY');
 
 function isAnnotated(meta) {
-  if (_.isEmpty(meta)) return false;
+  if (_.isEmpty(meta)) {
+    return false;
+  }
   return !_.isEmpty(meta.rem) || !_.isEmpty(meta.err);
 }
 
@@ -66,7 +68,7 @@ export function withMeta(event) {
     return event;
   }
 
-  let _meta = event._meta;
+  const _meta = event._meta;
   return new Proxy(event, new MetaProxy(_meta));
 }
 

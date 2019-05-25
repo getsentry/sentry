@@ -1,4 +1,3 @@
-import idx from 'idx';
 import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
@@ -22,13 +21,13 @@ export default class CommitRow extends React.Component {
       return t('No message provided');
     }
 
-    let firstLine = message.split(/\n/)[0];
+    const firstLine = message.split(/\n/)[0];
 
     return firstLine;
   };
 
   render() {
-    let {id, dateCreated, message, author, repository} = this.props.commit;
+    const {id, dateCreated, message, author, repository} = this.props.commit;
     return (
       <PanelItem key={id} align="center">
         <AvatarWrapper mr={2}>
@@ -38,7 +37,7 @@ export default class CommitRow extends React.Component {
           <Message>{this.renderMessage(message)}</Message>
           <Meta>
             {tct('[author] committed [timeago]', {
-              author: <strong>{idx(author, _ => _.name) || t('Unknown author')}</strong>,
+              author: <strong>{author?.name || t('Unknown author')}</strong>,
               timeago: <TimeSince date={dateCreated} />,
             })}
           </Meta>
@@ -61,7 +60,7 @@ const Message = styled(TextOverflow)`
   font-weight: bold;
 `;
 
-const Meta = styled.p`
+const Meta = styled('p')`
   font-size: 13px;
   line-height: 1.5;
   margin: 0;

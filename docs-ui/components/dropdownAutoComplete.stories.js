@@ -23,6 +23,24 @@ const items = [
 
 const groupedItems = [
   {
+    value: 'defaults',
+    hideGroupLabel: true,
+    items: [
+      {
+        value: 'recent thing',
+        label: 'recent thing',
+      },
+      {
+        value: 'other recent thing',
+        label: 'other recent thing',
+      },
+      {
+        value: 'yet another recent thing',
+        label: 'yet another recent thing',
+      },
+    ],
+  },
+  {
     value: 'countries',
     label: (
       <div>
@@ -80,7 +98,12 @@ const addTo = name =>
     .add(
       'grouped',
       withInfo('Group labels can receive a component too')(() => (
-        <DropdownAutoComplete items={groupedItems} alignMenu="left">
+        <DropdownAutoComplete
+          items={groupedItems}
+          alignMenu="left"
+          virtualizedHeight={44}
+          virtualizedLabelHeight={28}
+        >
           {({isOpen, selectedItem}) => (selectedItem ? selectedItem.label : 'Click me!')}
         </DropdownAutoComplete>
       ))

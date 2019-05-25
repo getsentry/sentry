@@ -6,6 +6,7 @@ exports[`AccountAuthorizations renders empty 1`] = `
 >
   <div>
     <SettingsPageHeading
+      noTitleStyles={false}
       title="Authorized Applications"
     />
     <Description>

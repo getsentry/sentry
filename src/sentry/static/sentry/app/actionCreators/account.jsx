@@ -4,7 +4,7 @@ import IndicatorStore from 'app/stores/indicatorStore';
 
 export function disconnectIdentity(identity) {
   const api = new Client();
-  let request = api.requestPromise(`/users/me/social-identities/${identity.id}/`, {
+  const request = api.requestPromise(`/users/me/social-identities/${identity.id}/`, {
     method: 'DELETE',
   });
 
@@ -26,6 +26,12 @@ export function updateUser(user) {
 
 export function logout(api) {
   return api.requestPromise('/auth/', {
+    method: 'DELETE',
+  });
+}
+
+export function removeAuthenticator(api, userId, authId) {
+  return api.requestPromise(`/users/${userId}/authenticators/${authId}/`, {
     method: 'DELETE',
   });
 }

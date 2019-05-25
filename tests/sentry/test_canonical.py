@@ -2,13 +2,14 @@
 
 from __future__ import absolute_import, print_function
 
+import unittest
+
 from collections import OrderedDict
 
-from sentry.testutils import TestCase
 from sentry.utils.canonical import CanonicalKeyView, CanonicalKeyDict
 
 
-class CanonicalKeyViewTests(TestCase):
+class CanonicalKeyViewTests(unittest.TestCase):
     canonical_data = OrderedDict([
         ('release', 'asdf'),
         ('exception', {'type': 'DemoException'}),
@@ -58,7 +59,7 @@ class CanonicalKeyViewTests(TestCase):
         assert CanonicalKeyView(self.mixed_data)['sentry.interfaces.User'] == {'id': 'DemoUser'}
 
 
-class CanonicalKeyDictTests(TestCase):
+class CanonicalKeyDictTests(unittest.TestCase):
     canonical_data = {
         'release': 'asdf',
         'exception': {'type': 'DemoException'},
@@ -123,7 +124,7 @@ class CanonicalKeyDictTests(TestCase):
         })) == 3
 
 
-class LegacyCanonicalKeyDictTests(TestCase):
+class LegacyCanonicalKeyDictTests(unittest.TestCase):
     canonical_data = {
         'release': 'asdf',
         'sentry.interfaces.Exception': {'type': 'DemoException'},
@@ -163,3 +164,70 @@ class LegacyCanonicalKeyDictTests(TestCase):
         d['sentry.interfaces.User'] = {'id': 'other'}
         assert d['user'] == {'id': 'other'}
         assert d['sentry.interfaces.User'] == {'id': 'other'}
+
+
+class DoubleAliasingTests(unittest.TestCase):
+    def test_canonical(self):
+        view = CanonicalKeyView({'logentry': 'foo'})
+        assert len(view) == 1
+        assert view.keys() == ['logentry']
+
+        assert 'logentry' in view
+        assert 'sentry.interfaces.Message' in view
+        assert 'message' in view
+
+        assert view['logentry'] == 'foo'
+        assert view['sentry.interfaces.Message'] == 'foo'
+        assert view['message'] == 'foo'
+
+    def test_legacy_first(self):
+        view = CanonicalKeyView({'sentry.interfaces.Message': 'foo'})
+        assert len(view) == 1
+        assert view.keys() == ['logentry']
+
+        assert 'logentry' in view
+        assert 'sentry.interfaces.Message' in view
+        assert 'message' in view
+
+        assert view['logentry'] == 'foo'
+        assert view['sentry.interfaces.Message'] == 'foo'
+        assert view['message'] == 'foo'
+
+    def test_legacy_second(self):
+        view = CanonicalKeyView({'message': 'foo'})
+        assert len(view) == 1
+        assert view.keys() == ['logentry']
+
+        assert 'logentry' in view
+        assert 'sentry.interfaces.Message' in view
+        assert 'message' in view
+
+        assert view['logentry'] == 'foo'
+        assert view['sentry.interfaces.Message'] == 'foo'
+        assert view['message'] == 'foo'
+
+    def test_override(self):
+        view = CanonicalKeyView({'logentry': 'foo', 'sentry.interfaces.Message': 'bar'})
+        assert len(view) == 1
+        assert view.keys() == ['logentry']
+
+        assert 'logentry' in view
+        assert 'sentry.interfaces.Message' in view
+        assert 'message' in view
+
+        assert view['logentry'] == 'foo'
+        assert view['sentry.interfaces.Message'] == 'foo'
+        assert view['message'] == 'foo'
+
+    def test_two_legacy(self):
+        view = CanonicalKeyView({'message': 'bar', 'sentry.interfaces.Message': 'foo'})
+        assert len(view) == 1
+        assert view.keys() == ['logentry']
+
+        assert 'logentry' in view
+        assert 'sentry.interfaces.Message' in view
+        assert 'message' in view
+
+        assert view['logentry'] == 'foo'
+        assert view['sentry.interfaces.Message'] == 'foo'
+        assert view['message'] == 'foo'

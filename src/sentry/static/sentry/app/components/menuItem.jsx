@@ -56,7 +56,7 @@ class MenuItem extends React.Component {
   };
 
   render() {
-    let classes = {
+    const classes = {
       'dropdown-header': this.props.header,
       divider: this.props.divider,
       active: this.props.isActive,

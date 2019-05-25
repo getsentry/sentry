@@ -26,6 +26,7 @@ from sentry.constants import (
 from sentry.interfaces.base import InterfaceValidationError
 from sentry.models import EventError
 from sentry.tagstore.base import INTERNAL_TAG_KEYS
+from sentry.utils.meta import Meta
 
 
 def iverror(message="Invalid data"):
@@ -62,7 +63,16 @@ HTTP_INTERFACE_SCHEMA = {
             'minLength': 1,
         },
         'method': {'type': 'string'},
-        'query_string': {'type': ['string', 'object']},
+        'query_string': {
+            'anyOf': [
+                {'type': ['string', 'object']},
+                {'type': 'array', 'items': {
+                    'type': 'array',
+                    'maxItems': 2,
+                    'minItems': 2,
+                }},
+            ],
+        },
         'inferred_content_type': {'type': 'string'},
         'cookies': {
             'anyOf': [
@@ -80,7 +90,7 @@ HTTP_INTERFACE_SCHEMA = {
         'data': {'type': ['string', 'object', 'array']},
         'fragment': {'type': 'string'},
     },
-    'required': ['url'],
+    'required': [],
     'additionalProperties': True,
 }
 
@@ -99,6 +109,7 @@ FRAME_INTERFACE_SCHEMA = {
         'errors': {},
         'filename': {'type': 'string'},
         'function': {'type': 'string'},
+        'raw_function': {'type': 'string'},
         'image_addr': {},
         'in_app': {'type': 'boolean', 'default': False},
         'instruction_addr': {},
@@ -470,16 +481,21 @@ CSP_SCHEMA = {
                         'font-src',
                         'form-action',
                         'frame-ancestors',
+                        'frame-src',
                         'img-src',
                         'manifest-src',
                         'media-src',
                         'object-src',
                         'plugin-types',
+                        'prefetch-src',
                         'referrer',
                         'script-src',
+                        'script-src-attr',
+                        'script-src-elem',
                         'style-src',
+                        'style-src-elem',
+                        'style-src-attr',
                         'upgrade-insecure-requests',
-                        'frame-src',
                         'worker-src',
                         # 'sandbox', # Unsupported
                     ],
@@ -734,7 +750,7 @@ def validator_for_interface(name):
     )
 
 
-def validate_and_default_interface(data, interface, name=None,
+def validate_and_default_interface(data, interface, name=None, meta=None,
                                    strip_nones=True, raise_on_invalid=False):
     """
     Modify data to conform to named interface's schema.
@@ -747,6 +763,9 @@ def validate_and_default_interface(data, interface, name=None,
     Returns whether the resulting modified data is valid against the schema and
     a list of any validation errors encountered in processing.
     """
+    if meta is None:
+        meta = Meta()
+
     is_valid = True
     needs_revalidation = False
     errors = []
@@ -770,6 +789,7 @@ def validate_and_default_interface(data, interface, name=None,
                     default = schema['properties'][p]['default']
                     data[p] = default() if callable(default) else default
                 else:
+                    meta.add_error(EventError.MISSING_ATTRIBUTE, data={'name': p})
                     errors.append({'type': EventError.MISSING_ATTRIBUTE, 'name': p})
 
     validator_errors = list(validator.iter_errors(data))
@@ -787,6 +807,7 @@ def validate_and_default_interface(data, interface, name=None,
             error_type = EventError.INVALID_ENVIRONMENT
         else:
             error_type = EventError.INVALID_DATA
+        meta.enter(key).add_error(error_type, data[key])
         errors.append({'type': error_type, 'name': name or key, 'value': data[key]})
 
         if 'default' in ve.schema:

@@ -3,9 +3,10 @@ import React from 'react';
 import Reflux from 'reflux';
 import createReactClass from 'create-react-class';
 
-import getDisplayName from 'app/utils/getDisplayName';
+import ConfigStore from 'app/stores/configStore';
 import LatestContextStore from 'app/stores/latestContextStore';
 import SentryTypes from 'app/sentryTypes';
+import getDisplayName from 'app/utils/getDisplayName';
 import withOrganizations from 'app/utils/withOrganizations';
 
 // HoC that returns most usable organization + project
@@ -21,17 +22,21 @@ const withLatestContext = WrappedComponent =>
       mixins: [Reflux.connect(LatestContextStore, 'latestContext')],
 
       render() {
-        let {organizations} = this.props;
-        let {latestContext} = this.state;
-        let {organization, project, lastRoute} = latestContext || {};
+        const {organizations} = this.props;
+        const {latestContext} = this.state;
+        const {organization, project, lastRoute} = latestContext || {};
 
         // Even though org details exists in LatestContextStore,
         // fetch organization from OrganizationsStore so that we can
         // expect consistent data structure because OrganizationsStore has a list
         // of orgs but not full org details
-        let latestOrganization =
+        const latestOrganization =
           organization ||
-          (organizations && organizations.length ? organizations[0] : null);
+          (organizations && organizations.length
+            ? organizations.find(
+                ({slug}) => slug === ConfigStore.get('lastOrganization')
+              ) || organizations[0]
+            : null);
 
         // TODO(billy): Below is going to be wrong if component is passed project, it will override
         // project from `latestContext`

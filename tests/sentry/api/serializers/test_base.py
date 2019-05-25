@@ -15,6 +15,11 @@ class FooSerializer(Serializer):
         return 'lol'
 
 
+class VariadicSerializer(Serializer):
+    def serialize(self, obj, attrs, user, kw):
+        return {'kw': kw}
+
+
 class BaseSerializerTest(TestCase):
     def test_serialize(self):
         assert serialize([]) == []
@@ -46,3 +51,9 @@ class BaseSerializerTest(TestCase):
         assert len(rv) == 2
         assert rv[0] is None
         assert isinstance(rv[1], dict)
+
+    def test_serialize_additional_kwargs(self):
+        foo = Foo()
+        user = self.create_user()
+        result = serialize(foo, user, VariadicSerializer(), kw='keyword')
+        assert result['kw'] == 'keyword'

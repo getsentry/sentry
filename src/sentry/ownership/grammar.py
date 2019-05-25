@@ -4,6 +4,7 @@ from collections import namedtuple
 from fnmatch import fnmatch
 from parsimonious.grammar import Grammar, NodeVisitor
 from parsimonious.exceptions import ParseError  # noqa
+from sentry.utils.safe import get_path
 
 __all__ = ('parse_rules', 'dump_schema', 'load_schema')
 
@@ -103,13 +104,10 @@ class Matcher(namedtuple('Matcher', 'type pattern')):
 
     def test_path(self, data):
         for frame in _iter_frames(data):
-            try:
-                filename = frame['filename']
-            except KeyError:
-                try:
-                    filename = frame['abs_path']
-                except KeyError:
-                    continue
+            filename = frame.get('filename') or frame.get('abs_path')
+
+            if not filename:
+                continue
 
             # fnmatch keeps it's own internal cache, so
             # there isn't any optimization we can do here
@@ -198,19 +196,19 @@ class OwnershipVisitor(NodeVisitor):
 
 def _iter_frames(data):
     try:
-        for frame in data['stacktrace']['frames']:
+        for frame in get_path(data, 'stacktrace', 'frames', filter=True) or ():
             yield frame
     except KeyError:
         pass
 
     try:
-        values = data['exception']['values']
+        values = get_path(data, 'exception', 'values', filter=True) or ()
     except KeyError:
         return
 
     for value in values:
         try:
-            for frame in value['stacktrace']['frames']:
+            for frame in get_path(value, 'stacktrace', 'frames', filter=True) or ():
                 yield frame
         except KeyError:
             continue

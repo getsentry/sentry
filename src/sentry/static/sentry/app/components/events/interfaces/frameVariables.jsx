@@ -16,7 +16,7 @@ class FrameVariables extends React.Component {
   };
 
   render() {
-    let data = objectToArray(this.props.data);
+    const data = objectToArray(this.props.data);
 
     return (
       <KeyValueList data={data} isContextData={true} onClick={this.preventToggling} />

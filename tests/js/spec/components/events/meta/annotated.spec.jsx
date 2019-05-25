@@ -5,7 +5,7 @@ import Annotated from 'app/components/events/meta/annotated';
 import {withMeta} from 'app/components/events/meta/metaProxy';
 
 describe('Annotated', () => {
-  let mock = jest.fn(() => null);
+  const mock = jest.fn(() => null);
 
   const createEvent = (value, {err, rem, chunks} = {}) => {
     return withMeta({
@@ -28,7 +28,7 @@ describe('Annotated', () => {
 
   describe('without meta', () => {
     it('renders a string', () => {
-      let obj = {
+      const obj = {
         value: 'foo',
       };
       mount(
@@ -39,8 +39,15 @@ describe('Annotated', () => {
       expect(mock).toHaveBeenCalledWith('foo');
     });
 
+    it('does not error if prop does not exist on object', () => {
+      const obj = {
+        value: 'foo',
+      };
+      mount(<Annotated object={obj} prop="invalid" />);
+    });
+
     it('renders a number', () => {
-      let obj = {
+      const obj = {
         value: 0,
       };
       mount(
@@ -52,7 +59,7 @@ describe('Annotated', () => {
     });
 
     it('renders a boolean', () => {
-      let obj = {
+      const obj = {
         value: false,
       };
       mount(
@@ -64,7 +71,7 @@ describe('Annotated', () => {
     });
 
     it('ignores empty meta data', () => {
-      let obj = withMeta({
+      const obj = withMeta({
         value: 'foo',
         _meta: {
           value: {
@@ -85,7 +92,7 @@ describe('Annotated', () => {
     });
 
     it('does not call render prop if required and value is falsy and no meta', () => {
-      let obj = createEvent(null, {});
+      const obj = createEvent(null, {});
 
       mount(
         <Annotated object={obj} prop="value" required>
@@ -99,7 +106,7 @@ describe('Annotated', () => {
 
   describe('with meta', () => {
     it('annotates errors', () => {
-      let obj = createEvent('foo', {err: ['something']});
+      const obj = createEvent('foo', {err: ['something']});
 
       mount(
         <Annotated object={obj} prop="value">
@@ -118,7 +125,7 @@ describe('Annotated', () => {
     });
 
     it('annotates remarks and chunks', () => {
-      let obj = createEvent('foo', {rem: [{type: 't'}], chunks: [{text: 'foo'}]});
+      const obj = createEvent('foo', {rem: [{type: 't'}], chunks: [{text: 'foo'}]});
 
       mount(
         <Annotated object={obj} prop="value">
@@ -137,7 +144,7 @@ describe('Annotated', () => {
     });
 
     it('annotates redacted text', () => {
-      let obj = createEvent(null, {err: ['something']});
+      const obj = createEvent(null, {err: ['something']});
 
       mount(
         <Annotated object={obj} prop="value">

@@ -5,9 +5,9 @@ import React from 'react';
 import {t, tct} from 'app/locale';
 import Button from 'app/components/button';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
-import ExternalLink from 'app/components/externalLink';
-import Link from 'app/components/link';
-import LinkWithConfirmation from 'app/components/linkWithConfirmation';
+import ExternalLink from 'app/components/links/externalLink';
+import Link from 'app/components/links/link';
+import LinkWithConfirmation from 'app/components/links/linkWithConfirmation';
 import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import TextBlock from 'app/views/settings/components/text/textBlock';
@@ -23,10 +23,10 @@ class OrganizationApiKeysList extends React.Component {
   };
 
   render() {
-    let {params, routes, keys, busy, onAddApiKey, onRemove} = this.props;
-    let hasKeys = keys && keys.length;
+    const {params, routes, keys, busy, onAddApiKey, onRemove} = this.props;
+    const hasKeys = keys && keys.length;
 
-    let action = (
+    const action = (
       <Button
         priority="primary"
         size="small"
@@ -57,7 +57,7 @@ class OrganizationApiKeysList extends React.Component {
           {tct(
             'psst. Until Sentry supports OAuth, you might want to switch to using [tokens:Auth Tokens] instead.',
             {
-              tokens: <Link to="/api/" />,
+              tokens: <Link to="/settings/account/api/auth-tokens/" />,
             }
           )}
         </div>
@@ -85,7 +85,7 @@ class OrganizationApiKeysList extends React.Component {
 
             {keys &&
               keys.map(({id, key, label}) => {
-                let apiDetailsUrl = recreateRoute(`${id}/`, {
+                const apiDetailsUrl = recreateRoute(`${id}/`, {
                   params,
                   routes,
                 });

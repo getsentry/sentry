@@ -4,6 +4,7 @@ import React from 'react';
 import styled from 'react-emotion';
 
 import {t} from 'app/locale';
+import Access from 'app/components/acl/access';
 import AddIntegrationButton from 'app/views/organizationIntegrations/addIntegrationButton';
 import Alert from 'app/components/alert';
 import Button from 'app/components/button';
@@ -46,37 +47,6 @@ export default class InstalledIntegration extends React.Component {
     this.props.onReinstallIntegration(activeIntegration);
   };
 
-  get removeButton() {
-    return (
-      <StyledButton borderless icon="icon-trash">
-        Remove
-      </StyledButton>
-    );
-  }
-
-  renderDisableIntegration(integration) {
-    const {body, actionText} = integration.provider.aspects.disable_dialog;
-    const message = (
-      <React.Fragment>
-        <Alert type="error" icon="icon-circle-exclamation">
-          This integration cannot be removed on Sentry
-        </Alert>
-        {body}
-      </React.Fragment>
-    );
-
-    return (
-      <Confirm
-        confirmText={actionText}
-        message={message}
-        priority="danger"
-        onConfirm={() => this.props.onDisable(integration)}
-      >
-        {this.removeButton}
-      </Confirm>
-    );
-  }
-
   getRemovalBodyAndText(aspects) {
     if (aspects && aspects.removal_dialog) {
       return {
@@ -93,7 +63,8 @@ export default class InstalledIntegration extends React.Component {
     }
   }
 
-  renderRemoveIntegration(integration) {
+  get removeConfirmProps() {
+    const {integration} = this.props;
     const {body, actionText} = this.getRemovalBodyAndText(integration.provider.aspects);
 
     const message = (
@@ -104,62 +75,93 @@ export default class InstalledIntegration extends React.Component {
         {body}
       </React.Fragment>
     );
-    return (
-      <Confirm
-        message={message}
-        confirmText={actionText}
-        priority="danger"
-        onConfirm={() => this.props.onRemove(integration)}
-      >
-        {this.removeButton}
-      </Confirm>
+    return {
+      message,
+      confirmText: actionText,
+      onConfirm: () => this.props.onRemove(integration),
+    };
+  }
+
+  get disableConfirmProps() {
+    const {integration} = this.props;
+    const {body, actionText} = integration.provider.aspects.disable_dialog;
+    const message = (
+      <React.Fragment>
+        <Alert type="error" icon="icon-circle-exclamation">
+          This integration cannot be removed on Sentry
+        </Alert>
+        {body}
+      </React.Fragment>
     );
+
+    return {
+      message,
+      confirmText: actionText,
+      onConfirm: () => this.props.onDisable(integration),
+    };
   }
 
   render() {
     const {className, integration, provider, orgId} = this.props;
 
+    const removeConfirmProps =
+      integration.status === 'active' && integration.provider.canDisable
+        ? this.disableConfirmProps
+        : this.removeConfirmProps;
+
     return (
-      <Flex align="center" key={integration.id} className={className}>
-        <Box flex={1}>
-          <IntegrationItem compact integration={integration} />
-        </Box>
-        <Box>
-          {integration.status === 'disabled' && (
-            <AddIntegrationButton
-              size="xsmall"
-              priority="success"
-              provider={provider}
-              integration={integration}
-              onAddIntegration={this.reinstallIntegration}
-              reinstall={true}
-            />
-          )}
-          {integration.status === 'active' && (
-            <Tooltip
-              disabled={this.hasConfiguration()}
-              tooltipOptions={{placement: 'left'}}
-              title="Integration not configurable"
-            >
-              <span>
-                <StyledButton
-                  borderless
-                  icon="icon-settings"
-                  disabled={!this.hasConfiguration()}
-                  to={`/settings/${orgId}/integrations/${provider.key}/${integration.id}/`}
+      <Access access={['org:integrations']}>
+        {({hasAccess}) => (
+          <Flex align="center" key={integration.id} className={className}>
+            <Box flex={1}>
+              <IntegrationItem compact integration={integration} />
+            </Box>
+            <Box>
+              {integration.status === 'disabled' && (
+                <AddIntegrationButton
+                  size="xsmall"
+                  priority="success"
+                  provider={provider}
+                  integration={integration}
+                  onAddIntegration={this.reinstallIntegration}
+                  reinstall={true}
+                />
+              )}
+              {integration.status === 'active' && (
+                <Tooltip
+                  disabled={this.hasConfiguration()}
+                  position="left"
+                  title="Integration not configurable"
                 >
-                  Configure
+                  <StyledButton
+                    borderless
+                    icon="icon-settings"
+                    disabled={!this.hasConfiguration() || !hasAccess}
+                    to={`/settings/${orgId}/integrations/${provider.key}/${
+                      integration.id
+                    }/`}
+                    data-test-id="integration-configure-button"
+                  >
+                    Configure
+                  </StyledButton>
+                </Tooltip>
+              )}
+            </Box>
+            <Box>
+              <Confirm priority="danger" disabled={!hasAccess} {...removeConfirmProps}>
+                <StyledButton
+                  disabled={!hasAccess}
+                  borderless
+                  icon="icon-trash"
+                  data-test-id="integration-remove-button"
+                >
+                  Uninstall
                 </StyledButton>
-              </span>
-            </Tooltip>
-          )}
-        </Box>
-        <Box>
-          {integration.status === 'active' && integration.provider.canDisable
-            ? this.renderDisableIntegration(integration)
-            : this.renderRemoveIntegration(integration)}
-        </Box>
-      </Flex>
+              </Confirm>
+            </Box>
+          </Flex>
+        )}
+      </Access>
     );
   }
 }

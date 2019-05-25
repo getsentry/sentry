@@ -1,9 +1,10 @@
 import PropTypes from 'prop-types';
 import React from 'react';
+import styled from 'react-emotion';
 import createReactClass from 'create-react-class';
 import moment from 'moment';
 import SentryTypes from 'app/sentryTypes';
-import ApiMixin from 'app/mixins/apiMixin';
+import withApi from 'app/utils/withApi';
 import BarChart from 'app/components/barChart';
 import DynamicWrapper from 'app/components/dynamicWrapper';
 import LoadingError from 'app/components/loadingError';
@@ -14,12 +15,13 @@ const ProjectChart = createReactClass({
   displayName: 'ProjectChart',
 
   propTypes: {
+    api: PropTypes.object,
     dateSince: PropTypes.number.isRequired,
     resolution: PropTypes.string.isRequired,
     environment: SentryTypes.Environment,
   },
 
-  mixins: [ApiMixin, ProjectState],
+  mixins: [ProjectState],
 
   getInitialState() {
     return {
@@ -53,14 +55,14 @@ const ProjectChart = createReactClass({
   },
 
   getStatsEndpoint() {
-    let org = this.getOrganization();
-    let project = this.getProject();
+    const org = this.getOrganization();
+    const project = this.getProject();
     return '/projects/' + org.slug + '/' + project.slug + '/stats/';
   },
 
   getProjectReleasesEndpoint() {
-    let org = this.getOrganization();
-    let project = this.getProject();
+    const org = this.getOrganization();
+    const project = this.getProject();
     return '/projects/' + org.slug + '/' + project.slug + '/releases/';
   },
 
@@ -77,7 +79,7 @@ const ProjectChart = createReactClass({
       statsQuery.environment = this.state.environment.name;
       releasesQuery.environment = this.state.environment.name;
     }
-    this.api.request(this.getStatsEndpoint(), {
+    this.props.api.request(this.getStatsEndpoint(), {
       query: statsQuery,
       success: data => {
         this.setState({
@@ -94,7 +96,7 @@ const ProjectChart = createReactClass({
       },
     });
 
-    this.api.request(this.getProjectReleasesEndpoint(), {
+    this.props.api.request(this.getProjectReleasesEndpoint(), {
       query: releasesQuery,
       success: (data, _, jqXHR) => {
         this.setState({
@@ -105,13 +107,13 @@ const ProjectChart = createReactClass({
   },
 
   renderChart() {
-    let points = this.state.stats.map(point => {
+    const points = this.state.stats.map(point => {
       return {x: point[0], y: point[1]};
     });
-    let startX = this.props.dateSince;
-    let markers = this.state.releaseList
+    const startX = this.props.dateSince;
+    const markers = this.state.releaseList
       .filter(release => {
-        let date = new Date(release.dateCreated).getTime() / 1000;
+        const date = new Date(release.dateCreated).getTime() / 1000;
         return date >= startX;
       })
       .map(release => {
@@ -123,7 +125,7 @@ const ProjectChart = createReactClass({
 
     return (
       <div className="chart-wrapper">
-        <BarChart
+        <StyledBarChart
           points={points}
           markers={markers}
           label="events"
@@ -152,4 +154,10 @@ const ProjectChart = createReactClass({
   },
 });
 
-export default ProjectChart;
+const StyledBarChart = styled(BarChart)`
+  background: #fff;
+`;
+
+export {ProjectChart};
+
+export default withApi(ProjectChart);

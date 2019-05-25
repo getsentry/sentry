@@ -21,20 +21,20 @@ const UserInfo = styled(Box)`
   flex: 1;
 `;
 
-const NameContainer = styled.div`
+const NameContainer = styled('div')`
   display: flex;
   flex-direction: column;
   justify-content: center;
 `;
 
-const Name = styled.div`
+const Name = styled('div')`
   font-weight: 600;
   font-size: 15px;
 `;
-const Note = styled.div`
+const Note = styled('div')`
   font-size: 13px;
 `;
-const OverflowBox = styled.div`
+const OverflowBox = styled('div')`
   ${overflowEllipsis};
 `;
 const avatarStyle = {
@@ -53,15 +53,15 @@ class AuditLogList extends React.Component {
   };
 
   render() {
-    let {pageLinks, entries, eventType, eventTypes, onEventSelect} = this.props;
-    let hasEntries = entries && entries.length > 0;
-    let ipv4Length = 15;
-    let options = [
+    const {pageLinks, entries, eventType, eventTypes, onEventSelect} = this.props;
+    const hasEntries = entries && entries.length > 0;
+    const ipv4Length = 15;
+    const options = [
       {value: '', label: t('Any action'), clearableVaue: false},
       ...eventTypes.map(type => ({label: type, value: type, clearableValue: false})),
     ];
 
-    let action = (
+    const action = (
       <form>
         <SelectField
           name="event"

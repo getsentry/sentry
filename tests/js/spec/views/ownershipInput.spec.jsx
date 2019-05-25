@@ -26,7 +26,7 @@ describe('Project Ownership Input', function() {
   });
 
   it('renders', function() {
-    let wrapper = mount(
+    const wrapper = mount(
       <OwnerInput
         params={{orgId: org.slug, projectId: project.slug}}
         organization={org}
@@ -36,7 +36,7 @@ describe('Project Ownership Input', function() {
       TestStubs.routerContext()
     );
 
-    let submit = wrapper.find('SaveButton button');
+    const submit = wrapper.find('SaveButton button');
 
     expect(put).not.toHaveBeenCalled();
 

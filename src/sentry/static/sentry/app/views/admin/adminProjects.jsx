@@ -26,7 +26,7 @@ class AdminProjects extends React.Component {
   };
 
   render() {
-    let columns = [
+    const columns = [
       <th>Project</th>,
       <th style={{width: 150, textAlign: 'center'}}>Status</th>,
       <th style={{width: 200, textAlign: 'right'}}>Created</th>,
@@ -37,7 +37,7 @@ class AdminProjects extends React.Component {
         <h3>{t('Projects')}</h3>
         <ResultGrid
           path="/manage/projects/"
-          endpoint={'/projects/?show=all'}
+          endpoint="/projects/?show=all"
           method="GET"
           columns={columns}
           columnsForRow={this.getRow}

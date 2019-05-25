@@ -23,7 +23,7 @@ describe('AutoComplete', function() {
   let wrapper;
   let input;
   let autoCompleteState = [];
-  let mocks = {
+  const mocks = {
     onSelect: jest.fn(),
     onClose: jest.fn(),
     onOpen: jest.fn(),
@@ -36,7 +36,7 @@ describe('AutoComplete', function() {
     wrapper = mount(
       <AutoComplete {...mocks} itemToString={item => item.name} {...props}>
         {injectedProps => {
-          let {
+          const {
             getRootProps,
             getInputProps,
             getMenuProps,
@@ -150,7 +150,7 @@ describe('AutoComplete', function() {
     });
 
     it('can open and close dropdown menu using injected actions', function() {
-      let [injectedProps] = autoCompleteState;
+      const [injectedProps] = autoCompleteState;
       injectedProps.actions.open();
       expect(wrapper.state('isOpen')).toBe(true);
       expect(mocks.onOpen).toHaveBeenCalledTimes(1);
@@ -367,7 +367,7 @@ describe('AutoComplete', function() {
     });
 
     it('does not open and close dropdown menu using injected actions', function() {
-      let [injectedProps] = autoCompleteState;
+      const [injectedProps] = autoCompleteState;
       injectedProps.actions.open();
       expect(wrapper.state('isOpen')).toBe(true);
       expect(mocks.onOpen).toHaveBeenCalledTimes(1);
@@ -489,6 +489,42 @@ describe('AutoComplete', function() {
       expect(mocks.onClose).toHaveBeenCalledTimes(1);
       expect(wrapper.state('inputValue')).toBe('Pineapple');
     });
+  });
+
+  it('selects using enter key', function() {
+    wrapper = createWrapper({isOpen: true, shouldSelectWithEnter: false});
+    input.simulate('change', {target: {value: 'pine'}});
+    input.simulate('keyDown', {key: 'Enter'});
+    expect(mocks.onSelect).not.toHaveBeenCalled();
+
+    wrapper = createWrapper({isOpen: true, shouldSelectWithEnter: true});
+    input.simulate('change', {target: {value: 'pine'}});
+    input.simulate('keyDown', {key: 'Enter'});
+    expect(mocks.onSelect).toHaveBeenCalledWith(
+      items[1],
+      expect.objectContaining({inputValue: 'pine', highlightedIndex: 0}),
+      expect.anything()
+    );
+    expect(mocks.onClose).toHaveBeenCalledTimes(1);
+    expect(wrapper.state('inputValue')).toBe('Pineapple');
+  });
+
+  it('selects using tab key', function() {
+    wrapper = createWrapper({isOpen: true, shouldSelectWithTab: false});
+    input.simulate('change', {target: {value: 'pine'}});
+    input.simulate('keyDown', {key: 'Tab'});
+    expect(mocks.onSelect).not.toHaveBeenCalled();
+
+    wrapper = createWrapper({isOpen: true, shouldSelectWithTab: true});
+    input.simulate('change', {target: {value: 'pine'}});
+    input.simulate('keyDown', {key: 'Tab'});
+    expect(mocks.onSelect).toHaveBeenCalledWith(
+      items[1],
+      expect.objectContaining({inputValue: 'pine', highlightedIndex: 0}),
+      expect.anything()
+    );
+    expect(mocks.onClose).toHaveBeenCalledTimes(1);
+    expect(wrapper.state('inputValue')).toBe('Pineapple');
   });
 
   it('does not reset highlight state if `closeOnSelect` is false and we select a new item', function() {

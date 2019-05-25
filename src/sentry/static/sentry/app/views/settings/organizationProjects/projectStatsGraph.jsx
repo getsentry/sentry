@@ -16,9 +16,9 @@ const ProjectStatsGraph = createReactClass({
   },
 
   render() {
-    let {project} = this.props;
-    let stats = this.props.stats || project.stats;
-    let chartData =
+    const {project} = this.props;
+    const stats = this.props.stats || project.stats;
+    const chartData =
       stats &&
       stats.map(point => {
         return {x: point[0], y: point[1]};

@@ -30,7 +30,7 @@ class Pill extends React.Component {
 
   render() {
     const {name, children, className, ...props} = this.props;
-    let [extraClass, renderedValue] = this.renderValue();
+    const [extraClass, renderedValue] = this.renderValue();
 
     return (
       <li className={classNames(className, extraClass)} {...props}>

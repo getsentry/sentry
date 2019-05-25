@@ -6,6 +6,7 @@ import createReactClass from 'create-react-class';
 import styled from 'react-emotion';
 
 import {ALL_ENVIRONMENTS_KEY} from 'app/constants';
+import {Panel, PanelHeader, PanelBody, PanelItem} from 'app/components/panels';
 import {
   addErrorMessage,
   addLoadingMessage,
@@ -17,15 +18,16 @@ import {
 } from 'app/actionCreators/environments';
 import {t, tct} from 'app/locale';
 import {update} from 'app/actionCreators/projects';
-import {Panel, PanelHeader, PanelBody, PanelItem} from 'app/components/panels';
-import ApiMixin from 'app/mixins/apiMixin';
+import Access from 'app/components/acl/access';
+import withApi from 'app/utils/withApi';
 import Button from 'app/components/button';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
 import EnvironmentStore from 'app/stores/environmentStore';
 import InlineSvg from 'app/components/inlineSvg';
-import ListLink from 'app/components/listLink';
+import ListLink from 'app/components/links/listLink';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import NavTabs from 'app/components/navTabs';
+import PermissionAlert from 'app/views/settings/project/permissionAlert';
 import SentryTypes from 'app/sentryTypes';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import Tag from 'app/views/settings/components/tag';
@@ -35,15 +37,15 @@ import space from 'app/styles/space';
 
 const ProjectEnvironments = createReactClass({
   propTypes: {
-    route: PropTypes.object,
+    api: PropTypes.object,
     routes: PropTypes.array,
     params: PropTypes.object,
   },
 
-  mixins: [ApiMixin, Reflux.listenTo(EnvironmentStore, 'onEnvironmentsChange')],
+  mixins: [Reflux.listenTo(EnvironmentStore, 'onEnvironmentsChange')],
 
   getInitialState() {
-    const isHidden = this.props.route.path === 'environments/hidden/';
+    const isHidden = this.props.location.pathname.endsWith('hidden/');
     const environments = isHidden
       ? EnvironmentStore.getHidden()
       : EnvironmentStore.getActive();
@@ -65,7 +67,7 @@ const ProjectEnvironments = createReactClass({
   },
 
   componentWillReceiveProps(nextProps) {
-    const isHidden = nextProps.route.path === 'environments/hidden/';
+    const isHidden = this.props.location.pathname.endsWith('hidden/');
     const environments = isHidden
       ? EnvironmentStore.getHidden()
       : EnvironmentStore.getActive();
@@ -91,7 +93,7 @@ const ProjectEnvironments = createReactClass({
 
   fetchData(hidden) {
     const {orgId, projectId} = this.props.params;
-    this.api.request(`/projects/${orgId}/${projectId}/environments/`, {
+    this.props.api.request(`/projects/${orgId}/${projectId}/environments/`, {
       query: {
         visibility: hidden ? 'hidden' : 'visible',
       },
@@ -104,7 +106,7 @@ const ProjectEnvironments = createReactClass({
 
   fetchProjectDetails() {
     const {orgId, projectId} = this.props.params;
-    this.api.request(`/projects/${orgId}/${projectId}/`, {
+    this.props.api.request(`/projects/${orgId}/${projectId}/`, {
       success: project => {
         this.setState({project});
       },
@@ -125,7 +127,7 @@ const ProjectEnvironments = createReactClass({
   toggleEnv(env, shouldHide) {
     const {orgId, projectId} = this.props.params;
 
-    this.api.request(
+    this.props.api.request(
       `/projects/${orgId}/${projectId}/environments/${env.urlRoutingName}/`,
       {
         method: 'PUT',
@@ -172,7 +174,7 @@ const ProjectEnvironments = createReactClass({
     addLoadingMessage();
 
     // Update project details
-    update(this.api, {
+    update(this.props.api, {
       ...this.props.params,
       data,
     }).then(
@@ -214,10 +216,12 @@ const ProjectEnvironments = createReactClass({
    */
   renderSystemRows() {
     // Not available in "Hidden" tab
-    if (this.state.isHidden) return null;
-    let {project} = this.state;
+    if (this.state.isHidden) {
+      return null;
+    }
+    const {project} = this.state;
 
-    let isAllEnvironmentsDefault = project && project.defaultEnvironment === null;
+    const isAllEnvironmentsDefault = project && project.defaultEnvironment === null;
 
     return (
       <EnvironmentRow
@@ -238,18 +242,22 @@ const ProjectEnvironments = createReactClass({
   // Renders current default environment IF it is not a valid environment
   renderInvalidDefaultEnvironment() {
     // Not available in "Hidden" tab
-    if (this.state.isHidden) return null;
-    let {environments, project} = this.state;
+    if (this.state.isHidden) {
+      return null;
+    }
+    const {environments, project} = this.state;
     // Default environment that is not a valid environment
-    let isAllEnvironmentsDefault = project && project.defaultEnvironment === null;
+    const isAllEnvironmentsDefault = project && project.defaultEnvironment === null;
 
-    let hasOtherDefaultEnvironment =
+    const hasOtherDefaultEnvironment =
       project &&
       environments &&
       !isAllEnvironmentsDefault &&
       !environments.find(({name}) => name === project.defaultEnvironment);
 
-    if (!hasOtherDefaultEnvironment) return null;
+    if (!hasOtherDefaultEnvironment) {
+      return null;
+    }
 
     return (
       <EnvironmentRow
@@ -258,10 +266,7 @@ const ProjectEnvironments = createReactClass({
           id: project.defaultEnvironment,
           displayName: (
             <React.Fragment>
-              <Tooltip
-                title={t('This is not an active environment')}
-                tooltipOptions={{container: 'body'}}
-              >
+              <Tooltip title={t('This is not an active environment')}>
                 <span css={{marginRight: 8}}>
                   <InvalidDefaultEnvironmentIcon />
                 </span>
@@ -325,15 +330,11 @@ const ProjectEnvironments = createReactClass({
           title={t('Manage Environments')}
           tabs={
             <NavTabs underlined={true}>
-              <ListLink
-                to={`${baseUrl}environments/`}
-                index={true}
-                isActive={() => !this.state.isHidden}
-              >
+              <ListLink to={baseUrl} index={true} isActive={() => !this.state.isHidden}>
                 {t('Environments')}
               </ListLink>
               <ListLink
-                to={`${baseUrl}environments/hidden/`}
+                to={`${baseUrl}hidden/`}
                 index={true}
                 isActive={() => this.state.isHidden}
               >
@@ -342,6 +343,7 @@ const ProjectEnvironments = createReactClass({
             </NavTabs>
           }
         />
+        <PermissionAlert />
 
         <Panel>
           <PanelHeader>
@@ -373,7 +375,7 @@ class EnvironmentRow extends React.Component {
   };
 
   render() {
-    let {
+    const {
       environment,
       shouldShowSetDefault,
       shouldShowAction,
@@ -393,25 +395,31 @@ class EnvironmentRow extends React.Component {
             </Tag>
           )}
         </Flex>
-        <div>
-          {shouldShowSetDefault && (
-            <EnvironmentButton
-              size="xsmall"
-              onClick={() => this.props.onSetAsDefault(environment)}
-            >
-              {t('Set as default')}
-            </EnvironmentButton>
-          )}
+        <Access access={['project:write']}>
+          {({hasAccess}) => (
+            <div>
+              {shouldShowSetDefault && (
+                <EnvironmentButton
+                  size="xsmall"
+                  disabled={!hasAccess}
+                  onClick={() => this.props.onSetAsDefault(environment)}
+                >
+                  {t('Set as default')}
+                </EnvironmentButton>
+              )}
 
-          {shouldShowAction && (
-            <EnvironmentButton
-              size="xsmall"
-              onClick={() => this.props.onHide(environment, !isHidden)}
-            >
-              {actionText}
-            </EnvironmentButton>
+              {shouldShowAction && (
+                <EnvironmentButton
+                  size="xsmall"
+                  disabled={!hasAccess}
+                  onClick={() => this.props.onHide(environment, !isHidden)}
+                >
+                  {actionText}
+                </EnvironmentButton>
+              )}
+            </div>
           )}
-        </div>
+        </Access>
       </PanelItem>
     );
   }
@@ -425,4 +433,5 @@ const InvalidDefaultEnvironmentIcon = styled(props => (
 ))`
   color: ${p => p.theme.error};
 `;
-export default ProjectEnvironments;
+export {ProjectEnvironments};
+export default withApi(ProjectEnvironments);

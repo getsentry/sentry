@@ -28,7 +28,7 @@ class TeamBadge extends React.Component {
   };
 
   render() {
-    let {hideOverflow, team, ...props} = this.props;
+    const {hideOverflow, team, ...props} = this.props;
 
     return (
       <BaseBadge
@@ -55,8 +55,12 @@ const TeamBadgeContainer = createReactClass({
   },
 
   componentWillReceiveProps(nextProps) {
-    if (this.state.team === nextProps.team) return;
-    if (isEqual(this.state.team, nextProps.team)) return;
+    if (this.state.team === nextProps.team) {
+      return;
+    }
+    if (isEqual(this.state.team, nextProps.team)) {
+      return;
+    }
 
     this.setState({
       team: nextProps.team,
@@ -64,10 +68,14 @@ const TeamBadgeContainer = createReactClass({
   },
 
   onTeamStoreUpdate(updatedTeam) {
-    if (!updatedTeam.has(this.state.team.id)) return;
+    if (!updatedTeam.has(this.state.team.id)) {
+      return;
+    }
 
-    let team = TeamStore.getById(this.state.team.id);
-    if (isEqual(team.avatar, this.state.team.avatar)) return;
+    const team = TeamStore.getById(this.state.team.id);
+    if (isEqual(team.avatar, this.state.team.avatar)) {
+      return;
+    }
 
     this.setState({
       team: TeamStore.getById(this.state.team.id),

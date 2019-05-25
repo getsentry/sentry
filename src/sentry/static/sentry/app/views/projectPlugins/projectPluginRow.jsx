@@ -6,7 +6,7 @@ import styled, {css} from 'react-emotion';
 
 import {t} from 'app/locale';
 import DynamicWrapper from 'app/components/dynamicWrapper';
-import ExternalLink from 'app/components/externalLink';
+import ExternalLink from 'app/components/links/externalLink';
 import Access from 'app/components/acl/access';
 import PluginIcon from 'app/plugins/components/pluginIcon';
 import SentryTypes from 'app/sentryTypes';
@@ -24,12 +24,12 @@ class ProjectPluginRow extends React.PureComponent {
   };
 
   handleChange = () => {
-    let {onChange, id, enabled} = this.props;
+    const {onChange, id, enabled} = this.props;
     onChange(id, !enabled);
   };
 
   render() {
-    let {
+    const {
       id,
       name,
       slug,
@@ -40,7 +40,7 @@ class ProjectPluginRow extends React.PureComponent {
       canDisable,
     } = this.props;
 
-    let configureUrl = recreateRoute(id, this.props);
+    const configureUrl = recreateRoute(id, this.props);
     return (
       <Access access={['project:write']}>
         {({hasAccess}) => {
@@ -95,13 +95,13 @@ class ProjectPluginRow extends React.PureComponent {
 export default ProjectPluginRow;
 
 // Includes icon, name, version, configure link
-const PluginInfo = styled.div`
+const PluginInfo = styled('div')`
   display: flex;
   flex: 1;
   line-height: 24px;
 `;
 
-const PluginName = styled.div`
+const PluginName = styled('div')`
   font-size: 16px;
 `;
 
@@ -110,6 +110,6 @@ const StyledPluginIcon = styled(PluginIcon)`
 `;
 
 // Keeping these colors the same from old integrations page
-const Version = styled.span`
+const Version = styled('span')`
   color: #babec2;
 `;

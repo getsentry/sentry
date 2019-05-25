@@ -9,7 +9,7 @@ const api = new Client();
 
 function doUpdate({orgId, projectId, pluginId, update, ...params}) {
   PluginActions.update(pluginId, update);
-  let request = api.requestPromise(
+  const request = api.requestPromise(
     `/projects/${orgId}/${projectId}/plugins/${pluginId}/`,
     {
       ...params,
@@ -22,7 +22,7 @@ function doUpdate({orgId, projectId, pluginId, update, ...params}) {
       PluginActions.updateSuccess(pluginId, update);
     })
     .catch(resp => {
-      let err =
+      const err =
         resp && resp.responseJSON && typeof resp.responseJSON.detail === 'string'
           ? new Error(resp.responseJSON.detail)
           : new Error('Unable to update plugin');
@@ -43,13 +43,15 @@ function doUpdate({orgId, projectId, pluginId, update, ...params}) {
  * @return Promise
  */
 export function fetchPlugins({orgId, projectId}, options) {
-  let path = `/projects/${orgId}/${projectId}/plugins/`;
+  const path = `/projects/${orgId}/${projectId}/plugins/`;
 
   // Make sure we throttle fetches
-  if (activeFetch[path]) return activeFetch[path];
+  if (activeFetch[path]) {
+    return activeFetch[path];
+  }
 
   PluginActions.fetchAll(options);
-  let request = api.requestPromise(path, {
+  const request = api.requestPromise(path, {
     method: 'GET',
   });
 

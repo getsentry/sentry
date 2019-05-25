@@ -2,9 +2,12 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import moment from 'moment';
 
+import {defined} from 'app/utils';
 import HttpRenderer from 'app/components/events/interfaces/breadcrumbs/httpRenderer';
 import ErrorRenderer from 'app/components/events/interfaces/breadcrumbs/errorRenderer';
 import DefaultRenderer from 'app/components/events/interfaces/breadcrumbs/defaultRenderer';
+import ErrorBoundary from 'app/components/errorBoundary';
+import Tooltip from 'app/components/tooltip';
 
 const CUSTOM_RENDERERS = {
   http: HttpRenderer,
@@ -17,11 +20,11 @@ class Breadcrumb extends React.Component {
   };
 
   getClassName = () => {
-    let {crumb} = this.props;
+    const {crumb} = this.props;
 
     // use Set to avoid duplicate crumb classes (was previously adding
     // values like "crumb-default" as many as three times)
-    let classes = new Set(['crumb', 'crumb-default', 'crumb-' + crumb.level]);
+    const classes = new Set(['crumb', 'crumb-default', 'crumb-' + crumb.level]);
 
     if (crumb.type !== 'default') {
       classes.add('crumb-' + crumb.type.replace(/[\s_]+/g, '-').toLowerCase());
@@ -40,22 +43,28 @@ class Breadcrumb extends React.Component {
   };
 
   renderType = () => {
-    let {crumb} = this.props;
-    let Renderer = CUSTOM_RENDERERS[crumb.type] || DefaultRenderer;
+    const {crumb} = this.props;
+    const Renderer = CUSTOM_RENDERERS[crumb.type] || DefaultRenderer;
     return <Renderer crumb={crumb} />;
   };
 
   render() {
-    let {crumb} = this.props;
+    const {crumb} = this.props;
     return (
       <li className={this.getClassName()}>
-        <span className="icon-container">
-          <span className="icon" />
-        </span>
-        <span className="dt" title={moment(crumb.timestamp).format()}>
-          {moment(crumb.timestamp).format('HH:mm:ss')}
-        </span>
-        {this.renderType()}
+        <ErrorBoundary mini css={{margin: 0, borderRadius: 0}}>
+          <span className="icon-container">
+            <span className="icon" />
+          </span>
+          {defined(crumb.timestamp) ? (
+            <Tooltip title={moment(crumb.timestamp).format('lll')}>
+              <span className="dt">{moment(crumb.timestamp).format('HH:mm:ss')}</span>
+            </Tooltip>
+          ) : (
+            <span className="dt" />
+          )}
+          {this.renderType()}
+        </ErrorBoundary>
       </li>
     );
   }

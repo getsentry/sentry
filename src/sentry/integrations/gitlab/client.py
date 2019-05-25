@@ -22,6 +22,7 @@ class GitLabApiClientPath(object):
     hooks = u'/hooks'
     issue = u'/projects/{project}/issues/{issue}'
     issues = u'/projects/{project}/issues'
+    notes = u'/projects/{project}/issues/{issue_id}/notes'
     project = u'/projects/{project}'
     project_issues = u'/projects/{project}/issues'
     project_hooks = u'/projects/{project}/hooks'
@@ -43,6 +44,8 @@ class GitLabSetupClient(ApiClient):
     This client is used during integration setup to fetch data
     needed to build installation metadata
     """
+
+    integration_name = 'gitlab_setup'
 
     def __init__(self, base_url, access_token, verify_ssl):
         self.base_url = base_url
@@ -73,6 +76,7 @@ class GitLabSetupClient(ApiClient):
 
 
 class GitLabApiClient(ApiClient):
+    integration_name = 'gitlab'
 
     def __init__(self, installation):
         self.installation = installation
@@ -180,6 +184,16 @@ class GitLabApiClient(ApiClient):
         """
         return self.post(
             GitLabApiClientPath.issues.format(project=project),
+            data=data,
+        )
+
+    def create_issue_comment(self, project_id, issue_id, data):
+        """Create an issue note/comment
+
+        See https://docs.gitlab.com/ee/api/notes.html#create-new-issue-note
+        """
+        return self.post(
+            GitLabApiClientPath.notes.format(project=project_id, issue_id=issue_id),
             data=data,
         )
 

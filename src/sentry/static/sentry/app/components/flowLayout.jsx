@@ -1,38 +1,32 @@
 import PropTypes from 'prop-types';
-import React from 'react';
-import classNames from 'classnames';
-import 'app/../less/components/flowLayout.less';
+import styled from 'react-emotion';
 
-// Simple horizontal layout with vertical centering
-// Takes up remaining space of a flexbox container (i.e. "flex: 1")
-class FlowLayout extends React.Component {
-  static propTypes = {
-    /** Centers content via `justify-content` */
-    center: PropTypes.bool,
-    /** Changes flex direction to be column */
-    vertical: PropTypes.bool,
-    /** Applies "overflow: hidden" to container so that children can be truncated */
-    truncate: PropTypes.bool,
-  };
+const FlowLayout = styled('div')`
+  display: flex;
+  flex: 1;
+  align-items: center;
+  flex-direction: ${p => (p.vertical ? 'column' : null)};
+  justify-content: ${p => (p.center ? 'center' : null)};
+  overflow: ${p => (p.truncate ? 'hidden' : null)};
+`;
 
-  static defaultProps = {
-    truncate: true,
-  };
+FlowLayout.propTypes = {
+  /**
+   * Centers content via `justify-content`
+   */
+  center: PropTypes.bool,
+  /**
+   * Changes flex direction to be column
+   */
+  vertical: PropTypes.bool,
+  /**
+   * Applies "overflow: hidden" to container so that children can be truncated
+   */
+  truncate: PropTypes.bool,
+};
 
-  render() {
-    let {className, children, truncate, vertical, center, ...otherProps} = this.props;
-    let cx = classNames('flow-layout', className, {
-      'is-vertical': vertical,
-      'is-center': center,
-      'is-truncated': truncate,
-    });
-
-    return (
-      <div className={cx} {...otherProps}>
-        {children}
-      </div>
-    );
-  }
-}
+FlowLayout.defaultProps = {
+  truncate: true,
+};
 
 export default FlowLayout;

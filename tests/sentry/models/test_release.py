@@ -1,15 +1,20 @@
 from __future__ import absolute_import
 
+import pytest
 import six
+
+from django.utils import timezone
+from freezegun import freeze_time
 from mock import patch
 
+from sentry.api.exceptions import InvalidRepository
 from sentry.models import (
     Commit, CommitAuthor, Environment, Group, GroupRelease, GroupResolution, GroupLink, GroupStatus,
     ExternalIssue, Integration, OrganizationIntegration, Release, ReleaseCommit, ReleaseEnvironment,
     ReleaseHeadCommit, ReleaseProject, ReleaseProjectEnvironment, Repository
 )
 
-from sentry.testutils import TestCase
+from sentry.testutils import TestCase, SetRefsTestCase
 
 
 class MergeReleasesTest(TestCase):
@@ -250,29 +255,34 @@ class SetCommitsTestCase(TestCase):
             ]
         )
 
-        assert Commit.objects.filter(
-            repository_id=repo.id,
-            organization_id=org.id,
-            key='a' * 40,
-        ).exists()
-        assert Commit.objects.filter(
-            repository_id=repo.id,
-            organization_id=org.id,
-            key='c' * 40,
-        ).exists()
-
         author = CommitAuthor.objects.get(
             name='foo bar baz',
             email='foo@example.com',
             organization_id=org.id,
         )
 
+        commit_a = Commit.objects.get(
+            repository_id=repo.id,
+            organization_id=org.id,
+            key='a' * 40,
+        )
+        assert commit_a
+        assert commit_a.message == 'i fixed a bug'
+        assert commit_a.author_id == author.id
+
+        commit_c = Commit.objects.get(
+            repository_id=repo.id,
+            organization_id=org.id,
+            key='c' * 40,
+        )
+        assert commit_c
+        assert 'fixes' in commit_c.message
+        assert commit_c.author_id == author.id
+
         # test that backfilling fills in missing message and author
         commit = Commit.objects.get(id=commit.id)
         assert commit.message == 'i fixed another bug'
-        assert commit.author
-        assert commit.author.email == 'foo@example.com'
-        assert commit.author.name == 'foo bar baz'
+        assert commit.author_id == author.id
 
         assert ReleaseCommit.objects.filter(
             commit__key='a' * 40,
@@ -293,10 +303,7 @@ class SetCommitsTestCase(TestCase):
         assert GroupLink.objects.filter(
             group_id=group.id,
             linked_type=GroupLink.LinkedType.commit,
-            linked_id=Commit.objects.get(
-                key='c' * 40,
-                repository_id=repo.id,
-            ).id
+            linked_id=commit_c.id
         ).exists()
 
         assert GroupResolution.objects.filter(group=group, release=release).exists()
@@ -316,6 +323,7 @@ class SetCommitsTestCase(TestCase):
         assert release.authors == [six.text_type(author.id)]
         assert release.last_commit_id == latest_commit.id
 
+    @freeze_time()
     def test_using_saved_data(self):
         org = self.create_organization()
         project = self.create_project(organization=org, name='foo')
@@ -336,6 +344,8 @@ class SetCommitsTestCase(TestCase):
             organization_id=org.id,
             key='b' * 40,
             author=author,
+            date_added='2019-03-01 12:00:00',
+            message='fixed a thing'
         )
 
         release = Release.objects.create(version='abcdabc', organization=org)
@@ -355,16 +365,28 @@ class SetCommitsTestCase(TestCase):
             ]
         )
 
+        date_format = '%Y-%m-%d %H:%M:%S'
         assert Commit.objects.filter(
             repository_id=repo.id,
             organization_id=org.id,
             key='a' * 40,
         ).exists()
-        assert Commit.objects.filter(
+        commit_c = Commit.objects.get(
             repository_id=repo.id,
             organization_id=org.id,
             key='c' * 40,
-        ).exists()
+        )
+        assert commit_c.date_added.strftime(date_format) == timezone.now().strftime(date_format)
+        assert commit_c.message is None
+
+        # Using the id/repository payload should retain existing data.
+        commit_b = Commit.objects.get(
+            repository_id=repo.id,
+            organization_id=org.id,
+            key='b' * 40,
+        )
+        assert commit_b.message == 'fixed a thing'
+        assert commit_b.date_added.strftime(date_format) == '2019-03-01 12:00:00'
 
         latest_commit = Commit.objects.get(
             repository_id=repo.id,
@@ -543,3 +565,115 @@ class SetCommitsTestCase(TestCase):
         assert resolution.actor_id is None
 
         assert Group.objects.get(id=group.id).status == GroupStatus.RESOLVED
+
+
+class SetRefsTest(SetRefsTestCase):
+
+    def setUp(self):
+        super(SetRefsTest, self).setUp()
+        self.release = Release.objects.create(version='abcdabc', organization=self.org)
+        self.release.add_project(self.project)
+
+    @patch('sentry.tasks.commits.fetch_commits')
+    def test_simple(self, mock_fetch_commit):
+        refs = [
+            {
+                'repository': 'test/repo',
+                'previousCommit': 'previous-commit-id',
+                'commit': 'current-commit-id',
+            },
+            {
+                'repository': 'test/repo',
+                'previousCommit': 'previous-commit-id-2',
+                'commit': 'current-commit-id-2',
+            }
+        ]
+
+        self.release.set_refs(refs, self.user, True)
+
+        commits = Commit.objects.all().order_by('id')
+        self.assert_commit(commits[0], refs[0]['commit'])
+        self.assert_commit(commits[1], refs[1]['commit'])
+
+        head_commits = ReleaseHeadCommit.objects.all()
+        self.assert_head_commit(head_commits[0], refs[1]['commit'])
+
+        self.assert_fetch_commits(mock_fetch_commit, None, self.release.id, refs)
+
+    @patch('sentry.tasks.commits.fetch_commits')
+    def test_invalid_repos(self, mock_fetch_commit):
+        refs = [
+            {
+                'repository': 'unknown-repository-name',
+                'previousCommit': 'previous-commit-id',
+                'commit': 'current-commit-id',
+            },
+            {
+                'repository': 'unknown-repository-name',
+                'previousCommit': 'previous-commit-id-2',
+                'commit': 'current-commit-id-2',
+            }
+        ]
+
+        with pytest.raises(InvalidRepository):
+            self.release.set_refs(refs, self.user)
+
+        assert len(Commit.objects.all()) == 0
+        assert len(ReleaseHeadCommit.objects.all()) == 0
+
+    @patch('sentry.tasks.commits.fetch_commits')
+    def test_handle_commit_ranges(self, mock_fetch_commit):
+        refs = [
+            {
+                'repository': 'test/repo',
+                'previousCommit': None,
+                'commit': 'previous-commit-id..current-commit-id',
+            },
+            {
+                'repository': 'test/repo',
+                'previousCommit': 'previous-commit-will-be-ignored',
+                'commit': 'previous-commit-id-2..current-commit-id-2',
+            },
+            {
+                'repository': 'test/repo',
+                'commit': 'previous-commit-id-3..current-commit-id-3',
+            },
+        ]
+
+        self.release.set_refs(refs, self.user, True)
+
+        commits = Commit.objects.all().order_by('id')
+        self.assert_commit(commits[0], 'current-commit-id')
+        self.assert_commit(commits[1], 'current-commit-id-2')
+        self.assert_commit(commits[2], 'current-commit-id-3')
+
+        head_commits = ReleaseHeadCommit.objects.all()
+        self.assert_head_commit(head_commits[0], 'current-commit-id-3')
+
+        self.assert_fetch_commits(mock_fetch_commit, None, self.release.id, refs)
+
+    @patch('sentry.tasks.commits.fetch_commits')
+    def test_fetch_false(self, mock_fetch_commit):
+        refs = [
+            {
+                'repository': 'test/repo',
+                'previousCommit': 'previous-commit-id',
+                'commit': 'current-commit-id',
+            },
+            {
+                'repository': 'test/repo',
+                'previousCommit': 'previous-commit-id-2',
+                'commit': 'current-commit-id-2',
+            }
+        ]
+
+        self.release.set_refs(refs, self.user, False)
+
+        commits = Commit.objects.all().order_by('id')
+        self.assert_commit(commits[0], refs[0]['commit'])
+        self.assert_commit(commits[1], refs[1]['commit'])
+
+        head_commits = ReleaseHeadCommit.objects.all()
+        self.assert_head_commit(head_commits[0], refs[1]['commit'])
+
+        assert len(mock_fetch_commit.method_calls) == 0

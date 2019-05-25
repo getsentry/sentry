@@ -17,7 +17,7 @@ class Switch extends React.Component {
   };
 
   render() {
-    let {size, isActive, isLoading, isDisabled, toggle, id, className} = this.props;
+    const {size, isActive, isLoading, isDisabled, toggle, id, className} = this.props;
 
     return (
       <SwitchContainer

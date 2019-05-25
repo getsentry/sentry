@@ -20,13 +20,18 @@ class EventOrGroupTitle extends React.Component {
   };
 
   render() {
-    let {data} = this.props;
-    let {metadata, title, type, culprit} = data;
+    const {data} = this.props;
+    const {metadata, type, culprit} = data;
+    let {title} = data;
     let subtitle = null;
 
     if (type == 'error') {
-      title = metadata.type;
       subtitle = culprit;
+      if (metadata.type) {
+        title = metadata.type;
+      } else {
+        title = metadata.function || '<unknown>';
+      }
     } else if (type == 'csp') {
       title = metadata.directive;
       subtitle = metadata.uri;

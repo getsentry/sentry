@@ -247,8 +247,8 @@ def heuristic_decode(data, possible_content_type=None):
     )
 
     decoders = [
-        ('application/x-www-form-urlencoded', form_encoded_parser),
         ('application/json', json.loads),
+        ('application/x-www-form-urlencoded', form_encoded_parser),
     ]
 
     # Prioritize the decoder which supports the possible content type first.

@@ -1,21 +1,25 @@
 import {browserHistory} from 'react-router';
-import {mount} from 'enzyme';
 import React from 'react';
 
-import ProjectGeneralSettings from 'app/views/settings/projectGeneralSettings';
+import {mount} from 'enzyme';
 import ProjectContext from 'app/views/projects/projectContext';
+import ProjectGeneralSettings from 'app/views/settings/projectGeneralSettings';
 import ProjectsStore from 'app/stores/projectsStore';
+
+import {selectByValue} from '../../helpers/select';
 
 jest.mock('jquery');
 
 describe('projectGeneralSettings', function() {
-  let org = TestStubs.Organization();
-  let project = TestStubs.ProjectDetails();
+  const org = TestStubs.Organization();
+  const project = TestStubs.ProjectDetails();
+  const groupingConfigs = TestStubs.GroupingConfigs();
+  const groupingEnhancements = TestStubs.GroupingEnhancements();
   let routerContext;
   let putMock;
 
   beforeEach(function() {
-    sinon.stub(window.location, 'assign');
+    jest.spyOn(window.location, 'assign');
     routerContext = TestStubs.routerContext([
       {
         router: TestStubs.router({
@@ -29,6 +33,16 @@ describe('projectGeneralSettings', function() {
 
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
+      url: '/grouping-configs/',
+      method: 'GET',
+      body: groupingConfigs,
+    });
+    MockApiClient.addMockResponse({
+      url: '/grouping-enhancements/',
+      method: 'GET',
+      body: groupingEnhancements,
+    });
+    MockApiClient.addMockResponse({
       url: `/projects/${org.slug}/${project.slug}/`,
       method: 'GET',
       body: project,
@@ -39,23 +53,22 @@ describe('projectGeneralSettings', function() {
       body: [],
     });
     MockApiClient.addMockResponse({
-      url: `/projects/${org.slug}/${project.slug}/members/`,
+      url: `/organizations/${org.slug}/users/`,
       method: 'GET',
       body: [],
     });
   });
 
   afterEach(function() {
-    window.location.assign.restore();
+    window.location.assign.mockRestore();
   });
 
   it('renders form fields', function() {
-    let wrapper = mount(
+    const wrapper = mount(
       <ProjectGeneralSettings params={{orgId: org.slug, projectId: project.slug}} />,
       TestStubs.routerContext()
     );
 
-    expect(wrapper.find('Input[name="name"]').prop('value')).toBe('Project Name');
     expect(wrapper.find('Input[name="slug"]').prop('value')).toBe('project-slug');
     expect(wrapper.find('Input[name="subjectPrefix"]').prop('value')).toBe('[my-org]');
     expect(wrapper.find('RangeSlider[name="resolveAge"]').prop('value')).toBe(48);
@@ -89,7 +102,7 @@ describe('projectGeneralSettings', function() {
   it('disables field when equivalent org setting is true', function() {
     routerContext.context.organization.dataScrubber = true;
     routerContext.context.organization.scrubIPAddresses = false;
-    let wrapper = mount(
+    const wrapper = mount(
       <ProjectGeneralSettings params={{orgId: org.slug, projectId: project.slug}} />,
       routerContext
     );
@@ -103,7 +116,7 @@ describe('projectGeneralSettings', function() {
 
   it('disables scrapeJavaScript when equivalent org setting is false', function() {
     routerContext.context.organization.scrapeJavaScript = false;
-    let wrapper = mount(
+    const wrapper = mount(
       <ProjectGeneralSettings params={{orgId: org.slug, projectId: project.slug}} />,
       routerContext
     );
@@ -112,17 +125,17 @@ describe('projectGeneralSettings', function() {
   });
 
   it('project admins can remove project', function() {
-    let deleteMock = MockApiClient.addMockResponse({
+    const deleteMock = MockApiClient.addMockResponse({
       url: `/projects/${org.slug}/${project.slug}/`,
       method: 'DELETE',
     });
 
-    let wrapper = mount(
+    const wrapper = mount(
       <ProjectGeneralSettings params={{orgId: org.slug, projectId: project.slug}} />,
       TestStubs.routerContext()
     );
 
-    let removeBtn = wrapper.find('.ref-remove-project').first();
+    const removeBtn = wrapper.find('.ref-remove-project').first();
 
     expect(removeBtn.prop('children')).toBe('Remove Project');
 
@@ -136,17 +149,17 @@ describe('projectGeneralSettings', function() {
   });
 
   it('project admins can transfer project', function() {
-    let deleteMock = MockApiClient.addMockResponse({
+    const deleteMock = MockApiClient.addMockResponse({
       url: `/projects/${org.slug}/${project.slug}/transfer/`,
       method: 'POST',
     });
 
-    let wrapper = mount(
+    const wrapper = mount(
       <ProjectGeneralSettings params={{orgId: org.slug, projectId: project.slug}} />,
       TestStubs.routerContext()
     );
 
-    let removeBtn = wrapper.find('.ref-transfer-project').first();
+    const removeBtn = wrapper.find('.ref-transfer-project').first();
 
     expect(removeBtn.prop('children')).toBe('Transfer Project');
 
@@ -172,7 +185,7 @@ describe('projectGeneralSettings', function() {
 
   it('displays transfer/remove message for non-admins', function() {
     routerContext.context.organization.access = ['org:read'];
-    let wrapper = mount(
+    const wrapper = mount(
       <ProjectGeneralSettings params={{orgId: org.slug, projectId: project.slug}} />,
       routerContext
     );
@@ -187,7 +200,7 @@ describe('projectGeneralSettings', function() {
 
   it('disables the form for users without write permissions', function() {
     routerContext.context.organization.access = ['org:read'];
-    let wrapper = mount(
+    const wrapper = mount(
       <ProjectGeneralSettings params={{orgId: org.slug, projectId: project.slug}} />,
       routerContext
     );
@@ -199,12 +212,50 @@ describe('projectGeneralSettings', function() {
         .first()
         .text()
     ).toBe(
-      'These settings can only be edited by users with the owner, manager, or admin role.'
+      'These settings can only be edited by users with the organization owner, manager, or admin role.'
     );
   });
 
+  it('changing project platform updates ProjectsStore', async function() {
+    const params = {orgId: org.slug, projectId: project.slug};
+    ProjectsStore.loadInitialData([project]);
+    putMock = MockApiClient.addMockResponse({
+      url: `/projects/${org.slug}/${project.slug}/`,
+      method: 'PUT',
+      body: {
+        ...project,
+        platform: 'javascript',
+      },
+    });
+    const wrapper = mount(
+      <ProjectContext orgId={org.slug} projectId={project.slug}>
+        <ProjectGeneralSettings
+          routes={[]}
+          location={routerContext.context.location}
+          params={params}
+        />
+      </ProjectContext>,
+      routerContext
+    );
+    await tick();
+    wrapper.update();
+
+    // Change slug to new-slug
+    selectByValue(wrapper, 'javascript');
+
+    // Slug does not save on blur
+    expect(putMock).toHaveBeenCalled();
+
+    await tick();
+    await tick();
+    wrapper.update();
+
+    // updates ProjectsStore
+    expect(ProjectsStore.itemsById['2'].platform).toBe('javascript');
+  });
+
   it('changing slug updates ProjectsStore', async function() {
-    let params = {orgId: org.slug, projectId: project.slug};
+    const params = {orgId: org.slug, projectId: project.slug};
     ProjectsStore.loadInitialData([project]);
     putMock = MockApiClient.addMockResponse({
       url: `/projects/${org.slug}/${project.slug}/`,
@@ -214,7 +265,7 @@ describe('projectGeneralSettings', function() {
         slug: 'new-project',
       },
     });
-    let wrapper = mount(
+    const wrapper = mount(
       <ProjectContext orgId={org.slug} projectId={project.slug}>
         <ProjectGeneralSettings
           routes={[]}
@@ -238,18 +289,18 @@ describe('projectGeneralSettings', function() {
     wrapper.find('SaveButton').simulate('click');
 
     // fetches new slug
-    let newProjectGet = MockApiClient.addMockResponse({
+    const newProjectGet = MockApiClient.addMockResponse({
       url: `/projects/${org.slug}/new-project/`,
       method: 'GET',
       body: {...project, slug: 'new-project'},
     });
-    let newProjectEnv = MockApiClient.addMockResponse({
+    const newProjectEnv = MockApiClient.addMockResponse({
       url: `/projects/${org.slug}/new-project/environments/`,
       method: 'GET',
       body: [],
     });
-    let newProjectMembers = MockApiClient.addMockResponse({
-      url: `/projects/${org.slug}/new-project/members/`,
+    const newProjectMembers = MockApiClient.addMockResponse({
+      url: `/organizations/${org.slug}/users/`,
       method: 'GET',
       body: [],
     });
@@ -277,7 +328,7 @@ describe('projectGeneralSettings', function() {
     let wrapper;
 
     beforeEach(function() {
-      let params = {orgId: org.slug, projectId: project.slug};
+      const params = {orgId: org.slug, projectId: project.slug};
       ProjectsStore.loadInitialData([project]);
       putMock = MockApiClient.addMockResponse({
         url: `/projects/${org.slug}/${project.slug}/`,

@@ -38,7 +38,7 @@ Annotated.propTypes = {
 };
 
 Annotated.defaultProps = {
-  children: value => value,
+  children: value => (typeof value === 'undefined' ? null : value),
   required: false,
 };
 

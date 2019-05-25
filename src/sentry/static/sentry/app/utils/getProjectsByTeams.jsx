@@ -1,7 +1,11 @@
-export default function getProjectsByTeams(teams, projects) {
+export default function getProjectsByTeams(teams, projects, isSuperuser = false) {
   const projectsByTeam = {};
   const teamlessProjects = [];
-  const usersTeams = new Set(teams.filter(team => team.isMember).map(team => team.slug));
+  let usersTeams = new Set(teams.filter(team => team.isMember).map(team => team.slug));
+
+  if (usersTeams.size === 0 && isSuperuser) {
+    usersTeams = new Set(teams.map(team => team.slug));
+  }
 
   projects.forEach(project => {
     if (!project.teams.length && project.isMember) {
@@ -11,7 +15,7 @@ export default function getProjectsByTeams(teams, projects) {
         if (!usersTeams.has(team.slug)) {
           return;
         }
-        if (!projectsByTeam[team.slug]) {
+        if (!projectsByTeam.hasOwnProperty(team.slug)) {
           projectsByTeam[team.slug] = [];
         }
         projectsByTeam[team.slug].push(project);

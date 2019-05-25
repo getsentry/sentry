@@ -14,9 +14,13 @@ import time
 from django.conf import settings
 
 from sentry import features
+from sentry.models import EventDict
+from sentry.utils import snuba
 from sentry.utils.cache import cache
+from sentry.exceptions import PluginError
 from sentry.plugins import plugins
 from sentry.signals import event_processed
+from sentry.tasks.sentry_apps import process_resource_change_bound
 from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics
 from sentry.utils.redis import redis_clusters
@@ -30,9 +34,12 @@ def _get_service_hooks(project_id):
     from sentry.models import ServiceHook
     cache_key = u'servicehooks:1:{}'.format(project_id)
     result = cache.get(cache_key)
+
     if result is None:
-        result = [(h.id, h.events) for h in
-                  ServiceHook.objects.filter(project_id=project_id)]
+        hooks = ServiceHook.objects.filter(
+            servicehookproject__project_id=project_id,
+        )
+        result = [(h.id, h.events) for h in hooks]
         cache.set(cache_key, result, 60)
     return result
 
@@ -44,13 +51,16 @@ def _capture_stats(event, is_new):
     if not platform:
         return
     platform = platform.split('-', 1)[0].split('_', 1)[0]
+    tags = {
+        'platform': platform,
+    }
 
     if is_new:
-        metrics.incr('events.unique')
+        metrics.incr('events.unique', tags=tags, skip_internal=False)
 
-    metrics.incr('events.processed')
-    metrics.incr(u'events.processed.{platform}'.format(platform=platform))
-    metrics.timing('events.size.data', event.size, tags={'platform': platform})
+    metrics.incr('events.processed', tags=tags, skip_internal=False)
+    metrics.incr(u'events.processed.{platform}'.format(platform=platform), skip_internal=False)
+    metrics.timing('events.size.data', event.size, tags=tags)
 
 
 def check_event_already_post_processed(event):
@@ -69,85 +79,111 @@ def check_event_already_post_processed(event):
     return not result
 
 
+def handle_owner_assignment(project, group, event):
+    from sentry.models import GroupAssignee, ProjectOwnership
+
+    # Is the issue already assigned to a team or user?
+    if group.assignee_set.exists():
+        return
+
+    owner = ProjectOwnership.get_autoassign_owner(group.project_id, event.data)
+    if owner is not None:
+        GroupAssignee.objects.assign(group, owner)
+
+
 @instrumented_task(name='sentry.tasks.post_process.post_process_group')
 def post_process_group(event, is_new, is_regression, is_sample, is_new_group_environment, **kwargs):
     """
     Fires post processing hooks for a group.
     """
-    if check_event_already_post_processed(event):
-        logger.info('post_process.skipped', extra={
-            'project_id': event.project_id,
-            'event_id': event.event_id,
-            'reason': 'duplicate',
-        })
-        return
+    with snuba.options_override({'consistent': True}):
+        if check_event_already_post_processed(event):
+            logger.info('post_process.skipped', extra={
+                'project_id': event.project_id,
+                'event_id': event.event_id,
+                'reason': 'duplicate',
+            })
+            return
 
-    # NOTE: we must pass through the full Event object, and not an
-    # event_id since the Event object may not actually have been stored
-    # in the database due to sampling.
-    from sentry.models import Project
-    from sentry.models.group import get_group_with_redirect
-    from sentry.rules.processor import RuleProcessor
-    from sentry.tasks.servicehooks import process_service_hook
+        # NOTE: we must pass through the full Event object, and not an
+        # event_id since the Event object may not actually have been stored
+        # in the database due to sampling.
+        from sentry.models import Project
+        from sentry.models.group import get_group_with_redirect
+        from sentry.rules.processor import RuleProcessor
+        from sentry.tasks.servicehooks import process_service_hook
 
-    # Re-bind Group since we're pickling the whole Event object
-    # which may contain a stale Group.
-    event.group, _ = get_group_with_redirect(event.group_id)
-    event.group_id = event.group.id
+        # Re-bind node data to avoid renormalization. We only want to
+        # renormalize when loading old data from the database.
+        event.data = EventDict(event.data, skip_renormalization=True)
 
-    project_id = event.group.project_id
-    with configure_scope() as scope:
-        scope.set_tag("project", project_id)
+        # Re-bind Group since we're pickling the whole Event object
+        # which may contain a stale Group.
+        event.group, _ = get_group_with_redirect(event.group_id)
+        event.group_id = event.group.id
 
-    # Re-bind Project since we're pickling the whole Event object
-    # which may contain a stale Project.
-    event.project = Project.objects.get_from_cache(id=project_id)
+        project_id = event.group.project_id
+        with configure_scope() as scope:
+            scope.set_tag("project", project_id)
 
-    _capture_stats(event, is_new)
+        # Re-bind Project since we're pickling the whole Event object
+        # which may contain a stale Project.
+        event.project = Project.objects.get_from_cache(id=project_id)
 
-    # we process snoozes before rules as it might create a regression
-    has_reappeared = process_snoozes(event.group)
+        _capture_stats(event, is_new)
 
-    rp = RuleProcessor(event, is_new, is_regression, is_new_group_environment, has_reappeared)
-    has_alert = False
-    # TODO(dcramer): ideally this would fanout, but serializing giant
-    # objects back and forth isn't super efficient
-    for callback, futures in rp.apply():
-        has_alert = True
-        safe_execute(callback, event, futures)
+        # we process snoozes before rules as it might create a regression
+        has_reappeared = process_snoozes(event.group)
 
-    if features.has(
-        'projects:servicehooks',
-        project=event.project,
-    ):
-        allowed_events = set(['event.created'])
-        if has_alert:
-            allowed_events.add('event.alert')
+        handle_owner_assignment(event.project, event.group, event)
 
-        if allowed_events:
-            for servicehook_id, events in _get_service_hooks(project_id=event.project_id):
-                if any(e in allowed_events for e in events):
-                    process_service_hook.delay(
-                        servicehook_id=servicehook_id,
-                        event=event,
-                    )
+        rp = RuleProcessor(event, is_new, is_regression, is_new_group_environment, has_reappeared)
+        has_alert = False
+        # TODO(dcramer): ideally this would fanout, but serializing giant
+        # objects back and forth isn't super efficient
+        for callback, futures in rp.apply():
+            has_alert = True
+            safe_execute(callback, event, futures)
 
-    for plugin in plugins.for_project(event.project):
-        plugin_post_process_group(
-            plugin_slug=plugin.slug,
+        if features.has(
+            'projects:servicehooks',
+            project=event.project,
+        ):
+            allowed_events = set(['event.created'])
+            if has_alert:
+                allowed_events.add('event.alert')
+
+            if allowed_events:
+                for servicehook_id, events in _get_service_hooks(project_id=event.project_id):
+                    if any(e in allowed_events for e in events):
+                        process_service_hook.delay(
+                            servicehook_id=servicehook_id,
+                            event=event,
+                        )
+
+        if is_new:
+            process_resource_change_bound.delay(
+                action='created',
+                sender='Group',
+                instance_id=event.group_id,
+            )
+
+        for plugin in plugins.for_project(event.project):
+            plugin_post_process_group(
+                plugin_slug=plugin.slug,
+                event=event,
+                is_new=is_new,
+                is_regresion=is_regression,
+                is_sample=is_sample,
+            )
+
+        event_processed.send_robust(
+            sender=post_process_group,
+            project=event.project,
+            group=event.group,
             event=event,
-            is_new=is_new,
-            is_regresion=is_regression,
-            is_sample=is_sample,
+            primary_hash=kwargs.get('primary_hash'),
         )
-
-    event_processed.send_robust(
-        sender=post_process_group,
-        project=event.project,
-        group=event.group,
-        event=event,
-        primary_hash=kwargs.get('primary_hash'),
-    )
 
 
 def process_snoozes(group):
@@ -184,7 +220,12 @@ def plugin_post_process_group(plugin_slug, event, **kwargs):
         scope.set_tag("project", event.project_id)
 
     plugin = plugins.get(plugin_slug)
-    safe_execute(plugin.post_process, event=event, group=event.group, **kwargs)
+    safe_execute(
+        plugin.post_process,
+        event=event,
+        group=event.group,
+        expected_errors=(PluginError,),
+        **kwargs)
 
 
 @instrumented_task(

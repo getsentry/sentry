@@ -42,16 +42,16 @@ class RepositoryFileSummary extends React.Component {
   };
 
   render() {
-    let {repository, fileChangeSummary} = this.props;
+    const {repository, fileChangeSummary} = this.props;
     const MAX = RepositoryFileSummary.MAX_WHEN_COLLAPSED;
     let files = Object.keys(fileChangeSummary);
-    let fileCount = files.length;
+    const fileCount = files.length;
     files.sort();
     if (this.state.collapsed && fileCount > MAX) {
       files = files.slice(0, MAX);
     }
-    let numCollapsed = fileCount - files.length;
-    let canCollapse = fileCount > MAX;
+    const numCollapsed = fileCount - files.length;
+    const canCollapse = fileCount > MAX;
     return (
       <div>
         <h5>
@@ -63,10 +63,10 @@ class RepositoryFileSummary extends React.Component {
         </h5>
         <ul className="list-group list-group-striped m-b-2">
           {files.map(filename => {
-            let {id, authors, types} = fileChangeSummary[filename];
+            const {authors, types} = fileChangeSummary[filename];
             return (
               <FileChange
-                key={id}
+                key={filename}
                 filename={filename}
                 authors={Object.values(authors)}
                 types={types}
@@ -76,13 +76,12 @@ class RepositoryFileSummary extends React.Component {
           {numCollapsed > 0 && (
             <Collapsed onClick={this.onCollapseToggle} count={numCollapsed} />
           )}
-          {numCollapsed === 0 &&
-            canCollapse && (
-              <li className="list-group-item list-group-item-sm align-center">
-                <span className="icon-container" />
-                <a onClick={this.onCollapseToggle}>{t('Collapse')}</a>
-              </li>
-            )}
+          {numCollapsed === 0 && canCollapse && (
+            <li className="list-group-item list-group-item-sm align-center">
+              <span className="icon-container" />
+              <a onClick={this.onCollapseToggle}>{t('Collapse')}</a>
+            </li>
+          )}
         </ul>
       </div>
     );

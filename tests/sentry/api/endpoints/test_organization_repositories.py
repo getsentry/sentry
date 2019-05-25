@@ -191,3 +191,51 @@ class OrganizationRepositoriesCreateTest(APITestCase):
         repo = Repository.objects.get(id=response.data['id'])
         assert repo.provider == 'dummy'
         assert repo.name == 'getsentry/sentry'
+
+    def test_admin_ok(self):
+        org = self.create_organization(owner=self.user, name='baz')
+        team = self.create_team(name='people', organization=org)
+
+        user = self.create_user(email='admin@example.org')
+        self.create_member(
+            organization=org,
+            user=user,
+            teams=[team],
+            role='admin')
+
+        self.login_as(user=user)
+
+        with patch.object(DummyRepositoryProvider, 'needs_auth', return_value=False):
+            url = reverse('sentry-api-0-organization-repositories', args=[org.slug])
+            response = self.client.post(
+                url, data={
+                    'provider': 'dummy',
+                    'name': 'getsentry/sentry',
+                }
+            )
+
+        assert response.status_code == 201, (response.status_code, response.content)
+
+    def test_no_access(self):
+        org = self.create_organization(owner=self.user, name='baz')
+        team = self.create_team(name='people', organization=org)
+
+        user = self.create_user(email='member@example.org')
+        self.create_member(
+            organization=org,
+            user=user,
+            teams=[team],
+            role='member')
+
+        self.login_as(user=user)
+
+        with patch.object(DummyRepositoryProvider, 'needs_auth', return_value=False):
+            url = reverse('sentry-api-0-organization-repositories', args=[org.slug])
+            response = self.client.post(
+                url, data={
+                    'provider': 'dummy',
+                    'name': 'getsentry/sentry',
+                }
+            )
+
+        assert response.status_code == 403, (response.status_code, response.content)

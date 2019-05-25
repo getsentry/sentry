@@ -113,7 +113,7 @@ class LegacyBrowserFilterRow extends React.Component {
   };
 
   render() {
-    let {disabled} = this.props;
+    const {disabled} = this.props;
     return (
       <div>
         {!disabled && (
@@ -130,7 +130,7 @@ class LegacyBrowserFilterRow extends React.Component {
 
         <FilterGrid>
           {LEGACY_BROWSER_KEYS.map(key => {
-            let subfilter = LEGACY_BROWSER_SUBFILTERS[key];
+            const subfilter = LEGACY_BROWSER_SUBFILTERS[key];
             return (
               <FilterGridItemWrapper key={key}>
                 <FilterGridItem>
@@ -172,7 +172,7 @@ class ProjectFiltersSettings extends AsyncComponent {
     };
   }
   getEndpoints() {
-    let {orgId, projectId} = this.props.params;
+    const {orgId, projectId} = this.props.params;
     return [
       ['filterList', `/projects/${orgId}/${projectId}/filters/`],
       ['project', `/projects/${orgId}/${projectId}/`],
@@ -199,7 +199,8 @@ class ProjectFiltersSettings extends AsyncComponent {
     <Feature
       features={['projects:custom-inbound-filters']}
       renderDisabled={({children, ...props}) =>
-        children({...props, renderDisabled: this.renderDisabledCustomFilters})}
+        children({...props, renderDisabled: this.renderDisabledCustomFilters})
+      }
     >
       {({hasFeature, organization, renderDisabled, ...featureProps}) => (
         <React.Fragment>
@@ -218,13 +219,15 @@ class ProjectFiltersSettings extends AsyncComponent {
   );
 
   renderBody() {
-    let {features, params} = this.props;
-    let {orgId, projectId} = params;
-    let {project} = this.state;
+    const {features, params} = this.props;
+    const {orgId, projectId} = params;
+    const {project} = this.state;
 
-    if (!project) return null;
-    let projectEndpoint = `/projects/${orgId}/${projectId}/`;
-    let filtersEndpoint = `${projectEndpoint}filters/`;
+    if (!project) {
+      return null;
+    }
+    const projectEndpoint = `/projects/${orgId}/${projectId}/`;
+    const filtersEndpoint = `${projectEndpoint}filters/`;
 
     return (
       <Access access={['project:write']}>
@@ -234,7 +237,7 @@ class ProjectFiltersSettings extends AsyncComponent {
               <PanelHeader>{t('Filters')}</PanelHeader>
               <PanelBody>
                 {this.state.filterList.map((filter, idx) => {
-                  let fieldProps = {
+                  const fieldProps = {
                     name: filter.id,
                     label: filter.name,
                     help: filter.description,
@@ -266,7 +269,7 @@ class ProjectFiltersSettings extends AsyncComponent {
                           <FormField
                             inline={false}
                             {...fieldProps}
-                            getData={data => ({subfilters: data[filter.id]})}
+                            getData={data => ({subfilters: [...data[filter.id]]})}
                           >
                             {({onChange, onBlur}) => (
                               <LegacyBrowserFilterRow
@@ -315,12 +318,12 @@ const NestedForm = styled(Form)`
   flex: 1;
 `;
 
-const FilterGrid = styled.div`
+const FilterGrid = styled('div')`
   display: flex;
   flex-wrap: wrap;
 `;
 
-const FilterGridItem = styled.div`
+const FilterGridItem = styled('div')`
   display: flex;
   align-items: center;
   background: ${p => p.theme.whiteDark};
@@ -331,12 +334,12 @@ const FilterGridItem = styled.div`
 `;
 
 // We want this wrapper to maining 30% width
-const FilterGridItemWrapper = styled.div`
+const FilterGridItemWrapper = styled('div')`
   padding: 12px;
   width: 50%;
 `;
 
-const FilterGridIcon = styled.div`
+const FilterGridIcon = styled('div')`
   width: 38px;
   height: 38px;
   background-repeat: no-repeat;
@@ -346,31 +349,31 @@ const FilterGridIcon = styled.div`
   flex-shrink: 0;
 `;
 
-const FilterTitle = styled.div`
+const FilterTitle = styled('div')`
   font-size: 14px;
   font-weight: bold;
   line-height: 1;
   white-space: nowrap;
 `;
 
-const FilterDescription = styled.div`
+const FilterDescription = styled('div')`
   color: ${p => p.theme.gray3};
   font-size: 12px;
   line-height: 1;
   white-space: nowrap;
 `;
 
-const BulkFilter = styled.div`
+const BulkFilter = styled('div')`
   text-align: right;
   padding: 0 12px;
 `;
 
-const BulkFilterLabel = styled.span`
+const BulkFilterLabel = styled('span')`
   font-weight: bold;
   margin-right: 6px;
 `;
 
-const BulkFilterItem = styled.a`
+const BulkFilterItem = styled('a')`
   border-right: 1px solid #f1f2f3;
   margin-right: 6px;
   padding-right: 6px;

@@ -3,6 +3,7 @@
 exports[`Frame renderContext() should render context lines 1`] = `
 Array [
   <ContextLine
+    className="css-oxid1h-className"
     isActive={false}
     key="0"
     line={
@@ -13,6 +14,7 @@ Array [
     }
   />,
   <ContextLine
+    className="css-oxid1h-className"
     isActive={false}
     key="1"
     line={
@@ -23,6 +25,7 @@ Array [
     }
   />,
   <ContextLine
+    className="css-oxid1h-className"
     isActive={false}
     key="2"
     line={
@@ -36,7 +39,12 @@ Array [
 `;
 
 exports[`Frame renderOriginalSourceInfo() should render the source map information as a HTML string 1`] = `
-"
-    <div>
-      <strong>Source Map</strong><br/>https://beta.getsentry.com/_static/sentry/dist/vendor.js.map<br/></div>"
+<React.Fragment>
+  <strong>
+    Source Map
+  </strong>
+  <br />
+  https://beta.getsentry.com/_static/sentry/dist/vendor.js.map
+  <br />
+</React.Fragment>
 `;

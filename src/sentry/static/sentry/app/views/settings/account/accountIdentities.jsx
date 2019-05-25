@@ -27,11 +27,11 @@ class AccountIdentities extends AsyncView {
   }
 
   handleDisconnect = (identity, e) => {
-    let {identities} = this.state;
+    const {identities} = this.state;
 
     this.setState(
       state => {
-        let newIdentities = state.identities.filter(({id}) => id !== identity.id);
+        const newIdentities = state.identities.filter(({id}) => id !== identity.id);
 
         return {
           identities: newIdentities,
@@ -47,7 +47,7 @@ class AccountIdentities extends AsyncView {
   };
 
   renderBody() {
-    let isEmpty = this.state.identities.length === 0;
+    const isEmpty = this.state.identities.length === 0;
 
     return (
       <div>

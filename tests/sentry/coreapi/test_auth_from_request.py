@@ -5,11 +5,11 @@ import pytest
 
 from django.core.exceptions import SuspiciousOperation
 
-from sentry.coreapi import ClientApiHelper, APIUnauthorized
+from sentry.coreapi import ClientAuthHelper, APIUnauthorized
 
 
 def test_valid():
-    helper = ClientApiHelper()
+    helper = ClientAuthHelper()
     request = mock.Mock()
     request.META = {'HTTP_X_SENTRY_AUTH': 'Sentry sentry_key=value, biz=baz'}
     request.GET = {}
@@ -18,7 +18,7 @@ def test_valid():
 
 
 def test_valid_missing_space():
-    helper = ClientApiHelper()
+    helper = ClientAuthHelper()
     request = mock.Mock()
     request.META = {'HTTP_X_SENTRY_AUTH': 'Sentry sentry_key=value,biz=baz'}
     request.GET = {}
@@ -27,7 +27,7 @@ def test_valid_missing_space():
 
 
 def test_valid_ignore_case():
-    helper = ClientApiHelper()
+    helper = ClientAuthHelper()
     request = mock.Mock()
     request.META = {'HTTP_X_SENTRY_AUTH': 'SeNtRy sentry_key=value, biz=baz'}
     request.GET = {}
@@ -36,7 +36,7 @@ def test_valid_ignore_case():
 
 
 def test_invalid_header_defers_to_GET():
-    helper = ClientApiHelper()
+    helper = ClientAuthHelper()
     request = mock.Mock()
     request.META = {'HTTP_X_SENTRY_AUTH': 'foobar'}
     request.GET = {'sentry_version': '1', 'foo': 'bar'}
@@ -45,7 +45,7 @@ def test_invalid_header_defers_to_GET():
 
 
 def test_invalid_legacy_header_defers_to_GET():
-    helper = ClientApiHelper()
+    helper = ClientAuthHelper()
     request = mock.Mock()
     request.META = {'HTTP_AUTHORIZATION': 'foobar'}
     request.GET = {'sentry_version': '1', 'foo': 'bar'}
@@ -54,7 +54,7 @@ def test_invalid_legacy_header_defers_to_GET():
 
 
 def test_invalid_header_bad_token():
-    helper = ClientApiHelper()
+    helper = ClientAuthHelper()
     request = mock.Mock()
     request.META = {'HTTP_X_SENTRY_AUTH': 'Sentryfoo'}
     request.GET = {}
@@ -63,7 +63,7 @@ def test_invalid_header_bad_token():
 
 
 def test_invalid_header_missing_pair():
-    helper = ClientApiHelper()
+    helper = ClientAuthHelper()
     request = mock.Mock()
     request.META = {'HTTP_X_SENTRY_AUTH': 'Sentry foo'}
     request.GET = {}
@@ -72,7 +72,7 @@ def test_invalid_header_missing_pair():
 
 
 def test_invalid_malformed_value():
-    helper = ClientApiHelper()
+    helper = ClientAuthHelper()
     request = mock.Mock()
     request.META = {'HTTP_X_SENTRY_AUTH': 'Sentry sentry_key=value,,biz=baz'}
     request.GET = {}
@@ -81,7 +81,7 @@ def test_invalid_malformed_value():
 
 
 def test_multiple_auth_suspicious():
-    helper = ClientApiHelper()
+    helper = ClientAuthHelper()
     request = mock.Mock()
     request.GET = {'sentry_version': '1', 'foo': 'bar'}
     request.META = {'HTTP_X_SENTRY_AUTH': 'Sentry sentry_key=value, biz=baz'}

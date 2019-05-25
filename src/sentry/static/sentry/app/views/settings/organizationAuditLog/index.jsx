@@ -57,6 +57,7 @@ const EVENT_TYPES = [
   'ondemand.edit',
   'trial.started',
   'plan.changed',
+  'plan.cancelled',
 ].sort();
 
 class OrganizationAuditLog extends AsyncView {
@@ -81,7 +82,7 @@ class OrganizationAuditLog extends AsyncView {
   }
 
   getTitle() {
-    let org = this.context.organization;
+    const org = this.context.organization;
     return `${org.name} Audit Log`;
   }
 
@@ -98,7 +99,7 @@ class OrganizationAuditLog extends AsyncView {
   };
 
   renderBody() {
-    let currentEventType = this.props.location.query.event;
+    const currentEventType = this.props.location.query.event;
 
     return (
       <AuditLogList

@@ -6,6 +6,7 @@ import createReactClass from 'create-react-class';
 import styled from 'react-emotion';
 import Button from 'app/components/button';
 import GuideStore from 'app/stores/guideStore';
+import space from 'app/styles/space';
 import {t} from 'app/locale';
 import {
   closeGuide,
@@ -66,7 +67,10 @@ const GuideDrawer = createReactClass({
     // has updated the guide store and triggered a component state change. But it doesn't seem
     // to cause any issues in practice.
     if (useful && this.state.guide.cta_link) {
-      let link = this.interpolate(this.state.guide.cta_link, this.state.messageVariables);
+      const link = this.interpolate(
+        this.state.guide.cta_link,
+        this.state.messageVariables
+      );
       this.props.router.push(link);
     }
   },
@@ -78,14 +82,14 @@ const GuideDrawer = createReactClass({
   },
 
   interpolate(template, variables) {
-    let regex = /\${([^{]+)}/g;
+    const regex = /\${([^{]+)}/g;
     return template.replace(regex, (match, g1) => {
       return variables[g1.trim()];
     });
   },
 
   render() {
-    let {guide, step, messageVariables} = this.state;
+    const {guide, step, messageVariables} = this.state;
 
     if (!guide) {
       return null;
@@ -93,7 +97,7 @@ const GuideDrawer = createReactClass({
 
     if (step === 0) {
       return (
-        <StyledCueContainer onClick={nextStep} className="assistant-cue">
+        <StyledCueContainer onClick={nextStep} data-test-id="assistant-cue">
           {<CueIcon hasGuide={true} />}
           <StyledCueText>{guide.cue}</StyledCueText>
           <div style={{display: 'flex'}} onClick={this.handleDismiss}>
@@ -103,7 +107,7 @@ const GuideDrawer = createReactClass({
       );
     }
 
-    let isTip = guide.guide_type === 'tip';
+    const isTip = guide.guide_type === 'tip';
 
     return (
       <GuideContainer>
@@ -163,7 +167,7 @@ const GuideDrawer = createReactClass({
 const StyledCueText = styled(CueText)`
   width: auto;
   opacity: 1;
-  margin-left: 8px;
+  margin-left: ${space(1)};
 `;
 
 const StyledCueContainer = styled(CueContainer)`
@@ -195,7 +199,7 @@ const StyledTitle = styled('div')`
 `;
 
 const StyledContent = styled('div')`
-  margin: 1.5rem;
+  margin-top: ${space(1)};
   line-height: 1.5;
 
   a {

@@ -25,13 +25,13 @@ import U2fEnrolledDetails from 'app/views/settings/account/accountSecurity/compo
 
 const ENDPOINT = '/users/me/authenticators/';
 
-const DateLabel = styled.span`
+const DateLabel = styled('span')`
   font-weight: bold;
   margin-right: 6px;
   width: 100px;
 `;
 
-const Phone = styled.span`
+const Phone = styled('span')`
   font-weight: bold;
   margin-left: 6px;
 `;
@@ -46,7 +46,7 @@ class AuthenticatorDate extends React.Component {
     date: PropTypes.string,
   };
   render() {
-    let {label, date} = this.props;
+    const {label, date} = this.props;
 
     return (
       <Flex mb={1}>
@@ -81,11 +81,13 @@ class AccountSecurityDetails extends AsyncView {
   }
 
   handleRemove = device => {
-    let {authenticator} = this.state;
+    const {authenticator} = this.state;
 
-    if (!authenticator || !authenticator.authId) return;
-    let isRemovingU2fDevice = !!device;
-    let deviceId = isRemovingU2fDevice ? `${device.key_handle}/` : '';
+    if (!authenticator || !authenticator.authId) {
+      return;
+    }
+    const isRemovingU2fDevice = !!device;
+    const deviceId = isRemovingU2fDevice ? `${device.key_handle}/` : '';
 
     this.setState(
       {
@@ -99,12 +101,12 @@ class AccountSecurityDetails extends AsyncView {
           .then(
             () => {
               this.props.router.push('/settings/account/security');
-              let deviceName = isRemovingU2fDevice ? device.name : 'Authenticator';
+              const deviceName = isRemovingU2fDevice ? device.name : 'Authenticator';
               addSuccessMessage(t('%s has been removed', deviceName));
             },
             () => {
               // Error deleting authenticator
-              let deviceName = isRemovingU2fDevice ? device.name : 'authenticator';
+              const deviceName = isRemovingU2fDevice ? device.name : 'authenticator';
               this.addError(t('Error removing %s', deviceName));
             }
           )
@@ -116,8 +118,8 @@ class AccountSecurityDetails extends AsyncView {
   };
 
   renderBody() {
-    let {authenticator} = this.state;
-    let {deleteDisabled, onRegenerateBackupCodes} = this.props;
+    const {authenticator} = this.state;
+    const {deleteDisabled, onRegenerateBackupCodes} = this.props;
 
     return (
       <div>
@@ -137,11 +139,9 @@ class AccountSecurityDetails extends AsyncView {
                 )}
                 disabled={!deleteDisabled}
               >
-                <span>
-                  <RemoveConfirm onConfirm={this.handleRemove} disabled={deleteDisabled}>
-                    <Button priority="danger">{authenticator.removeButton}</Button>
-                  </RemoveConfirm>
-                </span>
+                <RemoveConfirm onConfirm={this.handleRemove} disabled={deleteDisabled}>
+                  <Button priority="danger">{authenticator.removeButton}</Button>
+                </RemoveConfirm>
               </Tooltip>
             )
           }
@@ -158,13 +158,12 @@ class AccountSecurityDetails extends AsyncView {
           onRemoveU2fDevice={this.handleRemove}
         />
 
-        {authenticator.isEnrolled &&
-          authenticator.phone && (
-            <div css={{marginTop: 30}}>
-              {t('Confirmation codes are sent to the following phone number')}:
-              <Phone>{authenticator.phone}</Phone>
-            </div>
-          )}
+        {authenticator.isEnrolled && authenticator.phone && (
+          <div css={{marginTop: 30}}>
+            {t('Confirmation codes are sent to the following phone number')}:
+            <Phone>{authenticator.phone}</Phone>
+          </div>
+        )}
 
         <RecoveryCodes
           onRegenerateBackupCodes={onRegenerateBackupCodes}

@@ -39,30 +39,6 @@ DEPENDENCY_TEST_DATA = {
             }
         }
     ),
-    "mysql": (
-        'DATABASES', 'MySQLdb', "database engine", "django.db.backends.mysql", {
-            'default': {
-                'ENGINE': "django.db.backends.mysql",
-                'NAME': 'test',
-                'USER': 'root',
-                'PASSWORD': '',
-                'HOST': 'localhost',
-                'PORT': ''
-            }
-        }
-    ),
-    "oracle": (
-        'DATABASES', 'cx_Oracle', "database engine", "django.db.backends.oracle", {
-            'default': {
-                'ENGINE': "django.db.backends.oracle",
-                'NAME': 'test',
-                'USER': 'root',
-                'PASSWORD': '',
-                'HOST': 'localhost',
-                'PORT': ''
-            }
-        }
-    ),
     "memcache": (
         'CACHES', 'memcache', "caching backend",
         "django.core.cache.backends.memcached.MemcachedCache", {
@@ -176,7 +152,7 @@ class RavenIntegrationTest(TransactionTestCase):
         group = Group.objects.get()
         assert group.event_set.count() == 1
         instance = group.event_set.get()
-        assert instance.data['logentry']['message'] == 'foo'
+        assert instance.data['logentry']['formatted'] == 'foo'
 
 
 class SentryRemoteTest(TestCase):
@@ -193,8 +169,56 @@ class SentryRemoteTest(TestCase):
 
         event_id = json.loads(resp.content)['id']
         instance = Event.objects.get(event_id=event_id)
+        Event.objects.bind_nodes([instance], 'data')
 
         assert instance.message == 'hello'
+        assert instance.data['logentry'] == {'formatted': 'hello'}
+        assert instance.title == instance.data['title'] == 'hello'
+        assert instance.location is instance.data.get('location', None) is None
+
+        assert tagstore.get_tag_key(self.project.id, None, 'foo') is not None
+        assert tagstore.get_tag_value(self.project.id, None, 'foo', 'bar') is not None
+        assert tagstore.get_group_tag_key(
+            self.project.id, instance.group_id, None, 'foo') is not None
+        assert tagstore.get_group_tag_value(
+            instance.project_id,
+            instance.group_id,
+            None,
+            'foo',
+            'bar') is not None
+
+    def test_exception(self):
+        kwargs = {'exception': {
+            'type': 'ZeroDivisionError',
+            'value': 'cannot divide by zero',
+            'stacktrace': {'frames': [
+                {
+                    'filename': 'utils.py',
+                    'in_app': False,
+                    'function': 'raise_it',
+                    'module': 'utils',
+                },
+                {
+                    'filename': 'main.py',
+                    'in_app': True,
+                    'function': 'fail_it',
+                    'module': 'main',
+                }
+            ]}
+        }, 'tags': {'foo': 'bar'}}
+
+        resp = self._postWithHeader(kwargs)
+
+        assert resp.status_code == 200, resp.content
+
+        event_id = json.loads(resp.content)['id']
+        instance = Event.objects.get(event_id=event_id)
+        Event.objects.bind_nodes([instance], 'data')
+
+        assert len(instance.data['exception']) == 1
+        assert instance.title == instance.data['title'] == 'ZeroDivisionError: cannot divide by zero'
+        assert instance.location == instance.data['location'] == 'main.py'
+        assert instance.culprit == instance.data['culprit'] == 'main in fail_it'
 
         assert tagstore.get_tag_key(self.project.id, None, 'foo') is not None
         assert tagstore.get_tag_value(self.project.id, None, 'foo', 'bar') is not None
@@ -209,9 +233,9 @@ class SentryRemoteTest(TestCase):
 
     def test_timestamp(self):
         timestamp = timezone.now().replace(
-            microsecond=0, tzinfo=timezone.utc
+            microsecond=0, tzinfo=timezone.utc,
         ) - datetime.timedelta(hours=1)
-        kwargs = {u'message': 'hello', 'timestamp': timestamp.strftime('%s.%f')}
+        kwargs = {u'message': 'hello', 'timestamp': float(timestamp.strftime('%s.%f'))}
         resp = self._postWithSignature(kwargs)
         assert resp.status_code == 200, resp.content
         instance = Event.objects.get()
@@ -442,7 +466,7 @@ class SentryRemoteTest(TestCase):
         assert instance.message == 'hello'
 
 
-class DepdendencyTest(TestCase):
+class DependencyTest(TestCase):
     def raise_import_error(self, package):
         def callable(package_name):
             if package_name != package:
@@ -465,12 +489,6 @@ class DepdendencyTest(TestCase):
 
     def test_validate_fails_on_postgres(self):
         self.validate_dependency(*DEPENDENCY_TEST_DATA['postgresql'])
-
-    def test_validate_fails_on_mysql(self):
-        self.validate_dependency(*DEPENDENCY_TEST_DATA['mysql'])
-
-    def test_validate_fails_on_oracle(self):
-        self.validate_dependency(*DEPENDENCY_TEST_DATA['oracle'])
 
     def test_validate_fails_on_memcache(self):
         self.validate_dependency(*DEPENDENCY_TEST_DATA['memcache'])
@@ -503,7 +521,7 @@ class CspReportTest(TestCase):
         assert Event.objects.count() == 1
         e = Event.objects.all()[0]
         Event.objects.bind_nodes([e], 'data')
-        assert output['message'] == e.data['logentry']['message']
+        assert output['message'] == e.data['logentry']['formatted']
         for key, value in six.iteritems(output['tags']):
             assert e.get_tag(key) == value
         for key, value in six.iteritems(output['data']):
@@ -513,9 +531,11 @@ class CspReportTest(TestCase):
         resp = self._postCspWithHeader(input)
         assert resp.status_code in (400, 403), resp.content
 
+    def test_invalid_report(self):
+        self.assertReportRejected('')
+
     def test_chrome_blocked_asset(self):
         self.assertReportCreated(*get_fixtures('chrome_blocked_asset'))
 
     def test_firefox_missing_effective_uri(self):
-        input, _ = get_fixtures('firefox_blocked_asset')
-        self.assertReportRejected(input)
+        self.assertReportCreated(*get_fixtures('firefox_blocked_asset'))

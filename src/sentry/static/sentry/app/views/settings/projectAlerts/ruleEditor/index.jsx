@@ -14,7 +14,7 @@ import {
   addMessage,
 } from 'app/actionCreators/indicator';
 import {t} from 'app/locale';
-import ApiMixin from 'app/mixins/apiMixin';
+import withApi from 'app/utils/withApi';
 import Button from 'app/components/button';
 import EnvironmentStore from 'app/stores/environmentStore';
 import LoadingIndicator from 'app/components/loadingIndicator';
@@ -45,13 +45,12 @@ const RuleEditor = createReactClass({
   displayName: 'RuleEditor',
 
   propTypes: {
+    api: PropTypes.object,
     actions: PropTypes.array.isRequired,
     conditions: PropTypes.array.isRequired,
     project: PropTypes.object.isRequired,
     organization: PropTypes.object.isRequired,
   },
-
-  mixins: [ApiMixin],
 
   getInitialState() {
     return {
@@ -76,7 +75,7 @@ const RuleEditor = createReactClass({
 
     if (ruleId) {
       const endpoint = `/projects/${orgId}/${projectId}/rules/${ruleId}/`;
-      this.api.request(endpoint, {
+      this.props.api.request(endpoint, {
         success: rule => {
           this.setState({
             rule,
@@ -115,7 +114,7 @@ const RuleEditor = createReactClass({
 
     addMessage(t('Saving...'));
 
-    this.api.request(endpoint, {
+    this.props.api.request(endpoint, {
       method: isNew ? 'POST' : 'PUT',
       data,
       success: resp => {
@@ -140,7 +139,9 @@ const RuleEditor = createReactClass({
 
   hasError(field) {
     const {error} = this.state;
-    if (!error) return false;
+    if (!error) {
+      return false;
+    }
     return !!error[field];
   },
 
@@ -200,7 +201,9 @@ const RuleEditor = createReactClass({
       ...activeEnvs.map(env => [env.name, env.displayName]),
     ];
 
-    if (!this.state.rule) return <LoadingIndicator />;
+    if (!this.state.rule) {
+      return <LoadingIndicator />;
+    }
 
     const {rule, loading, error} = this.state;
     const {actionMatch, actions, conditions, frequency, name} = rule;
@@ -325,7 +328,9 @@ const RuleEditor = createReactClass({
   },
 });
 
-export default RuleEditor;
+export {RuleEditor};
+
+export default withApi(RuleEditor);
 
 const CancelButton = styled(Button)`
   margin-right: ${space(1)};

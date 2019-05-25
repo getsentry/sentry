@@ -4,7 +4,7 @@ import React from 'react';
 
 import Footer from 'app/components/footer';
 import HookStore from 'app/stores/hookStore';
-import ListLink from 'app/components/listLink';
+import ListLink from 'app/components/links/listLink';
 import Sidebar from 'app/components/sidebar';
 import withLatestContext from 'app/utils/withLatestContext';
 
@@ -14,7 +14,7 @@ export default class AdminLayout extends React.Component {
   constructor(props) {
     super(props);
     // Allow injection via getsentry et all
-    let hooksManage = [];
+    const hooksManage = [];
     HookStore.get('admin:sidebar:manage').forEach(cb => {
       hooksManage.push(cb());
     });
@@ -68,7 +68,6 @@ export default class AdminLayout extends React.Component {
 
                   <h6 className="nav-header">Manage</h6>
                   <ul className="nav nav-stacked">
-                    <ListLink to="/manage/relays/">Relays</ListLink>
                     <ListLink to="/manage/organizations/">Organizations</ListLink>
                     <ListLink to="/manage/projects/">Projects</ListLink>
                     <ListLink to="/manage/users/">Users</ListLink>

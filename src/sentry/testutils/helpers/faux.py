@@ -4,6 +4,7 @@ import six
 
 from collections import deque
 
+from sentry.utils import json
 from sentry.utils.functional import compact
 
 
@@ -66,8 +67,8 @@ class Faux(object):
             )
         )
 
-    def kwargs_contain(self, key):
-        if self._kwarg_exists(key):
+    def kwargs_contain(self, key, **kwargs):
+        if self._kwarg_exists(key, **kwargs):
             return True
 
         raise AssertionError(
@@ -77,19 +78,21 @@ class Faux(object):
             ),
         )
 
-    def kwarg_equals(self, key, expected):
-        if self._kwarg_value(key) == expected:
+    def kwarg_equals(self, key, expected, **kwargs):
+        actual = self._kwarg_value(key, **kwargs)
+
+        if actual == expected:
             return True
 
         raise AssertionError(
             u'Expected kwargs[{}] to equal {!r}. Received {!r}.'.format(
                 key,
                 expected,
-                self._kwarg_value(key),
+                actual,
             )
         )
 
-    def args_contain(self, value):
+    def args_contain(self, value, **kwargs):
         if value in self.args:
             return True
 
@@ -100,7 +103,7 @@ class Faux(object):
             ),
         )
 
-    def args_equals(self, *args):
+    def args_equals(self, *args, **kwargs):
         if self.args == tuple(args):
             return True
 
@@ -118,7 +121,7 @@ class Faux(object):
         except (KeyError, TypeError):
             return False
 
-    def _kwarg_value(self, key):
+    def _kwarg_value(self, key, **kwargs):
         """
         Support a dot notation shortcut for deeply nested dicts or just look
         up the value if passed a normal key.
@@ -132,9 +135,17 @@ class Faux(object):
         if '.' in key:
             keys = deque(key.split('.'))
         else:
-            return self.kwargs[key]
+            kwarg = self.kwargs[key]
+
+            if kwargs.get('format') == 'json':
+                return json.loads(kwarg)
+
+            return kwarg
 
         kwarg = dict(self.kwargs)
+
+        if kwargs.get('format') == 'json':
+            kwarg = json.loads(kwarg[keys.popleft()])
 
         while keys:
             kwarg = kwarg[keys.popleft()]

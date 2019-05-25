@@ -1,13 +1,13 @@
 from __future__ import absolute_import
 
-from sentry.interfaces.base import Interface
+from sentry.interfaces.base import Interface, prune_empty_keys, RUST_RENORMALIZED_DEFAULT
 from sentry.interfaces.stacktrace import Stacktrace
 from sentry.utils.safe import trim
 
 __all__ = ('Threads', )
 
 
-def get_stacktrace(value, raw=False):
+def get_stacktrace(value, raw=False, rust_renormalized=RUST_RENORMALIZED_DEFAULT):
     # Special case: if the thread has no frames we set the
     # stacktrace to none.  Otherwise this will fail really
     # badly.
@@ -17,18 +17,21 @@ def get_stacktrace(value, raw=False):
 
 class Threads(Interface):
     score = 1900
+    grouping_variants = ['system', 'app']
 
     @classmethod
-    def to_python(cls, data):
+    def to_python(cls, data, rust_renormalized=RUST_RENORMALIZED_DEFAULT):
         threads = []
 
         for thread in data.get('values') or ():
             if thread is None:
+                # XXX(markus): We should handle this in the UI and other
+                # consumers of this interface
                 continue
             threads.append(
                 {
-                    'stacktrace': get_stacktrace(thread.get('stacktrace')),
-                    'raw_stacktrace': get_stacktrace(thread.get('raw_stacktrace'), raw=True),
+                    'stacktrace': get_stacktrace(thread.get('stacktrace'), rust_renormalized=rust_renormalized),
+                    'raw_stacktrace': get_stacktrace(thread.get('raw_stacktrace'), raw=True, rust_renormalized=rust_renormalized),
                     'id': trim(thread.get('id'), 40),
                     'crashed': bool(thread.get('crashed')),
                     'current': bool(thread.get('current')),
@@ -54,13 +57,13 @@ class Threads(Interface):
                 rv['stacktrace'] = data['stacktrace'].to_json()
             if data['raw_stacktrace']:
                 rv['raw_stacktrace'] = data['raw_stacktrace'].to_json()
-            return rv
+            return prune_empty_keys(rv)
 
-        return {
+        return prune_empty_keys({
             'values': [export_thread(x) for x in self.values],
-        }
+        })
 
-    def get_api_context(self, is_public=False):
+    def get_api_context(self, is_public=False, platform=None):
         def export_thread(data):
             rv = {
                 'id': data['id'],
@@ -80,23 +83,8 @@ class Threads(Interface):
             'values': [export_thread(x) for x in self.values],
         }
 
-    def get_meta_context(self, meta, is_public=False):
+    def get_meta_context(self, meta, is_public=False, platform=None):
         if meta and 'values' not in meta:
             return {'values': meta}
         else:
             return meta
-
-    def get_hash(self):
-        if len(self.values) != 1:
-            return []
-        stacktrace = self.values[0].get('stacktrace')
-        if not stacktrace:
-            return []
-        system_hash = stacktrace.get_hash(system_frames=True)
-        if not system_hash:
-            return []
-        app_hash = stacktrace.get_hash(system_frames=False)
-        if system_hash == app_hash or not app_hash:
-            return [system_hash]
-
-        return [system_hash, app_hash]

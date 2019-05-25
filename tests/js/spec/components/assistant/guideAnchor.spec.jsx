@@ -3,8 +3,7 @@ import {shallow} from 'enzyme';
 import GuideAnchor from 'app/components/assistant/guideAnchor';
 
 describe('GuideAnchor', function() {
-  let sandbox;
-  let data = {
+  const data = {
     currentGuide: {steps: [{message: 'abc', target: 'target 1', title: 'title 1'}]},
     currentStep: 1,
     anchors: null,
@@ -12,16 +11,12 @@ describe('GuideAnchor', function() {
     guidesSeen: new Set(),
   };
 
-  beforeEach(function() {
-    sandbox = sinon.sandbox.create();
-  });
+  beforeEach(function() {});
 
-  afterEach(function() {
-    sandbox.restore();
-  });
+  afterEach(function() {});
 
   it('renders', function() {
-    let component = shallow(<GuideAnchor target="target 1" type="text" />);
+    const component = shallow(<GuideAnchor target="target 1" type="text" />);
     expect(component).toMatchSnapshot();
   });
 
@@ -32,5 +27,17 @@ describe('GuideAnchor', function() {
     wrapper.update();
     expect(component.state).toEqual({active: true});
     expect(wrapper).toMatchSnapshot();
+  });
+
+  it('renders no container when inactive', function() {
+    const wrapper = shallow(
+      <GuideAnchor target="target 1" type="text">
+        <span>A child</span>
+      </GuideAnchor>
+    );
+    const component = wrapper.instance();
+    wrapper.update();
+    expect(component.state).toEqual({active: false});
+    expect(wrapper.find('GuideAnchorContainer')).toHaveLength(0);
   });
 });

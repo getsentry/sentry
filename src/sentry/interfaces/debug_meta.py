@@ -5,7 +5,7 @@ import uuid
 
 __all__ = ('DebugMeta', )
 
-from sentry.interfaces.base import Interface, InterfaceValidationError, prune_empty_keys
+from sentry.interfaces.base import Interface, InterfaceValidationError, prune_empty_keys, RUST_RENORMALIZED_DEFAULT
 
 from symbolic import parse_addr, normalize_debug_id
 
@@ -21,58 +21,48 @@ def imagetype(name):
 
 
 def _addr(x):
+    if x is None:
+        return None
     return '0x%x' % parse_addr(x)
 
 
+@imagetype('apple')
+@imagetype('macho')
+@imagetype('elf')
+@imagetype('pe')
 @imagetype('symbolic')
-def process_symbolic_image(image):
+def process_native_image(image):
+    # NOTE that this is dead code as soon as Rust renormalization is fully
+    # enabled. After that, this code should be deleted. There is a difference
+    # TODO(untitaker): Remove with other normalization code.
     try:
-        symbolic_image = {
-            'id': normalize_debug_id(image.get('id')),
+        native_image = {
+            'code_file': image.get('code_file') or image.get('name'),
+            'debug_id': normalize_debug_id(
+                image.get('debug_id') or image.get('id') or image.get('uuid')),
             'image_addr': _addr(image.get('image_addr')),
-            'image_size': parse_addr(image['image_size']),
-            'image_vmaddr': _addr(image.get('image_vmaddr') or 0),
-            'name': image.get('name'),
+            'image_size': _addr(image.get('image_size')),
+            'image_vmaddr': _addr(image.get('image_vmaddr')),
         }
 
         if image.get('arch') is not None:
-            symbolic_image['arch'] = image.get('arch')
+            native_image['arch'] = image.get('arch')
+        if image.get('code_id') is not None:
+            native_image['code_id'] = image.get('code_id')
+        if image.get('debug_file') is not None:
+            native_image['debug_file'] = image.get('debug_file')
 
-        return symbolic_image
+        return native_image
     except KeyError as e:
         raise InterfaceValidationError('Missing value for symbolic image: %s' % e.args[0])
-
-
-@imagetype('apple')
-def process_apple_image(image):
-    try:
-        apple_image = {
-            'uuid': six.text_type(uuid.UUID(image['uuid'])),
-            'cpu_type': image.get('cpu_type'),
-            'cpu_subtype': image.get('cpu_subtype'),
-            'image_addr': _addr(image.get('image_addr')),
-            'image_size': image['image_size'],
-            'image_vmaddr': _addr(image.get('image_vmaddr') or 0),
-            'name': image.get('name'),
-        }
-
-        if image.get('arch') is not None:
-            apple_image['arch'] = image.get('arch')
-        if image.get('major_version') is not None:
-            apple_image['major_version'] = image['major_version']
-        if image.get('minor_version') is not None:
-            apple_image['minor_version'] = image['minor_version']
-        if image.get('revision_version') is not None:
-            apple_image['revision_version'] = image['revision_version']
-
-        return apple_image
-    except KeyError as e:
-        raise InterfaceValidationError('Missing value for apple image: %s' % e.args[0])
 
 
 @imagetype('proguard')
 def process_proguard_image(image):
     try:
+        if image['uuid'] is None:
+            raise KeyError('uuid')
+
         return {
             'uuid': six.text_type(uuid.UUID(image['uuid'])),
         }
@@ -99,16 +89,20 @@ class DebugMeta(Interface):
     external_type = 'debugmeta'
 
     @classmethod
-    def to_python(cls, data):
+    def to_python(cls, data, rust_renormalized=RUST_RENORMALIZED_DEFAULT):
         is_debug_build = data.get('is_debug_build', None)
-        if is_debug_build is not None and not isinstance(is_debug_build, bool):
-            raise InterfaceValidationError('Invalid value for "is_debug_build"')
 
-        images = []
-        for x in data.get('images', None) or ():
-            if x is None:
-                continue
-            images.append(cls.normalize_image(x))
+        if rust_renormalized:
+            images = data.get('images', None) or []
+        else:
+            if is_debug_build is not None and not isinstance(is_debug_build, bool):
+                raise InterfaceValidationError('Invalid value for "is_debug_build"')
+
+            images = []
+            for x in data.get('images', None) or ():
+                if x is None:
+                    continue
+                images.append(cls.normalize_image(x))
 
         return cls(
             images=images,
@@ -128,11 +122,16 @@ class DebugMeta(Interface):
         ty = image.get('type')
         if not ty:
             raise InterfaceValidationError('Image type not provided')
+        if ty == 'apple':
+            # Legacy alias. The schema is actually slightly different, but
+            # process_native_image can deal with this and convert to a valid
+            # MachO image payload.
+            ty = 'macho'
         func = image_types.get(ty)
         if func is None:
             raise InterfaceValidationError('Unknown image type %r' % image)
         rv = func(image)
-        assert 'uuid' in rv or 'id' in rv, 'debug image normalizer did not produce an identifier'
+        assert 'uuid' in rv or 'debug_id' in rv, 'debug image normalizer did not produce an identifier'
         rv['type'] = ty
         return rv
 

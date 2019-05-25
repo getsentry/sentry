@@ -3,7 +3,11 @@ from __future__ import absolute_import
 import logging
 import six
 
+from cryptography.hazmat.primitives.serialization import load_pem_private_key
+from cryptography.hazmat.backends import default_backend
 from django import forms
+from django.core.urlresolvers import reverse
+from django.core.validators import URLValidator
 from django.utils.translation import ugettext as _
 from django.views.decorators.csrf import csrf_exempt
 from six.moves.urllib.parse import urlparse
@@ -20,7 +24,8 @@ from sentry.integrations.jira import JiraIntegration
 from sentry.pipeline import PipelineView
 from sentry.utils.hashlib import sha1_text
 from sentry.web.helpers import render_to_response
-from .client import JiraServerClient, JiraServerSetupClient
+from sentry.integrations.jira.client import JiraApiClient
+from .client import JiraServer, JiraServerSetupClient
 
 
 logger = logging.getLogger('sentry.integrations.jira_server')
@@ -55,15 +60,26 @@ FEATURE_DESCRIPTIONS = [
     ),
 ]
 
+setup_alert = {
+    'type': 'warning',
+    'icon': 'icon-warning-sm',
+    'text': 'Your Jira instance must be able to communicate with Sentry.'
+            ' Sentry makes outbound requests from a [static set of IP'
+            ' addresses](https://docs.sentry.io/ip-ranges/) that you may wish'
+            ' to whitelist to support this integration.',
+}
+
 
 metadata = IntegrationMetadata(
     description=_(DESCRIPTION.strip()),
     features=FEATURE_DESCRIPTIONS,
     author='The Sentry Team',
-    noun=_('Instance'),
+    noun=_('Installation'),
     issue_url='https://github.com/getsentry/sentry/issues/new?title=Jira%20Server%20Integration:%20&labels=Component%3A%20Integrations',
     source_url='https://github.com/getsentry/sentry/tree/master/src/sentry/integrations/jira_server',
-    aspects={},
+    aspects={
+        'alerts': [setup_alert],
+    },
 )
 
 
@@ -74,6 +90,7 @@ class InstallationForm(forms.Form):
         widget=forms.TextInput(
             attrs={'placeholder': 'https://jira.example.com'}
         ),
+        validators=[URLValidator()]
     )
     verify_ssl = forms.BooleanField(
         label=_('Verify SSL'),
@@ -93,7 +110,8 @@ class InstallationForm(forms.Form):
     private_key = forms.CharField(
         label=_('Jira Consumer Private Key'),
         widget=forms.Textarea(
-            attrs={'placeholder': _('--PRIVATE KEY--')}
+            attrs={'placeholder': _(
+                '-----BEGIN RSA PRIVATE KEY-----\n...\n-----END RSA PRIVATE KEY-----')}
         )
     )
 
@@ -101,19 +119,15 @@ class InstallationForm(forms.Form):
         """Strip off trailing / as they cause invalid URLs downstream"""
         return self.cleaned_data['url'].rstrip('/')
 
+    def clean_private_key(self):
+        data = self.cleaned_data['private_key']
 
-class InstallationGuideView(PipelineView):
-    """
-    Display a setup guide for creating an OAuth client in Jira
-    """
-
-    def dispatch(self, request, pipeline):
-        if 'completed_guide' in request.GET:
-            return pipeline.next_step()
-        return render_to_response(
-            template='sentry/integrations/jira-server-config.html',
-            request=request,
-        )
+        try:
+            load_pem_private_key(data.encode('utf-8'), None, default_backend())
+        except Exception:
+            raise forms.ValidationError(
+                'Private key must be a valid SSH private key encoded in a PEM format.')
+        return data
 
 
 class InstallationConfigView(PipelineView):
@@ -165,8 +179,11 @@ class OAuthLoginView(PipelineView):
 
             return self.redirect(authorize_url)
         except ApiError as error:
-            logger.info('identity.jira-server.request-token', extra={'error': error})
-            return pipeline.error('Could not fetch a request token from Jira')
+            logger.info('identity.jira-server.request-token', extra={
+                'url': config.get('url'),
+                'error': error
+            })
+            return pipeline.error('Could not fetch a request token from Jira. %s' % error)
 
 
 class OAuthCallbackView(PipelineView):
@@ -207,7 +224,27 @@ class JiraServerIntegration(JiraIntegration):
         if self.default_identity is None:
             self.default_identity = self.get_default_identity()
 
-        return JiraServerClient(self)
+        return JiraApiClient(
+            self.model.metadata['base_url'],
+            JiraServer(self.default_identity.data),
+            self.model.metadata['verify_ssl'])
+
+    def get_link_issue_config(self, group, **kwargs):
+        fields = super(JiraIntegration, self).get_link_issue_config(group, **kwargs)
+        org = group.organization
+        autocomplete_url = reverse(
+            'sentry-extensions-jiraserver-search', args=[org.slug, self.model.id],
+        )
+        for field in fields:
+            if field['name'] == 'externalIssue':
+                field['url'] = autocomplete_url
+                field['type'] = 'select'
+        return fields
+
+    def search_url(self, org_slug):
+        return reverse(
+            'sentry-extensions-jiraserver-search', args=[org_slug, self.model.id]
+        )
 
 
 class JiraServerIntegrationProvider(IntegrationProvider):
@@ -232,7 +269,6 @@ class JiraServerIntegrationProvider(IntegrationProvider):
 
     def get_pipeline_views(self):
         return [
-            InstallationGuideView(),
             InstallationConfigView(),
             OAuthLoginView(),
             OAuthCallbackView(),
@@ -242,8 +278,10 @@ class JiraServerIntegrationProvider(IntegrationProvider):
         install = state['installation_data']
         access_token = state['access_token']
 
-        external_id = '%s:%s' % (urlparse(install['url']).netloc, install['consumer_key'])
         webhook_secret = sha1_text(install['private_key']).hexdigest()
+
+        hostname = urlparse(install['url']).netloc
+        external_id = u'{}:{}'.format(hostname, install['consumer_key'])[:64]
 
         credentials = {
             'consumer_key': install['consumer_key'],
@@ -261,13 +299,14 @@ class JiraServerIntegrationProvider(IntegrationProvider):
             'external_id': external_id,
             'metadata': {
                 'base_url': install['url'],
+                'domain_name': hostname,
                 'verify_ssl': install['verify_ssl'],
                 'webhook_secret': webhook_secret,
             },
             'user_identity': {
                 'type': 'jira_server',
                 'external_id': external_id,
-                'scopes': (),
+                'scopes': [],
                 'data': credentials
             }
         }
@@ -286,4 +325,9 @@ class JiraServerIntegrationProvider(IntegrationProvider):
                 'error': six.text_type(err),
                 'external_id': external_id,
             })
-            raise IntegrationError('Could not create issue webhook in Jira')
+            try:
+                details = err.json['messages'][0].values().pop()
+            except Exception:
+                details = ''
+            message = u'Could not create issue webhook in Jira. {}'.format(details)
+            raise IntegrationError(message)

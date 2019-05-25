@@ -73,6 +73,9 @@ class Browser(object):
             return False
         return True
 
+    def element_exists_by_test_id(self, selector):
+        return self.element_exists('[data-test-id="%s"]' % (selector))
+
     def click(self, selector):
         self.element(selector).click()
 
@@ -100,7 +103,7 @@ class Browser(object):
 
         return self
 
-    def wait_until_clickable(self, selector=None, timeout=3):
+    def wait_until_clickable(self, selector=None, timeout=10):
         """
         Waits until ``selector`` is visible and enabled to be clicked, or until ``timeout``
         is hit, whichever happens first.
@@ -118,7 +121,7 @@ class Browser(object):
 
         return self
 
-    def wait_until(self, selector=None, title=None, timeout=3):
+    def wait_until(self, selector=None, xpath=None, title=None, timeout=10):
         """
         Waits until ``selector`` is found in the browser, or until ``timeout``
         is hit, whichever happens first.
@@ -127,6 +130,8 @@ class Browser(object):
 
         if selector:
             condition = expected_conditions.presence_of_element_located((By.CSS_SELECTOR, selector))
+        elif xpath:
+            condition = expected_conditions.presence_of_element_located((By.XPATH, xpath))
         elif title:
             condition = expected_conditions.title_is(title)
         else:
@@ -138,7 +143,10 @@ class Browser(object):
 
         return self
 
-    def wait_until_not(self, selector=None, title=None, timeout=3):
+    def wait_until_test_id(self, selector):
+        return self.wait_until('[data-test-id="%s"]' % (selector))
+
+    def wait_until_not(self, selector=None, title=None, timeout=10):
         """
         Waits until ``selector`` is NOT found in the browser, or until
         ``timeout`` is hit, whichever happens first.
@@ -222,6 +230,9 @@ class Browser(object):
                     **cookie)
             )
         else:
+            # XXX(dcramer): chromedriver (of certain versions) is complaining about this being
+            # an invalid kwarg
+            del cookie['secure']
             self.driver.add_cookie(cookie)
 
 
@@ -236,10 +247,14 @@ def pytest_addoption(parser):
         '--window-size',
         dest='window_size',
         help='window size (WIDTHxHEIGHT)',
-        default='1280x800')
+        default='1680x1050')
     group._addoption('--phantomjs-path', dest='phantomjs_path', help='path to phantomjs driver')
     group._addoption('--chrome-path', dest='chrome_path', help='path to google-chrome')
     group._addoption('--chromedriver-path', dest='chromedriver_path', help='path to chromedriver')
+    group._addoption(
+        '--no-headless',
+        dest='no_headless',
+        help='show a browser while running the tests (chrome)')
 
 
 def pytest_configure(config):
@@ -274,11 +289,14 @@ def browser(request, percy, live_server):
     window_width, window_height = list(map(int, window_size.split('x', 1)))
 
     driver_type = request.config.getoption('selenium_driver')
+    headless = not request.config.getoption('no_headless')
     if driver_type == 'chrome':
         options = webdriver.ChromeOptions()
-        options.add_argument('headless')
+        options.add_argument('no-sandbox')
         options.add_argument('disable-gpu')
         options.add_argument(u'window-size={}'.format(window_size))
+        if headless:
+            options.add_argument('headless')
         chrome_path = request.config.getoption('chrome_path')
         if chrome_path:
             options.binary_location = chrome_path

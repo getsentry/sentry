@@ -25,7 +25,7 @@ class OrganizationReleaseCommitsEndpoint(OrganizationReleasesBaseEndpoint):
         try:
             release = Release.objects.distinct().get(
                 organization_id=organization.id,
-                projects__in=self.get_allowed_projects(request, organization),
+                projects__in=self.get_projects(request, organization),
                 version=version,
             )
         except Release.DoesNotExist:

@@ -1,5 +1,7 @@
 from __future__ import absolute_import, print_function
 
+import logging
+
 from types import LambdaType
 
 from sentry.models import Organization
@@ -62,9 +64,9 @@ class NestedPipelineView(PipelineView):
     Useful for embedding an identity authentication pipeline.
     """
 
-    def __init__(self, bind_key, pipeline_cls, provider_key, config={}):
+    def __init__(self, bind_key, pipeline_cls, provider_key, config=None):
         self.provider_key = provider_key
-        self.config = config
+        self.config = config or {}
 
         class NestedPipeline(pipeline_cls):
             def set_parent_pipeline(self, parent_pipeline):
@@ -240,3 +242,6 @@ class Pipeline(object):
 
     def fetch_state(self, key=None):
         return self.state.data if key is None else self.state.data.get(key)
+
+    def get_logger(self):
+        return logging.getLogger('sentry.integration.%s' % (self.provider.key, ))

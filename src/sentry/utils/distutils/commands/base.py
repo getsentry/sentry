@@ -15,8 +15,8 @@ class BaseBuildCommand(Command):
         ('work-path=', 'w', "The working directory for source files. Defaults to ."),
         ('build-lib=', 'b', "directory for script runtime modules"),
         (
-            'inplace', 'i', "ignore build-lib and put compiled javascript files into the source " +
-            "directory alongside your pure Python modules"
+            'inplace', 'i', "ignore build-lib and put compiled javascript files into the source "
+            + "directory alongside your pure Python modules"
         ),
         (
             'force', 'f', "Force rebuilding of static content. Defaults to rebuilding on version "

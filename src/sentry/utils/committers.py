@@ -7,6 +7,7 @@ from sentry.api.serializers import serialize
 from sentry.models import (Release, ReleaseCommit, Commit, CommitFileChange, Event, Group)
 from sentry.api.serializers.models.commit import CommitSerializer, get_users_for_commits
 from sentry.utils import metrics
+from sentry.utils.safe import get_path
 
 from django.db.models import Q
 
@@ -38,15 +39,11 @@ def score_path_match_length(path_a, path_b):
 
 def _get_frame_paths(event):
     data = event.data
-    try:
-        frames = data['stacktrace']['frames']
-    except KeyError:
-        try:
-            frames = data['exception']['values'][0]['stacktrace']['frames']
-        except (KeyError, TypeError):
-            return []  # can't find stacktrace information
+    frames = get_path(data, 'stacktrace', 'frames', filter=True)
+    if frames:
+        return frames
 
-    return frames
+    return get_path(data, 'exception', 'values', 0, 'stacktrace', 'frames', filter=True) or []
 
 
 def _get_commits(releases):
@@ -186,10 +183,26 @@ def get_event_file_committers(project, event, frame_limit=25):
     if not commits:
         raise Commit.DoesNotExist
 
-    frames = _get_frame_paths(event)
+    frames = _get_frame_paths(event) or ()
     app_frames = [frame for frame in frames if frame['in_app']][-frame_limit:]
     if not app_frames:
         app_frames = [frame for frame in frames][-frame_limit:]
+
+    # Java stackframes don't have an absolute path in the filename key.
+    # That property is usually just the basename of the file. In the future
+    # the Java SDK might generate better file paths, but for now we use the module
+    # path to approximate the file path so that we can intersect it with commit
+    # file paths.
+    if event.platform == 'java':
+        for frame in frames:
+            if frame.get('filename') is None:
+                continue
+            if '/' not in frame.get('filename') and frame.get('module'):
+                # Replace the last module segment with the filename, as the
+                # terminal element in a module path is the class
+                module = frame['module'].split('.')
+                module[-1] = frame['filename']
+                frame['filename'] = '/'.join(module)
 
     # TODO(maxbittker) return this set instead of annotated frames
     # XXX(dcramer): frames may not define a filepath. For example, in Java its common
@@ -217,5 +230,8 @@ def get_event_file_committers(project, event, frame_limit=25):
     )
 
     committers = _get_committers(annotated_frames, relevant_commits)
-    metrics.incr('feature.owners.has-committers', instance='hit' if committers else 'miss')
+    metrics.incr(
+        'feature.owners.has-committers',
+        instance='hit' if committers else 'miss',
+        skip_internal=False)
     return committers

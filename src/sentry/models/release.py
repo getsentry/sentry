@@ -16,6 +16,7 @@ from django.db import models, IntegrityError, transaction
 from django.db.models import F
 from django.utils import timezone
 from jsonfield import JSONField
+from time import time
 
 from sentry.app import locks
 from sentry.db.models import (
@@ -23,7 +24,9 @@ from sentry.db.models import (
 )
 
 from sentry.models import CommitFileChange
+from sentry.signals import issue_resolved
 
+from sentry.utils import metrics
 from sentry.utils.cache import cache
 from sentry.utils.hashlib import md5_text
 from sentry.utils.retries import TimedRetryPolicy
@@ -34,6 +37,7 @@ _sha1_re = re.compile(r'^[a-f0-9]{40}$')
 _dotted_path_prefix_re = re.compile(r'^([a-zA-Z][a-zA-Z0-9-]+)(\.[a-zA-Z][a-zA-Z0-9-]+)+-')
 BAD_RELEASE_CHARS = '\n\f\t/'
 DB_VERSION_LENGTH = 250
+COMMIT_RANGE_DELIMITER = '..'
 
 
 class ReleaseProject(Model):
@@ -93,7 +97,8 @@ class Release(Model):
     @staticmethod
     def is_valid_version(value):
         return not (any(c in value for c in BAD_RELEASE_CHARS)
-                    or value in ('.', '..') or not value)
+                    or value in ('.', '..') or not value
+                    or value.lower() == 'latest')
 
     @classmethod
     def get_cache_key(cls, organization_id, version):
@@ -268,6 +273,21 @@ class Release(Model):
         else:
             return True
 
+    def handle_commit_ranges(self, refs):
+        """
+        Takes commit refs of the form:
+        [
+            {
+                'previousCommit': None,
+                'commit': 'previous_commit..commit',
+            }
+        ]
+        Note: Overwrites 'previousCommit' and 'commit'
+        """
+        for ref in refs:
+            if COMMIT_RANGE_DELIMITER in ref['commit']:
+                ref['previousCommit'], ref['commit'] = ref['commit'].split(COMMIT_RANGE_DELIMITER)
+
     def set_refs(self, refs, user, fetch=False):
         from sentry.api.exceptions import InvalidRepository
         from sentry.models import Commit, ReleaseHeadCommit, Repository
@@ -293,6 +313,8 @@ class Release(Model):
         invalid_repos = names - set(repos_by_name.keys())
         if invalid_repos:
             raise InvalidRepository('Invalid repository names: %s' % ','.join(invalid_repos))
+
+        self.handle_commit_ranges(refs)
 
         for ref in refs:
             repo = repos_by_name[ref['repository']]
@@ -347,6 +369,7 @@ class Release(Model):
         lock_key = type(self).get_lock_key(self.organization_id, self.id)
         lock = locks.get(lock_key, duration=10)
         with TimedRetryPolicy(10)(lock.acquire):
+            start = time()
             with transaction.atomic():
                 # TODO(dcramer): would be good to optimize the logic to avoid these
                 # deletes but not overly important
@@ -380,61 +403,75 @@ class Release(Model):
                     if not author_email:
                         author = None
                     elif author_email not in authors:
-                        authors[author_email] = author = CommitAuthor.objects.get_or_create(
+                        author_data = {
+                            'name': data.get('author_name')
+                        }
+                        author, created = CommitAuthor.objects.create_or_update(
                             organization_id=self.organization_id,
                             email=author_email,
-                            defaults={
-                                'name': data.get('author_name'),
-                            }
-                        )[0]
-                        if data.get('author_name') and author.name != data['author_name']:
-                            author.update(name=data['author_name'])
+                            values=author_data)
+                        if not created:
+                            author = CommitAuthor.objects.get(
+                                organization_id=self.organization_id,
+                                email=author_email)
+                        authors[author_email] = author
                     else:
                         author = authors[author_email]
 
-                    defaults = {
-                        'message': data.get('message'),
-                        'author': author,
-                        'date_added': data.get('timestamp') or timezone.now(),
-                    }
-                    commit, created = Commit.objects.get_or_create(
+                    commit_data = {}
+                    defaults = {}
+
+                    # Update/set message and author if they are provided.
+                    if author is not None:
+                        commit_data['author'] = author
+                    if 'message' in data:
+                        commit_data['message'] = data['message']
+                    if 'timestamp' in data:
+                        commit_data['date_added'] = data['timestamp']
+                    else:
+                        defaults['date_added'] = timezone.now()
+
+                    commit, created = Commit.objects.create_or_update(
                         organization_id=self.organization_id,
                         repository_id=repo.id,
                         key=data['id'],
                         defaults=defaults,
-                    )
+                        values=commit_data)
+                    if not created:
+                        commit = Commit.objects.get(
+                            organization_id=self.organization_id,
+                            repository_id=repo.id,
+                            key=data['id'])
+
                     if author is None:
                         author = commit.author
 
                     commit_author_by_commit[commit.id] = author
 
                     patch_set = data.get('patch_set', [])
-
                     for patched_file in patch_set:
-                        CommitFileChange.objects.get_or_create(
-                            organization_id=self.organization.id,
-                            commit=commit,
-                            filename=patched_file['path'],
-                            type=patched_file['type'],
-                        )
+                        try:
+                            with transaction.atomic():
+                                CommitFileChange.objects.create(
+                                    organization_id=self.organization.id,
+                                    commit=commit,
+                                    filename=patched_file['path'],
+                                    type=patched_file['type'],
+                                )
+                        except IntegrityError:
+                            pass
 
-                    if not created:
-                        update_kwargs = {}
-                        if commit.message is None and defaults['message'] is not None:
-                            update_kwargs['message'] = defaults['message']
-                        if commit.author_id is None and defaults['author'] is not None:
-                            update_kwargs['author'] = defaults['author']
-                        if defaults.get('date_added') is not None:
-                            update_kwargs['date_added'] = defaults['date_added']
-                        if update_kwargs:
-                            commit.update(**update_kwargs)
+                    try:
+                        with transaction.atomic():
+                            ReleaseCommit.objects.create(
+                                organization_id=self.organization_id,
+                                release=self,
+                                commit=commit,
+                                order=idx,
+                            )
+                    except IntegrityError:
+                        pass
 
-                    ReleaseCommit.objects.create(
-                        organization_id=self.organization_id,
-                        release=self,
-                        commit=commit,
-                        order=idx,
-                    )
                     if latest_commit is None:
                         latest_commit = commit
 
@@ -451,6 +488,7 @@ class Release(Model):
                     ],
                     last_commit_id=latest_commit.id if latest_commit else None,
                 )
+                metrics.timing('release.set_commits.duration', time() - start)
 
         # fill any missing ReleaseHeadCommit entries
         for repo_id, commit_id in six.iteritems(head_commit_by_repo):
@@ -531,9 +569,20 @@ class Release(Model):
                         'actor_id': actor.id if actor else None,
                     },
                 )
-                Group.objects.filter(
+                group = Group.objects.get(
                     id=group_id,
-                ).update(status=GroupStatus.RESOLVED)
+                )
+                group.update(status=GroupStatus.RESOLVED)
+                metrics.incr('group.resolved', instance='in_commit', skip_internal=True)
+
+            issue_resolved.send_robust(
+                organization_id=self.organization_id,
+                user=actor,
+                group=group,
+                project=group.project,
+                resolution_type='with_commit',
+                sender=type(self),
+            )
 
             kick_off_status_syncs.apply_async(kwargs={
                 'project_id': group_project_lookup[group_id],

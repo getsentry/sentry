@@ -10,12 +10,13 @@ import Button from 'app/components/button';
 import Confirm from 'app/components/confirm';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
 import IndicatorStore from 'app/stores/indicatorStore';
+import NotFound from 'app/components/errors/notFound';
 import SentryTypes from 'app/sentryTypes';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 
 const InputColumn = props => <Flex flex="1" justify="center" {...props} />;
 
-const SearchTitle = styled.div`
+const SearchTitle = styled('div')`
   font-size: 18px;
   margin-bottom: 5px;
 `;
@@ -30,12 +31,12 @@ class SavedSearchRow extends React.Component {
   };
 
   handleRemove = () => {
-    let {data, onRemove} = this.props;
+    const {data, onRemove} = this.props;
     onRemove({data});
   };
 
   handleDefault = () => {
-    let {data, onDefault} = this.props;
+    const {data, onDefault} = this.props;
     onDefault({
       data,
       isDefault: true,
@@ -43,7 +44,7 @@ class SavedSearchRow extends React.Component {
   };
 
   handleUserDefault = () => {
-    let {data, onUserDefault} = this.props;
+    const {data, onUserDefault} = this.props;
     onUserDefault({
       data,
       isUserDefault: true,
@@ -51,8 +52,8 @@ class SavedSearchRow extends React.Component {
   };
 
   render() {
-    let {data, canModify} = this.props;
-    let deleteDisabled = !canModify && !data.isPrivate;
+    const {data, canModify} = this.props;
+    const deleteDisabled = !canModify && !data.isPrivate;
 
     return (
       <PanelItem p={0} py={2} align="center">
@@ -101,22 +102,23 @@ class ProjectSavedSearches extends AsyncView {
   getTitle() {
     return t('Saved Searches');
   }
+
   static contextTypes = {
     organization: SentryTypes.Organization,
   };
 
   getEndpoints() {
-    let {orgId, projectId} = this.props.params;
+    const {orgId, projectId} = this.props.params;
     return [['savedSearchList', `/projects/${orgId}/${projectId}/searches/`]];
   }
 
   handleUpdate = params => {
-    let {orgId, projectId} = this.props.params;
-    let loadingIndicator = IndicatorStore.add(t('Saving changes..'));
-    let {data, isDefault, isUserDefault} = params;
-    let key = typeof isDefault !== 'undefined' ? 'isDefault' : 'isUserDefault';
-    let {savedSearchList} = this.state;
-    let newSearchList = savedSearchList.map(search => ({
+    const {orgId, projectId} = this.props.params;
+    const loadingIndicator = IndicatorStore.add(t('Saving changes..'));
+    const {data, isDefault, isUserDefault} = params;
+    const key = typeof isDefault !== 'undefined' ? 'isDefault' : 'isUserDefault';
+    const {savedSearchList} = this.state;
+    const newSearchList = savedSearchList.map(search => ({
       ...search,
       [key]: data.id === search.id,
     }));
@@ -147,11 +149,11 @@ class ProjectSavedSearches extends AsyncView {
   };
 
   handleRemovedSearch = params => {
-    let {orgId, projectId} = this.props.params;
-    let loadingIndicator = IndicatorStore.add(t('Saving changes..'));
-    let {data} = params;
-    let {savedSearchList} = this.state;
-    let newSearchList = savedSearchList.filter(search => {
+    const {orgId, projectId} = this.props.params;
+    const loadingIndicator = IndicatorStore.add(t('Saving changes..'));
+    const {data} = params;
+    const {savedSearchList} = this.state;
+    const newSearchList = savedSearchList.filter(search => {
       return search.id !== data.id;
     });
 
@@ -183,10 +185,10 @@ class ProjectSavedSearches extends AsyncView {
   }
 
   renderResults() {
-    let {orgId, projectId} = this.props.params;
-    let {organization} = this.context;
-    let access = organization && new Set(organization.access);
-    let canModify = (organization && access.has('project:write')) || false;
+    const {orgId, projectId} = this.props.params;
+    const {organization} = this.context;
+    const access = organization && new Set(organization.access);
+    const canModify = (organization && access.has('project:write')) || false;
 
     return (
       <React.Fragment>
@@ -210,10 +212,10 @@ class ProjectSavedSearches extends AsyncView {
   }
 
   renderBody() {
-    let {organization} = this.context;
-    let access = organization && new Set(organization.access);
-    let canModify = (organization && access.has('project:write')) || false;
-    let hasResults = this.state.savedSearchList.length > 0;
+    const {organization} = this.context;
+    const access = organization && new Set(organization.access);
+    const canModify = (organization && access.has('project:write')) || false;
+    const hasResults = this.state.savedSearchList.length > 0;
 
     return (
       <div>
@@ -238,5 +240,17 @@ class ProjectSavedSearches extends AsyncView {
   }
 }
 
-export default ProjectSavedSearches;
+const ProjectSavedSearchContainer = function(props, context) {
+  const isSentry10 = context.organization.features.includes('sentry10');
+  if (isSentry10) {
+    return <NotFound />;
+  }
+  return <ProjectSavedSearches {...props} />;
+};
+
+ProjectSavedSearchContainer.contextTypes = {
+  organization: SentryTypes.Organization,
+};
+
+export default ProjectSavedSearchContainer;
 export {SavedSearchRow};

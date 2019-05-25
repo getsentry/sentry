@@ -4,19 +4,26 @@ import six
 
 from datetime import timedelta
 from django.utils import timezone
+from freezegun import freeze_time
+from mock import patch
+from rest_framework.response import Response
 
-from sentry import tagstore
+from sentry import options, tagstore
 from sentry.models import Environment
 from sentry.testutils import APITestCase
 
 
 class GroupEventsTest(APITestCase):
+    def setUp(self):
+        super(GroupEventsTest, self).setUp()
+        options.set('snuba.events-queries.enabled', False)
+
     def test_simple(self):
         self.login_as(user=self.user)
 
         group = self.create_group()
-        event_1 = self.create_event('a' * 32, group=group)
-        event_2 = self.create_event('b' * 32, group=group)
+        event_1 = self.create_event(event_id='a' * 32, group=group)
+        event_2 = self.create_event(event_id='b' * 32, group=group)
 
         url = u'/api/0/issues/{}/events/'.format(group.id)
         response = self.client.get(url, format='json')
@@ -34,8 +41,8 @@ class GroupEventsTest(APITestCase):
         self.login_as(user=self.user)
 
         group = self.create_group()
-        event_1 = self.create_event('a' * 32, group=group)
-        event_2 = self.create_event('b' * 32, group=group)
+        event_1 = self.create_event(event_id='a' * 32, group=group)
+        event_2 = self.create_event(event_id='b' * 32, group=group)
 
         tagkey_1 = tagstore.create_tag_key(
             project_id=group.project_id,
@@ -129,8 +136,8 @@ class GroupEventsTest(APITestCase):
         self.login_as(user=self.user)
 
         group = self.create_group()
-        event_1 = self.create_event('a' * 32, group=group)
-        self.create_event('b' * 32, group=group)
+        event_1 = self.create_event(event_id='a' * 32, group=group)
+        self.create_event(event_id='b' * 32, group=group)
         query = event_1.event_id
 
         url = u'/api/0/issues/{}/events/?query={}'.format(group.id, query)
@@ -238,11 +245,11 @@ class GroupEventsTest(APITestCase):
         project = self.create_project()
         group = self.create_group(project=project)
         self.create_event(
-            'a' * 32,
+            event_id='a' * 32,
             group=group,
             datetime=timezone.now() - timedelta(days=2),
         )
-        event_2 = self.create_event('b' * 32, group=group)
+        event_2 = self.create_event(event_id='b' * 32, group=group)
 
         with self.options({'system.event-retention-days': 1}):
             response = self.client.get(u'/api/0/issues/{}/events/'.format(group.id))
@@ -254,3 +261,58 @@ class GroupEventsTest(APITestCase):
                 six.text_type(event_2.id),
             ]
         )
+
+    @freeze_time()
+    def test_date_filters(self):
+        self.login_as(user=self.user)
+
+        project = self.create_project()
+        group = self.create_group(project=project)
+        event_1 = self.create_event(
+            event_id='a' * 32,
+            group=group,
+            datetime=timezone.now() - timedelta(days=2),
+        )
+        event_2 = self.create_event(event_id='b' * 32, group=group)
+
+        response = self.client.get(
+            u'/api/0/issues/{}/events/'.format(group.id),
+            data={
+                'statsPeriod': '3d',
+            },
+        )
+
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 2
+        assert sorted(map(lambda x: x['id'], response.data)) == sorted(
+            [
+                six.text_type(event_1.id),
+                six.text_type(event_2.id),
+            ]
+        )
+
+        response = self.client.get(
+            u'/api/0/issues/{}/events/'.format(group.id),
+            data={
+                'statsPeriod': '1d',
+            },
+        )
+
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 1
+        assert response.data[0]['id'] == six.text_type(event_2.id)
+
+    def test_force_snuba(self):
+        self.login_as(user=self.user)
+        project = self.create_project()
+        group = self.create_group(project=project)
+        with patch('sentry.api.endpoints.group_events.GroupEventsEndpoint._get_events_snuba') as get_events_snuba:
+            get_events_snuba.return_value = Response([])
+            self.client.get(
+                u'/api/0/issues/{}/events/'.format(group.id),
+                data={
+                    'statsPeriod': '3d',
+                    'enable_snuba': '1',
+                },
+            )
+            assert get_events_snuba.call_count == 1

@@ -73,8 +73,8 @@ class InMemoryTSDB(BaseTSDB):
                                 0,
                             )
 
-    def get_range(self, model, keys, start, end, rollup=None, environment_id=None):
-        self.validate_arguments([model], [environment_id])
+    def get_range(self, model, keys, start, end, rollup=None, environment_ids=None):
+        self.validate_arguments([model], environment_ids if environment_ids is not None else [None])
 
         rollup, series = self.get_optimal_rollup_series(start, end, rollup)
 
@@ -83,7 +83,11 @@ class InMemoryTSDB(BaseTSDB):
             norm_epoch = self.normalize_to_rollup(timestamp, rollup)
 
             for key in keys:
-                value = self.data[model][(key, environment_id)][norm_epoch]
+                if not environment_ids:
+                    value = self.data[model][(key, None)][norm_epoch]
+                else:
+                    value = sum(int(self.data[model][(key, environment_id)][norm_epoch])
+                                for environment_id in environment_ids)
                 results.append((to_timestamp(timestamp), key, value))
 
         results_by_key = defaultdict(dict)

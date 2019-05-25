@@ -1,11 +1,12 @@
 from __future__ import absolute_import
 
+import pytest
 import pickle
 
 from sentry.models import Environment
-from sentry.testutils import TestCase
 from sentry.db.models.fields.node import NodeData
 from sentry.event_manager import EventManager
+from sentry.testutils import TestCase
 
 
 class EventTest(TestCase):
@@ -60,14 +61,14 @@ class EventTest(TestCase):
         event = self.create_event(
             data={
                 'logentry': {
-                    'message': 'Hello World!',
+                    'formatted': 'Hello World!',
                 },
             }
         )
 
         d = event.as_dict()
         assert d['logentry'] == {
-            'message': 'Hello World!',
+            'formatted': 'Hello World!',
         }
 
     def test_email_subject(self):
@@ -88,13 +89,15 @@ class EventTest(TestCase):
             '$shortID - ${tag:environment}@${tag:release} $$ $title ${tag:invalid} $invalid'
         )
 
-        event1 = self.create_event(
-            event_id='a' * 32,
-            group=self.group,
-            tags={'level': 'info',
-                  'environment': 'production',
-                  'sentry:release': '0'},
-            message='baz',
+        event1 = self.store_event(
+            data={
+                'event_id': 'a' * 32,
+                'environment': 'production',
+                'level': 'info',
+                'release': '0',
+                'message': 'baz',
+            },
+            project_id=self.project.id
         )
 
         assert event1.get_email_subject() == 'BAR-1 - production@0 $ baz ${tag:invalid} $invalid'
@@ -115,13 +118,14 @@ class EventTest(TestCase):
 
     def test_get_environment(self):
         environment = Environment.get_or_create(self.project, 'production')
-        event = self.create_event(
-            data={'tags': [
-                ('environment', 'production'),
-            ]}
+        event = self.store_event(
+            data={
+                'environment': 'production'
+            },
+            project_id=self.project.id
         )
 
-        event.get_environment() == environment
+        assert event.get_environment() == environment
 
         with self.assertNumQueries(0):
             event.get_environment() == environment
@@ -157,6 +161,42 @@ class EventTest(TestCase):
 
         event = self.create_event()
         assert event.ip_address is None
+
+
+@pytest.mark.django_db
+def test_renormalization(monkeypatch, factories, task_runner, default_project):
+    from semaphore.processing import StoreNormalizer
+
+    old_normalize = StoreNormalizer.normalize_event
+    normalize_mock_calls = []
+
+    def normalize(*args, **kwargs):
+        normalize_mock_calls.append(1)
+        return old_normalize(*args, **kwargs)
+
+    monkeypatch.setattr('semaphore.processing.StoreNormalizer.normalize_event',
+                        normalize)
+
+    sample_mock_calls = []
+
+    def sample(*args, **kwargs):
+        sample_mock_calls.append(1)
+        return False
+
+    with task_runner():
+        factories.store_event(
+            data={
+                'event_id': 'a' * 32,
+                'environment': 'production',
+            },
+            project_id=default_project.id
+        )
+
+    # Assert we only renormalize this once. If this assertion fails it's likely
+    # that you will encounter severe performance issues during event processing
+    # or postprocessing.
+    assert len(normalize_mock_calls) == 1
+    assert len(sample_mock_calls) == 0
 
 
 class EventGetLegacyMessageTest(TestCase):

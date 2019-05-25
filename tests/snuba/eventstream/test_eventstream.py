@@ -8,11 +8,12 @@ from mock import patch, Mock
 
 from sentry.event_manager import EventManager
 from sentry.eventstream.kafka import KafkaEventStream
-from sentry.testutils import SnubaTestCase
+from sentry.eventstream.snuba import SnubaEventStream
+from sentry.testutils import SnubaTestCase, TestCase
 from sentry.utils import snuba, json
 
 
-class SnubaEventStreamTest(SnubaTestCase):
+class SnubaEventStreamTest(TestCase, SnubaTestCase):
     def setUp(self):
         super(SnubaEventStreamTest, self).setUp()
 
@@ -20,7 +21,8 @@ class SnubaEventStreamTest(SnubaTestCase):
         self.kafka_eventstream.producer = Mock()
 
     @patch('sentry.eventstream.insert')
-    def test(self, mock_eventstream_insert):
+    @patch('sentry.tagstore.delay_index_event_tags')
+    def test(self, mock_delay_index_event_tags, mock_eventstream_insert):
         now = datetime.utcnow()
 
         def _get_event_count():
@@ -60,6 +62,8 @@ class SnubaEventStreamTest(SnubaTestCase):
             'skip_consume': False
         }
 
+        assert mock_delay_index_event_tags.call_count == 1
+
         # pass arguments on to Kafka EventManager
         self.kafka_eventstream.insert(*insert_args, **insert_kwargs)
 
@@ -68,11 +72,12 @@ class SnubaEventStreamTest(SnubaTestCase):
         assert produce_kwargs['topic'] == 'events'
         assert produce_kwargs['key'] == six.text_type(self.project.id)
 
-        version, type_, primary_payload = json.loads(produce_kwargs['value'])[:3]
+        version, type_, payload1, payload2 = json.loads(produce_kwargs['value'])
         assert version == 2
         assert type_ == 'insert'
 
         # insert what would have been the Kafka payload directly
         # into Snuba, expect an HTTP 200 and for the event to now exist
-        snuba.insert_raw([primary_payload])
+        snuba_eventstream = SnubaEventStream()
+        snuba_eventstream._send(self.project.id, 'insert', (payload1, payload2))
         assert _get_event_count() == 1

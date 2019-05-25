@@ -1,21 +1,16 @@
 import React from 'react';
 import {mount, shallow} from 'enzyme';
 
-import StreamActions from 'app/views/stream/actions';
+import {StreamActions} from 'app/views/stream/actions';
 import SelectedGroupStore from 'app/stores/selectedGroupStore';
 
 describe('StreamActions', function() {
-  let sandbox;
   let actions;
   let wrapper;
 
-  beforeEach(function() {
-    sandbox = sinon.sandbox.create();
-  });
+  beforeEach(function() {});
 
-  afterEach(function() {
-    sandbox.restore();
-  });
+  afterEach(function() {});
 
   describe('Bulk', function() {
     describe('Total results > bulk limit', function() {
@@ -24,11 +19,17 @@ describe('StreamActions', function() {
         SelectedGroupStore.add([1, 2, 3]);
         wrapper = mount(
           <StreamActions
+            api={new MockApiClient()}
             allResultsVisible={false}
             query=""
             queryCount={1500}
             orgId="1337"
             projectId="1"
+            selection={{
+              projects: [1],
+              environments: [],
+              datetime: {start: null, end: null, period: null, utc: true},
+            }}
             groupIds={[1, 2, 3]}
             onRealtimeChange={function() {}}
             onSelectStatsPeriod={function() {}}
@@ -51,8 +52,8 @@ describe('StreamActions', function() {
       });
 
       it('bulk resolves', async function() {
-        let apiMock = MockApiClient.addMockResponse({
-          url: '/projects/1337/1/issues/',
+        const apiMock = MockApiClient.addMockResponse({
+          url: '/organizations/1337/issues/',
           method: 'PUT',
         });
         wrapper
@@ -80,11 +81,17 @@ describe('StreamActions', function() {
         SelectedGroupStore.add([1, 2, 3]);
         wrapper = mount(
           <StreamActions
+            api={new MockApiClient()}
             allResultsVisible={false}
             query=""
             queryCount={600}
             orgId="1337"
             projectId="1"
+            selection={{
+              projects: [1],
+              environments: [],
+              datetime: {start: null, end: null, period: null, utc: true},
+            }}
             groupIds={[1, 2, 3]}
             onRealtimeChange={function() {}}
             onSelectStatsPeriod={function() {}}
@@ -107,8 +114,8 @@ describe('StreamActions', function() {
       });
 
       it('bulk resolves', async function() {
-        let apiMock = MockApiClient.addMockResponse({
-          url: '/projects/1337/1/issues/',
+        const apiMock = MockApiClient.addMockResponse({
+          url: '/organizations/1337/issues/',
           method: 'PUT',
         });
         wrapper
@@ -132,12 +139,23 @@ describe('StreamActions', function() {
   });
 
   describe('actionSelectedGroups()', function() {
+    beforeAll(function() {
+      jest.spyOn(SelectedGroupStore, 'deselectAll');
+    });
+
     beforeEach(function() {
+      SelectedGroupStore.deselectAll.mockReset();
       actions = shallow(
         <StreamActions
+          api={new MockApiClient()}
           query=""
           orgId="1337"
           projectId="1"
+          selection={{
+            projects: [1],
+            environments: [],
+            datetime: {start: null, end: null, period: null, utc: true},
+          }}
           groupIds={[1, 2, 3]}
           onRealtimeChange={function() {}}
           onSelectStatsPeriod={function() {}}
@@ -147,17 +165,21 @@ describe('StreamActions', function() {
       ).instance();
     });
 
+    afterAll(function() {
+      SelectedGroupStore.mockRestore();
+    });
+
     describe('for all items', function() {
       it("should invoke the callback with 'undefined' and deselect all", function() {
-        sandbox.stub(SelectedGroupStore, 'deselectAll');
-        let callback = sandbox.stub();
+        const callback = jest.fn();
 
         actions.state.allInQuerySelected = true;
 
         actions.actionSelectedGroups(callback);
 
-        expect(callback.withArgs(undefined).calledOnce).toBeTruthy();
-        expect(SelectedGroupStore.deselectAll.calledOnce).toBeTruthy();
+        expect(callback).toHaveBeenCalledWith(undefined);
+        expect(callback).toHaveBeenCalledTimes(1);
+        expect(SelectedGroupStore.deselectAll).toHaveBeenCalledTimes(1);
 
         // all selected is reset
         expect(actions.state.allInQuerySelected).toBe(false);
@@ -166,16 +188,52 @@ describe('StreamActions', function() {
 
     describe('for page-selected items', function() {
       it('should invoke the callback with an array of selected items and deselect all', function() {
-        sandbox.stub(SelectedGroupStore, 'deselectAll');
-        sandbox.stub(SelectedGroupStore, 'getSelectedIds').returns(new Set([1, 2, 3]));
+        jest
+          .spyOn(SelectedGroupStore, 'getSelectedIds')
+          .mockImplementation(() => new Set([1, 2, 3]));
 
         actions.state.allInQuerySelected = false;
-        let callback = sandbox.stub();
+        const callback = jest.fn();
         actions.actionSelectedGroups(callback);
 
-        expect(callback.withArgs([1, 2, 3]).calledOnce).toBeTruthy();
-        expect(SelectedGroupStore.deselectAll.calledOnce).toBeTruthy();
+        expect(callback).toHaveBeenCalledWith([1, 2, 3]);
+        expect(callback).toHaveBeenCalledTimes(1);
+        expect(SelectedGroupStore.deselectAll).toHaveBeenCalledTimes(1);
       });
+    });
+  });
+
+  describe('missing projectId prop', function() {
+    beforeEach(function() {
+      wrapper = mount(
+        <StreamActions
+          api={new MockApiClient()}
+          query=""
+          orgId="1337"
+          groupIds={[1, 2, 3]}
+          selection={{
+            projects: [],
+            environments: [],
+            datetime: {start: null, end: null, period: null, utc: true},
+          }}
+          onRealtimeChange={function() {}}
+          onSelectStatsPeriod={function() {}}
+          realtimeActive={false}
+          statsPeriod="24h"
+        />,
+        TestStubs.routerContext()
+      );
+    });
+
+    it('should disable resolve picker', function() {
+      const resolve = wrapper.find('ResolveActions').first();
+      expect(resolve.props().disabled).toBe(true);
+      expect(resolve.props().disableDropdown).toBe(true);
+    });
+
+    it('should disable merge button', function() {
+      const merge = wrapper.find('ActionLink[className~="action-merge"]').first();
+      expect(merge.props().disabled).toBe(true);
     });
   });
 });

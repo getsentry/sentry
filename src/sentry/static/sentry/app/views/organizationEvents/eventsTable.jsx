@@ -1,4 +1,3 @@
-import {isEqual} from 'lodash';
 import {withRouter, Link} from 'react-router';
 import PropTypes from 'prop-types';
 import React from 'react';
@@ -14,56 +13,128 @@ import SentryTypes from 'app/sentryTypes';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
 
-import EventsContext from './utils/eventsContext';
-
-class EventsTable extends React.Component {
+class EventsTableBody extends React.PureComponent {
   static propTypes = {
-    reloading: PropTypes.bool,
     events: PropTypes.array,
     organization: SentryTypes.Organization,
     utc: PropTypes.bool,
+    projectsMap: PropTypes.object,
   };
 
-  constructor(props) {
-    super(props);
-    this.projectsMap = new Map(
-      props.organization.projects.map(project => [project.id, project])
-    );
+  render() {
+    const {events, organization, utc, projectsMap} = this.props;
+
+    return events.map((event, eventIdx) => {
+      const project = projectsMap.get(event.projectID);
+      const trimmedMessage = event.title || event.message.split('\n')[0].substr(0, 100);
+
+      const hasSentry10 = new Set(organization.features).has('sentry10');
+
+      const eventLink = hasSentry10
+        ? `/organizations/${organization.slug}/projects/${project.slug}/events/${
+            event.eventID
+          }/`
+        : `/${organization.slug}/${project.slug}/events/${event.eventID}/`;
+
+      const idBadge = (
+        <IdBadge
+          project={project}
+          avatarSize={16}
+          displayName={<span>{project.slug}</span>}
+          avatarProps={{consistentWidth: true}}
+        />
+      );
+
+      return (
+        <TableRow key={`${project.slug}-${event.eventID}`} first={eventIdx == 0}>
+          <TableData>
+            <EventTitle>
+              <Link to={eventLink}>{trimmedMessage}</Link>
+            </EventTitle>
+          </TableData>
+
+          <TableData>{event['event.type']}</TableData>
+
+          <TableData>
+            {hasSentry10 ? (
+              idBadge
+            ) : (
+              <Project to={`/${organization.slug}/${project.slug}/`}>{idBadge}</Project>
+            )}
+          </TableData>
+
+          <TableData>
+            <IdBadge user={event.user} hideEmail avatarSize={16} />
+          </TableData>
+
+          <TableData>
+            <StyledDateTime utc={utc} date={new Date(event.dateCreated)} />
+          </TableData>
+        </TableRow>
+      );
+    });
   }
+}
+
+class EventsTable extends React.Component {
+  static propTypes = {
+    // Initial loading state
+    loading: PropTypes.bool,
+
+    // When initial data has been loaded, but params have changed
+    reloading: PropTypes.bool,
+
+    // Special state when chart has been zoomed
+    zoomChanged: PropTypes.bool,
+
+    events: PropTypes.array,
+    organization: SentryTypes.Organization,
+    projects: PropTypes.arrayOf(SentryTypes.Project),
+    utc: PropTypes.bool,
+
+    // When Table is in loading state due to chart zoom but has
+    // completed its new API request
+    onUpdateComplete: PropTypes.func,
+  };
 
   shouldComponentUpdate(nextProps) {
-    if (this.props.reloading !== nextProps.reloading) {
+    // Update if any of these "loading"-type props change so we can display loader
+    if (
+      this.props.reloading !== nextProps.reloading ||
+      this.props.zoomChanged !== nextProps.zoomChanged ||
+      this.props.loading !== nextProps.loading
+    ) {
       return true;
     }
 
+    // If org or events has not changed, then don't re-render
+    // Shallow compare events
     if (
       this.props.organization === nextProps.organization &&
-      isEqual(this.props.events, nextProps.events)
+      this.props.events === nextProps.events
     ) {
       return false;
     }
 
+    // Otherwise update
     return true;
   }
 
-  getEventTitle(event) {
-    const {organization} = this.props;
-    const project = this.projectsMap.get(event.projectID);
-    const trimmedMessage = event.message.split('\n')[0].substr(0, 100);
-
-    if (!project) {
-      return trimmedMessage;
+  componentDidUpdate(prevProps) {
+    if (this.props.onUpdateComplete && prevProps.zoomChanged && this.props.reloading) {
+      this.props.onUpdateComplete();
     }
+  }
 
-    return (
-      <Link to={`/${organization.slug}/${project.slug}/issues/?query=${event.eventID}`}>
-        {trimmedMessage}
-      </Link>
-    );
+  get projectsMap() {
+    const {organization, projects} = this.props;
+    const projectList = projects || organization.projects;
+
+    return new Map(projectList.map(project => [project.id, project]));
   }
 
   render() {
-    const {events, organization, reloading, utc} = this.props;
+    const {events, organization, loading, reloading, zoomChanged, utc} = this.props;
     const hasEvents = events && !!events.length;
 
     return (
@@ -71,44 +142,27 @@ class EventsTable extends React.Component {
         <PanelHeader>
           <TableLayout>
             <div>{t('Event')}</div>
+            <div>{t('Event Type')}</div>
             <div>{t('Project')}</div>
             <div>{t('User')}</div>
             <div>{t('Time')}</div>
           </TableLayout>
         </PanelHeader>
-        {!hasEvents && <EmptyStateWarning>No events</EmptyStateWarning>}
+        {loading && <LoadingIndicator />}
+        {!loading && !hasEvents && (
+          <EmptyStateWarning>
+            <p>{t('No events')}</p>
+          </EmptyStateWarning>
+        )}
         {hasEvents && (
           <StyledPanelBody>
-            {reloading && <StyledLoadingIndicator overlay />}
-            {events.map((event, eventIdx) => {
-              const project = this.projectsMap.get(event.projectID);
-              return (
-                <TableRow key={`${project.slug}-${event.eventID}`} first={eventIdx == 0}>
-                  <TableData>
-                    <EventTitle>{this.getEventTitle(event)}</EventTitle>
-                  </TableData>
-
-                  <TableData>
-                    <Project to={`/${organization.slug}/${project.slug}/`}>
-                      <IdBadge
-                        project={project}
-                        avatarSize={16}
-                        displayName={<span>{project.slug}</span>}
-                        avatarProps={{consistentWidth: true}}
-                      />
-                    </Project>
-                  </TableData>
-
-                  <TableData>
-                    <IdBadge user={event.user} hideEmail avatarSize={16} />
-                  </TableData>
-
-                  <TableData>
-                    <StyledDateTime utc={utc} date={new Date(event.dateCreated)} />
-                  </TableData>
-                </TableRow>
-              );
-            })}
+            {(reloading || zoomChanged) && <StyledLoadingIndicator overlay />}
+            <EventsTableBody
+              projectsMap={this.projectsMap}
+              events={events}
+              organization={organization}
+              utc={utc}
+            />
           </StyledPanelBody>
         )}
       </Panel>
@@ -116,16 +170,7 @@ class EventsTable extends React.Component {
   }
 }
 
-class EventsTableContainer extends React.Component {
-  render() {
-    return (
-      <EventsContext.Consumer>
-        {context => <EventsTable {...context} {...this.props} />}
-      </EventsContext.Consumer>
-    );
-  }
-}
-export default withRouter(EventsTableContainer);
+export default withRouter(EventsTable);
 export {EventsTable};
 
 const StyledPanelBody = styled(PanelBody)`
@@ -135,7 +180,7 @@ const StyledPanelBody = styled(PanelBody)`
 
 const TableLayout = styled('div')`
   display: grid;
-  grid-template-columns: 0.8fr 0.15fr 0.25fr 200px;
+  grid-template-columns: 0.8fr 0.15fr 0.15fr 0.25fr 200px;
   grid-column-gap: ${space(1.5)};
   width: 100%;
 `;

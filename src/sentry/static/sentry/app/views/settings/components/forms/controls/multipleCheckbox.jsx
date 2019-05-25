@@ -6,12 +6,12 @@ import styled from 'react-emotion';
 
 import {defined} from 'app/utils';
 
-const MultipleCheckboxWrapper = styled.div`
+const MultipleCheckboxWrapper = styled('div')`
   display: flex;
   flex-wrap: wrap;
 `;
 
-const Label = styled.label`
+const Label = styled('label')`
   font-weight: normal;
   white-space: nowrap;
   margin-right: 10px;
@@ -19,7 +19,7 @@ const Label = styled.label`
   width: 20%;
 `;
 
-const CheckboxLabel = styled.span`
+const CheckboxLabel = styled('span')`
   margin-left: 3px;
 `;
 
@@ -32,10 +32,12 @@ export default class MultipleCheckbox extends React.Component {
   };
 
   onChange = (selectedValue, e) => {
-    let {value, onChange} = this.props;
+    const {value, onChange} = this.props;
     let newValue;
 
-    if (typeof onChange !== 'function') return;
+    if (typeof onChange !== 'function') {
+      return;
+    }
 
     if (e.target.checked) {
       newValue = value ? [...value, selectedValue] : [value];
@@ -47,7 +49,7 @@ export default class MultipleCheckbox extends React.Component {
   };
 
   render() {
-    let {disabled, choices, value} = this.props;
+    const {disabled, choices, value} = this.props;
 
     return (
       <MultipleCheckboxWrapper>

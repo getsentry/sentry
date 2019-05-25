@@ -1,12 +1,10 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import Reflux from 'reflux';
-import createReactClass from 'create-react-class';
 
 import {descopeFeatureName} from 'app/utils';
-import ConfigStore from 'app/stores/configStore';
 import HookStore from 'app/stores/hookStore';
 import SentryTypes from 'app/sentryTypes';
+import withConfig from 'app/utils/withConfig';
 
 import ComingSoon from './comingSoon';
 
@@ -67,6 +65,21 @@ class Feature extends React.Component {
     renderDisabled: PropTypes.oneOfType([PropTypes.func, PropTypes.bool]),
 
     /**
+     * Specify the key to use for hookstore functionality.
+     *
+     * The hookstore key that will be checked is:
+     *
+     *     feature-disabled:{hookName}
+     *
+     * When specified, the hookstore will be checked if the feature is
+     * disabled, and the first available hook will be used as the render
+     * function.
+     *
+     * This takes precidence over the renderDisabled hookstore functionality.
+     */
+    hookName: PropTypes.string,
+
+    /**
      * If children is a function then will be treated as a render prop and
      * passed this object:
      *
@@ -89,7 +102,7 @@ class Feature extends React.Component {
   };
 
   getAllFeatures() {
-    let {organization, project, configFeatures} = this.props;
+    const {organization, project, configFeatures} = this.props;
     return {
       configFeatures: configFeatures || [],
       organization: (organization && organization.features) || [],
@@ -98,11 +111,11 @@ class Feature extends React.Component {
   }
 
   hasFeature(feature, features) {
-    let shouldMatchOnlyProject = feature.match(/^projects:(.+)/);
-    let shouldMatchOnlyOrg = feature.match(/^organizations:(.+)/);
+    const shouldMatchOnlyProject = feature.match(/^projects:(.+)/);
+    const shouldMatchOnlyOrg = feature.match(/^organizations:(.+)/);
 
     // Array of feature strings
-    let {configFeatures, organization, project} = features;
+    const {configFeatures, organization, project} = features;
 
     // Check config store first as this overrides features scoped to org or
     // project contexts.
@@ -123,42 +136,48 @@ class Feature extends React.Component {
   }
 
   render() {
-    let {
+    const {
       children,
       features,
       renderDisabled,
+      hookName,
       organization,
       project,
       requireAll,
     } = this.props;
 
-    let allFeatures = this.getAllFeatures();
-    let method = requireAll ? 'every' : 'some';
-    let hasFeature =
+    const allFeatures = this.getAllFeatures();
+    const method = requireAll ? 'every' : 'some';
+    const hasFeature =
       !features || features[method](feat => this.hasFeature(feat, allFeatures));
 
     // Default renderDisabled to the ComingSoon component
     let customDisabledRender =
       renderDisabled === false
         ? false
-        : typeof renderDisabled === 'function' ? renderDisabled : () => <ComingSoon />;
+        : typeof renderDisabled === 'function'
+        ? renderDisabled
+        : () => <ComingSoon />;
 
     // Override the renderDisabled function with a hook store function if there
     // is one registered for the feature.
-    if (renderDisabled !== false && features.length === 1) {
-      HookStore.get(`feature-disabled:${descopeFeatureName(features[0])}`)
-        .slice(0, 1)
-        .map(hookFn => (customDisabledRender = hookFn));
+    if (hookName || (renderDisabled !== false && features.length === 1)) {
+      const hookKey = hookName || descopeFeatureName(features[0]);
+      const hooks = HookStore.get(`feature-disabled:${hookKey}`);
+
+      if (hooks.length > 0) {
+        customDisabledRender = hooks[0];
+      }
     }
 
-    let renderProps = {
+    const renderProps = {
       organization,
       project,
       features,
       hasFeature,
     };
 
-    if (!hasFeature && renderDisabled !== false) {
+    if (!hasFeature && customDisabledRender !== false) {
       return customDisabledRender({children, ...renderProps});
     }
 
@@ -166,36 +185,25 @@ class Feature extends React.Component {
       return children(renderProps);
     }
 
-    return hasFeature ? children : null;
+    return hasFeature && children ? children : null;
   }
 }
 
-const FeatureContainer = createReactClass({
-  displayName: 'FeatureContainer',
+class FeatureContainer extends React.Component {
+  static propTypes = {
+    config: SentryTypes.Config.isRequired,
+  };
 
   // TODO(billy): We can derive org/project from latestContextStore if needed,
   // but let's keep it simple for now and use org/project from context
-  contextTypes: {
+  static contextTypes = {
     organization: SentryTypes.Organization,
     project: SentryTypes.Project,
-  },
-
-  mixins: [Reflux.listenTo(ConfigStore, 'onConfigStoreUpdate')],
-
-  getInitialState() {
-    return {
-      config: ConfigStore.getConfig() || {},
-    };
-  },
-
-  onConfigStoreUpdate(config) {
-    if (config === this.state.config) return;
-    this.setState({config});
-  },
+  };
 
   render() {
-    let features = this.state.config.features
-      ? Array.from(this.state.config.features)
+    const features = this.props.config.features
+      ? Array.from(this.props.config.features)
       : [];
 
     return (
@@ -206,7 +214,7 @@ const FeatureContainer = createReactClass({
         {...this.props}
       />
     );
-  },
-});
+  }
+}
 
-export default FeatureContainer;
+export default withConfig(FeatureContainer);

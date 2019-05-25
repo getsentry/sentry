@@ -1,24 +1,34 @@
-/*global global*/
 import React from 'react';
-import {browserHistory} from 'react-router';
 
 import {Client} from 'app/api';
 import {mount} from 'enzyme';
 import OrganizationDeveloperSettings from 'app/views/settings/organizationDeveloperSettings/index';
 
 describe('Organization Developer Settings', function() {
-  let org = TestStubs.Organization();
-  let sentryApp = TestStubs.SentryApp();
-  let install = TestStubs.SentryAppInstallation({
-    organization: {slug: org.slug},
-    app: {slug: sentryApp.slug, uuid: 'f4d972ba-1177-4974-943e-4800fe8c7d05'},
-    code: '50624ecb-7aac-49d6-934a-83e53677560f',
-  });
-
-  let routerContext = TestStubs.routerContext();
+  const org = TestStubs.Organization();
+  const sentryApp = TestStubs.SentryApp();
+  const routerContext = TestStubs.routerContext();
 
   beforeEach(() => {
     Client.clearMockResponses();
+  });
+
+  describe('when not flagged in to sentry-apps', () => {
+    Client.addMockResponse({
+      url: `/organizations/${org.slug}/sentry-apps/`,
+      body: [],
+    });
+
+    const wrapper = mount(
+      <OrganizationDeveloperSettings params={{orgId: org.slug}} organization={org} />,
+      routerContext
+    );
+
+    it('displays contact us info', () => {
+      expect(wrapper).toMatchSnapshot();
+      expect(wrapper.find('[icon="icon-circle-add"]').exists()).toBe(false);
+      expect(wrapper.exists('EmptyMessage')).toBe(true);
+    });
   });
 
   describe('when no Apps exist', () => {
@@ -27,147 +37,119 @@ describe('Organization Developer Settings', function() {
       body: [],
     });
 
-    Client.addMockResponse({
-      url: `/organizations/${org.slug}/sentry-app-installations/`,
-      body: [],
-    });
+    org.features = ['sentry-apps'];
 
     const wrapper = mount(
-      <OrganizationDeveloperSettings params={{orgId: org.slug}} />,
+      <OrganizationDeveloperSettings params={{orgId: org.slug}} organization={org} />,
       routerContext
     );
 
     it('displays empty state', () => {
-      expect(wrapper).toMatchSnapshot();
       expect(wrapper.exists('EmptyMessage')).toBe(true);
+      expect(wrapper.text()).toMatch('No integrations have been created yet');
     });
   });
 
-  describe('when Apps exist', () => {
+  describe('with unpublished apps', () => {
     Client.addMockResponse({
       url: `/organizations/${org.slug}/sentry-apps/`,
       body: [sentryApp],
     });
 
-    Client.addMockResponse({
-      url: `/organizations/${org.slug}/sentry-app-installations/`,
-      body: [],
-    });
+    org.features = ['sentry-apps'];
 
-    let wrapper = mount(
-      <OrganizationDeveloperSettings params={{orgId: org.slug}} />,
+    const wrapper = mount(
+      <OrganizationDeveloperSettings params={{orgId: org.slug}} organization={org} />,
       routerContext
     );
 
     it('displays all Apps owned by the Org', () => {
-      expect(wrapper).toMatchSnapshot();
       expect(wrapper.find('SentryApplicationRow').prop('app').name).toBe('Sample App');
+      expect(wrapper.find('PublishStatus').prop('published')).toBe(false);
     });
 
-    describe('when installing', () => {
-      beforeEach(() => {
-        Client.addMockResponse({
-          url: `/organizations/${org.slug}/sentry-app-installations/`,
-          method: 'POST',
-          body: install,
-        });
+    it('allows for deletion', async () => {
+      Client.addMockResponse({
+        url: `/sentry-apps/${sentryApp.slug}/`,
+        method: 'DELETE',
+        body: [],
       });
+      org.features = ['sentry-apps'];
 
-      it('disallows installation when already installed', () => {
-        Client.addMockResponse({
-          url: `/organizations/${org.slug}/sentry-apps/`,
-          method: 'GET',
-          body: [sentryApp],
-        });
+      expect(wrapper.find('[icon="icon-trash"]').prop('disabled')).toEqual(false);
+      wrapper.find('[icon="icon-trash"]').simulate('click');
+      // confirm deletion by entering in app slug
+      wrapper.find('input').simulate('change', {target: {value: 'sample-app'}});
+      wrapper
+        .find('ConfirmDelete Button')
+        .last()
+        .simulate('click');
+      await tick();
+      wrapper.update();
+      expect(wrapper.text()).toMatch('No integrations have been created yet');
+    });
+  });
 
-        Client.addMockResponse({
-          url: `/organizations/${org.slug}/sentry-app-installations/`,
-          body: [install],
-          method: 'GET',
-        });
+  describe('with published apps', () => {
+    const publishedSentryApp = TestStubs.SentryApp({status: 'published'});
+    Client.addMockResponse({
+      url: `/organizations/${org.slug}/sentry-apps/`,
+      body: [publishedSentryApp],
+    });
 
-        wrapper = mount(
-          <OrganizationDeveloperSettings params={{orgId: org.slug}} />,
-          routerContext
-        );
+    org.features = ['sentry-apps'];
 
-        expect(wrapper.find('StyledInstallButton').prop('disabled')).toBe(true);
-      });
+    const wrapper = mount(
+      <OrganizationDeveloperSettings params={{orgId: org.slug}} organization={org} />,
+      routerContext
+    );
 
-      it('redirects the user to the Integrations page when a redirectUrl is not set', () => {
-        Client.addMockResponse({
-          url: `/organizations/${org.slug}/sentry-apps/`,
-          body: [TestStubs.SentryApp({redirectUrl: null})],
-        });
+    it('shows the published status', () => {
+      expect(wrapper.find('PublishStatus').prop('published')).toBe(true);
+    });
 
-        Client.addMockResponse({
-          url: `/organizations/${org.slug}/sentry-app-installations/`,
-          body: [],
-        });
+    it('trash button is disabled', () => {
+      expect(wrapper.find('[icon="icon-trash"]').prop('disabled')).toEqual(true);
+    });
+  });
 
-        wrapper = mount(
-          <OrganizationDeveloperSettings params={{orgId: org.slug}} />,
-          routerContext
-        );
+  describe('with Internal Integrations', () => {
+    const internalIntegration = TestStubs.SentryApp({status: 'internal'});
 
-        wrapper.find('StyledInstallButton').simulate('click');
+    Client.addMockResponse({
+      url: `/organizations/${org.slug}/sentry-apps/`,
+      body: [internalIntegration],
+    });
 
-        expect(browserHistory.push).toHaveBeenCalledWith(
-          `/settings/${org.slug}/integrations/`
-        );
-      });
+    const wrapper = mount(
+      <OrganizationDeveloperSettings params={{orgId: org.slug}} organization={org} />,
+      routerContext
+    );
 
-      it('redirects the user to the App when a redirectUrl is set', () => {
-        window.location.assign = jest.fn();
-        Client.addMockResponse({
-          url: `/organizations/${org.slug}/sentry-apps/`,
-          body: [sentryApp],
-        });
+    it('allows deleting', () => {
+      expect(wrapper.find('[icon="icon-trash"]').prop('disabled')).toEqual(false);
+    });
+  });
 
-        Client.addMockResponse({
-          url: `/organizations/${org.slug}/sentry-app-installations/`,
-          body: [],
-        });
+  describe('without Owner permissions', () => {
+    const newOrg = TestStubs.Organization({access: ['org:read']});
+    Client.addMockResponse({
+      url: `/organizations/${newOrg.slug}/sentry-apps/`,
+      body: [sentryApp],
+    });
 
-        wrapper = mount(
-          <OrganizationDeveloperSettings params={{orgId: org.slug}} />,
-          routerContext
-        );
+    newOrg.features = ['sentry-apps'];
 
-        wrapper.find('StyledInstallButton').simulate('click');
+    const wrapper = mount(
+      <OrganizationDeveloperSettings
+        params={{orgId: newOrg.slug}}
+        organization={newOrg}
+      />,
+      TestStubs.routerContext([{organization: newOrg}])
+    );
 
-        expect(window.location.assign).toHaveBeenCalledWith(
-          `${sentryApp.redirectUrl}?code=${install.code}&installationId=${install.uuid}`
-        );
-      });
-
-      it('handles a redirectUrl with pre-existing query params', () => {
-        window.location.assign = jest.fn();
-        const sentryAppWithQuery = TestStubs.SentryApp({
-          redirectUrl: 'https://example.com/setup?hello=1',
-        });
-
-        Client.addMockResponse({
-          url: `/organizations/${org.slug}/sentry-apps/`,
-          body: [sentryAppWithQuery],
-        });
-
-        Client.addMockResponse({
-          url: `/organizations/${org.slug}/sentry-app-installations/`,
-          body: [],
-        });
-
-        wrapper = mount(
-          <OrganizationDeveloperSettings params={{orgId: org.slug}} />,
-          routerContext
-        );
-
-        wrapper.find('StyledInstallButton').simulate('click');
-
-        expect(window.location.assign).toHaveBeenCalledWith(
-          `https://example.com/setup?code=${install.code}&hello=1&installationId=${install.uuid}`
-        );
-      });
+    it('trash button is disabled', () => {
+      expect(wrapper.find('[icon="icon-trash"]').prop('disabled')).toEqual(true);
     });
   });
 });

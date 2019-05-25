@@ -18,31 +18,14 @@ const EventNode = createReactClass({
   mixins: [ProjectState],
 
   render() {
-    let group = this.props.group;
-    let userCount = group.userCount;
-    let org = this.getOrganization();
-
-    let orgId = org.slug;
-    let projectId = group.project.slug;
-    let groupId = group.id;
+    const group = this.props.group;
+    const userCount = group.userCount;
 
     return (
       <li className="group row">
         <div className="col-xs-8 event-details">
-          <EventOrGroupHeader
-            orgId={orgId}
-            projectId={projectId}
-            data={group}
-            hideIcons
-            hideLevel
-          />
-          <EventOrGroupExtraDetails
-            orgId={orgId}
-            projectId={projectId}
-            groupId={groupId}
-            lastSeen={group.lastSeen}
-            firstSeen={group.firstSeen}
-          />
+          <EventOrGroupHeader data={group} hideIcons hideLevel />
+          <EventOrGroupExtraDetails {...group} />
         </div>
 
         <div className="col-xs-2 event-count align-right">

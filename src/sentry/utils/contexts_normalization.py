@@ -2,10 +2,13 @@ from __future__ import absolute_import
 import re
 
 from ua_parser.user_agent_parser import Parse
-from sentry.utils.safe import setdefault_path
+from sentry.utils.safe import get_path, setdefault_path
 
 # Environment.OSVersion (GetVersionEx) or RuntimeInformation.OSDescription, on Windows
 _windows_re = re.compile('^(Microsoft )?Windows (NT )?(?P<version>\d+\.\d+\.\d+).*$')
+# Format sent by Unreal Engine on macOS
+_unreal_macos_re = re.compile(
+    '^Mac OS X (?P<version>\d+\.\d+\.\d+)( \((?P<build>[a-fA-F0-9]+)\))?$')
 # Environment.OSVersion or RuntimeInformation.OSDescription (uname)
 # on Mono and CoreCLR on macOS, iOS, Linux, etc
 _uname_re = re.compile('^(?P<name>[a-zA-Z]+) (?P<version>\d+\.\d+\.\d+(\.[1-9]+)?).*$')
@@ -24,10 +27,16 @@ def normalize_os(data):
             data['name'] = 'Windows'
             data['version'] = r.group('version')
         else:
-            r = _uname_re.search(raw_description)
+            r = _unreal_macos_re.search(raw_description)
             if r:
-                data['name'] = r.group('name')
-                data['kernel_version'] = r.group('version')
+                data['name'] = 'macOS'
+                data['version'] = r.group('version')
+                data['build'] = r.group('build')
+            else:
+                r = _uname_re.search(raw_description)
+                if r:
+                    data['name'] = r.group('name')
+                    data['kernel_version'] = r.group('version')
 
 
 def normalize_runtime(data):
@@ -44,7 +53,7 @@ def normalize_runtime(data):
     # RuntimeInformation.FrameworkDescription doesn't return a very useful value.
     # example: .NET Framework 4.7.3056.0
     # Release key dug from registry and sent as #build
-    if data.get('name').startswith('.NET Framework'):
+    if (data.get('name') or "").startswith('.NET Framework'):
         build = data.get('build')
 
         if build is not None:
@@ -82,17 +91,11 @@ def _get_version(user_agent):
 
 
 def _parse_user_agent(data):
-    http = data.get('request')
-    if not http:
-        return None
-
-    headers = http.get('headers')
-    if not headers:
-        return None
-
     try:
-        for key, value in headers:
+        for key, value in get_path(data, 'request', 'headers', filter=True) or ():
             if key != 'User-Agent':
+                continue
+            if not value:
                 continue
             ua = Parse(value)
             if not ua:

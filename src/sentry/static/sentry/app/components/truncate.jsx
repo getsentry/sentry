@@ -21,18 +21,22 @@ class Truncate extends React.Component {
   }
 
   onFocus = e => {
-    let {value, maxLength} = this.props;
-    if (value.length <= maxLength) return;
+    const {value, maxLength} = this.props;
+    if (value.length <= maxLength) {
+      return;
+    }
     this.setState({isExpanded: true});
   };
 
   onBlur = e => {
-    if (this.state.isExpanded) this.setState({isExpanded: false});
+    if (this.state.isExpanded) {
+      this.setState({isExpanded: false});
+    }
   };
 
   render() {
-    let {leftTrim, maxLength, value} = this.props;
-    let isTruncated = value.length > maxLength;
+    const {leftTrim, maxLength, value} = this.props;
+    const isTruncated = value.length > maxLength;
     let shortValue = '';
 
     if (isTruncated) {
@@ -49,7 +53,9 @@ class Truncate extends React.Component {
 
     let className = this.props.className || '';
     className += ' truncated';
-    if (this.state.isExpanded) className += ' expanded';
+    if (this.state.isExpanded) {
+      className += ' expanded';
+    }
 
     return (
       <span

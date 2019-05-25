@@ -14,7 +14,7 @@ class IntegrationEndpoint(OrganizationEndpoint):
     permission_classes = (OrganizationPermission, )
 
     def handle_exception(self, request, exc):
-        if exc.code == 503:
+        if hasattr(exc, 'code') and exc.code == 503:
             sys.stderr.write(traceback.format_exc())
             event_id = capture_exception()
             context = {

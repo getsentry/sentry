@@ -10,11 +10,12 @@ exports[`ProjectDebugFiles renders 1`] = `
   }
 >
   <SettingsPageHeading
+    noTitleStyles={false}
     title="Debug Information Files"
   >
     <Wrapper>
       <div
-        className="css-1pnrn3o-Wrapper e1kblvez1"
+        className="css-1r5ylk7-Wrapper e1kblvez2"
       >
         <Flex
           align="center"
@@ -27,15 +28,23 @@ exports[`ProjectDebugFiles renders 1`] = `
               className="css-5ipae5"
               is={null}
             >
-              <Title>
+              <Title
+                styled={false}
+              >
                 <Base
-                  className="css-1mqcea-Title e1kblvez0"
+                  className="css-1ky52ze-Title e1kblvez0"
                 >
                   <div
-                    className="css-1mqcea-Title e1kblvez0"
+                    className="css-1ky52ze-Title e1kblvez0"
                     is={null}
                   >
-                    Debug Information Files
+                    <HeaderTitle>
+                      <h4
+                        className="css-1w8ttcn-HeaderTitle e6lvex72"
+                      >
+                        Debug Information Files
+                      </h4>
+                    </HeaderTitle>
                   </div>
                 </Base>
               </Title>
@@ -53,78 +62,50 @@ exports[`ProjectDebugFiles renders 1`] = `
         className="css-1geyb25-TextBlock ec8ep340"
       >
         
-          Here you can find all your uploaded debug information files (dSYMs, ProGuard, Breakpad ...).
-          This is used to convert addresses and minified function names from crash dumps
-          into function names and locations.
-        
+            Debug information files are used to convert addresses and minified
+            function names from native crash reports into function names and
+            locations.
+          
       </div>
     </Component>
   </TextBlock>
-  <div
-    className="row m-b-1"
-  >
-    <div
-      className="col-sm-7"
-    />
-    <div
-      className="col-sm-5"
-    >
-      <SearchBar
-        defaultQuery=""
-        onSearch={[Function]}
-        placeholder="Search for a DIF"
-        query=""
-      >
-        <div
-          className="search"
-        >
-          <form
-            className="form-horizontal"
-            onSubmit={[Function]}
-          >
-            <div>
-              <input
-                autoComplete="off"
-                className="search-input form-control"
-                name="query"
-                onBlur={[Function]}
-                onChange={[Function]}
-                placeholder="Search for a DIF"
-                type="text"
-                value=""
-              />
-              <span
-                className="icon-search"
-              />
-            </div>
-          </form>
-        </div>
-      </SearchBar>
-    </div>
-  </div>
-  <Panel>
+  <TextBlock>
     <Component
-      className="css-yahxlu-Panel e1laxa7d0"
+      className="css-1geyb25-TextBlock ec8ep340"
     >
       <div
-        className="css-yahxlu-Panel e1laxa7d0"
+        className="css-1geyb25-TextBlock ec8ep340"
       >
-        <PanelHeader>
+        This list contains all uploaded debug information files:
+      </div>
+    </Component>
+  </TextBlock>
+  <Panel>
+    <Component
+      className="css-10qfvek-Panel e1laxa7d0"
+    >
+      <div
+        className="css-10qfvek-Panel e1laxa7d0"
+      >
+        <PanelHeader
+          hasButtons={true}
+        >
           <Component
-            className="css-gxu3mm-PanelHeader-getPadding e1p8v8nv0"
+            className="css-1m2bast-PanelHeader-getPadding e1p8v8nv0"
+            hasButtons={true}
           >
             <Flex
               align="center"
-              className="css-gxu3mm-PanelHeader-getPadding e1p8v8nv0"
+              className="css-1m2bast-PanelHeader-getPadding e1p8v8nv0"
               justify="space-between"
             >
               <Base
                 align="center"
-                className="e1p8v8nv0 css-18dn1ya-PanelHeader-getPadding"
+                className="e1p8v8nv0 css-yowjp-PanelHeader-getPadding"
                 justify="space-between"
               >
                 <div
-                  className="e1p8v8nv0 css-18dn1ya-PanelHeader-getPadding"
+                  className="e1p8v8nv0 css-yowjp-PanelHeader-getPadding"
                   is={null}
                 >
                   <Box
@@ -157,17 +138,81 @@ exports[`ProjectDebugFiles renders 1`] = `
                       </div>
                     </Base>
                   </Box>
-                  <Box
-                    flex="1"
-                  >
+                  <Box>
                     <Base
-                      className="css-vti0ei"
-                      flex="1"
+                      className="css-roynbj"
                     >
                       <div
-                        className="css-vti0ei"
+                        className="css-roynbj"
                         is={null}
-                      />
+                      >
+                        <withRouter(AsyncComponentSearchInput)
+                          api={Client {}}
+                          className="search"
+                          onError={[Function]}
+                          onSuccess={[Function]}
+                          placeholder="Search DIFs"
+                          stateKey="project"
+                          updateRoute={true}
+                          url="/projects/org/project/"
+                        >
+                          <AsyncComponentSearchInput
+                            api={Client {}}
+                            className="search"
+                            debounceWait={200}
+                            location={
+                              Object {
+                                "query": Object {},
+                              }
+                            }
+                            onError={[Function]}
+                            onSuccess={[Function]}
+                            placeholder="Search DIFs"
+                            router={
+                              Object {
+                                "createHref": [MockFunction],
+                                "go": [MockFunction],
+                                "goBack": [MockFunction],
+                                "goForward": [MockFunction],
+                                "isActive": [MockFunction],
+                                "listen": [MockFunction],
+                                "location": Object {
+                                  "query": Object {},
+                                },
+                                "push": [MockFunction],
+                                "replace": [MockFunction],
+                                "setRouteLeaveHook": [MockFunction],
+                              }
+                            }
+                            stateKey="project"
+                            updateRoute={true}
+                            url="/projects/org/project/"
+                          >
+                            <Form
+                              onSubmit={[Function]}
+                            >
+                              <form
+                                className="css-vfrmj7-Form et3a3ng1"
+                                onSubmit={[Function]}
+                              >
+                                <Input
+                                  className="search"
+                                  onChange={[Function]}
+                                  placeholder="Search DIFs"
+                                  value=""
+                                >
+                                  <input
+                                    className="search css-13yodx8-Input-inputStyles e1xej46s0"
+                                    onChange={[Function]}
+                                    placeholder="Search DIFs"
+                                    value=""
+                                  />
+                                </Input>
+                              </form>
+                            </Form>
+                          </AsyncComponentSearchInput>
+                        </withRouter(AsyncComponentSearchInput)>
+                      </div>
                     </Base>
                   </Box>
                 </div>
@@ -181,22 +226,53 @@ exports[`ProjectDebugFiles renders 1`] = `
           flex={false}
         >
           <div
-            className="css-9vq8an-textStyles"
+            className="css-a4ya23-textStyles"
           >
-            <EmptyStateWarning>
+            <EmptyStateWarning
+              small={false}
+            >
               <EmptyStreamWrapper
-                className="ref-empty-state"
+                data-test-id="empty-state"
               >
                 <div
-                  className="ref-empty-state css-n38n5f-EmptyStreamWrapper ernlsnc0"
+                  className="css-pdv4gl-EmptyStreamWrapper ernlsnc0"
+                  data-test-id="empty-state"
                 >
-                  <Icon
-                    className="icon icon-exclamation"
+                  <HeroIcon
+                    size="54"
+                    src="icon-circle-exclamation"
                   >
-                    <div
-                      className="icon icon-exclamation css-tjp7mx-Icon ernlsnc1"
-                    />
-                  </Icon>
+                    <Component
+                      className="css-1j03cl-HeroIcon e1h7wyrq0"
+                      size="54"
+                      src="icon-circle-exclamation"
+                    >
+                      <InlineSvg
+                        className="css-1j03cl-HeroIcon e1h7wyrq0"
+                        size="54"
+                        src="icon-circle-exclamation"
+                      >
+                        <StyledSvg
+                          className="css-1j03cl-HeroIcon e1h7wyrq0"
+                          height="54"
+                          viewBox={Object {}}
+                          width="54"
+                        >
+                          <svg
+                            className="e1h7wyrq0 css-196iyqp-StyledSvg-HeroIcon e2idor0"
+                            height="54"
+                            viewBox={Object {}}
+                            width="54"
+                          >
+                            <use
+                              href="#test"
+                              xlinkHref="#test"
+                            />
+                          </svg>
+                        </StyledSvg>
+                      </InlineSvg>
+                    </Component>
+                  </HeroIcon>
                   <p>
                     There are no debug symbols for this project.
                   </p>
@@ -209,6 +285,7 @@ exports[`ProjectDebugFiles renders 1`] = `
     </Component>
   </Panel>
   <Pagination
+    className="stream-pagination"
     onCursor={[Function]}
   />
 </ProjectDebugSymbols>
@@ -217,34 +294,23 @@ exports[`ProjectDebugFiles renders 1`] = `
 exports[`ProjectDebugFiles renders empty 1`] = `
 <Fragment>
   <SettingsPageHeading
+    noTitleStyles={false}
     title="Debug Information Files"
   />
   <TextBlock>
     
-          Here you can find all your uploaded debug information files (dSYMs, ProGuard, Breakpad ...).
-          This is used to convert addresses and minified function names from crash dumps
-          into function names and locations.
-        
+            Debug information files are used to convert addresses and minified
+            function names from native crash reports into function names and
+            locations.
+          
   </TextBlock>
-  <div
-    className="row m-b-1"
-  >
-    <div
-      className="col-sm-7"
-    />
-    <div
-      className="col-sm-5"
-    >
-      <SearchBar
-        defaultQuery=""
-        onSearch={[Function]}
-        placeholder="Search for a DIF"
-        query=""
-      />
-    </div>
-  </div>
+  <TextBlock>
+    This list contains all uploaded debug information files:
+  </TextBlock>
   <Panel>
-    <PanelHeader>
+    <PanelHeader
+      hasButtons={true}
+    >
       <Box
         w={0.375}
       >
@@ -255,21 +321,36 @@ exports[`ProjectDebugFiles renders empty 1`] = `
       >
         Name
       </Box>
-      <Box
-        flex="1"
-      />
+      <Box>
+        <withRouter(AsyncComponentSearchInput)
+          api={Client {}}
+          className="search"
+          onError={[Function]}
+          onSuccess={[Function]}
+          placeholder="Search DIFs"
+          stateKey="project"
+          updateRoute={true}
+          url="/projects/org/project/"
+        />
+      </Box>
     </PanelHeader>
     <PanelBody
       direction="column"
       disablePadding={true}
       flex={false}
     >
-      <LoadingIndicator />
+      <EmptyStateWarning
+        small={false}
+      >
+        <p>
+          There are no debug symbols for this project.
+        </p>
+      </EmptyStateWarning>
     </PanelBody>
   </Panel>
   <Pagination
+    className="stream-pagination"
     onCursor={[Function]}
-    pageLinks=""
   />
 </Fragment>
 `;

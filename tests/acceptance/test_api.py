@@ -6,7 +6,7 @@ from sentry.testutils import AcceptanceTestCase
 class ApiTokensTest(AcceptanceTestCase):
     def setUp(self):
         super(ApiTokensTest, self).setUp()
-        self.user = self.create_user('foo@example.com')
+        self.user = self.create_user(email='foo@example.com', name='User Name')
         self.login_as(self.user)
         self.path = '/api/'
 
@@ -27,7 +27,7 @@ class ApiTokensTest(AcceptanceTestCase):
 class ApiApplicationTest(AcceptanceTestCase):
     def setUp(self):
         super(ApiApplicationTest, self).setUp()
-        self.user = self.create_user('foo@example.com')
+        self.user = self.create_user(email='foo@example.com', name='User Name')
         self.login_as(self.user)
         self.path = '/api/applications/'
 
@@ -36,7 +36,7 @@ class ApiApplicationTest(AcceptanceTestCase):
         self.browser.wait_until_not('.loading')
         self.browser.snapshot('api applications - no applications')
 
-        self.browser.click_when_visible('.ref-create-application')
+        self.browser.click_when_visible('[aria-label="Create New Application"]')
         self.browser.wait_until_not('.loading')
         self.browser.snapshot('api applications - new application')
 
@@ -45,3 +45,9 @@ class ApiApplicationTest(AcceptanceTestCase):
         self.browser.click_when_visible('.ref-toast')
         self.browser.wait_until_not('.ref-toast')
         self.browser.snapshot('api applications - single application')
+
+        self.browser.get(self.path)
+        self.browser.wait_until_not('.loading')
+        self.browser.click_when_visible('[aria-label="Remove"]')
+        self.browser.wait_until_not('.ref-toast')
+        self.browser.wait_until_test_id('empty-message')

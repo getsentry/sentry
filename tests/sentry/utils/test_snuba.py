@@ -5,7 +5,7 @@ import pytz
 
 from sentry.models import GroupRelease, Release
 from sentry.testutils import TestCase
-from sentry.utils.snuba import get_snuba_translators
+from sentry.utils.snuba import get_snuba_translators, zerofill
 
 
 class SnubaUtilsTest(TestCase):
@@ -165,3 +165,21 @@ class SnubaUtilsTest(TestCase):
                 'count': 3
             },
         ]
+
+    def test_zerofill(self):
+        results = zerofill(
+            {}, datetime(
+                2019, 1, 2, 0, 0), datetime(
+                2019, 1, 9, 23, 59, 59), 86400, 'time')
+        results_desc = zerofill(
+            {}, datetime(
+                2019, 1, 2, 0, 0), datetime(
+                2019, 1, 9, 23, 59, 59), 86400, '-time')
+
+        assert results == list(reversed(results_desc))
+
+        # Bucket for the 2, 3, 4, 5, 6, 7, 8, 9
+        assert len(results) == 8
+
+        assert results[0]['time'] == 1546387200
+        assert results[7]['time'] == 1546992000

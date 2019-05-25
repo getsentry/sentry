@@ -79,7 +79,12 @@ MAINTENANCE = False
 
 ADMINS = ()
 
+# Hosts that are considered in the same network (including VPNs).
+# This gives access to functionality like the debug toolbar.
 INTERNAL_IPS = ()
+
+# Hosts that are allowed to use system token authentication.
+INTERNAL_SYSTEM_IPS = ()
 
 MANAGERS = ADMINS
 
@@ -104,7 +109,7 @@ DATABASES = {
         'NAME': 'sentry',
         'USER': 'postgres',
         'PASSWORD': '',
-        'HOST': '',
+        'HOST': '127.0.0.1',
         'PORT': '',
         'AUTOCOMMIT': True,
         'ATOMIC_REQUESTS': False,
@@ -130,8 +135,6 @@ if 'DATABASE_URL' in os.environ:
     if url.scheme == 'postgres':
         DATABASES['default']['ENGINE'] = 'sentry.db.postgres'
 
-    if url.scheme == 'mysql':
-        DATABASES['default']['ENGINE'] = 'django.db.backends.mysql'
 
 # This should always be UTC.
 TIME_ZONE = 'UTC'
@@ -258,13 +261,25 @@ TEMPLATE_CONTEXT_PROCESSORS = (
 INSTALLED_APPS = (
     'django.contrib.admin', 'django.contrib.auth', 'django.contrib.contenttypes',
     'django.contrib.messages', 'django.contrib.sessions', 'django.contrib.sites',
-    'django.contrib.staticfiles', 'crispy_forms', 'debug_toolbar',
-    'rest_framework', 'sentry', 'sentry.analytics',
+    'crispy_forms', 'debug_toolbar',
+    'rest_framework', 'sentry', 'sentry.analytics', 'sentry.incidents',
     'sentry.analytics.events', 'sentry.nodestore', 'sentry.search', 'sentry.lang.java',
     'sentry.lang.javascript', 'sentry.lang.native', 'sentry.plugins.sentry_interface_types',
     'sentry.plugins.sentry_mail', 'sentry.plugins.sentry_urls', 'sentry.plugins.sentry_useragents',
     'sentry.plugins.sentry_webhooks', 'social_auth', 'sudo', 'sentry.tagstore',
-    'sentry.eventstream',
+    # we import the legacy tagstore to ensure models stay registered as they're still
+    # referenced in the core sentry migrations (tagstore migrations are not in their own app)
+    'sentry.tagstore.legacy',
+    'sentry.eventstream', 'sentry.auth.providers.google', 'django.contrib.staticfiles',
+)
+
+
+# Silence internal hints from Django's system checks
+SILENCED_SYSTEM_CHECKS = (
+    # Django recommends to use OneToOneField over ForeignKey(unique=True)
+    # however this changes application behavior in ways that break association
+    # loading
+    'fields.W342'
 )
 
 import django
@@ -440,19 +455,19 @@ CELERY_REDIRECT_STDOUTS = False
 CELERYD_HIJACK_ROOT_LOGGER = False
 CELERY_IMPORTS = (
     'sentry.tasks.auth', 'sentry.tasks.auto_resolve_issues', 'sentry.tasks.beacon',
-    'sentry.tasks.check_auth', 'sentry.tasks.clear_expired_snoozes',
+    'sentry.tasks.check_auth', 'sentry.tasks.check_monitors', 'sentry.tasks.clear_expired_snoozes',
     'sentry.tasks.collect_project_platforms', 'sentry.tasks.commits', 'sentry.tasks.deletion',
     'sentry.tasks.digests', 'sentry.tasks.email', 'sentry.tasks.merge',
     'sentry.tasks.options', 'sentry.tasks.ping', 'sentry.tasks.post_process',
     'sentry.tasks.process_buffer', 'sentry.tasks.reports', 'sentry.tasks.reprocessing',
     'sentry.tasks.scheduler', 'sentry.tasks.signals', 'sentry.tasks.store', 'sentry.tasks.unmerge',
-    'sentry.tasks.symcache_update', 'sentry.tasks.servicehooks',
-    'sentry.tagstore.tasks', 'sentry.tasks.assemble', 'sentry.tasks.integrations',
-    'sentry.tasks.files', 'sentry.tasks.app_platform',
+    'sentry.tasks.servicehooks', 'sentry.tagstore.tasks', 'sentry.tasks.assemble',
+    'sentry.tasks.integrations', 'sentry.tasks.files', 'sentry.tasks.sentry_apps',
 )
 CELERY_QUEUES = [
     Queue('activity.notify', routing_key='activity.notify'),
     Queue('alerts', routing_key='alerts'),
+    Queue('app_platform', routing_key='app_platform'),
     Queue('auth', routing_key='auth'),
     Queue('assemble', routing_key='assemble'),
     Queue('buffers.process_pending', routing_key='buffers.process_pending'),
@@ -478,6 +493,7 @@ CELERY_QUEUES = [
     Queue('reports.deliver', routing_key='reports.deliver'),
     Queue('reports.prepare', routing_key='reports.prepare'),
     Queue('search', routing_key='search'),
+    Queue('sleep', routing_key='sleep'),
     Queue('stats', routing_key='stats'),
     Queue('unmerge', routing_key='unmerge'),
     Queue('update', routing_key='update'),
@@ -503,6 +519,7 @@ create_partitioned_queues('triggers')
 
 from celery.schedules import crontab
 
+# XXX: Make sure to register the monitor_id for each job in `SENTRY_CELERYBEAT_MONITORS`!
 CELERYBEAT_SCHEDULE_FILENAME = os.path.join(tempfile.gettempdir(), 'sentry-celerybeat')
 CELERYBEAT_SCHEDULE = {
     'check-auth': {
@@ -555,6 +572,13 @@ CELERYBEAT_SCHEDULE = {
         'schedule': timedelta(seconds=30),
         'options': {
             'expires': 30,
+        },
+    },
+    'check-monitors': {
+        'task': 'sentry.tasks.check_monitors',
+        'schedule': timedelta(minutes=1),
+        'options': {
+            'expires': 60,
         },
     },
     'clear-expired-snoozes': {
@@ -679,7 +703,14 @@ LOGGING = {
         'sentry': {
             'level': 'INFO',
         },
+        'sentry.files': {
+            'level': 'WARNING',
+        },
         'sentry.minidumps': {
+            'handlers': ['internal'],
+            'propagate': False,
+        },
+        'sentry.interfaces': {
             'handlers': ['internal'],
             'propagate': False,
         },
@@ -749,6 +780,7 @@ LOGGING = {
 REST_FRAMEWORK = {
     'TEST_REQUEST_DEFAULT_FORMAT': 'json',
     'DEFAULT_PERMISSION_CLASSES': ('sentry.api.permissions.NoPermission', ),
+    'EXCEPTION_HANDLER': 'sentry.api.handlers.custom_exception_handler',
 }
 
 CRISPY_TEMPLATE_PACK = 'bootstrap3'
@@ -774,8 +806,12 @@ SENTRY_FEATURES = {
     # Enables user registration.
     'auth:register': True,
 
+    # Enable advanced search features, like negation and wildcard matching.
+    'organizations:advanced-search': True,
     # Enable obtaining and using API keys.
     'organizations:api-keys': False,
+    # Enable explicit use of AND and OR in search.
+    'organizations:boolean-search': False,
     # Enable creating organizations within sentry (if SENTRY_SINGLE_ORGANIZATION
     # is not enabled).
     'organizations:create': True,
@@ -783,39 +819,43 @@ SENTRY_FEATURES = {
     'organizations:discover': False,
     # Enable attaching arbitrary files to events.
     'organizations:event-attachments': False,
-    # Enable the organization wide events stream interface.
+    # Allow organizations to configure custom external symbol sources.
+    'organizations:symbol-sources': False,
+    # Enable the events stream interface.
+    'organizations:events': False,
+    # Enable events v2 instead of the events stream
+    'organizations:events-v2': False,
+    # Enable multi project selection
     'organizations:global-views': False,
-    # Enable the interface and functionality for unmerging event groups.
-    'organizations:group-unmerge': False,
-    # Enable the 'health' interface.
-    'organizations:health': False,
+    # Turns on grouping info.
+    'organizations:grouping-info': False,
+    # Lets organizations manage grouping configs
+    'organizations:set-grouping-config': False,
+    # Enable incidents feature
+    'organizations:incidents': False,
     # Enable integration functionality to create and link groups to issues on
     # external services.
-    'organizations:integrations-issue-basic': False,
+    'organizations:integrations-issue-basic': True,
     # Enable interface functionality to synchronize groups between sentry and
     # issues on external services.
-    'organizations:integrations-issue-sync': False,
+    'organizations:integrations-issue-sync': True,
     # Special feature flag primarily used on the sentry.io SAAS product for
     # easily enabling features while in early development.
     'organizations:internal-catchall': False,
     # Enable inviting members to organizations.
     'organizations:invite-members': True,
-    # Enable gitlab integration currently available to early adopters only.
-    'organizations:gitlab-integration': False,
-    # Enable jira server integration currently available to internal users only.
-    'organizations:jira-server-integration': False,
+    # Enable org-wide saved searches and user pinned search
+    'organizations:org-saved-searches': False,
+    # Enable organizations to create and utilize Sentry Apps.
+    'organizations:sentry-apps': False,
 
-    # DEPRECATED: pending removal.
-    'organizations:js-loader': False,
-    # DEPRECATED: pending removal.
-    'organizations:new-teams': True,
     # Enable the relay functionality, for use with sentry semaphore. See
     # https://github.com/getsentry/semaphore.
     'organizations:relay': False,
-    # Enable managing repositories associated to an organization.
-    'organizations:repos': True,
     # DEPCREATED: pending removal.
     'organizations:require-2fa': False,
+    # Sentry 10 - multi project interfaces.
+    'organizations:sentry10': False,
     # Enable basic SSO functionality, providing configurable single signon
     # using services like GitHub / Google. This is *not* the same as the signup
     # and login with Github / Azure DevOps that sentry.io provides.
@@ -825,10 +865,6 @@ SENTRY_FEATURES = {
     'organizations:sso-saml2': True,
     # Enable Rippling SSO functionality.
     'organizations:sso-rippling': False,
-    # Enable suggested commits associated to a event group in the UI.
-    'organizations:suggested-commits': True,
-    # DEPCREATED: pending removal.
-    'organizations:unreleased-changes': False,
 
     # Enable functionality to specify custom inbound filters on events.
     'projects:custom-inbound-filters': False,
@@ -838,8 +874,6 @@ SENTRY_FEATURES = {
     'projects:discard-groups': False,
     # DEPRECATED: pending removal
     'projects:dsym': False,
-    # DEPRECATED: pending removal.
-    'projects:global-events': False,
     # Enable functionality for attaching  minidumps to events and displaying
     # then in the group UI.
     'projects:minidump': True,
@@ -851,6 +885,8 @@ SENTRY_FEATURES = {
     'projects:sample-events': True,
     # Enable functionality to trigger service hooks upon event ingestion.
     'projects:servicehooks': False,
+    # Use Kafka (instead of Celery) for ingestion pipeline.
+    'projects:kafka-ingest': False,
 
     # Don't add feature defaults down here! Please add them in their associated
     # group sorted alphabetically.
@@ -861,7 +897,7 @@ SENTRY_FEATURES = {
 SENTRY_DEFAULT_TIME_ZONE = 'UTC'
 
 # Enable the Sentry Debugger (Beta)
-SENTRY_DEBUGGER = DEBUG
+SENTRY_DEBUGGER = None
 
 SENTRY_IGNORE_EXCEPTIONS = ('OperationalError', )
 
@@ -884,6 +920,16 @@ SENTRY_PROJECT_KEY = None
 
 # Project ID for recording frontend (javascript) exceptions
 SENTRY_FRONTEND_PROJECT = None
+# DSN for the frontend to use explicitly, which takes priority
+# over SENTRY_FRONTEND_PROJECT or SENTRY_PROJECT
+SENTRY_FRONTEND_DSN = None
+
+# DSN to use for Sentry monitors
+SENTRY_MONITOR_DSN = None
+SENTRY_MONITOR_API_ROOT = None
+SENTRY_CELERYBEAT_MONITORS = {
+    # 'scheduled-name': 'monitor_guid',
+}
 
 # Only store a portion of all messages per unique group.
 SENTRY_SAMPLE_DATA = True
@@ -1037,7 +1083,7 @@ SENTRY_TAGSTORE_OPTIONS = (
 )
 
 # Search backend
-SENTRY_SEARCH = os.environ.get('SENTRY_SEARCH', 'sentry.search.django.DjangoSearchBackend')
+SENTRY_SEARCH = os.environ.get('SENTRY_SEARCH', 'sentry.search.snuba.SnubaSearchBackend')
 SENTRY_SEARCH_OPTIONS = {}
 # SENTRY_SEARCH_OPTIONS = {
 #     'urls': ['http://localhost:9200/'],
@@ -1051,7 +1097,7 @@ SENTRY_TSDB_OPTIONS = {}
 SENTRY_NEWSLETTER = 'sentry.newsletter.base.Newsletter'
 SENTRY_NEWSLETTER_OPTIONS = {}
 
-SENTRY_EVENTSTREAM = 'sentry.eventstream.base.EventStream'
+SENTRY_EVENTSTREAM = 'sentry.eventstream.snuba.SnubaEventStream'
 SENTRY_EVENTSTREAM_OPTIONS = {}
 
 # rollups must be ordered from highest granularity to lowest
@@ -1067,6 +1113,7 @@ SENTRY_METRICS_BACKEND = 'sentry.metrics.dummy.DummyMetricsBackend'
 SENTRY_METRICS_OPTIONS = {}
 SENTRY_METRICS_SAMPLE_RATE = 1.0
 SENTRY_METRICS_PREFIX = 'sentry.'
+SENTRY_METRICS_SKIP_INTERNAL_PREFIXES = []  # Order this by most frequent prefixes.
 
 # URI Prefixes for generating DSN URLs
 # (Defaults to URL_PREFIX by default)
@@ -1191,7 +1238,7 @@ SENTRY_ROLES = (
     }, {
         'id': 'admin',
         'name': 'Admin',
-        'desc': 'Admin privileges on any teams of which they\'re a member. They can create new teams and projects, as well as remove teams and projects which they already hold membership on.',
+        'desc': 'Admin privileges on any teams of which they\'re a member. They can create new teams and projects, as well as remove teams and projects which they already hold membership on (or all teams, if open membership is on).',
         'scopes': set(
             [
                 'event:read',
@@ -1236,8 +1283,8 @@ SENTRY_ROLES = (
         ),
     }, {
         'id': 'owner',
-        'name': 'Owner',
-        'desc': 'Gains full permission across the organization. Can manage members as well as perform catastrophic operations such as removing the organization.',
+        'name': 'Organization Owner',
+        'desc': 'Unrestricted access to the organization, its data, and its settings. Can add, modify, and delete projects and members, as well as make billing and plan changes.',
         'is_global': True,
         'scopes': set(
             [
@@ -1298,6 +1345,96 @@ SENTRY_WATCHERS = (
     ),
 )
 
+SENTRY_DEVSERVICES = {
+    'redis': {
+        'image': 'redis:5.0-alpine',
+        'ports': {'6379/tcp': 6379},
+        'command': ['redis-server', '--appendonly', 'yes'],
+        'volumes': {
+            'redis': {'bind': '/data'},
+        }
+    },
+    'postgres': {
+        'image': 'postgres:9.6-alpine',
+        'ports': {'5432/tcp': 5432},
+        'environment': {
+            'POSTGRES_DB': 'sentry',
+        },
+        'volumes': {
+            'postgres': {'bind': '/var/lib/postgresql/data'},
+        },
+    },
+    'zookeeper': {
+        'image': 'confluentinc/cp-zookeeper:5.1.2',
+        'environment': {
+            'ZOOKEEPER_CLIENT_PORT': '2181',
+        },
+        'volumes': {
+            'zookeeper': {'bind': '/var/lib/zookeeper'},
+        },
+    },
+    'kafka': {
+        'image': 'confluentinc/cp-kafka:5.1.2',
+        'ports': {'9092/tcp': 9092},
+        'environment': {
+            'KAFKA_ZOOKEEPER_CONNECT': '{containers[zookeeper][name]}:2181',
+            'KAFKA_LISTENERS': 'INTERNAL://0.0.0.0:9093,EXTERNAL://0.0.0.0:9092',
+            'KAFKA_ADVERTISED_LISTENERS': 'INTERNAL://{containers[kafka][name]}:9093,EXTERNAL://{containers[kafka][ports][9092/tcp][0]}:{containers[kafka][ports][9092/tcp][1]}',
+            'KAFKA_LISTENER_SECURITY_PROTOCOL_MAP': 'INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT',
+            'KAFKA_INTER_BROKER_LISTENER_NAME': 'INTERNAL',
+            'KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR': '1',
+        },
+        'volumes': {
+            'kafka': {'bind': '/var/lib/kafka'},
+        },
+    },
+    'clickhouse': {
+        'image': 'yandex/clickhouse-server:19.3',
+        'ports': {
+            '9000/tcp': 9000,
+            '9009/tcp': 9009,
+            '8123/tcp': 8123,
+        },
+        'ulimits': [
+            {'name': 'nofile', 'soft': 262144, 'hard': 262144},
+        ],
+        'volumes': {
+            'clickhouse': {'bind': '/var/lib/clickhouse'},
+        },
+    },
+    'snuba': {
+        'image': 'getsentry/snuba:latest',
+        'pull': True,
+        'ports': {'1218/tcp': 1218},
+        'command': ['devserver'],
+        'environment': {
+            'PYTHONUNBUFFERED': '1',
+            'SNUBA_SETTINGS': 'docker',
+            'DEBUG': '1',
+            'CLICKHOUSE_TABLE': 'dev',
+            'CLICKHOUSE_SERVER': '{containers[clickhouse][name]}:9000',
+            'DEFAULT_BROKERS': '{containers[kafka][name]}:9093',
+            'REDIS_HOST': '{containers[redis][name]}',
+            'REDIS_PORT': '6379',
+            'REDIS_DB': '1',
+        },
+    },
+    'bigtable': {
+        'image': 'mattrobenolt/cbtemulator:0.36.0',
+        'ports': {'8086/tcp': 8086},
+    },
+    'memcached': {
+        'image': 'memcached:1.5-alpine',
+        'ports': {'11211/tcp': 11211},
+    },
+    'symbolicator': {
+        'image': 'us.gcr.io/sentryio/symbolicator:latest',
+        'pull': True,
+        'ports': {'3021/tcp': 3021},
+        'command': ['run'],
+    }
+}
+
 # Max file size for avatar photo uploads
 SENTRY_MAX_AVATAR_SIZE = 5000000
 
@@ -1326,10 +1463,6 @@ SENTRY_DEFAULT_INTEGRATIONS = (
     'sentry.integrations.vsts_extension.VstsExtensionIntegrationProvider',
 )
 
-SENTRY_INTERNAL_INTEGRATIONS = (
-    'jira_server',
-)
-
 
 def get_sentry_sdk_config():
     return {
@@ -1337,6 +1470,7 @@ def get_sentry_sdk_config():
         'environment': ENVIRONMENT,
         'in_app_include': [
             'sentry',
+            'sentry_plugins',
         ],
         'debug': True,
         'send_default_pii': True
@@ -1366,12 +1500,13 @@ SUDO_URL = 'sentry-sudo'
 SDK_VERSIONS = {
     'raven-js': '3.21.0',
     'raven-node': '2.3.0',
-    'raven-python': '6.4.0',
+    'raven-python': '6.10.0',
     'raven-ruby': '2.7.1',
     'sentry-cocoa': '3.11.1',
     'sentry-java': '1.6.4',
     'sentry-laravel': '0.8.0',
     'sentry-php': '1.8.2',
+    'sentry-python': '0.7.14',
 }
 
 SDK_URLS = {
@@ -1384,6 +1519,7 @@ SDK_URLS = {
     'sentry-php': 'https://docs.sentry.io/clients/php/',
     'sentry-laravel': 'https://docs.sentry.io/clients/php/integrations/laravel/',
     'sentry-swift': 'https://docs.sentry.io/clients/cocoa/',
+    'sentry-python': 'https://docs.sentry.io/platforms/python/',
 }
 
 DEPRECATED_SDKS = {
@@ -1397,6 +1533,7 @@ DEPRECATED_SDKS = {
     'raven-php': 'sentry-php',
     'sentry-android': 'raven-java',
     'sentry-swift': 'sentry-cocoa',
+    'raven-python': 'sentry-python',
 
     # The Ruby SDK used to go by the name 'sentry-raven'...
     'sentry-raven': 'raven-ruby',
@@ -1448,3 +1585,45 @@ INVALID_EMAIL_ADDRESS_PATTERN = re.compile(r'\@qq\.com$', re.I)
 SENTRY_USER_PERMISSIONS = (
     'broadcasts.admin',
 )
+
+KAFKA_CLUSTERS = {
+    'default': {
+        'bootstrap.servers': 'localhost:9092',
+        'compression.type': 'lz4',
+        'message.max.bytes': 50000000,  # 50MB, default is 1MB
+    }
+}
+
+KAFKA_PREPROCESS = 'events-preprocess'
+KAFKA_PROCESS = 'events-process'
+KAFKA_SAVE = 'events-save'
+KAFKA_EVENTS = 'events'
+KAFKA_OUTCOMES = 'outcomes'
+
+KAFKA_TOPICS = {
+    KAFKA_PREPROCESS: {
+        'cluster': 'default',
+        'topic': KAFKA_PREPROCESS,
+    },
+    KAFKA_PROCESS: {
+        'cluster': 'default',
+        'topic': KAFKA_PROCESS,
+    },
+    KAFKA_SAVE: {
+        'cluster': 'default',
+        'topic': KAFKA_SAVE,
+    },
+    KAFKA_EVENTS: {
+        'cluster': 'default',
+        'topic': KAFKA_EVENTS,
+    },
+    KAFKA_OUTCOMES: {
+        'cluster': 'default',
+        'topic': KAFKA_OUTCOMES,
+    },
+}
+
+# Enable this to use the legacy Slack Workspace Token apps. You will likely
+# never need to switch this unless you created a workspace app before slack
+# disabled them.
+SLACK_INTEGRATION_USE_WST = False

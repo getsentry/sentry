@@ -3,6 +3,7 @@ import React from 'react';
 import classNames from 'classnames';
 import {Link} from 'react-router';
 
+import SentryTypes from 'app/sentryTypes';
 import Hovercard from 'app/components/hovercard';
 import Count from 'app/components/count';
 import EventOrGroupTitle from 'app/components/eventOrGroupTitle';
@@ -11,10 +12,11 @@ import {t} from 'app/locale';
 
 export default class IssueLink extends React.Component {
   static propTypes = {
+    organization: SentryTypes.Organization.isRequired,
     orgId: PropTypes.string.isRequired,
     projectId: PropTypes.string.isRequired,
     issue: PropTypes.object.isRequired,
-    to: PropTypes.string,
+    to: PropTypes.string.isRequired,
     card: PropTypes.bool,
   };
 
@@ -35,7 +37,7 @@ export default class IssueLink extends React.Component {
   }
 
   renderBody() {
-    const {issue, orgId, projectId} = this.props;
+    const {organization, issue, orgId, projectId} = this.props;
     const message = this.getMessage(issue);
 
     const className = classNames(`type-${issue.type}`, `level-${issue.level}`, {
@@ -43,6 +45,10 @@ export default class IssueLink extends React.Component {
       hasSeen: issue.hasSeen,
       isResolved: issue.status === 'resolved',
     });
+
+    const streamPath = new Set(organization.features).has('sentry10')
+      ? `/organizations/${orgId}/issues/`
+      : `/${orgId}/${projectId}/`;
 
     return (
       <div className={className}>
@@ -57,7 +63,7 @@ export default class IssueLink extends React.Component {
               <span className="event-annotation">
                 <Link
                   to={{
-                    pathname: `/${orgId}/${projectId}/`,
+                    pathname: streamPath,
                     query: {query: 'logger:' + issue.logger},
                   }}
                 >
@@ -100,19 +106,15 @@ export default class IssueLink extends React.Component {
     );
   }
 
-  getLinkTo() {
-    let {issue, orgId, projectId} = this.props;
-
-    return this.props.to || `/${orgId}/${projectId}/issues/${issue.id}/`;
-  }
-
   render() {
-    let {card, issue} = this.props;
-    if (!card) return <Link to={this.getLinkTo()}>{this.props.children}</Link>;
+    const {card, issue, to} = this.props;
+    if (!card) {
+      return <Link to={to}>{this.props.children}</Link>;
+    }
 
     return (
       <Hovercard body={this.renderBody()} header={issue.shortId}>
-        <Link to={this.getLinkTo()}>{this.props.children}</Link>
+        <Link to={to}>{this.props.children}</Link>
       </Hovercard>
     );
   }

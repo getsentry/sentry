@@ -12,8 +12,12 @@ const MAX_RESULTS = 10;
 class SettingsSearch extends React.Component {
   @keydown('/')
   handleFocusSearch(e) {
-    if (!this.searchInput) return;
-    if (e.target === this.searchInput) return;
+    if (!this.searchInput) {
+      return;
+    }
+    if (e.target === this.searchInput) {
+      return;
+    }
 
     e.preventDefault();
     this.searchInput.focus();
@@ -43,9 +47,13 @@ class SettingsSearch extends React.Component {
   }
 }
 
-export default SettingsSearch;
+// This is so we can use this as a selector for emotion
+const StyledSettingsSearch = styled(SettingsSearch)``;
 
-const SearchInputWrapper = styled.div`
+export default StyledSettingsSearch;
+export {SettingsSearch};
+
+const SearchInputWrapper = styled('div')`
   position: relative;
 `;
 
@@ -56,7 +64,7 @@ const SearchInputIcon = styled(props => <InlineSvg src="icon-search" {...props} 
   top: 8px;
 `;
 
-const SearchInput = styled.input`
+const SearchInput = styled('input')`
   transition: border-color 0.15s ease;
   font-size: 14px;
   width: 260px;

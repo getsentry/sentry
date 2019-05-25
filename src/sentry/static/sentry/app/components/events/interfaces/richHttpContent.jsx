@@ -1,6 +1,5 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import queryString from 'query-string';
 
 import {objectIsEmpty} from 'app/utils';
 import {objectToSortedTupleArray} from 'app/components/events/interfaces/utils';
@@ -33,22 +32,17 @@ class RichHttpContent extends React.Component {
     try {
       // Sentry API abbreviates long query string values, sometimes resulting in
       // an un-parsable querystring ... stay safe kids
-      return (
-        <KeyValueList
-          data={objectToSortedTupleArray(queryString.parse(data))}
-          isContextData={true}
-        />
-      );
+      return <KeyValueList data={data} isContextData={true} />;
     } catch (e) {
       return <pre>{data}</pre>;
     }
   };
 
   render() {
-    let data = this.props.data;
+    const data = this.props.data;
     return (
       <div>
-        {data.query && (
+        {!objectIsEmpty(data.query) && (
           <ClippedBox title={t('Query String')}>
             <ErrorBoundary mini>{this.getQueryStringOrRaw(data.query)}</ErrorBoundary>
           </ClippedBox>
@@ -67,14 +61,13 @@ class RichHttpContent extends React.Component {
           </ClippedBox>
         )}
 
-        {data.cookies &&
-          !objectIsEmpty(data.cookies) && (
-            <ClippedBox title={t('Cookies')} defaultCollapsed>
-              <ErrorBoundary mini>
-                <KeyValueList data={data.cookies} />
-              </ErrorBoundary>
-            </ClippedBox>
-          )}
+        {data.cookies && !objectIsEmpty(data.cookies) && (
+          <ClippedBox title={t('Cookies')} defaultCollapsed>
+            <ErrorBoundary mini>
+              <KeyValueList data={data.cookies} />
+            </ErrorBoundary>
+          </ClippedBox>
+        )}
         {!objectIsEmpty(data.headers) && (
           <ClippedBox title={t('Headers')}>
             <ErrorBoundary mini>

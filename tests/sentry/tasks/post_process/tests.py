@@ -7,7 +7,8 @@ from django.utils import timezone
 from mock import Mock, patch
 
 from sentry import tagstore
-from sentry.models import Group, GroupSnooze, GroupStatus, ServiceHook
+from sentry.models import Group, GroupSnooze, GroupStatus, ProjectOwnership
+from sentry.ownership.grammar import Rule, Matcher, Owner, dump_schema
 from sentry.testutils import TestCase
 from sentry.tasks.merge import merge_groups
 from sentry.tasks.post_process import index_event_tags, post_process_group
@@ -119,14 +120,136 @@ class PostProcessGroupTest(TestCase):
             id=snooze.id,
         ).exists()
 
+    def make_ownership(self):
+        rule_a = Rule(
+            Matcher('path', 'src/*'), [
+                Owner('user', self.user.email),
+            ])
+        rule_b = Rule(
+            Matcher('path', 'tests/*'), [
+                Owner('team', self.team.name),
+            ])
+        rule_c = Rule(
+            Matcher('path', 'src/app/*'), [
+                Owner('team', self.team.name),
+            ])
+
+        ProjectOwnership.objects.create(
+            project_id=self.project.id,
+            schema=dump_schema([rule_a, rule_b, rule_c]),
+            fallthrough=True,
+            auto_assignment=True,
+        )
+
+    def test_owner_assignment_path_precedence(self):
+        self.make_ownership()
+        event = self.store_event(
+            data={
+                'message': 'oh no',
+                'platform': 'python',
+                'stacktrace': {
+                    'frames': [
+                        {'filename': 'src/app/example.py'}
+                    ]
+                }
+            },
+            project_id=self.project.id
+        )
+        post_process_group(
+            event=event,
+            is_new=False,
+            is_regression=False,
+            is_sample=False,
+            is_new_group_environment=False,
+        )
+        assignee = event.group.assignee_set.first()
+        assert assignee.user is None
+        assert assignee.team == self.team
+
+    def test_owner_assignment_assign_user(self):
+        self.make_ownership()
+        event = self.store_event(
+            data={
+                'message': 'oh no',
+                'platform': 'python',
+                'stacktrace': {
+                    'frames': [
+                        {'filename': 'src/app.py'}
+                    ]
+                }
+            },
+            project_id=self.project.id
+        )
+        post_process_group(
+            event=event,
+            is_new=False,
+            is_regression=False,
+            is_sample=False,
+            is_new_group_environment=False,
+        )
+        assignee = event.group.assignee_set.first()
+        assert assignee.user == self.user
+        assert assignee.team is None
+
+    def test_owner_assignment_ownership_does_not_exist(self):
+        event = self.store_event(
+            data={
+                'message': 'oh no',
+                'platform': 'python',
+                'stacktrace': {
+                    'frames': [
+                        {'filename': 'src/app/example.py'}
+                    ]
+                }
+            },
+            project_id=self.project.id
+        )
+        post_process_group(
+            event=event,
+            is_new=False,
+            is_regression=False,
+            is_sample=False,
+            is_new_group_environment=False,
+        )
+        assert not event.group.assignee_set.exists()
+
+    def test_owner_assignment_existing_assignment(self):
+        self.make_ownership()
+        event = self.store_event(
+            data={
+                'message': 'oh no',
+                'platform': 'python',
+                'stacktrace': {
+                    'frames': [
+                        {'filename': 'src/app/example.py'}
+                    ]
+                }
+            },
+            project_id=self.project.id
+        )
+        event.group.assignee_set.create(
+            team=self.team,
+            project=self.project)
+        post_process_group(
+            event=event,
+            is_new=False,
+            is_regression=False,
+            is_sample=False,
+            is_new_group_environment=False,
+        )
+        assignee = event.group.assignee_set.first()
+        assert assignee.user is None
+        assert assignee.team == self.team
+
     @patch('sentry.tasks.servicehooks.process_service_hook')
     def test_service_hook_fires_on_new_event(self, mock_process_service_hook):
         group = self.create_group(project=self.project)
         event = self.create_event(group=group)
 
-        hook = ServiceHook.objects.create(
-            project_id=self.project.id,
-            actor_id=self.user.id,
+        hook = self.create_service_hook(
+            project=self.project,
+            organization=self.project.organization,
+            actor=self.user,
             events=['event.created'],
         )
 
@@ -157,9 +280,10 @@ class PostProcessGroupTest(TestCase):
             (mock_callback, mock_futures),
         ]
 
-        hook = ServiceHook.objects.create(
-            project_id=self.project.id,
-            actor_id=self.user.id,
+        hook = self.create_service_hook(
+            project=self.project,
+            organization=self.project.organization,
+            actor=self.user,
             events=['event.alert'],
         )
 
@@ -186,9 +310,10 @@ class PostProcessGroupTest(TestCase):
 
         mock_processor.return_value.apply.return_value = []
 
-        ServiceHook.objects.create(
-            project_id=self.project.id,
-            actor_id=self.user.id,
+        self.create_service_hook(
+            project=self.project,
+            organization=self.project.organization,
+            actor=self.user,
             events=['event.alert'],
         )
 
@@ -208,9 +333,10 @@ class PostProcessGroupTest(TestCase):
         group = self.create_group(project=self.project)
         event = self.create_event(group=group)
 
-        ServiceHook.objects.create(
-            project_id=self.project.id,
-            actor_id=self.user.id,
+        self.create_service_hook(
+            project=self.project,
+            organization=self.project.organization,
+            actor=self.user,
             events=[],
         )
 
@@ -224,6 +350,25 @@ class PostProcessGroupTest(TestCase):
             )
 
         assert not mock_process_service_hook.delay.mock_calls
+
+    @patch('sentry.tasks.sentry_apps.process_resource_change_bound.delay')
+    def test_processes_resource_change_task_on_new_group(self, delay):
+        group = self.create_group(project=self.project)
+        event = self.create_event(group=group)
+
+        post_process_group(
+            event=event,
+            is_new=True,
+            is_regression=False,
+            is_sample=False,
+            is_new_group_environment=False,
+        )
+
+        delay.assert_called_once_with(
+            action='created',
+            sender='Group',
+            instance_id=group.id,
+        )
 
 
 class IndexEventTagsTest(TestCase):
@@ -244,8 +389,10 @@ class IndexEventTagsTest(TestCase):
         assert tagstore.get_group_event_filter(
             self.project.id,
             group.id,
-            self.environment.id,
+            [self.environment.id],
             {'foo': 'bar', 'biz': 'baz'},
+            None,
+            None,
         ) == {'id__in': set([event.id])}
 
         # ensure it safely handles repeat runs
@@ -262,6 +409,8 @@ class IndexEventTagsTest(TestCase):
         assert tagstore.get_group_event_filter(
             self.project.id,
             group.id,
-            self.environment.id,
+            [self.environment.id],
             {'foo': 'bar', 'biz': 'baz'},
+            None,
+            None,
         ) == {'id__in': set([event.id])}

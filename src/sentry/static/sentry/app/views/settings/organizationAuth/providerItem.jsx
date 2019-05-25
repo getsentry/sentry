@@ -5,6 +5,7 @@ import styled from 'react-emotion';
 
 import {PanelItem} from 'app/components/panels';
 import {t} from 'app/locale';
+import Access from 'app/components/acl/access';
 import Button from 'app/components/button';
 import Feature from 'app/components/acl/feature';
 import FeatureDisabled from 'app/components/acl/featureDisabled';
@@ -16,6 +17,7 @@ export default class ProviderItem extends React.PureComponent {
   static propTypes = {
     provider: SentryTypes.AuthProvider.isRequired,
     onConfigure: PropTypes.func.isRequired,
+    active: PropTypes.bool,
   };
 
   static defaultProps = {
@@ -29,26 +31,31 @@ export default class ProviderItem extends React.PureComponent {
   renderDisabledLock = p => <LockedFeature provider={p.provider} features={p.features} />;
 
   renderInstallButton = ({provider, hasFeature}) => (
-    <Button
-      type="submit"
-      name="provider"
-      size="small"
-      value={provider.key}
-      disabled={!hasFeature}
-      onClick={this.handleConfigure}
-    >
-      {t('Configure')}
-    </Button>
+    <Access access={['org:admin']}>
+      {({hasAccess}) => (
+        <Button
+          type="submit"
+          name="provider"
+          size="small"
+          value={provider.key}
+          disabled={!hasFeature || !hasAccess}
+          onClick={this.handleConfigure}
+        >
+          {t('Configure')}
+        </Button>
+      )}
+    </Access>
   );
 
   render() {
-    const {provider} = this.props;
+    const {provider, active} = this.props;
 
     return (
       <Feature
         features={[provider.requiredFeature].filter(f => f)}
         renderDisabled={({children, ...props}) =>
-          children({...props, renderDisabled: this.renderDisabledLock})}
+          children({...props, renderDisabled: this.renderDisabledLock})
+        }
       >
         {({hasFeature, features, organization, renderDisabled, renderInstallButton}) => (
           <PanelItem align="center">
@@ -65,7 +72,11 @@ export default class ProviderItem extends React.PureComponent {
             <Box flex={1}>{!hasFeature && renderDisabled({provider, features})}</Box>
 
             <Box>
-              {(renderInstallButton || this.renderInstallButton)({provider, hasFeature})}
+              {active ? (
+                <ActiveIndicator />
+              ) : (
+                (renderInstallButton || this.renderInstallButton)({provider, hasFeature})
+              )}
             </Box>
           </PanelItem>
         )}
@@ -88,6 +99,14 @@ const ProviderName = styled('div')`
 
 const ProviderDescription = styled('div')`
   margin-top: 6px;
+  font-size: 0.8em;
+`;
+
+const ActiveIndicator = styled(p => <div className={p.className}>Active</div>)`
+  background: ${p => p.theme.green};
+  color: #fff;
+  padding: 8px 12px;
+  border-radius: 2px;
   font-size: 0.8em;
 `;
 

@@ -29,18 +29,20 @@ class RecoveryCodes extends React.Component {
   };
 
   printCodes = () => {
-    let iframe = window.frames.printable;
+    const iframe = window.frames.printable;
     iframe.document.write(this.props.codes.join('<br>'));
     iframe.print();
     iframe.document.close();
   };
 
   render() {
-    let {isEnrolled, codes} = this.props;
+    const {isEnrolled, codes} = this.props;
 
-    if (!isEnrolled || !codes) return null;
+    if (!isEnrolled || !codes) {
+      return null;
+    }
 
-    let formattedCodes = codes.join(' \n');
+    const formattedCodes = codes.join(' \n');
 
     return (
       <Panel css={{marginTop: 30}}>

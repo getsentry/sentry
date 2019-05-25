@@ -7,7 +7,7 @@ import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
 import Radio from 'app/components/radio';
 import TextBlock from 'app/views/settings/components/text/textBlock';
 
-const Label = styled.label`
+const Label = styled('label')`
   ${p => (p.disabled ? 'cursor: default' : '')};
   display: flex;
   flex: 1;
@@ -28,16 +28,16 @@ class RoleSelect extends React.Component {
   };
 
   render() {
-    let {disabled, enforceAllowed, roleList, selectedRole} = this.props;
+    const {disabled, enforceAllowed, roleList, selectedRole} = this.props;
 
     return (
-      <Panel className="new-invite-team">
+      <Panel>
         <PanelHeader>{t('Role')}</PanelHeader>
 
         <PanelBody>
           {roleList.map((role, i) => {
-            let {desc, name, id, allowed} = role;
-            let isDisabled = disabled || (enforceAllowed && !allowed);
+            const {desc, name, id, allowed} = role;
+            const isDisabled = disabled || (enforceAllowed && !allowed);
             return (
               <PanelItem
                 key={id}

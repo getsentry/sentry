@@ -4,21 +4,23 @@ import InactivePlugins from 'app/components/inactivePlugins';
 
 describe('InactivePlugins', function() {
   it('renders null when no plugins', function() {
-    let wrapper = shallow(<InactivePlugins plugins={[]} onEnablePlugin={() => {}} />);
+    const wrapper = shallow(<InactivePlugins plugins={[]} onEnablePlugin={() => {}} />);
     expect(wrapper).toMatchSnapshot();
   });
 
   it('renders plugins list', function() {
-    let wrapper = shallow(
+    const wrapper = shallow(
       <InactivePlugins onEnablePlugin={() => {}} plugins={TestStubs.Plugins()} />
     );
     expect(wrapper).toMatchSnapshot();
   });
 
   it('enables a plugin', function() {
-    let enableFn = jest.fn();
-    let plugins = TestStubs.Plugins();
-    let wrapper = mount(<InactivePlugins onEnablePlugin={enableFn} plugins={plugins} />);
+    const enableFn = jest.fn();
+    const plugins = TestStubs.Plugins();
+    const wrapper = mount(
+      <InactivePlugins onEnablePlugin={enableFn} plugins={plugins} />
+    );
     wrapper
       .find('button')
       .first()

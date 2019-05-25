@@ -6,7 +6,7 @@ from django.core.urlresolvers import reverse
 from django.utils.crypto import constant_time_compare
 from django.utils.translation import ugettext_lazy as _
 
-from sentry.models import AuditLogEntryEvent, Authenticator, OrganizationMember, Project
+from sentry.models import AuditLogEntryEvent, Authenticator, OrganizationMember
 from sentry.signals import member_joined
 from sentry.utils import auth
 from sentry.web.frontend.base import BaseView
@@ -56,16 +56,8 @@ class AcceptOrganizationInviteView(BaseView):
         om = helper.om
         organization = om.organization
 
-        qs = Project.objects.filter(
-            organization=organization,
-        )
-        project_list = list(qs[:25])
-        project_count = qs.count()
-
         context = {
             'org_name': organization.name,
-            'project_list': project_list,
-            'project_count': project_count,
             'needs_authentication': not helper.user_authenticated,
             'needs_2fa': helper.needs_2fa,
             'logout_url': u'{}?next={}'.format(
@@ -106,7 +98,7 @@ class AcceptOrganizationInviteView(BaseView):
             helper.accept_invite()
 
             request.session.pop('can_register', None)
-            response = self.redirect(reverse('sentry-organization-home', args=[organization.slug]))
+            response = self.redirect(organization.get_url())
             return helper.remove_invite_cookie(response)
 
         context['form'] = form

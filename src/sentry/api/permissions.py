@@ -6,12 +6,18 @@ from sentry.api.exceptions import SuperuserRequired
 from sentry.api.exceptions import SsoRequired, TwoFactorRequired
 from sentry.auth import access
 from sentry.auth.superuser import is_active_superuser
+from sentry.auth.system import is_system_auth
 from sentry.utils import auth
 
 
 class RelayPermission(permissions.BasePermission):
     def has_permission(self, request, view):
         return getattr(request, 'relay', None) is not None
+
+
+class SystemPermission(permissions.BasePermission):
+    def has_permission(self, request, view):
+        return is_system_auth(request.auth)
 
 
 class NoPermission(permissions.BasePermission):
@@ -61,7 +67,7 @@ class SuperuserPermission(permissions.BasePermission):
 
 
 class SentryPermission(ScopedPermission):
-    def is_not_2fa_compliant(self, user, organization):
+    def is_not_2fa_compliant(self, request, organization):
         return False
 
     def needs_sso(self, request, organization):
@@ -78,10 +84,7 @@ class SentryPermission(ScopedPermission):
             )
 
         elif request.auth:
-            if request.auth.organization_id == organization.id:
-                request.access = access.from_auth(request.auth)
-            else:
-                request.access = access.DEFAULT
+            request.access = access.from_auth(request.auth, organization)
 
         else:
             request.access = access.from_request(request, organization)
@@ -111,7 +114,7 @@ class SentryPermission(ScopedPermission):
                     raise SsoRequired(organization)
 
                 if self.is_not_2fa_compliant(
-                        request.user, organization):
+                        request, organization):
                     logger.info(
                         'access.not-2fa-compliant',
                         extra={

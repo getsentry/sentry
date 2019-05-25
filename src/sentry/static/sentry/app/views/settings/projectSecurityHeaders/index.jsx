@@ -13,7 +13,7 @@ import PreviewFeature from 'app/components/previewFeature';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import TextBlock from 'app/views/settings/components/text/textBlock';
 
-const HeaderName = styled.span`
+const HeaderName = styled('span')`
   font-size: 1.2em;
 `;
 
@@ -28,7 +28,7 @@ export default class ProjectSecurityHeaders extends AsyncView {
   }
 
   getEndpoints() {
-    let {orgId, projectId} = this.props.params;
+    const {orgId, projectId} = this.props.params;
     return [['keyList', `/projects/${orgId}/${projectId}/keys/`]];
   }
 

@@ -4,7 +4,9 @@ import os
 import re
 import logging
 import json
+import six
 
+from pkg_resources import parse_version
 from functools32 import lru_cache
 
 import sentry
@@ -13,9 +15,8 @@ from django.conf import settings
 
 logger = logging.getLogger('sentry')
 
-_version_regexp = re.compile(r'\d+')
+_version_regexp = re.compile(r'^\d+\.\d+\.\d+$')  # We really only want stable releases
 LOADER_FOLDER = os.path.abspath(os.path.join(os.path.dirname(sentry.__file__), 'loader'))
-DEFAULT_VERSION = '4.x'
 
 
 @lru_cache(maxsize=10)
@@ -30,15 +31,14 @@ def load_registry(path):
         return None
 
 
-def get_highest_browser_sdk_version():
-    return max(get_browser_sdk_version_versions(),
-               key=lambda version: int(_version_regexp.match(version).group(0))
-               if _version_regexp.search(version) else -1
-               )
+def get_highest_browser_sdk_version(versions):
+    full_versions = filter(lambda x: _version_regexp.match(x), versions)
+    return six.binary_type(max(map(parse_version, full_versions))
+                           ) if full_versions else settings.JS_SDK_LOADER_SDK_VERSION
 
 
 def get_browser_sdk_version_versions():
-    return ['latest', DEFAULT_VERSION]
+    return ['latest', '5.x', '4.x']
 
 
 def get_browser_sdk_version_choices():
@@ -50,21 +50,33 @@ def get_browser_sdk_version_choices():
 
 def load_version_from_file():
     data = load_registry('_registry')
-    return data['version']
+    if data:
+        return data.get('versions', [])
+    return []
+
+
+def get_highest_selected_browser_sdk_version(selected_version):
+    versions = load_version_from_file()
+    if selected_version == 'latest':
+        return get_highest_browser_sdk_version(versions)
+    return get_highest_browser_sdk_version(
+        filter(lambda x: x.startswith(selected_version[0]), versions))
 
 
 def get_browser_sdk_version(project_key):
     selected_version = get_selected_browser_sdk_version(project_key)
 
-    if selected_version == DEFAULT_VERSION:
-        try:
-            return load_version_from_file()
-        except BaseException:
-            logger.error('error ocurred while trying to read js sdk information from the registry')
-            return settings.JS_SDK_LOADER_SDK_VERSION
-
-    return settings.JS_SDK_LOADER_SDK_VERSION
+    try:
+        return get_highest_selected_browser_sdk_version(selected_version)
+    except BaseException:
+        logger.error('error ocurred while trying to read js sdk information from the registry')
+        return settings.JS_SDK_LOADER_SDK_VERSION
 
 
 def get_selected_browser_sdk_version(project_key):
-    return project_key.data.get('browserSdkVersion', DEFAULT_VERSION)
+    return project_key.data.get('browserSdkVersion') or \
+        get_default_sdk_version_for_project(project_key.project)
+
+
+def get_default_sdk_version_for_project(project):
+    return project.get_option('sentry:default_loader_version')

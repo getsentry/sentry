@@ -203,12 +203,13 @@ class ActivityMailDebugView(View):
 
         event_manager = EventManager(data)
         event_manager.normalize()
+        data = event_manager.get_data()
         event_type = event_manager.get_event_type()
 
-        group.mesage = event_manager.get_search_message()
+        group.message = event_manager.get_search_message()
         group.data = {
             'type': event_type.key,
-            'metadata': event_type.get_metadata(),
+            'metadata': event_type.get_metadata(data),
         }
 
         event = Event(
@@ -254,6 +255,7 @@ def alert(request):
 
     data = dict(load_data(platform))
     data['message'] = group.message
+    data['event_id'] = '44f1419e73884cd2b45c79918f4b6dc4'
     data.pop('logentry', None)
     data['environment'] = 'prod'
     data['tags'] = [
@@ -265,28 +267,18 @@ def alert(request):
 
     event_manager = EventManager(data)
     event_manager.normalize()
+    data = event_manager.get_data()
+    event = event_manager.save(project.id)
+    # Prevent Percy screenshot from constantly changing
+    event.datetime = datetime(2017, 9, 6, 0, 0)
+    event.save()
     event_type = event_manager.get_event_type()
 
     group.message = event_manager.get_search_message()
     group.data = {
         'type': event_type.key,
-        'metadata': event_type.get_metadata(),
+        'metadata': event_type.get_metadata(data),
     }
-
-    event = Event(
-        id=1,
-        event_id='44f1419e73884cd2b45c79918f4b6dc4',
-        project=project,
-        group=group,
-        message=event_manager.get_search_message(),
-        data=event_manager.get_data(),
-        datetime=to_datetime(
-            random.randint(
-                to_timestamp(group.first_seen),
-                to_timestamp(group.last_seen),
-            ),
-        ),
-    )
 
     rule = Rule(label="An example rule")
 
@@ -306,7 +298,7 @@ def alert(request):
             'event': event,
             'link': 'http://example.com/link',
             'interfaces': interface_list,
-            'tags': event.get_tags(),
+            'tags': event.tags,
             'project_label': project.slug,
             'commits': [{
                 # TODO(dcramer): change to use serializer

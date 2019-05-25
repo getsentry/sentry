@@ -1,7 +1,7 @@
 import {Event} from './event';
 
 export function EventIdQueryResult(params = {}) {
-  let event = Event({
+  const event = Event({
     metadata: {
       type: 'event type',
       value: 'event description',

@@ -5,7 +5,15 @@ exports[`OrganizationAuthList renders 1`] = `
   className="sso"
 >
   <SettingsPageHeading
+    noTitleStyles={false}
     title="Authentication"
+  />
+  <PermissionAlert
+    access={
+      Array [
+        "org:write",
+      ]
+    }
   />
   <Panel>
     <PanelHeader>
@@ -25,10 +33,9 @@ exports[`OrganizationAuthList renders 1`] = `
           <span
             key="0"
           >
-            Get started with Single Sign-on for your organization by
-                selecting a provider. Read more in our 
+            Get started with Single Sign-on for your organization by selecting a provider. Read more in our 
           </span>
-          <ExternalLink
+          <ForwardRef
             href="https://docs.sentry.io/learn/sso/"
             key="2"
             rel="noreferrer noopener"
@@ -39,7 +46,7 @@ exports[`OrganizationAuthList renders 1`] = `
             >
               SSO documentation
             </span>
-          </ExternalLink>
+          </ForwardRef>
           <span
             key="3"
           >
@@ -54,7 +61,7 @@ exports[`OrganizationAuthList renders 1`] = `
         <input
           name="csrfmiddlewaretoken"
           type="hidden"
-          value={null}
+          value=""
         />
         <input
           name="init"
@@ -66,7 +73,6 @@ exports[`OrganizationAuthList renders 1`] = `
           onConfigure={[Function]}
           provider={
             Object {
-              "disables2FA": false,
               "key": "dummy",
               "name": "Dummy",
               "requiredFeature": "organizations:sso-basic",
@@ -74,13 +80,12 @@ exports[`OrganizationAuthList renders 1`] = `
           }
         />
         <ProviderItem
-          key="dummy"
+          key="dummy2"
           onConfigure={[Function]}
           provider={
             Object {
-              "disables2FA": true,
-              "key": "dummy",
-              "name": "Dummy",
+              "key": "dummy2",
+              "name": "Dummy SAML",
               "requiredFeature": "organizations:sso-saml2",
             }
           }
@@ -96,7 +101,15 @@ exports[`OrganizationAuthList renders with no providers 1`] = `
   className="sso"
 >
   <SettingsPageHeading
+    noTitleStyles={false}
     title="Authentication"
+  />
+  <PermissionAlert
+    access={
+      Array [
+        "org:write",
+      ]
+    }
   />
   <Panel>
     <PanelHeader>
@@ -116,10 +129,9 @@ exports[`OrganizationAuthList renders with no providers 1`] = `
           <span
             key="0"
           >
-            Get started with Single Sign-on for your organization by
-                selecting a provider. Read more in our 
+            Get started with Single Sign-on for your organization by selecting a provider. Read more in our 
           </span>
-          <ExternalLink
+          <ForwardRef
             href="https://docs.sentry.io/learn/sso/"
             key="2"
             rel="noreferrer noopener"
@@ -130,7 +142,7 @@ exports[`OrganizationAuthList renders with no providers 1`] = `
             >
               SSO documentation
             </span>
-          </ExternalLink>
+          </ForwardRef>
           <span
             key="3"
           >
@@ -145,7 +157,7 @@ exports[`OrganizationAuthList renders with no providers 1`] = `
         <input
           name="csrfmiddlewaretoken"
           type="hidden"
-          value={null}
+          value=""
         />
         <input
           name="init"

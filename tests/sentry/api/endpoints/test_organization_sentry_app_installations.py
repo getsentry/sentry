@@ -5,8 +5,6 @@ import six
 from django.core.urlresolvers import reverse
 
 from sentry.testutils import APITestCase
-from sentry.testutils.helpers import with_feature
-from sentry.mediators.sentry_app_installations import Creator
 
 
 class SentryAppInstallationsTest(APITestCase):
@@ -26,13 +24,13 @@ class SentryAppInstallationsTest(APITestCase):
             organization=self.org,
         )
 
-        self.installation, _ = Creator.run(
+        self.installation = self.create_sentry_app_installation(
             slug=self.published_app.slug,
             organization=self.super_org,
             user=self.superuser,
         )
 
-        self.installation2, _ = Creator.run(
+        self.installation2 = self.create_sentry_app_installation(
             slug=self.unpublished_app.slug,
             organization=self.org,
             user=self.user,
@@ -45,7 +43,6 @@ class SentryAppInstallationsTest(APITestCase):
 
 
 class GetSentryAppInstallationsTest(SentryAppInstallationsTest):
-    @with_feature('organizations:internal-catchall')
     def test_superuser_sees_all_installs(self):
         self.login_as(user=self.superuser, superuser=True)
         response = self.client.get(self.url, format='json')
@@ -60,6 +57,7 @@ class GetSentryAppInstallationsTest(SentryAppInstallationsTest):
                 'slug': self.org.slug,
             },
             'uuid': self.installation2.uuid,
+            'code': self.installation2.api_grant.code,
         }]
 
         url = reverse(
@@ -79,9 +77,9 @@ class GetSentryAppInstallationsTest(SentryAppInstallationsTest):
                 'slug': self.super_org.slug,
             },
             'uuid': self.installation.uuid,
+            'code': self.installation.api_grant.code,
         }]
 
-    @with_feature('organizations:internal-catchall')
     def test_users_only_sees_installs_on_their_org(self):
         self.login_as(user=self.user)
         response = self.client.get(self.url, format='json')
@@ -96,6 +94,7 @@ class GetSentryAppInstallationsTest(SentryAppInstallationsTest):
                 'slug': self.org.slug,
             },
             'uuid': self.installation2.uuid,
+            'code': self.installation2.api_grant.code,
         }]
 
         # Org the User is not a part of
@@ -107,15 +106,8 @@ class GetSentryAppInstallationsTest(SentryAppInstallationsTest):
         response = self.client.get(url, format='json')
         assert response.status_code == 404
 
-    def test_no_access_without_internal_catchall(self):
-        self.login_as(user=self.user)
-
-        response = self.client.get(self.url, format='json')
-        assert response.status_code == 404
-
 
 class PostSentryAppInstallationsTest(SentryAppInstallationsTest):
-    @with_feature('organizations:internal-catchall')
     def test_install_unpublished_app(self):
         self.login_as(user=self.user)
         app = self.create_sentry_app(
@@ -140,7 +132,6 @@ class PostSentryAppInstallationsTest(SentryAppInstallationsTest):
         assert response.status_code == 200, response.content
         assert six.viewitems(expected) <= six.viewitems(response.data)
 
-    @with_feature('organizations:internal-catchall')
     def test_install_published_app(self):
         self.login_as(user=self.user)
         app = self.create_sentry_app(
@@ -166,7 +157,6 @@ class PostSentryAppInstallationsTest(SentryAppInstallationsTest):
         assert response.status_code == 200, response.content
         assert six.viewitems(expected) <= six.viewitems(response.data)
 
-    @with_feature('organizations:internal-catchall')
     def test_members_cannot_install_apps(self):
         user = self.create_user('bar@example.com')
         self.create_member(
@@ -186,9 +176,3 @@ class PostSentryAppInstallationsTest(SentryAppInstallationsTest):
             format='json',
         )
         assert response.status_code == 403
-
-    def test_no_access_without_internal_catchall(self):
-        self.login_as(user=self.user)
-
-        response = self.client.get(self.url, format='json')
-        assert response.status_code == 404

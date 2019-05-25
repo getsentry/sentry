@@ -6,11 +6,11 @@ import {Box} from 'grid-emotion';
 import styled from 'react-emotion';
 
 import {t} from 'app/locale';
-import Link from 'app/components/link';
+import Link from 'app/components/links/link';
 import OrganizationState from 'app/mixins/organizationState';
 import {sortProjects} from 'app/utils';
 import theme from 'app/utils/theme';
-import TodoList from 'app/components/onboardingWizard/todos';
+import {TASKS} from 'app/components/onboardingWizard/todos';
 import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import ProjectLabel from 'app/components/projectLabel';
@@ -34,23 +34,23 @@ const ProjectChooser = createReactClass({
   },
 
   redirectNoMultipleProjects() {
-    let org = this.getOrganization();
-    let projects = org.projects;
-    let tasks = TodoList.TASKS.filter(
+    const org = this.getOrganization();
+    const projects = org.projects;
+    const tasks = TASKS.filter(
       task_inst => task_inst.task === this.props.location.query.task
     );
 
     if (projects.length === 0) {
       browserHistory.push(`/organizations/${org.slug}/projects/new/`);
     } else if (projects.length === 1 && tasks && tasks.length === 1) {
-      let project = projects[0];
+      const project = projects[0];
       browserHistory.push(`/${org.slug}/${project.slug}/${tasks[0].location}`);
     }
   },
 
   render() {
-    let org = this.getOrganization();
-    let task = TodoList.TASKS.filter(
+    const org = this.getOrganization();
+    const task = TASKS.filter(
       task_inst => task_inst.task == this.props.location.query.task
     )[0];
 

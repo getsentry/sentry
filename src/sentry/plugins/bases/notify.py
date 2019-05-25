@@ -8,8 +8,8 @@ sentry.plugins.bases.notify
 from __future__ import absolute_import, print_function
 
 import logging
-import requests
 import six
+import urllib2
 from six.moves.urllib.parse import (
     urlparse,
     urlencode,
@@ -18,6 +18,7 @@ from six.moves.urllib.parse import (
 )
 
 from django import forms
+from requests.exceptions import SSLError, HTTPError
 
 from sentry import digests, ratelimits
 from sentry.digests import get_option_key as get_digest_option_key
@@ -25,6 +26,8 @@ from sentry.digests.notifications import (
     event_to_record,
     unsplit_key,
 )
+from sentry.exceptions import PluginError
+from sentry.integrations.exceptions import ApiError
 from sentry.plugins import Notification, Plugin
 from sentry.plugins.base.configuration import react_plugin_config
 from sentry.models import ProjectOption
@@ -71,10 +74,12 @@ class NotificationPlugin(Plugin):
         try:
             return self.notify_users(event.group, event, triggering_rules=[
                                      r.label for r in notification.rules])
-        except requests.HTTPError as err:
-            self.logger.info('notification-plugin.notify-failed.', extra={
+        except (SSLError, HTTPError, ApiError, PluginError, urllib2.HTTPError) as err:
+            self.logger.info('notification-plugin.notify-failed', extra={
                 'error': six.text_type(err),
-                'plugin': self.slug
+                'plugin': self.slug,
+                'project_id': event.group.project_id,
+                'organization_id': event.group.project.organization_id,
             })
             return False
 
@@ -133,13 +138,16 @@ class NotificationPlugin(Plugin):
     def notify_about_activity(self, activity):
         pass
 
+    @property
+    def alert_option_key(self):
+        return '%s:alert' % self.get_conf_key()
+
     def get_sendable_users(self, project):
         """
         Return a collection of user IDs that are eligible to receive
         notifications for the provided project.
         """
-        user_option = '%s:alert' % self.get_conf_key()
-        return project.get_notification_recipients(user_option)
+        return project.get_notification_recipients(self.alert_option_key)
 
     def __is_rate_limited(self, group, event):
         return ratelimits.is_limited(

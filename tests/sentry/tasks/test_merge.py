@@ -54,7 +54,7 @@ class MergeGroupTest(TestCase):
 
         assert list(GroupEnvironment.objects.filter(
             group_id=group2.id,
-        ).order_by('environment_id').values_list(
+        ).order_by('environment').values_list(
             'environment_id',
             flat=True,
         )) == [1, 2]
@@ -169,7 +169,7 @@ class MergeGroupTest(TestCase):
             tagstore.get_group_tag_keys(
                 other.project_id,
                 other.id,
-                environment_id=self.environment.id)) == 0
+                environment_ids=[self.environment.id])) == 0
         assert len(
             GroupTagValue.objects.filter(
                 project_id=other.project_id,

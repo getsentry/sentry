@@ -29,8 +29,8 @@ class ApiTokens extends AsyncView {
   }
 
   handleRemoveToken = token => {
-    let loadingIndicator = IndicatorStore.add(t('Saving changes..'));
-    let oldTokenList = this.state.tokenList;
+    const loadingIndicator = IndicatorStore.add(t('Saving changes..'));
+    const oldTokenList = this.state.tokenList;
 
     this.setState(
       state => ({
@@ -56,11 +56,11 @@ class ApiTokens extends AsyncView {
   };
 
   renderBody() {
-    let {tokenList} = this.state;
+    const {tokenList} = this.state;
 
-    let isEmpty = tokenList.length === 0;
+    const isEmpty = tokenList.length === 0;
 
-    let action = (
+    const action = (
       <Button
         priority="primary"
         size="small"
@@ -90,8 +90,7 @@ class ApiTokens extends AsyncView {
         <TextBlock>
           <small>
             psst. Looking for the <strong>DSN</strong> for an SDK? You'll find that under{' '}
-            <strong>[Project] » Settings » Client Keys</strong>
-            .
+            <strong>[Project] » Settings » Client Keys</strong>.
           </small>
         </TextBlock>
         <Panel>

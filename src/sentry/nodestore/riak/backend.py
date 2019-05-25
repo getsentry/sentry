@@ -8,6 +8,7 @@ sentry.nodestore.riak.backend
 
 from __future__ import absolute_import
 
+import os
 import six
 
 from simplejson import JSONEncoder, _default_decoder
@@ -46,7 +47,8 @@ class RiakNodeStorage(NodeStorage):
         max_retries=3,
         multiget_pool_size=5,
         tcp_keepalive=True,
-        protocol=None
+        protocol=None,
+        automatic_expiry=False,
     ):
         # protocol being defined is useless, but is needed for backwards
         # compatability and leveraged as an opportunity to yell at the user
@@ -63,11 +65,15 @@ class RiakNodeStorage(NodeStorage):
             cooldown=cooldown,
             tcp_keepalive=tcp_keepalive,
         )
+        self.automatic_expiry = automatic_expiry
+        self.skip_deletes = automatic_expiry and '_SENTRY_CLEANUP' in os.environ
 
-    def set(self, id, data):
+    def set(self, id, data, ttl=None):
         self.conn.put(self.bucket, id, json_dumps(data), returnbody='false')
 
     def delete(self, id):
+        if self.skip_deletes:
+            return
         self.conn.delete(self.bucket, id)
 
     def get(self, id):

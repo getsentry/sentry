@@ -2,7 +2,6 @@ import classNames from 'classnames';
 import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
-import idx from 'idx';
 
 import {defined} from 'app/utils';
 import InlineSvg from 'app/components/inlineSvg';
@@ -32,7 +31,7 @@ export default class FormField extends React.PureComponent {
 
     // the following should only be used without form context
     onChange: PropTypes.func,
-    error: PropTypes.string,
+    error: PropTypes.string, // eslint-disable-line react/no-unused-prop-types
     value: PropTypes.any,
   };
 
@@ -57,12 +56,12 @@ export default class FormField extends React.PureComponent {
   componentDidMount() {}
 
   componentWillReceiveProps(nextProps, nextContext) {
-    let newError = this.getError(nextProps, nextContext);
+    const newError = this.getError(nextProps, nextContext);
     if (newError != this.state.error) {
       this.setState({error: newError});
     }
     if (this.props.value !== nextProps.value || defined(nextContext.form)) {
-      let newValue = this.getValue(nextProps, nextContext);
+      const newValue = this.getValue(nextProps, nextContext);
       if (newValue !== this.state.value) {
         this.setValue(newValue);
       }
@@ -72,7 +71,7 @@ export default class FormField extends React.PureComponent {
   componentWillUnmount() {}
 
   getValue(props, context) {
-    let form = (context || this.context || {}).form;
+    const form = (context || this.context || {}).form;
     props = props || this.props;
     if (defined(props.value)) {
       return props.value;
@@ -84,12 +83,12 @@ export default class FormField extends React.PureComponent {
   }
 
   getError(props, context) {
-    let form = (context || this.context || {}).form;
+    const form = (context || this.context || {}).form;
     props = props || this.props;
     if (defined(props.error)) {
       return props.error;
     }
-    return idx(form, _ => _.errors[props.name]) || null;
+    return form?.errors[props.name] || null;
   }
 
   getId() {
@@ -101,18 +100,18 @@ export default class FormField extends React.PureComponent {
   }
 
   onChange = e => {
-    let value = e.target.value;
+    const value = e.target.value;
     this.setValue(value);
   };
 
   setValue = value => {
-    let form = (this.context || {}).form;
+    const form = (this.context || {}).form;
     this.setState(
       {
         value,
       },
       () => {
-        let finalValue = this.coerceValue(this.state.value);
+        const finalValue = this.coerceValue(this.state.value);
         this.props.onChange && this.props.onChange(finalValue);
         form && form.onFieldChange(this.props.name, finalValue);
       }
@@ -124,8 +123,8 @@ export default class FormField extends React.PureComponent {
   }
 
   getFinalClassNames() {
-    let {className, required} = this.props;
-    let {error} = this.state;
+    const {className, required} = this.props;
+    const {error} = this.state;
     return classNames(className, this.getClassName(), {
       'has-error': !!error,
       required,
@@ -133,9 +132,13 @@ export default class FormField extends React.PureComponent {
   }
 
   renderDisabledReason() {
-    let {disabled, disabledReason} = this.props;
-    if (!disabled) return null;
-    if (!disabledReason) return null;
+    const {disabled, disabledReason} = this.props;
+    if (!disabled) {
+      return null;
+    }
+    if (!disabledReason) {
+      return null;
+    }
     return (
       <span className="disabled-indicator tip" title={disabledReason}>
         <StyledInlineSvg src="icon-circle-question" size="18px" />
@@ -144,10 +147,10 @@ export default class FormField extends React.PureComponent {
   }
 
   render() {
-    let {label, hideErrorMessage, help, style} = this.props;
-    let {error} = this.state;
-    let cx = this.getFinalClassNames();
-    let shouldShowErrorMessage = error && !hideErrorMessage;
+    const {label, hideErrorMessage, help, style} = this.props;
+    const {error} = this.state;
+    const cx = this.getFinalClassNames();
+    const shouldShowErrorMessage = error && !hideErrorMessage;
 
     return (
       <div style={style} className={cx}>

@@ -2,8 +2,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import styled from 'react-emotion';
 
-import Platformicon from 'app/components/platformicon';
-import space from '../styles/space';
+import PlatformIcon from 'app/components/platformIcon';
 
 class PlatformList extends React.Component {
   static propTypes = {
@@ -45,7 +44,7 @@ class PlatformList extends React.Component {
   };
 
   render() {
-    const {platforms, max, size, direction, consistentWidth} = this.props;
+    const {platforms, max, size, direction, consistentWidth, className} = this.props;
     const platformsPreview = platforms.slice(0, max);
     return (
       <PlatformIcons
@@ -53,6 +52,7 @@ class PlatformList extends React.Component {
         max={max}
         size={size}
         consistentWidth={consistentWidth}
+        className={className}
       >
         {platforms.length > 0 ? (
           this.getIcons(platformsPreview)
@@ -67,7 +67,6 @@ class PlatformList extends React.Component {
 const getOverlapWidth = size => Math.round(size / 4);
 
 const PlatformIcons = styled('div')`
-  margin-right: ${space(0.5)};
   display: flex;
   flex-shrink: 0;
   flex-direction: row;
@@ -77,7 +76,7 @@ const PlatformIcons = styled('div')`
 `;
 
 const StyledPlatformIcon = styled(({size, ...props}) => (
-  <Platformicon size={`${size}px`} {...props} />
+  <PlatformIcon size={`${size}px`} {...props} />
 ))`
   border-radius: 3px;
   box-shadow: 0 0 0 1px #fff;

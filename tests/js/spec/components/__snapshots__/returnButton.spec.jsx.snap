@@ -3,6 +3,8 @@
 exports[`returnButton renders 1`] = `
 <ClickTargetStyled>
   <Tooltip
+    containerDisplayMode="inline-block"
+    position="top"
     title="Save"
   >
     <SubmitButton>

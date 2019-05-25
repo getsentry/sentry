@@ -15,7 +15,7 @@ describe('EventOrGroupTitle', function() {
   };
 
   it('renders with subtitle when `type = error`', function() {
-    let component = shallow(
+    const component = shallow(
       <EventOrGroupTitle
         data={{
           ...data,
@@ -30,7 +30,7 @@ describe('EventOrGroupTitle', function() {
   });
 
   it('renders with subtitle when `type = csp`', function() {
-    let component = shallow(
+    const component = shallow(
       <EventOrGroupTitle
         data={{
           ...data,
@@ -45,7 +45,7 @@ describe('EventOrGroupTitle', function() {
   });
 
   it('renders with no subtitle when `type = default`', function() {
-    let component = shallow(
+    const component = shallow(
       <EventOrGroupTitle
         data={{
           ...data,

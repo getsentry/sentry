@@ -15,15 +15,15 @@ from time import time
 from sentry.app import tsdb
 from sentry.constants import VERSION_LENGTH
 from sentry.event_manager import HashDiscarded, EventManager, EventUser
-from sentry.event_hashing import md5_from_hash
+from sentry.grouping.utils import hash_from_values
 from sentry.models import (
     Activity, Environment, Event, ExternalIssue, Group, GroupEnvironment,
     GroupHash, GroupLink, GroupRelease, GroupResolution, GroupStatus,
     GroupTombstone, EventMapping, Integration, Release,
-    ReleaseProjectEnvironment, OrganizationIntegration, UserReport
+    ReleaseProjectEnvironment, OrganizationIntegration, UserReport,
 )
 from sentry.signals import event_discarded, event_saved
-from sentry.testutils import assert_mock_called_once_with_partial, TransactionTestCase
+from sentry.testutils import assert_mock_called_once_with_partial, TestCase
 from sentry.utils.data_filters import FilterStatKeys
 
 
@@ -31,7 +31,6 @@ def make_event(**kwargs):
     result = {
         'event_id': 'a' * 32,
         'message': 'foo',
-        'timestamp': 1403007314.570599,
         'level': logging.ERROR,
         'logger': 'default',
         'tags': [],
@@ -40,19 +39,12 @@ def make_event(**kwargs):
     return result
 
 
-class EventManagerTest(TransactionTestCase):
+class EventManagerTest(TestCase):
     def make_release_event(self, release_name, project_id):
         manager = EventManager(make_event(release=release_name))
         manager.normalize()
         event = manager.save(project_id)
         return event
-
-    def test_key_id_remains_in_data(self):
-        manager = EventManager(make_event(key_id=12345))
-        manager.normalize()
-        assert manager.get_data()['key_id'] == 12345
-        event = manager.save(1)
-        assert event.data['key_id'] == 12345
 
     def test_similar_message_prefix_doesnt_group(self):
         # we had a regression which caused the default hash to just be
@@ -159,7 +151,7 @@ class EventManagerTest(TransactionTestCase):
         group = Group.objects.get(id=event.group_id)
 
         assert group.times_seen == 2
-        assert group.last_seen.replace(microsecond=0) == event2.datetime.replace(microsecond=0)
+        assert group.last_seen == event2.datetime
         assert group.message == event2.message
         assert group.data.get('type') == 'default'
         assert group.data.get('metadata') == {
@@ -193,7 +185,7 @@ class EventManagerTest(TransactionTestCase):
         group = Group.objects.get(id=event.group_id)
 
         assert group.times_seen == 2
-        assert group.last_seen.replace(microsecond=0) == event.datetime.replace(microsecond=0)
+        assert group.last_seen == event.datetime
         assert group.message == event2.message
 
     def test_differentiates_with_fingerprint(self):
@@ -225,7 +217,7 @@ class EventManagerTest(TransactionTestCase):
         ts = time() - 300
 
         # N.B. EventManager won't unresolve the group unless the event2 has a
-        # later timestamp than event1. MySQL doesn't support microseconds.
+        # later timestamp than event1.
         manager = EventManager(
             make_event(
                 event_id='a' * 32,
@@ -257,7 +249,7 @@ class EventManagerTest(TransactionTestCase):
     @mock.patch('sentry.event_manager.plugin_is_regression')
     def test_does_not_unresolve_group(self, plugin_is_regression):
         # N.B. EventManager won't unresolve the group unless the event2 has a
-        # later timestamp than event1. MySQL doesn't support microseconds.
+        # later timestamp than event1.
         plugin_is_regression.return_value = False
 
         manager = EventManager(
@@ -503,6 +495,95 @@ class EventManagerTest(TransactionTestCase):
 
                 mock_send_activity_notifications_delay.assert_called_once_with(activity.id)
 
+    @mock.patch('sentry.tasks.activity.send_activity_notifications.delay')
+    @mock.patch('sentry.event_manager.plugin_is_regression')
+    def test_does_not_mark_as_unresolved_with_pending_commit(
+        self, plugin_is_regression, mock_send_activity_notifications_delay
+    ):
+        plugin_is_regression.return_value = True
+
+        repo = self.create_repo(project=self.project)
+        commit = self.create_commit(repo=repo)
+
+        manager = EventManager(
+            make_event(
+                event_id='a' * 32,
+                checksum='a' * 32,
+                timestamp=time() - 50000,  # need to work around active_at
+            )
+        )
+        event = manager.save(self.project.id)
+
+        group = event.group
+
+        group.update(status=GroupStatus.RESOLVED)
+        GroupLink.objects.create(
+            group_id=group.id,
+            project_id=group.project_id,
+            linked_id=commit.id,
+            linked_type=GroupLink.LinkedType.commit,
+            relationship=GroupLink.Relationship.resolves,
+        )
+
+        manager = EventManager(
+            make_event(
+                event_id='b' * 32,
+                checksum='a' * 32,
+                timestamp=time(),
+            )
+        )
+        event = manager.save(self.project.id)
+        assert event.group_id == group.id
+
+        group = Group.objects.get(id=group.id)
+        assert group.status == GroupStatus.RESOLVED
+
+    @mock.patch('sentry.tasks.activity.send_activity_notifications.delay')
+    @mock.patch('sentry.event_manager.plugin_is_regression')
+    def test_mark_as_unresolved_with_released_commit(
+        self, plugin_is_regression, mock_send_activity_notifications_delay
+    ):
+        plugin_is_regression.return_value = True
+
+        release = self.create_release(project=self.project)
+        repo = self.create_repo(project=self.project)
+        commit = self.create_commit(repo=repo, release=release, project=self.project)
+
+        manager = EventManager(
+            make_event(
+                event_id='a' * 32,
+                checksum='a' * 32,
+                timestamp=time() - 50000,  # need to work around active_at
+            )
+        )
+        event = manager.save(self.project.id)
+
+        group = event.group
+
+        group.update(status=GroupStatus.RESOLVED)
+
+        GroupLink.objects.create(
+            group_id=group.id,
+            project_id=group.project_id,
+            linked_id=commit.id,
+            linked_type=GroupLink.LinkedType.commit,
+            relationship=GroupLink.Relationship.resolves,
+        )
+
+        manager = EventManager(
+            make_event(
+                event_id='b' * 32,
+                checksum='a' * 32,
+                timestamp=time(),
+            )
+        )
+
+        event = manager.save(self.project.id)
+        assert event.group_id == group.id
+
+        group = Group.objects.get(id=group.id)
+        assert group.status == GroupStatus.UNRESOLVED
+
     @mock.patch('sentry.models.Group.is_resolved')
     def test_unresolves_group_with_auto_resolve(self, mock_is_resolved):
         ts = time() - 100
@@ -530,8 +611,8 @@ class EventManagerTest(TransactionTestCase):
         assert event.group_id == event2.group_id
 
         group = Group.objects.get(id=event.group.id)
-        assert group.active_at == event2.datetime
-        assert group.active_at != event.datetime
+        assert group.active_at.replace(second=0) == event2.datetime.replace(second=0)
+        assert group.active_at.replace(second=0) != event.datetime.replace(second=0)
 
     def test_invalid_transaction(self):
         dict_input = {'messages': 'foo'}
@@ -817,6 +898,17 @@ class EventManagerTest(TransactionTestCase):
         event = manager.save(self.project.id)
         assert dict(event.tags).get('environment') is None
 
+    def test_invalid_tags(self):
+        manager = EventManager(make_event(**{
+            'tags': [42],
+        }))
+        manager.normalize()
+        assert None in manager.get_data().get('tags', [])
+        assert 42 not in manager.get_data().get('tags', [])
+        event = manager.save(self.project.id)
+        assert 42 not in event.tags
+        assert None not in event.tags
+
     @mock.patch('sentry.event_manager.eventstream.insert')
     def test_group_environment(self, eventstream_insert):
         release_version = '1.0'
@@ -886,24 +978,25 @@ class EventManagerTest(TransactionTestCase):
             name='production',
         )
         environment.add_project(project)
+
         event_id = 'a' * 32
 
-        group = self.create_group(project=project)
         UserReport.objects.create(
-            group=group,
             project=project,
             event_id=event_id,
             name='foo',
             email='bar@example.com',
             comments='It Broke!!!',
         )
-        manager = EventManager(
-            make_event(
+
+        self.store_event(
+            data=make_event(
                 environment=environment.name,
-                event_id=event_id,
-                group=group))
-        manager.normalize()
-        manager.save(project.id)
+                event_id=event_id
+            ),
+            project_id=project.id
+        )
+
         assert UserReport.objects.get(event_id=event_id).environment == environment
 
     def test_default_event_type(self):
@@ -1022,18 +1115,27 @@ class EventManagerTest(TransactionTestCase):
 
         assert event.message == 'hello world'
 
-    def test_bad_message(self):
-        # test that the message is handled gracefully
+    def test_stringified_message(self):
         manager = EventManager(make_event(**{
             'message': 1234,
         }))
         manager.normalize()
         event = manager.save(self.project.id)
 
-        assert event.message == '1234'
         assert event.data['logentry'] == {
-            'message': '1234',
+            'formatted': '1234',
         }
+
+    def test_bad_message(self):
+        # test that invalid messages are rejected
+        manager = EventManager(make_event(**{
+            'message': ['asdf'],
+        }))
+        manager.normalize()
+        event = manager.save(self.project.id)
+
+        assert event.message == '["asdf"]'
+        assert 'logentry' in event.data
 
     def test_message_attribute_goes_to_interface(self):
         manager = EventManager(make_event(**{
@@ -1042,13 +1144,11 @@ class EventManagerTest(TransactionTestCase):
         manager.normalize()
         event = manager.save(self.project.id)
         assert event.data['logentry'] == {
-            'message': 'hello world',
+            'formatted': 'hello world',
         }
 
-    def test_message_attribute_goes_to_formatted(self):
-        # The combining of 'message' and 'logentry' is a bit
-        # of a compatibility hack, and ideally we would just enforce a stricter
-        # schema instead of combining them like this.
+    def test_message_attribute_shadowing(self):
+        # Logentry shadows the legacy message attribute.
         manager = EventManager(
             make_event(
                 **{
@@ -1062,8 +1162,7 @@ class EventManagerTest(TransactionTestCase):
         manager.normalize()
         event = manager.save(self.project.id)
         assert event.data['logentry'] == {
-            'message': 'hello world',
-            'formatted': 'world hello',
+            'formatted': 'hello world',
         }
 
     def test_message_attribute_interface_both_strings(self):
@@ -1078,8 +1177,7 @@ class EventManagerTest(TransactionTestCase):
         manager.normalize()
         event = manager.save(self.project.id)
         assert event.data['logentry'] == {
-            'message': 'a plain string',
-            'formatted': 'another string',
+            'formatted': 'a plain string',
         }
 
     def test_throws_when_matches_discarded_hash(self):
@@ -1160,7 +1258,7 @@ class EventManagerTest(TransactionTestCase):
         event = manager.save(self.project.id)
 
         hashes = [gh.hash for gh in GroupHash.objects.filter(group=event.group)]
-        assert hashes == [md5_from_hash(checksum), checksum]
+        assert sorted(hashes) == sorted([hash_from_values(checksum), checksum])
 
     @mock.patch('sentry.event_manager.is_valid_error_message')
     def test_should_filter_message(self, mock_is_valid_error_message):
@@ -1228,7 +1326,7 @@ class EventManagerTest(TransactionTestCase):
         assert tags['server_name'] == 'foo.com'
 
 
-class ReleaseIssueTest(TransactionTestCase):
+class ReleaseIssueTest(TestCase):
     def setUp(self):
         self.project = self.create_project()
         self.release = Release.get_or_create(self.project, '1.0')

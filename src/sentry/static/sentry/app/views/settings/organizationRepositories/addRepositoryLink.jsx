@@ -32,7 +32,7 @@ class AddRepositoryLink extends PluginComponentBase {
   }
 
   getDefaultState() {
-    let formData = {};
+    const formData = {};
     // makes sure default choice field is saved
     // if a user doesn't choose a different option
     this.props.provider.config.forEach(field => {
@@ -64,7 +64,7 @@ class AddRepositoryLink extends PluginComponentBase {
 
   onSubmit() {
     // TODO(dcramer): set form saving state
-    let formData = {
+    const formData = {
       ...this.state.formData,
       provider: this.props.provider.id,
     };
@@ -124,11 +124,13 @@ class AddRepositoryLink extends PluginComponentBase {
   }
 
   renderForm() {
-    let errors = this.state.error.errors || {};
-    let provider = this.props.provider;
+    const errors = this.state.error.errors || {};
+    const provider = this.props.provider;
     let hasIntegration = true;
     provider.config.forEach(field => {
-      if (field.initial == '') hasIntegration = false;
+      if (field.initial == '') {
+        hasIntegration = false;
+      }
     });
     return (
       <form onSubmit={this.formSubmit}>
@@ -155,7 +157,7 @@ class AddRepositoryLink extends PluginComponentBase {
   }
 
   renderBody() {
-    let error = this.state.error;
+    const error = this.state.error;
     if (error.error_type === 'auth') {
       let authUrl = error.auth_url;
       if (authUrl.indexOf('?') === -1) {
@@ -195,7 +197,7 @@ class AddRepositoryLink extends PluginComponentBase {
   }
 
   renderModal() {
-    let {error, state} = this.state;
+    const {error, state} = this.state;
     return (
       <Modal show={this.state.isModalOpen} animation={false}>
         <div className="modal-header">
@@ -227,7 +229,7 @@ class AddRepositoryLink extends PluginComponentBase {
   }
 
   render() {
-    let provider = this.props.provider;
+    const provider = this.props.provider;
     return (
       <React.Fragment>
         <a onClick={this.onOpen}>{provider.name}</a>

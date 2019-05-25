@@ -13,7 +13,7 @@ import random
 import six
 import time
 
-from django.core.management.base import BaseCommand, CommandError, make_option
+from django.core.management.base import BaseCommand, CommandError
 
 
 def funcs():
@@ -64,11 +64,11 @@ def funcs():
 class Command(BaseCommand):
     help = 'Sends fake data to the internal Sentry project'
 
-    option_list = BaseCommand.option_list + (
-        make_option(
+    def add_arguments(self, parser):
+        parser.add_argument(
             '--project', dest='project', help="project ID or organization-slug/project-slug"
-        ), make_option('--num', dest='num_events', type=int),
-    )
+        )
+        parser.add_argument('--num', dest='num_events', type=int),
 
     def handle(self, **options):
         from django.conf import settings

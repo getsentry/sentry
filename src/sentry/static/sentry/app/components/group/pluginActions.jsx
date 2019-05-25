@@ -2,9 +2,9 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import createReactClass from 'create-react-class';
 import Modal from 'react-bootstrap/lib/Modal';
-import ApiMixin from 'app/mixins/apiMixin';
+import withApi from 'app/utils/withApi';
 import {addSuccessMessage, addErrorMessage} from 'app/actionCreators/indicator';
-import GroupState from 'app/mixins/groupState';
+import OrganizationState from 'app/mixins/organizationState';
 import NavTabs from 'app/components/navTabs';
 import plugins from 'app/plugins';
 import {t} from 'app/locale';
@@ -15,11 +15,13 @@ const PluginActions = createReactClass({
   displayName: 'PluginActions',
 
   propTypes: {
+    api: PropTypes.object,
     group: SentryTypes.Group.isRequired,
+    project: SentryTypes.Project.isRequired,
     plugin: PropTypes.object.isRequired,
   },
 
-  mixins: [ApiMixin, GroupState],
+  mixins: [OrganizationState],
 
   getInitialState() {
     return {
@@ -48,7 +50,7 @@ const PluginActions = createReactClass({
     // override plugin.issue so that 'create/link' Modal
     // doesn't think the plugin still has an issue linked
     const endpoint = `/issues/${this.props.group.id}/plugins/${plugin.slug}/unlink/`;
-    this.api.request(endpoint, {
+    this.props.api.request(endpoint, {
       success: data => {
         this.loadPlugin(plugin);
         addSuccessMessage(t('Successfully unlinked issue.'));
@@ -66,7 +68,7 @@ const PluginActions = createReactClass({
       },
       () => {
         plugins.load(data, () => {
-          let issue = data.issue || null;
+          const issue = data.issue || null;
           this.setState({pluginLoading: false, issue});
         });
       }
@@ -125,26 +127,26 @@ const PluginActions = createReactClass({
               <a onClick={() => this.handleClick('link')}>{t('Link')}</a>
             </li>
           </NavTabs>
-          {this.state.showModal &&
-            actionType &&
-            !this.state.pluginLoading && (
-              // need the key here so React will re-render
-              // with new action prop
-              <Modal.Body key={actionType}>
-                {plugins.get(plugin).renderGroupActions({
-                  plugin,
-                  group: this.getGroup(),
-                  project: this.getProject(),
-                  organization: this.getOrganization(),
-                  actionType,
-                  onSuccess: this.closeModal,
-                })}
-              </Modal.Body>
-            )}
+          {this.state.showModal && actionType && !this.state.pluginLoading && (
+            // need the key here so React will re-render
+            // with new action prop
+            <Modal.Body key={actionType}>
+              {plugins.get(plugin).renderGroupActions({
+                plugin,
+                group: this.props.group,
+                project: this.props.project,
+                organization: this.getOrganization(),
+                actionType,
+                onSuccess: this.closeModal,
+              })}
+            </Modal.Body>
+          )}
         </Modal>
       </React.Fragment>
     );
   },
 });
 
-export default PluginActions;
+export {PluginActions};
+
+export default withApi(PluginActions);

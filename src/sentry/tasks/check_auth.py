@@ -86,13 +86,13 @@ def check_auth_identity(auth_identity_id, **kwargs):
                 six.text_type(exc),
                 exc_info=True,
             )
-            metrics.incr('auth.identities.invalidated')
+            metrics.incr('auth.identities.invalidated', skip_internal=False)
         is_linked = False
         is_valid = False
     except Exception as exc:
         # to ensure security we count any kind of error as an invalidation
         # event
-        metrics.incr('auth.identities.refresh_error')
+        metrics.incr('auth.identities.refresh_error', skip_internal=False)
         logger.exception(
             u'AuthIdentity(id=%s) returned an error during validation: %s',
             auth_identity_id,

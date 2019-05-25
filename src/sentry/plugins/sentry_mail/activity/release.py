@@ -5,7 +5,7 @@ from itertools import chain
 
 import six
 
-from django.db.models import Count
+from django.db.models import Count, Q
 
 from sentry.db.models.query import in_iexact
 from sentry.models import (
@@ -22,6 +22,8 @@ class ReleaseActivityEmail(ActivityEmail):
         super(ReleaseActivityEmail, self).__init__(activity)
         self.organization = self.project.organization
         self.user_id_team_lookup = None
+        self.email_list = {}
+        self.user_ids = {}
 
         try:
             self.deploy = Deploy.objects.get(id=activity.data['deploy_id'])
@@ -96,9 +98,6 @@ class ReleaseActivityEmail(ActivityEmail):
         return bool(self.release and self.deploy)
 
     def get_participants(self):
-        if not self.email_list:
-            return {}
-
         # collect all users with verified emails on a team in the related projects,
         users = list(
             User.objects.filter(
@@ -112,21 +111,27 @@ class ReleaseActivityEmail(ActivityEmail):
             ).distinct()
         )
 
-        # get all the involved users' settings for deploy-emails
-        options_by_user_id = {
-            uoption.user_id: uoption.value
-            for uoption in UserOption.objects.filter(
-                user__in=users,
-                organization=self.organization,
-                key='deploy-emails',
-            )
-        }
+        # get all the involved users' settings for deploy-emails (user default
+        # saved without org set)
+        user_options = UserOption.objects.filter(
+            Q(organization=self.organization) | Q(organization=None),
+            user__in=users,
+            key='deploy-emails',
+        )
+
+        options_by_user_id = defaultdict(dict)
+        for uoption in user_options:
+            key = 'default' if uoption.organization is None else 'org'
+            options_by_user_id[uoption.user_id][key] = uoption.value
 
         # and couple them with the the users' setting value for deploy-emails
-        users_with_options = [
-            (user, options_by_user_id.get(user.id, UserOptionValue.committed_deploys_only))
-            for user in users
-        ]
+        # prioritize user/org specific, then user default, then product default
+        users_with_options = []
+        for user in users:
+            options = options_by_user_id.get(user.id, {})
+            users_with_options.append(
+                (user, options.get('org', options.get('default', UserOptionValue.committed_deploys_only)))
+            )
 
         # filter down to members which have been seen in the commit log:
         participants_committed = {
@@ -183,6 +188,7 @@ class ReleaseActivityEmail(ActivityEmail):
         }
 
     def get_user_context(self, user):
+        from sentry import features
         if user.is_superuser or self.organization.flags.allow_joinleave:
             projects = self.projects
         else:
@@ -193,15 +199,29 @@ class ReleaseActivityEmail(ActivityEmail):
                 ).values_list('project_id', flat=True).distinct()
             )
             projects = [p for p in self.projects if p.id in team_projects]
-        release_links = [
-            absolute_uri(
-                u'/{}/{}/releases/{}/'.format(
-                    self.organization.slug,
-                    p.slug,
-                    self.release.version,
-                )
-            ) for p in projects
-        ]
+
+        has_new_links = features.has('organizations:sentry10', self.organization)
+        if has_new_links:
+            release_links = [
+                absolute_uri(
+                    u'/organizations/{}/releases/{}/?project={}'.format(
+                        self.organization.slug,
+                        self.release.version,
+                        p.id,
+                    )
+                ) for p in projects
+            ]
+        else:
+            release_links = [
+                absolute_uri(
+                    u'/{}/{}/releases/{}/'.format(
+                        self.organization.slug,
+                        p.slug,
+                        self.release.version,
+                    )
+                ) for p in projects
+            ]
+
         resolved_issue_counts = [self.group_counts_by_project.get(p.id, 0) for p in projects]
         return {
             'projects': zip(projects, release_links, resolved_issue_counts),

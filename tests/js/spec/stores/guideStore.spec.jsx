@@ -4,9 +4,8 @@ import GuideAnchor from 'app/components/assistant/guideAnchor';
 import ConfigStore from 'app/stores/configStore';
 
 describe('GuideStore', function() {
-  let sandbox;
-  let anchor1 = <GuideAnchor target="target 1" type="text" />;
-  let anchor2 = <GuideAnchor target="target 2" type="text" />;
+  const anchor1 = <GuideAnchor target="target 1" type="text" />;
+  const anchor2 = <GuideAnchor target="target 2" type="text" />;
   let data;
 
   beforeEach(function() {
@@ -14,10 +13,8 @@ describe('GuideStore', function() {
       user: {
         isSuperuser: true,
       },
-      features: new Set(['assistant']),
     };
     GuideStore.init();
-    sandbox = sinon.sandbox.create();
     data = {
       Guide1: {
         cue: 'Click here for a tour of the issue page',
@@ -60,9 +57,7 @@ describe('GuideStore', function() {
     });
   });
 
-  afterEach(function() {
-    sandbox.restore();
-  });
+  afterEach(function() {});
 
   it('should move through the steps in the guide', async function() {
     GuideStore.onFetchSucceeded(data);
@@ -78,13 +73,6 @@ describe('GuideStore', function() {
     guide = GuideStore.state.currentGuide;
     // We don't have the alert reminder guide's data yet, so we can't show it.
     expect(guide).toEqual(null);
-  });
-
-  it('should not show a guide if the user is not in the experiment', async function() {
-    ConfigStore.get('features').delete('assistant');
-    GuideStore.onFetchSucceeded(data);
-    await tick();
-    expect(GuideStore.state.currentGuide).toEqual(null);
   });
 
   it('should force show a guide', async function() {
@@ -111,7 +99,7 @@ describe('GuideStore', function() {
       },
     });
     expect(GuideStore.state.currentGuide).toEqual(null);
-    let spy = jest.spyOn(GuideStore, 'isDefaultAlert').mockImplementation(() => true);
+    const spy = jest.spyOn(GuideStore, 'isDefaultAlert').mockImplementation(() => true);
     GuideStore.onSetActiveOrganization({id: 1, slug: 'org'});
     GuideStore.onSetActiveProject({id: 1, slug: 'proj'});
     await tick();
@@ -120,7 +108,7 @@ describe('GuideStore', function() {
   });
 
   it('should record analytics events when guide is cued', async function() {
-    let spy = jest.spyOn(GuideStore, 'recordCue');
+    const spy = jest.spyOn(GuideStore, 'recordCue');
 
     GuideStore.onFetchSucceeded(data);
     await tick();
@@ -130,7 +118,7 @@ describe('GuideStore', function() {
   });
 
   it('should not send multiple cue analytics events for same guide', async function() {
-    let spy = jest.spyOn(GuideStore, 'recordCue');
+    const spy = jest.spyOn(GuideStore, 'recordCue');
 
     GuideStore.onFetchSucceeded(data);
     await tick();

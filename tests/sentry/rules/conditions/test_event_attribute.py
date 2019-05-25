@@ -8,14 +8,12 @@ class EventAttributeConditionTest(RuleTestCase):
     rule_cls = EventAttributeCondition
 
     def get_event(self):
-        event = self.create_event(
-            platform='php',
+        event = self.store_event(
             data={
                 'message': 'hello world',
-                'type': 'error',
                 'request': {
                     'method': 'GET',
-                    'url': 'http://example.com',
+                    'url': 'http://example.com/',
                 },
                 'user': {
                     'id': '1',
@@ -47,8 +45,10 @@ class EventAttributeConditionTest(RuleTestCase):
                     },
                     'biz': ['baz'],
                     'bar': 'foo',
-                }
+                },
+                'platform': 'php',
             },
+            project_id=self.project.id
         )
         return event
 
@@ -228,7 +228,7 @@ class EventAttributeConditionTest(RuleTestCase):
         rule = self.get_rule(data={
             'match': MatchType.EQUAL,
             'attribute': 'http.url',
-            'value': 'http://example.com',
+            'value': 'http://example.com/',
         })
         self.assertPasses(rule, event)
 
@@ -433,6 +433,7 @@ class EventAttributeConditionTest(RuleTestCase):
 
     def test_event_type(self):
         event = self.get_event()
+        event.data['type'] = 'error'
         rule = self.get_rule(data={
             'match': MatchType.EQUAL,
             'attribute': 'type',

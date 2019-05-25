@@ -2,14 +2,11 @@ import _ from 'lodash';
 
 // import/export sub-utils
 import parseLinkHeader from 'app/utils/parseLinkHeader';
-import Collection from 'app/utils/collection';
 import PendingChangeQueue from 'app/utils/pendingChangeQueue';
 import CursorPoller from 'app/utils/cursorPoller';
 import StreamManager from 'app/utils/streamManager';
 
-/*eslint no-use-before-define:0*/
-
-const arrayIsEqual = function(arr, other, deep) {
+function arrayIsEqual(arr, other, deep) {
   // if the other array is a falsy value, return
   if (!arr && !other) {
     return true;
@@ -25,9 +22,9 @@ const arrayIsEqual = function(arr, other, deep) {
   }
 
   return arr.every((val, idx) => valueIsEqual(val, other[idx], deep));
-};
+}
 
-export const valueIsEqual = function(value, other, deep) {
+export function valueIsEqual(value, other, deep) {
   if (value === other) {
     return true;
   } else if (_.isArray(value) || _.isArray(other)) {
@@ -40,9 +37,9 @@ export const valueIsEqual = function(value, other, deep) {
     }
   }
   return false;
-};
+}
 
-const objectMatchesSubset = function(obj, other, deep) {
+function objectMatchesSubset(obj, other, deep) {
   let k;
 
   if (obj === other) {
@@ -68,25 +65,25 @@ const objectMatchesSubset = function(obj, other, deep) {
     }
   }
   return true;
-};
+}
 
 // XXX(dcramer): the previous mechanism of using _.map here failed
 // miserably if a param was named 'length'
-export const objectToArray = function(obj) {
-  let result = [];
-  for (let key in obj) {
+export function objectToArray(obj) {
+  const result = [];
+  for (const key in obj) {
     result.push([key, obj[key]]);
   }
   return result;
-};
+}
 
-export const intcomma = function(x) {
+export function intcomma(x) {
   return x.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
-};
+}
 
 export function sortArray(arr, score_fn) {
   arr.sort((a, b) => {
-    let a_score = score_fn(a),
+    const a_score = score_fn(a),
       b_score = score_fn(b);
 
     for (let i = 0; i < a_score.length; i++) {
@@ -104,7 +101,7 @@ export function sortArray(arr, score_fn) {
 }
 
 export function objectIsEmpty(obj) {
-  for (let prop in obj) {
+  for (const prop in obj) {
     if (obj.hasOwnProperty(prop)) {
       return false;
     }
@@ -132,6 +129,10 @@ export function nl2br(str) {
   return str.replace(/(?:\r\n|\r|\n)/g, '<br />');
 }
 
+/**
+ * This function has a critical security impact, make sure to check all usages before changing this function.
+ * In some parts of our code we rely on that this only really is a string starting with http(s).
+ */
 export function isUrl(str) {
   return (
     !!str &&
@@ -148,7 +149,7 @@ export function escape(str) {
 }
 
 export function percent(value, totalValue, precise) {
-  return value / totalValue * 100;
+  return (value / totalValue) * 100;
 }
 
 export function toTitleCase(str) {
@@ -158,8 +159,8 @@ export function toTitleCase(str) {
 }
 
 export function formatBytes(bytes) {
-  let units = ['KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB'];
-  let thresh = 1024;
+  const units = ['KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB'];
+  const thresh = 1024;
   if (bytes < thresh) {
     return bytes + ' B';
   }
@@ -177,7 +178,7 @@ export function getShortVersion(version) {
     return version;
   }
 
-  let match = version.match(
+  const match = version.match(
     /^(?:[a-zA-Z][a-zA-Z0-9-]+)(?:\.[a-zA-Z][a-zA-Z0-9-]+)+-(.*)$/
   );
   if (match) {
@@ -193,9 +194,9 @@ export function parseRepo(repo) {
   if (!repo) {
     return repo;
   } else {
-    let re = /(?:github\.com|bitbucket\.org)\/([^\/]+\/[^\/]+)/i;
-    let match = repo.match(re);
-    let parsedRepo = match ? match[1] : repo;
+    const re = /(?:github\.com|bitbucket\.org)\/([^\/]+\/[^\/]+)/i;
+    const match = repo.match(re);
+    const parsedRepo = match ? match[1] : repo;
     return parsedRepo;
   }
 }
@@ -249,9 +250,11 @@ export function isWebpackChunkLoadingError(error) {
  * and converts it into hours
  */
 export function parsePeriodToHours(str) {
-  const [, periodNumber, periodLength] = str.match(/([0-9]+)([mhdw])/);
+  const [, periodNumber, periodLength] = str.match(/([0-9]+)([smhdw])/);
 
   switch (periodLength) {
+    case 's':
+      return periodNumber / (60 * 60);
     case 'm':
       return periodNumber / 60;
     case 'h':
@@ -259,14 +262,27 @@ export function parsePeriodToHours(str) {
     case 'd':
       return periodNumber * 24;
     case 'w':
-      return periodLength * 24 * 7;
+      return periodNumber * 24 * 7;
     default:
       return -1;
   }
 }
 
+export function deepFreeze(object) {
+  // Retrieve the property names defined on object
+  const propNames = Object.getOwnPropertyNames(object);
+  // Freeze properties before freezing self
+  for (const name of propNames) {
+    const value = object[name];
+
+    object[name] = value && typeof value === 'object' ? deepFreeze(value) : value;
+  }
+
+  return Object.freeze(object);
+}
+
 // re-export under utils
-export {parseLinkHeader, Collection, PendingChangeQueue, CursorPoller};
+export {parseLinkHeader, PendingChangeQueue, CursorPoller};
 
 // backwards compatible default export for use w/ getsentry (exported
 // as a single object w/ function refs for consumption by getsentry)
@@ -288,7 +304,6 @@ export default {
 
   // external imports
   objectToArray,
-  Collection,
   PendingChangeQueue,
   StreamManager,
   CursorPoller,

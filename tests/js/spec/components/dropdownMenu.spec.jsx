@@ -116,11 +116,11 @@ describe('DropdownMenu', function() {
   });
 
   it('render prop getters all extend props and call original onClick handlers', function() {
-    let rootClick = jest.fn();
-    let actorClick = jest.fn();
-    let menuClick = jest.fn();
-    let addSpy = jest.spyOn(document, 'addEventListener');
-    let removeSpy = jest.spyOn(document, 'removeEventListener');
+    const rootClick = jest.fn();
+    const actorClick = jest.fn();
+    const menuClick = jest.fn();
+    const addSpy = jest.spyOn(document, 'addEventListener');
+    const removeSpy = jest.spyOn(document, 'removeEventListener');
 
     wrapper = mount(
       <DropdownMenu keepMenuOpen>
@@ -178,8 +178,8 @@ describe('DropdownMenu', function() {
   });
 
   it('always rendered menus should attach document event listeners only when opened', function() {
-    let addSpy = jest.spyOn(document, 'addEventListener');
-    let removeSpy = jest.spyOn(document, 'removeEventListener');
+    const addSpy = jest.spyOn(document, 'addEventListener');
+    const removeSpy = jest.spyOn(document, 'removeEventListener');
 
     wrapper = mount(
       <DropdownMenu alwaysRenderMenu>

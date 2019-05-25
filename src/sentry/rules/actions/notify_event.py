@@ -45,5 +45,5 @@ class NotifyEventAction(EventAction):
             ):
                 continue
 
-            metrics.incr('notifications.sent', instance=plugin.slug)
+            metrics.incr('notifications.sent', instance=plugin.slug, skip_internal=False)
             yield self.future(plugin.rule_notify)

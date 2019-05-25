@@ -1,5 +1,10 @@
 from __future__ import absolute_import
 
+import json
+
+from django.conf import settings
+from django.utils import timezone
+
 from sentry.testutils import AcceptanceTestCase
 
 
@@ -30,17 +35,28 @@ class ProjectReleasesTest(AcceptanceTestCase):
             project=self.project,
             message='Foo bar',
         )
+        self.project.update(first_event=timezone.now())
         self.browser.get(self.path)
         self.browser.wait_until_not('.loading')
         self.browser.wait_until('.ref-project-releases')
         self.browser.snapshot('project releases with releases')
 
     def test_with_no_releases(self):
+        self.dismiss_assistant()
         self.browser.get(self.path)
         self.browser.wait_until_not('.loading')
         self.browser.wait_until('.ref-project-releases')
-        self.browser.wait_until('.ref-empty-state')
         self.browser.snapshot('project releases without releases')
+
+    def dismiss_assistant(self):
+        # Forward session cookie to django client.
+        self.client.cookies[settings.SESSION_COOKIE_NAME] = self.session.session_key
+
+        res = self.client.put(
+            '/api/0/assistant/',
+            content_type='application/json',
+            data=json.dumps({'guide_id': 2, 'status': 'viewed', 'useful': True}))
+        assert res.status_code == 201
 
 
 class ProjectReleaseDetailsTest(AcceptanceTestCase):
@@ -55,6 +71,7 @@ class ProjectReleaseDetailsTest(AcceptanceTestCase):
             organization=self.org,
             teams=[self.team],
             name='Bengal',
+            first_event=timezone.now(),
         )
         self.release = self.create_release(
             project=self.project,

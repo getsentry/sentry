@@ -1,0 +1,156 @@
+---
+created: '2019-03-14T17:12:35.455057Z'
+creator: sentry
+source: tests/sentry/event_manager/interfaces/test_exception.py
+---
+values:
+- stacktrace:
+    frames:
+    - abs_path: exc 0 frame 0
+      context_line: b
+      filename: exc 0 frame 0
+      post_context:
+      - c
+      pre_context:
+      - a
+      vars:
+        foo: bar
+    - abs_path: exc 0 frame 1
+      context_line: b
+      filename: exc 0 frame 1
+      post_context:
+      - c
+      pre_context:
+      - a
+      vars:
+        foo: bar
+    - abs_path: exc 0 frame 2
+      context_line: b
+      filename: exc 0 frame 2
+      post_context:
+      - c
+      pre_context:
+      - a
+      vars:
+        foo: bar
+    - abs_path: exc 0 frame 3
+      context_line: b
+      filename: exc 0 frame 3
+      post_context:
+      - c
+      pre_context:
+      - a
+      vars:
+        foo: bar
+    - abs_path: exc 0 frame 4
+      context_line: b
+      filename: exc 0 frame 4
+      post_context:
+      - c
+      pre_context:
+      - a
+      vars:
+        foo: bar
+  value: exc 0
+- stacktrace:
+    frames:
+    - abs_path: exc 1 frame 0
+      context_line: b
+      filename: exc 1 frame 0
+    - abs_path: exc 1 frame 1
+      context_line: b
+      filename: exc 1 frame 1
+    - abs_path: exc 1 frame 2
+      context_line: b
+      filename: exc 1 frame 2
+    - abs_path: exc 1 frame 3
+      context_line: b
+      filename: exc 1 frame 3
+    - abs_path: exc 1 frame 4
+      context_line: b
+      filename: exc 1 frame 4
+  value: exc 1
+- stacktrace:
+    frames:
+    - abs_path: exc 2 frame 0
+      context_line: b
+      filename: exc 2 frame 0
+    - abs_path: exc 2 frame 1
+      context_line: b
+      filename: exc 2 frame 1
+    - abs_path: exc 2 frame 2
+      context_line: b
+      filename: exc 2 frame 2
+    - abs_path: exc 2 frame 3
+      context_line: b
+      filename: exc 2 frame 3
+    - abs_path: exc 2 frame 4
+      context_line: b
+      filename: exc 2 frame 4
+  value: exc 2
+- stacktrace:
+    frames:
+    - abs_path: exc 3 frame 0
+      context_line: b
+      filename: exc 3 frame 0
+    - abs_path: exc 3 frame 1
+      context_line: b
+      filename: exc 3 frame 1
+    - abs_path: exc 3 frame 2
+      context_line: b
+      filename: exc 3 frame 2
+    - abs_path: exc 3 frame 3
+      context_line: b
+      filename: exc 3 frame 3
+    - abs_path: exc 3 frame 4
+      context_line: b
+      filename: exc 3 frame 4
+  value: exc 3
+- stacktrace:
+    frames:
+    - abs_path: exc 4 frame 0
+      context_line: b
+      filename: exc 4 frame 0
+      post_context:
+      - c
+      pre_context:
+      - a
+      vars:
+        foo: bar
+    - abs_path: exc 4 frame 1
+      context_line: b
+      filename: exc 4 frame 1
+      post_context:
+      - c
+      pre_context:
+      - a
+      vars:
+        foo: bar
+    - abs_path: exc 4 frame 2
+      context_line: b
+      filename: exc 4 frame 2
+      post_context:
+      - c
+      pre_context:
+      - a
+      vars:
+        foo: bar
+    - abs_path: exc 4 frame 3
+      context_line: b
+      filename: exc 4 frame 3
+      post_context:
+      - c
+      pre_context:
+      - a
+      vars:
+        foo: bar
+    - abs_path: exc 4 frame 4
+      context_line: b
+      filename: exc 4 frame 4
+      post_context:
+      - c
+      pre_context:
+      - a
+      vars:
+        foo: bar
+  value: exc 4

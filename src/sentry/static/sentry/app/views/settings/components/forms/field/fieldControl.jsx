@@ -55,7 +55,7 @@ class FieldControl extends React.Component {
   };
 
   render() {
-    let {
+    const {
       inline,
       alignRight,
       disabled,
@@ -71,14 +71,13 @@ class FieldControl extends React.Component {
         <FieldControlWrapper>
           <FieldControlStyled alignRight={alignRight}>{children}</FieldControlStyled>
 
-          {disabled &&
-            disabledReason && (
-              <Flex align="center" ml={1} className="disabled-indicator">
-                <Tooltip title={disabledReason}>
-                  <StyledInlineSvg src="icon-circle-question" size="18px" />
-                </Tooltip>
-              </Flex>
-            )}
+          {disabled && disabledReason && (
+            <Flex align="center" ml={1} className="disabled-indicator">
+              <Tooltip title={disabledReason}>
+                <StyledInlineSvg src="icon-circle-question" size="18px" />
+              </Tooltip>
+            </Flex>
+          )}
 
           <FieldControlState flexibleControlStateSize={flexibleControlStateSize}>
             {controlState}

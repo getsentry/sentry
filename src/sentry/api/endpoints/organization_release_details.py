@@ -1,22 +1,14 @@
 from __future__ import absolute_import
 
-from rest_framework import serializers
-from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
 
 from sentry.api.base import DocSection
 from sentry.api.bases.organization import OrganizationReleasesBaseEndpoint
 from sentry.api.exceptions import InvalidRepository, ResourceDoesNotExist
 from sentry.api.serializers import serialize
-from sentry.api.serializers.rest_framework import (
-    CommitSerializer,
-    ListField,
-    ReleaseHeadCommitSerializerDeprecated,
-    ReleaseHeadCommitSerializer,
-)
+from sentry.api.serializers.rest_framework import ListField, ReleaseSerializer, ReleaseHeadCommitSerializer, ReleaseHeadCommitSerializerDeprecated
 from sentry.models import Activity, Group, Release, ReleaseFile
 from sentry.utils.apidocs import scenario, attach_scenarios
-from sentry.constants import VERSION_LENGTH
 
 ERR_RELEASE_REFERENCED = "This release is referenced by active issues and cannot be removed."
 
@@ -42,13 +34,11 @@ def update_organization_release_scenario(runner):
     )
 
 
-class ReleaseSerializer(serializers.Serializer):
-    ref = serializers.CharField(max_length=VERSION_LENGTH, required=False)
-    url = serializers.URLField(required=False)
-    dateReleased = serializers.DateTimeField(required=False)
-    commits = ListField(child=CommitSerializer(), required=False, allow_null=False)
+class OrganizationReleaseSerializer(ReleaseSerializer):
     headCommits = ListField(
-        child=ReleaseHeadCommitSerializerDeprecated(), required=False, allow_null=False
+        child=ReleaseHeadCommitSerializerDeprecated(),
+        required=False,
+        allow_null=False
     )
     refs = ListField(
         child=ReleaseHeadCommitSerializer(),
@@ -82,7 +72,7 @@ class OrganizationReleaseDetailsEndpoint(OrganizationReleasesBaseEndpoint):
             raise ResourceDoesNotExist
 
         if not self.has_release_permission(request, organization, release):
-            raise PermissionDenied
+            raise ResourceDoesNotExist
 
         return Response(serialize(release, request.user))
 
@@ -128,9 +118,9 @@ class OrganizationReleaseDetailsEndpoint(OrganizationReleasesBaseEndpoint):
             raise ResourceDoesNotExist
 
         if not self.has_release_permission(request, organization, release):
-            raise PermissionDenied
+            raise ResourceDoesNotExist
 
-        serializer = ReleaseSerializer(data=request.DATA)
+        serializer = OrganizationReleaseSerializer(data=request.DATA)
 
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
@@ -210,7 +200,7 @@ class OrganizationReleaseDetailsEndpoint(OrganizationReleasesBaseEndpoint):
             raise ResourceDoesNotExist
 
         if not self.has_release_permission(request, organization, release):
-            raise PermissionDenied
+            raise ResourceDoesNotExist
 
         # we don't want to remove the first_release metadata on the Group, and
         # while people might want to kill a release (maybe to remove files),

@@ -1,6 +1,5 @@
-import React from 'react';
 import PropTypes from 'prop-types';
-import jQuery from 'jquery';
+import React from 'react';
 import createReactClass from 'create-react-class';
 
 import {ApiForm, RadioBooleanField} from 'app/components/forms';
@@ -14,11 +13,11 @@ export default createReactClass({
   },
 
   componentWillMount() {
-    jQuery(document.body).addClass('auth');
+    document.body.classList.add('auth');
   },
 
   componentWillUnmount() {
-    jQuery(document.body).removeClass('auth');
+    document.body.classList.remove('auth');
   },
 
   onSubmitSuccess() {
@@ -49,9 +48,7 @@ export default createReactClass({
                 We'd love to keep you updated via email with product and feature
                 announcements, promotions, educational materials, and events. Our updates
                 focus on relevant information, and we'll never sell your data to third
-                parties. See our <a href="https://sentry.io/privacy/">
-                  Privacy Policy
-                </a>{' '}
+                parties. See our <a href="https://sentry.io/privacy/">Privacy Policy</a>{' '}
                 for more details.
               </span>
             }

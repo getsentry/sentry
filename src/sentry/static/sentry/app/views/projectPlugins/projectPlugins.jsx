@@ -10,7 +10,7 @@ import {
 } from 'app/components/panels';
 import {t, tct} from 'app/locale';
 import Access from 'app/components/acl/access';
-import Link from 'app/components/link';
+import Link from 'app/components/links/link';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import ProjectPluginRow from 'app/views/projectPlugins/projectPluginRow';
 import RouteError from 'app/views/routeError';
@@ -27,10 +27,10 @@ class ProjectPlugins extends Component {
   };
 
   render() {
-    let {plugins, loading, error, onError, onChange, routes, params} = this.props;
-    let {orgId} = this.props.params;
-    let hasError = error;
-    let isLoading = !hasError && loading;
+    const {plugins, loading, error, onError, onChange, routes, params} = this.props;
+    const {orgId} = this.props.params;
+    const hasError = error;
+    const isLoading = !hasError && loading;
 
     if (hasError) {
       return <RouteError error={error} component={this} onRetry={onError} />;
@@ -64,16 +64,18 @@ class ProjectPlugins extends Component {
             </Access>
           </PanelAlert>
 
-          {plugins.map(plugin => (
-            <PanelItem key={plugin.id}>
-              <ProjectPluginRow
-                params={params}
-                routes={routes}
-                {...plugin}
-                onChange={onChange}
-              />
-            </PanelItem>
-          ))}
+          {plugins
+            .filter(p => !p.isHidden)
+            .map(plugin => (
+              <PanelItem key={plugin.id}>
+                <ProjectPluginRow
+                  params={params}
+                  routes={routes}
+                  {...plugin}
+                  onChange={onChange}
+                />
+              </PanelItem>
+            ))}
         </PanelBody>
       </Panel>
     );

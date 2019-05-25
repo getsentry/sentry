@@ -1,12 +1,14 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import styled from 'react-emotion';
-import {Box, Flex} from 'grid-emotion';
+import {Box} from 'grid-emotion';
 
 import {tct, t} from 'app/locale';
 
-import ExternalLink from 'app/components/externalLink';
-import Link from 'app/components/link';
+import ExternalLink from 'app/components/links/externalLink';
+import Button from 'app/components/button';
+import {Panel} from 'app/components/panels';
+import space from 'app/styles/space';
 
 export default class Intro extends React.Component {
   static propTypes = {
@@ -16,32 +18,32 @@ export default class Intro extends React.Component {
   getExampleQueries() {
     return [
       {
-        description: t('Last 10 event IDs'),
+        title: t('Events by stack filename'),
+        description: 'What is my most problematic code?',
         query: {
-          fields: ['id'],
-          aggregations: [],
-          conditions: [],
-          limit: 10,
-          orderby: '-timestamp',
-        },
-      },
-      {
-        description: t('Events by project ID'),
-        query: {
-          fields: ['project.id'],
+          fields: ['stack.filename'],
           aggregations: [['count()', null, 'count']],
           conditions: [],
-          limit: 1000,
           orderby: '-count',
         },
       },
       {
-        description: t('Top exception types'),
+        title: t('Unique issues by user'),
+        description: t("Who's having the worst time?"),
         query: {
-          fields: ['error.type'],
+          fields: ['user.id', 'user.username', 'user.email', 'user.ip'],
+          aggregations: [['uniq', 'issue.id', 'uniq_issue_id']],
+          conditions: [],
+          orderby: '-uniq_issue_id',
+        },
+      },
+      {
+        title: t('Events by geography'),
+        description: 'Are my services less reliable in some regions?',
+        query: {
+          fields: ['geo.country_code', 'geo.region', 'geo.city'],
           aggregations: [['count()', null, 'count']],
-          conditions: [['error.type', 'IS NOT NULL', null]],
-          limit: 1000,
+          conditions: [],
           orderby: '-count',
         },
       },
@@ -50,40 +52,32 @@ export default class Intro extends React.Component {
 
   render() {
     return (
-      <IntroContainer
-        style={{width: '100%', height: '100%'}}
-        align="center"
-        justify="center"
-      >
-        <Box w={500}>
+      <IntroContainer>
+        <Box w={560}>
+          <Heading>{t('Discover lets you query raw event data in Sentry')}</Heading>
           <TextBlock>
             {tct(
-              `Welcome to [discover:Discover]. Discover lets you query raw
-              event data in Sentry.`,
+              `Getting started? Try running one of the example queries below.
+            To learn more about how to use the query builder, [docs:see the docs].`,
               {
-                discover: <strong />,
+                docs: <ExternalLink href="https://docs.sentry.io/product/discover/" />,
               }
             )}
           </TextBlock>
           <TextBlock>
-            {t(
-              `Getting started? Try running one of the example queries below.
-              Select the query you want to make, then click "Run Query".`
-            )}
-            <ul>
-              {this.getExampleQueries().map(({query, description}, idx) => (
-                <li key={idx}>
-                  <Link onClick={() => this.props.updateQuery(query)}>{description}</Link>
-                </li>
-              ))}
-            </ul>
-          </TextBlock>
-          <TextBlock>
-            {tct(
-              `To learn more about how to use the query builder, see the
-              [docs:docs].`,
-              {docs: <ExternalLink href="https://docs.sentry.io/product/discover/" />}
-            )}
+            {this.getExampleQueries().map(({title, description, query}, idx) => (
+              <ExampleQuery key={idx}>
+                <div>
+                  <div>{title}</div>
+                  <ExampleQueryDescription>{description}</ExampleQueryDescription>
+                </div>
+                <div>
+                  <Button size="small" onClick={() => this.props.updateQuery(query)}>
+                    {t('Run')}
+                  </Button>
+                </div>
+              </ExampleQuery>
+            ))}
           </TextBlock>
         </Box>
       </IntroContainer>
@@ -91,11 +85,35 @@ export default class Intro extends React.Component {
   }
 }
 
-const IntroContainer = styled(Flex)`
+const IntroContainer = styled('div')`
+  display: flex;
+  align-items: center;
+  justify-content: center;
   font-size: ${p => p.theme.fontSizeLarge};
   color: ${p => p.theme.gray5};
+  width: 100%;
+  height: 100%;
+  min-height: 420px;
+  min-width: 500px;
+`;
+
+const Heading = styled('div')`
+  font-size: ${p => p.theme.fontSizeExtraLarge};
+  font-weight: 700;
+  margin: 0 0 20px;
 `;
 
 const TextBlock = styled('div')`
   margin: 0 0 20px;
+`;
+
+const ExampleQuery = styled(Panel)`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: ${space(2)};
+`;
+const ExampleQueryDescription = styled('div')`
+  font-size: ${p => p.theme.fontSizeSmall};
+  color: ${p => p.theme.gray1};
 `;

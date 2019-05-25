@@ -60,9 +60,12 @@ export function addIntegrationToProject(orgId, projectId, integration) {
  */
 export function deleteRepository(client, orgId, repositoryId) {
   addLoadingMessage();
-  let promise = client.requestPromise(`/organizations/${orgId}/repos/${repositoryId}/`, {
-    method: 'DELETE',
-  });
+  const promise = client.requestPromise(
+    `/organizations/${orgId}/repos/${repositoryId}/`,
+    {
+      method: 'DELETE',
+    }
+  );
   promise.then(
     () => clearIndicators(),
     () => addErrorMessage(t('Unable to delete repository.'))
@@ -79,10 +82,13 @@ export function deleteRepository(client, orgId, repositoryId) {
  */
 export function cancelDeleteRepository(client, orgId, repositoryId) {
   addLoadingMessage();
-  let promise = client.requestPromise(`/organizations/${orgId}/repos/${repositoryId}/`, {
-    method: 'PUT',
-    data: {status: 'visible'},
-  });
+  const promise = client.requestPromise(
+    `/organizations/${orgId}/repos/${repositoryId}/`,
+    {
+      method: 'PUT',
+      data: {status: 'visible'},
+    }
+  );
   promise.then(
     () => clearIndicators(),
     () => addErrorMessage(t('Unable to cancel deletion.'))
@@ -93,13 +99,13 @@ export function cancelDeleteRepository(client, orgId, repositoryId) {
 function applyRepositoryAddComplete(promise) {
   promise.then(
     repo => {
-      let message = tct('[repo] has been successfully added.', {
+      const message = tct('[repo] has been successfully added.', {
         repo: repo.name,
       });
       addSuccessMessage(message);
     },
     errorData => {
-      let text = errorData.responseJSON.errors
+      const text = errorData.responseJSON.errors
         ? errorData.responseJSON.errors.__all__
         : t('Unable to add repository.');
       addErrorMessage(text);
@@ -117,12 +123,15 @@ function applyRepositoryAddComplete(promise) {
  * @param {Object} integration Integration provider data.
  */
 export function migrateRepository(client, orgId, repositoryId, integration) {
-  let data = {integrationId: integration.id};
+  const data = {integrationId: integration.id};
   addLoadingMessage();
-  let promise = client.requestPromise(`/organizations/${orgId}/repos/${repositoryId}/`, {
-    data,
-    method: 'PUT',
-  });
+  const promise = client.requestPromise(
+    `/organizations/${orgId}/repos/${repositoryId}/`,
+    {
+      data,
+      method: 'PUT',
+    }
+  );
   return applyRepositoryAddComplete(promise);
 }
 
@@ -135,13 +144,13 @@ export function migrateRepository(client, orgId, repositoryId, integration) {
  * @param {Object} integration Integration provider data.
  */
 export function addRepository(client, orgId, name, integration) {
-  let data = {
+  const data = {
     installation: integration.id,
     identifier: name,
     provider: `integrations:${integration.provider.key}`,
   };
   addLoadingMessage();
-  let promise = client.requestPromise(`/organizations/${orgId}/repos/`, {
+  const promise = client.requestPromise(`/organizations/${orgId}/repos/`, {
     method: 'POST',
     data,
   });

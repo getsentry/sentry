@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 import re
+import logging
 from django.db import IntegrityError, transaction
 from six import BytesIO
 from rest_framework.response import Response
@@ -11,6 +12,8 @@ from sentry.api.content_negotiation import ConditionalContentNegotiation
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
+from sentry.api.endpoints.organization_release_files import load_dist
+from sentry.constants import MAX_RELEASE_FILES_OFFSET
 from sentry.models import File, Release, ReleaseFile
 from sentry.utils.apidocs import scenario, attach_scenarios
 
@@ -86,7 +89,8 @@ class ProjectReleaseFilesEndpoint(ProjectEndpoint):
             queryset=file_list,
             order_by='name',
             paginator_cls=OffsetPaginator,
-            on_results=lambda x: serialize(x, request.user),
+            max_offset=MAX_RELEASE_FILES_OFFSET,
+            on_results=lambda r: serialize(load_dist(r), request.user),
         )
 
     @attach_scenarios([upload_file_scenario])
@@ -127,6 +131,9 @@ class ProjectReleaseFilesEndpoint(ProjectEndpoint):
             )
         except Release.DoesNotExist:
             raise ResourceDoesNotExist
+
+        logger = logging.getLogger('sentry.files')
+        logger.info('projectreleasefile.start')
 
         if 'file' not in request.FILES:
             return Response({'detail': 'Missing uploaded file'}, status=400)
@@ -174,7 +181,7 @@ class ProjectReleaseFilesEndpoint(ProjectEndpoint):
             type='release.file',
             headers=headers,
         )
-        file.putfile(fileobj)
+        file.putfile(fileobj, logger=logger)
 
         try:
             with transaction.atomic():

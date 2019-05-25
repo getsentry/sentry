@@ -13,8 +13,8 @@ import github from 'app/../images/integrations/github-logo.png';
 import githubEnterprise from 'app/../images/integrations/github-enterprise-logo.png';
 import gitlab from 'app/../images/integrations/gitlab-logo.png';
 import heroku from 'app/../images/integrations/heroku-logo.png';
-import hipchat from 'app/../images/integrations/hipchat-logo.png';
 import jira from 'app/../images/integrations/jira-logo.png';
+import jiraserver from 'app/../images/integrations/jira-server-logo.png';
 import lighthouse from 'app/../images/integrations/lighthouse-logo.png';
 import opsgenie from 'app/../images/integrations/opsgenie-logo.png';
 import pagerduty from 'app/../images/integrations/pagerduty-logo.png';
@@ -22,6 +22,7 @@ import phabricator from 'app/../images/integrations/phabricator-logo.png';
 import pivotal from 'app/../images/integrations/pivotaltracker-logo.png';
 import pushover from 'app/../images/integrations/pushover-logo.png';
 import redmine from 'app/../images/integrations/redmine-logo.png';
+import rookout from 'app/../images/integrations/rookout-logo.png';
 import slack from 'app/../images/integrations/slack-logo.png';
 import taiga from 'app/../images/integrations/taiga-logo.png';
 import teamwork from 'app/../images/integrations/teamwork-logo.png';
@@ -51,11 +52,10 @@ export const ICON_PATHS = {
   github_enterprise: githubEnterprise,
   gitlab,
   heroku,
-  hipchat,
-  'hipchat-ac': hipchat,
   jira,
   'jira-atlassian-connect': jira,
   'jira-ac': jira,
+  jira_server: jiraserver,
   lighthouse,
   opsgenie,
   pagerduty,
@@ -63,6 +63,7 @@ export const ICON_PATHS = {
   pivotal,
   pushover,
   redmine,
+  rookout,
   slack,
   taiga,
   teamwork,
@@ -72,7 +73,7 @@ export const ICON_PATHS = {
   youtrack,
 };
 
-const IntegrationIcon = styled.div`
+const IntegrationIcon = styled('div')`
   position: relative;
   height: ${p => p.size}px;
   width: ${p => p.size}px;
@@ -99,8 +100,8 @@ class PluginIcon extends React.Component {
   };
 
   render() {
-    let {pluginId, size, ...props} = this.props;
-    let src = ICON_PATHS[pluginId] || DEFAULT_ICON;
+    const {pluginId, size, ...props} = this.props;
+    const src = ICON_PATHS[pluginId] || DEFAULT_ICON;
 
     return <IntegrationIcon {...props} image={src} size={size} />;
   }

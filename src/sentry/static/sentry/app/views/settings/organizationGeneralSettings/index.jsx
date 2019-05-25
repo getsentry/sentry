@@ -11,9 +11,9 @@ import {
   updateOrganization,
 } from 'app/actionCreators/organizations';
 import {t, tct} from 'app/locale';
-import ApiMixin from 'app/mixins/apiMixin';
+import withApi from 'app/utils/withApi';
 import Field from 'app/views/settings/components/forms/field';
-import LinkWithConfirmation from 'app/components/linkWithConfirmation';
+import LinkWithConfirmation from 'app/components/links/linkWithConfirmation';
 import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
@@ -25,10 +25,9 @@ const OrganizationGeneralSettings = createReactClass({
   displayName: 'OrganizationGeneralSettings',
 
   propTypes: {
+    api: PropTypes.object,
     routes: PropTypes.arrayOf(PropTypes.object),
   },
-
-  mixins: [ApiMixin],
 
   getInitialState() {
     return {
@@ -51,7 +50,7 @@ const OrganizationGeneralSettings = createReactClass({
 
   fetchData() {
     return new Promise((resolve, reject) => {
-      this.api.request(`/organizations/${this.props.params.orgId}/`, {
+      this.props.api.request(`/organizations/${this.props.params.orgId}/`, {
         method: 'GET',
         success: data => {
           resolve(data);
@@ -64,11 +63,13 @@ const OrganizationGeneralSettings = createReactClass({
   },
 
   handleRemoveOrganization() {
-    let {data} = this.state || {};
-    if (!data) return;
+    const {data} = this.state || {};
+    if (!data) {
+      return;
+    }
 
     addLoadingMessage();
-    removeAndRedirectToRemainingOrganization(this.api, {
+    removeAndRedirectToRemainingOrganization(this.props.api, {
       orgId: this.props.params.orgId,
       successMessage: `${data.name} is queued for deletion.`,
       errorMessage: `Error removing the ${data && data.name} organization`,
@@ -88,86 +89,85 @@ const OrganizationGeneralSettings = createReactClass({
   },
 
   render() {
-    let {data, loading, error} = this.state;
-    let orgId = this.props.params.orgId;
-    let access = data && new Set(data.access);
+    const {data, loading, error} = this.state;
+    const orgId = this.props.params.orgId;
+    const access = data && new Set(data.access);
 
-    let hasProjects = data && data.projects && !!data.projects.length;
+    const hasProjects = data && data.projects && !!data.projects.length;
 
     return (
       <div>
         {error && <LoadingError />}
         {loading && !error && <LoadingIndicator />}
 
-        {data &&
-          !loading &&
-          !error && (
-            <div>
-              <SettingsPageHeader title={t('Organization Settings')} />
-              <OrganizationSettingsForm
-                {...this.props}
-                initialData={data}
-                orgId={orgId}
-                access={access}
-                onSave={this.handleSave}
-              />
+        {data && !loading && !error && (
+          <div>
+            <SettingsPageHeader title={t('Organization Settings')} />
+            <OrganizationSettingsForm
+              {...this.props}
+              initialData={data}
+              orgId={orgId}
+              access={access}
+              onSave={this.handleSave}
+            />
 
-              {access.has('org:admin') &&
-                !data.isDefault && (
-                  <Panel>
-                    <PanelHeader>{t('Remove Organization')}</PanelHeader>
-                    <Field
-                      label={t('Remove Organization')}
-                      help={t(
-                        'Removing this organization will delete all data including projects and their associated events.'
-                      )}
-                    >
-                      <div>
-                        <LinkWithConfirmation
-                          className="btn btn-danger"
-                          priority="danger"
-                          size="small"
-                          title={t('Remove %s organization', data && data.name)}
-                          message={
+            {access.has('org:admin') && !data.isDefault && (
+              <Panel>
+                <PanelHeader>{t('Remove Organization')}</PanelHeader>
+                <Field
+                  label={t('Remove Organization')}
+                  help={t(
+                    'Removing this organization will delete all data including projects and their associated events.'
+                  )}
+                >
+                  <div>
+                    <LinkWithConfirmation
+                      className="btn btn-danger"
+                      priority="danger"
+                      size="small"
+                      title={t('Remove %s organization', data && data.name)}
+                      message={
+                        <div>
+                          <TextBlock>
+                            {tct(
+                              'Removing the organization, [name] is permanent and cannot be undone! Are you sure you want to continue?',
+                              {
+                                name: data && <strong>{data.name}</strong>,
+                              }
+                            )}
+                          </TextBlock>
+
+                          {hasProjects && (
                             <div>
-                              <TextBlock>
-                                {tct(
-                                  'Removing the organization, [name] is permanent and cannot be undone! Are you sure you want to continue?',
-                                  {
-                                    name: data && <strong>{data.name}</strong>,
-                                  }
+                              <TextBlock noMargin>
+                                {t(
+                                  'This will also remove the following associated projects:'
                                 )}
                               </TextBlock>
-
-                              {hasProjects && (
-                                <div>
-                                  <TextBlock noMargin>
-                                    {t(
-                                      'This will also remove the following associated projects:'
-                                    )}
-                                  </TextBlock>
-                                  <ul className="ref-projects">
-                                    {data.projects.map(project => (
-                                      <li key={project.slug}>{project.slug}</li>
-                                    ))}
-                                  </ul>
-                                </div>
-                              )}
+                              <ul className="ref-projects">
+                                {data.projects.map(project => (
+                                  <li key={project.slug}>{project.slug}</li>
+                                ))}
+                              </ul>
                             </div>
-                          }
-                          onConfirm={this.handleRemoveOrganization}
-                        >
-                          {t('Remove Organization')}
-                        </LinkWithConfirmation>
-                      </div>
-                    </Field>
-                  </Panel>
-                )}
-            </div>
-          )}
+                          )}
+                        </div>
+                      }
+                      onConfirm={this.handleRemoveOrganization}
+                    >
+                      {t('Remove Organization')}
+                    </LinkWithConfirmation>
+                  </div>
+                </Field>
+              </Panel>
+            )}
+          </div>
+        )}
       </div>
     );
   },
 });
 
-export default OrganizationGeneralSettings;
+export {OrganizationGeneralSettings};
+
+export default withApi(OrganizationGeneralSettings);

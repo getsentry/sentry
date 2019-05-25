@@ -6,7 +6,6 @@ import TimeSince from 'app/components/timeSince';
 import Version from 'app/components/version';
 import VersionHoverCard from 'app/components/versionHoverCard';
 import Tooltip from 'app/components/tooltip';
-import {componentToString} from 'app/utils/componentToString';
 import {defined, toTitleCase} from 'app/utils';
 import {t} from 'app/locale';
 
@@ -38,20 +37,20 @@ const SeenInfo = createReactClass({
   },
 
   getReleaseTrackingUrl() {
-    let {orgId, projectId} = this.props;
+    const {orgId, projectId} = this.props;
 
-    return `/${orgId}/${projectId}/settings/release-tracking/`;
+    return `/settings/${orgId}/projects/${projectId}/release-tracking/`;
   },
 
   getTooltipTitle() {
-    let {date, dateGlobal, environment, title} = this.props;
+    const {date, dateGlobal, title, environment} = this.props;
 
-    return componentToString(
-      <div style={{width: 170}}>
+    return (
+      <div style={{width: '170px'}}>
         <div className="time-label">{title}</div>
         <dl className="flat">
           {environment && [
-            <dt key="0">{toTitleCase(environment)}</dt>,
+            <dt key="0">{toTitleCase(environment)}:</dt>,
             <dd key="0.1">
               <TimeSince date={date} />
               <br />
@@ -68,16 +67,14 @@ const SeenInfo = createReactClass({
   },
 
   render() {
-    let {date, dateGlobal, environment, release, orgId, projectId} = this.props;
+    const {date, dateGlobal, environment, release, orgId, projectId} = this.props;
     return (
       <dl className="seen-info">
         <dt key={0}>{t('When')}:</dt>
         {date ? (
           <dd key={1}>
-            <Tooltip title={this.getTooltipTitle()} tooltipOptions={{html: true}}>
-              <span>
-                <TimeSince className="dotted-underline" date={date} />
-              </span>
+            <Tooltip title={this.getTooltipTitle()}>
+              <TimeSince className="dotted-underline" date={date} />
             </Tooltip>
             <br />
             <small>
@@ -86,10 +83,8 @@ const SeenInfo = createReactClass({
           </dd>
         ) : dateGlobal && environment === '' ? (
           <dd key={1}>
-            <Tooltip title={this.getTooltipTitle()} tooltipOptions={{html: true}}>
-              <span>
-                <TimeSince date={dateGlobal} />
-              </span>
+            <Tooltip title={this.getTooltipTitle()}>
+              <TimeSince date={dateGlobal} />
             </Tooltip>
             <br />
             <small>
@@ -107,7 +102,12 @@ const SeenInfo = createReactClass({
               projectId={projectId}
               version={release.version}
             >
-              <Version orgId={orgId} projectId={projectId} version={release.version} />
+              <Version
+                orgId={orgId}
+                projectId={projectId}
+                version={release.version}
+                className="truncate"
+              />
             </VersionHoverCard>
           </dd>
         ) : !this.props.hasRelease ? (

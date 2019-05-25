@@ -21,6 +21,6 @@ class SearchBackend(Service):
     def __init__(self, **options):
         pass
 
-    def query(self, project, tags=None, environment=None, sort_by='date', limit=100,
+    def query(self, projects, tags=None, environments=None, sort_by='date', limit=100,
               cursor=None, count_hits=False, paginator_options=None, **parameters):
         raise NotImplementedError

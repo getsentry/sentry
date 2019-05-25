@@ -97,14 +97,26 @@ class GroupDetailsTest(APITestCase):
             assert response.status_code == 200
             assert get_range.call_count == 2
             for args, kwargs in get_range.call_args_list:
-                assert kwargs['environment_id'] == environment.id
+                assert kwargs['environment_ids'] == [environment.id]
 
-        with mock.patch(
-                'sentry.api.endpoints.group_details.tsdb.make_series',
-                side_effect=tsdb.make_series) as make_series:
-            response = self.client.get(url, {'environment': 'invalid'}, format='json')
-            assert response.status_code == 200
-            assert make_series.call_count == 2
+        response = self.client.get(url, {'environment': 'invalid'}, format='json')
+        assert response.status_code == 404
+
+    def test_platform_external_issue_annotation(self):
+        self.login_as(user=self.user)
+
+        group = self.create_group()
+        self.create_platform_external_issue(
+            group=group,
+            service_type='sentry-app',
+            web_url='https://example.com/issues/2',
+            display_name='Issue#2',
+        )
+        url = u'/api/0/issues/{}/'.format(group.id)
+        response = self.client.get(url, format='json')
+
+        assert response.data['annotations'] == \
+            [u'<a href="https://example.com/issues/2">Issue#2</a>']
 
 
 class GroupUpdateTest(APITestCase):

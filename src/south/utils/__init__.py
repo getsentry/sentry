@@ -37,6 +37,7 @@ def get_attribute(item, attribute):
     """
     value = item
     for part in attribute.split("."):
+        part = 'model_name' if part == 'module_name' else part
         value = getattr(value, part)
     return value
 

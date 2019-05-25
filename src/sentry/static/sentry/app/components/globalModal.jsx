@@ -39,7 +39,7 @@ class GlobalModal extends React.Component {
   };
 
   handleCloseModal = () => {
-    let {options, onClose} = this.props;
+    const {options, onClose} = this.props;
 
     // onClose callback for calling component
     if (typeof options.onClose === 'function') {
@@ -56,7 +56,7 @@ class GlobalModal extends React.Component {
   };
 
   render() {
-    let {visible, children, options} = this.props;
+    const {visible, children, options} = this.props;
     let Component = Modal;
 
     if (options && options.type === 'confirm') {
@@ -97,18 +97,18 @@ const GlobalModalContainer = createReactClass({
 
   componentDidMount() {
     // Listen for route changes so we can dismiss modal
-    this.unlisten = browserHistory.listen(() => closeModal());
+    this.unlistenBrowserHistory = browserHistory.listen(() => closeModal());
   },
 
   componentWillUnmount() {
-    if (this.unlisten) {
-      this.unlisten();
+    if (this.unlistenBrowserHistory) {
+      this.unlistenBrowserHistory();
     }
   },
 
   render() {
-    let {modalStore} = this.state;
-    let visible = !!modalStore && typeof modalStore.renderer === 'function';
+    const {modalStore} = this.state;
+    const visible = !!modalStore && typeof modalStore.renderer === 'function';
 
     return (
       <GlobalModal {...this.props} {...modalStore} visible={visible}>

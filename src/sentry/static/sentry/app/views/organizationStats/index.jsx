@@ -2,7 +2,9 @@ import $ from 'jquery';
 import React from 'react';
 import createReactClass from 'create-react-class';
 import PropTypes from 'prop-types';
-import ApiMixin from 'app/mixins/apiMixin';
+import DocumentTitle from 'react-document-title';
+
+import withApi from 'app/utils/withApi';
 import OrganizationState from 'app/mixins/organizationState';
 
 import LazyLoad from 'app/components/lazyLoad';
@@ -10,13 +12,14 @@ import LazyLoad from 'app/components/lazyLoad';
 const OrganizationStatsContainer = createReactClass({
   displayName: 'OrganizationStatsContainer ',
   propTypes: {
+    api: PropTypes.object,
     routes: PropTypes.array,
   },
-  mixins: [ApiMixin, OrganizationState],
+  mixins: [OrganizationState],
 
   getInitialState() {
-    let until = Math.floor(new Date().getTime() / 1000);
-    let since = until - 3600 * 24 * 7;
+    const until = Math.floor(new Date().getTime() / 1000);
+    const since = until - 3600 * 24 * 7;
 
     return {
       projectsError: false,
@@ -54,7 +57,7 @@ const OrganizationStatsContainer = createReactClass({
   },
 
   componentDidUpdate(prevProps) {
-    let prevParams = prevProps.params,
+    const prevParams = prevProps.params,
       currentParams = this.props.params;
 
     if (prevParams.orgId !== currentParams.orgId) {
@@ -70,7 +73,7 @@ const OrganizationStatsContainer = createReactClass({
       }
       this.fetchProjectData();
     }
-    let state = this.state;
+    const state = this.state;
     if (state.statsLoading && !state.statsRequestsPending) {
       this.processOrgData();
     }
@@ -80,10 +83,10 @@ const OrganizationStatsContainer = createReactClass({
   },
 
   fetchProjectData() {
-    this.api.request(this.getOrganizationProjectsEndpoint(), {
+    this.props.api.request(this.getOrganizationProjectsEndpoint(), {
       query: this.props.location.query,
       success: (data, textStatus, jqxhr) => {
-        let projectMap = {};
+        const projectMap = {};
         data.forEach(project => {
           projectMap[project.id] = project;
         });
@@ -114,10 +117,10 @@ const OrganizationStatsContainer = createReactClass({
       projectsRequestsPending: 4,
     });
 
-    let statEndpoint = this.getOrganizationStatsEndpoint();
+    const statEndpoint = this.getOrganizationStatsEndpoint();
 
     $.each(this.state.rawOrgData, statName => {
-      this.api.request(statEndpoint, {
+      this.props.api.request(statEndpoint, {
         query: {
           since: this.state.querySince,
           until: this.state.queryUntil,
@@ -126,7 +129,7 @@ const OrganizationStatsContainer = createReactClass({
         },
         success: data => {
           this.setState(prevState => {
-            let rawOrgData = prevState.rawOrgData;
+            const rawOrgData = prevState.rawOrgData;
             rawOrgData[statName] = data;
 
             return {
@@ -144,7 +147,7 @@ const OrganizationStatsContainer = createReactClass({
     });
 
     $.each(this.state.rawProjectData, statName => {
-      this.api.request(statEndpoint, {
+      this.props.api.request(statEndpoint, {
         query: {
           since: this.state.querySince,
           until: this.state.queryUntil,
@@ -153,7 +156,7 @@ const OrganizationStatsContainer = createReactClass({
         },
         success: data => {
           this.setState(prevState => {
-            let rawProjectData = prevState.rawProjectData;
+            const rawProjectData = prevState.rawProjectData;
             rawProjectData[statName] = data;
 
             return {
@@ -174,12 +177,12 @@ const OrganizationStatsContainer = createReactClass({
   },
 
   getOrganizationStatsEndpoint() {
-    let params = this.props.params;
+    const params = this.props.params;
     return '/organizations/' + params.orgId + '/stats/';
   },
 
   getOrganizationProjectsEndpoint() {
-    let params = this.props.params;
+    const params = this.props.params;
     return '/organizations/' + params.orgId + '/projects/';
   },
 
@@ -187,14 +190,14 @@ const OrganizationStatsContainer = createReactClass({
     let oReceived = 0;
     let oRejected = 0;
     let oBlacklisted = 0;
-    let orgPoints = []; // accepted, rejected, blacklisted
-    let aReceived = [0, 0]; // received, points
-    let rawOrgData = this.state.rawOrgData;
+    const orgPoints = []; // accepted, rejected, blacklisted
+    const aReceived = [0, 0]; // received, points
+    const rawOrgData = this.state.rawOrgData;
     $.each(rawOrgData.received, (idx, point) => {
-      let dReceived = point[1];
-      let dRejected = rawOrgData.rejected[idx][1];
-      let dBlacklisted = rawOrgData.blacklisted[idx][1];
-      let dAccepted = Math.max(0, dReceived - dRejected - dBlacklisted);
+      const dReceived = point[1];
+      const dRejected = rawOrgData.rejected[idx][1];
+      const dBlacklisted = rawOrgData.blacklisted[idx][1];
+      const dAccepted = Math.max(0, dReceived - dRejected - dBlacklisted);
       orgPoints.push({
         x: point[0],
         y: [dAccepted, dRejected, dBlacklisted],
@@ -221,8 +224,8 @@ const OrganizationStatsContainer = createReactClass({
   },
 
   processProjectData() {
-    let rawProjectData = this.state.rawProjectData;
-    let projectTotals = [];
+    const rawProjectData = this.state.rawProjectData;
+    const projectTotals = [];
     $.each(rawProjectData.received, (projectId, data) => {
       let pReceived = 0;
       let pRejected = 0;
@@ -247,19 +250,24 @@ const OrganizationStatsContainer = createReactClass({
   },
 
   render() {
-    let organization = this.getOrganization();
+    const organization = this.getOrganization();
 
     return (
-      <LazyLoad
-        component={() =>
-          import(/* webpackChunkName: "organizationStats" */ './organizationStatsDetails').then(
-            mod => mod.default
-          )}
-        organization={organization}
-        {...this.state}
-      />
+      <DocumentTitle title={`Stats - ${organization.slug} - Sentry`}>
+        <LazyLoad
+          component={() =>
+            import(/* webpackChunkName: "organizationStats" */ './organizationStatsDetails').then(
+              mod => mod.default
+            )
+          }
+          organization={organization}
+          {...this.state}
+        />
+      </DocumentTitle>
     );
   },
 });
 
-export default OrganizationStatsContainer;
+export {OrganizationStatsContainer};
+
+export default withApi(OrganizationStatsContainer);

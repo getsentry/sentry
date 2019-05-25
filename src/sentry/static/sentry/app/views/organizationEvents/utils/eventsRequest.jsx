@@ -2,15 +2,19 @@ import {isEqual, omitBy} from 'lodash';
 import PropTypes from 'prop-types';
 import React from 'react';
 
+import {addErrorMessage} from 'app/actionCreators/indicator';
+import {canIncludePreviousPeriod} from 'app/views/organizationEvents/utils/canIncludePreviousPeriod';
 import {doEventsRequest} from 'app/actionCreators/events';
-import LoadingPanel from 'app/views/organizationHealth/loadingPanel';
+import {t} from 'app/locale';
 import SentryTypes from 'app/sentryTypes';
-import withApi from 'app/utils/withApi';
-import withLatestContext from 'app/utils/withLatestContext';
 
-import EventsContext from './eventsContext';
+import LoadingPanel from '../loadingPanel';
 
-class EventsRequestWithParams extends React.Component {
+const propNamesToIgnore = ['api', 'children', 'organization', 'loading'];
+const omitIgnoredProps = props =>
+  omitBy(props, (value, key) => propNamesToIgnore.includes(key));
+
+class EventsRequest extends React.PureComponent {
   static propTypes = {
     /**
      * API client instance
@@ -22,12 +26,12 @@ class EventsRequestWithParams extends React.Component {
     /**
      * List of project ids to query
      */
-    projects: PropTypes.arrayOf(PropTypes.number),
+    project: PropTypes.arrayOf(PropTypes.number),
 
     /**
      * List of environments to query
      */
-    environments: PropTypes.arrayOf(PropTypes.string),
+    environment: PropTypes.arrayOf(PropTypes.string),
 
     /**
      * Relative time period for query.
@@ -80,6 +84,9 @@ class EventsRequestWithParams extends React.Component {
      */
     timeAggregationSeriesName: PropTypes.string,
 
+    // Initial loading state
+    loading: PropTypes.bool,
+
     showLoading: PropTypes.bool,
   };
 
@@ -99,7 +106,7 @@ class EventsRequestWithParams extends React.Component {
   constructor(props) {
     super(props);
     this.state = {
-      reloading: false,
+      reloading: false || props.loading,
       timeseriesData: null,
     };
   }
@@ -109,11 +116,6 @@ class EventsRequestWithParams extends React.Component {
   }
 
   componentDidUpdate(prevProps) {
-    const propNamesToIgnore = ['api', 'children', 'organizations', 'project'];
-
-    const omitIgnoredProps = props =>
-      omitBy(props, (value, key) => propNamesToIgnore.includes(key));
-
     if (isEqual(omitIgnoredProps(prevProps), omitIgnoredProps(this.props))) {
       return;
     }
@@ -127,14 +129,26 @@ class EventsRequestWithParams extends React.Component {
 
   fetchData = async () => {
     const {api, ...props} = this.props;
+    let timeseriesData;
 
     this.setState(state => ({
       reloading: state.timeseriesData !== null,
     }));
 
-    const timeseriesData = await doEventsRequest(api, props);
+    try {
+      timeseriesData = await doEventsRequest(api, props);
+    } catch (resp) {
+      if (resp && resp.responseJSON && resp.responseJSON.detail) {
+        addErrorMessage(resp.responseJSON.detail);
+      } else {
+        addErrorMessage(t('Error loading chart data'));
+      }
+      timeseriesData = null;
+    }
 
-    if (this.unmounting) return;
+    if (this.unmounting) {
+      return;
+    }
 
     this.setState({
       reloading: false,
@@ -149,7 +163,7 @@ class EventsRequestWithParams extends React.Component {
    * Returns `null` if data does not exist
    */
   getData = data => {
-    const {includePrevious} = this.props;
+    const {period, includePrevious} = this.props;
 
     if (!data) {
       return {
@@ -158,7 +172,7 @@ class EventsRequestWithParams extends React.Component {
       };
     }
 
-    const hasPreviousPeriod = includePrevious;
+    const hasPreviousPeriod = canIncludePreviousPeriod(includePrevious, period);
     // Take the floor just in case, but data should always be divisible by 2
     const dataMiddleIndex = Math.floor(data.length / 2);
 
@@ -182,7 +196,9 @@ class EventsRequestWithParams extends React.Component {
   transformPreviousPeriodData = (current, previous) => {
     // Need the current period data array so we can take the timestamp
     // so we can be sure the data lines up
-    if (!previous) return null;
+    if (!previous) {
+      return null;
+    }
 
     return {
       seriesName: 'Previous Period',
@@ -197,7 +213,9 @@ class EventsRequestWithParams extends React.Component {
    * Aggregate all counts for each time stamp
    */
   transformAggregatedTimeseries = (data, seriesName) => {
-    if (!data) return null;
+    if (!data) {
+      return null;
+    }
 
     return {
       seriesName,
@@ -221,7 +239,9 @@ class EventsRequestWithParams extends React.Component {
   };
 
   transformData = data => {
-    if (!data) return null;
+    if (!data) {
+      return null;
+    }
 
     return this.transformTimeseriesData(data);
   };
@@ -260,10 +280,10 @@ class EventsRequestWithParams extends React.Component {
     const {timeseriesData, reloading} = this.state;
 
     // Is "loading" if data is null
-    const loading = reloading || timeseriesData === null;
+    const loading = this.props.loading || timeseriesData === null;
 
     if (showLoading && loading) {
-      return <LoadingPanel />;
+      return <LoadingPanel data-test-id="events-request-loading" />;
     }
 
     const {
@@ -274,11 +294,11 @@ class EventsRequestWithParams extends React.Component {
       originalPreviousData: originalPreviousTimeseriesData,
       previousData: previousTimeseriesData,
       timeAggregatedData,
-    } =
-      (timeseriesData && this.processData(timeseriesData, true)) || {};
+    } = (timeseriesData && this.processData(timeseriesData, true)) || {};
 
     return children({
       loading,
+      reloading,
 
       // timeseries data
       timeseriesData: transformedTimeseriesData,
@@ -295,27 +315,4 @@ class EventsRequestWithParams extends React.Component {
   }
 }
 
-const EventsRequest = withLatestContext(
-  withApi(
-    class EventsRequest extends React.Component {
-      render() {
-        return (
-          <EventsContext.Consumer>
-            {({projects, environments, period, filters}) => (
-              <EventsRequestWithParams
-                projects={projects}
-                environments={environments}
-                period={period}
-                filters={filters}
-                {...this.props}
-              />
-            )}
-          </EventsContext.Consumer>
-        );
-      }
-    }
-  )
-);
-
 export default EventsRequest;
-export {EventsRequestWithParams};

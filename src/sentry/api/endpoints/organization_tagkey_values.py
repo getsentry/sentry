@@ -1,14 +1,12 @@
 from __future__ import absolute_import
 
-from functools32 import partial
-
 from rest_framework.response import Response
 
-from sentry.api.bases import OrganizationEventsEndpointBase, OrganizationEventsError
-from sentry.api.event_search import get_snuba_query_args, InvalidSearchQuery
-from sentry.api.paginator import GenericOffsetPaginator
-from sentry.utils.snuba import raw_query
+from sentry.api.bases import OrganizationEventsEndpointBase, OrganizationEventsError, NoProjects
+from sentry.api.paginator import SequencePaginator
+from sentry.api.serializers import serialize
 from sentry.tagstore.base import TAG_KEY_RE
+from sentry.tagstore.snuba.backend import SnubaTagStorage
 
 
 class OrganizationTagKeyValuesEndpoint(OrganizationEventsEndpointBase):
@@ -21,31 +19,23 @@ class OrganizationTagKeyValuesEndpoint(OrganizationEventsEndpointBase):
             filter_params = self.get_filter_params(request, organization)
         except OrganizationEventsError as exc:
             return Response({'detail': exc.message}, status=400)
+        except NoProjects:
+            paginator = SequencePaginator([])
+        else:
+            # TODO(jess): update this when snuba tagstore is the primary backend for us
+            tagstore = SnubaTagStorage()
 
-        query = 'tags_key:%s' % (key,)
-
-        try:
-            snuba_args = get_snuba_query_args(query, params=filter_params)
-        except InvalidSearchQuery as exc:
-            return Response({'detail': exc.message}, status=400)
-
-        data_fn = partial(
-            # extract 'data' from raw_query result
-            lambda *args, **kwargs: raw_query(*args, **kwargs)['data'],
-            aggregations=[
-                ('count()', '', 'count'),
-            ],
-            orderby='-count',
-            groupby=['tags_value'],
-            referrer='api.organization-tags',
-            **snuba_args
-        )
+            paginator = tagstore.get_tag_value_paginator_for_projects(
+                filter_params['project_id'],
+                filter_params.get('environment'),
+                key,
+                filter_params['start'],
+                filter_params['end'],
+                query=request.GET.get('query'),
+            )
 
         return self.paginate(
             request=request,
-            on_results=lambda results: [{
-                'value': row['tags_value'],
-                'count': row['count'],
-            } for row in results],
-            paginator=GenericOffsetPaginator(data_fn=data_fn),
+            paginator=paginator,
+            on_results=lambda results: serialize(results, request.user),
         )

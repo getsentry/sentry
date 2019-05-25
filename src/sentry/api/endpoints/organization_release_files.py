@@ -1,9 +1,9 @@
 from __future__ import absolute_import
 
 import re
+import logging
 from django.db import IntegrityError, transaction
 from rest_framework.response import Response
-from rest_framework.exceptions import PermissionDenied
 
 from sentry.api.base import DocSection
 from sentry.api.bases.organization import OrganizationReleasesBaseEndpoint
@@ -11,10 +11,31 @@ from sentry.api.content_negotiation import ConditionalContentNegotiation
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
-from sentry.models import File, Release, ReleaseFile
+from sentry.constants import MAX_RELEASE_FILES_OFFSET
+from sentry.models import File, Release, ReleaseFile, Distribution
 
 ERR_FILE_EXISTS = 'A file matching this name already exists for the given release'
 _filename_re = re.compile(r"[\n\t\r\f\v\\]")
+
+
+def load_dist(results):
+    # Dists are pretty uncommon.  In case they do appear load them now
+    # as trying to join this on the DB does terrible things with large
+    # offsets (it would otherwise generate a left outer join).
+    dists = dict.fromkeys(x.dist_id for x in results)
+    if not dists:
+        return results
+
+    for dist in Distribution.objects.filter(pk__in=dists.keys()):
+        dists[dist.id] = dist
+
+    for result in results:
+        if result.dist_id is not None:
+            dist = dists.get(result.dist_id)
+            if dist is not None:
+                result.dist = dist
+
+    return results
 
 
 class OrganizationReleaseFilesEndpoint(OrganizationReleasesBaseEndpoint):
@@ -42,7 +63,7 @@ class OrganizationReleaseFilesEndpoint(OrganizationReleasesBaseEndpoint):
             raise ResourceDoesNotExist
 
         if not self.has_release_permission(request, organization, release):
-            raise PermissionDenied
+            raise ResourceDoesNotExist
 
         file_list = ReleaseFile.objects.filter(
             release=release,
@@ -53,7 +74,8 @@ class OrganizationReleaseFilesEndpoint(OrganizationReleasesBaseEndpoint):
             queryset=file_list,
             order_by='name',
             paginator_cls=OffsetPaginator,
-            on_results=lambda x: serialize(x, request.user),
+            max_offset=MAX_RELEASE_FILES_OFFSET,
+            on_results=lambda r: serialize(load_dist(r), request.user),
         )
 
     def post(self, request, organization, version):
@@ -91,8 +113,11 @@ class OrganizationReleaseFilesEndpoint(OrganizationReleasesBaseEndpoint):
         except Release.DoesNotExist:
             raise ResourceDoesNotExist
 
+        logger = logging.getLogger('sentry.files')
+        logger.info('organizationreleasefile.start')
+
         if not self.has_release_permission(request, organization, release):
-            raise PermissionDenied
+            raise ResourceDoesNotExist
 
         if 'file' not in request.FILES:
             return Response({'detail': 'Missing uploaded file'}, status=400)
@@ -140,7 +165,7 @@ class OrganizationReleaseFilesEndpoint(OrganizationReleasesBaseEndpoint):
             type='release.file',
             headers=headers,
         )
-        file.putfile(fileobj)
+        file.putfile(fileobj, logger=logger)
 
         try:
             with transaction.atomic():

@@ -75,7 +75,7 @@ class TaggedEventCondition(EventCondition):
         key = key.lower()
 
         tags = (
-            v.lower() for k, v in event.get_tags()
+            v.lower() for k, v in event.tags
             if k.lower() == key or tagstore.get_standardized_key(k) == key
         )
 

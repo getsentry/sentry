@@ -1,7 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
-import _ from 'lodash';
 import {Box} from 'grid-emotion';
 
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
@@ -9,7 +8,7 @@ import {t} from 'app/locale';
 import AsyncComponent from 'app/components/asyncComponent';
 import Avatar from 'app/components/avatar';
 import EventOrGroupHeader from 'app/components/eventOrGroupHeader';
-import LinkWithConfirmation from 'app/components/linkWithConfirmation';
+import LinkWithConfirmation from 'app/components/links/linkWithConfirmation';
 import Tooltip from 'app/components/tooltip';
 import {Panel, PanelItem} from 'app/components/panels';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
@@ -18,12 +17,10 @@ class GroupTombstoneRow extends React.Component {
   static propTypes = {
     data: PropTypes.object.isRequired,
     onUndiscard: PropTypes.func.isRequired,
-    orgId: PropTypes.string.isRequired,
-    projectId: PropTypes.string.isRequired,
   };
 
   render() {
-    let {data, onUndiscard} = this.props,
+    const {data, onUndiscard} = this.props,
       actor = data.actor;
 
     return (
@@ -33,14 +30,16 @@ class GroupTombstoneRow extends React.Component {
             includeLink={false}
             hideIcons={true}
             className="truncate"
-            {..._.omit(this.props, 'undiscard')}
+            data={data}
           />
         </StyledBox>
         <Box w={20} mx={30}>
           {actor && (
-            <Tooltip title={t('Discarded by %s', actor.name || actor.email)}>
-              <Avatar user={data.actor} />
-            </Tooltip>
+            <Avatar
+              user={data.actor}
+              hasTooltip
+              tooltip={t('Discarded by %s', actor.name || actor.email)}
+            />
           )}
         </Box>
         <Box w={30}>
@@ -74,13 +73,13 @@ class GroupTombstones extends AsyncComponent {
   };
 
   getEndpoints() {
-    let {orgId, projectId} = this.props;
+    const {orgId, projectId} = this.props;
     return [['tombstones', `/projects/${orgId}/${projectId}/tombstones/`]];
   }
 
   handleUndiscard = tombstoneId => {
-    let {orgId, projectId} = this.props;
-    let path = `/projects/${orgId}/${projectId}/tombstones/${tombstoneId}/`;
+    const {orgId, projectId} = this.props;
+    const path = `/projects/${orgId}/${projectId}/tombstones/${tombstoneId}/`;
     this.api.request(path, {
       method: 'DELETE',
       success: data => {
@@ -102,8 +101,7 @@ class GroupTombstones extends AsyncComponent {
   }
 
   renderBody() {
-    let {orgId, projectId} = this.props;
-    let {tombstones} = this.state;
+    const {tombstones} = this.state;
 
     return tombstones.length ? (
       <Panel>
@@ -112,8 +110,6 @@ class GroupTombstones extends AsyncComponent {
             <GroupTombstoneRow
               key={data.id}
               data={data}
-              orgId={orgId}
-              projectId={projectId}
               onUndiscard={this.handleUndiscard}
             />
           );

@@ -1,10 +1,14 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 import createReactClass from 'create-react-class';
 
+import {Panel} from 'app/components/panels';
 import {addLoadingMessage, removeIndicator} from 'app/actionCreators/indicator';
 import {t, tn} from 'app/locale';
-import formGroups from 'app/data/forms/processingIssues';
-import ApiMixin from 'app/mixins/apiMixin';
+import Access from 'app/components/acl/access';
+import withApi from 'app/utils/withApi';
+import Button from 'app/components/button';
+import EmptyStateWarning from 'app/components/emptyStateWarning';
 import Form from 'app/views/settings/components/forms/form';
 import JsonForm from 'app/views/settings/components/forms/jsonForm';
 import LoadingError from 'app/components/loadingError';
@@ -13,8 +17,7 @@ import OrganizationState from 'app/mixins/organizationState';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import TextBlock from 'app/views/settings/components/text/textBlock';
 import TimeSince from 'app/components/timeSince';
-import EmptyStateWarning from 'app/components/emptyStateWarning';
-import {Panel} from 'app/components/panels';
+import formGroups from 'app/data/forms/processingIssues';
 
 const MESSAGES = {
   native_no_crashed_thread: t('No crashed thread found in crash report'),
@@ -43,7 +46,10 @@ const HELP_LINKS = {
 
 const ProjectProcessingIssues = createReactClass({
   displayName: 'ProjectProcessingIssues',
-  mixins: [ApiMixin, OrganizationState],
+  propTypes: {
+    api: PropTypes.object,
+  },
+  mixins: [OrganizationState],
 
   getInitialState() {
     return {
@@ -61,13 +67,13 @@ const ProjectProcessingIssues = createReactClass({
   },
 
   fetchData() {
-    let {orgId, projectId} = this.props.params;
+    const {orgId, projectId} = this.props.params;
     this.setState({
       expected: this.state.expected + 2,
     });
-    this.api.request(`/projects/${orgId}/${projectId}/`, {
+    this.props.api.request(`/projects/${orgId}/${projectId}/`, {
       success: (data, _, jqXHR) => {
-        let expected = this.state.expected - 1;
+        const expected = this.state.expected - 1;
         this.setState({
           expected,
           loading: expected > 0,
@@ -75,7 +81,7 @@ const ProjectProcessingIssues = createReactClass({
         });
       },
       error: () => {
-        let expected = this.state.expected - 1;
+        const expected = this.state.expected - 1;
         this.setState({
           expected,
           error: true,
@@ -84,35 +90,38 @@ const ProjectProcessingIssues = createReactClass({
       },
     });
 
-    this.api.request(`/projects/${orgId}/${projectId}/processingissues/?detailed=1`, {
-      success: (data, _, jqXHR) => {
-        let expected = this.state.expected - 1;
-        this.setState({
-          expected,
-          error: false,
-          loading: expected > 0,
-          processingIssues: data,
-          pageLinks: jqXHR.getResponseHeader('Link'),
-        });
-      },
-      error: () => {
-        let expected = this.state.expected - 1;
-        this.setState({
-          expected,
-          error: true,
-          loading: expected > 0,
-        });
-      },
-    });
+    this.props.api.request(
+      `/projects/${orgId}/${projectId}/processingissues/?detailed=1`,
+      {
+        success: (data, _, jqXHR) => {
+          const expected = this.state.expected - 1;
+          this.setState({
+            expected,
+            error: false,
+            loading: expected > 0,
+            processingIssues: data,
+            pageLinks: jqXHR.getResponseHeader('Link'),
+          });
+        },
+        error: () => {
+          const expected = this.state.expected - 1;
+          this.setState({
+            expected,
+            error: true,
+            loading: expected > 0,
+          });
+        },
+      }
+    );
   },
 
   sendReprocessing() {
     this.setState({
       reprocessing: true,
     });
-    let loadingIndicator = addLoadingMessage(t('Started reprocessing..'));
-    let {orgId, projectId} = this.props.params;
-    this.api.request(`/projects/${orgId}/${projectId}/reprocessing/`, {
+    const loadingIndicator = addLoadingMessage(t('Started reprocessing..'));
+    const {orgId, projectId} = this.props.params;
+    this.props.api.request(`/projects/${orgId}/${projectId}/reprocessing/`, {
       method: 'POST',
       success: (data, _, jqXHR) => {
         this.fetchData();
@@ -132,14 +141,14 @@ const ProjectProcessingIssues = createReactClass({
   },
 
   discardEvents() {
-    let {orgId, projectId} = this.props.params;
+    const {orgId, projectId} = this.props.params;
     this.setState({
       expected: this.state.expected + 1,
     });
-    this.api.request(`/projects/${orgId}/${projectId}/processingissues/discard/`, {
+    this.props.api.request(`/projects/${orgId}/${projectId}/processingissues/discard/`, {
       method: 'DELETE',
       success: (data, _, jqXHR) => {
-        let expected = this.state.expected - 1;
+        const expected = this.state.expected - 1;
         this.setState({
           expected,
           error: false,
@@ -150,7 +159,7 @@ const ProjectProcessingIssues = createReactClass({
         window.location.reload();
       },
       error: () => {
-        let expected = this.state.expected - 1;
+        const expected = this.state.expected - 1;
         this.setState({
           expected,
           error: true,
@@ -161,14 +170,14 @@ const ProjectProcessingIssues = createReactClass({
   },
 
   deleteProcessingIssues() {
-    let {orgId, projectId} = this.props.params;
+    const {orgId, projectId} = this.props.params;
     this.setState({
       expected: this.state.expected + 1,
     });
-    this.api.request(`/projects/${orgId}/${projectId}/processingissues/`, {
+    this.props.api.request(`/projects/${orgId}/${projectId}/processingissues/`, {
       method: 'DELETE',
       success: (data, _, jqXHR) => {
-        let expected = this.state.expected - 1;
+        const expected = this.state.expected - 1;
         this.setState({
           expected,
           error: false,
@@ -179,7 +188,7 @@ const ProjectProcessingIssues = createReactClass({
         window.location.reload();
       },
       error: () => {
-        let expected = this.state.expected - 1;
+        const expected = this.state.expected - 1;
         this.setState({
           expected,
           error: true,
@@ -191,15 +200,19 @@ const ProjectProcessingIssues = createReactClass({
 
   renderDebugTable() {
     let body;
-    if (this.state.loading) body = this.renderLoading();
-    else if (this.state.error) body = <LoadingError onRetry={this.fetchData} />;
-    else if (
+    if (this.state.loading) {
+      body = this.renderLoading();
+    } else if (this.state.error) {
+      body = <LoadingError onRetry={this.fetchData} />;
+    } else if (
       this.state.processingIssues.hasIssues ||
       this.state.processingIssues.resolveableIssues ||
       this.state.processingIssues.issuesProcessing
-    )
+    ) {
       body = this.renderResults();
-    else body = this.renderEmpty();
+    } else {
+      body = this.renderEmpty();
+    }
 
     return body;
   },
@@ -223,18 +236,18 @@ const ProjectProcessingIssues = createReactClass({
   },
 
   getProblemDescription(item) {
-    let msg = MESSAGES[item.type];
+    const msg = MESSAGES[item.type];
     return msg || item.message || 'Unknown Error';
   },
 
   getImageName(path) {
-    let pathSegments = path.split(/^[a-z]:\\/i.test(path) ? '\\' : '/');
+    const pathSegments = path.split(/^([a-z]:\\|\\\\)/i.test(path) ? '\\' : '/');
     return pathSegments[pathSegments.length - 1];
   },
 
   renderProblem(item) {
-    let description = this.getProblemDescription(item);
-    let helpLink = HELP_LINKS[item.type];
+    const description = this.getProblemDescription(item);
+    const helpLink = HELP_LINKS[item.type];
     return (
       <div className="processing-issue">
         <span className="description">{description}</span>{' '}
@@ -274,14 +287,14 @@ const ProjectProcessingIssues = createReactClass({
   },
 
   renderResolveButton() {
-    let issues = this.state.processingIssues;
+    const issues = this.state.processingIssues;
     if (issues === null || this.state.reprocessing) {
       return null;
     }
     if (issues.resolveableIssues <= 0) {
       return null;
     }
-    let fixButton = tn(
+    const fixButton = tn(
       'Click here to trigger processing for %s pending event',
       'Click here to trigger processing for %s pending events',
       issues.resolveableIssues
@@ -349,14 +362,18 @@ const ProjectProcessingIssues = createReactClass({
         {fixLinkBlock}
         <h3>
           {t('Pending Issues')}
-          <a
-            className="btn btn-default btn-sm pull-right"
-            onClick={() => {
-              this.discardEvents();
-            }}
-          >
-            {t('Discard all')}
-          </a>
+          <Access access={['project:write']}>
+            {({hasAccess}) => (
+              <Button
+                size="small"
+                className="pull-right"
+                disabled={!hasAccess}
+                onClick={() => this.discardEvents()}
+              >
+                {t('Discard all')}
+              </Button>
+            )}
+          </Access>
         </h3>
         <div className="panel panel-default">
           <div className="panel-heading panel-heading-bold hidden-xs">
@@ -390,13 +407,13 @@ const ProjectProcessingIssues = createReactClass({
   },
 
   renderReprocessingSettings() {
-    let access = this.getAccess();
+    const access = this.getAccess();
     if (this.state.loading) {
       return this.renderLoading();
     }
 
-    let {formData} = this.state;
-    let {orgId, projectId} = this.props.params;
+    const {formData} = this.state;
+    const {orgId, projectId} = this.props.params;
     return (
       <Form
         saveOnBlur
@@ -433,4 +450,6 @@ const ProjectProcessingIssues = createReactClass({
   },
 });
 
-export default ProjectProcessingIssues;
+export {ProjectProcessingIssues};
+
+export default withApi(ProjectProcessingIssues);

@@ -4,11 +4,11 @@ import {mount} from 'enzyme';
 import ExternalIssueActions from 'app/components/group/externalIssueActions';
 
 describe('ExternalIssueActions', function() {
-  let group = TestStubs.Group();
+  const group = TestStubs.Group();
 
   describe('with no external issues linked', function() {
-    let integration = TestStubs.GitHubIntegration({externalIssues: []});
-    let wrapper = mount(
+    const integration = TestStubs.GitHubIntegration({externalIssues: []});
+    const wrapper = mount(
       <ExternalIssueActions group={group} integration={integration} />,
       TestStubs.routerContext()
     );
@@ -25,6 +25,7 @@ describe('ExternalIssueActions', function() {
         url: '/groups/1/integrations/1/?action=create',
         body: {createIssueConfig: []},
       });
+
       it('opens when clicking text', function() {
         wrapper.find('IntegrationLink a').simulate('click');
         expect(
@@ -48,15 +49,15 @@ describe('ExternalIssueActions', function() {
   });
 
   describe('with an external issue linked', function() {
-    let externalIssues = [
+    const externalIssues = [
       {
         id: 100,
         url: 'https://github.com/MeredithAnya/testing/issues/2',
         key: 'getsentry/sentry#2',
       },
     ];
-    let integration = TestStubs.GitHubIntegration({externalIssues});
-    let wrapper = mount(
+    const integration = TestStubs.GitHubIntegration({externalIssues});
+    const wrapper = mount(
       <ExternalIssueActions group={group} integration={integration} />,
       TestStubs.routerContext()
     );

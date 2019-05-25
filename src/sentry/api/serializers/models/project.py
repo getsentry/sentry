@@ -4,11 +4,12 @@ import six
 
 from collections import defaultdict
 from datetime import timedelta
+from django.db import connection
 from django.db.models import Q
 from django.db.models.aggregates import Count
 from django.utils import timezone
 
-from sentry import options, roles, tsdb
+from sentry import options, roles, tsdb, projectoptions
 from sentry.api.serializers import register, serialize, Serializer
 from sentry.api.serializers.models.plugin import PluginSerializer
 from sentry.api.serializers.models.team import get_org_roles, get_team_memberships
@@ -17,10 +18,11 @@ from sentry.auth.superuser import is_active_superuser
 from sentry.constants import StatsPeriod
 from sentry.digests import backend as digests
 from sentry.models import (
-    Project, ProjectAvatar, ProjectBookmark, ProjectOption, ProjectPlatform,
-    ProjectStatus, ProjectTeam, Release, ReleaseProjectEnvironment, Deploy, UserOption, DEFAULT_SUBJECT_TEMPLATE
+    EnvironmentProject, Project, ProjectAvatar, ProjectBookmark, ProjectOption, ProjectPlatform,
+    ProjectStatus, ProjectTeam, Release, UserOption, DEFAULT_SUBJECT_TEMPLATE
 )
 from sentry.utils.data_filters import FilterTypes
+from sentry.utils.db import is_postgres
 
 STATUS_LABELS = {
     ProjectStatus.VISIBLE: 'active',
@@ -125,7 +127,7 @@ class ProjectSerializer(Serializer):
                 end=now,
                 start=now - ((segments - 1) * interval),
                 rollup=int(interval.total_seconds()),
-                environment_id=self.environment_id,
+                environment_ids=self.environment_id and [self.environment_id],
             )
         else:
             stats = None
@@ -155,7 +157,7 @@ class ProjectSerializer(Serializer):
                 result[item]['stats'] = stats[item.id]
         return result
 
-    def serialize(self, obj, attrs, user):
+    def get_feature_list(self, obj, user):
         from sentry import features
         from sentry.features.base import ProjectFeature
 
@@ -172,6 +174,10 @@ class ProjectSerializer(Serializer):
 
         if obj.flags.has_releases:
             feature_list.add('releases')
+        return feature_list
+
+    def serialize(self, obj, attrs, user):
+        feature_list = self.get_feature_list(obj, user)
 
         status_label = STATUS_LABELS.get(obj.status, 'unknown')
 
@@ -264,40 +270,78 @@ class ProjectSummarySerializer(ProjectWithTeamSerializer):
         attrs = super(ProjectSummarySerializer,
                       self).get_attrs(item_list, user)
 
-        release_project_envs = list(ReleaseProjectEnvironment.objects.filter(
-            project__in=item_list,
-            last_deploy_id__isnull=False
-        ).values('release__version', 'environment__name', 'last_deploy_id', 'project__id'))
+        project_envs = EnvironmentProject.objects.filter(
+            project_id__in=[i.id for i in item_list],
+        ).exclude(
+            is_hidden=True
+        ).exclude(
+            # HACK(lb): avoiding the no environment value
+            environment__name=''
+        ).values('project_id', 'environment__name')
 
-        deploys = dict(
-            Deploy.objects.filter(
-                id__in=[
-                    rpe['last_deploy_id'] for rpe in release_project_envs]).values_list(
-                'id',
-                'date_finished'))
+        environments_by_project = defaultdict(list)
+        for project_env in project_envs:
+            environments_by_project[project_env['project_id']].append(
+                project_env['environment__name'])
 
+        cursor = connection.cursor()
+        cursor.execute(
+            """
+            select srpe.project_id, se.name, sr.version, date_finished
+            from (
+                select *
+                -- Finally, filter to the top row for each project/environment.
+                from (
+                    -- Next we join to deploys and rank based recency of latest deploy for each project/environment.
+                    select srpe.project_id, srpe.release_id, srpe.environment_id, sd.date_finished,
+                    row_number() OVER (partition by (srpe.project_id, srpe.environment_id) order by sd.date_finished desc) row_num
+                    from
+                    (
+                        -- First we fetch all related ReleaseProjectEnvironments, then filter to the x most recent for
+                        -- each project/environment that actually have a deploy. This cuts out a lot of data volume
+                        select *
+                        from (
+                            select *, row_number() OVER (partition by (srpe.project_id, srpe.environment_id) order by srpe.id desc) row_num
+                            from sentry_releaseprojectenvironment srpe
+                            where srpe.last_deploy_id is not null
+                            and project_id = ANY(%s)
+                        ) srpe
+                        where row_num <= %s
+                    ) srpe
+                    inner join sentry_deploy sd on sd.id = srpe.last_deploy_id
+                    where sd.date_finished is not null
+                ) srpe
+                where row_num = 1
+            ) srpe
+            inner join sentry_release sr on sr.id = srpe.release_id
+            inner join sentry_environment se on se.id = srpe.environment_id;
+            """,
+            ([p.id for p in item_list], 10),
+        )
         deploys_by_project = defaultdict(dict)
 
-        for rpe in release_project_envs:
-            env_name = rpe['environment__name']
-            project_id = rpe['project__id']
-            date_finished = deploys[rpe['last_deploy_id']]
+        for project_id, env_name, release_version, date_finished in cursor.fetchall():
+            deploys_by_project[project_id][env_name] = {
+                'version': release_version,
+                'dateFinished': date_finished,
+            }
 
-            if (
-                env_name not in deploys_by_project[project_id] or
-                deploys_by_project[project_id][env_name]['dateFinished'] < date_finished
-            ):
-                deploys_by_project[project_id][env_name] = {
-                    'version': rpe['release__version'],
-                    'dateFinished': date_finished
-                }
+        # We  just return the version key here so that we cut down on response
+        # size
+        latest_release_verions = {
+            release.actual_project_id: {'version': release.version}
+            for release in bulk_fetch_project_latest_releases(item_list)
+        }
 
         for item in item_list:
+            attrs[item]['latest_release'] = latest_release_verions.get(item.id)
             attrs[item]['deploys'] = deploys_by_project.get(item.id)
+            attrs[item]['environments'] = environments_by_project.get(item.id, [])
 
         return attrs
 
     def serialize(self, obj, attrs, user):
+        feature_list = self.get_feature_list(obj, user)
         context = {
             'team': attrs['teams'][0] if attrs['teams'] else None,
             'teams': attrs['teams'],
@@ -308,25 +352,83 @@ class ProjectSummarySerializer(ProjectWithTeamSerializer):
             'isMember': attrs['is_member'],
             'hasAccess': attrs['has_access'],
             'dateCreated': obj.date_added,
+            'environments': attrs['environments'],
+            'features': feature_list,
             'firstEvent': obj.first_event,
             'platform': obj.platform,
             'platforms': attrs['platforms'],
             'latestDeploys': attrs['deploys'],
+            'latestRelease': attrs['latest_release'],
         }
         if 'stats' in attrs:
             context['stats'] = attrs['stats']
         return context
 
 
+def bulk_fetch_project_latest_releases(projects):
+    """
+    Fetches the latest release for each of the passed projects
+    :param projects:
+    :return: List of Releases, each with an additional `actual_project_id`
+    attribute representing the project that they're the latest release for. If
+    no release found, no entry will be returned for the given project.
+    """
+    if is_postgres():
+        # XXX: This query could be very inefficient for projects with a large
+        # number of releases. To work around this, we only check 20 releases
+        # ordered by highest release id, which is generally correlated with
+        # most recent releases for a project. This could potentially result in
+        # not having the correct most recent release, but in practice will
+        # likely work fine.
+        release_project_join_sql = """
+            JOIN (
+                SELECT *
+                FROM sentry_release_project lrp
+                WHERE lrp.project_id = p.id
+                ORDER BY lrp.release_id DESC
+                LIMIT 20
+            ) lrp ON lrp.release_id = lrr.id
+        """
+    else:
+        release_project_join_sql = 'JOIN sentry_release_project lrp ON lrp.release_id = lrr.id'
+    return list(Release.objects.raw(
+        u"""
+        SELECT lr.project_id as actual_project_id, r.*
+        FROM (
+            SELECT (
+                SELECT lrr.id
+                FROM sentry_release lrr
+                {}
+                WHERE lrp.project_id = p.id
+                ORDER BY COALESCE(lrr.date_released, lrr.date_added) DESC
+                LIMIT 1
+            ) as release_id,
+            p.id as project_id
+            FROM sentry_project p
+            WHERE p.id IN ({})
+        ) as lr
+        JOIN sentry_release r
+        ON r.id = lr.release_id
+        """.format(
+            release_project_join_sql,
+            ', '.join(six.text_type(i.id) for i in projects),
+        ),
+    ))
+
+
 class DetailedProjectSerializer(ProjectWithTeamSerializer):
     OPTION_KEYS = frozenset(
         [
+            # we need the epoch to fill in the defaults correctly
+            'sentry:option-epoch',
             'sentry:origins',
             'sentry:resolve_age',
             'sentry:scrub_data',
             'sentry:scrub_defaults',
             'sentry:safe_fields',
             'sentry:store_crash_reports',
+            'sentry:builtin_symbol_sources',
+            'sentry:symbol_sources',
             'sentry:sensitive_fields',
             'sentry:csp_ignored_sources_defaults',
             'sentry:csp_ignored_sources',
@@ -340,6 +442,10 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
             'sentry:token_header',
             'sentry:verify_ssl',
             'sentry:scrub_ip_address',
+            'sentry:grouping_config',
+            'sentry:grouping_enhancements',
+            'sentry:grouping_enhancements_base',
+            'sentry:fingerprinting_rules',
             'sentry:relay_pii_config',
             'feedback:branding',
             'digests:mail:minimum_delay',
@@ -364,31 +470,6 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
         for project_id, num_issues in num_issues_projects:
             processing_issues_by_project[project_id] = num_issues
 
-        latest_release_list = list(
-            Release.objects.raw(
-                u"""
-            SELECT lr.project_id as actual_project_id, r.*
-            FROM (
-                SELECT (
-                    SELECT lrr.id FROM sentry_release lrr
-                    JOIN sentry_release_project lrp
-                    ON lrp.release_id = lrr.id
-                    WHERE lrp.project_id = p.id
-                    ORDER BY COALESCE(lrr.date_released, lrr.date_added) DESC
-                    LIMIT 1
-                ) as release_id,
-                p.id as project_id
-                FROM sentry_project p
-                WHERE p.id IN ({})
-            ) as lr
-            JOIN sentry_release r
-            ON r.id = lr.release_id
-        """.format(
-                    ', '.join(six.text_type(i.id) for i in item_list),
-                )
-            )
-        )
-
         queryset = ProjectOption.objects.filter(
             project__in=item_list,
             key__in=self.OPTION_KEYS,
@@ -400,6 +481,7 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
         orgs = {d['id']: d for d in serialize(
             list(set(i.organization for i in item_list)), user)}
 
+        latest_release_list = bulk_fetch_project_latest_releases(item_list)
         latest_releases = {
             r.actual_project_id: d
             for r, d in zip(latest_release_list, serialize(latest_release_list, user))
@@ -419,12 +501,18 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
     def serialize(self, obj, attrs, user):
         from sentry.plugins import plugins
 
+        def get_value_with_default(key):
+            value = attrs['options'].get(key)
+            if value is not None:
+                return value
+            return projectoptions.get_well_known_default(
+                key, epoch=attrs['options'].get('sentry:option-epoch'))
+
         data = super(DetailedProjectSerializer,
                      self).serialize(obj, attrs, user)
         data.update(
             {
-                'latestRelease':
-                attrs['latest_release'],
+                'latestRelease': attrs['latest_release'],
                 'options': {
                     'sentry:csp_ignored_sources_defaults':
                     bool(attrs['options'].get(
@@ -482,6 +570,10 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
                 'verifySSL': bool(attrs['options'].get('sentry:verify_ssl', False)),
                 'scrubIPAddresses': bool(attrs['options'].get('sentry:scrub_ip_address', False)),
                 'scrapeJavaScript': bool(attrs['options'].get('sentry:scrape_javascript', True)),
+                'groupingConfig': get_value_with_default('sentry:grouping_config'),
+                'groupingEnhancements': get_value_with_default('sentry:grouping_enhancements'),
+                'groupingEnhancementsBase': get_value_with_default('sentry:grouping_enhancements_base'),
+                'fingerprintingRules': get_value_with_default('sentry:fingerprinting_rules'),
                 'organization':
                 attrs['org'],
                 'plugins':
@@ -495,6 +587,8 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
                 'processingIssues': attrs['processing_issues'],
                 'defaultEnvironment': attrs['options'].get('sentry:default_environment'),
                 'relayPiiConfig': attrs['options'].get('sentry:relay_pii_config'),
+                'builtinSymbolSources': attrs['options'].get('sentry:builtin_symbol_sources'),
+                'symbolSources': attrs['options'].get('sentry:symbol_sources'),
             }
         )
         return data
@@ -505,7 +599,7 @@ class SharedProjectSerializer(Serializer):
         from sentry import features
 
         feature_list = []
-        for feature in ('global-events', ):
+        for feature in ():
             if features.has('projects:' + feature, obj, actor=user):
                 feature_list.append(feature)
 

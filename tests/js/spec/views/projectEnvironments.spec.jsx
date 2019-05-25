@@ -7,19 +7,19 @@ import recreateRoute from 'app/utils/recreateRoute';
 import {ALL_ENVIRONMENTS_KEY} from 'app/constants';
 
 jest.mock('app/utils/recreateRoute');
-recreateRoute.mockReturnValue('/org-slug/project-slug/settings/');
+recreateRoute.mockReturnValue('/org-slug/project-slug/settings/environments/');
 
 function mountComponent(isHidden) {
   const org = TestStubs.Organization();
   const project = TestStubs.Project();
-  let path = isHidden ? 'environments/hidden/' : 'environments/';
+  const pathname = isHidden ? 'environments/hidden/' : 'environments/';
   return mount(
     <ProjectEnvironments
       params={{
         orgId: org.slug,
         projectId: project.slug,
       }}
-      route={{path}}
+      location={{pathname}}
       routes={[]}
     />,
     TestStubs.routerContext()
@@ -52,7 +52,7 @@ describe('ProjectEnvironments', function() {
     it('renders empty message', function() {
       EnvironmentStore.loadInitialData([]);
       const wrapper = mountComponent(false);
-      let errorMessage = wrapper.find('div').first();
+      const errorMessage = wrapper.find('div').first();
 
       expect(errorMessage.text()).toContain("You don't have any environments yet");
       expect(wrapper.find('ProjectEnvironments')).toMatchSnapshot();
@@ -201,7 +201,7 @@ describe('ProjectEnvironments', function() {
       EnvironmentStore.loadHiddenData([]);
 
       const wrapper = mountComponent(true);
-      let errorMessage = wrapper.find('div').first();
+      const errorMessage = wrapper.find('div').first();
 
       expect(errorMessage.text()).toContain("You don't have any hidden environments");
 
@@ -241,6 +241,27 @@ describe('ProjectEnvironments', function() {
       wrapper.find('EnvironmentRow[name="production"] Button').simulate('click');
       expect(hideMock).toHaveBeenCalledWith(
         `${baseUrl}production/`,
+        expect.objectContaining({
+          data: expect.objectContaining({isHidden: true}),
+        })
+      );
+    });
+
+    it('hides names requiring encoding', function() {
+      hideMock = MockApiClient.addMockResponse({
+        url: `${baseUrl}%25app_env%25/`,
+        method: 'PUT',
+      });
+
+      const environments = [{id: '1', name: '%app_env%', isHidden: false}];
+      EnvironmentStore.loadInitialData(environments);
+
+      const wrapper = mountComponent(false);
+      wrapper
+        .find('EnvironmentRow[name="%app_env%"] button[aria-label="Hide"]')
+        .simulate('click');
+      expect(hideMock).toHaveBeenCalledWith(
+        `${baseUrl}%25app_env%25/`,
         expect.objectContaining({
           data: expect.objectContaining({isHidden: true}),
         })

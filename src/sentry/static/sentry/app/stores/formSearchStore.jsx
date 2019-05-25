@@ -26,7 +26,9 @@ const FormSearchStore = Reflux.createStore({
    */
   onLoadSearchMap(searchMap) {
     // Only load once
-    if (this.searchMap !== null) return;
+    if (this.searchMap !== null) {
+      return;
+    }
 
     this.searchMap = searchMap;
     this.trigger(this.searchMap);

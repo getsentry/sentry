@@ -22,8 +22,6 @@ class SettingsPluginsNavigation extends React.Component {
     ...SentryTypes.NavigationGroup,
     organization: SentryTypes.Organization,
     project: SentryTypes.Project,
-    access: PropTypes.object,
-    features: PropTypes.object,
   };
 
   static contextTypes = {
@@ -32,11 +30,11 @@ class SettingsPluginsNavigation extends React.Component {
   };
 
   render() {
-    let {organization, project} = this.props;
-    let {router} = this.context;
+    const {organization, project} = this.props;
+    const {router} = this.context;
 
-    const pathPrefix = '/settings/:orgId/:projectId';
-    let allIntegrationsPath = replaceRouterParams(`${pathPrefix}/plugins/`, {
+    const pathPrefix = '/settings/:orgId/projects/:projectId';
+    const allIntegrationsPath = replaceRouterParams(`${pathPrefix}/plugins/`, {
       orgId: organization && organization.slug,
       projectId: project && project.slug,
     });
@@ -53,7 +51,7 @@ class SettingsPluginsNavigation extends React.Component {
 
         <PluginNavigation>
           {plugin => {
-            let to = replaceRouterParams(`${pathPrefix}/plugins/${plugin.slug}/`, {
+            const to = replaceRouterParams(`${pathPrefix}/plugins/${plugin.slug}/`, {
               orgId: organization && organization.slug,
               projectId: project && project.slug,
             });

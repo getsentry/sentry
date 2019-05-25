@@ -11,51 +11,62 @@ describe('ProgressNodes', function() {
       },
     };
 
-    const baseContext = {
-      context: {
-        organization: {id: '1337', slug: 'testOrg'},
-      },
-    };
-
     it('should render step 0 if no projectId', function() {
-      let wrapper = shallow(<ProgressNodes {...baseProps} />, baseContext);
+      const baseContext = {
+        context: {
+          organization: {id: '1337', slug: 'testOrg', experiments: {}},
+          location: {pathname: 'http://onboarding/lol/', query: {}},
+        },
+      };
+      const wrapper = shallow(<ProgressNodes {...baseProps} />, baseContext);
 
-      expect(wrapper.find('.node')).toHaveLength(6);
-      expect(wrapper.find('.active')).toHaveLength(2);
+      expect(wrapper.find('[data-test-id="node"]')).toHaveLength(3);
+      expect(wrapper.find('[data-test-id="node"]').find({active: true})).toHaveLength(1);
       expect(
         wrapper
-          .find('.active')
-          .first()
-          .last()
+          .find('[data-test-id="node"]')
+          .find({active: true})
+          .find('[data-test-id="node-description"]')
+          .children()
           .text()
       ).toEqual('Tell us about your project');
 
-      expect(wrapper.find('.done')).toHaveLength(2);
+      expect(wrapper.find('[data-test-id="node"]').find({done: true})).toHaveLength(1);
 
       expect(wrapper).toMatchSnapshot();
     });
 
     it('should render step 1 if has projectId', function() {
-      let props = {
+      const baseContext = {
+        context: {
+          organization: {id: '1337', slug: 'testOrg', experiments: {}},
+          location: {
+            pathname: 'http://onboarding/lol/projectSlug/configure/platform/',
+            query: {},
+          },
+        },
+      };
+      const props = {
         ...baseProps,
         params: {
           projectId: 'my-cool-project',
         },
       };
 
-      let wrapper = shallow(<ProgressNodes {...props} />, baseContext);
+      const wrapper = shallow(<ProgressNodes {...props} />, baseContext);
 
-      expect(wrapper.find('.node')).toHaveLength(6);
-      expect(wrapper.find('.active')).toHaveLength(2);
+      expect(wrapper.find('[data-test-id="node"]')).toHaveLength(3);
+      expect(wrapper.find('[data-test-id="node"]').find({active: true})).toHaveLength(1);
       expect(
         wrapper
-          .find('.active')
-          .first()
-          .last()
+          .find('[data-test-id="node"]')
+          .find({active: true})
+          .find('[data-test-id="node-description"]')
+          .children()
           .text()
-      ).toEqual('Configure your application and send an event');
+      ).toEqual('Send an event from your application');
 
-      expect(wrapper.find('.done')).toHaveLength(4);
+      expect(wrapper.find('[data-test-id="node"]').find({done: true})).toHaveLength(2);
 
       expect(wrapper).toMatchSnapshot();
     });

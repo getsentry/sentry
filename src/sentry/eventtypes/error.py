@@ -8,47 +8,62 @@ from sentry.utils.strings import truncatechars
 from .base import BaseEvent
 
 
-def get_crash_file(stacktrace):
+def get_crash_location(exception, platform=None):
     default = None
-    for frame in reversed(stacktrace.get('frames') or ()):
+    for frame in reversed(get_path(exception, 'stacktrace', 'frames', filter=True) or ()):
         fn = frame.get('filename') or frame.get('abs_path')
         if fn:
+            from sentry.stacktraces.functions import get_function_name_for_frame
+            func = get_function_name_for_frame(frame, platform)
             if frame.get('in_app'):
-                return fn
+                return fn, func
             if default is None:
-                default = fn
+                default = fn, func
     return default
 
 
 class ErrorEvent(BaseEvent):
     key = 'error'
 
-    def has_metadata(self):
-        exception = get_path(self.data, 'exception', 'values', -1)
+    def has_metadata(self, data):
+        exception = get_path(data, 'exception', 'values', -1)
         return exception and any(v is not None for v in six.itervalues(exception))
 
-    def get_metadata(self):
-        exception = get_path(self.data, 'exception', 'values', -1)
+    def get_metadata(self, data):
+        exception = get_path(data, 'exception', 'values', -1)
+        if not exception:
+            return {}
 
-        # in some situations clients are submitting non-string data for these
+        loc = get_crash_location(exception, data.get('platform'))
         rv = {
-            'type': trim(get_path(exception, 'type', default='Error'), 128),
             'value': trim(get_path(exception, 'value', default=''), 1024),
         }
 
-        # Attach crash location
-        stacktrace = exception.get('stacktrace')
-        if stacktrace:
-            fn = get_crash_file(stacktrace)
-            if fn is not None:
+        # If the exception mechanism indicates a synthetic exception we do not
+        # want to record the type and value into the metadata.
+        if not get_path(exception, 'mechanism', 'synthetic'):
+            rv['type'] = trim(get_path(exception, 'type', default='Error'), 128)
+
+        # Attach crash location if available
+        if loc is not None:
+            fn, func = loc
+            if fn:
                 rv['filename'] = fn
+            if func:
+                rv['function'] = func
 
         return rv
 
-    def to_string(self, metadata):
-        if not metadata['value']:
-            return metadata['type']
+    def get_title(self, metadata):
+        ty = metadata.get('type')
+        if ty is None:
+            return metadata.get('function') or '<unknown>'
+        if not metadata.get('value'):
+            return ty
         return u'{}: {}'.format(
-            metadata['type'],
+            ty,
             truncatechars(metadata['value'].splitlines()[0], 100),
         )
+
+    def get_location(self, metadata):
+        return metadata.get('filename')

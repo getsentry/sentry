@@ -20,6 +20,10 @@ class ProjectTagsEndpoint(ProjectEndpoint, EnvironmentMixin):
                 tagstore.get_tag_keys(
                     project.id,
                     environment_id,
+                    # We might be able to stop including these values, but this
+                    # is a pretty old endpoint, so concerned about breaking
+                    # existing api consumers.
+                    include_values_seen=True,
                 ),
                 key=lambda x: x.key)
 

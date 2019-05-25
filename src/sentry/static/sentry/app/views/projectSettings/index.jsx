@@ -3,19 +3,20 @@ import React from 'react';
 import createReactClass from 'create-react-class';
 
 import {t} from 'app/locale';
-import ApiMixin from 'app/mixins/apiMixin';
+import withApi from 'app/utils/withApi';
 import Badge from 'app/components/badge';
-import ListLink from 'app/components/listLink';
+import ListLink from 'app/components/links/listLink';
 import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import OrganizationState from 'app/mixins/organizationState';
 import PluginNavigation from 'app/views/projectSettings/pluginNavigation';
-import ExternalLink from 'app/components/externalLink';
+import ExternalLink from 'app/components/links/externalLink';
 
 const ProjectSettings = createReactClass({
   displayName: 'ProjectSettings',
 
   propTypes: {
+    api: PropTypes.object,
     setProjectNavSection: PropTypes.func,
   },
 
@@ -24,7 +25,7 @@ const ProjectSettings = createReactClass({
     organization: PropTypes.object,
   },
 
-  mixins: [ApiMixin, OrganizationState],
+  mixins: [OrganizationState],
 
   getInitialState() {
     return {
@@ -35,14 +36,14 @@ const ProjectSettings = createReactClass({
   },
 
   componentWillMount() {
-    let {setProjectNavSection} = this.props;
+    const {setProjectNavSection} = this.props;
 
     setProjectNavSection('settings');
     this.fetchData();
   },
 
   componentWillReceiveProps(nextProps) {
-    let params = this.props.params;
+    const params = this.props.params;
     if (
       nextProps.params.projectId !== params.projectId ||
       nextProps.params.orgId !== params.orgId
@@ -58,9 +59,9 @@ const ProjectSettings = createReactClass({
   },
 
   fetchData() {
-    let params = this.props.params;
+    const params = this.props.params;
 
-    this.api.request(`/projects/${params.orgId}/${params.projectId}/`, {
+    this.props.api.request(`/projects/${params.orgId}/${params.projectId}/`, {
       success: data => {
         this.setState({
           project: data,
@@ -79,17 +80,21 @@ const ProjectSettings = createReactClass({
 
   render() {
     // TODO(dcramer): move sidebar into component
-    if (this.state.loading) return <LoadingIndicator />;
-    else if (this.state.error) return <LoadingError onRetry={this.fetchData} />;
+    if (this.state.loading) {
+      return <LoadingIndicator />;
+    } else if (this.state.error) {
+      return <LoadingError onRetry={this.fetchData} />;
+    }
 
-    let access = this.getAccess();
-    let {orgId, projectId} = this.props.params;
-    let pathPrefix = `/settings/${orgId}/${projectId}`;
-    let settingsUrlRoot = pathPrefix;
-    let project = this.state.project;
-    let rootInstallPath = `${pathPrefix}/install/`;
-    let path = this.props.location.pathname;
-    let processingIssues = this.state.project.processingIssues;
+    const access = this.getAccess();
+    const {orgId, projectId} = this.props.params;
+    const pathPrefix = `/settings/${orgId}/projects/${projectId}`;
+    const settingsUrlRoot = pathPrefix;
+    const project = this.state.project;
+    const rootInstallPath = `${pathPrefix}/install/`;
+    const path = this.props.location.pathname;
+    const processingIssues = this.state.project.processingIssues;
+    const organization = this.context.organization;
 
     return (
       <div className="row">
@@ -123,9 +128,11 @@ const ProjectSettings = createReactClass({
             <ListLink to={`${pathPrefix}/data-forwarding/`}>
               {t('Data Forwarding')}
             </ListLink>
-            <ListLink to={`${pathPrefix}/saved-searches/`}>
-              {t('Saved Searches')}
-            </ListLink>
+            {organization.features.includes('sentry10') === false && (
+              <ListLink to={`${pathPrefix}/saved-searches/`}>
+                {t('Saved Searches')}
+              </ListLink>
+            )}
             <ListLink to={`${pathPrefix}/debug-symbols/`}>
               {t('Debug Information Files')}
             </ListLink>
@@ -186,4 +193,6 @@ const ProjectSettings = createReactClass({
   },
 });
 
-export default ProjectSettings;
+export {ProjectSettings};
+
+export default withApi(ProjectSettings);

@@ -15,7 +15,7 @@ const createSearchMap = ({route, formGroups, fields, ...other}) => {
   // There are currently two ways to define forms (TODO(billy): Turn this into one):
   // If `formGroups` is defined, then return a flattened list of fields in all formGroups
   // Otherwise `fields` is a map of fieldName -> fieldObject -- create a list of fields
-  let listOfFields = formGroups
+  const listOfFields = formGroups
     ? flatMap(formGroups, formGroup => formGroup.fields)
     : Object.keys(fields).map(fieldName => fields[fieldName]);
 
@@ -31,19 +31,23 @@ const createSearchMap = ({route, formGroups, fields, ...other}) => {
 export function loadSearchMap() {
   // Load all form configuration files via webpack that export a named `route`
   // as well as either `fields` or `formGroups`
-  let context = require.context('../data/forms', true, /\.jsx$/);
+  const context = require.context('../data/forms', true, /\.jsx$/);
 
   // Get a list of all form fields defined in `../data/forms`
-  let allFormFields = flatten(
+  const allFormFields = flatten(
     context
       .keys()
       .map(key => {
-        let mod = context(key);
+        const mod = context(key);
 
         // Since we're dynamically importing an entire directly, there could be malformed modules defined?
-        if (!mod) return null;
+        if (!mod) {
+          return null;
+        }
         // Only look for module that have `route` exported
-        if (!mod.route) return null;
+        if (!mod.route) {
+          return null;
+        }
 
         return createSearchMap({
           // `formGroups` can be a default export or a named export :<

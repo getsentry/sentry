@@ -39,7 +39,7 @@ class DropdownLink extends React.Component {
   }
 
   render() {
-    let {
+    const {
       anchorRight,
       disabled,
       title,
@@ -53,21 +53,21 @@ class DropdownLink extends React.Component {
     } = this.props;
 
     // Default anchor = left
-    let isRight = anchorRight;
+    const isRight = anchorRight;
 
     // .dropdown-actor-title = flexbox to fix vertical alignment on firefox
     // Need the extra container because dropdown-menu alignment is off if `dropdown-actor` is a flexbox
     return (
       <DropdownMenu alwaysRenderMenu={alwaysRenderMenu} {...otherProps}>
         {({isOpen, getRootProps, getActorProps, getMenuProps}) => {
-          let shouldRenderMenu = alwaysRenderMenu || isOpen;
-          let cx = classNames('dropdown-actor', className, {
+          const shouldRenderMenu = alwaysRenderMenu || isOpen;
+          const cx = classNames('dropdown-actor', className, {
             'dropdown-menu-right': isRight,
             'dropdown-toggle': true,
             hover: isOpen,
             disabled,
           });
-          let topLevelCx = classNames('dropdown', topLevelClasses, {
+          const topLevelCx = classNames('dropdown', topLevelClasses, {
             'pull-right': isRight,
             'anchor-right': isRight,
             open: isOpen,

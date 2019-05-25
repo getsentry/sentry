@@ -4,7 +4,7 @@ import copy
 import mock
 
 from sentry.models import (
-    ApiKey, AuditLogEntry, AuditLogEntryEvent, Commit, File, OrganizationMember,
+    ApiKey, AuditLogEntry, AuditLogEntryEvent, Commit, File, Integration, OrganizationAvatar, OrganizationMember, OrganizationIntegration,
     OrganizationMemberTeam, OrganizationOption, Project, Release, ReleaseCommit,
     ReleaseEnvironment, ReleaseFile, Team, TotpInterface, User,
 )
@@ -47,6 +47,20 @@ class OrganizationTest(TestCase):
             organization_id=from_org.id,
             environment_id=1
         )
+        from_avatar = OrganizationAvatar.objects.create(
+            organization=from_org,
+        )
+        integration = Integration.objects.create(
+            provider='slack',
+            external_id='some_slack',
+            name='Test Slack',
+            metadata={
+                'domain_name': 'slack-test.slack.com',
+            },
+        )
+
+        integration.add_organization(from_org, from_owner)
+
         from_user = self.create_user('baz@example.com')
         other_user = self.create_user('bizbaz@example.com')
         self.create_member(organization=from_org, user=from_user)
@@ -128,6 +142,10 @@ class OrganizationTest(TestCase):
         assert ReleaseEnvironment.objects.get(
             id=from_release_environment.id
         ).release_id == to_release.id
+
+        assert OrganizationAvatar.objects.filter(id=from_avatar.id, organization=to_org).exists()
+        assert OrganizationIntegration.objects.filter(
+            integration=integration, organization=to_org).exists()
 
     def test_get_default_owner(self):
         user = self.create_user('foo@example.com')

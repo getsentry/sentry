@@ -14,7 +14,6 @@ from sentry.api.fields import AvatarField
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models import organization as org_serializers
 from sentry.api.serializers.rest_framework import ListField
-from sentry.auth.providers.saml2 import SAML2Provider
 from sentry.constants import LEGACY_RATE_LIMIT_OPTIONS, RESERVED_ORGANIZATION_SLUGS
 from sentry.models import (
     AuditLogEntryEvent, Authenticator, AuthProvider, Organization, OrganizationAvatar,
@@ -25,8 +24,9 @@ from sentry.utils.apidocs import scenario, attach_scenarios
 from sentry.utils.cache import memoize
 
 ERR_DEFAULT_ORG = 'You cannot remove the default organization.'
-
 ERR_NO_USER = 'This request requires an authenticated user.'
+ERR_NO_2FA = 'Cannot require two-factor authentication without personal two-factor enabled.'
+ERR_SSO_ENABLED = 'Cannot require two-factor authentication with SSO enabled'
 
 ORG_OPTIONS = (
     # serializer field name, option key name, type, default value
@@ -40,6 +40,8 @@ ORG_OPTIONS = (
      bool, org_serializers.REQUIRE_SCRUB_DEFAULTS_DEFAULT),
     ('storeCrashReports', 'sentry:store_crash_reports',
      bool, org_serializers.STORE_CRASH_REPORTS_DEFAULT),
+    ('attachmentsRole', 'sentry:attachments_role',
+     six.text_type, org_serializers.ATTACHMENTS_ROLE_DEFAULT),
     ('scrubIPAddresses', 'sentry:require_scrub_ip_address',
      bool, org_serializers.REQUIRE_SCRUB_IP_ADDRESS_DEFAULT),
     ('trustedRelays', 'sentry:trusted-relays', list, org_serializers.TRUSTED_RELAYS_DEFAULT),
@@ -89,10 +91,12 @@ class OrganizationSerializer(serializers.Serializer):
     sensitiveFields = ListField(child=serializers.CharField(), required=False)
     safeFields = ListField(child=serializers.CharField(), required=False)
     storeCrashReports = serializers.BooleanField(required=False)
+    attachmentsRole = serializers.CharField(required=True)
     scrubIPAddresses = serializers.BooleanField(required=False)
     scrapeJavaScript = serializers.BooleanField(required=False)
     isEarlyAdopter = serializers.BooleanField(required=False)
     require2FA = serializers.BooleanField(required=False)
+    disableNewVisibilityFeatures = serializers.BooleanField(required=False)
     trustedRelays = ListField(child=serializers.CharField(), required=False)
 
     @memoize
@@ -103,13 +107,9 @@ class OrganizationSerializer(serializers.Serializer):
             key__in=LEGACY_RATE_LIMIT_OPTIONS,
         ).exists()
 
-    def _has_saml_enabled(self):
+    def _has_sso_enabled(self):
         org = self.context['organization']
-        try:
-            provider = AuthProvider.objects.get(organization=org).get_provider()
-        except AuthProvider.DoesNotExist:
-            return False
-        return isinstance(provider, SAML2Provider)
+        return AuthProvider.objects.filter(organization=org).exists()
 
     def validate_slug(self, attrs, source):
         value = attrs[source]
@@ -144,16 +144,23 @@ class OrganizationSerializer(serializers.Serializer):
             raise serializers.ValidationError('Empty values are not allowed.')
         return attrs
 
+    def validate_attachmentsRole(self, attrs, source):
+        value = attrs[source]
+        try:
+            roles.get(value)
+        except KeyError:
+            raise serializers.ValidationError('Invalid role')
+        return attrs
+
     def validate_require2FA(self, attrs, source):
         value = attrs[source]
         user = self.context['user']
         has_2fa = Authenticator.objects.user_has_2fa(user)
         if value and not has_2fa:
-            raise serializers.ValidationError(
-                'Cannot require two-factor authentication without personal two-factor enabled.')
-        if value and self._has_saml_enabled():
-            raise serializers.ValidationError(
-                'Cannot require two-factor authentication with SAML SSO enabled')
+            raise serializers.ValidationError(ERR_NO_2FA)
+
+        if value and self._has_sso_enabled():
+            raise serializers.ValidationError(ERR_SSO_ENABLED)
         return attrs
 
     def validate_trustedRelays(self, attrs, source):
@@ -235,6 +242,8 @@ class OrganizationSerializer(serializers.Serializer):
             org.flags.enhanced_privacy = self.init_data['enhancedPrivacy']
         if 'isEarlyAdopter' in self.init_data:
             org.flags.early_adopter = self.init_data['isEarlyAdopter']
+        if 'disableNewVisibilityFeatures' in self.init_data:
+            org.flags.disable_new_visibility_features = self.init_data['disableNewVisibilityFeatures']
         if 'require2FA' in self.init_data:
             org.flags.require_2fa = self.init_data['require2FA']
         if 'name' in self.init_data:
@@ -315,6 +324,7 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
             organization,
             request.user,
             org_serializers.DetailedOrganizationSerializer(),
+            access=request.access,
         )
         return self.respond(context)
 
@@ -382,6 +392,7 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
                     organization,
                     request.user,
                     org_serializers.DetailedOrganizationSerializer(),
+                    access=request.access,
                 )
             )
         return self.respond(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -452,5 +463,6 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
             organization,
             request.user,
             org_serializers.DetailedOrganizationSerializer(),
+            access=request.access,
         )
         return self.respond(context, status=202)

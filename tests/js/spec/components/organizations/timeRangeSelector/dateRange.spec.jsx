@@ -2,6 +2,7 @@ import React from 'react';
 import {mount} from 'enzyme';
 import MockDate from 'mockdate';
 
+import ConfigStore from 'app/stores/configStore';
 import DateRange from 'app/components/organizations/timeRangeSelector/dateRange';
 
 // 2017-10-14T02:38:00.000Z
@@ -33,11 +34,14 @@ const getSelectedRange = wrapper => {
 
 describe('DateRange', function() {
   let wrapper;
-  let onChange = jest.fn();
-  let routerContext = TestStubs.routerContext();
+  const onChange = jest.fn();
+  const routerContext = TestStubs.routerContext();
 
   beforeAll(function() {
     MockDate.set(new Date('2017-10-16T23:41:20.000Z'));
+    ConfigStore.loadInitialData({
+      user: {options: {timezone: 'America/New_York'}},
+    });
   });
 
   afterAll(function() {
@@ -57,6 +61,7 @@ describe('DateRange', function() {
           showTimePicker
           onChange={onChange}
           onChangeUtc={jest.fn()}
+          organization={TestStubs.Organization()}
         />,
         routerContext
       );
@@ -96,7 +101,7 @@ describe('DateRange', function() {
     it('changes start time for existing date', function() {
       wrapper
         .find('input[data-test-id="startTime"]')
-        .simulate('change', {target: {value: '11:00'}});
+        .simulate('blur', {target: {value: '11:00'}});
 
       expect(onChange).toHaveBeenLastCalledWith({
         start: new Date('2017-10-13T15:00:00.000Z'),
@@ -107,7 +112,7 @@ describe('DateRange', function() {
     it('changes end time for existing date', function() {
       wrapper
         .find('input[data-test-id="endTime"]')
-        .simulate('change', {target: {value: '12:00'}});
+        .simulate('blur', {target: {value: '12:00'}});
 
       expect(onChange).toHaveBeenLastCalledWith({
         start: new Date('2017-10-14T02:38:00.000Z'),
@@ -127,6 +132,7 @@ describe('DateRange', function() {
           utc
           onChange={onChange}
           onChangeUtc={jest.fn()}
+          organization={TestStubs.Organization()}
         />,
         routerContext
       );
@@ -134,7 +140,7 @@ describe('DateRange', function() {
 
     it('has the right max date', function() {
       expect(wrapper.find('StyledDateRangePicker').prop('maxDate')).toEqual(
-        new Date('2017-10-17T03:41:20.000Z')
+        new Date('2017-10-16T23:41:20.000Z')
       );
     });
 
@@ -144,10 +150,10 @@ describe('DateRange', function() {
         '.rdrDateRangeWrapper .rdrDateDisplayItem input'
       );
 
-      expect(startEndInputs.at(0).prop('value')).toBe('Oct 14, 2017');
-      expect(startEndInputs.at(1).prop('value')).toBe('Oct 17, 2017');
+      expect(startEndInputs.at(0).prop('value')).toBe('Oct 13, 2017');
+      expect(startEndInputs.at(1).prop('value')).toBe('Oct 16, 2017');
 
-      expect(getSelectedRange(wrapper)).toEqual(['14', '15', '16', '17']);
+      expect(getSelectedRange(wrapper)).toEqual(['13', '14', '15', '16']);
     });
 
     it('can select a date (midnight)', function() {
@@ -158,18 +164,19 @@ describe('DateRange', function() {
 
       //
       expect(onChange).toHaveBeenLastCalledWith({
-        start: new Date('2017-10-01T00:00:00.000Z'),
-        end: new Date('2017-10-01T23:59:59.000Z'),
+        start: new Date('2017-10-01T04:00:00.000Z'),
+        end: new Date('2017-10-02T03:59:59.000Z'),
       });
     });
 
     it('changes utc start time for existing date', function() {
       wrapper
         .find('input[data-test-id="startTime"]')
-        .simulate('change', {target: {value: '11:00'}});
+        .simulate('blur', {target: {value: '11:00'}});
 
+      // Initial start date  is 2017-10-13T22:38:00-0400
       expect(onChange).toHaveBeenLastCalledWith({
-        start: new Date('2017-10-14T11:00:00.000Z'),
+        start: new Date('2017-10-13T15:00:00.000Z'),
         end: new Date('2017-10-17T02:38:00.000Z'),
       });
     });
@@ -177,11 +184,13 @@ describe('DateRange', function() {
     it('changes end time for existing date', function() {
       wrapper
         .find('input[data-test-id="endTime"]')
-        .simulate('change', {target: {value: '12:00'}});
+        .simulate('blur', {target: {value: '12:00'}});
 
+      // Initial end time is 2017-10-16T22:38:00-0400
+      // Setting this to 12:00 means 2017-10-16T12:00-0400
       expect(onChange).toHaveBeenLastCalledWith({
         start: new Date('2017-10-14T02:38:00.000Z'),
-        end: new Date('2017-10-17T12:00:00.000Z'),
+        end: new Date('2017-10-16T16:00:00.000Z'),
       });
     });
   });

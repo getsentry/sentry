@@ -1,10 +1,9 @@
 import {t} from 'app/locale';
 
-const pathPrefix = '/settings/:orgId/:projectId';
+const pathPrefix = '/settings/:orgId/projects/:projectId';
 
 export default function getConfiguration({project}) {
-  let plugins = ((project && project.plugins) || []).filter(plugin => plugin.enabled);
-
+  const plugins = ((project && project.plugins) || []).filter(plugin => plugin.enabled);
   return [
     {
       name: t('Project'),
@@ -39,7 +38,6 @@ export default function getConfiguration({project}) {
           path: `${pathPrefix}/ownership/`,
           title: t('Issue Owners'),
           description: t('Manage issue ownership rules for a project'),
-          badge: () => 'new',
         },
         {
           path: `${pathPrefix}/data-forwarding/`,
@@ -49,6 +47,12 @@ export default function getConfiguration({project}) {
           path: `${pathPrefix}/saved-searches/`,
           title: t('Saved Searches'),
           description: t('Manage saved searches for a project and your account'),
+          show: ({organization}) => {
+            if (!organization || !organization.features) {
+              return true;
+            }
+            return !organization.features.includes('sentry10');
+          },
         },
         {
           path: `${pathPrefix}/debug-symbols/`,
@@ -59,7 +63,9 @@ export default function getConfiguration({project}) {
           title: t('Processing Issues'),
           // eslint-disable-next-line no-shadow
           badge: ({project}) => {
-            if (project.processingIssues <= 0) return null;
+            if (project.processingIssues <= 0) {
+              return null;
+            }
             return project.processingIssues > 99 ? '99+' : project.processingIssues;
           },
         },
@@ -110,6 +116,7 @@ export default function getConfiguration({project}) {
         ...plugins.map(plugin => ({
           path: `${pathPrefix}/plugins/${plugin.id}/`,
           title: plugin.name,
+          show: ({access}) => access.has('project:write'),
         })),
       ],
     },

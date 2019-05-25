@@ -27,9 +27,18 @@
 {% block title %} {% trans "Jira-Server Setup" %} | {{ block.super }} {% endblock %}
 
 {% block main %}
-{% if form %}
-<h3>{% trans "Step 2: Connect Sentry with your App" %}</h3>
+<h3>{% trans "Connect Sentry with your App" %}</h3>
   <p>{% trans "Add your Jira Server App credentials to Sentry." %}</p>
+  <p class="alert alert-block flex">
+    <i class="icon icon-exclamation"></i>
+    <span>
+        {% blocktrans %}
+        You must complete the <a href="https://docs.sentry.io/workflow/integrations/global-integrations/jira-server/">required steps</a>
+
+        in Jira Server before attempting to connect with Sentry.
+        {% endblocktrans %}
+    </span>
+  </p>
   <form action="" method="post" class="form-stacked">
     {% csrf_token %}
     <input type="hidden" name="provider" value="jira_server" />
@@ -42,25 +51,8 @@
 
     <fieldset class="form-actions clearfix">
       <div class="pull-right">
-        <a class="btn btn-default" href="{% url "sentry-extension-setup" "jira_server" %}">{% trans "Back to instructions" %}</a>
         <button type="submit" class="btn btn-primary" name="save_mappings" value="url">{% trans "Submit" %}</button>
       </div>
     </fieldset>
   </form>
-{% else %}
-<h3>{% trans "Step 1: Create a Sentry App in Jira Server" %}</h3>
-  <p>{% trans "To configure Jira Server with Sentry, you will need to create a Sentry app in your Jira Server instance." %}</p>
-  <ol>
-    <li>Coming Soon!</li>
-  </ol>
-  <p class="alert alert-block flex">
-    <i class="icon icon-exclamation"></i>
-    {% trans "You must complete the above steps in Jira Server to connect with Sentry." %}
-  </p>
-  <div class="form-actions clearfix">
-    <div class="pull-right">
-        <a class="btn btn-primary" href="{% url "sentry-extension-setup" "jira_server" %}?completed_guide">{% trans "Next" %}</a>
-    </div>
-  </div>
-  {% endif %}
 {% endblock %}

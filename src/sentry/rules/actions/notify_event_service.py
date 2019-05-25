@@ -61,10 +61,17 @@ class NotifyEventServiceAction(EventAction):
 
         if app:
             kwargs = {'sentry_app': app}
-            metrics.incr('notifications.sent', instance=app.slug)
+            metrics.incr('notifications.sent', instance=app.slug, skip_internal=False)
             yield self.future(notify_sentry_app, **kwargs)
         else:
-            plugin = plugins.get(service)
+            try:
+                plugin = plugins.get(service)
+            except KeyError:
+                # If we've removed the plugin no need to error, just skip.
+                extra['plugin'] = service
+                self.logger.info('rules.fail.plugin_does_not_exist', extra=extra)
+                return
+
             if not plugin.is_enabled(self.project):
                 extra['project_id'] = self.project.id
                 self.logger.info('rules.fail.is_enabled', extra=extra)
@@ -77,7 +84,7 @@ class NotifyEventServiceAction(EventAction):
                 self.logger.info('rule.fail.should_notify', extra=extra)
                 return
 
-            metrics.incr('notifications.sent', instance=plugin.slug)
+            metrics.incr('notifications.sent', instance=plugin.slug, skip_internal=False)
             yield self.future(plugin.rule_notify)
 
     def get_sentry_app_services(self):

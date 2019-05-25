@@ -5,8 +5,8 @@ from collections import defaultdict
 from datetime import timedelta
 
 import six
-from django.core.urlresolvers import reverse
-from django.db.models import Q
+from django.conf import settings
+from django.db.models import Min, Q
 from django.utils import timezone
 
 from sentry import tagstore, tsdb
@@ -15,12 +15,13 @@ from sentry.api.serializers.models.actor import ActorSerializer
 from sentry.api.fields.actor import Actor
 from sentry.constants import LOG_LEVELS, StatsPeriod
 from sentry.models import (
-    Environment, Group, GroupAssignee, GroupBookmark, GroupMeta, GroupResolution, GroupSeen, GroupSnooze,
-    GroupShare, GroupStatus, GroupSubscription, GroupSubscriptionReason, User, UserOption,
-    UserOptionValue
+    Commit, Environment, Group, GroupAssignee, GroupBookmark, GroupEnvironment, GroupLink, GroupMeta,
+    GroupResolution, GroupSeen, GroupSnooze, GroupShare, GroupStatus, GroupSubscription,
+    GroupSubscriptionReason, Integration, User, UserOption, UserOptionValue
 )
+from sentry.tagstore.snuba.backend import SnubaTagStorage
+from sentry.tsdb.snuba import SnubaTSDB
 from sentry.utils.db import attach_foreignkey
-from sentry.utils.http import absolute_uri
 from sentry.utils.safe import safe_execute
 
 SUBSCRIPTION_REASON_MAP = {
@@ -35,10 +36,20 @@ SUBSCRIPTION_REASON_MAP = {
 disabled = object()
 
 
-@register(Group)
-class GroupSerializer(Serializer):
-    def __init__(self, environment_func=None):
-        self.environment_func = environment_func if environment_func is not None else lambda: None
+# TODO(jess): remove when snuba is primary backend
+snuba_tsdb = SnubaTSDB(**settings.SENTRY_TSDB_OPTIONS)
+
+
+class GroupSerializerBase(Serializer):
+    def _get_seen_stats(self, item_list, user):
+        """
+        Returns a dictionary keyed by item that includes:
+            - times_seen
+            - first_seen
+            - last_seen
+            - user_count
+        """
+        raise NotImplementedError
 
     def _get_subscriptions(self, item_list, user):
         """
@@ -93,9 +104,9 @@ class GroupSerializer(Serializer):
         }
 
         # This is the user's default value for any projects that don't have
-        # the option value specifically recorded. (The default "all
-        # conversations" value is convention.)
-        global_default_workflow_option = options.get(None, UserOptionValue.all_conversations)
+        # the option value specifically recorded. (The default
+        # "participating_only" value is convention.)
+        global_default_workflow_option = options.get(None, UserOptionValue.participating_only)
 
         results = {}
         for project, groups in projects.items():
@@ -147,58 +158,51 @@ class GroupSerializer(Serializer):
         }
         resolved_assignees = Actor.resolve_dict(assignees)
 
-        try:
-            environment = self.environment_func()
-        except Environment.DoesNotExist:
-            user_counts = {}
-            first_seen = {}
-            last_seen = {}
-            times_seen = {}
-        else:
-            project_id = item_list[0].project_id
-            item_ids = [g.id for g in item_list]
-            user_counts = tagstore.get_groups_user_counts(
-                project_id,
-                item_ids,
-                environment_id=environment and environment.id,
-            )
-            first_seen = {}
-            last_seen = {}
-            times_seen = {}
-            if environment is not None:
-                environment_tagvalues = tagstore.get_group_list_tag_value(
-                    project_id,
-                    item_ids,
-                    environment.id,
-                    'environment',
-                    environment.name,
-                )
-                for item_id, value in environment_tagvalues.items():
-                    first_seen[item_id] = value.first_seen
-                    last_seen[item_id] = value.last_seen
-                    times_seen[item_id] = value.times_seen
-            else:
-                for item in item_list:
-                    first_seen[item.id] = item.first_seen
-                    last_seen[item.id] = item.last_seen
-                    times_seen[item.id] = item.times_seen
-
         ignore_items = {g.group_id: g for g in GroupSnooze.objects.filter(
             group__in=item_list,
         )}
 
-        resolutions = {
-            i[0]: i[1:]
-            for i in GroupResolution.objects.filter(
-                group__in=item_list,
-            ).values_list(
-                'group',
-                'type',
-                'release__version',
-                'actor_id',
-            )
-        }
-        actor_ids = set(r[-1] for r in six.itervalues(resolutions))
+        resolved_item_list = [i for i in item_list if i.status == GroupStatus.RESOLVED]
+        if resolved_item_list:
+            release_resolutions = {
+                i[0]: i[1:]
+                for i in GroupResolution.objects.filter(
+                    group__in=resolved_item_list,
+                ).values_list(
+                    'group',
+                    'type',
+                    'release__version',
+                    'actor_id',
+                )
+            }
+
+            # due to our laziness, and django's inability to do a reasonable join here
+            # we end up with two queries
+            commit_results = list(Commit.objects.extra(
+                select={
+                    'group_id': 'sentry_grouplink.group_id',
+                },
+                tables=['sentry_grouplink'],
+                where=[
+                    'sentry_grouplink.linked_id = sentry_commit.id',
+                    'sentry_grouplink.group_id IN ({})'.format(
+                        ', '.join(six.text_type(i.id) for i in resolved_item_list)),
+                    'sentry_grouplink.linked_type = %s',
+                    'sentry_grouplink.relationship = %s',
+                ],
+                params=[
+                    int(GroupLink.LinkedType.commit),
+                    int(GroupLink.Relationship.resolves),
+                ]
+            ))
+            commit_resolutions = {
+                i.group_id: d for i, d in itertools.izip(commit_results, serialize(commit_results, user))
+            }
+        else:
+            release_resolutions = {}
+            commit_resolutions = {}
+
+        actor_ids = set(r[-1] for r in six.itervalues(release_resolutions))
         actor_ids.update(r.actor_id for r in six.itervalues(ignore_items))
         if actor_ids:
             users = list(User.objects.filter(
@@ -214,6 +218,9 @@ class GroupSerializer(Serializer):
         ).values_list('group_id', 'uuid'))
 
         result = {}
+
+        seen_stats = self._get_seen_stats(item_list, user)
+
         for item in item_list:
             active_date = item.active_at or item.first_seen
 
@@ -225,11 +232,36 @@ class GroupSerializer(Serializer):
                     safe_execute(plugin.get_annotations, group=item, _with_transaction=False) or ()
                 )
 
-            resolution = resolutions.get(item.id)
+            from sentry.integrations import IntegrationFeatures
+            for integration in Integration.objects.filter(
+                    organizations=item.project.organization_id):
+                if not (integration.has_feature(IntegrationFeatures.ISSUE_BASIC) or integration.has_feature(
+                        IntegrationFeatures.ISSUE_SYNC)):
+                    continue
+
+                install = integration.get_installation(item.project.organization_id)
+                annotations.extend(
+                    safe_execute(install.get_annotations, group=item, _with_transaction=False) or ()
+                )
+
+            from sentry.models import PlatformExternalIssue
+            annotations.extend(
+                safe_execute(
+                    PlatformExternalIssue.get_annotations,
+                    group=item,
+                    _with_transaction=False) or ()
+            )
+
+            resolution_actor = None
+            resolution_type = None
+            resolution = release_resolutions.get(item.id)
             if resolution:
+                resolution_type = 'release'
                 resolution_actor = actors.get(resolution[-1])
-            else:
-                resolution_actor = None
+            if not resolution:
+                resolution = commit_resolutions.get(item.id)
+                if resolution:
+                    resolution_type = 'commit'
 
             ignore_item = ignore_items.get(item.id)
             if ignore_item:
@@ -243,16 +275,15 @@ class GroupSerializer(Serializer):
                 'subscription': subscriptions[item.id],
                 'has_seen': seen_groups.get(item.id, active_date) > active_date,
                 'annotations': annotations,
-                'user_count': user_counts.get(item.id, 0),
                 'ignore_until': ignore_item,
                 'ignore_actor': ignore_actor,
                 'resolution': resolution,
+                'resolution_type': resolution_type,
                 'resolution_actor': resolution_actor,
                 'share_id': share_ids.get(item.id),
-                'times_seen': times_seen.get(item.id, 0),
-                'first_seen': first_seen.get(item.id),  # TODO: missing?
-                'last_seen': last_seen.get(item.id),
             }
+
+            result[item].update(seen_stats.get(item, {}))
         return result
 
     def serialize(self, obj, attrs, user):
@@ -289,13 +320,15 @@ class GroupSerializer(Serializer):
             status_details['autoResolved'] = True
         if status == GroupStatus.RESOLVED:
             status_label = 'resolved'
-            if attrs['resolution']:
+            if attrs['resolution_type'] == 'release':
                 res_type, res_version, _ = attrs['resolution']
                 if res_type in (GroupResolution.Type.in_next_release, None):
                     status_details['inNextRelease'] = True
                 elif res_type == GroupResolution.Type.in_release:
                     status_details['inRelease'] = res_version
                 status_details['actor'] = attrs['resolution_actor']
+            elif attrs['resolution_type'] == 'commit':
+                status_details['inCommit'] = attrs['resolution']
         elif status == GroupStatus.IGNORED:
             status_label = 'ignored'
         elif status in [GroupStatus.PENDING_DELETION, GroupStatus.DELETION_IN_PROGRESS]:
@@ -308,9 +341,7 @@ class GroupSerializer(Serializer):
         # If user is not logged in and member of the organization,
         # do not return the permalink which contains private information i.e. org name.
         if user.is_authenticated() and user.get_orgs().filter(id=obj.organization.id).exists():
-            permalink = absolute_uri(
-                reverse('sentry-group', args=[obj.organization.slug, obj.project.slug, obj.id])
-            )
+            permalink = obj.get_absolute_url()
         else:
             permalink = None
 
@@ -348,10 +379,12 @@ class GroupSerializer(Serializer):
             'status': status_label,
             'statusDetails': status_details,
             'isPublic': share_id is not None,
+            'platform': obj.platform,
             'project': {
                 'id': six.text_type(obj.project.id),
                 'name': obj.project.name,
                 'slug': obj.project.slug,
+                'platform': obj.project.platform,
             },
             'type': obj.get_event_type(),
             'metadata': obj.get_event_metadata(),
@@ -365,25 +398,70 @@ class GroupSerializer(Serializer):
         }
 
 
-class StreamGroupSerializer(GroupSerializer):
+@register(Group)
+class GroupSerializer(GroupSerializerBase):
+    def __init__(self, environment_func=None):
+        self.environment_func = environment_func if environment_func is not None else lambda: None
+
+    def _get_seen_stats(self, item_list, user):
+        try:
+            environment = self.environment_func()
+        except Environment.DoesNotExist:
+            user_counts = {}
+            first_seen = {}
+            last_seen = {}
+            times_seen = {}
+        else:
+            project_id = item_list[0].project_id
+            item_ids = [g.id for g in item_list]
+            user_counts = tagstore.get_groups_user_counts(
+                [project_id],
+                item_ids,
+                environment_ids=environment and [environment.id],
+            )
+            first_seen = {}
+            last_seen = {}
+            times_seen = {}
+            if environment is not None:
+                environment_tagvalues = tagstore.get_group_list_tag_value(
+                    [project_id],
+                    item_ids,
+                    [environment.id],
+                    'environment',
+                    environment.name,
+                )
+                for item_id, value in environment_tagvalues.items():
+                    first_seen[item_id] = value.first_seen
+                    last_seen[item_id] = value.last_seen
+                    times_seen[item_id] = value.times_seen
+            else:
+                for item in item_list:
+                    first_seen[item.id] = item.first_seen
+                    last_seen[item.id] = item.last_seen
+                    times_seen[item.id] = item.times_seen
+
+        attrs = {}
+        for item in item_list:
+            attrs[item] = {
+                'times_seen': times_seen.get(item.id, 0),
+                'first_seen': first_seen.get(item.id),  # TODO: missing?
+                'last_seen': last_seen.get(item.id),
+                'user_count': user_counts.get(item.id, 0),
+            }
+
+        return attrs
+
+
+class GroupStatsMixin(object):
     STATS_PERIOD_CHOICES = {
         '14d': StatsPeriod(14, timedelta(hours=24)),
         '24h': StatsPeriod(24, timedelta(hours=1)),
     }
 
-    def __init__(self, environment_func=None, stats_period=None, matching_event_id=None, matching_event_environment=None):
-        super(StreamGroupSerializer, self).__init__(environment_func)
+    def query_tsdb(self, group_ids, query_params):
+        raise NotImplementedError
 
-        if stats_period is not None:
-            assert stats_period in self.STATS_PERIOD_CHOICES
-
-        self.stats_period = stats_period
-        self.matching_event_id = matching_event_id
-        self.matching_event_environment = matching_event_environment
-
-    def get_attrs(self, item_list, user):
-        attrs = super(StreamGroupSerializer, self).get_attrs(item_list, user)
-
+    def get_stats(self, item_list, user):
         if self.stats_period:
             # we need to compute stats at 1d (1h resolution), and 14d
             group_ids = [g.id for g in item_list]
@@ -396,20 +474,43 @@ class StreamGroupSerializer(GroupSerializer):
                 'rollup': int(interval.total_seconds()),
             }
 
-            try:
-                environment = self.environment_func()
-            except Environment.DoesNotExist:
-                stats = {key: tsdb.make_series(0, **query_params) for key in group_ids}
-            else:
-                stats = tsdb.get_range(
-                    model=tsdb.models.group,
-                    keys=group_ids,
-                    environment_id=environment and environment.id,
-                    **query_params
-                )
+            return self.query_tsdb(group_ids, query_params)
 
+
+class StreamGroupSerializer(GroupSerializer, GroupStatsMixin):
+
+    def __init__(self, environment_func=None, stats_period=None,
+                 matching_event_id=None, matching_event_environment=None):
+        super(StreamGroupSerializer, self).__init__(environment_func)
+
+        if stats_period is not None:
+            assert stats_period in self.STATS_PERIOD_CHOICES
+
+        self.stats_period = stats_period
+        self.matching_event_id = matching_event_id
+        self.matching_event_environment = matching_event_environment
+
+    def query_tsdb(self, group_ids, query_params):
+        try:
+            environment = self.environment_func()
+        except Environment.DoesNotExist:
+            stats = {key: tsdb.make_series(0, **query_params) for key in group_ids}
+        else:
+            stats = tsdb.get_range(
+                model=tsdb.models.group,
+                keys=group_ids,
+                environment_ids=environment and [environment.id],
+                **query_params
+            )
+
+        return stats
+
+    def get_attrs(self, item_list, user):
+        attrs = super(StreamGroupSerializer, self).get_attrs(item_list, user)
+
+        if self.stats_period:
+            stats = self.get_stats(item_list, user)
             for item in item_list:
-
                 attrs[item].update({
                     'stats': stats[item.id],
                 })
@@ -449,4 +550,109 @@ class SharedGroupSerializer(GroupSerializer):
     def serialize(self, obj, attrs, user):
         result = super(SharedGroupSerializer, self).serialize(obj, attrs, user)
         del result['annotations']
+        return result
+
+
+class GroupSerializerSnuba(GroupSerializerBase):
+    def __init__(self, environment_ids=None, start=None, end=None):
+        self.environment_ids = environment_ids
+        self.start = start
+        self.end = end
+
+    def _get_seen_stats(self, item_list, user):
+        tagstore = SnubaTagStorage()
+        project_ids = list(set([item.project_id for item in item_list]))
+        group_ids = [item.id for item in item_list]
+        user_counts = tagstore.get_groups_user_counts(
+            project_ids,
+            group_ids,
+            environment_ids=self.environment_ids,
+            start=self.start,
+            end=self.end,
+        )
+
+        first_seen = {}
+        last_seen = {}
+        times_seen = {}
+        if not self.environment_ids:
+            # use issue fields
+            for item in item_list:
+                first_seen[item.id] = item.first_seen
+                last_seen[item.id] = item.last_seen
+                times_seen[item.id] = item.times_seen
+        else:
+            seen_data = tagstore.get_group_seen_values_for_environments(
+                project_ids,
+                group_ids,
+                self.environment_ids,
+                start=self.start,
+                end=self.end,
+            )
+
+            first_seen_data = {
+                ge['group_id']: ge['first_seen__min'] for ge in GroupEnvironment.objects.filter(
+                    group_id__in=[item.id for item in item_list],
+                    environment_id__in=self.environment_ids,
+                ).values('group_id').annotate(Min('first_seen'))
+            }
+
+            for item_id, value in seen_data.items():
+                first_seen[item_id] = first_seen_data.get(item_id)
+                last_seen[item_id] = value['last_seen']
+                times_seen[item_id] = value['times_seen']
+
+        attrs = {}
+        for item in item_list:
+            attrs[item] = {
+                'times_seen': times_seen.get(item.id, 0),
+                'first_seen': first_seen.get(item.id),
+                'last_seen': last_seen.get(item.id),
+                'user_count': user_counts.get(item.id, 0),
+            }
+
+        return attrs
+
+
+class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
+    def __init__(self, environment_ids=None, stats_period=None,
+                 matching_event_id=None):
+        super(StreamGroupSerializerSnuba, self).__init__(environment_ids)
+
+        if stats_period is not None:
+            assert stats_period in self.STATS_PERIOD_CHOICES
+
+        self.stats_period = stats_period
+        self.matching_event_id = matching_event_id
+
+    def query_tsdb(self, group_ids, query_params):
+        return snuba_tsdb.get_range(
+            model=snuba_tsdb.models.group,
+            keys=group_ids,
+            environment_ids=self.environment_ids,
+            **query_params
+        )
+
+    def get_attrs(self, item_list, user):
+        attrs = super(StreamGroupSerializerSnuba, self).get_attrs(item_list, user)
+
+        if self.stats_period:
+            stats = self.get_stats(item_list, user)
+            for item in item_list:
+                attrs[item].update({
+                    'stats': stats[item.id],
+                })
+
+        return attrs
+
+    def serialize(self, obj, attrs, user):
+        result = super(StreamGroupSerializerSnuba, self).serialize(obj, attrs, user)
+
+        if self.stats_period:
+            result['stats'] = {
+                self.stats_period: attrs['stats'],
+            }
+
+        if self.matching_event_id:
+            result['matchingEventId'] = self.matching_event_id
+
         return result

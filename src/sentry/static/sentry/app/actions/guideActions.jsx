@@ -1,6 +1,6 @@
 import Reflux from 'reflux';
 
-let GuideActions = Reflux.createActions([
+const GuideActions = Reflux.createActions([
   'closeGuide',
   'fetchSucceeded',
   'nextStep',

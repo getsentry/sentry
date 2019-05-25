@@ -8,9 +8,6 @@ import sys
 # A few aliases, because there's FQMNs now
 engine_modules = {
     'django.db.backends.postgresql_psycopg2': 'postgresql_psycopg2',
-    'django.db.backends.sqlite3': 'sqlite3',
-    'django.db.backends.mysql': 'mysql',
-    'mysql.connector.django': 'mysql',  # MySQL Connector/Python
 }
 
 # First, work out if we're multi-db or not, and which databases we have

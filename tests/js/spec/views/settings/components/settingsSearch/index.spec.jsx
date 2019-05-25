@@ -1,7 +1,7 @@
 import React from 'react';
 import {mount} from 'enzyme';
 
-import SettingsSearch from 'app/views/settings/components/settingsSearch';
+import {SettingsSearch} from 'app/views/settings/components/settingsSearch';
 import FormSearchStore from 'app/stores/formSearchStore';
 
 import {navigateTo} from 'app/actionCreators/navigation';
@@ -13,7 +13,7 @@ jest.mock('app/actionCreators/navigation');
 const SETTINGS_SEARCH_PLACEHOLDER = 'Search';
 describe('SettingsSearch', function() {
   let orgsMock;
-  let routerContext = TestStubs.routerContext([
+  const routerContext = TestStubs.routerContext([
     {
       router: TestStubs.router({
         params: {orgId: 'org-slug'},
@@ -43,10 +43,21 @@ describe('SettingsSearch', function() {
       query: 'foo',
       body: TestStubs.Members(),
     });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/plugins/?plugins=_all',
+      query: 'foo',
+      body: [],
+    });
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/config/integrations/',
+      query: 'foo',
+      body: [],
+    });
   });
 
   it('renders', async function() {
-    let wrapper = mount(<SettingsSearch params={{orgId: 'org-slug'}} />, routerContext);
+    const wrapper = mount(<SettingsSearch params={{orgId: 'org-slug'}} />, routerContext);
 
     // renders input
     expect(wrapper.find('SearchInput')).toHaveLength(1);
@@ -54,9 +65,9 @@ describe('SettingsSearch', function() {
   });
 
   it('can focus when `handleFocusSearch` is called and target is not search input', function() {
-    let wrapper = mount(<SettingsSearch params={{orgId: 'org-slug'}} />, routerContext);
-    let searchInput = wrapper.instance().searchInput;
-    let focusSpy = jest.spyOn(searchInput, 'focus');
+    const wrapper = mount(<SettingsSearch params={{orgId: 'org-slug'}} />, routerContext);
+    const searchInput = wrapper.instance().searchInput;
+    const focusSpy = jest.spyOn(searchInput, 'focus');
 
     wrapper.instance().handleFocusSearch({
       preventDefault: () => {},
@@ -67,9 +78,9 @@ describe('SettingsSearch', function() {
   });
 
   it('does not focus search input if it is current target and `handleFocusSearch` is called', function() {
-    let wrapper = mount(<SettingsSearch params={{orgId: 'org-slug'}} />, routerContext);
-    let searchInput = wrapper.instance().searchInput;
-    let focusSpy = jest.spyOn(searchInput, 'focus');
+    const wrapper = mount(<SettingsSearch params={{orgId: 'org-slug'}} />, routerContext);
+    const searchInput = wrapper.instance().searchInput;
+    const focusSpy = jest.spyOn(searchInput, 'focus');
 
     wrapper.instance().handleFocusSearch({
       preventDefault: () => {},
@@ -80,7 +91,7 @@ describe('SettingsSearch', function() {
   });
 
   it('can search', async function() {
-    let wrapper = mount(<SettingsSearch params={{orgId: 'org-slug'}} />, routerContext);
+    const wrapper = mount(<SettingsSearch params={{orgId: 'org-slug'}} />, routerContext);
 
     wrapper.find('input').simulate('change', {target: {value: 'bil'}});
 

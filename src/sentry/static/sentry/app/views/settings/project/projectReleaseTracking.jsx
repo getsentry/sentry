@@ -34,7 +34,7 @@ class ProjectReleaseTracking extends AsyncView {
   }
 
   getEndpoints() {
-    let {orgId, projectId} = this.props.params;
+    const {orgId, projectId} = this.props.params;
 
     // Allow 403s
     return [
@@ -48,7 +48,7 @@ class ProjectReleaseTracking extends AsyncView {
   }
 
   handleRegenerateToken = () => {
-    let {orgId, projectId} = this.props.params;
+    const {orgId, projectId} = this.props.params;
     this.api.request(`/projects/${orgId}/${projectId}/releases/token/`, {
       method: 'POST',
       data: {project: projectId},
@@ -70,7 +70,7 @@ class ProjectReleaseTracking extends AsyncView {
   };
 
   getReleaseWebhookIntructions() {
-    let {webhookUrl} = this.state.data || {webhookUrl: WEBHOOK_PLACEHOLDER};
+    const {webhookUrl} = this.state.data || {webhookUrl: WEBHOOK_PLACEHOLDER};
     return (
       'curl ' +
       webhookUrl +
@@ -84,28 +84,15 @@ class ProjectReleaseTracking extends AsyncView {
     );
   }
 
-  getReleaseClientConfigurationIntructions() {
-    return (
-      '// See SDK documentation for language specific usage.' +
-      '\n' +
-      "Raven.config('YOUR_DSN', {" +
-      '\n' +
-      '  ' +
-      "release: '0e4fdef81448dcfa0e16ecc4433ff3997aa53572'" +
-      '\n' +
-      '});'
-    );
-  }
-
   renderBody() {
-    let {organization, project, plugins} = this.props;
-    let hasWrite = organization.access.includes('project:write');
+    const {organization, project, plugins} = this.props;
+    const hasWrite = organization.access.includes('project:write');
 
     if (plugins.loading) {
       return <LoadingIndicator />;
     }
 
-    let pluginList = plugins.plugins.filter(
+    const pluginList = plugins.plugins.filter(
       p => p.type === 'release-tracking' && p.hasConfiguration
     );
 
@@ -138,13 +125,18 @@ class ProjectReleaseTracking extends AsyncView {
           <PanelHeader>{t('Client Configuration')}</PanelHeader>
           <PanelBody disablePadding={false} flex>
             <p>
-              {tct('Start by binding the [release] attribute in your application', {
-                release: <code>release</code>,
-              })}
+              {tct(
+                'Start by binding the [release] attribute in your application, take a look at [link] to see how to configure this for the SDK you are using.',
+                {
+                  link: (
+                    <a href="https://docs.sentry.io/workflow/releases/?platform=javascript#tag-errors">
+                      our docs
+                    </a>
+                  ),
+                  release: <code>release</code>,
+                }
+              )}
             </p>
-            <AutoSelectText>
-              <pre>{this.getReleaseClientConfigurationIntructions()}</pre>
-            </AutoSelectText>
             <p>
               {t(
                 "This will annotate each event with the version of your application, as well as automatically create a release entity in the system the first time it's seen."
@@ -244,8 +236,8 @@ class ProjectReleaseTracking extends AsyncView {
             </p>
 
             <p>
-              {tct('See the [link:Releases documentation] for more information.', {
-                link: <a href="https://docs.sentry.io/learn/releases" />,
+              {tct('See the [link:releases documentation] for more information.', {
+                link: <a href="https://docs.sentry.io/workflow/releases/" />,
               })}
             </p>
           </PanelBody>

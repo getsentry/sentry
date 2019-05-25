@@ -20,12 +20,16 @@ from sentry.api.serializers import serialize
 from sentry.api.serializers.models.project import DetailedProjectSerializer
 from sentry.api.serializers.rest_framework import ListField, OriginField
 from sentry.constants import RESERVED_PROJECT_SLUGS
+from sentry.lang.native.symbolicator import parse_sources, InvalidSourcesError
 from sentry.models import (
     AuditLogEntryEvent, Group, GroupStatus, Project, ProjectBookmark, ProjectRedirect,
     ProjectStatus, ProjectTeam, UserOption,
 )
+from sentry.grouping.enhancer import Enhancements, InvalidEnhancerConfig
+from sentry.grouping.fingerprinting import FingerprintingRules, InvalidFingerprintingConfig
 from sentry.tasks.deletion import delete_project
 from sentry.utils.apidocs import scenario, attach_scenarios
+from sentry.utils import json
 
 delete_logger = logging.getLogger('sentry.deletions.api')
 
@@ -88,6 +92,7 @@ class ProjectAdminSerializer(ProjectMemberSerializer):
     securityToken = serializers.RegexField(r'^[-a-zA-Z0-9+/=\s]+$', max_length=255)
     securityTokenHeader = serializers.RegexField(r'^[a-zA-Z0-9_\-]+$', max_length=20)
     verifySSL = serializers.BooleanField(required=False)
+
     defaultEnvironment = serializers.CharField(required=False, allow_none=True)
     dataScrubber = serializers.BooleanField(required=False)
     dataScrubberDefaults = serializers.BooleanField(required=False)
@@ -95,11 +100,18 @@ class ProjectAdminSerializer(ProjectMemberSerializer):
     safeFields = ListField(child=serializers.CharField(), required=False)
     storeCrashReports = serializers.BooleanField(required=False)
     relayPiiConfig = serializers.CharField(required=False)
+    builtinSymbolSources = ListField(child=serializers.CharField(), required=False)
+    symbolSources = serializers.CharField(required=False)
     scrubIPAddresses = serializers.BooleanField(required=False)
+    groupingConfig = serializers.CharField(required=False)
+    groupingEnhancements = serializers.CharField(required=False)
+    groupingEnhancementsBase = serializers.CharField(required=False)
+    fingerprintingRules = serializers.CharField(required=False)
     scrapeJavaScript = serializers.BooleanField(required=False)
     allowedDomains = ListField(child=OriginField(), required=False)
     resolveAge = serializers.IntegerField(required=False)
     platform = serializers.CharField(required=False)
+    copy_from_project = serializers.IntegerField(required=False)
 
     def validate_digestsMinDelay(self, attrs, source):
         max_delay = attrs['digestsMaxDelay'] if 'digestsMaxDelay' in attrs else self.context['project'].get_option(
@@ -163,6 +175,98 @@ class ProjectAdminSerializer(ProjectMemberSerializer):
             raise serializers.ValidationError(
                 'Organization does not have the relay feature enabled'
             )
+        return attrs
+
+    def validate_builtinSymbolSources(self, attrs, source):
+        if not attrs[source]:
+            return attrs
+
+        from sentry import features
+        organization = self.context['project'].organization
+        request = self.context["request"]
+        has_sources = features.has('organizations:symbol-sources',
+                                   organization,
+                                   actor=request.user)
+
+        if not has_sources:
+            raise serializers.ValidationError(
+                'Organization is not allowed to set symbol sources'
+            )
+
+        return attrs
+
+    def validate_symbolSources(self, attrs, source):
+        sources_json = attrs[source]
+        if not sources_json:
+            return attrs
+
+        from sentry import features
+        organization = self.context['project'].organization
+        request = self.context["request"]
+        has_sources = features.has('organizations:symbol-sources',
+                                   organization,
+                                   actor=request.user)
+
+        if not has_sources:
+            raise serializers.ValidationError(
+                'Organization is not allowed to set symbol sources'
+            )
+
+        try:
+            sources = parse_sources(sources_json.strip())
+            attrs[source] = json.dumps(sources) if sources else ''
+        except InvalidSourcesError as e:
+            raise serializers.ValidationError(e.message)
+
+        return attrs
+
+    def validate_groupingEnhancements(self, attrs, source):
+        if not attrs[source]:
+            return attrs
+
+        try:
+            Enhancements.from_config_string(attrs[source])
+        except InvalidEnhancerConfig as e:
+            raise serializers.ValidationError(e.message)
+
+        return attrs
+
+    def validate_fingerprintingRules(self, attrs, source):
+        if not attrs[source]:
+            return attrs
+
+        try:
+            FingerprintingRules.from_config_string(attrs[source])
+        except InvalidFingerprintingConfig as e:
+            raise serializers.ValidationError(e.message)
+
+        return attrs
+
+    def validate_copy_from_project(self, attrs, source):
+        other_project_id = attrs[source]
+
+        try:
+            other_project = Project.objects.filter(
+                id=other_project_id,
+                organization_id=self.context['project'].organization_id,
+            ).prefetch_related('teams')[0]
+        except IndexError:
+            raise serializers.ValidationError(
+                'Project to copy settings from not found.'
+            )
+
+        request = self.context['request']
+        if not request.access.has_project_access(other_project):
+            raise serializers.ValidationError(
+                'Project settings cannot be copied from a project you do not have access to.'
+            )
+
+        for project_team in other_project.projectteam_set.all():
+            if not request.access.has_team_scope(project_team.team, 'team:write'):
+                raise serializers.ValidationError(
+                    'Project settings cannot be copied from a project with a team you do not have write access to.'
+                )
+
         return attrs
 
 
@@ -347,6 +451,20 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         if result.get('scrubIPAddresses') is not None:
             if project.update_option('sentry:scrub_ip_address', result['scrubIPAddresses']):
                 changed_proj_settings['sentry:scrub_ip_address'] = result['scrubIPAddresses']
+        if result.get('groupingConfig') is not None:
+            if project.update_option('sentry:grouping_config', result['groupingConfig']):
+                changed_proj_settings['sentry:grouping_config'] = result['groupingConfig']
+        if result.get('groupingEnhancements') is not None:
+            if project.update_option('sentry:grouping_enhancements',
+                                     result['groupingEnhancements']):
+                changed_proj_settings['sentry:grouping_enhancements'] = result['groupingEnhancements']
+        if result.get('groupingEnhancementsBase') is not None:
+            if project.update_option('sentry:grouping_enhancements_base',
+                                     result['groupingEnhancementsBase']):
+                changed_proj_settings['sentry:grouping_enhancements_base'] = result['groupingEnhancementsBase']
+        if result.get('fingerprintingRules') is not None:
+            if project.update_option('sentry:fingerprinting_rules', result['fingerprintingRules']):
+                changed_proj_settings['sentry:fingerprinting_rules'] = result['fingerprintingRules']
         if result.get('securityToken') is not None:
             if project.update_option('sentry:token', result['securityToken']):
                 changed_proj_settings['sentry:token'] = result['securityToken']
@@ -375,6 +493,13 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
             if project.update_option('sentry:relay_pii_config', result['relayPiiConfig']):
                 changed_proj_settings['sentry:relay_pii_config'] = result['relayPiiConfig'].strip(
                 ) or None
+        if result.get('builtinSymbolSources') is not None:
+            if project.update_option('sentry:builtin_symbol_sources',
+                                     result['builtinSymbolSources']):
+                changed_proj_settings['sentry:builtin_symbol_sources'] = result['builtinSymbolSources']
+        if result.get('symbolSources') is not None:
+            if project.update_option('sentry:symbol_sources', result['symbolSources']):
+                changed_proj_settings['sentry:symbol_sources'] = result['symbolSources'] or None
         if 'defaultEnvironment' in result:
             if result['defaultEnvironment'] is None:
                 project.delete_option('sentry:default_environment')
@@ -444,6 +569,16 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                     'sentry:scrub_ip_address',
                     bool(options['sentry:scrub_ip_address']),
                 )
+            if 'sentry:grouping_config' in options:
+                project.update_option(
+                    'sentry:grouping_config',
+                    options['sentry:grouping_config'],
+                )
+            if 'sentry:fingerprinting_rules' in options:
+                project.update_option(
+                    'sentry:fingerprinting_rules',
+                    options['sentry:fingerprinting_rules'],
+                )
             if 'mail:subject_prefix' in options:
                 project.update_option(
                     'mail:subject_prefix',
@@ -511,6 +646,13 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                         {
                             'detail': ['You do not have that feature enabled']
                         }, status=400
+                    )
+            if 'copy_from_project' in result:
+                if not project.copy_settings_from(result['copy_from_project']):
+                    return Response(
+                        {
+                            'detail': ['Copy project settings failed.']
+                        }, status=409
                     )
 
             self.create_audit_entry(
@@ -580,5 +722,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                     'model': type(project).__name__,
                 }
             )
+
+            project.rename_on_pending_deletion()
 
         return Response(status=204)

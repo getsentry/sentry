@@ -4,8 +4,8 @@ import Confirm from 'app/components/confirm';
 
 describe('Confirm', function() {
   it('renders', function() {
-    let mock = jest.fn();
-    let wrapper = shallow(
+    const mock = jest.fn();
+    const wrapper = shallow(
       <Confirm message="Are you sure?" onConfirm={mock}>
         <button>Confirm?</button>
       </Confirm>,
@@ -15,8 +15,8 @@ describe('Confirm', function() {
   });
 
   it('clicking action button opens Modal', function() {
-    let mock = jest.fn();
-    let wrapper = shallow(
+    const mock = jest.fn();
+    const wrapper = shallow(
       <Confirm message="Are you sure?" onConfirm={mock}>
         <button>Confirm?</button>
       </Confirm>,
@@ -29,15 +29,15 @@ describe('Confirm', function() {
   });
 
   it('clicking action button twice causes Modal to end up closed', function() {
-    let mock = jest.fn();
-    let wrapper = shallow(
+    const mock = jest.fn();
+    const wrapper = shallow(
       <Confirm message="Are you sure?" onConfirm={mock}>
         <button>Confirm?</button>
       </Confirm>,
       TestStubs.routerContext()
     );
 
-    let button = wrapper.find('button');
+    const button = wrapper.find('button');
 
     button.simulate('click');
     button.simulate('click');
@@ -45,8 +45,8 @@ describe('Confirm', function() {
   });
 
   it('clicks Confirm in modal and calls `onConfirm` callback', function() {
-    let mock = jest.fn();
-    let wrapper = mount(
+    const mock = jest.fn();
+    const wrapper = mount(
       <Confirm message="Are you sure?" onConfirm={mock}>
         <button>Confirm?</button>
       </Confirm>,
@@ -72,5 +72,26 @@ describe('Confirm', function() {
     ).toBe(false);
     expect(mock).toHaveBeenCalled();
     expect(mock.mock.calls).toHaveLength(1);
+  });
+
+  it('can stop propagation on the event', function() {
+    const mock = jest.fn();
+    const wrapper = mount(
+      <Confirm message="Are you sure?" onConfirm={mock} stopPropagation>
+        <button>Confirm?</button>
+      </Confirm>,
+      TestStubs.routerContext()
+    );
+
+    expect(mock).not.toHaveBeenCalled();
+
+    const event = {
+      stopPropagation: jest.fn(),
+    };
+
+    wrapper.find('button').simulate('click', event);
+    wrapper.update();
+
+    expect(event.stopPropagation).toHaveBeenCalledTimes(1);
   });
 });

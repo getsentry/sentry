@@ -2,7 +2,6 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import _ from 'lodash';
 
-import DeviceName from 'app/components/deviceName';
 import ContextData from 'app/components/contextData';
 
 class KeyValueList extends React.Component {
@@ -29,10 +28,12 @@ class KeyValueList extends React.Component {
       data = [];
     } else if (!(data instanceof Array)) {
       data = Object.keys(data).map(key => [key, data[key]]);
+    } else {
+      data = data.filter(kv => kv !== null);
     }
 
     data = this.props.isSorted ? _.sortBy(data, [([key]) => key]) : data;
-    let raw = this.props.raw;
+    const raw = this.props.raw;
     const props = this.props.onClick ? {onClick: this.props.onClick} : {};
     return (
       <table className="table key-value" {...props}>
@@ -52,9 +53,7 @@ class KeyValueList extends React.Component {
                 <tr key={key}>
                   <td className="key">{key}</td>
                   <td className="value">
-                    <pre>
-                      <DeviceName>{'' + value || ' '}</DeviceName>
-                    </pre>
+                    <pre>{'' + value || ' '}</pre>
                   </td>
                 </tr>,
               ];

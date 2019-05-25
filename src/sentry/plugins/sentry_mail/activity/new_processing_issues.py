@@ -19,7 +19,7 @@ def summarize_issues(issues):
                 extra_info = '%s (%s)' % (extra_info, issue['data']['image_arch'], )
 
         rv.append({
-            'message': EventError.get_message(msg_d),
+            'message': EventError(msg_d).message,
             'extra_info': extra_info,
         })
     return rv
@@ -46,7 +46,7 @@ class NewProcessingIssuesActivityEmail(ActivityEmail):
             self.activity.data['reprocessing_active'],
             'info_url':
             absolute_uri(
-                u'/{}/{}/settings/processing-issues/'.format(
+                u'/settings/{}/projects/{}/processing-issues/'.format(
                     self.organization.slug,
                     self.project.slug,
                 )

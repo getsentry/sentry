@@ -2,34 +2,20 @@ from __future__ import absolute_import
 
 from django.db import IntegrityError, transaction
 
-from rest_framework import serializers
 from rest_framework.response import Response
 
 from sentry.api.base import EnvironmentMixin
 from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
 from sentry.api.paginator import OffsetPaginator
-from sentry.api.fields.user import UserField
 from sentry.api.serializers import serialize
-from sentry.api.serializers.rest_framework import CommitSerializer, ListField
-from sentry.models import Activity, Environment, Release, ReleaseEnvironment
+from sentry.api.serializers.rest_framework import ReleaseWithVersionSerializer
+from sentry.models import (
+    Activity,
+    Environment,
+    Release,
+)
 from sentry.plugins.interfaces.releasehook import ReleaseHook
-from sentry.constants import VERSION_LENGTH
 from sentry.signals import release_created
-
-
-class ReleaseSerializer(serializers.Serializer):
-    version = serializers.CharField(max_length=VERSION_LENGTH, required=True)
-    ref = serializers.CharField(max_length=VERSION_LENGTH, required=False)
-    url = serializers.URLField(required=False)
-    owner = UserField(required=False)
-    dateReleased = serializers.DateTimeField(required=False)
-    commits = ListField(child=CommitSerializer(), required=False, allow_null=False)
-
-    def validate_version(self, attrs, source):
-        value = attrs[source]
-        if not Release.is_valid_version(value):
-            raise serializers.ValidationError('Invalid value for release')
-        return attrs
 
 
 class ProjectReleasesEndpoint(ProjectEndpoint, EnvironmentMixin):
@@ -63,12 +49,10 @@ class ProjectReleasesEndpoint(ProjectEndpoint, EnvironmentMixin):
                 projects=project, organization_id=project.organization_id
             ).select_related('owner')
             if environment is not None:
-                # TODO(LB): May want to change this to ReleaseProjectEnv don't see a
-                # reason to change now.
-                queryset = queryset.filter(id__in=ReleaseEnvironment.objects.filter(
-                    organization_id=project.organization_id,
-                    environment_id=environment.id,
-                ).values_list('release_id', flat=True))
+                queryset = queryset.filter(
+                    releaseprojectenvironment__project=project,
+                    releaseprojectenvironment__environment=environment,
+                )
 
         if query:
             queryset = queryset.filter(
@@ -120,7 +104,7 @@ class ProjectReleasesEndpoint(ProjectEndpoint, EnvironmentMixin):
                                       the current time is assumed.
         :auth: required
         """
-        serializer = ReleaseSerializer(data=request.DATA)
+        serializer = ReleaseWithVersionSerializer(data=request.DATA)
 
         if serializer.is_valid():
             result = serializer.object

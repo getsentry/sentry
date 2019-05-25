@@ -99,6 +99,9 @@ class BitbucketIssueBasicMixin(IssueBasicMixin):
         if not data.get('repo'):
             raise IntegrationFormError({'repo': ['Repository is required']})
 
+        data['content'] = {'raw': data['description']}
+        del data['description']
+
         try:
             issue = client.create_issue(data.get('repo'), data)
         except ApiError as e:

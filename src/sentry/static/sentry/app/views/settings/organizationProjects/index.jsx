@@ -1,7 +1,6 @@
 import {Box} from 'grid-emotion';
 import PropTypes from 'prop-types';
 import React from 'react';
-import idx from 'idx';
 
 import {getOrganizationState} from 'app/mixins/organizationState';
 import {sortProjects} from 'app/utils';
@@ -25,21 +24,21 @@ export default class OrganizationProjects extends AsyncView {
 
   componentWillReceiveProps(nextProps, nextContext) {
     super.componentWillReceiveProps(nextProps, nextContext);
-    let searchQuery = idx(nextProps, _ => _.location.query.query);
-    if (searchQuery !== idx(this.props, _ => _.location.query.query)) {
+    const searchQuery = nextProps?.location?.query?.query;
+    if (searchQuery !== this.props?.location?.query?.query) {
       this.setState({searchQuery});
     }
   }
 
   getEndpoints() {
-    let {orgId} = this.props.params;
+    const {orgId} = this.props.params;
     return [
       [
         'projectList',
         `/organizations/${orgId}/projects/`,
         {
           query: {
-            query: idx(this.props, _ => _.location.query.query),
+            query: this.props?.location?.query?.query,
           },
         },
       ],
@@ -60,23 +59,25 @@ export default class OrganizationProjects extends AsyncView {
   getDefaultState() {
     return {
       ...super.getDefaultState(),
-      searchQuery: idx(this.props, _ => _.location.query.query) || '',
+      searchQuery: this.props?.location?.query?.query || '',
     };
   }
 
   getTitle() {
-    let org = this.context.organization;
+    const org = this.context.organization;
     return `${org.name} Projects`;
   }
 
   renderBody() {
-    let {projectList, projectListPageLinks, projectStats} = this.state;
-    let {organization} = this.context;
-    let canCreateProjects = getOrganizationState(this.context.organization)
+    const {projectList, projectListPageLinks, projectStats} = this.state;
+    const {organization} = this.context;
+    const canCreateProjects = getOrganizationState(this.context.organization)
       .getAccess()
       .has('project:admin');
 
-    let action = (
+    const hasNewRoutes = new Set(organization.features).has('sentry10');
+
+    const action = (
       <Button
         priority="primary"
         size="small"
@@ -122,15 +123,17 @@ export default class OrganizationProjects extends AsyncView {
                     stats={projectStats[project.id]}
                   />
                 </Box>
-                <Box p={2} align="right">
-                  <Button
-                    icon="icon-settings"
-                    size="small"
-                    to={`/settings/${organization.slug}/${project.slug}/`}
-                  >
-                    {t('Settings')}
-                  </Button>
-                </Box>
+                {!hasNewRoutes && (
+                  <Box p={2} align="right">
+                    <Button
+                      icon="icon-settings"
+                      size="small"
+                      to={`/settings/${organization.slug}/projects/${project.slug}/`}
+                    >
+                      {t('Settings')}
+                    </Button>
+                  </Box>
+                )}
               </PanelItem>
             ))}
             {projectList.length === 0 && (

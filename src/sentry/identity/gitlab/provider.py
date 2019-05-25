@@ -1,10 +1,14 @@
 from __future__ import absolute_import
 
+import logging
+
 from sentry import http
 from sentry.auth.exceptions import IdentityNotValid
 from sentry.http import safe_urlopen, safe_urlread
 from sentry.identity.oauth2 import OAuth2Provider
 from sentry.utils import json
+
+logger = logging.getLogger('sentry.integration.gitlab')
 
 
 def get_oauth_data(payload):
@@ -39,8 +43,19 @@ def get_user_info(access_token, installation_data):
         },
         verify=installation_data['verify_ssl']
     )
-
-    resp.raise_for_status()
+    try:
+        resp.raise_for_status()
+    except Exception as e:
+        logger.info('gitlab.identity.get-user-info-failure',
+                    extra={
+                        'url': installation_data['url'],
+                        'verify_ssl': installation_data['verify_ssl'],
+                        'client_id': installation_data['client_id'],
+                        'error_status': e.code,
+                        'error_message': e.message,
+                    }
+                    )
+        raise e
     return resp.json()
 
 
@@ -88,7 +103,15 @@ class GitlabIdentityProvider(OAuth2Provider):
         try:
             body = safe_urlread(req)
             payload = json.loads(body)
-        except Exception:
+        except Exception as e:
+            self.logger(
+                'gitlab.refresh-identity-failure',
+                extra={
+                    'identity_id': identity.id,
+                    'error_status': e.code,
+                    'error_message': e.message,
+                }
+            )
             payload = {}
 
         self.handle_refresh_error(req, payload)

@@ -8,6 +8,8 @@ import functools
 
 from django.utils.encoding import force_bytes
 
+from sentry.utils import metrics
+
 logger = logging.getLogger(__name__)
 
 
@@ -56,7 +58,8 @@ class TimedRetryPolicy(RetryPolicy):
     number of this attempt (starting at 1.)
     """
 
-    def __init__(self, timeout, delay=None, exceptions=(Exception, )):
+    def __init__(self, timeout, delay=None, exceptions=(
+            Exception, ), metric_instance=None, metric_tags=None):
         if delay is None:
             # 100ms +/- 50ms of randomized jitter
             def delay(i):
@@ -66,27 +69,38 @@ class TimedRetryPolicy(RetryPolicy):
         self.delay = delay
         self.exceptions = exceptions
         self.clock = time
+        self.metric_instance = metric_instance
+        self.metric_tags = metric_tags or {}
 
     def __call__(self, function):
         start = self.clock.time()
-        for i in itertools.count(1):
-            try:
-                return function()
-            except self.exceptions as error:
-                delay = self.delay(i)
-                now = self.clock.time()
-                if (now + delay) > (start + self.timeout):
-                    raise RetryException(
-                        'Could not successfully execute %r within %.3f seconds (%s attempts.)' %
-                        (function, now - start, i),
-                        error,
-                    )
-                else:
-                    logger.debug(
-                        'Failed to execute %r due to %r on attempt #%s, retrying in %s seconds...',
-                        function,
-                        error,
-                        i,
-                        delay,
-                    )
-                    self.clock.sleep(delay)
+        try:
+            for i in itertools.count(1):
+                try:
+                    return function()
+                except self.exceptions as error:
+                    delay = self.delay(i)
+                    now = self.clock.time()
+                    if (now + delay) > (start + self.timeout):
+                        raise RetryException(
+                            'Could not successfully execute %r within %.3f seconds (%s attempts.)' %
+                            (function, now - start, i),
+                            error,
+                        )
+                    else:
+                        logger.debug(
+                            'Failed to execute %r due to %r on attempt #%s, retrying in %s seconds...',
+                            function,
+                            error,
+                            i,
+                            delay,
+                        )
+                        self.clock.sleep(delay)
+        finally:
+            if self.metric_instance:
+                metrics.timing(
+                    'timedretrypolicy.duration',
+                    self.clock.time() - start,
+                    instance=self.metric_instance,
+                    tags=self.metric_tags,
+                )

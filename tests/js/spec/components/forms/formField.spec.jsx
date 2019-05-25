@@ -8,7 +8,7 @@ import FormModel from 'app/views/settings/components/forms/model';
 describe('FormField + model', function() {
   let model;
   let wrapper;
-  let routerContext = TestStubs.routerContext();
+  const routerContext = TestStubs.routerContext();
 
   beforeEach(function() {
     model = new FormModel();
@@ -69,5 +69,29 @@ describe('FormField + model', function() {
 
     expect(model.initialData.fieldName).toBe('foofoo');
     expect(model.fields.get('fieldName')).toBe('foofoo');
+  });
+
+  it('sets field descriptor in model', function() {
+    wrapper = mount(
+      <Form model={model} initialData={{fieldName: 'test'}}>
+        <TextField name="fieldName" required />
+      </Form>,
+      routerContext
+    );
+
+    expect(model.getDescriptor('fieldName', 'required')).toBe(true);
+  });
+
+  it('removes field descriptor in model on unmount', function() {
+    wrapper = mount(
+      <Form model={model} initialData={{fieldName: 'test'}}>
+        <TextField name="fieldName" required />
+      </Form>,
+      routerContext
+    );
+    expect(model.fieldDescriptor.has('fieldName')).toBe(true);
+
+    wrapper.unmount();
+    expect(model.fieldDescriptor.has('fieldName')).toBe(false);
   });
 });

@@ -21,9 +21,11 @@ class AllTeamsList extends React.Component {
   };
 
   handleCreateTeam = e => {
-    let {useCreateModal, organization} = this.props;
+    const {useCreateModal, organization} = this.props;
 
-    if (!useCreateModal) return;
+    if (!useCreateModal) {
+      return;
+    }
 
     e.preventDefault();
 
@@ -34,8 +36,8 @@ class AllTeamsList extends React.Component {
   };
 
   render() {
-    let {access, organization, urlPrefix, openMembership, useCreateModal} = this.props;
-    let teamNodes = this.props.teamList.map((team, teamIdx) => {
+    const {access, organization, urlPrefix, openMembership, useCreateModal} = this.props;
+    const teamNodes = this.props.teamList.map((team, teamIdx) => {
       return (
         <AllTeamsRow
           urlPrefix={urlPrefix}
@@ -52,12 +54,16 @@ class AllTeamsList extends React.Component {
       return teamNodes;
     }
 
-    let to = useCreateModal ? '#' : `/organizations/${organization.slug}/teams/new/`;
+    const to = useCreateModal ? '#' : `/organizations/${organization.slug}/teams/new/`;
     return (
       <EmptyMessage>
-        {tct('No teams here. You can always [link:create one].', {
+        {tct('No teams here. [teamCreate]', {
           root: <TextBlock noMargin />,
-          link: <Link to={to} onClick={this.handleCreateTeam} />,
+          teamCreate: access.has('project:admin')
+            ? tct('You can always [link:create one].', {
+                link: <Link to={to} onClick={this.handleCreateTeam} />,
+              })
+            : null,
         })}
       </EmptyMessage>
     );

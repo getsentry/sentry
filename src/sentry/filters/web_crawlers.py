@@ -4,6 +4,7 @@ import re
 
 from .base import Filter
 from sentry.utils.data_filters import FilterStatKeys
+from sentry.utils.safe import get_path
 
 # not all of these agents are guaranteed to execute JavaScript, but to avoid
 # overhead of identifying which ones do, and which ones will over time we simply
@@ -11,12 +12,12 @@ from sentry.utils.data_filters import FilterStatKeys
 CRAWLERS = re.compile(
     r'|'.join(
         (
-            # various Google services
-            r'AdsBot',
-            # Google Adsense
-            r'Mediapartners',
-            # Google+ and Google web search
-            r'Google',
+            # Google spiders (Adsense and others)
+            # https://support.google.com/webmasters/answer/1061943?hl=en
+            r'Mediapartners\-Google',
+            r'AdsBot\-Google',
+            r'Googlebot',
+            r'FeedFetcher\-Google',
             # Bing search
             r'BingBot',
             r'BingPreview',
@@ -52,13 +53,15 @@ class WebCrawlersFilter(Filter):
 
     def get_user_agent(self, data):
         try:
-            for key, value in data['request']['headers']:
+            for key, value in get_path(data, 'request', 'headers', filter=True) or ():
                 if key.lower() == 'user-agent':
                     return value
         except LookupError:
             return ''
 
     def test(self, data):
+        """Return True if event with given user agent should be filtered out, False otherwise"""
+
         # TODO(dcramer): we could also look at UA parser and use the 'Spider'
         # device type
         user_agent = self.get_user_agent(data)

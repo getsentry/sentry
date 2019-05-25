@@ -4,6 +4,7 @@ import pytest
 import mock
 import logging
 
+from datetime import datetime
 from django.conf import settings
 
 from sentry.constants import MAX_CULPRIT_LENGTH, DEFAULT_LOGGER_NAME
@@ -14,7 +15,7 @@ def make_event(**kwargs):
     result = {
         'event_id': 'a' * 32,
         'message': 'foo',
-        'timestamp': 1403007314.570599,
+        'timestamp': int(datetime.now().strftime("%s")),
         'level': logging.ERROR,
         'logger': 'default',
         'tags': [],
@@ -23,20 +24,12 @@ def make_event(**kwargs):
     return result
 
 
-def test_tags_none():
-    manager = EventManager(make_event(tags=None))
-    manager.normalize()
-    data = manager.get_data()
-
-    assert not data.get('tags')
-
-
 def test_tags_as_list():
     manager = EventManager(make_event(tags=[('foo', 'bar')]))
     manager.normalize()
     data = manager.get_data()
 
-    assert data['tags'] == [('foo', 'bar')]
+    assert data['tags'] == [['foo', 'bar']]
 
 
 def test_tags_as_dict():
@@ -44,23 +37,15 @@ def test_tags_as_dict():
     manager.normalize()
     data = manager.get_data()
 
-    assert data['tags'] == [('foo', 'bar')]
+    assert data['tags'] == [['foo', 'bar']]
 
 
 def test_interface_is_relabeled():
-    manager = EventManager(make_event(user={'id': '1'}))
+    manager = EventManager(make_event(**{"sentry.interfaces.User": {'id': '1'}}))
     manager.normalize()
     data = manager.get_data()
 
     assert data['user'] == {'id': '1'}
-
-
-def test_interface_none():
-    manager = EventManager(make_event(user=None))
-    manager.normalize()
-    data = manager.get_data()
-
-    assert 'user' not in data
 
 
 @pytest.mark.parametrize('user', ['missing', None, {}, {'ip_address': None}])
@@ -81,33 +66,6 @@ def test_does_default_ip_address_to_user(user):
     data = manager.get_data()
 
     assert data['user']['ip_address'] == '127.0.0.1'
-
-
-@mock.patch('sentry.interfaces.geo.Geo.from_ip_address')
-def test_does_geo_from_ip(from_ip_address_mock):
-    from sentry.interfaces.geo import Geo
-
-    geo = {
-        'city': 'San Francisco',
-        'country_code': 'US',
-        'region': 'CA',
-    }
-    from_ip_address_mock.return_value = Geo.to_python(geo)
-
-    manager = EventManager(
-        make_event(
-            **{
-                'user': {
-                    'ip_address': '192.168.0.1',
-                },
-            }
-        )
-    )
-
-    manager.normalize()
-    data = manager.get_data()
-    assert data['user']['ip_address'] == '192.168.0.1'
-    assert data['user']['geo'] == geo
 
 
 @mock.patch('sentry.interfaces.geo.geo_by_addr')
@@ -169,15 +127,23 @@ def test_long_transaction():
 
 
 def test_long_message():
+    allowance = 200
     manager = EventManager(
         make_event(
-            message='x' * (settings.SENTRY_MAX_MESSAGE_LENGTH + 1),
+            message='x' * (settings.SENTRY_MAX_MESSAGE_LENGTH + 1 + allowance),
         )
     )
     manager.normalize()
     data = manager.get_data()
-    assert len(data['logentry']['message']) == \
+    assert len(data['logentry']['formatted']) == \
         settings.SENTRY_MAX_MESSAGE_LENGTH
+
+
+def test_empty_message():
+    manager = EventManager(make_event(message=''))
+    manager.normalize()
+    data = manager.get_data()
+    assert 'logentry' not in data
 
 
 def test_default_version():
@@ -204,7 +170,6 @@ def test_logger():
     manager.normalize()
     data = manager.get_data()
     assert data['logger'] == DEFAULT_LOGGER_NAME
-    assert not any(e.get('name') == 'logger' for e in data['errors'])
 
 
 def test_moves_stacktrace_to_exception():
@@ -264,13 +229,13 @@ def test_bad_interfaces_no_exception():
 def test_event_pii():
     manager = EventManager(
         make_event(
-            message='foo bar',
-            _meta={'message': {'': {'err': ['invalid']}}},
+            user={"id": None},
+            _meta={'user': {"id": {'': {'err': ['invalid']}}}},
         )
     )
     manager.normalize()
     data = manager.get_data()
-    assert data['_meta']['message'] == {'': {'err': ['invalid']}}
+    assert data['_meta']['user']['id'] == {'': {'err': ['invalid']}}
 
 
 def test_event_id_lowercase():
@@ -285,3 +250,40 @@ def test_event_id_lowercase():
     data = manager.get_data()
 
     assert data['event_id'] == '1234abcd' * 4
+
+
+@pytest.mark.parametrize('key', ['applecrashreport', 'device', 'repos', 'query'])
+def test_deprecated_attrs(key):
+    event = make_event()
+    event[key] = "some value"
+
+    manager = EventManager(event)
+    manager.normalize()
+    data = manager.get_data()
+
+    assert key not in data
+    assert not data.get('errors')
+
+
+def test_returns_cannonical_dict():
+    from sentry.utils.canonical import CanonicalKeyDict
+
+    event = make_event()
+
+    manager = EventManager(event)
+    assert isinstance(manager.get_data(), CanonicalKeyDict)
+    manager.normalize()
+    assert isinstance(manager.get_data(), CanonicalKeyDict)
+
+
+@pytest.mark.parametrize("environment", ["", None, "production"])
+def test_environment_tag_removed(environment):
+    event = make_event()
+    event['environment'] = environment
+    event['tags'] = {"environment": "production"}
+
+    manager = EventManager(event)
+    manager.normalize()
+    data = manager.get_data()
+    assert 'environment' not in dict(data.get('tags') or ())
+    assert data['environment'] == 'production'

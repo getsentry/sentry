@@ -8,7 +8,7 @@ from django.db import DataError
 from django.utils import timezone
 
 from sentry.constants import STATUS_CHOICES
-from sentry.models import EventUser, Team, User
+from sentry.models import EventUser, KEYWORD_MAP, Release, Team, User
 from sentry.search.base import ANY
 from sentry.utils.auth import find_users
 
@@ -17,12 +17,12 @@ class InvalidQuery(Exception):
     pass
 
 
-def get_user_tag(project, key, value):
+def get_user_tag(projects, key, value):
     # TODO(dcramer): do something with case of multiple matches
     try:
         lookup = EventUser.attr_from_keyword(key)
         euser = EventUser.objects.filter(
-            project_id=project.id, **{lookup: value})[0]
+            project_id__in=[p.id for p in projects], **{lookup: value})[0]
     except (KeyError, IndexError):
         return u'{}:{}'.format(key, value)
     except DataError:
@@ -184,16 +184,16 @@ def get_date_params(value, from_field, to_field):
     return result
 
 
-def parse_team_value(project, value, user):
+def parse_team_value(projects, value, user):
     return Team.objects.filter(
         slug__iexact=value[1:],
-        projectteam__project=project,
+        projectteam__project__in=projects,
     ).first() or Team(id=0)
 
 
-def parse_actor_value(project, value, user):
+def parse_actor_value(projects, value, user):
     if value.startswith('#'):
-        return parse_team_value(project, value, user)
+        return parse_team_value(projects, value, user)
     return parse_user_value(value, user)
 
 
@@ -207,6 +207,34 @@ def parse_user_value(value, user):
         # XXX(dcramer): hacky way to avoid showing any results when
         # an invalid user is entered
         return User(id=0)
+
+
+def get_latest_release(projects, environments):
+    release_qs = Release.objects.filter(
+        organization_id=projects[0].organization_id,
+        projects__in=projects,
+    )
+
+    if environments is not None:
+        release_qs = release_qs.filter(
+            releaseprojectenvironment__environment__id__in=[
+                environment.id for environment in environments]
+        )
+
+    return release_qs.extra(select={
+        'sort': 'COALESCE(date_released, date_added)',
+    }).order_by('-sort').values_list('version', flat=True)[:1].get()
+
+
+def parse_release(value, projects, environments):
+    if value == 'latest':
+        try:
+            return get_latest_release(projects, environments)
+        except Release.DoesNotExist:
+            # Should just get no results here, so return an empty release name.
+            return ''
+    else:
+        return value
 
 
 numeric_modifiers = [
@@ -353,7 +381,7 @@ def split_query_into_tokens(query):
     return tokens
 
 
-def parse_query(project, query, user):
+def parse_query(projects, query, user, environments):
     # TODO(dcramer): handle query being wrapped in quotes
     tokens = tokenize_query(query)
 
@@ -373,15 +401,15 @@ def parse_query(project, query, user):
                     except KeyError:
                         raise InvalidQuery(u"'is:' had unknown status code '{}'.".format(value))
             elif key == 'assigned':
-                results['assigned_to'] = parse_actor_value(project, value, user)
+                results['assigned_to'] = parse_actor_value(projects, value, user)
             elif key == 'bookmarks':
                 results['bookmarked_by'] = parse_user_value(value, user)
             elif key == 'subscribed':
                 results['subscribed_by'] = parse_user_value(value, user)
             elif key in ('first-release', 'firstRelease'):
-                results['first_release'] = value
+                results['first_release'] = parse_release(value, projects, environments)
             elif key == 'release':
-                results['tags']['sentry:release'] = value
+                results['tags']['sentry:release'] = parse_release(value, projects, environments)
             elif key == 'dist':
                 results['tags']['sentry:dist'] = value
             elif key == 'user':
@@ -389,7 +417,7 @@ def parse_query(project, query, user):
                     comp, value = value.split(':', 1)
                 else:
                     comp = 'id'
-                results['tags']['sentry:user'] = get_user_tag(project, comp, value)
+                results['tags']['sentry:user'] = get_user_tag(projects, comp, value)
             elif key == 'has':
                 if value == 'user':
                     value = 'sentry:user'
@@ -405,7 +433,7 @@ def parse_query(project, query, user):
             elif key == 'activeSince':
                 results.update(get_date_params(value, 'active_at_from', 'active_at_to'))
             elif key.startswith('user.'):
-                results['tags']['sentry:user'] = get_user_tag(project, key.split('.', 1)[1], value)
+                results['tags']['sentry:user'] = get_user_tag(projects, key.split('.', 1)[1], value)
             elif key == 'event.timestamp':
                 results.update(get_date_params(value, 'date_from', 'date_to'))
             elif key == 'timesSeen':
@@ -416,3 +444,14 @@ def parse_query(project, query, user):
     results['query'] = ' '.join(results['query'])
 
     return results
+
+
+def convert_user_tag_to_query(key, value):
+    """
+    Converts a user tag to a query string that can be used to search for that
+    user. Returns None if not a user tag.
+    """
+    if key == 'user' and ':' in value:
+        sub_key, value = value.split(':', 1)
+        if KEYWORD_MAP.get_key(sub_key, None):
+            return 'user.%s:%s' % (sub_key, value)

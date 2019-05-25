@@ -30,7 +30,7 @@ describe('AddIntegration', function() {
 
     const newIntegration = {
       source: null,
-      origin: 'null',
+      origin: 'http://localhost',
       data: {
         success: true,
         data: Object.assign({}, integration, {
@@ -43,6 +43,6 @@ describe('AddIntegration', function() {
     };
 
     wrapper.instance().didReceiveMessage(newIntegration);
-    expect(onAdd).toBeCalledWith(newIntegration.data.data);
+    expect(onAdd).toHaveBeenCalledWith(newIntegration.data.data);
   });
 });

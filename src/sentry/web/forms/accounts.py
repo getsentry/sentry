@@ -691,7 +691,7 @@ class NotificationSettingsForm(forms.Form):
         self.fields['workflow_notifications'].initial = UserOption.objects.get_value(
             user=self.user,
             key='workflow:notifications',
-            default=UserOptionValue.all_conversations,
+            default=UserOptionValue.participating_only,
             project=None,
         )
 
@@ -787,7 +787,7 @@ class ProjectEmailOptionsForm(forms.Form):
                 user=self.user,
                 project=None,
                 key='workflow:notifications',
-                default=UserOptionValue.all_conversations,
+                default=UserOptionValue.participating_only,
             ),
         )
         self.fields['email'].initial = specified_email or alert_email or user.email
@@ -824,7 +824,7 @@ class TwoFactorForm(forms.Form):
         max_length=20,
         widget=forms.TextInput(
             attrs={
-                'placeholder': _('Code from authenticator'),
+                'placeholder': _('Authenticator or recovery code'),
                 'autofocus': True,
             }
         ),

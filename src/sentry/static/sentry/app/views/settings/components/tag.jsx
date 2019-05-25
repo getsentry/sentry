@@ -6,15 +6,17 @@ import styled from 'react-emotion';
 import InlineSvg from 'app/components/inlineSvg';
 
 const getMarginLeft = p => {
-  if (!p.inline) return '';
+  if (!p.inline) {
+    return '';
+  }
   return `margin-left: ${p.size == 'small' ? '0.25em' : '0.5em'};`;
 };
 
 const getBorder = p =>
   p.border
-    ? `border: 1px solid ${p.priority
-        ? p.theme.alert[p.priority].border
-        : p.theme.gray1};`
+    ? `border: 1px solid ${
+        p.priority ? p.theme.alert[p.priority].border : p.theme.gray1
+      };`
     : '';
 
 const TagTextStyled = styled(({priority, size, border, inline, ...props}) => (

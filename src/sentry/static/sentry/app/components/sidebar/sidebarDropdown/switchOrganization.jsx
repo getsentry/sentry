@@ -61,21 +61,25 @@ class SwitchOrganization extends React.Component {
                   {...getMenuProps({isStyled: true})}
                 >
                   <OrganizationList>
-                    {organizations.map(organization => (
-                      <SidebarMenuItem
-                        key={organization.slug}
-                        to={`/${organization.slug}/`}
-                      >
-                        <SidebarOrgSummary organization={organization} />
-                      </SidebarMenuItem>
-                    ))}
+                    {organizations.map(organization => {
+                      const url = new Set(organization.features).has('sentry10')
+                        ? `/organizations/${organization.slug}/`
+                        : `/${organization.slug}/`;
+
+                      return (
+                        <SidebarMenuItem key={organization.slug} to={url}>
+                          <SidebarOrgSummary organization={organization} />
+                        </SidebarMenuItem>
+                      );
+                    })}
                   </OrganizationList>
-                  {hasOrganizations &&
-                    canCreateOrganization && <Divider css={{marginTop: 0}} />}
+                  {hasOrganizations && canCreateOrganization && (
+                    <Divider css={{marginTop: 0}} />
+                  )}
                   {canCreateOrganization && (
                     <SidebarMenuItem
                       data-test-id="sidebar-create-org"
-                      to={'/organizations/new/'}
+                      to="/organizations/new/"
                       style={{alignItems: 'center'}}
                     >
                       <MenuItemLabelWithIcon>

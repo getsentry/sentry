@@ -2,6 +2,7 @@
 .coverage
 .storybook-out/
 .DS_Store
+.venv
 *.egg-info
 *.pyc
 *.log
@@ -22,7 +23,6 @@ sentry-package.json
 /tmp
 /node_modules/
 /docs-ui/node_modules/
-example/db.sqlite
 /src/sentry/assets.json
 /src/sentry/static/version
 /src/sentry/static/sentry/dist/

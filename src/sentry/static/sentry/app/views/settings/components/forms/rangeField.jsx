@@ -19,10 +19,9 @@ export default class RangeField extends React.Component {
     return (
       <InputField
         {...this.props}
-        field={({onChange, onBlur, value, disabled, ...props}) => (
+        field={({onChange, onBlur, value, ...props}) => (
           <RangeSlider
             {...props}
-            isDisabled={disabled}
             value={value}
             onBlur={onBlur}
             onChange={this.onChange.bind(this, onChange, onBlur)}

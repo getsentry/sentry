@@ -1,4 +1,4 @@
-let jq = {
+const jq = {
   tooltip: () => jq,
   on: () => jq,
   off: () => jq,
@@ -6,6 +6,7 @@ let jq = {
   ajaxError: () => jq,
   simpleSlider: () => jq,
   addClass: () => jq,
+  find: () => jq,
 };
 
 const jqMock = () => jq;

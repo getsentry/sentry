@@ -242,7 +242,7 @@ class RedisTSDB(BaseTSDB):
                                 self.calculate_expiry(rollup, max_values, timestamp),
                             )
 
-    def get_range(self, model, keys, start, end, rollup=None, environment_id=None):
+    def get_range(self, model, keys, start, end, rollup=None, environment_ids=None):
         """
         To get a range of data for group ID=[1, 2, 3]:
 
@@ -251,6 +251,11 @@ class RedisTSDB(BaseTSDB):
         >>>          start=now - timedelta(days=1),
         >>>          end=now)
         """
+        # redis backend doesn't support multiple envs
+        if environment_ids is not None and len(environment_ids) > 1:
+            raise NotImplementedError
+        environment_id = environment_ids[0] if environment_ids else None
+
         self.validate_arguments([model], [environment_id])
 
         rollup, series = self.get_optimal_rollup_series(start, end, rollup)

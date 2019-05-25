@@ -1,13 +1,15 @@
 from __future__ import absolute_import
-
+import unittest
 from mock import patch
 from datetime import datetime
 from django.core.urlresolvers import reverse
 
+from sentry.constants import VERSION_LENGTH
 from sentry.models import (
     Activity, Environment, File, Release, ReleaseCommit, ReleaseFile, ReleaseProject, ReleaseProjectEnvironment, Repository
 )
 from sentry.testutils import APITestCase
+from sentry.api.endpoints.organization_release_details import OrganizationReleaseSerializer
 
 
 class ReleaseDetailsTest(APITestCase):
@@ -75,7 +77,7 @@ class ReleaseDetailsTest(APITestCase):
             }
         )
         response = self.client.get(url)
-        assert response.status_code == 403
+        assert response.status_code == 404
 
     def test_multiple_projects(self):
         user = self.create_user(is_staff=False, is_superuser=False)
@@ -241,7 +243,7 @@ class UpdateReleaseDetailsTest(APITestCase):
             }
         )
         response = self.client.put(url, {'ref': 'master'})
-        assert response.status_code == 403
+        assert response.status_code == 404
 
     @patch('sentry.tasks.commits.fetch_commits')
     def test_deprecated_head_commits(self, mock_fetch_commits):
@@ -374,7 +376,7 @@ class UpdateReleaseDetailsTest(APITestCase):
             }
         )
         response = self.client.put(url, {'ref': 'master'})
-        assert response.status_code == 403
+        assert response.status_code == 404
 
     def test_commits(self):
         user = self.create_user(is_staff=False, is_superuser=False)
@@ -678,3 +680,90 @@ class ReleaseDeleteTest(APITestCase):
         )
         assert response.status_code == 400
         assert response.data == {'commits': ['id: This field is required.']}
+
+
+class ReleaseSerializerTest(unittest.TestCase):
+    def setUp(self):
+        super(ReleaseSerializerTest, self).setUp()
+        self.repo_name = 'repo/name'
+        self.repo2_name = 'repo2/name'
+        self.commits = [{'id': 'a' * 40}, {'id': 'b' * 40}]
+        self.ref = 'master'
+        self.url = 'https://example.com'
+        self.dateReleased = '1000-10-10T06:06'
+        self.headCommits = [
+            {
+                'currentId': '0' * 40,
+                'repository': self.repo_name
+            },
+            {
+                'currentId': '0' * 40,
+                'repository': self.repo2_name
+            },
+        ]
+        self.refs = [
+            {
+                'commit': 'a' * 40,
+                'previousCommit': '',
+                'repository': self.repo_name
+            },
+            {
+                'commit': 'b' * 40,
+                'previousCommit': '',
+                'repository': self.repo2_name
+            },
+        ]
+
+    def test_simple(self):
+        serializer = OrganizationReleaseSerializer(data={
+            'ref': self.ref,
+            'url': self.url,
+            'dateReleased': self.dateReleased,
+            'commits': self.commits,
+            'headCommits': self.headCommits,
+            'refs': self.refs,
+        })
+
+        assert serializer.is_valid()
+        assert sorted(serializer.fields.keys()) == sorted(
+            ['ref', 'url', 'dateReleased', 'commits', 'headCommits', 'refs'])
+
+        result = serializer.object
+        assert result['ref'] == self.ref
+        assert result['url'] == self.url
+        assert result['dateReleased'] == datetime(1000, 10, 10, 6, 6)
+        assert result['commits'] == self.commits
+        assert result['headCommits'] == self.headCommits
+        assert result['refs'] == self.refs
+
+    def test_fields_not_required(self):
+        serializer = OrganizationReleaseSerializer(data={})
+        assert serializer.is_valid()
+
+    def test_do_not_allow_null_commits(self):
+        serializer = OrganizationReleaseSerializer(data={
+            'commits': None,
+        })
+        assert not serializer.is_valid()
+
+    def test_do_not_allow_null_head_commits(self):
+        serializer = OrganizationReleaseSerializer(data={
+            'headCommits': None,
+        })
+        assert not serializer.is_valid()
+
+    def test_do_not_allow_null_refs(self):
+        serializer = OrganizationReleaseSerializer(data={
+            'refs': None,
+        })
+        assert not serializer.is_valid()
+
+    def test_ref_limited_by_max_version_length(self):
+        serializer = OrganizationReleaseSerializer(data={
+            'ref': 'a' * VERSION_LENGTH,
+        })
+        assert serializer.is_valid()
+        serializer = OrganizationReleaseSerializer(data={
+            'ref': 'a' * (VERSION_LENGTH + 1),
+        })
+        assert not serializer.is_valid()

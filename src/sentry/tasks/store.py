@@ -13,16 +13,18 @@ from datetime import datetime
 import six
 
 from time import time
+from django.conf import settings
 from django.utils import timezone
 
 from sentry import features, reprocessing
 from sentry.attachments import attachment_cache
 from sentry.cache import default_cache
 from sentry.tasks.base import instrumented_task
-from sentry.utils import metrics
+from sentry.utils import json, kafka, metrics
 from sentry.utils.safe import safe_execute
-from sentry.stacktraces import process_stacktraces, \
+from sentry.stacktraces.processing import process_stacktraces, \
     should_process_for_stacktraces
+from sentry.utils.data_filters import FilterStatKeys
 from sentry.utils.canonical import CanonicalKeyDict, CANONICAL_TYPES
 from sentry.utils.dates import to_datetime
 from sentry.utils.sdk import configure_scope
@@ -42,6 +44,11 @@ class RetryProcessing(Exception):
     pass
 
 
+class RetrySymbolication(Exception):
+    def __init__(self, retry_after=None):
+        self.retry_after = retry_after
+
+
 def should_process(data):
     """Quick check if processing is needed at all."""
     from sentry.plugins import plugins
@@ -53,39 +60,78 @@ def should_process(data):
         if processors:
             return True
 
+        enhancers = safe_execute(
+            plugin.get_event_enhancers, data=data, _with_transaction=False
+        )
+        if enhancers:
+            return True
+
     if should_process_for_stacktraces(data):
         return True
 
     return False
 
 
-def _do_preprocess_event(cache_key, data, start_time, event_id, process_event):
-    if cache_key:
+def submit_process(project, from_reprocessing, cache_key, event_id, start_time, data):
+    if features.has('projects:kafka-ingest', project=project):
+        kafka.produce_sync(
+            settings.KAFKA_PROCESS,
+            value=json.dumps({
+                'cache_key': cache_key,
+                'start_time': start_time,
+                'from_reprocessing': from_reprocessing,
+                'data': data,
+            }),
+        )
+    else:
+        task = process_event_from_reprocessing if from_reprocessing else process_event
+        task.delay(cache_key=cache_key, start_time=start_time, event_id=event_id)
+
+
+def submit_save_event(project, cache_key, event_id, start_time, data):
+    if features.has('projects:kafka-ingest', project=project):
+        kafka.produce_sync(
+            settings.KAFKA_SAVE,
+            value=json.dumps({
+                'cache_key': cache_key,
+                'start_time': start_time,
+                'data': data,
+            }),
+        )
+    else:
+        if cache_key:
+            data = None
+
+        save_event.delay(
+            cache_key=cache_key, data=data, start_time=start_time, event_id=event_id,
+            project_id=project.id
+        )
+
+
+def _do_preprocess_event(cache_key, data, start_time, event_id, process_task):
+    if cache_key and data is None:
         data = default_cache.get(cache_key)
 
     if data is None:
-        metrics.incr('events.failed', tags={'reason': 'cache', 'stage': 'pre'})
+        metrics.incr('events.failed', tags={'reason': 'cache', 'stage': 'pre'}, skip_internal=False)
         error_logger.error('preprocess.failed.empty', extra={'cache_key': cache_key})
         return
 
+    original_data = data
     data = CanonicalKeyDict(data)
-    project = data['project']
+    project_id = data['project']
 
     with configure_scope() as scope:
-        scope.set_tag("project", project)
+        scope.set_tag("project", project_id)
+
+    project = Project.objects.get_from_cache(id=project_id)
 
     if should_process(data):
-        process_event.delay(cache_key=cache_key, start_time=start_time, event_id=event_id)
+        from_reprocessing = process_task is process_event_from_reprocessing
+        submit_process(project, from_reprocessing, cache_key, event_id, start_time, original_data)
         return
 
-    # If we get here, that means the event had no preprocessing needed to be done
-    # so we can jump directly to save_event
-    if cache_key:
-        data = None
-    save_event.delay(
-        cache_key=cache_key, data=data, start_time=start_time, event_id=event_id,
-        project_id=project
-    )
+    submit_save_event(project, cache_key, event_id, start_time, original_data)
 
 
 @instrumented_task(
@@ -112,41 +158,90 @@ def preprocess_event_from_reprocessing(
     )
 
 
-def _do_process_event(cache_key, start_time, event_id, process_task):
+@instrumented_task(
+    name='sentry.tasks.store.retry_process_event',
+    queue='sleep',
+    time_limit=(60 * 5) + 5,
+    soft_time_limit=60 * 5,
+)
+def retry_process_event(process_task_name, task_kwargs, **kwargs):
+    """
+    The only purpose of this task is be enqueued with some ETA set. This is
+    essentially an implementation of ETAs on top of Celery's existing ETAs, but
+    with the intent of having separate workers wait for those ETAs.
+    """
+    tasks = {
+        "process_event": process_event,
+        "process_event_from_reprocessing": process_event_from_reprocessing,
+    }
+
+    process_task = tasks.get(process_task_name)
+    if not process_task:
+        raise ValueError("Invalid argument for process_task_name: %s" % (process_task_name,))
+
+    process_task.delay(**task_kwargs)
+
+
+def _do_process_event(cache_key, start_time, event_id, process_task,
+                      data=None):
     from sentry.plugins import plugins
 
-    data = default_cache.get(cache_key)
+    if data is None:
+        data = default_cache.get(cache_key)
 
     if data is None:
-        metrics.incr('events.failed', tags={'reason': 'cache', 'stage': 'process'})
+        metrics.incr(
+            'events.failed',
+            tags={
+                'reason': 'cache',
+                'stage': 'process'},
+            skip_internal=False)
         error_logger.error('process.failed.empty', extra={'cache_key': cache_key})
         return
 
     data = CanonicalKeyDict(data)
-    project = data['project']
+    project_id = data['project']
 
     with configure_scope() as scope:
-        scope.set_tag("project", project)
+        scope.set_tag("project", project_id)
 
     has_changed = False
 
     # Fetch the reprocessing revision
-    reprocessing_rev = reprocessing.get_reprocessing_revision(project)
+    reprocessing_rev = reprocessing.get_reprocessing_revision(project_id)
 
-    # Event enhancers.  These run before anything else.
-    for plugin in plugins.all(version=2):
-        enhancers = safe_execute(plugin.get_event_enhancers, data=data)
-        for enhancer in (enhancers or ()):
-            enhanced = safe_execute(enhancer, data)
-            if enhanced:
-                data = enhanced
-                has_changed = True
+    try:
+        # Event enhancers.  These run before anything else.
+        for plugin in plugins.all(version=2):
+            enhancers = safe_execute(plugin.get_event_enhancers, data=data)
+            for enhancer in (enhancers or ()):
+                enhanced = safe_execute(enhancer, data, _passthrough_errors=(RetrySymbolication,))
+                if enhanced:
+                    data = enhanced
+                    has_changed = True
 
-    # Stacktrace based event processors.
-    new_data = process_stacktraces(data)
-    if new_data is not None:
-        has_changed = True
-        data = new_data
+        # Stacktrace based event processors.
+        new_data = process_stacktraces(data)
+        if new_data is not None:
+            has_changed = True
+            data = new_data
+    except RetrySymbolication as e:
+        if start_time and (time() - start_time) > 3600:
+            raise RuntimeError('Event spent one hour in processing')
+
+        retry_process_event.apply_async(
+            args=(),
+            kwargs={
+                'process_task_name': process_task.__name__,
+                'task_kwargs': {
+                    'cache_key': cache_key,
+                    'event_id': event_id,
+                    'start_time': start_time,
+                }
+            },
+            countdown=e.retry_after
+        )
+        return
 
     # TODO(dcramer): ideally we would know if data changed by default
     # Default event processors.
@@ -160,13 +255,19 @@ def _do_process_event(cache_key, start_time, event_id, process_task):
                 data = result
                 has_changed = True
 
-    assert data['project'] == project, 'Project cannot be mutated by preprocessor'
+    assert data['project'] == project_id, 'Project cannot be mutated by preprocessor'
+    project = Project.objects.get_from_cache(id=project_id)
+
+    # We cannot persist canonical types in the cache, so we need to
+    # downgrade this.
+    if isinstance(data, CANONICAL_TYPES):
+        data = dict(data.items())
 
     if has_changed:
         issues = data.get('processing_issues')
         try:
             if issues and create_failed_event(
-                cache_key, project, list(issues.values()),
+                cache_key, project_id, list(issues.values()),
                 event_id=event_id, start_time=start_time,
                 reprocessing_rev=reprocessing_rev
             ):
@@ -175,20 +276,15 @@ def _do_process_event(cache_key, start_time, event_id, process_task):
             # If `create_failed_event` indicates that we need to retry we
             # invoke outselves again.  This happens when the reprocessing
             # revision changed while we were processing.
+            from_reprocessing = process_task is process_event_from_reprocessing
+            submit_process(project, from_reprocessing, cache_key, event_id, start_time, data)
             process_task.delay(cache_key, start_time=start_time,
                                event_id=event_id)
             return
 
-        # We cannot persist canonical types in the cache, so we need to
-        # downgrade this.
-        if isinstance(data, CANONICAL_TYPES):
-            data = dict(data.items())
         default_cache.set(cache_key, data, 3600)
 
-    save_event.delay(
-        cache_key=cache_key, data=None, start_time=start_time, event_id=event_id,
-        project_id=project
-    )
+    submit_save_event(project, cache_key, event_id, start_time, data)
 
 
 @instrumented_task(
@@ -198,7 +294,8 @@ def _do_process_event(cache_key, start_time, event_id, process_task):
     soft_time_limit=60,
 )
 def process_event(cache_key, start_time=None, event_id=None, **kwargs):
-    return _do_process_event(cache_key, start_time, event_id, process_event)
+    return _do_process_event(cache_key=cache_key, start_time=start_time,
+                             event_id=event_id, process_task=process_event)
 
 
 @instrumented_task(
@@ -208,8 +305,9 @@ def process_event(cache_key, start_time=None, event_id=None, **kwargs):
     soft_time_limit=60,
 )
 def process_event_from_reprocessing(cache_key, start_time=None, event_id=None, **kwargs):
-    return _do_process_event(cache_key, start_time, event_id,
-                             process_event_from_reprocessing)
+    return _do_process_event(cache_key=cache_key, start_time=start_time,
+                             event_id=event_id,
+                             process_task=process_event_from_reprocessing)
 
 
 def delete_raw_event(project_id, event_id, allow_hint_clear=False):
@@ -282,7 +380,7 @@ def create_failed_event(cache_key, project_id, issues, event_id, start_time=None
     delete_raw_event(project_id, event_id)
     data = default_cache.get(cache_key)
     if data is None:
-        metrics.incr('events.failed', tags={'reason': 'cache', 'stage': 'raw'})
+        metrics.incr('events.failed', tags={'reason': 'cache', 'stage': 'raw'}, skip_internal=False)
         error_logger.error('process.failed_raw.empty', extra={'cache_key': cache_key})
         return True
 
@@ -338,17 +436,17 @@ def save_attachment(event, attachment):
     )
 
 
-@instrumented_task(name='sentry.tasks.store.save_event', queue='events.save_event')
-def save_event(cache_key=None, data=None, start_time=None, event_id=None,
-               project_id=None, **kwargs):
+def _do_save_event(cache_key=None, data=None, start_time=None, event_id=None,
+                   project_id=None, **kwargs):
     """
     Saves an event to the database.
     """
     from sentry.event_manager import HashDiscarded, EventManager
-    from sentry import quotas, tsdb
+    from sentry import quotas
     from sentry.models import ProjectKey
+    from sentry.utils.outcomes import Outcome, track_outcome
 
-    if cache_key:
+    if cache_key and data is None:
         data = default_cache.get(cache_key)
 
     if data is not None:
@@ -361,6 +459,11 @@ def save_event(cache_key=None, data=None, start_time=None, event_id=None,
     # the task.
     if project_id is None:
         project_id = data.pop('project')
+
+    key_id = None if data is None else data.get('key_id')
+    if key_id is not None:
+        key_id = int(key_id)
+    timestamp = to_datetime(start_time) if start_time is not None else None
 
     delete_raw_event(project_id, event_id, allow_hint_clear=True)
 
@@ -375,7 +478,12 @@ def save_event(cache_key=None, data=None, start_time=None, event_id=None,
     # reprocessing reports correctly or they will screw up the UI.  So
     # to future proof this correctly we just handle this case here.
     if not data:
-        metrics.incr('events.failed', tags={'reason': 'cache', 'stage': 'post'})
+        metrics.incr(
+            'events.failed',
+            tags={
+                'reason': 'cache',
+                'stage': 'post'},
+            skip_internal=False)
         return
 
     with configure_scope() as scope:
@@ -393,39 +501,36 @@ def save_event(cache_key=None, data=None, start_time=None, event_id=None,
             for attachment in attachments:
                 save_attachment(event, attachment)
 
+        # This is where we can finally say that we have accepted the event.
+        track_outcome(
+            event.project.organization_id,
+            event.project.id,
+            key_id,
+            Outcome.ACCEPTED,
+            None,
+            timestamp,
+            event_id
+        )
+
     except HashDiscarded:
-        increment_list = [
-            (tsdb.models.project_total_received_discarded, project_id),
-        ]
-
+        project = Project.objects.get_from_cache(id=project_id)
+        reason = FilterStatKeys.DISCARDED_HASH
+        project_key = None
         try:
-            project = Project.objects.get_from_cache(id=project_id)
-        except Project.DoesNotExist:
+            if key_id is not None:
+                project_key = ProjectKey.objects.get_from_cache(id=key_id)
+        except ProjectKey.DoesNotExist:
             pass
-        else:
-            increment_list.extend([
-                (tsdb.models.project_total_blacklisted, project.id),
-                (tsdb.models.organization_total_blacklisted, project.organization_id),
-            ])
 
-            project_key = None
-            if data.get('key_id') is not None:
-                try:
-                    project_key = ProjectKey.objects.get_from_cache(id=data['key_id'])
-                except ProjectKey.DoesNotExist:
-                    pass
-                else:
-                    increment_list.append((tsdb.models.key_total_blacklisted, project_key.id))
-
-            quotas.refund(
-                project,
-                key=project_key,
-                timestamp=start_time,
-            )
-
-        tsdb.incr_multi(
-            increment_list,
-            timestamp=to_datetime(start_time) if start_time is not None else None,
+        quotas.refund(project, key=project_key, timestamp=start_time)
+        track_outcome(
+            project.organization_id,
+            project_id,
+            key_id,
+            Outcome.FILTERED,
+            reason,
+            timestamp,
+            event_id
         )
 
     finally:
@@ -443,3 +548,9 @@ def save_event(cache_key=None, data=None, start_time=None, event_id=None,
                 'events.time-to-process',
                 time() - start_time,
                 instance=data['platform'])
+
+
+@instrumented_task(name='sentry.tasks.store.save_event', queue='events.save_event')
+def save_event(cache_key=None, data=None, start_time=None, event_id=None,
+               project_id=None, **kwargs):
+    _do_save_event(cache_key, data, start_time, event_id, project_id, **kwargs)

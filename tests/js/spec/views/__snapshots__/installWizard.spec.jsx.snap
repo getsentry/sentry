@@ -115,7 +115,7 @@ exports[`InstallWizard renders 1`] = `
                     allowEmpty={false}
                     component={[Function]}
                     default="root@localhost"
-                    defaultValue="sentry@"
+                    defaultValue="sentry@localhost"
                     disabled={false}
                     disabledReason={null}
                     help="Email address to be used in From for all outbound email."
@@ -146,7 +146,7 @@ exports[`InstallWizard renders 1`] = `
                           onChange={[Function]}
                           required={true}
                           type="email"
-                          value="sentry@"
+                          value="sentry@localhost"
                         />
                         <p
                           className="help-block"

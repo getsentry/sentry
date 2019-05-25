@@ -17,7 +17,7 @@ from sentry.web.helpers import render_to_response
 from sentry.signals import user_feedback_received
 from sentry.utils import json
 from sentry.utils.http import is_valid_origin, origin_from_request
-from sentry.utils.validators import is_event_id
+from sentry.utils.validators import normalize_event_id
 
 GENERIC_ERROR = _('An unknown error occurred while submitting your report. Please try again.')
 FORM_ERROR = _('Some fields were invalid. Please correct the errors and try again.')
@@ -119,7 +119,10 @@ class ErrorPageEmbedView(View):
             return self._smart_response(
                 request, {'eventId': 'Missing or invalid parameter.'}, status=400)
 
-        if event_id and not is_event_id(event_id):
+        normalized_event_id = normalize_event_id(event_id)
+        if normalized_event_id:
+            event_id = normalized_event_id
+        elif event_id:
             return self._smart_response(
                 request, {'eventId': 'Missing or invalid parameter.'}, status=400)
 
@@ -164,6 +167,7 @@ class ErrorPageEmbedView(View):
                 except Group.DoesNotExist:
                     pass
             else:
+                Event.objects.bind_nodes([event])
                 report.environment = event.get_environment()
                 report.group = event.group
 

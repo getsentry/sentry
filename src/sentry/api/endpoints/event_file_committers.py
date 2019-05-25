@@ -2,8 +2,9 @@ from __future__ import absolute_import
 
 from rest_framework.response import Response
 
+from sentry import options
 from sentry.api.bases.project import ProjectEndpoint
-from sentry.models import Commit, Event, Release
+from sentry.models import Commit, Event, SnubaEvent, Release
 from sentry.utils.committers import get_event_file_committers
 
 
@@ -21,12 +22,13 @@ class EventFileCommittersEndpoint(ProjectEndpoint):
                                  retrieve (as reported by the raven client).
         :auth: required
         """
-        try:
-            event = Event.objects.get(
-                id=event_id,
-                project_id=project.id,
-            )
-        except Event.DoesNotExist:
+
+        use_snuba = options.get('snuba.events-queries.enabled')
+
+        event_cls = event_cls = SnubaEvent if use_snuba else Event
+
+        event = event_cls.objects.from_event_id(event_id, project.id)
+        if event is None:
             return Response({'detail': 'Event not found'}, status=404)
 
         # populate event data

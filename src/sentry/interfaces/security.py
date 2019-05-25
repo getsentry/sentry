@@ -15,7 +15,7 @@ __all__ = ('Csp', 'Hpkp', 'ExpectCT', 'ExpectStaple')
 
 from six.moves.urllib.parse import urlsplit, urlunsplit
 
-from sentry.interfaces.base import Interface, InterfaceValidationError
+from sentry.interfaces.base import Interface, InterfaceValidationError, RUST_RENORMALIZED_DEFAULT
 from sentry.interfaces.schemas import validate_and_default_interface, INPUT_SCHEMAS
 from sentry.utils import json
 from sentry.utils.cache import memoize
@@ -100,7 +100,8 @@ class SecurityReport(Interface):
         raise NotImplementedError
 
     @classmethod
-    def to_python(cls, data):
+    def to_python(cls, data, rust_renormalized=RUST_RENORMALIZED_DEFAULT):
+        # TODO(markus): semaphore does not validate security interfaces yet
         is_valid, errors = validate_and_default_interface(data, cls.path)
         if not is_valid:
             raise InterfaceValidationError("Invalid interface data")
@@ -171,9 +172,6 @@ class Hpkp(SecurityReport):
     def get_culprit(self):
         return None
 
-    def get_hash(self, is_processed_data=True):
-        return ['hpkp', self.hostname]
-
     def get_message(self):
         return u"Public key pinning validation failed for '{self.hostname}'".format(self=self)
 
@@ -185,7 +183,8 @@ class Hpkp(SecurityReport):
         ]
 
     def get_origin(self):
-        return self.hostname  # not quite origin, but the domain that failed pinning
+        # not quite origin, but the domain that failed pinning
+        return self.hostname
 
     def get_referrer(self):
         return None
@@ -234,9 +233,6 @@ class ExpectStaple(SecurityReport):
     def get_culprit(self):
         return self.hostname
 
-    def get_hash(self, is_processed_data=True):
-        return ['expect-staple', self.hostname]
-
     def get_message(self):
         return u"Expect-Staple failed for '{self.hostname}'".format(self=self)
 
@@ -249,6 +245,7 @@ class ExpectStaple(SecurityReport):
         )
 
     def get_origin(self):
+        # not quite origin, but the domain that failed pinning
         return self.hostname
 
     def get_referrer(self):
@@ -295,9 +292,6 @@ class ExpectCT(SecurityReport):
     def get_culprit(self):
         return self.hostname
 
-    def get_hash(self, is_processed_data=True):
-        return ['expect-ct', self.hostname]
-
     def get_message(self):
         return u"Expect-CT failed for '{self.hostname}'".format(self=self)
 
@@ -308,7 +302,8 @@ class ExpectCT(SecurityReport):
         )
 
     def get_origin(self):
-        return self.hostname  # not quite origin, but the domain that failed pinning
+        # not quite origin, but the domain that failed pinning
+        return self.hostname
 
     def get_referrer(self):
         return None
@@ -339,6 +334,17 @@ class Csp(SecurityReport):
 
     @classmethod
     def from_raw(cls, raw):
+        # Firefox doesn't send effective-directive, so parse it from
+        # violated-directive but prefer effective-directive when present
+        #
+        # refs: https://bugzil.la/1192684#c8
+        try:
+            report = raw['csp-report']
+            report['effective-directive'] = report.get('effective-directive',
+                                                       report['violated-directive'].split(None, 1)[0])
+        except (KeyError, IndexError):
+            pass
+
         # Validate the raw data against the input schema (raises on failure)
         schema = INPUT_SCHEMAS[cls.path]
         jsonschema.validate(raw, schema)
@@ -349,14 +355,6 @@ class Csp(SecurityReport):
         kwargs = {k.replace('-', '_'): trim(v, 1024) for k, v in six.iteritems(raw)}
 
         return cls.to_python(kwargs)
-
-    def get_hash(self, is_processed_data=True):
-        if self._local_script_violation_type:
-            uri = "'%s'" % self._local_script_violation_type
-        else:
-            uri = self._normalized_blocked_uri
-
-        return [self.effective_directive, uri]
 
     def get_message(self):
         templates = {
@@ -369,14 +367,18 @@ class Csp(SecurityReport):
             'media-src': (u"Blocked 'media' from '{uri}'", "Blocked inline 'media'"),
             'object-src': (u"Blocked 'object' from '{uri}'", "Blocked inline 'object'"),
             'script-src': (u"Blocked 'script' from '{uri}'", "Blocked unsafe (eval() or inline) 'script'"),
+            'script-src-elem': (u"Blocked 'script' from '{uri}'", "Blocked unsafe 'script' element"),
+            'script-src-attr': (u"Blocked inline script attribute from '{uri}'", "Blocked inline script attribute"),
             'style-src': (u"Blocked 'style' from '{uri}'", "Blocked inline 'style'"),
+            'style-src-elem': (u"Blocked 'style' from '{uri}'", "Blocked 'style' or 'link' element"),
+            'style-src-attr': (u"Blocked style attribute from '{uri}'", "Blocked style attribute"),
             'unsafe-inline': (None, u"Blocked unsafe inline 'script'"),
             'unsafe-eval': (None, u"Blocked unsafe eval() 'script'"),
         }
         default_template = ('Blocked {directive!r} from {uri!r}', 'Blocked inline {directive!r}')
 
-        directive = self._local_script_violation_type or self.effective_directive
-        uri = self._normalized_blocked_uri
+        directive = self.local_script_violation_type or self.effective_directive
+        uri = self.normalized_blocked_uri
         index = 1 if uri == self.LOCAL else 0
 
         try:
@@ -446,7 +448,7 @@ class Csp(SecurityReport):
         return uri
 
     @memoize
-    def _normalized_blocked_uri(self):
+    def normalized_blocked_uri(self):
         return self._normalize_uri(self.blocked_uri)
 
     @memoize
@@ -493,13 +495,13 @@ class Csp(SecurityReport):
         return self._unsplit(scheme, value)
 
     @memoize
-    def _local_script_violation_type(self):
+    def local_script_violation_type(self):
         """
         If this is a locally-sourced script-src error, gives the type.
         """
         if (self.violated_directive
                 and self.effective_directive == 'script-src'
-                and self._normalized_blocked_uri == self.LOCAL):
+                and self.normalized_blocked_uri == self.LOCAL):
             if "'unsafe-inline'" in self.violated_directive:
                 return "unsafe-inline"
             elif "'unsafe-eval'" in self.violated_directive:

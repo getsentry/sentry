@@ -5,11 +5,10 @@
  * @param {Object} cols List of column objects
  * @param {String} cols.name Column name
  * @param {String} cols.type Type of column
- * @returns {Boolean} True if valid aggregatoin, false if not
+ * @returns {Boolean} True if valid aggregation, false if not
  */
 export function isValidAggregation(aggregation, cols) {
   const columns = new Set(cols.map(({name}) => name));
-
   const [func, col] = aggregation;
 
   if (!func) {
@@ -35,11 +34,11 @@ export function isValidAggregation(aggregation, cols) {
 }
 
 /**
-* Converts aggregation from external Snuba format to internal format for dropdown
-*
-* @param {Array} external Aggregation in external Snuba format
-* @return {String} Aggregation in internal format
-**/
+ * Converts aggregation from external Snuba format to internal format for dropdown
+ *
+ * @param {Array} external Aggregation in external Snuba format
+ * @return {String} Aggregation in internal format
+ **/
 export function getInternal(external) {
   const [func, col] = external;
 
@@ -63,13 +62,13 @@ export function getInternal(external) {
 }
 
 /**
-* Returns an alias for a given column name, which is either just the column name
-* or a string with an underscore instead of square brackets for tags. We'll also
-* replace the characters `.`, `:` and `-` from aliases.
-*
-* @param {String} columnName Name of column
-* @return {String} Alias
-*/
+ * Returns an alias for a given column name, which is either just the column name
+ * or a string with an underscore instead of square brackets for tags. We'll also
+ * replace the characters `.`, `:` and `-` from aliases.
+ *
+ * @param {String} columnName Name of column
+ * @return {String} Alias
+ */
 function getAlias(columnName) {
   const tagMatch = columnName.match(/^tags\[(.+)]$/);
   return tagMatch
@@ -78,11 +77,11 @@ function getAlias(columnName) {
 }
 
 /**
-* Converts aggregation internal string format to external Snuba representation
-*
-* @param {String} internal Aggregation in internal format
-* @return {Array} Aggregation in external Snuba format
-*/
+ * Converts aggregation internal string format to external Snuba representation
+ *
+ * @param {String} internal Aggregation in internal format
+ * @return {Array} Aggregation in external Snuba format
+ */
 export function getExternal(internal) {
   const uniqRegex = /^uniq\((.+)\)$/;
   const avgRegex = /^avg\((.+)\)$/;

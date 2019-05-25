@@ -18,7 +18,7 @@ exports[`ProjectPlugins renders 1`] = `
     <PanelAlert
       type="warning"
     >
-      <AccessContainer
+      <withConfig(AccessContainer)
         access={
           Array [
             "org:integrations",
@@ -26,7 +26,7 @@ exports[`ProjectPlugins renders 1`] = `
         }
       >
         <Component />
-      </AccessContainer>
+      </withConfig(AccessContainer)>
     </PanelAlert>
     <PanelItem
       key="amazon-sqs"
@@ -44,6 +44,7 @@ exports[`ProjectPlugins renders 1`] = `
         enabled={false}
         hasConfiguration={true}
         id="amazon-sqs"
+        isHidden={false}
         name="Amazon SQS"
         params={
           Object {
@@ -71,6 +72,7 @@ exports[`ProjectPlugins renders 1`] = `
         enabled={true}
         hasConfiguration={false}
         id="github"
+        isHidden={false}
         name="GitHub"
         params={
           Object {

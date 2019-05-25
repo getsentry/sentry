@@ -8,8 +8,9 @@ class OrganizationDeletionTask(ModelDeletionTask):
         from sentry.models import (
             OrganizationMember, Commit, CommitAuthor, CommitFileChange, Environment, Release,
             ReleaseCommit, ReleaseEnvironment, ReleaseFile, Distribution, ReleaseHeadCommit,
-            Repository, Team, Project, PullRequest, DiscoverSavedQuery, ExternalIssue, PromptsActivity
+            Repository, Team, Project, PullRequest, Dashboard, DiscoverSavedQuery, ExternalIssue, PromptsActivity
         )
+        from sentry.incidents.models import Incident
 
         # Team must come first
         relations = [
@@ -31,9 +32,11 @@ class OrganizationDeletionTask(ModelDeletionTask):
             ReleaseFile,
             Distribution,
             ReleaseHeadCommit,
+            Dashboard,
             DiscoverSavedQuery,
             ExternalIssue,
             PromptsActivity,
+            Incident,
         )
         relations.extend([ModelRelation(m, {'organization_id': instance.id}) for m in model_list])
 

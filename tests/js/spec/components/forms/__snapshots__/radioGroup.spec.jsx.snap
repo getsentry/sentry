@@ -101,3 +101,88 @@ exports[`RadioGroup render() renders 1`] = `
   </RadioLineItem>
 </div>
 `;
+
+exports[`RadioGroup render() renders disabled 1`] = `
+<RadioGroup
+  choices={
+    Array [
+      Array [
+        "choice_one",
+        "Choice One",
+      ],
+    ]
+  }
+  disabled={true}
+  name="radio"
+  value="choice_one"
+>
+  <div
+    name="radio"
+    role="radiogroup"
+  >
+    <RadioLineItem
+      aria-checked={true}
+      disabled={true}
+      index={0}
+      key="0"
+      onClick={[Function]}
+      role="radio"
+      tabIndex={0}
+    >
+      <Component
+        aria-checked={true}
+        className="css-1h3kzqs-RadioLineItem eeb3g7x1"
+        disabled={true}
+        index={0}
+        onClick={[Function]}
+        role="radio"
+        tabIndex={0}
+      >
+        <div
+          aria-checked={true}
+          className="css-1h3kzqs-RadioLineItem eeb3g7x1"
+          index={0}
+          onClick={[Function]}
+          role="radio"
+          tabIndex={0}
+        >
+          <RadioLineButton>
+            <div
+              className="css-18yerb2-RadioLineButton eeb3g7x0"
+            >
+              <RadioLineButtonFill
+                animate={true}
+                disabled={true}
+              >
+                <Component
+                  animate={true}
+                  className="css-14bkqla-RadioLineButtonFill eeb3g7x2"
+                  disabled={true}
+                >
+                  <div
+                    className="css-14bkqla-RadioLineButtonFill eeb3g7x2"
+                  />
+                </Component>
+              </RadioLineButtonFill>
+            </div>
+          </RadioLineButton>
+          <RadioLineText
+            disabled={true}
+          >
+            <Component
+              className="css-fr9tlv-RadioLineText eeb3g7x3"
+              disabled={true}
+            >
+              <div
+                className="css-fr9tlv-RadioLineText eeb3g7x3"
+              >
+                Choice One
+              </div>
+            </Component>
+          </RadioLineText>
+        </div>
+      </Component>
+    </RadioLineItem>
+  </div>
+</RadioGroup>
+`;

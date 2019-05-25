@@ -18,10 +18,10 @@ from sentry.tagstore.exceptions import (
     TagValueNotFound,
 )
 from sentry.tagstore.snuba.backend import SnubaTagStorage
-from sentry.testutils import SnubaTestCase
+from sentry.testutils import SnubaTestCase, TestCase
 
 
-class TagStorageTest(SnubaTestCase):
+class TagStorageTest(TestCase, SnubaTestCase):
     def setUp(self):
         super(TagStorageTest, self).setUp()
 
@@ -29,6 +29,7 @@ class TagStorageTest(SnubaTestCase):
 
         self.proj1 = self.create_project()
         self.proj1env1 = self.create_environment(project=self.proj1, name='test')
+        self.proj1env2 = self.create_environment(project=self.proj1, name='test2')
 
         self.proj1group1 = self.create_group(self.proj1)
         self.proj1group2 = self.create_group(self.proj1)
@@ -80,6 +81,24 @@ class TagStorageTest(SnubaTestCase):
                     'id': "user1"
                 }
             },
+        }] + [{
+            'event_id': '4' * 32,
+            'primary_hash': hash2,
+            'group_id': self.proj1group1.id,
+            'project_id': self.proj1.id,
+            'message': 'message 2',
+            'platform': 'python',
+            'datetime': (self.now - timedelta(seconds=2)).strftime('%Y-%m-%dT%H:%M:%S.%fZ'),
+            'data': {
+                'received': calendar.timegm(self.now.timetuple()) - 2,
+                'tags': {
+                    'foo': 'bar',
+                    'environment': self.proj1env2.name,
+                },
+                'user': {
+                    'id': "user1"
+                }
+            },
         }])
 
         assert requests.post(settings.SENTRY_SNUBA + '/tests/insert', data=data).status_code == 200
@@ -88,7 +107,7 @@ class TagStorageTest(SnubaTestCase):
         result = list(self.ts.get_group_tag_keys_and_top_values(
             self.proj1.id,
             self.proj1group1.id,
-            self.proj1env1.id,
+            [self.proj1env1.id],
         ))
         tags = [r.key for r in result]
         assert set(tags) == set(['foo', 'baz', 'environment', 'sentry:release', 'sentry:user'])
@@ -96,11 +115,9 @@ class TagStorageTest(SnubaTestCase):
         result.sort(key=lambda r: r.key)
         assert result[0].key == 'baz'
         assert result[0].top_values[0].value == 'quux'
-        assert result[0].values_seen == 1
         assert result[0].count == 2
 
         assert result[3].key == 'sentry:release'
-        assert result[3].values_seen == 2
         assert result[3].count == 2
         top_release_values = result[3].top_values
         assert len(top_release_values) == 2
@@ -111,7 +128,7 @@ class TagStorageTest(SnubaTestCase):
         result = list(self.ts.get_group_tag_keys_and_top_values(
             self.proj1.id,
             self.proj1group1.id,
-            self.proj1env1.id,
+            [self.proj1env1.id],
             keys=['environment', 'sentry:release'],
         ))
         tags = [r.key for r in result]
@@ -149,6 +166,26 @@ class TagStorageTest(SnubaTestCase):
             'foo'
         ) == 2
 
+    def test_get_tag_keys(self):
+        expected_keys = set([
+            'baz', 'browser', 'environment', 'foo', 'sentry:release', 'sentry:user',
+        ])
+        keys = {
+            k.key: k for k in self.ts.get_tag_keys(
+                project_id=self.proj1.id,
+                environment_id=self.proj1env1.id,
+            )
+        }
+        assert set(keys) == expected_keys
+        keys = {
+            k.key: k for k in self.ts.get_tag_keys(
+                project_id=self.proj1.id,
+                environment_id=self.proj1env1.id,
+                include_values_seen=True,
+            )
+        }
+        assert set(keys) == expected_keys
+
     def test_get_group_tag_key(self):
         with pytest.raises(GroupTagKeyNotFound):
             self.ts.get_group_tag_key(
@@ -169,15 +206,10 @@ class TagStorageTest(SnubaTestCase):
             k.key: k for k in self.ts.get_group_tag_keys(
                 project_id=self.proj1.id,
                 group_id=self.proj1group1.id,
-                environment_id=self.proj1env1.id,
+                environment_ids=[self.proj1env1.id],
             )
         }
         assert set(keys) == set(['baz', 'environment', 'foo', 'sentry:release', 'sentry:user'])
-        for k in keys.values():
-            if k.key not in set(['sentry:release', 'sentry:user']):
-                assert k.values_seen == 1, u'expected {!r} to have 1 unique value'.format(k.key)
-            else:
-                assert k.values_seen == 2
 
     def test_get_group_tag_value(self):
         with pytest.raises(GroupTagValueNotFound):
@@ -230,13 +262,22 @@ class TagStorageTest(SnubaTestCase):
 
     def test_get_groups_user_counts(self):
         assert self.ts.get_groups_user_counts(
-            project_id=self.proj1.id,
+            project_ids=[self.proj1.id],
             group_ids=[self.proj1group1.id, self.proj1group2.id],
-            environment_id=self.proj1env1.id
+            environment_ids=[self.proj1env1.id]
         ) == {
             self.proj1group1.id: 2,
             self.proj1group2.id: 1,
         }
+
+        # test filtering by date range where there shouldn't be results
+        assert self.ts.get_groups_user_counts(
+            project_ids=[self.proj1.id],
+            group_ids=[self.proj1group1.id, self.proj1group2.id],
+            environment_ids=[self.proj1env1.id],
+            start=self.now - timedelta(days=5),
+            end=self.now - timedelta(days=4),
+        ) == {}
 
     def test_get_releases(self):
         assert self.ts.get_first_release(
@@ -314,38 +355,79 @@ class TagStorageTest(SnubaTestCase):
         assert self.ts.get_group_event_filter(
             self.proj1.id,
             self.proj1group1.id,
-            self.proj1env1.id,
+            [self.proj1env1.id],
             {
                 'foo': 'bar',
-            }
+            },
+            None,
+            None,
         ) == {'event_id__in': set(["1" * 32, "2" * 32])}
 
         assert self.ts.get_group_event_filter(
             self.proj1.id,
             self.proj1group1.id,
-            self.proj1env1.id,
+            [self.proj1env1.id],
+            {
+                'foo': 'bar',
+            },
+            (self.now - timedelta(seconds=1)),
+            None,
+        ) == {'event_id__in': set(["1" * 32])}
+
+        assert self.ts.get_group_event_filter(
+            self.proj1.id,
+            self.proj1group1.id,
+            [self.proj1env1.id],
+            {
+                'foo': 'bar',
+            },
+            None,
+            (self.now - timedelta(seconds=1)),
+        ) == {'event_id__in': set(["2" * 32])}
+
+        assert self.ts.get_group_event_filter(
+            self.proj1.id,
+            self.proj1group1.id,
+            [self.proj1env1.id, self.proj1env2.id],
+            {
+                'foo': 'bar',
+            },
+            None,
+            None,
+        ) == {'event_id__in': set(["1" * 32, "2" * 32, "4" * 32])}
+
+        assert self.ts.get_group_event_filter(
+            self.proj1.id,
+            self.proj1group1.id,
+            [self.proj1env1.id],
             {
                 'foo': 'bar',  # AND
                 'sentry:release': '200'
-            }
+            },
+            None,
+            None,
         ) == {'event_id__in': set(["2" * 32])}
 
         assert self.ts.get_group_event_filter(
             self.proj1.id,
             self.proj1group2.id,
-            self.proj1env1.id,
+            [self.proj1env1.id],
             {
                 'browser': 'chrome'
-            }
+            },
+            None,
+            None,
         ) == {'event_id__in': set(["3" * 32])}
 
         assert self.ts.get_group_event_filter(
             self.proj1.id,
             self.proj1group2.id,
-            self.proj1env1.id,
+            [self.proj1env1.id],
             {
                 'browser': 'ie'
-            }
+            },
+            None,
+            None,
         ) is None
 
     def test_get_tag_value_paginator(self):
@@ -440,3 +522,19 @@ class TagStorageTest(SnubaTestCase):
                 last_seen=self.now - timedelta(seconds=2)
             )
         ]
+
+    def test_get_group_seen_values_for_environments(self):
+        assert self.ts.get_group_seen_values_for_environments(
+            [self.proj1.id], [self.proj1group1.id], [self.proj1env1.id]
+        ) == {self.proj1group1.id: {
+            'first_seen': self.now - timedelta(seconds=2),
+            'last_seen': self.now - timedelta(seconds=1),
+            'times_seen': 2,
+        }}
+
+        # test where there should be no results because of time filters
+        assert self.ts.get_group_seen_values_for_environments(
+            [self.proj1.id], [self.proj1group1.id], [self.proj1env1.id],
+            start=self.now - timedelta(hours=5),
+            end=self.now - timedelta(hours=4),
+        ) == {}

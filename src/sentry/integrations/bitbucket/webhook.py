@@ -22,11 +22,18 @@ logger = logging.getLogger('sentry.webhooks')
 
 # Bitbucket Cloud IP range:
 # https://confluence.atlassian.com/bitbucket/manage-webhooks-735643732.html#Managewebhooks-trigger_webhookTriggeringwebhooks
-BITBUCKET_IP_RANGE = ipaddress.ip_network(u'104.192.136.0/21')
+BITBUCKET_IP_RANGES = (
+    ipaddress.ip_network(u'104.192.136.0/21'),
+    # Not documented in the webhook docs, but defined here:
+    # https://bitbucket.org/blog/new-ip-addresses-bitbucket-cloud
+    ipaddress.ip_network(u'18.205.93.0/25'),
+    ipaddress.ip_network(u'18.234.32.128/25'),
+    ipaddress.ip_network(u'13.52.5.0/25'),
+)
 BITBUCKET_IPS = [
     u'34.198.203.127',
     u'34.198.178.64',
-    u'34.198.32.85'
+    u'34.198.32.85',
 ]
 PROVIDER_NAME = 'integrations:bitbucket'
 
@@ -47,11 +54,6 @@ def parse_raw_user_email(raw):
 def parse_raw_user_name(raw):
     # captures content before angle bracket
     return raw.split('<')[0].strip()
-
-
-class PullEventWebhook(Webhook):
-    def __call__(self, organization, event):
-        pass
 
 
 class PushEventWebhook(Webhook):
@@ -112,7 +114,6 @@ class PushEventWebhook(Webhook):
 class BitbucketWebhookEndpoint(View):
     _handlers = {
         'repo:push': PushEventWebhook,
-        'pullrequest:fulfilled': PullEventWebhook,
     }
 
     def get_handler(self, event_type):
@@ -162,8 +163,14 @@ class BitbucketWebhookEndpoint(View):
             return HttpResponse(status=204)
 
         address_string = six.text_type(request.META['REMOTE_ADDR'])
-        if not (ipaddress.ip_address(address_string) in BITBUCKET_IP_RANGE or
-                address_string in BITBUCKET_IPS):
+        ip = ipaddress.ip_address(address_string)
+        valid_ip = False
+        for ip_range in BITBUCKET_IP_RANGES:
+            if ip in ip_range:
+                valid_ip = True
+                break
+
+        if not valid_ip and address_string not in BITBUCKET_IPS:
             logger.error(
                 PROVIDER_NAME + '.webhook.invalid-ip-range', extra={
                     'organization_id': organization.id,

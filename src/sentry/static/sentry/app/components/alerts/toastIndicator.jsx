@@ -6,7 +6,7 @@ import {t} from 'app/locale';
 import InlineSvg from 'app/components/inlineSvg';
 import LoadingIndicator from 'app/components/loadingIndicator';
 
-const Toast = styled.div`
+const Toast = styled('div')`
   display: flex;
   align-items: center;
   height: 40px;
@@ -41,7 +41,7 @@ const Toast = styled.div`
   }
 `;
 
-const Icon = styled.div`
+const Icon = styled('div')`
   margin-right: 6px;
   svg {
     display: block;
@@ -50,11 +50,11 @@ const Icon = styled.div`
   color: ${p => (p.type == 'success' ? p.theme.green : p.theme.red)};
 `;
 
-const Message = styled.div`
+const Message = styled('div')`
   flex: 1;
 `;
 
-const Undo = styled.div`
+const Undo = styled('div')`
   display: inline-block;
   color: ${p => p.theme.gray2};
   padding-left: 16px;
@@ -76,11 +76,13 @@ const StyledLoadingIndicator = styled(LoadingIndicator)`
 
 function ToastIndicator({indicator, onDismiss, className, ...props}) {
   let icon;
-  let {options, message, type} = indicator;
-  let {undo, disableDismiss} = options || {};
-  let showUndo = typeof undo === 'function';
+  const {options, message, type} = indicator;
+  const {undo, disableDismiss} = options || {};
+  const showUndo = typeof undo === 'function';
   const handleClick = e => {
-    if (disableDismiss) return;
+    if (disableDismiss) {
+      return;
+    }
     if (typeof onDismiss === 'function') {
       onDismiss(indicator, e);
     }

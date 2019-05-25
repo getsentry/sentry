@@ -9,6 +9,7 @@ class DateTime extends React.Component {
   static propTypes = {
     date: PropTypes.any.isRequired,
     dateOnly: PropTypes.bool,
+    timeOnly: PropTypes.bool,
     shortDate: PropTypes.bool,
     seconds: PropTypes.bool,
     utc: PropTypes.bool,
@@ -19,11 +20,16 @@ class DateTime extends React.Component {
   };
 
   getFormat = ({clock24Hours}) => {
-    let {dateOnly, seconds, shortDate} = this.props;
+    const {dateOnly, timeOnly, seconds, shortDate} = this.props;
 
     // October 26, 2017
     if (dateOnly) {
       return 'LL';
+    }
+
+    // 4:57 PM
+    if (timeOnly) {
+      return 'LT';
     }
 
     if (shortDate) {
@@ -44,31 +50,26 @@ class DateTime extends React.Component {
   };
 
   render() {
-    let {
+    const {
       date,
-      // eslint-disable-next-line no-unused-vars
-      seconds,
-      // eslint-disable-next-line no-unused-vars
-      shortDate,
-      // eslint-disable-next-line no-unused-vars
-      dateOnly,
-      // eslint-disable-next-line no-unused-vars
+      seconds, // eslint-disable-line no-unused-vars
+      shortDate, // eslint-disable-line no-unused-vars
+      dateOnly, // eslint-disable-line no-unused-vars
       utc,
+      timeOnly: _timeOnly, // eslint-disable-line no-unused-vars
       ...carriedProps
     } = this.props;
-    let user = ConfigStore.get('user');
-    let options = user ? user.options : {};
-    let format = this.getFormat(options);
+    const user = ConfigStore.get('user');
+    const options = user ? user.options : {};
+    const format = this.getFormat(options);
 
-    if (_.isString(date) || _.isNumber(date)) {
-      date = new Date(date);
-    }
+    const coercedDate = _.isString(date) || _.isNumber(date) ? new Date(date) : date;
 
     return (
       <time {...carriedProps}>
         {utc
-          ? moment.utc(date).format(format)
-          : moment.tz(date, options.timezone).format(format)}
+          ? moment.utc(coercedDate).format(format)
+          : moment.tz(coercedDate, options.timezone).format(format)}
       </time>
     );
   }

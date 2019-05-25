@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+import collections
 import six
 
 
@@ -27,6 +28,13 @@ class Meta(object):
         new ``Meta`` object, regardless whether the path already exists.
         """
         return Meta(self._meta, path=self._path + map(six.text_type, path))
+
+    @property
+    def path(self):
+        """
+        Returns the full path of this meta instance, joined with dots (".").
+        """
+        return '.'.join(self._path)
 
     def raw(self):
         """
@@ -85,20 +93,52 @@ class Meta(object):
 
         return meta
 
-    def get_errors(self):
+    def iter_errors(self):
         """
-        Returns meta errors of the item at the current path.
+        Iterates over meta errors of the item at the current path, if any.
 
-        It is not safe to mutate the return value since it might be detached
-        from the actual meta tree.
+        Each error is a tuple ``(type, data)``, where:
+         - ``type`` is the error constant also used in EventError
+         - ``data`` a dictionary of additional error infos
         """
-        return self.get().get('err') or []
+        return (
+            ([err, {}] if isinstance(err, six.string_types) else err)
+            for err in self.get().get('err') or ()
+        )
 
-    def add_error(self, error, value=None):
+    def get_event_errors(self):
+        """
+        Returns all errors of the item at the current path in EventError schema,
+        which can directly be stored to an event's "errors" list.
+        """
+
+        errors = []
+        value = self.get().get('val')
+
+        for error, data in self.iter_errors():
+            eventerror = dict(data)
+            eventerror['type'] = error
+
+            if self._path:
+                eventerror['name'] = '.'.join(self._path)
+
+            if value is not None:
+                eventerror['value'] = value
+                value = None
+
+            errors.append(eventerror)
+
+        return errors
+
+    def add_error(self, error, value=None, data=None):
         """
         Adds an error to the meta data at the current path. The ``error``
-        argument is converted to string. If the optional ``value`` is given, it
-        is attached as original value into the meta data.
+        argument is converted to string. If optional ``data`` is specified, the
+        data hash is stored alongside the error.
+
+        If an optional ``value`` is specified, it is attached as original value
+        into the meta data. Note that there is only one original value, not one
+        per error.
 
         If no meta data entry exists for the current path, it is created, along
         with the entire parent tree.
@@ -106,7 +146,19 @@ class Meta(object):
         meta = self.create()
         if 'err' not in meta or meta['err'] is None:
             meta['err'] = []
-        meta['err'].append(six.text_type(error))
+
+        error = six.text_type(error)
+        if isinstance(data, collections.Mapping):
+            error = [error, dict(data)]
+        meta['err'].append(error)
 
         if value is not None:
             meta['val'] = value
+
+    def __iter__(self):
+        """
+        Iterates all child meta entries that potentially have errors set.
+        """
+        for key in self.raw():
+            if key != '':
+                yield self.enter(key)

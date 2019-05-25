@@ -1,18 +1,30 @@
 import PropTypes from 'prop-types';
 import React from 'react';
+import styled from 'react-emotion';
 
 import Avatar from 'app/components/avatar';
+import CommitLink from 'app/components/commitLink';
+import TimeSince from 'app/components/timeSince';
 import Version from 'app/components/version';
 import {t, tct} from 'app/locale';
+import space from 'app/styles/space';
+
+const StyledTimeSince = styled(TimeSince)`
+  color: ${p => p.theme.gray2};
+  margin-left: ${space(0.5)};
+  font-size: ${p => p.theme.fontSizeSmall};
+`;
 
 export default class ResolutionBox extends React.Component {
   static propTypes = {
     statusDetails: PropTypes.object.isRequired,
+    orgId: PropTypes.string.isRequired,
+    projectId: PropTypes.string.isRequired,
   };
 
   renderReason = () => {
-    let {params, statusDetails} = this.props;
-    let actor = statusDetails.actor ? (
+    const {orgId, projectId, statusDetails} = this.props;
+    const actor = statusDetails.actor ? (
       <strong>
         <Avatar user={statusDetails.actor} size={20} className="avatar" />
         <span style={{marginLeft: 5}}>{statusDetails.actor.name}</span>
@@ -31,8 +43,8 @@ export default class ResolutionBox extends React.Component {
         version: (
           <Version
             version={statusDetails.inRelease}
-            orgId={params.orgId}
-            projectId={params.projectId}
+            orgId={orgId}
+            projectId={projectId}
           />
         ),
       });
@@ -41,9 +53,21 @@ export default class ResolutionBox extends React.Component {
         version: (
           <Version
             version={statusDetails.inRelease}
-            orgId={params.orgId}
-            projectId={params.projectId}
+            orgId={orgId}
+            projectId={projectId}
           />
+        ),
+      });
+    } else if (!!statusDetails.inCommit) {
+      return tct('This issue has been marked as resolved by [commit]', {
+        commit: (
+          <React.Fragment>
+            <CommitLink
+              commitId={statusDetails.inCommit.id}
+              repository={statusDetails.inCommit.repository}
+            />
+            <StyledTimeSince date={statusDetails.inCommit.dateCreated} />
+          </React.Fragment>
         ),
       });
     }
@@ -52,9 +76,14 @@ export default class ResolutionBox extends React.Component {
 
   render = () => {
     return (
-      <div className="box">
-        <span className="icon icon-checkmark" />
-        <p className="truncate break-all">{this.renderReason()}</p>
+      <div
+        className="box"
+        style={{display: 'flex', alignItems: 'center', flex: 1, paddingBottom: 15}}
+      >
+        <span className="icon icon-checkmark" style={{position: 'static', top: 0}} />
+        <p className="truncate break-all" style={{paddingBottom: 0, paddingLeft: 16}}>
+          {this.renderReason()}
+        </p>
       </div>
     );
   };

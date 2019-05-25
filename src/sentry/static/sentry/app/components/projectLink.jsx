@@ -37,7 +37,7 @@ class ProjectLink extends React.Component {
 
       return <RouterLink {...routerProps}>{this.props.children}</RouterLink>;
     } else {
-      let {to, ...props} = this.props;
+      const {to, ...props} = this.props;
       return (
         <a {...props} href={to}>
           {this.props.children}

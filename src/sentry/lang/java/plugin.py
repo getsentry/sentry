@@ -4,12 +4,18 @@ import six
 
 from symbolic import ProguardMappingView
 from sentry.plugins import Plugin2
-from sentry.stacktraces import StacktraceProcessor
+from sentry.stacktraces.processing import StacktraceProcessor
 from sentry.models import ProjectDebugFile, EventError
 from sentry.reprocessing import report_processing_issue
 from sentry.utils.safe import get_path
 
 FRAME_CACHE_VERSION = 2
+
+
+def is_valid_image(image):
+    return bool(image) \
+        and image.get('type') == 'proguard' \
+        and image.get('uuid') is not None
 
 
 class JavaStacktraceProcessor(StacktraceProcessor):
@@ -19,10 +25,9 @@ class JavaStacktraceProcessor(StacktraceProcessor):
         self.images = set()
         self.available = False
 
-        for image in get_path(self.data, 'debug_meta', 'images', filter=True, default=()):
-            if image.get('type') == 'proguard':
-                self.available = True
-                self.images.add(six.text_type(image['uuid']).lower())
+        for image in get_path(self.data, 'debug_meta', 'images', filter=is_valid_image, default=()):
+            self.available = True
+            self.images.add(six.text_type(image['uuid']).lower())
 
     def handles_frame(self, frame, stacktrace_info):
         platform = frame.get('platform') or self.data.get('platform')
@@ -51,7 +56,7 @@ class JavaStacktraceProcessor(StacktraceProcessor):
             if dif_path is None:
                 error_type = EventError.PROGUARD_MISSING_MAPPING
             else:
-                view = ProguardMappingView.from_path(dif_path)
+                view = ProguardMappingView.open(dif_path)
                 if not view.has_line_info:
                     error_type = EventError.PROGUARD_MISSING_LINENO
                 else:

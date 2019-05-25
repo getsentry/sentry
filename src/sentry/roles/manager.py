@@ -72,3 +72,8 @@ class RoleManager(object):
         for role in self.get_all():
             if role.has_scope(scope):
                 yield role
+
+    def with_any_scope(self, scopes):
+        for role in self.get_all():
+            if any(role.has_scope(scope) for scope in scopes):
+                yield role

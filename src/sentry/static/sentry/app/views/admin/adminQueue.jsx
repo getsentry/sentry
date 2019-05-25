@@ -42,7 +42,7 @@ export default class AdminQueue extends AsyncView {
   };
 
   renderBody() {
-    let {activeTask, taskList} = this.state;
+    const {activeTask, taskList} = this.state;
 
     return (
       <div>
@@ -50,9 +50,9 @@ export default class AdminQueue extends AsyncView {
           {['1h', '1d', '1w'].map(r => {
             return (
               <a
-                className={`btn btn-sm ${r == this.state.timeWindow
-                  ? 'btn-primary'
-                  : 'btn-default'}`}
+                className={`btn btn-sm ${
+                  r == this.state.timeWindow ? 'btn-primary' : 'btn-default'
+                }`}
                 onClick={() => this.changeWindow(r)}
                 key={r}
               >

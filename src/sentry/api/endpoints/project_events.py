@@ -2,10 +2,12 @@ from __future__ import absolute_import
 
 from datetime import timedelta
 from django.utils import timezone
+from functools import partial
 
+from sentry import options
 from sentry.api.base import DocSection
 from sentry.api.bases.project import ProjectEndpoint
-from sentry.api.serializers import serialize
+from sentry.api.serializers import EventSerializer, serialize, SimpleEventSerializer
 from sentry.utils.apidocs import scenario, attach_scenarios
 
 
@@ -20,7 +22,7 @@ def list_project_available_samples_scenario(runner):
 class ProjectEventsEndpoint(ProjectEndpoint):
     doc_section = DocSection.EVENTS
 
-    def __search_events_legacy(self, request, project):
+    def _get_events_legacy(self, request, project):
         from sentry import quotas
         from sentry.api.paginator import DateTimePaginator
         from sentry.models import Event
@@ -50,10 +52,9 @@ class ProjectEventsEndpoint(ProjectEndpoint):
             paginator_cls=DateTimePaginator,
         )
 
-    def __search_events_snuba(self, request, project):
-        from functools32 import partial
+    def _get_events_snuba(self, request, project):
         from sentry.api.paginator import GenericOffsetPaginator
-        from sentry.api.serializers.models.event import SnubaEvent
+        from sentry.models import SnubaEvent
         from sentry.utils.snuba import raw_query
 
         query = request.GET.get('query')
@@ -62,6 +63,8 @@ class ProjectEventsEndpoint(ProjectEndpoint):
             conditions.append(
                 [['positionCaseInsensitive', ['message', "'%s'" % (query,)]], '!=', 0])
 
+        full = request.GET.get('full', False)
+        snuba_cols = SnubaEvent.minimal_columns if full else SnubaEvent.selected_columns
         now = timezone.now()
         data_fn = partial(
             # extract 'data' from raw_query result
@@ -70,15 +73,16 @@ class ProjectEventsEndpoint(ProjectEndpoint):
             end=now,
             conditions=conditions,
             filter_keys={'project_id': [project.id]},
-            selected_columns=SnubaEvent.selected_columns,
+            selected_columns=snuba_cols,
             orderby='-timestamp',
             referrer='api.project-events',
         )
 
+        serializer = EventSerializer() if full else SimpleEventSerializer()
         return self.paginate(
             request=request,
             on_results=lambda results: serialize(
-                [SnubaEvent(row) for row in results], request.user),
+                [SnubaEvent(row) for row in results], request.user, serializer),
             paginator=GenericOffsetPaginator(data_fn=data_fn)
         )
 
@@ -97,8 +101,6 @@ class ProjectEventsEndpoint(ProjectEndpoint):
         :pparam string project_slug: the slug of the project the groups
                                      belong to.
         """
-        backend = request.COOKIES.get('eventstream', 'legacy')
-        return {
-            'legacy': self.__search_events_legacy,
-            'snuba': self.__search_events_snuba,
-        }[backend](request, project)
+        use_snuba = options.get('snuba.events-queries.enabled')
+        backend = self._get_events_snuba if use_snuba else self._get_events_legacy
+        return backend(request, project)

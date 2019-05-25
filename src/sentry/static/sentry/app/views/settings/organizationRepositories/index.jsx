@@ -7,7 +7,7 @@ import OrganizationRepositories from './organizationRepositories';
 
 export default class OrganizationRepositoriesContainer extends AsyncView {
   getEndpoints() {
-    let {orgId} = this.props.params;
+    const {orgId} = this.props.params;
     return [
       ['itemList', `/organizations/${orgId}/repos/`, {query: {status: ''}}],
       ['repoConfig', `/organizations/${orgId}/config/repos/`],
@@ -16,7 +16,7 @@ export default class OrganizationRepositoriesContainer extends AsyncView {
 
   // Callback used by child component to signal state change
   onRepositoryChange = data => {
-    let itemList = this.state.itemList;
+    const itemList = this.state.itemList;
     itemList.forEach(item => {
       if (item.id === data.id) {
         item.status = data.status;
@@ -26,7 +26,7 @@ export default class OrganizationRepositoriesContainer extends AsyncView {
   };
 
   onAddRepo = repo => {
-    let itemList = this.state.itemList;
+    const itemList = this.state.itemList;
     itemList.push(repo);
     this.setState({
       itemList: sortArray(itemList, item => item.name),

@@ -1,0 +1,17 @@
+---
+created: '2019-03-14T17:12:35.950216Z'
+creator: sentry
+source: tests/sentry/event_manager/interfaces/test_mechanism.py
+---
+errors: null
+tags:
+- - mechanism
+  - generic
+to_json:
+  meta:
+    signal:
+      code: 0
+      code_name: BUS_NOOP
+      name: SIGBUS
+      number: 10
+  type: generic

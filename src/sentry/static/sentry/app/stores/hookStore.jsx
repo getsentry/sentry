@@ -1,18 +1,18 @@
 import Reflux from 'reflux';
 import _ from 'lodash';
-
-import sdk from 'app/utils/sdk';
+import * as Sentry from '@sentry/browser';
 
 const validHookNames = new Set([
   // Additional routes
   'routes',
   'routes:admin',
   'routes:organization',
+  'routes:organization-root',
 
   // Analytics and tracking hooks
   'amplitude:event',
   'analytics:event',
-  'analytics:log-experiment',
+  'analytics:init-user',
 
   // Operational metrics
   'metrics:event',
@@ -20,9 +20,6 @@ const validHookNames = new Set([
   // Specific component customizations
   'component:org-auth-view',
   'component:org-members-view',
-  'component:releases-tab',
-  'component:create-sample-event',
-  'component:install-prompt-banner',
 
   // Additional settings
   'settings:organization-navigation',
@@ -33,6 +30,16 @@ const validHookNames = new Set([
   'organization:header',
   'sidebar:help-menu',
   'sidebar:organization-dropdown-menu',
+  'sidebar:bottom-items',
+  'sidebar:item-label',
+
+  // Onboarding experience
+  // TODO(epurkhiser): These all should become less getsentry specific
+  'routes:onboarding-survey',
+  'utils:onboarding-survey-url',
+  'sidebar:onboarding-assets',
+  'onboarding:invite-members',
+  'component:onboarding-new-project',
 
   // Used to provide a component for integration features.
   'integrations:feature-gates',
@@ -48,8 +55,11 @@ const validHookNames = new Set([
   'feature-disabled:sso-rippling',
   'feature-disabled:sso-saml2',
 
-  // TODO(epurkhiser): These are not used anymore and should be removed
-  'organization:sidebar',
+  // Explicit Feature hookNames
+  'feature-disabled:events-page',
+  'feature-disabled:events-sidebar-item',
+  'feature-disabled:discover-page',
+  'feature-disabled:discover-sidebar-item',
 ]);
 
 /**
@@ -68,8 +78,9 @@ const HookStore = Reflux.createStore({
     if (!validHookNames.has(hookName)) {
       // eslint-disable-next-line no-console
       console.error('Invalid hook name: ' + hookName);
-      sdk.captureException(new Error('Invalid hook name'), {
-        extra: {hookName},
+      Sentry.withScope(scope => {
+        scope.setExtra('hookName', hookName);
+        Sentry.captureException(new Error('Invalid hook name'));
       });
     }
     if (_.isUndefined(this.hooks[hookName])) {

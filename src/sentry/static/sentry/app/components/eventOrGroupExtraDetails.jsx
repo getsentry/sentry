@@ -1,25 +1,21 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import createReactClass from 'create-react-class';
-import {Link} from 'react-router';
+import {Link, withRouter} from 'react-router';
 import styled from 'react-emotion';
 import {Flex, Box} from 'grid-emotion';
 
-import ProjectState from 'app/mixins/projectState';
 import TimeSince from 'app/components/timeSince';
 import ShortId from 'app/components/shortId';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import {t, tct} from 'app/locale';
 import InlineSvg from 'app/components/inlineSvg';
+import ProjectBadge from 'app/components/idBadge/projectBadge';
+import SentryTypes from 'app/sentryTypes';
 import space from 'app/styles/space';
 
-const EventOrGroupExtraDetails = createReactClass({
-  displayName: 'EventOrGroupExtraDetails',
-
-  propTypes: {
-    orgId: PropTypes.string.isRequired,
-    projectId: PropTypes.string.isRequired,
-    groupId: PropTypes.string.isRequired,
+class EventOrGroupExtraDetails extends React.Component {
+  static propTypes = {
+    id: PropTypes.string,
     lastSeen: PropTypes.string,
     firstSeen: PropTypes.string,
     subscriptionDetails: PropTypes.shape({
@@ -33,15 +29,20 @@ const EventOrGroupExtraDetails = createReactClass({
     }),
     showAssignee: PropTypes.bool,
     shortId: PropTypes.string,
-  },
+    project: SentryTypes.Project,
+  };
 
-  mixins: [ProjectState],
+  getIssuesPath() {
+    const {orgId, projectId} = this.props.params;
+
+    return projectId
+      ? `/${orgId}/${projectId}/issues/`
+      : `/organizations/${orgId}/issues/`;
+  }
 
   render() {
-    let {
-      orgId,
-      projectId,
-      groupId,
+    const {
+      id,
       lastSeen,
       firstSeen,
       subscriptionDetails,
@@ -51,11 +52,23 @@ const EventOrGroupExtraDetails = createReactClass({
       annotations,
       showAssignee,
       shortId,
+      project,
     } = this.props;
+
+    const issuesPath = this.getIssuesPath();
 
     return (
       <GroupExtra align="center">
-        {shortId && <GroupShortId shortId={shortId} />}
+        {shortId && (
+          <GroupShortId
+            shortId={shortId}
+            avatar={
+              project && (
+                <ProjectBadge project={project} avatarSize={14} hideName={true} />
+              )
+            }
+          />
+        )}
         <Times>
           <div css={overflowEllipsis}>
             {lastSeen && (
@@ -64,8 +77,9 @@ const EventOrGroupExtraDetails = createReactClass({
                 <TimeSince date={lastSeen} suffix={t('ago')} />
               </React.Fragment>
             )}
-            {firstSeen &&
-              lastSeen && <span className="hidden-xs hidden-sm">&nbsp;—&nbsp;</span>}
+            {firstSeen && lastSeen && (
+              <span className="hidden-xs hidden-sm">&nbsp;—&nbsp;</span>
+            )}
             {firstSeen && (
               <TimeSince
                 date={firstSeen}
@@ -78,10 +92,7 @@ const EventOrGroupExtraDetails = createReactClass({
         <GroupExtraCommentsAndLogger>
           {numComments > 0 && (
             <Box mr={2}>
-              <CommentsLink
-                to={`/${orgId}/${projectId}/issues/${groupId}/activity/`}
-                className="comments"
-              >
+              <CommentsLink to={`${issuesPath}${id}/activity/`} className="comments">
                 <GroupExtraIcon
                   src="icon-comment-sm"
                   mentioned={
@@ -96,7 +107,7 @@ const EventOrGroupExtraDetails = createReactClass({
             <Box className="event-annotation" mr={2}>
               <Link
                 to={{
-                  pathname: `/${orgId}/${projectId}/`,
+                  pathname: issuesPath,
                   query: {
                     query: 'logger:' + logger,
                   },
@@ -120,12 +131,13 @@ const EventOrGroupExtraDetails = createReactClass({
             );
           })}
 
-        {showAssignee &&
-          assignedTo && <div>{tct('Assigned to [name]', {name: assignedTo.name})}</div>}
+        {showAssignee && assignedTo && (
+          <div>{tct('Assigned to [name]', {name: assignedTo.name})}</div>
+        )}
       </GroupExtra>
     );
-  },
-});
+  }
+}
 
 const GroupExtra = styled(Flex)`
   color: ${p => p.theme.gray3};
@@ -172,4 +184,4 @@ const GroupTimeIcon = styled(GroupExtraIcon)`
   transform: translateY(-1px);
 `;
 
-export default EventOrGroupExtraDetails;
+export default withRouter(EventOrGroupExtraDetails);

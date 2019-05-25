@@ -1,7 +1,10 @@
 from __future__ import absolute_import
 
-import six
+import os
+
 from collections import OrderedDict
+import logging
+import six
 
 from django.conf import settings
 from django.utils.translation import ugettext as _
@@ -11,6 +14,18 @@ from sentry.utils.html import escape
 from sentry.utils.imports import import_string
 from sentry.utils.safe import safe_execute
 from sentry.utils.decorators import classproperty
+
+
+logger = logging.getLogger("sentry.events")
+interface_logger = logging.getLogger("sentry.interfaces")
+
+# This flag is only effectively used for the testsuite. In production the
+# return value of `sentry.models.event._should_skip_to_python` is explicitly
+# passed to interfaces.
+RUST_RENORMALIZED_DEFAULT = os.environ.get(
+    "SENTRY_TEST_USE_RUST_INTERFACE_RENORMALIZATION",
+    "false"
+).lower() in ("true", "1")
 
 
 def get_interface(name):
@@ -28,17 +43,21 @@ def get_interface(name):
     return interface
 
 
-def get_interfaces(data):
+def get_interfaces(data, rust_renormalized=RUST_RENORMALIZED_DEFAULT):
     result = []
     for key, data in six.iteritems(data):
+        # Skip invalid interfaces that were nulled out during normalization
+        if data is None:
+            continue
+
         try:
             cls = get_interface(key)
         except ValueError:
             continue
 
-        value = safe_execute(
-            cls.to_python, data, _with_transaction=False
-        )
+        value = safe_execute(cls.to_python, data,
+                             rust_renormalized=rust_renormalized,
+                             _with_transaction=False)
         if not value:
             continue
 
@@ -80,6 +99,7 @@ class Interface(object):
     score = 0
     display_score = None
     ephemeral = False
+    grouping_variants = ['default']
 
     def __init__(self, **data):
         self._data = data or {}
@@ -119,26 +139,27 @@ class Interface(object):
             self._data[name] = value
 
     @classmethod
-    def to_python(cls, data):
-        return cls(**data)
+    def to_python(cls, data, rust_renormalized=RUST_RENORMALIZED_DEFAULT):
+        """Creates a python interface object from the given raw data.
 
-    def get_api_context(self, is_public=False):
+        This function can assume fully normalized and valid data. It can create
+        defaults where data is missing but does not need to handle interface
+        validation.
+        """
+        return cls(**data) if data is not None else None
+
+    def get_raw_data(self):
+        """Returns the underlying raw data."""
+        return self._data
+
+    def get_api_context(self, is_public=False, platform=None):
         return self.to_json()
 
-    def get_api_meta(self, meta, is_public=False):
+    def get_api_meta(self, meta, is_public=False, platform=None):
         return meta
 
     def to_json(self):
         return prune_empty_keys(self._data)
-
-    def get_hash(self):
-        return []
-
-    def compute_hashes(self, platform):
-        result = self.get_hash()
-        if not result:
-            return []
-        return [result]
 
     def get_title(self):
         return _(type(self).__name__)

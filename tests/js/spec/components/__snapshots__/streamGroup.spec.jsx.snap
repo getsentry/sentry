@@ -4,6 +4,7 @@ exports[`StreamGroup renders with anchors 1`] = `
 <Group
   align="center"
   onClick={[Function]}
+  p={2}
   px={0}
   py={1}
 >
@@ -30,15 +31,43 @@ exports[`StreamGroup renders with anchors 1`] = `
       ]
     }
   >
-    <EventOrGroupHeader
+    <withRouter(EventOrGroupHeader)
       data={
         Object {
+          "activity": Array [],
+          "annotations": Array [],
           "assignedTo": null,
+          "count": "327482",
+          "culprit": "fetchData(app/components/group/suggestedOwners)",
+          "firstRelease": null,
+          "firstSeen": "2019-04-05T19:44:05.963Z",
+          "hasSeen": false,
           "id": "1337",
+          "isBookmarked": false,
+          "isPublic": false,
+          "isSubscribed": false,
+          "lastRelease": null,
+          "lastSeen": "2019-04-11T01:08:59Z",
+          "level": "warning",
+          "logger": null,
+          "metadata": Object {
+            "function": "fetchData",
+            "type": "RequestError",
+          },
+          "numComments": 0,
+          "participants": Array [],
+          "permalink": "https://foo.io/organizations/foo/issues/1234/",
+          "platform": "javascript",
+          "pluginActions": Array [],
+          "pluginContexts": Array [],
+          "pluginIssues": Array [],
           "project": Object {
             "id": "13",
             "slug": "test",
           },
+          "seenBy": Array [],
+          "shareId": null,
+          "shortId": "JAVASCRIPT-6QS",
           "stats": Object {
             "24h": Array [
               Array [
@@ -61,27 +90,56 @@ exports[`StreamGroup renders with anchors 1`] = `
               ],
             ],
           },
+          "status": "unresolved",
+          "statusDetails": Object {},
+          "subscriptionDetails": null,
           "tags": Array [],
+          "title": "RequestError: GET /issues/ 404",
           "type": "error",
+          "userCount": 35097,
+          "userReportCount": 0,
         }
       }
-      includeLink={true}
-      orgId="orgId"
-      projectId="projectId"
     />
-    <EventOrGroupExtraDetails
+    <withRouter(EventOrGroupExtraDetails)
+      activity={Array []}
+      annotations={Array []}
       assignedTo={null}
-      group={true}
-      groupId="1L"
+      count="327482"
+      culprit="fetchData(app/components/group/suggestedOwners)"
+      firstRelease={null}
+      firstSeen="2019-04-05T19:44:05.963Z"
+      hasSeen={false}
       id="1337"
-      orgId="orgId"
+      isBookmarked={false}
+      isPublic={false}
+      isSubscribed={false}
+      lastRelease={null}
+      lastSeen="2019-04-11T01:08:59Z"
+      level="warning"
+      logger={null}
+      metadata={
+        Object {
+          "function": "fetchData",
+          "type": "RequestError",
+        }
+      }
+      numComments={0}
+      participants={Array []}
+      permalink="https://foo.io/organizations/foo/issues/1234/"
+      platform="javascript"
+      pluginActions={Array []}
+      pluginContexts={Array []}
+      pluginIssues={Array []}
       project={
         Object {
           "id": "13",
           "slug": "test",
         }
       }
-      projectId="projectId"
+      seenBy={Array []}
+      shareId={null}
+      shortId="JAVASCRIPT-6QS"
       stats={
         Object {
           "24h": Array [
@@ -106,8 +164,14 @@ exports[`StreamGroup renders with anchors 1`] = `
           ],
         }
       }
+      status="unresolved"
+      statusDetails={Object {}}
+      subscriptionDetails={null}
       tags={Array []}
+      title="RequestError: GET /issues/ 404"
       type="error"
+      userCount={35097}
+      userReportCount={0}
     />
   </GroupSummary>
   <Box
@@ -118,12 +182,40 @@ exports[`StreamGroup renders with anchors 1`] = `
     <GroupChart
       data={
         Object {
+          "activity": Array [],
+          "annotations": Array [],
           "assignedTo": null,
+          "count": "327482",
+          "culprit": "fetchData(app/components/group/suggestedOwners)",
+          "firstRelease": null,
+          "firstSeen": "2019-04-05T19:44:05.963Z",
+          "hasSeen": false,
           "id": "1337",
+          "isBookmarked": false,
+          "isPublic": false,
+          "isSubscribed": false,
+          "lastRelease": null,
+          "lastSeen": "2019-04-11T01:08:59Z",
+          "level": "warning",
+          "logger": null,
+          "metadata": Object {
+            "function": "fetchData",
+            "type": "RequestError",
+          },
+          "numComments": 0,
+          "participants": Array [],
+          "permalink": "https://foo.io/organizations/foo/issues/1234/",
+          "platform": "javascript",
+          "pluginActions": Array [],
+          "pluginContexts": Array [],
+          "pluginIssues": Array [],
           "project": Object {
             "id": "13",
             "slug": "test",
           },
+          "seenBy": Array [],
+          "shareId": null,
+          "shortId": "JAVASCRIPT-6QS",
           "stats": Object {
             "24h": Array [
               Array [
@@ -146,8 +238,14 @@ exports[`StreamGroup renders with anchors 1`] = `
               ],
             ],
           },
+          "status": "unresolved",
+          "statusDetails": Object {},
+          "subscriptionDetails": null,
           "tags": Array [],
+          "title": "RequestError: GET /issues/ 404",
           "type": "error",
+          "userCount": 35097,
+          "userReportCount": 0,
         }
       }
       id="1337"
@@ -170,7 +268,9 @@ exports[`StreamGroup renders with anchors 1`] = `
       target="events"
       type="text"
     />
-    <StyledCount />
+    <StyledCount
+      value="327482"
+    />
   </Flex>
   <Flex
     justify="flex-end"
@@ -188,7 +288,9 @@ exports[`StreamGroup renders with anchors 1`] = `
       target="users"
       type="text"
     />
-    <StyledCount />
+    <StyledCount
+      value={35097}
+    />
   </Flex>
   <Box
     className="hidden-xs hidden-sm"
@@ -197,6 +299,7 @@ exports[`StreamGroup renders with anchors 1`] = `
   >
     <AssigneeSelector
       id="1337"
+      size={20}
     />
   </Box>
 </Group>

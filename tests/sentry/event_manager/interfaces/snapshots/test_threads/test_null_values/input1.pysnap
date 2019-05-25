@@ -1,0 +1,10 @@
+---
+created: '2019-03-14T17:12:36.743295Z'
+creator: sentry
+source: tests/sentry/event_manager/interfaces/test_threads.py
+---
+api_context:
+  values: []
+errors: null
+to_json:
+  values: []

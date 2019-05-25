@@ -2,7 +2,7 @@ from __future__ import absolute_import
 
 import sys
 
-from django.core.management.base import BaseCommand, make_option
+from django.core.management.base import BaseCommand
 from django.utils import timezone
 from click import echo
 
@@ -13,15 +13,14 @@ from sentry.utils.auth import find_users
 class Command(BaseCommand):
     help = 'Generate a link for a user to reset their password'
 
-    option_list = BaseCommand.option_list + (
-        make_option(
+    def add_arguments(self, parser):
+        parser.add_argument(
             '--noinput',
             dest='noinput',
             action='store_true',
             default=False,
             help='Dont ask for confirmation before merging accounts.'
-        ),
-    )
+        )
 
     def handle(self, username, **options):
         users = find_users(username, with_valid_password=False)

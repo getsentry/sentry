@@ -8,7 +8,7 @@ from django.core.files.base import ContentFile
 
 from sentry.models import ApiToken, FileBlob, File, FileBlobIndex, FileBlobOwner
 from sentry.models.file import ChunkFileState
-from sentry.models.debugfile import get_assemble_status, ProjectDebugFile
+from sentry.models.debugfile import get_assemble_status, set_assemble_status, ProjectDebugFile
 from sentry.testutils import APITestCase
 from sentry.tasks.assemble import assemble_dif, assemble_file
 
@@ -139,7 +139,9 @@ class DifAssembleEndpoint(APITestCase):
             cpu_name='x86_64',
             project=self.project,
             debug_id='df449af8-0dcd-4320-9943-ec192134d593',
+            code_id='DF449AF80DCD43209943EC192134D593',
         )
+        set_assemble_status(self.project, checksum, None)
 
         # Request now tells us that everything is alright
         response = self.client.post(
@@ -315,4 +317,5 @@ class DifAssembleEndpoint(APITestCase):
 
         assert response.status_code == 200, response.content
         assert response.data[total_checksum]['state'] == ChunkFileState.ERROR
-        assert response.data[total_checksum]['detail'].startswith('Invalid debug information file')
+        assert response.data[total_checksum]['detail'].startswith(
+            'Unsupported debug information file')

@@ -47,16 +47,20 @@ class SelectAsyncControl extends React.Component {
   }
 
   componentWillUnmount() {
-    if (!this.api) return;
+    if (!this.api) {
+      return;
+    }
     this.api.clear();
     this.api = null;
   }
 
   doQuery = debounce(cb => {
-    let {url, onQuery} = this.props;
-    let {query} = this.state;
+    const {url, onQuery} = this.props;
+    const {query} = this.state;
 
-    if (!this.api) return null;
+    if (!this.api) {
+      return null;
+    }
 
     return this.api
       .requestPromise(url, {
@@ -76,7 +80,7 @@ class SelectAsyncControl extends React.Component {
       });
     }).then(
       resp => {
-        let {onResults} = this.props;
+        const {onResults} = this.props;
 
         // Note `SelectControl` expects this data type:
         // {
@@ -100,7 +104,7 @@ class SelectAsyncControl extends React.Component {
   };
 
   render() {
-    let {value} = this.props;
+    const {value} = this.props;
 
     return (
       <SelectControl

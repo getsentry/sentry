@@ -7,14 +7,12 @@ import {addErrorMessage} from 'app/actionCreators/indicator';
 import {t, tct} from 'app/locale';
 import SelectControl from 'app/components/forms/selectControl';
 
-// TODO(billy): Update to use SelectAutocomplete when it is ported to use react-select
 class StreamTagFilter extends React.Component {
   static propTypes = {
     tag: PropTypes.object.isRequired,
-    orgId: PropTypes.string.isRequired,
-    projectId: PropTypes.string.isRequired,
     value: PropTypes.string,
     onSelect: PropTypes.func,
+    tagValueLoader: PropTypes.func.isRequired,
   };
 
   static tagValueToSelectFormat = ({value}) => {
@@ -50,32 +48,27 @@ class StreamTagFilter extends React.Component {
   }
 
   componentWillUnmount() {
-    if (!this.api) return;
+    if (!this.api) {
+      return;
+    }
     this.api.clear();
   }
 
-  getTagValuesAPIEndpoint = () => {
-    let {orgId, projectId, tag} = this.props;
-
-    return `/api/0/projects/${orgId}/${projectId}/tags/${tag.key}/values/`;
-  };
-
   handleLoadOptions = () => {
-    let {tag} = this.props;
-    let {textValue} = this.state;
-    if (tag.isInput || tag.predefined) return;
-    if (!this.api) return;
+    const {tag, tagValueLoader} = this.props;
+    const {textValue} = this.state;
+    if (tag.isInput || tag.predefined) {
+      return;
+    }
+    if (!this.api) {
+      return;
+    }
 
     this.setState({
       isLoading: true,
     });
 
-    this.api
-      .requestPromise(this.getTagValuesAPIEndpoint(), {
-        query: {
-          query: textValue,
-        },
-      })
+    tagValueLoader(tag.key, textValue)
       .then(resp => {
         this.setState({
           isLoading: false,
@@ -95,7 +88,7 @@ class StreamTagFilter extends React.Component {
   };
 
   handleChangeInput = e => {
-    let value = e.target.value;
+    const value = e.target.value;
     this.setState({
       textValue: value,
     });
@@ -107,7 +100,9 @@ class StreamTagFilter extends React.Component {
   }, 150);
 
   handleOpenMenu = () => {
-    if (this.props.tag.predefined) return;
+    if (this.props.tag.predefined) {
+      return;
+    }
 
     this.setState(
       {
@@ -118,7 +113,7 @@ class StreamTagFilter extends React.Component {
   };
 
   handleChangeSelect = valueObj => {
-    let value = valueObj ? valueObj.value : null;
+    const value = valueObj ? valueObj.value : null;
     this.handleChange(value);
   };
 
@@ -132,7 +127,7 @@ class StreamTagFilter extends React.Component {
   };
 
   handleChange = value => {
-    let {onSelect, tag} = this.props;
+    const {onSelect, tag} = this.props;
 
     this.setState(
       {
@@ -145,7 +140,7 @@ class StreamTagFilter extends React.Component {
   };
 
   render() {
-    let {tag} = this.props;
+    const {tag} = this.props;
     return (
       <div className="stream-tag-filter">
         <h6 className="nav-header">{tag.key}</h6>
@@ -161,6 +156,7 @@ class StreamTagFilter extends React.Component {
 
         {!tag.isInput && (
           <SelectControl
+            clearable
             filterOptions={(options, filter, currentValues) => options}
             placeholder="--"
             value={this.state.value}

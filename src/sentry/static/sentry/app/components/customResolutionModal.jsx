@@ -1,7 +1,7 @@
+import $ from 'jquery';
+import Modal, {Header, Body, Footer} from 'react-bootstrap/lib/Modal';
 import PropTypes from 'prop-types';
 import React from 'react';
-import jQuery from 'jquery';
-import Modal, {Header, Body, Footer} from 'react-bootstrap/lib/Modal';
 
 import {SelectAsyncField} from 'app/components/forms';
 import {t} from 'app/locale';
@@ -14,7 +14,7 @@ export default class CustomResolutionModal extends React.Component {
     onSelected: PropTypes.func.isRequired,
     onCanceled: PropTypes.func.isRequired,
     orgId: PropTypes.string.isRequired,
-    projectId: PropTypes.string.isRequired,
+    projectId: PropTypes.string,
     show: PropTypes.bool,
   };
 
@@ -26,7 +26,7 @@ export default class CustomResolutionModal extends React.Component {
   componentDidUpdate(prevProps, prevState) {
     if (!prevProps.show && this.props.show) {
       // XXX(cramer): this is incorrect but idgaf
-      jQuery('.modal').attr('tabindex', null);
+      $('.modal').attr('tabindex', null);
     }
   }
 
@@ -41,7 +41,10 @@ export default class CustomResolutionModal extends React.Component {
   };
 
   render() {
-    let {orgId, projectId} = this.props;
+    const {orgId, projectId} = this.props;
+    const url = projectId
+      ? `/projects/${orgId}/${projectId}/releases/`
+      : `/organizations/${orgId}/releases/`;
 
     return (
       <Modal show={this.props.show} animation={false} onHide={this.props.onCanceled}>
@@ -54,7 +57,7 @@ export default class CustomResolutionModal extends React.Component {
               name="version"
               onChange={this.onChange}
               placeholder={t('e.g. 1.0.4')}
-              url={`/projects/${orgId}/${projectId}/releases/`}
+              url={url}
               onResults={results => {
                 return results.map(release => ({
                   value: release.version,

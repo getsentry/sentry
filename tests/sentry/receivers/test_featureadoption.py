@@ -3,7 +3,7 @@ from __future__ import absolute_import
 import json
 from django.utils import timezone
 
-from sentry.models import FeatureAdoption, GroupTombstone, Rule
+from sentry.models import FeatureAdoption, GroupAssignee, GroupTombstone, Rule
 from sentry.plugins import IssueTrackingPlugin2, NotificationPlugin
 from sentry.signals import (
     alert_rule_created,
@@ -14,7 +14,7 @@ from sentry.signals import (
     plugin_enabled,
     user_feedback_received,
     issue_assigned,
-    issue_resolved_in_release,
+    issue_resolved,
     advanced_search,
     save_search_created,
     inbound_filter_toggled,
@@ -28,7 +28,7 @@ from sentry.testutils import TestCase
 class FeatureAdoptionTest(TestCase):
     def setUp(self):
         super(FeatureAdoptionTest, self).setUp()
-        self.now = timezone.now().replace(microsecond=0)
+        self.now = timezone.now()
         self.owner = self.create_user()
         self.organization = self.create_organization(owner=self.owner)
         self.team = self.create_team(organization=self.organization)
@@ -634,6 +634,12 @@ class FeatureAdoptionTest(TestCase):
         assert feature_complete
 
     def test_assignment(self):
+        GroupAssignee.objects.create(
+            group_id=self.group.id,
+            user_id=self.user.id,
+            project_id=self.project.id,
+        )
+
         issue_assigned.send(
             project=self.project,
             group=self.group,
@@ -645,7 +651,22 @@ class FeatureAdoptionTest(TestCase):
         assert feature_complete
 
     def test_resolved_in_release(self):
-        issue_resolved_in_release.send(
+        issue_resolved.send(
+            organization_id=self.organization.id,
+            project=self.project,
+            group=self.group,
+            user=self.user,
+            resolution_type='in_next_release',
+            sender=type(
+                self.project))
+        feature_complete = FeatureAdoption.objects.get_by_slug(
+            organization=self.organization, slug="resolved_in_release"
+        )
+        assert feature_complete
+
+    def test_resolved_manually(self):
+        issue_resolved.send(
+            organization_id=self.organization.id,
             project=self.project,
             group=self.group,
             user=self.user,
@@ -655,7 +676,7 @@ class FeatureAdoptionTest(TestCase):
         feature_complete = FeatureAdoption.objects.get_by_slug(
             organization=self.organization, slug="resolved_in_release"
         )
-        assert feature_complete
+        assert not feature_complete
 
     def test_advanced_search(self):
         advanced_search.send(project=self.project, sender=type(self.project))

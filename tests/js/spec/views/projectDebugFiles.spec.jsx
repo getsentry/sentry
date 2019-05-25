@@ -9,6 +9,10 @@ const ENDPOINT = '/projects/org/project/files/dsyms/';
 describe('ProjectDebugFiles', function() {
   beforeEach(function() {
     Client.clearMockResponses();
+    Client.addMockResponse({
+      url: '/projects/org/project/',
+      body: {},
+    });
   });
 
   it('renders empty', function() {
@@ -16,7 +20,7 @@ describe('ProjectDebugFiles', function() {
       url: ENDPOINT,
       body: [],
     });
-    let wrapper = shallow(
+    const wrapper = shallow(
       <ProjectDebugFiles params={{orgId: 'org', projectId: 'project'}} />,
       TestStubs.routerContext()
     );
@@ -34,7 +38,7 @@ describe('ProjectDebugFiles', function() {
       method: 'PUT',
     });
 
-    let wrapper = mount(
+    const wrapper = mount(
       <ProjectDebugFiles params={{orgId: 'org', projectId: 'project'}} />,
       TestStubs.routerContext()
     );

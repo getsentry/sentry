@@ -13,15 +13,26 @@ from mock import patch
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.group import StreamGroupSerializer
 from sentry.models import (
-    Environment, GroupResolution, GroupSnooze, GroupStatus,
+    Environment, GroupLink, GroupResolution, GroupSnooze, GroupStatus,
     GroupSubscription, UserOption, UserOptionValue
 )
 from sentry.testutils import TestCase
 
 
 class GroupSerializerTest(TestCase):
+    def test_project(self):
+        user = self.create_user()
+        group = self.create_group()
+
+        result = serialize(group, user)
+        assert result['project']
+        assert 'id' in result['project']
+        assert 'name' in result['project']
+        assert 'slug' in result['project']
+        assert 'platform' in result['project']
+
     def test_is_ignored_with_expired_snooze(self):
-        now = timezone.now().replace(microsecond=0)
+        now = timezone.now()
 
         user = self.create_user()
         group = self.create_group(
@@ -37,7 +48,7 @@ class GroupSerializerTest(TestCase):
         assert result['statusDetails'] == {}
 
     def test_is_ignored_with_valid_snooze(self):
-        now = timezone.now().replace(microsecond=0)
+        now = timezone.now()
 
         user = self.create_user()
         group = self.create_group(
@@ -58,7 +69,7 @@ class GroupSerializerTest(TestCase):
         assert result['statusDetails']['actor'] is None
 
     def test_is_ignored_with_valid_snooze_and_actor(self):
-        now = timezone.now().replace(microsecond=0)
+        now = timezone.now()
 
         user = self.create_user()
         group = self.create_group(
@@ -123,6 +134,25 @@ class GroupSerializerTest(TestCase):
         assert result['status'] == 'resolved'
         assert result['statusDetails']['actor']['id'] == six.text_type(user.id)
 
+    def test_resolved_in_commit(self):
+        repo = self.create_repo(project=self.project)
+        commit = self.create_commit(repo=repo)
+        user = self.create_user()
+        group = self.create_group(
+            status=GroupStatus.RESOLVED,
+        )
+        GroupLink.objects.create(
+            group_id=group.id,
+            project_id=group.project_id,
+            linked_id=commit.id,
+            linked_type=GroupLink.LinkedType.commit,
+            relationship=GroupLink.Relationship.resolves,
+        )
+
+        result = serialize(group, user)
+        assert result['status'] == 'resolved'
+        assert result['statusDetails']['inCommit']['id'] == commit.key
+
     @patch('sentry.models.Group.is_over_resolve_age')
     def test_auto_resolved(self, mock_is_over_resolve_age):
         mock_is_over_resolve_age.return_value = True
@@ -174,12 +204,12 @@ class GroupSerializerTest(TestCase):
 
         combinations = (
             # ((default, project), (subscribed, details))
-            ((None, None), (True, None)),
             ((UserOptionValue.all_conversations, None), (True, None)),
             ((UserOptionValue.all_conversations, UserOptionValue.all_conversations), (True, None)),
             ((UserOptionValue.all_conversations, UserOptionValue.participating_only), (False, None)),
             ((UserOptionValue.all_conversations, UserOptionValue.no_conversations),
              (False, {'disabled': True})),
+            ((None, None), (False, None)),
             ((UserOptionValue.participating_only, None), (False, None)),
             ((UserOptionValue.participating_only, UserOptionValue.all_conversations), (True, None)),
             ((UserOptionValue.participating_only, UserOptionValue.participating_only), (False, None)),
@@ -291,7 +321,7 @@ class StreamGroupSerializerTestCase(TestCase):
             )
             assert get_range.call_count == 1
             for args, kwargs in get_range.call_args_list:
-                assert kwargs['environment_id'] == environment.id
+                assert kwargs['environment_ids'] == [environment.id]
 
         def get_invalid_environment():
             raise Environment.DoesNotExist()

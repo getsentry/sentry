@@ -10,6 +10,7 @@ from sentry.coreapi import (
     APIUnauthorized,
     Auth,
     ClientApiHelper,
+    ClientAuthHelper,
     decode_data,
     safely_load_json_string
 )
@@ -18,38 +19,38 @@ from sentry.testutils import TestCase
 
 
 class BaseAPITest(TestCase):
-    helper_cls = ClientApiHelper
+    auth_helper_cls = ClientAuthHelper
 
     def setUp(self):
         self.user = self.create_user('coreapi@example.com')
         self.team = self.create_team(name='Foo')
         self.project = self.create_project(teams=[self.team])
         self.pk = self.project.key_set.get_or_create()[0]
-        self.helper = self.helper_cls(agent='Awesome Browser', ip_address='198.51.100.0')
+        self.helper = ClientApiHelper(agent='Awesome Browser', ip_address='198.51.100.0')
 
 
 class ProjectIdFromAuthTest(BaseAPITest):
     def test_invalid_if_missing_key(self):
         with pytest.raises(APIUnauthorized):
-            self.helper.project_id_from_auth(Auth({}))
+            self.helper.project_id_from_auth(Auth())
 
     def test_valid_with_key(self):
-        auth = Auth({'sentry_key': self.pk.public_key})
+        auth = Auth(public_key=self.pk.public_key)
         result = self.helper.project_id_from_auth(auth)
         assert result == self.project.id
 
     def test_invalid_key(self):
-        auth = Auth({'sentry_key': 'z'})
+        auth = Auth(public_key='z')
         with pytest.raises(APIUnauthorized):
             self.helper.project_id_from_auth(auth)
 
     def test_invalid_secret(self):
-        auth = Auth({'sentry_key': self.pk.public_key, 'sentry_secret': 'z'})
+        auth = Auth(public_key=self.pk.public_key, secret_key='z')
         with pytest.raises(APIUnauthorized):
             self.helper.project_id_from_auth(auth)
 
     def test_nonascii_key(self):
-        auth = Auth({'sentry_key': '\xc3\xbc'})
+        auth = Auth(public_key='\xc3\xbc')
         with pytest.raises(APIUnauthorized):
             self.helper.project_id_from_auth(auth)
 

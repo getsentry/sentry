@@ -3,7 +3,7 @@ from __future__ import absolute_import
 from copy import deepcopy
 
 from sentry.utils.meta import Meta
-from sentry.testutils import TestCase
+from unittest import TestCase
 
 
 input_meta = {'': {
@@ -29,7 +29,8 @@ class MetaTests(TestCase):
     def test_get_new(self):
         assert Meta().raw() == {}
         assert Meta().get() == {}
-        assert Meta().get_errors() == []
+        assert list(Meta().iter_errors()) == []
+        assert Meta().get_event_errors() == []
 
     def test_create_new(self):
         meta = Meta()
@@ -52,7 +53,8 @@ class MetaTests(TestCase):
     def test_get_missing(self):
         assert Meta({}).raw() == {}
         assert Meta({}).get() == {}
-        assert Meta({}).get_errors() == []
+        assert list(Meta({}).iter_errors()) == []
+        assert Meta({}).get_event_errors() == []
 
     def test_create_missing(self):
         data = {}
@@ -78,7 +80,8 @@ class MetaTests(TestCase):
     def test_get_none(self):
         assert Meta({'': None}).raw() == {'': None}
         assert Meta({'': None}).get() == {}
-        assert Meta({'': None}).get_errors() == []
+        assert list(Meta({'': None}).iter_errors()) == []
+        assert Meta({'': None}).get_event_errors() == []
 
     def test_create_none(self):
         data = {'': None}
@@ -104,7 +107,8 @@ class MetaTests(TestCase):
     def test_get_empty(self):
         assert Meta({'': {}}).raw() == {'': {}}
         assert Meta({'': {}}).get() == {}
-        assert Meta({'': {}}).get_errors() == []
+        assert list(Meta({'': {}}).iter_errors()) == []
+        assert Meta({'': {}}).get_event_errors() == []
 
     def test_create_empty(self):
         data = {'': {}}
@@ -130,7 +134,10 @@ class MetaTests(TestCase):
     def test_get_root(self):
         assert Meta(input_meta).raw() == input_meta
         assert Meta(input_meta).get() == input_meta['']
-        assert Meta(input_meta).get_errors() == ['existing']
+        assert list(Meta(input_meta).iter_errors()) == [['existing', {}]]
+        assert Meta(input_meta).get_event_errors() == [
+            {'type': 'existing', 'value': 'original'},
+        ]
 
     def test_create_root(self):
         changed = deepcopy(input_meta)
@@ -159,7 +166,8 @@ class MetaTests(TestCase):
         data = {}
         assert Meta(data).enter('field').raw() == {}
         assert Meta(data).enter('field').get() == {}
-        assert Meta(data).enter('field').get_errors() == []
+        assert list(Meta(data).enter('field').iter_errors()) == []
+        assert Meta(data).enter('field').get_event_errors() == []
 
     def test_create_nested_missing(self):
         data = {}
@@ -186,7 +194,10 @@ class MetaTests(TestCase):
         data = {'field': input_meta}
         assert Meta(data).enter('field').raw() == input_meta
         assert Meta(data).enter('field').get() == input_meta['']
-        assert Meta(data).enter('field').get_errors() == ['existing']
+        assert list(Meta(data).enter('field').iter_errors()) == [['existing', {}]]
+        assert Meta(data).enter('field').get_event_errors() == [
+            {'type': 'existing', 'name': 'field', 'value': 'original'}
+        ]
 
     def test_create_nested_existing(self):
         data = {'field': input_meta}
@@ -217,7 +228,7 @@ class MetaTests(TestCase):
         data = {'0': input_meta}
         assert Meta(data).enter(0).raw() == input_meta
         assert Meta(data).enter(0).get() == input_meta['']
-        assert Meta(data).enter(0).get_errors() == ['existing']
+        assert list(Meta(data).enter(0).iter_errors()) == [['existing', {}]]
 
     def test_create_nested_index(self):
         data = {}
@@ -228,4 +239,17 @@ class MetaTests(TestCase):
     def test_stringify_error(self):
         meta = Meta()
         meta.add_error(ValueError('invalid stuff'), 'changed')
-        assert meta.get_errors() == ['invalid stuff']
+        assert list(meta.iter_errors()) == [['invalid stuff', {}]]
+
+    def test_error_with_data(self):
+        meta = Meta()
+        meta.add_error('invalid url', data={'url': 'invalid'})
+        assert list(meta.iter_errors()) == [['invalid url', {'url': 'invalid'}]]
+
+    def test_get_multiple_event_errors(self):
+        # XXX: Value is only added to the first error, which is usually the
+        # normalization error.
+        assert Meta(merged_meta).get_event_errors() == [
+            {'type': 'existing', 'value': 'changed'},
+            {'type': 'additional'}
+        ]

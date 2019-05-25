@@ -3,6 +3,7 @@ import React from 'react';
 
 import BooleanField from './booleanField';
 import EmailField from './emailField';
+import HiddenField from './hiddenField';
 import NumberField from './numberField';
 import RangeField from './rangeField';
 import SelectField from './selectField';
@@ -22,6 +23,7 @@ export default class FieldFromConfig extends React.Component {
         'choice',
         'choice_mapper',
         'email',
+        'hidden',
         'multichoice',
         'number',
         'radio',
@@ -59,9 +61,9 @@ export default class FieldFromConfig extends React.Component {
   };
 
   render() {
-    let {field, ...otherProps} = this.props;
+    const {field, ...otherProps} = this.props;
 
-    let props = {
+    const props = {
       ...otherProps,
       ...field,
     };
@@ -76,6 +78,8 @@ export default class FieldFromConfig extends React.Component {
         return <BooleanField {...props} />;
       case 'email':
         return <EmailField {...props} />;
+      case 'hidden':
+        return <HiddenField {...props} />;
       case 'string':
       case 'text':
       case 'url':

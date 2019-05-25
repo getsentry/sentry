@@ -1,22 +1,27 @@
+import PropTypes from 'prop-types';
 import React from 'react';
+
 import BaseChart from './baseChart';
 import LineSeries from './series/lineSeries';
 
 export default class LineChart extends React.Component {
   static propTypes = {
     ...BaseChart.propTypes,
+    seriesOptions: PropTypes.object,
   };
 
   render() {
-    const {series, ...props} = this.props;
+    const {series, seriesOptions, ...props} = this.props;
 
     return (
       <BaseChart
         {...props}
-        series={series.map(s => {
+        series={series.map(({seriesName, data, dataArray, ...options}) => {
           return LineSeries({
-            name: s.seriesName,
-            data: s.data.map(({value, name}) => [name, value]),
+            ...seriesOptions,
+            ...options,
+            name: seriesName,
+            data: dataArray || data.map(({value, name}) => [name, value]),
           });
         })}
       />

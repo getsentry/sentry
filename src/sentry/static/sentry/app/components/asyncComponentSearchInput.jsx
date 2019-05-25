@@ -40,7 +40,7 @@ class AsyncComponentSearchInput extends React.Component {
   }
 
   query = debounce(searchQuery => {
-    let {router} = this.props;
+    const {router} = this.props;
     this.setState({busy: true});
     return this.props.api.request(`${this.props.url}`, {
       method: 'GET',
@@ -60,7 +60,7 @@ class AsyncComponentSearchInput extends React.Component {
   }, this.props.debounceWait);
 
   handleChange = evt => {
-    let searchQuery = evt.target.value;
+    const searchQuery = evt.target.value;
     this.query(searchQuery);
     this.setState({query: searchQuery});
   };
@@ -69,12 +69,12 @@ class AsyncComponentSearchInput extends React.Component {
    * This is called when "Enter" (more specifically a form "submit" event) is pressed.
    */
   handleSearch = evt => {
-    let {updateRoute, onSearchSubmit} = this.props;
+    const {updateRoute, onSearchSubmit} = this.props;
     evt.preventDefault();
 
     // Update the URL to reflect search term.
     if (updateRoute) {
-      let {router, location} = this.props;
+      const {router, location} = this.props;
       router.push({
         pathname: location.pathname,
         query: {
@@ -83,12 +83,14 @@ class AsyncComponentSearchInput extends React.Component {
       });
     }
 
-    if (typeof onSearchSubmit !== 'function') return;
+    if (typeof onSearchSubmit !== 'function') {
+      return;
+    }
     onSearchSubmit(this.state.query, evt);
   };
 
   render() {
-    let {placeholder, className} = this.props;
+    const {placeholder, className} = this.props;
     return (
       <Form onSubmit={this.handleSearch}>
         <Input

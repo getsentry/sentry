@@ -13,7 +13,7 @@ from sentry.models import UserOption
 # - reports:disabled-organizations
 # - mail:email
 class UserNotificationsSerializer(Serializer):
-    def get_attrs(self, item_list, user, *args, **kwargs):
+    def get_attrs(self, item_list, user, **kwargs):
         notification_option_key = kwargs['notification_option_key']
         filter_args = {}
 
@@ -35,7 +35,7 @@ class UserNotificationsSerializer(Serializer):
 
         return results
 
-    def serialize(self, obj, attrs, user, *args, **kwargs):
+    def serialize(self, obj, attrs, user, **kwargs):
         notification_option_key = kwargs['notification_option_key']
         data = {}
 

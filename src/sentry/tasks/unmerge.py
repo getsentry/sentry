@@ -75,11 +75,19 @@ def merge_mappings(values):
     return result
 
 
+def _generate_culprit(event):
+    # XXX(mitsuhiko): workaround: some old events do not have this data yet.
+    # This should be save delete by end of 2019 even considering slow on-prem
+    # releases.  Platform was added back to data in december 2018.
+    data = event.data
+    if data.get('platform') is None:
+        data = dict(data.items())
+        data['platform'] = event.platform
+    return generate_culprit(data)
+
+
 initial_fields = {
-    'culprit': lambda event: generate_culprit(
-        event.data,
-        event.platform,
-    ),
+    'culprit': lambda event: _generate_culprit(event),
     'data': lambda event: {
         'last_received': event.data.get('received') or float(event.datetime.strftime('%s')),
         'type': event.data['type'],
@@ -300,9 +308,9 @@ def repair_group_environment_data(caches, project, events):
     for (group_id, env_name), first_release in collect_group_environment_data(events).items():
         fields = {}
         if first_release:
-            fields['first_release_id'] = caches['Release'](
+            fields['first_release'] = caches['Release'](
                 project.organization_id, first_release
-            ).id
+            )
 
         GroupEnvironment.objects.create_or_update(
             environment_id=caches['Environment'](project.organization_id, env_name).id,
@@ -319,7 +327,7 @@ def collect_tag_data(events):
         environment = get_environment_name(event)
         tags = results.setdefault((event.group_id, environment), {})
 
-        for key, value in event.get_tags():
+        for key, value in event.tags:
             values = tags.setdefault(key, {})
 
             if value in values:

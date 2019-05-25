@@ -1,5 +1,7 @@
 import PropTypes from 'prop-types';
 
+import {SEARCH_TYPES} from 'app/constants';
+
 export const Metadata = PropTypes.shape({
   value: PropTypes.string,
   message: PropTypes.string,
@@ -16,7 +18,6 @@ const Avatar = PropTypes.shape({
 
 /**
  * A User is someone that has registered on Sentry
- *
  */
 export const User = PropTypes.shape({
   avatar: Avatar,
@@ -71,12 +72,7 @@ export const Deploy = PropTypes.shape({
   version: PropTypes.string,
 });
 
-export const DiscoverSavedQuery = PropTypes.shape({
-  id: PropTypes.string.isRequired,
-  dateCreated: PropTypes.string.isRequired,
-  dateUpdated: PropTypes.string.isRequired,
-  name: PropTypes.string.isRequired,
-  createdBy: PropTypes.string,
+const DiscoverQueryShape = {
   projects: PropTypes.arrayOf(PropTypes.number),
   fields: PropTypes.arrayOf(PropTypes.string),
   aggregations: PropTypes.arrayOf(PropTypes.array),
@@ -85,6 +81,47 @@ export const DiscoverSavedQuery = PropTypes.shape({
   range: PropTypes.string,
   start: PropTypes.string,
   end: PropTypes.string,
+};
+
+export const DiscoverQuery = PropTypes.shape(DiscoverQueryShape);
+
+export const DiscoverSavedQuery = PropTypes.shape({
+  id: PropTypes.string.isRequired,
+  dateCreated: PropTypes.string.isRequired,
+  dateUpdated: PropTypes.string.isRequired,
+  name: PropTypes.string.isRequired,
+  createdBy: PropTypes.string,
+  ...DiscoverQueryShape,
+});
+
+const DiscoverResultsShape = {
+  data: PropTypes.arrayOf(PropTypes.object),
+  meta: PropTypes.arrayOf(
+    PropTypes.shape({
+      type: PropTypes.string,
+      name: PropTypes.string,
+    })
+  ),
+  timing: PropTypes.shape({
+    duration_ms: PropTypes.number,
+    marks_ms: PropTypes.object,
+    timestamp: PropTypes.number,
+  }),
+};
+
+export const DiscoverResults = PropTypes.arrayOf(PropTypes.shape(DiscoverResultsShape));
+
+export const EventView = PropTypes.shape({
+  id: PropTypes.string.isRequired,
+  name: PropTypes.string.isRequired,
+  data: PropTypes.shape({
+    query: PropTypes.string.isRequired,
+    fields: PropTypes.arrayOf(PropTypes.string).isRequired,
+    groupBy: PropTypes.arrayOf(PropTypes.string).isRequired,
+    aggregations: PropTypes.arrayOf(PropTypes.array).isRequired,
+    sort: PropTypes.string.isRequired,
+  }).isRequired,
+  tags: PropTypes.arrayOf(PropTypes.string).isRequired,
 });
 
 /**
@@ -174,6 +211,22 @@ export const Event = PropTypes.shape({
   user: PropTypes.object,
 });
 
+export const EventAttachment = PropTypes.shape({
+  id: PropTypes.string.isRequired,
+  name: PropTypes.string.isRequired,
+  headers: PropTypes.object,
+  size: PropTypes.number.isRequired,
+  sha1: PropTypes.string.isRequired,
+  dateCreated: PropTypes.oneOfType([PropTypes.string, PropTypes.instanceOf(Date)]),
+  type: PropTypes.string.isRequired,
+});
+
+export const EventError = PropTypes.shape({
+  type: PropTypes.string.isRequired,
+  message: PropTypes.string.isRequired,
+  data: PropTypes.object,
+});
+
 export const Tag = PropTypes.shape({
   id: PropTypes.string.isRequired,
   key: PropTypes.string.isRequired,
@@ -190,6 +243,12 @@ export const Actor = PropTypes.shape({
 export const Team = PropTypes.shape({
   id: PropTypes.string.isRequired,
   slug: PropTypes.string.isRequired,
+});
+
+export const Monitor = PropTypes.shape({
+  id: PropTypes.string.isRequired,
+  name: PropTypes.string.isRequired,
+  dateCreated: PropTypes.string,
 });
 
 export const Project = PropTypes.shape({
@@ -344,6 +403,72 @@ export const SentryApplication = PropTypes.shape({
   status: PropTypes.string,
 });
 
+export const SavedSearch = PropTypes.shape({
+  id: PropTypes.string,
+  dateCreated: PropTypes.string,
+  isDefault: PropTypes.bool,
+  isGlobal: PropTypes.bool,
+  isOrgCustom: PropTypes.bool,
+  isPinned: PropTypes.bool,
+  isPrivate: PropTypes.bool,
+  isUserDefault: PropTypes.bool,
+  name: PropTypes.string,
+  projectId: PropTypes.string,
+  query: PropTypes.string,
+  type: PropTypes.oneOf([SEARCH_TYPES.ISSUE, SEARCH_TYPES.EVENTS]),
+});
+
+export const Incident = PropTypes.shape({
+  id: PropTypes.string.isRequired,
+  identifier: PropTypes.string.isRequired,
+  title: PropTypes.string.isRequired,
+  status: PropTypes.number.isRequired,
+  query: PropTypes.string,
+  projects: PropTypes.array.isRequired,
+  totalEvents: PropTypes.number.isRequired,
+  uniqueUsers: PropTypes.number.isRequired,
+  isSubscribed: PropTypes.bool.isRequired,
+});
+
+export const Activity = PropTypes.shape({
+  id: PropTypes.string.isRequired,
+  type: PropTypes.string.isRequired,
+  dateCreated: PropTypes.string.isRequired,
+  user: User,
+  data: PropTypes.shape({
+    text: PropTypes.string,
+  }),
+});
+
+export const IncidentActivity = PropTypes.shape({
+  id: PropTypes.string.isRequired,
+  type: PropTypes.number.isRequired,
+  dateCreated: PropTypes.oneOfType([PropTypes.instanceOf(Date), PropTypes.string])
+    .isRequired,
+  user: User,
+  comment: PropTypes.string,
+});
+
+export const GlobalSelection = PropTypes.shape({
+  projects: PropTypes.arrayOf(PropTypes.number),
+  environments: PropTypes.arrayOf(PropTypes.string),
+  datetime: PropTypes.shape({
+    period: PropTypes.string,
+    start: PropTypes.oneOfType([PropTypes.string, PropTypes.instanceOf(Date)]),
+    end: PropTypes.oneOfType([PropTypes.string, PropTypes.instanceOf(Date)]),
+    utc: PropTypes.bool,
+  }),
+});
+
+export const Widget = PropTypes.shape({
+  queries: PropTypes.shape({
+    discover: PropTypes.arrayOf(DiscoverQuery),
+  }),
+  title: PropTypes.node,
+  fieldLabelMap: PropTypes.object,
+  yAxisMapping: PropTypes.array,
+});
+
 export const EChartsData = PropTypes.arrayOf(
   PropTypes.oneOfType([
     // `PercentageBarChart` has a fixed dataset of 0, 25, 50, 100
@@ -361,7 +486,7 @@ export const EChartsData = PropTypes.arrayOf(
 );
 
 export const EChartsSeriesUnit = PropTypes.shape({
-  type: PropTypes.oneOf(['line', 'bar', 'pie']),
+  type: PropTypes.oneOf(['line', 'bar', 'pie', 'map']),
   showSymbol: PropTypes.bool,
   name: PropTypes.string,
   data: EChartsData,
@@ -837,22 +962,31 @@ export const SeriesUnit = PropTypes.shape({
 
 export const Series = PropTypes.arrayOf(SeriesUnit);
 
-let SentryTypes = {
+const SentryTypes = {
   AnyModel: PropTypes.shape({
     id: PropTypes.string.isRequired,
   }),
   Actor,
+  Activity,
   AuthProvider,
   Config,
   Deploy,
+  DiscoverQuery,
   DiscoverSavedQuery,
+  DiscoverResults,
   Environment,
   Event,
+  EventAttachment,
+  EventView,
   Organization: PropTypes.shape({
     id: PropTypes.string.isRequired,
   }),
+  GlobalSelection,
   Group,
+  Incident,
+  IncidentActivity,
   Tag,
+  Monitor,
   PageLinks,
   Project,
   Series,
@@ -870,7 +1004,9 @@ let SentryTypes = {
   Release,
   Repository,
   User,
+  SavedSearch,
   SentryApplication,
+  Widget,
 
   // echarts prop types
   EChartsSeries,

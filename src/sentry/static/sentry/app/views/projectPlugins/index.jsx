@@ -2,6 +2,7 @@ import React from 'react';
 
 import {fetchPlugins, enablePlugin, disablePlugin} from 'app/actionCreators/plugins';
 import {t} from 'app/locale';
+import PermissionAlert from 'app/views/settings/project/permissionAlert';
 import ProjectPlugins from 'app/views/projectPlugins/projectPlugins';
 import SentryTypes from 'app/sentryTypes';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
@@ -16,22 +17,23 @@ class ProjectPluginsContainer extends React.Component {
     this.fetchData();
   }
 
-  fetchData() {
+  fetchData = () => {
     fetchPlugins(this.props.params);
-  }
+  };
 
   handleChange = (pluginId, shouldEnable) => {
-    let {projectId, orgId} = this.props.params;
-    let actionCreator = shouldEnable ? enablePlugin : disablePlugin;
+    const {projectId, orgId} = this.props.params;
+    const actionCreator = shouldEnable ? enablePlugin : disablePlugin;
     actionCreator({projectId, orgId, pluginId});
   };
 
   render() {
-    let {loading, error, plugins} = this.props.plugins || {};
+    const {loading, error, plugins} = this.props.plugins || {};
 
     return (
       <React.Fragment>
         <SettingsPageHeader title={t('Legacy Integrations')} />
+        <PermissionAlert />
 
         <ProjectPlugins
           {...this.props}

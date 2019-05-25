@@ -5,7 +5,7 @@ __all__ = ('Sdk', )
 from distutils.version import LooseVersion
 from django.conf import settings
 
-from sentry.interfaces.base import Interface, InterfaceValidationError, prune_empty_keys
+from sentry.interfaces.base import Interface, InterfaceValidationError, prune_empty_keys, RUST_RENORMALIZED_DEFAULT
 from sentry.utils.safe import trim
 
 
@@ -50,7 +50,18 @@ class Sdk(Interface):
     """
 
     @classmethod
-    def to_python(cls, data):
+    def to_python(cls, data, rust_renormalized=RUST_RENORMALIZED_DEFAULT):
+        if rust_renormalized:
+            for key in (
+                'name',
+                'version',
+                'integrations',
+                'packages',
+            ):
+                data.setdefault(key, None)
+
+            return cls(**data)
+
         name = data.get('name')
         version = data.get('version')
 
@@ -79,7 +90,7 @@ class Sdk(Interface):
             'packages': self.packages or None
         })
 
-    def get_api_context(self, is_public=False):
+    def get_api_context(self, is_public=False, platform=None):
         newest_version = get_with_prefix(settings.SDK_VERSIONS, self.name)
         newest_name = get_with_prefix(settings.DEPRECATED_SDKS, self.name, self.name)
 
@@ -106,7 +117,7 @@ class Sdk(Interface):
             },
         }
 
-    def get_api_meta(self, meta, is_public=False):
+    def get_api_meta(self, meta, is_public=False, platform=None):
         return {
             '': meta.get(''),
             'name': meta.get('name'),

@@ -1,0 +1,108 @@
+{
+  "culprit": "log::__private_api_log",
+  "event_id": "3db43a42ec244bc99f88602d36eeda82",
+  "environment": "debug",
+  "platform": "native",
+  "logger": "log_demo",
+  "fingerprint": [
+    "{{ default }}"
+  ],
+  "exception": {
+    "values": [
+      {
+        "stacktrace": {
+          "frames": [
+            {
+              "function": "_main",
+              "instruction_addr": "0x10918cd81",
+              "in_app": true
+            },
+            {
+              "function": "std::rt::lang_start",
+              "package": "std",
+              "in_app": false,
+              "instruction_addr": "0x10918d0c1"
+            },
+            {
+              "function": "std::rt::lang_start_internal",
+              "package": "std",
+              "in_app": false,
+              "instruction_addr": "0x10959147a"
+            },
+            {
+              "function": "___rust_maybe_catch_panic",
+              "in_app": true,
+              "instruction_addr": "0x10959ebfe"
+            },
+            {
+              "function": "std::panicking::try::do_call",
+              "package": "std",
+              "in_app": false,
+              "instruction_addr": "0x109590a27"
+            },
+            {
+              "function": "std::rt::lang_start::{{closure}}",
+              "package": "std",
+              "in_app": false,
+              "instruction_addr": "0x10918d0e1"
+            },
+            {
+              "function": "log_demo::main",
+              "package": "log_demo",
+              "in_app": true,
+              "instruction_addr": "0x10918ccc6"
+            },
+            {
+              "function": "log::__private_api_log",
+              "package": "log",
+              "in_app": true,
+              "instruction_addr": "0x10957e164"
+            },
+            {
+              "function": "<sentry::integrations::log::Logger as log::Log>::log",
+              "in_app": false,
+              "instruction_addr": "0x1091ab42c"
+            },
+            {
+              "function": "sentry::hub::Hub::with_active",
+              "package": "sentry",
+              "in_app": false,
+              "instruction_addr": "0x109225cf3"
+            },
+            {
+              "function": "sentry::hub::Hub::with",
+              "package": "sentry",
+              "in_app": false,
+              "instruction_addr": "0x10922489b"
+            },
+            {
+              "function": "sentry::hub::Hub::with_active::{{closure}}",
+              "package": "sentry",
+              "in_app": false,
+              "instruction_addr": "0x109225f53"
+            },
+            {
+              "function": "<unknown>",
+              "package": "sentry",
+              "in_app": false,
+              "instruction_addr": "0x109225c53"
+            },
+            {
+              "function": "<redacted>",
+              "package": "something",
+              "in_app": false,
+              "instruction_addr": "0x00123"
+            }
+          ]
+        },
+        "type": "log_demo",
+        "value": "Holy shit everything is on fire!",
+        "mechanism": {
+          "type": "minidump",
+          "synthetic": true
+        }
+      }
+    ]
+  },
+  "release": "sentry@0.13.0"
+}

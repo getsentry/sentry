@@ -116,7 +116,7 @@ describe('AdminSettings', function() {
     });
 
     it('renders', function() {
-      let wrapper = shallow(<AdminSettings params={{}} />, {
+      const wrapper = shallow(<AdminSettings params={{}} />, {
         context: {
           router: TestStubs.router(),
         },

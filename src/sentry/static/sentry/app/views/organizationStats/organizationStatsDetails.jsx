@@ -10,10 +10,13 @@ import Pagination from 'app/components/pagination';
 import ProjectTable from 'app/views/organizationStats/projectTable';
 import StackedBarChart from 'app/components/stackedBarChart';
 import TextBlock from 'app/views/settings/components/text/textBlock';
+import PageHeading from 'app/components/pageHeading';
 import {
   ProjectTableLayout,
   ProjectTableDataElement,
 } from 'app/views/organizationStats/projectTableLayout';
+import ProjectNav from 'app/views/organizationProjectsDashboard/projectNav';
+import {PageContent} from 'app/styles/organization';
 
 class OrganizationStats extends React.Component {
   static propTypes = {
@@ -30,27 +33,33 @@ class OrganizationStats extends React.Component {
   };
 
   renderTooltip(point, pointIdx, chart) {
-    let timeLabel = chart.getTimeLabel(point);
-    let [accepted, rejected, blacklisted] = point.y;
-
-    let value = `${intcomma(accepted)} accepted`;
-    if (rejected) {
-      value += `<br>${intcomma(rejected)} rate limited`;
-    }
-    if (blacklisted) {
-      value += `<br>${intcomma(blacklisted)} filtered`;
-    }
+    const timeLabel = chart.getTimeLabel(point);
+    const [accepted, rejected, blacklisted] = point.y;
 
     return (
-      '<div style="width:150px">' +
-      `<div class="time-label">${timeLabel}</div>` +
-      `<div class="value-label">${value}</div>` +
-      '</div>'
+      <div style={{width: '150px'}}>
+        <div className="time-label">{timeLabel}</div>
+        <div className="value-label">
+          {intcomma(accepted)} accepted
+          {rejected > 0 && (
+            <React.Fragment>
+              <br />
+              {intcomma(rejected)} rate limited
+            </React.Fragment>
+          )}
+          {blacklisted > 0 && (
+            <React.Fragment>
+              <br />
+              {intcomma(blacklisted)} filtered
+            </React.Fragment>
+          )}
+        </div>
+      </div>
     );
   }
 
-  render() {
-    let {
+  renderContent() {
+    const {
       statsLoading,
       orgTotal,
       statsError,
@@ -65,7 +74,7 @@ class OrganizationStats extends React.Component {
 
     return (
       <div>
-        <h4>{t('Organization Stats')}</h4>
+        <PageHeading withMargins>{t('Organization Stats')}</PageHeading>
         <div className="row">
           <div className="col-md-9">
             <TextBlock>
@@ -134,6 +143,20 @@ class OrganizationStats extends React.Component {
         </Panel>
         {pageLinks && <Pagination pageLinks={pageLinks} {...this.props} />}
       </div>
+    );
+  }
+
+  render() {
+    const hasSentry10 = new Set(this.props.organization.features).has('sentry10');
+    return (
+      <React.Fragment>
+        {!hasSentry10 && (
+          <div style={{width: '100%'}}>
+            <ProjectNav />
+          </div>
+        )}
+        <PageContent>{this.renderContent()}</PageContent>
+      </React.Fragment>
     );
   }
 }

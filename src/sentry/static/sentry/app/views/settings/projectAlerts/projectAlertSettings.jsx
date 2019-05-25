@@ -3,18 +3,15 @@ import React from 'react';
 import {PanelAlert} from 'app/components/panels';
 import {fields} from 'app/data/forms/projectAlerts';
 import {t} from 'app/locale';
+import Access from 'app/components/acl/access';
 import AlertLink from 'app/components/alertLink';
 import AsyncView from 'app/views/asyncView';
-import Button from 'app/components/button';
 import Form from 'app/views/settings/components/forms/form';
 import JsonForm from 'app/views/settings/components/forms/jsonForm';
-import ListLink from 'app/components/listLink';
-import NavTabs from 'app/components/navTabs';
+import PermissionAlert from 'app/views/settings/project/permissionAlert';
 import PluginList from 'app/components/pluginList';
 import SentryTypes from 'app/sentryTypes';
-import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
-import Tooltip from 'app/components/tooltip';
-import recreateRoute from 'app/utils/recreateRoute';
+import ProjectAlertHeader from './projectAlertHeader';
 
 export default class ProjectAlertSettings extends AsyncView {
   static propTypes = {
@@ -27,7 +24,7 @@ export default class ProjectAlertSettings extends AsyncView {
   };
 
   getEndpoints() {
-    let {orgId, projectId} = this.props.params;
+    const {orgId, projectId} = this.props.params;
     return [
       ['project', `/projects/${orgId}/${projectId}/`],
       ['pluginList', `/projects/${orgId}/${projectId}/plugins/`],
@@ -39,7 +36,9 @@ export default class ProjectAlertSettings extends AsyncView {
   handleEnablePlugin = plugin => {
     this.setState({
       pluginList: this.state.pluginList.map(p => {
-        if (p.id !== plugin.id) return p;
+        if (p.id !== plugin.id) {
+          return p;
+        }
         return {
           ...plugin,
           enabled: true,
@@ -51,7 +50,9 @@ export default class ProjectAlertSettings extends AsyncView {
   handleDisablePlugin = plugin => {
     this.setState({
       pluginList: this.state.pluginList.map(p => {
-        if (p.id !== plugin.id) return p;
+        if (p.id !== plugin.id) {
+          return p;
+        }
         return {
           ...plugin,
           enabled: false,
@@ -65,85 +66,72 @@ export default class ProjectAlertSettings extends AsyncView {
   }
 
   renderBody() {
-    let {orgId, projectId} = this.props.params;
-    let {organization} = this.props;
-    let canEditRule = organization.access.includes('project:write');
+    const {
+      organization,
+      params: {orgId, projectId},
+    } = this.props;
 
     return (
-      <React.Fragment>
-        <SettingsPageHeader
-          title={t('Alerts')}
-          action={
-            <Tooltip
-              disabled={canEditRule}
-              title={t('You do not have permission to edit alert rules.')}
+      <Access access={['project:write']}>
+        {({hasAccess}) => (
+          <React.Fragment>
+            <ProjectAlertHeader projectId={projectId} />
+            <PermissionAlert />
+            <AlertLink to="/settings/account/notifications/" icon="icon-mail">
+              {t(
+                'Looking to fine-tune your personal notification preferences? Visit your Account Settings'
+              )}
+            </AlertLink>
+
+            <Form
+              saveOnBlur
+              allowUndo
+              initialData={{
+                subjectTemplate: this.state.project.subjectTemplate,
+                digestsMinDelay: this.state.project.digestsMinDelay,
+                digestsMaxDelay: this.state.project.digestsMaxDelay,
+              }}
+              apiMethod="PUT"
+              apiEndpoint={`/projects/${orgId}/${projectId}/`}
             >
-              <Button
-                to={recreateRoute('rules/new/', this.props)}
-                disabled={!canEditRule}
-                priority="primary"
-                size="small"
-                icon="icon-circle-add"
-              >
-                {t('New Alert Rule')}
-              </Button>
-            </Tooltip>
-          }
-          tabs={
-            <NavTabs underlined={true}>
-              <ListLink to={recreateRoute('', this.props)} index={true}>
-                {t('Settings')}
-              </ListLink>
-              <ListLink to={recreateRoute('rules/', this.props)}>{t('Rules')}</ListLink>
-            </NavTabs>
-          }
-        />
-        <AlertLink to={'/settings/account/notifications/'} icon="icon-mail">
-          {t(
-            'Looking to fine-tune your personal notification preferences? Visit your Account Settings'
-          )}
-        </AlertLink>
+              <JsonForm
+                disabled={!hasAccess}
+                title={t('Email Settings')}
+                fields={[fields.subjectTemplate]}
+              />
 
-        <Form
-          saveOnBlur
-          allowUndo
-          initialData={{
-            subjectTemplate: this.state.project.subjectTemplate,
-            digestsMinDelay: this.state.project.digestsMinDelay,
-            digestsMaxDelay: this.state.project.digestsMaxDelay,
-          }}
-          apiMethod="PUT"
-          apiEndpoint={`/projects/${orgId}/${projectId}/`}
-        >
-          <JsonForm title={t('Email Settings')} fields={[fields.subjectTemplate]} />
-
-          <JsonForm
-            title={t('Digests')}
-            fields={[fields.digestsMinDelay, fields.digestsMaxDelay]}
-            renderHeader={() => (
-              <PanelAlert type="info">
-                {t(
-                  'Sentry will automatically digest alerts sent ' +
-                    'by some services to avoid flooding your inbox ' +
-                    'with individual issue notifications. To control ' +
-                    'how frequently notifications are delivered, use ' +
-                    'the sliders below.'
+              <JsonForm
+                title={t('Digests')}
+                disabled={!hasAccess}
+                fields={[fields.digestsMinDelay, fields.digestsMaxDelay]}
+                renderHeader={() => (
+                  <PanelAlert type="info">
+                    {t(
+                      'Sentry will automatically digest alerts sent ' +
+                        'by some services to avoid flooding your inbox ' +
+                        'with individual issue notifications. To control ' +
+                        'how frequently notifications are delivered, use ' +
+                        'the sliders below.'
+                    )}
+                  </PanelAlert>
                 )}
-              </PanelAlert>
-            )}
-          />
-        </Form>
+              />
+            </Form>
 
-        <PluginList
-          organization={organization}
-          project={this.state.project}
-          pluginList={this.state.pluginList.filter(
-            p => p.type === 'notification' && p.hasConfiguration
-          )}
-          onEnablePlugin={this.handleEnablePlugin}
-          onDisablePlugin={this.handleDisablePlugin}
-        />
-      </React.Fragment>
+            {hasAccess && (
+              <PluginList
+                organization={organization}
+                project={this.state.project}
+                pluginList={this.state.pluginList.filter(
+                  p => p.type === 'notification' && p.hasConfiguration
+                )}
+                onEnablePlugin={this.handleEnablePlugin}
+                onDisablePlugin={this.handleDisablePlugin}
+              />
+            )}
+          </React.Fragment>
+        )}
+      </Access>
     );
   }
 }

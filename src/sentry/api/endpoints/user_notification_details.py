@@ -36,7 +36,7 @@ USER_OPTION_SETTINGS = {
     },
     'workflowNotifications': {
         'key': 'workflow:notifications',
-        'default': UserOptionValue.all_conversations,  # '0'
+        'default': UserOptionValue.participating_only,  # '1'
         'type': int,
     }
 }

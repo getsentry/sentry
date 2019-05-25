@@ -11,12 +11,14 @@ from django.utils.functional import cached_property
 
 import sentry_sdk
 
-from sentry_sdk.transport import Transport, HttpTransport
+from sentry_sdk.client import get_options
+from sentry_sdk.transport import Transport, make_transport
 from sentry_sdk.consts import VERSION as SDK_VERSION
 from sentry_sdk.utils import Auth, capture_internal_exceptions
 from sentry_sdk.utils import logger as sdk_logger
 
-from . import metrics
+from sentry.utils import metrics
+from sentry.utils.rust import RustInfoIntegration
 
 UNSAFE_FILES = ('sentry/event_manager.py', 'sentry/tasks/process_buffer.py', )
 
@@ -69,7 +71,7 @@ def get_project_key():
 class SentryInternalFilter(logging.Filter):
     def filter(self, record):
         # TODO(mattrobenolt): handle an upstream Sentry
-        metrics.incr('internal.uncaptured.logs')
+        metrics.incr('internal.uncaptured.logs', skip_internal=False)
         return is_current_event_safe()
 
 
@@ -85,26 +87,43 @@ def configure_sdk():
     internal_transport = InternalTransport()
     upstream_transport = None
     if options.get('dsn'):
-        upstream_transport = HttpTransport(options)
+        upstream_transport = make_transport(get_options(options))
 
     def capture_event(event):
-        internal_transport.capture_event(event)
-
+        # Make sure we log to upstream when available first
         if upstream_transport is not None:
-            from sentry import options
-            event.setdefault('tags', {})['install-id'] = \
-                options.get('sentry:install-id')
+            # TODO(mattrobenolt): Bring this back safely.
+            # from sentry import options
+            # install_id = options.get('sentry:install-id')
+            # if install_id:
+            #     event.setdefault('tags', {})['install-id'] = install_id
             upstream_transport.capture_event(event)
+
+        internal_transport.capture_event(event)
 
     sentry_sdk.init(
         integrations=[
             DjangoIntegration(),
             CeleryIntegration(),
-            LoggingIntegration(event_level=None)
+            LoggingIntegration(event_level=None),
+            RustInfoIntegration(),
         ],
         transport=capture_event,
         **options
     )
+
+
+def _create_noop_hub():
+    def transport(event):
+        with capture_internal_exceptions():
+            metrics.incr('internal.uncaptured.events', skip_internal=False)
+            sdk_logger.warn('internal-error.noop-hub')
+
+    return sentry_sdk.Hub(sentry_sdk.Client(transport=transport))
+
+
+NOOP_HUB = _create_noop_hub()
+del _create_noop_hub
 
 
 class InternalTransport(Transport):
@@ -121,13 +140,25 @@ class InternalTransport(Transport):
         return RequestFactory()
 
     def capture_event(self, event):
+        # Disable the SDK while processing our own events. This fixes some
+        # recursion issues when the view crashes without including any
+        # UNSAFE_FILES
+        #
+        # NOTE: UNSAFE_FILES still exists because the hub does not follow the
+        # execution flow into the celery job triggered by StoreView. In other
+        # words, UNSAFE_FILES is used in case the celery job for crashes and
+        # that error is captured by the SDK.
+        with NOOP_HUB:
+            return self._capture_event(event)
+
+    def _capture_event(self, event):
         with capture_internal_exceptions():
             key = self.project_key
             if key is None:
                 return
 
             if not is_current_event_safe():
-                metrics.incr('internal.uncaptured.events')
+                metrics.incr('internal.uncaptured.events', skip_internal=False)
                 sdk_logger.warn('internal-error.unsafe-stacktrace')
                 return
 

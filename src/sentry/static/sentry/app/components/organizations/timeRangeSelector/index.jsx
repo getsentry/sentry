@@ -1,25 +1,55 @@
 import {Flex} from 'grid-emotion';
 import PropTypes from 'prop-types';
 import React from 'react';
+import moment from 'moment';
 import styled from 'react-emotion';
 
-import {
-  DEFAULT_RELATIVE_PERIODS,
-  DEFAULT_STATS_PERIOD,
-  DEFAULT_USE_UTC,
-} from 'app/constants';
+import {DEFAULT_STATS_PERIOD} from 'app/constants';
 import {analytics} from 'app/utils/analytics';
-import {getLocalToUtc, getPeriodAgo, getUtcInLocal} from 'app/utils/dates';
-import {parsePeriodToHours} from 'app/utils';
+import {defined, parsePeriodToHours} from 'app/utils';
+import {
+  getLocalToSystem,
+  getPeriodAgo,
+  getUserTimezone,
+  getUtcToSystem,
+} from 'app/utils/dates';
+import {getRelativeSummary} from 'app/components/organizations/timeRangeSelector/utils';
 import {t} from 'app/locale';
 import DateRange from 'app/components/organizations/timeRangeSelector/dateRange';
 import DateSummary from 'app/components/organizations/timeRangeSelector/dateSummary';
 import DropdownMenu from 'app/components/dropdownMenu';
 import HeaderItem from 'app/components/organizations/headerItem';
 import InlineSvg from 'app/components/inlineSvg';
+import MultipleSelectorSubmitRow from 'app/components/organizations/multipleSelectorSubmitRow';
 import RelativeSelector from 'app/components/organizations/timeRangeSelector/dateRange/relativeSelector';
 import SelectorItem from 'app/components/organizations/timeRangeSelector/dateRange/selectorItem';
+import SentryTypes from 'app/sentryTypes';
+import space from 'app/styles/space';
 import getDynamicText from 'app/utils/getDynamicText';
+import getRouteStringFromRoutes from 'app/utils/getRouteStringFromRoutes';
+
+// Strips timezone from local date, creates a new moment date object with timezone
+// Then returns as a Date object
+const getDateWithTimezoneInUtc = (date, utc) =>
+  moment
+    .tz(
+      moment(date)
+        .local()
+        .format('YYYY-MM-DD HH:mm:ss'),
+      utc ? 'UTC' : getUserTimezone()
+    )
+    .utc()
+    .toDate();
+
+const getInternalDate = (date, utc) => {
+  if (utc) {
+    return getUtcToSystem(date);
+  } else {
+    return new Date(
+      moment.tz(moment.utc(date), getUserTimezone()).format('YYYY/MM/DD HH:mm:ss')
+    );
+  }
+};
 
 class TimeRangeSelector extends React.PureComponent {
   static propTypes = {
@@ -67,42 +97,84 @@ class TimeRangeSelector extends React.PureComponent {
      * Callback when "Update" button is clicked
      */
     onUpdate: PropTypes.func,
+
+    /**
+     * Just used for metrics
+     */
+    organization: SentryTypes.Organization,
   };
 
   static defaultProps = {
     showAbsolute: true,
-    showRelative: false,
-    utc: DEFAULT_USE_UTC,
+    showRelative: true,
+  };
+
+  static contextTypes = {
+    router: PropTypes.object,
   };
 
   constructor(props) {
     super(props);
+
+    let start;
+    let end;
+
+    if (props.start && props.end) {
+      start = getInternalDate(props.start, props.utc);
+      end = getInternalDate(props.end, props.utc);
+    }
+
     this.state = {
-      utc: props.utc,
+      // if utc is not null and not undefined, then use value of `props.utc` (it can be false)
+      // otherwise if no value is supplied, the default should be the user's timezone preference
+      utc: defined(props.utc) ? props.utc : getUserTimezone() === 'UTC',
       isOpen: false,
+      hasChanges: false,
+      start,
+      end,
+      relative: props.relative,
     };
   }
 
-  getSelectedStateFromProps = props => {
-    const {start, end, relative} = props || this.props;
-    return !!start && !!end ? 'absolute' : relative;
+  callCallback = (callback, datetime) => {
+    if (typeof callback !== 'function') {
+      return;
+    }
+
+    if (!datetime.start && !datetime.end) {
+      callback(datetime);
+      return;
+    }
+
+    // Change local date into either UTC or local time (local time defined by user preference)
+    callback({
+      ...datetime,
+      start: getDateWithTimezoneInUtc(datetime.start, this.state.utc),
+      end: getDateWithTimezoneInUtc(datetime.end, this.state.utc),
+    });
   };
 
   handleCloseMenu = () => {
-    this.handleUpdate();
+    const {relative, start, end, utc} = this.state;
+
+    if (this.state.hasChanges) {
+      // Only call update if we close when absolute date is selected
+      this.handleUpdate({relative, start, end, utc});
+    } else {
+      this.setState({isOpen: false});
+    }
   };
 
-  handleUpdate = () => {
+  handleUpdate = datetime => {
     const {onUpdate} = this.props;
 
     this.setState(
       {
         isOpen: false,
+        hasChanges: false,
       },
       () => {
-        if (typeof onUpdate === 'function') {
-          onUpdate();
-        }
+        this.callCallback(onUpdate, datetime);
       }
     );
   };
@@ -112,72 +184,118 @@ class TimeRangeSelector extends React.PureComponent {
 
     // Set default range to equivalent of last relative period,
     // or use default stats period
-    onChange({
+    const newDateTime = {
       relative: null,
       start: getPeriodAgo(
         parsePeriodToHours(relative || DEFAULT_STATS_PERIOD),
         'hours'
       ).toDate(),
       end: new Date(),
-      utc: this.state.utc,
+    };
+
+    if (defined(this.props.utc)) {
+      newDateTime.utc = this.state.utc;
+    }
+
+    this.setState({
+      hasChanges: true,
+      ...newDateTime,
+      start: newDateTime.start,
+      end: newDateTime.end,
     });
+    this.callCallback(onChange, newDateTime);
   };
 
   handleSelectRelative = value => {
     const {onChange} = this.props;
-    onChange({
+    const newDateTime = {
       relative: value,
       start: null,
       end: null,
-      utc: this.state.utc,
-    });
-    this.handleUpdate();
+    };
+    this.setState(newDateTime);
+    this.callCallback(onChange, newDateTime);
+    this.handleUpdate(newDateTime);
+  };
+
+  handleClear = () => {
+    const {onChange} = this.props;
+    const newDateTime = {
+      relative: null,
+      start: null,
+      end: null,
+      utc: null,
+    };
+    this.setState(newDateTime);
+    this.callCallback(onChange, newDateTime);
+    this.handleUpdate(newDateTime);
   };
 
   handleSelectDateRange = ({start, end}) => {
     const {onChange} = this.props;
 
-    onChange({
+    const newDateTime = {
       relative: null,
       start,
       end,
-      utc: this.state.utc,
-    });
+    };
+
+    if (defined(this.props.utc)) {
+      newDateTime.utc = this.state.utc;
+    }
+
+    this.setState({hasChanges: true, ...newDateTime});
+    this.callCallback(onChange, newDateTime);
   };
 
   handleUseUtc = () => {
-    const {onChange, start, end} = this.props;
+    const {onChange} = this.props;
+    let {start, end} = this.props;
 
     this.setState(state => {
       const utc = !state.utc;
+
+      if (!start) {
+        start = getDateWithTimezoneInUtc(state.start, state.utc);
+      }
+
+      if (!end) {
+        end = getDateWithTimezoneInUtc(state.end, state.utc);
+      }
+
       analytics('dateselector.utc_changed', {
         utc,
+        path: getRouteStringFromRoutes(this.context.router.routes),
+        org_id: parseInt(this.props.organization.id, 10),
       });
 
-      onChange({
+      const newDateTime = {
         relative: null,
-        start: utc ? getLocalToUtc(start) : getUtcInLocal(start),
-        end: utc ? getLocalToUtc(end) : getUtcInLocal(end),
+        start: utc ? getLocalToSystem(start) : getUtcToSystem(start),
+        end: utc ? getLocalToSystem(end) : getUtcToSystem(end),
         utc,
-      });
+      };
+      this.callCallback(onChange, newDateTime);
 
       return {
-        utc,
+        hasChanges: true,
+        ...newDateTime,
       };
     });
   };
 
   render() {
-    const {start, end, relative, showAbsolute, showRelative} = this.props;
+    const {showAbsolute, showRelative, organization} = this.props;
+    const {start, end, relative} = this.state;
 
     const shouldShowAbsolute = showAbsolute;
     const shouldShowRelative = showRelative;
     const isAbsoluteSelected = !!start && !!end;
 
-    const summary = relative ? (
-      `${DEFAULT_RELATIVE_PERIODS[relative]}`
-    ) : (
+    const summary = isAbsoluteSelected ? (
       <DateSummary utc={this.state.utc} start={start} end={end} />
+    ) : (
+      getRelativeSummary(relative || DEFAULT_STATS_PERIOD)
     );
 
     return (
@@ -192,8 +310,13 @@ class TimeRangeSelector extends React.PureComponent {
             <StyledHeaderItem
               icon={<StyledInlineSvg src="icon-calendar" />}
               isOpen={isOpen}
-              hasSelected={true}
-              allowClear={false}
+              hasSelected={
+                (!!this.props.relative && this.props.relative !== DEFAULT_STATS_PERIOD) ||
+                isAbsoluteSelected
+              }
+              hasChanges={this.state.hasChanges}
+              onClear={this.handleClear}
+              allowClear={true}
               {...getActorProps({isStyled: true})}
             >
               {getDynamicText({value: summary, fixed: 'start to end'})}
@@ -208,7 +331,7 @@ class TimeRangeSelector extends React.PureComponent {
                   {shouldShowRelative && (
                     <RelativeSelector
                       onClick={this.handleSelectRelative}
-                      selected={relative}
+                      selected={relative || DEFAULT_STATS_PERIOD}
                     />
                   )}
                   {shouldShowAbsolute && (
@@ -222,14 +345,24 @@ class TimeRangeSelector extends React.PureComponent {
                   )}
                 </SelectorList>
                 {isAbsoluteSelected && (
-                  <DateRange
-                    showTimePicker
-                    utc={this.state.utc}
-                    start={start}
-                    end={end}
-                    onChange={this.handleSelectDateRange}
-                    onChangeUtc={this.handleUseUtc}
-                  />
+                  <div>
+                    <DateRange
+                      showTimePicker
+                      utc={this.state.utc}
+                      start={start}
+                      end={end}
+                      onChange={this.handleSelectDateRange}
+                      onChangeUtc={this.handleUseUtc}
+                      organization={organization}
+                    />
+                    {this.state.hasChanges && (
+                      <SubmitRow>
+                        <MultipleSelectorSubmitRow
+                          onSubmit={() => this.handleCloseMenu()}
+                        />
+                      </SubmitRow>
+                    )}
+                  </div>
                 )}
               </Menu>
             )}
@@ -240,7 +373,7 @@ class TimeRangeSelector extends React.PureComponent {
   }
 }
 
-const TimeRangeRoot = styled.div`
+const TimeRangeRoot = styled('div')`
   position: relative;
 `;
 
@@ -260,14 +393,15 @@ const Menu = styled('div')`
 
   display: flex;
   background: #fff;
-  border: 1px solid ${p => p.theme.borderLight};
+  border: 1px solid ${p => p.theme.borderDark};
   position: absolute;
   top: 100%;
   min-width: 120%;
   z-index: ${p => p.theme.zIndex.dropdown};
   box-shadow: ${p => p.theme.dropShadowLight};
-  border-radius: 0 0 ${p => p.theme.borderRadius} ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.borderRadiusBottom};
   font-size: 0.8em;
+  overflow: hidden;
 `;
 
 const SelectorList = styled(({isAbsoluteSelected, ...props}) => <Flex {...props} />)`
@@ -276,6 +410,12 @@ const SelectorList = styled(({isAbsoluteSelected, ...props}) => <Flex {...props}
   flex-shrink: 0;
   width: ${p => (p.isAbsoluteSelected ? '160px' : '220px')};
   min-height: 305px;
+`;
+
+const SubmitRow = styled('div')`
+  padding: ${space(0.5)} ${space(1)};
+  border-top: 1px solid ${p => p.theme.borderLight};
+  border-left: 1px solid ${p => p.theme.borderLight};
 `;
 
 export default TimeRangeSelector;

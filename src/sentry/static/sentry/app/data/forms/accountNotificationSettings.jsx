@@ -21,6 +21,7 @@ export const fields = {
     help: t('E.g. changes in issue assignment, resolution status, and comments.'),
   },
   weeklyReports: {
+    // Form is not visible because currently not implemented
     name: 'weeklyReports',
     type: 'boolean',
     label: t('Send Me Weekly Reports'),
@@ -66,7 +67,7 @@ const formGroups = [
 
   {
     title: t('Weekly Reports'),
-    fields: [fields.weeklyReports],
+    fields: [],
   },
 
   {

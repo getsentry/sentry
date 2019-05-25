@@ -37,12 +37,13 @@ class ReleaseFile(Model):
 
     class Meta:
         unique_together = (('release', 'ident'), )
+        index_together = (('release', 'name'), )
         app_label = 'sentry'
         db_table = 'sentry_releasefile'
 
     def save(self, *args, **kwargs):
         if not self.ident and self.name:
-            dist = self.dist and self.dist.name or None
+            dist = self.dist_id and self.dist.name or None
             self.ident = type(self).get_ident(self.name, dist)
         return super(ReleaseFile, self).save(*args, **kwargs)
 
@@ -72,10 +73,12 @@ class ReleaseFile(Model):
         """
         # Always ignore the fragment
         scheme, netloc, path, query, _ = urlsplit(url)
+
+        uri_without_fragment = (scheme, netloc, path, query, None)
         uri_relative = (None, None, path, query, None)
         uri_without_query = (scheme, netloc, path, None, None)
         uri_relative_without_query = (None, None, path, None, None)
-        urls = [url]
+        urls = [urlunsplit(uri_without_fragment)]
         if query:
             urls.append(urlunsplit(uri_without_query))
         urls.append('~' + urlunsplit(uri_relative))

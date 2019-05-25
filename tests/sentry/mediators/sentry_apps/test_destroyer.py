@@ -1,9 +1,10 @@
 from __future__ import absolute_import
 
 from django.db import connection
+from mock import patch
 
 from sentry.mediators.sentry_apps import Destroyer
-from sentry.models import ApiApplication, User, SentryApp
+from sentry.models import AuditLogEntry, AuditLogEntryEvent, ApiApplication, User, SentryApp, SentryAppInstallation
 from sentry.testutils import TestCase
 
 
@@ -20,6 +21,15 @@ class TestDestroyer(TestCase):
 
         self.destroyer = Destroyer(sentry_app=self.sentry_app)
 
+    def test_deletes_app_installations(self):
+        install = self.create_sentry_app_installation(
+            organization=self.org,
+            slug=self.sentry_app.slug,
+            user=self.user,
+        )
+        self.destroyer.call()
+        assert not SentryAppInstallation.objects.filter(pk=install.id).exists()
+
     def test_deletes_api_application(self):
         application = self.sentry_app.application
 
@@ -33,6 +43,15 @@ class TestDestroyer(TestCase):
         self.destroyer.call()
 
         assert not User.objects.filter(pk=proxy_user.id).exists()
+
+    def test_creates_audit_log_entry(self):
+        request = self.make_request(user=self.user, method='GET')
+        Destroyer.run(
+            user=self.user,
+            sentry_app=self.sentry_app,
+            request=request,
+        )
+        assert AuditLogEntry.objects.filter(event=AuditLogEntryEvent.SENTRY_APP_REMOVE).exists()
 
     def test_soft_deletes_sentry_app(self):
         self.destroyer.call()
@@ -50,3 +69,18 @@ class TestDestroyer(TestCase):
             [self.sentry_app.id])
 
         assert c.fetchone()[0] == 1
+
+    @patch('sentry.analytics.record')
+    def test_records_analytics(self, record):
+        Destroyer.run(
+            user=self.user,
+            sentry_app=self.sentry_app,
+            request=self.make_request(user=self.user, method='GET'),
+        )
+
+        record.assert_called_with(
+            'sentry_app.deleted',
+            user_id=self.user.id,
+            organization_id=self.org.id,
+            sentry_app=self.sentry_app.slug,
+        )

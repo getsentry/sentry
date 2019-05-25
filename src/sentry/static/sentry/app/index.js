@@ -1,37 +1,83 @@
-/* global module */
-import {AppContainer} from 'react-hot-loader';
+import '@babel/polyfill';
+import 'bootstrap/js/alert';
+import 'bootstrap/js/tab';
+import 'bootstrap/js/dropdown';
+
+import 'app/utils/statics-setup';
+import 'app/utils/emotion-setup';
+
 import {renderToStaticMarkup} from 'react-dom/server';
 import * as Emotion from 'emotion';
 import * as EmotionTheming from 'emotion-theming';
 import * as GridEmotion from 'grid-emotion';
 import JsCookie from 'js-cookie';
 import PropTypes from 'prop-types';
-import Raven from 'raven-js';
 import React from 'react';
 import ReactBootstrapModal from 'react-bootstrap/lib/Modal';
 import ReactDOM from 'react-dom';
 import * as ReactEmotion from 'react-emotion';
 import Reflux from 'reflux';
 import * as Router from 'react-router';
+import * as Sentry from '@sentry/browser';
+import {ExtraErrorData, Tracing} from '@sentry/integrations';
 import createReactClass from 'create-react-class';
 import jQuery from 'jquery';
 import moment from 'moment';
 
-import 'app/utils/emotion-setup';
-
+import {metric} from 'app/utils/analytics';
+import ConfigStore from 'app/stores/configStore';
 import Main from 'app/main';
-import * as api from 'app/api';
 import ajaxCsrfSetup from 'app/utils/ajaxCsrfSetup';
+import * as api from 'app/api';
 import * as il8n from 'app/locale';
 import plugins from 'app/plugins';
 
+// SDK INIT  --------------------------------------------------------
+// window.__SENTRY__OPTIONS will be emmited by sdk-config.html before loading this script
+Sentry.init({
+  ...window.__SENTRY__OPTIONS,
+  integrations: [
+    new ExtraErrorData({
+      // 6 is arbitrary, seems like a nice number
+      depth: 6,
+    }),
+    new Tracing({
+      tracingOrigins: ['localhost', 'sentry.io', /^\//],
+      autoStartOnDomReady: false,
+    }),
+  ],
+});
+
+Sentry.configureScope(scope => {
+  if (window.__SENTRY__USER) {
+    scope.setUser(window.__SENTRY__USER);
+  }
+  if (window.__SENTRY__VERSION) {
+    scope.setTag('sentry_version', window.__SENTRY__VERSION);
+  }
+});
+
+function __raven_deprecated() {
+  const message = '[DEPRECATED]: Please no longer use Raven, use Sentry instead';
+  // eslint-disable-next-line no-console
+  console.error(message);
+  Sentry.captureMessage(message);
+}
+
+const Raven = {
+  captureMessage: () => __raven_deprecated(),
+  captureException: () => __raven_deprecated(),
+  captureBreadcrumb: () => __raven_deprecated(),
+  showReportDialog: () => __raven_deprecated(),
+  setTagsContext: () => __raven_deprecated(),
+  setExtraContext: () => __raven_deprecated(),
+  setUserContext: () => __raven_deprecated(),
+};
+// -----------------------------------------------------------------
+
 // Used for operational metrics to determine that the application js
 // bundle was loaded by browser.
-//
-// JSDOM implements window.performance but not window.performance.mark
-if (window.performance && typeof window.performance.mark === 'function') {
-  window.performance.mark('sentry-app-init');
-}
+metric.mark('sentry-app-init');
 
 // setup jquery for CSRF tokens
 jQuery.ajaxSetup({
@@ -39,31 +85,47 @@ jQuery.ajaxSetup({
   beforeSend: ajaxCsrfSetup,
 });
 
+// App setup
+if (window.__initialData) {
+  ConfigStore.loadInitialData(window.__initialData, window.__languageCode);
+}
+
 // these get exported to a global variable, which is important as its the only
 // way we can call into scoped objects
 
-let render = Component => {
-  let rootEl = document.getElementById('blk_router');
-  ReactDOM.render(
-    <AppContainer>
-      <Component />
-    </AppContainer>,
-    rootEl
-  );
+const render = Component => {
+  const rootEl = document.getElementById('blk_router');
+
+  try {
+    ReactDOM.render(<Component />, rootEl);
+  } catch (err) {
+    // eslint-disable-next-line no-console
+    console.error(
+      new Error(
+        'An unencoded "%" has appeared, it is super effective! (See https://github.com/ReactTraining/history/issues/505)'
+      )
+    );
+    if (err.message === 'URI malformed') {
+      window.location.assign(window.location.pathname);
+    }
+  }
 };
 
-if (module.hot) {
-  // webpack 2 has built in support for es2015 modules, so don't have to re-require
-  module.hot.accept('./main', () => {
-    render(Main);
-  });
+// The password strength component is very heavyweight as it includes the
+// zxcvbn, a relatively byte-heavy password strength estimation library. Load
+// it on demand.
+async function loadPasswordStrength(callback) {
+  const module = await import(/* webpackChunkName: "passwordStrength" */ 'app/components/passwordStrength');
+  callback(module);
 }
 
-export default {
+const globals = {
+  $: jQuery,
   jQuery,
   moment,
-  Raven,
+  Sentry,
   React,
+  Raven,
   ReactDOM: {
     findDOMNode: ReactDOM.findDOMNode,
     render: ReactDOM.render,
@@ -120,10 +182,6 @@ export default {
     addSuccessMessage: require('app/actionCreators/indicator').addSuccessMessage,
     addErrorMessage: require('app/actionCreators/indicator').addErrorMessage,
     Button: require('app/components/button').default,
-    mixins: {
-      ApiMixin: require('app/mixins/apiMixin').default,
-      TooltipMixin: require('app/mixins/tooltip').default,
-    },
     BarChart: require('app/components/barChart').default,
     i18n: il8n,
     ConfigStore: require('app/stores/configStore').default,
@@ -145,7 +203,7 @@ export default {
     InviteMember: require('app/views/settings/organizationMembers/inviteMember').default,
     LoadingError: require('app/components/loadingError').default,
     LoadingIndicator: require('app/components/loadingIndicator').default,
-    ListLink: require('app/components/listLink').default,
+    ListLink: require('app/components/links/listLink').default,
     MenuItem: require('app/components/menuItem').default,
     NarrowLayout: require('app/components/narrowLayout').default,
     NavTabs: require('app/components/navTabs').default,
@@ -164,10 +222,6 @@ export default {
     Pagination: require('app/components/pagination').default,
     PluginConfig: require('app/components/pluginConfig').default,
     ProjectSelector: require('app/components/projectHeader/projectSelector').default,
-    ReleaseLanding: require('app/views/projectReleases/releaseLanding').default,
-    ReleaseProgress: require('app/views/projectReleases/releaseProgress').default,
-    CreateSampleEvent: require('app/components/createSampleEvent').default,
-    InstallPromptBanner: require('app/components/installPromptBanner').default,
     SentryTypes: require('app/sentryTypes').default,
     SettingsPageHeader: require('app/views/settings/components/settingsPageHeader')
       .default,
@@ -179,21 +233,33 @@ export default {
     TimeSince: require('app/components/timeSince').default,
     TodoList: require('app/components/onboardingWizard/todos').default,
     Tooltip: require('app/components/tooltip').default,
-    U2fEnrollment: require('app/components/u2fenrollment').default,
-    U2fSign: require('app/components/u2fsign').default,
-    Waiting: require('app/views/onboarding/configure/waiting').default,
+    U2fEnrollment: require('app/components/u2f/u2fenrollment').default,
+    U2fSign: require('app/components/u2f/u2fsign').default,
     Badge: require('app/components/badge').default,
     Tag: require('app/views/settings/components/tag').default,
     Switch: require('app/components/switch').default,
+    Search: require('app/components/search').default,
+    HelpSource: require('app/components/search/sources/helpSource').default,
     GlobalModal: require('app/components/globalModal').default,
     SetupWizard: require('app/components/setupWizard').default,
     Well: require('app/components/well').default,
     theme: require('app/utils/theme').default,
+    space: require('app/styles/space').default,
     utils: {
       errorHandler: require('app/utils/errorHandler').default,
       ajaxCsrfSetup: require('app/utils/ajaxCsrfSetup').default,
       logging: require('app/utils/logging'),
       descopeFeatureName: require('app/utils').descopeFeatureName,
+      withApi: require('app/utils/withApi').default,
+      getDisplayName: require('app/utils/getDisplayName').default,
+    },
+    passwordStrength: {
+      load: loadPasswordStrength,
     },
   },
 };
+
+// Make globals available on the window object
+Object.keys(globals).forEach(name => (window[name] = globals[name]));
+
+export default globals;

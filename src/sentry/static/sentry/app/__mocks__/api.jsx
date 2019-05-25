@@ -21,7 +21,7 @@ class Client {
 
   // Returns a jest mock that represents Client.request calls
   static addMockResponse(response) {
-    let mock = jest.fn();
+    const mock = jest.fn();
     Client.mockResponses.unshift([
       {
         statusCode: 200,
@@ -54,7 +54,9 @@ class Client {
 
   wrapCallback(id, error) {
     return (...args) => {
-      if (this.hasProjectBeenRenamed(...args)) return;
+      if (this.hasProjectBeenRenamed(...args)) {
+        return;
+      }
       respond(Client.mockAsync, error, ...args);
     };
   }
@@ -74,7 +76,7 @@ class Client {
   }
 
   request(url, options) {
-    let [response, mock] = Client.findMockResponse(url, options) || [];
+    const [response, mock] = Client.findMockResponse(url, options) || [];
 
     if (!response) {
       // Endpoints need to be mocked
@@ -92,7 +94,7 @@ class Client {
 
       if (response.statusCode !== 200) {
         response.callCount++;
-        let resp = {
+        const resp = {
           status: response.statusCode,
           responseText: JSON.stringify(body),
           responseJSON: body,

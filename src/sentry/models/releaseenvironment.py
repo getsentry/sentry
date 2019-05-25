@@ -5,24 +5,29 @@ from django.db import models
 from django.utils import timezone
 
 from sentry.utils.cache import cache
-from sentry.db.models import (BoundedPositiveIntegerField, Model, sane_repr)
+from sentry.db.models import (
+    BoundedPositiveIntegerField,
+    FlexibleForeignKey,
+    Model,
+    sane_repr,
+)
 
 
 class ReleaseEnvironment(Model):
     __core__ = False
 
-    organization_id = BoundedPositiveIntegerField(db_index=True)
+    organization = FlexibleForeignKey('sentry.Organization', db_index=True, db_constraint=False)
     # DEPRECATED
     project_id = BoundedPositiveIntegerField(null=True)
-    release_id = BoundedPositiveIntegerField(db_index=True)
-    environment_id = BoundedPositiveIntegerField(db_index=True)
+    release = FlexibleForeignKey('sentry.Release', db_index=True, db_constraint=False)
+    environment = FlexibleForeignKey('sentry.Environment', db_index=True, db_constraint=False)
     first_seen = models.DateTimeField(default=timezone.now)
     last_seen = models.DateTimeField(default=timezone.now, db_index=True)
 
     class Meta:
         app_label = 'sentry'
         db_table = 'sentry_environmentrelease'
-        unique_together = (('organization_id', 'release_id', 'environment_id'), )
+        unique_together = (('organization', 'release', 'environment'), )
 
     __repr__ = sane_repr('organization_id', 'release_id', 'environment_id')
 

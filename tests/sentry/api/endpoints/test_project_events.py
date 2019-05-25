@@ -6,10 +6,15 @@ from datetime import timedelta
 from django.utils import timezone
 from django.core.urlresolvers import reverse
 
+from sentry import options
 from sentry.testutils import APITestCase
 
 
 class ProjectEventsTest(APITestCase):
+    def setUp(self):
+        super(ProjectEventsTest, self).setUp()
+        options.set('snuba.events-queries.enabled', False)
+
     def test_simple(self):
         self.login_as(user=self.user)
 

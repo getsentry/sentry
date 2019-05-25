@@ -23,6 +23,7 @@ from sentry.models import (
 from sentry.signals import sso_enabled
 from sentry.tasks.auth import email_missing_links
 from sentry.utils import auth, metrics
+from sentry.utils.audit import create_audit_entry
 from sentry.utils.redis import clusters
 from sentry.utils.hashlib import md5_text
 from sentry.utils.http import absolute_uri
@@ -32,6 +33,8 @@ from sentry.web.helpers import render_to_response
 import sentry.utils.json as json
 
 from . import manager
+
+logger = logging.getLogger('sentry.auth')
 
 OK_LINK_IDENTITY = _('You have successfully linked your account to your SSO provider.')
 
@@ -144,7 +147,7 @@ def handle_existing_identity(auth_provider, provider, organization,
         return HttpResponseRedirect(auth.get_login_redirect(request))
 
     state.clear()
-    metrics.incr('sso.login-success', tags={'provider': provider.key})
+    metrics.incr('sso.login-success', tags={'provider': provider.key}, skip_internal=False)
 
     return HttpResponseRedirect(auth.get_login_redirect(request))
 
@@ -504,7 +507,17 @@ def handle_new_user(auth_provider, organization, request, identity):
 
     user.send_confirm_emails(is_new_user=True)
 
-    handle_new_membership(auth_provider, organization, request, auth_identity)
+    # If the user has a pending invitation in this organization, we can
+    # immediately assocaite their user.
+    try:
+        member = OrganizationMember.objects.get(
+            organization=organization,
+            email=user.email,
+        )
+        member.set_user(user)
+        member.save()
+    except OrganizationMember.DoesNotExist:
+        handle_new_membership(auth_provider, organization, request, auth_identity)
 
     return auth_identity
 
@@ -767,6 +780,10 @@ class AuthHelper(object):
         except OrganizationMember.DoesNotExist:
             return self.error(ERR_UID_MISMATCH)
 
+        # disable require 2FA for the organization
+        # since only SSO or require 2FA can be enabled
+        self.disable_2fa_required()
+
         self.auth_provider = AuthProvider.objects.create(
             organization=self.organization,
             provider=self.provider.key,
@@ -831,7 +848,7 @@ class AuthHelper(object):
         metrics.incr('sso.error', tags={
             'provider': self.provider.key,
             'flow': self.state.flow
-        })
+        }, skip_internal=False)
 
         messages.add_message(
             self.request,
@@ -849,3 +866,29 @@ class AuthHelper(object):
 
     def fetch_state(self, key=None):
         return self.state.data if key is None else self.state.data.get(key)
+
+    def disable_2fa_required(self):
+        require_2fa = self.organization.flags.require_2fa
+
+        if not require_2fa or not require_2fa.is_set:
+            return
+
+        self.organization.update(
+            flags=F('flags').bitand(~Organization.flags.require_2fa)
+        )
+
+        logger.info(
+            'Require 2fa disabled during sso setup',
+            extra={
+                'organization_id': self.organization.id,
+            }
+        )
+        create_audit_entry(
+            request=self.request,
+            organization=self.organization,
+            target_object=self.organization.id,
+            event=AuditLogEntryEvent.ORG_EDIT,
+            data={
+                'require_2fa': u'to False when enabling SSO'
+            },
+        )

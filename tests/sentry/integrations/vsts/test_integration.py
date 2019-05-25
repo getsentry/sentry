@@ -1,6 +1,6 @@
 from __future__ import absolute_import
 
-from mock import patch
+from mock import patch, Mock
 
 from sentry.identity.vsts import VSTSIdentityProvider
 from sentry.integrations.exceptions import IntegrationError
@@ -395,10 +395,14 @@ class VstsIntegrationTest(VstsIntegrationTestCase):
         integration = Integration.objects.get(provider='vsts')
         installation = integration.get_installation(self.organization.id)
 
-        comment = 'hello world\nThis is a comment.\n\n\n    Glad it\'s quoted'
         self.user.name = 'Sentry Admin'
         self.user.save()
+
+        comment_text = 'hello world\nThis is a comment.\n\n\n    Glad it\'s quoted'
+        comment = Mock()
+        comment.data = {'text': comment_text}
+
         installation.create_comment(1, self.user.id, comment)
 
         assert mock_update_work_item.call_args[1]['comment'] == \
-            'Sentry Admin wrote:\n\n<blockquote>%s</blockquote>' % comment
+            'Sentry Admin wrote:\n\n<blockquote>%s</blockquote>' % comment_text

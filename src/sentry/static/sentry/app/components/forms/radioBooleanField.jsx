@@ -21,12 +21,12 @@ export default class RadioBooleanField extends InputField {
   };
 
   coerceValue(props) {
-    let value = super.coerceValue(props);
+    const value = super.coerceValue(props);
     return value ? true : false;
   }
 
   onChange = e => {
-    let value = e.target.value === 'true';
+    const value = e.target.value === 'true';
     this.setValue(value);
   };
 
@@ -35,7 +35,7 @@ export default class RadioBooleanField extends InputField {
   }
 
   getField() {
-    let yesOption = (
+    const yesOption = (
       <div className="radio" key="yes">
         <label style={{fontWeight: 'normal'}}>
           <input
@@ -50,7 +50,7 @@ export default class RadioBooleanField extends InputField {
         </label>
       </div>
     );
-    let noOption = (
+    const noOption = (
       <div className="radio" key="no">
         <label style={{fontWeight: 'normal'}}>
           <input
@@ -83,10 +83,10 @@ export default class RadioBooleanField extends InputField {
   }
 
   render() {
-    let {label, hideErrorMessage, help, style} = this.props;
-    let {error} = this.state;
-    let cx = this.getFinalClassNames();
-    let shouldShowErrorMessage = error && !hideErrorMessage;
+    const {label, hideErrorMessage, help, style} = this.props;
+    const {error} = this.state;
+    const cx = this.getFinalClassNames();
+    const shouldShowErrorMessage = error && !hideErrorMessage;
 
     return (
       <div style={style} className={cx}>

@@ -9,7 +9,7 @@ import {
   ResultViewActions,
   ResultViewButtons,
   ResultViewDropdownButtons,
-  DownloadCsvButton
+  DownloadCsvButton,
 } from '../styles';
 
 class VisualizationsToggle extends React.Component {
@@ -42,9 +42,7 @@ class VisualizationsToggle extends React.Component {
     const active = opt.id === this.props.visualization;
     return (
       <li key={opt.id} className={classNames({active})}>
-        <a onClick={() => this.props.handleChange(opt.id)}>
-          {opt.name}
-        </a>
+        <a onClick={() => this.props.handleChange(opt.id)}>{opt.name}</a>
       </li>
     );
   };
@@ -71,7 +69,7 @@ class VisualizationsToggle extends React.Component {
           })}
         </ResultViewButtons>
         <ResultViewDropdownButtons>
-          <DropdownLink title={dropdownTitle} className={'btn btn-default btn-sm'}>
+          <DropdownLink title={dropdownTitle} className="btn btn-default btn-sm">
             {options.map(opt => {
               return this.getMenuItem(opt);
             })}

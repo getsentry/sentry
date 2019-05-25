@@ -6,22 +6,21 @@ import createReactClass from 'create-react-class';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
 import IndicatorStore from 'app/stores/indicatorStore';
 import {joinTeam} from 'app/actionCreators/teams';
-import ApiMixin from 'app/mixins/apiMixin';
+import withApi from 'app/utils/withApi';
 import {t} from 'app/locale';
 
 const MissingProjectMembership = createReactClass({
   displayName: 'MissingProjectMembership',
 
   propTypes: {
+    api: PropTypes.object,
     organization: PropTypes.object.isRequired,
     projectId: PropTypes.string.isRequired,
   },
 
-  mixins: [ApiMixin],
-
   getInitialState() {
-    let {organization, projectId} = this.props;
-    let project = organization.projects.find(p => p.slug === projectId);
+    const {organization, projectId} = this.props;
+    const project = organization.projects.find(p => p.slug === projectId);
 
     return {
       loading: false,
@@ -36,7 +35,7 @@ const MissingProjectMembership = createReactClass({
     });
 
     joinTeam(
-      this.api,
+      this.props.api,
       {
         orgId: this.props.organization.slug,
         teamId: team.slug,
@@ -95,7 +94,7 @@ const MissingProjectMembership = createReactClass({
   },
 
   renderJoinTeams(features) {
-    let {teams} = this.state.project;
+    const {teams} = this.state.project;
     if (!teams.length) {
       return (
         <EmptyMessage>
@@ -116,8 +115,8 @@ const MissingProjectMembership = createReactClass({
   },
 
   render() {
-    let {organization} = this.props;
-    let features = new Set(organization.features);
+    const {organization} = this.props;
+    const features = new Set(organization.features);
 
     return (
       <div className="container">
@@ -132,4 +131,6 @@ const MissingProjectMembership = createReactClass({
   },
 });
 
-export default MissingProjectMembership;
+export {MissingProjectMembership};
+
+export default withApi(MissingProjectMembership);

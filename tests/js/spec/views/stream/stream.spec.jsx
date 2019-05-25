@@ -7,10 +7,9 @@ import {Client} from 'app/api';
 import CursorPoller from 'app/utils/cursorPoller';
 import LoadingError from 'app/components/loadingError';
 import ErrorRobot from 'app/components/errorRobot';
-import Stream from 'app/views/stream/stream';
+import {Stream} from 'app/views/stream/stream';
 import EnvironmentStore from 'app/stores/environmentStore';
 import {setActiveEnvironment} from 'app/actionCreators/environments';
-import {browserHistory} from 'react-router';
 import TagStore from 'app/stores/tagStore';
 
 jest.mock('app/stores/groupStore');
@@ -20,7 +19,6 @@ const DEFAULT_LINKS_HEADER =
   '<http://127.0.0.1:8000/api/0/projects/org-slug/project-slug/issues/?cursor=1443575731:0:0>; rel="next"; results="true"; cursor="1443575731:0:0';
 
 describe('Stream', function() {
-  let sandbox;
   let context;
   let wrapper;
   let props;
@@ -33,8 +31,6 @@ describe('Stream', function() {
   let groupListRequest;
 
   beforeEach(function() {
-    sandbox = sinon.sandbox.create();
-
     organization = TestStubs.Organization({
       id: '1337',
       slug: 'org-slug',
@@ -43,7 +39,7 @@ describe('Stream', function() {
       id: '2448',
     });
     project = TestStubs.ProjectDetails({
-      id: '3559',
+      id: 3559,
       name: 'Foo Project',
       slug: 'project-slug',
       firstEvent: true,
@@ -62,10 +58,13 @@ describe('Stream', function() {
       body: [savedSearch],
     });
     MockApiClient.addMockResponse({
-      url: '/projects/org-slug/project-slug/processingissues/',
+      url: '/organizations/org-slug/recent-searches/',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/processingissues/',
       method: 'GET',
     });
-    sandbox.stub(browserHistory, 'push');
 
     context = {
       project,
@@ -76,6 +75,7 @@ describe('Stream', function() {
     TagStore.init();
 
     props = {
+      api: new MockApiClient(),
       setProjectNavSection: function() {},
       location: {query: {query: 'is:unresolved'}, search: 'query=is:unresolved'},
       params: {orgId: organization.slug, projectId: project.slug},
@@ -85,40 +85,45 @@ describe('Stream', function() {
   });
 
   afterEach(function() {
-    sandbox.restore();
     MockApiClient.clearMockResponses();
   });
 
   describe('fetchData()', function() {
     describe('complete handler', function() {
+      beforeAll(function() {
+        jest.spyOn(CursorPoller.prototype, 'setEndpoint');
+      });
+
       beforeEach(function() {
+        CursorPoller.prototype.setEndpoint.mockReset();
         wrapper = shallow(<Stream {...props} />, {
           context,
         });
-        sandbox.stub(CursorPoller.prototype, 'setEndpoint');
+      });
+
+      afterAll(function() {
+        CursorPoller.prototype.setEndpoint.mockRestore();
       });
 
       it('should reset the poller endpoint and sets cursor URL', function() {
-        let stream = wrapper.instance();
+        const stream = wrapper.instance();
         stream.state.pageLinks = DEFAULT_LINKS_HEADER;
         stream.state.realtimeActive = true;
 
         stream.fetchData();
 
-        expect(
-          CursorPoller.prototype.setEndpoint.calledWith(
-            'http://127.0.0.1:8000/api/0/projects/org-slug/project-slug/issues/?cursor=1443575731:0:1'
-          )
-        ).toBe(true);
+        expect(CursorPoller.prototype.setEndpoint).toHaveBeenCalledWith(
+          'http://127.0.0.1:8000/api/0/projects/org-slug/project-slug/issues/?cursor=1443575731:0:1'
+        );
       });
 
       it('should not enable the poller if realtimeActive is false', function() {
-        let stream = wrapper.instance();
+        const stream = wrapper.instance();
         stream.state.pageLinks = DEFAULT_LINKS_HEADER;
         stream.state.realtimeActive = false;
         stream.fetchData();
 
-        expect(CursorPoller.prototype.setEndpoint.notCalled).toBeTruthy();
+        expect(CursorPoller.prototype.setEndpoint).not.toHaveBeenCalled();
       });
 
       it("should not enable the poller if the 'previous' link has results", function() {
@@ -138,7 +143,7 @@ describe('Stream', function() {
           context,
         });
 
-        let stream = wrapper.instance();
+        const stream = wrapper.instance();
 
         stream.setState({
           pageLinks,
@@ -147,31 +152,34 @@ describe('Stream', function() {
 
         stream.fetchData();
 
-        expect(CursorPoller.prototype.setEndpoint.notCalled).toBeTruthy();
+        expect(CursorPoller.prototype.setEndpoint).not.toHaveBeenCalled();
       });
     }); // complete handler
 
-    it('calls fetchData once on mount for a saved search', function() {
+    it('calls fetchData once on mount for a saved search', async function() {
       props.location = {query: {}};
       props.params.searchId = '1';
       wrapper = shallow(<Stream {...props} />, {
         context,
       });
+      await wrapper.update();
 
       expect(groupListRequest).toHaveBeenCalledTimes(1);
     });
 
-    it('calls fetchData once on mount if there is a query', function() {
+    it('calls fetchData once on mount if there is a query', async function() {
       wrapper = shallow(<Stream {...props} />, {
         context,
       });
+      await wrapper.update();
+
       expect(groupListRequest).toHaveBeenCalledTimes(1);
     });
 
     it('should cancel any previous, unfinished fetches', function() {
-      let requestCancel = sandbox.stub();
+      const requestCancel = jest.fn();
       let requestOptions;
-      sandbox.stub(Client.prototype, 'request', function(url, options) {
+      jest.spyOn(Client.prototype, 'request').mockImplementation(function(url, options) {
         requestOptions = options;
         return {
           cancel: requestCancel,
@@ -179,13 +187,13 @@ describe('Stream', function() {
       });
 
       // NOTE: fetchData called once after render automatically
-      let stream = wrapper.instance();
+      const stream = wrapper.instance();
 
       // 2nd fetch should call cancel
       stream.fetchData();
       stream.fetchData();
 
-      expect(requestCancel.calledOnce).toBeTruthy();
+      expect(requestCancel).toHaveBeenCalledTimes(1);
       expect(stream.lastRequest).toBeTruthy();
 
       // when request "completes", lastRequest is cleared
@@ -194,58 +202,66 @@ describe('Stream', function() {
       });
 
       expect(stream.lastRequest).toBeNull();
+      Client.prototype.request.mockRestore();
     });
 
     it('sends environment attribute', function() {
-      let requestCancel = sandbox.stub();
+      const requestCancel = jest.fn();
       let requestOptions;
-      sandbox.stub(Client.prototype, 'request', function(url, options) {
+      jest.spyOn(Client.prototype, 'request').mockImplementation(function(url, options) {
         requestOptions = options;
         return {
           cancel: requestCancel,
         };
       });
 
-      let stream = wrapper.instance();
+      const stream = wrapper.instance();
       stream.state.activeEnvironment = {name: 'prod'};
       stream.state.query = 'is:unresolved environment:prod';
       stream.fetchData();
 
       expect(requestOptions.data.query).toContain('environment:prod');
       expect(requestOptions.data.environment).toBe('prod');
+      Client.prototype.request.mockRestore();
     });
   });
 
   describe('fetchSavedSearches()', function() {
-    it('handles valid search id', function() {
+    it('handles valid search id', async function() {
       const streamProps = {
+        api: new MockApiClient(),
         setProjectNavSection: function() {},
         params: {orgId: 'org-slug', projectId: 'project-slug', searchId: '789'},
         location: {query: {}, search: ''},
+        tags: {},
       };
       wrapper = shallow(<Stream {...streamProps} />, {
         context,
       });
+      await wrapper.update();
 
       expect(wrapper.instance().state.searchId).toBe('789');
       expect(wrapper.instance().state.query).toBe('is:unresolved');
     });
 
-    it('handles invalid search id', function() {
+    it('handles invalid search id', async function() {
       const streamProps = {
+        api: new MockApiClient(),
         setProjectNavSection: function() {},
         params: {orgId: 'org-slug', projectId: 'project-slug', searchId: 'invalid'},
         location: {query: {}, search: ''},
+        tags: {},
       };
       wrapper = shallow(<Stream {...streamProps} />, {
         context,
       });
+      await wrapper.update();
 
       expect(wrapper.instance().state.searchId).toBeNull();
       expect(wrapper.instance().state.query).toBe('');
     });
 
-    it('handles default saved search (no search id or query)', function() {
+    it('handles default saved search (no search id or query)', async function() {
       const streamProps = {
         ...props,
         location: {query: {}, search: ''},
@@ -267,6 +283,7 @@ describe('Stream', function() {
       wrapper = shallow(<Stream {...streamProps} />, {
         context,
       });
+      await wrapper.update();
 
       expect(wrapper.instance().state.searchId).toBe('default');
       expect(wrapper.instance().state.query).toBe('is:unresolved assigned:me');
@@ -316,22 +333,33 @@ describe('Stream', function() {
         loading: false,
         dataLoading: false,
       });
-      expect(wrapper.find('.empty-stream').length).toBeTruthy();
+      expect(wrapper.find('EmptyStateWarning').length).toBeTruthy();
     });
 
-    it('shows "awaiting events" message when no events have been sent', function() {
-      context.project.firstEvent = false; // Set false for this test only
+    describe('no first event sent', function() {
+      it('shows "awaiting events" message when no events have been sent', function() {
+        context.project.firstEvent = false;
+        wrapper.setState({
+          error: false,
+          groupIds: [],
+          loading: false,
+          dataLoading: false,
+        });
 
-      wrapper.setState({
-        error: false,
-        groupIds: [],
-        loading: false,
-        dataLoading: false,
+        expect(wrapper.find(ErrorRobot)).toHaveLength(1);
       });
 
-      expect(wrapper.find(ErrorRobot)).toHaveLength(1);
+      it('does not show "awaiting events" when an event is recieved', function() {
+        context.project.firstEvent = false;
+        wrapper.setState({
+          error: false,
+          groupIds: ['1'],
+          loading: false,
+          dataLoading: false,
+        });
 
-      context.project.firstEvent = true; // Reset for other tests
+        expect(wrapper.find('.ref-group-list').length).toBeTruthy();
+      });
     });
 
     it('does not have real time event updates when events exist', function() {
@@ -421,21 +449,21 @@ describe('Stream', function() {
     it('reads the realtimeActive state from a cookie', function() {
       Cookies.set('realtimeActive', 'false');
 
-      let stream = wrapper.instance();
+      const stream = wrapper.instance();
       expect(stream.getInitialState()).toHaveProperty('realtimeActive', false);
     });
 
     it('reads the true realtimeActive state from a cookie', function() {
       Cookies.set('realtimeActive', 'true');
 
-      let stream = wrapper.instance();
+      const stream = wrapper.instance();
       expect(stream.getInitialState()).toHaveProperty('realtimeActive', true);
     });
   });
 
   describe('onRealtimeChange', function() {
     it('sets the realtimeActive state', function() {
-      let stream = wrapper.instance();
+      const stream = wrapper.instance();
       stream.state.realtimeActive = false;
       stream.onRealtimeChange(true);
       expect(stream.state.realtimeActive).toEqual(true);
@@ -449,7 +477,7 @@ describe('Stream', function() {
 
   describe('getInitialState', function() {
     it('handles query', function() {
-      let expected = {
+      const expected = {
         groupIds: [],
         selectAllActive: false,
         multiSelected: false,
@@ -465,17 +493,17 @@ describe('Stream', function() {
         sort: 'date',
       };
 
-      let actual = wrapper.instance().getInitialState();
+      const actual = wrapper.instance().getInitialState();
       expect(_.pick(actual, _.keys(expected))).toEqual(expected);
     });
 
-    it('handles no searchId or query', function() {
-      let streamProps = {
+    it('handles no searchId or query', async function() {
+      const streamProps = {
         ...props,
         location: {query: {sort: 'freq'}, search: 'sort=freq'},
       };
 
-      let expected = {
+      const expected = {
         groupIds: [],
         selectAllActive: false,
         multiSelected: false,
@@ -490,22 +518,25 @@ describe('Stream', function() {
         searchId: null,
       };
 
-      let stream = shallow(<Stream {...streamProps} />, {
+      wrapper = shallow(<Stream {...streamProps} />, {
         context,
-      }).instance();
+      });
+      await wrapper.update();
 
-      let actual = stream.state;
+      const stream = wrapper.instance();
+
+      const actual = stream.state;
       expect(_.pick(actual, _.keys(expected))).toEqual(expected);
     });
 
-    it('handles valid searchId in routing params', function() {
-      let streamProps = {
+    it('handles valid searchId in routing params', async function() {
+      const streamProps = {
         ...props,
         location: {query: {sort: 'freq'}, search: 'sort=freq'},
         params: {orgId: 'org-slug', projectId: 'project-slug', searchId: '789'},
       };
 
-      let expected = {
+      const expected = {
         groupIds: [],
         selectAllActive: false,
         multiSelected: false,
@@ -527,19 +558,20 @@ describe('Stream', function() {
       wrapper.setState({
         savedSearchList: [{id: '789', query: 'is:unresolved', name: 'test'}],
       });
+      await wrapper.update();
 
-      let actual = wrapper.instance().state;
+      const actual = wrapper.instance().state;
       expect(_.pick(actual, _.keys(expected))).toEqual(expected);
     });
 
-    it('handles invalid searchId in routing params', function() {
-      let streamProps = {
+    it('handles invalid searchId in routing params', async function() {
+      const streamProps = {
         ...props,
         location: {query: {sort: 'freq'}, search: 'sort=freq'},
         params: {orgId: 'org-slug', projectId: 'project-slug', searchId: '799'},
       };
 
-      let expected = {
+      const expected = {
         groupIds: [],
         selectAllActive: false,
         multiSelected: false,
@@ -554,17 +586,19 @@ describe('Stream', function() {
         searchId: null,
       };
 
-      let stream = shallow(<Stream {...streamProps} />, {
+      wrapper = shallow(<Stream {...streamProps} />, {
         context,
-      }).instance();
+      });
+      await wrapper.update();
+      const stream = wrapper.instance();
 
-      let actual = stream.state;
+      const actual = stream.state;
       expect(_.pick(actual, _.keys(expected))).toEqual(expected);
     });
   });
 
   describe('getQueryState', function() {
-    it('handles changed search id', function() {
+    it('handles changed search id', async function() {
       const nextProps = {
         ...props,
         location: {
@@ -573,9 +607,12 @@ describe('Stream', function() {
         params: {orgId: 'org-slug', projectId: 'project-slug', searchId: '789'},
       };
 
-      const stream = shallow(<Stream {...props} />, {
+      wrapper = shallow(<Stream {...props} />, {
         context,
-      }).instance();
+      });
+      await wrapper.update();
+      const stream = wrapper.instance();
+
       const nextState = stream.getQueryState(nextProps);
       expect(nextState).toEqual(
         expect.objectContaining({searchId: '789', query: 'is:unresolved'})

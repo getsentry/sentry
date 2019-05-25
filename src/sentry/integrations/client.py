@@ -5,16 +5,22 @@ import json
 import requests
 
 from collections import OrderedDict
+from time import time
 
 from BeautifulSoup import BeautifulStoneSoup
-from requests.exceptions import ConnectionError, HTTPError
-from sentry.exceptions import InvalidIdentity
-from time import time
 from django.utils.functional import cached_property
-
+from requests.exceptions import ConnectionError, Timeout, HTTPError
+from sentry.exceptions import InvalidIdentity
 from sentry.http import build_session
+from sentry.utils import metrics
 
-from .exceptions import ApiHostError, ApiError, ApiUnauthorized, UnsupportedResponseType
+from .exceptions import (
+    ApiHostError,
+    ApiTimeoutError,
+    ApiError,
+    ApiUnauthorized,
+    UnsupportedResponseType
+)
 
 
 class BaseApiResponse(object):
@@ -108,6 +114,13 @@ class SequenceApiResponse(list, BaseApiResponse):
         return self
 
 
+def track_response_code(host, code):
+    metrics.incr('integrations.http_response', tags={
+        'host': host,
+        'status': code
+    })
+
+
 class ApiClient(object):
     base_url = None
 
@@ -115,7 +128,10 @@ class ApiClient(object):
 
     allow_redirects = None
 
-    logger = logging.getLogger('sentry.plugins')
+    logger = logging.getLogger('sentry.integrations')
+
+    # Used in metrics and logging.
+    integration_name = 'undefined'
 
     def __init__(self, verify_ssl=True):
         self.verify_ssl = verify_ssl
@@ -145,6 +161,8 @@ class ApiClient(object):
 
         full_url = self.build_url(path)
         session = build_session()
+
+        metrics.incr('integrations.http_request', tags={'integration': self.integration_name})
         try:
             resp = getattr(session, method.lower())(
                 url=full_url,
@@ -159,16 +177,30 @@ class ApiClient(object):
             )
             resp.raise_for_status()
         except ConnectionError as e:
+            metrics.incr('integrations.http_response', tags={
+                'integration': self.integration_name,
+                'status': 'connection_error'
+            })
             raise ApiHostError.from_exception(e)
+        except Timeout as e:
+            metrics.incr('integrations.http_response', tags={
+                'integration': self.integration_name,
+                'status': 'timeout'
+            })
+            raise ApiTimeoutError.from_exception(e)
         except HTTPError as e:
             resp = e.response
             if resp is None:
+                track_response_code(self.integration_name, 'unknown')
                 self.logger.exception('request.error', extra={
+                    'integration': self.integration_name,
                     'url': full_url,
                 })
                 raise ApiError('Internal Error')
+            track_response_code(self.integration_name, resp.status_code)
             raise ApiError.from_response(resp)
 
+        track_response_code(self.integration_name, resp.status_code)
         if resp.status_code == 204:
             return {}
 

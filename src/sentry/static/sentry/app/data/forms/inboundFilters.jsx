@@ -1,9 +1,9 @@
 import React from 'react';
 import {t, tct} from 'app/locale';
-import ExternalLink from 'app/components/externalLink';
+import ExternalLink from 'app/components/links/externalLink';
 
 // Export route to make these forms searchable by label/help
-export const route = '/settings/:orgId/:projectId/filters/';
+export const route = '/settings/:orgId/projects/:projectId/filters/';
 
 const newLineHelpText = t('Separate multiple entries with a newline.');
 const globHelpText = tct('Allows [link:glob pattern matching].', {

@@ -17,6 +17,7 @@ from django.http import HttpResponseRedirect
 from threading import local
 
 from sentry.auth import access
+from sentry.plugins import HIDDEN_PLUGINS
 from sentry.plugins.config import PluginConfigMixin
 from sentry.plugins.status import PluginStatusMixin
 from sentry.plugins.base.response import Response
@@ -443,7 +444,7 @@ class IPlugin(local, PluggableViewMixin, PluginConfigMixin, PluginStatusMixin):
         >>> def is_regression(self, group, event, **kwargs):
         >>>     # regression if 'version' tag has a value we haven't seen before
         >>>     seen_versions = set(t[0] for t in group.get_unique_tags("version"))
-        >>>     event_version = dict(event.get_tags()).get("version")
+        >>>     event_version = dict(event.tags).get("version")
         >>>     return event_version not in seen_versions
         """
 
@@ -487,6 +488,14 @@ class IPlugin(local, PluggableViewMixin, PluginConfigMixin, PluginStatusMixin):
         Returns True if this plugin is able to be tested.
         """
         return hasattr(self, 'test_configuration')
+
+    def is_hidden(self):
+        """
+        Should this plugin be hidden in the UI
+
+        We use this to hide plugins as they are replaced with integrations.
+        """
+        return self.slug in HIDDEN_PLUGINS
 
     def configure(self, request, project=None):
         """Configures the plugin."""

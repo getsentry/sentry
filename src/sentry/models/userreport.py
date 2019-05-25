@@ -37,7 +37,8 @@ class UserReport(Model):
     def notify(self):
         from django.contrib.auth.models import AnonymousUser
         from sentry.api.serializers import (
-            serialize, ProjectUserReportSerializer
+            serialize,
+            UserReportWithGroupSerializer,
         )
         from sentry.tasks.signals import signal
 
@@ -45,6 +46,6 @@ class UserReport(Model):
             name='user-reports.created',
             project_id=self.project_id,
             payload={
-                'report': serialize(self, AnonymousUser(), ProjectUserReportSerializer()),
+                'report': serialize(self, AnonymousUser(), UserReportWithGroupSerializer()),
             },
         )

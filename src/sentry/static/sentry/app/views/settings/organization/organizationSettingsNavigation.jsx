@@ -23,7 +23,7 @@ const OrganizationSettingsNavigation = createReactClass({
 
   getHooks() {
     // Allow injection via getsentry et all
-    let org = this.getOrganization();
+    const org = this.getOrganization();
 
     return {
       hookConfigs: HookStore.get('settings:organization-navigation-config').map(cb =>
@@ -34,18 +34,20 @@ const OrganizationSettingsNavigation = createReactClass({
   },
 
   handleHooks(name, hooks) {
-    let org = this.getOrganization();
-    if (name !== 'settings:organization-navigation-config') return;
+    const org = this.getOrganization();
+    if (name !== 'settings:organization-navigation-config') {
+      return;
+    }
     this.setState(state => ({
       hookConfigs: hooks.map(cb => cb(org)),
     }));
   },
 
   render() {
-    let access = this.getAccess();
-    let features = this.getFeatures();
-    let org = this.getOrganization();
-    let {hooks, hookConfigs} = this.state;
+    const access = this.getAccess();
+    const features = this.getFeatures();
+    const org = this.getOrganization();
+    const {hooks, hookConfigs} = this.state;
 
     return (
       <SettingsNavigation

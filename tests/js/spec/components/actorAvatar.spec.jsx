@@ -5,8 +5,6 @@ import MemberListStore from 'app/stores/memberListStore';
 import TeamStore from 'app/stores/teamStore';
 
 describe('Avatar', function() {
-  let sandbox;
-
   const USER = {
     id: '1',
     name: 'Jane Doe',
@@ -23,18 +21,15 @@ describe('Avatar', function() {
     ],
   };
   beforeEach(function() {
-    sandbox = sinon.sandbox.create();
     MemberListStore.loadInitialData([USER]);
     TeamStore.loadInitialData([TEAM_1]);
   });
 
-  afterEach(function() {
-    sandbox.restore();
-  });
+  afterEach(function() {});
 
   describe('render()', function() {
     it('should show a gravatar when actor type is a user', function() {
-      let avatar = shallow(
+      const avatar = shallow(
         <ActorAvatar
           actor={{
             id: '1',
@@ -47,7 +42,7 @@ describe('Avatar', function() {
     });
 
     it('should show a gravatar when actor type is a team', function() {
-      let avatar = shallow(
+      const avatar = shallow(
         <ActorAvatar
           actor={{
             id: '3',
@@ -62,7 +57,7 @@ describe('Avatar', function() {
     it('should return null when actor type is a unknown', function() {
       window.console.error = jest.fn();
 
-      let avatar = mount(
+      const avatar = mount(
         <ActorAvatar
           actor={{
             id: '3',

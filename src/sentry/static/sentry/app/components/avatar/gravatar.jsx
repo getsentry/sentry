@@ -30,10 +30,14 @@ class Gravatar extends React.Component {
   componentDidMount() {
     this._isMounted = true;
 
-    import(/*webpackChunkName: "MD5"*/ 'crypto-js/md5').then(MD5 => {
-      if (!this._isMounted) return;
-      this.setState({MD5});
-    });
+    import(/* webpackChunkName: "MD5" */ 'crypto-js/md5')
+      .then(mod => mod.default)
+      .then(MD5 => {
+        if (!this._isMounted) {
+          return;
+        }
+        this.setState({MD5});
+      });
   }
 
   componentWillUnmount() {
@@ -43,12 +47,12 @@ class Gravatar extends React.Component {
   }
 
   buildGravatarUrl = () => {
-    let {gravatarId, remoteSize, placeholder} = this.props;
+    const {gravatarId, remoteSize, placeholder} = this.props;
     let url = ConfigStore.getConfig().gravatarBaseUrl + '/avatar/';
 
     url += this.state.MD5(gravatarId);
 
-    let query = {
+    const query = {
       s: remoteSize || undefined,
       // If gravatar is not found we need the request to return an error,
       // otherwise error handler will not trigger and avatar will not have a display a LetterAvatar backup.
@@ -65,7 +69,7 @@ class Gravatar extends React.Component {
       return null;
     }
 
-    let {round, ...props} = this.props;
+    const {round, ...props} = this.props;
 
     return <Image round={round} src={this.buildGravatarUrl()} {...props} />;
   }

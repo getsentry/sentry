@@ -4,7 +4,7 @@ import {GuideDrawer} from 'app/components/assistant/guideDrawer';
 import {shallow} from 'enzyme';
 
 describe('GuideDrawer', function() {
-  let guides = [
+  const guides = [
     {
       cue: 'Click here for a tour of the issue page',
       id: 1,
@@ -84,7 +84,7 @@ describe('GuideDrawer', function() {
     });
     wrapper.update();
     wrapper
-      .find('.assistant-cue')
+      .find('[data-test-id="assistant-cue"]')
       .first()
       .simulate('click');
     expect(wrapper).toMatchSnapshot();

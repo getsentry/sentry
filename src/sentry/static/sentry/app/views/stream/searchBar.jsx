@@ -1,513 +1,162 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import createReactClass from 'create-react-class';
-import ReactDOM from 'react-dom';
-import Reflux from 'reflux';
-import _ from 'lodash';
-import classNames from 'classnames';
 
-import TagStore from 'app/stores/tagStore';
-import MemberListStore from 'app/stores/memberListStore';
-
-import ApiMixin from 'app/mixins/apiMixin';
+import {SEARCH_TYPES} from 'app/constants';
+import {fetchRecentSearches} from 'app/actionCreators/savedSearches';
 import {t} from 'app/locale';
+import SentryTypes from 'app/sentryTypes';
+import SmartSearchBar from 'app/components/smartSearchBar';
+import withApi from 'app/utils/withApi';
+import withOrganization from 'app/utils/withOrganization';
 
-import SearchDropdown from 'app/views/stream/searchDropdown';
-import OrganizationState from 'app/mixins/organizationState';
+const SEARCH_ITEMS = [
+  {
+    title: t('Tag'),
+    desc: 'browser:"Chrome 34", has:browser',
+    value: 'browser:',
+    type: 'default',
+  },
+  {
+    title: t('Status'),
+    desc: 'is:resolved, unresolved, ignored, assigned, unassigned',
+    value: 'is:',
+    type: 'default',
+  },
+  {
+    title: t('Time or Count'),
+    desc: 'firstSeen, lastSeen, event.timestamp, timesSeen',
+    value: '',
+    type: 'default',
+  },
+  {
+    title: t('Assigned'),
+    desc: 'assigned:[me|user@example.com]',
+    value: 'assigned:',
+    type: 'default',
+  },
+  {
+    title: t('Bookmarked By'),
+    desc: 'bookmarks:[me|user@example.com]',
+    value: 'bookmarks:',
+    type: 'default',
+  },
+];
 
-export function addSpace(query = '') {
-  if (query.length !== 0 && query[query.length - 1] !== ' ') {
-    return query + ' ';
-  } else {
-    return query;
+class SearchBar extends React.Component {
+  static propTypes = {
+    ...SmartSearchBar.propTypes,
+
+    savedSearch: SentryTypes.SavedSearch,
+    organization: SentryTypes.Organization.isRequired,
+    tagValueLoader: PropTypes.func.isRequired,
+    onSidebarToggle: PropTypes.func,
+  };
+
+  state = {
+    defaultSearchItems: [SEARCH_ITEMS, []],
+    recentSearches: [],
+  };
+
+  componentDidMount() {
+    // Ideally, we would fetch on demand (e.g. when input gets focus)
+    // but `<SmartSearchBar>` is a bit complicated and this is the easiest route
+    this.fetchData();
   }
-}
 
-export function removeSpace(query = '') {
-  if (query[query.length - 1] === ' ') {
-    return query.slice(0, query.length - 1);
-  } else {
-    return query;
-  }
-}
+  hasSentry10 = () => {
+    const {organization} = this.props;
+    return organization && organization.features.includes('sentry10');
+  };
 
-const SearchBar = createReactClass({
-  displayName: 'SearchBar',
-
-  propTypes: {
-    defaultQuery: PropTypes.string,
-    query: PropTypes.string,
-    defaultSearchItems: PropTypes.array.isRequired,
-    disabled: PropTypes.bool,
-    placeholder: PropTypes.string,
-    onSearch: PropTypes.func,
-    // If true, excludes the environment tag from the autocompletion list
-    // This is because we don't want to treat environment as a tag in some places
-    // such as the stream view where it is a top level concept
-    excludeEnvironment: PropTypes.bool,
-  },
-
-  mixins: [
-    ApiMixin,
-    OrganizationState,
-    Reflux.listenTo(MemberListStore, 'onMemberListStoreChange'),
-  ],
-
-  statics: {
-    /**
-     * Given a query, and the current cursor position, return the string-delimiting
-     * index of the search term designated by the cursor.
-     */
-    getLastTermIndex(query, cursor) {
-      // TODO: work with quoted-terms
-      let cursorOffset = query.slice(cursor).search(/\s|$/);
-      return cursor + (cursorOffset === -1 ? 0 : cursorOffset);
-    },
-
-    /**
-     * Returns an array of query terms, including incomplete terms
-     *
-     * e.g. ["is:unassigned", "browser:\"Chrome 33.0\"", "assigned"]
-     */
-    getQueryTerms(query, cursor) {
-      return query.slice(0, cursor).match(/\S+:"[^"]*"?|\S+/g);
-    },
-  },
-
-  getDefaultProps() {
-    return {
-      defaultQuery: '',
-      query: null,
-      onSearch: function() {},
-      excludeEnvironment: false,
-      defaultSearchItems: [
-        {
-          title: t('Tag'),
-          desc: t('key/value pair associated to an issue'),
-          example: 'browser:"Chrome 34", has:browser',
-          className: 'icon-tag',
-          value: 'browser:',
-        },
-        {
-          title: t('Status'),
-          desc: t('State of an issue'),
-          example: 'is:resolved, unresolved, ignored, assigned, unassigned',
-          className: 'icon-toggle',
-          value: 'is:',
-        },
-        {
-          title: t('Time or Count'),
-          desc: t('Time or Count related search'),
-          example: 'firstSeen, lastSeen, event.timestamp, timesSeen',
-          className: 'icon-clock',
-          value: '',
-        },
-        {
-          title: t('Assigned'),
-          desc: t('team member assigned to an issue'),
-          example: 'assigned:[me|user@example.com]',
-          className: 'icon-user',
-          value: 'assigned:',
-        },
-        {
-          title: t('Bookmarked By'),
-          desc: t('team member who bookmarked an issue'),
-          example: 'bookmarks:[me|user@example.com]',
-          className: 'icon-user',
-          value: 'bookmarks:',
-        },
-        {
-          desc: t('or paste an event id to jump straight to it'),
-          className: 'icon-hash',
-          value: '',
-        },
-      ],
-    };
-  },
-
-  getInitialState() {
-    return {
-      query:
-        this.props.query !== null ? addSpace(this.props.query) : this.props.defaultQuery,
-
-      searchTerm: '',
-      searchItems: [],
-      activeSearchItem: 0,
-
-      tags: {},
-      members: MemberListStore.getAll(),
-
-      dropdownVisible: false,
-      loading: false,
-    };
-  },
-
-  componentWillReceiveProps(nextProps) {
-    // query was updated by another source (e.g. sidebar filters)
-    if (nextProps.query !== this.props.query) {
+  fetchData = async () => {
+    if (!this.hasSentry10()) {
       this.setState({
-        query: addSpace(nextProps.query),
+        defaultSearchItems: [SEARCH_ITEMS, []],
       });
+
+      return;
     }
-  },
 
-  DROPDOWN_BLUR_DURATION: 200,
+    const resp = await this.getRecentSearches();
 
-  blur() {
-    ReactDOM.findDOMNode(this.refs.searchInput).blur();
-  },
-
-  onSubmit(evt) {
-    evt.preventDefault();
-    this.blur();
-    this.props.onSearch(removeSpace(this.state.query));
-  },
-
-  clearSearch() {
-    this.setState({query: ''}, () => this.props.onSearch(this.state.query));
-  },
-
-  onQueryFocus() {
     this.setState({
-      dropdownVisible: true,
+      defaultSearchItems: [
+        SEARCH_ITEMS,
+        resp
+          ? resp.map(query => ({
+              desc: query,
+              value: query,
+              className: 'icon-clock',
+              type: 'recent-search',
+            }))
+          : [],
+      ],
+      recentSearches: resp,
     });
-  },
-
-  onQueryBlur() {
-    // wait 200ms before closing dropdown in case blur was a result of
-    // clicking a menu option
-    this.blurTimeout = setTimeout(() => {
-      this.blurTimeout = null;
-      this.setState({dropdownVisible: false});
-    }, this.DROPDOWN_BLUR_DURATION);
-  },
-
-  onQueryChange(evt) {
-    this.setState({query: evt.target.value}, () => this.updateAutoCompleteItems());
-  },
-
-  onKeyUp(evt) {
-    if (evt.key === 'Escape' || evt.keyCode === 27) {
-      // blur handler should additionally hide dropdown
-      this.blur();
-    }
-  },
-
-  getCursorPosition() {
-    return ReactDOM.findDOMNode(this.refs.searchInput).selectionStart;
-  },
-
-  /**
-   * Returns array of possible key values that substring match `query`
-   *
-   * e.g. ['is:', 'assigned:', 'url:', 'release:']
-   */
-  getTagKeys: function(query) {
-    const allKeys = TagStore.getTagKeys()
-      .map(key => key + ':')
-      .filter(key => key.indexOf(query) > -1);
-
-    // If the environment feature is active and excludeEnvironment = true
-    // then remove the environment key
-    if (this.props.excludeEnvironment) {
-      return allKeys.filter(key => key !== 'environment:');
-    } else {
-      return allKeys;
-    }
-  },
+  };
 
   /**
    * Returns array of tag values that substring match `query`; invokes `callback`
    * with data when ready
    */
-  getTagValues: _.debounce(function(tag, query, callback) {
-    // Strip double quotes if there are any
-    query = query.replace('"', '').trim();
+  getTagValues = (tag, query) => {
+    const {tagValueLoader} = this.props;
 
-    this.setState({
-      loading: true,
-    });
-
-    let {orgId, projectId} = this.props;
-
-    this.api.request(`/projects/${orgId}/${projectId}/tags/${tag.key}/values/`, {
-      data: {
-        query,
-      },
-      method: 'GET',
-      success: values => {
-        this.setState({loading: false});
-        callback(
-          values.map(v => {
-            // Wrap in quotes if there is a space
-            return v.value.indexOf(' ') > -1 ? `"${v.value}"` : v.value;
-          }),
-          tag.key,
-          query
-        );
-      },
-    });
-  }, 300),
-
-  /**
-   * Returns array of tag values that substring match `query`; invokes `callback`
-   * with results
-   */
-  getPredefinedTagValues: function(tag, query, callback) {
-    let values = tag.values.filter(value => value.indexOf(query) > -1);
-
-    callback(values, tag.key);
-  },
-
-  onInputClick() {
-    this.updateAutoCompleteItems();
-  },
-
-  updateAutoCompleteItems() {
-    if (this.blurTimeout) {
-      clearTimeout(this.blurTimeout);
-      this.blurTimeout = null;
-    }
-
-    let cursor = this.getCursorPosition();
-    let query = this.state.query;
-
-    let lastTermIndex = SearchBar.getLastTermIndex(query, cursor);
-    let terms = SearchBar.getQueryTerms(query.slice(0, lastTermIndex));
-
-    if (
-      !terms || // no terms
-      terms.length === 0 || // no terms
-      (terms.length === 1 && terms[0] === this.props.defaultQuery) || // default term
-      /^\s+$/.test(query.slice(cursor - 1, cursor + 1))
-    ) {
-      // cursor on whitespace
-      // show default "help" search terms
-      return void this.setState({
-        searchTerm: '',
-        searchItems: this.props.defaultSearchItems,
-        activeSearchItem: 0,
-      });
-    }
-
-    let last = terms.pop();
-    let autoCompleteItems;
-    let matchValue;
-    let tagName;
-    let index = last.indexOf(':');
-
-    if (index === -1) {
-      // No colon present; must still be deciding key
-      matchValue = last;
-      autoCompleteItems = this.getTagKeys(matchValue);
-
-      this.setState({searchTerm: matchValue});
-      this.updateAutoCompleteState(autoCompleteItems, matchValue);
-    } else {
-      tagName = last.slice(0, index);
-      query = last.slice(index + 1);
-
-      // filter existing items immediately, until API can return
-      // with actual tag value results
-      let filteredSearchItems = this.state.searchItems.filter(
-        item => query && item.value.indexOf(query) !== -1
-      );
-
-      this.setState({
-        searchTerm: query,
-        searchItems: filteredSearchItems,
-      });
-
-      let tag = TagStore.getTag(tagName);
-
-      if (!tag) return undefined;
-
-      // Ignore the environment tag if the feature is active and excludeEnvironment = true
-      if (this.props.excludeEnvironment && tagName === 'environment') {
-        return undefined;
-      }
-
-      return void (tag.predefined ? this.getPredefinedTagValues : this.getTagValues)(
-        tag,
-        query,
-        this.updateAutoCompleteState
-      );
-    }
-    return undefined;
-  },
-
-  isDefaultDropdown() {
-    return this.state.searchItems === this.props.defaultSearchItems;
-  },
-
-  updateAutoCompleteState(autoCompleteItems, tagName) {
-    autoCompleteItems = autoCompleteItems.map(item => {
-      let out = {
-        desc: item,
-        value: item,
-      };
-
-      // Specify icons according to tag value
-      switch (tagName || item.replace(':', '')) {
-        case 'is':
-          out.className = 'icon-toggle';
-          break;
-        case 'assigned':
-        case 'bookmarks':
-          out.className = 'icon-user';
-          break;
-        case 'firstSeen':
-        case 'lastSeen':
-        case 'event.timestamp':
-          out.className = 'icon-clock';
-          break;
-        default:
-          out.className = 'icon-tag';
-      }
-      return out;
-    });
-
-    if (autoCompleteItems.length > 0 && !this.isDefaultDropdown()) {
-      autoCompleteItems[0].active = true;
-    }
-
-    this.setState({
-      searchItems: autoCompleteItems.slice(0, 5), // only show 5
-      activeSearchItem: 0,
-    });
-  },
-
-  onKeyDown(evt) {
-    let state = this.state;
-    let searchItems = state.searchItems;
-
-    if (!searchItems.length) return;
-
-    if (evt.key === 'ArrowDown' || evt.key === 'ArrowUp') {
-      evt.preventDefault();
-
-      // Move active selection up/down
-      delete searchItems[state.activeSearchItem].active;
-
-      state.activeSearchItem =
-        evt.key === 'ArrowDown'
-          ? Math.min(state.activeSearchItem + 1, searchItems.length - 1)
-          : Math.max(state.activeSearchItem - 1, 0);
-
-      searchItems[state.activeSearchItem].active = true;
-      this.setState({searchItems: searchItems.slice(0)});
-    } else if (evt.key === 'Tab' && !this.isDefaultDropdown()) {
-      evt.preventDefault();
-
-      this.onAutoComplete(searchItems[state.activeSearchItem].value);
-    }
-  },
-
-  onAutoComplete(replaceText) {
-    let cursor = this.getCursorPosition();
-    let query = this.state.query;
-
-    let lastTermIndex = SearchBar.getLastTermIndex(query, cursor);
-    let terms = SearchBar.getQueryTerms(query.slice(0, lastTermIndex));
-    let newQuery;
-
-    // If not postfixed with : (tag value), add trailing space
-    replaceText += replaceText.charAt(replaceText.length - 1) === ':' ? '' : ' ';
-
-    if (!terms) {
-      newQuery = replaceText;
-    } else {
-      let last = terms.pop();
-
-      newQuery = query.slice(0, lastTermIndex); // get text preceding last term
-
-      newQuery =
-        last.indexOf(':') > -1
-          ? // tag key present: replace everything after colon with replaceText
-            newQuery.replace(/\:"[^"]*"?$|\:\S*$/, ':' + replaceText)
-          : // no tag key present: replace last token with replaceText
-            newQuery.replace(/\S+$/, replaceText);
-
-      newQuery = newQuery.concat(query.slice(lastTermIndex));
-    }
-
-    this.setState(
-      {
-        query: newQuery,
-      },
+    return tagValueLoader(tag.key, query).then(
+      values => values.map(({value}) => value),
       () => {
-        // setting a new input value will lose focus; restore it
-        let node = ReactDOM.findDOMNode(this.refs.searchInput);
-        node.focus();
-
-        // then update the autocomplete box with new contextTypes
-        this.updateAutoCompleteItems();
+        throw new Error('Unable to fetch project tags');
       }
     );
-  },
+  };
 
-  onMemberListStoreChange(members) {
-    this.setState(
-      {
-        members,
-      },
-      this.updateAutoCompleteItems
-    );
-  },
+  getRecentSearches = async fullQuery => {
+    const {api, orgId} = this.props;
+    const recent = await fetchRecentSearches(api, orgId, SEARCH_TYPES.ISSUE, fullQuery);
+    return (recent && recent.map(({query}) => query)) || [];
+  };
+
+  handleSavedRecentSearch = () => {
+    // No need to refetch if recent searches feature is not enabled
+    if (!this.hasSentry10()) {
+      return;
+    }
+
+    // Reset recent searches
+    this.fetchData();
+  };
 
   render() {
-    let dropdownStyle = {
-      display: this.state.dropdownVisible ? 'block' : 'none',
-    };
-
-    let rootClassNames = ['search'];
-    if (this.props.disabled) rootClassNames.push('disabled');
+    const {
+      tagValueLoader, // eslint-disable-line no-unused-vars
+      savedSearch,
+      onSidebarToggle,
+      ...props
+    } = this.props;
+    const hasPinnedSearch = this.hasSentry10();
 
     return (
-      <div className={classNames(rootClassNames)}>
-        <form className="form-horizontal" ref="searchForm" onSubmit={this.onSubmit}>
-          <div>
-            <input
-              type="text"
-              className="search-input form-control"
-              placeholder={this.props.placeholder}
-              name="query"
-              ref="searchInput"
-              autoComplete="off"
-              value={this.state.query}
-              onFocus={this.onQueryFocus}
-              onBlur={this.onQueryBlur}
-              onKeyUp={this.onKeyUp}
-              onKeyDown={this.onKeyDown}
-              onChange={this.onQueryChange}
-              onClick={this.onInputClick}
-              disabled={this.props.disabled}
-            />
-            <span className="icon-search" />
-            {this.state.query !== '' && (
-              <div>
-                <a className="search-clear-form" onClick={this.clearSearch}>
-                  <span className="icon-circle-cross" />
-                </a>
-              </div>
-            )}
-          </div>
-
-          {(this.state.loading || this.state.searchItems.length > 0) && (
-            <div style={dropdownStyle}>
-              <SearchDropdown
-                style={dropdownStyle}
-                items={this.state.searchItems}
-                onClick={this.onAutoComplete}
-                loading={this.state.loading}
-                searchSubstring={this.state.searchTerm}
-              />
-            </div>
-          )}
-        </form>
-      </div>
+      <React.Fragment>
+        <SmartSearchBar
+          onGetTagValues={this.getTagValues}
+          defaultSearchItems={this.state.defaultSearchItems}
+          maxSearchItems={5}
+          hasPinnedSearch={hasPinnedSearch}
+          savedSearchType={SEARCH_TYPES.ISSUE}
+          displayRecentSearches={this.hasSentry10()}
+          onSavedRecentSearch={this.handleSavedRecentSearch}
+          onSidebarToggle={onSidebarToggle}
+          pinnedSearch={savedSearch && savedSearch.isPinned ? savedSearch : null}
+          {...props}
+        />
+        {!hasPinnedSearch && onSidebarToggle && (
+          <a className="btn btn-default toggle-stream-sidebar" onClick={onSidebarToggle}>
+            <span className="icon-filter" />
+          </a>
+        )}
+      </React.Fragment>
     );
-  },
-});
+  }
+}
 
-export default SearchBar;
+export default withApi(withOrganization(SearchBar));

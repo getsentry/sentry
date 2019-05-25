@@ -16,6 +16,7 @@ describe('Result', function() {
           query: {
             aggregations: [['count()', null, 'count']],
             conditions: [],
+            fields: [],
           },
         },
         byDayQuery: {
@@ -24,7 +25,15 @@ describe('Result', function() {
         },
       };
       wrapper = shallow(
-        <Result data={data} organization={organization} onFetchPage={jest.fn()} />,
+        <Result
+          data={data}
+          organization={organization}
+          onFetchPage={jest.fn()}
+          location={{
+            query: {},
+            search: '',
+          }}
+        />,
         {
           context: {organization},
           disableLifecycleMethods: false,
@@ -137,10 +146,16 @@ describe('Result', function() {
         ).toBe('query time: 15 ms, 0 rows');
       });
     });
+
     describe('Toggles Visualizations', function() {
       beforeEach(function() {
         wrapper = mount(
-          <Result data={data} organization={organization} onFetchPage={jest.fn()} />,
+          <Result
+            data={data}
+            organization={organization}
+            onFetchPage={jest.fn()}
+            location={{query: {}, search: ''}}
+          />,
           TestStubs.routerContext([{organization}])
         );
       });
@@ -204,13 +219,14 @@ describe('Result', function() {
           organization={organization}
           savedQuery={TestStubs.DiscoverSavedQuery()}
           onFetchPage={jest.fn()}
+          location={{query: {}}}
         />,
         TestStubs.routerContext()
       );
     });
 
     it('renders query name', function() {
-      expect(wrapper.find('Heading').text()).toBe('Saved query #1');
+      expect(wrapper.find('PageHeading').text()).toBe('Saved query #1');
     });
   });
 });

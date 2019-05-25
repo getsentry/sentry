@@ -465,10 +465,10 @@ class StoreViewTest(TestCase):
 
         call_data = mock_insert_data_to_database.call_args[0][0]
         assert call_data['request']['data'] == {
-            'password': ['lol'],
-            'foo': ['1'],
-            'bar': ['2'],
-            'baz': ['3']
+            'password': 'lol',
+            'foo': '1',
+            'bar': '2',
+            'baz': '3'
         }
 
     @mock.patch('sentry.coreapi.ClientApiHelper.insert_data_to_database')
@@ -491,10 +491,10 @@ class StoreViewTest(TestCase):
 
         call_data = mock_insert_data_to_database.call_args[0][0]
         assert call_data['request']['data'] == {
-            'password': ['lol'],
-            'foo': ['1'],
-            'bar': ['2'],
-            'baz': ['3']
+            'password': 'lol',
+            'foo': '1',
+            'bar': '2',
+            'baz': '3'
         }
 
     @mock.patch('sentry.coreapi.ClientApiHelper.insert_data_to_database')
@@ -517,10 +517,10 @@ class StoreViewTest(TestCase):
 
         call_data = mock_insert_data_to_database.call_args[0][0]
         assert call_data['request']['data'] == {
-            'password': ['[Filtered]'],
-            'foo': ['1'],
-            'bar': ['2'],
-            'baz': ['3']
+            'password': '[Filtered]',
+            'foo': '1',
+            'bar': '2',
+            'baz': '3'
         }
 
     @mock.patch('sentry.coreapi.ClientApiHelper.insert_data_to_database')
@@ -544,10 +544,10 @@ class StoreViewTest(TestCase):
 
         call_data = mock_insert_data_to_database.call_args[0][0]
         assert call_data['request']['data'] == {
-            'password': ['[Filtered]'],
-            'foo': ['[Filtered]'],
-            'bar': ['[Filtered]'],
-            'baz': ['3']
+            'password': '[Filtered]',
+            'foo': '[Filtered]',
+            'bar': '[Filtered]',
+            'baz': '3'
         }
 
     @mock.patch('sentry.coreapi.ClientApiHelper.insert_data_to_database')
@@ -572,10 +572,10 @@ class StoreViewTest(TestCase):
 
         call_data = mock_insert_data_to_database.call_args[0][0]
         assert call_data['request']['data'] == {
-            'password': ['[Filtered]'],
-            'foo': ['1'],
-            'bar': ['2'],
-            'baz': ['3']
+            'password': '[Filtered]',
+            'foo': '1',
+            'bar': '2',
+            'baz': '3'
         }
 
     @mock.patch('sentry.coreapi.ClientApiHelper.insert_data_to_database')
@@ -600,10 +600,10 @@ class StoreViewTest(TestCase):
 
         call_data = mock_insert_data_to_database.call_args[0][0]
         assert call_data['request']['data'] == {
-            'password': ['[Filtered]'],
-            'foo': ['[Filtered]'],
-            'bar': ['[Filtered]'],
-            'baz': ['[Filtered]']
+            'password': '[Filtered]',
+            'foo': '[Filtered]',
+            'bar': '[Filtered]',
+            'baz': '[Filtered]'
         }
 
     @mock.patch('sentry.coreapi.ClientApiHelper.insert_data_to_database')

@@ -14,10 +14,13 @@ from sentry.utils.http import absolute_uri
 class JiraServerSetupClient(ApiClient):
     """
     Client for making requests to JiraServer to follow OAuth1 flow.
+
+    Jira OAuth1 docs: https://developer.atlassian.com/server/jira/platform/oauth/
     """
     request_token_url = u'{}/plugins/servlet/oauth/request-token'
     access_token_url = u'{}/plugins/servlet/oauth/access-token'
     authorize_url = u'{}/plugins/servlet/oauth/authorize?oauth_token={}'
+    integration_name = 'jira_server_setup'
 
     def __init__(self, base_url, consumer_key, private_key, verify_ssl=True):
         self.base_url = base_url
@@ -95,40 +98,47 @@ class JiraServerSetupClient(ApiClient):
         return self._request(*args, **kwargs)
 
 
-class JiraServerClient(ApiClient):
+class JiraServer(object):
     """
-    Client for making authenticated requests to JiraServer
+    Contains the jira-server specifics that a JiraClient needs
+    in order to communicate with jira
+
+    You can find JIRA REST API docs here:
+
+    https://developer.atlassian.com/server/jira/platform/rest-apis/
     """
 
-    def __init__(self, installation):
-        self.installation = installation
-        super(JiraServerClient, self).__init__(self.metadata['verify_ssl'])
-        self.base_url = self.metadata['base_url']
+    def __init__(self, credentials):
+        self.credentials = credentials
 
     @property
-    def identity(self):
-        return self.installation.default_identity
+    def cache_prefix(self):
+        return 'sentry-jira-server:'
 
-    @property
-    def metadata(self):
-        return self.installation.model.metadata
-
-    def request(self, *args, **kwargs):
+    def request_hook(self, method, path, data, params, **kwargs):
+        """
+        Used by Jira Client to apply the jira-server authentication
+        Which is RSA signed OAuth1
+        """
         if 'auth' not in kwargs:
-            auth_data = self.identity.data
             kwargs['auth'] = OAuth1(
-                client_key=auth_data['consumer_key'],
-                rsa_key=auth_data['private_key'],
-                resource_owner_key=auth_data['access_token'],
-                resource_owner_secret=auth_data['access_token_secret'],
+                client_key=self.credentials['consumer_key'],
+                rsa_key=self.credentials['private_key'],
+                resource_owner_key=self.credentials['access_token'],
+                resource_owner_secret=self.credentials['access_token_secret'],
                 signature_method=SIGNATURE_RSA,
                 signature_type='auth_header')
-        return self._request(*args, **kwargs)
 
-    def get_valid_statuses(self):
-        # TODO Implement this.
-        return []
+        request_spec = kwargs.copy()
+        request_spec.update(dict(
+            method=method,
+            path=path,
+            data=data,
+            params=params))
+        return request_spec
 
-    def get_projects_list(self):
-        # TODO Implement this
-        return []
+    def user_id_field(self):
+        """
+        Jira-Server doesn't require GDPR compliant API usage so we can use `name`
+        """
+        return 'name'

@@ -1,139 +1,180 @@
-import {withRouter} from 'react-router';
+import {isEqual} from 'lodash';
 import PropTypes from 'prop-types';
 import React from 'react';
-import moment from 'moment';
+import styled from 'react-emotion';
 
+import {getInterval} from 'app/components/charts/utils';
 import {t} from 'app/locale';
-import AreaChart from 'app/components/charts/areaChart';
+import ChartZoom from 'app/components/charts/chartZoom';
+import LineChart from 'app/components/charts/lineChart';
+import LoadingPanel, {LoadingMask} from 'app/views/organizationEvents/loadingPanel';
+import ReleaseSeries from 'app/components/charts/releaseSeries';
 import SentryTypes from 'app/sentryTypes';
 import withApi from 'app/utils/withApi';
+import withGlobalSelection from 'app/utils/withGlobalSelection';
 
-import {EventsRequestWithParams} from './utils/eventsRequest';
-import EventsContext from './utils/eventsContext';
+import EventsRequest from './utils/eventsRequest';
 
-class EventsChart extends React.PureComponent {
+const DEFAULT_GET_CATEGORY = () => t('Events');
+
+class EventsLineChart extends React.Component {
   static propTypes = {
-    organization: SentryTypes.Organization,
-    actions: PropTypes.object,
-    period: PropTypes.string,
-    utc: PropTypes.bool,
+    loading: PropTypes.bool,
+    reloading: PropTypes.bool,
+    releaseSeries: PropTypes.array,
+    zoomRenderProps: PropTypes.object,
+    timeseriesData: PropTypes.array,
+    previousTimeseriesData: PropTypes.object,
   };
 
-  constructor(props) {
-    super(props);
+  shouldComponentUpdate(nextProps) {
+    if (nextProps.reloading || !nextProps.timeseriesData) {
+      return false;
+    }
+
+    if (
+      isEqual(this.props.timeseriesData, nextProps.timeseriesData) &&
+      isEqual(this.props.releaseSeries, nextProps.releaseSeries)
+    ) {
+      return false;
+    }
+
+    return true;
   }
 
-  handleDataZoom = (evt, chart) => {
-    const model = chart.getModel();
-    const {xAxis, series} = model.option;
-    const axis = xAxis[0];
-    const [firstSeries] = series;
-
-    const start = moment(firstSeries.data[axis.rangeStart][0]).format(
-      moment.HTML5_FMT.DATETIME_LOCAL_MS
-    );
-
-    // Add a day so we go until the end of the day (e.g. next day at midnight)
-    const end = moment(firstSeries.data[axis.rangeEnd][0])
-      .add(1, 'day')
-      .subtract(1, 'second')
-      .format(moment.HTML5_FMT.DATETIME_LOCAL_MS);
-
-    this.props.actions.updateParams({
-      statsPeriod: null,
-      start,
-      end,
-    });
-  };
-
-  handleChartClick = series => {
-    if (!series) {
-      return;
-    }
-
-    const firstSeries = series;
-
-    const date = moment(firstSeries.name);
-    const start = date.format(moment.HTML5_FMT.DATETIME_LOCAL_MS);
-
-    // Add a day so we go until the end of the day (e.g. next day at midnight)
-    const end = date
-      .add(1, 'day')
-      .subtract(1, 'second')
-      .format(moment.HTML5_FMT.DATETIME_LOCAL_MS);
-
-    this.props.actions.updateParams({
-      statsPeriod: null,
-      start,
-      end,
-    });
-  };
-
   render() {
-    const {period, utc, location} = this.props;
-
-    let interval = '1d';
-    let xAxisOptions = {};
-    if ((typeof period === 'string' && period.endsWith('h')) || period === '1d') {
-      interval = '1h';
-      xAxisOptions.axisLabel = {
-        formatter: value =>
-          moment
-            .utc(value)
-            .local()
-            .format('LT'),
-      };
-    }
-
-    // TODO(billy): For now only include previous period when we use relative time
+    const {
+      loading, // eslint-disable-line no-unused-vars
+      reloading, // eslint-disable-line no-unused-vars
+      releaseSeries,
+      zoomRenderProps,
+      timeseriesData,
+      previousTimeseriesData,
+      ...props
+    } = this.props;
 
     return (
-      <div>
-        <EventsRequestWithParams
-          {...this.props}
-          interval={interval}
-          showLoading
-          query={(location.query && location.query.query) || ''}
-          getCategory={() => t('Events')}
-          includePrevious={!!period}
-        >
-          {({timeseriesData, previousTimeseriesData}) => {
-            return (
-              <AreaChart
-                isGroupedByDate
-                useUtc={utc}
-                interval={interval === '1h' ? 'hour' : 'day'}
-                series={timeseriesData}
-                previousPeriod={previousTimeseriesData}
-                grid={{
-                  left: '18px',
-                  right: '18px',
-                }}
-                xAxis={xAxisOptions}
-              />
-            );
-          }}
-        </EventsRequestWithParams>
-      </div>
+      <LineChart
+        {...props}
+        {...zoomRenderProps}
+        series={[...timeseriesData, ...releaseSeries]}
+        seriesOptions={{
+          showSymbol: false,
+        }}
+        previousPeriod={previousTimeseriesData ? [previousTimeseriesData] : null}
+        grid={{
+          left: '30px',
+          right: '18px',
+        }}
+      />
     );
   }
 }
 
-const EventsChartContainer = withRouter(
+class EventsChart extends React.Component {
+  static propTypes = {
+    api: PropTypes.object,
+    projects: PropTypes.arrayOf(PropTypes.number),
+    environments: PropTypes.arrayOf(PropTypes.string),
+    period: PropTypes.string,
+    query: PropTypes.string,
+    start: PropTypes.instanceOf(Date),
+    end: PropTypes.instanceOf(Date),
+    utc: PropTypes.bool,
+    router: PropTypes.object,
+  };
+
+  render() {
+    const {
+      api,
+      period,
+      utc,
+      query,
+      router,
+      start,
+      end,
+      projects,
+      environments,
+      ...props
+    } = this.props;
+    // Include previous only on relative dates (defaults to relative if no start and end)
+    const includePrevious = !start && !end;
+
+    return (
+      <ChartZoom
+        router={router}
+        period={period}
+        utc={utc}
+        projects={projects}
+        environments={environments}
+        {...props}
+      >
+        {({interval, ...zoomRenderProps}) => (
+          <EventsRequest
+            {...props}
+            api={api}
+            period={period}
+            project={projects}
+            environment={environments}
+            start={start}
+            end={end}
+            interval={getInterval(this.props, true)}
+            showLoading={false}
+            query={query}
+            getCategory={DEFAULT_GET_CATEGORY}
+            includePrevious={includePrevious}
+          >
+            {({loading, reloading, timeseriesData, previousTimeseriesData}) => {
+              return (
+                <ReleaseSeries utc={utc} api={api} projects={projects}>
+                  {({releaseSeries}) => {
+                    if (loading && !reloading) {
+                      return <LoadingPanel data-test-id="events-request-loading" />;
+                    }
+
+                    return (
+                      <React.Fragment>
+                        <TransparentLoadingMask visible={reloading} />
+                        <EventsLineChart
+                          {...zoomRenderProps}
+                          loading={loading}
+                          reloading={reloading}
+                          utc={utc}
+                          releaseSeries={releaseSeries}
+                          timeseriesData={timeseriesData}
+                          previousTimeseriesData={previousTimeseriesData}
+                        />
+                      </React.Fragment>
+                    );
+                  }}
+                </ReleaseSeries>
+              );
+            }}
+          </EventsRequest>
+        )}
+      </ChartZoom>
+    );
+  }
+}
+
+const EventsChartContainer = withGlobalSelection(
   withApi(
-    class EventsChartContainer extends React.Component {
+    class EventsChartWithParams extends React.Component {
+      static propTypes = {
+        selection: SentryTypes.GlobalSelection,
+      };
+
       render() {
+        const {selection, ...props} = this.props;
+        const {datetime, projects, environments} = selection;
+
         return (
-          <EventsContext.Consumer>
-            {context => (
-              <EventsChart
-                {...context}
-                projects={context.project || []}
-                environments={context.environment || []}
-                {...this.props}
-              />
-            )}
-          </EventsContext.Consumer>
+          <EventsChart
+            {...datetime}
+            projects={projects || []}
+            environments={environments || []}
+            {...props}
+          />
         );
       }
     }
@@ -142,3 +183,8 @@ const EventsChartContainer = withRouter(
 
 export default EventsChartContainer;
 export {EventsChart};
+
+const TransparentLoadingMask = styled(LoadingMask)`
+  ${p => !p.visible && 'display: none;'} opacity: 0.4;
+  z-index: 1;
+`;

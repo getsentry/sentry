@@ -1,15 +1,40 @@
 from __future__ import absolute_import
 
+import six
+
 from django.core import mail
 from django.core.urlresolvers import reverse
+from django.db.models import F
 from mock import patch
 
 from sentry.models import (
-    AuthProvider, OrganizationMember, OrganizationMemberTeam)
+    Authenticator, AuthProvider, Organization, OrganizationMember, OrganizationMemberTeam,
+    RecoveryCodeInterface, TotpInterface
+)
 from sentry.testutils import APITestCase
 
 
 class UpdateOrganizationMemberTest(APITestCase):
+
+    def test_invalid_id(self):
+        self.login_as(user=self.user)
+
+        organization = self.create_organization(name='foo', owner=self.user)
+        member = self.create_user('bar@example.com')
+        self.create_member(
+            organization=organization,
+            user=member,
+            role='member',
+        )
+
+        path = reverse(
+            'sentry-api-0-organization-member-details', args=[organization.slug, 'trash']
+        )
+        self.login_as(self.user)
+
+        resp = self.client.put(path, data={'reinvite': 1})
+
+        assert resp.status_code == 404
 
     @patch('sentry.models.OrganizationMember.send_invite_email')
     def test_reinvite_pending_member(self, mock_send_invite_email):
@@ -466,6 +491,166 @@ class UpdateOrganizationMemberTest(APITestCase):
         assert owner_om.role == 'owner'
 
 
+class ResetOrganizationMember2faTest(APITestCase):
+    def setUp(self):
+        self.owner = self.create_user()
+        self.org = self.create_organization(owner=self.owner)
+
+        self.member = self.create_user()
+        self.member_om = self.create_member(
+            organization=self.org,
+            user=self.member,
+            role='member',
+            teams=[],
+        )
+        self.login_as(self.member)
+        totp = TotpInterface()
+        totp.enroll(self.member)
+        self.interface_id = totp.authenticator.id
+        assert Authenticator.objects.filter(user=self.member).exists()
+
+    def assert_can_get_authenticators(self):
+        path = reverse(
+            'sentry-api-0-organization-member-details', args=[self.org.slug, self.member_om.id]
+        )
+        resp = self.client.get(path)
+        assert resp.status_code == 200
+        data = resp.data
+
+        assert len(data['user']['authenticators']) == 1
+        assert data['user']['has2fa'] is True
+        assert data['user']['canReset2fa'] is True
+
+    def assert_cannot_get_authenticators(self):
+        path = reverse(
+            'sentry-api-0-organization-member-details', args=[self.org.slug, self.member_om.id]
+        )
+        resp = self.client.get(path)
+        assert resp.status_code == 200
+        data = resp.data
+
+        assert 'authenticators' not in data['user']
+        assert 'canReset2fa' not in data['user']
+
+    def assert_can_remove_authenticators(self):
+        path = reverse(
+            'sentry-api-0-user-authenticator-details', args=[self.member.id, self.interface_id]
+        )
+        resp = self.client.delete(path)
+        assert resp.status_code == 204
+        assert not Authenticator.objects.filter(user=self.member).exists()
+
+    def assert_cannot_remove_authenticators(self):
+        path = reverse(
+            'sentry-api-0-user-authenticator-details', args=[self.member.id, self.interface_id]
+        )
+        resp = self.client.delete(path)
+        assert resp.status_code == 403
+        assert Authenticator.objects.filter(user=self.member).exists()
+
+    def test_org_owner_can_reset_member_2fa(self):
+        self.login_as(self.owner)
+
+        self.assert_can_get_authenticators()
+        self.assert_can_remove_authenticators()
+
+    def test_owner_must_have_org_membership(self):
+        owner = self.create_user()
+        self.create_organization(owner=owner)
+        self.login_as(owner)
+
+        path = reverse(
+            'sentry-api-0-organization-member-details', args=[self.org.slug, self.member_om.id]
+        )
+        resp = self.client.get(path)
+        assert resp.status_code == 403
+
+        self.assert_cannot_remove_authenticators()
+
+    def test_org_manager_can_reset_member_2fa(self):
+        manager = self.create_user()
+        self.create_member(
+            organization=self.org,
+            user=manager,
+            role='manager',
+            teams=[],
+        )
+        self.login_as(manager)
+
+        self.assert_can_get_authenticators()
+        self.assert_can_remove_authenticators()
+
+    def test_org_admin_cannot_reset_member_2fa(self):
+        admin = self.create_user()
+        self.create_member(
+            organization=self.org,
+            user=admin,
+            role='admin',
+            teams=[],
+        )
+        self.login_as(admin)
+
+        self.assert_cannot_get_authenticators()
+        self.assert_cannot_remove_authenticators()
+
+    def test_org_member_cannot_reset_member_2fa(self):
+        member = self.create_user()
+        self.create_member(
+            organization=self.org,
+            user=member,
+            role='member',
+            teams=[],
+        )
+        self.login_as(member)
+
+        self.assert_cannot_get_authenticators()
+        self.assert_cannot_remove_authenticators()
+
+    def test_cannot_reset_member_2fa__has_multiple_org_membership(self):
+        self.create_organization(owner=self.member)
+        self.login_as(self.owner)
+
+        path = reverse(
+            'sentry-api-0-organization-member-details', args=[self.org.slug, self.member_om.id]
+        )
+        resp = self.client.get(path)
+        assert resp.status_code == 200
+        data = resp.data
+
+        assert len(data['user']['authenticators']) == 1
+        assert data['user']['has2fa'] is True
+        assert data['user']['canReset2fa'] is False
+
+        self.assert_cannot_remove_authenticators()
+
+    def test_cannot_reset_member_2fa__org_requires_2fa(self):
+        self.login_as(self.owner)
+        TotpInterface().enroll(self.owner)
+
+        self.org.update(flags=F('flags').bitor(Organization.flags.require_2fa))
+        assert self.org.flags.require_2fa.is_set is True
+
+        self.assert_cannot_remove_authenticators()
+
+    def test_owner_can_only_reset_member_2fa(self):
+        self.login_as(self.owner)
+
+        path = reverse(
+            'sentry-api-0-user-authenticator-details', args=[self.member.id, self.interface_id]
+        )
+        resp = self.client.get(path)
+        assert resp.status_code == 403
+
+        # cannot regenerate recovery codes
+        recovery = RecoveryCodeInterface()
+        recovery.enroll(self.user)
+        path = reverse(
+            'sentry-api-0-user-authenticator-details', args=[self.member.id, recovery.authenticator.id]
+        )
+        resp = self.client.put(path)
+        assert resp.status_code == 403
+
+
 class DeleteOrganizationMemberTest(APITestCase):
     def test_simple(self):
         self.login_as(user=self.user)
@@ -488,8 +673,27 @@ class DeleteOrganizationMemberTest(APITestCase):
         resp = self.client.delete(path)
 
         assert resp.status_code == 204
-
         assert not OrganizationMember.objects.filter(id=member_om.id).exists()
+
+    def test_invalid_id(self):
+        self.login_as(user=self.user)
+
+        organization = self.create_organization(name='foo', owner=self.user)
+        member = self.create_user('bar@example.com')
+        self.create_member(
+            organization=organization,
+            user=member,
+            role='member',
+        )
+
+        path = reverse(
+            'sentry-api-0-organization-member-details', args=[organization.slug, 'trash']
+        )
+        self.login_as(self.user)
+
+        resp = self.client.delete(path)
+
+        assert resp.status_code == 404
 
     def test_cannot_delete_member_with_higher_access(self):
         organization = self.create_organization(name='foo', owner=self.user)
@@ -518,7 +722,6 @@ class DeleteOrganizationMemberTest(APITestCase):
         resp = self.client.delete(path)
 
         assert resp.status_code == 400
-
         assert OrganizationMember.objects.filter(id=owner_om.id).exists()
 
     def test_cannot_delete_only_owner(self):
@@ -549,7 +752,6 @@ class DeleteOrganizationMemberTest(APITestCase):
         resp = self.client.delete(path)
 
         assert resp.status_code == 403
-
         assert OrganizationMember.objects.filter(id=owner_om.id).exists()
 
     def test_can_delete_self(self):
@@ -571,7 +773,6 @@ class DeleteOrganizationMemberTest(APITestCase):
         resp = self.client.delete(path)
 
         assert resp.status_code == 204
-
         assert not OrganizationMember.objects.filter(
             user=other_user,
             organization=organization,
@@ -610,3 +811,56 @@ class DeleteOrganizationMemberTest(APITestCase):
         assert resp.status_code == 400
 
         assert OrganizationMember.objects.filter(id=member_om.id).exists()
+
+
+class GetOrganizationMemberTest(APITestCase):
+    def test_me(self):
+        user = self.create_user('dummy@example.com')
+        organization = self.create_organization(name='test', owner=user)
+        self.create_team(
+            name='first',
+            organization=organization,
+            members=[user])
+
+        path = reverse(
+            'sentry-api-0-organization-member-details', args=[organization.slug, 'me']
+        )
+        self.login_as(user)
+        resp = self.client.get(path)
+        assert resp.status_code == 200
+        assert resp.data['role'] == 'owner'
+        assert resp.data['user']['id'] == six.text_type(user.id)
+        assert resp.data['email'] == user.email
+
+    def test_get_by_id(self):
+        user = self.create_user('dummy@example.com')
+        organization = self.create_organization(name='test')
+        team = self.create_team(
+            name='first',
+            organization=organization,
+            members=[user])
+        member = team.member_set.first()
+
+        path = reverse(
+            'sentry-api-0-organization-member-details', args=[organization.slug, member.id]
+        )
+        self.login_as(user)
+        resp = self.client.get(path)
+        assert resp.status_code == 200
+        assert resp.data['role'] == 'member'
+        assert resp.data['id'] == six.text_type(member.id)
+
+    def test_get_by_garbage(self):
+        user = self.create_user('dummy@example.com')
+        organization = self.create_organization(name='test')
+        self.create_team(
+            name='first',
+            organization=organization,
+            members=[user])
+
+        path = reverse(
+            'sentry-api-0-organization-member-details', args=[organization.slug, 'trash']
+        )
+        self.login_as(user)
+        resp = self.client.get(path)
+        assert resp.status_code == 404

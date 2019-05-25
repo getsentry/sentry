@@ -24,7 +24,7 @@ describe('ProjectKeys', function() {
       url: `/projects/${org.slug}/${project.slug}/keys/${projectKeys[0].id}/`,
       method: 'DELETE',
     });
-    let routerContext = TestStubs.routerContext();
+    const routerContext = TestStubs.routerContext();
 
     wrapper = mount(
       <ProjectKeys routes={[]} params={{orgId: org.slug, projectId: project.slug}} />,
@@ -59,9 +59,9 @@ describe('ProjectKeys', function() {
   });
 
   it('has clippable box', function() {
-    expect(wrapper.find('.clip-fade .btn')).toHaveLength(1);
-    wrapper.find('.clip-fade .btn').simulate('click');
-    expect(wrapper.find('.clip-fade .btn')).toHaveLength(0);
+    expect(wrapper.find('.clip-fade Button')).toHaveLength(1);
+    wrapper.find('.clip-fade Button').simulate('click');
+    expect(wrapper.find('.clip-fade Button')).toHaveLength(0);
   });
 
   it('deletes key', function() {
@@ -78,7 +78,7 @@ describe('ProjectKeys', function() {
   });
 
   it('disable and enables key', function() {
-    let enableMock = MockApiClient.addMockResponse({
+    const enableMock = MockApiClient.addMockResponse({
       url: `/projects/${org.slug}/${project.slug}/keys/${projectKeys[0].id}/`,
       method: 'PUT',
     });

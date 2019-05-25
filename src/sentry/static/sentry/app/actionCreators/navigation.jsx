@@ -6,8 +6,8 @@ import NavigationActions from 'app/actions/navigationActions';
 
 export function navigateTo(to, router) {
   // Check for placeholder params
-  let needOrg = to.indexOf(':orgId') > -1;
-  let needProject = to.indexOf(':projectId') > -1;
+  const needOrg = to.indexOf(':orgId') > -1;
+  const needProject = to.indexOf(':projectId') > -1;
 
   if (needOrg || needProject) {
     openModal(

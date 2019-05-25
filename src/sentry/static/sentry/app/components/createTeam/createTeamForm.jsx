@@ -10,17 +10,23 @@ import slugify from 'app/utils/slugify';
 export default class CreateTeamForm extends React.Component {
   static propTypes = {
     organization: SentryTypes.Organization.isRequired,
-    onSuccess: PropTypes.func.isRequired,
+    onSuccess: PropTypes.func,
     onSubmit: PropTypes.func,
     formProps: PropTypes.object,
   };
 
   handleCreateTeamSuccess = data => {
-    this.props.onSuccess(data);
+    const {onSuccess} = this.props;
+
+    if (typeof onSuccess !== 'function') {
+      return;
+    }
+
+    onSuccess(data);
   };
 
   render() {
-    let {organization} = this.props;
+    const {organization} = this.props;
 
     return (
       <React.Fragment>
@@ -37,6 +43,7 @@ export default class CreateTeamForm extends React.Component {
           onSubmit={this.props.onSubmit}
           onSubmitSuccess={this.handleCreateTeamSuccess}
           requireChanges
+          data-test-id="create-team-form"
           {...this.props.formProps}
         >
           <TextField

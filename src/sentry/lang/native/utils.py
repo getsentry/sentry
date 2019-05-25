@@ -3,25 +3,29 @@ from __future__ import absolute_import
 import re
 import six
 import logging
+import posixpath
 
 from collections import namedtuple
-from symbolic import parse_addr, arch_from_macho, arch_is_known
+from symbolic import parse_addr
 
 from sentry.interfaces.contexts import DeviceContextType
-from sentry.utils.safe import get_path
+from sentry.stacktraces.functions import trim_function_name
+from sentry.utils.safe import get_path, trim
 
 logger = logging.getLogger(__name__)
 
-# Regular expression to parse OS versions from a minidump OS string
+# Regex to parse OS versions from a minidump OS string.
 VERSION_RE = re.compile(r'(\d+\.\d+\.\d+)\s+(.*)')
 
-# Regular expression to guess whether we're dealing with Windows or Unix paths
-WINDOWS_PATH_RE = re.compile(r'^[a-z]:\\', re.IGNORECASE)
+# Regex to guess whether we're dealing with Windows or Unix paths.
+WINDOWS_PATH_RE = re.compile(r'^([a-z]:\\|\\\\)', re.IGNORECASE)
 
 AppInfo = namedtuple('AppInfo', ['id', 'version', 'build', 'name'])
 
 
 def image_name(pkg):
+    if not pkg:
+        return pkg
     split = '\\' if WINDOWS_PATH_RE.match(pkg) else '/'
     return pkg.rsplit(split, 1)[-1]
 
@@ -61,23 +65,7 @@ def cpu_name_from_data(data):
     if device and device.get('arch'):
         return device['arch']
 
-    # TODO: kill this here.  we want to not support that going forward
-    unique_cpu_name = None
-    for img in get_path(data, 'debug_meta', 'images', filter=True, default=()):
-        if img.get('arch') and arch_is_known(img['arch']):
-            cpu_name = img['arch']
-        elif img.get('cpu_type') is not None \
-                and img.get('cpu_subtype') is not None:
-            cpu_name = arch_from_macho(img['cpu_type'], img['cpu_subtype'])
-        else:
-            cpu_name = None
-        if unique_cpu_name is None:
-            unique_cpu_name = cpu_name
-        elif unique_cpu_name != cpu_name:
-            unique_cpu_name = None
-            break
-
-    return unique_cpu_name
+    return None
 
 
 def rebase_addr(instr_addr, obj):
@@ -95,3 +83,47 @@ def sdk_info_to_sdk_id(sdk_info):
     if build is not None:
         rv = '%s_%s' % (rv, build)
     return rv
+
+
+def signal_from_data(data):
+    exceptions = get_path(data, 'exception', 'values', filter=True)
+    signal = get_path(exceptions, 0, 'mechanism', 'meta', 'signal', 'number')
+    if signal is not None:
+        return int(signal)
+
+    return None
+
+
+def merge_symbolicated_frame(new_frame, sfrm):
+    if sfrm.get('function'):
+        raw_func = trim(sfrm['function'], 256)
+        func = trim(trim_function_name(sfrm['function'], 'native'), 256)
+
+        # if function and raw function match, we can get away without
+        # storing a raw function
+        if func == raw_func:
+            new_frame['function'] = raw_func
+        # otherwise we store both
+        else:
+            new_frame['raw_function'] = raw_func
+            new_frame['function'] = func
+    if sfrm.get('instruction_addr'):
+        new_frame['instruction_addr'] = sfrm['instruction_addr']
+    if sfrm.get('symbol'):
+        new_frame['symbol'] = sfrm['symbol']
+    if sfrm.get('abs_path'):
+        new_frame['abs_path'] = sfrm['abs_path']
+        new_frame['filename'] = posixpath.basename(sfrm['abs_path'])
+    if sfrm.get('filename'):
+        new_frame['filename'] = sfrm['filename']
+    if sfrm.get('lineno'):
+        new_frame['lineno'] = sfrm['lineno']
+    if sfrm.get('colno'):
+        new_frame['colno'] = sfrm['colno']
+    if sfrm.get('package'):
+        new_frame['package'] = sfrm['package']
+    if sfrm.get('trust'):
+        new_frame['trust'] = sfrm['trust']
+    if sfrm.get('status'):
+        frame_meta = new_frame.setdefault('data', {})
+        frame_meta['symbolicator_status'] = sfrm['status']

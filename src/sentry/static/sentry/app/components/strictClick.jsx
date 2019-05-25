@@ -35,9 +35,9 @@ class StrictClick extends React.PureComponent {
     // Click happens if mouse down/up in same element - click will
     // not fire if either initial mouse down OR final ouse up occurs in
     // different element
-    let {startCoords} = this.state;
-    let deltaX = Math.abs(evt.screenX - startCoords.x);
-    let deltaY = Math.abs(evt.screenY - startCoords.y);
+    const {startCoords} = this.state;
+    const deltaX = Math.abs(evt.screenX - startCoords.x);
+    const deltaY = Math.abs(evt.screenY - startCoords.y);
 
     // If mouse hasn't moved more than 10 pixels in either Y
     // or X direction, fire onClick
@@ -51,7 +51,9 @@ class StrictClick extends React.PureComponent {
 
   render() {
     // Bail out early if there is no onClick handler
-    if (!this.props.onClick) return this.props.children;
+    if (!this.props.onClick) {
+      return this.props.children;
+    }
 
     return React.cloneElement(this.props.children, {
       onMouseDown: this.handleMouseDown,

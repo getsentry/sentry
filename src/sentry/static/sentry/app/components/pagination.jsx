@@ -10,6 +10,7 @@ export default class Pagination extends React.Component {
     pageLinks: PropTypes.string,
     to: PropTypes.string,
     onCursor: PropTypes.func,
+    className: PropTypes.string,
   };
 
   static contextTypes = {
@@ -24,19 +25,20 @@ export default class Pagination extends React.Component {
         query,
       });
     },
+    className: 'stream-pagination',
   };
 
   render() {
-    let {onCursor, pageLinks} = this.props;
+    const {className, onCursor, pageLinks} = this.props;
     if (!pageLinks) {
       return null;
     }
 
-    let location = this.context.location;
-    let path = this.props.to || location.pathname;
-    let query = location.query;
+    const location = this.context.location;
+    const path = this.props.to || location.pathname;
+    const query = location.query;
 
-    let links = utils.parseLinkHeader(pageLinks);
+    const links = utils.parseLinkHeader(pageLinks);
 
     let previousPageClassName = 'btn btn-default btn-lg prev';
     if (links.previous.results === false) {
@@ -49,11 +51,11 @@ export default class Pagination extends React.Component {
     }
 
     return (
-      <div className="stream-pagination clearfix">
+      <div className={'clearfix' + (className ? ` ${className}` : '')}>
         <div className="btn-group pull-right">
           <a
             onClick={() => {
-              onCursor(links.previous.cursor, path, query);
+              onCursor(links.previous.cursor, path, query, -1);
             }}
             className={previousPageClassName}
             disabled={links.previous.results === false}
@@ -62,7 +64,7 @@ export default class Pagination extends React.Component {
           </a>
           <a
             onClick={() => {
-              onCursor(links.next.cursor, path, query);
+              onCursor(links.next.cursor, path, query, 1);
             }}
             className={nextPageClassName}
             disabled={links.next.results === false}

@@ -4,6 +4,9 @@ import {mount} from 'enzyme';
 import Condition from 'app/views/organizationDiscover/conditions/condition';
 
 describe('Condition', function() {
+  afterEach(function() {
+    jest.clearAllMocks();
+  });
   describe('render()', function() {
     it('renders text', function() {
       const data = [
@@ -75,25 +78,23 @@ describe('Condition', function() {
     it('limits operators to = and != for array fields', function() {
       wrapper.setState({inputValue: 'error.type'});
       const options = wrapper.instance().filterOptions([]);
-      expect(options).toHaveLength(2);
+      expect(options).toHaveLength(4);
       expect(options[0].value).toEqual('error.type =');
       expect(options[1].value).toEqual('error.type !=');
+      expect(options[2].value).toEqual('error.type LIKE');
+      expect(options[3].value).toEqual('error.type NOT LIKE');
     });
   });
 
   describe('handleChange()', function() {
     let wrapper, focusSpy;
-    let onChangeMock = jest.fn();
+    const onChangeMock = jest.fn();
     beforeEach(function() {
       focusSpy = jest.spyOn(Condition.prototype, 'focus');
       const columns = [{name: 'col1', type: 'string'}, {name: 'col2', type: 'number'}];
       wrapper = mount(
         <Condition value={[null, null, null]} onChange={onChangeMock} columns={columns} />
       );
-    });
-
-    afterEach(function() {
-      jest.clearAllMocks();
     });
 
     it('handles valid final conditions', function() {
@@ -117,6 +118,28 @@ describe('Condition', function() {
         expect(onChangeMock).not.toHaveBeenCalled();
         expect(focusSpy).toHaveBeenCalled();
       });
+    });
+  });
+
+  describe('handleBlur()', function() {
+    let wrapper;
+    const onChangeMock = jest.fn();
+    beforeEach(function() {
+      const columns = [{name: 'col1', type: 'string'}, {name: 'col2', type: 'number'}];
+      wrapper = mount(
+        <Condition value={[null, null, null]} onChange={onChangeMock} columns={columns} />
+      );
+    });
+    it('valid condition', function() {
+      const condition = 'col1 IS NULL';
+      wrapper.instance().handleBlur({target: {value: condition}});
+      expect(onChangeMock).toHaveBeenCalledWith(['col1', 'IS NULL', null]);
+    });
+
+    it('invalid condition', function() {
+      const condition = 'col1 -';
+      wrapper.instance().handleBlur({target: {value: condition}});
+      expect(onChangeMock).not.toHaveBeenCalled();
     });
   });
 });

@@ -11,25 +11,12 @@ __all__ = ('User', )
 
 import six
 
-from sentry.interfaces.base import Interface, InterfaceValidationError, prune_empty_keys
+from sentry.interfaces.base import Interface, prune_empty_keys, RUST_RENORMALIZED_DEFAULT
 from sentry.interfaces.geo import Geo
 from sentry.utils.safe import trim, trim_dict
 from sentry.web.helpers import render_to_string
 from sentry.utils.validators import validate_ip
 from sentry.constants import MAX_EMAIL_FIELD_LENGTH
-
-
-def validate_email(value, required=True):
-    if not required and not value:
-        return
-
-    if not isinstance(value, six.string_types):
-        raise ValueError('object of type %r is not an email address' % type(value).__name__)
-
-    # safe to assume an email address at least has a @ in it.
-    if '@' not in value:
-        raise ValueError('malformed email address')
-    return value
 
 
 class User(Interface):
@@ -54,17 +41,33 @@ class User(Interface):
     display_score = 2020
 
     @classmethod
-    def to_python(cls, data):
+    def to_python(cls, data, rust_renormalized=RUST_RENORMALIZED_DEFAULT):
+        if rust_renormalized:
+            data = data.copy()
+            for key in (
+                'id',
+                'email',
+                'username',
+                'ip_address',
+                'name',
+                'geo',
+                'data',
+            ):
+                data.setdefault(key, None)
+            if data['geo'] is not None:
+                data['geo'] = Geo.to_python(data['geo'])
+            return cls(**data)
+
         data = data.copy()
 
         ident = data.pop('id', None)
         if ident is not None:
             ident = trim(six.text_type(ident), 128)
 
-        try:
-            email = trim(validate_email(data.pop('email', None), False), MAX_EMAIL_FIELD_LENGTH)
-        except ValueError:
-            raise InterfaceValidationError("Invalid value for 'email'")
+        email = data.pop('email', None)
+        if not isinstance(email, six.string_types):
+            email = None
+        email = trim(email, MAX_EMAIL_FIELD_LENGTH)
 
         username = data.pop('username', None)
         if username is not None:
@@ -77,7 +80,7 @@ class User(Interface):
         try:
             ip_address = validate_ip(data.pop('ip_address', None), False)
         except ValueError:
-            raise InterfaceValidationError("Invalid value for 'ip_address'")
+            ip_address = None
 
         geo = data.pop('geo', None)
         if not geo and ip_address:
@@ -117,7 +120,7 @@ class User(Interface):
             'data': self.data or None
         })
 
-    def get_api_context(self, is_public=False):
+    def get_api_context(self, is_public=False, platform=None):
         return {
             'id': self.id,
             'email': self.email,
@@ -127,7 +130,7 @@ class User(Interface):
             'data': self.data,
         }
 
-    def get_api_meta(self, meta, is_public=False):
+    def get_api_meta(self, meta, is_public=False, platform=None):
         return {
             '': meta.get(''),
             'id': meta.get('id'),
@@ -137,9 +140,6 @@ class User(Interface):
             'name': meta.get('name'),
             'data': meta.get('data'),
         }
-
-    def get_hash(self):
-        return []
 
     def get_display_name(self):
         return self.email or self.username

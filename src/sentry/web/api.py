@@ -28,29 +28,32 @@ from functools import wraps
 from querystring_parser import parser
 from symbolic import ProcessMinidumpError, Unreal4Error
 
-from sentry import features, quotas, tsdb, options
+from sentry import features, quotas, options
 from sentry.attachments import CachedAttachment
 from sentry.coreapi import (
-    Auth, APIError, APIForbidden, APIRateLimited, ClientApiHelper, SecurityApiHelper, MinidumpApiHelper, safely_load_json_string, logger as api_logger
+    Auth, APIError, APIForbidden, APIRateLimited, ClientApiHelper, ClientAuthHelper,
+    SecurityAuthHelper, MinidumpAuthHelper, safely_load_json_string, logger as api_logger
 )
 from sentry.event_manager import EventManager
 from sentry.interfaces import schemas
 from sentry.interfaces.base import get_interface
-from sentry.lang.native.unreal import process_unreal_crash, unreal_attachment_type
-from sentry.lang.native.minidump import merge_process_state_event, process_minidump, MINIDUMP_ATTACHMENT_TYPE
+from sentry.lang.native.unreal import process_unreal_crash, merge_apple_crash_report, \
+    unreal_attachment_type, merge_unreal_context_event, merge_unreal_logs_event
+from sentry.lang.native.minidump import merge_attached_event, merge_attached_breadcrumbs, write_minidump_placeholder, \
+    MINIDUMP_ATTACHMENT_TYPE
 from sentry.models import Project, OrganizationOption, Organization
 from sentry.signals import (
     event_accepted, event_dropped, event_filtered, event_received)
 from sentry.quotas.base import RateLimit
 from sentry.utils import json, metrics
-from sentry.utils.data_filters import FILTER_STAT_KEYS_TO_VALUES
+from sentry.utils.data_filters import FilterStatKeys
 from sentry.utils.data_scrubber import SensitiveDataFilter
-from sentry.utils.dates import to_datetime
 from sentry.utils.http import (
     is_valid_origin,
     get_origins,
     is_same_domain,
 )
+from sentry.utils.outcomes import Outcome, track_outcome
 from sentry.utils.pubsub import QueuedPublisherService, KafkaPublisher
 from sentry.utils.safe import safe_execute
 from sentry.web.helpers import render_to_response
@@ -91,29 +94,174 @@ def api(func):
     return wrapped
 
 
+def process_event(event_manager, project, key, remote_addr, helper, attachments):
+    event_received.send_robust(ip=remote_addr, project=project, sender=process_event)
+
+    start_time = time()
+
+    data = event_manager.get_data()
+    should_filter, filter_reason = event_manager.should_filter()
+    del event_manager
+
+    event_id = data['event_id']
+
+    if should_filter:
+        track_outcome(
+            project.organization_id,
+            project.id,
+            key.id,
+            Outcome.FILTERED,
+            filter_reason,
+            event_id=event_id
+        )
+        metrics.incr(
+            'events.blacklisted', tags={'reason': filter_reason}, skip_internal=False
+        )
+        event_filtered.send_robust(
+            ip=remote_addr,
+            project=project,
+            sender=process_event,
+        )
+        raise APIForbidden('Event dropped due to filter: %s' % (filter_reason,))
+
+    # TODO: improve this API (e.g. make RateLimit act on __ne__)
+    rate_limit = safe_execute(
+        quotas.is_rate_limited, project=project, key=key, _with_transaction=False
+    )
+    if isinstance(rate_limit, bool):
+        rate_limit = RateLimit(is_limited=rate_limit, retry_after=None)
+
+    # XXX(dcramer): when the rate limiter fails we drop events to ensure
+    # it cannot cascade
+    if rate_limit is None or rate_limit.is_limited:
+        if rate_limit is None:
+            api_logger.debug('Dropped event due to error with rate limiter')
+
+        reason = rate_limit.reason_code if rate_limit else None
+        track_outcome(
+            project.organization_id,
+            project.id,
+            key.id,
+            Outcome.RATE_LIMITED,
+            reason,
+            event_id=event_id
+        )
+        metrics.incr(
+            'events.dropped',
+            tags={
+                'reason': reason or 'unknown',
+            },
+            skip_internal=False,
+        )
+        event_dropped.send_robust(
+            ip=remote_addr,
+            project=project,
+            reason_code=reason,
+            sender=process_event,
+        )
+        if rate_limit is not None:
+            raise APIRateLimited(rate_limit.retry_after)
+
+    org_options = OrganizationOption.objects.get_all_values(
+        project.organization_id)
+
+    # TODO(dcramer): ideally we'd only validate this if the event_id was
+    # supplied by the user
+    cache_key = 'ev:%s:%s' % (project.id, event_id, )
+
+    if cache.get(cache_key) is not None:
+        track_outcome(
+            project.organization_id,
+            project.id,
+            key.id,
+            Outcome.INVALID,
+            'duplicate',
+            event_id=event_id
+        )
+        raise APIForbidden(
+            'An event with the same ID already exists (%s)' % (event_id, ))
+
+    scrub_ip_address = (org_options.get('sentry:require_scrub_ip_address', False) or
+                        project.get_option('sentry:scrub_ip_address', False))
+    scrub_data = (org_options.get('sentry:require_scrub_data', False) or
+                  project.get_option('sentry:scrub_data', True))
+
+    if scrub_data:
+        # We filter data immediately before it ever gets into the queue
+        sensitive_fields_key = 'sentry:sensitive_fields'
+        sensitive_fields = (
+            org_options.get(sensitive_fields_key, []) +
+            project.get_option(sensitive_fields_key, [])
+        )
+
+        exclude_fields_key = 'sentry:safe_fields'
+        exclude_fields = (
+            org_options.get(exclude_fields_key, []) +
+            project.get_option(exclude_fields_key, [])
+        )
+
+        scrub_defaults = (org_options.get('sentry:require_scrub_defaults', False) or
+                          project.get_option('sentry:scrub_defaults', True))
+
+        SensitiveDataFilter(
+            fields=sensitive_fields,
+            include_defaults=scrub_defaults,
+            exclude_fields=exclude_fields,
+        ).apply(data)
+
+    if scrub_ip_address:
+        # We filter data immediately before it ever gets into the queue
+        helper.ensure_does_not_have_ip(data)
+
+    # mutates data (strips a lot of context if not queued)
+    helper.insert_data_to_database(data, start_time=start_time, attachments=attachments)
+
+    cache.set(cache_key, '', 60 * 5)
+
+    api_logger.debug('New event received (%s)', event_id)
+
+    event_accepted.send_robust(
+        ip=remote_addr,
+        data=data,
+        project=project,
+        sender=process_event,
+    )
+
+    return event_id
+
+
 class APIView(BaseView):
-    helper_cls = ClientApiHelper
+    auth_helper_cls = ClientAuthHelper
 
     def _get_project_from_id(self, project_id):
         if not project_id:
             return
         if not project_id.isdigit():
+            track_outcome(0, 0, None, Outcome.INVALID, "project_id")
             raise APIError('Invalid project_id: %r' % project_id)
         try:
             return Project.objects.get_from_cache(id=project_id)
         except Project.DoesNotExist:
+            track_outcome(0, 0, None, Outcome.INVALID, "project_id")
             raise APIError('Invalid project_id: %r' % project_id)
 
     def _parse_header(self, request, helper, project):
-        auth = helper.auth_from_request(request)
+        auth = self.auth_helper_cls.auth_from_request(request)
 
         if auth.version not in PROTOCOL_VERSIONS:
+            track_outcome(
+                project.organization_id,
+                project.id,
+                None,
+                Outcome.INVALID,
+                "auth_version")
             raise APIError(
                 'Client using unsupported server protocol version (%r)' %
                 six.text_type(auth.version or '')
             )
 
         if not auth.client:
+            track_outcome(project.organization_id, project.id, None, Outcome.INVALID, "auth_client")
             raise APIError("Client did not send 'client' identifier")
 
         return auth
@@ -154,7 +302,7 @@ class APIView(BaseView):
     @csrf_exempt
     @never_cache
     def dispatch(self, request, project_id=None, *args, **kwargs):
-        helper = self.helper_cls(
+        helper = ClientApiHelper(
             agent=request.META.get('HTTP_USER_AGENT'),
             project_id=project_id,
             ip_address=request.META['REMOTE_ADDR'],
@@ -165,7 +313,7 @@ class APIView(BaseView):
             self._publish_to_kafka(request)
 
         try:
-            origin = helper.origin_from_request(request)
+            origin = self.auth_helper_cls.origin_from_request(request)
 
             response = self._dispatch(
                 request, helper, project_id=project_id, origin=origin, *args, **kwargs
@@ -199,25 +347,27 @@ class APIView(BaseView):
 
         # TODO(dcramer): it'd be nice if we had an incr_multi method so
         # tsdb could optimize this
-        metrics.incr('client-api.all-versions.requests')
+        metrics.incr('client-api.all-versions.requests', skip_internal=False)
         metrics.incr('client-api.all-versions.responses.%s' %
-                     (response.status_code, ))
+                     (response.status_code, ), skip_internal=False)
         metrics.incr(
-            'client-api.all-versions.responses.%sxx' % (
-                six.text_type(response.status_code)[0], )
+            'client-api.all-versions.responses.%sxx' % (six.text_type(response.status_code)[0],),
+            skip_internal=False,
         )
 
         if helper.context.version:
-            metrics.incr('client-api.v%s.requests' %
-                         (helper.context.version, ))
             metrics.incr(
-                'client-api.v%s.responses.%s' % (
-                    helper.context.version, response.status_code)
+                'client-api.v%s.requests' % (helper.context.version, ),
+                skip_internal=False,
             )
             metrics.incr(
-                'client-api.v%s.responses.%sxx' %
-                (helper.context.version, six.text_type(
-                    response.status_code)[0])
+                'client-api.v%s.responses.%s' % (helper.context.version, response.status_code),
+                skip_internal=False,
+            )
+            metrics.incr(
+                'client-api.v%s.responses.%sxx' % (helper.context.version,
+                                                   six.text_type(response.status_code)[0]),
+                skip_internal=False,
             )
 
         if response.status_code != 200 and origin:
@@ -247,8 +397,12 @@ class APIView(BaseView):
             if not project:
                 raise APIError('Client must be upgraded for CORS support')
             if not is_valid_origin(origin, project):
-                tsdb.incr(tsdb.models.project_total_received_cors,
-                          project.id)
+                track_outcome(
+                    project.organization_id,
+                    project.id,
+                    None,
+                    Outcome.INVALID,
+                    FilterStatKeys.CORS)
                 raise APIForbidden('Invalid origin: %s' % (origin, ))
 
         # XXX: It seems that the OPTIONS call does not always include custom headers
@@ -333,6 +487,7 @@ class StoreView(APIView):
        the user be authenticated, and a project_id be sent in the GET variables.
 
     """
+    type_name = 'store'
 
     def post(self, request, **kwargs):
         try:
@@ -347,23 +502,20 @@ class StoreView(APIView):
             # bubble up as an APIError.
             data = None
 
-        response_or_event_id = self.process(request, data=data, **kwargs)
-        if isinstance(response_or_event_id, HttpResponse):
-            return response_or_event_id
+        event_id = self.process(request, data=data, **kwargs)
         return HttpResponse(
             json.dumps({
-                'id': response_or_event_id,
+                'id': event_id,
             }), content_type='application/json'
         )
 
     def get(self, request, **kwargs):
         data = request.GET.get('sentry_data', '')
-        response_or_event_id = self.process(request, data=data, **kwargs)
+        event_id = self.process(request, data=data, **kwargs)
 
         # Return a simple 1x1 gif for browser so they don't throw a warning
         response = HttpResponse(PIXEL, 'image/gif')
-        if not isinstance(response_or_event_id, HttpResponse):
-            response['X-Sentry-ID'] = response_or_event_id
+        response['X-Sentry-ID'] = event_id
         return response
 
     def pre_normalize(self, data, helper):
@@ -371,14 +523,15 @@ class StoreView(APIView):
         pass
 
     def process(self, request, project, key, auth, helper, data, attachments=None, **kwargs):
-        metrics.incr('events.total')
+        metrics.incr('events.total', skip_internal=False)
 
         if not data:
+            track_outcome(project.organization_id, project.id, key.id, Outcome.INVALID, "no_data")
             raise APIError('No JSON data was found')
 
         remote_addr = request.META['REMOTE_ADDR']
 
-        event_mgr = EventManager(
+        event_manager = EventManager(
             data,
             project=project,
             key=key,
@@ -390,163 +543,37 @@ class StoreView(APIView):
         )
         del data
 
-        self.pre_normalize(event_mgr, helper)
-        event_mgr.normalize()
+        self.pre_normalize(event_manager, helper)
+        event_manager.normalize()
 
-        event_received.send_robust(ip=remote_addr, project=project, sender=type(self))
+        data = event_manager.get_data()
+        dict_data = dict(data)
+        data_size = len(json.dumps(dict_data))
 
-        start_time = time()
-        tsdb_start_time = to_datetime(start_time)
-        should_filter, filter_reason = event_mgr.should_filter()
-        if should_filter:
-            increment_list = [
-                (tsdb.models.project_total_received, project.id),
-                (tsdb.models.project_total_blacklisted, project.id),
-                (tsdb.models.organization_total_received,
-                 project.organization_id),
-                (tsdb.models.organization_total_blacklisted,
-                 project.organization_id),
-                (tsdb.models.key_total_received, key.id),
-                (tsdb.models.key_total_blacklisted, key.id),
-            ]
-            try:
-                increment_list.append(
-                    (FILTER_STAT_KEYS_TO_VALUES[filter_reason], project.id))
-            # should error when filter_reason does not match a key in FILTER_STAT_KEYS_TO_VALUES
-            except KeyError:
-                pass
-
-            tsdb.incr_multi(
-                increment_list,
-                timestamp=tsdb_start_time,
+        if data_size > 10000000:
+            metrics.timing('events.size.rejected', data_size)
+            track_outcome(
+                project.organization_id,
+                project.id,
+                key.id,
+                Outcome.INVALID,
+                'too_large',
+                event_id=dict_data.get('event_id')
             )
+            raise APIForbidden("Event size exceeded 10MB after normalization.")
 
-            metrics.incr('events.blacklisted', tags={
-                         'reason': filter_reason})
-            event_filtered.send_robust(
-                ip=remote_addr,
-                project=project,
-                sender=type(self),
-            )
-            raise APIForbidden('Event dropped due to filter: %s' % (filter_reason,))
-
-        # TODO: improve this API (e.g. make RateLimit act on __ne__)
-        rate_limit = safe_execute(
-            quotas.is_rate_limited, project=project, key=key, _with_transaction=False
-        )
-        if isinstance(rate_limit, bool):
-            rate_limit = RateLimit(is_limited=rate_limit, retry_after=None)
-
-        # XXX(dcramer): when the rate limiter fails we drop events to ensure
-        # it cannot cascade
-        if rate_limit is None or rate_limit.is_limited:
-            if rate_limit is None:
-                api_logger.debug('Dropped event due to error with rate limiter')
-            tsdb.incr_multi(
-                [
-                    (tsdb.models.project_total_received, project.id),
-                    (tsdb.models.project_total_rejected, project.id),
-                    (tsdb.models.organization_total_received,
-                     project.organization_id),
-                    (tsdb.models.organization_total_rejected,
-                     project.organization_id),
-                    (tsdb.models.key_total_received, key.id),
-                    (tsdb.models.key_total_rejected, key.id),
-                ],
-                timestamp=tsdb_start_time,
-            )
-            metrics.incr(
-                'events.dropped',
-                tags={
-                    'reason': rate_limit.reason_code if rate_limit else 'unknown',
-                }
-            )
-            event_dropped.send_robust(
-                ip=remote_addr,
-                project=project,
-                sender=type(self),
-                reason_code=rate_limit.reason_code if rate_limit else None,
-            )
-            if rate_limit is not None:
-                raise APIRateLimited(rate_limit.retry_after)
-        else:
-            tsdb.incr_multi(
-                [
-                    (tsdb.models.project_total_received, project.id),
-                    (tsdb.models.organization_total_received,
-                     project.organization_id),
-                    (tsdb.models.key_total_received, key.id),
-                ],
-                timestamp=tsdb_start_time,
-            )
-
-        org_options = OrganizationOption.objects.get_all_values(
-            project.organization_id)
-
-        data = event_mgr.get_data()
-        del event_mgr
-
-        event_id = data['event_id']
-
-        # TODO(dcramer): ideally we'd only validate this if the event_id was
-        # supplied by the user
-        cache_key = 'ev:%s:%s' % (project.id, event_id, )
-
-        if cache.get(cache_key) is not None:
-            raise APIForbidden(
-                'An event with the same ID already exists (%s)' % (event_id, ))
-
-        scrub_ip_address = (org_options.get('sentry:require_scrub_ip_address', False) or
-                            project.get_option('sentry:scrub_ip_address', False))
-        scrub_data = (org_options.get('sentry:require_scrub_data', False) or
-                      project.get_option('sentry:scrub_data', True))
-
-        if scrub_data:
-            # We filter data immediately before it ever gets into the queue
-            sensitive_fields_key = 'sentry:sensitive_fields'
-            sensitive_fields = (
-                org_options.get(sensitive_fields_key, []) +
-                project.get_option(sensitive_fields_key, [])
-            )
-
-            exclude_fields_key = 'sentry:safe_fields'
-            exclude_fields = (
-                org_options.get(exclude_fields_key, []) +
-                project.get_option(exclude_fields_key, [])
-            )
-
-            scrub_defaults = (org_options.get('sentry:require_scrub_defaults', False) or
-                              project.get_option('sentry:scrub_defaults', True))
-
-            SensitiveDataFilter(
-                fields=sensitive_fields,
-                include_defaults=scrub_defaults,
-                exclude_fields=exclude_fields,
-            ).apply(data)
-
-        if scrub_ip_address:
-            # We filter data immediately before it ever gets into the queue
-            helper.ensure_does_not_have_ip(data)
-
-        # mutates data (strips a lot of context if not queued)
-        helper.insert_data_to_database(data, start_time=start_time, attachments=attachments)
-
-        cache.set(cache_key, '', 60 * 5)
-
-        api_logger.debug('New event received (%s)', event_id)
-
-        event_accepted.send_robust(
-            ip=remote_addr,
-            data=data,
-            project=project,
-            sender=type(self),
+        metrics.timing(
+            'events.size.data.post_storeendpoint',
+            data_size,
+            tags={'project_id': project.id}
         )
 
-        return event_id
+        return process_event(event_manager, project,
+                             key, remote_addr, helper, attachments)
 
 
 class MinidumpView(StoreView):
-    helper_cls = MinidumpApiHelper
+    auth_helper_cls = MinidumpAuthHelper
     content_types = ('multipart/form-data', )
 
     def _dispatch(self, request, helper, project_id=None, origin=None, *args, **kwargs):
@@ -558,12 +585,14 @@ class MinidumpView(StoreView):
         # without Origin or Referer headers. Therefore, we cannot validate the
         # origin of the request, but we *can* validate the "prod" key in future.
         if request.method != 'POST':
+            track_outcome(0, 0, None, Outcome.INVALID, "disallowed_method")
             return HttpResponseNotAllowed(['POST'])
 
         content_type = request.META.get('CONTENT_TYPE')
         # In case of multipart/form-data, the Content-Type header also includes
         # a boundary. Therefore, we cannot check for an exact match.
         if content_type is None or not content_type.startswith(self.content_types):
+            track_outcome(0, 0, None, Outcome.INVALID, "content_type")
             raise APIError('Invalid Content-Type')
 
         request.user = AnonymousUser()
@@ -574,10 +603,16 @@ class MinidumpView(StoreView):
         # This is yanking the auth from the querystring since it's not
         # in the POST body. This means we expect a `sentry_key` and
         # `sentry_version` to be set in querystring
-        auth = helper.auth_from_request(request)
+        auth = self.auth_helper_cls.auth_from_request(request)
 
         key = helper.project_key_from_auth(auth)
         if key.project_id != project.id:
+            track_outcome(
+                project.organization_id,
+                project.id,
+                None,
+                Outcome.INVALID,
+                "multi_project_id")
             raise APIError('Two different projects were specified')
 
         helper.context.bind_auth(auth)
@@ -625,6 +660,12 @@ class MinidumpView(StoreView):
         try:
             minidump = request.FILES['upload_file_minidump']
         except KeyError:
+            track_outcome(
+                project.organization_id,
+                project.id,
+                None,
+                Outcome.INVALID,
+                "missing_minidump_upload")
             raise APIError('Missing minidump upload')
 
         # Breakpad on linux sometimes stores the entire HTTP request body as
@@ -657,9 +698,21 @@ class MinidumpView(StoreView):
             try:
                 minidump = files['upload_file_minidump']
             except KeyError:
+                track_outcome(
+                    project.organization_id,
+                    project.id,
+                    None,
+                    Outcome.INVALID,
+                    "missing_minidump_upload")
                 raise APIError('Missing minidump upload')
 
         if minidump.size == 0:
+            track_outcome(
+                project.organization_id,
+                project.id,
+                None,
+                Outcome.INVALID,
+                "empty_minidump")
             raise APIError('Empty minidump upload received')
 
         if settings.SENTRY_MINIDUMP_CACHE:
@@ -676,37 +729,41 @@ class MinidumpView(StoreView):
         attachments = []
         minidump.seek(0)
         attachments.append(CachedAttachment.from_upload(minidump, type=MINIDUMP_ATTACHMENT_TYPE))
+        has_event_attachments = features.has('organizations:event-attachments',
+                                             project.organization, actor=request.user)
 
         # Append all other files as generic attachments. We can skip this if the
         # feature is disabled since they won't be saved.
-        if features.has('organizations:event-attachments',
-                        project.organization, actor=request.user):
-            for name, file in six.iteritems(request.FILES):
-                if name != 'upload_file_minidump':
-                    attachments.append(CachedAttachment.from_upload(file))
+        for name, file in six.iteritems(request.FILES):
+            if name == 'upload_file_minidump':
+                continue
 
-        try:
-            state = process_minidump(minidump)
-            merge_process_state_event(data, state)
-        except ProcessMinidumpError as e:
-            minidumps_logger.exception(e)
-            raise APIError(e.message.split('\n', 1)[0])
+            # Known attachment: msgpack event
+            if name == "__sentry-event":
+                merge_attached_event(file, data)
+                continue
+            if name in ("__sentry-breadcrumb1", "__sentry-breadcrumb2"):
+                merge_attached_breadcrumbs(file, data)
+                continue
 
-        response_or_event_id = self.process(
+            # Add any other file as attachment
+            if has_event_attachments:
+                attachments.append(CachedAttachment.from_upload(file))
+
+        write_minidump_placeholder(data)
+
+        event_id = self.process(
             request,
             attachments=attachments,
             data=data,
             project=project,
             **kwargs)
 
-        if isinstance(response_or_event_id, HttpResponse):
-            return response_or_event_id
-
         # Return the formatted UUID of the generated event. This is
         # expected by the Electron http uploader on Linux and doesn't
         # break the default Breakpad client library.
         return HttpResponse(
-            six.text_type(uuid.UUID(response_or_event_id)),
+            six.text_type(uuid.UUID(event_id)),
             content_type='text/plain'
         )
 
@@ -717,10 +774,12 @@ class UnrealView(StoreView):
 
     def _dispatch(self, request, helper, sentry_key, project_id=None, origin=None, *args, **kwargs):
         if request.method != 'POST':
+            track_outcome(0, 0, None, Outcome.INVALID, "disallowed_method")
             return HttpResponseNotAllowed(['POST'])
 
         content_type = request.META.get('CONTENT_TYPE')
         if content_type is None or not content_type.startswith(self.content_types):
+            track_outcome(0, 0, None, Outcome.INVALID, "content_type")
             raise APIError('Invalid Content-Type')
 
         request.user = AnonymousUser()
@@ -728,11 +787,17 @@ class UnrealView(StoreView):
         project = self._get_project_from_id(project_id)
         helper.context.bind_project(project)
 
-        auth = Auth({'sentry_key': sentry_key}, is_public=False)
+        auth = Auth(public_key=sentry_key, is_public=False)
         auth.client = 'sentry.unreal_engine'
 
         key = helper.project_key_from_auth(auth)
         if key.project_id != project.id:
+            track_outcome(
+                project.organization_id,
+                project.id,
+                None,
+                Outcome.INVALID,
+                "multi_project_id")
             raise APIError('Two different projects were specified')
 
         helper.context.bind_auth(auth)
@@ -744,24 +809,58 @@ class UnrealView(StoreView):
         attachments_enabled = features.has('organizations:event-attachments',
                                            project.organization, actor=request.user)
 
-        data = {}
-        event_id = uuid.uuid4().hex
-        data['event_id'] = event_id
+        is_apple_crash_report = False
 
         attachments = []
+        event = {'event_id': uuid.uuid4().hex}
         try:
-            unreal = process_unreal_crash(request.body)
-            process_state = unreal.process_minidump()
+            unreal = process_unreal_crash(request.body, request.GET.get(
+                'UserID'), request.GET.get('AppEnvironment'), event)
+
+            apple_crash_report = unreal.get_apple_crash_report()
+            if apple_crash_report:
+                merge_apple_crash_report(apple_crash_report, event)
+                is_apple_crash_report = True
         except (ProcessMinidumpError, Unreal4Error) as e:
             minidumps_logger.exception(e)
+            track_outcome(
+                project.organization_id,
+                project.id,
+                None,
+                Outcome.INVALID,
+                "process_minidump_unreal")
             raise APIError(e.message.split('\n', 1)[0])
 
-        if process_state:
-            merge_process_state_event(data, process_state)
-        else:
-            raise APIError("missing minidump in unreal crash report")
+        try:
+            unreal_context = unreal.get_context()
+            if unreal_context is not None:
+                merge_unreal_context_event(unreal_context, event, project)
+        except Unreal4Error as e:
+            # we'll continue without the context data
+            minidumps_logger.exception(e)
+
+        try:
+            unreal_logs = unreal.get_logs()
+            if unreal_logs is not None:
+                merge_unreal_logs_event(unreal_logs, event)
+        except Unreal4Error as e:
+            # we'll continue without the breadcrumbs
+            minidumps_logger.exception(e)
+
+        is_minidump = False
 
         for file in unreal.files():
+            # Known attachment: msgpack event
+            if file.name == "__sentry-event":
+                merge_attached_event(file.open_stream(), event)
+                continue
+            if file.name in ("__sentry-breadcrumb1", "__sentry-breadcrumb2"):
+                merge_attached_breadcrumbs(file.open_stream(), event)
+                continue
+
+            if file.type == "minidump" and not is_apple_crash_report:
+                is_minidump = True
+
             # Always store the minidump in attachments so we can access it during
             # processing, regardless of the event-attachments feature. This will
             # allow us to stack walk again with CFI once symbols are loaded.
@@ -772,20 +871,20 @@ class UnrealView(StoreView):
                     type=unreal_attachment_type(file),
                 ))
 
-        response_or_event_id = self.process(
+        if is_minidump:
+            write_minidump_placeholder(event)
+
+        event_id = self.process(
             request,
             attachments=attachments,
-            data=data,
+            data=event,
             project=project,
             **kwargs)
 
         # The return here is only useful for consistency
         # because the UE4 crash reporter doesn't care about it.
-        if isinstance(response_or_event_id, HttpResponse):
-            return response_or_event_id
-
         return HttpResponse(
-            six.text_type(uuid.UUID(response_or_event_id)),
+            six.text_type(uuid.UUID(event_id)),
             content_type='text/plain'
         )
 
@@ -796,7 +895,7 @@ class StoreSchemaView(BaseView):
 
 
 class SecurityReportView(StoreView):
-    helper_cls = SecurityApiHelper
+    auth_helper_cls = SecurityAuthHelper
     content_types = (
         'application/csp-report',
         'application/json',
@@ -813,9 +912,11 @@ class SecurityReportView(StoreView):
         # that triggered the report. The Content-Type is supposed to be
         # `application/csp-report`, but FireFox sends it as `application/json`.
         if request.method != 'POST':
+            track_outcome(0, 0, None, Outcome.INVALID, "disallowed_method")
             return HttpResponseNotAllowed(['POST'])
 
         if request.META.get('CONTENT_TYPE') not in self.content_types:
+            track_outcome(0, 0, None, Outcome.INVALID, "content_type")
             raise APIError('Invalid Content-Type')
 
         request.user = AnonymousUser()
@@ -826,10 +927,16 @@ class SecurityReportView(StoreView):
         # This is yanking the auth from the querystring since it's not
         # in the POST body. This means we expect a `sentry_key` and
         # `sentry_version` to be set in querystring
-        auth = helper.auth_from_request(request)
+        auth = self.auth_helper_cls.auth_from_request(request)
 
         key = helper.project_key_from_auth(auth)
         if key.project_id != project.id:
+            track_outcome(
+                project.organization_id,
+                project.id,
+                None,
+                Outcome.INVALID,
+                "multi_project_id")
             raise APIError('Two different projects were specified')
 
         helper.context.bind_auth(auth)
@@ -838,23 +945,40 @@ class SecurityReportView(StoreView):
             request=request, project=project, auth=auth, helper=helper, key=key, **kwargs
         )
 
-    def post(self, request, project, helper, **kwargs):
+    def post(self, request, project, helper, key, **kwargs):
         json_body = safely_load_json_string(request.body)
         report_type = self.security_report_type(json_body)
         if report_type is None:
+            track_outcome(
+                project.organization_id,
+                project.id,
+                key.id,
+                Outcome.INVALID,
+                "security_report_type")
             raise APIError('Unrecognized security report type')
         interface = get_interface(report_type)
 
         try:
             instance = interface.from_raw(json_body)
         except jsonschema.ValidationError as e:
+            track_outcome(
+                project.organization_id,
+                project.id,
+                key.id,
+                Outcome.INVALID,
+                "security_report")
             raise APIError('Invalid security report: %s' % str(e).splitlines()[0])
 
         # Do origin check based on the `document-uri` key as explained in `_dispatch`.
         origin = instance.get_origin()
         if not is_valid_origin(origin, project):
             if project:
-                tsdb.incr(tsdb.models.project_total_received_cors, project.id)
+                track_outcome(
+                    project.organization_id,
+                    project.id,
+                    key.id,
+                    Outcome.INVALID,
+                    FilterStatKeys.CORS)
             raise APIForbidden('Invalid origin')
 
         data = {
@@ -864,11 +988,7 @@ class SecurityReportView(StoreView):
             'environment': request.GET.get('sentry_environment'),
         }
 
-        response_or_event_id = self.process(
-            request, project=project, helper=helper, data=data, **kwargs
-        )
-        if isinstance(response_or_event_id, HttpResponse):
-            return response_or_event_id
+        self.process(request, project=project, helper=helper, data=data, key=key, **kwargs)
         return HttpResponse(content_type='application/javascript', status=201)
 
     def security_report_type(self, body):
