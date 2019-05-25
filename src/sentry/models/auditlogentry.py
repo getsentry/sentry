@@ -268,11 +268,11 @@ class AuditLogEntry(Model):
         elif self.event == AuditLogEntryEvent.PROJECT_ACCEPT_TRANSFER:
             return 'accepted transfer of project %s' % (self.data['slug'], )
         elif self.event == AuditLogEntryEvent.PROJECT_ENABLE:
-            if isinstance(self.data['state'], six.string_types):
+            if isinstance(self.data['state'], set):
                 return 'enabled project filter %s' % (self.data['state'], )
             return 'enabled project filter %s' % (', '.join(self.data["state"]),)
         elif self.event == AuditLogEntryEvent.PROJECT_DISABLE:
-            if isinstance(self.data['state'], six.string_types):
+            if isinstance(self.data['state'], set):
                 return 'disabled project filter %s' % (self.data['state'], )
             return 'disabled project filter %s' % (', '.join(self.data["state"]),)
 
