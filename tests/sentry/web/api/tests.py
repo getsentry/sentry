@@ -11,7 +11,7 @@ from mock import Mock
 from six import BytesIO
 
 from sentry.coreapi import APIRateLimited
-from sentry.models import ProjectKey, EventAttachment
+from sentry.models import ProjectKey, EventAttachment, Event
 from sentry.signals import event_accepted, event_dropped, event_filtered
 from sentry.testutils import (assert_mock_called_once_with_partial, TestCase)
 from sentry.utils import json
@@ -775,7 +775,6 @@ class EventAttachmentStoreViewTest(TestCase):
         assert response.status_code == 400
         assert not self.has_attachment()
 
-    # TODO: Make sure job exists to delete dangling attachments
     def test_event_attachments_event_doesnt_exist_creates_attachment(self):
         with self.feature('organizations:event-attachments'):
             self.path = self.path.replace(self.event.event_id, 'z' * 32)
@@ -788,6 +787,36 @@ class EventAttachmentStoreViewTest(TestCase):
 
         assert response.status_code == 201
         assert self.has_attachment()
+
+    def test_event_attachments_event_empty_file_creates_attachment(self):
+        with self.feature('organizations:event-attachments'):
+            response = self._postEventAttachmentWithHeader({
+                'attachment1':
+                    SimpleUploadedFile(
+                        'mapping.txt',
+                        BytesIO().getvalue(),
+                        content_type='text/plain'),
+            }, format='multipart')
+
+        assert response.status_code == 201
+        assert self.has_attachment()
+
+    def test_event_attachments_event_exists_without_group_id(self):
+        out = BytesIO()
+        out.write('hi')
+        event_id = 'z' * 32
+        Event.objects.create(project_id=self.project.id, event_id=event_id)
+        with self.feature('organizations:event-attachments'):
+            self.path = self.path.replace(self.event.event_id, event_id)
+            response = self._postEventAttachmentWithHeader({
+                'attachment1':
+                    SimpleUploadedFile('mapping.txt', out.getvalue(), content_type='text/plain'),
+            }, format='multipart')
+
+        assert response.status_code == 201
+        assert EventAttachment.objects.get(
+            project_id=self.project.id,
+            event_id=self.event.id).group_id is None
 
 
 class RobotsTxtTest(TestCase):
