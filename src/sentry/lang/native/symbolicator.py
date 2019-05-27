@@ -221,37 +221,37 @@ class Symbolicator(object):
 
         self.task_id_cache_key = task_id_cache_key
 
-    def _process(self, process_impl):
+    def _process(self, create_task):
         task_id = default_cache.get(self.task_id_cache_key)
+        json = None
 
         with self.sess:
-            if task_id:
-                # Processing has already started and we need to poll
-                # symbolicator for an update. This in turn may put us back into
-                # the queue.
-                try:
+            try:
+                if task_id:
+                    # Processing has already started and we need to poll
+                    # symbolicator for an update. This in turn may put us back into
+                    # the queue.
                     json = self.sess.query_task(task_id)
-                except TaskIdNotFound:
-                    # The symbolicator does not know this task. This is
-                    # expected to happen when we're currently deploying
-                    # symbolicator (which will clear all of its state). Re-send
-                    # the symbolication task.
-                    json = process_impl()
-                except ServiceUnavailable:
-                    # 503 can indicate that symbolicator is restarting. Wait for a
-                    # reboot, then try again. This overrides the default behavior of
-                    # retrying after just a second.
-                    #
-                    # If there is no response attached, it's a connection error.
-                    raise RetrySymbolication(retry_after=10)
 
-            else:
-                # This is a new request, so we compute all request parameters
-                # (potentially expensive if we need to pull minidumps), and then
-                # upload all information to symbolicator. It will likely not
-                # have a response ready immediately, so we start polling after
-                # some timeout.
-                json = process_impl()
+                if json is None:
+                    # This is a new task, so we compute all request parameters
+                    # (potentially expensive if we need to pull minidumps), and then
+                    # upload all information to symbolicator. It will likely not
+                    # have a response ready immediately, so we start polling after
+                    # some timeout.
+                    json = create_task()
+            except ServiceUnavailable:
+                # 503 can indicate that symbolicator is restarting. Wait for a
+                # reboot, then try again. This overrides the default behavior of
+                # retrying after just a second.
+                #
+                # If there is no response attached, it's a connection error.
+                raise RetrySymbolication(retry_after=10)
+
+            metrics.incr('events.symbolicator.response', tags={
+                'response': json.get('status') or 'null',
+                'project_id': self.sess.project_id,
+            })
 
             # Symbolication is still in progress. Bail out and try again
             # after some timeout. Symbolicator keeps the response for the
@@ -263,9 +263,8 @@ class Symbolicator(object):
                     REQUEST_CACHE_TIMEOUT)
                 raise RetrySymbolication(retry_after=json['retry_after'])
             else:
-                # Once we arrive here, we are done processing. Either, the
-                # result is now ready, or we have exceeded MAX_ATTEMPTS. In both
-                # cases, clean up the task id from the cache.
+                # Once we arrive here, we are done processing. Clean up the
+                # task id from the cache.
                 default_cache.delete(self.task_id_cache_key)
                 return json
 
@@ -506,7 +505,11 @@ class SymbolicatorSession(object):
                     path.startswith('requests/') and
                     response.status_code == 404
                 ):
-                    raise TaskIdNotFound()
+                    # The symbolicator does not know this task. This is
+                    # expected to happen when we're currently deploying
+                    # symbolicator (which will clear all of its state). Re-send
+                    # the symbolication task.
+                    return None
 
                 if response.status_code == 503:
                     raise ServiceUnavailable()
@@ -514,11 +517,6 @@ class SymbolicatorSession(object):
                 response.raise_for_status()
 
                 json = response.json()
-
-                metrics.incr('events.symbolicator.response', tags={
-                    'response': json.get('status') or 'null',
-                    'project_id': self.project_id,
-                })
 
                 return json
             except (IOError, RequestException):
@@ -529,7 +527,7 @@ class SymbolicatorSession(object):
                 # This can happen for any network failure.
                 if attempts > MAX_ATTEMPTS:
                     logger.error('Failed to contact symbolicator', exc_info=True)
-                    return
+                    raise
 
                 time.sleep(wait)
                 wait *= 2.0

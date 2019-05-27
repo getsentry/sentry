@@ -1,5 +1,5 @@
 ---
-created: '2019-05-27T10:02:53.891323Z'
+created: '2019-05-27T11:48:21.531011Z'
 creator: sentry
 source: tests/symbolicator/test_payload_full.py
 ---
@@ -28,7 +28,9 @@ exception:
   values:
   - raw_stacktrace:
       frames:
-      - function: unknown
+      - data:
+          symbolicator_status: missing
+        function: unknown
         in_app: false
         instruction_addr: '0x100000fa0'
         package: Foo.app/Contents/Foo
