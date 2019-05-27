@@ -10,13 +10,11 @@ from sentry.coreapi import APIError
 from sentry.models.organizationoption import OrganizationOption
 from sentry.models.project import Project
 from sentry.models.organization import Organization
-from sentry import options, quotas
-from sentry.quotas.base import RateLimit
+from sentry import options
 from sentry.utils.data_filters import FilterTypes
 from sentry.utils.outcomes import Outcome, track_outcome
 from sentry.grouping.api import get_grouping_config_dict_for_project
 from sentry import filters
-from sentry.utils.safe import safe_execute
 
 logger = logging.getLogger('sentry')
 
@@ -281,15 +279,16 @@ def get_full_relay_config(project_id, request, helper, auth_helper_cls):
 
         cfg['grouping_config'] = get_grouping_config_dict_for_project(project)
 
+        # Rate limit is complicated (this needs to be fixed at a latter date)
         # rate limit configuration
-        rate_limit = safe_execute(
-            quotas.is_rate_limited, project=project, key=auth_key, _with_transaction=False
-        )
-        if isinstance(rate_limit, bool):
-            rate_limit = RateLimit(is_limited=rate_limit, retry_after=None)
-
-        if rate_limit is not None:
-            cfg['rate_limit'] = rate_limit.to_dict()
+        # rate_limit = safe_execute(
+        #     quotas.is_rate_limited, project=project, key=auth_key, _with_transaction=False
+        # )
+        # if isinstance(rate_limit, bool):
+        #     rate_limit = RateLimit(is_limited=rate_limit, retry_after=None)
+        #
+        # if rate_limit is not None:
+        #     cfg['rate_limit'] = rate_limit.to_dict()
 
     return FullRelayConfig(project, **cfg)
 
