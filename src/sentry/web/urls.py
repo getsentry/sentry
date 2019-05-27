@@ -109,6 +109,11 @@ urlpatterns += patterns(
         name='sentry-api-minidump'
     ),
     url(
+        r'^api/(?P<project_id>[\w_-]+)/events/(?P<event_id>[\w-]+)/attachments/$',
+        api.EventAttachmentStoreView.as_view(),
+        name='sentry-api-event-attachment'
+    ),
+    url(
         r'^api/(?P<project_id>[\w_-]+)/unreal/(?P<sentry_key>\w+)/$',
         api.UnrealView.as_view(),
         name='sentry-api-unreal'
