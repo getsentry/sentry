@@ -123,13 +123,13 @@ def validate_and_set_timestamp(data, timestamp):
 
         if current - MAX_SECS_IN_PAST > timestamp:
             data.setdefault('errors', []).append({
-                'ty': EventError.PAST_TIMESTAMP,
+                'type': EventError.PAST_TIMESTAMP,
                 'name': 'timestamp',
                 'value': timestamp,
             })
         elif timestamp > current + MAX_SECS_IN_FUTURE:
             data.setdefault('errors', []).append({
-                'ty': EventError.FUTURE_TIMESTAMP,
+                'type': EventError.FUTURE_TIMESTAMP,
                 'name': 'timestamp',
                 'value': timestamp,
             })
