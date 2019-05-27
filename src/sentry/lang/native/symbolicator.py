@@ -253,6 +253,9 @@ class Symbolicator(object):
                 # some timeout.
                 json = process_impl()
 
+            # Symbolication is still in progress. Bail out and try again
+            # after some timeout. Symbolicator keeps the response for the
+            # first one to poll it.
             if json['status'] == 'pending':
                 default_cache.set(
                     self.task_id_cache_key,
@@ -260,6 +263,9 @@ class Symbolicator(object):
                     REQUEST_CACHE_TIMEOUT)
                 raise RetrySymbolication(retry_after=json['retry_after'])
             else:
+                # Once we arrive here, we are done processing. Either, the
+                # result is now ready, or we have exceeded MAX_ATTEMPTS. In both
+                # cases, clean up the task id from the cache.
                 default_cache.delete(self.task_id_cache_key)
                 return json
 
@@ -517,6 +523,10 @@ class SymbolicatorSession(object):
                 return json
             except (IOError, RequestException):
                 attempts += 1
+                # Any server error needs to be treated as a failure. We can
+                # retry a couple of times, but ultimately need to bail out.
+                #
+                # This can happen for any network failure.
                 if attempts > MAX_ATTEMPTS:
                     logger.error('Failed to contact symbolicator', exc_info=True)
                     return
