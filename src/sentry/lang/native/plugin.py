@@ -135,20 +135,6 @@ class NativeStacktraceProcessor(StacktraceProcessor):
             'symbolicator_match': []
         }
 
-        if obj is not None:
-            processable_frame.set_cache_key_from_values(
-                (
-                    FRAME_CACHE_VERSION,
-                    # Because the images can move around, we want to rebase
-                    # the address for the cache key to be within the image
-                    # the same way as we do it in symbolicator
-                    rebase_addr(instr_addr, obj),
-                    obj.debug_id,
-                    obj.arch,
-                    obj.size,
-                )
-            )
-
     def preprocess_step(self, processing_task):
         if not self.available:
             return False
@@ -312,9 +298,6 @@ class NativeStacktraceProcessor(StacktraceProcessor):
                 return [], [raw_frame], []
             else:
                 return None, [raw_frame], []
-
-        _ignored = None  # Used to be in_app
-        processable_frame.set_cache_value([_ignored, symbolicated_frames])
 
         new_frames = []
         for sfrm in symbolicated_frames:
