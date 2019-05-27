@@ -111,7 +111,7 @@ class NativeStacktraceProcessor(StacktraceProcessor):
         if platform not in self.supported_platforms:
             return False
 
-        if frame.get('data', {}).get('symbolicator_status'):
+        if frame.get('data', {}).get('symbolicator_status') == 'symbolicated':
             return False
 
         if 'instruction_addr' not in frame:
