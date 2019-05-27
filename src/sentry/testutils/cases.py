@@ -284,6 +284,30 @@ class BaseTestCase(Fixtures, Exam):
                 **extra
             )
 
+    def _postEventAttachmentWithHeader(self, attachment, **extra):
+        path = reverse(
+            'sentry-api-event-attachment',
+            kwargs={
+                'project_id': self.project.id,
+                'event_id': self.event.id})
+
+        key = self.projectkey.public_key
+        secret = self.projectkey.secret_key
+
+        with self.tasks():
+            return self.client.post(
+                path,
+                attachment,
+                # HTTP_USER_AGENT=DEFAULT_USER_AGENT,
+                HTTP_X_SENTRY_AUTH=get_auth_header(
+                    '_postWithHeader/0.0.0',
+                    key,
+                    secret,
+                    7,
+                ),
+                **extra
+            )
+
     def _getWithReferer(self, data, key=None, referer='sentry.io', protocol='4'):
         if key is None:
             key = self.projectkey.public_key
