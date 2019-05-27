@@ -130,20 +130,6 @@ class NativeStacktraceProcessor(StacktraceProcessor):
             'symbolserver_match': None,
         }
 
-        if obj is not None:
-            processable_frame.set_cache_key_from_values(
-                (
-                    FRAME_CACHE_VERSION,
-                    # Because the images can move around, we want to rebase
-                    # the address for the cache key to be within the image
-                    # the same way as we do it in symbolicator
-                    rebase_addr(instr_addr, obj),
-                    obj.debug_id,
-                    obj.arch,
-                    obj.size,
-                )
-            )
-
     def preprocess_step(self, processing_task):
         if not self.available:
             return False
@@ -203,23 +189,16 @@ class NativeStacktraceProcessor(StacktraceProcessor):
             obj = processable_frame.data['obj']
             raw_frame['package'] = obj and obj.code_file or None
 
-        if processable_frame.cache_value is None:
-            symbolicated_frames = convert_ios_symbolserver_match(
-                processable_frame.data['instruction_addr'],
-                processable_frame.data['symbolserver_match']
-            )
+        symbolicated_frames = convert_ios_symbolserver_match(
+            processable_frame.data['instruction_addr'],
+            processable_frame.data['symbolserver_match']
+        )
 
-            if not symbolicated_frames:
-                if raw_frame.get('trust') == 'scan':
-                    return [], [raw_frame], []
-                else:
-                    return None, [raw_frame], []
-
-            _ignored = None  # Used to be in_app
-            processable_frame.set_cache_value([_ignored, symbolicated_frames])
-
-        else:  # processable_frame.cache_value is present
-            _ignored, symbolicated_frames = processable_frame.cache_value
+        if not symbolicated_frames:
+            if raw_frame.get('trust') == 'scan':
+                return [], [raw_frame], []
+            else:
+                return None, [raw_frame], []
 
         new_frames = []
         for sfrm in symbolicated_frames:

@@ -40,7 +40,7 @@ from sentry.models import (
     Activity, Environment, Event, EventDict, EventError, EventMapping, EventUser, Group,
     GroupEnvironment, GroupHash, GroupLink, GroupRelease, GroupResolution, GroupStatus,
     Project, Release, ReleaseEnvironment, ReleaseProject,
-    ReleaseProjectEnvironment, UserReport, Organization,
+    ReleaseProjectEnvironment, UserReport, Organization, EventAttachment
 )
 from sentry.plugins import plugins
 from sentry.signals import event_discarded, event_saved, first_event_received
@@ -817,6 +817,14 @@ class EventManager(object):
         ).update(
             group=group,
             environment=environment,
+        )
+
+        # Update any event attachment that arrived before the event group was defined.
+        EventAttachment.objects.filter(
+            project_id=project.id,
+            event_id=event_id,
+        ).update(
+            group_id=group.id,
         )
 
         # save the event unless its been sampled
