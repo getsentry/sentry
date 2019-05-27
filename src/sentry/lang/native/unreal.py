@@ -4,51 +4,11 @@ from sentry.lang.native.minidump import MINIDUMP_ATTACHMENT_TYPE
 from sentry.models import UserReport
 from sentry.utils.safe import set_path, setdefault_path, get_path
 
-import re
-
-_portable_callstack_regexp = re.compile(r'''(?x)
-    (?:^|\s)
-    (?P<package>[^\s]+)
-    \s
-    (?P<baseaddr>0x[\da-fA-F]+)
-    \s\+\s
-    (?P<offset>[\da-fA-F]+)
-''')
-
 
 def is_unreal_event(data):
     """Whether this event is an Unreal crash that should be processed in
     enhancers. For the legacy codepath this still returns False."""
     return get_path(data, 'contexts', 'unreal', 'type') == 'unreal'
-
-
-def reprocess_unreal_crash(data):
-    exception = get_path(data, 'exception', 'values', 0)
-    if len(get_path(exception, 'stacktrace', 'frames', filter=True) or ()) > 1:
-        return
-
-    context = get_path(data, 'contexts', 'unreal')
-    portable_call_stack = get_path(context, 'portable_call_stack')
-
-    if not portable_call_stack:
-        return
-
-    images = get_path(data, 'debug_meta', 'images', filter=True, default=())
-
-    frames = parse_portable_callstack(portable_call_stack, images)
-    if not frames:
-        return
-
-    if not exception:
-        assert not data.get('stacktrace')
-        exception = {'type': 'Unreal'}
-        data['exception'] = {'values': [exception]}
-
-    exception['mechanism'] = {'type': 'unreal', 'handled': False, 'synthetic': True}
-    exception['stacktrace'] = {'frames': frames}
-    exception.pop('raw_stacktrace', None)
-
-    return data
 
 
 def process_unreal_crash(payload, user_id, environment, event):
@@ -127,40 +87,6 @@ def merge_apple_crash_report(apple_crash_report, event):
         'arch': module.get('arch'),
     } for module in apple_crash_report.get('binary_images')]
     event.setdefault('debug_meta', {})['images'] = images
-
-
-def parse_portable_callstack(portable_callstack, images):
-    frames = []
-    for match in _portable_callstack_regexp.finditer(portable_callstack):
-        baseaddr = int(match.group('baseaddr'), 16)
-        offset = int(match.group('offset'), 16)
-        # Crashes without PDB in the client report: 0x00000000ffffffff + ffffffff
-        if baseaddr == 0xffffffff and offset == 0xffffffff:
-            continue
-
-        package_re = re.escape(match.group('package')) + r"(\.dll|\.exe)?$"
-        image = next((
-            image for image in images
-            if image.get('code_file')
-            and re.search(package_re, image['code_file'], re.IGNORECASE)
-        ), {})
-
-        # baseaddr reported in the pcallstack missing most relevant bits:
-        # i.e: 0x0000000080db0000
-        # The image address should be used instead with the offset:
-        image_addr = image.get('image_addr')
-        if image_addr:
-            # Rebase with the image address if available.
-            baseaddr = int(image_addr, 16)
-
-        frames.append({
-            'package': image.get('code_file') or match.group('package'),
-            'instruction_addr': hex(baseaddr + offset),
-            'trust': 'prewalked',
-        })
-
-    frames.reverse()
-    return frames
 
 
 def merge_unreal_context_event(unreal_context, event, project):

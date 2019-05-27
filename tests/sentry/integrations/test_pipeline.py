@@ -163,7 +163,7 @@ class FinishPipelineTestCase(IntegrationTestCase):
         assert org_integration.default_auth_id is not None
         assert Identity.objects.filter(id=org_integration.default_auth_id).exists()
 
-    def test_default_identity_does_not_update(self, *args):
+    def test_default_identity_does_update(self, *args):
         self.provider.needs_default_identity = True
         old_identity_id = 234567
         integration = Integration.objects.create(
@@ -198,17 +198,12 @@ class FinishPipelineTestCase(IntegrationTestCase):
         resp = self.pipeline.finish_pipeline()
         self.assertDialogSuccess(resp)
 
-        integration = Integration.objects.get(
-            provider=self.provider.key,
-            external_id=self.external_id,
-        )
-
         org_integration = OrganizationIntegration.objects.get(
             organization_id=self.organization.id,
             integration_id=integration.id,
         )
-        assert org_integration.default_auth_id == old_identity_id
-        assert Identity.objects.filter(external_id='AccountId').exists()
+        identity = Identity.objects.get(external_id='AccountId')
+        assert org_integration.default_auth_id == identity.id
 
     @patch('sentry.mediators.plugins.Migrator.call')
     def test_disabled_plugin_when_fully_migrated(self, call, *args):

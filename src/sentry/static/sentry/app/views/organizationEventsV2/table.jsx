@@ -2,58 +2,49 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import styled, {css} from 'react-emotion';
 
-import withApi from 'app/utils/withApi';
 import SentryTypes from 'app/sentryTypes';
 import {Panel, PanelHeader, PanelBody, PanelItem} from 'app/components/panels';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
+import EmptyStateWarning from 'app/components/emptyStateWarning';
+import {t} from 'app/locale';
+import space from 'app/styles/space';
 
-import {fetchOrganizationEvents} from './utils';
+import {SPECIAL_FIELDS} from './data';
 
-class Table extends React.Component {
+export default class Table extends React.Component {
   static propTypes = {
-    api: PropTypes.object.isRequired,
-    organization: SentryTypes.Organization.isRequired,
     view: SentryTypes.EventView.isRequired,
-  };
-
-  constructor(props) {
-    super(props);
-    this.state = {events: [], isLoading: true, hasError: false};
-  }
-
-  componentDidMount() {
-    this.fetchData();
-  }
-
-  fetchData = async () => {
-    const {api, organization, view} = this.props;
-    this.setState({isLoading: true, hasError: false});
-
-    try {
-      const events = await fetchOrganizationEvents(api, organization.slug, view);
-      this.setState({
-        events,
-        isLoading: false,
-      });
-    } catch (e) {
-      this.setState({isLoading: false, hasError: true});
-    }
+    data: PropTypes.arrayOf(PropTypes.object),
+    isLoading: PropTypes.bool,
+    organization: SentryTypes.Organization.isRequired,
   };
 
   renderBody() {
-    const {events, isLoading} = this.state;
-    const {fields} = this.props.view.data;
+    const {view, data, isLoading, organization} = this.props;
+    const {fields} = view.data;
 
     if (isLoading) {
       return <LoadingIndicator />;
     }
 
-    return events.map((event, idx) => (
+    if (data && data.length === 0) {
+      return (
+        <EmptyStateWarning>
+          <p>{t('No results found')}</p>
+        </EmptyStateWarning>
+      );
+    }
+
+    return data.map((row, idx) => (
       <Row key={idx} className={getGridStyle(fields.length)}>
         {fields.map(field => (
           <Cell key={field}>
-            <Data>{event[field]}</Data>
+            {SPECIAL_FIELDS.hasOwnProperty(field) ? (
+              SPECIAL_FIELDS[field].renderFunc(row, organization)
+            ) : (
+              <Data>{row[field]}</Data>
+            )}
           </Cell>
         ))}
       </Row>
@@ -76,12 +67,11 @@ class Table extends React.Component {
   }
 }
 
-export default withApi(Table);
-
 function getGridStyle(colCount) {
   return css`
     display: grid;
     grid-template-columns: 3fr repeat(${colCount - 1}, 1fr);
+    grid-gap: ${space(1)};
   `;
 }
 

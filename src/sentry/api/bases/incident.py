@@ -16,6 +16,7 @@ class IncidentPermission(OrganizationPermission):
         'GET': ['org:read', 'org:write', 'org:admin', 'project:read', 'project:write', 'project:admin'],
         'POST': ['org:write', 'org:admin', 'project:read', 'project:write', 'project:admin'],
         'PUT': ['org:write', 'org:admin', 'project:read', 'project:write', 'project:admin'],
+        'DELETE': ['org:write', 'org:admin', 'project:read', 'project:write', 'project:admin'],
     }
 
 

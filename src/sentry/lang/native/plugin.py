@@ -3,25 +3,21 @@ from __future__ import absolute_import
 import uuid
 import logging
 
-from symbolic import parse_addr, find_best_instruction, arch_get_ip_reg_name, \
+from symbolic import LineInfo, parse_addr, find_best_instruction, arch_get_ip_reg_name, \
     ObjectLookup
 from symbolic.utils import make_buffered_slice_reader
 
 from sentry import options
-from sentry.cache import default_cache
-from sentry.coreapi import cache_key_for_event
 from sentry.plugins import Plugin2
+from sentry.lang.native.error import write_error
 from sentry.lang.native.minidump import get_attached_minidump, is_minidump_event, merge_symbolicator_minidump_response
-from sentry.lang.native.unreal import is_unreal_event, reprocess_unreal_crash
-from sentry.lang.native.symbolizer import Symbolizer, SymbolicationFailed
 from sentry.lang.native.symbolicator import run_symbolicator, merge_symbolicator_image, create_minidump_task, handle_symbolicator_response_status
-from sentry.lang.native.utils import get_sdk_from_event, handle_symbolication_failed, cpu_name_from_data, \
+from sentry.lang.native.utils import get_sdk_from_event, cpu_name_from_data, \
     merge_symbolicated_frame, rebase_addr, signal_from_data
 from sentry.lang.native.systemsymbols import lookup_system_symbols
 from sentry.models import Project
-from sentry.utils import metrics
 from sentry.utils.in_app import is_known_third_party
-from sentry.utils.safe import get_path
+from sentry.utils.safe import get_path, trim
 from sentry.stacktraces.processing import StacktraceProcessor
 
 logger = logging.getLogger(__name__)
@@ -37,10 +33,6 @@ def request_id_cache_key_for_event(data):
     return u'symbolicator:{1}:{0}'.format(data['project'], data['event_id'])
 
 
-def minidump_reprocessed_cache_key_for_event(data):
-    return u'symbolicator-minidump-processed:{1}:{0}'.format(data['project'], data['event_id'])
-
-
 class NativeStacktraceProcessor(StacktraceProcessor):
     supported_platforms = ('cocoa', 'native')
     # TODO(ja): Clean up all uses of image type "apple", "uuid", "id" and "name"
@@ -53,7 +45,6 @@ class NativeStacktraceProcessor(StacktraceProcessor):
         self.signal = signal_from_data(self.data)
 
         self.sym = None
-        self.difs_referenced = set()
 
         images = get_path(self.data, 'debug_meta', 'images', default=(),
                           filter=self._is_valid_image)
@@ -77,15 +68,6 @@ class NativeStacktraceProcessor(StacktraceProcessor):
 
     def close(self):
         StacktraceProcessor.close(self)
-        if self.difs_referenced:
-            metrics.incr(
-                'dsyms.processed',
-                amount=len(self.difs_referenced),
-                skip_internal=True,
-                tags={
-                    'project_id': self.project.id,
-                },
-            )
 
     def find_best_instruction(self, processable_frame):
         """Given a frame, stacktrace info and frame index this returns the
@@ -146,7 +128,7 @@ class NativeStacktraceProcessor(StacktraceProcessor):
             'debug_id': obj.debug_id if obj is not None else None,
             'symbolserver_match': None,
 
-            # `[]` is used to indicate to the symbolizer that the symbolicator
+            # `[]` is used to indicate that the symbolicator
             # deliberately discarded this frame.
             # If the symbolicator did run and was not able to symbolize the
             # frame, this value will be a list with the raw frame as only item.
@@ -159,7 +141,7 @@ class NativeStacktraceProcessor(StacktraceProcessor):
                     FRAME_CACHE_VERSION,
                     # Because the images can move around, we want to rebase
                     # the address for the cache key to be within the image
-                    # the same way as we do it in the symbolizer.
+                    # the same way as we do it in symbolicator
                     rebase_addr(instr_addr, obj),
                     obj.debug_id,
                     obj.arch,
@@ -170,8 +152,6 @@ class NativeStacktraceProcessor(StacktraceProcessor):
     def preprocess_step(self, processing_task):
         if not self.available:
             return False
-
-        self.sym = Symbolizer()
 
         if options.get('symbolserver.enabled'):
             self.fetch_ios_system_symbols(processing_task)
@@ -252,7 +232,7 @@ class NativeStacktraceProcessor(StacktraceProcessor):
         for image, complete_image in zip(self.images, rv['modules']):
             merge_symbolicator_image(
                 image, complete_image, self.sdk_info,
-                lambda e: handle_symbolication_failed(e, data=self.data)
+                lambda e: write_error(e, self.data)
             )
 
         assert len(stacktraces) == len(rv['stacktraces'])
@@ -309,7 +289,6 @@ class NativeStacktraceProcessor(StacktraceProcessor):
     def process_frame(self, processable_frame, processing_task):
         frame = processable_frame.frame
         raw_frame = dict(frame)
-        errors = []
 
         # Ensure that package is set in the raw frame, mapped from the
         # debug_images array in the payload. Grouping and UI can use this path
@@ -319,31 +298,21 @@ class NativeStacktraceProcessor(StacktraceProcessor):
             raw_frame['package'] = obj and obj.code_file or None
 
         if processable_frame.cache_value is None:
-            # Construct a raw frame that is used by the symbolizer
-            # backend.  We only assemble the bare minimum we need here.
-            instruction_addr = processable_frame.data['instruction_addr']
+            symbolicator_match = processable_frame.data['symbolicator_match']
 
-            debug_id = processable_frame.data['debug_id']
-            if debug_id is not None:
-                self.difs_referenced.add(debug_id)
-
-            try:
-                symbolicated_frames = self.sym.symbolize_frame(
-                    instruction_addr,
-                    self.sdk_info,
-                    symbolserver_match=processable_frame.data['symbolserver_match'],
-                    symbolicator_match=processable_frame.data.get('symbolicator_match'),
-                    trust=raw_frame.get('trust'),
+            if not any(x["status"] != "symbolicated" for x in symbolicator_match):
+                symbolicated_frames = symbolicator_match
+            else:
+                symbolicated_frames = convert_ios_symbolserver_match(
+                    processable_frame.data['instruction_addr'],
+                    processable_frame.data['symbolserver_match']
                 )
-                if not symbolicated_frames:
-                    if raw_frame.get('trust') == 'scan':
-                        return [], [raw_frame], []
-                    else:
-                        return None, [raw_frame], []
-            except SymbolicationFailed as e:
-                errors = []
-                handle_symbolication_failed(e, data=self.data, errors=errors)
-                return [raw_frame], [raw_frame], errors
+
+            if not symbolicated_frames:
+                if raw_frame.get('trust') == 'scan':
+                    return [], [raw_frame], []
+                else:
+                    return None, [raw_frame], []
 
             _ignored = None  # Used to be in_app
             processable_frame.set_cache_value([_ignored, symbolicated_frames])
@@ -363,10 +332,6 @@ class NativeStacktraceProcessor(StacktraceProcessor):
 def reprocess_minidump(data):
     project = Project.objects.get_from_cache(id=data['project'])
 
-    minidump_is_reprocessed_cache_key = minidump_reprocessed_cache_key_for_event(data)
-    if default_cache.get(minidump_is_reprocessed_cache_key):
-        return
-
     minidump = get_attached_minidump(data)
 
     if not minidump:
@@ -385,11 +350,38 @@ def reprocess_minidump(data):
     if handle_symbolicator_response_status(data, response):
         merge_symbolicator_minidump_response(data, response)
 
-    event_cache_key = cache_key_for_event(data)
-    default_cache.set(event_cache_key, dict(data), 3600)
-    default_cache.set(minidump_is_reprocessed_cache_key, True, 3600)
-
     return data
+
+
+def convert_ios_symbolserver_match(instruction_addr, symbolserver_match):
+    if not symbolserver_match:
+        return []
+
+    symbol = symbolserver_match['symbol']
+    if symbol[:1] == '_':
+        symbol = symbol[1:]
+
+    # We still use this construct from symbolic for demangling (at least)
+    line_info = LineInfo(
+        sym_addr=parse_addr(symbolserver_match['addr']),
+        instr_addr=parse_addr(instruction_addr),
+        line=None,
+        lang=None,
+        symbol=symbol
+    )
+
+    function = line_info.function_name
+    package = symbolserver_match['object_name']
+
+    return [{
+        'sym_addr': '0x%x' % (line_info.sym_addr,),
+        'instruction_addr': '0x%x' % (line_info.instr_addr,),
+        'function': function,
+        'symbol': symbol if function != symbol else None,
+        'filename': trim(line_info.rel_path, 256),
+        'abs_path': trim(line_info.abs_path, 256),
+        'package': package,
+    }]
 
 
 class NativePlugin(Plugin2):
@@ -399,9 +391,6 @@ class NativePlugin(Plugin2):
         rv = []
         if is_minidump_event(data):
             rv.append(reprocess_minidump)
-
-        if is_unreal_event(data):
-            rv.append(reprocess_unreal_crash)
 
         return rv
 

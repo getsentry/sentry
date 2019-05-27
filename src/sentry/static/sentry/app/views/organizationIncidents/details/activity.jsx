@@ -14,7 +14,6 @@ import {
 import {t} from 'app/locale';
 import {uniqueId} from 'app/utils/guid';
 import ActivityItem from 'app/components/activity/item';
-import Avatar from 'app/components/avatar';
 import ConfigStore from 'app/stores/configStore';
 import ErrorBoundary from 'app/components/errorBoundary';
 import LoadingError from 'app/components/loadingError';
@@ -50,54 +49,18 @@ class Activity extends React.Component {
     createBusy: PropTypes.bool,
     createErrorJSON: PropTypes.object,
     onCreateNote: PropTypes.func.isRequired,
+    onUpdateNote: PropTypes.func.isRequired,
+    onDeleteNote: PropTypes.func.isRequired,
   };
 
-  state = {
-    updateBusy: false,
-    requestError: false,
-    errorJSON: null,
+  handleUpdateNote = (note, {activity}) => {
+    const {onUpdateNote} = this.props;
+    onUpdateNote(note, activity);
   };
 
-  /**
-   * Note: This is nearly the same logic as `app/views/groupDetails/shared/groupActivity`
-   * This can be abstracted a bit if we create more objects that can have activities
-   */
-  handleCreateNote = async note => {
-    const {onCreateNote} = this.props;
-
-    onCreateNote(note);
-  };
-
-  handleDeleteNote = async item => {
-    const {api, incidentId} = this.props;
-
-    try {
-      await deleteIncidentNote(api, incidentId, item);
-    } catch (error) {
-      // TODO: Optimistic update
-    }
-  };
-
-  handleUpdateNote = async (note, item) => {
-    const {api, incidentId} = this.props;
-
-    this.setState({
-      updateBusy: true,
-    });
-
-    try {
-      await updateIncidentNote(api, incidentId, item, note);
-      this.setState({
-        updateBusy: false,
-      });
-    } catch (error) {
-      this.setState({
-        updateBusy: false,
-        requestError: true,
-        errorJSON: error.responseJSON || makeDefaultErrorJson(),
-      });
-      // TODO: Optimistic update
-    }
+  handleDeleteNote = ({activity}) => {
+    const {onDeleteNote} = this.props;
+    onDeleteNote(activity);
   };
 
   render() {
@@ -110,6 +73,7 @@ class Activity extends React.Component {
       createBusy,
       createError,
       createErrorJSON,
+      onCreateNote,
     } = this.props;
 
     const noteProps = {
@@ -129,7 +93,7 @@ class Activity extends React.Component {
             <NoteInputWithStorage
               storageKey="incidentIdinput"
               itemKey={incidentId}
-              onCreate={this.handleCreateNote}
+              onCreate={onCreateNote}
               busy={createBusy}
               error={createError}
               errorJSON={createErrorJSON}
@@ -175,15 +139,13 @@ class Activity extends React.Component {
                         <ErrorBoundary mini key={`note-${activity.id}`}>
                           <Note
                             showTime
-                            item={activity}
-                            id={`note-${activity.id}`}
-                            author={{
-                              name: authorName,
-                              avatar: <Avatar user={activity.user} size={38} />,
-                            }}
+                            user={activity.user}
+                            modelId={activity.id}
+                            text={activity.comment}
+                            activity={activity}
+                            authorName={authorName}
                             onDelete={this.handleDeleteNote}
                             onUpdate={this.handleUpdateNote}
-                            busy={this.state.updateBusy}
                             {...noteProps}
                           />
                         </ErrorBoundary>
@@ -239,7 +201,7 @@ class ActivityContainer extends React.Component {
       const activities = await fetchIncidentActivities(api, orgId, incidentId);
       this.setState({activities, loading: false});
     } catch (err) {
-      this.setState({loading: false, error: err});
+      this.setState({loading: false, error: !!err});
     }
   }
 
@@ -294,6 +256,53 @@ class ActivityContainer extends React.Component {
     }
   };
 
+  getIndexAndActivityFromState = activity => {
+    // `index` should probably be found, if not let error hit Sentry
+    const index = this.state.activities.findIndex(({id}) => id === activity.id);
+    return [index, this.state.activities[index]];
+  };
+
+  handleDeleteNote = async activity => {
+    const {api, params} = this.props;
+    const {incidentId, orgId} = params;
+
+    const [index, oldActivity] = this.getIndexAndActivityFromState(activity);
+
+    this.setState(state => ({
+      activities: removeFromArrayIndex(state.activities, index),
+    }));
+
+    try {
+      await deleteIncidentNote(api, orgId, incidentId, activity.id);
+    } catch (error) {
+      this.setState(state => ({
+        activities: replaceAtArrayIndex(state.activities, index, oldActivity),
+      }));
+    }
+  };
+
+  handleUpdateNote = async (note, activity) => {
+    const {api, params} = this.props;
+    const {incidentId, orgId} = params;
+
+    const [index, oldActivity] = this.getIndexAndActivityFromState(activity);
+
+    this.setState(state => ({
+      activities: replaceAtArrayIndex(state.activities, index, {
+        ...oldActivity,
+        comment: note.text,
+      }),
+    }));
+
+    try {
+      await updateIncidentNote(api, orgId, incidentId, activity.id, note);
+    } catch (error) {
+      this.setState(state => ({
+        activities: replaceAtArrayIndex(state.activities, index, oldActivity),
+      }));
+    }
+  };
+
   render() {
     const {api, params, ...props} = this.props;
     const {incidentId, orgId} = params;
@@ -307,6 +316,8 @@ class ActivityContainer extends React.Component {
         api={api}
         {...this.state}
         onCreateNote={this.handleCreateNote}
+        onUpdateNote={this.handleUpdateNote}
+        onDeleteNote={this.handleDeleteNote}
         {...props}
       />
     );
@@ -314,6 +325,18 @@ class ActivityContainer extends React.Component {
 }
 
 export default withApi(ActivityContainer);
+
+function removeFromArrayIndex(array, index) {
+  const newArray = [...array];
+  newArray.splice(index, 1);
+  return newArray;
+}
+
+function replaceAtArrayIndex(array, index, obj) {
+  const newArray = [...array];
+  newArray.splice(index, 1, obj);
+  return newArray;
+}
 
 const StyledTimeSince = styled(TimeSince)`
   color: ${p => p.theme.gray2};

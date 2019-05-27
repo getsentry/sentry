@@ -14,12 +14,25 @@ describe('OrganizationEventsV2', function() {
   it('renders', function() {
     const wrapper = mount(
       <OrganizationEventsV2
-        organization={TestStubs.Organization()}
+        organization={TestStubs.Organization({projects: [TestStubs.Project()]})}
         location={{query: {}}}
       />,
       TestStubs.routerContext()
     );
     const content = wrapper.find('PageContent');
     expect(content.text()).toContain('Events');
+  });
+
+  it('handles no projects', function() {
+    const wrapper = mount(
+      <OrganizationEventsV2
+        organization={TestStubs.Organization()}
+        location={{query: {}}}
+      />,
+      TestStubs.routerContext()
+    );
+
+    const content = wrapper.find('PageContent');
+    expect(content.text()).toContain('You need at least one project to use this view');
   });
 });

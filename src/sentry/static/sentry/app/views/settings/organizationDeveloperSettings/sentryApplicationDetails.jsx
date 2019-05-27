@@ -91,7 +91,7 @@ export default class SentryApplicationDetails extends AsyncView {
     const {app} = this.state;
     const scopes = (app && [...app.scopes]) || [];
     const events = (app && this.normalize(app.events)) || [];
-
+    const statusDisabled = app && app.status == 'internal' ? true : false;
     const method = app ? 'PUT' : 'POST';
     const endpoint = app ? `/sentry-apps/${app.slug}/` : '/sentry-apps/';
 
@@ -105,6 +105,7 @@ export default class SentryApplicationDetails extends AsyncView {
           initialData={{
             organization: orgId,
             isAlertable: false,
+            isInternal: app && app.status == 'internal' ? true : false,
             schema: {},
             scopes: [],
             ...app,
@@ -112,35 +113,65 @@ export default class SentryApplicationDetails extends AsyncView {
           model={this.form}
           onSubmitSuccess={this.onSubmitSuccess}
         >
-          <JsonForm location={this.props.location} forms={sentryApplicationForm} />
+          <JsonForm
+            additionalFieldProps={{statusDisabled}}
+            location={this.props.location}
+            forms={sentryApplicationForm}
+          />
 
           <PermissionsObserver scopes={scopes} events={events} />
 
           {app && (
             <Panel>
               <PanelHeader>{t('Credentials')}</PanelHeader>
-              <PanelBody>
-                <FormField name="clientId" label="Client ID" overflow>
-                  {({value}) => {
-                    return (
-                      <TextCopyInput>
-                        {getDynamicText({value, fixed: 'PERCY_CLIENT_ID'})}
-                      </TextCopyInput>
-                    );
-                  }}
-                </FormField>
-                <FormField overflow name="clientSecret" label="Client Secret">
-                  {({value}) => {
-                    return value ? (
-                      <TextCopyInput>
-                        {getDynamicText({value, fixed: 'PERCY_CLIENT_SECRET'})}
-                      </TextCopyInput>
-                    ) : (
-                      <em>hidden</em>
-                    );
-                  }}
-                </FormField>
-              </PanelBody>
+              {app.status == 'internal' ? (
+                <PanelBody>
+                  <FormField name="token" label="Token" overflow>
+                    {({value}) => {
+                      return (
+                        <TextCopyInput>
+                          {getDynamicText({value, fixed: 'PERCY_ACCESS_TOKEN'})}
+                        </TextCopyInput>
+                      );
+                    }}
+                  </FormField>
+                  <FormField overflow name="installation" label="Installation ID">
+                    {({value}) => {
+                      return (
+                        <TextCopyInput>
+                          {getDynamicText({
+                            value: value.uuid,
+                            fixed: 'PERCY_INSTALLATION_ID',
+                          })}
+                        </TextCopyInput>
+                      );
+                    }}
+                  </FormField>
+                </PanelBody>
+              ) : (
+                <PanelBody>
+                  <FormField name="clientId" label="Client ID" overflow>
+                    {({value}) => {
+                      return (
+                        <TextCopyInput>
+                          {getDynamicText({value, fixed: 'PERCY_CLIENT_ID'})}
+                        </TextCopyInput>
+                      );
+                    }}
+                  </FormField>
+                  <FormField overflow name="clientSecret" label="Client Secret">
+                    {({value}) => {
+                      return value ? (
+                        <TextCopyInput>
+                          {getDynamicText({value, fixed: 'PERCY_CLIENT_SECRET'})}
+                        </TextCopyInput>
+                      ) : (
+                        <em>hidden</em>
+                      );
+                    }}
+                  </FormField>
+                </PanelBody>
+              )}
             </Panel>
           )}
         </Form>

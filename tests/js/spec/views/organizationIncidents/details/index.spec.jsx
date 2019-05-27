@@ -58,7 +58,9 @@ describe('IncidentDetails', function() {
     const wrapper = createWrapper({params: {orgId: 'org-slug', incidentId: '456'}});
     await tick();
     wrapper.update();
-    expect(wrapper.find('LoadingError')).toHaveLength(1);
+
+    // Activtiy will additionally have a LoadingError
+    expect(wrapper.find('LoadingError')).toHaveLength(2);
   });
 
   it('changes status to closed', async function() {
@@ -92,5 +94,34 @@ describe('IncidentDetails', function() {
     );
 
     expect(wrapper.find('Status').text()).toBe('Closed');
+  });
+
+  it('toggles subscribe status with Subscribe button', async function() {
+    const wrapper = createWrapper();
+
+    await tick();
+    wrapper.update();
+
+    const subscribe = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/incidents/123/subscriptions/',
+      method: 'POST',
+    });
+    const unsubscribe = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/incidents/123/subscriptions/',
+      method: 'DELETE',
+    });
+
+    // Should be subscribed, so button should show "Unsubscribe"
+    expect(wrapper.find('SubscribeButton Content').text()).toBe('Unsubscribe');
+
+    // Click to unsubscribe
+    wrapper.find('SubscribeButton').simulate('click');
+    expect(unsubscribe).toHaveBeenCalled();
+    expect(subscribe).not.toHaveBeenCalled();
+    expect(wrapper.find('SubscribeButton Content').text()).toBe('Subscribe');
+
+    // Click again to re-subscribe
+    wrapper.find('SubscribeButton').simulate('click');
+    expect(subscribe).toHaveBeenCalled();
   });
 });

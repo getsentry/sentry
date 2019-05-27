@@ -23,10 +23,70 @@ class OrganizationEventsTestBase(APITestCase, SnubaTestCase):
 
 
 class OrganizationEventsV2EndpointTest(OrganizationEventsTestBase):
+
+    def test_no_projects(self):
+        self.login_as(user=self.user)
+        with self.feature('organizations:events-v2'):
+            response = self.client.get(self.url, format='json')
+
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 0
+
+    def test_multi_project_feature_gate_rejection(self):
+        self.login_as(user=self.user)
+        team = self.create_team(organization=self.organization, members=[self.user])
+
+        project = self.create_project(organization=self.organization, teams=[team])
+        project2 = self.create_project(organization=self.organization, teams=[team])
+
+        self.store_event(
+            data={
+                'event_id': 'a' * 32,
+                'timestamp': self.min_ago,
+                'fingerprint': ['group1'],
+            },
+            project_id=project.id
+        )
+        self.store_event(
+            data={
+                'event_id': 'b' * 32,
+                'timestamp': self.min_ago,
+                'fingerprint': ['group2'],
+            },
+            project_id=project2.id
+        )
+
+        query = {
+            'fields': ['id', 'project.id'],
+            'project': [project.id, project2.id],
+        }
+        with self.feature({'organizations:events-v2': True, 'organizations:global-views': False}):
+            response = self.client.get(self.url, query, format='json')
+        assert response.status_code == 400
+        assert 'events from multiple projects' in response.data['detail']
+
+    def test_invalid_search_terms(self):
+        self.login_as(user=self.user)
+
+        project = self.create_project()
+        self.store_event(
+            data={
+                'event_id': 'a' * 32,
+                'message': 'how to make fast',
+                'timestamp': self.min_ago,
+            },
+            project_id=project.id
+        )
+
+        with self.feature('organizations:events-v2'):
+            response = self.client.get(self.url, {'query': 'hi \n there'}, format='json')
+
+        assert response.status_code == 400, response.content
+        assert response.data['detail'] == "Parse error: 'search' (column 4). This is commonly caused by unmatched-parentheses."
+
     def test_raw_data(self):
         self.login_as(user=self.user)
         project = self.create_project()
-        project2 = self.create_project()
         self.store_event(
             data={
                 'event_id': 'a' * 32,
@@ -49,7 +109,7 @@ class OrganizationEventsV2EndpointTest(OrganizationEventsTestBase):
                     'email': 'foo@example.com',
                 },
             },
-            project_id=project2.id,
+            project_id=project.id,
         )
 
         with self.feature('organizations:events-v2'):
@@ -65,8 +125,35 @@ class OrganizationEventsV2EndpointTest(OrganizationEventsTestBase):
         assert response.status_code == 200, response.content
         assert len(response.data) == 2
         assert response.data[0]['id'] == 'b' * 32
-        assert response.data[0]['project.id'] == project2.id
+        assert response.data[0]['project.id'] == project.id
         assert response.data[0]['user.email'] == 'foo@example.com'
+
+    def test_project_name(self):
+        self.login_as(user=self.user)
+        project = self.create_project()
+        self.store_event(
+            data={
+                'event_id': 'a' * 32,
+                'environment': 'staging',
+                'timestamp': self.min_ago,
+            },
+            project_id=project.id,
+        )
+
+        with self.feature('organizations:events-v2'):
+            response = self.client.get(
+                self.url,
+                format='json',
+                data={
+                    'fields': ['project.name', 'environment'],
+                },
+            )
+
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 1
+        assert response.data[0]['project.name'] == project.slug
+        assert 'project.id' not in response.data[0]
+        assert response.data[0]['environment'] == 'staging'
 
     def test_groupby(self):
         self.login_as(user=self.user)

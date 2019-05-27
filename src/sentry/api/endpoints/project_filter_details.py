@@ -49,6 +49,9 @@ class ProjectFilterDetailsEndpoint(ProjectEndpoint):
             elif new_state - current_state:
                 returned_state = new_state - current_state
 
+            elif new_state == current_state:
+                returned_state = new_state
+
         if filter.id in ('browser-extensions', 'localhost', 'web-crawlers'):
             returned_state = filter.id
             removed = current_state - new_state

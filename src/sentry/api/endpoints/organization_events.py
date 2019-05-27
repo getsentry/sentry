@@ -18,6 +18,7 @@ from sentry.utils.snuba import (
     SnubaTSResult,
 )
 from sentry import features
+from sentry.models.project import Project
 
 
 class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
@@ -72,24 +73,50 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
 
     def get_v2(self, request, organization):
         try:
-            snuba_args = self.get_snuba_query_args_v2(request, organization)
+            params = self.get_filter_params(request, organization)
+            snuba_args = self.get_snuba_query_args_v2(request, organization, params)
         except OrganizationEventsError as exc:
             return Response({'detail': exc.message}, status=400)
         except NoProjects:
-            # return empty result if org doesn't have projects
-            # or user doesn't have access to projects in org
-            data_fn = lambda *args, **kwargs: []
-        else:
-            data_fn = partial(
-                lambda *args, **kwargs: transform_aliases_and_query(*args, **kwargs)['data'],
-                referrer='api.organization-events-v2',
-                **snuba_args
-            )
+            return Response([])
 
-            return self.paginate(
-                request=request,
-                paginator=GenericOffsetPaginator(data_fn=data_fn)
-            )
+        filters = snuba_args.get('filter_keys', {})
+        has_global_views = features.has(
+            'organizations:global-views',
+            organization,
+            actor=request.user)
+        if not has_global_views and len(filters.get('project_id', [])) > 1:
+            return Response({
+                'detail': 'You cannot view events from multiple projects.'
+            }, status=400)
+
+        data_fn = partial(
+            lambda *args, **kwargs: transform_aliases_and_query(*args, **kwargs)['data'],
+            referrer='api.organization-events-v2',
+            **snuba_args
+        )
+
+        return self.paginate(
+            request=request,
+            paginator=GenericOffsetPaginator(data_fn=data_fn),
+            on_results=lambda results: self.handle_results(
+                request, organization, params['project_id'], results),
+        )
+
+    def handle_results(self, request, organization, project_ids, results):
+        projects = {p['id']: p['slug'] for p in Project.objects.filter(
+            organization=organization,
+            id__in=project_ids).values('id', 'slug')}
+
+        fields = request.GET.getlist('fields')
+
+        if 'project.name' in fields:
+            for result in results:
+                result['project.name'] = projects[result['project.id']]
+                if 'project.id' not in fields:
+                    del result['project.id']
+
+        return results
 
 
 class OrganizationEventsStatsEndpoint(OrganizationEventsEndpointBase):
@@ -108,10 +135,20 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsEndpointBase):
 
         rollup = int(interval.total_seconds())
 
+        y_axis = request.GET.get('yAxis', None)
+        if not y_axis or y_axis == 'event_count':
+            aggregations = [('count()', '', 'count')]
+        elif y_axis == 'user_count':
+            aggregations = [
+                ('uniq', 'tags[sentry:user]', 'count'),
+            ]
+            snuba_args['filter_keys']['tags_key'] = ['sentry:user']
+        else:
+            return Response(
+                {'detail': 'Param yAxis value %s not recognized.' % y_axis}, status=400)
+
         result = raw_query(
-            aggregations=[
-                ('count()', '', 'count'),
-            ],
+            aggregations=aggregations,
             orderby='time',
             groupby=['time'],
             rollup=rollup,
