@@ -207,7 +207,7 @@ IMAGE_STATUS_FIELDS = frozenset((
 
 
 class Symbolicator(object):
-    def __init__(self, project, request_id_cache_key):
+    def __init__(self, project, task_id_cache_key):
         symbolicator_options = options.get('symbolicator.options')
         base_url = symbolicator_options['url'].rstrip('/')
         assert base_url
@@ -219,32 +219,48 @@ class Symbolicator(object):
             sources=get_sources_for_project(project)
         )
 
-        self.request_id_cache_key = request_id_cache_key
+        self.task_id_cache_key = task_id_cache_key
 
     def _process(self, process_impl):
-        request_id = default_cache.get(self.request_id_cache_key)
+        task_id = default_cache.get(self.task_id_cache_key)
 
         with self.sess:
-            if request_id:
+            if task_id:
+                # Processing has already started and we need to poll
+                # symbolicator for an update. This in turn may put us back into
+                # the queue.
                 try:
-                    json = self.sess.query_task(request_id)
-                except RequestIdNotFound:
-                    default_cache.delete(self.request_id_cache_key)
-                    raise RetrySymbolication(retry_after=0)
+                    json = self.sess.query_task(task_id)
+                except TaskIdNotFound:
+                    # The symbolicator does not know this task. This is
+                    # expected to happen when we're currently deploying
+                    # symbolicator (which will clear all of its state). Re-send
+                    # the symbolication task.
+                    json = process_impl()
                 except ServiceUnavailable:
+                    # 503 can indicate that symbolicator is restarting. Wait for a
+                    # reboot, then try again. This overrides the default behavior of
+                    # retrying after just a second.
+                    #
+                    # If there is no response attached, it's a connection error.
                     raise RetrySymbolication(retry_after=10)
 
             else:
+                # This is a new request, so we compute all request parameters
+                # (potentially expensive if we need to pull minidumps), and then
+                # upload all information to symbolicator. It will likely not
+                # have a response ready immediately, so we start polling after
+                # some timeout.
                 json = process_impl()
 
             if json['status'] == 'pending':
                 default_cache.set(
-                    self.request_id_cache_key,
+                    self.task_id_cache_key,
                     json['request_id'],
                     REQUEST_CACHE_TIMEOUT)
                 raise RetrySymbolication(retry_after=json['retry_after'])
             else:
-                default_cache.delete(self.request_id_cache_key)
+                default_cache.delete(self.task_id_cache_key)
                 return json
 
     def process_minidump(self, minidump):
@@ -255,7 +271,7 @@ class Symbolicator(object):
             stacktraces=stacktraces, modules=modules, signal=signal))
 
 
-class RequestIdNotFound(Exception):
+class TaskIdNotFound(Exception):
     pass
 
 
@@ -484,7 +500,7 @@ class SymbolicatorSession(object):
                     path.startswith('requests/') and
                     response.status_code == 404
                 ):
-                    raise RequestIdNotFound()
+                    raise TaskIdNotFound()
 
                 if response.status_code == 503:
                     raise ServiceUnavailable()

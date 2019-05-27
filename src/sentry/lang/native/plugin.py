@@ -30,7 +30,7 @@ SYMBOLICATOR_FRAME_ATTRS = ("instruction_addr", "package", "lang", "symbol",
                             "line_addr")
 
 
-def request_id_cache_key_for_event(data):
+def task_id_cache_key_for_event(data):
     return u'symbolicator:{1}:{0}'.format(data['project'], data['event_id'])
 
 
@@ -239,11 +239,11 @@ def reprocess_minidump(data):
         logger.error("Missing minidump for minidump event")
         return
 
-    request_id_cache_key = request_id_cache_key_for_event(data)
+    task_id_cache_key = task_id_cache_key_for_event(data)
 
     symbolicator = Symbolicator(
         project=project,
-        request_id_cache_key=request_id_cache_key
+        task_id_cache_key=task_id_cache_key
     )
 
     response = symbolicator.process_minidump(make_buffered_slice_reader(minidump.data, None))
@@ -268,11 +268,11 @@ def _handles_frame(data, frame):
 
 def process_payload(data):
     project = Project.objects.get_from_cache(id=data['project'])
-    request_id_cache_key = request_id_cache_key_for_event(data)
+    task_id_cache_key = task_id_cache_key_for_event(data)
 
     symbolicator = Symbolicator(
         project=project,
-        request_id_cache_key=request_id_cache_key
+        task_id_cache_key=task_id_cache_key
     )
 
     stacktrace_infos = [
