@@ -592,7 +592,7 @@ class EventAttachmentStoreView(StoreView):
     def post(self, request, project, event_id, **kwargs):
         if not features.has('organizations:event-attachments',
                             project.organization, actor=request.user):
-            return HttpResponse(status=405)
+            raise APIForbidden("Event attachments are not enabled for this organization.")
 
         if len(request.FILES) == 0:
             return HttpResponse(status=400)

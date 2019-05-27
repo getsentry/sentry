@@ -743,36 +743,37 @@ class EventAttachmentStoreViewTest(TestCase):
             project_id=self.project.id, event_id=self.event.id).exists()
 
     def test_event_attachments_feature_creates_attachment(self):
+        out = BytesIO()
+        out.write('hi')
         with self.feature('organizations:event-attachments'):
-            out = BytesIO()
-            out.write('hi')
             response = self._postEventAttachmentWithHeader({
                 'attachment1':
                 SimpleUploadedFile('mapping.txt', out.getvalue(), content_type='text/plain'),
             }, format='multipart')
 
-            assert response.status_code == 201
-            assert self.has_attachment()
+        assert response.status_code == 201
+        assert self.has_attachment()
 
-    def test_event_attachments_without_feature_returns_405(self):
+    def test_event_attachments_without_feature_returns_forbidden(self):
         out = BytesIO()
         out.write('hi')
-        response = self._postEventAttachmentWithHeader({
-            'attachment1':
-            SimpleUploadedFile('mapping.txt', out.getvalue(), content_type='text/plain'),
-        }, format='multipart')
+        with self.feature({'organizations:event-attachments': False}):
+            response = self._postEventAttachmentWithHeader({
+                'attachment1':
+                SimpleUploadedFile('mapping.txt', out.getvalue(), content_type='text/plain'),
+            }, format='multipart')
 
-        assert response.status_code == 405
+        assert response.status_code == 403
         assert not self.has_attachment()
 
     def test_event_attachments_without_files_returns_400(self):
+        out = BytesIO()
+        out.write('hi')
         with self.feature('organizations:event-attachments'):
-            out = BytesIO()
-            out.write('hi')
             response = self._postEventAttachmentWithHeader({}, format='multipart')
 
-            assert response.status_code == 400
-            assert not self.has_attachment()
+        assert response.status_code == 400
+        assert not self.has_attachment()
 
     # TODO: Make sure job exists to delete dangling attachments
     def test_event_attachments_event_doesnt_exist_creates_attachment(self):
@@ -785,8 +786,8 @@ class EventAttachmentStoreViewTest(TestCase):
                     SimpleUploadedFile('mapping.txt', out.getvalue(), content_type='text/plain'),
             }, format='multipart')
 
-            assert response.status_code == 201
-            assert self.has_attachment()
+        assert response.status_code == 201
+        assert self.has_attachment()
 
 
 class RobotsTxtTest(TestCase):
