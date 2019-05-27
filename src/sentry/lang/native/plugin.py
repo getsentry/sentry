@@ -297,28 +297,24 @@ class NativeStacktraceProcessor(StacktraceProcessor):
             obj = processable_frame.data['obj']
             raw_frame['package'] = obj and obj.code_file or None
 
-        if processable_frame.cache_value is None:
-            symbolicator_match = processable_frame.data['symbolicator_match']
+        symbolicator_match = processable_frame.data['symbolicator_match']
 
-            if not any(x["status"] != "symbolicated" for x in symbolicator_match):
-                symbolicated_frames = symbolicator_match
+        if not any(x["status"] != "symbolicated" for x in symbolicator_match):
+            symbolicated_frames = symbolicator_match
+        else:
+            symbolicated_frames = convert_ios_symbolserver_match(
+                processable_frame.data['instruction_addr'],
+                processable_frame.data['symbolserver_match']
+            )
+
+        if not symbolicated_frames:
+            if raw_frame.get('trust') == 'scan':
+                return [], [raw_frame], []
             else:
-                symbolicated_frames = convert_ios_symbolserver_match(
-                    processable_frame.data['instruction_addr'],
-                    processable_frame.data['symbolserver_match']
-                )
+                return None, [raw_frame], []
 
-            if not symbolicated_frames:
-                if raw_frame.get('trust') == 'scan':
-                    return [], [raw_frame], []
-                else:
-                    return None, [raw_frame], []
-
-            _ignored = None  # Used to be in_app
-            processable_frame.set_cache_value([_ignored, symbolicated_frames])
-
-        else:  # processable_frame.cache_value is present
-            _ignored, symbolicated_frames = processable_frame.cache_value
+        _ignored = None  # Used to be in_app
+        processable_frame.set_cache_value([_ignored, symbolicated_frames])
 
         new_frames = []
         for sfrm in symbolicated_frames:
