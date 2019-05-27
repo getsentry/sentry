@@ -62,7 +62,7 @@ def merge_apple_crash_report(apple_crash_report, event):
                     'lineno': frame.get('lineno'),
                     'filename': frame.get('filename'),
                 } for frame in reversed(thread.get('frames', []))],
-                'registers': thread.get('registers', []),
+                'registers': thread.get('registers') or None,
             },
         })
 

@@ -9,6 +9,7 @@ import time
 from django.core.urlresolvers import reverse
 
 from requests.exceptions import RequestException
+from six.moves.urllib.parse import urljoin
 
 from sentry import options
 from sentry.auth.system import get_system_token
@@ -205,6 +206,84 @@ IMAGE_STATUS_FIELDS = frozenset((
 ))
 
 
+class Symbolicator(object):
+    def __init__(self, project, task_id_cache_key):
+        symbolicator_options = options.get('symbolicator.options')
+        base_url = symbolicator_options['url'].rstrip('/')
+        assert base_url
+
+        self.sess = SymbolicatorSession(
+            url=base_url,
+            project_id=six.text_type(project.id),
+            timeout=SYMBOLICATOR_TIMEOUT,
+            sources=get_sources_for_project(project)
+        )
+
+        self.task_id_cache_key = task_id_cache_key
+
+    def _process(self, create_task):
+        task_id = default_cache.get(self.task_id_cache_key)
+        json = None
+
+        with self.sess:
+            try:
+                if task_id:
+                    # Processing has already started and we need to poll
+                    # symbolicator for an update. This in turn may put us back into
+                    # the queue.
+                    json = self.sess.query_task(task_id)
+
+                if json is None:
+                    # This is a new task, so we compute all request parameters
+                    # (potentially expensive if we need to pull minidumps), and then
+                    # upload all information to symbolicator. It will likely not
+                    # have a response ready immediately, so we start polling after
+                    # some timeout.
+                    json = create_task()
+            except ServiceUnavailable:
+                # 503 can indicate that symbolicator is restarting. Wait for a
+                # reboot, then try again. This overrides the default behavior of
+                # retrying after just a second.
+                #
+                # If there is no response attached, it's a connection error.
+                raise RetrySymbolication(retry_after=10)
+
+            metrics.incr('events.symbolicator.response', tags={
+                'response': json.get('status') or 'null',
+                'project_id': self.sess.project_id,
+            })
+
+            # Symbolication is still in progress. Bail out and try again
+            # after some timeout. Symbolicator keeps the response for the
+            # first one to poll it.
+            if json['status'] == 'pending':
+                default_cache.set(
+                    self.task_id_cache_key,
+                    json['request_id'],
+                    REQUEST_CACHE_TIMEOUT)
+                raise RetrySymbolication(retry_after=json['retry_after'])
+            else:
+                # Once we arrive here, we are done processing. Clean up the
+                # task id from the cache.
+                default_cache.delete(self.task_id_cache_key)
+                return json
+
+    def process_minidump(self, minidump):
+        return self._process(lambda: self.sess.upload_minidump(minidump))
+
+    def process_payload(self, stacktraces, modules, signal=None):
+        return self._process(lambda: self.sess.symbolicate_stacktraces(
+            stacktraces=stacktraces, modules=modules, signal=signal))
+
+
+class TaskIdNotFound(Exception):
+    pass
+
+
+class ServiceUnavailable(Exception):
+    pass
+
+
 class InvalidSourcesError(Exception):
     pass
 
@@ -300,123 +379,6 @@ def get_sources_for_project(project):
     return sources
 
 
-def _get_default_headers(project_id):
-    # Required for load balancing
-    return {'x-sentry-project-id': project_id}
-
-
-def create_minidump_task(sess, base_url, project_id, sources, minidump):
-    files = {
-        'upload_file_minidump': minidump,
-    }
-
-    data = {
-        'sources': json.dumps(sources)
-    }
-
-    url = '{base_url}/minidump?timeout={timeout}&scope={scope}'.format(
-        base_url=base_url,
-        timeout=SYMBOLICATOR_TIMEOUT,
-        scope=project_id
-    )
-
-    return sess.post(url, data=data, files=files, headers=_get_default_headers(project_id))
-
-
-def create_payload_task(sess, base_url, project_id, sources, signal,
-                        stacktraces, modules):
-    request = {
-        'signal': signal,
-        'sources': sources,
-        'request': {
-            'timeout': SYMBOLICATOR_TIMEOUT,
-        },
-        'stacktraces': stacktraces,
-        'modules': modules,
-    }
-    url = '{base_url}/symbolicate?timeout={timeout}&scope={scope}'.format(
-        base_url=base_url,
-        timeout=SYMBOLICATOR_TIMEOUT,
-        scope=project_id,
-    )
-    return sess.post(url, json=request, headers=_get_default_headers(project_id))
-
-
-def run_symbolicator(project, request_id_cache_key, create_task=create_payload_task, **kwargs):
-    symbolicator_options = options.get('symbolicator.options')
-    base_url = symbolicator_options['url'].rstrip('/')
-    assert base_url
-
-    project_id = six.text_type(project.id)
-    request_id = default_cache.get(request_id_cache_key)
-    sess = Session()
-
-    # Will be set lazily when a symbolicator request is fired
-    sources = None
-
-    attempts = 0
-    wait = 0.5
-
-    with sess:
-        while True:
-            try:
-                if request_id:
-                    rv = _poll_symbolication_task(
-                        sess=sess, base_url=base_url,
-                        request_id=request_id, project_id=project_id,
-                    )
-                else:
-                    if sources is None:
-                        sources = get_sources_for_project(project)
-
-                    rv = create_task(
-                        sess=sess, base_url=base_url,
-                        project_id=project_id,
-                        sources=sources,
-                        **kwargs
-                    )
-
-                metrics.incr('events.symbolicator.status_code', tags={
-                    'status_code': rv.status_code,
-                    'project_id': project_id,
-                })
-
-                if rv.status_code == 404 and request_id:
-                    default_cache.delete(request_id_cache_key)
-                    request_id = None
-                    continue
-                elif rv.status_code == 503:
-                    raise RetrySymbolication(retry_after=10)
-
-                rv.raise_for_status()
-                json = rv.json()
-                metrics.incr('events.symbolicator.response', tags={
-                    'response': json['status'],
-                    'project_id': project_id,
-                })
-
-                if json['status'] == 'pending':
-                    default_cache.set(
-                        request_id_cache_key,
-                        json['request_id'],
-                        REQUEST_CACHE_TIMEOUT)
-                    raise RetrySymbolication(retry_after=json['retry_after'])
-                else:
-                    default_cache.delete(request_id_cache_key)
-                    return json
-
-            except (IOError, RequestException):
-                attempts += 1
-                if attempts > MAX_ATTEMPTS:
-                    logger.error('Failed to contact symbolicator', exc_info=True)
-
-                    default_cache.delete(request_id_cache_key)
-                    return
-
-                time.sleep(wait)
-                wait *= 2.0
-
-
 def handle_symbolicator_response_status(event_data, response_json):
     if not response_json:
         error = SymbolicationFailed(type=EventError.NATIVE_INTERNAL_FAILURE)
@@ -430,15 +392,6 @@ def handle_symbolicator_response_status(event_data, response_json):
         error = SymbolicationFailed(type=EventError.NATIVE_INTERNAL_FAILURE)
 
     write_error(error, event_data)
-
-
-def _poll_symbolication_task(sess, base_url, request_id, project_id):
-    url = '{base_url}/requests/{request_id}?timeout={timeout}'.format(
-        base_url=base_url,
-        request_id=request_id,
-        timeout=SYMBOLICATOR_TIMEOUT,
-    )
-    return sess.get(url, headers=_get_default_headers(project_id))
 
 
 def merge_symbolicator_image(raw_image, complete_image, sdk_info, handle_symbolication_failed):
@@ -495,3 +448,116 @@ def handle_symbolicator_status(status, image, sdk_info, handle_symbolication_fai
     error.image_name = image_name(image.get('code_file'))
     error.image_uuid = image.get('debug_id')
     handle_symbolication_failed(error)
+
+
+class SymbolicatorSession(object):
+    def __init__(self, url=None, sources=None, project_id=None, timeout=None):
+        self.url = url
+        self.project_id = project_id
+        self.sources = sources or []
+        self.timeout = timeout
+        self.session = None
+
+        self._query_params = {'timeout': timeout, 'scope': project_id}
+
+    def __enter__(self):
+        self.open()
+        return self
+
+    def __exit__(self, *args):
+        self.close()
+
+    def open(self):
+        if self.session is None:
+            self.session = Session()
+
+    def close(self):
+        if self.session is not None:
+            self.session.close()
+            self.session = None
+
+    def _ensure_open(self):
+        if not self.session:
+            raise RuntimeError('Session not opened')
+
+    def _request(self, method, path, **kwargs):
+        self._ensure_open()
+
+        url = urljoin(self.url, path)
+
+        # required for load balancing
+        kwargs.setdefault('headers', {})['x-sentry-project-id'] = self.project_id
+
+        attempts = 0
+        wait = 0.5
+
+        while True:
+            try:
+                response = self.session.request(method, url, **kwargs)
+
+                metrics.incr('events.symbolicator.status_code', tags={
+                    'status_code': response.status_code,
+                    'project_id': self.project_id,
+                })
+
+                if (
+                    method.lower() == 'get' and
+                    path.startswith('requests/') and
+                    response.status_code == 404
+                ):
+                    # The symbolicator does not know this task. This is
+                    # expected to happen when we're currently deploying
+                    # symbolicator (which will clear all of its state). Re-send
+                    # the symbolication task.
+                    return None
+
+                if response.status_code == 503:
+                    raise ServiceUnavailable()
+
+                response.raise_for_status()
+
+                json = response.json()
+
+                return json
+            except (IOError, RequestException):
+                attempts += 1
+                # Any server error needs to be treated as a failure. We can
+                # retry a couple of times, but ultimately need to bail out.
+                #
+                # This can happen for any network failure.
+                if attempts > MAX_ATTEMPTS:
+                    logger.error('Failed to contact symbolicator', exc_info=True)
+                    raise
+
+                time.sleep(wait)
+                wait *= 2.0
+
+    def symbolicate_stacktraces(self, stacktraces, modules, signal=None):
+        json = {
+            'sources': self.sources,
+            'stacktraces': stacktraces,
+            'modules': modules,
+        }
+
+        if signal:
+            json['signal'] = signal
+
+        return self._request('post', 'symbolicate', params=self._query_params, json=json)
+
+    def upload_minidump(self, minidump):
+        files = {
+            'upload_file_minidump': minidump
+        }
+
+        data = {
+            'sources': json.dumps(self.sources),
+        }
+
+        return self._request('post', 'minidump', params=self._query_params, data=data, files=files)
+
+    def query_task(self, task_id):
+        task_url = 'requests/%s' % (task_id, )
+        return self._request('get', task_url, params=self._query_params)
+
+    def healthcheck(self):
+        return self._request('get', 'healthcheck')
