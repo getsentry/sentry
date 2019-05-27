@@ -14,7 +14,7 @@ from sentry.integrations.exceptions import ApiError
 from sentry.integrations.repositories import RepositoryMixin
 from sentry.pipeline import NestedPipelineView, PipelineView
 from sentry.utils.http import absolute_uri
-from sentry.integrations.github.integration import GitHubIntegrationProvider
+from sentry.integrations.github.integration import GitHubIntegrationProvider, build_repository_query
 from sentry.integrations.github.issues import GitHubIssueBasic
 from sentry.integrations.github.utils import get_jwt
 
@@ -114,8 +114,7 @@ class GitHubEnterpriseIntegration(IntegrationInstallation, GitHubIssueBasic, Rep
                 'identifier': i['full_name']
             } for i in self.get_client().get_repositories()]
 
-        account_type = 'user' if self.model.metadata['account_type'] == 'User' else 'org'
-        full_query = (u'%s:%s %s' % (account_type, self.model.name, query)).encode('utf-8')
+        full_query = build_repository_query(self.model.metadata, self.model.name, query)
         response = self.get_client().search_repositories(full_query)
         return [{
             'name': i['name'],
