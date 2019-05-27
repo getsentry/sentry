@@ -1,5 +1,5 @@
 ---
-created: '2019-05-22T14:45:12.519733Z'
+created: '2019-05-27T10:51:12.052455Z'
 creator: sentry
 source: tests/sentry/event_manager/interfaces/test_threads.py
 ---
@@ -33,7 +33,7 @@ api_context:
       registers: null
     stacktrace:
       frames:
-      - absPath: null
+      - absPath: foo/baz.c
         colNo: null
         context: []
         errors: null
@@ -67,7 +67,8 @@ to_json:
         lineno: 1
     stacktrace:
       frames:
-      - filename: foo/baz.c
+      - abs_path: foo/baz.c
+        filename: foo/baz.c
         function: main
         in_app: true
         lineno: 1
