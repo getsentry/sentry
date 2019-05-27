@@ -3,7 +3,9 @@ import React from 'react';
 
 import styled from 'react-emotion';
 import DropdownButton from 'app/components/dropdownButton';
+import MenuItem from 'app/components/menuItem';
 import DropdownMenu from 'app/components/dropdownMenu';
+import space from 'app/styles/space';
 
 /*
  * A higher level dropdown component that helps with building complete dropdowns
@@ -113,4 +115,24 @@ const MenuContainer = styled('ul')`
   display: ${p => (p.isOpen ? 'block' : 'none')};
 `;
 
+const DropdownItem = styled(MenuItem)`
+  font-size: ${p => p.theme.fontSizeMedium};
+  color: ${p => p.theme.gray2};
+
+  & a {
+    color: ${p => p.theme.foreground};
+    display: block;
+    padding: ${space(0.5)} ${space(2)};
+  }
+  & a:hover {
+    background: ${p => p.theme.offWhite};
+  }
+  &.active a,
+  &.active a:hover {
+    color: ${p => p.theme.white};
+    background: ${p => p.theme.purple};
+  }
+`;
+
 export default DropdownControl;
+export {DropdownItem};

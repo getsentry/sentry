@@ -1,4 +1,5 @@
 import React from 'react';
+import PropTypes from 'prop-types';
 import {withRouter} from 'react-router';
 import styled from 'react-emotion';
 import SentryTypes from 'app/sentryTypes';
@@ -6,6 +7,8 @@ import space from 'app/styles/space';
 import SearchBar from 'app/views/organizationEvents/searchBar';
 import AsyncComponent from 'app/components/asyncComponent';
 import Pagination from 'app/components/pagination';
+import {Panel} from 'app/components/panels';
+import EventsChart from 'app/views/organizationEvents/eventsChart';
 
 import {getParams} from 'app/views/organizationEvents/utils/getParams';
 
@@ -13,10 +16,20 @@ import Table from './table';
 import Tags from './tags';
 import {getQuery} from './utils';
 
+const CHART_AXIS_OPTIONS = [
+  {label: 'Count', value: 'event_count'},
+  {label: 'Users', value: 'user_count'},
+];
+
 class Events extends AsyncComponent {
   static propTypes = {
+    router: PropTypes.object,
     organization: SentryTypes.Organization.isRequired,
     view: SentryTypes.EventView.isRequired,
+  };
+
+  state = {
+    zoomed: false,
   };
 
   getEndpoints() {
@@ -43,17 +56,29 @@ class Events extends AsyncComponent {
     });
   };
 
+  handleZoom = () => this.setState({zoomed: true});
+
   renderLoading() {
     return this.renderBody();
   }
 
   renderBody() {
-    const {organization, view, location} = this.props;
+    const {organization, view, location, router} = this.props;
     const {data, dataPageLinks, loading} = this.state;
     const query = location.query.query || '';
 
     return (
-      <div>
+      <React.Fragment>
+        <Panel>
+          <EventsChart
+            router={router}
+            query={query}
+            organization={organization}
+            onZoom={this.handleZoom}
+            showLegend
+            yAxisOptions={CHART_AXIS_OPTIONS}
+          />
+        </Panel>
         <StyledSearchBar
           organization={organization}
           query={query}
@@ -71,7 +96,7 @@ class Events extends AsyncComponent {
           </div>
           <Tags view={view} />
         </Container>
-      </div>
+      </React.Fragment>
     );
   }
 }

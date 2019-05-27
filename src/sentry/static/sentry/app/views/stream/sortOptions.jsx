@@ -1,8 +1,7 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
-import DropdownControl from 'app/components/dropdownControl';
-import MenuItem from 'app/components/menuItem';
+import DropdownControl, {DropdownItem} from 'app/components/dropdownControl';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 
@@ -27,13 +26,13 @@ class SortOptions extends React.PureComponent {
 
   getMenuItem = key => {
     return (
-      <StyledMenuItem
+      <DropdownItem
         onSelect={this.onSelect}
         eventKey={key}
         isActive={this.state.sortKey === key}
       >
         {this.getSortLabel(key)}
-      </StyledMenuItem>
+      </DropdownItem>
     );
   };
 
@@ -86,23 +85,6 @@ const Container = styled('div')`
 const LabelText = styled('em')`
   font-style: normal;
   color: ${p => p.theme.gray2};
-`;
-
-const StyledMenuItem = styled(MenuItem)`
-  font-size: ${p => p.theme.fontSizeMedium};
-  & a {
-    color: ${p => p.theme.foreground};
-    display: block;
-    padding: ${space(0.5)} ${space(2)};
-  }
-  & a:hover {
-    background: ${p => p.theme.offWhite};
-  }
-  &.active a,
-  &.active a:hover {
-    color: ${p => p.theme.white};
-    background: ${p => p.theme.purple};
-  }
 `;
 
 export default SortOptions;

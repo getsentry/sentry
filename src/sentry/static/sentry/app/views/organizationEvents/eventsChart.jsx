@@ -14,6 +14,7 @@ import withApi from 'app/utils/withApi';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 
 import EventsRequest from './utils/eventsRequest';
+import YAxisSelector from './yAxisSelector';
 
 const DEFAULT_GET_CATEGORY = () => t('Events');
 
@@ -24,6 +25,7 @@ class EventsLineChart extends React.Component {
     releaseSeries: PropTypes.array,
     zoomRenderProps: PropTypes.object,
     timeseriesData: PropTypes.array,
+    showLegend: PropTypes.bool,
     previousTimeseriesData: PropTypes.object,
   };
 
@@ -50,13 +52,27 @@ class EventsLineChart extends React.Component {
       zoomRenderProps,
       timeseriesData,
       previousTimeseriesData,
+      showLegend,
       ...props
     } = this.props;
+
+    const legend = showLegend && {
+      right: 100,
+      top: 10,
+      selectedMode: false,
+      itemWidth: 15,
+      icon: 'line',
+      textStyle: {
+        lineHeight: 16,
+      },
+      data: ['Current Period', 'Previous Period'],
+    };
 
     return (
       <LineChart
         {...props}
         {...zoomRenderProps}
+        legend={legend}
         series={[...timeseriesData, ...releaseSeries]}
         seriesOptions={{
           showSymbol: false,
@@ -82,6 +98,16 @@ class EventsChart extends React.Component {
     end: PropTypes.instanceOf(Date),
     utc: PropTypes.bool,
     router: PropTypes.object,
+    showLegend: PropTypes.bool,
+    yAxisOptions: PropTypes.array,
+  };
+
+  state = {
+    yAxis: 'event_count',
+  };
+
+  handleYAxisChange = value => {
+    this.setState({yAxis: value});
   };
 
   render() {
@@ -95,6 +121,8 @@ class EventsChart extends React.Component {
       end,
       projects,
       environments,
+      showLegend,
+      yAxisOptions,
       ...props
     } = this.props;
     // Include previous only on relative dates (defaults to relative if no start and end)
@@ -123,6 +151,7 @@ class EventsChart extends React.Component {
             query={query}
             getCategory={DEFAULT_GET_CATEGORY}
             includePrevious={includePrevious}
+            yAxis={this.state.yAxis}
           >
             {({loading, reloading, timeseriesData, previousTimeseriesData}) => {
               return (
@@ -135,11 +164,19 @@ class EventsChart extends React.Component {
                     return (
                       <React.Fragment>
                         <TransparentLoadingMask visible={reloading} />
+                        {yAxisOptions && (
+                          <YAxisSelector
+                            selected={this.state.yAxis}
+                            options={yAxisOptions}
+                            onChange={this.handleYAxisChange}
+                          />
+                        )}
                         <EventsLineChart
                           {...zoomRenderProps}
                           loading={loading}
                           reloading={reloading}
                           utc={utc}
+                          showLegend={showLegend}
                           releaseSeries={releaseSeries}
                           timeseriesData={timeseriesData}
                           previousTimeseriesData={previousTimeseriesData}
