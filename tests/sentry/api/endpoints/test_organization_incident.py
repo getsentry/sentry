@@ -41,11 +41,11 @@ class IncidentListEndpointTest(APITestCase):
 
         with self.feature('organizations:incidents'):
             resp_closed = self.get_valid_response(
-                self.organization.slug, qs_params={
-                    'status': 'closed'})
+                self.organization.slug, status='closed',
+            )
             resp_open = self.get_valid_response(
-                self.organization.slug, qs_params={
-                    'status': 'open'})
+                self.organization.slug, status='open'
+            )
 
         assert len(resp_closed.data) == 1
         assert len(resp_open.data) == 1
