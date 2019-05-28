@@ -1,10 +1,12 @@
 import React from 'react';
+import styled from 'react-emotion';
 
 import {deepFreeze} from 'app/utils';
 import DynamicWrapper from 'app/components/dynamicWrapper';
 import Link from 'app/components/links/link';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import {getUtcDateString} from 'app/utils/dates';
+import space from 'app/styles/space';
 
 export const ALL_VIEWS = deepFreeze([
   {
@@ -67,27 +69,35 @@ export const SPECIAL_FIELDS = {
   event: {
     fields: ['title', 'id', 'project.name'],
     renderFunc: (data, org) => (
-      <Link
-        css={overflowEllipsis}
-        to={`/organizations/${org.slug}/projects/${data['project.name']}/events/${
-          data.id
-        }/`}
-      >
-        {data.title}
-      </Link>
+      <Container>
+        <Link
+          css={overflowEllipsis}
+          to={`/organizations/${org.slug}/projects/${data['project.name']}/events/${
+            data.id
+          }/`}
+        >
+          {data.title}
+        </Link>
+      </Container>
     ),
   },
   user: {
     fields: ['user.email', 'user.ip'],
-    renderFunc: data => data['user.email'] || data['user.ip'],
+    renderFunc: data => <Container>{data['user.email'] || data['user.ip']}</Container>,
   },
   time: {
     fields: ['time'],
     renderFunc: data => (
-      <DynamicWrapper
-        value={<span css={overflowEllipsis}>{getUtcDateString(data)}</span>}
-        fixed="time"
-      />
+      <Container>
+        <DynamicWrapper
+          value={<span css={overflowEllipsis}>{getUtcDateString(data)}</span>}
+          fixed="time"
+        />
+      </Container>
     ),
   },
 };
+
+const Container = styled('div')`
+  padding: ${space(1)};
+`;
