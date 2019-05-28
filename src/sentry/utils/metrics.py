@@ -79,7 +79,7 @@ class InternalMetrics(object):
              sample_rate=settings.SENTRY_METRICS_SAMPLE_RATE):
         if not self._started:
             self._start()
-        self.q.put((key, instance, tags, amount))
+        self.q.put((key, instance, tags, amount, sample_rate))
 
 
 internal = InternalMetrics()
