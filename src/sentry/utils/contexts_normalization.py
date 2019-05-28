@@ -74,6 +74,8 @@ def normalize_runtime(data):
                 "461310": "4.7.1",
                 "461808": "4.7.2",
                 "461814": "4.7.2",
+                "528040": "4.8",
+                "528049": "4.8",
             }
             version = version_map.get(build, None)
             if version is not None:
