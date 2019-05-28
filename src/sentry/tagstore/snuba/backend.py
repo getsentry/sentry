@@ -164,9 +164,12 @@ class SnubaTagStorage(TagStorage):
 
     def __get_tag_keys(
         self, project_id, group_id, environment_ids, limit=1000, keys=None,
-        include_values_seen=True,
+        include_values_seen=True, **kwargs
     ):
-        start, end = self.get_time_range()
+        default_start, default_end = self.get_time_range()
+        start = kwargs.get('start', default_start)
+        end = kwargs.get('end', default_end)
+
         return self.__get_tag_keys_for_projects(
             get_project_list(project_id),
             group_id,
@@ -296,10 +299,11 @@ class SnubaTagStorage(TagStorage):
         return self.__get_tag_key_and_top_values(
             project_id, group_id, environment_id, key, limit=TOP_VALUES_DEFAULT_LIMIT)
 
-    def get_group_tag_keys(self, project_id, group_id, environment_ids, limit=None, keys=None):
+    def get_group_tag_keys(self, project_id, group_id, environment_ids,
+                           limit=None, keys=None, **kwargs):
         return self.__get_tag_keys(
             project_id, group_id, environment_ids, limit=limit, keys=keys,
-            include_values_seen=False,
+            include_values_seen=False, **kwargs
         )
 
     def get_group_tag_value(self, project_id, group_id, environment_id, key, value):
@@ -400,7 +404,8 @@ class SnubaTagStorage(TagStorage):
         end = kwargs.get('end', default_end)
 
         # First get totals and unique counts by key.
-        keys_with_counts = self.get_group_tag_keys(project_id, group_id, environment_ids, keys=keys)
+        keys_with_counts = self.get_group_tag_keys(
+            project_id, group_id, environment_ids, keys=keys, start=start, end=end)
 
         # Then get the top values with first_seen/last_seen/count for each
         filters = {

@@ -155,6 +155,16 @@ class OrganizationEventsHeatmapEndpoint(OrganizationEventsEndpointBase):
         project_ids = snuba_args['filter_keys']['project_id']
         environment_ids = snuba_args['filter_keys'].get('environment_id')
 
+        has_global_views = features.has(
+            'organizations:global-views',
+            organization,
+            actor=request.user)
+
+        if not has_global_views and len(project_ids) > 1:
+            return Response({
+                'detail': 'You cannot view events from multiple projects.'
+            }, status=400)
+
         try:
             tag_key = tagstore.get_group_tag_keys_and_top_values(
                 project_ids, None, environment_ids, keys=lookup_keys, get_excluded_tags=True, **snuba_args)

@@ -5,6 +5,7 @@ from six.moves.urllib.parse import urlencode
 from datetime import timedelta
 from django.utils import timezone
 from django.core.urlresolvers import reverse
+from uuid import uuid4
 
 from sentry.testutils import APITestCase, SnubaTestCase
 
@@ -783,7 +784,7 @@ class OrganizationEventsHeatmapEndpointTest(OrganizationEventsTestBase):
         super(OrganizationEventsHeatmapEndpointTest, self).setUp()
         self.login_as(user=self.user)
         self.project = self.create_project()
-        self.group = self.create_group(project=self.project)
+        self.project2 = self.create_project()
         self.url = reverse(
             'sentry-api-0-organization-events-heatmap',
             kwargs={
@@ -794,36 +795,41 @@ class OrganizationEventsHeatmapEndpointTest(OrganizationEventsTestBase):
         self.day_ago = self.day_ago.replace(microsecond=0)
 
     def test_simple(self):
-        self.create_event(
-            event_id='x' * 32,
-            group=self.group,
-            message="how to make fast",
-            datetime=self.min_ago,
-            tags={'color': 'green'},
+        self.store_event(
+            data={
+                'event_id': uuid4().hex,
+                'timestamp': self.min_ago.isoformat(),
+                'tags': {'color': 'green'},
+            },
+            project_id=self.project.id
         )
-        self.create_event(
-            event_id='y' * 32,
-            group=self.group,
-            message="Delet the Data",
-            datetime=self.min_ago,
-            tags={'number': 'one'},
+        self.store_event(
+            data={
+                'event_id': uuid4().hex,
+                'timestamp': self.min_ago.isoformat(),
+                'tags': {'number': 'one'},
+            },
+            project_id=self.project2.id
         )
-        self.create_event(
-            event_id='z' * 32,
-            group=self.group,
-            message="Data the Delet ",
-            datetime=self.min_ago,
-            tags={'color': 'green'},
+        self.store_event(
+            data={
+                'event_id': uuid4().hex,
+                'timestamp': self.min_ago.isoformat(),
+                'tags': {'color': 'green'},
+            },
+            project_id=self.project.id
         )
-        self.create_event(
-            event_id='a' * 32,
-            group=self.group,
-            message="Data the Delet ",
-            datetime=self.min_ago,
-            tags={'color': 'red'},
+        self.store_event(
+            data={
+                'event_id': uuid4().hex,
+                'timestamp': self.min_ago.isoformat(),
+                'tags': {'color': 'red'},
+            },
+            project_id=self.project.id
         )
 
-        response = self.client.get(self.url, {'keys': ['color', 'number']}, format='json')
+        with self.feature('organizations:global-views'):
+            response = self.client.get(self.url, {'keys': ['color', 'number']}, format='json')
 
         assert response.status_code == 200, response.content
         assert len(response.data) == 2
@@ -867,36 +873,41 @@ class OrganizationEventsHeatmapEndpointTest(OrganizationEventsTestBase):
         }
 
     def test_single_key(self):
-        self.create_event(
-            event_id='w' * 32,
-            group=self.group,
-            message="how to make fast",
-            datetime=self.min_ago,
-            tags={'world': 'hello'},
+        self.store_event(
+            data={
+                'event_id': uuid4().hex,
+                'timestamp': self.min_ago.isoformat(),
+                'tags': {'world': 'hello'},
+            },
+            project_id=self.project.id
         )
-        self.create_event(
-            event_id='x' * 32,
-            group=self.group,
-            message="how to make fast",
-            datetime=self.min_ago,
-            tags={'color': 'yellow'},
+        self.store_event(
+            data={
+                'event_id': uuid4().hex,
+                'timestamp': self.min_ago.isoformat(),
+                'tags': {'color': 'yellow'},
+            },
+            project_id=self.project.id
         )
-        self.create_event(
-            event_id='y' * 32,
-            group=self.group,
-            message="Delet the Data",
-            datetime=self.min_ago,
-            tags={'color': 'red'},
+        self.store_event(
+            data={
+                'event_id': uuid4().hex,
+                'timestamp': self.min_ago.isoformat(),
+                'tags': {'color': 'red'},
+            },
+            project_id=self.project2.id
         )
-        self.create_event(
-            event_id='z' * 32,
-            group=self.group,
-            message="Data the Delet ",
-            datetime=self.min_ago,
-            tags={'color': 'yellow'},
+        self.store_event(
+            data={
+                'event_id': uuid4().hex,
+                'timestamp': self.min_ago.isoformat(),
+                'tags': {'color': 'yellow'},
+            },
+            project_id=self.project.id
         )
 
-        response = self.client.get(self.url, {'keys': ['color']}, format='json')
+        with self.feature('organizations:global-views'):
+            response = self.client.get(self.url, {'keys': ['color']}, format='json')
         assert response.status_code == 200, response.content
         assert len(response.data) == 1
         assert response.data[0] == {
@@ -924,29 +935,38 @@ class OrganizationEventsHeatmapEndpointTest(OrganizationEventsTestBase):
         }
 
     def test_with_query(self):
-        self.create_event(
-            event_id='x' * 32,
-            group=self.group,
-            message="how to make fast",
-            datetime=self.min_ago,
-            tags={'color': 'green'},
+        self.store_event(
+            data={
+                'event_id': uuid4().hex,
+                'timestamp': self.min_ago.isoformat(),
+                'message': 'how to make fast',
+                'tags': {'color': 'green'},
+            },
+            project_id=self.project.id
         )
-        self.create_event(
-            event_id='y' * 32,
-            group=self.group,
-            message="Delet the Data",
-            datetime=self.min_ago,
-            tags={'color': 'red'},
+        self.store_event(
+            data={
+                'event_id': uuid4().hex,
+                'timestamp': self.min_ago.isoformat(),
+                'message': 'Delet the Data',
+                'tags': {'color': 'red'},
+            },
+            project_id=self.project.id
         )
-        self.create_event(
-            event_id='z' * 32,
-            group=self.group,
-            message="Data the Delet ",
-            datetime=self.min_ago,
-            tags={'color': 'yellow'},
+        self.store_event(
+            data={
+                'event_id': uuid4().hex,
+                'timestamp': self.min_ago.isoformat(),
+                'message': 'Data the Delet ',
+                'tags': {'color': 'yellow'},
+            },
+            project_id=self.project2.id
         )
 
-        response = self.client.get(self.url, {'query': 'delet', 'keys': ['color']}, format='json')
+        with self.feature('organizations:global-views'):
+            response = self.client.get(
+                self.url, {
+                    'query': 'delet', 'keys': ['color']}, format='json')
 
         assert response.status_code == 200, response.content
         assert len(response.data) == 1
@@ -978,44 +998,50 @@ class OrganizationEventsHeatmapEndpointTest(OrganizationEventsTestBase):
         two_days_ago = self.day_ago - timedelta(days=1)
         hour_ago = self.min_ago - timedelta(hours=1)
         two_hours_ago = hour_ago - timedelta(hours=1)
-        self.create_event(
-            event_id='x' * 32,
-            group=self.group,
-            message="Delet the Data",
-            datetime=two_days_ago,
-            tags={'color': 'red'},
+
+        self.store_event(
+            data={
+                'event_id': uuid4().hex,
+                'timestamp': two_days_ago.isoformat(),
+                'tags': {'color': 'red'},
+            },
+            project_id=self.project.id
         )
-        self.create_event(
-            event_id='y' * 32,
-            group=self.group,
-            message="Delet the Data",
-            datetime=hour_ago,
-            tags={'color': 'red'},
+        self.store_event(
+            data={
+                'event_id': uuid4().hex,
+                'timestamp': hour_ago.isoformat(),
+                'tags': {'color': 'red'},
+            },
+            project_id=self.project.id
         )
-        self.create_event(
-            event_id='z' * 32,
-            group=self.group,
-            message="Data the Delet ",
-            datetime=two_hours_ago,
-            tags={'color': 'red'},
+        self.store_event(
+            data={
+                'event_id': uuid4().hex,
+                'timestamp': two_hours_ago.isoformat(),
+                'tags': {'color': 'red'},
+            },
+            project_id=self.project.id
         )
-        self.create_event(
-            event_id='a' * 32,
-            group=self.group,
-            message="Delet the Data",
-            datetime=timezone.now(),
-            tags={'color': 'red'},
+        self.store_event(
+            data={
+                'event_id': uuid4().hex,
+                'timestamp': timezone.now().isoformat(),
+                'tags': {'color': 'red'},
+            },
+            project_id=self.project2.id
         )
 
-        response = self.client.get(
-            self.url,
-            {
-                'start': self.day_ago.isoformat()[:19],
-                'end': self.min_ago.isoformat()[:19],
-                'keys': ['color'],
-            },
-            format='json'
-        )
+        with self.feature('organizations:global-views'):
+            response = self.client.get(
+                self.url,
+                {
+                    'start': self.day_ago.isoformat()[:19],
+                    'end': self.min_ago.isoformat()[:19],
+                    'keys': ['color'],
+                },
+                format='json'
+            )
 
         assert response.status_code == 200, response.content
         assert len(response.data) == 1
@@ -1030,7 +1056,7 @@ class OrganizationEventsHeatmapEndpointTest(OrganizationEventsTestBase):
                     'firstSeen': two_hours_ago
                 }
             ],
-            'totalValues': 3,
+            'totalValues': 2,
             'name': 'Color',
             'key': 'color'
         }
@@ -1038,28 +1064,36 @@ class OrganizationEventsHeatmapEndpointTest(OrganizationEventsTestBase):
     def test_excluded_tag(self):
         self.user = self.create_user()
         self.user2 = self.create_user()
-        self.create_event(
-            event_id='a' * 32,
-            group=self.group,
-            datetime=self.day_ago,
-            tags={'sentry:user': self.user.email},
+        self.store_event(
+            data={
+                'event_id': uuid4().hex,
+                'timestamp': self.day_ago.isoformat(),
+                'tags': {'sentry:user': self.user.email},
+            },
+            project_id=self.project.id
         )
-        self.create_event(
-            event_id='b' * 32,
-            group=self.group,
-            datetime=self.day_ago,
-            tags={'sentry:user': self.user2.email},
+        self.store_event(
+            data={
+                'event_id': uuid4().hex,
+                'timestamp': self.day_ago.isoformat(),
+                'tags': {'sentry:user': self.user2.email},
+            },
+            project_id=self.project.id
         )
-        self.create_event(
-            event_id='c' * 32,
-            group=self.group,
-            datetime=self.day_ago,
-            tags={'sentry:user': self.user2.email},
+        self.store_event(
+            data={
+                'event_id': uuid4().hex,
+                'timestamp': self.day_ago.isoformat(),
+                'tags': {'sentry:user': self.user2.email},
+            },
+            project_id=self.project.id
         )
+
         response = self.client.get(
             self.url,
             {
                 'keys': ['user'],
+                'project': [self.project.id]
             },
             format='json'
         )
@@ -1101,6 +1135,24 @@ class OrganizationEventsHeatmapEndpointTest(OrganizationEventsTestBase):
         response = self.client.get(url, {'keys': ['color']}, format='json')
         assert response.status_code == 400, response.content
         assert response.data == {'detail': 'A valid project must be included.'}
+
+    def test_multiple_projects_without_global_view(self):
+        self.store_event(
+            data={
+                'event_id': uuid4().hex,
+            },
+            project_id=self.project.id
+        )
+        self.store_event(
+            data={
+                'event_id': uuid4().hex,
+            },
+            project_id=self.project2.id
+        )
+
+        response = self.client.get(self.url, {'keys': ['color']}, format='json')
+        assert response.status_code == 400, response.content
+        assert response.data == {'detail': 'You cannot view events from multiple projects.'}
 
 
 class OrganizationEventsMetaEndpoint(OrganizationEventsTestBase):
