@@ -52,7 +52,7 @@ from sentry.utils.http import (
     is_valid_origin,
     get_origins,
     is_same_domain,
-)
+    origin_from_request)
 from sentry.utils.outcomes import Outcome, track_outcome
 from sentry.utils.pubsub import QueuedPublisherService, KafkaPublisher
 from sentry.utils.safe import safe_execute
@@ -75,6 +75,53 @@ kafka_publisher = QueuedPublisherService(
             None),
         asynchronous=False)
 ) if getattr(settings, 'KAFKA_RAW_EVENTS_PUBLISHER_ENABLED', False) else None
+
+
+def allow_cors_options(func):
+    """
+    Decorator that adds automatic handling of OPTIONS requests for CORS
+
+    If the request is OPTIONS (i.e. pre flight CORS) construct a NO Content (204) response
+    in which we explicitly enable the caller and add the custom headers that we support
+    :param func: the original request handler
+    :return: a request handler that shortcuts OPTIONS requests and just returns an OK (CORS allowed)
+    """
+    @wraps(func)
+    def allow_cors_options_wrapper(self, request, project_id=None, *args, **kwargs):
+        if request.method == 'OPTIONS':
+            response = HttpResponse(status=204)
+
+            allow = ', '.join(self._allowed_methods())
+            if allow.lower().find("options") < 0:
+                allow += ', OPTIONS'
+
+            response['Allow'] = allow
+            response['Access-Control-Allow-Methods'] = allow
+
+            origin = origin_from_request(request)
+            if origin == 'null':
+                response['Access-Control-Allow-Origin'] = '*'
+            else:
+                response['Access-Control-Allow-Origin'] = origin
+
+            response['Access-Control-Allow-Headers'] = ('X-Sentry-Auth, X-Requested-With, Origin, Accept, ' +
+                                                        'Content-Type, Authentication')
+            response['Access-Control-Max-Age'] = '3600'  # don't ask for options again for 1 hour
+
+            project = self._get_project_from_id(project_id)
+
+            if origin is not None:
+                if project is not None and not is_valid_origin(origin, project):
+                    error_message = "Invalid origin: {}".format(origin)
+                    response['X-Sentry-Error'] = error_message
+                    response.status_code = 403
+                    response.content = json.dumps({'error': error_message})
+                    return response
+
+            return response
+        return func(self, request, project_id, *args, **kwargs)
+
+    return allow_cors_options_wrapper
 
 
 def api(func):
@@ -301,6 +348,7 @@ class APIView(BaseView):
 
     @csrf_exempt
     @never_cache
+    @allow_cors_options
     def dispatch(self, request, project_id=None, *args, **kwargs):
         helper = ClientApiHelper(
             agent=request.META.get('HTTP_USER_AGENT'),
@@ -405,33 +453,29 @@ class APIView(BaseView):
                     FilterStatKeys.CORS)
                 raise APIForbidden('Invalid origin: %s' % (origin, ))
 
-        # XXX: It seems that the OPTIONS call does not always include custom headers
-        if request.method == 'OPTIONS':
-            response = self.options(request, project)
-        else:
-            auth = self._parse_header(request, helper, project)
+        auth = self._parse_header(request, helper, project)
 
-            key = helper.project_key_from_auth(auth)
+        key = helper.project_key_from_auth(auth)
 
-            # Legacy API was /api/store/ and the project ID was only available elsewhere
-            if not project:
-                project = Project.objects.get_from_cache(id=key.project_id)
-                helper.context.bind_project(project)
-            elif key.project_id != project.id:
-                raise APIError('Two different projects were specified')
+        # Legacy API was /api/store/ and the project ID was only available elsewhere
+        if not project:
+            project = Project.objects.get_from_cache(id=key.project_id)
+            helper.context.bind_project(project)
+        elif key.project_id != project.id:
+            raise APIError('Two different projects were specified')
 
-            helper.context.bind_auth(auth)
+        helper.context.bind_auth(auth)
 
-            # Explicitly bind Organization so we don't implicitly query it later
-            # this just allows us to comfortably assure that `project.organization` is safe.
-            # This also allows us to pull the object from cache, instead of being
-            # implicitly fetched from database.
-            project.organization = Organization.objects.get_from_cache(
-                id=project.organization_id)
+        # Explicitly bind Organization so we don't implicitly query it later
+        # this just allows us to comfortably assure that `project.organization` is safe.
+        # This also allows us to pull the object from cache, instead of being
+        # implicitly fetched from database.
+        project.organization = Organization.objects.get_from_cache(
+            id=project.organization_id)
 
-            response = super(APIView, self).dispatch(
-                request=request, project=project, auth=auth, helper=helper, key=key, **kwargs
-            )
+        response = super(APIView, self).dispatch(
+            request=request, project=project, auth=auth, helper=helper, key=key, **kwargs
+        )
 
         if origin:
             if origin == 'null':
@@ -450,12 +494,6 @@ class APIView(BaseView):
     # XXX: backported from Django 1.5
     def _allowed_methods(self):
         return [m.upper() for m in self.http_method_names if hasattr(self, m)]
-
-    def options(self, request, *args, **kwargs):
-        response = HttpResponse()
-        response['Allow'] = ', '.join(self._allowed_methods())
-        response['Content-Length'] = '0'
-        return response
 
 
 class StoreView(APIView):
