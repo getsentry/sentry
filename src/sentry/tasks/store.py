@@ -10,6 +10,7 @@ from __future__ import absolute_import
 
 import logging
 from datetime import datetime
+import random
 import six
 
 from time import time
@@ -18,7 +19,7 @@ from django.utils import timezone
 
 from semaphore.processing import StoreNormalizer
 
-from sentry import features, reprocessing
+from sentry import features, reprocessing, options
 from sentry.constants import DEFAULT_STORE_NORMALIZER_ARGS
 from sentry.attachments import attachment_cache
 from sentry.cache import default_cache
@@ -41,6 +42,11 @@ REPROCESSING_DEFAULT = False
 
 # Attachment file types that are considered a crash report (PII relevant)
 CRASH_REPORT_TYPES = ('event.minidump', )
+
+
+def _should_normalize_after_processing():
+    value = options.get('store.normalize-after-processing')
+    return value and random.random() < value
 
 
 class RetryProcessing(Exception):
@@ -267,13 +273,15 @@ def _do_process_event(cache_key, start_time, event_id, process_task,
         data = dict(data.items())
 
     if has_changed:
-        # Run some of normalization again such that we don't:
-        # - persist e.g. incredibly large stacktraces from minidumps
-        # - store event timestamps that are older than our retention window
-        #   (also happening with minidumps)
-        normalizer = StoreNormalizer(remove_other=False, **DEFAULT_STORE_NORMALIZER_ARGS)
+        if _should_normalize_after_processing():
+            # Run some of normalization again such that we don't:
+            # - persist e.g. incredibly large stacktraces from minidumps
+            # - store event timestamps that are older than our retention window
+            #   (also happening with minidumps)
+            normalizer = StoreNormalizer(remove_other=False, **DEFAULT_STORE_NORMALIZER_ARGS)
+            data = normalizer.normalize_event(dict(data))
+
         issues = data.get('processing_issues')
-        data = normalizer.normalize_event(dict(data))
 
         try:
             if issues and create_failed_event(
