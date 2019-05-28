@@ -91,7 +91,7 @@ class OrganizationIncidentIndexEndpoint(OrganizationEndpoint):
         return self.paginate(
             request,
             queryset=incidents,
-            order_by='date_started',
+            order_by='-date_started',
             paginator_cls=OffsetPaginator,
             on_results=lambda x: serialize(x, request.user),
         )

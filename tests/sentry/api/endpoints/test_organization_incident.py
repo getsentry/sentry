@@ -28,10 +28,12 @@ class IncidentListEndpointTest(APITestCase):
         self.create_team(organization=self.organization, members=[self.user])
         incident = self.create_incident()
         other_incident = self.create_incident(status=IncidentStatus.CLOSED.value)
+
         self.login_as(self.user)
         with self.feature('organizations:incidents'):
             resp = self.get_valid_response(self.organization.slug)
-        assert resp.data == serialize([incident, other_incident])
+
+        assert resp.data == serialize([other_incident, incident])
 
     def test_filter_status(self):
         self.create_team(organization=self.organization, members=[self.user])
