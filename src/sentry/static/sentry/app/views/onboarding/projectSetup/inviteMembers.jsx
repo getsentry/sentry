@@ -27,7 +27,6 @@ const recordAnalyticsUserInvited = ({organization, project}) =>
 class InviteMembers extends React.Component {
   static propTypes = {
     api: PropTypes.object.isRequired,
-    orgId: PropTypes.string.isRequired,
     organization: SentryTypes.Organization.isRequired,
     project: SentryTypes.Project.isRequired,
     config: SentryTypes.Config.isRequired,
@@ -44,9 +43,10 @@ class InviteMembers extends React.Component {
   }
 
   async fetchRoleDetails() {
-    const {api, orgId} = this.props;
+    const {api, organization} = this.props;
 
-    const member = await getCurrentMember(api, orgId);
+    const member = await getCurrentMember(api, organization.slug);
+
     this.setState({roleList: member.roles});
   }
 
@@ -65,7 +65,7 @@ class InviteMembers extends React.Component {
 
   render() {
     const {invitedEmails, roleList} = this.state;
-    const {project, formProps, orgId} = this.props;
+    const {project, formProps, organization} = this.props;
 
     return (
       <React.Fragment>
@@ -78,7 +78,8 @@ class InviteMembers extends React.Component {
         )}
         <Panel>
           <Form
-            apiEndpoint={`/organizations/${orgId}/members/`}
+            apiEndpoint={`/organizations/${organization.slug}/members/`}
+            apiMethod="POST"
             submitLabel={t('Invite Member')}
             onSubmitSuccess={this.handleSubmitSuccess}
             initialData={{teams: [project.team.slug]}}
