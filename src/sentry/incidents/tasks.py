@@ -10,6 +10,7 @@ from sentry.incidents.models import (
 from sentry.tasks.base import instrumented_task
 from sentry.utils.email import MessageBuilder
 from sentry.utils.http import absolute_uri
+from sentry.utils.linksign import generate_signed_link
 
 
 @instrumented_task(name='sentry.incidents.tasks.send_subscriber_notifications')
@@ -72,6 +73,9 @@ def build_activity_context(activity):
             },
         )),
         'comment': activity.comment,
-        # TODO: Build unsubscribe page and link to it
-        'unsubscribe_link': '',
+        'unsubscribe_link': generate_signed_link(
+            activity.user,
+            'sentry-account-email-unsubscribe-incident',
+            kwargs={'incident_id': incident.id},
+        ),
     }

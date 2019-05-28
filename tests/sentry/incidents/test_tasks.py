@@ -20,6 +20,7 @@ from sentry.incidents.tasks import (
     send_subscriber_notifications,
 )
 from sentry.testutils import TestCase
+from sentry.utils.linksign import generate_signed_link
 from sentry.utils.http import absolute_uri
 
 
@@ -99,7 +100,11 @@ class TestBuildActivityContext(BaseIncidentActivityTest, TestCase):
             },
         ))
         assert context['comment'] == expected_comment
-        assert context['unsubscribe_link'] == ''
+        assert context['unsubscribe_link'] == generate_signed_link(
+            activity.user,
+            'sentry-account-email-unsubscribe-incident',
+            kwargs={'incident_id': incident.id},
+        )
 
     def test_simple(self):
         activity = create_incident_activity(
