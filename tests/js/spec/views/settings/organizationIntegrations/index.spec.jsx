@@ -265,6 +265,27 @@ describe('OrganizationIntegrations', () => {
       });
     });
 
+    describe('internal apps are separate', () => {
+      it('renders internal sentry app', () => {
+        const internalApp = {...sentryApp, status: 'internal'};
+        Client.addMockResponse({
+          url: `/organizations/${org.slug}/sentry-apps/`,
+          body: [internalApp],
+        });
+        Client.addMockResponse({
+          url: '/sentry-apps/',
+          body: [],
+        });
+        wrapper = mount(
+          <OrganizationIntegrations organization={org} params={params} />,
+          routerContext
+        );
+        expect(
+          wrapper.find('Panel [data-test-id="internal-integration-row"]').exists()
+        ).toBe(true);
+      });
+    });
+
     describe('with installed integrations', () => {
       let updatedIntegration;
 
