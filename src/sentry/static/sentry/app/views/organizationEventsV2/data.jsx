@@ -5,15 +5,19 @@ import {deepFreeze} from 'app/utils';
 import DynamicWrapper from 'app/components/dynamicWrapper';
 import Link from 'app/components/links/link';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
-import {getUtcDateString} from 'app/utils/dates';
 import space from 'app/styles/space';
+import ProjectBadge from 'app/components/idBadge/projectBadge';
+import UserBadge from 'app/components/idBadge/userBadge';
+import DateTime from 'app/components/dateTime';
+
+import {QueryLink} from './styles';
 
 export const ALL_VIEWS = deepFreeze([
   {
     id: 'all',
     name: 'All Events',
     data: {
-      fields: ['event', 'event.type', 'project.name', 'user', 'time'],
+      fields: ['event', 'event.type', 'project', 'user', 'time'],
       groupby: [],
       aggregations: [],
       sort: '',
@@ -65,36 +69,69 @@ export const ALL_VIEWS = deepFreeze([
 export const SPECIAL_FIELDS = {
   event: {
     fields: ['title', 'id', 'project.name'],
-    renderFunc: (data, org) => (
+    renderFunc: (data, {organization}) => (
       <Container>
         <Link
           css={overflowEllipsis}
-          to={`/organizations/${org.slug}/projects/${data['project.name']}/events/${
-            data.id
-          }/`}
+          to={`/organizations/${organization.slug}/projects/${
+            data['project.name']
+          }/events/${data.id}/`}
         >
           {data.title}
         </Link>
       </Container>
     ),
   },
+  project: {
+    fields: ['project.name'],
+    renderFunc: (data, {organization}) => {
+      const project = organization.projects.find(p => p.slug === data['project.name']);
+      return (
+        <Container>
+          {project ? (
+            <ProjectBadge project={project} avatarSize={16} />
+          ) : (
+            data['project.name']
+          )}
+        </Container>
+      );
+    },
+  },
   user: {
-    fields: ['user.email', 'user.ip'],
-    renderFunc: data => <Container>{data['user.email'] || data['user.ip']}</Container>,
+    fields: ['user', 'user.name', 'user.email', 'user.ip'],
+    renderFunc: (data, {onSearch}) => {
+      const userObj = {
+        name: data['user.name'],
+        email: data['user.email'],
+        ip: data['user.ip'],
+      };
+
+      const badge = <UserBadge user={userObj} hideEmail={true} avatarSize={16} />;
+
+      if (!data.user) {
+        return <Container>{badge}</Container>;
+      }
+
+      return <QueryLink onClick={() => onSearch(`user:${data.user}`)}>{badge}</QueryLink>;
+    },
   },
   time: {
-    fields: ['time'],
+    fields: ['timestamp'],
     renderFunc: data => (
       <Container>
-        <DynamicWrapper
-          value={<span css={overflowEllipsis}>{getUtcDateString(data)}</span>}
-          fixed="time"
-        />
+        <DynamicWrapper value={<StyledDateTime date={data.timestamp} />} fixed="time" />
       </Container>
     ),
   },
 };
 
 const Container = styled('div')`
+  display: flex;
   padding: ${space(1)};
+  ${overflowEllipsis};
+`;
+
+const StyledDateTime = styled(DateTime)`
+  color: ${p => p.theme.gray2};
+  ${overflowEllipsis};
 `;
