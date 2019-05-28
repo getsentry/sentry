@@ -76,6 +76,18 @@ class MinidumpIntegrationTestBase(object):
         assert minidump.file.type == 'event.minidump'
         assert minidump.file.checksum == '74bb01c850e8d65d3ffbc5bad5cabc4668fce247'
 
+    def test_missing_dsym(self):
+        with self.feature('organizations:event-attachments'):
+            with open(os.path.join(os.path.dirname(__file__), 'fixtures', 'windows.dmp'), 'rb') as f:
+                resp = self._postMinidumpWithHeader(f, {
+                    'sentry[logger]': 'test-logger',
+                })
+                assert resp.status_code == 200
+
+        event = Event.objects.get()
+        insta_snapshot_stacktrace_data(self, event.data)
+        assert not EventAttachment.objects.filter(event_id=event.event_id)
+
 
 class SymbolicatorMinidumpIntegrationTest(MinidumpIntegrationTestBase, TransactionTestCase):
     # For these tests to run, write `symbolicator.enabled: true` into your
