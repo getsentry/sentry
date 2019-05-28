@@ -75,7 +75,8 @@ class InternalMetrics(object):
 
         self._started = True
 
-    def incr(self, key, instance=None, tags=None, amount=1):
+    def incr(self, key, instance=None, tags=None, amount=1,
+             sample_rate=settings.SENTRY_METRICS_SAMPLE_RATE):
         if not self._started:
             self._start()
         self.q.put((key, instance, tags, amount))
