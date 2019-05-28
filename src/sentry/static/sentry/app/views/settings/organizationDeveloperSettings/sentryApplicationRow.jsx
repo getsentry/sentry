@@ -32,6 +32,7 @@ export default class SentryApplicationRow extends React.PureComponent {
 
   static defaultProps = {
     showPublishStatus: false,
+    isInternal: false,
   };
 
   renderRemoveApp(app) {
@@ -232,7 +233,7 @@ const Status = styled(
   margin-left: ${space(0.5)};
   font-weight: light;
   &:after {
-    content: ${props => (props.isInternal ? '' : '|')};
+    content: '${props => (props.isInternal ? '' : '|')}';
     color: ${p => p.theme.gray1};
     margin-left: ${space(0.75)};
     font-weight: normal;
