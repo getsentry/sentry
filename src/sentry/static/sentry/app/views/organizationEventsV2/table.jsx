@@ -18,10 +18,11 @@ export default class Table extends React.Component {
     data: PropTypes.arrayOf(PropTypes.object),
     isLoading: PropTypes.bool,
     organization: SentryTypes.Organization.isRequired,
+    onSearch: PropTypes.func.isRequired,
   };
 
   renderBody() {
-    const {view, data, isLoading, organization} = this.props;
+    const {view, data, isLoading, organization, onSearch} = this.props;
     const {fields} = view.data;
 
     if (isLoading) {
@@ -43,7 +44,7 @@ export default class Table extends React.Component {
             {SPECIAL_FIELDS.hasOwnProperty(field) ? (
               SPECIAL_FIELDS[field].renderFunc(row, organization)
             ) : (
-              <Data>{row[field]}</Data>
+              <Data onClick={() => onSearch(`${field}:${row[field]}`)}>{row[field]}</Data>
             )}
           </Cell>
         ))}
@@ -77,12 +78,20 @@ function getGridStyle(colCount) {
 
 const Row = styled(PanelItem)`
   font-size: ${p => p.theme.fontSizeMedium};
+  padding: ${space(1)};
 `;
 
 const Cell = styled('div')`
   overflow: hidden;
 `;
 
-const Data = styled('div')`
-  ${overflowEllipsis}
+const Data = styled('a')`
+  ${overflowEllipsis};
+  color: ${p => p.theme.foreground};
+  padding: ${space(1)};
+  border-radius: ${p => p.theme.borderRadius};
+  &:hover {
+    color: ${p => p.theme.foreground};
+    background-color: ${p => p.theme.offWhite};
+  }
 `;
