@@ -1,10 +1,9 @@
 import React from 'react';
 
 import {mount} from 'enzyme';
+import {selectByValue} from 'app-test/helpers/select';
 import ConfigStore from 'app/stores/configStore';
 import InviteMembers from 'app/views/onboarding/projectSetup/inviteMembers';
-
-import {selectByValue} from '../../../../helpers/select';
 
 describe('InviteMembers', function() {
   const email = 'test@someDomain.com';
