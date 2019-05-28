@@ -6,6 +6,7 @@ import PropTypes from 'prop-types';
 import {t} from 'app/locale';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import Button from 'app/components/button';
+import ErrorBoundary from 'app/components/errorBoundary';
 import EventOrGroupHeader from 'app/components/eventOrGroupHeader';
 import EventDataSection from 'app/components/events/eventDataSection';
 import EventDevice from 'app/components/events/device';
@@ -131,7 +132,9 @@ class EventDetails extends React.Component {
             );
           })}
         </NavTabs>
-        {this.renderActiveTab(event, activeTab)}
+        <ErrorBoundary message={t('Could not render event details')}>
+          {this.renderActiveTab(event, activeTab)}
+        </ErrorBoundary>
       </React.Fragment>
     );
   }
