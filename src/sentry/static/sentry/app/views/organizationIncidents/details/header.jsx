@@ -195,7 +195,7 @@ const StyledMenuItem = styled(MenuItem)`
 
 const OpenLink = styled(Link)`
   display: flex;
-  font-size: 16px;
+  font-size: ${p => p.theme.fontSizeLarge};
   color: ${p => p.theme.gray2};
   margin-left: ${space(1)};
 `;
