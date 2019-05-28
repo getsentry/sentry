@@ -4,6 +4,7 @@ import styled from 'react-emotion';
 
 import {Panel, PanelBody, PanelItem} from 'app/components/panels';
 import {t} from 'app/locale';
+import SideHeader from 'app/views/organizationIncidents/details/sideHeader';
 import space from 'app/styles/space';
 
 export default class Suspects extends React.Component {
@@ -21,7 +22,7 @@ export default class Suspects extends React.Component {
 
     return (
       <Container>
-        <h6>{t('Suspects')}</h6>
+        <SideHeader>{t('Suspects')}</SideHeader>
         {suspects && suspects.length > 0 && (
           <Panel>
             <PanelBody>

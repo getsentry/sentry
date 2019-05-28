@@ -8,6 +8,7 @@ import Link from 'app/components/links/link';
 import NavTabs from 'app/components/navTabs';
 import SeenByList from 'app/components/seenByList';
 import SentryTypes from 'app/sentryTypes';
+import SideHeader from 'app/views/organizationIncidents/details/sideHeader';
 import space from 'app/styles/space';
 import theme from 'app/utils/theme';
 
@@ -63,6 +64,7 @@ export default class DetailsBody extends React.Component {
         </Main>
         <Sidebar>
           <PageContent>
+            <SideHeader>{t('Events in Incident')}</SideHeader>
             {incident && (
               <Chart
                 data={incident.eventStats.data}
