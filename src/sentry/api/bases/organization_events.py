@@ -48,8 +48,7 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
         except InvalidSearchQuery as exc:
             raise OrganizationEventsError(exc.message)
 
-        fields = request.GET.getlist('fields')[:]
-
+        fields = request.GET.getlist('field')[:]
         if fields:
             # If project.name is requested, get the project.id from Snuba so we
             # can use this to look up the name in Sentry
@@ -59,8 +58,10 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
                     fields.append('project.id')
 
             snuba_args['selected_columns'] = fields
-        else:
-            raise OrganizationEventsError('No fields requested.')
+
+        aggregations = request.GET.getlist('aggregation')
+        if aggregations:
+            snuba_args['aggregations'] = [aggregation.split(',') for aggregation in aggregations]
 
         groupby = request.GET.getlist('groupby')
         if groupby:
