@@ -26,7 +26,7 @@ describe('getQuery()', function() {
       tags: [],
     };
 
-    expect(getQuery(view).fields).toEqual([
+    expect(getQuery(view).field).toEqual([
       'title',
       'id',
       'project.name',
