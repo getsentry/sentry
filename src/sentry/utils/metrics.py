@@ -113,7 +113,7 @@ def timing(key, value, instance=None, tags=None,
 
 
 @contextmanager
-def timer(key, instance=None, tags=None):
+def timer(key, instance=None, tags=None, sample_rate=settings.SENTRY_METRICS_SAMPLE_RATE):
     if tags is None:
         tags = {}
 
@@ -126,7 +126,7 @@ def timer(key, instance=None, tags=None):
     else:
         tags['result'] = 'success'
     finally:
-        timing(key, time() - start, instance, tags)
+        timing(key, time() - start, instance, tags, sample_rate)
 
 
 def wraps(key, instance=None, tags=None):
