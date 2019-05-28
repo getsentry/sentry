@@ -76,6 +76,7 @@ exports[`Sentry App Installations when Apps exist displays all Apps owned by the
         "webhookUrl": "https://example.com/webhook",
       }
     }
+    isInternal={false}
     key="123456123456123456123456"
     onInstall={[Function]}
     onUninstall={[Function]}
@@ -237,12 +238,16 @@ exports[`Sentry App Installations when Apps exist displays all Apps owned by the
                             className="css-f0t6d-SentryAppDetails eac2pqx3"
                             is={null}
                           >
-                            <Status>
+                            <Status
+                              isInternal={false}
+                            >
                               <WithTheme(Component)
                                 className="css-lk5f1o-Status eac2pqx8"
+                                isInternal={false}
                               >
                                 <Component
                                   className="css-lk5f1o-Status eac2pqx8"
+                                  isInternal={false}
                                   theme={
                                     Object {
                                       "alert": Object {
