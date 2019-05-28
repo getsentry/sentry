@@ -30,6 +30,8 @@ describe('getQuery()', function() {
       'title',
       'id',
       'project.name',
+      'user',
+      'user.name',
       'user.email',
       'user.ip',
       'issue.id',
