@@ -278,7 +278,11 @@ def _do_process_event(cache_key, start_time, event_id, process_task,
             # - persist e.g. incredibly large stacktraces from minidumps
             # - store event timestamps that are older than our retention window
             #   (also happening with minidumps)
-            normalizer = StoreNormalizer(remove_other=False, **DEFAULT_STORE_NORMALIZER_ARGS)
+            normalizer = StoreNormalizer(
+                remove_other=False,
+                is_renormalize=True,
+                **DEFAULT_STORE_NORMALIZER_ARGS
+            )
             data = normalizer.normalize_event(dict(data))
 
         issues = data.get('processing_issues')
