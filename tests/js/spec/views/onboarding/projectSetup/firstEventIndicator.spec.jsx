@@ -8,7 +8,7 @@ describe('FirstEventIndicator', function() {
     const org = TestStubs.Organization();
 
     const wrapper = mount(
-      <Indicator orgId={org.slug} firstIssue={null} />,
+      <Indicator organization={org} firstIssue={null} />,
       TestStubs.routerContext()
     );
 
@@ -20,7 +20,7 @@ describe('FirstEventIndicator', function() {
       const org = TestStubs.Organization();
 
       const wrapper = mount(
-        <Indicator orgId={org.slug} firstIssue={{id: 1}} />,
+        <Indicator organization={org} firstIssue={{id: 1}} />,
         TestStubs.routerContext()
       );
 
