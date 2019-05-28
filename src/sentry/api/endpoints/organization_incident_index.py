@@ -80,6 +80,14 @@ class OrganizationIncidentIndexEndpoint(OrganizationEndpoint):
             self.get_projects(request, organization),
         )
 
+        query_status = request.GET.get('status')
+
+        if query_status == 'open':
+            # status can be detected, created, or closed
+            incidents = incidents.exclude(status=IncidentStatus.CLOSED.value)
+        elif query_status == 'closed':
+            incidents = incidents.filter(status=IncidentStatus.CLOSED.value)
+
         return self.paginate(
             request,
             queryset=incidents,
