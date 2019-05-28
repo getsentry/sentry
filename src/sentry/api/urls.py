@@ -71,7 +71,7 @@ from .endpoints.organization_details import OrganizationDetailsEndpoint
 from .endpoints.organization_discover_query import OrganizationDiscoverQueryEndpoint
 from .endpoints.organization_discover_saved_queries import OrganizationDiscoverSavedQueriesEndpoint
 from .endpoints.organization_discover_saved_query_detail import OrganizationDiscoverSavedQueryDetailEndpoint
-from .endpoints.organization_events import OrganizationEventsEndpoint, OrganizationEventsMetaEndpoint, OrganizationEventsStatsEndpoint, OrganizationEventsTagsEndpoint
+from .endpoints.organization_events import OrganizationEventsEndpoint, OrganizationEventsMetaEndpoint, OrganizationEventsStatsEndpoint, OrganizationEventsHeatmapEndpoint
 from .endpoints.organization_group_index import OrganizationGroupIndexEndpoint
 from .endpoints.organization_dashboard_details import OrganizationDashboardDetailsEndpoint
 from .endpoints.organization_dashboard_widget_details import OrganizationDashboardWidgetDetailsEndpoint
@@ -596,9 +596,9 @@ urlpatterns = patterns(
         name='sentry-api-0-organization-events-stats'
     ),
     url(
-        r'^organizations/(?P<organization_slug>[^\/]+)/events-tags/(?P<key>[^/]+)/$',
-        OrganizationEventsTagsEndpoint.as_view(),
-        name='sentry-api-0-organization-events-tags'
+        r'^organizations/(?P<organization_slug>[^\/]+)/events-heatmap/$',
+        OrganizationEventsHeatmapEndpoint.as_view(),
+        name='sentry-api-0-organization-events-heatmap'
     ),
     url(
         r'^organizations/(?P<organization_slug>[^\/]+)/events-meta/$',

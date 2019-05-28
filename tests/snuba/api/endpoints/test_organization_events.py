@@ -778,27 +778,95 @@ class OrganizationEventsStatsEndpointTest(OrganizationEventsTestBase):
         ]
 
 
-class OrganizationEventsTagsEndpointTest(OrganizationEventsTestBase):
+class OrganizationEventsHeatmapEndpointTest(OrganizationEventsTestBase):
     def setUp(self):
-        super(OrganizationEventsTagsEndpointTest, self).setUp()
+        super(OrganizationEventsHeatmapEndpointTest, self).setUp()
         self.login_as(user=self.user)
         self.project = self.create_project()
         self.group = self.create_group(project=self.project)
         self.url = reverse(
-            'sentry-api-0-organization-events-tags',
+            'sentry-api-0-organization-events-heatmap',
             kwargs={
                 'organization_slug': self.project.organization.slug,
-                'key': 'color',
             }
         )
-
-    def assert_top_values(self, output, expected):
-        assert len(output) == len(expected)
-        for index, (count, value) in enumerate(expected):
-            assert output[index]['count'] == count
-            assert output[index]['value'] == value
+        self.min_ago = self.min_ago.replace(microsecond=0)
+        self.day_ago = self.day_ago.replace(microsecond=0)
 
     def test_simple(self):
+        self.create_event(
+            event_id='x' * 32,
+            group=self.group,
+            message="how to make fast",
+            datetime=self.min_ago,
+            tags={'color': 'green'},
+        )
+        self.create_event(
+            event_id='y' * 32,
+            group=self.group,
+            message="Delet the Data",
+            datetime=self.min_ago,
+            tags={'number': 'one'},
+        )
+        self.create_event(
+            event_id='z' * 32,
+            group=self.group,
+            message="Data the Delet ",
+            datetime=self.min_ago,
+            tags={'color': 'green'},
+        )
+        self.create_event(
+            event_id='a' * 32,
+            group=self.group,
+            message="Data the Delet ",
+            datetime=self.min_ago,
+            tags={'color': 'red'},
+        )
+
+        response = self.client.get(self.url, {'keys': ['color', 'number']}, format='json')
+
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 2
+        response.data[0] == {
+            'topValues': [
+                {
+                    'count': 1,
+                    'name': 'one',
+                    'value': 'one',
+                    'lastSeen': self.min_ago,
+                    'key': 'number',
+                    'firstSeen': self.min_ago
+                }
+            ],
+            'totalValues': 1,
+            'name': 'Number',
+            'key': 'number'
+        }
+        response.data[1] == {
+            'topValues': [
+                {
+                    'count': 2,
+                    'name': 'green',
+                    'value': 'green',
+                    'lastSeen': self.min_ago,
+                    'key': 'color',
+                    'firstSeen': self.min_ago
+                },
+                {
+                    'count': 1,
+                    'name': 'red',
+                    'value': 'red',
+                    'lastSeen': self.min_ago,
+                    'key': 'color',
+                    'firstSeen': self.min_ago
+                }
+            ],
+            'totalValues': 3,
+            'name': 'Color',
+            'key': 'color'
+        }
+
+    def test_single_key(self):
         self.create_event(
             event_id='w' * 32,
             group=self.group,
@@ -828,16 +896,34 @@ class OrganizationEventsTagsEndpointTest(OrganizationEventsTestBase):
             tags={'color': 'yellow'},
         )
 
-        response = self.client.get(self.url, format='json')
-
+        response = self.client.get(self.url, {'keys': ['color']}, format='json')
         assert response.status_code == 200, response.content
-        assert response.data['uniqueValues'] == 2
-        assert response.data['name'] == 'Color'
-        assert response.data['key'] == 'color'
+        assert len(response.data) == 1
+        assert response.data[0] == {
+            'topValues': [
+                {
+                    'count': 2,
+                    'name': 'yellow',
+                    'value': 'yellow',
+                    'lastSeen': self.min_ago,
+                    'key': 'color',
+                    'firstSeen': self.min_ago
+                },
+                {
+                    'count': 1,
+                    'name': 'red',
+                    'value': 'red',
+                    'lastSeen': self.min_ago,
+                    'key': 'color',
+                    'firstSeen': self.min_ago
+                }
+            ],
+            'totalValues': 3,
+            'name': 'Color',
+            'key': 'color'
+        }
 
-        self.assert_top_values(response.data['topValues'], [(2, 'yellow'), (1, 'red')])
-
-    def test_tags_with_query(self):
+    def test_with_query(self):
         self.create_event(
             event_id='x' * 32,
             group=self.group,
@@ -860,17 +946,38 @@ class OrganizationEventsTagsEndpointTest(OrganizationEventsTestBase):
             tags={'color': 'yellow'},
         )
 
-        response = self.client.get(self.url, {'query': 'delet'}, format='json')
+        response = self.client.get(self.url, {'query': 'delet', 'keys': ['color']}, format='json')
 
         assert response.status_code == 200, response.content
-        assert response.data['uniqueValues'] == 2
-        assert response.data['name'] == 'Color'
-        assert response.data['key'] == 'color'
-        self.assert_top_values(response.data['topValues'], [(1, 'yellow'), (1, 'red')])
+        assert len(response.data) == 1
+        assert response.data[0] == {
+            'topValues': [
+                {
+                    'count': 1,
+                    'name': 'yellow',
+                    'value': 'yellow',
+                    'lastSeen': self.min_ago,
+                    'key': 'color',
+                    'firstSeen': self.min_ago
+                },
+                {
+                    'count': 1,
+                    'name': 'red',
+                    'value': 'red',
+                    'lastSeen': self.min_ago,
+                    'key': 'color',
+                    'firstSeen': self.min_ago
+                }
+            ],
+            'totalValues': 3,
+            'name': 'Color',
+            'key': 'color'
+        }
 
     def test_start_end(self):
         two_days_ago = self.day_ago - timedelta(days=1)
         hour_ago = self.min_ago - timedelta(hours=1)
+        two_hours_ago = hour_ago - timedelta(hours=1)
         self.create_event(
             event_id='x' * 32,
             group=self.group,
@@ -889,7 +996,7 @@ class OrganizationEventsTagsEndpointTest(OrganizationEventsTestBase):
             event_id='z' * 32,
             group=self.group,
             message="Data the Delet ",
-            datetime=hour_ago,
+            datetime=two_hours_ago,
             tags={'color': 'red'},
         )
         self.create_event(
@@ -905,26 +1012,93 @@ class OrganizationEventsTagsEndpointTest(OrganizationEventsTestBase):
             {
                 'start': self.day_ago.isoformat()[:19],
                 'end': self.min_ago.isoformat()[:19],
+                'keys': ['color'],
             },
             format='json'
         )
 
         assert response.status_code == 200, response.content
-        assert response.data['uniqueValues'] == 1
-        assert response.data['name'] == 'Color'
-        assert response.data['key'] == 'color'
-        self.assert_top_values(response.data['topValues'], [(2, 'red')])
+        assert len(response.data) == 1
+        assert response.data[0] == {
+            'topValues': [
+                {
+                    'count': 2,
+                    'name': 'red',
+                    'value': 'red',
+                    'lastSeen': hour_ago,
+                    'key': 'color',
+                    'firstSeen': two_hours_ago
+                }
+            ],
+            'totalValues': 3,
+            'name': 'Color',
+            'key': 'color'
+        }
+
+    def test_excluded_tag(self):
+        self.user = self.create_user()
+        self.user2 = self.create_user()
+        self.create_event(
+            event_id='a' * 32,
+            group=self.group,
+            datetime=self.day_ago,
+            tags={'sentry:user': self.user.email},
+        )
+        self.create_event(
+            event_id='b' * 32,
+            group=self.group,
+            datetime=self.day_ago,
+            tags={'sentry:user': self.user2.email},
+        )
+        self.create_event(
+            event_id='c' * 32,
+            group=self.group,
+            datetime=self.day_ago,
+            tags={'sentry:user': self.user2.email},
+        )
+        response = self.client.get(
+            self.url,
+            {
+                'keys': ['user'],
+            },
+            format='json'
+        )
+
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 1
+        assert response.data[0] == {
+            'topValues': [
+                {
+                    'count': 2,
+                    'name': self.user2.email,
+                    'value': self.user2.email,
+                    'lastSeen': self.day_ago,
+                    'key': 'user',
+                    'firstSeen': self.day_ago
+                },
+                {
+                    'count': 1,
+                    'name': self.user.email,
+                    'value': self.user.email,
+                    'lastSeen': self.day_ago,
+                    'key': 'user',
+                    'firstSeen': self.day_ago
+                }
+            ],
+            'totalValues': 3,
+            'name': 'User',
+            'key': 'user'
+        }
 
     def test_no_projects(self):
         org = self.create_organization(owner=self.user)
         url = reverse(
-            'sentry-api-0-organization-events-tags',
+            'sentry-api-0-organization-events-heatmap',
             kwargs={
                 'organization_slug': org.slug,
-                'key': 'color',
             }
         )
-        response = self.client.get(url, format='json')
+        response = self.client.get(url, {'keys': ['color']}, format='json')
         assert response.status_code == 400, response.content
         assert response.data == {'detail': 'A valid project must be included.'}
 

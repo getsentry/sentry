@@ -139,8 +139,8 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsEndpointBase):
         )
 
 
-class OrganizationEventsTagsEndpoint(OrganizationEventsEndpointBase):
-    def get(self, request, organization, key):
+class OrganizationEventsHeatmapEndpoint(OrganizationEventsEndpointBase):
+    def get(self, request, organization):
         try:
             snuba_args = self.get_snuba_query_args(request, organization)
         except OrganizationEventsError as exc:
@@ -148,13 +148,16 @@ class OrganizationEventsTagsEndpoint(OrganizationEventsEndpointBase):
         except NoProjects:
             return Response({'detail': 'A valid project must be included.'}, status=400)
 
-        lookup_key = tagstore.prefix_reserved_key(key)
+        lookup_keys = [tagstore.prefix_reserved_key(key) for key in request.GET.getlist('keys')]
+
+        if not lookup_keys:
+            return Response({'detail': 'Tag keys must be sepcified.'}, status=400)
         project_ids = snuba_args['filter_keys']['project_id']
         environment_ids = snuba_args['filter_keys'].get('environment_id')
 
         try:
-            tag_key = tagstore.get_tag_key(
-                project_ids, environment_ids, lookup_key, **snuba_args)
+            tag_key = tagstore.get_group_tag_keys_and_top_values(
+                project_ids, None, environment_ids, keys=lookup_keys, get_excluded_tags=True, **snuba_args)
         except tagstore.TagKeyNotFound:
             raise ResourceDoesNotExist
 
