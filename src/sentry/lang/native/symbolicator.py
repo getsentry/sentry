@@ -114,6 +114,16 @@ BUILTIN_SOURCES = {
         'layout': {'type': 'symstore'},
         'url': 'http://symbols.autodesk.com/',
         'is_public': True,
+    },
+    'electron': {
+        'type': 'http',
+        'id': 'sentry:electron',
+        'layout': {'type': 'native'},
+        'url': 'https://electron-symbols.githubapp.com/',
+        'filters': {
+            'filetypes': ['pdb', 'breakpad'],
+        },
+        'is_public': True,
     }
 }
 
