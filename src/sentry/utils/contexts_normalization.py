@@ -1,19 +1,7 @@
 from __future__ import absolute_import
-import re
 
 from ua_parser.user_agent_parser import Parse
 from sentry.utils.safe import get_path, setdefault_path
-
-# Environment.OSVersion (GetVersionEx) or RuntimeInformation.OSDescription, on Windows
-_windows_re = re.compile('^(Microsoft )?Windows (NT )?(?P<version>\d+\.\d+\.\d+).*$')
-# Format sent by Unreal Engine on macOS
-_unreal_macos_re = re.compile(
-    '^Mac OS X (?P<version>\d+\.\d+\.\d+)( \((?P<build>[a-fA-F0-9]+)\))?$')
-# Environment.OSVersion or RuntimeInformation.OSDescription (uname)
-# on Mono and CoreCLR on macOS, iOS, Linux, etc
-_uname_re = re.compile('^(?P<name>[a-zA-Z]+) (?P<version>\d+\.\d+\.\d+(\.[1-9]+)?).*$')
-# Mono 5.4, .NET Core 2.0
-_runtime_re = re.compile('^(?P<name>.*) (?P<version>\d+\.\d+(\.\d+){0,2}).*$')
 
 
 def _get_version(user_agent):
