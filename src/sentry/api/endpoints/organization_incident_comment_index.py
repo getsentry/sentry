@@ -22,8 +22,7 @@ class OrganizationIncidentCommentIndexEndpoint(IncidentEndpoint):
             activity = create_incident_activity(
                 incident,
                 IncidentActivityType.COMMENT,
-                # XXX: Serialization fails if user is a `SimpleLazyObject`
-                user=request.user._wrapped,
+                user=request.user,
                 comment=serializer.object['comment']
             )
             return Response(serialize(activity, request.user), status=201)
