@@ -70,12 +70,15 @@ export const SPECIAL_FIELDS = {
   event: {
     fields: ['title', 'id', 'project.name'],
     renderFunc: (data, {organization}) => (
+      // TODO(mark) retain query string parameters so back
+      // ends up on search results also hacking the projectId in
+      // is janky
       <Container>
         <Link
           css={overflowEllipsis}
-          to={`/organizations/${organization.slug}/projects/${
-            data['project.name']
-          }/events/${data.id}/`}
+          to={`/organizations/${org.slug}/events/?eventSlug=${data['project.name']}:${
+            data.id
+          }`}
         >
           {data.title}
         </Link>
