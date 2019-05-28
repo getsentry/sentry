@@ -81,7 +81,7 @@ class ActivityContainer extends React.Component {
       const newNote = await createIncidentNote(api, orgId, incidentId, note);
 
       this.setState(state => {
-        // Update activities to find our fake new activity with activity object from server
+        // Update activities to replace our fake new activity with activity object from server
         const activities = [
           newNote,
           ...state.activities.filter(activity => activity !== newActivity),
