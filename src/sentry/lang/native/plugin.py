@@ -104,14 +104,19 @@ class NativeStacktraceProcessor(StacktraceProcessor):
         )
 
     def handles_frame(self, frame, stacktrace_info):
-        if not self.available:
-            return False
+        # XXX(markus): We cannot return false for any native frame here.
+        # Stacktrace processors have a (hard to fix) bug where all
+        # non-processable frames of a processable stacktrace are removed from
+        # an event.
+        #
+        # Before introducing Symbolicator (and calling it from enhancers) this
+        # never used to be a problem because even for mixed-platform
+        # stacktraces there was always at least one processor returning
+        # handles_frame() = True for each frame, so in the end no frame was
+        # discarded.
 
         platform = frame.get('platform') or self.data.get('platform')
         if platform not in self.supported_platforms:
-            return False
-
-        if frame.get('data', {}).get('symbolicator_status') == 'symbolicated':
             return False
 
         if 'instruction_addr' not in frame:
@@ -142,6 +147,9 @@ class NativeStacktraceProcessor(StacktraceProcessor):
         pf_list = []
         for pf in processing_task.iter_processable_frames(self):
             if pf.cache_value is not None:
+                continue
+
+            if pf.get('data', {}).get('symbolicator_status') == 'symbolicated':
                 continue
 
             obj = pf.data['obj']
