@@ -5,7 +5,7 @@ from exam import fixture
 from freezegun import freeze_time
 
 from sentry.api.serializers import serialize
-from sentry.incidents.models import Incident, IncidentStatus
+from sentry.incidents.models import Incident, IncidentStatus, IncidentActivity
 from sentry.testutils import APITestCase
 
 
@@ -95,6 +95,10 @@ class IncidentCreateEndpointTest(APITestCase):
                 status_code=201,
             )
         assert resp.data == serialize([Incident.objects.get(id=resp.data['id'])])[0]
+
+        # should create an activity authored by user
+        activity = IncidentActivity.objects.get(incident_id=resp.data['id'])
+        assert activity.user == self.user
 
     def test_project_access(self):
         self.create_member(
