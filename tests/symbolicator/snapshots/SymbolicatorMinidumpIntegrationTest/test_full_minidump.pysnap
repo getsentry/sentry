@@ -1,5 +1,5 @@
 ---
-created: '2019-05-29T11:21:05.608393Z'
+created: '2019-05-27T11:48:16.638637Z'
 creator: sentry
 source: tests/symbolicator/test_minidump_full.py
 ---
@@ -164,28 +164,6 @@ exception:
         instruction_addr: '0x750662c4'
         package: C:\Windows\System32\kernel32.dll
         trust: cfi
-      - abs_path: f:\dd\vctools\crt\vcstartup\src\startup\exe_common.inl
-        data:
-          symbolicator_status: symbolicated
-        filename: exe_common.inl
-        function: __scrt_common_main_seh
-        in_app: false
-        instruction_addr: '0x2a2d96'
-        lineno: 283
-        package: C:\projects\breakpad-tools\windows\Release\crash.exe
-        symbol: __scrt_common_main_seh
-        trust: cfi
-      - abs_path: c:\projects\breakpad-tools\windows\crash\main.cpp
-        data:
-          symbolicator_status: symbolicated
-        filename: main.cpp
-        function: main
-        in_app: false
-        instruction_addr: '0x2a2a3d'
-        lineno: 35
-        package: C:\projects\breakpad-tools\windows\Release\crash.exe
-        symbol: main
-        trust: context
       registers:
         eax: '0x0'
         ebp: '0x10ff670'
@@ -217,28 +195,6 @@ exception:
         instruction_addr: '0x750662c4'
         package: C:\Windows\System32\kernel32.dll
         trust: cfi
-      - abs_path: f:\dd\vctools\crt\vcstartup\src\startup\exe_common.inl
-        data:
-          symbolicator_status: symbolicated
-        filename: exe_common.inl
-        function: __scrt_common_main_seh
-        in_app: false
-        instruction_addr: '0x2a2d96'
-        lineno: 283
-        package: C:\projects\breakpad-tools\windows\Release\crash.exe
-        symbol: __scrt_common_main_seh
-        trust: cfi
-      - abs_path: c:\projects\breakpad-tools\windows\crash\main.cpp
-        data:
-          symbolicator_status: symbolicated
-        filename: main.cpp
-        function: main
-        in_app: false
-        instruction_addr: '0x2a2a3d'
-        lineno: 35
-        package: C:\projects\breakpad-tools\windows\Release\crash.exe
-        symbol: main
-        trust: context
       registers:
         eax: '0x0'
         ebp: '0x10ff670'
