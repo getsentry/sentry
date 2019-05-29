@@ -92,6 +92,7 @@ class Events extends AsyncComponent {
               data={data}
               isLoading={loading}
               onSearch={this.handleSearch}
+              location={location}
             />
             <Pagination pageLinks={dataPageLinks} />
           </div>

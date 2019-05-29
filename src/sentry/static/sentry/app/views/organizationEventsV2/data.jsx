@@ -1,5 +1,6 @@
 import React from 'react';
 import styled from 'react-emotion';
+import qs from 'query-string';
 
 import {deepFreeze} from 'app/utils';
 import DynamicWrapper from 'app/components/dynamicWrapper';
@@ -69,21 +70,22 @@ export const ALL_VIEWS = deepFreeze([
 export const SPECIAL_FIELDS = {
   event: {
     fields: ['title', 'id', 'project.name'],
-    renderFunc: (data, {organization}) => (
-      // TODO(mark) retain query string parameters so back
-      // ends up on search results also hacking the projectId in
-      // is janky
-      <Container>
-        <Link
-          css={overflowEllipsis}
-          to={`/organizations/${org.slug}/events/?eventSlug=${data['project.name']}:${
-            data.id
-          }`}
-        >
-          {data.title}
-        </Link>
-      </Container>
-    ),
+    renderFunc: (data, {organization, location}) => {
+      const newQuery = qs.stringify({
+        ...location.query,
+        eventSlug: `${data['project.name']}:${data.id}`,
+      });
+      return (
+        <Container>
+          <Link
+            css={overflowEllipsis}
+            to={`/organizations/${organization.slug}/events/?${newQuery}`}
+          >
+            {data.title}
+          </Link>
+        </Container>
+      );
+    },
   },
   project: {
     fields: ['project.name'],
