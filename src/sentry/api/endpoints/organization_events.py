@@ -151,7 +151,7 @@ class OrganizationEventsHeatmapEndpoint(OrganizationEventsEndpointBase):
         lookup_keys = [tagstore.prefix_reserved_key(key) for key in request.GET.getlist('keys')]
 
         if not lookup_keys:
-            return Response({'detail': 'Tag keys must be sepcified.'}, status=400)
+            return Response({'detail': 'Tag keys must be specified.'}, status=400)
         project_ids = snuba_args['filter_keys']['project_id']
         environment_ids = snuba_args['filter_keys'].get('environment_id')
 
