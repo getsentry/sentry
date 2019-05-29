@@ -9,11 +9,7 @@ export default class Tags extends React.Component {
   };
 
   renderTag(tag) {
-    return (
-      <TagDistributionMeter key={tag} title={tag} segments={[]}>
-        {tag}
-      </TagDistributionMeter>
-    );
+    return <TagDistributionMeter key={tag} title={tag} segments={[]} />;
   }
 
   render() {

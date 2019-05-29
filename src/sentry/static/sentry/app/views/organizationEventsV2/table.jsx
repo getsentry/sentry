@@ -5,12 +5,12 @@ import styled, {css} from 'react-emotion';
 import SentryTypes from 'app/sentryTypes';
 import {Panel, PanelHeader, PanelBody, PanelItem} from 'app/components/panels';
 import LoadingIndicator from 'app/components/loadingIndicator';
-import overflowEllipsis from 'app/styles/overflowEllipsis';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 
 import {SPECIAL_FIELDS} from './data';
+import {QueryLink} from './styles';
 
 export default class Table extends React.Component {
   static propTypes = {
@@ -18,10 +18,11 @@ export default class Table extends React.Component {
     data: PropTypes.arrayOf(PropTypes.object),
     isLoading: PropTypes.bool,
     organization: SentryTypes.Organization.isRequired,
+    onSearch: PropTypes.func.isRequired,
   };
 
   renderBody() {
-    const {view, data, isLoading, organization} = this.props;
+    const {view, data, isLoading, organization, onSearch} = this.props;
     const {fields} = view.data;
 
     if (isLoading) {
@@ -41,9 +42,11 @@ export default class Table extends React.Component {
         {fields.map(field => (
           <Cell key={field}>
             {SPECIAL_FIELDS.hasOwnProperty(field) ? (
-              SPECIAL_FIELDS[field].renderFunc(row, organization)
+              SPECIAL_FIELDS[field].renderFunc(row, {organization, onSearch})
             ) : (
-              <Data>{row[field]}</Data>
+              <QueryLink onClick={() => onSearch(`${field}:${row[field]}`)}>
+                {row[field]}
+              </QueryLink>
             )}
           </Cell>
         ))}
@@ -56,11 +59,11 @@ export default class Table extends React.Component {
 
     return (
       <Panel>
-        <PanelHeader className={getGridStyle(fields.length)}>
+        <TableHeader className={getGridStyle(fields.length)}>
           {fields.map(field => (
-            <div key={field}>{field}</div>
+            <HeaderItem key={field}>{field}</HeaderItem>
           ))}
-        </PanelHeader>
+        </TableHeader>
         <PanelBody>{this.renderBody()}</PanelBody>
       </Panel>
     );
@@ -75,14 +78,21 @@ function getGridStyle(colCount) {
   `;
 }
 
+const TableHeader = styled(PanelHeader)`
+  padding: ${space(2)} ${space(1)};
+`;
+
+const HeaderItem = styled('div')`
+  padding: 0 ${space(1)};
+`;
+
 const Row = styled(PanelItem)`
   font-size: ${p => p.theme.fontSizeMedium};
+  padding: ${space(1)};
 `;
 
 const Cell = styled('div')`
+  display: flex;
+  align-items: center;
   overflow: hidden;
-`;
-
-const Data = styled('div')`
-  ${overflowEllipsis}
 `;

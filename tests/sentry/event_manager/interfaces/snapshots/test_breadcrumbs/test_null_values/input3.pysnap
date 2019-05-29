@@ -1,7 +1,10 @@
 ---
-created: '2019-03-14T17:12:34.856872Z'
+created: '2019-05-22T14:45:11.052228Z'
 creator: sentry
 source: tests/sentry/event_manager/interfaces/test_breadcrumbs.py
 ---
 errors: null
-to_json: {}
+to_json:
+  values:
+  - level: info
+    type: default

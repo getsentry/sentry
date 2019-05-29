@@ -64,7 +64,7 @@ class IncidentManager(BaseManager):
         return self.filter(
             organization=organization,
             projects__in=projects,
-        )
+        ).distinct()
 
     @TimedRetryPolicy.wrap(timeout=5, exceptions=(IntegrityError, ))
     def create(self, organization, **kwargs):
