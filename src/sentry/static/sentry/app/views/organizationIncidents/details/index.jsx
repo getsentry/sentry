@@ -85,13 +85,19 @@ class OrganizationIncidentDetails extends React.Component {
       incident: {...state.incident, status: newStatus},
     }));
 
-    updateStatus(api, orgId, incidentId, newStatus).catch(() => {
-      this.setState(state => ({
-        incident: {...state.incident, status},
-      }));
+    updateStatus(api, orgId, incidentId, newStatus)
+      .then(incident => {
+        // Update entire incident object because updating status can cause other parts
+        // of the model to change (e.g close date)
+        this.setState({incident});
+      })
+      .catch(() => {
+        this.setState(state => ({
+          incident: {...state.incident, status},
+        }));
 
-      addErrorMessage(t('An error occurred, your incident status was not changed.'));
-    });
+        addErrorMessage(t('An error occurred, your incident status was not changed.'));
+      });
   };
 
   render() {
