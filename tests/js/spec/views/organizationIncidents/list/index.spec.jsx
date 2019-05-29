@@ -49,7 +49,7 @@ describe('OrganizationIncidentsList', function() {
     expect(wrapper.text()).toContain("You don't have any incidents yet");
   });
 
-  it('toggles all/unresolved', function() {
+  it('toggles all/open', function() {
     const wrapper = mount(
       <OrganizationIncidentsList
         params={{orgId: 'org-slug'}}
@@ -73,7 +73,7 @@ describe('OrganizationIncidentsList', function() {
       expect.objectContaining({query: {}})
     );
 
-    wrapper.setProps({location: {query: {status: ''}, search: '?status='}});
+    wrapper.setProps({location: {query: {status: 'open'}, search: '?status=open'}});
 
     expect(
       wrapper
@@ -87,7 +87,7 @@ describe('OrganizationIncidentsList', function() {
 
     expect(mock).toHaveBeenCalledWith(
       '/organizations/org-slug/incidents/',
-      expect.objectContaining({query: expect.objectContaining({status: ''})})
+      expect.objectContaining({query: expect.objectContaining({status: 'open'})})
     );
   });
 });
