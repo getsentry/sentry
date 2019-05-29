@@ -343,6 +343,7 @@ const StreamActions = createReactClass({
     const resolveDisabled = !anySelected;
     const resolveDropdownDisabled = !(anySelected && projectId);
     const mergeDisabled = !(multiSelected && projectId);
+    const createNewIncidentDisabled = !anySelected || allInQuerySelected;
 
     return (
       <Sticky>
@@ -402,7 +403,7 @@ const StreamActions = createReactClass({
                 <ActionLink
                   className="btn btn-default btn-sm hidden-sm hidden-xs"
                   title={t('Create new incident')}
-                  disabled={!anySelected}
+                  disabled={createNewIncidentDisabled}
                   onAction={this.handleCreateIncident}
                 >
                   <IncidentLabel>
@@ -439,7 +440,7 @@ const StreamActions = createReactClass({
                 <MenuItem noAnchor={true}>
                   <ActionLink
                     className="hidden-md hidden-lg hidden-xl"
-                    disabled={!anySelected}
+                    disabled={createNewIncidentDisabled}
                     onAction={this.handleCreateIncident}
                     title={t('Create new incident')}
                   >
