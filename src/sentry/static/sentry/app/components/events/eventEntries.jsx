@@ -97,7 +97,7 @@ class EventEntries extends React.Component {
   }
 
   renderEntries() {
-    const {event, group, isShare} = this.props;
+    const {event, project, isShare} = this.props;
 
     return event.entries.map((entry, entryIdx) => {
       try {
@@ -112,7 +112,7 @@ class EventEntries extends React.Component {
         return (
           <Component
             key={'entry-' + entryIdx}
-            group={group}
+            projectId={project.slug}
             event={event}
             type={entry.type}
             data={entry.data}
@@ -123,7 +123,7 @@ class EventEntries extends React.Component {
         logException(ex);
         return (
           <EventDataSection
-            group={group}
+            projectId={project.slug}
             event={event}
             type={entry.type}
             title={entry.type}
@@ -153,9 +153,7 @@ class EventEntries extends React.Component {
 
     return (
       <div className="entries">
-        {!utils.objectIsEmpty(event.errors) && (
-          <EventErrors group={group} event={event} />
-        )}{' '}
+        {!utils.objectIsEmpty(event.errors) && <EventErrors event={event} />}{' '}
         {!isShare && !!group.firstRelease && (
           <EventCause event={event} orgId={orgId} projectId={project.slug} />
         )}
@@ -167,7 +165,7 @@ class EventEntries extends React.Component {
             issueId={group.id}
           />
         )}
-        {hasContext && <EventContextSummary group={group} event={event} />}
+        {hasContext && <EventContextSummary event={event} />}
         <EventTags
           organization={organization}
           group={group}
@@ -177,19 +175,13 @@ class EventEntries extends React.Component {
         />
         {this.renderEntries()}
         {hasContext && <EventContexts group={group} event={event} />}
-        {!utils.objectIsEmpty(event.context) && (
-          <EventExtraData group={group} event={event} />
-        )}
-        {!utils.objectIsEmpty(event.packages) && (
-          <EventPackageData group={group} event={event} />
-        )}
-        {!utils.objectIsEmpty(event.device) && (
-          <EventDevice group={group} event={event} />
-        )}
+        {!utils.objectIsEmpty(event.context) && <EventExtraData event={event} />}
+        {!utils.objectIsEmpty(event.packages) && <EventPackageData event={event} />}
+        {!utils.objectIsEmpty(event.device) && <EventDevice event={event} />}
         {!isShare && features.has('event-attachments') && (
           <EventAttachments event={event} orgId={orgId} projectId={project.slug} />
         )}
-        {!utils.objectIsEmpty(event.sdk) && <EventSdk group={group} event={event} />}
+        {!utils.objectIsEmpty(event.sdk) && <EventSdk event={event} />}
         {!utils.objectIsEmpty(event.sdk) && event.sdk.upstream.isNewer && (
           <div className="alert-block alert-info box">
             <span className="icon-exclamation" />
@@ -205,7 +197,7 @@ class EventEntries extends React.Component {
           </div>
         )}{' '}
         {!isShare && features.has('grouping-info') && (
-          <EventGroupingInfo group={group} event={event} />
+          <EventGroupingInfo projectId={project.slug} event={event} />
         )}
       </div>
     );

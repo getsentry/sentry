@@ -249,13 +249,14 @@ class EventGroupingInfo extends AsyncComponent {
     api: PropTypes.object,
     organization: SentryTypes.Organization.isRequired,
     group: SentryTypes.Group.isRequired,
+    projectId: PropTypes.string.isRequired,
     event: SentryTypes.Event.isRequired,
   };
 
   getEndpoints() {
-    const {organization, group, event} = this.props;
+    const {organization, event, projectId} = this.props;
 
-    let path = `/projects/${organization.slug}/${group.project.slug}/events/${
+    let path = `/projects/${organization.slug}/${projectId}/events/${
       event.id
     }/grouping-info/`;
     if (this.state && this.state.configOverride) {
@@ -350,7 +351,6 @@ class EventGroupingInfo extends AsyncComponent {
     const isOpen = this.state.isOpen;
     return (
       <EventDataSection
-        group={this.props.group}
         event={this.props.event}
         type="grouping-info"
         className="grouping-info"

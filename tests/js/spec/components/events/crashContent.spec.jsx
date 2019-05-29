@@ -13,6 +13,7 @@ describe('CrashContent', function() {
   it('renders with meta data', function() {
     const wrapper = mount(
       <CrashContent
+        projectId="sentry"
         stackView="full"
         stackType="original"
         event={event}

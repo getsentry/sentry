@@ -8,7 +8,6 @@ import {t} from 'app/locale';
 
 class DebugMetaInterface extends React.Component {
   static propTypes = {
-    group: SentryTypes.Group.isRequired,
     event: SentryTypes.Event.isRequired,
     data: PropTypes.object.isRequired,
   };
@@ -42,7 +41,6 @@ class DebugMetaInterface extends React.Component {
     return (
       <div>
         <EventDataSection
-          group={this.props.group}
           event={this.props.event}
           type="packages"
           title={t('Images Loaded')}

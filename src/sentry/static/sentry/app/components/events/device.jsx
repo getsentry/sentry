@@ -8,12 +8,11 @@ import ContextData from 'app/components/contextData';
 // TODO(hazat): Is this interface used somewhere? If not delete it?
 class DeviceInterface extends React.Component {
   static propTypes = {
-    group: SentryTypes.Group.isRequired,
     event: SentryTypes.Event.isRequired,
   };
 
   render() {
-    const {group, event} = this.props;
+    const {event} = this.props;
     const data = event.device;
     const extras = Object.keys(data.data || {}).map(key => {
       const value = data.data[key];
@@ -29,7 +28,6 @@ class DeviceInterface extends React.Component {
 
     return (
       <GroupEventDataSection
-        group={group}
         event={event}
         type="device"
         title={t('Device')}

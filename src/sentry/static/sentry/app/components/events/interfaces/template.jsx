@@ -7,7 +7,6 @@ import {t} from 'app/locale';
 
 class TemplateInterface extends React.Component {
   static propTypes = {
-    group: SentryTypes.Group.isRequired,
     event: SentryTypes.Event.isRequired,
     type: PropTypes.string.isRequired,
     data: PropTypes.object.isRequired,
@@ -16,7 +15,6 @@ class TemplateInterface extends React.Component {
   render() {
     return (
       <GroupEventDataSection
-        group={this.props.group}
         event={this.props.event}
         type={this.props.type}
         title={<div>{t('Template')}</div>}

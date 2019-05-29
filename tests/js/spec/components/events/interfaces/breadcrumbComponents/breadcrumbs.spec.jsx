@@ -8,9 +8,6 @@ describe('BreadcrumbsInterface', function() {
 
   beforeEach(() => {
     PROPS = {
-      group: {
-        id: '1',
-      },
       event: {
         entries: [],
         id: '4',

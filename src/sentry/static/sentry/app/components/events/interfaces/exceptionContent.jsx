@@ -1,5 +1,4 @@
 import PropTypes from 'prop-types';
-import SentryTypes from 'app/sentryTypes';
 import React from 'react';
 
 import {defined} from 'app/utils';
@@ -14,13 +13,11 @@ class ExceptionContent extends React.Component {
     view: PropTypes.string.isRequired,
     platform: PropTypes.string,
     newestFirst: PropTypes.bool,
-    group: SentryTypes.Group,
   };
 
   render() {
     const stackView = this.props.view;
     const newestFirst = this.props.newestFirst;
-    const group = this.props.group;
     const children = this.props.values.map((exc, excIdx) => {
       return (
         <div key={excIdx} className="exception">
@@ -50,7 +47,6 @@ class ExceptionContent extends React.Component {
               includeSystemFrames={stackView === 'full'}
               platform={this.props.platform}
               newestFirst={newestFirst}
-              group={group}
             />
           )}
         </div>

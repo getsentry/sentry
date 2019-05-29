@@ -12,7 +12,6 @@ import Truncate from 'app/components/truncate';
 
 class RequestInterface extends React.Component {
   static propTypes = {
-    group: SentryTypes.Group.isRequired,
     event: SentryTypes.Event.isRequired,
     type: PropTypes.string.isRequired,
     data: PropTypes.object.isRequired,
@@ -44,9 +43,7 @@ class RequestInterface extends React.Component {
   };
 
   render() {
-    const group = this.props.group;
-    const evt = this.props.event;
-    const data = this.props.data;
+    const {event, data, type} = this.props;
     const view = this.state.view;
 
     let fullUrl = getFullUrl(data);
@@ -111,9 +108,8 @@ class RequestInterface extends React.Component {
 
     return (
       <GroupEventDataSection
-        group={group}
-        event={evt}
-        type={this.props.type}
+        event={event}
+        type={type}
         title={title}
         wrapTitle={false}
         className="request"
