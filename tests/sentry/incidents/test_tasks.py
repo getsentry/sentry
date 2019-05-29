@@ -49,6 +49,13 @@ class TestSendSubscriberNotifications(BaseIncidentActivityTest, TestCase):
         send_subscriber_notifications(activity.id)
         self.send_async.assert_called_once_with([user.email])
 
+    def test_invalid_types(self):
+        for activity_type in (IncidentActivityType.CREATED, IncidentActivityType.DETECTED):
+            activity = create_incident_activity(self.incident, activity_type)
+            send_subscriber_notifications(activity.id)
+            self.send_async.assert_not_called()  # NOQA
+            self.send_async.reset_mock()
+
 
 class TestGenerateIncidentActivityEmail(BaseIncidentActivityTest, TestCase):
     def test_simple(self):
