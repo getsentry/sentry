@@ -41,6 +41,7 @@ def create_incident(
     detection_uuid=None,
     projects=None,
     groups=None,
+    user=None,
 ):
     assert status in (IncidentStatus.CREATED, IncidentStatus.DETECTED)
     if date_detected is None:
@@ -81,6 +82,7 @@ def create_incident(
             incident,
             activity_status,
             event_stats_snapshot=event_stats_snapshot,
+            user=user,
         )
     return incident
 
