@@ -34,6 +34,7 @@ const OTHER_SECTIONS = {
 class EventDetails extends React.Component {
   static propTypes = {
     api: PropTypes.object,
+    params: PropTypes.object,
     eventSlug: PropTypes.string.isRequired,
   };
 

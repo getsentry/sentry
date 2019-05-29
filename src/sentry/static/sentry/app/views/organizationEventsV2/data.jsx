@@ -80,6 +80,7 @@ export const SPECIAL_FIELDS = {
           <Link
             css={overflowEllipsis}
             to={`/organizations/${organization.slug}/events/?${newQuery}`}
+            data-test-id="event-title"
           >
             {data.title}
           </Link>
