@@ -340,12 +340,25 @@ def process_single_stacktrace(processing_task, stacktrace_info, processable_fram
     processed_frames = []
     all_errors = []
 
-    for processable_frame in processable_frames:
-        try:
-            rv = processable_frame.processor.process_frame(processable_frame, processing_task)
-        except Exception:
-            logger.exception('Failed to process frame')
-            rv = None
+    bare_frames = get_path(stacktrace_info.stacktrace, 'frames', filter=True, default=())
+    frame_count = len(bare_frames)
+    processable_frames = {frame.idx: frame for frame in processable_frames}
+
+    for i, bare_frame in enumerate(bare_frames):
+        idx = frame_count - i - 1
+        rv = None
+
+        if idx in processable_frames:
+            processable_frame = processable_frames[idx]
+            assert processable_frame.frame is bare_frame
+            try:
+                rv = processable_frame.processor.process_frame(
+                    processable_frame,
+                    processing_task
+                )
+            except Exception:
+                logger.exception('Failed to process frame')
+
         expand_processed, expand_raw, errors = rv or (None, None, None)
 
         if expand_processed is not None:
@@ -355,13 +368,13 @@ def process_single_stacktrace(processing_task, stacktrace_info, processable_fram
             processed_frames.extend(expand_raw)
             changed_processed = True
         else:
-            processed_frames.append(processable_frame.frame)
+            processed_frames.append(bare_frame)
 
         if expand_raw is not None:
             raw_frames.extend(expand_raw)
             changed_raw = True
         else:
-            raw_frames.append(processable_frame.frame)
+            raw_frames.append(bare_frame)
         all_errors.extend(errors or ())
 
     return (
