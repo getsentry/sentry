@@ -11,6 +11,7 @@ from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.serializers import EventSerializer, serialize, SimpleEventSerializer
 from sentry.api.serializers.snuba import SnubaTSResultSerializer
 from sentry.models import SnubaEvent
+from sentry.utils import json
 from sentry.utils.dates import parse_stats_period
 from sentry.utils.snuba import (
     raw_query,
@@ -188,3 +189,32 @@ class OrganizationEventsMetaEndpoint(OrganizationEventsEndpointBase):
             # in snuba
             'count': data['count'] * 10,
         })
+
+
+class OrganizationEventJsonView(OrganizationEventsEndpointBase):
+    # TODO(lb): should permissions be any different here?
+    # required_scope = 'event:read'
+
+    def get(self, request, organization, event_id):
+        # TODO(lb): This endpoint used to handle both snuba and without snuba.
+        # Couldnt' think of a reason why we wanted without snuba
+
+        filter_params = self.get_filter_params(request, organization)
+        project_id = filter_params.get('project_id')
+        if not project_id:
+            return Response({'data': []})
+
+        # TODO(lb): this checks both hex event_id or postgres primary key
+        # do we still need to do this?
+        event = SnubaEvent.objects.from_event_id(event_id, project_id)
+
+        if not event:
+            return Response({'detail': 'Event not found'}, status=404)
+
+        # TODO(lb): not sure this is needed
+        # Event.objects.bind_nodes([event], 'data')
+
+        # TODO(lb): hmmm caching for events? Not sure that's helpful
+        # GroupMeta.objects.populate_cache([group])
+
+        return Response(json.dumps(event.as_dict()))
