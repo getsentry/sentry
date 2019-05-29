@@ -168,6 +168,19 @@ class ResolvingIntegrationTestBase(object):
         assert event.data['culprit'] == 'unknown'
         insta_snapshot_stacktrace_data(self, event.data)
 
+    def test_missing_debug_images(self):
+        self.login_as(user=self.user)
+
+        payload = dict(project=self.project.id, **REAL_RESOLVING_EVENT_DATA)
+        del payload['debug_meta']
+
+        resp = self._postWithHeader(payload)
+        assert resp.status_code == 200
+
+        event = Event.objects.get()
+        assert event.data['culprit'] == 'unknown'
+        insta_snapshot_stacktrace_data(self, event.data)
+
 
 class SymbolicatorResolvingIntegrationTest(ResolvingIntegrationTestBase, TransactionTestCase):
     # For these tests to run, write `symbolicator.enabled: true` into your
