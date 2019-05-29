@@ -69,21 +69,21 @@ def send_alert_event(event, rule, sentry_app_id):
     event_context['url'] = absolute_uri(reverse('sentry-api-0-project-event-details', args=[
         project.organization.slug,
         project.slug,
-        event.id,
+        event.event_id,
     ]))
 
     if features.has('organizations:sentry10', organization):
         event_context['web_url'] = absolute_uri(reverse('sentry-organization-event-detail', args=[
             organization.slug,
             group.id,
-            event.id,
+            event.event_id,
         ]))
     else:
         event_context['web_url'] = absolute_uri(reverse('sentry-group-event', args=[
             organization.slug,
             project.slug,
             group.id,
-            event.id,
+            event.event_id,
         ]))
 
     # The URL has a regex OR in it ("|") which means `reverse` cannot generate

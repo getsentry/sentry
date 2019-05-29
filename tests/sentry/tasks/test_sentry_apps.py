@@ -128,12 +128,12 @@ class TestSendAlertEvent(TestCase):
                     url=absolute_uri(reverse('sentry-api-0-project-event-details', args=[
                         self.organization.slug,
                         self.project.slug,
-                        event.id,
+                        event.event_id,
                     ])),
                     web_url=absolute_uri(reverse('sentry-organization-event-detail', args=[
                         self.organization.slug,
                         group.id,
-                        event.id,
+                        event.event_id,
                     ])),
                     issue_url=absolute_uri(
                         '/api/0/issues/{}/'.format(group.id),
