@@ -371,7 +371,7 @@ def get_arrayjoin(column):
         return match.groups()[0]
 
 
-def transform_aliases_and_query(*args, **kwargs):
+def transform_aliases_and_query(skip_conditions=False, *args, **kwargs):
     """
     Convert aliases in selected_columns, groupby, aggregation, conditions,
     orderby and arrayjoin fields to their internal Snuba format and post the
@@ -441,7 +441,8 @@ def transform_aliases_and_query(*args, **kwargs):
         return cond
 
     if conditions:
-        kwargs['conditions'] = [handle_condition(condition) for condition in conditions]
+        kwargs['conditions'] = ([handle_condition(condition) for condition in conditions]
+                                if skip_conditions is False else conditions)
 
     if orderby:
         order_by_column = orderby.lstrip('-')
