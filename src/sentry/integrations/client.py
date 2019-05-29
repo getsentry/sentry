@@ -114,11 +114,14 @@ class SequenceApiResponse(list, BaseApiResponse):
         return self
 
 
-def track_response_code(host, code):
-    metrics.incr('integrations.http_response', tags={
-        'host': host,
-        'status': code
-    })
+def track_response_code(integration, code):
+    metrics.incr(
+        'integrations.http_response',
+        sample_rate=1.0,
+        tags={
+            'integration': integration,
+            'status': code
+        })
 
 
 class ApiClient(object):
@@ -162,7 +165,11 @@ class ApiClient(object):
         full_url = self.build_url(path)
         session = build_session()
 
-        metrics.incr('integrations.http_request', tags={'integration': self.integration_name})
+        metrics.incr(
+            'integrations.http_request',
+            sample_rate=1.0,
+            tags={'integration': self.integration_name}
+        )
         try:
             resp = getattr(session, method.lower())(
                 url=full_url,
@@ -177,16 +184,22 @@ class ApiClient(object):
             )
             resp.raise_for_status()
         except ConnectionError as e:
-            metrics.incr('integrations.http_response', tags={
-                'integration': self.integration_name,
-                'status': 'connection_error'
-            })
+            metrics.incr(
+                'integrations.http_response',
+                sample_rate=1.0,
+                tags={
+                    'integration': self.integration_name,
+                    'status': 'connection_error'
+                })
             raise ApiHostError.from_exception(e)
         except Timeout as e:
-            metrics.incr('integrations.http_response', tags={
-                'integration': self.integration_name,
-                'status': 'timeout'
-            })
+            metrics.incr(
+                'integrations.http_response',
+                sample_rate=1.0,
+                tags={
+                    'integration': self.integration_name,
+                    'status': 'timeout'
+                })
             raise ApiTimeoutError.from_exception(e)
         except HTTPError as e:
             resp = e.response
