@@ -3,7 +3,7 @@ import React from 'react';
 import {t} from 'app/locale';
 import GuideAnchor from 'app/components/assistant/guideAnchor';
 
-class GroupEventDataSection extends React.Component {
+class EventDataSection extends React.Component {
   static propTypes = {
     title: PropTypes.any,
     type: PropTypes.string.isRequired,
@@ -85,4 +85,4 @@ class GroupEventDataSection extends React.Component {
   }
 }
 
-export default GroupEventDataSection;
+export default EventDataSection;

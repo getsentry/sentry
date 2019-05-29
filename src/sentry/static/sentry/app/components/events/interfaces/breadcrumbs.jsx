@@ -1,6 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import GroupEventDataSection from 'app/components/events/eventDataSection';
+import EventDataSection from 'app/components/events/eventDataSection';
 import SentryTypes from 'app/sentryTypes';
 import GuideAnchor from 'app/components/assistant/guideAnchor';
 import Breadcrumb from 'app/components/events/interfaces/breadcrumbs/breadcrumb';
@@ -211,7 +211,7 @@ class BreadcrumbsInterface extends React.Component {
       crumbContent = this.renderNoMatch();
     }
     return (
-      <GroupEventDataSection
+      <EventDataSection
         className="breadcrumb-box"
         event={evt}
         type={this.props.type}
@@ -224,7 +224,7 @@ class BreadcrumbsInterface extends React.Component {
           )}
           {crumbContent}
         </ul>
-      </GroupEventDataSection>
+      </EventDataSection>
     );
   }
 }

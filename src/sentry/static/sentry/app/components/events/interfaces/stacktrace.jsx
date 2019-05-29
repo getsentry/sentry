@@ -1,7 +1,7 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import ConfigStore from 'app/stores/configStore';
-import GroupEventDataSection from 'app/components/events/eventDataSection';
+import EventDataSection from 'app/components/events/eventDataSection';
 import SentryTypes from 'app/sentryTypes';
 import {t} from 'app/locale';
 import CrashHeader from 'app/components/events/interfaces/crashHeader';
@@ -62,7 +62,7 @@ class StacktraceInterface extends React.Component {
     );
 
     return (
-      <GroupEventDataSection
+      <EventDataSection
         event={event}
         type={this.props.type}
         title={title}
@@ -75,7 +75,7 @@ class StacktraceInterface extends React.Component {
           newestFirst={newestFirst}
           stacktrace={data}
         />
-      </GroupEventDataSection>
+      </EventDataSection>
     );
   }
 }

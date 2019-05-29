@@ -818,7 +818,7 @@ exports[`SharedGroupDetails renders 1`] = `
                                 projectId="project-slug"
                                 type="message"
                               >
-                                <GroupEventDataSection
+                                <EventDataSection
                                   event={
                                     Object {
                                       "dateCreated": "2019-05-21T18:01:48.762Z",
@@ -896,7 +896,7 @@ exports[`SharedGroupDetails renders 1`] = `
                                       </pre>
                                     </div>
                                   </div>
-                                </GroupEventDataSection>
+                                </EventDataSection>
                               </MessageInterface>
                                
                             </div>

@@ -1,6 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import GroupEventDataSection from 'app/components/events/eventDataSection';
+import EventDataSection from 'app/components/events/eventDataSection';
 import SentryTypes from 'app/sentryTypes';
 import {isStacktraceNewestFirst} from 'app/components/events/interfaces/stacktrace';
 import {defined} from 'app/utils';
@@ -287,7 +287,7 @@ class ThreadsInterface extends React.Component {
     );
 
     return (
-      <GroupEventDataSection
+      <EventDataSection
         event={evt}
         type={this.props.type}
         title={title}
@@ -302,7 +302,7 @@ class ThreadsInterface extends React.Component {
           event={evt}
           newestFirst={newestFirst}
         />
-      </GroupEventDataSection>
+      </EventDataSection>
     );
   }
 }
