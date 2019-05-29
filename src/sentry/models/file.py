@@ -53,19 +53,6 @@ class nooplogger(object):
     exception = staticmethod(lambda *a, **kw: None)
 
 
-def enum(**named_values):
-    return type('Enum', (), named_values)
-
-
-ChunkFileState = enum(
-    OK='ok',  # File in database
-    NOT_FOUND='not_found',  # File not found in database
-    CREATED='created',  # File was created in the request and send to the worker for assembling
-    ASSEMBLING='assembling',  # File still being processed by worker
-    ERROR='error'  # Error happened during assembling
-)
-
-
 def _get_size_and_checksum(fileobj, logger=nooplogger):
     logger.info('_get_size_and_checksum.start')
     size = 0

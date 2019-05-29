@@ -124,6 +124,13 @@ class Fixtures(object):
             project = self.project
         return Factories.create_release(project=project, user=user, *args, **kwargs)
 
+    def create_artifact_bundle(self, org=None, release=None, *args, **kwargs):
+        if org is None:
+            org = self.organization.slug
+        if release is None:
+            release = self.release.version
+        return Factories.create_artifact_bundle(org, release, *args, **kwargs)
+
     def create_repo(self, project=None, *args, **kwargs):
         if project is None:
             project = self.project

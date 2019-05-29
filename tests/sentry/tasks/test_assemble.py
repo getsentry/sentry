@@ -9,13 +9,13 @@ from django.core.files.base import ContentFile
 from six.moves import xrange
 
 from sentry.testutils import TestCase
-from sentry.tasks.assemble import assemble_dif, assemble_file
-from sentry.models import FileBlob, FileBlobOwner
-from sentry.models.file import ChunkFileState
-from sentry.models.debugfile import get_assemble_status, ProjectDebugFile
+from sentry.tasks.assemble import assemble_artifacts, assemble_dif, assemble_file, \
+    get_assemble_status, AssembleTask, ChunkFileState
+from sentry.models import FileBlob, FileBlobOwner, ReleaseFile
+from sentry.models.debugfile import ProjectDebugFile
 
 
-class AssembleTest(TestCase):
+class BaseAssembleTest(TestCase):
     def setUp(self):
         self.organization = self.create_organization(owner=self.user)
         self.team = self.create_team(organization=self.organization)
@@ -25,6 +25,8 @@ class AssembleTest(TestCase):
             organization=self.organization,
             name='foo')
 
+
+class AssembleDifTest(BaseAssembleTest):
     def test_wrong_dif(self):
         content1 = 'foo'.encode('utf-8')
         fileobj1 = ContentFile(content1)
@@ -51,7 +53,8 @@ class AssembleTest(TestCase):
             chunks=chunks,
         )
 
-        assert get_assemble_status(self.project, total_checksum)[0] == ChunkFileState.ERROR
+        status, _ = get_assemble_status(AssembleTask.DIF, self.project, total_checksum)
+        assert status == ChunkFileState.ERROR
 
     def test_dif(self):
         sym_file = self.load_fixture('crash.sym')
@@ -64,6 +67,9 @@ class AssembleTest(TestCase):
             checksum=total_checksum,
             chunks=[blob1.checksum],
         )
+
+        status, _ = get_assemble_status(AssembleTask.DIF, self.project, total_checksum)
+        assert status == ChunkFileState.OK
 
         dif = ProjectDebugFile.objects.filter(
             project=self.project,
@@ -94,9 +100,9 @@ class AssembleTest(TestCase):
                 organization=self.organization
             ).get()
 
-        rv = assemble_file(
-            self.project, 'testfile', file_checksum.hexdigest(),
-            [x[1] for x in files], 'dummy.type')
+        rv = assemble_file(AssembleTask.DIF,
+                           self.project, 'testfile', file_checksum.hexdigest(),
+                           [x[1] for x in files], 'dummy.type')
 
         assert rv is not None
         f, tmp = rv
@@ -109,7 +115,88 @@ class AssembleTest(TestCase):
         FileBlob.from_files(files, organization=self.organization)
 
         # assemble a second time
-        f = assemble_file(
-            self.project, 'testfile', file_checksum.hexdigest(),
-            [x[1] for x in files], 'dummy.type')[0]
+        f = assemble_file(AssembleTask.DIF,
+                          self.project, 'testfile', file_checksum.hexdigest(),
+                          [x[1] for x in files], 'dummy.type')[0]
         assert f.checksum == file_checksum.hexdigest()
+
+
+class AssembleArtifactsTest(BaseAssembleTest):
+    def setUp(self):
+        super(AssembleArtifactsTest, self).setUp()
+        self.release = self.create_release(version='my-unique-release.1')
+
+    def test_artifacts(self):
+        bundle_file = self.create_artifact_bundle()
+        blob1 = FileBlob.from_file(ContentFile(bundle_file))
+        total_checksum = sha1(bundle_file).hexdigest()
+
+        assemble_artifacts(
+            org_id=self.organization.id,
+            version=self.release.version,
+            checksum=total_checksum,
+            chunks=[blob1.checksum],
+        )
+
+        status, details = get_assemble_status(AssembleTask.ARTIFACTS, self.organization,
+                                              total_checksum)
+        assert status == ChunkFileState.OK
+        assert details is None
+
+        release_file = ReleaseFile.objects.get(
+            organization=self.organization,
+            release=self.release,
+            name='~/index.js',
+            dist=None,
+        )
+
+        assert release_file
+        assert release_file.file.headers == {'Sourcemap': 'index.js.map'}
+
+    def test_artifacts_invalid_org(self):
+        bundle_file = self.create_artifact_bundle(org='invalid')
+        blob1 = FileBlob.from_file(ContentFile(bundle_file))
+        total_checksum = sha1(bundle_file).hexdigest()
+
+        assemble_artifacts(
+            org_id=self.organization.id,
+            version=self.release.version,
+            checksum=total_checksum,
+            chunks=[blob1.checksum],
+        )
+
+        status, details = get_assemble_status(AssembleTask.ARTIFACTS, self.organization,
+                                              total_checksum)
+        assert status == ChunkFileState.ERROR
+
+    def test_artifacts_invalid_release(self):
+        bundle_file = self.create_artifact_bundle(release='invalid')
+        blob1 = FileBlob.from_file(ContentFile(bundle_file))
+        total_checksum = sha1(bundle_file).hexdigest()
+
+        assemble_artifacts(
+            org_id=self.organization.id,
+            version=self.release.version,
+            checksum=total_checksum,
+            chunks=[blob1.checksum],
+        )
+
+        status, details = get_assemble_status(AssembleTask.ARTIFACTS, self.organization,
+                                              total_checksum)
+        assert status == ChunkFileState.ERROR
+
+    def test_artifacts_invalid_zip(self):
+        bundle_file = b''
+        blob1 = FileBlob.from_file(ContentFile(bundle_file))
+        total_checksum = sha1(bundle_file).hexdigest()
+
+        assemble_artifacts(
+            org_id=self.organization.id,
+            version=self.release.version,
+            checksum=total_checksum,
+            chunks=[blob1.checksum],
+        )
+
+        status, details = get_assemble_status(AssembleTask.ARTIFACTS, self.organization,
+                                              total_checksum)
+        assert status == ChunkFileState.ERROR

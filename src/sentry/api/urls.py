@@ -105,6 +105,7 @@ from .endpoints.organization_projects import OrganizationProjectsEndpoint
 from .endpoints.organization_recent_searches import OrganizationRecentSearchesEndpoint
 from .endpoints.organization_releases import OrganizationReleasesEndpoint
 from .endpoints.organization_release_details import OrganizationReleaseDetailsEndpoint
+from .endpoints.organization_release_assemble import OrganizationReleaseAssembleEndpoint
 from .endpoints.organization_release_files import OrganizationReleaseFilesEndpoint
 from .endpoints.organization_release_file_details import OrganizationReleaseFileDetailsEndpoint
 from .endpoints.organization_release_commits import OrganizationReleaseCommitsEndpoint
@@ -741,6 +742,11 @@ urlpatterns = patterns(
         r'^organizations/(?P<organization_slug>[^\/]+)/releases/(?P<version>[^/]+)/$',
         OrganizationReleaseDetailsEndpoint.as_view(),
         name='sentry-api-0-organization-release-details'
+    ),
+    url(
+        r'^organizations/(?P<organization_slug>[^\/]+)/releases/(?P<version>[^/]+)/assemble/$',
+        OrganizationReleaseAssembleEndpoint.as_view(),
+        name='sentry-api-0-organization-release-assemble'
     ),
     url(
         r'^organizations/(?P<organization_slug>[^\/]+)/releases/(?P<version>[^/]+)/files/$',
