@@ -181,3 +181,7 @@ register('store.empty-interface-sample-rate', default=0.0)
 register('symbolicator.minidump-refactor-projects-opt-in', type=Sequence, default=[])  # unused
 register('symbolicator.minidump-refactor-projects-opt-out', type=Sequence, default=[])  # unused
 register('symbolicator.minidump-refactor-random-sampling', default=0.0)  # unused
+
+
+# Normalization after processors
+register('store.normalize-after-processing', default=0.0)

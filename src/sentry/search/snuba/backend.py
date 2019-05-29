@@ -18,7 +18,7 @@ from sentry.api.event_search import (
     InvalidSearchQuery,
 )
 from sentry.api.paginator import DateTimePaginator, SequencePaginator, Paginator
-from sentry.event_manager import ALLOWED_FUTURE_DELTA
+from sentry.constants import ALLOWED_FUTURE_DELTA
 from sentry.models import Group
 from sentry.search.base import SearchBackend
 from sentry.utils import snuba, metrics

@@ -26,7 +26,7 @@ class BasicPreprocessorPlugin(Plugin2):
             return [remove_extra, lambda x: None]
 
         if data.get('platform') == 'noop':
-            return [lambda data: data]
+            return [lambda data: None]
 
         if data.get('platform') == 'holdmeclose':
             return [put_on_hold]
@@ -103,17 +103,11 @@ class StoreTasksTest(PluginTestCase):
         process_event(cache_key='e:1', start_time=1)
 
         # The event mutated, so make sure we save it back
-        mock_default_cache.set.assert_called_once_with(
-            'e:1',
-            {
-                'project': project.id,
-                'platform': 'mattlang',
-                'logentry': {
-                    'formatted': 'test',
-                },
-            },
-            3600,
-        )
+        (_, (key, event, duration), _), = mock_default_cache.set.mock_calls
+
+        assert key == 'e:1'
+        assert 'extra' not in event
+        assert duration == 3600
 
         mock_save_event.delay.assert_called_once_with(
             cache_key='e:1', data=None, start_time=1, event_id=None,
@@ -141,7 +135,7 @@ class StoreTasksTest(PluginTestCase):
         process_event(cache_key='e:1', start_time=1)
 
         # The event did not mutate, so we shouldn't reset it in cache
-        mock_default_cache.set.call_count == 0
+        assert mock_default_cache.set.call_count == 0
 
         mock_save_event.delay.assert_called_once_with(
             cache_key='e:1', data=None, start_time=1, event_id=None,
@@ -168,19 +162,10 @@ class StoreTasksTest(PluginTestCase):
 
         process_event(cache_key='e:1', start_time=1)
 
-        mock_default_cache.set.assert_called_once_with(
-            'e:1', {
-                'project': project.id,
-                'platform': 'holdmeclose',
-                'logentry': {
-                    'formatted': 'test',
-                },
-                'extra': {
-                    'foo': 'bar'
-                },
-                'unprocessed': True,
-            }, 3600
-        )
+        (_, (key, event, duration), _), = mock_default_cache.set.mock_calls
+        assert key == 'e:1'
+        assert event['unprocessed'] is True
+        assert duration == 3600
 
         mock_save_event.delay.assert_called_once_with(
             cache_key='e:1', data=None, start_time=1, event_id=None,

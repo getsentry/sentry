@@ -20,7 +20,8 @@ from django.utils.encoding import force_text
 
 from sentry import buffer, eventtypes, eventstream, features, tagstore, tsdb, filters
 from sentry.constants import (
-    LOG_LEVELS, LOG_LEVELS_MAP, VALID_PLATFORMS, MAX_TAG_VALUE_LENGTH,
+    DEFAULT_STORE_NORMALIZER_ARGS, LOG_LEVELS, LOG_LEVELS_MAP,
+    MAX_TAG_VALUE_LENGTH, MAX_SECS_IN_FUTURE, MAX_SECS_IN_PAST
 )
 from sentry.grouping.api import get_grouping_config_dict_for_project, \
     get_grouping_config_dict_for_event_data, load_grouping_config, \
@@ -57,7 +58,6 @@ from sentry.utils.data_filters import (
 )
 from sentry.utils.dates import to_timestamp
 from sentry.utils.db import is_postgres
-from sentry.utils.geo import rust_geoip
 from sentry.utils.safe import safe_execute, trim, get_path, setdefault_path
 from sentry.stacktraces.processing import normalize_stacktraces_for_grouping
 from sentry.culprit import generate_culprit
@@ -66,9 +66,6 @@ from sentry.culprit import generate_culprit
 logger = logging.getLogger("sentry.events")
 
 
-MAX_SECS_IN_FUTURE = 60
-ALLOWED_FUTURE_DELTA = timedelta(seconds=MAX_SECS_IN_FUTURE)
-MAX_SECS_IN_PAST = 2592000  # 30 days
 SECURITY_REPORT_INTERFACES = (
     "csp",
     "hpkp",
@@ -355,21 +352,15 @@ class EventManager(object):
 
         from semaphore.processing import StoreNormalizer
         rust_normalizer = StoreNormalizer(
-            geoip_lookup=rust_geoip,
             project_id=self._project.id if self._project else None,
             client_ip=self._client_ip,
             client=self._auth.client if self._auth else None,
             key_id=six.text_type(self._key.id) if self._key else None,
             grouping_config=self._grouping_config,
             protocol_version=six.text_type(self.version) if self.version is not None else None,
-            stacktrace_frames_hard_limit=settings.SENTRY_STACKTRACE_FRAMES_HARD_LIMIT,
-            max_stacktrace_frames=settings.SENTRY_MAX_STACKTRACE_FRAMES,
-            valid_platforms=list(VALID_PLATFORMS),
-            max_secs_in_future=MAX_SECS_IN_FUTURE,
-            max_secs_in_past=MAX_SECS_IN_PAST,
-            enable_trimming=True,
             is_renormalize=self._is_renormalize,
             remove_other=self._remove_other,
+            **DEFAULT_STORE_NORMALIZER_ARGS
         )
 
         self._data = CanonicalKeyDict(

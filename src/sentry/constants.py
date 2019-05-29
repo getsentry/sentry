@@ -13,6 +13,7 @@ from __future__ import absolute_import, print_function
 import logging
 import os.path
 import six
+from datetime import timedelta
 
 from collections import OrderedDict, namedtuple
 from django.conf import settings
@@ -20,6 +21,7 @@ from django.utils.translation import ugettext_lazy as _
 from operator import attrgetter
 
 from sentry.utils.integrationdocs import load_doc
+from sentry.utils.geo import rust_geoip
 
 
 def get_all_languages():
@@ -395,3 +397,20 @@ class SentryAppStatus(object):
 StatsPeriod = namedtuple('StatsPeriod', ('segments', 'interval'))
 
 LEGACY_RATE_LIMIT_OPTIONS = frozenset(('sentry:project-rate-limit', 'sentry:account-rate-limit'))
+
+
+# We need to limit the range of valid timestamps of an event because that
+# timestamp is used to control data retention.
+MAX_SECS_IN_FUTURE = 60
+MAX_SECS_IN_PAST = 2592000  # 30 days
+ALLOWED_FUTURE_DELTA = timedelta(seconds=MAX_SECS_IN_FUTURE)
+
+DEFAULT_STORE_NORMALIZER_ARGS = dict(
+    geoip_lookup=rust_geoip,
+    stacktrace_frames_hard_limit=settings.SENTRY_STACKTRACE_FRAMES_HARD_LIMIT,
+    max_stacktrace_frames=settings.SENTRY_MAX_STACKTRACE_FRAMES,
+    valid_platforms=list(VALID_PLATFORMS),
+    max_secs_in_future=MAX_SECS_IN_FUTURE,
+    max_secs_in_past=MAX_SECS_IN_PAST,
+    enable_trimming=True,
+)
