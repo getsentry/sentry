@@ -32,18 +32,23 @@ from sentry import features, quotas, options
 from sentry.attachments import CachedAttachment
 from sentry.coreapi import (
     Auth, APIError, APIForbidden, APIRateLimited, ClientApiHelper, ClientAuthHelper,
-    SecurityAuthHelper, MinidumpAuthHelper, safely_load_json_string, logger as api_logger
+    SecurityAuthHelper, MinidumpAuthHelper, safely_load_json_string, logger as api_logger,
 )
 from sentry.event_manager import EventManager
 from sentry.interfaces import schemas
 from sentry.interfaces.base import get_interface
-from sentry.lang.native.unreal import process_unreal_crash, merge_apple_crash_report, \
-    unreal_attachment_type, merge_unreal_context_event, merge_unreal_logs_event
-from sentry.lang.native.minidump import merge_attached_event, merge_attached_breadcrumbs, write_minidump_placeholder, \
-    MINIDUMP_ATTACHMENT_TYPE
+from sentry.lang.native.unreal import (
+    process_unreal_crash, merge_apple_crash_report,
+    unreal_attachment_type, merge_unreal_context_event, merge_unreal_logs_event,
+)
+from sentry.lang.native.minidump import (
+    merge_attached_event, merge_attached_breadcrumbs, write_minidump_placeholder,
+    MINIDUMP_ATTACHMENT_TYPE,
+)
 from sentry.models import Project, OrganizationOption, Organization
 from sentry.signals import (
-    event_accepted, event_dropped, event_filtered, event_received)
+    event_accepted, event_dropped, event_filtered, event_received,
+)
 from sentry.quotas.base import RateLimit
 from sentry.utils import json, metrics
 from sentry.utils.data_filters import FilterStatKeys
@@ -52,7 +57,8 @@ from sentry.utils.http import (
     is_valid_origin,
     get_origins,
     is_same_domain,
-    origin_from_request)
+    origin_from_request,
+)
 from sentry.utils.outcomes import Outcome, track_outcome
 from sentry.utils.pubsub import QueuedPublisherService, KafkaPublisher
 from sentry.utils.safe import safe_execute
@@ -86,6 +92,7 @@ def allow_cors_options(func):
     :param func: the original request handler
     :return: a request handler that shortcuts OPTIONS requests and just returns an OK (CORS allowed)
     """
+
     @wraps(func)
     def allow_cors_options_wrapper(self, request, *args, **kwargs):
         if request.method == 'OPTIONS':
@@ -205,7 +212,7 @@ def process_event(event_manager, project, key, remote_addr, helper, attachments)
 
     # TODO(dcramer): ideally we'd only validate this if the event_id was
     # supplied by the user
-    cache_key = 'ev:%s:%s' % (project.id, event_id, )
+    cache_key = 'ev:%s:%s' % (project.id, event_id,)
 
     if cache.get(cache_key) is not None:
         track_outcome(
@@ -217,7 +224,7 @@ def process_event(event_manager, project, key, remote_addr, helper, attachments)
             event_id=event_id
         )
         raise APIForbidden(
-            'An event with the same ID already exists (%s)' % (event_id, ))
+            'An event with the same ID already exists (%s)' % (event_id,))
 
     scrub_ip_address = (org_options.get('sentry:require_scrub_ip_address', False) or
                         project.get_option('sentry:scrub_ip_address', False))
@@ -388,7 +395,7 @@ class APIView(BaseView):
         # tsdb could optimize this
         metrics.incr('client-api.all-versions.requests', skip_internal=False)
         metrics.incr('client-api.all-versions.responses.%s' %
-                     (response.status_code, ), skip_internal=False)
+                     (response.status_code,), skip_internal=False)
         metrics.incr(
             'client-api.all-versions.responses.%sxx' % (six.text_type(response.status_code)[0],),
             skip_internal=False,
@@ -396,7 +403,7 @@ class APIView(BaseView):
 
         if helper.context.version:
             metrics.incr(
-                'client-api.v%s.requests' % (helper.context.version, ),
+                'client-api.v%s.requests' % (helper.context.version,),
                 skip_internal=False,
             )
             metrics.incr(
@@ -442,7 +449,7 @@ class APIView(BaseView):
                     None,
                     Outcome.INVALID,
                     FilterStatKeys.CORS)
-                raise APIForbidden('Invalid origin: %s' % (origin, ))
+                raise APIForbidden('Invalid origin: %s' % (origin,))
 
         auth = self._parse_header(request, helper, project)
 
@@ -603,7 +610,7 @@ class StoreView(APIView):
 
 class MinidumpView(StoreView):
     auth_helper_cls = MinidumpAuthHelper
-    content_types = ('multipart/form-data', )
+    content_types = ('multipart/form-data',)
 
     def _dispatch(self, request, helper, project_id=None, origin=None, *args, **kwargs):
         # TODO(ja): Refactor shared code with CspReportView. Especially, look at
@@ -799,7 +806,7 @@ class MinidumpView(StoreView):
 
 # Endpoint used by the Unreal Engine 4 (UE4) Crash Reporter.
 class UnrealView(StoreView):
-    content_types = ('application/octet-stream', )
+    content_types = ('application/octet-stream',)
 
     def _dispatch(self, request, helper, sentry_key, project_id=None, origin=None, *args, **kwargs):
         if request.method != 'POST':
