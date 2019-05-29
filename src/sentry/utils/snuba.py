@@ -371,7 +371,7 @@ def get_arrayjoin(column):
         return match.groups()[0]
 
 
-def transform_aliases_and_query(skip_conditions=False, *args, **kwargs):
+def transform_aliases_and_query(skip_conditions=False, **kwargs):
     """
     Convert aliases in selected_columns, groupby, aggregation, conditions,
     orderby and arrayjoin fields to their internal Snuba format and post the
@@ -454,7 +454,7 @@ def transform_aliases_and_query(skip_conditions=False, *args, **kwargs):
 
     kwargs['arrayjoin'] = arrayjoin_map.get(arrayjoin, arrayjoin)
 
-    result = raw_query(*args, **kwargs)
+    result = raw_query(**kwargs)
 
     # Translate back columns that were converted to snuba format
     for col in result['meta']:
