@@ -108,7 +108,7 @@ def post_process_group(event, is_new, is_regression, is_sample, is_new_group_env
         # NOTE: we must pass through the full Event object, and not an
         # event_id since the Event object may not actually have been stored
         # in the database due to sampling.
-        from sentry.models import Project
+        from sentry.models import Project, Organization
         from sentry.models.group import get_group_with_redirect
         from sentry.rules.processor import RuleProcessor
         from sentry.tasks.servicehooks import process_service_hook
@@ -161,6 +161,16 @@ def post_process_group(event, is_new, is_regression, is_sample, is_new_group_env
                             event=event,
                         )
 
+        if event.get_event_type() == 'error' and features.has(
+            'organizations:integrations-event-hooks',
+            organization=Organization.objects.get_from_cache(id=event.project.organization_id),
+        ):
+            process_resource_change_bound.delay(
+                action='created',
+                sender='Error',
+                instance_id=event.event_id,
+                project_id=event.project_id,
+            )
         if is_new:
             process_resource_change_bound.delay(
                 action='created',

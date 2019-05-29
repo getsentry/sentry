@@ -11,7 +11,7 @@ from sentry.tasks.base import instrumented_task, retry
 from sentry.utils.http import absolute_uri
 from sentry.api.serializers import serialize, AppPlatformEvent
 from sentry.models import (
-    SentryAppInstallation, Group, Project, Organization, User, ServiceHook, ServiceHookProject, SentryApp,
+    SentryAppInstallation, Event, Group, Project, Organization, User, ServiceHook, ServiceHookProject, SentryApp,
 )
 from sentry.models.sentryapp import VALID_EVENTS
 
@@ -32,6 +32,7 @@ RESOURCE_RENAMES = {
 
 TYPES = {
     'Group': Group,
+    'Error': Event,
 }
 
 
@@ -107,10 +108,23 @@ def send_alert_event(event, rule, sentry_app_id):
 def _process_resource_change(action, sender, instance_id, retryer=None, *args, **kwargs):
     # The class is serialized as a string when enqueueing the class.
     model = TYPES[sender]
+    # The Event model has different hooks for the differenct types. The sender
+    # determines which type eg. Error and therefore the 'name' eg. error
+    if model.__name__ == 'Event':
+        if not kwargs.get('project_id'):
+            extra = {
+                'sender': sender,
+                'action': action,
+                'event_id': instance_id,
+            }
+            logger.info('process_resource_change.event_missing_project_id', extra=extra)
+            return
 
-    # Some resources are named differently than their model. eg. Group vs
-    # Issue. Looks up the human name for the model. Defaults to the model name.
-    name = RESOURCE_RENAMES.get(model.__name__, model.__name__.lower())
+        name = sender.lower()
+    else:
+        # Some resources are named differently than their model. eg. Group vs Issue.
+        # Looks up the human name for the model. Defaults to the model name.
+        name = RESOURCE_RENAMES.get(model.__name__, model.__name__.lower())
 
     # By default, use Celery's `current` but allow a value to be passed for the
     # bound Task.
@@ -119,7 +133,15 @@ def _process_resource_change(action, sender, instance_id, retryer=None, *args, *
     # We may run into a race condition where this task executes before the
     # transaction that creates the Group has committed.
     try:
-        instance = model.objects.get(id=instance_id)
+        if model.__name__ == 'Event':
+            # we don't use event.id anymore so we have to use the 'event.event_id'
+            # and the 'project_id' as the composite primary key
+            instance = model.objects.get(
+                event_id=instance_id,
+                project_id=kwargs.get('project_id'),
+            )
+        else:
+            instance = model.objects.get(id=instance_id)
     except model.DoesNotExist as e:
         # Explicitly requeue the task, so we don't report this to Sentry until
         # we hit the max number of retries.
@@ -132,7 +154,7 @@ def _process_resource_change(action, sender, instance_id, retryer=None, *args, *
 
     org = None
 
-    if isinstance(instance, Group):
+    if isinstance(instance, (Group, Event)):
         org = Organization.objects.get_from_cache(
             id=Project.objects.get_from_cache(
                 id=instance.project_id
