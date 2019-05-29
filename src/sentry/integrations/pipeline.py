@@ -104,7 +104,6 @@ class IntegrationPipeline(Pipeline):
                 'date_verified': timezone.now(),
             }
 
-            new_id = None
             try:
                 identity_model, created = Identity.objects.get_or_create(
                     idp=idp,
@@ -112,9 +111,7 @@ class IntegrationPipeline(Pipeline):
                     external_id=identity['external_id'],
                     defaults=identity_data,
                 )
-                if created:
-                    new_id = identity_model.id
-                else:
+                if not created:
                     identity_model.update(**identity_data)
             except IntegrityError:
                 # If the external_id is already used for a different user or
@@ -146,13 +143,12 @@ class IntegrationPipeline(Pipeline):
                             )
                 identity_model = Identity.reattach(
                     idp, identity['external_id'], self.request.user, identity_data)
-                new_id = identity_model.id
 
         default_auth_id = None
         if self.provider.needs_default_identity:
             if not (identity and identity_model):
                 raise NotImplementedError('Integration requires an identity')
-            default_auth_id = new_id
+            default_auth_id = identity_model.id
 
         org_integration = self.integration.add_organization(
             self.organization,

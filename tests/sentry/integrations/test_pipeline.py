@@ -2,7 +2,12 @@ from __future__ import absolute_import
 
 from mock import patch
 
-from sentry.models import Identity, Integration, OrganizationIntegration
+from sentry.models import (
+    IdentityProvider,
+    Identity,
+    Integration,
+    OrganizationIntegration
+)
 from sentry.testutils import IntegrationTestCase
 from sentry.integrations.example import (
     ExampleIntegrationProvider,
@@ -203,6 +208,52 @@ class FinishPipelineTestCase(IntegrationTestCase):
             integration_id=integration.id,
         )
         identity = Identity.objects.get(external_id='AccountId')
+        assert org_integration.default_auth_id == identity.id
+
+    def test_existing_identity_becomes_default_auth_on_new_orgintegration(self, *args):
+        # The reinstall flow will result in an existing identity provider, identity
+        # and integration records. Ensure that the new organizationintegration gets
+        # a default_auth_id set.
+        self.provider.needs_default_identity = True
+        integration = Integration.objects.create(
+            provider=self.provider.key,
+            external_id=self.external_id,
+            metadata={
+                'url': 'https://example.com',
+            },
+        )
+        identity_provider = IdentityProvider.objects.create(
+            external_id=self.external_id,
+            type='plugin'
+        )
+        identity = Identity.objects.create(
+            idp_id=identity_provider.id,
+            external_id='AccountId',
+            user_id=self.user.id
+        )
+        self.pipeline.state.data = {
+            'external_id': self.external_id,
+            'name': 'Name',
+            'metadata': {'url': 'https://example.com'},
+            'user_identity': {
+                'type': 'plugin',
+                'external_id': 'AccountId',
+                'scopes': [],
+                'data': {
+                    'access_token': 'token12345',
+                    'expires_in': '123456789',
+                    'refresh_token': 'refresh12345',
+                    'token_type': 'typetype',
+                },
+            }
+        }
+        resp = self.pipeline.finish_pipeline()
+        self.assertDialogSuccess(resp)
+
+        org_integration = OrganizationIntegration.objects.get(
+            organization_id=self.organization.id,
+            integration_id=integration.id,
+        )
         assert org_integration.default_auth_id == identity.id
 
     @patch('sentry.mediators.plugins.Migrator.call')
