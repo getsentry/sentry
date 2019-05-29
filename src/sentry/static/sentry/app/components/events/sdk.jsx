@@ -6,22 +6,15 @@ import {t} from 'app/locale';
 
 class EventSdk extends React.Component {
   static propTypes = {
-    group: SentryTypes.Group.isRequired,
     event: SentryTypes.Event.isRequired,
   };
 
   render() {
-    const {group, event} = this.props;
+    const {event} = this.props;
     const data = event.sdk;
 
     return (
-      <GroupEventDataSection
-        group={group}
-        event={event}
-        type="sdk"
-        title={t('SDK')}
-        wrapTitle={true}
-      >
+      <GroupEventDataSection event={event} type="sdk" title={t('SDK')} wrapTitle={true}>
         <table className="table key-value">
           <tbody>
             <tr key="name">

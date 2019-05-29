@@ -37,7 +37,6 @@ function moduleToCategory(module) {
 
 class BreadcrumbsInterface extends React.Component {
   static propTypes = {
-    group: SentryTypes.Group.isRequired,
     event: SentryTypes.Event.isRequired,
     type: PropTypes.string.isRequired,
     data: PropTypes.object.isRequired,
@@ -170,7 +169,6 @@ class BreadcrumbsInterface extends React.Component {
   };
 
   render() {
-    const group = this.props.group;
     const evt = this.props.event;
     const data = this.props.data;
 
@@ -215,7 +213,6 @@ class BreadcrumbsInterface extends React.Component {
     return (
       <GroupEventDataSection
         className="breadcrumb-box"
-        group={group}
         event={evt}
         type={this.props.type}
         title={title}

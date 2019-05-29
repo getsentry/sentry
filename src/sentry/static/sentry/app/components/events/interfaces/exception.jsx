@@ -9,10 +9,10 @@ import CrashContent from 'app/components/events/interfaces/crashContent';
 
 class ExceptionInterface extends React.Component {
   static propTypes = {
-    group: SentryTypes.Group.isRequired,
     event: SentryTypes.Event.isRequired,
     type: PropTypes.string.isRequired,
     data: PropTypes.object.isRequired,
+    projectId: PropTypes.string.isRequired,
   };
 
   constructor(...args) {
@@ -29,12 +29,8 @@ class ExceptionInterface extends React.Component {
   };
 
   render() {
-    const group = this.props.group;
-    const event = this.props.event;
-    const data = this.props.data;
-    const stackView = this.state.stackView;
-    const stackType = this.state.stackType;
-    const newestFirst = this.state.newestFirst;
+    const {projectId, event, data, type} = this.props;
+    const {stackView, stackType, newestFirst} = this.state;
 
     // in case there are threads in the event data, we don't render the
     // exception block.  Instead the exception is contained within the
@@ -45,7 +41,6 @@ class ExceptionInterface extends React.Component {
 
     const title = (
       <CrashHeader
-        group={group}
         title={t('Exception')}
         platform={event.platform}
         exception={data}
@@ -59,15 +54,9 @@ class ExceptionInterface extends React.Component {
     );
 
     return (
-      <GroupEventDataSection
-        group={group}
-        event={event}
-        type={this.props.type}
-        title={title}
-        wrapTitle={false}
-      >
+      <GroupEventDataSection event={event} type={type} title={title} wrapTitle={false}>
         <CrashContent
-          group={group}
+          projectId={projectId}
           event={event}
           stackType={stackType}
           stackView={stackView}
