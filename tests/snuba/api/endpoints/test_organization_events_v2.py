@@ -259,3 +259,50 @@ class OrganizationEventsV2EndpointTest(OrganizationEventsTestBase):
         assert response.data[1]['issue.id'] == groups[1].id
         assert response.data[1]['event_count'] == 2
         assert response.data[1]['user_count'] == 2
+
+    def test_order_by_aggregate(self):
+        self.login_as(user=self.user)
+        project = self.create_project()
+        self.store_event(
+            data={
+                'event_id': 'a' * 32,
+                'timestamp': self.two_min_ago,
+                'fingerprint': ['group1'],
+            },
+            project_id=project.id,
+        )
+        self.store_event(
+            data={
+                'event_id': 'b' * 32,
+                'timestamp': self.min_ago,
+                'fingerprint': ['group2'],
+            },
+            project_id=project.id,
+        )
+        self.store_event(
+            data={
+                'event_id': 'c' * 32,
+                'timestamp': self.min_ago,
+                'fingerprint': ['group2'],
+            },
+            project_id=project.id,
+        )
+
+        with self.feature('organizations:events-v2'):
+            response = self.client.get(
+                self.url,
+                format='json',
+                data={
+                    'field': ['issue.id'],
+                    'aggregation': ['uniq,id,event_count'],
+                    'orderby': '-event_count',
+                    'groupby': ['issue.id'],
+                },
+            )
+
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 2
+        assert response.data == [
+            {u'issue.id': 2, 'event_count': 2},
+            {u'issue.id': 1, 'event_count': 1}
+        ]
