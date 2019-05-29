@@ -14,16 +14,20 @@ import SentryTypes from 'app/sentryTypes';
 /**
  * StatusItem renders status changes for Incidents
  *
- * For example, incident created, detected, or closed
+ * For example: incident created, detected, or closed
+ *
+ * Note `activity.dateCreated` refers to when the activity was created vs.
+ * `incident.dateStarted` which is when an incident was first detected or created
  */
 class StatusItem extends React.Component {
   static propTypes = {
     activity: SentryTypes.IncidentActivity.isRequired,
+    incident: SentryTypes.Incident,
     authorName: PropTypes.string,
   };
 
   render() {
-    const {activity, authorName} = this.props;
+    const {activity, authorName, incident} = this.props;
 
     const isCreated = activity.type === INCIDENT_ACTIVITY_TYPE.CREATED;
     const isDetected = activity.type === INCIDENT_ACTIVITY_TYPE.DETECTED;
@@ -60,7 +64,7 @@ class StatusItem extends React.Component {
         {activity.eventStats && (
           <Chart
             data={activity.eventStats.data}
-            detected={(isCreated || isDetected) && activity.dateCreated}
+            detected={(isCreated || isDetected) && incident && incident.dateStarted}
           />
         )}
       </ActivityItem>

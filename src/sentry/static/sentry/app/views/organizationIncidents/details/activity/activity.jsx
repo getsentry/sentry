@@ -28,6 +28,7 @@ class Activity extends React.Component {
   static propTypes = {
     api: PropTypes.object.isRequired,
     incidentId: PropTypes.string.isRequired,
+    incident: SentryTypes.Incident,
     loading: PropTypes.bool,
     error: PropTypes.bool,
     me: SentryTypes.User,
@@ -59,6 +60,7 @@ class Activity extends React.Component {
       error,
       me,
       incidentId,
+      incident,
       activities,
       noteInputId,
       createBusy,
@@ -148,6 +150,7 @@ class Activity extends React.Component {
                         <ErrorBoundary mini key={`note-${activity.id}`}>
                           <StatusItem
                             showTime
+                            incident={incident}
                             authorName={authorName}
                             activity={activity}
                           />
