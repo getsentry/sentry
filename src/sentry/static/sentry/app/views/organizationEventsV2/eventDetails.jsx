@@ -93,7 +93,6 @@ class EventDetails extends React.Component {
       return <NotFound />;
     }
     const {event, activeTab} = this.state;
-    const jsonUrl = 'TODO build this';
 
     return (
       <ColumnGrid>
@@ -144,15 +143,7 @@ class EventDetails extends React.Component {
           </ErrorBoundary>
         </ContentColumn>
         <SidebarColumn>
-          <SidebarBlock withSeparator>
-            <h5>ID {event.eventID}</h5>
-            <DateTime
-              date={getDynamicText({value: event.dateCreated, fixed: 'Dummy timestamp'})}
-            />
-            <ExternalLink href={jsonUrl} className="json-link">
-              JSON (<FileSize bytes={event.size} />)
-            </ExternalLink>
-          </SidebarBlock>
+          <EventMetadata event={event} />
           <SidebarBlock>
             <TagsTable tags={event.tags} />
           </SidebarBlock>
@@ -215,6 +206,36 @@ EventHeader.propTypes = {
   event: SentryTypes.Event.isRequired,
 };
 
+const EventMetadata = props => {
+  const jsonUrl = 'TODO build this';
+  const {event} = props;
+
+  return (
+    <SidebarBlock withSeparator>
+      <MetadataContainer>ID {event.eventID}</MetadataContainer>
+      <MetadataContainer>
+        <DateTime
+          date={getDynamicText({value: event.dateCreated, fixed: 'Dummy timestamp'})}
+        />
+        <ExternalLink href={jsonUrl} className="json-link">
+          JSON (<FileSize bytes={event.size} />)
+        </ExternalLink>
+      </MetadataContainer>
+    </SidebarBlock>
+  );
+};
+EventMetadata.propTypes = {
+  event: SentryTypes.Event.isRequired,
+};
+
+const MetadataContainer = styled('div')`
+  display: flex;
+  justify-content: space-between;
+
+  color: ${p => p.theme.gray3};
+  font-size: ${p => p.theme.fontSizeMedium};
+`;
+
 const ColumnGrid = styled('div')`
   display: grid;
   grid-template-columns: 70% 1fr;
@@ -232,7 +253,7 @@ const SidebarColumn = styled('div')`
 
 const SidebarBlock = styled('div')`
   margin: 0 0 ${space(2)} 0;
-  padding: ${space(2)} 0;
+  padding: 0 0 ${space(2)} 0;
   ${p => (p.withSeparator ? `border-bottom: 1px solid ${p.theme.borderLight};` : '')}
 `;
 
