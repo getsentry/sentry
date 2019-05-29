@@ -1,5 +1,5 @@
 ---
-created: '2019-05-29T12:42:11.845755Z'
+created: '2019-05-29T12:45:17.433393Z'
 creator: sentry
 source: tests/symbolicator/test_payload_full.py
 ---
@@ -10,11 +10,15 @@ exception:
   values:
   - raw_stacktrace:
       frames:
+      - function: hi
+        in_app: false
       - function: unknown
         in_app: false
         instruction_addr: '0x100000fa0'
     stacktrace:
       frames:
+      - function: hi
+        in_app: false
       - data:
           symbolicator_status: unknown_image
         function: unknown

@@ -41,9 +41,13 @@ REAL_RESOLVING_EVENT_DATA = {
                 'stacktrace': {
                     "frames": [
                         {
+                            "platform": "foobar",
+                            "function": "hi"
+                        },
+                        {
                             "function": "unknown",
                             "instruction_addr": "0x0000000100000fa0"
-                        },
+                        }
                     ]
                 },
                 "type": "Fail",
