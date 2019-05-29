@@ -9,18 +9,20 @@ const TagsTable = props => {
     <div>
       <TagHeading>{t('Tags')}</TagHeading>
       <table>
-        {props.tags.map(tag => (
-          <StyledTr key={tag.key}>
-            <TagKey>{tag.key}</TagKey>
-            <TagValue>{tag.value}</TagValue>
-          </StyledTr>
-        ))}
+        <tbody>
+          {props.tags.map(tag => (
+            <StyledTr key={tag.key}>
+              <TagKey>{tag.key}</TagKey>
+              <TagValue>{tag.value}</TagValue>
+            </StyledTr>
+          ))}
+        </tbody>
       </table>
     </div>
   );
 };
 TagsTable.propTypes = {
-  tags: PropTypes.object.isRequired,
+  tags: PropTypes.array.isRequired,
 };
 
 const TagHeading = styled('h5')`

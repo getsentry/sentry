@@ -4,12 +4,12 @@ import {browserHistory} from 'react-router';
 import PropTypes from 'prop-types';
 
 import {t} from 'app/locale';
+import SentryTypes from 'app/sentryTypes';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import Button from 'app/components/button';
 import DateTime from 'app/components/dateTime';
 import ErrorBoundary from 'app/components/errorBoundary';
 import ExternalLink from 'app/components/links/externalLink';
-import EventOrGroupHeader from 'app/components/eventOrGroupHeader';
 import EventDataSection from 'app/components/events/eventDataSection';
 import EventDevice from 'app/components/events/device';
 import EventExtraData from 'app/components/events/extraData';
@@ -21,6 +21,7 @@ import withApi from 'app/utils/withApi';
 import space from 'app/styles/space';
 import getDynamicText from 'app/utils/getDynamicText';
 import utils from 'app/utils';
+import {getMessage, getTitle} from 'app/utils/events';
 
 import {INTERFACES} from 'app/components/events/eventEntries';
 import TagsTable from './tagsTable';
@@ -97,11 +98,7 @@ class EventDetails extends React.Component {
     return (
       <ColumnGrid>
         <ContentColumn>
-          <EventOrGroupHeader
-            params={this.props.params}
-            data={this.state.event}
-            includeLink={false}
-          />
+          <EventHeader event={this.state.event} />
           <NavTabs underlined={true}>
             {event.entries.map(entry => {
               if (!INTERFACES.hasOwnProperty(entry.type)) {
@@ -166,10 +163,17 @@ class EventDetails extends React.Component {
 
   renderActiveTab(event, activeTab) {
     const entry = event.entries.find(item => item.type === activeTab);
+    const [projectId, _] = this.props.eventSlug.split(':');
     if (INTERFACES[activeTab]) {
       const Component = INTERFACES[activeTab];
       return (
-        <Component event={event} type={entry.type} data={entry.data} isShare={false} />
+        <Component
+          projectId={projectId}
+          event={event}
+          type={entry.type}
+          data={entry.data}
+          isShare={false}
+        />
       );
     } else if (OTHER_SECTIONS[activeTab]) {
       const Component = OTHER_SECTIONS[activeTab];
@@ -197,6 +201,19 @@ class EventDetails extends React.Component {
     );
   }
 }
+
+const EventHeader = props => {
+  const {title} = getTitle(props.event);
+  return (
+    <div>
+      <h2>{title}</h2>
+      <p>{getMessage(props.event)}</p>
+    </div>
+  );
+};
+EventHeader.propTypes = {
+  event: SentryTypes.Event.isRequired,
+};
 
 const ColumnGrid = styled('div')`
   display: grid;
@@ -227,7 +244,7 @@ const ModalContainer = styled('div')`
   background: #fff;
 
   margin: ${space(2)};
-  padding: ${space(2)};
+  padding: ${space(3)};
   border: 1px solid ${p => p.theme.borderLight};
   border-radius: ${p => p.theme.borderRadius};
   box-shadow: ${p => p.theme.dropShadowHeavy};
