@@ -122,6 +122,7 @@ class OrganizationIncidentIndexEndpoint(OrganizationEndpoint):
                 date_detected=result.get('dateDetected', result['dateStarted']),
                 projects=result['projects'],
                 groups=groups,
+                user=request.user,
             )
             return Response(serialize(incident, request.user), status=201)
         return Response(serializer.errors, status=400)
