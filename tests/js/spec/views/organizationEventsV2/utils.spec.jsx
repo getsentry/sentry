@@ -20,13 +20,12 @@ describe('getQuery()', function() {
       id: 'test',
       name: 'test view',
       data: {
-        query: '',
         fields: ['event', 'user', 'issue.id'],
       },
       tags: [],
     };
 
-    expect(getQuery(view).field).toEqual([
+    expect(getQuery(view, {}).field).toEqual([
       'title',
       'id',
       'project.name',
@@ -36,5 +35,26 @@ describe('getQuery()', function() {
       'user.ip',
       'issue.id',
     ]);
+  });
+
+  it('handles grouping by issue', function() {
+    const view = {
+      id: 'test',
+      name: 'test view',
+      data: {
+        fields: ['error', 'project'],
+        sort: 'project.id',
+      },
+      tags: [],
+    };
+
+    const query = getQuery(view, {});
+
+    expect(query).toEqual({
+      aggregation: [['anyHeavy', 'title', 'issue_group']],
+      field: ['project.name'],
+      groupby: ['issue.id', 'project.id'],
+      sort: 'project.id',
+    });
   });
 });
