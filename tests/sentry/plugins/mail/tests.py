@@ -82,7 +82,7 @@ class MailPluginTest(TestCase):
             project_id=self.project.id,
             message='Soubor ji\xc5\xbe existuje',
             # Create interface so get_title will be called on it.
-            data={'stacktrace': {'frames': []}},
+            data={'stacktrace': {'frames': [{}]}},
         )
 
         notification = Notification(event=event)
