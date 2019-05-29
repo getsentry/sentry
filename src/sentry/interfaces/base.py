@@ -1,6 +1,5 @@
 from __future__ import absolute_import
 
-import os
 
 from collections import OrderedDict
 import logging
@@ -19,14 +18,6 @@ from sentry.utils.decorators import classproperty
 logger = logging.getLogger("sentry.events")
 interface_logger = logging.getLogger("sentry.interfaces")
 
-# This flag is only effectively used for the testsuite. In production the
-# return value of `sentry.models.event._should_skip_to_python` is explicitly
-# passed to interfaces.
-RUST_RENORMALIZED_DEFAULT = os.environ.get(
-    "SENTRY_TEST_USE_RUST_INTERFACE_RENORMALIZATION",
-    "false"
-).lower() in ("true", "1")
-
 
 def get_interface(name):
     try:
@@ -43,7 +34,7 @@ def get_interface(name):
     return interface
 
 
-def get_interfaces(data, rust_renormalized=RUST_RENORMALIZED_DEFAULT):
+def get_interfaces(data):
     result = []
     for key, data in six.iteritems(data):
         # Skip invalid interfaces that were nulled out during normalization
@@ -55,9 +46,7 @@ def get_interfaces(data, rust_renormalized=RUST_RENORMALIZED_DEFAULT):
         except ValueError:
             continue
 
-        value = safe_execute(cls.to_python, data,
-                             rust_renormalized=rust_renormalized,
-                             _with_transaction=False)
+        value = safe_execute(cls.to_python, data, _with_transaction=False)
         if not value:
             continue
 
@@ -139,7 +128,7 @@ class Interface(object):
             self._data[name] = value
 
     @classmethod
-    def to_python(cls, data, rust_renormalized=RUST_RENORMALIZED_DEFAULT):
+    def to_python(cls, data):
         """Creates a python interface object from the given raw data.
 
         This function can assume fully normalized and valid data. It can create

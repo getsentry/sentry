@@ -177,12 +177,6 @@ def test_renormalization(monkeypatch, factories, task_runner, default_project):
     monkeypatch.setattr('semaphore.processing.StoreNormalizer.normalize_event',
                         normalize)
 
-    sample_mock_calls = []
-
-    def sample(*args, **kwargs):
-        sample_mock_calls.append(1)
-        return False
-
     with task_runner():
         factories.store_event(
             data={
@@ -196,7 +190,6 @@ def test_renormalization(monkeypatch, factories, task_runner, default_project):
     # that you will encounter severe performance issues during event processing
     # or postprocessing.
     assert len(normalize_mock_calls) == 1
-    assert len(sample_mock_calls) == 0
 
 
 class EventGetLegacyMessageTest(TestCase):

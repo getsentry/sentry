@@ -5,8 +5,7 @@ __all__ = ('Sdk', )
 from distutils.version import LooseVersion
 from django.conf import settings
 
-from sentry.interfaces.base import Interface, InterfaceValidationError, prune_empty_keys, RUST_RENORMALIZED_DEFAULT
-from sentry.utils.safe import trim
+from sentry.interfaces.base import Interface, prune_empty_keys
 
 
 def get_with_prefix(d, k, default=None, delimiter=":"):
@@ -50,37 +49,16 @@ class Sdk(Interface):
     """
 
     @classmethod
-    def to_python(cls, data, rust_renormalized=RUST_RENORMALIZED_DEFAULT):
-        if rust_renormalized:
-            for key in (
-                'name',
-                'version',
-                'integrations',
-                'packages',
-            ):
-                data.setdefault(key, None)
+    def to_python(cls, data):
+        for key in (
+            'name',
+            'version',
+            'integrations',
+            'packages',
+        ):
+            data.setdefault(key, None)
 
-            return cls(**data)
-
-        name = data.get('name')
-        version = data.get('version')
-
-        integrations = data.get('integrations')
-        if integrations and not isinstance(integrations, list):
-            raise InterfaceValidationError("'integrations' must be a list")
-
-        packages = data.get('packages')
-        if packages and not isinstance(packages, list):
-            raise InterfaceValidationError("'packages' must be a list")
-
-        kwargs = {
-            'name': trim(name, 128),
-            'version': trim(version, 128),
-            'integrations': integrations,
-            'packages': packages,
-        }
-
-        return cls(**kwargs)
+        return cls(**data)
 
     def to_json(self):
         return prune_empty_keys({

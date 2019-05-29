@@ -9,14 +9,10 @@ from __future__ import absolute_import
 
 __all__ = ('User', )
 
-import six
 
-from sentry.interfaces.base import Interface, prune_empty_keys, RUST_RENORMALIZED_DEFAULT
+from sentry.interfaces.base import Interface, prune_empty_keys
 from sentry.interfaces.geo import Geo
-from sentry.utils.safe import trim, trim_dict
 from sentry.web.helpers import render_to_string
-from sentry.utils.validators import validate_ip
-from sentry.constants import MAX_EMAIL_FIELD_LENGTH
 
 
 class User(Interface):
@@ -41,73 +37,21 @@ class User(Interface):
     display_score = 2020
 
     @classmethod
-    def to_python(cls, data, rust_renormalized=RUST_RENORMALIZED_DEFAULT):
-        if rust_renormalized:
-            data = data.copy()
-            for key in (
-                'id',
-                'email',
-                'username',
-                'ip_address',
-                'name',
-                'geo',
-                'data',
-            ):
-                data.setdefault(key, None)
-            if data['geo'] is not None:
-                data['geo'] = Geo.to_python(data['geo'])
-            return cls(**data)
-
+    def to_python(cls, data):
         data = data.copy()
-
-        ident = data.pop('id', None)
-        if ident is not None:
-            ident = trim(six.text_type(ident), 128)
-
-        email = data.pop('email', None)
-        if not isinstance(email, six.string_types):
-            email = None
-        email = trim(email, MAX_EMAIL_FIELD_LENGTH)
-
-        username = data.pop('username', None)
-        if username is not None:
-            username = trim(six.text_type(username), 128)
-
-        name = data.pop('name', None)
-        if name is not None:
-            name = trim(six.text_type(name), 128)
-
-        try:
-            ip_address = validate_ip(data.pop('ip_address', None), False)
-        except ValueError:
-            ip_address = None
-
-        geo = data.pop('geo', None)
-        if not geo and ip_address:
-            geo = Geo.from_ip_address(ip_address)
-        elif geo:
-            geo = Geo.to_python(geo)
-
-        extra_data = data.pop('data', None)
-        if not isinstance(extra_data, dict):
-            extra_data = {}
-        extra_data.update(data)
-
-        # TODO(dcramer): patch in fix to deal w/ old data but not allow new
-        # if not (ident or email or username or ip_address):
-        #     raise ValueError('No identifying value')
-
-        kwargs = {
-            'id': ident,
-            'email': email,
-            'username': username,
-            'ip_address': ip_address,
-            'name': name,
-            'geo': geo,
-            'data': trim_dict(extra_data)
-        }
-
-        return cls(**kwargs)
+        for key in (
+            'id',
+            'email',
+            'username',
+            'ip_address',
+            'name',
+            'geo',
+            'data',
+        ):
+            data.setdefault(key, None)
+        if data['geo'] is not None:
+            data['geo'] = Geo.to_python(data['geo'])
+        return cls(**data)
 
     def to_json(self):
         return prune_empty_keys({

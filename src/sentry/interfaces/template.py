@@ -9,10 +9,8 @@ from __future__ import absolute_import
 
 __all__ = ('Template', )
 
-from sentry.interfaces.base import Interface, InterfaceValidationError, RUST_RENORMALIZED_DEFAULT
-from sentry.interfaces.schemas import validate_and_default_interface
+from sentry.interfaces.base import Interface
 from sentry.interfaces.stacktrace import get_context
-from sentry.utils.safe import trim
 
 
 class Template(Interface):
@@ -42,33 +40,17 @@ class Template(Interface):
     score = 1100
 
     @classmethod
-    def to_python(cls, data, rust_renormalized=RUST_RENORMALIZED_DEFAULT):
-        if rust_renormalized:
-            for key in (
-                'abs_path',
-                'filename',
-                'context_line',
-                'lineno',
-                'pre_context',
-                'post_context',
-            ):
-                data.setdefault(key, None)
-            return cls(**data)
-
-        is_valid, errors = validate_and_default_interface(data, cls.path)
-        if not is_valid:
-            raise InterfaceValidationError("Invalid template")
-
-        kwargs = {
-            'abs_path': trim(data.get('abs_path', None), 256),
-            'filename': trim(data.get('filename', None), 256),
-            'context_line': trim(data.get('context_line', None), 256),
-            'lineno': int(data['lineno']) if data.get('lineno', None) is not None else None,
-            # TODO(dcramer): trim pre/post_context
-            'pre_context': data.get('pre_context'),
-            'post_context': data.get('post_context'),
-        }
-        return cls(**kwargs)
+    def to_python(cls, data):
+        for key in (
+            'abs_path',
+            'filename',
+            'context_line',
+            'lineno',
+            'pre_context',
+            'post_context',
+        ):
+            data.setdefault(key, None)
+        return cls(**data)
 
     def to_string(self, event, is_public=False, **kwargs):
         context = get_context(

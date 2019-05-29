@@ -22,7 +22,7 @@ from hashlib import md5
 
 from semaphore.processing import StoreNormalizer
 
-from sentry import eventtypes, options
+from sentry import eventtypes
 from sentry.constants import EVENT_ORDERING_KEY
 from sentry.db.models import (
     BoundedBigIntegerField,
@@ -34,23 +34,11 @@ from sentry.db.models import (
 )
 from sentry.db.models.manager import EventManager, SnubaEventManager
 from sentry.interfaces.base import get_interfaces
-from sentry.utils import json, metrics
+from sentry.utils import json
 from sentry.utils.cache import memoize
 from sentry.utils.canonical import CanonicalKeyDict, CanonicalKeyView
 from sentry.utils.safe import get_path
 from sentry.utils.strings import truncatechars
-from sentry.utils.sdk import configure_scope
-
-
-def _should_skip_to_python(event_id):
-    if not event_id:
-        return False
-
-    sample_rate = options.get('store.empty-interface-sample-rate')
-    if sample_rate == 0:
-        return False
-
-    return int(md5(event_id).hexdigest(), 16) % (10 ** 8) <= (sample_rate * (10 ** 8))
 
 
 class EventDict(CanonicalKeyDict):
@@ -69,22 +57,9 @@ class EventDict(CanonicalKeyDict):
             (isinstance(data, NodeData) and isinstance(data.data, EventDict))
         )
 
-        with configure_scope() as scope:
-            scope.set_tag("rust.is_renormalized", is_renormalized)
-            scope.set_tag("rust.skip_renormalization", skip_renormalization)
-            scope.set_tag("rust.renormalized", "null")
-
         if not skip_renormalization and not is_renormalized:
-            rust_renormalized = _should_skip_to_python(data.get('event_id'))
-            if rust_renormalized:
-                normalizer = StoreNormalizer(is_renormalize=True)
-                data = normalizer.normalize_event(dict(data))
-
-            metrics.incr('rust.renormalized',
-                         tags={'value': rust_renormalized})
-
-            with configure_scope() as scope:
-                scope.set_tag("rust.renormalized", rust_renormalized)
+            normalizer = StoreNormalizer(is_renormalize=True)
+            data = normalizer.normalize_event(dict(data))
 
         CanonicalKeyDict.__init__(self, data, **kwargs)
 
@@ -136,12 +111,7 @@ class EventCommon(object):
         self._project_cache = project
 
     def get_interfaces(self):
-        was_renormalized = _should_skip_to_python(self.event_id)
-
-        metrics.incr('event.get_interfaces',
-                     tags={'rust_renormalized': was_renormalized})
-
-        return CanonicalKeyView(get_interfaces(self.data, rust_renormalized=was_renormalized))
+        return CanonicalKeyView(get_interfaces(self.data))
 
     @memoize
     def interfaces(self):
