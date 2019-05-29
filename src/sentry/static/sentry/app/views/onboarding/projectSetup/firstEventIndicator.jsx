@@ -40,7 +40,7 @@ const Waiting = props => (
   </StatusWrapper>
 );
 
-const Success = ({orgId, firstIssue, ...props}) => (
+const Success = ({organization, firstIssue, ...props}) => (
   <StatusWrapper {...props}>
     <ReceivedIndicator src="icon-checkmark-sm" />
     <PosedText>{t('First event was received!')}</PosedText>
@@ -48,7 +48,7 @@ const Success = ({orgId, firstIssue, ...props}) => (
       <PosedButton
         size="small"
         priority="primary"
-        to={`/organizations/${orgId}/issues/${firstIssue.id}/`}
+        to={`/organizations/${organization.slug}/issues/${firstIssue.id}/`}
       >
         {t('Take me to my event')}
       </PosedButton>

@@ -28,7 +28,7 @@ export function getQuery(view) {
     return list;
   }, []);
 
-  data.fields = [...new Set(fields)];
+  data.field = [...new Set(fields)];
 
   return data;
 }

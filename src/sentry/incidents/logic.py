@@ -18,6 +18,7 @@ from sentry.incidents.models import (
     IncidentSubscription,
     TimeSeriesSnapshot,
 )
+from sentry.incidents.tasks import send_subscriber_notifications
 from sentry.utils.snuba import (
     raw_query,
     SnubaTSResult,
@@ -164,7 +165,7 @@ def create_incident_activity(
         subscribe_to_incident(incident, user)
     value = six.text_type(value) if value is not None else value
     previous_value = six.text_type(previous_value) if previous_value is not None else previous_value
-    return IncidentActivity.objects.create(
+    activity = IncidentActivity.objects.create(
         incident=incident,
         type=activity_type.value,
         user=user,
@@ -173,6 +174,11 @@ def create_incident_activity(
         comment=comment,
         event_stats_snapshot=event_stats_snapshot,
     )
+    send_subscriber_notifications.apply_async(
+        kwargs={'activity_id': activity.id},
+        countdown=10,
+    )
+    return activity
 
 
 def update_comment(activity, comment):
@@ -272,6 +278,10 @@ def subscribe_to_incident(incident, user):
 
 def unsubscribe_from_incident(incident, user):
     return IncidentSubscription.objects.filter(incident=incident, user=user).delete()
+
+
+def get_incident_subscribers(incident):
+    return IncidentSubscription.objects.filter(incident=incident)
 
 
 def get_incident_activity(incident):

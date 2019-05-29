@@ -4,7 +4,6 @@ import React from 'react';
 import {analytics} from 'app/utils/analytics';
 import SentryTypes from 'app/sentryTypes';
 import withApi from 'app/utils/withApi';
-import withOrganization from 'app/utils/withOrganization';
 
 const DEFAULT_POLL_INTERVAL = 5000;
 
@@ -105,4 +104,4 @@ class EventWaiter extends React.Component {
   }
 }
 
-export default withApi(withOrganization(EventWaiter));
+export default withApi(EventWaiter);

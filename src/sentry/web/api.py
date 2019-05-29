@@ -41,7 +41,7 @@ from sentry.lang.native.unreal import process_unreal_crash, merge_apple_crash_re
     unreal_attachment_type, merge_unreal_context_event, merge_unreal_logs_event
 from sentry.lang.native.minidump import merge_attached_event, merge_attached_breadcrumbs, write_minidump_placeholder, \
     MINIDUMP_ATTACHMENT_TYPE
-from sentry.models import Project, OrganizationOption, Organization
+from sentry.models import Project, OrganizationOption, Organization, File, EventAttachment, Event
 from sentry.signals import (
     event_accepted, event_dropped, event_filtered, event_received)
 from sentry.quotas.base import RateLimit
@@ -570,6 +570,53 @@ class StoreView(APIView):
 
         return process_event(event_manager, project,
                              key, remote_addr, helper, attachments)
+
+
+class EventAttachmentStoreView(StoreView):
+
+    def post(self, request, project, event_id, **kwargs):
+        if not features.has('organizations:event-attachments',
+                            project.organization, actor=request.user):
+            raise APIForbidden("Event attachments are not enabled for this organization.")
+
+        if len(request.FILES) == 0:
+            return HttpResponse(status=400)
+
+        for name, uploaded_file in six.iteritems(request.FILES):
+            file = File.objects.create(
+                name=uploaded_file.name,
+                type='event.attachment',
+                headers={'Content-Type': uploaded_file.content_type},
+            )
+            file.putfile(uploaded_file)
+
+            # To avoid a race with EventManager which tries to set the group_id on attachments received before
+            # the event, first insert the attachment, then lookup for the event for its group.
+            event_attachment = EventAttachment.objects.create(
+                project_id=project.id,
+                event_id=event_id,
+                name=uploaded_file.name,
+                file=file,
+            )
+
+            try:
+                event = Event.objects.get(
+                    project_id=project.id,
+                    event_id=event_id,
+                )
+            except Event.DoesNotExist:
+                pass
+            else:
+                # If event was created but the group not defined, EventManager will take care of setting the
+                # group to all dangling attachments
+                if event.group_id is not None:
+                    EventAttachment.objects.filter(
+                        id=event_attachment.id,
+                    ).update(
+                        group_id=event.group_id,
+                    )
+
+        return HttpResponse(status=201)
 
 
 class MinidumpView(StoreView):

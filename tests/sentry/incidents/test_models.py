@@ -58,6 +58,10 @@ class FetchForOrganizationTest(TestCase):
             self.organization,
             [project],
         ))
+        assert [incident] == list(Incident.objects.fetch_for_organization(
+            self.organization,
+            [self.project, project],
+        ))
 
 
 class IncidentCreationTest(TestCase):
