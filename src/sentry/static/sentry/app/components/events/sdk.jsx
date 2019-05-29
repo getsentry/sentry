@@ -1,7 +1,7 @@
 import React from 'react';
 import SentryTypes from 'app/sentryTypes';
 
-import GroupEventDataSection from 'app/components/events/eventDataSection';
+import EventDataSection from 'app/components/events/eventDataSection';
 import {t} from 'app/locale';
 
 class EventSdk extends React.Component {
@@ -14,7 +14,7 @@ class EventSdk extends React.Component {
     const data = event.sdk;
 
     return (
-      <GroupEventDataSection event={event} type="sdk" title={t('SDK')} wrapTitle={true}>
+      <EventDataSection event={event} type="sdk" title={t('SDK')} wrapTitle={true}>
         <table className="table key-value">
           <tbody>
             <tr key="name">
@@ -31,7 +31,7 @@ class EventSdk extends React.Component {
             </tr>
           </tbody>
         </table>
-      </GroupEventDataSection>
+      </EventDataSection>
     );
   }
 }
