@@ -1,6 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import GroupEventDataSection from 'app/components/events/eventDataSection';
+import EventDataSection from 'app/components/events/eventDataSection';
 import SentryTypes from 'app/sentryTypes';
 import Frame from 'app/components/events/interfaces/frame';
 import {t} from 'app/locale';
@@ -14,7 +14,7 @@ class TemplateInterface extends React.Component {
 
   render() {
     return (
-      <GroupEventDataSection
+      <EventDataSection
         event={this.props.event}
         type={this.props.type}
         title={<div>{t('Template')}</div>}
@@ -24,7 +24,7 @@ class TemplateInterface extends React.Component {
             <Frame data={this.props.data} isExpanded={true} />
           </ul>
         </div>
-      </GroupEventDataSection>
+      </EventDataSection>
     );
   }
 }

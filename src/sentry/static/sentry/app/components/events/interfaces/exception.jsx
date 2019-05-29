@@ -1,7 +1,7 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import {t} from 'app/locale';
-import GroupEventDataSection from 'app/components/events/eventDataSection';
+import EventDataSection from 'app/components/events/eventDataSection';
 import SentryTypes from 'app/sentryTypes';
 import {isStacktraceNewestFirst} from 'app/components/events/interfaces/stacktrace';
 import CrashHeader from 'app/components/events/interfaces/crashHeader';
@@ -54,7 +54,7 @@ class ExceptionInterface extends React.Component {
     );
 
     return (
-      <GroupEventDataSection event={event} type={type} title={title} wrapTitle={false}>
+      <EventDataSection event={event} type={type} title={title} wrapTitle={false}>
         <CrashContent
           projectId={projectId}
           event={event}
@@ -63,7 +63,7 @@ class ExceptionInterface extends React.Component {
           newestFirst={newestFirst}
           exception={data}
         />
-      </GroupEventDataSection>
+      </EventDataSection>
     );
   }
 }

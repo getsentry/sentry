@@ -2,7 +2,7 @@ import PropTypes from 'prop-types';
 import React, {Component} from 'react';
 import SentryTypes from 'app/sentryTypes';
 
-import GroupEventDataSection from 'app/components/events/eventDataSection';
+import EventDataSection from 'app/components/events/eventDataSection';
 import KeyValueList from 'app/components/events/interfaces/keyValueList';
 import {t} from 'app/locale';
 import {objectToArray} from 'app/utils';
@@ -66,9 +66,9 @@ export default class GenericInterface extends Component {
     const children = getView(view, data);
 
     return (
-      <GroupEventDataSection event={event} type={type} title={title} wrapTitle={false}>
+      <EventDataSection event={event} type={type} title={title} wrapTitle={false}>
         {children}
-      </GroupEventDataSection>
+      </EventDataSection>
     );
   }
 }

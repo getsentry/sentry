@@ -1,6 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import GroupEventDataSection from 'app/components/events/eventDataSection';
+import EventDataSection from 'app/components/events/eventDataSection';
 import SentryTypes from 'app/sentryTypes';
 import RichHttpContent from 'app/components/events/interfaces/richHttpContent';
 import {getFullUrl, getCurlCommand} from 'app/components/events/interfaces/utils';
@@ -107,7 +107,7 @@ class RequestInterface extends React.Component {
     const title = <div>{children}</div>;
 
     return (
-      <GroupEventDataSection
+      <EventDataSection
         event={event}
         type={type}
         title={title}
@@ -119,7 +119,7 @@ class RequestInterface extends React.Component {
         ) : (
           <RichHttpContent data={data} />
         )}
-      </GroupEventDataSection>
+      </EventDataSection>
     );
   }
 }
