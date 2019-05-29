@@ -87,7 +87,7 @@ def allow_cors_options(func):
     :return: a request handler that shortcuts OPTIONS requests and just returns an OK (CORS allowed)
     """
     @wraps(func)
-    def allow_cors_options_wrapper(self, request, project_id=None, *args, **kwargs):
+    def allow_cors_options_wrapper(self, request, *args, **kwargs):
         if request.method == 'OPTIONS':
             response = HttpResponse(status=204)
 
@@ -99,7 +99,7 @@ def allow_cors_options(func):
             response['Access-Control-Allow-Methods'] = allow
 
             origin = origin_from_request(request)
-            if origin == 'null':
+            if origin == 'null' or origin is None:
                 response['Access-Control-Allow-Origin'] = '*'
             else:
                 response['Access-Control-Allow-Origin'] = origin
@@ -108,18 +108,9 @@ def allow_cors_options(func):
                                                         'Content-Type, Authentication')
             response['Access-Control-Max-Age'] = '3600'  # don't ask for options again for 1 hour
 
-            project = self._get_project_from_id(project_id)
-
-            if origin is not None:
-                if project is not None and not is_valid_origin(origin, project):
-                    error_message = "Invalid origin: {}".format(origin)
-                    response['X-Sentry-Error'] = error_message
-                    response.status_code = 403
-                    response.content = json.dumps({'error': error_message})
-                    return response
-
             return response
-        return func(self, request, project_id, *args, **kwargs)
+
+        return func(self, request, *args, **kwargs)
 
     return allow_cors_options_wrapper
 
