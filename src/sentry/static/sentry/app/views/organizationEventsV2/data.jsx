@@ -18,7 +18,6 @@ export const ALL_VIEWS = deepFreeze([
     name: 'All Events',
     data: {
       fields: ['event', 'event.type', 'project', 'user', 'time'],
-      aggregations: [],
       sort: '-timestamp',
     },
     tags: [
@@ -34,7 +33,8 @@ export const ALL_VIEWS = deepFreeze([
     id: 'errors',
     name: 'Errors',
     data: {
-      fields: ['error', 'event_count', 'user_count', 'project', 'last_seen'],
+      fields: ['issue_title', 'event_count', 'user_count', 'project', 'last_seen'],
+      groupby: ['issue.id', 'project.id'],
       sort: '-last_seen',
     },
     tags: ['error.type', 'project.name'],
@@ -43,7 +43,8 @@ export const ALL_VIEWS = deepFreeze([
     id: 'csp',
     name: 'CSP',
     data: {
-      fields: ['csp', 'event_count', 'user_count', 'project', 'last_seen'],
+      fields: ['issue_title', 'event_count', 'user_count', 'project', 'last_seen'],
+      groupby: ['issue.id', 'project.id'],
       sort: '-last_seen',
     },
     tags: [
@@ -118,31 +119,18 @@ export const SPECIAL_FIELDS = {
       </Container>
     ),
   },
-  error: {
-    title: 'error',
-    groupby: ['issue.id', 'project.id'],
-    aggregations: [['anyHeavy', 'title', 'issue_group']],
-    renderFunc: data => <Container>{data.issue_group}</Container>,
-  },
-  csp: {
-    title: 'csp',
-    groupby: ['issue.id', 'project.id'],
-    aggregations: [['anyHeavy', 'title', 'issue_group']],
-    renderFunc: data => <Container>{data.issue_group}</Container>,
-  },
   event_count: {
     title: 'events',
-    aggregations: [['uniq', 'id', 'event_count']],
+    fields: ['event_count'],
     renderFunc: data => <Container>{data.event_count}</Container>,
   },
   user_count: {
     title: 'users',
-    aggregations: [['uniq', 'user', 'user_count']],
+    fields: ['user_count'],
     renderFunc: data => <Container>{data.user_count}</Container>,
   },
   last_seen: {
-    title: 'last seen',
-    aggregations: [['max', 'timestamp', 'last_seen']],
+    fields: ['last_seen'],
     renderFunc: data => (
       <Container>
         <DynamicWrapper value={<StyledDateTime date={data.last_seen} />} fixed="time" />
