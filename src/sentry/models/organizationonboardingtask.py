@@ -11,10 +11,10 @@ from django.conf import settings
 from django.core.cache import cache
 from django.db import models, IntegrityError, transaction
 from django.utils import timezone
-from jsonfield import JSONField
 
 from sentry.db.models import (
-    BaseManager, BoundedBigIntegerField, BoundedPositiveIntegerField, FlexibleForeignKey, Model,
+    BaseManager, BoundedBigIntegerField, BoundedPositiveIntegerField,
+    FlexibleForeignKey, JSONField, Model,
     sane_repr
 )
 
