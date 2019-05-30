@@ -201,6 +201,9 @@ class Fixtures(object):
     def create_alert_rule_action_schema(self, *args, **kwargs):
         return Factories.create_alert_rule_action_schema(*args, **kwargs)
 
+    def create_sentry_app_feature(self, *args, **kwargs):
+        return Factories.create_sentry_app_feature(*args, **kwargs)
+
     def create_service_hook(self, *args, **kwargs):
         return Factories.create_service_hook(*args, **kwargs)
 
