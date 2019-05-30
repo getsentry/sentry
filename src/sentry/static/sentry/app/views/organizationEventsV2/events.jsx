@@ -82,7 +82,7 @@ class Events extends AsyncComponent {
                 yAxisOptions={CHART_AXIS_OPTIONS}
               />
             ),
-            fixed: null,
+            fixed: 'events chart',
           })}
         </Panel>
         <StyledSearchBar
