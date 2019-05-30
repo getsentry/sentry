@@ -105,6 +105,7 @@ exports[`ResolveActions with confirmation step renders 1`] = `
           stopPropagation={false}
         >
           <a
+            aria-label="Resolve"
             className="btn btn-default btn-sm"
             onClick={[Function]}
             title="Resolve"
@@ -611,6 +612,7 @@ exports[`ResolveActions without confirmation renders 1`] = `
         title="Resolve"
       >
         <a
+          aria-label="Resolve"
           className="btn btn-default btn-sm"
           data-test-id="action-link-resolve"
           disabled={false}

@@ -39,7 +39,7 @@ export default class ActionLink extends React.Component {
     if (shouldConfirm && !disabled) {
       return (
         <Confirm message={message} confirmText={confirmLabel} onConfirm={onAction}>
-          <a className={className} title={title}>
+          <a className={className} title={title} aria-label={title}>
             {' '}
             {children}
           </a>
@@ -49,6 +49,7 @@ export default class ActionLink extends React.Component {
       return (
         <a
           data-test-id={testId}
+          aria-label={title}
           className={classNames(className, {disabled})}
           onClick={disabled ? undefined : onAction}
           disabled={disabled}

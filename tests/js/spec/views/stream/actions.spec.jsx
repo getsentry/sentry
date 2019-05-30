@@ -2,6 +2,7 @@ import React from 'react';
 import {mount, shallow} from 'enzyme';
 
 import {StreamActions} from 'app/views/stream/actions';
+import {initializeOrg} from 'app-test/helpers/initializeOrg';
 import SelectedGroupStore from 'app/stores/selectedGroupStore';
 
 describe('StreamActions', function() {
@@ -15,6 +16,12 @@ describe('StreamActions', function() {
   describe('Bulk', function() {
     describe('Total results > bulk limit', function() {
       beforeAll(function() {
+        const {routerContext} = initializeOrg({
+          organization: {
+            features: ['incidents'],
+          },
+        });
+
         SelectedGroupStore.records = {};
         SelectedGroupStore.add([1, 2, 3]);
         wrapper = mount(
@@ -36,7 +43,7 @@ describe('StreamActions', function() {
             realtimeActive={false}
             statsPeriod="24h"
           />,
-          TestStubs.routerContext()
+          routerContext
         );
       });
 
@@ -49,6 +56,22 @@ describe('StreamActions', function() {
         wrapper.find('.stream-select-all-notice a').simulate('click');
 
         expect(wrapper.find('.stream-select-all-notice')).toMatchSnapshot();
+      });
+
+      it('has "Create Incidents" disabled', function() {
+        // Do not allow users to create incidents with "bulk" selection
+        expect(
+          wrapper
+            .find('a[aria-label="Create new incident"]')
+            .at(0)
+            .prop('disabled')
+        ).toBe(true);
+        expect(
+          wrapper
+            .find('a[aria-label="Create new incident"]')
+            .at(1)
+            .prop('disabled')
+        ).toBe(true);
       });
 
       it('bulk resolves', async function() {
