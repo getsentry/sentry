@@ -199,7 +199,7 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                                                 >
                                                   <ForwardRef
                                                     aria-disabled={false}
-                                                    className="e1yghndz1 css-1r13y1z-StyledButton-getColors-StyledButton e12ma6z0"
+                                                    className="e1yghndz1 css-1jb371z-StyledButton-getColors-StyledButton e12ma6z0"
                                                     disabled={false}
                                                     onClick={[Function]}
                                                     role="button"
@@ -207,7 +207,7 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                                                   >
                                                     <button
                                                       aria-disabled={false}
-                                                      className="e1yghndz1 css-1r13y1z-StyledButton-getColors-StyledButton e12ma6z0"
+                                                      className="e1yghndz1 css-1jb371z-StyledButton-getColors-StyledButton e12ma6z0"
                                                       onClick={[Function]}
                                                       role="button"
                                                       size="xsmall"
@@ -640,7 +640,7 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                         >
                           <ForwardRef
                             aria-disabled={false}
-                            className="css-1uhlusb-StyledButton-getColors e12ma6z0"
+                            className="css-o6814l-StyledButton-getColors e12ma6z0"
                             disabled={false}
                             onClick={[Function]}
                             role="button"
@@ -648,7 +648,7 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                           >
                             <button
                               aria-disabled={false}
-                              className="css-1uhlusb-StyledButton-getColors e12ma6z0"
+                              className="css-o6814l-StyledButton-getColors e12ma6z0"
                               onClick={[Function]}
                               role="button"
                               size="small"
@@ -1012,7 +1012,7 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                         >
                           <ForwardRef
                             aria-disabled={false}
-                            className="css-1uhlusb-StyledButton-getColors e12ma6z0"
+                            className="css-o6814l-StyledButton-getColors e12ma6z0"
                             disabled={false}
                             onClick={[Function]}
                             role="button"
@@ -1020,7 +1020,7 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                           >
                             <button
                               aria-disabled={false}
-                              className="css-1uhlusb-StyledButton-getColors e12ma6z0"
+                              className="css-o6814l-StyledButton-getColors e12ma6z0"
                               onClick={[Function]}
                               role="button"
                               size="small"
