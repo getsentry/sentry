@@ -275,7 +275,7 @@ class UnmergeTestCase(TestCase):
 
             UserReport.objects.create(
                 project_id=project.id,
-                group_id=source.id,
+                group_id=event.group.id,
                 event_id=event_id,
                 name='Log Hat',
                 email='ceo@corptron.com',
