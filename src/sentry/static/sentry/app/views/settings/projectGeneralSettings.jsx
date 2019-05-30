@@ -11,7 +11,6 @@ import {
   transferProject,
 } from 'app/actionCreators/projects';
 import {fields} from 'app/data/forms/projectGeneralSettings';
-import {getOrganizationState} from 'app/mixins/organizationState';
 import {t, tct} from 'app/locale';
 import AsyncView from 'app/views/asyncView';
 import Button from 'app/components/button';
@@ -92,11 +91,13 @@ class ProjectGeneralSettings extends AsyncView {
     }, handleXhrErrorResponse('Unable to transfer project'));
   };
 
+  isProjectAdmin = () => {
+    return new Set(this.context.organization.access).has('project:admin');
+  };
+
   renderRemoveProject() {
     const project = this.state.data;
-    const isProjectAdmin = getOrganizationState(this.context.organization)
-      .getAccess()
-      .has('project:admin');
+    const isProjectAdmin = this.isProjectAdmin();
     const {isInternal} = project;
 
     return (
@@ -150,9 +151,7 @@ class ProjectGeneralSettings extends AsyncView {
 
   renderTransferProject() {
     const project = this.state.data;
-    const isProjectAdmin = getOrganizationState(this.context.organization)
-      .getAccess()
-      .has('project:admin');
+    const isProjectAdmin = this.isProjectAdmin();
     const {isInternal} = project;
 
     return (

@@ -12,7 +12,6 @@ import {
   addSuccessMessage,
   removeIndicator,
 } from 'app/actionCreators/indicator';
-import {getOrganizationState} from 'app/mixins/organizationState';
 import {t, tct} from 'app/locale';
 import AsyncView from 'app/views/asyncView';
 import Button from 'app/components/button';
@@ -248,7 +247,7 @@ export default class ProjectKeys extends AsyncView {
   renderResults() {
     const {routes, params} = this.props;
     const {orgId, projectId} = params;
-    const access = getOrganizationState(this.context.organization).getAccess();
+    const access = new Set(this.context.organization.access);
 
     return (
       <div>
@@ -276,7 +275,7 @@ export default class ProjectKeys extends AsyncView {
   }
 
   renderBody() {
-    const access = getOrganizationState(this.context.organization).getAccess();
+    const access = new Set(this.context.organization.access);
     const isEmpty = !this.state.keyList.length;
 
     return (

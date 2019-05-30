@@ -3,7 +3,6 @@ import styled, {css} from 'react-emotion';
 
 import {addErrorMessage} from 'app/actionCreators/indicator';
 import {addTeamToProject, removeTeamFromProject} from 'app/actionCreators/projects';
-import {getOrganizationState} from 'app/mixins/organizationState';
 import {openCreateTeamModal} from 'app/actionCreators/modal';
 import {t} from 'app/locale';
 import AsyncView from 'app/views/asyncView';
@@ -21,7 +20,7 @@ class ProjectTeams extends AsyncView {
 
   canCreateTeam = () => {
     const {organization} = this.props;
-    const access = getOrganizationState(organization).getAccess();
+    const access = new Set(organization.access);
     return (
       access.has('org:write') && access.has('team:write') && access.has('project:write')
     );
