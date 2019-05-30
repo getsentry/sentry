@@ -199,10 +199,11 @@ class OrganizationEventJsonView(OrganizationEventsEndpointBase):
         # TODO(lb): This endpoint used to handle both snuba and without snuba.
         # Couldnt' think of a reason why we wanted without snuba
 
-        filter_params = self.get_filter_params(request, organization)
-        project_id = filter_params.get('project_id')
-        if not project_id:
+        try:
+            filter_params = self.get_filter_params(request, organization)
+        except NoProjects:
             return Response({'data': []})
+        project_id = filter_params.get('project_id')
 
         # TODO(lb): this checks both hex event_id or postgres primary key
         # do we still need to do this?
@@ -217,4 +218,4 @@ class OrganizationEventJsonView(OrganizationEventsEndpointBase):
         # TODO(lb): hmmm caching for events? Not sure that's helpful
         # GroupMeta.objects.populate_cache([group])
 
-        return Response(json.dumps(event.as_dict()))
+        return Response(json.dumps(event.as_dict()), status=200)

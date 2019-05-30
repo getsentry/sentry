@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+import json
+
 from six.moves.urllib.parse import urlencode
 
 from datetime import timedelta
@@ -844,3 +846,54 @@ class OrganizationEventsMetaEndpoint(OrganizationEventsTestBase):
 
         assert response.status_code == 200, response.content
         assert response.data['count'] == 0
+
+
+class OrganizationEventJsonViewTest(OrganizationEventsTestBase):
+    def setUp(self):
+        super(OrganizationEventJsonViewTest, self).setUp()
+        self.login_as(user=self.user)
+        self.event_id = 'c' * 32
+        self.fingerprint = ['group_2']
+        self.min_ago = self.min_ago.isoformat()[:19]
+        self.event = self.store_event(
+            data={
+                'event_id': self.event_id,
+                'timestamp': self.min_ago,
+                'fingerprint': self.fingerprint,
+                'user': {
+                    'email': self.user.email,
+                },
+            },
+            project_id=self.project.id,
+        )
+        self.url = reverse(
+            'sentry-organization-event-json',
+            kwargs={
+                'organization_slug': self.organization.slug,
+                'event_id': self.event_id,
+            }
+        )
+
+    def assert_event(self, data):
+        data = json.loads(data.decode('utf-8'))
+        assert data['event_id'] == self.event_id
+        assert data['user']['email'] == self.user.email
+        assert data['datetime'][:19] == self.min_ago
+        assert data['fingerprint'] == self.fingerprint
+
+    def test_simple(self):
+        response = self.client.get(self.url, format='json')
+        assert response.status_code == 200, response.content
+        self.assert_event(response.data)
+
+    def test_postgres_event_id(self):
+        url = reverse(
+            'sentry-organization-event-json',
+            kwargs={
+                'organization_slug': self.organization.slug,
+                'event_id': self.event.id,
+            }
+        )
+        response = self.client.get(url, format='json')
+        assert response.status_code == 200, response.content
+        self.assert_event(response.data)
