@@ -245,9 +245,10 @@ AnimatedPlatformHeading.propTypes = {
   platform: PropTypes.string.isRequired,
 };
 
+const getAlertClass = type => (type === 'default' ? 'alert' : `alert-${type}`);
 const mapAlertStyles = p => type =>
   css`
-    .alert-${type} {
+    .${getAlertClass(type)} {
       ${alertStyles({theme: p.theme, type})};
       display: block;
     }
@@ -282,6 +283,13 @@ const DocsWrapper = styled(posed.div(docsTransition))`
   .alert h5 {
     font-size: 1em;
     margin-bottom: 1rem;
+  }
+
+  /**
+   * XXX(epurkhiser): This comes from the doc styles and avoids bottom margin issues in alerts
+   */
+  .content-flush-bottom *:last-child {
+    margin-bottom: 0;
   }
 
   ${p => Object.keys(p.theme.alert).map(mapAlertStyles(p))}
