@@ -80,7 +80,7 @@ def parse_search_query(query):
         raise InvalidSearchQuery(
             '%s %s' % (
                 u'Parse error: %r (column %d).' % (e.expr.name, e.column()),
-                'This is commonly caused by unmatched-parentheses.',
+                'This is commonly caused by unmatched-parentheses. Enclose any text in double quotes.',
             )
         )
     return IssueSearchVisitor().visit(tree)
