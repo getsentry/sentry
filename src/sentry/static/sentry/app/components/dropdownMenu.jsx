@@ -363,6 +363,10 @@ class DropdownMenu extends React.Component {
       getRootProps: this.getRootProps,
       getActorProps: this.getActorProps,
       getMenuProps: this.getMenuProps,
+      actions: {
+        open: this.handleOpen,
+        close: this.handleClose,
+      },
     });
   }
 }

@@ -26,6 +26,13 @@ def send_subscriber_notifications(activity_id):
     except IncidentActivity.DoesNotExist:
         return
 
+    # Only send notifications for specific activity types.
+    if activity.type not in (
+        IncidentActivityType.COMMENT.value,
+        IncidentActivityType.STATUS_CHANGE.value,
+    ):
+        return
+
     subscribers = get_incident_subscribers(activity.incident).select_related('user')
     msg = generate_incident_activity_email(activity)
     msg.send_async([sub.user.email for sub in subscribers if sub.user != activity.user])

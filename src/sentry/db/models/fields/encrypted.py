@@ -8,8 +8,8 @@ import six
 
 from django.conf import settings
 from django.db.models import CharField, TextField
-from jsonfield import JSONField
 from picklefield.fields import PickledObjectField
+from sentry.db.models.fields.jsonfield import JSONField
 from sentry.db.models.utils import Creator
 from sentry.utils.encryption import decrypt, encrypt
 

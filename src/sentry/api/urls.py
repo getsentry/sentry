@@ -190,6 +190,7 @@ from .endpoints.release_deploys import ReleaseDeploysEndpoint
 from .endpoints.debug_files import DebugFilesEndpoint, DifAssembleEndpoint, \
     UnknownDebugFilesEndpoint, AssociateDSymFilesEndpoint
 from .endpoints.sentry_apps import SentryAppsEndpoint
+from .endpoints.sentry_app_features import SentryAppFeaturesEndpoint
 from .endpoints.sentry_apps_stats import SentryAppsStatsEndpoint
 from .endpoints.sentry_app_components import SentryAppComponentsEndpoint, \
     OrganizationSentryAppComponentsEndpoint
@@ -1333,6 +1334,11 @@ urlpatterns = patterns(
         r'^sentry-apps/(?P<sentry_app_slug>[^\/]+)/$',
         SentryAppDetailsEndpoint.as_view(),
         name='sentry-api-0-sentry-app-details'
+    ),
+    url(
+        r'^sentry-apps/(?P<sentry_app_slug>[^\/]+)/features/$',
+        SentryAppFeaturesEndpoint.as_view(),
+        name='sentry-api-0-sentry-app-features'
     ),
     url(
         r'^sentry-apps/(?P<sentry_app_slug>[^\/]+)/components/$',

@@ -1,11 +1,14 @@
 import React from 'react';
-import {mount} from 'enzyme';
 
+import {initializeOrg} from 'app-test/helpers/initializeOrg';
+import {mount} from 'enzyme';
 import IncidentDetails from 'app/views/organizationIncidents/details';
 
 describe('IncidentDetails', function() {
   const mockIncident = TestStubs.Incident();
-  const routerContext = TestStubs.routerContext();
+  const {organization, routerContext} = initializeOrg();
+
+  let activitiesList;
 
   const createWrapper = props =>
     mount(
@@ -25,10 +28,20 @@ describe('IncidentDetails', function() {
       url: '/organizations/org-slug/incidents/456/',
       statusCode: 404,
     });
+    activitiesList = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/incidents/${
+        mockIncident.identifier
+      }/activity/`,
+      body: [TestStubs.IncidentActivity()],
+    });
   });
 
   afterAll(function() {
     MockApiClient.clearMockResponses();
+  });
+
+  beforeEach(function() {
+    activitiesList.mockClear();
   });
 
   it('loads incident', async function() {
@@ -59,11 +72,11 @@ describe('IncidentDetails', function() {
     await tick();
     wrapper.update();
 
-    // Activtiy will additionally have a LoadingError
+    // Activity will also have a LoadingError
     expect(wrapper.find('LoadingError')).toHaveLength(2);
   });
 
-  it('changes status to closed', async function() {
+  it('changes status to closed and fetches new activities', async function() {
     const updateStatus = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/incidents/123/',
       method: 'PUT',
@@ -76,6 +89,8 @@ describe('IncidentDetails', function() {
 
     await tick();
     wrapper.update();
+
+    expect(activitiesList).toHaveBeenCalledTimes(1);
 
     expect(wrapper.find('Status').text()).toBe('Open');
     wrapper.find('[data-test-id="status-dropdown"] DropdownButton').simulate('click');
@@ -93,6 +108,8 @@ describe('IncidentDetails', function() {
       })
     );
 
+    // Refresh activities list since status changes also creates an activity
+    expect(activitiesList).toHaveBeenCalledTimes(2);
     expect(wrapper.find('Status').text()).toBe('Closed');
   });
 

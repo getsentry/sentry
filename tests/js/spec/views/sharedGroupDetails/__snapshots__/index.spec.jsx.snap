@@ -813,105 +813,12 @@ exports[`SharedGroupDetails renders 1`] = `
                                     "tags": Array [],
                                   }
                                 }
-                                group={
-                                  Object {
-                                    "activity": Array [],
-                                    "annotations": Array [],
-                                    "assignedTo": null,
-                                    "count": "327482",
-                                    "culprit": "fetchData(app/components/group/suggestedOwners)",
-                                    "firstRelease": null,
-                                    "firstSeen": "2019-04-05T19:44:05.963Z",
-                                    "hasSeen": false,
-                                    "id": "1",
-                                    "isBookmarked": false,
-                                    "isPublic": false,
-                                    "isSubscribed": false,
-                                    "lastRelease": null,
-                                    "lastSeen": "2019-04-11T01:08:59Z",
-                                    "latestEvent": Object {
-                                      "dateCreated": "2019-05-21T18:01:48.762Z",
-                                      "entries": Array [
-                                        Object {
-                                          "data": Object {
-                                            "formatted": "Blocked script",
-                                          },
-                                          "id": "1",
-                                          "type": "message",
-                                        },
-                                      ],
-                                      "eventID": "12345678901234567890123456789012",
-                                      "groupID": "1",
-                                      "id": "1",
-                                      "message": "ApiException",
-                                      "tags": Array [],
-                                    },
-                                    "level": "warning",
-                                    "logger": null,
-                                    "metadata": Object {
-                                      "function": "fetchData",
-                                      "type": "RequestError",
-                                    },
-                                    "numComments": 0,
-                                    "participants": Array [],
-                                    "permalink": "https://foo.io/organizations/foo/issues/1234/",
-                                    "platform": "javascript",
-                                    "pluginActions": Array [],
-                                    "pluginContexts": Array [],
-                                    "pluginIssues": Array [],
-                                    "project": Object {
-                                      "environments": Array [],
-                                      "hasAccess": true,
-                                      "id": "2",
-                                      "isBookmarked": false,
-                                      "isMember": true,
-                                      "name": "Project Name",
-                                      "organization": Object {
-                                        "slug": "test-org",
-                                      },
-                                      "slug": "project-slug",
-                                      "teams": Array [],
-                                    },
-                                    "seenBy": Array [],
-                                    "shareId": null,
-                                    "shortId": "JAVASCRIPT-6QS",
-                                    "stats": Object {
-                                      "24h": Array [
-                                        Array [
-                                          1517281200,
-                                          2,
-                                        ],
-                                        Array [
-                                          1517310000,
-                                          1,
-                                        ],
-                                      ],
-                                      "30d": Array [
-                                        Array [
-                                          1514764800,
-                                          1,
-                                        ],
-                                        Array [
-                                          1515024000,
-                                          122,
-                                        ],
-                                      ],
-                                    },
-                                    "status": "unresolved",
-                                    "statusDetails": Object {},
-                                    "subscriptionDetails": null,
-                                    "tags": Array [],
-                                    "title": "ZeroDivisionError",
-                                    "type": "error",
-                                    "userCount": 35097,
-                                    "userReportCount": 0,
-                                  }
-                                }
                                 isShare={true}
                                 key="entry-0"
+                                projectId="project-slug"
                                 type="message"
                               >
-                                <GroupEventDataSection
+                                <EventDataSection
                                   event={
                                     Object {
                                       "dateCreated": "2019-05-21T18:01:48.762Z",
@@ -929,100 +836,6 @@ exports[`SharedGroupDetails renders 1`] = `
                                       "id": "1",
                                       "message": "ApiException",
                                       "tags": Array [],
-                                    }
-                                  }
-                                  group={
-                                    Object {
-                                      "activity": Array [],
-                                      "annotations": Array [],
-                                      "assignedTo": null,
-                                      "count": "327482",
-                                      "culprit": "fetchData(app/components/group/suggestedOwners)",
-                                      "firstRelease": null,
-                                      "firstSeen": "2019-04-05T19:44:05.963Z",
-                                      "hasSeen": false,
-                                      "id": "1",
-                                      "isBookmarked": false,
-                                      "isPublic": false,
-                                      "isSubscribed": false,
-                                      "lastRelease": null,
-                                      "lastSeen": "2019-04-11T01:08:59Z",
-                                      "latestEvent": Object {
-                                        "dateCreated": "2019-05-21T18:01:48.762Z",
-                                        "entries": Array [
-                                          Object {
-                                            "data": Object {
-                                              "formatted": "Blocked script",
-                                            },
-                                            "id": "1",
-                                            "type": "message",
-                                          },
-                                        ],
-                                        "eventID": "12345678901234567890123456789012",
-                                        "groupID": "1",
-                                        "id": "1",
-                                        "message": "ApiException",
-                                        "tags": Array [],
-                                      },
-                                      "level": "warning",
-                                      "logger": null,
-                                      "metadata": Object {
-                                        "function": "fetchData",
-                                        "type": "RequestError",
-                                      },
-                                      "numComments": 0,
-                                      "participants": Array [],
-                                      "permalink": "https://foo.io/organizations/foo/issues/1234/",
-                                      "platform": "javascript",
-                                      "pluginActions": Array [],
-                                      "pluginContexts": Array [],
-                                      "pluginIssues": Array [],
-                                      "project": Object {
-                                        "environments": Array [],
-                                        "hasAccess": true,
-                                        "id": "2",
-                                        "isBookmarked": false,
-                                        "isMember": true,
-                                        "name": "Project Name",
-                                        "organization": Object {
-                                          "slug": "test-org",
-                                        },
-                                        "slug": "project-slug",
-                                        "teams": Array [],
-                                      },
-                                      "seenBy": Array [],
-                                      "shareId": null,
-                                      "shortId": "JAVASCRIPT-6QS",
-                                      "stats": Object {
-                                        "24h": Array [
-                                          Array [
-                                            1517281200,
-                                            2,
-                                          ],
-                                          Array [
-                                            1517310000,
-                                            1,
-                                          ],
-                                        ],
-                                        "30d": Array [
-                                          Array [
-                                            1514764800,
-                                            1,
-                                          ],
-                                          Array [
-                                            1515024000,
-                                            122,
-                                          ],
-                                        ],
-                                      },
-                                      "status": "unresolved",
-                                      "statusDetails": Object {},
-                                      "subscriptionDetails": null,
-                                      "tags": Array [],
-                                      "title": "ZeroDivisionError",
-                                      "type": "error",
-                                      "userCount": 35097,
-                                      "userReportCount": 0,
                                     }
                                   }
                                   raw={false}
@@ -1083,7 +896,7 @@ exports[`SharedGroupDetails renders 1`] = `
                                       </pre>
                                     </div>
                                   </div>
-                                </GroupEventDataSection>
+                                </EventDataSection>
                               </MessageInterface>
                                
                             </div>

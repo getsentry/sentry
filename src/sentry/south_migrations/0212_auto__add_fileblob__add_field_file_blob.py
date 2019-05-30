@@ -15,7 +15,7 @@ class Migration(SchemaMigration):
                         primary_key=True
                     )
                 ), ('storage', self.gf('django.db.models.fields.CharField')(max_length=128)),
-                ('storage_options', self.gf('jsonfield.fields.JSONField')(default={})),
+                ('storage_options', self.gf('sentry.db.models.fields.jsonfield.JSONField')(default={})),
                 ('path', self.gf('django.db.models.fields.TextField')(null=True)), (
                     'size', self.gf('sentry.db.models.fields.bounded.BoundedPositiveIntegerField')(
                         null=True
@@ -210,7 +210,7 @@ class Migration(SchemaMigration):
                     'to': "orm['sentry.AuthProvider']"
                 }
             ),
-            'data': ('jsonfield.fields.JSONField', [], {
+            'data': ('sentry.db.models.fields.jsonfield.JSONField', [], {
                 'default': '{}'
             }),
             'date_added':
@@ -242,7 +242,7 @@ class Migration(SchemaMigration):
             'Meta': {
                 'object_name': 'AuthProvider'
             },
-            'config': ('jsonfield.fields.JSONField', [], {
+            'config': ('sentry.db.models.fields.jsonfield.JSONField', [], {
                 'default': '{}'
             }),
             'date_added':
@@ -494,7 +494,7 @@ class Migration(SchemaMigration):
                 'max_length': '40',
                 'null': 'True'
             }),
-            'headers': ('jsonfield.fields.JSONField', [], {
+            'headers': ('sentry.db.models.fields.jsonfield.JSONField', [], {
                 'default': '{}'
             }),
             'id':
@@ -516,7 +516,7 @@ class Migration(SchemaMigration):
                 'max_length': '128',
                 'null': 'True'
             }),
-            'storage_options': ('jsonfield.fields.JSONField', [], {
+            'storage_options': ('sentry.db.models.fields.jsonfield.JSONField', [], {
                 'default': '{}'
             }),
             'timestamp': (
@@ -552,7 +552,7 @@ class Migration(SchemaMigration):
             'storage': ('django.db.models.fields.CharField', [], {
                 'max_length': '128'
             }),
-            'storage_options': ('jsonfield.fields.JSONField', [], {
+            'storage_options': ('sentry.db.models.fields.jsonfield.JSONField', [], {
                 'default': '{}'
             }),
             'timestamp': (
@@ -1299,7 +1299,7 @@ class Migration(SchemaMigration):
                 'unique_together': "(('project', 'version'),)",
                 'object_name': 'Release'
             },
-            'data': ('jsonfield.fields.JSONField', [], {
+            'data': ('sentry.db.models.fields.jsonfield.JSONField', [], {
                 'default': '{}'
             }),
             'date_added':

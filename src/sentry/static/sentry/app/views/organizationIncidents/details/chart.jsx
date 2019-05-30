@@ -31,12 +31,13 @@ function getNearbyIndex(data, needle) {
   return index !== -1 ? index - 1 : data.length - 1;
 }
 
-export default class Chart extends React.Component {
+export default class Chart extends React.PureComponent {
   static propTypes = {
     data: PropTypes.arrayOf(PropTypes.number),
     detected: PropTypes.string,
     closed: PropTypes.string,
   };
+
   render() {
     const {data, detected, closed} = this.props;
 

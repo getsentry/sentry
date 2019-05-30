@@ -34,6 +34,7 @@ from sentry.models import (
     CommitAuthor, Repository, CommitFileChange, ProjectDebugFile, File, UserPermission, EventAttachment,
     UserReport, PlatformExternalIssue,
 )
+from sentry.models.integrationfeature import Feature, IntegrationFeature
 from sentry.utils import json
 from sentry.utils.canonical import CanonicalKeyDict
 
@@ -855,6 +856,21 @@ class Factories(object):
         _kwargs.update(kwargs)
 
         return service_hooks.Creator.run(**_kwargs)
+
+    @staticmethod
+    def create_sentry_app_feature(feature=None, sentry_app=None, description=None):
+        if not sentry_app:
+            sentry_app = Factories.create_sentry_app()
+
+        integration_feature = IntegrationFeature.objects.create(
+            sentry_app=sentry_app,
+            feature=feature or Feature.API,
+        )
+
+        if description:
+            integration_feature.update(user_description=description)
+
+        return integration_feature
 
     @staticmethod
     def create_userreport(group, project=None, event_id=None, **kwargs):

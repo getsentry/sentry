@@ -1,7 +1,7 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import ConfigStore from 'app/stores/configStore';
-import GroupEventDataSection from 'app/components/events/eventDataSection';
+import EventDataSection from 'app/components/events/eventDataSection';
 import SentryTypes from 'app/sentryTypes';
 import {t} from 'app/locale';
 import CrashHeader from 'app/components/events/interfaces/crashHeader';
@@ -24,10 +24,10 @@ export function isStacktraceNewestFirst() {
 
 class StacktraceInterface extends React.Component {
   static propTypes = {
-    group: SentryTypes.Group.isRequired,
     event: SentryTypes.Event.isRequired,
     type: PropTypes.string.isRequired,
     data: PropTypes.object.isRequired,
+    projectId: PropTypes.string.isRequired,
   };
 
   constructor(...args) {
@@ -45,17 +45,13 @@ class StacktraceInterface extends React.Component {
   };
 
   render() {
-    const group = this.props.group;
-    const evt = this.props.event;
-    const data = this.props.data;
-    const stackView = this.state.stackView;
-    const newestFirst = this.state.newestFirst;
+    const {projectId, event, data} = this.props;
+    const {stackView, newestFirst} = this.state;
 
     const title = (
       <CrashHeader
         title={t('Stacktrace')}
-        group={group}
-        platform={evt.platform}
+        platform={event.platform}
         stacktrace={data}
         stackView={stackView}
         newestFirst={newestFirst}
@@ -66,21 +62,20 @@ class StacktraceInterface extends React.Component {
     );
 
     return (
-      <GroupEventDataSection
-        group={group}
-        event={evt}
+      <EventDataSection
+        event={event}
         type={this.props.type}
         title={title}
         wrapTitle={false}
       >
         <CrashContent
-          group={group}
-          event={evt}
+          projectId={projectId}
+          event={event}
           stackView={stackView}
           newestFirst={newestFirst}
           stacktrace={data}
         />
-      </GroupEventDataSection>
+      </EventDataSection>
     );
   }
 }
