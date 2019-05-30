@@ -1,6 +1,5 @@
 import React from 'react';
 import styled from 'react-emotion';
-import qs from 'query-string';
 
 import {deepFreeze} from 'app/utils';
 import DynamicWrapper from 'app/components/dynamicWrapper';
@@ -71,17 +70,13 @@ export const SPECIAL_FIELDS = {
   event: {
     fields: ['title', 'id', 'project.name'],
     renderFunc: (data, {organization, location}) => {
-      const newQuery = qs.stringify({
-        ...location.query,
-        eventSlug: `${data['project.name']}:${data.id}`,
-      });
+      const target = {
+        pathname: `/organizations/${organization.slug}/events/`,
+        query: {...location.query, eventSlug: `${data['project.name']}:${data.id}`},
+      };
       return (
         <Container>
-          <Link
-            css={overflowEllipsis}
-            to={`/organizations/${organization.slug}/events/?${newQuery}`}
-            data-test-id="event-title"
-          >
+          <Link css={overflowEllipsis} to={target} data-test-id="event-title">
             {data.title}
           </Link>
         </Container>
