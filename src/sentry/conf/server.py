@@ -1555,7 +1555,7 @@ DEPRECATED_SDKS = {
     'sentry-android': 'raven-java',
     'sentry-swift': 'sentry-cocoa',
     'SharpRaven': 'sentry.dotnet',
-    
+
     # The Ruby SDK used to go by the name 'sentry-raven'...
     'sentry-raven': 'raven-ruby',
 }
