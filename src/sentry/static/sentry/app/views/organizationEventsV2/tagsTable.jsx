@@ -5,6 +5,13 @@ import {t} from 'app/locale';
 import space from 'app/styles/space';
 
 const TagsTable = props => {
+  const handleSelect = tag => {
+    return event => {
+      event.preventDefault();
+      props.onTagSelect(tag);
+    };
+  };
+
   return (
     <div>
       <TagHeading>{t('Tags')}</TagHeading>
@@ -13,7 +20,11 @@ const TagsTable = props => {
           {props.tags.map(tag => (
             <StyledTr key={tag.key}>
               <TagKey>{tag.key}</TagKey>
-              <TagValue>{tag.value}</TagValue>
+              <TagValue>
+                <a href="#" onClick={handleSelect(tag)}>
+                  {tag.value}
+                </a>
+              </TagValue>
             </StyledTr>
           ))}
         </tbody>
@@ -23,6 +34,7 @@ const TagsTable = props => {
 };
 TagsTable.propTypes = {
   tags: PropTypes.array.isRequired,
+  onTagSelect: PropTypes.func.isRequired,
 };
 
 const TagHeading = styled('h5')`
