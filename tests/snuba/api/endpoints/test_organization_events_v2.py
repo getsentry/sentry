@@ -300,9 +300,10 @@ class OrganizationEventsV2EndpointTest(OrganizationEventsTestBase):
                 },
             )
 
+        groups = Group.objects.all()
         assert response.status_code == 200, response.content
         assert len(response.data) == 2
         assert response.data == [
-            {u'issue.id': 2, 'event_count': 2},
-            {u'issue.id': 1, 'event_count': 1}
+            {u'issue.id': groups[1].id, 'event_count': 2},
+            {u'issue.id': groups[0].id, 'event_count': 1}
         ]
