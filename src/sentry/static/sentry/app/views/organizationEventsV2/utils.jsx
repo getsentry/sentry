@@ -21,7 +21,6 @@ export function getCurrentView(requestedView) {
  */
 export function getQuery(view, location) {
   const fields = [];
-  const aggregations = view.data.aggregations ? [...view.data.aggregations] : [];
   const groupby = view.data.groupby ? [...view.data.groupby] : [];
 
   view.data.fields.forEach(field => {
@@ -30,9 +29,6 @@ export function getQuery(view, location) {
 
       if (specialField.hasOwnProperty('fields')) {
         fields.push(...specialField.fields);
-      }
-      if (specialField.hasOwnProperty('aggregations')) {
-        aggregations.push(...specialField.aggregations);
       }
       if (specialField.hasOwnProperty('groupby')) {
         groupby.push(...specialField.groupby);
@@ -51,7 +47,6 @@ export function getQuery(view, location) {
     'query',
   ]);
 
-  data.aggregation = aggregations;
   data.field = [...new Set(fields)];
   data.groupby = groupby;
   data.sort = view.data.sort;

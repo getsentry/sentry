@@ -67,7 +67,7 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
             raise OrganizationEventsError(exc.message)
 
         fields = request.GET.getlist('field')[:]
-        aggregations = [agg.split(',') for agg in request.GET.getlist('aggregation')]
+        aggregations = []
         groupby = request.GET.getlist('groupby')
 
         if fields:
