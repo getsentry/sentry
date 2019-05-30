@@ -64,7 +64,7 @@ describe('OrganizationEventsV2', function() {
     );
 
     const link = wrapper.find('Table Link[data-test-id="event-title"]').first();
-    expect(link.props().to).toEqual(expect.stringContaining('eventSlug=project-slug'));
+    expect(link.props().to.query).toEqual({eventSlug: 'project-slug:deadbeef'});
   });
 
   it('opens a modal when eventSlug is present', async function() {
