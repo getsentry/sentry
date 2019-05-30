@@ -745,7 +745,7 @@ class Migration(DataMigration):
             'app_id': ('django.db.models.fields.CharField', [], {
                 'max_length': '64'
             }),
-            'data': ('jsonfield.fields.JSONField', [], {
+            'data': ('sentry.db.models.fields.jsonfield.JSONField', [], {
                 'default': '{}'
             }),
             'date_added':
@@ -1009,7 +1009,7 @@ class Migration(DataMigration):
             'complete': ('django.db.models.fields.BooleanField', [], {
                 'default': 'False'
             }),
-            'data': ('jsonfield.fields.JSONField', [], {
+            'data': ('sentry.db.models.fields.jsonfield.JSONField', [], {
                 'default': '{}'
             }),
             'date_completed':
@@ -1050,7 +1050,7 @@ class Migration(DataMigration):
                 'max_length': '40',
                 'null': 'True'
             }),
-            'headers': ('jsonfield.fields.JSONField', [], {
+            'headers': ('sentry.db.models.fields.jsonfield.JSONField', [], {
                 'default': '{}'
             }),
             'id':
@@ -1602,7 +1602,7 @@ class Migration(DataMigration):
             ('sentry.db.models.fields.bounded.BoundedBigAutoField', [], {
                 'primary_key': 'True'
             }),
-            'state': ('jsonfield.fields.JSONField', [], {
+            'state': ('sentry.db.models.fields.jsonfield.JSONField', [], {
                 'null': 'True'
             }),
             'until': ('django.db.models.fields.DateTimeField', [], {
@@ -1777,7 +1777,7 @@ class Migration(DataMigration):
                 'unique_together': "(('provider', 'external_id'),)",
                 'object_name': 'Integration'
             },
-            'config': ('jsonfield.fields.JSONField', [], {
+            'config': ('sentry.db.models.fields.jsonfield.JSONField', [], {
                 'default': '{}'
             }),
             'default_auth_id': (
@@ -2069,7 +2069,7 @@ class Migration(DataMigration):
                 'unique_together': "(('organization', 'task'),)",
                 'object_name': 'OrganizationOnboardingTask'
             },
-            'data': ('jsonfield.fields.JSONField', [], {
+            'data': ('sentry.db.models.fields.jsonfield.JSONField', [], {
                 'default': '{}'
             }),
             'date_completed':
@@ -2268,7 +2268,7 @@ class Migration(DataMigration):
                 'unique_together': "(('project', 'integration'),)",
                 'object_name': 'ProjectIntegration'
             },
-            'config': ('jsonfield.fields.JSONField', [], {
+            'config': ('sentry.db.models.fields.jsonfield.JSONField', [], {
                 'default': '{}'
             }),
             'id':
@@ -2430,7 +2430,7 @@ class Migration(DataMigration):
             ('sentry.db.models.fields.bounded.BoundedPositiveIntegerField', [], {
                 'null': 'True'
             }),
-            'data': ('jsonfield.fields.JSONField', [], {
+            'data': ('sentry.db.models.fields.jsonfield.JSONField', [], {
                 'default': '{}'
             }),
             'date_added':
@@ -2679,7 +2679,7 @@ class Migration(DataMigration):
                 'object_name':
                 'Repository'
             },
-            'config': ('jsonfield.fields.JSONField', [], {
+            'config': ('sentry.db.models.fields.jsonfield.JSONField', [], {
                 'default': '{}'
             }),
             'date_added':
@@ -2850,7 +2850,7 @@ class Migration(DataMigration):
             'app_label': ('django.db.models.fields.CharField', [], {
                 'max_length': '64'
             }),
-            'data': ('jsonfield.fields.JSONField', [], {
+            'data': ('sentry.db.models.fields.jsonfield.JSONField', [], {
                 'default': '{}'
             }),
             'date_added':
@@ -2897,7 +2897,7 @@ class Migration(DataMigration):
             'name': ('django.db.models.fields.CharField', [], {
                 'max_length': '128'
             }),
-            'payload': ('jsonfield.fields.JSONField', [], {
+            'payload': ('sentry.db.models.fields.jsonfield.JSONField', [], {
                 'default': '{}'
             })
         },

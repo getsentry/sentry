@@ -9,7 +9,7 @@ class Migration(SchemaMigration):
     def forwards(self, orm):
 
         # Changing field 'AuthIdentity.data'
-        db.alter_column('sentry_authidentity', 'data', self.gf('jsonfield.fields.JSONField')())
+        db.alter_column('sentry_authidentity', 'data', self.gf('sentry.db.models.fields.jsonfield.JSONField')())
 
     def backwards(self, orm):
 
@@ -270,7 +270,7 @@ class Migration(SchemaMigration):
                     'to': "orm['sentry.AuthProvider']"
                 }
             ),
-            'data': ('jsonfield.fields.JSONField', [], {
+            'data': ('sentry.db.models.fields.jsonfield.JSONField', [], {
                 'default': '{}'
             }),
             'date_added':
@@ -298,7 +298,7 @@ class Migration(SchemaMigration):
             'Meta': {
                 'object_name': 'AuthProvider'
             },
-            'config': ('jsonfield.fields.JSONField', [], {
+            'config': ('sentry.db.models.fields.jsonfield.JSONField', [], {
                 'default': '{}'
             }),
             'date_added':

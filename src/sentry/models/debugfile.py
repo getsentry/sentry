@@ -19,7 +19,6 @@ import hashlib
 import logging
 import tempfile
 
-from jsonfield import JSONField
 from django.db import models
 
 from symbolic import Archive, SymbolicError, ObjectErrorUnsupportedObject
@@ -27,7 +26,7 @@ from symbolic import Archive, SymbolicError, ObjectErrorUnsupportedObject
 from sentry import options
 from sentry.cache import default_cache
 from sentry.constants import KNOWN_DIF_FORMATS
-from sentry.db.models import FlexibleForeignKey, Model, sane_repr, BaseManager
+from sentry.db.models import FlexibleForeignKey, Model, sane_repr, BaseManager, JSONField
 from sentry.models.file import File
 from sentry.reprocessing import resolve_processing_issue, \
     bump_reprocessing_revision

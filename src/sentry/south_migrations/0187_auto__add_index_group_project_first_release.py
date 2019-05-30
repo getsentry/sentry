@@ -294,7 +294,7 @@ class Migration(SchemaMigration):
                     'to': "orm['sentry.AuthProvider']"
                 }
             ),
-            'data': ('jsonfield.fields.JSONField', [], {
+            'data': ('sentry.db.models.fields.jsonfield.JSONField', [], {
                 'default': '{}'
             }),
             'date_added':
@@ -326,7 +326,7 @@ class Migration(SchemaMigration):
             'Meta': {
                 'object_name': 'AuthProvider'
             },
-            'config': ('jsonfield.fields.JSONField', [], {
+            'config': ('sentry.db.models.fields.jsonfield.JSONField', [], {
                 'default': '{}'
             }),
             'date_added':
@@ -503,7 +503,7 @@ class Migration(SchemaMigration):
                 'max_length': '40',
                 'null': 'True'
             }),
-            'headers': ('jsonfield.fields.JSONField', [], {
+            'headers': ('sentry.db.models.fields.jsonfield.JSONField', [], {
                 'default': '{}'
             }),
             'id':
@@ -525,7 +525,7 @@ class Migration(SchemaMigration):
                 'max_length': '128',
                 'null': 'True'
             }),
-            'storage_options': ('jsonfield.fields.JSONField', [], {
+            'storage_options': ('sentry.db.models.fields.jsonfield.JSONField', [], {
                 'default': '{}'
             }),
             'timestamp': (
@@ -1236,7 +1236,7 @@ class Migration(SchemaMigration):
                 'unique_together': "(('project', 'version'),)",
                 'object_name': 'Release'
             },
-            'data': ('jsonfield.fields.JSONField', [], {
+            'data': ('sentry.db.models.fields.jsonfield.JSONField', [], {
                 'default': '{}'
             }),
             'date_added':

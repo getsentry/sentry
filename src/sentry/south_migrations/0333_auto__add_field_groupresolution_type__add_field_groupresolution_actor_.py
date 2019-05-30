@@ -752,7 +752,7 @@ class Migration(SchemaMigration):
             'app_id': ('django.db.models.fields.CharField', [], {
                 'max_length': '64'
             }),
-            'data': ('jsonfield.fields.JSONField', [], {
+            'data': ('sentry.db.models.fields.jsonfield.JSONField', [], {
                 'default': '{}'
             }),
             'date_added':
@@ -1016,7 +1016,7 @@ class Migration(SchemaMigration):
             'complete': ('django.db.models.fields.BooleanField', [], {
                 'default': 'False'
             }),
-            'data': ('jsonfield.fields.JSONField', [], {
+            'data': ('sentry.db.models.fields.jsonfield.JSONField', [], {
                 'default': '{}'
             }),
             'date_completed':
@@ -1057,7 +1057,7 @@ class Migration(SchemaMigration):
                 'max_length': '40',
                 'null': 'True'
             }),
-            'headers': ('jsonfield.fields.JSONField', [], {
+            'headers': ('sentry.db.models.fields.jsonfield.JSONField', [], {
                 'default': '{}'
             }),
             'id':
@@ -1595,7 +1595,7 @@ class Migration(SchemaMigration):
             ('sentry.db.models.fields.bounded.BoundedBigAutoField', [], {
                 'primary_key': 'True'
             }),
-            'state': ('jsonfield.fields.JSONField', [], {
+            'state': ('sentry.db.models.fields.jsonfield.JSONField', [], {
                 'null': 'True'
             }),
             'until': ('django.db.models.fields.DateTimeField', [], {
@@ -1956,7 +1956,7 @@ class Migration(SchemaMigration):
                 'unique_together': "(('organization', 'task'),)",
                 'object_name': 'OrganizationOnboardingTask'
             },
-            'data': ('jsonfield.fields.JSONField', [], {
+            'data': ('sentry.db.models.fields.jsonfield.JSONField', [], {
                 'default': '{}'
             }),
             'date_completed':
@@ -2289,7 +2289,7 @@ class Migration(SchemaMigration):
             ('sentry.db.models.fields.bounded.BoundedPositiveIntegerField', [], {
                 'null': 'True'
             }),
-            'data': ('jsonfield.fields.JSONField', [], {
+            'data': ('sentry.db.models.fields.jsonfield.JSONField', [], {
                 'default': '{}'
             }),
             'date_added':
@@ -2538,7 +2538,7 @@ class Migration(SchemaMigration):
                 'object_name':
                 'Repository'
             },
-            'config': ('jsonfield.fields.JSONField', [], {
+            'config': ('sentry.db.models.fields.jsonfield.JSONField', [], {
                 'default': '{}'
             }),
             'date_added':
@@ -2703,7 +2703,7 @@ class Migration(SchemaMigration):
             'app_label': ('django.db.models.fields.CharField', [], {
                 'max_length': '64'
             }),
-            'data': ('jsonfield.fields.JSONField', [], {
+            'data': ('sentry.db.models.fields.jsonfield.JSONField', [], {
                 'default': '{}'
             }),
             'date_added':
