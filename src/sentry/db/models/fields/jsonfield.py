@@ -139,4 +139,4 @@ class JSONField(models.TextField):
 
 if 'south' in settings.INSTALLED_APPS:
     from south.modelsinspector import add_introspection_rules
-    add_introspection_rules([], ['^sentry\.db\.models\.fields\.JSONField'])
+    add_introspection_rules([], ['^sentry\.db\.models\.fields\.jsonfield.JSONField'])
