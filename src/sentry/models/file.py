@@ -25,10 +25,14 @@ from django.core.files.base import ContentFile
 from django.core.files.storage import get_storage_class
 from django.db import models, transaction, IntegrityError
 from django.utils import timezone
-from jsonfield import JSONField
 
 from sentry.app import locks
-from sentry.db.models import (BoundedPositiveIntegerField, FlexibleForeignKey, Model)
+from sentry.db.models import (
+    BoundedPositiveIntegerField,
+    FlexibleForeignKey,
+    JSONField,
+    Model
+)
 from sentry.tasks.files import delete_file as delete_file_task
 from sentry.utils import metrics
 from sentry.utils.retries import TimedRetryPolicy

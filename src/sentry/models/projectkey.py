@@ -14,7 +14,6 @@ import re
 from bitfield import BitField
 from uuid import uuid4
 
-from jsonfield import JSONField
 from django.conf import settings
 from django.core.urlresolvers import reverse
 from django.db import models
@@ -24,7 +23,12 @@ from six.moves.urllib.parse import urlparse
 
 from sentry import options
 from sentry.db.models import (
-    Model, BaseManager, BoundedPositiveIntegerField, FlexibleForeignKey, sane_repr
+    Model,
+    BaseManager,
+    BoundedPositiveIntegerField,
+    FlexibleForeignKey,
+    JSONField,
+    sane_repr
 )
 
 _uuid4_re = re.compile(r'^[a-f0-9]{32}$')
