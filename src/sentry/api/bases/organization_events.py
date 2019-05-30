@@ -78,8 +78,8 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
                 if 'project.id' not in fields:
                     fields.append('project.id')
 
-            for field in SPECIAL_FIELDS:
-                if field in fields:
+            for field in fields[:]:
+                if field in SPECIAL_FIELDS:
                     special_field = deepcopy(SPECIAL_FIELDS[field])
                     fields.remove(field)
                     fields.extend(special_field.get('fields', []))
