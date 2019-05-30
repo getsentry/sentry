@@ -225,7 +225,8 @@ def assemble_artifacts(org_id, version, checksum, chunks, **kwargs):
             )
 
             full_path = path.join(scratchpad, rel_path)
-            file.putfile(open(full_path, 'rb'), logger=logger)
+            with open(full_path, 'rb') as fp:
+                file.putfile(fp, logger=logger)
 
             kwargs = {
                 'organization_id': organization.id,
