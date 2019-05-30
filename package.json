@@ -145,10 +145,6 @@
     "snapshot": "build-storybook && PERCY_TOKEN=$STORYBOOK_PERCY_TOKEN PERCY_PROJECT=$STORYBOOK_PERCY_PROJECT percy-storybook --widths=1280",
     "webpack-profile": "yarn -s webpack --profile --json > stats.json"
   },
-  "toolchain": {
-    "node": "8.15.1",
-    "yarn": "1.13.0"
-  },
   "volta": {
     "node": "8.15.1",
     "yarn": "1.13.0"
