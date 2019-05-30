@@ -19,10 +19,11 @@ export default class Table extends React.Component {
     isLoading: PropTypes.bool,
     organization: SentryTypes.Organization.isRequired,
     onSearch: PropTypes.func.isRequired,
+    location: PropTypes.object,
   };
 
   renderBody() {
-    const {view, data, isLoading, organization, onSearch} = this.props;
+    const {view, data, isLoading, organization, onSearch, location} = this.props;
     const {fields} = view.data;
 
     if (isLoading) {
@@ -42,7 +43,7 @@ export default class Table extends React.Component {
         {fields.map(field => (
           <Cell key={field}>
             {SPECIAL_FIELDS.hasOwnProperty(field) ? (
-              SPECIAL_FIELDS[field].renderFunc(row, {organization, onSearch})
+              SPECIAL_FIELDS[field].renderFunc(row, {organization, onSearch, location})
             ) : (
               <QueryLink onClick={() => onSearch(`${field}:${row[field]}`)}>
                 {row[field]}
