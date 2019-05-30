@@ -9,6 +9,7 @@ import AsyncComponent from 'app/components/asyncComponent';
 import Pagination from 'app/components/pagination';
 import {Panel} from 'app/components/panels';
 import EventsChart from 'app/views/organizationEvents/eventsChart';
+import getDynamicText from 'app/utils/getDynamicText';
 
 import {getParams} from 'app/views/organizationEvents/utils/getParams';
 
@@ -70,14 +71,19 @@ class Events extends AsyncComponent {
     return (
       <React.Fragment>
         <Panel>
-          <EventsChart
-            router={router}
-            query={query}
-            organization={organization}
-            onZoom={this.handleZoom}
-            showLegend
-            yAxisOptions={CHART_AXIS_OPTIONS}
-          />
+          {getDynamicText({
+            value: (
+              <EventsChart
+                router={router}
+                query={query}
+                organization={organization}
+                onZoom={this.handleZoom}
+                showLegend
+                yAxisOptions={CHART_AXIS_OPTIONS}
+              />
+            ),
+            fixed: null,
+          })}
         </Panel>
         <StyledSearchBar
           organization={organization}
