@@ -53,7 +53,7 @@ class AssembleDifTest(BaseAssembleTest):
             chunks=chunks,
         )
 
-        status, _ = get_assemble_status(AssembleTask.DIF, self.project, total_checksum)
+        status, _ = get_assemble_status(AssembleTask.DIF, self.project.id, total_checksum)
         assert status == ChunkFileState.ERROR
 
     def test_dif(self):
@@ -68,7 +68,7 @@ class AssembleDifTest(BaseAssembleTest):
             chunks=[blob1.checksum],
         )
 
-        status, _ = get_assemble_status(AssembleTask.DIF, self.project, total_checksum)
+        status, _ = get_assemble_status(AssembleTask.DIF, self.project.id, total_checksum)
         assert status == ChunkFileState.OK
 
         dif = ProjectDebugFile.objects.filter(
@@ -138,7 +138,7 @@ class AssembleArtifactsTest(BaseAssembleTest):
             chunks=[blob1.checksum],
         )
 
-        status, details = get_assemble_status(AssembleTask.ARTIFACTS, self.organization,
+        status, details = get_assemble_status(AssembleTask.ARTIFACTS, self.organization.id,
                                               total_checksum)
         assert status == ChunkFileState.OK
         assert details is None
@@ -165,7 +165,7 @@ class AssembleArtifactsTest(BaseAssembleTest):
             chunks=[blob1.checksum],
         )
 
-        status, details = get_assemble_status(AssembleTask.ARTIFACTS, self.organization,
+        status, details = get_assemble_status(AssembleTask.ARTIFACTS, self.organization.id,
                                               total_checksum)
         assert status == ChunkFileState.ERROR
 
@@ -181,7 +181,7 @@ class AssembleArtifactsTest(BaseAssembleTest):
             chunks=[blob1.checksum],
         )
 
-        status, details = get_assemble_status(AssembleTask.ARTIFACTS, self.organization,
+        status, details = get_assemble_status(AssembleTask.ARTIFACTS, self.organization.id,
                                               total_checksum)
         assert status == ChunkFileState.ERROR
 
@@ -197,6 +197,6 @@ class AssembleArtifactsTest(BaseAssembleTest):
             chunks=[blob1.checksum],
         )
 
-        status, details = get_assemble_status(AssembleTask.ARTIFACTS, self.organization,
+        status, details = get_assemble_status(AssembleTask.ARTIFACTS, self.organization.id,
                                               total_checksum)
         assert status == ChunkFileState.ERROR

@@ -141,7 +141,7 @@ class DifAssembleEndpoint(APITestCase):
             debug_id='df449af8-0dcd-4320-9943-ec192134d593',
             code_id='DF449AF80DCD43209943EC192134D593',
         )
-        set_assemble_status(AssembleTask.DIF, self.project, checksum, None)
+        set_assemble_status(AssembleTask.DIF, self.project.id, checksum, None)
 
         # Request now tells us that everything is alright
         response = self.client.post(
@@ -257,7 +257,7 @@ class DifAssembleEndpoint(APITestCase):
 
         file = assemble_file(AssembleTask.DIF, self.project, 'test',
                              total_checksum, chunks, 'project.dif')[0]
-        status, _ = get_assemble_status(AssembleTask.DIF, self.project, total_checksum)
+        status, _ = get_assemble_status(AssembleTask.DIF, self.project.id, total_checksum)
         assert status != ChunkFileState.ERROR
         assert file.checksum == total_checksum
 

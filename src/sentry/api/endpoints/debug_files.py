@@ -284,7 +284,7 @@ class DifAssembleEndpoint(ProjectEndpoint):
             # First, check the cached assemble status. During assembling, a
             # ProjectDebugFile will be created and we need to prevent a race
             # condition.
-            state, detail = get_assemble_status(AssembleTask.DIF, project, checksum)
+            state, detail = get_assemble_status(AssembleTask.DIF, project.id, checksum)
             if state == ChunkFileState.OK:
                 file_response[checksum] = {
                     'state': state,
@@ -340,7 +340,7 @@ class DifAssembleEndpoint(ProjectEndpoint):
 
             # We don't have a state yet, this means we can now start
             # an assemble job in the background.
-            set_assemble_status(AssembleTask.DIF, project, checksum,
+            set_assemble_status(AssembleTask.DIF, project.id, checksum,
                                 ChunkFileState.CREATED)
 
             from sentry.tasks.assemble import assemble_dif

@@ -41,15 +41,15 @@ AssembleTask = enum(
 def _get_cache_key(task, scope, checksum):
     """Computes the cache key for assemble status.
 
-    ``task`` must be one of the ``AssembleTask`` values. Scope can be any model
-    that has an identifier, such as the organization or project that this task
+    ``task`` must be one of the ``AssembleTask`` values. The scope can be the
+    identifier of any model, such as the organization or project that this task
     is performed under.
 
     ``checksum`` should be the SHA1 hash of the main file that is being
     assembled.
     """
     return 'assemble-status:%s' % hashlib.sha1(b'%s|%s|%s' % (
-        str(scope.id).encode('ascii'),
+        str(scope).encode('ascii'),
         checksum.encode('ascii'),
         task,
     )).hexdigest()
@@ -91,10 +91,10 @@ def assemble_dif(project_id, name, checksum, chunks, **kwargs):
         scope.set_tag("project", project_id)
 
     project = Project.objects.filter(id=project_id).get()
-    set_assemble_status(AssembleTask.DIF, project, checksum, ChunkFileState.ASSEMBLING)
+    set_assemble_status(AssembleTask.DIF, project.id, checksum, ChunkFileState.ASSEMBLING)
 
     # Assemble the chunks into a temporary file
-    rv = assemble_file(AssembleTask.DIF, project, name, checksum, chunks,
+    rv = assemble_file(AssembleTask.DIF, project.id, name, checksum, chunks,
                        file_type='project.dif')
 
     # If not file has been created this means that the file failed to
@@ -111,13 +111,13 @@ def assemble_dif(project_id, name, checksum, chunks, **kwargs):
             try:
                 result = debugfile.detect_dif_from_path(temp_file.name, name=name)
             except BadDif as e:
-                set_assemble_status(AssembleTask.DIF, project, checksum,
+                set_assemble_status(AssembleTask.DIF, project.id, checksum,
                                     ChunkFileState.ERROR, detail=e.args[0])
                 return
 
             if len(result) != 1:
                 detail = 'Object contains %s architectures (1 expected)' % len(result)
-                set_assemble_status(AssembleTask.DIF, project, checksum,
+                set_assemble_status(AssembleTask.DIF, project.id, checksum,
                                     ChunkFileState.ERROR, detail=detail)
                 return
 
@@ -131,11 +131,11 @@ def assemble_dif(project_id, name, checksum, chunks, **kwargs):
                 # revision instead.
                 bump_reprocessing_revision(project)
     except BaseException:
-        set_assemble_status(AssembleTask.DIF, project, checksum, ChunkFileState.ERROR,
+        set_assemble_status(AssembleTask.DIF, project.id, checksum, ChunkFileState.ERROR,
                             detail='internal server error')
         logger.error('failed to assemble dif', exc_info=True)
     else:
-        set_assemble_status(AssembleTask.DIF, project, checksum, ChunkFileState.OK,
+        set_assemble_status(AssembleTask.DIF, project.id, checksum, ChunkFileState.OK,
                             detail=serialize(dif))
     finally:
         if delete_file:
@@ -161,7 +161,7 @@ def assemble_artifacts(org_id, version, checksum, chunks, **kwargs):
         scope.set_tag("organization", org_id)
 
     organization = Organization.objects.filter(id=org_id).get()
-    set_assemble_status(AssembleTask.ARTIFACTS, organization, checksum, ChunkFileState.ASSEMBLING)
+    set_assemble_status(AssembleTask.ARTIFACTS, org_id, checksum, ChunkFileState.ASSEMBLING)
 
     # Assemble the chunks into a temporary file
     rv = assemble_file(AssembleTask.ARTIFACTS, organization, 'release-artifacts.zip',
@@ -256,14 +256,14 @@ def assemble_artifacts(org_id, version, checksum, chunks, **kwargs):
                 old_file.delete()
 
     except AssembleArtifactsError as e:
-        set_assemble_status(AssembleTask.ARTIFACTS, organization, checksum,
+        set_assemble_status(AssembleTask.ARTIFACTS, org_id, checksum,
                             ChunkFileState.ERROR, detail=e.message)
     except BaseException:
         logger.error('failed to assemble release bundle', exc_info=True)
-        set_assemble_status(AssembleTask.ARTIFACTS, organization, checksum,
+        set_assemble_status(AssembleTask.ARTIFACTS, org_id, checksum,
                             ChunkFileState.ERROR, detail='internal server error')
     else:
-        set_assemble_status(AssembleTask.ARTIFACTS, organization, checksum,
+        set_assemble_status(AssembleTask.ARTIFACTS, org_id, checksum,
                             ChunkFileState.OK)
     finally:
         shutil.rmtree(scratchpad)
@@ -298,7 +298,7 @@ def assemble_file(task, org_or_project, name, checksum, chunks, file_type):
     # organization. This value cannot be
     file_size = sum(x[2] for x in file_blobs)
     if file_size > get_max_file_size(organization):
-        set_assemble_status(task, org_or_project, checksum, ChunkFileState.ERROR,
+        set_assemble_status(task, org_or_project.id, checksum, ChunkFileState.ERROR,
                             detail='File exceeds maximum size')
         return
 
@@ -313,7 +313,7 @@ def assemble_file(task, org_or_project, name, checksum, chunks, file_type):
     # Sanity check.  In case not all blobs exist at this point we have a
     # race condition.
     if set(x[1] for x in file_blobs) != set(chunks):
-        set_assemble_status(task, org_or_project, checksum, ChunkFileState.ERROR,
+        set_assemble_status(task, org_or_project.id, checksum, ChunkFileState.ERROR,
                             detail='Not all chunks available for assembling')
         return
 
@@ -326,7 +326,7 @@ def assemble_file(task, org_or_project, name, checksum, chunks, file_type):
         temp_file = file.assemble_from_file_blob_ids(file_blob_ids, checksum)
     except AssembleChecksumMismatch:
         file.delete()
-        set_assemble_status(task, org_or_project, checksum, ChunkFileState.ERROR,
+        set_assemble_status(task, org_or_project.id, checksum, ChunkFileState.ERROR,
                             detail='Reported checksum mismatch')
     else:
         file.save()
