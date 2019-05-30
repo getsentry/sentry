@@ -230,7 +230,7 @@ const PlatformCard = styled(({platform, selected, onClear, ...props}) => (
   background: ${p => p.selected && '#ecf5fd'};
 
   &:hover {
-    background: #f7f5fa;
+    background: #ebebef;
   }
 
   h3 {
