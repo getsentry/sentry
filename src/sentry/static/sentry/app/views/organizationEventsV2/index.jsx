@@ -1,7 +1,6 @@
 import React from 'react';
 import DocumentTitle from 'react-document-title';
 import PropTypes from 'prop-types';
-import {browserHistory} from 'react-router';
 
 import {t} from 'app/locale';
 import SentryTypes from 'app/sentryTypes';
@@ -21,26 +20,7 @@ import {getCurrentView} from './utils';
 export default class OrganizationEventsV2 extends React.Component {
   static propTypes = {
     organization: SentryTypes.Organization.isRequired,
-    location: PropTypes.object,
-  };
-
-  // Called by the event modal tag table when a tag value is clicked.
-  handleTagSelect = tag => {
-    const {location} = this.props;
-    const query = {...location.query};
-    // Add tag key/value to search
-    if (query.query) {
-      query.query += ` ${tag.key}:"${tag.value}"`;
-    } else {
-      query.query = `${tag.key}:"${tag.value}"`;
-    }
-    // Remove the event slug so the user sees new search results.
-    delete query.eventSlug;
-
-    browserHistory.push({
-      pathname: location.pathname,
-      query,
-    });
+    location: PropTypes.object.isRequired,
   };
 
   renderTabs() {
@@ -91,7 +71,6 @@ export default class OrganizationEventsV2 extends React.Component {
                 orgId={organization.slug}
                 params={this.props.params}
                 eventSlug={eventSlug}
-                onTagSelect={this.handleTagSelect}
               />
             )}
           </PageContent>

@@ -14,7 +14,6 @@ class EventDetails extends AsyncComponent {
   static propTypes = {
     params: PropTypes.object,
     eventSlug: PropTypes.string.isRequired,
-    onTagSelect: PropTypes.func.isRequired,
   };
 
   getEndpoints() {

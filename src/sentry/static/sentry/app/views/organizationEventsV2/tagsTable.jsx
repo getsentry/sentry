@@ -1,17 +1,14 @@
 import React from 'react';
 import styled from 'react-emotion';
 import PropTypes from 'prop-types';
+import {withRouter} from 'react-router';
+
+import Link from 'app/components/links/link';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
+import {eventTagSearchUrl} from './utils';
 
 const TagsTable = props => {
-  const handleSelect = tag => {
-    return event => {
-      event.preventDefault();
-      props.onTagSelect(tag);
-    };
-  };
-
   return (
     <div>
       <TagHeading>{t('Tags')}</TagHeading>
@@ -21,9 +18,7 @@ const TagsTable = props => {
             <StyledTr key={tag.key}>
               <TagKey>{tag.key}</TagKey>
               <TagValue>
-                <a href="#" onClick={handleSelect(tag)}>
-                  {tag.value}
-                </a>
+                <Link to={eventTagSearchUrl(tag, props.location)}>{tag.value}</Link>
               </TagValue>
             </StyledTr>
           ))}
@@ -34,7 +29,7 @@ const TagsTable = props => {
 };
 TagsTable.propTypes = {
   tags: PropTypes.array.isRequired,
-  onTagSelect: PropTypes.func.isRequired,
+  location: PropTypes.object,
 };
 
 const TagHeading = styled('h5')`
@@ -60,4 +55,4 @@ const TagValue = styled(TagKey)`
   text-align: right;
 `;
 
-export default TagsTable;
+export default withRouter(TagsTable);
