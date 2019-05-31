@@ -94,7 +94,7 @@ def assemble_dif(project_id, name, checksum, chunks, **kwargs):
     set_assemble_status(AssembleTask.DIF, project.id, checksum, ChunkFileState.ASSEMBLING)
 
     # Assemble the chunks into a temporary file
-    rv = assemble_file(AssembleTask.DIF, project.id, name, checksum, chunks,
+    rv = assemble_file(AssembleTask.DIF, project, name, checksum, chunks,
                        file_type='project.dif')
 
     # If not file has been created this means that the file failed to
