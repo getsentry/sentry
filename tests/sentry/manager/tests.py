@@ -2,12 +2,19 @@
 
 from __future__ import absolute_import
 
+from datetime import timedelta
+
+from django.utils import timezone
+
 from sentry import tagstore
 from sentry.models import Group, Project, Team, User
-from sentry.testutils import TestCase
+from sentry.testutils import (
+    SnubaTestCase,
+    TestCase,
+)
 
 
-class SentryManagerTest(TestCase):
+class SentryManagerTest(TestCase, SnubaTestCase):
     def test_valid_only_message(self):
         event = Group.objects.from_kwargs(1, message='foo')
         self.assertEquals(event.group.last_seen, event.datetime)
@@ -15,20 +22,22 @@ class SentryManagerTest(TestCase):
         self.assertEquals(event.project_id, 1)
 
     def test_add_tags(self):
-        event = Group.objects.from_kwargs(1, message='rrr')
+        min_ago = timezone.now() - timedelta(minutes=1)
+        event = self.store_event(
+            data={
+                'timestamp': min_ago.isoformat()[:19],
+                'tags': {'foo': 'bar', 'biz': 'boz'},
+            },
+            project_id=self.project.id,
+        )
         group = event.group
-        environment = self.create_environment()
-
-        with self.tasks():
-            Group.objects.add_tags(
-                group,
-                environment,
-                tags=[
-                    ('foo', 'bar'),
-                    ('foo', 'baz'),
-                    ('biz', 'boz'),
-                ],
-            )
+        self.store_event(
+            data={
+                'timestamp': min_ago.isoformat()[:19],
+                'tags': {'foo': 'baz'},
+            },
+            project_id=self.project.id,
+        )
 
         results = sorted(
             tagstore.get_group_tag_values(

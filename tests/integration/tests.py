@@ -21,7 +21,11 @@ from sentry_sdk import Hub, Client
 from six import StringIO
 
 from sentry.models import (Group, Event)
-from sentry.testutils import TestCase, TransactionTestCase
+from sentry.testutils import (
+    SnubaTestCase,
+    TestCase,
+    TransactionTestCase,
+)
 from sentry.testutils.helpers import get_auth_header
 from sentry.utils.settings import (validate_settings, ConfigurationError, import_string)
 
@@ -155,7 +159,7 @@ class RavenIntegrationTest(TransactionTestCase):
         assert instance.data['logentry']['formatted'] == 'foo'
 
 
-class SentryRemoteTest(TestCase):
+class SentryRemoteTest(TestCase, SnubaTestCase):
     @fixture
     def path(self):
         return reverse('sentry-api-store')
@@ -188,24 +192,34 @@ class SentryRemoteTest(TestCase):
             'bar') is not None
 
     def test_exception(self):
-        kwargs = {'exception': {
-            'type': 'ZeroDivisionError',
-            'value': 'cannot divide by zero',
-            'stacktrace': {'frames': [
-                {
-                    'filename': 'utils.py',
-                    'in_app': False,
-                    'function': 'raise_it',
-                    'module': 'utils',
+        timestamp = timezone.now().replace(
+            microsecond=0, tzinfo=timezone.utc,
+        ) - datetime.timedelta(hours=1)
+
+        kwargs = {
+            'exception': {
+                'type': 'ZeroDivisionError',
+                'value': 'cannot divide by zero',
+                'stacktrace': {
+                    'frames': [
+                        {
+                            'filename': 'utils.py',
+                            'in_app': False,
+                            'function': 'raise_it',
+                            'module': 'utils',
+                        },
+                        {
+                            'filename': 'main.py',
+                            'in_app': True,
+                            'function': 'fail_it',
+                            'module': 'main',
+                        },
+                    ],
                 },
-                {
-                    'filename': 'main.py',
-                    'in_app': True,
-                    'function': 'fail_it',
-                    'module': 'main',
-                }
-            ]}
-        }, 'tags': {'foo': 'bar'}}
+            },
+            'tags': {'foo': 'bar'},
+            'timestamp': float(timestamp.strftime('%s.%f')),
+        }
 
         resp = self._postWithHeader(kwargs)
 

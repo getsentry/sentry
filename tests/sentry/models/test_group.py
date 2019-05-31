@@ -2,7 +2,7 @@ from __future__ import absolute_import
 
 import six
 
-from datetime import datetime, timedelta
+from datetime import timedelta
 
 import pytest
 from django.db.models import ProtectedError
@@ -44,50 +44,70 @@ class GroupTest(TestCase, SnubaTestCase):
         assert group.get_oldest_event() is None
 
     def test_get_oldest_latest_events(self):
-        group = self.create_group()
+        dt = timezone.now() - timedelta(minutes=5)
         for i in range(0, 3):
-            self.create_event(
-                event_id=six.text_type(i),
-                group=group,
-                datetime=datetime(2013, 8, 13, 3, 8, i),
+            event = self.store_event(
+                data={
+                    'event_id': six.text_type(i) * 32,
+                    'fingerprint': ['group-1'],
+                    'timestamp': (dt + timedelta(seconds=i)).isoformat()[:19],
+                },
+                project_id=self.project.id,
             )
+            group = event.group
 
-        assert group.get_latest_event().event_id == '2'
-        assert group.get_oldest_event().event_id == '0'
+        assert group.get_latest_event().event_id == '2' * 32
+        assert group.get_oldest_event().event_id == '0' * 32
 
     def test_get_oldest_latest_identical_timestamps(self):
-        group = self.create_group()
+        now = timezone.now()
         for i in range(0, 3):
-            self.create_event(
-                event_id=six.text_type(i),
-                group=group,
-                datetime=datetime(2013, 8, 13, 3, 8, 50),
+            event = self.store_event(
+                data={
+                    'event_id': six.text_type(i) * 32,
+                    'fingerprint': ['group-1'],
+                    'timestamp': now.isoformat()[:19],
+                },
+                project_id=self.project.id,
             )
+            group = event.group
 
-        assert group.get_latest_event().event_id == '2'
-        assert group.get_oldest_event().event_id == '0'
+        assert group.get_latest_event().event_id == '2' * 32
+        assert group.get_oldest_event().event_id == '0' * 32
 
     def test_get_oldest_latest_almost_identical_timestamps(self):
-        group = self.create_group()
-        self.create_event(
-            event_id='0',
-            group=group,
-            datetime=datetime(2013, 8, 13, 3, 8, 0),  # earliest
+        start = timezone.now() - timedelta(minutes=5)
+        event = self.store_event(
+            data={
+                'event_id': '0' * 32,
+                'fingerprint': ['group-1'],
+                'timestamp': start.isoformat()[:19],  # earliest
+            },
+            project_id=self.project.id,
         )
+        group = event.group
+
         for i in range(1, 3):
-            self.create_event(
-                event_id=six.text_type(i),
-                group=group,
-                datetime=datetime(2013, 8, 13, 3, 8, 30),  # all in the middle
+            self.store_event(
+                data={
+                    'event_id': six.text_type(i) * 32,
+                    'fingerprint': ['group-1'],
+                    'timestamp': (start + timedelta(seconds=30)).isoformat()[:19],  # middle
+                },
+                project_id=self.project.id,
             )
-        self.create_event(
-            event_id='3',
-            group=group,
-            datetime=datetime(2013, 8, 13, 3, 8, 59),  # latest
+
+        self.store_event(
+            data={
+                'event_id': '3' * 32,
+                'fingerprint': ['group-1'],
+                'timestamp': (start + timedelta(seconds=59)).isoformat()[:19],  # latest
+            },
+            project_id=self.project.id,
         )
 
-        assert group.get_latest_event().event_id == '3'
-        assert group.get_oldest_event().event_id == '0'
+        assert group.get_latest_event().event_id == '3' * 32
+        assert group.get_oldest_event().event_id == '0' * 32
 
     def test_is_ignored_with_expired_snooze(self):
         group = self.create_group(
