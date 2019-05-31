@@ -11,13 +11,14 @@ export default class SubscribeButton extends React.Component {
     isSubscribed: PropTypes.bool,
     onClick: PropTypes.func.isRequired,
     disabled: PropTypes.bool,
+    size: Button.propTypes.size,
   };
 
   render() {
-    const {isSubscribed, onClick, disabled} = this.props;
+    const {size, isSubscribed, onClick, disabled} = this.props;
 
     return (
-      <Button size="small" onClick={onClick} disabled={disabled}>
+      <Button size={size} onClick={onClick} disabled={disabled}>
         <Content>
           <SignalIcon className="icon-signal" isSubscribed={isSubscribed} />
           {isSubscribed ? t('Unsubscribe') : t('Subscribe')}
@@ -28,13 +29,12 @@ export default class SubscribeButton extends React.Component {
 }
 
 const Content = styled('span')`
-  font-size: 14px;
   display: flex;
   align-items: center;
 `;
 
 const SignalIcon = styled('span')`
-  font-size: 18px;
+  font-size: 1.2em;
   margin-right: 5px;
   ${p => p.isSubscribed && `color: ${p.theme.blue}`};
 `;
