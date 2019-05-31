@@ -38,12 +38,6 @@ const formGroups = [
         label: t('Early Adopter'),
         help: t("Opt-in to new features before they're released to the public"),
       },
-      {
-        name: 'disableNewVisibilityFeatures',
-        type: 'boolean',
-        label: t('Disable New Product Features'),
-        help: t('Temporarily opt-out of new product changes'),
-      },
     ],
   },
 
