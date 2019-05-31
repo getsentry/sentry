@@ -1,6 +1,7 @@
 import {Link} from 'react-router';
 import PropTypes from 'prop-types';
 import React from 'react';
+import moment from 'moment';
 import styled from 'react-emotion';
 
 import {PageHeader} from 'app/styles/organization';
@@ -55,10 +56,6 @@ export default class DetailsHeader extends React.Component {
 
   render() {
     const {hasIncidentDetailsError, incident, params, onSubscriptionChange} = this.props;
-    const incidentIdAsInt = parseInt(params.incidentId, 10);
-    const formattedIncidentId = !isNaN(incidentIdAsInt)
-      ? incidentIdAsInt.toLocaleString()
-      : t('Invalid Incident');
     const isIncidentReady = !!incident && !hasIncidentDetailsError;
     const eventLink = incident && {
       pathname: `/organizations/${params.orgId}/events/`,
@@ -69,6 +66,7 @@ export default class DetailsHeader extends React.Component {
         group: incident.groups,
       },
     };
+    const dateStarted = incident && moment(incident.dateStarted).format('LL');
 
     return (
       <Header>
@@ -78,8 +76,12 @@ export default class DetailsHeader extends React.Component {
               <IncidentsLink to={`/organizations/${params.orgId}/incidents/`}>
                 {t('Incidents')}
               </IncidentsLink>
-              <Chevron src="icon-chevron-right" size={space(2)} />
-              {formattedIncidentId}
+              {dateStarted && (
+                <React.Fragment>
+                  <Chevron src="icon-chevron-right" size={space(2)} />
+                  <IncidentDate>{dateStarted}</IncidentDate>
+                </React.Fragment>
+              )}
             </Breadcrumb>
             <IncidentTitle loading={!isIncidentReady}>
               {isIncidentReady ? incident.title : 'Loading'}
@@ -171,11 +173,18 @@ const ItemValue = styled('div')`
 `;
 
 const Breadcrumb = styled('div')`
-  margin-bottom: ${space(2)};
+  display: flex;
+  align-items: center;
+  margin-bottom: ${space(1)};
 `;
 
 const IncidentTitle = styled('div')`
   ${p => p.loading && 'opacity: 0'};
+`;
+
+const IncidentDate = styled('div')`
+  font-size: 0.8em;
+  color: ${p => p.theme.gray2};
 `;
 
 const IncidentsLink = styled(Link)`
