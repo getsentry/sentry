@@ -17,13 +17,21 @@ describe('OrganizationEventsV2', function() {
       ],
     });
     MockApiClient.addMockResponse({
-      url: '/projects/org-slug/project-slug/events/deadbeef',
+      url: '/projects/org-slug/project-slug/events/deadbeef/',
       body: {
+        id: '1234',
+        size: 1200,
         eventID: 'deadbeef',
         title: 'Oh no something bad',
         message: 'It was not good',
         dateCreated: '2019-05-23T22:12:48+00:00',
-        entries: [],
+        entries: [
+          {
+            type: 'message',
+            message: 'bad stuff',
+            data: {},
+          },
+        ],
         tags: [{key: 'browser', value: 'Firefox'}],
       },
     });
