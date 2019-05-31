@@ -54,8 +54,6 @@ export async function fetchIncidentActivities(api, orgId, incidentId) {
  * Creates a note for an incident
  */
 export async function createIncidentNote(api, orgId, incidentId, note) {
-  addLoadingMessage(t('Posting comment...'));
-
   try {
     const result = await api.requestPromise(
       `/organizations/${orgId}/incidents/${incidentId}/comments/`,
@@ -66,8 +64,6 @@ export async function createIncidentNote(api, orgId, incidentId, note) {
         },
       }
     );
-
-    clearIndicators();
 
     return result;
   } catch (err) {
@@ -80,8 +76,6 @@ export async function createIncidentNote(api, orgId, incidentId, note) {
  * Deletes a note for an incident
  */
 export async function deleteIncidentNote(api, orgId, incidentId, noteId) {
-  addLoadingMessage(t('Removing comment...'));
-
   try {
     const result = await api.requestPromise(
       `/organizations/${orgId}/incidents/${incidentId}/comments/${noteId}/`,
@@ -90,7 +84,6 @@ export async function deleteIncidentNote(api, orgId, incidentId, noteId) {
       }
     );
 
-    clearIndicators();
     return result;
   } catch (err) {
     addErrorMessage(t('Failed to delete comment'));
@@ -102,8 +95,6 @@ export async function deleteIncidentNote(api, orgId, incidentId, noteId) {
  * Updates a note for an incident
  */
 export async function updateIncidentNote(api, orgId, incidentId, noteId, note) {
-  addLoadingMessage(t('Updating comment...'));
-
   try {
     const result = await api.requestPromise(
       `/organizations/${orgId}/incidents/${incidentId}/comments/${noteId}/`,

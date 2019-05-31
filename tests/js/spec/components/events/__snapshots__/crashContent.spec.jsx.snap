@@ -27,6 +27,7 @@ exports[`CrashContent renders with meta data 1`] = `
     }
   }
   newestFirst={true}
+  projectId="sentry"
   stackType="original"
   stackView="full"
 >

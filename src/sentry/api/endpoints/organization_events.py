@@ -5,7 +5,9 @@ from functools import partial
 
 from rest_framework.response import Response
 
+from sentry import tagstore
 from sentry.api.bases import OrganizationEventsEndpointBase, OrganizationEventsError, NoProjects
+from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.helpers.events import get_direct_hit_response
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.serializers import EventSerializer, serialize, SimpleEventSerializer
@@ -91,7 +93,8 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
             }, status=400)
 
         data_fn = partial(
-            lambda *args, **kwargs: transform_aliases_and_query(*args, **kwargs)['data'],
+            lambda **kwargs: transform_aliases_and_query(
+                skip_conditions=True, **kwargs)['data'],
             referrer='api.organization-events-v2',
             **snuba_args
         )
@@ -108,7 +111,7 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
             organization=organization,
             id__in=project_ids).values('id', 'slug')}
 
-        fields = request.GET.getlist('fields')
+        fields = request.GET.getlist('field')
 
         if 'project.name' in fields:
             for result in results:
@@ -164,6 +167,41 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsEndpointBase):
             ),
             status=200,
         )
+
+
+class OrganizationEventsHeatmapEndpoint(OrganizationEventsEndpointBase):
+    def get(self, request, organization):
+        try:
+            snuba_args = self.get_snuba_query_args(request, organization)
+        except OrganizationEventsError as exc:
+            return Response({'detail': exc.message}, status=400)
+        except NoProjects:
+            return Response({'detail': 'A valid project must be included.'}, status=400)
+
+        lookup_keys = [tagstore.prefix_reserved_key(key) for key in request.GET.getlist('keys')]
+
+        if not lookup_keys:
+            return Response({'detail': 'Tag keys must be specified.'}, status=400)
+        project_ids = snuba_args['filter_keys']['project_id']
+        environment_ids = snuba_args['filter_keys'].get('environment_id')
+
+        has_global_views = features.has(
+            'organizations:global-views',
+            organization,
+            actor=request.user)
+
+        if not has_global_views and len(project_ids) > 1:
+            return Response({
+                'detail': 'You cannot view events from multiple projects.'
+            }, status=400)
+
+        try:
+            tag_key = tagstore.get_group_tag_keys_and_top_values(
+                project_ids, None, environment_ids, keys=lookup_keys, get_excluded_tags=True, **snuba_args)
+        except tagstore.TagKeyNotFound:
+            raise ResourceDoesNotExist
+
+        return Response(serialize(tag_key, request.user))
 
 
 class OrganizationEventsMetaEndpoint(OrganizationEventsEndpointBase):

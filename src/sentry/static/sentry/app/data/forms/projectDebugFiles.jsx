@@ -18,6 +18,7 @@ export const fields = {
       ['autodesk', t('Autodesk')],
       ['chromium', t('Chromium')],
       ['citrix', t('Citrix')],
+      ['electron', t('Electron')],
       ['intel', t('Intel')],
       ['mozilla', t('Mozilla')],
       ['nvidia', t('NVIDIA')],

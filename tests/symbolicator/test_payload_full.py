@@ -41,9 +41,13 @@ REAL_RESOLVING_EVENT_DATA = {
                 'stacktrace': {
                     "frames": [
                         {
+                            "platform": "foobar",
+                            "function": "hi"
+                        },
+                        {
                             "function": "unknown",
                             "instruction_addr": "0x0000000100000fa0"
-                        },
+                        }
                     ]
                 },
                 "type": "Fail",
@@ -162,6 +166,19 @@ class ResolvingIntegrationTestBase(object):
         self.login_as(user=self.user)
 
         resp = self._postWithHeader(dict(project=self.project.id, **REAL_RESOLVING_EVENT_DATA))
+        assert resp.status_code == 200
+
+        event = Event.objects.get()
+        assert event.data['culprit'] == 'unknown'
+        insta_snapshot_stacktrace_data(self, event.data)
+
+    def test_missing_debug_images(self):
+        self.login_as(user=self.user)
+
+        payload = dict(project=self.project.id, **REAL_RESOLVING_EVENT_DATA)
+        del payload['debug_meta']
+
+        resp = self._postWithHeader(payload)
         assert resp.status_code == 200
 
         event = Event.objects.get()

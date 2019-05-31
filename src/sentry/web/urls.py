@@ -109,6 +109,11 @@ urlpatterns += patterns(
         name='sentry-api-minidump'
     ),
     url(
+        r'^api/(?P<project_id>[\w_-]+)/events/(?P<event_id>[\w-]+)/attachments/$',
+        api.EventAttachmentStoreView.as_view(),
+        name='sentry-api-event-attachment'
+    ),
+    url(
         r'^api/(?P<project_id>[\w_-]+)/unreal/(?P<sentry_key>\w+)/$',
         api.UnrealView.as_view(),
         name='sentry-api-unreal'
@@ -598,6 +603,11 @@ urlpatterns += patterns(
         r'^(?P<organization_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/$',
         react_page_view,
         name='sentry-stream'
+    ),
+    url(
+        r'^organizations/(?P<organization_slug>[\w_-]+)/incidents/(?P<incident_id>\d+)/$',
+        react_page_view,
+        name='sentry-incident',
     ),
     url(
         r'^(?P<organization_slug>[\w_-]+)/(?P<project_slug>[\w_-]+)/issues/(?P<group_id>\d+)/tags/(?P<key>[^\/]+)/export/$',

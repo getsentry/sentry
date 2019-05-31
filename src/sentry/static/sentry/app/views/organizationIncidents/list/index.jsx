@@ -6,7 +6,8 @@ import styled from 'react-emotion';
 
 import {PageContent, PageHeader} from 'app/styles/organization';
 import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
-import {t} from 'app/locale';
+import {t, tct} from 'app/locale';
+import AlertLink from 'app/components/alertLink';
 import AsyncComponent from 'app/components/asyncComponent';
 import BetaTag from 'app/components/betaTag';
 import Button from 'app/components/button';
@@ -20,9 +21,9 @@ import space from 'app/styles/space';
 
 import Status from '../status';
 
-const DEFAULT_QUERY_STATUS = 'open';
+const DEFAULT_QUERY_STATUS = '';
 
-class OrganizationIncidentsBody extends AsyncComponent {
+class OrganizationIncidentsList extends AsyncComponent {
   getEndpoints() {
     const {params, location} = this.props;
     return [
@@ -99,17 +100,20 @@ class OrganizationIncidentsBody extends AsyncComponent {
   }
 }
 
-class OrganizationIncidents extends React.Component {
+class OrganizationIncidentsListContainer extends React.Component {
   render() {
-    const {pathname, query} = this.props.location;
+    const {params, location} = this.props;
+    const {pathname, query} = location;
+    const {orgId} = params;
 
-    const openIncidentsQuery = omit(query, 'status');
-    const allIncidentsQuery = {...query, status: ''};
+    const openIncidentsQuery = {...query, status: 'open'};
+    const closedIncidentsQuery = {...query, status: 'closed'};
+    const allIncidentsQuery = omit(query, 'status');
 
     const status = query.status === undefined ? DEFAULT_QUERY_STATUS : query.status;
 
     return (
-      <DocumentTitle title={`Incidents - ${this.props.params.orgId} - Sentry`}>
+      <DocumentTitle title={`Incidents - ${orgId} - Sentry`}>
         <PageContent>
           <PageHeader>
             <PageHeading withMargins>
@@ -118,6 +122,13 @@ class OrganizationIncidents extends React.Component {
 
             <div className="btn-group">
               <Button
+                to={{pathname, query: allIncidentsQuery}}
+                size="small"
+                className={'btn' + (status === '' ? ' active' : '')}
+              >
+                {t('All Incidents')}
+              </Button>
+              <Button
                 to={{pathname, query: openIncidentsQuery}}
                 size="small"
                 className={'btn' + (status === 'open' ? ' active' : '')}
@@ -125,15 +136,27 @@ class OrganizationIncidents extends React.Component {
                 {t('Open')}
               </Button>
               <Button
-                to={{pathname, query: allIncidentsQuery}}
+                to={{pathname, query: closedIncidentsQuery}}
                 size="small"
-                className={'btn' + (status === '' ? ' active' : '')}
+                className={'btn' + (status === 'closed' ? ' active' : '')}
               >
-                {t('All Incidents')}
+                {t('Closed')}
               </Button>
             </div>
           </PageHeader>
-          <OrganizationIncidentsBody {...this.props} />
+
+          <AlertLink
+            priority="warning"
+            to={`/organizations/${orgId}/issues/`}
+            icon="icon-circle-info"
+          >
+            {tct(
+              'To create a new incident, select one or more issues from the Issues view. Then, click the [create:Create Incident] button.',
+              {create: <em />}
+            )}
+          </AlertLink>
+
+          <OrganizationIncidentsList {...this.props} />
         </PageContent>
       </DocumentTitle>
     );
@@ -147,4 +170,4 @@ const TableLayout = styled('div')`
   width: 100%;
 `;
 
-export default OrganizationIncidents;
+export default OrganizationIncidentsListContainer;

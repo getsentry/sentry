@@ -126,8 +126,6 @@ def merge_symbolicator_minidump_system_info(data, system_info):
 
 
 def merge_symbolicator_minidump_response(data, response):
-    sdk_info = get_sdk_from_event(data)
-
     data['platform'] = 'native'
     if response.get('crashed') is not None:
         data['level'] = 'fatal' if response['crashed'] else 'info'
@@ -136,6 +134,8 @@ def merge_symbolicator_minidump_response(data, response):
 
     if response.get('system_info'):
         merge_symbolicator_minidump_system_info(data, response['system_info'])
+
+    sdk_info = get_sdk_from_event(data)
 
     images = []
     set_path(data, 'debug_meta', 'images', value=images)

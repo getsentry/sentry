@@ -71,7 +71,7 @@ from .endpoints.organization_details import OrganizationDetailsEndpoint
 from .endpoints.organization_discover_query import OrganizationDiscoverQueryEndpoint
 from .endpoints.organization_discover_saved_queries import OrganizationDiscoverSavedQueriesEndpoint
 from .endpoints.organization_discover_saved_query_detail import OrganizationDiscoverSavedQueryDetailEndpoint
-from .endpoints.organization_events import OrganizationEventsEndpoint, OrganizationEventsMetaEndpoint, OrganizationEventsStatsEndpoint
+from .endpoints.organization_events import OrganizationEventsEndpoint, OrganizationEventsMetaEndpoint, OrganizationEventsStatsEndpoint, OrganizationEventsHeatmapEndpoint
 from .endpoints.organization_group_index import OrganizationGroupIndexEndpoint
 from .endpoints.organization_dashboard_details import OrganizationDashboardDetailsEndpoint
 from .endpoints.organization_dashboard_widget_details import OrganizationDashboardWidgetDetailsEndpoint
@@ -189,6 +189,7 @@ from .endpoints.release_deploys import ReleaseDeploysEndpoint
 from .endpoints.debug_files import DebugFilesEndpoint, DifAssembleEndpoint, \
     UnknownDebugFilesEndpoint, AssociateDSymFilesEndpoint
 from .endpoints.sentry_apps import SentryAppsEndpoint
+from .endpoints.sentry_app_features import SentryAppFeaturesEndpoint
 from .endpoints.sentry_apps_stats import SentryAppsStatsEndpoint
 from .endpoints.sentry_app_components import SentryAppComponentsEndpoint, \
     OrganizationSentryAppComponentsEndpoint
@@ -600,6 +601,11 @@ urlpatterns = patterns(
         r'^organizations/(?P<organization_slug>[^\/]+)/events-stats/$',
         OrganizationEventsStatsEndpoint.as_view(),
         name='sentry-api-0-organization-events-stats'
+    ),
+    url(
+        r'^organizations/(?P<organization_slug>[^\/]+)/events-heatmap/$',
+        OrganizationEventsHeatmapEndpoint.as_view(),
+        name='sentry-api-0-organization-events-heatmap'
     ),
     url(
         r'^organizations/(?P<organization_slug>[^\/]+)/events-meta/$',
@@ -1327,6 +1333,11 @@ urlpatterns = patterns(
         r'^sentry-apps/(?P<sentry_app_slug>[^\/]+)/$',
         SentryAppDetailsEndpoint.as_view(),
         name='sentry-api-0-sentry-app-details'
+    ),
+    url(
+        r'^sentry-apps/(?P<sentry_app_slug>[^\/]+)/features/$',
+        SentryAppFeaturesEndpoint.as_view(),
+        name='sentry-api-0-sentry-app-features'
     ),
     url(
         r'^sentry-apps/(?P<sentry_app_slug>[^\/]+)/components/$',

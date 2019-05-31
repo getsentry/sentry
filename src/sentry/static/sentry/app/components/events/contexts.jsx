@@ -2,7 +2,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 
 import {objectIsEmpty, toTitleCase, defined} from 'app/utils';
-import GroupEventDataSection from 'app/components/events/eventDataSection';
+import EventDataSection from 'app/components/events/eventDataSection';
 import plugins from 'app/plugins';
 
 const CONTEXT_TYPES = {
@@ -128,7 +128,7 @@ class ContextChunk extends React.Component {
     }
 
     return (
-      <GroupEventDataSection
+      <EventDataSection
         group={group}
         event={evt}
         key={`context-${alias}`}
@@ -136,7 +136,7 @@ class ContextChunk extends React.Component {
         title={this.renderTitle(Component)}
       >
         <Component alias={alias} data={value} />
-      </GroupEventDataSection>
+      </EventDataSection>
     );
   }
 }

@@ -5,11 +5,13 @@ from __future__ import absolute_import
 import mock
 
 from django.core.urlresolvers import reverse
+from django.core.files.uploadedfile import SimpleUploadedFile
 from exam import fixture
 from mock import Mock
+from six import BytesIO
 
 from sentry.coreapi import APIRateLimited
-from sentry.models import ProjectKey
+from sentry.models import ProjectKey, EventAttachment, Event
 from sentry.signals import event_accepted, event_dropped, event_filtered
 from sentry.testutils import (assert_mock_called_once_with_partial, TestCase)
 from sentry.utils import json
@@ -716,6 +718,95 @@ class CrossDomainXmlTest(TestCase):
         assert '<allow-http-request-headers-from domain="*" headers="*" secure="false" />' in resp.content.decode(
             'utf-8'
         )
+
+
+class EventAttachmentStoreViewTest(TestCase):
+    @fixture
+    def path(self):
+        # TODO: Having the event set here means the case where event isnt' created
+        # yet isn't covered by this test class
+        return reverse('sentry-api-event-attachment',
+                       kwargs={'project_id': self.project.id, 'event_id': self.event.event_id})
+
+    def has_attachment(self):
+        return EventAttachment.objects.filter(
+            project_id=self.project.id, event_id=self.event.id).exists()
+
+    def test_event_attachments_feature_creates_attachment(self):
+        out = BytesIO()
+        out.write('hi')
+        with self.feature('organizations:event-attachments'):
+            response = self._postEventAttachmentWithHeader({
+                'attachment1':
+                SimpleUploadedFile('mapping.txt', out.getvalue(), content_type='text/plain'),
+            }, format='multipart')
+
+        assert response.status_code == 201
+        assert self.has_attachment()
+
+    def test_event_attachments_without_feature_returns_forbidden(self):
+        out = BytesIO()
+        out.write('hi')
+        with self.feature({'organizations:event-attachments': False}):
+            response = self._postEventAttachmentWithHeader({
+                'attachment1':
+                SimpleUploadedFile('mapping.txt', out.getvalue(), content_type='text/plain'),
+            }, format='multipart')
+
+        assert response.status_code == 403
+        assert not self.has_attachment()
+
+    def test_event_attachments_without_files_returns_400(self):
+        out = BytesIO()
+        out.write('hi')
+        with self.feature('organizations:event-attachments'):
+            response = self._postEventAttachmentWithHeader({}, format='multipart')
+
+        assert response.status_code == 400
+        assert not self.has_attachment()
+
+    def test_event_attachments_event_doesnt_exist_creates_attachment(self):
+        with self.feature('organizations:event-attachments'):
+            self.path = self.path.replace(self.event.event_id, 'z' * 32)
+            out = BytesIO()
+            out.write('hi')
+            response = self._postEventAttachmentWithHeader({
+                'attachment1':
+                    SimpleUploadedFile('mapping.txt', out.getvalue(), content_type='text/plain'),
+            }, format='multipart')
+
+        assert response.status_code == 201
+        assert self.has_attachment()
+
+    def test_event_attachments_event_empty_file_creates_attachment(self):
+        with self.feature('organizations:event-attachments'):
+            response = self._postEventAttachmentWithHeader({
+                'attachment1':
+                    SimpleUploadedFile(
+                        'mapping.txt',
+                        BytesIO().getvalue(),
+                        content_type='text/plain'),
+            }, format='multipart')
+
+        assert response.status_code == 201
+        assert self.has_attachment()
+
+    def test_event_attachments_event_exists_without_group_id(self):
+        out = BytesIO()
+        out.write('hi')
+        event_id = 'z' * 32
+        Event.objects.create(project_id=self.project.id, event_id=event_id)
+        with self.feature('organizations:event-attachments'):
+            self.path = self.path.replace(self.event.event_id, event_id)
+            response = self._postEventAttachmentWithHeader({
+                'attachment1':
+                    SimpleUploadedFile('mapping.txt', out.getvalue(), content_type='text/plain'),
+            }, format='multipart')
+
+        assert response.status_code == 201
+        assert EventAttachment.objects.get(
+            project_id=self.project.id,
+            event_id=self.event.id).group_id is None
 
 
 class RobotsTxtTest(TestCase):

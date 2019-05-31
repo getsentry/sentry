@@ -6,6 +6,7 @@ const validHookNames = new Set([
   // Additional routes
   'routes',
   'routes:admin',
+  'routes:onboarding',
   'routes:organization',
   'routes:organization-root',
 
@@ -35,7 +36,6 @@ const validHookNames = new Set([
 
   // Onboarding experience
   // TODO(epurkhiser): These all should become less getsentry specific
-  'routes:onboarding-survey',
   'utils:onboarding-survey-url',
   'sidebar:onboarding-assets',
   'onboarding:invite-members',

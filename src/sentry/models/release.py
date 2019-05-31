@@ -15,12 +15,12 @@ import itertools
 from django.db import models, IntegrityError, transaction
 from django.db.models import F
 from django.utils import timezone
-from jsonfield import JSONField
 from time import time
 
 from sentry.app import locks
 from sentry.db.models import (
-    ArrayField, BoundedPositiveIntegerField, FlexibleForeignKey, Model, sane_repr
+    ArrayField, BoundedPositiveIntegerField, FlexibleForeignKey,
+    JSONField, Model, sane_repr
 )
 
 from sentry.models import CommitFileChange

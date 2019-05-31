@@ -20,7 +20,7 @@ from sentry.models import (
     Activity, Environment, Event, ExternalIssue, Group, GroupEnvironment,
     GroupHash, GroupLink, GroupRelease, GroupResolution, GroupStatus,
     GroupTombstone, EventMapping, Integration, Release,
-    ReleaseProjectEnvironment, OrganizationIntegration, UserReport,
+    ReleaseProjectEnvironment, OrganizationIntegration, UserReport, EventAttachment, File
 )
 from sentry.signals import event_discarded, event_saved
 from sentry.testutils import assert_mock_called_once_with_partial, TestCase
@@ -999,6 +999,28 @@ class EventManagerTest(TestCase):
 
         assert UserReport.objects.get(event_id=event_id).environment == environment
 
+    def test_event_attachment_gets_group_id(self):
+        project = self.create_project()
+        event_id = 'a' * 32
+        uploaded_file_name = 'attachment.zip'
+        EventAttachment.objects.create(
+            project_id=project.id,
+            event_id=event_id,
+            name=uploaded_file_name,
+            file=File.objects.create(
+                name=uploaded_file_name,
+            ),
+        )
+
+        event = self.store_event(
+            data=make_event(
+                event_id=event_id
+            ),
+            project_id=project.id
+        )
+
+        assert EventAttachment.objects.get(event_id=event_id).group_id == event.group_id
+
     def test_default_event_type(self):
         manager = EventManager(make_event(message='foo bar'))
         manager.normalize()
@@ -1096,6 +1118,8 @@ class EventManagerTest(TestCase):
         assert event.data['sdk'] == {
             'name': 'sentry-unity',
             'version': '1.0',
+            'integrations': None,
+            'packages': None
         }
 
     def test_no_message(self):
@@ -1124,6 +1148,8 @@ class EventManagerTest(TestCase):
 
         assert event.data['logentry'] == {
             'formatted': '1234',
+            'message': None,
+            'params': None
         }
 
     def test_bad_message(self):
@@ -1145,6 +1171,8 @@ class EventManagerTest(TestCase):
         event = manager.save(self.project.id)
         assert event.data['logentry'] == {
             'formatted': 'hello world',
+            'message': None,
+            'params': None
         }
 
     def test_message_attribute_shadowing(self):
@@ -1163,6 +1191,8 @@ class EventManagerTest(TestCase):
         event = manager.save(self.project.id)
         assert event.data['logentry'] == {
             'formatted': 'hello world',
+            'message': None,
+            'params': None
         }
 
     def test_message_attribute_interface_both_strings(self):
@@ -1178,6 +1208,8 @@ class EventManagerTest(TestCase):
         event = manager.save(self.project.id)
         assert event.data['logentry'] == {
             'formatted': 'a plain string',
+            'message': None,
+            'params': None
         }
 
     def test_throws_when_matches_discarded_hash(self):

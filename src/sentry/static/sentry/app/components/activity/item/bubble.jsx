@@ -11,6 +11,7 @@ const ActivityBubble = styled('div')`
   border: 1px solid ${p => p.borderColor || p.theme.borderLight};
   border-radius: ${p => p.theme.borderRadius};
   position: relative;
+  width: 100%; /* this is used in Incidents Details - a chart can cause overflow and won't resize properly */
 
   &:before {
     display: block;
