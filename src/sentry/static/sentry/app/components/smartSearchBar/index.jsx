@@ -771,7 +771,7 @@ class SmartSearchBar extends React.Component {
               organization={organization}
               disabled={!hasQuery}
             />
-            <Button
+            <SidebarButton
               type="button"
               title={pinTooltip}
               borderless
@@ -779,17 +779,19 @@ class SmartSearchBar extends React.Component {
               aria-label={pinTooltip}
               size="zero"
               onClick={this.onTogglePinnedSearch}
+              isActive={!!pinnedSearch}
             >
-              <PinIcon isPinned={!!pinnedSearch} src={pinIconSrc} />
-            </Button>
-            <SidebarButton
+              <InlineSvg src={pinIconSrc} />
+            </SidebarButton>
+            <SearchBuilderButton
               title={t('Toggle search builder')}
               borderless
               size="zero"
               aria-label={t('Toggle search builder')}
-              icon="icon-sliders"
               onClick={onSidebarToggle}
-            />
+            >
+              <InlineSvg src="icon-sliders" size={13} />
+            </SearchBuilderButton>
           </ButtonBar>
         </Container>
       );
@@ -868,13 +870,6 @@ const SmartSearchBarContainer = withApi(
   )
 );
 
-const PinIcon = styled(InlineSvg)`
-  color: ${p => (p.isPinned ? p.theme.blueLight : p.theme.gray2)};
-  &:hover {
-    color: ${p => p.theme.gray3};
-  }
-`;
-
 const Container = styled('div')`
   border: 1px solid ${p => p.theme.borderLight};
   border-radius: ${p =>
@@ -897,21 +892,12 @@ const Container = styled('div')`
   }
 `;
 
+
 const ButtonBar = styled('div')`
   display: flex;
   padding-top: 9px;
   justify-content: flex-end;
   margin-right: ${space(1)};
-
-  button {
-    margin-left: ${space(0.5)};
-    width: 18px;
-
-    background: transparent;
-    &:hover {
-      background: transparent;
-    }
-  }
 `;
 
 const DropdownWrapper = styled('div')`
@@ -948,15 +934,17 @@ const StyledInput = styled('input')`
 `;
 
 const SidebarButton = styled(Button)`
-  & svg {
-    color: ${p => p.theme.gray2};
-  }
-  &:hover svg {
+  color: ${p => (p.isActive ? p.theme.blueLight : p.theme.gray2)};
+  margin-left: ${space(0.5)};
+  width: 18px;
+
+  &:hover {
     color: ${p => p.theme.gray3};
   }
-  .show-sidebar & svg {
-    color: ${p => p.theme.blueLight};
-  }
+`;
+
+const SearchBuilderButton = styled(SidebarButton)`
+  margin-left: ${space(0.25)};
 `;
 
 function getTitleForType(type) {

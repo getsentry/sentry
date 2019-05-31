@@ -1,1 +1,8 @@
-<svg width="13" height="12" xmlns="http://www.w3.org/2000/svg"><g transform="translate(1 1)" stroke="currentColor" stroke-width="1.6" fill="none" fill-rule="evenodd"><path d="M0 1.667h1.833m3.668 0H11M0 8.333h5.5m3.667 0H11" stroke-opacity=".502" stroke-linecap="round"/><ellipse cx="3.929" cy="1.667" rx="1.571" ry="1.667"/><ellipse cx="7.071" cy="8.333" rx="1.571" ry="1.667"/></g></svg>
+<svg viewBox="0 0 13 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <g id="icon-sliders">
+    <path id="Subtract" fill-rule="evenodd" clip-rule="evenodd" d="M10.95 10C10.9828 9.83845 11 9.67123 11 9.5C11 9.32877 10.9828 9.16155 10.95 9H12.5C12.7761 9 13 9.22386 13 9.5C13 9.77614 12.7761 10 12.5 10H10.95ZM6.05001 10H0.5C0.223858 10 0 9.77614 0 9.5C0 9.22386 0.223858 9 0.5 9H6.05001C6.01722 9.16155 6 9.32877 6 9.5C6 9.67123 6.01722 9.83845 6.05001 10Z" fill="currentColor"/>
+    <path id="Ellipse (Stroke)" fill-rule="evenodd" clip-rule="evenodd" d="M8.5 11C9.32843 11 10 10.3284 10 9.5C10 8.67157 9.32843 8 8.5 8C7.67157 8 7 8.67157 7 9.5C7 10.3284 7.67157 11 8.5 11ZM8.5 12C9.88071 12 11 10.8807 11 9.5C11 8.11929 9.88071 7 8.5 7C7.11929 7 6 8.11929 6 9.5C6 10.8807 7.11929 12 8.5 12Z" fill="currentColor"/>
+    <path id="Subtract_2" fill-rule="evenodd" clip-rule="evenodd" d="M6.94999 3C6.98278 2.83845 7 2.67123 7 2.5C7 2.32877 6.98278 2.16155 6.94999 2H12.5C12.7761 2 13 2.22386 13 2.5C13 2.77614 12.7761 3 12.5 3H6.94999ZM2.05001 3H0.5C0.223858 3 0 2.77614 0 2.5C0 2.22386 0.223858 2 0.5 2H2.05001C2.01722 2.16155 2 2.32877 2 2.5C2 2.67123 2.01722 2.83845 2.05001 3Z" fill="currentColor"/>
+    <path id="Ellipse (Stroke)_2" fill-rule="evenodd" clip-rule="evenodd" d="M4.5 4C5.32843 4 6 3.32843 6 2.5C6 1.67157 5.32843 1 4.5 1C3.67157 1 3 1.67157 3 2.5C3 3.32843 3.67157 4 4.5 4ZM4.5 5C5.88071 5 7 3.88071 7 2.5C7 1.11929 5.88071 0 4.5 0C3.11929 0 2 1.11929 2 2.5C2 3.88071 3.11929 5 4.5 5Z" fill="currentColor"/>
+  </g>
+</svg>
