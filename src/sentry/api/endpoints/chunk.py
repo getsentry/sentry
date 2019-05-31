@@ -25,6 +25,11 @@ MAX_REQUEST_SIZE = 32 * 1024 * 1024
 MAX_CONCURRENCY = settings.DEBUG and 1 or 8
 HASH_ALGORITHM = 'sha1'
 
+CHUNK_UPLOAD_ACCEPT = (
+    'debug_files',  # DIF assemble
+    'release_files',  # Artifacts assemble
+)
+
 
 class GzipChunk(BytesIO):
     def __init__(self, file):
@@ -61,6 +66,7 @@ class ChunkUploadEndpoint(OrganizationEndpoint):
                 'concurrency': MAX_CONCURRENCY,
                 'hashAlgorithm': HASH_ALGORITHM,
                 'compression': ['gzip'],
+                'accept': CHUNK_UPLOAD_ACCEPT,
             }
         )
 
