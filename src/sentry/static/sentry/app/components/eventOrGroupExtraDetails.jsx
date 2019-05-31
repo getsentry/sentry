@@ -4,12 +4,11 @@ import {Link, withRouter} from 'react-router';
 import styled from 'react-emotion';
 import {Flex, Box} from 'grid-emotion';
 
-import TimeSince from 'app/components/timeSince';
 import ShortId from 'app/components/shortId';
-import overflowEllipsis from 'app/styles/overflowEllipsis';
-import {t, tct} from 'app/locale';
+import {tct} from 'app/locale';
 import InlineSvg from 'app/components/inlineSvg';
 import ProjectBadge from 'app/components/idBadge/projectBadge';
+import Times from 'app/components/group/times';
 import SentryTypes from 'app/sentryTypes';
 import space from 'app/styles/space';
 
@@ -69,26 +68,7 @@ class EventOrGroupExtraDetails extends React.Component {
             }
           />
         )}
-        <Times>
-          <div css={overflowEllipsis}>
-            {lastSeen && (
-              <React.Fragment>
-                <GroupTimeIcon src="icon-clock-sm" />
-                <TimeSince date={lastSeen} suffix={t('ago')} />
-              </React.Fragment>
-            )}
-            {firstSeen && lastSeen && (
-              <span className="hidden-xs hidden-sm">&nbsp;—&nbsp;</span>
-            )}
-            {firstSeen && (
-              <TimeSince
-                date={firstSeen}
-                suffix={t('old')}
-                className="hidden-xs hidden-sm"
-              />
-            )}
-          </div>
-        </Times>
+        <Times lastSeen={lastSeen} firstSeen={firstSeen} />
         <GroupExtraCommentsAndLogger>
           {numComments > 0 && (
             <Box mr={2}>
@@ -159,12 +139,6 @@ const CommentsLink = styled(Link)`
   flex-shrink: 0;
 `;
 
-const Times = styled('div')`
-  margin-right: ${space(2)};
-  flex-shrink: 1;
-  min-width: 0; /* flex-hack for overflow-ellipsised children */
-`;
-
 const GroupShortId = styled(ShortId)`
   margin-right: ${space(2)};
   flex-shrink: 0;
@@ -176,12 +150,6 @@ const GroupExtraIcon = styled(InlineSvg)`
   color: ${p => (p.isMentioned ? p.theme.green : null)};
   font-size: 11px;
   margin-right: 4px;
-`;
-
-const GroupTimeIcon = styled(GroupExtraIcon)`
-  /* this is solely for optics, since TimeSince always begins
-  with a number, and numbers do not have descenders */
-  transform: translateY(-1px);
 `;
 
 export default withRouter(EventOrGroupExtraDetails);
