@@ -120,6 +120,37 @@ class AssembleDifTest(BaseAssembleTest):
                           [x[1] for x in files], 'dummy.type')[0]
         assert f.checksum == file_checksum.hexdigest()
 
+    def test_assemble_duplicate_blobs(self):
+        files = []
+        file_checksum = sha1()
+        blob = os.urandom(1024 * 1024 * 8)
+        hash = sha1(blob).hexdigest()
+        for _ in xrange(8):
+            file_checksum.update(blob)
+            files.append((io.BytesIO(blob), hash))
+
+        # upload all blobs
+        FileBlob.from_files(files, organization=self.organization)
+
+        # find all blobs
+        for reference, checksum in files:
+            blob = FileBlob.objects.get(checksum=checksum)
+            ref_bytes = reference.getvalue()
+            assert blob.getfile().read(len(ref_bytes)) == ref_bytes
+            FileBlobOwner.objects.filter(
+                blob=blob,
+                organization=self.organization
+            ).get()
+
+        rv = assemble_file(AssembleTask.DIF,
+                           self.project, 'testfile', file_checksum.hexdigest(),
+                           [x[1] for x in files], 'dummy.type')
+
+        assert rv is not None
+        f, tmp = rv
+        assert f.checksum == file_checksum.hexdigest()
+        assert f.type == 'dummy.type'
+
 
 class AssembleArtifactsTest(BaseAssembleTest):
     def setUp(self):
