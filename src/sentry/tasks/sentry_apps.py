@@ -6,12 +6,13 @@ from celery.task import current
 from django.core.urlresolvers import reverse
 from requests.exceptions import RequestException
 
+from sentry import options
 from sentry.http import safe_urlopen
 from sentry.tasks.base import instrumented_task, retry
 from sentry.utils.http import absolute_uri
 from sentry.api.serializers import serialize, AppPlatformEvent
 from sentry.models import (
-    SentryAppInstallation, Event, Group, Project, Organization, User, ServiceHook, ServiceHookProject, SentryApp,
+    SentryAppInstallation, Event, EventCommon, Group, Project, Organization, User, ServiceHook, ServiceHookProject, SentryApp, SnubaEvent,
 )
 from sentry.models.sentryapp import VALID_EVENTS
 
@@ -30,10 +31,40 @@ RESOURCE_RENAMES = {
     'Group': 'issue',
 }
 
+USE_SNUBA = options.get('snuba.events-queries.enabled')
+
 TYPES = {
     'Group': Group,
-    'Error': Event,
+    'Error': SnubaEvent if USE_SNUBA else Event,
 }
+
+
+def _webhook_event_data(event):
+    group = event.group
+    project = Project.objects.get_from_cache(id=group.project_id)
+    organization = Organization.objects.get_from_cache(id=project.organization_id)
+
+    event_context = event.as_dict()
+    event_context['url'] = absolute_uri(reverse('sentry-api-0-project-event-details', args=[
+        project.organization.slug,
+        project.slug,
+        event.event_id,
+    ]))
+
+    event_context['web_url'] = absolute_uri(reverse('sentry-organization-event-detail', args=[
+        organization.slug,
+        group.id,
+        event.event_id,
+    ]))
+
+    # The URL has a regex OR in it ("|") which means `reverse` cannot generate
+    # a valid URL (it can't know which option to pick). We have to manually
+    # create this URL for, that reason.
+    event_context['issue_url'] = absolute_uri(
+        '/api/0/issues/{}/'.format(group.id),
+    )
+
+    return event_context
 
 
 @instrumented_task(name='sentry.tasks.sentry_apps.send_alert_event', **TASK_OPTIONS)
@@ -65,25 +96,7 @@ def send_alert_event(event, rule, sentry_app_id):
         logger.info('event_alert_webhook.missing_installation', extra=extra)
         return
 
-    event_context = event.as_dict()
-    event_context['url'] = absolute_uri(reverse('sentry-api-0-project-event-details', args=[
-        project.organization.slug,
-        project.slug,
-        event.event_id,
-    ]))
-
-    event_context['web_url'] = absolute_uri(reverse('sentry-organization-event-detail', args=[
-        organization.slug,
-        group.id,
-        event.event_id,
-    ]))
-
-    # The URL has a regex OR in it ("|") which means `reverse` cannot generate
-    # a valid URL (it can't know which option to pick). We have to manually
-    # create this URL for, that reason.
-    event_context['issue_url'] = absolute_uri(
-        '/api/0/issues/{}/'.format(group.id),
-    )
+    event_context = _webhook_event_data(event)
 
     data = {
         'event': event_context,
@@ -110,7 +123,7 @@ def _process_resource_change(action, sender, instance_id, retryer=None, *args, *
     model = TYPES[sender]
     # The Event model has different hooks for the differenct types. The sender
     # determines which type eg. Error and therefore the 'name' eg. error
-    if model.__name__ == 'Event':
+    if issubclass(model, EventCommon):
         if not kwargs.get('project_id'):
             extra = {
                 'sender': sender,
@@ -133,12 +146,12 @@ def _process_resource_change(action, sender, instance_id, retryer=None, *args, *
     # We may run into a race condition where this task executes before the
     # transaction that creates the Group has committed.
     try:
-        if model.__name__ == 'Event':
-            # we don't use event.id anymore so we have to use the 'event.event_id'
-            # and the 'project_id' as the composite primary key
-            instance = model.objects.get(
-                event_id=instance_id,
-                project_id=kwargs.get('project_id'),
+        if issubclass(model, EventCommon):
+            # 'from_event_id' is supported for both Event and SnubaEvent
+            # instance_id is the event.event_id NOT the event.id
+            instance = model.objects.from_event_id(
+                instance_id,
+                kwargs.get('project_id'),
             )
         else:
             instance = model.objects.get(id=instance_id)
@@ -168,7 +181,10 @@ def _process_resource_change(action, sender, instance_id, retryer=None, *args, *
 
     for installation in installations:
         data = {}
-        data[name] = serialize(instance)
+        if issubclass(model, EventCommon):
+            data[name] = _webhook_event_data(instance)
+        else:
+            data[name] = serialize(instance)
         send_webhooks(installation, event, data=data)
 
 
