@@ -87,7 +87,11 @@ class ProjectOwnership(Model):
                 score = candidate
                 owners = rule.owners
         actors = filter(None, resolve_actors(owners, project_id).values())
-        return actors[0].resolve()
+        if len(actors):
+            return actors[0].resolve()
+        # Can happen if the ownership rule references a user/team that no longer
+        # is assigned to the project or has been removed from the org.
+        return None
 
     @classmethod
     def _matching_ownership_rules(cls, ownership, project_id, data):
