@@ -942,7 +942,7 @@ exports[`ProjectEnvironments render active renders environment list and sets sta
                                     <ForwardRef
                                       aria-disabled={false}
                                       aria-label="Set as default"
-                                      className="ezuela50 css-wfgtbj-StyledButton-getColors-EnvironmentButton e12ma6z0"
+                                      className="ezuela50 css-1b2zh6x-StyledButton-getColors-EnvironmentButton e12ma6z0"
                                       disabled={false}
                                       onClick={[Function]}
                                       role="button"
@@ -951,7 +951,7 @@ exports[`ProjectEnvironments render active renders environment list and sets sta
                                       <button
                                         aria-disabled={false}
                                         aria-label="Set as default"
-                                        className="ezuela50 css-wfgtbj-StyledButton-getColors-EnvironmentButton e12ma6z0"
+                                        className="ezuela50 css-1b2zh6x-StyledButton-getColors-EnvironmentButton e12ma6z0"
                                         onClick={[Function]}
                                         role="button"
                                         size="xsmall"
@@ -1166,7 +1166,7 @@ exports[`ProjectEnvironments render active renders environment list and sets sta
                                     <ForwardRef
                                       aria-disabled={false}
                                       aria-label="Set as default"
-                                      className="ezuela50 css-wfgtbj-StyledButton-getColors-EnvironmentButton e12ma6z0"
+                                      className="ezuela50 css-1b2zh6x-StyledButton-getColors-EnvironmentButton e12ma6z0"
                                       disabled={false}
                                       onClick={[Function]}
                                       role="button"
@@ -1175,7 +1175,7 @@ exports[`ProjectEnvironments render active renders environment list and sets sta
                                       <button
                                         aria-disabled={false}
                                         aria-label="Set as default"
-                                        className="ezuela50 css-wfgtbj-StyledButton-getColors-EnvironmentButton e12ma6z0"
+                                        className="ezuela50 css-1b2zh6x-StyledButton-getColors-EnvironmentButton e12ma6z0"
                                         onClick={[Function]}
                                         role="button"
                                         size="xsmall"
@@ -1222,7 +1222,7 @@ exports[`ProjectEnvironments render active renders environment list and sets sta
                                     <ForwardRef
                                       aria-disabled={false}
                                       aria-label="Hide"
-                                      className="ezuela50 css-wfgtbj-StyledButton-getColors-EnvironmentButton e12ma6z0"
+                                      className="ezuela50 css-1b2zh6x-StyledButton-getColors-EnvironmentButton e12ma6z0"
                                       disabled={false}
                                       onClick={[Function]}
                                       role="button"
@@ -1231,7 +1231,7 @@ exports[`ProjectEnvironments render active renders environment list and sets sta
                                       <button
                                         aria-disabled={false}
                                         aria-label="Hide"
-                                        className="ezuela50 css-wfgtbj-StyledButton-getColors-EnvironmentButton e12ma6z0"
+                                        className="ezuela50 css-1b2zh6x-StyledButton-getColors-EnvironmentButton e12ma6z0"
                                         onClick={[Function]}
                                         role="button"
                                         size="xsmall"
@@ -1478,7 +1478,7 @@ exports[`ProjectEnvironments render active renders environment list and sets sta
                                     <ForwardRef
                                       aria-disabled={false}
                                       aria-label="Hide"
-                                      className="ezuela50 css-wfgtbj-StyledButton-getColors-EnvironmentButton e12ma6z0"
+                                      className="ezuela50 css-1b2zh6x-StyledButton-getColors-EnvironmentButton e12ma6z0"
                                       disabled={false}
                                       onClick={[Function]}
                                       role="button"
@@ -1487,7 +1487,7 @@ exports[`ProjectEnvironments render active renders environment list and sets sta
                                       <button
                                         aria-disabled={false}
                                         aria-label="Hide"
-                                        className="ezuela50 css-wfgtbj-StyledButton-getColors-EnvironmentButton e12ma6z0"
+                                        className="ezuela50 css-1b2zh6x-StyledButton-getColors-EnvironmentButton e12ma6z0"
                                         onClick={[Function]}
                                         role="button"
                                         size="xsmall"
@@ -2475,7 +2475,7 @@ exports[`ProjectEnvironments render hidden renders environment list 1`] = `
                                     <ForwardRef
                                       aria-disabled={false}
                                       aria-label="Show"
-                                      className="ezuela50 css-wfgtbj-StyledButton-getColors-EnvironmentButton e12ma6z0"
+                                      className="ezuela50 css-1b2zh6x-StyledButton-getColors-EnvironmentButton e12ma6z0"
                                       disabled={false}
                                       onClick={[Function]}
                                       role="button"
@@ -2484,7 +2484,7 @@ exports[`ProjectEnvironments render hidden renders environment list 1`] = `
                                       <button
                                         aria-disabled={false}
                                         aria-label="Show"
-                                        className="ezuela50 css-wfgtbj-StyledButton-getColors-EnvironmentButton e12ma6z0"
+                                        className="ezuela50 css-1b2zh6x-StyledButton-getColors-EnvironmentButton e12ma6z0"
                                         onClick={[Function]}
                                         role="button"
                                         size="xsmall"
