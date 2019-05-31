@@ -186,7 +186,7 @@ class StoreViewTest(TestCase):
             'sentry_version': '2.0',
         }
         resp = self.client.options(self.path)
-        assert resp.status_code == 204, (resp.status_code, resp.content)
+        assert resp.status_code == 200, (resp.status_code, resp.content)
         self.assertIn('Allow', resp)
         self.assertEquals(resp['Allow'], 'GET, POST, HEAD, OPTIONS')
         self.assertIn('Content-Length', resp)
@@ -194,25 +194,25 @@ class StoreViewTest(TestCase):
 
     def test_options_with_no_origin_or_referrer(self):
         resp = self.client.options(self.path)
-        assert resp.status_code == 204, (resp.status_code, resp.content)
+        assert resp.status_code == 200, (resp.status_code, resp.content)
         self.assertIn('Access-Control-Allow-Origin', resp)
         self.assertEquals(resp['Access-Control-Allow-Origin'], '*')
 
     def test_options_response_with_valid_origin(self):
         resp = self.client.options(self.path, HTTP_ORIGIN='http://foo.com')
-        assert resp.status_code == 204, (resp.status_code, resp.content)
+        assert resp.status_code == 200, (resp.status_code, resp.content)
         self.assertIn('Access-Control-Allow-Origin', resp)
         self.assertEquals(resp['Access-Control-Allow-Origin'], 'http://foo.com')
 
     def test_options_response_with_valid_referrer(self):
         resp = self.client.options(self.path, HTTP_REFERER='http://foo.com')
-        assert resp.status_code == 204, (resp.status_code, resp.content)
+        assert resp.status_code == 200, (resp.status_code, resp.content)
         self.assertIn('Access-Control-Allow-Origin', resp)
         self.assertEquals(resp['Access-Control-Allow-Origin'], 'http://foo.com')
 
     def test_options_response_origin_preferred_over_referrer(self):
         resp = self.client.options(self.path, HTTP_REFERER='http://foo.com', HTTP_ORIGIN='http://bar.com')
-        assert resp.status_code == 204, (resp.status_code, resp.content)
+        assert resp.status_code == 200, (resp.status_code, resp.content)
         self.assertIn('Access-Control-Allow-Origin', resp)
         self.assertEquals(resp['Access-Control-Allow-Origin'], 'http://bar.com')
 

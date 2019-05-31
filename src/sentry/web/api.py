@@ -95,27 +95,31 @@ def allow_cors_options(func):
 
     @wraps(func)
     def allow_cors_options_wrapper(self, request, *args, **kwargs):
+
         if request.method == 'OPTIONS':
-            response = HttpResponse(status=204)
-
-            allow = ', '.join(self._allowed_methods())
-
-            response['Allow'] = allow
-            response['Access-Control-Allow-Methods'] = allow
-
-            origin = origin_from_request(request)
-            if origin == 'null' or origin is None:
-                response['Access-Control-Allow-Origin'] = '*'
-            else:
-                response['Access-Control-Allow-Origin'] = origin
-
-            response['Access-Control-Allow-Headers'] = ('X-Sentry-Auth, X-Requested-With, Origin, Accept, ' +
-                                                        'Content-Type, Authentication')
+            response = HttpResponse(status=200)
             response['Access-Control-Max-Age'] = '3600'  # don't ask for options again for 1 hour
+        else:
+            response = func(self, request, *args, **kwargs)
 
-            return response
+        allow = ', '.join(self._allowed_methods())
+        response['Allow'] = allow
+        response['Access-Control-Allow-Methods'] = allow
+        response['Access-Control-Allow-Headers'] = 'X-Sentry-Auth, X-Requested-With, Origin, Accept, ' \
+            'Content-Type, Authentication'
+        response['Access-Control-Expose-Headers'] = 'X-Sentry-Error, Retry-After'
 
-        return func(self, request, *args, **kwargs)
+        if request.META.get('HTTP_ORIGIN') == 'null':
+            origin = 'null'  # if ORIGIN header is explicitly specified as 'null' leave it alone
+        else:
+            origin = origin_from_request(request)
+
+        if origin is None or origin == 'null':
+            response['Access-Control-Allow-Origin'] = '*'
+        else:
+            response['Access-Control-Allow-Origin'] = origin
+
+        return response
 
     return allow_cors_options_wrapper
 
@@ -351,7 +355,6 @@ class APIView(BaseView):
             project_id=project_id,
             ip_address=request.META['REMOTE_ADDR'],
         )
-        origin = None
 
         if kafka_publisher is not None:
             self._publish_to_kafka(request)
@@ -414,19 +417,6 @@ class APIView(BaseView):
                 skip_internal=False,
             )
 
-        if response.status_code != 200 and origin:
-            # We allow all origins on errors
-            response['Access-Control-Allow-Origin'] = '*'
-
-        if origin:
-            response['Access-Control-Allow-Headers'] = \
-                'X-Sentry-Auth, X-Requested-With, Origin, Accept, ' \
-                'Content-Type, Authentication'
-            response['Access-Control-Allow-Methods'] = \
-                ', '.join(self._allowed_methods())
-            response['Access-Control-Expose-Headers'] = \
-                'X-Sentry-Error, Retry-After'
-
         return response
 
     def _dispatch(self, request, helper, project_id=None, origin=None, *args, **kwargs):
@@ -473,18 +463,6 @@ class APIView(BaseView):
             request=request, project=project, auth=auth, helper=helper, key=key, **kwargs
         )
 
-        if origin:
-            if origin == 'null':
-                # If an Origin is `null`, but we got this far, that means
-                # we've gotten past our CORS check for some reason. But the
-                # problem is that we can't return "null" as a valid response
-                # to `Access-Control-Allow-Origin` and we don't have another
-                # value to work with, so just allow '*' since they've gotten
-                # this far.
-                response['Access-Control-Allow-Origin'] = '*'
-            else:
-                response['Access-Control-Allow-Origin'] = origin
-
         return response
 
     # XXX: backported from Django 1.5
@@ -499,7 +477,7 @@ class APIView(BaseView):
             It is nevertheless used to construct the allowed http methods and it should not be removed.
         """
         raise NotImplementedError("Options request should have been handled by @allow_cors_options.\n"
-                                  "If dispatch was overriden either decorate it with @allow_cors_options or provide "
+                                  "If dispatch was overridden either decorate it with @allow_cors_options or provide "
                                   "a valid implementation for options.")
 
 
