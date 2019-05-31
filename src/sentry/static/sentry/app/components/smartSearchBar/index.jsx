@@ -945,6 +945,7 @@ const SidebarButton = styled(Button)`
 
 const SearchBuilderButton = styled(SidebarButton)`
   margin-left: ${space(0.25)};
+  margin-right: ${space(0.5)};
 `;
 
 function getTitleForType(type) {
