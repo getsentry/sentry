@@ -4,8 +4,14 @@ import styled, {css} from 'react-emotion';
  * If `blendCorner` is false, then we apply border-radius to all corners
  *
  * Otherwise apply radius to opposite side of `alignMenu` *unles it is fixed width*
+ *
+ * @param {Object} options These are "props" that get passed down (I don't think there's a good way to define propTypes otherwise)
+ * @param {Boolean} options.blendWithActor If this is true, will make corners blend with its opener (so no border radius)
+ * @param {Boolean} options.blendCorner If this is true, will make a single corner blended with actor (depends on anchor orientation)
+ * @param {String} options.alignMenu Can align the menu either "left" or "right"
+ * @param {String} options.width The width of the menu
  */
-const getMenuBorderRadius = ({blendCorner, alignMenu, width, theme}) => {
+const getMenuBorderRadius = ({blendWithActor, blendCorner, alignMenu, width, theme}) => {
   const radius = theme.borderRadius;
   if (!blendCorner) {
     return css`
@@ -17,8 +23,8 @@ const getMenuBorderRadius = ({blendCorner, alignMenu, width, theme}) => {
   const isFullWidth = width === '100%';
 
   // No top border radius if widths match
-  const hasTopLeftRadius = !isFullWidth && alignMenu !== 'left';
-  const hasTopRightRadius = !isFullWidth && !hasTopLeftRadius;
+  const hasTopLeftRadius = !blendWithActor && !isFullWidth && alignMenu !== 'left';
+  const hasTopRightRadius = !blendWithActor && !isFullWidth && !hasTopLeftRadius;
 
   return css`
     border-radius: ${hasTopLeftRadius ? radius : 0} ${hasTopRightRadius ? radius : 0}

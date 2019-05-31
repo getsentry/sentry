@@ -32,6 +32,9 @@ class DropdownControl extends React.Component {
     alignRight: PropTypes.bool,
     // Props to pass to DropdownButton
     buttonProps: PropTypes.object,
+    // This makes the dropdown menu blend (e.g. corners are not rounded) with its
+    // actor (opener) component
+    blendWithActor: PropTypes.bool,
   };
 
   static defaultProps = {
@@ -55,7 +58,14 @@ class DropdownControl extends React.Component {
   }
 
   render() {
-    const {children, alwaysRenderMenu, alignRight, menuOffset, menuWidth} = this.props;
+    const {
+      children,
+      alwaysRenderMenu,
+      alignRight,
+      menuOffset,
+      menuWidth,
+      blendWithActor,
+    } = this.props;
 
     return (
       <Container>
@@ -71,6 +81,7 @@ class DropdownControl extends React.Component {
                   menuOffset={menuOffset}
                   isOpen={isOpen}
                   blendCorner
+                  blendWithActor={blendWithActor}
                 >
                   {children}
                 </MenuContainer>
