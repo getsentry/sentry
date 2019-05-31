@@ -14,23 +14,26 @@ import space from 'app/styles/space';
 import InputField from './inputField';
 
 export default class DatePickerField extends React.Component {
-  onChange = (onChange, onBlur, date) => {
+  handleChangeDate = (onChange, onBlur, date, close) => {
     onChange(date, {});
     onBlur(date, {});
+
+    // close dropdown menu
+    close();
   };
 
   render() {
     return (
       <InputField
         {...this.props}
-        field={({onChange, onBlur, value, disabled, name, id, ...props}) => {
+        field={({onChange, onBlur, value, disabled, name, id}) => {
           const dateObj = new Date(value);
           const inputValue = !isNaN(dateObj.getTime()) ? dateObj : new Date();
           const dateString = moment(inputValue).format('LL');
 
           return (
-            <DropdownMenu>
-              {({isOpen, getRootProps, getActorProps, getMenuProps}) => (
+            <DropdownMenu keepMenuOpen>
+              {({isOpen, getRootProps, getActorProps, getMenuProps, actions}) => (
                 <DatePickerWrapper {...getRootProps({isStyled: true})}>
                   <InputWrapper
                     name={id}
@@ -49,7 +52,9 @@ export default class DatePickerField extends React.Component {
                       <Calendar
                         disabled={disabled}
                         date={inputValue}
-                        onChange={date => this.onChange(onChange, onBlur, date)}
+                        onChange={date =>
+                          this.handleChangeDate(onChange, onBlur, date, actions.close)
+                        }
                       />
                     </CalendarMenu>
                   )}
