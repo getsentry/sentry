@@ -302,20 +302,17 @@ def assemble_file(task, org_or_project, name, checksum, chunks, file_type):
                             detail='File exceeds maximum size')
         return
 
-    # We need to make sure the blobs are in the order in which
-    # we received them from the request.
-    # Otherwise it could happen that we assemble the file in the wrong order
-    # and get an garbage file.
-    file_blob_ids = [x[0] for x in sorted(
-        file_blobs, key=lambda blob: chunks.index(blob[1])
-    )]
-
     # Sanity check.  In case not all blobs exist at this point we have a
     # race condition.
     if set(x[1] for x in file_blobs) != set(chunks):
         set_assemble_status(task, org_or_project.id, checksum, ChunkFileState.ERROR,
                             detail='Not all chunks available for assembling')
         return
+
+    # Ensure blobs are in the order and duplication in which they were
+    # transmitted. Otherwise, we would assemble the file in the wrong order.
+    ids_by_checksum = {chks: id for id, chks, _ in file_blobs}
+    file_blob_ids = [ids_by_checksum[c] for c in chunks]
 
     file = File.objects.create(
         name=name,

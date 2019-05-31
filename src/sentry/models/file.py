@@ -440,8 +440,10 @@ class File(Model):
         tf = tempfile.NamedTemporaryFile()
         with transaction.atomic():
             file_blobs = FileBlob.objects.filter(id__in=file_blob_ids).all()
-            # Make sure the blobs are sorted with the order provided
-            file_blobs = sorted(file_blobs, key=lambda blob: file_blob_ids.index(blob.id))
+
+            # Ensure blobs are in the order and duplication as provided
+            blobs_by_id = {blob.id: blob for blob in file_blobs}
+            file_blobs = [blobs_by_id[blob_id] for blob_id in file_blob_ids]
 
             new_checksum = sha1(b'')
             offset = 0
