@@ -12,7 +12,7 @@ import string
 import warnings
 import pytz
 
-from collections import Iterable, OrderedDict
+from collections import OrderedDict
 from datetime import datetime
 from dateutil.parser import parse as parse_date
 from django.db import models
@@ -454,7 +454,7 @@ class SnubaEvent(EventCommon):
             selected_columns=snuba_cols,
             filter_keys={
                 'event_id': [event_id],
-                'project_id': project_id if isinstance(project_id, Iterable) else [project_id],
+                'project_id': [project_id],
             },
             referrer='SnubaEvent.get_event',
         )
