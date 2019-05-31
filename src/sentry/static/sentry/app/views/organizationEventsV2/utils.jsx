@@ -78,3 +78,25 @@ export function eventTagSearchUrl(tag, location) {
     query,
   };
 }
+
+/**
+ * Fetches tag distributions for heatmaps for an array of tag keys
+ *
+ * @param {Object} api
+ * @param {String} orgSlug
+ * @param {Array} tagList
+ * @returns {Promise<Object>}
+ */
+export function fetchTags(api, orgSlug, tagList) {
+  return api
+    .requestPromise(`/organizations/${orgSlug}/events-heatmap/`, {
+      query: {keys: tagList},
+    })
+    .then(resp => {
+      const tags = {};
+      resp.forEach(tag => {
+        tags[tag.key] = tag;
+      });
+      return tags;
+    });
+}

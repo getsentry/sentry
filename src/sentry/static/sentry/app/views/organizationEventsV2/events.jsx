@@ -102,7 +102,7 @@ class Events extends AsyncComponent {
             />
             <Pagination pageLinks={dataPageLinks} />
           </div>
-          <Tags view={view} />
+          <Tags view={view} organization={organization} />
         </Container>
       </React.Fragment>
     );
