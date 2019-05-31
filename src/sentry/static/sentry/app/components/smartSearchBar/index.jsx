@@ -766,6 +766,19 @@ class SmartSearchBar extends React.Component {
             )}
           </StyledForm>
           <ButtonBar>
+            {this.state.query !== '' && (
+              <CloseButton
+                type="button"
+                title={'Clear search'}
+                borderless
+                aria-label={'Clear search'}
+                size="zero"
+                onClick={this.clearSearch}
+                isActive={!!pinnedSearch}
+              >
+                <InlineSvg src="icon-close" size="11" />
+              </CloseButton>
+            )}
             <CreateSavedSearchButton
               query={this.state.query}
               organization={organization}
@@ -895,9 +908,10 @@ const Container = styled('div')`
 
 const ButtonBar = styled('div')`
   display: flex;
-  padding-top: 9px;
+  padding-top: ${space(0.5)};
   justify-content: flex-end;
   margin-right: ${space(1)};
+  align-items: center;
 `;
 
 const DropdownWrapper = styled('div')`
@@ -946,6 +960,13 @@ const SidebarButton = styled(Button)`
 const SearchBuilderButton = styled(SidebarButton)`
   margin-left: ${space(0.25)};
   margin-right: ${space(0.5)};
+`;
+
+const CloseButton = styled(SidebarButton)`
+  /* we can't propertly center this because of tooltip divs */
+  top: -1px;
+  position: relative;
+  margin-right: 6px;
 `;
 
 function getTitleForType(type) {
