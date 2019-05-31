@@ -82,7 +82,7 @@ class OrganizationEventsV2EndpointTest(OrganizationEventsTestBase):
             response = self.client.get(self.url, {'query': 'hi \n there'}, format='json')
 
         assert response.status_code == 400, response.content
-        assert response.data['detail'] == "Parse error: 'search' (column 4). This is commonly caused by unmatched-parentheses."
+        assert response.data['detail'] == "Parse error: 'search' (column 4). This is commonly caused by unmatched-parentheses. Enclose any text in double quotes."
 
     def test_raw_data(self):
         self.login_as(user=self.user)
