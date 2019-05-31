@@ -99,8 +99,6 @@ def allow_cors_options(func):
             response = HttpResponse(status=204)
 
             allow = ', '.join(self._allowed_methods())
-            if allow.lower().find("options") < 0:
-                allow += ', OPTIONS'
 
             response['Allow'] = allow
             response['Access-Control-Allow-Methods'] = allow
@@ -492,6 +490,17 @@ class APIView(BaseView):
     # XXX: backported from Django 1.5
     def _allowed_methods(self):
         return [m.upper() for m in self.http_method_names if hasattr(self, m)]
+
+    def options(self, request, *args, **kwargs):
+        """
+        Serves requests for OPTIONS
+
+        NOTE: This function is not called since it is shortcut by the @allow_cors_options descriptor.
+            It is nevertheless used to construct the allowed http methods and it should not be removed.
+        """
+        raise NotImplementedError("Options request should have been handled by @allow_cors_options.\n"
+                                  "If dispatch was overriden either decorate it with @allow_cors_options or provide "
+                                  "a valid implementation for options.")
 
 
 class StoreView(APIView):
