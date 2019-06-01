@@ -1154,6 +1154,111 @@ class OrganizationEventsHeatmapEndpointTest(OrganizationEventsTestBase):
         assert response.status_code == 400, response.content
         assert response.data == {'detail': 'You cannot view events from multiple projects.'}
 
+    def test_project_key(self):
+        self.store_event(
+            data={
+                'event_id': uuid4().hex,
+                'timestamp': self.min_ago.isoformat(),
+                'tags': {'color': 'green'},
+            },
+            project_id=self.project.id
+        )
+        self.store_event(
+            data={
+                'event_id': uuid4().hex,
+                'timestamp': self.min_ago.isoformat(),
+                'tags': {'number': 'one'},
+            },
+            project_id=self.project2.id
+        )
+        self.store_event(
+            data={
+                'event_id': uuid4().hex,
+                'timestamp': self.min_ago.isoformat(),
+                'tags': {'color': 'green'},
+            },
+            project_id=self.project.id
+        )
+        self.store_event(
+            data={
+                'event_id': uuid4().hex,
+                'timestamp': self.min_ago.isoformat(),
+                'tags': {'color': 'red'},
+            },
+            project_id=self.project.id
+        )
+
+        with self.feature('organizations:global-views'):
+            response = self.client.get(
+                self.url, {
+                    'keys': [
+                        'color', 'number', 'project']}, format='json')
+
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 3
+        response.data[0] == {
+            'topValues': [
+                {
+                    'count': 3,
+                    'name': self.project.slug,
+                    'value': self.project.slug,
+                    'lastSeen': self.min_ago,
+                    'key': 'project',
+                    'firstSeen': self.min_ago
+                },
+                {
+                    'count': 1,
+                    'name': self.project2.slug,
+                    'value': self.project2.slug,
+                    'lastSeen': self.min_ago,
+                    'key': 'project',
+                    'firstSeen': self.min_ago
+                }
+            ],
+            'totalValues': 4,
+            'uniqueValues': 2,
+            'name': 'Project',
+            'key': 'project'
+        }
+        response.data[1] == {
+            'topValues': [
+                {
+                    'count': 1,
+                    'name': 'one',
+                    'value': 'one',
+                    'lastSeen': self.min_ago,
+                    'key': 'number',
+                    'firstSeen': self.min_ago
+                }
+            ],
+            'totalValues': 1,
+            'name': 'Number',
+            'key': 'number'
+        }
+        response.data[2] == {
+            'topValues': [
+                {
+                    'count': 2,
+                    'name': 'green',
+                    'value': 'green',
+                    'lastSeen': self.min_ago,
+                    'key': 'color',
+                    'firstSeen': self.min_ago
+                },
+                {
+                    'count': 1,
+                    'name': 'red',
+                    'value': 'red',
+                    'lastSeen': self.min_ago,
+                    'key': 'color',
+                    'firstSeen': self.min_ago
+                }
+            ],
+            'totalValues': 3,
+            'name': 'Color',
+            'key': 'color'
+        }
+
 
 class OrganizationEventsMetaEndpoint(OrganizationEventsTestBase):
     def test_simple(self):
