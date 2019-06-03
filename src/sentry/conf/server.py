@@ -1566,11 +1566,6 @@ SOUTH_TESTS_MIGRATE = os.environ.get('SOUTH_TESTS_MIGRATE', '0') == '1'
 TERMS_URL = None
 PRIVACY_URL = None
 
-# DEPRECATED: Toggles whether minidumps should be cached
-SENTRY_MINIDUMP_CACHE = False
-# DEPRECATED: The location for cached minidumps
-SENTRY_MINIDUMP_PATH = '/tmp/minidump'
-
 # Relay
 # List of PKs whitelisted by Sentry.  All relays here are always
 # registered as internal relays.
