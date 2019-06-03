@@ -805,7 +805,6 @@ class SmartSearchBar extends React.Component {
                   borderless
                   containerDisplayMode="inline-flex"
                   type="button"
-                  collapse={true}
                   onClick={onToggle}
                   data-test-id="save-current-search"
                   aria-label={t('Add to organization filter list')}
@@ -817,7 +816,6 @@ class SmartSearchBar extends React.Component {
               title={t('Toggle search builder')}
               borderless
               size="zero"
-              collapse={true}
               containerDisplayMode="inline-flex"
               aria-label={t('Toggle search builder')}
               onClick={onSidebarToggle}
@@ -841,7 +839,8 @@ class SmartSearchBar extends React.Component {
                   <DropdownElement onClick={onToggle}>Create Saved Search</DropdownElement>
                 )}
               </CreateSavedSearchButton>
-              <DropdownElement last onClick={onSidebarToggle}>Toggle sidebar</DropdownElement>
+              <DropdownElement onClick={onSidebarToggle}>Toggle sidebar</DropdownElement>
+              <DropdownElement last onClick={pinTooltip}>{!!pinnedSearch ? 'Unpin Search' : 'Pin Search'}</DropdownElement>
             </StyledDropdownLink>
           </ButtonBar>
         </Container>
@@ -994,7 +993,7 @@ const SidebarButton = styled(Button)`
   }
 
   @media (max-width: ${p => p.theme.breakpoints[2]}) {
-    display: ${p => p.collapse ? 'none' : null} ;
+    display: none;
   }
 `;
 
