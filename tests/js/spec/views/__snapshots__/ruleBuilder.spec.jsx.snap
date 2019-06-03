@@ -1002,7 +1002,7 @@ exports[`RuleBuilder renders 1`] = `
           >
             <ForwardRef
               aria-disabled={true}
-              className="e1hyuoc79 css-1fas0c7-StyledButton-getColors-AddButton e12ma6z0"
+              className="e1hyuoc79 css-1hgfh2n-StyledButton-getColors-AddButton e12ma6z0"
               disabled={true}
               href={null}
               onClick={[Function]}
@@ -1013,7 +1013,7 @@ exports[`RuleBuilder renders 1`] = `
             >
               <button
                 aria-disabled={true}
-                className="e1hyuoc79 css-1fas0c7-StyledButton-getColors-AddButton e12ma6z0"
+                className="e1hyuoc79 css-1hgfh2n-StyledButton-getColors-AddButton e12ma6z0"
                 href={null}
                 onClick={[Function]}
                 role="button"
@@ -2845,7 +2845,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
           >
             <ForwardRef
               aria-disabled={false}
-              className="e1hyuoc79 css-1bmevz4-StyledButton-getColors-AddButton e12ma6z0"
+              className="e1hyuoc79 css-f9lt65-StyledButton-getColors-AddButton e12ma6z0"
               disabled={false}
               onClick={[Function]}
               priority="primary"
@@ -2854,7 +2854,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
             >
               <button
                 aria-disabled={false}
-                className="e1hyuoc79 css-1bmevz4-StyledButton-getColors-AddButton e12ma6z0"
+                className="e1hyuoc79 css-f9lt65-StyledButton-getColors-AddButton e12ma6z0"
                 onClick={[Function]}
                 role="button"
                 size="small"

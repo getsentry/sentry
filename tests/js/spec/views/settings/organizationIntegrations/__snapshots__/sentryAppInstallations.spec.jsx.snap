@@ -825,7 +825,7 @@ exports[`Sentry App Installations when Apps exist displays all Apps owned by the
                           <ForwardRef
                             aria-disabled={false}
                             aria-label="Install"
-                            className="btn btn-default css-o6814l-StyledButton-getColors e12ma6z0"
+                            className="btn btn-default css-1uhlusb-StyledButton-getColors e12ma6z0"
                             disabled={false}
                             onClick={[Function]}
                             role="button"
@@ -834,7 +834,7 @@ exports[`Sentry App Installations when Apps exist displays all Apps owned by the
                             <button
                               aria-disabled={false}
                               aria-label="Install"
-                              className="btn btn-default css-o6814l-StyledButton-getColors e12ma6z0"
+                              className="btn btn-default css-1uhlusb-StyledButton-getColors e12ma6z0"
                               onClick={[Function]}
                               role="button"
                               size="small"

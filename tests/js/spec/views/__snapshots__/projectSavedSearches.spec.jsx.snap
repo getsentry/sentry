@@ -392,7 +392,7 @@ exports[`ProjectSavedSearches renders 1`] = `
                                               >
                                                 <ForwardRef
                                                   aria-disabled={false}
-                                                  className="css-o6814l-StyledButton-getColors e12ma6z0"
+                                                  className="css-1uhlusb-StyledButton-getColors e12ma6z0"
                                                   disabled={false}
                                                   onClick={[Function]}
                                                   role="button"
@@ -400,7 +400,7 @@ exports[`ProjectSavedSearches renders 1`] = `
                                                 >
                                                   <button
                                                     aria-disabled={false}
-                                                    className="css-o6814l-StyledButton-getColors e12ma6z0"
+                                                    className="css-1uhlusb-StyledButton-getColors e12ma6z0"
                                                     onClick={[Function]}
                                                     role="button"
                                                     size="small"
@@ -711,7 +711,7 @@ exports[`ProjectSavedSearches renders 1`] = `
                                               >
                                                 <ForwardRef
                                                   aria-disabled={false}
-                                                  className="css-o6814l-StyledButton-getColors e12ma6z0"
+                                                  className="css-1uhlusb-StyledButton-getColors e12ma6z0"
                                                   disabled={false}
                                                   onClick={[Function]}
                                                   role="button"
@@ -719,7 +719,7 @@ exports[`ProjectSavedSearches renders 1`] = `
                                                 >
                                                   <button
                                                     aria-disabled={false}
-                                                    className="css-o6814l-StyledButton-getColors e12ma6z0"
+                                                    className="css-1uhlusb-StyledButton-getColors e12ma6z0"
                                                     onClick={[Function]}
                                                     role="button"
                                                     size="small"

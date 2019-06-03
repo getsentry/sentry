@@ -189,10 +189,9 @@ const getColors = ({priority, disabled, borderless, theme}) => {
     &:active {
       ${colorActive ? 'color: ${colorActive};' : ''};
       background: ${backgroundActive};
-      border: 1px solid
-        ${!borderless && (borderActive || border)
-          ? borderActive || border
-          : 'transparent'};
+      border-color: ${!borderless && (borderActive || border)
+        ? borderActive || border
+        : 'transparent'};
     }
   `;
 };
