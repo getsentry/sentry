@@ -732,6 +732,7 @@ class SmartSearchBar extends React.Component {
 
     const pinTooltip = !!pinnedSearch ? t('Unpin this search') : t('Pin this search');
     const pinIconSrc = !!pinnedSearch ? 'icon-pin-filled' : 'icon-pin';
+    const hasQuery = !!this.state.query;
 
     if (hasPinnedSearch) {
       return (
@@ -768,11 +769,13 @@ class SmartSearchBar extends React.Component {
             <CreateSavedSearchButton
               query={this.state.query}
               organization={organization}
+              disabled={!hasQuery}
             />
             <Button
               type="button"
               title={pinTooltip}
               borderless
+              disabled={!hasQuery}
               aria-label={pinTooltip}
               size="zero"
               onClick={this.onTogglePinnedSearch}
