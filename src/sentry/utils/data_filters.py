@@ -107,7 +107,12 @@ def is_valid_error_message(project, message):
     message = force_text(message).lower()
 
     for error in filtered_errors:
-        if fnmatch.fnmatch(message, error.lower()):
-            return False
+        try:
+            if fnmatch.fnmatch(message, error.lower()):
+                return False
+        except Exception:
+            # fnmatch raises a string when the pattern is bad.
+            # Patterns come from end users and can be full of mistakes.
+            pass
 
     return True
