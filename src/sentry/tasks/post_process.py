@@ -44,6 +44,28 @@ def _get_service_hooks(project_id):
     return result
 
 
+def _should_send_error_created_hooks(project):
+    from sentry.models import ServiceHook, Organization
+
+    cache_key = u'servicehooks-error-created:1:{}'.format(project.id)
+    result = cache.get(cache_key)
+
+    if result is None:
+
+        org = Organization.objects.get_from_cache(id=project.organization_id)
+        if not features.has('organizations:integrations-event-hooks', organization=org):
+            cache.set(cache_key, False, 60)
+            return False
+
+        hooks = ServiceHook.objects.filter(
+            organization_id=org.id,
+        )
+        result = any(['error.created' in h.events for h in hooks])
+        cache.set(cache_key, result, 60)
+
+    return result
+
+
 def _capture_stats(event, is_new):
     # TODO(dcramer): limit platforms to... something?
     group = event.group
@@ -108,7 +130,7 @@ def post_process_group(event, is_new, is_regression, is_sample, is_new_group_env
         # NOTE: we must pass through the full Event object, and not an
         # event_id since the Event object may not actually have been stored
         # in the database due to sampling.
-        from sentry.models import Project, Organization
+        from sentry.models import Project
         from sentry.models.group import get_group_with_redirect
         from sentry.rules.processor import RuleProcessor
         from sentry.tasks.servicehooks import process_service_hook
@@ -161,10 +183,7 @@ def post_process_group(event, is_new, is_regression, is_sample, is_new_group_env
                             event=event,
                         )
 
-        if event.get_event_type() == 'error' and features.has(
-            'organizations:integrations-event-hooks',
-            organization=Organization.objects.get_from_cache(id=event.project.organization_id),
-        ):
+        if event.get_event_type() == 'error' and _should_send_error_created_hooks(event.project):
             process_resource_change_bound.delay(
                 action='created',
                 sender='Error',
