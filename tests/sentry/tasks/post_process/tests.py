@@ -191,7 +191,7 @@ class PostProcessGroupTest(TestCase):
         assert assignee.user == self.user
         assert assignee.team is None
 
-    def test_owner_assignment_ownership_does_not_exist(self):
+    def test_owner_assignment_ownership_no_matching_owners(self):
         event = self.store_event(
             data={
                 'message': 'oh no',
@@ -240,6 +240,33 @@ class PostProcessGroupTest(TestCase):
         assignee = event.group.assignee_set.first()
         assert assignee.user is None
         assert assignee.team == self.team
+
+    def test_owner_assignment_owner_is_gone(self):
+        self.make_ownership()
+        # Remove the team so the rule match will fail to resolve
+        self.team.delete()
+
+        event = self.store_event(
+            data={
+                'message': 'oh no',
+                'platform': 'python',
+                'stacktrace': {
+                    'frames': [
+                        {'filename': 'src/app/example.py'}
+                    ]
+                }
+            },
+            project_id=self.project.id
+        )
+        post_process_group(
+            event=event,
+            is_new=False,
+            is_regression=False,
+            is_sample=False,
+            is_new_group_environment=False,
+        )
+        assignee = event.group.assignee_set.first()
+        assert assignee is None
 
     @patch('sentry.tasks.servicehooks.process_service_hook')
     def test_service_hook_fires_on_new_event(self, mock_process_service_hook):
