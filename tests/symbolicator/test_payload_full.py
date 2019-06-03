@@ -1,6 +1,5 @@
 from __future__ import absolute_import
 
-import os
 import pytest
 import zipfile
 from mock import patch
@@ -13,7 +12,7 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 from sentry.testutils import TransactionTestCase
 from sentry.models import Event, File, ProjectDebugFile
 
-from tests.symbolicator import insta_snapshot_stacktrace_data
+from tests.symbolicator import get_fixture_path, insta_snapshot_stacktrace_data
 
 REAL_RESOLVING_EVENT_DATA = {
     "platform": "cocoa",
@@ -72,8 +71,7 @@ class ResolvingIntegrationTestBase(object):
 
         out = BytesIO()
         f = zipfile.ZipFile(out, 'w')
-        f.write(os.path.join(os.path.dirname(__file__), 'fixtures', 'hello.dsym'),
-                'dSYM/hello')
+        f.write(get_fixture_path('hello.dsym'), 'dSYM/hello')
         f.close()
 
         response = self.client.post(
@@ -100,7 +98,7 @@ class ResolvingIntegrationTestBase(object):
             headers={'Content-Type': 'text/x-breakpad'},
         )
 
-        path = os.path.join(os.path.dirname(__file__), 'fixtures', 'windows.sym')
+        path = get_fixture_path('windows.sym')
         with open(path) as f:
             file.putfile(f)
 
