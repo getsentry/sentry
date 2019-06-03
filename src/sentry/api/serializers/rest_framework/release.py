@@ -16,7 +16,7 @@ class ReleaseHeadCommitSerializerDeprecated(serializers.Serializer):
 
 class ReleaseHeadCommitSerializer(serializers.Serializer):
     commit = serializers.CharField(max_length=64)
-    repository = serializers.CharField(max_length=64)
+    repository = serializers.CharField(max_length=200)
     previousCommit = serializers.CharField(max_length=64, required=False)
 
 
