@@ -14,7 +14,7 @@ export const fields = {
     ),
     choices: ({builtinSymbolSources}) =>
       builtinSymbolSources &&
-      builtinSymbolSources.map(source => [source.sentry_id, t(source.name)]),
+      builtinSymbolSources.map(source => [source.sentry_key, t(source.name)]),
   },
   symbolSources: {
     name: 'symbolSources',
