@@ -4,7 +4,7 @@ import {browserHistory} from 'react-router';
 import PropTypes from 'prop-types';
 
 import AsyncComponent from 'app/components/asyncComponent';
-import Button from 'app/components/button';
+import InlineSvg from 'app/components/inlineSvg';
 import withApi from 'app/utils/withApi';
 import space from 'app/styles/space';
 
@@ -39,7 +39,9 @@ class EventDetails extends AsyncComponent {
     const [projectId, _] = this.props.eventSlug.split(':');
     return (
       <ModalContainer>
-        <CloseButton onClick={this.handleClose} size="zero" icon="icon-close" />
+        <CloseButton onClick={this.handleClose}>
+          <InlineSvg src="icon-close" size="12" />
+        </CloseButton>
         <EventModalContent
           onTabChange={this.handleTabChange}
           event={this.state.event}
@@ -58,7 +60,7 @@ const ModalContainer = styled('div')`
   right: 0px;
   background: #fff;
 
-  margin: ${space(2)};
+  margin: ${space(3)};
   padding: ${space(3)};
   border: 1px solid ${p => p.theme.borderLight};
   border-radius: ${p => p.theme.borderRadius};
@@ -67,13 +69,18 @@ const ModalContainer = styled('div')`
   z-index: ${p => p.theme.zIndex.modal};
 `;
 
-const CloseButton = styled(Button)`
-  position: absolute;
-  top: -10px;
-  right: -10px;
-  padding: 10px;
+const CloseButton = styled('button')`
+  background: #fff;
   border-radius: 20px;
+  line-height: 12px;
+  height: 30px;
   box-shadow: ${p => p.theme.dropShadowLight};
+  border: 1px solid ${p => p.theme.borderDark};
+
+  position: absolute;
+  top: -15px;
+  right: -15px;
+  padding: 8px;
 `;
 
 export default withApi(EventDetails);
