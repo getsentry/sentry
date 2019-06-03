@@ -6,7 +6,6 @@ import math
 import io
 import jsonschema
 import logging
-import os
 import random
 import six
 import traceback
@@ -754,15 +753,15 @@ class MinidumpView(StoreView):
                     "missing_minidump_upload")
                 raise APIError('Missing minidump upload')
 
-        minidump.seek(0, os.SEEK_END)
-        if minidump.tell() == 0:
+        minidump.seek(0)
+        if minidump.read(4) != 'MDMP':
             track_outcome(
                 project.organization_id,
                 project.id,
                 None,
                 Outcome.INVALID,
-                "empty_minidump")
-            raise APIError('Empty minidump upload received')
+                "invalid_minidump")
+            raise APIError('Uploaded file was not a minidump')
 
         # Always store the minidump in attachments so we can access it during
         # processing, regardless of the event-attachments feature. This is
