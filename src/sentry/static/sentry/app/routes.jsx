@@ -316,14 +316,6 @@ function routes() {
         component={errorHandler(ProjectDataForwarding)}
       />
       <Route
-        path="saved-searches/"
-        name="Saved Searches"
-        componentPromise={() =>
-          import(/* webpackChunkName: "ProjectSavedSearches" */ './views/projectSavedSearches')
-        }
-        component={errorHandler(LazyLoad)}
-      />
-      <Route
         path="debug-symbols/"
         name="Debug Information Files"
         component={errorHandler(ProjectDebugFiles)}
