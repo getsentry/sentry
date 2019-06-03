@@ -21,11 +21,13 @@ class OrganizationStreamContainer extends React.Component {
 
     return (
       <DocumentTitle title={this.getTitle()}>
-        <GlobalSelectionHeader organization={organization} />
+        <React.Fragment>
+          <GlobalSelectionHeader organization={organization} />
 
-        <PageContent>
-          <NoProjectMessage organization={organization}>{children}</NoProjectMessage>
-        </PageContent>
+          <PageContent>
+            <NoProjectMessage organization={organization}>{children}</NoProjectMessage>
+          </PageContent>
+        </React.Fragment>
       </DocumentTitle>
     );
   }
