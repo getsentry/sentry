@@ -833,15 +833,15 @@ class SmartSearchBar extends React.Component {
                 </div>
               }
             >
-              <DropdownElement onClick={onSidebarToggle}>Toggle sidebar</DropdownElement>
               <CreateSavedSearchButton
                 query={this.state.query}
                 organization={organization}
               >
                 {(onToggle) => (
-                  <DropdownElement last onClick={onToggle}>Create Saved Search</DropdownElement>
+                  <DropdownElement onClick={onToggle}>Create Saved Search</DropdownElement>
                 )}
               </CreateSavedSearchButton>
+              <DropdownElement last onClick={onSidebarToggle}>Toggle sidebar</DropdownElement>
             </StyledDropdownLink>
           </ButtonBar>
         </Container>
