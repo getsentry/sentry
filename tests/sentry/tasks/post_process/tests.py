@@ -412,6 +412,13 @@ class PostProcessGroupTest(TestCase):
             assert_no_errors=False
         )
 
+        self.create_service_hook(
+            project=self.project,
+            organization=self.project.organization,
+            actor=self.user,
+            events=['error.created'],
+        )
+
         post_process_group(
             event=event,
             is_new=False,
@@ -461,6 +468,37 @@ class PostProcessGroupTest(TestCase):
             },
             project_id=self.project.id,
             assert_no_errors=False
+        )
+
+        post_process_group(
+            event=event,
+            is_new=False,
+            is_regression=False,
+            is_sample=False,
+            is_new_group_environment=False,
+        )
+
+        assert not delay.called
+
+    @with_feature('organizations:integrations-event-hooks')
+    @patch('sentry.tasks.sentry_apps.process_resource_change_bound.delay')
+    def test_processes_resource_change_task_not_called_without_error_created(self, delay):
+        event = self.store_event(
+            data={
+                'message': 'Foo bar',
+                'level': 'error',
+                'exception': {"type": "Foo", "value": "shits on fiah yo"},
+                'timestamp': timezone.now().isoformat()[:19]
+            },
+            project_id=self.project.id,
+            assert_no_errors=False
+        )
+
+        self.create_service_hook(
+            project=self.project,
+            organization=self.project.organization,
+            actor=self.user,
+            events=[],
         )
 
         post_process_group(

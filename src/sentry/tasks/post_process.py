@@ -54,14 +54,15 @@ def _should_send_error_created_hooks(project):
 
         org = Organization.objects.get_from_cache(id=project.organization_id)
         if not features.has('organizations:integrations-event-hooks', organization=org):
-            cache.set(cache_key, False, 60)
+            cache.set(cache_key, 0, 60)
             return False
 
-        hooks = ServiceHook.objects.filter(
+        result = ServiceHook.objects.filter(
             organization_id=org.id,
-        )
-        result = any(['error.created' in h.events for h in hooks])
-        cache.set(cache_key, result, 60)
+        ).extra(where=["events @> '{error.created}'"]).exists()
+
+        cache_value = 1 if result else 0
+        cache.set(cache_key, cache_value, 60)
 
     return result
 
