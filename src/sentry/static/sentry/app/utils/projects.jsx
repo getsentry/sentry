@@ -18,6 +18,7 @@ class Projects extends React.Component {
     fetchedProjects: [],
     projectsFromStore: [],
     fetching: false,
+    isIncomplete: false,
   };
 
   componentDidMount() {
@@ -37,8 +38,6 @@ class Projects extends React.Component {
       return;
     }
 
-    this.loaded = true;
-
     const [inStore, notInStore] = partition(slugs, slug =>
       [].find(project => project.slug === slug)
     );
@@ -48,19 +47,16 @@ class Projects extends React.Component {
       projects.find(project => project.slug === slug)
     );
 
-    console.log('projectsfromstore', projectsFromStore);
+    notInStore.forEach(slug => this.fetchQueue.add(slug));
+
     this.setState({
+      // placeholders
+      fetchedProjects: notInStore.map(slug => ({slug})),
       projectsFromStore,
     });
 
-    notInStore.forEach(slug => this.fetchQueue.add(slug));
-
-    // placeholders
-    this.setState({
-      fetchedProjects: notInStore.map(slug => ({slug})),
-    });
-
     this.fetchProjects();
+    this.loaded = true;
   }
 
   async fetchProjects() {
@@ -74,22 +70,37 @@ class Projects extends React.Component {
       fetching: true,
     });
 
-    await new Promise(resolve => setTimeout(resolve, 2500));
-    const results = await api.requestPromise(`/organizations/${orgId}/projects/`, {
-      query: {
-        query: Array.from(this.fetchQueue)
-          .map(slug => `slug:${slug}`)
-          .join('&'),
-      },
-    });
-    console.log(results);
+    let results = [];
+
+    try {
+      results = await api.requestPromise(`/organizations/${orgId}/projects/`, {
+        query: {
+          query: Array.from(this.fetchQueue)
+            .map(slug => `slug:${slug}`)
+            .join(' '),
+        },
+      });
+    } catch (err) {
+      results = [];
+    }
+
+    const resultMap = new Map(results.map(result => [result.slug, result]));
+
+    // For each item in the fetch queue, lookup the result object and in the case
+    // where something wrong has happened and we were unable to get project summary from
+    // the server, just fill in with an object with only the slug
+    const projectsOrPlaceholder = Array.from(this.fetchQueue).map(slug =>
+      resultMap.has(slug) ? resultMap.get(slug) : {slug}
+    );
+
     // Results is an array of promises that should
     this.setState({
-      fetchedProjects: results
-        .filter(result => result.length > 0)
-        .map(([result]) => result),
+      fetchedProjects: projectsOrPlaceholder,
+      isIncomplete: this.fetchQueue.size && this.fetchQueue.size !== results.length,
       fetching: false,
     });
+
+    this.fetchQueue.clear();
   }
 
   render() {
@@ -99,6 +110,7 @@ class Projects extends React.Component {
       projects: this.loaded
         ? [...this.state.fetchedProjects, ...this.state.projectsFromStore]
         : slugs.map(slug => ({slug})),
+      isIncomplete: this.state.isIncomplete,
       fetching: this.state.fetching,
     });
   }
