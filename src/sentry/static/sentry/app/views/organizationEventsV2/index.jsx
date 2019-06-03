@@ -20,7 +20,7 @@ import {getCurrentView} from './utils';
 export default class OrganizationEventsV2 extends React.Component {
   static propTypes = {
     organization: SentryTypes.Organization.isRequired,
-    location: PropTypes.object,
+    location: PropTypes.object.isRequired,
   };
 
   renderTabs() {

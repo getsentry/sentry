@@ -32,3 +32,28 @@ export function getQuery(view) {
 
   return data;
 }
+
+/**
+ * Return a location object for the current pathname
+ * with a query string reflected the provided tag.
+ *
+ * @param {Object} tag containing key/value properties
+ * @param {Object} browser location object.
+ * @return {Object} router target
+ */
+export function eventTagSearchUrl(tag, location) {
+  const query = {...location.query};
+  // Add tag key/value to search
+  if (query.query) {
+    query.query += ` ${tag.key}:"${tag.value}"`;
+  } else {
+    query.query = `${tag.key}:"${tag.value}"`;
+  }
+  // Remove the event slug so the user sees new search results.
+  delete query.eventSlug;
+
+  return {
+    pathname: location.pathname,
+    query,
+  };
+}
