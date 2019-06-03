@@ -450,6 +450,26 @@ describe('SmartSearchBar', function() {
       });
     });
 
+    it('does not pin when query is empty', async function() {
+      const wrapper = mount(
+        <SmartSearchBar
+          api={new Client()}
+          organization={organization}
+          orgId={organization.slug}
+          projectId="456"
+          query=""
+          supportedTags={supportedTags}
+          savedSearchType={0}
+          hasPinnedSearch
+        />,
+        options
+      );
+      wrapper.find('button[aria-label="Pin this search"]').simulate('click');
+      await wrapper.update();
+
+      expect(pinRequest).not.toHaveBeenCalled();
+    });
+
     it('adds pins', async function() {
       const wrapper = mount(
         <SmartSearchBar
