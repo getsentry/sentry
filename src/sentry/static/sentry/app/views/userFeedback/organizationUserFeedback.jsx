@@ -3,12 +3,10 @@ import styled from 'react-emotion';
 
 import {PageContent} from 'app/styles/organization';
 import {t} from 'app/locale';
-import Alert from 'app/components/alert';
 import AsyncView from 'app/views/asyncView';
 import CompactIssue from 'app/components/compactIssue';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
 import EventUserFeedback from 'app/components/events/userFeedback';
-import Feature from 'app/components/acl/feature';
 import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import NoProjectMessage from 'app/components/noProjectMessage';
@@ -75,14 +73,6 @@ class OrganizationUserFeedback extends AsyncView {
     );
   }
 
-  renderNoAccess() {
-    return (
-      <PageContent>
-        <Alert type="warning">{t("You don't have access to this feature")}</Alert>
-      </PageContent>
-    );
-  }
-
   renderLoading() {
     return this.renderBody();
   }
@@ -108,11 +98,7 @@ class OrganizationUserFeedback extends AsyncView {
     const {reportListPageLinks} = this.state;
 
     return (
-      <Feature
-        features={['organizations:sentry10']}
-        organization={organization}
-        renderDisabled={this.renderNoAccess}
-      >
+      <React.Fragment>
         <GlobalSelectionHeader organization={organization} />
         <PageContent>
           <NoProjectMessage organization={organization}>
@@ -125,7 +111,7 @@ class OrganizationUserFeedback extends AsyncView {
             </UserFeedbackContainer>
           </NoProjectMessage>
         </PageContent>
-      </Feature>
+      </React.Fragment>
     );
   }
 }

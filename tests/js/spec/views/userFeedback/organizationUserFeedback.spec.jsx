@@ -38,7 +38,6 @@ describe('OrganizationUserFeedback', function() {
   it('renders', function() {
     const params = {
       organization: TestStubs.Organization({
-        features: ['sentry10'],
         projects: [TestStubs.Project({isMember: true})],
       }),
       location: {query: {}, search: ''},
@@ -49,22 +48,5 @@ describe('OrganizationUserFeedback', function() {
     const wrapper = mount(<OrganizationUserFeedback {...params} />, routerContext);
 
     expect(wrapper.find('CompactIssue')).toHaveLength(1);
-  });
-
-  it('no access', function() {
-    const params = {
-      organization: TestStubs.Organization(),
-      location: {query: {}, search: ''},
-      params: {
-        orgId: 'org-slug',
-      },
-    };
-
-    const wrapper = mount(
-      <OrganizationUserFeedback {...params} />,
-      TestStubs.routerContext()
-    );
-
-    expect(wrapper.text()).toBe("You don't have access to this feature");
   });
 });
