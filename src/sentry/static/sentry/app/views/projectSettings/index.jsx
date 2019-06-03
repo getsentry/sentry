@@ -128,11 +128,6 @@ const ProjectSettings = createReactClass({
             <ListLink to={`${pathPrefix}/data-forwarding/`}>
               {t('Data Forwarding')}
             </ListLink>
-            {organization.features.includes('sentry10') === false && (
-              <ListLink to={`${pathPrefix}/saved-searches/`}>
-                {t('Saved Searches')}
-              </ListLink>
-            )}
             <ListLink to={`${pathPrefix}/debug-symbols/`}>
               {t('Debug Information Files')}
             </ListLink>
@@ -175,7 +170,7 @@ const ProjectSettings = createReactClass({
             React.cloneElement(this.props.children, {
               setProjectNavSection: this.props.setProjectNavSection,
               project,
-              organization: this.context.organization,
+              organization,
             })
           ) : (
             <div className="alert alert-block">

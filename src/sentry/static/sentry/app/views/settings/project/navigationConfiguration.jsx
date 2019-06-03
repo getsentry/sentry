@@ -44,17 +44,6 @@ export default function getConfiguration({project}) {
           title: t('Data Forwarding'),
         },
         {
-          path: `${pathPrefix}/saved-searches/`,
-          title: t('Saved Searches'),
-          description: t('Manage saved searches for a project and your account'),
-          show: ({organization}) => {
-            if (!organization || !organization.features) {
-              return true;
-            }
-            return !organization.features.includes('sentry10');
-          },
-        },
-        {
           path: `${pathPrefix}/debug-symbols/`,
           title: t('Debug Files'),
         },

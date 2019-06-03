@@ -5,22 +5,18 @@ import styled from 'react-emotion';
 import {PageHeader} from 'app/styles/organization';
 import {analytics} from 'app/utils/analytics';
 import {t} from 'app/locale';
-import Feature from 'app/components/acl/feature';
 import PageHeading from 'app/components/pageHeading';
 import QueryCount from 'app/components/queryCount';
 import SentryTypes from 'app/sentryTypes';
 
 import OrganizationSavedSearchSelector from './organizationSavedSearchSelector';
-import SavedSearchSelector from './savedSearchSelector';
 import SearchBar from './searchBar';
 import SortOptions from './sortOptions';
 
 class StreamFilters extends React.Component {
   static propTypes = {
-    projectId: PropTypes.string,
     organization: SentryTypes.Organization,
 
-    searchId: PropTypes.string,
     savedSearchList: PropTypes.arrayOf(SentryTypes.SavedSearch),
     savedSearch: SentryTypes.SavedSearch,
 
@@ -33,7 +29,6 @@ class StreamFilters extends React.Component {
     onSortChange: PropTypes.func,
     onSearch: PropTypes.func,
     onSidebarToggle: PropTypes.func,
-    onSavedSearchCreate: PropTypes.func.isRequired,
     onSavedSearchSelect: PropTypes.func.isRequired,
     onSavedSearchDelete: PropTypes.func.isRequired,
     tagValueLoader: PropTypes.func.isRequired,
@@ -69,9 +64,7 @@ class StreamFilters extends React.Component {
   render() {
     const {
       organization,
-      projectId,
       savedSearch,
-      searchId,
       queryCount,
       queryMaxCount,
       query,
@@ -81,51 +74,30 @@ class StreamFilters extends React.Component {
 
       onSidebarToggle,
       onSearch,
-      onSavedSearchCreate,
-      onSavedSearchSelect,
       onSavedSearchDelete,
       onSortChange,
       tagValueLoader,
       tags,
     } = this.props;
-    const hasSentry10 = organization.features.includes('sentry10');
 
     return (
       <PageHeader>
-        <Feature
-          features={['sentry10']}
-          renderDisabled={() => (
-            <SavedSearchSelector
-              organization={organization}
-              projectId={projectId}
-              searchId={searchId}
-              queryCount={queryCount}
-              queryMaxCount={queryMaxCount}
-              query={query}
-              onSavedSearchCreate={onSavedSearchCreate}
-              onSavedSearchSelect={onSavedSearchSelect}
-              savedSearchList={savedSearchList}
-            />
-          )}
-        >
-          <PageHeading>
-            {t('Issues')}
-            <QueryCount count={queryCount} max={queryMaxCount} />
-          </PageHeading>
-        </Feature>
-        <SearchContainer isWide={hasSentry10}>
+        <PageHeading>
+          {t('Issues')}
+          <QueryCount count={queryCount} max={queryMaxCount} />
+        </PageHeading>
+
+        <SearchContainer isWide>
           <SortOptions sort={sort} onSelect={onSortChange} />
 
-          <Feature features={['sentry10']}>
-            <OrganizationSavedSearchSelector
-              key={query}
-              organization={organization}
-              savedSearchList={savedSearchList}
-              onSavedSearchSelect={this.handleOrganizationSavedSearchSelect}
-              onSavedSearchDelete={onSavedSearchDelete}
-              query={query}
-            />
-          </Feature>
+          <OrganizationSavedSearchSelector
+            key={query}
+            organization={organization}
+            savedSearchList={savedSearchList}
+            onSavedSearchSelect={this.handleOrganizationSavedSearchSelect}
+            onSavedSearchDelete={onSavedSearchDelete}
+            query={query}
+          />
 
           <SearchBar
             orgId={organization.slug}
