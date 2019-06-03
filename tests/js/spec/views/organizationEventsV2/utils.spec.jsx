@@ -24,13 +24,12 @@ describe('getQuery()', function() {
       id: 'test',
       name: 'test view',
       data: {
-        query: '',
         fields: ['event', 'user', 'issue.id'],
       },
       tags: [],
     };
 
-    expect(getQuery(view).field).toEqual([
+    expect(getQuery(view, {}).field).toEqual([
       'title',
       'id',
       'project.name',

@@ -57,7 +57,7 @@ class OrganizationEventsV2EndpointTest(OrganizationEventsTestBase):
         )
 
         query = {
-            'fields': ['id', 'project.id'],
+            'field': ['id', 'project.id'],
             'project': [project.id, project2.id],
         }
         with self.feature({'organizations:events-v2': True, 'organizations:global-views': False}):
@@ -201,7 +201,7 @@ class OrganizationEventsV2EndpointTest(OrganizationEventsTestBase):
         assert response.data[1]['project.id'] == project.id
         assert response.data[1]['environment'] == 'staging'
 
-    def test_event_and_user_counts(self):
+    def test_special_fields(self):
         self.login_as(user=self.user)
         project = self.create_project()
         self.store_event(
@@ -245,8 +245,8 @@ class OrganizationEventsV2EndpointTest(OrganizationEventsTestBase):
                 self.url,
                 format='json',
                 data={
-                    'groupby': ['issue.id'],
-                    'aggregation': ['uniq,id,event_count', 'uniq,sentry:user,user_count'],
+                    'field': ['issue_title', 'event_count', 'user_count'],
+                    'groupby': ['issue.id', 'project.id'],
                     'orderby': 'issue.id'
                 },
             )

@@ -1,3 +1,5 @@
+import {pick} from 'lodash';
+
 import {ALL_VIEWS, SPECIAL_FIELDS} from './data';
 
 /**
@@ -17,18 +19,37 @@ export function getCurrentView(requestedView) {
  * @param {Object} view
  * @returns {Object}
  */
-export function getQuery(view) {
-  const data = {...view.data};
-  const fields = data.fields.reduce((list, field) => {
+export function getQuery(view, location) {
+  const fields = [];
+  const groupby = view.data.groupby ? [...view.data.groupby] : [];
+
+  view.data.fields.forEach(field => {
     if (SPECIAL_FIELDS.hasOwnProperty(field)) {
-      list.push(...SPECIAL_FIELDS[field].fields);
+      const specialField = SPECIAL_FIELDS[field];
+
+      if (specialField.hasOwnProperty('fields')) {
+        fields.push(...specialField.fields);
+      }
+      if (specialField.hasOwnProperty('groupby')) {
+        groupby.push(...specialField.groupby);
+      }
     } else {
-      list.push(field);
+      fields.push(field);
     }
-    return list;
-  }, []);
+  });
+
+  const data = pick(location.query, [
+    'start',
+    'end',
+    'utc',
+    'statsPeriod',
+    'cursor',
+    'query',
+  ]);
 
   data.field = [...new Set(fields)];
+  data.groupby = groupby;
+  data.sort = view.data.sort;
 
   return data;
 }

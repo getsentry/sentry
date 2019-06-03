@@ -18,9 +18,7 @@ export const ALL_VIEWS = deepFreeze([
     name: 'All Events',
     data: {
       fields: ['event', 'event.type', 'project', 'user', 'time'],
-      groupby: [],
-      aggregations: [],
-      sort: '',
+      sort: '-timestamp',
     },
     tags: [
       'event.type',
@@ -35,10 +33,9 @@ export const ALL_VIEWS = deepFreeze([
     id: 'errors',
     name: 'Errors',
     data: {
-      fields: [],
-      groupby: ['issue.id'],
-      aggregations: [['uniq', 'id', 'event_count'], ['uniq', 'user', 'user_count']],
-      sort: '',
+      fields: ['issue_title', 'event_count', 'user_count', 'project', 'last_seen'],
+      groupby: ['issue.id', 'project.id'],
+      sort: '-last_seen',
     },
     tags: ['error.type', 'project.name'],
   },
@@ -46,10 +43,9 @@ export const ALL_VIEWS = deepFreeze([
     id: 'csp',
     name: 'CSP',
     data: {
-      fields: [],
-      groupby: ['issue.id'],
-      aggregations: [['uniq', 'id', 'event_count'], ['uniq', 'user', 'user_count']],
-      sort: '',
+      fields: ['issue_title', 'event_count', 'user_count', 'project', 'last_seen'],
+      groupby: ['issue.id', 'project.id'],
+      sort: '-last_seen',
     },
     tags: [
       'project.name',
@@ -121,6 +117,24 @@ export const SPECIAL_FIELDS = {
     renderFunc: data => (
       <Container>
         <DynamicWrapper value={<StyledDateTime date={data.timestamp} />} fixed="time" />
+      </Container>
+    ),
+  },
+  event_count: {
+    title: 'events',
+    fields: ['event_count'],
+    renderFunc: data => <Container>{data.event_count}</Container>,
+  },
+  user_count: {
+    title: 'users',
+    fields: ['user_count'],
+    renderFunc: data => <Container>{data.user_count}</Container>,
+  },
+  last_seen: {
+    fields: ['last_seen'],
+    renderFunc: data => (
+      <Container>
+        <DynamicWrapper value={<StyledDateTime date={data.last_seen} />} fixed="time" />
       </Container>
     ),
   },

@@ -62,7 +62,11 @@ export default class Table extends React.Component {
       <Panel>
         <TableHeader className={getGridStyle(fields.length)}>
           {fields.map(field => (
-            <HeaderItem key={field}>{field}</HeaderItem>
+            <HeaderItem key={field}>
+              {SPECIAL_FIELDS.hasOwnProperty(field)
+                ? SPECIAL_FIELDS[field].title || field
+                : field}
+            </HeaderItem>
           ))}
         </TableHeader>
         <PanelBody>{this.renderBody()}</PanelBody>
