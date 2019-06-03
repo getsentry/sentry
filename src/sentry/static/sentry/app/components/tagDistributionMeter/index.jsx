@@ -19,7 +19,7 @@ export default class TagDistributionMeter extends React.Component {
         count: PropTypes.number.isRequired,
         name: PropTypes.string.isRequired,
         value: PropTypes.string.isRequired,
-        url: PropTypes.string.isRequired,
+        url: PropTypes.oneOfType([PropTypes.string, PropTypes.object]).isRequired,
       })
     ).isRequired,
     renderEmpty: PropTypes.func,
