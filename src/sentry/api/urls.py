@@ -228,6 +228,7 @@ from .endpoints.event_file_committers import EventFileCommittersEndpoint
 from .endpoints.setup_wizard import SetupWizard
 from .endpoints.grouping_configs import GroupingConfigsEndpoint
 from .endpoints.grouping_enhancements import GroupingEnhancementsEndpoint
+from .endpoints.builtin_symbol_sources import BuiltinSymbolSourcesEndpoint
 
 
 urlpatterns = patterns(
@@ -1369,6 +1370,12 @@ urlpatterns = patterns(
     url(
         r'^grouping-enhancements/$', GroupingEnhancementsEndpoint.as_view(),
         name='sentry-api-0-grouping-enhancements'
+    ),
+
+    # Symbolicator Builtin Sources
+    url(
+        r'^builtin-symbol-sources/$', BuiltinSymbolSourcesEndpoint.as_view(),
+        name='sentry-api-0-builtin-symbol-sources',
     ),
 
     # Internal
