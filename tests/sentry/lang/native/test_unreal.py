@@ -12,12 +12,24 @@ from sentry.models import UserReport
 MOCK_EVENT_ID = '12852a74acc943a790c8f1cd23907caa'
 
 
+def get_fixture_path(name):
+    return os.path.join(
+        os.path.dirname(__file__),
+        os.pardir,
+        os.pardir,
+        os.pardir,
+        'fixtures',
+        'native',
+        name,
+    )
+
+
 def get_unreal_crash_file():
-    return os.path.join(os.path.dirname(__file__), 'fixtures', 'unreal_crash')
+    return get_fixture_path('unreal_crash')
 
 
 def get_unreal_crash_apple_file():
-    return os.path.join(os.path.dirname(__file__), 'fixtures', 'unreal_crash_apple')
+    return get_fixture_path('unreal_crash_apple')
 
 
 def test_process_minidump():

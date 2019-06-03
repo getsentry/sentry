@@ -1,5 +1,5 @@
 ---
-created: '2019-05-29T12:45:17.433393Z'
+created: '2019-06-03T10:36:59.097805Z'
 creator: sentry
 source: tests/symbolicator/test_payload_full.py
 ---
@@ -12,6 +12,7 @@ exception:
       frames:
       - function: hi
         in_app: false
+        platform: foobar
       - function: unknown
         in_app: false
         instruction_addr: '0x100000fa0'
@@ -19,6 +20,7 @@ exception:
       frames:
       - function: hi
         in_app: false
+        platform: foobar
       - data:
           symbolicator_status: unknown_image
         function: unknown

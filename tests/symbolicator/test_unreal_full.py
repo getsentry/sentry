@@ -1,6 +1,5 @@
 from __future__ import absolute_import
 
-import os
 import pytest
 import zipfile
 from mock import patch
@@ -14,17 +13,30 @@ from sentry.testutils import TransactionTestCase
 from sentry.models import Event, EventAttachment
 
 
+from tests.symbolicator import get_fixture_path
+
+
 def get_unreal_crash_file():
-    return os.path.join(os.path.dirname(__file__), 'fixtures', 'unreal_crash')
+    return get_fixture_path('unreal_crash')
 
 
 def get_unreal_crash_apple_file():
-    return os.path.join(os.path.dirname(__file__), 'fixtures', 'unreal_crash_apple')
+    return get_fixture_path('unreal_crash_apple')
 
 
-class UnrealIntegrationTestBase(object):
-    def get_crash_file(self):
-        raise NotImplementedError()
+class SymbolicatorUnrealIntegrationTest(TransactionTestCase):
+    # For these tests to run, write `symbolicator.enabled: true` into your
+    # `~/.sentry/config.yml` and run `sentry devservices up`
+
+    @pytest.fixture(autouse=True)
+    def initialize(self, live_server):
+        new_prefix = live_server.url
+
+        with patch('sentry.auth.system.is_internal_ip', return_value=True), \
+                self.options({"system.url-prefix": new_prefix}):
+
+            # Run test case:
+            yield
 
     def upload_symbols(self):
         url = reverse(
@@ -39,8 +51,7 @@ class UnrealIntegrationTestBase(object):
 
         out = BytesIO()
         f = zipfile.ZipFile(out, 'w')
-        f.write(os.path.join(os.path.dirname(__file__), 'fixtures', 'unreal_crash.sym'),
-                'crash.sym')
+        f.write(get_fixture_path('unreal_crash.sym'), 'crash.sym')
         f.close()
 
         response = self.client.post(
@@ -127,18 +138,3 @@ class UnrealIntegrationTestBase(object):
         assert minidump.name == 'minidump.dmp'
         assert minidump.file.type == 'event.minidump'
         assert minidump.file.checksum == '728d0f4b09cf5a7942da3893b6db79ac842b701a'
-
-
-class SymbolicatorUnrealIntegrationTest(UnrealIntegrationTestBase, TransactionTestCase):
-    # For these tests to run, write `symbolicator.enabled: true` into your
-    # `~/.sentry/config.yml` and run `sentry devservices up`
-
-    @pytest.fixture(autouse=True)
-    def initialize(self, live_server):
-        new_prefix = live_server.url
-
-        with patch('sentry.auth.system.is_internal_ip', return_value=True), \
-                self.options({"system.url-prefix": new_prefix}):
-
-            # Run test case:
-            yield
