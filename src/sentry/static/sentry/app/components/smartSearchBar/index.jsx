@@ -768,7 +768,7 @@ class SmartSearchBar extends React.Component {
           </StyledForm>
           <ButtonBar>
             {this.state.query !== '' && (
-              <CloseButton
+              <SidebarButton
                 type="button"
                 title={'Clear search'}
                 borderless
@@ -778,13 +778,8 @@ class SmartSearchBar extends React.Component {
                 onClick={this.clearSearch}
               >
                 <InlineSvg src="icon-close" size="11" />
-              </CloseButton>
+              </SidebarButton>
             )}
-            <CreateSavedSearchButton
-              query={this.state.query}
-              organization={organization}
-              disabled={!hasQuery}
-            />
             <SidebarButton
               type="button"
               title={pinTooltip}
@@ -792,13 +787,32 @@ class SmartSearchBar extends React.Component {
               disabled={!hasQuery}
               aria-label={pinTooltip}
               size="zero"
-              collapse={true}
               containerDisplayMode="inline-flex"
               onClick={this.onTogglePinnedSearch}
               isActive={!!pinnedSearch}
             >
               <InlineSvg src={pinIconSrc} />
             </SidebarButton>
+            <CreateSavedSearchButton
+              query={this.state.query}
+              organization={organization}
+              disabled={!hasQuery}
+            >
+              {(onToggle) => (
+                <SidebarButton
+                  title={t('Add to organization filter list')}
+                  size="zero"
+                  borderless
+                  containerDisplayMode="inline-flex"
+                  type="button"
+                  collapse={true}
+                  onClick={onToggle}
+                  data-test-id="save-current-search"
+                  aria-label={t('Add to organization filter list')}
+                  icon="icon-add-to-list"
+                />
+              )}
+            </CreateSavedSearchButton>
             <SearchBuilderButton
               title={t('Toggle search builder')}
               borderless
@@ -820,9 +834,14 @@ class SmartSearchBar extends React.Component {
               }
             >
               <DropdownElement onClick={onSidebarToggle}>Toggle sidebar</DropdownElement>
-              <DropdownElement last onClick={this.onTogglePinnedSearch}>
-                {pinnedSearch ? 'Unpin search' : 'Pin search'}
-              </DropdownElement>
+              <CreateSavedSearchButton
+                query={this.state.query}
+                organization={organization}
+              >
+                {(onToggle) => (
+                  <DropdownElement last onClick={onToggle}>Create Saved Search</DropdownElement>
+                )}
+              </CreateSavedSearchButton>
             </StyledDropdownLink>
           </ButtonBar>
         </Container>
@@ -975,18 +994,13 @@ const SidebarButton = styled(Button)`
   }
 
   @media (max-width: ${p => p.theme.breakpoints[2]}) {
-    display: none;
+    display: ${p => p.collapse ? 'none' : null} ;
   }
 `;
 
 const SearchBuilderButton = styled(SidebarButton)`
   margin-left: ${space(0.25)};
   margin-right: ${space(0.5)};
-`;
-
-const CloseButton = styled(SidebarButton)`
-  position: relative;
-  margin-right: 6px;
 `;
 
 const StyledDropdownLink = styled(DropdownLink)`
