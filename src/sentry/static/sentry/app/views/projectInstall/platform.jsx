@@ -46,7 +46,7 @@ class ProjectInstallPlatform extends React.Component {
     return window.location.href.indexOf('getting-started') > 0;
   }
 
-  async fetchData() {
+  fetchData = async () => {
     const {api, params} = this.props;
     const {orgId, projectId, platform} = params;
 
@@ -60,7 +60,7 @@ class ProjectInstallPlatform extends React.Component {
     }
 
     this.setState({loading: false});
-  }
+  };
 
   redirectToNeutralDocs() {
     const {orgId, projectId} = this.props.params;
