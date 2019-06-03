@@ -38,9 +38,7 @@ const GroupEventToolbar = createReactClass({
   displayName: 'GroupEventToolbar',
 
   propTypes: {
-    organization: SentryTypes.Organization.isRequired,
     orgId: PropTypes.string.isRequired,
-    projectId: PropTypes.string.isRequired,
     group: SentryTypes.Group.isRequired,
     event: SentryTypes.Event.isRequired,
     location: PropTypes.object.isRequired,
@@ -85,13 +83,10 @@ const GroupEventToolbar = createReactClass({
   render() {
     const evt = this.props.event;
 
-    const {organization, orgId, projectId, location} = this.props;
+    const {orgId, location} = this.props;
     const groupId = this.props.group.id;
 
-    const hasSentry10 = new Set(organization.features).has('sentry10');
-    const baseEventsPath = hasSentry10
-      ? `/organizations/${orgId}/issues/${groupId}/events/`
-      : `/${orgId}/${projectId}/issues/${groupId}/events/`;
+    const baseEventsPath = `/organizations/${orgId}/issues/${groupId}/events/`;
 
     const eventNavNodes = [
       evt.previousEventID ? (

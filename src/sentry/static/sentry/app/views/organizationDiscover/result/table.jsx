@@ -86,18 +86,12 @@ class ResultTable extends React.Component {
     );
   };
 
-  hasSentry10 = () => {
-    return new Set(this.props.organization.features).has('sentry10');
-  };
-
   getEventLink = event => {
     const {slug, projects} = this.props.organization;
     const projectSlug = projects.find(project => project.id === `${event['project.id']}`)
       .slug;
 
-    const basePath = this.hasSentry10()
-      ? `/organizations/${slug}/projects/${projectSlug}/`
-      : `/${slug}/${projectSlug}/`;
+    const basePath = `/organizations/${slug}/projects/${projectSlug}/`;
 
     return (
       <Tooltip title={t('Open event')}>
@@ -109,13 +103,8 @@ class ResultTable extends React.Component {
   };
 
   getIssueLink = event => {
-    const {slug, projects} = this.props.organization;
-    const projectSlug = projects.find(project => project.id === `${event['project.id']}`)
-      .slug;
-
-    const basePath = this.hasSentry10()
-      ? `/organizations/${slug}/`
-      : `/${slug}/${projectSlug}/`;
+    const {slug} = this.props.organization;
+    const basePath = `/organizations/${slug}/`;
 
     return (
       <Tooltip title={t('Open issue')}>

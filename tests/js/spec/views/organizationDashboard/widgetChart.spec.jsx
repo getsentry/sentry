@@ -8,7 +8,7 @@ import WidgetChart from 'app/views/organizationDashboard/widgetChart';
 describe('WidgetChart', function() {
   const {organization, router, routerContext} = initializeOrg({
     organization: {
-      features: ['sentry10', 'global-views'],
+      features: ['global-views'],
     },
     router: {
       location: {

@@ -3,7 +3,6 @@ import React from 'react';
 import classNames from 'classnames';
 import {Link} from 'react-router';
 
-import SentryTypes from 'app/sentryTypes';
 import Hovercard from 'app/components/hovercard';
 import Count from 'app/components/count';
 import EventOrGroupTitle from 'app/components/eventOrGroupTitle';
@@ -12,9 +11,7 @@ import {t} from 'app/locale';
 
 export default class IssueLink extends React.Component {
   static propTypes = {
-    organization: SentryTypes.Organization.isRequired,
     orgId: PropTypes.string.isRequired,
-    projectId: PropTypes.string.isRequired,
     issue: PropTypes.object.isRequired,
     to: PropTypes.string.isRequired,
     card: PropTypes.bool,
@@ -37,7 +34,7 @@ export default class IssueLink extends React.Component {
   }
 
   renderBody() {
-    const {organization, issue, orgId, projectId} = this.props;
+    const {issue, orgId} = this.props;
     const message = this.getMessage(issue);
 
     const className = classNames(`type-${issue.type}`, `level-${issue.level}`, {
@@ -46,9 +43,7 @@ export default class IssueLink extends React.Component {
       isResolved: issue.status === 'resolved',
     });
 
-    const streamPath = new Set(organization.features).has('sentry10')
-      ? `/organizations/${orgId}/issues/`
-      : `/${orgId}/${projectId}/`;
+    const streamPath = `/organizations/${orgId}/issues/`;
 
     return (
       <div className={className}>

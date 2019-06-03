@@ -55,14 +55,9 @@ class Configure extends React.Component {
   }
 
   redirectUrl() {
-    const {organization} = this.props;
-    const {orgId, projectId} = this.props.params;
+    const {orgId} = this.props.params;
 
-    const hasSentry10 = new Set(organization.features).has('sentry10');
-
-    const url = hasSentry10
-      ? `/organizations/${orgId}/issues/#welcome`
-      : `/${orgId}/${projectId}/#welcome`;
+    const url = `/organizations/${orgId}/issues/#welcome`;
     browserHistory.push(url);
   }
 
