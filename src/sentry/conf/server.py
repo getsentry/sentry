@@ -1567,6 +1567,14 @@ TERMS_URL = None
 PRIVACY_URL = None
 
 # Internal sources for debug information files
+#
+# There are two special values in there: "microsoft" and "ios".  These are
+# added by default to any project created.  The "ios" source is currently
+# not enabled in the open source build of sentry because it points to a
+# sentry internal repository and it's unclear if these can be
+# redistributed under the Apple EULA.  If however someone configures their
+# own iOS source and name it 'ios' it will be enabled by default for all
+# projects.
 SENTRY_BUILTIN_SOURCES = {
     'microsoft': {
         'type': 'http',

@@ -284,7 +284,7 @@ def get_sources_for_project(project):
 
     # Add builtin sources last to ensure that custom sources have precedence
     # over our defaults.
-    builtin_sources = project.get_option('sentry:builtin_symbol_sources') or []
+    builtin_sources = project.get_option('sentry:builtin_symbol_sources')
     for key, source in six.iteritems(settings.SENTRY_BUILTIN_SOURCES):
         if key in builtin_sources:
             sources.append(source)
