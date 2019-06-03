@@ -587,7 +587,7 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
                 'processingIssues': attrs['processing_issues'],
                 'defaultEnvironment': attrs['options'].get('sentry:default_environment'),
                 'relayPiiConfig': attrs['options'].get('sentry:relay_pii_config'),
-                'builtinSymbolSources': attrs['options'].get('sentry:builtin_symbol_sources'),
+                'builtinSymbolSources': get_value_with_default('sentry:builtin_symbol_sources'),
                 'symbolSources': attrs['options'].get('sentry:symbol_sources'),
             }
         )

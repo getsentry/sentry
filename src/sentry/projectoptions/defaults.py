@@ -25,7 +25,6 @@ register(
     key='sentry:grouping_config',
     epoch_defaults={
         1: DEFAULT_GROUPING_CONFIG,
-        # 2: 'combined:2019-04-07',
     }
 )
 
