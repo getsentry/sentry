@@ -1576,6 +1576,7 @@ SENTRY_BUILTIN_SOURCES = {
     'microsoft': {
         'type': 'http',
         'id': 'sentry:microsoft',
+        'name': 'Microsoft',
         'layout': {'type': 'symstore'},
         'filters': {
             'filetypes': ['pdb', 'pe'],
@@ -1587,6 +1588,7 @@ SENTRY_BUILTIN_SOURCES = {
     'citrix': {
         'type': 'http',
         'id': 'sentry:citrix',
+        'name': 'Citrix',
         'layout': {'type': 'symstore'},
         'filters': {
             'filetypes': ['pdb', 'pe']
@@ -1597,6 +1599,7 @@ SENTRY_BUILTIN_SOURCES = {
     'intel': {
         'type': 'http',
         'id': 'sentry:intel',
+        'name': 'Intel',
         'layout': {'type': 'symstore'},
         'filters': {
             'filetypes': ['pdb', 'pe']
@@ -1607,6 +1610,7 @@ SENTRY_BUILTIN_SOURCES = {
     'amd': {
         'type': 'http',
         'id': 'sentry:amd',
+        'name': 'AMD',
         'layout': {'type': 'symstore'},
         'filters': {
             'filetypes': ['pdb', 'pe']
@@ -1617,6 +1621,7 @@ SENTRY_BUILTIN_SOURCES = {
     'nvidia': {
         'type': 'http',
         'id': 'sentry:nvidia',
+        'name': 'NVIDIA',
         'layout': {'type': 'symstore'},
         'filters': {
             'filetypes': ['pdb', 'pe']
@@ -1627,6 +1632,7 @@ SENTRY_BUILTIN_SOURCES = {
     'chromium': {
         'type': 'http',
         'id': 'sentry:chromium',
+        'name': 'Chromium',
         'layout': {'type': 'symstore'},
         'filters': {
             'filetypes': ['pdb', 'pe']
@@ -1637,6 +1643,7 @@ SENTRY_BUILTIN_SOURCES = {
     'unity': {
         'type': 'http',
         'id': 'sentry:unity',
+        'name': 'Unity',
         'layout': {'type': 'symstore'},
         'filters': {
             'filetypes': ['pdb', 'pe']
@@ -1647,6 +1654,7 @@ SENTRY_BUILTIN_SOURCES = {
     'mozilla': {
         'type': 'http',
         'id': 'sentry:mozilla',
+        'name': 'Mozilla',
         'layout': {'type': 'symstore'},
         'url': 'https://symbols.mozilla.org/',
         'is_public': True,
@@ -1654,6 +1662,7 @@ SENTRY_BUILTIN_SOURCES = {
     'autodesk': {
         'type': 'http',
         'id': 'sentry:autodesk',
+        'name': 'Autodesk',
         'layout': {'type': 'symstore'},
         'url': 'http://symbols.autodesk.com/',
         'is_public': True,
@@ -1661,6 +1670,7 @@ SENTRY_BUILTIN_SOURCES = {
     'electron': {
         'type': 'http',
         'id': 'sentry:electron',
+        'name': 'Electron',
         'layout': {'type': 'native'},
         'url': 'https://electron-symbols.githubapp.com/',
         'filters': {
