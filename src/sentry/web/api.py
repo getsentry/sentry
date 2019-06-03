@@ -685,7 +685,7 @@ class MinidumpView(StoreView):
             data = {}
         else:
             minidump = request_files.get('upload_file_minidump')
-            minidump_name = minidump.name
+            minidump_name = minidump and minidump.name or None
 
             if any(key.startswith('sentry[') for key in request.POST):
                 # First, try to parse the nested form syntax `sentry[key][key]`
