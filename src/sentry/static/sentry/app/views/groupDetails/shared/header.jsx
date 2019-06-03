@@ -3,7 +3,6 @@ import {omit} from 'lodash';
 import PropTypes from 'prop-types';
 import React from 'react';
 import createReactClass from 'create-react-class';
-import qs from 'query-string';
 import styled from 'react-emotion';
 
 import {fetchOrgMembers} from 'app/actionCreators/members';
