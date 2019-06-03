@@ -3,9 +3,11 @@ import styled from 'react-emotion';
 
 import {PageContent} from 'app/styles/organization';
 import {t} from 'app/locale';
+import IdBadge from 'app/components/idBadge';
 import Chart from 'app/views/organizationIncidents/details/chart';
 import Link from 'app/components/links/link';
 import NavTabs from 'app/components/navTabs';
+import Projects from 'app/utils/projects';
 import SeenByList from 'app/components/seenByList';
 import SentryTypes from 'app/sentryTypes';
 import SideHeader from 'app/views/organizationIncidents/details/sideHeader';
@@ -51,14 +53,35 @@ export default class DetailsBody extends React.Component {
         <Sidebar>
           <PageContent>
             <SideHeader>{t('Events in Incident')}</SideHeader>
-            {incident && (
+            {incident ? (
               <Chart
                 data={incident.eventStats.data}
                 detected={incident.dateDetected}
                 closed={incident.dateClosed}
               />
+            ) : (
+              <ChartPlaceholder />
             )}
+
             <IncidentsSuspects suspects={[]} />
+
+            <div>
+              <SidebarHeading>
+                Projects Affected ({incident ? incident.projects.length : '-'})
+              </SidebarHeading>
+
+              {incident && (
+                <div>
+                  <Projects slugs={incident.projects} orgId={params.orgId}>
+                    {({projects, fetching}) => {
+                      return projects.map(project => (
+                        <StyledIdBadge key={project.slug} project={project} />
+                      ));
+                    }}
+                  </Projects>
+                </div>
+              )}
+            </div>
           </PageContent>
         </Sidebar>
       </StyledPageContent>
@@ -105,4 +128,20 @@ const SeenByTab = styled('li')`
 
 const StyledSeenByList = styled(SeenByList)`
   margin-top: 0;
+`;
+
+const ChartPlaceholder = styled('div')`
+  background-color: ${p => p.theme.offWhite};
+  height: 190px;
+  margin-bottom: 10px;
+`;
+
+const SidebarHeading = styled('h6')`
+  color: ${p => p.theme.gray3};
+  margin: ${space(2)} 0 ${space(1)} 0;
+  text-transform: uppercase;
+`;
+
+const StyledIdBadge = styled(IdBadge)`
+  margin-bottom: ${space(1)};
 `;
