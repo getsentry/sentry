@@ -18,6 +18,7 @@ from sentry.incidents.logic import (
     get_incident_aggregates,
     get_incident_event_stats,
     get_incident_subscribers,
+    get_incident_suspects,
     subscribe_to_incident,
     StatusAlreadyChangedError,
     update_incident_status,
@@ -30,6 +31,7 @@ from sentry.incidents.models import (
     IncidentStatus,
     IncidentSubscription,
 )
+from sentry.models.repository import Repository
 from sentry.testutils import (
     TestCase,
     SnubaTestCase,
@@ -361,3 +363,189 @@ class GetIncidentSuscribersTest(TestCase, BaseIncidentsTest):
         assert list(get_incident_subscribers(incident)) == []
         subscription = subscribe_to_incident(incident, self.user)[0]
         assert list(get_incident_subscribers(incident)) == [subscription]
+
+
+class GetIncidentSuspectsTest(TestCase, BaseIncidentsTest):
+
+    def test_simple(self):
+        release = self.create_release(
+            project=self.project,
+            version='v12'
+        )
+
+        included_commits = set([letter * 40 for letter in ('a', 'b', 'c', 'd')])
+        commit_iter = iter(included_commits)
+
+        event = self.store_event(
+            data={
+                'fingerprint': ['group-1'],
+                'message': 'Kaboom!',
+                'platform': 'python',
+                'stacktrace': {
+                    'frames': [
+                        {
+                            "function": "handle_set_commits",
+                            "abs_path": "/usr/src/sentry/src/sentry/tasks.py",
+                            "module": "sentry.tasks",
+                            "in_app": True,
+                            "lineno": 30,
+                            "filename": "sentry/tasks.py",
+                        },
+                        {
+                            "function": "set_commits",
+                            "abs_path": "/usr/src/sentry/src/sentry/models/release.py",
+                            "module": "sentry.models.release",
+                            "in_app": True,
+                            "lineno": 39,
+                            "filename": "sentry/models/release.py",
+                        }
+                    ]
+                },
+                'release': release.version,
+            },
+            project_id=self.project.id,
+        )
+        group = event.group
+        self.repo = Repository.objects.create(
+            organization_id=self.organization.id,
+            name=self.organization.id,
+        )
+        release.set_commits([
+            {
+                'id': next(commit_iter),
+                'repository': self.repo.name,
+                'author_email': 'bob@example.com',
+                'author_name': 'Bob',
+                'message': 'i fixed a bug',
+                'patch_set': [
+                    {
+                        'path': 'src/sentry/models/release.py',
+                        'type': 'M',
+                    },
+                ]
+            },
+            {
+                'id': next(commit_iter),
+                'repository': self.repo.name,
+                'author_email': 'bob@example.com',
+                'author_name': 'Bob',
+                'message': 'i fixed a bug',
+                'patch_set': [
+                    {
+                        'path': 'src/sentry/models/release.py',
+                        'type': 'M',
+                    },
+                ]
+            },
+            {
+                'id': next(commit_iter),
+                'repository': self.repo.name,
+                'author_email': 'ross@example.com',
+                'author_name': 'Ross',
+                'message': 'i fixed a bug',
+                'patch_set': [
+                    {
+                        'path': 'src/sentry/models/release.py',
+                        'type': 'M',
+                    },
+                ]
+            },
+        ])
+        release_2 = self.create_release(project=self.project, version='v13')
+        event_2 = self.store_event(
+            data={
+                'fingerprint': ['group-2'],
+                'message': 'Kaboom!',
+                'platform': 'python',
+                'stacktrace': {
+                    'frames': [
+                        {
+                            "function": "handle_set_commits",
+                            "abs_path": "/usr/src/sentry/src/sentry/tasks.py",
+                            "module": "sentry.tasks",
+                            "in_app": True,
+                            "lineno": 30,
+                            "filename": "sentry/tasks.py",
+                        },
+                        {
+                            "function": "set_commits",
+                            "abs_path": "/usr/src/sentry/src/sentry/models/group.py",
+                            "module": "sentry.models.group",
+                            "in_app": True,
+                            "lineno": 39,
+                            "filename": "sentry/models/group.py",
+                        },
+                    ],
+                },
+                'release': release_2.version,
+            },
+            project_id=self.project.id,
+        )
+        group_2 = event_2.group
+        release_2.set_commits([
+            {
+                'id': next(commit_iter),
+                'repository': self.repo.name,
+                'author_email': 'hello@example.com',
+                'author_name': 'Hello',
+                'message': 'i fixed a bug',
+                'patch_set': [
+                    {
+                        'path': 'src/sentry/models/group.py',
+                        'type': 'M',
+                    },
+                ]
+            },
+        ])
+
+        excluded_project = self.create_project()
+        excluded_event = self.store_event(
+            data={
+                'fingerprint': ['group-3'],
+                'message': 'Kaboom!',
+                'platform': 'python',
+                'stacktrace': {
+                    'frames': [
+                        {
+                            "function": "set_commits",
+                            "abs_path": "/usr/src/sentry/src/sentry/models/event.py",
+                            "module": "sentry.models.event",
+                            "in_app": True,
+                            "lineno": 39,
+                            "filename": "sentry/models/event.py",
+                        },
+                    ],
+                },
+                'release': release_2.version,
+            },
+            project_id=excluded_project.id,
+        )
+        excluded_release = self.create_release(project=self.project, version='v9000')
+
+        excluded_commit = 'e' * 40
+        excluded_group = excluded_event.group
+        excluded_release.set_commits([
+            {
+                'id': excluded_commit,
+                'repository': self.repo.name,
+                'author_email': 'hello@example.com',
+                'author_name': 'Hello',
+                'message': 'i fixed a bug',
+                'patch_set': [
+                    {
+                        'path': 'src/sentry/models/event.py',
+                        'type': 'M',
+                    },
+                ]
+            },
+        ])
+
+        incident = self.create_incident(
+            self.organization,
+            groups=[group, group_2, excluded_group],
+        )
+
+        assert set(suspect['id'] for suspect in get_incident_suspects(
+            incident,
+            incident.projects.exclude(id=excluded_project.id),
+        )) == included_commits
