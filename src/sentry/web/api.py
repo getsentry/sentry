@@ -621,7 +621,8 @@ class EventAttachmentStoreView(StoreView):
 
 class MinidumpView(StoreView):
     auth_helper_cls = MinidumpAuthHelper
-    content_types = ('multipart/form-data', 'application/octet-stream')
+    dump_types = ('application/octet-stream', 'application/x-dmp')
+    content_types = ('multipart/form-data',) + dump_types
 
     def _dispatch(self, request, helper, project_id=None, origin=None, *args, **kwargs):
         # TODO(ja): Refactor shared code with CspReportView. Especially, look at
@@ -678,7 +679,7 @@ class MinidumpView(StoreView):
         request_files = request.FILES or {}
         content_type = request.META.get('CONTENT_TYPE')
 
-        if content_type == 'application/octet-stream':  # TODO
+        if content_type in self.dump_types:
             minidump = io.BytesIO(request.body)
             minidump_name = "Minidump"
             data = {}
