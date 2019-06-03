@@ -7,14 +7,15 @@ import SentryTypes from 'app/sentryTypes';
 import TagDistributionMeter from 'app/components/tagDistributionMeter';
 import withApi from 'app/utils/withApi';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
-import {fetchTags} from './utils';
+import {fetchTags, getEventTagSearchUrl} from './utils';
 
 class Tags extends React.Component {
   static propTypes = {
     api: PropTypes.object.isRequired,
     organization: SentryTypes.Organization.isRequired,
     view: SentryTypes.EventView.isRequired,
-    selection: SentryTypes.GlobalSelection,
+    selection: SentryTypes.GlobalSelection.isRequired,
+    location: PropTypes.object.isRequired,
   };
 
   state = {
@@ -47,6 +48,7 @@ class Tags extends React.Component {
   }
 
   renderTag(tag) {
+    const {location} = this.props;
     const {isLoading, tags} = this.state;
     let segments = [];
     let totalValues = 0;
@@ -56,7 +58,7 @@ class Tags extends React.Component {
     }
 
     segments.forEach(segment => {
-      segment.url = 'TODO';
+      segment.url = getEventTagSearchUrl(tag, segment.value, location);
     });
 
     return (

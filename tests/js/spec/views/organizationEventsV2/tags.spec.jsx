@@ -44,6 +44,7 @@ describe('Tags', function() {
         api={api}
         organization={org}
         selection={{projects: [], environments: [], datetime: {}}}
+        location={{}}
       />
     );
 

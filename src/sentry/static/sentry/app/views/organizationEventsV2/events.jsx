@@ -24,7 +24,8 @@ const CHART_AXIS_OPTIONS = [
 
 class Events extends AsyncComponent {
   static propTypes = {
-    router: PropTypes.object,
+    router: PropTypes.object.isRequired,
+    location: PropTypes.object.isRequired,
     organization: SentryTypes.Organization.isRequired,
     view: SentryTypes.EventView.isRequired,
   };
@@ -102,7 +103,7 @@ class Events extends AsyncComponent {
             />
             <Pagination pageLinks={dataPageLinks} />
           </div>
-          <Tags view={view} organization={organization} />
+          <Tags view={view} organization={organization} location={location} />
         </Container>
       </React.Fragment>
     );
