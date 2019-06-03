@@ -91,18 +91,6 @@ const GroupHeader = createReactClass({
     }
   },
 
-  searchTermWithoutQuery() {
-    const {location} = this.context;
-
-    const searchTermWithoutQuery = qs.stringify(omit(location.query, 'query'));
-
-    if (searchTermWithoutQuery.length <= 0) {
-      return '';
-    }
-
-    return `?${searchTermWithoutQuery}`;
-  },
-
   render() {
     const {project, group, params} = this.props;
     const projectFeatures = new Set(project ? project.features : []);
@@ -134,6 +122,12 @@ const GroupHeader = createReactClass({
     const baseUrl = params.projectId
       ? `/${orgId}/${params.projectId}/issues/`
       : `/organizations/${orgId}/issues/`;
+
+    const searchTermWithoutQuery = omit(location.query, 'query');
+    const eventRouteToObject = {
+      pathname: `${baseUrl}${groupId}/events/`,
+      query: searchTermWithoutQuery,
+    };
 
     return (
       <div className={className}>
@@ -198,7 +192,7 @@ const GroupHeader = createReactClass({
               )}
               <div className="count align-right m-l-1">
                 <h6 className="nav-header">{t('Events')}</h6>
-                <Link to={`${baseUrl}${groupId}/events/${this.searchTermWithoutQuery()}`}>
+                <Link to={eventRouteToObject}>
                   <Count className="count" value={group.count} />
                 </Link>
               </div>
@@ -257,7 +251,7 @@ const GroupHeader = createReactClass({
             {t('Tags')}
           </ListLink>
           <ListLink
-            to={`${baseUrl}${groupId}/events/${this.searchTermWithoutQuery()}`}
+            to={eventRouteToObject}
             isActive={() => location.pathname.endsWith('/events/')}
           >
             {t('Events')}
