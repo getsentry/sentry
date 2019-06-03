@@ -1242,13 +1242,8 @@ function routes() {
               component={errorHandler(LazyLoad)}
             />
           </Route>
-          <Route
-            path="user-feedback/"
-            componentPromise={() =>
-              import(/* webpackChunkName: "ProjectUserFeedback" */ './views/userFeedback/projectUserFeedback')
-            }
-            component={errorHandler(LazyLoad)}
-          />
+
+          <Redirect from="user-feedback/" to="/organizations/:orgId/user-feedback/" />
 
           <Route path="settings/" component={errorHandler(ProjectSettings)}>
             <Redirect from="teams/" to="/settings/:orgId/projects/:projectId/teams/" />
