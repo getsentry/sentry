@@ -69,6 +69,7 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
         fields = request.GET.getlist('field')[:]
         aggregations = []
         groupby = request.GET.getlist('groupby')
+        having = request.GET.getlist('having')
 
         if fields:
             # If project.name is requested, get the project.id from Snuba so we
@@ -86,10 +87,18 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
                     aggregations.extend(special_field.get('aggregations', []))
                     groupby.extend(special_field.get('groupby', []))
 
+            for index, condition in enumerate(having):
+                condition = condition.split(',')
+                assert len(condition) == 3
+                having[index] = condition
+
             snuba_args['selected_columns'] = fields
 
         if aggregations:
             snuba_args['aggregations'] = aggregations
+
+        if having:
+            snuba_args['having'] = having
 
         if groupby:
             snuba_args['groupby'] = groupby
