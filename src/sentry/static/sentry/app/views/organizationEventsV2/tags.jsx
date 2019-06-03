@@ -36,16 +36,16 @@ class Tags extends React.Component {
     }
   }
 
-  fetchData() {
+  fetchData = async () => {
     const {api, organization, view} = this.props;
-    fetchTags(api, organization.slug, view.tags)
-      .then(tags => {
-        this.setState({tags, isLoading: false});
-      })
-      .catch(() => {
-        this.setState({tags: {}, isLoading: false});
-      });
-  }
+
+    try {
+      const tags = await fetchTags(api, organization.slug, view.tags);
+      this.setState({tags, isLoading: false});
+    } catch (err) {
+      this.setState({tags: {}, isLoading: false});
+    }
+  };
 
   renderTag(tag) {
     const {location} = this.props;
