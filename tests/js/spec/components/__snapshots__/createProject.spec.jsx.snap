@@ -1516,7 +1516,7 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
                               <ForwardRef
                                 aria-disabled={false}
                                 borderless={true}
-                                className="css-1ggcm4u-StyledButton-getColors e12ma6z0"
+                                className="css-35eqg2-StyledButton-getColors e12ma6z0"
                                 data-test-id="create-team"
                                 disabled={false}
                                 onClick={[Function]}
@@ -1525,7 +1525,7 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
                               >
                                 <button
                                   aria-disabled={false}
-                                  className="css-1ggcm4u-StyledButton-getColors e12ma6z0"
+                                  className="css-35eqg2-StyledButton-getColors e12ma6z0"
                                   data-test-id="create-team"
                                   onClick={[Function]}
                                   role="button"
@@ -1619,7 +1619,7 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
               <ForwardRef
                 aria-disabled={true}
                 aria-label="Create Project"
-                className="css-mla83t-StyledButton-getColors e12ma6z0"
+                className="css-1y2tnyd-StyledButton-getColors e12ma6z0"
                 data-test-id="create-project"
                 disabled={true}
                 href={null}
@@ -1631,7 +1631,7 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
                 <button
                   aria-disabled={true}
                   aria-label="Create Project"
-                  className="css-mla83t-StyledButton-getColors e12ma6z0"
+                  className="css-1y2tnyd-StyledButton-getColors e12ma6z0"
                   data-test-id="create-project"
                   href={null}
                   onClick={[Function]}
@@ -2118,7 +2118,7 @@ exports[`CreateProject should fill in platform name if its provided by url 1`] =
                         <ForwardRef
                           aria-disabled={false}
                           borderless={true}
-                          className="exv4dm85 css-1ac0eh4-StyledButton-getColors-ClearButton e12ma6z0"
+                          className="exv4dm85 css-1ct4fe4-StyledButton-getColors-ClearButton e12ma6z0"
                           disabled={false}
                           onClick={[Function]}
                           role="button"
@@ -2126,7 +2126,7 @@ exports[`CreateProject should fill in platform name if its provided by url 1`] =
                         >
                           <button
                             aria-disabled={false}
-                            className="exv4dm85 css-1ac0eh4-StyledButton-getColors-ClearButton e12ma6z0"
+                            className="exv4dm85 css-1ct4fe4-StyledButton-getColors-ClearButton e12ma6z0"
                             onClick={[Function]}
                             role="button"
                             size="xsmall"
@@ -2497,7 +2497,7 @@ exports[`CreateProject should fill in platform name if its provided by url 1`] =
                               <ForwardRef
                                 aria-disabled={false}
                                 borderless={true}
-                                className="css-1ggcm4u-StyledButton-getColors e12ma6z0"
+                                className="css-35eqg2-StyledButton-getColors e12ma6z0"
                                 data-test-id="create-team"
                                 disabled={false}
                                 onClick={[Function]}
@@ -2506,7 +2506,7 @@ exports[`CreateProject should fill in platform name if its provided by url 1`] =
                               >
                                 <button
                                   aria-disabled={false}
-                                  className="css-1ggcm4u-StyledButton-getColors e12ma6z0"
+                                  className="css-35eqg2-StyledButton-getColors e12ma6z0"
                                   data-test-id="create-team"
                                   onClick={[Function]}
                                   role="button"
@@ -2600,7 +2600,7 @@ exports[`CreateProject should fill in platform name if its provided by url 1`] =
               <ForwardRef
                 aria-disabled={true}
                 aria-label="Create Project"
-                className="css-mla83t-StyledButton-getColors e12ma6z0"
+                className="css-1y2tnyd-StyledButton-getColors e12ma6z0"
                 data-test-id="create-project"
                 disabled={true}
                 href={null}
@@ -2612,7 +2612,7 @@ exports[`CreateProject should fill in platform name if its provided by url 1`] =
                 <button
                   aria-disabled={true}
                   aria-label="Create Project"
-                  className="css-mla83t-StyledButton-getColors e12ma6z0"
+                  className="css-1y2tnyd-StyledButton-getColors e12ma6z0"
                   data-test-id="create-project"
                   href={null}
                   onClick={[Function]}
@@ -2999,7 +2999,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
                         <ForwardRef
                           aria-disabled={false}
                           borderless={true}
-                          className="exv4dm85 css-1ac0eh4-StyledButton-getColors-ClearButton e12ma6z0"
+                          className="exv4dm85 css-1ct4fe4-StyledButton-getColors-ClearButton e12ma6z0"
                           disabled={false}
                           onClick={[Function]}
                           role="button"
@@ -3007,7 +3007,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
                         >
                           <button
                             aria-disabled={false}
-                            className="exv4dm85 css-1ac0eh4-StyledButton-getColors-ClearButton e12ma6z0"
+                            className="exv4dm85 css-1ct4fe4-StyledButton-getColors-ClearButton e12ma6z0"
                             onClick={[Function]}
                             role="button"
                             size="xsmall"
@@ -4178,7 +4178,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
                               <ForwardRef
                                 aria-disabled={false}
                                 borderless={true}
-                                className="css-1ggcm4u-StyledButton-getColors e12ma6z0"
+                                className="css-35eqg2-StyledButton-getColors e12ma6z0"
                                 data-test-id="create-team"
                                 disabled={false}
                                 onClick={[Function]}
@@ -4187,7 +4187,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
                               >
                                 <button
                                   aria-disabled={false}
-                                  className="css-1ggcm4u-StyledButton-getColors e12ma6z0"
+                                  className="css-35eqg2-StyledButton-getColors e12ma6z0"
                                   data-test-id="create-team"
                                   onClick={[Function]}
                                   role="button"
@@ -4281,7 +4281,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
               <ForwardRef
                 aria-disabled={true}
                 aria-label="Create Project"
-                className="css-mla83t-StyledButton-getColors e12ma6z0"
+                className="css-1y2tnyd-StyledButton-getColors e12ma6z0"
                 data-test-id="create-project"
                 disabled={true}
                 href={null}
@@ -4293,7 +4293,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
                 <button
                   aria-disabled={true}
                   aria-label="Create Project"
-                  className="css-mla83t-StyledButton-getColors e12ma6z0"
+                  className="css-1y2tnyd-StyledButton-getColors e12ma6z0"
                   data-test-id="create-project"
                   href={null}
                   onClick={[Function]}
