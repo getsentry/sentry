@@ -3,15 +3,9 @@ from __future__ import absolute_import
 import re
 import six
 import logging
-import posixpath
 
-from collections import namedtuple
-from symbolic import parse_addr
-
-from sentry.interfaces.contexts import DeviceContextType
-from sentry.stacktraces.functions import trim_function_name
 from sentry.stacktraces.processing import find_stacktraces_in_data
-from sentry.utils.safe import get_path, trim
+from sentry.utils.safe import get_path
 
 logger = logging.getLogger(__name__)
 
@@ -32,8 +26,6 @@ NATIVE_IMAGE_TYPES = (
     'macho',     # macOS, iOS
     'pe'         # Windows
 )
-
-AppInfo = namedtuple('AppInfo', ['id', 'version', 'build', 'name'])
 
 
 def is_native_platform(platform):
@@ -62,6 +54,11 @@ def is_native_event(data):
             return True
 
     return False
+
+
+def is_minidump_event(data):
+    exceptions = get_path(data, 'exception', 'values', filter=True)
+    return get_path(exceptions, 0, 'mechanism', 'type') in ('minidump', 'unreal')
 
 
 def image_name(pkg):
@@ -100,32 +97,6 @@ def get_sdk_from_os(data):
     }
 
 
-def cpu_name_from_data(data):
-    """Returns the CPU name from the given data if it exists."""
-    device = DeviceContextType.primary_value_for_data(data)
-    if device and device.get('arch'):
-        return device['arch']
-
-    return None
-
-
-def rebase_addr(instr_addr, obj):
-    return parse_addr(instr_addr) - parse_addr(obj.addr)
-
-
-def sdk_info_to_sdk_id(sdk_info):
-    if sdk_info is None:
-        return None
-    rv = '%s_%d.%d.%d' % (
-        sdk_info['sdk_name'], sdk_info['version_major'], sdk_info['version_minor'],
-        sdk_info['version_patchlevel'],
-    )
-    build = sdk_info.get('build')
-    if build is not None:
-        rv = '%s_%s' % (rv, build)
-    return rv
-
-
 def signal_from_data(data):
     exceptions = get_path(data, 'exception', 'values', filter=True)
     signal = get_path(exceptions, 0, 'mechanism', 'meta', 'signal', 'number')
@@ -133,38 +104,3 @@ def signal_from_data(data):
         return int(signal)
 
     return None
-
-
-def merge_symbolicated_frame(new_frame, sfrm):
-    if sfrm.get('function'):
-        raw_func = trim(sfrm['function'], 256)
-        func = trim(trim_function_name(sfrm['function'], 'native'), 256)
-
-        # if function and raw function match, we can get away without
-        # storing a raw function
-        if func == raw_func:
-            new_frame['function'] = raw_func
-        # otherwise we store both
-        else:
-            new_frame['raw_function'] = raw_func
-            new_frame['function'] = func
-    if sfrm.get('instruction_addr'):
-        new_frame['instruction_addr'] = sfrm['instruction_addr']
-    if sfrm.get('symbol'):
-        new_frame['symbol'] = sfrm['symbol']
-    if sfrm.get('abs_path'):
-        new_frame['abs_path'] = sfrm['abs_path']
-        new_frame['filename'] = posixpath.basename(sfrm['abs_path'])
-    if sfrm.get('filename'):
-        new_frame['filename'] = sfrm['filename']
-    if sfrm.get('lineno'):
-        new_frame['lineno'] = sfrm['lineno']
-    if sfrm.get('colno'):
-        new_frame['colno'] = sfrm['colno']
-    if sfrm.get('package'):
-        new_frame['package'] = sfrm['package']
-    if sfrm.get('trust'):
-        new_frame['trust'] = sfrm['trust']
-    if sfrm.get('status'):
-        frame_meta = new_frame.setdefault('data', {})
-        frame_meta['symbolicator_status'] = sfrm['status']

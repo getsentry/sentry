@@ -2,13 +2,7 @@ from __future__ import absolute_import
 from symbolic import Unreal4Crash
 from sentry.lang.native.minidump import MINIDUMP_ATTACHMENT_TYPE
 from sentry.models import UserReport
-from sentry.utils.safe import set_path, setdefault_path, get_path
-
-
-def is_unreal_event(data):
-    """Whether this event is an Unreal crash that should be processed in
-    enhancers. For the legacy codepath this still returns False."""
-    return get_path(data, 'contexts', 'unreal', 'type') == 'unreal'
+from sentry.utils.safe import set_path, setdefault_path
 
 
 def process_unreal_crash(payload, user_id, environment, event):

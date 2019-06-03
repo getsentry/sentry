@@ -15,11 +15,7 @@ from six.moves.urllib.parse import urljoin
 from sentry import options
 from sentry.auth.system import get_system_token
 from sentry.cache import default_cache
-from sentry.lang.native.error import SymbolicationFailed, write_error
-from sentry.lang.native.utils import image_name
-from sentry.models.eventerror import EventError
 from sentry.utils import json, metrics
-from sentry.utils.in_app import is_known_third_party, is_optional_package
 from sentry.net.http import Session
 from sentry.tasks.store import RetrySymbolication
 
@@ -110,13 +106,6 @@ SOURCES_SCHEMA = {
         ],
     }
 }
-
-
-IMAGE_STATUS_FIELDS = frozenset((
-    'status',  # TODO(markus): Legacy key. Remove after next deploy
-    'unwind_status',
-    'debug_status'
-))
 
 
 class Symbolicator(object):
@@ -290,77 +279,6 @@ def get_sources_for_project(project):
             sources.append(source)
 
     return sources
-
-
-def handle_symbolicator_response_status(event_data, response_json):
-    if not response_json:
-        error = SymbolicationFailed(type=EventError.NATIVE_INTERNAL_FAILURE)
-    elif response_json['status'] == 'completed':
-        return True
-    elif response_json['status'] == 'failed':
-        error = SymbolicationFailed(message=response_json.get('message') or None,
-                                    type=EventError.NATIVE_SYMBOLICATOR_FAILED)
-    else:
-        logger.error('Unexpected symbolicator status: %s', response_json['status'])
-        error = SymbolicationFailed(type=EventError.NATIVE_INTERNAL_FAILURE)
-
-    write_error(error, event_data)
-
-
-def merge_symbolicator_image(raw_image, complete_image, sdk_info, handle_symbolication_failed):
-    statuses = set()
-
-    # Set image data from symbolicator as symbolicator might know more
-    # than the SDK, especially for minidumps
-    for k, v in six.iteritems(complete_image):
-        if k in IMAGE_STATUS_FIELDS:
-            statuses.add(v)
-        elif not (v is None or (k, v) == ('arch', 'unknown')):
-            raw_image[k] = v
-
-    for status in set(statuses):
-        handle_symbolicator_status(status, raw_image, sdk_info, handle_symbolication_failed)
-
-
-def handle_symbolicator_status(status, image, sdk_info, handle_symbolication_failed):
-    if status in ('found', 'unused'):
-        return
-    elif status in (
-        'missing_debug_file',  # TODO(markus): Legacy key. Remove after next deploy
-        'missing'
-    ):
-        package = image.get('code_file')
-        # TODO(mitsuhiko): This check seems wrong?  This call seems to
-        # mirror the one in the ios symbol server support.  If we change
-        # one we need to change the other.
-        if not package or is_known_third_party(package, sdk_info=sdk_info):
-            return
-
-        if is_optional_package(package, sdk_info=sdk_info):
-            error = SymbolicationFailed(
-                type=EventError.NATIVE_MISSING_OPTIONALLY_BUNDLED_DSYM)
-        else:
-            error = SymbolicationFailed(type=EventError.NATIVE_MISSING_DSYM)
-    elif status in (
-        'malformed_debug_file',  # TODO(markus): Legacy key. Remove after next deploy
-        'malformed'
-    ):
-        error = SymbolicationFailed(type=EventError.NATIVE_BAD_DSYM)
-    elif status == 'too_large':
-        error = SymbolicationFailed(type=EventError.FETCH_TOO_LARGE)
-    elif status == 'fetching_failed':
-        error = SymbolicationFailed(type=EventError.FETCH_GENERIC_ERROR)
-    elif status == 'other':
-        error = SymbolicationFailed(type=EventError.UNKNOWN_ERROR)
-    else:
-        logger.error("Unknown status: %s", status)
-        return
-
-    error.image_arch = image.get('arch')
-    error.image_path = image.get('code_file')
-    error.image_name = image_name(image.get('code_file'))
-    error.image_uuid = image.get('debug_id')
-    handle_symbolication_failed(error)
 
 
 class SymbolicatorSession(object):

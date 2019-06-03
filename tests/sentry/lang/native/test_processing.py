@@ -9,12 +9,12 @@ import pytest
 
 from sentry.models.eventerror import EventError
 
-from sentry.lang.native.symbolicator import merge_symbolicator_image
+from sentry.lang.native.processing import _merge_image
 
 
 def test_merge_symbolicator_image_empty():
     errors = []
-    merge_symbolicator_image({}, {}, None, errors.append)
+    _merge_image({}, {}, None, errors.append)
     assert not errors
 
 
@@ -29,7 +29,7 @@ def test_merge_symbolicator_image_basic():
     }
     errors = []
 
-    merge_symbolicator_image(raw_image, complete_image, sdk_info, errors.append)
+    _merge_image(raw_image, complete_image, sdk_info, errors.append)
 
     assert not errors
     assert raw_image == {"instruction_addr": 0xFEEBEE, "other": "foo", "other2": "bar"}
@@ -46,7 +46,7 @@ def test_merge_symbolicator_image_basic_success():
     }
     errors = []
 
-    merge_symbolicator_image(raw_image, complete_image, sdk_info, errors.append)
+    _merge_image(raw_image, complete_image, sdk_info, errors.append)
 
     assert not errors
     assert raw_image == {
@@ -67,7 +67,7 @@ def test_merge_symbolicator_image_remove_unknown_arch():
     }
     errors = []
 
-    merge_symbolicator_image(raw_image, complete_image, sdk_info, errors.append)
+    _merge_image(raw_image, complete_image, sdk_info, errors.append)
 
     assert not errors
     assert raw_image == {"instruction_addr": 0xFEEBEE}
@@ -92,7 +92,7 @@ def test_merge_symbolicator_image_errors(code_file, error):
     }
     errors = []
 
-    merge_symbolicator_image(raw_image, complete_image, sdk_info, errors.append)
+    _merge_image(raw_image, complete_image, sdk_info, errors.append)
 
     e, = errors
 

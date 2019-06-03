@@ -1,69 +1,7 @@
 from __future__ import absolute_import
 import io
 import msgpack
-from sentry.lang.native.minidump import merge_attached_breadcrumbs, is_minidump_event, merge_attached_event
-
-
-def test_is_minidump():
-    assert is_minidump_event({
-        'exception': {
-            'values': [{
-                'mechanism': {
-                    'type': 'minidump'
-                }
-            }]
-        }
-    })
-
-    assert not is_minidump_event({
-        'exception': {
-            'values': [{
-                'mechanism': {
-                    'type': 'other'
-                }
-            }]
-        }
-    })
-
-    assert not is_minidump_event({
-        'exception': {
-            'values': [{
-                'mechanism': {
-                    'type': None
-                }
-            }]
-        }
-    })
-
-    assert not is_minidump_event({
-        'exception': {
-            'values': [{
-                'mechanism': None
-            }]
-        }
-    })
-
-    assert not is_minidump_event({
-        'exception': {
-            'values': [None]
-        }
-    })
-
-    assert not is_minidump_event({
-        'exception': {
-            'values': []
-        }
-    })
-
-    assert not is_minidump_event({
-        'exception': {
-            'values': None
-        }
-    })
-
-    assert not is_minidump_event({
-        'exception': None
-    })
+from sentry.lang.native.minidump import merge_attached_breadcrumbs, merge_attached_event
 
 
 class MockFile(object):

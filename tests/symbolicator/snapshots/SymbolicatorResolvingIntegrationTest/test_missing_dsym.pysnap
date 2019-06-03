@@ -1,5 +1,5 @@
 ---
-created: '2019-06-03T10:37:01.851037Z'
+created: '2019-06-03T15:00:19.524785Z'
 creator: sentry
 source: tests/symbolicator/test_payload_full.py
 ---
@@ -31,9 +31,7 @@ exception:
       - function: hi
         in_app: false
         platform: foobar
-      - data:
-          symbolicator_status: missing
-        function: unknown
+      - function: unknown
         in_app: true
         instruction_addr: '0x100000fa0'
         package: Foo.app/Contents/Foo
