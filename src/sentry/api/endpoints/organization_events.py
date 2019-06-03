@@ -94,7 +94,7 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
 
         data_fn = partial(
             lambda **kwargs: transform_aliases_and_query(
-                **kwargs)['data'],
+                skip_conditions=True, **kwargs)['data'],
             referrer='api.organization-events-v2',
             **snuba_args
         )
