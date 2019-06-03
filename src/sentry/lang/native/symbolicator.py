@@ -11,7 +11,7 @@ from django.core.urlresolvers import reverse
 from requests.exceptions import RequestException
 from six.moves.urllib.parse import urljoin
 
-from sentry import options
+from sentry import options, settings
 from sentry.auth.system import get_system_token
 from sentry.cache import default_cache
 from sentry.lang.native.error import SymbolicationFailed, write_error
@@ -28,104 +28,6 @@ SYMBOLICATOR_TIMEOUT = 5
 
 logger = logging.getLogger(__name__)
 
-
-BUILTIN_SOURCES = {
-    'microsoft': {
-        'type': 'http',
-        'id': 'sentry:microsoft',
-        'layout': {'type': 'symstore'},
-        'filters': {
-            'filetypes': ['pdb', 'pe'],
-            'path_patterns': ['?:/windows/**']
-        },
-        'url': 'https://msdl.microsoft.com/download/symbols/',
-        'is_public': True,
-    },
-    'citrix': {
-        'type': 'http',
-        'id': 'sentry:citrix',
-        'layout': {'type': 'symstore'},
-        'filters': {
-            'filetypes': ['pdb', 'pe']
-        },
-        'url': 'http://ctxsym.citrix.com/symbols/',
-        'is_public': True,
-    },
-    'intel': {
-        'type': 'http',
-        'id': 'sentry:intel',
-        'layout': {'type': 'symstore'},
-        'filters': {
-            'filetypes': ['pdb', 'pe']
-        },
-        'url': 'https://software.intel.com/sites/downloads/symbols/',
-        'is_public': True,
-    },
-    'amd': {
-        'type': 'http',
-        'id': 'sentry:amd',
-        'layout': {'type': 'symstore'},
-        'filters': {
-            'filetypes': ['pdb', 'pe']
-        },
-        'url': 'https://download.amd.com/dir/bin/',
-        'is_public': True,
-    },
-    'nvidia': {
-        'type': 'http',
-        'id': 'sentry:nvidia',
-        'layout': {'type': 'symstore'},
-        'filters': {
-            'filetypes': ['pdb', 'pe']
-        },
-        'url': 'https://driver-symbols.nvidia.com/',
-        'is_public': True,
-    },
-    'chromium': {
-        'type': 'http',
-        'id': 'sentry:chromium',
-        'layout': {'type': 'symstore'},
-        'filters': {
-            'filetypes': ['pdb', 'pe']
-        },
-        'url': 'https://chromium-browser-symsrv.commondatastorage.googleapis.com/',
-        'is_public': True,
-    },
-    'unity': {
-        'type': 'http',
-        'id': 'sentry:unity',
-        'layout': {'type': 'symstore'},
-        'filters': {
-            'filetypes': ['pdb', 'pe']
-        },
-        'url': 'https://symbolserver.unity3d.com/',
-        'is_public': True,
-    },
-    'mozilla': {
-        'type': 'http',
-        'id': 'sentry:mozilla',
-        'layout': {'type': 'symstore'},
-        'url': 'https://symbols.mozilla.org/',
-        'is_public': True,
-    },
-    'autodesk': {
-        'type': 'http',
-        'id': 'sentry:autodesk',
-        'layout': {'type': 'symstore'},
-        'url': 'http://symbols.autodesk.com/',
-        'is_public': True,
-    },
-    'electron': {
-        'type': 'http',
-        'id': 'sentry:electron',
-        'layout': {'type': 'native'},
-        'url': 'https://electron-symbols.githubapp.com/',
-        'filters': {
-            'filetypes': ['pdb', 'breakpad'],
-        },
-        'is_public': True,
-    }
-}
 
 VALID_LAYOUTS = (
     'native',
@@ -382,7 +284,7 @@ def get_sources_for_project(project):
     # Add builtin sources last to ensure that custom sources have precedence
     # over our defaults.
     builtin_sources = project.get_option('sentry:builtin_symbol_sources') or []
-    for key, source in six.iteritems(BUILTIN_SOURCES):
+    for key, source in six.iteritems(settings.SENTRY_BUILTIN_SOURCES):
         if key in builtin_sources:
             sources.append(source)
 
