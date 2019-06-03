@@ -814,7 +814,7 @@ class SmartSearchBar extends React.Component {
               caret={false}
               title={
                 <div style={{display: 'flex', alignItems: 'center'}}>
-                  <EllipsisIcon src="icon-ellipsis"/>
+                  <EllipsisIcon src="icon-ellipsis-filled"/>
                 </div>
               }
             >
