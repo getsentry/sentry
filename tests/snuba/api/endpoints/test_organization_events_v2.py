@@ -260,7 +260,7 @@ class OrganizationEventsV2EndpointTest(OrganizationEventsTestBase):
         assert response.data[1]['event_count'] == 2
         assert response.data[1]['user_count'] == 2
 
-    def test_special_field_with_conditions(self):
+    def test_special_field_with_having_conditions(self):
         self.login_as(user=self.user)
         project = self.create_project()
         self.store_event(
@@ -302,7 +302,7 @@ class OrganizationEventsV2EndpointTest(OrganizationEventsTestBase):
                 'timestamp': self.min_ago,
                 'fingerprint': ['group_3'],
                 'user': {
-                    'email': 'foo@example.com',
+                    'email': 'bar@example.com',
                 },
             },
             project_id=project.id,
@@ -314,17 +314,6 @@ class OrganizationEventsV2EndpointTest(OrganizationEventsTestBase):
                 'fingerprint': ['group_3'],
                 'user': {
                     'email': 'bar@example.com',
-                },
-            },
-            project_id=project.id,
-        )
-        self.store_event(
-            data={
-                'event_id': 'f' * 32,
-                'timestamp': self.min_ago,
-                'fingerprint': ['group_3'],
-                'user': {
-                    'email': 'foobar@example.com',
                 },
             },
             project_id=project.id,
@@ -346,10 +335,7 @@ class OrganizationEventsV2EndpointTest(OrganizationEventsTestBase):
 
         assert response.status_code == 200, response.content
 
-        assert len(response.data) == 2
+        assert len(response.data) == 1
         assert response.data[0]['issue.id'] == groups[1].id
         assert response.data[0]['event_count'] == 2
         assert response.data[0]['user_count'] == 2
-        assert response.data[1]['issue.id'] == groups[2].id
-        assert response.data[1]['event_count'] == 3
-        assert response.data[1]['user_count'] == 3
