@@ -29,5 +29,4 @@ class ProjectSavedSearchesSettingsTest(AcceptanceTestCase):
     def test_saved_searches(self):
         path = u'/{}/{}/settings/saved-searches/'.format(self.org.slug, self.project.slug)
         self.browser.get(path)
-        self.browser.wait_until_not('.loading-indicator')
         self.browser.snapshot('project settings - saved searches')
