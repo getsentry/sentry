@@ -6,13 +6,18 @@ import styled from 'react-emotion';
 import BarChart from 'app/components/barChart';
 
 const StyledBarChart = styled(BarChart)`
-  height: 24px;
+  height: ${p => p.height};
 `;
 
 class GroupChart extends React.Component {
   static propTypes = {
     statsPeriod: PropTypes.string.isRequired,
     data: PropTypes.object.isRequired,
+    height: PropTypes.number,
+  };
+
+  static defaultProps = {
+    height: 24,
   };
 
   shouldComponentUpdate(nextProps) {
@@ -30,14 +35,20 @@ class GroupChart extends React.Component {
     if (!stats || !stats.length) {
       return null;
     }
-
+    const {height} = this.props;
     const chartData = stats.map(point => {
       return {x: point[0], y: point[1]};
     });
 
     return (
-      <LazyLoad debounce={50} height={24}>
-        <StyledBarChart points={chartData} label="events" minHeights={[3]} gap={1} />
+      <LazyLoad debounce={50} height={height}>
+        <StyledBarChart
+          points={chartData}
+          height={height}
+          label="events"
+          minHeights={[3]}
+          gap={1}
+        />
       </LazyLoad>
     );
   }

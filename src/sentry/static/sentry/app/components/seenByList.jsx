@@ -53,8 +53,8 @@ export default class SeenByList extends React.Component {
     //       gracefully handing this case.
     //
     // See: https://github.com/getsentry/sentry/issues/2387
-
-    if (seenBy.length === 0) {
+    const displayUsers = (seenBy || []).filter(user => activeUser.id !== user.id);
+    if (displayUsers.length === 0) {
       return null;
     }
 
@@ -65,7 +65,7 @@ export default class SeenByList extends React.Component {
         className={classNames('seen-by', className)}
       >
         <AvatarList
-          users={seenBy.filter(user => activeUser.id !== user.id)}
+          users={displayUsers}
           avatarSize={avatarSize}
           maxVisibleAvatars={maxVisibleAvatars}
           renderTooltip={user => (
