@@ -1192,7 +1192,7 @@ class OrganizationEventsHeatmapEndpointTest(OrganizationEventsTestBase):
             response = self.client.get(
                 self.url, {
                     'keys': [
-                        'color', 'number', 'project']}, format='json')
+                        'color', 'number', 'project.name']}, format='json')
 
         assert response.status_code == 200, response.content
         assert len(response.data) == 3

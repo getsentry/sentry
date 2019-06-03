@@ -171,7 +171,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsEndpointBase):
 
 
 class OrganizationEventsHeatmapEndpoint(OrganizationEventsEndpointBase):
-    NON_TAG_KEYS = frozenset(['project'])
+    NON_TAG_KEYS = frozenset(['project.name'])
 
     def get(self, request, organization):
         try:
@@ -210,24 +210,24 @@ class OrganizationEventsHeatmapEndpoint(OrganizationEventsEndpointBase):
             raise ResourceDoesNotExist
 
         if non_tag_lookup_keys:
-            tag_keys.update(self.handle_non_tags_keys(non_tag_lookup_keys, snuba_args))
+            tag_keys.update(self.handle_non_tag_keys(non_tag_lookup_keys, snuba_args))
 
         return Response(serialize(tag_keys, request.user))
 
-    def handle_non_tags_keys(self, keys, snuba_args):
+    def handle_non_tag_keys(self, keys, snuba_args):
         result = set([])
         for key in keys:
-            data = self.__query_non_tag_data('project_id', snuba_args)
-            if key == 'project':
+            if key == 'project.name':
+                data = self._query_non_tag_data('project_id', snuba_args)
                 projects = Project.objects.filter(id__in=snuba_args['filter_keys']['project_id'])
                 for project_data in data:
                     project = projects.filter(id=project_data['project_id'])[0]
-                    project_data['key'] = 'project'
+                    project_data['key'] = 'project.name'
                     project_data['value'] = project.slug
-            result.add(self.__create_tag_key_tag_value_objects('project', data))
+            result.add(self._create_tag_key_tag_value_objects('project', data))
         return result
 
-    def __query_non_tag_data(self, key, snuba_args):
+    def _query_non_tag_data(self, key, snuba_args):
         data = raw_query(
             groupby=[key],
             aggregations=snuba_args.get('aggregations', []) + [
@@ -237,12 +237,12 @@ class OrganizationEventsHeatmapEndpoint(OrganizationEventsEndpointBase):
                 ['uniq', key, 'values_seen'],
             ],
             orderby='-count',
-            referrer='tagstore.__get_tag_keys',
+            referrer='api.organization-events-heatmap',
             **snuba_args
         )['data']
         return data
 
-    def __create_tag_key_tag_value_objects(self, key, data):
+    def _create_tag_key_tag_value_objects(self, key, data):
         tag_values = []
         values_seen = 0
         for datum in data:
