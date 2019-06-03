@@ -34,13 +34,13 @@ class Events extends AsyncComponent {
   };
 
   getEndpoints() {
-    const {organization, view} = this.props;
+    const {location, organization, view} = this.props;
     return [
       [
         'data',
         `/organizations/${organization.slug}/events/`,
         {
-          query: getQuery(view),
+          query: getQuery(view, location),
         },
       ],
     ];
