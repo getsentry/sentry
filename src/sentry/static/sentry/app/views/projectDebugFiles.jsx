@@ -66,8 +66,10 @@ class ProjectDebugSymbols extends AsyncComponent {
 
   getEndpoints() {
     const {orgId, projectId} = this.props.params;
+    const {organization} = this.context;
+    const features = new Set(organization.features);
 
-    return [
+    const endpoints = [
       ['project', `/projects/${orgId}/${projectId}/`],
       [
         'debugFiles',
@@ -75,6 +77,12 @@ class ProjectDebugSymbols extends AsyncComponent {
         {query: {query: this.props?.location?.query?.query}},
       ],
     ];
+
+    if (features.has('symbol-sources')) {
+      endpoints.push(['builtinSymbolSources', '/builtin-symbol-sources/']);
+    }
+
+    return endpoints;
   }
 
   onDelete(id) {
@@ -207,6 +215,10 @@ class ProjectDebugSymbols extends AsyncComponent {
     const features = new Set(organization.features);
     const access = new Set(organization.access);
 
+    const fieldProps = {
+      builtinSymbolSources: this.state.builtinSymbolSources,
+    };
+
     return (
       <React.Fragment>
         <SettingsPageHeader title={t('Debug Information Files')} />
@@ -236,6 +248,7 @@ class ProjectDebugSymbols extends AsyncComponent {
                 title={t('External Sources')}
                 disabled={!access.has('project:write')}
                 fields={[fields.builtinSymbolSources, fields.symbolSources]}
+                additionalFieldProps={fieldProps}
               />
             </Form>
           </>

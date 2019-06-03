@@ -12,18 +12,9 @@ export const fields = {
     help: t(
       'Configures which built-in repositories Sentry should use to resolve debug files.'
     ),
-    choices: [
-      ['microsoft', t('Microsoft')],
-      ['amd', t('AMD')],
-      ['autodesk', t('Autodesk')],
-      ['chromium', t('Chromium')],
-      ['citrix', t('Citrix')],
-      ['electron', t('Electron')],
-      ['intel', t('Intel')],
-      ['mozilla', t('Mozilla')],
-      ['nvidia', t('NVIDIA')],
-      ['unity', t('Unity')],
-    ],
+    choices: ({builtinSymbolSources}) =>
+      builtinSymbolSources &&
+      builtinSymbolSources.map(source => [source.sentry_key, t(source.name)]),
   },
   symbolSources: {
     name: 'symbolSources',

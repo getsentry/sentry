@@ -2,6 +2,7 @@ from __future__ import absolute_import
 
 from django.core.urlresolvers import reverse
 
+from sentry.auth.access import from_user
 from sentry.incidents.models import (
     IncidentActivity,
     IncidentActivityType,
@@ -10,11 +11,18 @@ from sentry.incidents.models import (
 from sentry.tasks.base import instrumented_task
 from sentry.utils.email import MessageBuilder
 from sentry.utils.http import absolute_uri
+from sentry.utils.linksign import generate_signed_link
 
 
-@instrumented_task(name='sentry.incidents.tasks.send_subscriber_notifications')
+@instrumented_task(
+    name='sentry.incidents.tasks.send_subscriber_notifications',
+    queue='incidents.notify',
+)
 def send_subscriber_notifications(activity_id):
-    from sentry.incidents.logic import get_incident_subscribers
+    from sentry.incidents.logic import (
+        get_incident_subscribers,
+        unsubscribe_from_incident,
+    )
     try:
         activity = IncidentActivity.objects.select_related(
             'incident',
@@ -33,9 +41,21 @@ def send_subscriber_notifications(activity_id):
     ):
         return
 
-    subscribers = get_incident_subscribers(activity.incident).select_related('user')
-    msg = generate_incident_activity_email(activity)
-    msg.send_async([sub.user.email for sub in subscribers if sub.user != activity.user])
+    # Check that the user still has access to at least one of the projects
+    # related to the incident. If not then unsubscribe them.
+    projects = list(activity.incident.projects.all())
+    emails = []
+    for subscriber in get_incident_subscribers(activity.incident).select_related('user'):
+        user = subscriber.user
+        access = from_user(user, activity.incident.organization)
+        if not any(project for project in projects if access.has_project_access(project)):
+            unsubscribe_from_incident(activity.incident, user)
+        elif user != activity.user:
+            emails.append(user.email)
+
+    if emails:
+        msg = generate_incident_activity_email(activity)
+        msg.send_async(emails)
 
 
 def generate_incident_activity_email(activity):
@@ -72,6 +92,9 @@ def build_activity_context(activity):
             },
         )),
         'comment': activity.comment,
-        # TODO: Build unsubscribe page and link to it
-        'unsubscribe_link': '',
+        'unsubscribe_link': generate_signed_link(
+            activity.user,
+            'sentry-account-email-unsubscribe-incident',
+            kwargs={'incident_id': incident.id},
+        ),
     }

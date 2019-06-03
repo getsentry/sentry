@@ -13,6 +13,7 @@ from sentry.incidents.logic import (
 from sentry.incidents.models import (
     IncidentActivityType,
     IncidentStatus,
+    IncidentSubscription,
 )
 from sentry.incidents.tasks import (
     build_activity_context,
@@ -20,6 +21,7 @@ from sentry.incidents.tasks import (
     send_subscriber_notifications,
 )
 from sentry.testutils import TestCase
+from sentry.utils.linksign import generate_signed_link
 from sentry.utils.http import absolute_uri
 
 
@@ -40,14 +42,26 @@ class TestSendSubscriberNotifications(BaseIncidentActivityTest, TestCase):
             comment='hello',
         )
         send_subscriber_notifications(activity.id)
-        subscribe_to_incident(activity.incident, self.user)
         # User shouldn't receive an email for their own activity
-        self.send_async.assert_called_once_with([])
+        self.send_async.assert_not_called()  # NOQA
+
         self.send_async.reset_mock()
-        user = self.create_user(email='test@test.com')
-        subscribe_to_incident(activity.incident, user)
+        non_member_user = self.create_user(email='non_member@test.com')
+        subscribe_to_incident(activity.incident, non_member_user)
+
+        member_user = self.create_user(email='member@test.com')
+        self.create_member([self.team], user=member_user, organization=self.organization)
+        subscribe_to_incident(activity.incident, member_user)
         send_subscriber_notifications(activity.id)
-        self.send_async.assert_called_once_with([user.email])
+        self.send_async.assert_called_once_with([member_user.email])
+        assert not IncidentSubscription.objects.filter(
+            incident=activity.incident,
+            user=non_member_user,
+        ).exists()
+        assert IncidentSubscription.objects.filter(
+            incident=activity.incident,
+            user=member_user,
+        ).exists()
 
     def test_invalid_types(self):
         for activity_type in (IncidentActivityType.CREATED, IncidentActivityType.DETECTED):
@@ -99,7 +113,11 @@ class TestBuildActivityContext(BaseIncidentActivityTest, TestCase):
             },
         ))
         assert context['comment'] == expected_comment
-        assert context['unsubscribe_link'] == ''
+        assert context['unsubscribe_link'] == generate_signed_link(
+            activity.user,
+            'sentry-account-email-unsubscribe-incident',
+            kwargs={'incident_id': incident.id},
+        )
 
     def test_simple(self):
         activity = create_incident_activity(

@@ -209,12 +209,12 @@ export class Client {
           Accept: 'application/json; charset=utf-8',
         },
         success: (...args) => {
-          const [resp] = args || [];
+          const [, , xhr] = args || [];
           metric.measure({
             name: 'app.api.request-success',
             start: `api-request-start-${id}`,
             data: {
-              status: resp && resp.status,
+              status: xhr && xhr.status,
             },
           });
           if (!isUndefined(options.success)) {

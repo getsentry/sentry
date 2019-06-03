@@ -487,6 +487,7 @@ CELERY_QUEUES = [
     Queue('events.reprocess_events', routing_key='events.reprocess_events'),
     Queue('events.save_event', routing_key='events.save_event'),
     Queue('files.delete', routing_key='files.delete'),
+    Queue('incidents.notify', routing_key='incidents.notify'),
     Queue('integrations', routing_key='integrations'),
     Queue('merge', routing_key='merge'),
     Queue('options', routing_key='options'),
@@ -855,7 +856,7 @@ SENTRY_FEATURES = {
     # DEPCREATED: pending removal.
     'organizations:require-2fa': False,
     # Sentry 10 - multi project interfaces.
-    'organizations:sentry10': False,
+    'organizations:sentry10': True,
     # Enable basic SSO functionality, providing configurable single signon
     # using services like GitHub / Google. This is *not* the same as the signup
     # and login with Github / Azure DevOps that sentry.io provides.
@@ -1565,10 +1566,114 @@ SOUTH_TESTS_MIGRATE = os.environ.get('SOUTH_TESTS_MIGRATE', '0') == '1'
 TERMS_URL = None
 PRIVACY_URL = None
 
-# Toggles whether minidumps should be cached
-SENTRY_MINIDUMP_CACHE = False
-# The location for cached minidumps
-SENTRY_MINIDUMP_PATH = '/tmp/minidump'
+# Internal sources for debug information files
+SENTRY_BUILTIN_SOURCES = {
+    'microsoft': {
+        'type': 'http',
+        'id': 'sentry:microsoft',
+        'name': 'Microsoft',
+        'layout': {'type': 'symstore'},
+        'filters': {
+            'filetypes': ['pdb', 'pe'],
+            'path_patterns': ['?:/windows/**']
+        },
+        'url': 'https://msdl.microsoft.com/download/symbols/',
+        'is_public': True,
+    },
+    'citrix': {
+        'type': 'http',
+        'id': 'sentry:citrix',
+        'name': 'Citrix',
+        'layout': {'type': 'symstore'},
+        'filters': {
+            'filetypes': ['pdb', 'pe']
+        },
+        'url': 'http://ctxsym.citrix.com/symbols/',
+        'is_public': True,
+    },
+    'intel': {
+        'type': 'http',
+        'id': 'sentry:intel',
+        'name': 'Intel',
+        'layout': {'type': 'symstore'},
+        'filters': {
+            'filetypes': ['pdb', 'pe']
+        },
+        'url': 'https://software.intel.com/sites/downloads/symbols/',
+        'is_public': True,
+    },
+    'amd': {
+        'type': 'http',
+        'id': 'sentry:amd',
+        'name': 'AMD',
+        'layout': {'type': 'symstore'},
+        'filters': {
+            'filetypes': ['pdb', 'pe']
+        },
+        'url': 'https://download.amd.com/dir/bin/',
+        'is_public': True,
+    },
+    'nvidia': {
+        'type': 'http',
+        'id': 'sentry:nvidia',
+        'name': 'NVIDIA',
+        'layout': {'type': 'symstore'},
+        'filters': {
+            'filetypes': ['pdb', 'pe']
+        },
+        'url': 'https://driver-symbols.nvidia.com/',
+        'is_public': True,
+    },
+    'chromium': {
+        'type': 'http',
+        'id': 'sentry:chromium',
+        'name': 'Chromium',
+        'layout': {'type': 'symstore'},
+        'filters': {
+            'filetypes': ['pdb', 'pe']
+        },
+        'url': 'https://chromium-browser-symsrv.commondatastorage.googleapis.com/',
+        'is_public': True,
+    },
+    'unity': {
+        'type': 'http',
+        'id': 'sentry:unity',
+        'name': 'Unity',
+        'layout': {'type': 'symstore'},
+        'filters': {
+            'filetypes': ['pdb', 'pe']
+        },
+        'url': 'https://symbolserver.unity3d.com/',
+        'is_public': True,
+    },
+    'mozilla': {
+        'type': 'http',
+        'id': 'sentry:mozilla',
+        'name': 'Mozilla',
+        'layout': {'type': 'symstore'},
+        'url': 'https://symbols.mozilla.org/',
+        'is_public': True,
+    },
+    'autodesk': {
+        'type': 'http',
+        'id': 'sentry:autodesk',
+        'name': 'Autodesk',
+        'layout': {'type': 'symstore'},
+        'url': 'http://symbols.autodesk.com/',
+        'is_public': True,
+    },
+    'electron': {
+        'type': 'http',
+        'id': 'sentry:electron',
+        'name': 'Electron',
+        'layout': {'type': 'native'},
+        'url': 'https://electron-symbols.githubapp.com/',
+        'filters': {
+            'filetypes': ['pdb', 'breakpad'],
+        },
+        'is_public': True,
+    }
+}
 
 # Relay
 # List of PKs whitelisted by Sentry.  All relays here are always

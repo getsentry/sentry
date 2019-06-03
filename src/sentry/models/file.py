@@ -57,19 +57,6 @@ class nooplogger(object):
     exception = staticmethod(lambda *a, **kw: None)
 
 
-def enum(**named_values):
-    return type('Enum', (), named_values)
-
-
-ChunkFileState = enum(
-    OK='ok',  # File in database
-    NOT_FOUND='not_found',  # File not found in database
-    CREATED='created',  # File was created in the request and send to the worker for assembling
-    ASSEMBLING='assembling',  # File still being processed by worker
-    ERROR='error'  # Error happened during assembling
-)
-
-
 def _get_size_and_checksum(fileobj, logger=nooplogger):
     logger.info('_get_size_and_checksum.start')
     size = 0
@@ -453,8 +440,10 @@ class File(Model):
         tf = tempfile.NamedTemporaryFile()
         with transaction.atomic():
             file_blobs = FileBlob.objects.filter(id__in=file_blob_ids).all()
-            # Make sure the blobs are sorted with the order provided
-            file_blobs = sorted(file_blobs, key=lambda blob: file_blob_ids.index(blob.id))
+
+            # Ensure blobs are in the order and duplication as provided
+            blobs_by_id = {blob.id: blob for blob in file_blobs}
+            file_blobs = [blobs_by_id[blob_id] for blob_id in file_blob_ids]
 
             new_checksum = sha1(b'')
             offset = 0
