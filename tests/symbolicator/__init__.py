@@ -1,5 +1,17 @@
 from __future__ import absolute_import
 
+import os
+
+
+def get_fixture_path(name):
+    return os.path.join(
+        os.path.dirname(__file__),
+        os.pardir,
+        'fixtures',
+        'native',
+        name,
+    )
+
 
 def insta_snapshot_stacktrace_data(self, event):
     self.insta_snapshot({

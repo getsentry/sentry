@@ -1,6 +1,5 @@
 from __future__ import absolute_import
 
-import os
 import pytest
 import zipfile
 from mock import patch
@@ -13,10 +12,23 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 from sentry.testutils import TransactionTestCase
 from sentry.models import Event, EventAttachment
 
-from tests.symbolicator import insta_snapshot_stacktrace_data
+from tests.symbolicator import get_fixture_path, insta_snapshot_stacktrace_data
 
 
-class MinidumpIntegrationTestBase(object):
+class SymbolicatorMinidumpIntegrationTest(TransactionTestCase):
+    # For these tests to run, write `symbolicator.enabled: true` into your
+    # `~/.sentry/config.yml` and run `sentry devservices up`
+
+    @pytest.fixture(autouse=True)
+    def initialize(self, live_server):
+        new_prefix = live_server.url
+
+        with patch('sentry.auth.system.is_internal_ip', return_value=True), \
+                self.options({"system.url-prefix": new_prefix}):
+
+            # Run test case:
+            yield
+
     def upload_symbols(self):
         url = reverse(
             'sentry-api-0-dsym-files',
@@ -30,8 +42,7 @@ class MinidumpIntegrationTestBase(object):
 
         out = BytesIO()
         f = zipfile.ZipFile(out, 'w')
-        f.write(os.path.join(os.path.dirname(__file__), 'fixtures', 'windows.sym'),
-                'crash.sym')
+        f.write(get_fixture_path('windows.sym'), 'crash.sym')
         f.close()
 
         response = self.client.post(
@@ -51,7 +62,7 @@ class MinidumpIntegrationTestBase(object):
         with self.feature('organizations:event-attachments'):
             attachment = BytesIO(b'Hello World!')
             attachment.name = 'hello.txt'
-            with open(os.path.join(os.path.dirname(__file__), 'fixtures', 'windows.dmp'), 'rb') as f:
+            with open(get_fixture_path('windows.dmp'), 'rb') as f:
                 resp = self._postMinidumpWithHeader(f, {
                     'sentry[logger]': 'test-logger',
                     'some_file': attachment,
@@ -59,7 +70,6 @@ class MinidumpIntegrationTestBase(object):
                 assert resp.status_code == 200
 
         event = Event.objects.get()
-
         insta_snapshot_stacktrace_data(self, event.data)
 
         attachments = sorted(
@@ -78,7 +88,7 @@ class MinidumpIntegrationTestBase(object):
 
     def test_missing_dsym(self):
         with self.feature('organizations:event-attachments'):
-            with open(os.path.join(os.path.dirname(__file__), 'fixtures', 'windows.dmp'), 'rb') as f:
+            with open(get_fixture_path('windows.dmp'), 'rb') as f:
                 resp = self._postMinidumpWithHeader(f, {
                     'sentry[logger]': 'test-logger',
                 })
@@ -87,18 +97,3 @@ class MinidumpIntegrationTestBase(object):
         event = Event.objects.get()
         insta_snapshot_stacktrace_data(self, event.data)
         assert not EventAttachment.objects.filter(event_id=event.event_id)
-
-
-class SymbolicatorMinidumpIntegrationTest(MinidumpIntegrationTestBase, TransactionTestCase):
-    # For these tests to run, write `symbolicator.enabled: true` into your
-    # `~/.sentry/config.yml` and run `sentry devservices up`
-
-    @pytest.fixture(autouse=True)
-    def initialize(self, live_server):
-        new_prefix = live_server.url
-
-        with patch('sentry.auth.system.is_internal_ip', return_value=True), \
-                self.options({"system.url-prefix": new_prefix}):
-
-            # Run test case:
-            yield
