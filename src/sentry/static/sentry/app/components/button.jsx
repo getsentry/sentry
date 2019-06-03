@@ -88,6 +88,7 @@ class Button extends React.Component {
       borderless,
       priority,
       disabled,
+      containerDisplayMode,
 
       // destructure from `buttonProps`
       // not necessary, but just in case someone re-orders props
@@ -132,7 +133,7 @@ class Button extends React.Component {
 
     // Doing this instead of using `Tooltip`'s `disabled` prop so that we can minimize snapshot nesting
     if (title) {
-      return <Tooltip title={title}>{button}</Tooltip>;
+      return <Tooltip containerDisplayMode={containerDisplayMode} title={title}>{button}</Tooltip>;
     }
 
     return button;
