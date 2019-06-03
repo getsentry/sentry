@@ -86,6 +86,7 @@ from .endpoints.organization_incident_comment_index import OrganizationIncidentC
 from .endpoints.organization_incident_comment_details import OrganizationIncidentCommentDetailsEndpoint
 from .endpoints.organization_incident_index import OrganizationIncidentIndexEndpoint
 from .endpoints.organization_incident_subscription_index import OrganizationIncidentSubscriptionIndexEndpoint
+from .endpoints.organization_incident_suspects_index import OrganizationIncidentSuspectsIndexEndpoint
 from .endpoints.organization_issues_new import OrganizationIssuesNewEndpoint
 from .endpoints.organization_issues_resolved_in_release import OrganizationIssuesResolvedInReleaseEndpoint
 from .endpoints.organization_member_details import OrganizationMemberDetailsEndpoint
@@ -457,6 +458,11 @@ urlpatterns = patterns(
         r'^organizations/(?P<organization_slug>[^\/]+)/incidents/(?P<incident_identifier>[^\/]+)/subscriptions/$',
         OrganizationIncidentSubscriptionIndexEndpoint.as_view(),
         name='sentry-api-0-organization-incident-subscription-index'
+    ),
+    url(
+        r'^organizations/(?P<organization_slug>[^\/]+)/incidents/(?P<incident_identifier>[^\/]+)/suspects/$',
+        OrganizationIncidentSuspectsIndexEndpoint.as_view(),
+        name='sentry-api-0-organization-incident-suspect-index'
     ),
 
     # Organizations
