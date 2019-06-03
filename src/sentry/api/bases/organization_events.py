@@ -89,7 +89,9 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
 
             for index, condition in enumerate(having):
                 condition = condition.split(',')
-                assert len(condition) == 3
+                if len(condition) != 3:
+                    raise OrganizationEventsError(
+                        'having clause %s is not of the form: "column,operator,literal"' % having[index])
                 having[index] = condition
 
             snuba_args['selected_columns'] = fields

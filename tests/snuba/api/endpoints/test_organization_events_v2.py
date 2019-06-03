@@ -339,3 +339,23 @@ class OrganizationEventsV2EndpointTest(OrganizationEventsTestBase):
         assert response.data[0]['issue.id'] == groups[1].id
         assert response.data[0]['event_count'] == 2
         assert response.data[0]['user_count'] == 2
+
+    def test_malformed_having(self):
+        self.login_as(user=self.user)
+        self.create_project()
+
+        with self.feature('organizations:events-v2'):
+            response = self.client.get(
+                self.url,
+                format='json',
+                data={
+                    'field': ['issue_title', 'event_count', 'user_count'],
+                    'having': ['event_count,>'],
+                    'groupby': ['issue.id', 'project.id'],
+                    'orderby': 'issue.id'
+                },
+            )
+
+        assert response.status_code == 400, response.content
+        assert response.data == {
+            "detail": "having clause event_count,> is not of the form: \"column,operator,literal\""}
