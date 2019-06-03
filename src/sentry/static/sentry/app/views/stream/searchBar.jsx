@@ -104,11 +104,6 @@ class SearchBar extends React.Component {
   };
 
   handleSavedRecentSearch = () => {
-    // No need to refetch if recent searches feature is not enabled
-    if (!this.hasSentry10()) {
-      return;
-    }
-
     // Reset recent searches
     this.fetchData();
   };
