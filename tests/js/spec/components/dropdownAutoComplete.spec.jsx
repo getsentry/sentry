@@ -35,10 +35,10 @@ describe('DropdownAutoComplete', function() {
       routerContext
     );
     wrapper.find('Actor[role="button"]').simulate('click');
-    expect(wrapper.find('StyledMenu')).toHaveLength(1);
+    expect(wrapper.find('BubbleWithMinWidth')).toHaveLength(1);
 
     wrapper.find('Actor[role="button"]').simulate('click');
-    expect(wrapper.find('StyledMenu')).toHaveLength(1);
+    expect(wrapper.find('BubbleWithMinWidth')).toHaveLength(1);
   });
 
   it('toggles dropdown menu when actor is clicked', function() {
@@ -49,8 +49,8 @@ describe('DropdownAutoComplete', function() {
       routerContext
     );
     wrapper.find('Actor[role="button"]').simulate('click');
-    expect(wrapper.find('StyledMenu')).toHaveLength(1);
+    expect(wrapper.find('BubbleWithMinWidth')).toHaveLength(1);
     wrapper.find('Actor[role="button"]').simulate('click');
-    expect(wrapper.find('StyledMenu')).toHaveLength(0);
+    expect(wrapper.find('BubbleWithMinWidth')).toHaveLength(0);
   });
 });

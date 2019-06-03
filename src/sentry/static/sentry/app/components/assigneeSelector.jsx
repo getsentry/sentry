@@ -4,7 +4,6 @@ import Reflux from 'reflux';
 import createReactClass from 'create-react-class';
 import styled from 'react-emotion';
 
-import {StyledMenu} from 'app/components/dropdownAutoCompleteMenu';
 import {assignToUser, assignToActor, clearAssignment} from 'app/actionCreators/group';
 import {t} from 'app/locale';
 import {valueIsEqual, buildUserId, buildTeamId} from 'app/utils';
@@ -12,6 +11,7 @@ import ActorAvatar from 'app/components/actorAvatar';
 import Avatar from 'app/components/avatar';
 import ConfigStore from 'app/stores/configStore';
 import DropdownAutoComplete from 'app/components/dropdownAutoComplete';
+import DropdownBubble from 'app/components/dropdownBubble';
 import GroupStore from 'app/stores/groupStore';
 import Highlight from 'app/components/highlight';
 import InlineSvg from 'app/components/inlineSvg';
@@ -343,7 +343,7 @@ const AssigneeSelector = styled(AssigneeSelectorComponent)`
 
   /* manually align menu underneath dropdown caret */
   /* stylelint-disable-next-line no-duplicate-selectors */
-  ${StyledMenu} {
+  ${DropdownBubble} {
     right: -14px;
   }
 `;
