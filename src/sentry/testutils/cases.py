@@ -256,9 +256,15 @@ class BaseTestCase(Fixtures, Exam):
                 **extra
             )
 
-    def _postMinidumpWithHeader(self, upload_file_minidump, data=None, key=None, **extra):
-        data = dict(data or {})
-        data['upload_file_minidump'] = upload_file_minidump
+    def _postMinidumpWithHeader(self, upload_file_minidump, data=None,
+                                key=None, raw=False, **extra):
+        if raw:
+            data = upload_file_minidump.read()
+            extra.setdefault('content_type', 'application/octet-stream')
+        else:
+            data = dict(data or {})
+            data['upload_file_minidump'] = upload_file_minidump
+
         path = reverse('sentry-api-minidump', kwargs={'project_id': self.project.id})
         path += '?sentry_key=%s' % self.projectkey.public_key
         with self.tasks():
