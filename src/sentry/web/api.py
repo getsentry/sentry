@@ -3,8 +3,10 @@ from __future__ import absolute_import, print_function
 import base64
 import math
 
+import io
 import jsonschema
 import logging
+import os
 import random
 import six
 import traceback
@@ -620,7 +622,7 @@ class EventAttachmentStoreView(StoreView):
 
 class MinidumpView(StoreView):
     auth_helper_cls = MinidumpAuthHelper
-    content_types = ('multipart/form-data', )
+    content_types = ('multipart/form-data', 'application/octet-stream')
 
     def _dispatch(self, request, helper, project_id=None, origin=None, *args, **kwargs):
         # TODO(ja): Refactor shared code with CspReportView. Especially, look at
@@ -668,44 +670,43 @@ class MinidumpView(StoreView):
         )
 
     def post(self, request, project, **kwargs):
-        # Minidump request payloads do not have the same structure as
-        # usual events from other SDKs. Most notably, the event needs
-        # to be transfered in the `sentry` form field. All other form
-        # fields are assumed "extra" information. The only exception
-        # to this is `upload_file_minidump`, which contains the minidump.
+        # Minidump request payloads do not have the same structure as usual
+        # events from other SDKs. The minidump can either be transmitted as
+        # request body, or as `upload_file_minidump` in a multipart formdata
+        # request. Optionally, an event payload can be sent in the `sentry` form
+        # field, either as JSON or as nested form data.
 
-        if any(key.startswith('sentry[') for key in request.POST):
-            # First, try to parse the nested form syntax `sentry[key][key]`
-            # This is required for the Breakpad client library, which only
-            # supports string values of up to 64 characters.
-            extra = parser.parse(request.POST.urlencode())
-            data = extra.pop('sentry', {})
+        request_files = request.FILES or {}
+        content_type = request.META.get('CONTENT_TYPE')
+
+        if content_type == 'application/octet-stream':  # TODO
+            minidump = io.BytesIO(request.body)
+            minidump_name = "Minidump"
+            data = {}
         else:
-            # Custom clients can submit longer payloads and should JSON
-            # encode event data into the optional `sentry` field.
-            extra = request.POST
-            json_data = extra.pop('sentry', None)
-            data = json.loads(json_data[0]) if json_data else {}
+            minidump = request_files.get('upload_file_minidump')
+            minidump_name = minidump.name
 
-        # Merge additional form fields from the request with `extra`
-        # data from the event payload and set defaults for processing.
-        extra.update(data.get('extra', {}))
-        data['extra'] = extra
+            if any(key.startswith('sentry[') for key in request.POST):
+                # First, try to parse the nested form syntax `sentry[key][key]`
+                # This is required for the Breakpad client library, which only
+                # supports string values of up to 64 characters.
+                extra = parser.parse(request.POST.urlencode())
+                data = extra.pop('sentry', {})
+            else:
+                # Custom clients can submit longer payloads and should JSON
+                # encode event data into the optional `sentry` field.
+                extra = request.POST
+                json_data = extra.pop('sentry', None)
+                data = json.loads(json_data[0]) if json_data else {}
 
-        # Assign our own UUID so we can track this minidump. We cannot trust the
-        # uploaded filename, and if reading the minidump fails there is no way
-        # we can ever retrieve the original UUID from the minidump.
-        event_id = data.get('event_id') or uuid.uuid4().hex
-        data['event_id'] = event_id
+            # Merge additional form fields from the request with `extra` data
+            # from the event payload and set defaults for processing. This is
+            # sent by clients like Breakpad or Crashpad.
+            extra.update(data.get('extra', {}))
+            data['extra'] = extra
 
-        # At this point, we only extract the bare minimum information
-        # needed to continue processing. This requires to process the
-        # minidump without symbols and CFI to obtain an initial stack
-        # trace (most likely via stack scanning). If all validations
-        # pass, the event will be inserted into the database.
-        try:
-            minidump = request.FILES['upload_file_minidump']
-        except KeyError:
+        if not minidump:
             track_outcome(
                 project.organization_id,
                 project.id,
@@ -740,9 +741,10 @@ class MinidumpView(StoreView):
                 for handler in settings.FILE_UPLOAD_HANDLERS
             ]
 
-            _, files = MultiPartParser(meta, minidump, handlers).parse()
+            _, inner_files = MultiPartParser(meta, minidump, handlers).parse()
             try:
-                minidump = files['upload_file_minidump']
+                minidump = inner_files['upload_file_minidump']
+                minidump_name = minidump.name
             except KeyError:
                 track_outcome(
                     project.organization_id,
@@ -752,7 +754,8 @@ class MinidumpView(StoreView):
                     "missing_minidump_upload")
                 raise APIError('Missing minidump upload')
 
-        if minidump.size == 0:
+        minidump.seek(0, os.SEEK_END)
+        if minidump.tell() == 0:
             track_outcome(
                 project.organization_id,
                 project.id,
@@ -762,17 +765,27 @@ class MinidumpView(StoreView):
             raise APIError('Empty minidump upload received')
 
         # Always store the minidump in attachments so we can access it during
-        # processing, regardless of the event-attachments feature. This will
-        # allow us to stack walk again with CFI once symbols are loaded.
+        # processing, regardless of the event-attachments feature. This is
+        # required to process the minidump with debug information.
         attachments = []
+
+        # The minidump attachment is special. It has its own attachment type to
+        # distinguish it from regular attachments for processing. Also, it might
+        # not be part of `request_files` if it has been uploaded as raw request
+        # body instead of a multipart formdata request.
         minidump.seek(0)
-        attachments.append(CachedAttachment.from_upload(minidump, type=MINIDUMP_ATTACHMENT_TYPE))
-        has_event_attachments = features.has('organizations:event-attachments',
-                                             project.organization, actor=request.user)
+        attachments.append(CachedAttachment(
+            name=minidump_name,
+            content_type='application/octet-stream',
+            data=minidump.read(),
+            type=MINIDUMP_ATTACHMENT_TYPE,
+        ))
 
         # Append all other files as generic attachments. We can skip this if the
         # feature is disabled since they won't be saved.
-        for name, file in six.iteritems(request.FILES):
+        has_event_attachments = features.has('organizations:event-attachments',
+                                             project.organization, actor=request.user)
+        for name, file in six.iteritems(request_files):
             if name == 'upload_file_minidump':
                 continue
 
@@ -788,6 +801,17 @@ class MinidumpView(StoreView):
             if has_event_attachments:
                 attachments.append(CachedAttachment.from_upload(file))
 
+        # Assign our own UUID so we can track this minidump. We cannot trust
+        # the uploaded filename, and if reading the minidump fails there is
+        # no way we can ever retrieve the original UUID from the minidump.
+        event_id = data.get('event_id') or uuid.uuid4().hex
+        data['event_id'] = event_id
+
+        # Write a minimal event payload that is required to kick off native
+        # event processing. It is also used as fallback if processing of the
+        # minidump fails.
+        # NB: This occurs after merging attachments to overwrite potentially
+        # contradicting payloads transmitted in __sentry_event.
         write_minidump_placeholder(data)
 
         event_id = self.process(
