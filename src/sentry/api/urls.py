@@ -142,7 +142,7 @@ from .endpoints.project_environments import ProjectEnvironmentsEndpoint
 from .endpoints.project_environment_details import ProjectEnvironmentDetailsEndpoint
 from .endpoints.project_platforms import ProjectPlatformsEndpoint
 from .endpoints.project_events import ProjectEventsEndpoint
-from .endpoints.project_event_details import ProjectEventDetailsEndpoint
+from .endpoints.project_event_details import ProjectEventDetailsEndpoint, EventJsonEndpoint
 from .endpoints.project_filters import ProjectFiltersEndpoint
 from .endpoints.project_filter_details import ProjectFilterDetailsEndpoint
 from .endpoints.project_group_index import ProjectGroupIndexEndpoint
@@ -965,6 +965,11 @@ urlpatterns = patterns(
         r'^projects/(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/events/(?P<event_id>[\w-]+)/committers/$',
         EventFileCommittersEndpoint.as_view(),
         name='sentry-api-0-event-file-committers'
+    ),
+    url(
+        r'^projects/(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/events/(?P<event_id>[\w-]+)/json/$',
+        EventJsonEndpoint.as_view(),
+        name='sentry-api-0-event-json'
     ),
     url(
         r'^projects/(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/events/(?P<event_id>[\w-]+)/owners/$',
