@@ -5,7 +5,6 @@ import math
 
 import jsonschema
 import logging
-import os
 import random
 import six
 import traceback
@@ -761,14 +760,6 @@ class MinidumpView(StoreView):
                 Outcome.INVALID,
                 "empty_minidump")
             raise APIError('Empty minidump upload received')
-
-        if settings.SENTRY_MINIDUMP_CACHE:
-            if not os.path.exists(settings.SENTRY_MINIDUMP_PATH):
-                os.mkdir(settings.SENTRY_MINIDUMP_PATH, 0o744)
-
-            with open('%s/%s.dmp' % (settings.SENTRY_MINIDUMP_PATH, event_id), 'wb') as out:
-                for chunk in minidump.chunks():
-                    out.write(chunk)
 
         # Always store the minidump in attachments so we can access it during
         # processing, regardless of the event-attachments feature. This will
