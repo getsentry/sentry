@@ -3,7 +3,6 @@ import {omit} from 'lodash';
 import PropTypes from 'prop-types';
 import React from 'react';
 import createReactClass from 'create-react-class';
-import qs from 'query-string';
 import styled from 'react-emotion';
 
 import {fetchOrgMembers} from 'app/actionCreators/members';
@@ -123,7 +122,11 @@ const GroupHeader = createReactClass({
       ? `/${orgId}/${params.projectId}/issues/`
       : `/organizations/${orgId}/issues/`;
 
-    const searchTermWithoutQuery = qs.stringify(omit(location.query, 'query'));
+    const searchTermWithoutQuery = omit(location.query, 'query');
+    const eventRouteToObject = {
+      pathname: `${baseUrl}${groupId}/events/`,
+      query: searchTermWithoutQuery,
+    };
 
     return (
       <div className={className}>
@@ -188,14 +191,14 @@ const GroupHeader = createReactClass({
               )}
               <div className="count align-right m-l-1">
                 <h6 className="nav-header">{t('Events')}</h6>
-                <Link to={`${baseUrl}${groupId}/events/`}>
+                <Link to={eventRouteToObject}>
                   <Count className="count" value={group.count} />
                 </Link>
               </div>
               <div className="count align-right m-l-1">
                 <h6 className="nav-header">{t('Users')}</h6>
                 {userCount !== 0 ? (
-                  <Link to={`${baseUrl}${groupId}/tags/user/`}>
+                  <Link to={`${baseUrl}${groupId}/tags/user/${location.search}`}>
                     <Count className="count" value={userCount} />
                   </Link>
                 ) : (
@@ -247,7 +250,7 @@ const GroupHeader = createReactClass({
             {t('Tags')}
           </ListLink>
           <ListLink
-            to={`${baseUrl}${groupId}/events/?${searchTermWithoutQuery}`}
+            to={eventRouteToObject}
             isActive={() => location.pathname.endsWith('/events/')}
           >
             {t('Events')}
