@@ -47,13 +47,7 @@ export default class SeenByList extends React.Component {
       iconTooltip,
     } = this.props;
 
-    // NOTE: Sometimes group.seenBy is undefined, even though the /groups/{id} API
-    //       endpoint guarantees an array. We haven't figured out HOW GroupSeenBy
-    //       is getting incomplete group records, but in the interim, we are just
-    //       gracefully handing this case.
-    //
-    // See: https://github.com/getsentry/sentry/issues/2387
-    const displayUsers = (seenBy || []).filter(user => activeUser.id !== user.id);
+    const displayUsers = seenBy.filter(user => activeUser.id !== user.id);
     if (displayUsers.length === 0) {
       return null;
     }
