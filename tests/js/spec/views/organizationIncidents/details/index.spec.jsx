@@ -6,8 +6,8 @@ import IncidentDetails from 'app/views/organizationIncidents/details';
 import ProjectsStore from 'app/stores/projectsStore';
 
 describe('IncidentDetails', function() {
-  const mockIncident = TestStubs.Incident();
   const {organization, project, routerContext} = initializeOrg();
+  const mockIncident = TestStubs.Incident({projects: [project.slug]});
 
   let activitiesList;
 
