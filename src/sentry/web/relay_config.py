@@ -12,6 +12,7 @@ from sentry.models.project import Project
 from sentry.models.organization import Organization
 from sentry import options
 from sentry.utils.data_filters import FilterTypes
+from sentry.utils.http import get_origins
 from sentry.utils.outcomes import Outcome, track_outcome
 from sentry.grouping.api import get_grouping_config_dict_for_project
 from sentry import filters
@@ -104,7 +105,8 @@ class _ConfigBase(object):
         True
         >>> x.get_at_path('c','y','z')
         {'t': 1}
-        >>> x.get_at_path('c','y','z','t') is None # only navigates in ConfigBase does not try to go into normal dictionaries
+        >>> x.get_at_path('c','y','z','t') is None # only navigates in ConfigBase does not try to go into normal
+        dictionaries
         True
 
         """
@@ -169,25 +171,22 @@ class FullRelayConfig(_ConfigBase):
         return RestrictedConfig(**restricted)
 
 
-def get_full_relay_config(project_id, request, helper, auth_helper_cls):
+def get_full_relay_config(project_id):
     """
     Constructs the internal (big) RelayConfig
 
     :param project_id: the project id as int or string
-    :param request: the http request of the current request
-    :param helper: a ClientApiHelper for the current request
-    :param auth_helper_cls: the appropriate AbstractAuthHelper subclass for the current ApiView
     :return: FullRelayConfig the relay configuration
     """
 
     cfg = {}
+    project = _get_project_from_id(str(project_id))  # noqa B308
 
-    cfg['raw_project_id'] = project_id  # keep the raw input for error reporting
-    project = _get_project_from_id(project_id)
+    if project is None:
+        raise APIError("Invalid project id:{}".format(project_id))
 
-    if project is not None:
-        # only populate project id (as an int) if it comes from an actual project in the database
-        cfg['project_id'] = project.id
+    cfg['project_id'] = project.id
+    cfg['organization_id'] = project.organization_id
 
     # getting kafka info
     try:
@@ -196,99 +195,66 @@ def get_full_relay_config(project_id, request, helper, auth_helper_cls):
     except Exception:
         pass  # should we log ?
 
-    # getting project info
-    try:
-        project = Project.objects.get_from_cache(id=project_id)
-        # TODO get project details
-    except Exception:
-        logger.warning("RelayConfig could not find project:{0}".format(project_id))
+    # Explicitly bind Organization so we don't implicitly query it later
+    # this just allows us to comfortably assure that `project.organization` is safe.
+    # This also allows us to pull the object from cache, instead of being
+    # implicitly fetched from database.
+    project.organization = Organization.objects.get_from_cache(
+        id=project.organization_id)
 
-    # getting authorization info
+    if project.organization is not None:
+        org_options = OrganizationOption.objects.get_all_values(
+            project.organization_id)
+    else:
+        org_options = {}
 
-    auth_key = None
-    # do not look for auth headers on OPTIONS
-    # (CORS pre flight requests will probably not contain the auth headers)
-    if request.method != 'OPTIONS' and project is None:
-        # we don't have a project specified explicitly try to get it from the auth info
-        auth = auth_helper_cls.auth_from_request(request)
-        auth_key = helper.project_key_from_auth(auth)
+    # get the project options
+    project_options = {}
+    cfg['project_options'] = project_options
 
-        project = Project.objects.get_from_cache(id=auth_key.project_id)
-        if project is not None:
-            cfg['project_id'] = project.id
-        else:
-            raise APIError('Invalid project_id: %r' % project_id)
+    invalid_releases = project.get_option(u'sentry:{}'.format(FilterTypes.RELEASES))
+    if invalid_releases is not None:
+        project_options['invalid_releases'] = invalid_releases
 
-    if project is not None:
-        # Explicitly bind Organization so we don't implicitly query it later
-        # this just allows us to comfortably assure that `project.organization` is safe.
-        # This also allows us to pull the object from cache, instead of being
-        # implicitly fetched from database.
-        project.organization = Organization.objects.get_from_cache(
-            id=project.organization_id)
+    # get the filters enabled for the current project
+    enabled_filters = [filter_class.id for filter_class in filters.all()
+                       if filter_class(project).is_enabled()]
 
-        if project.organization is not None:
-            org_options = OrganizationOption.objects.get_all_values(
-                project.organization_id)
-        else:
-            org_options = {}
+    project_options['enabled_filters'] = enabled_filters
 
-        # get the project options
-        project_options = {}
-        cfg['project_options'] = project_options
+    scrub_ip_address = (org_options.get('sentry:require_scrub_ip_address', False) or
+                        project.get_option('sentry:scrub_ip_address', False))
 
-        invalid_releases = project.get_option(u'sentry:{}'.format(FilterTypes.RELEASES))
-        if invalid_releases is not None:
-            project_options['invalid_releases'] = invalid_releases
+    project_options['sentry:scrub_ip_address'] = scrub_ip_address
 
-        # get the filters enabled for the current project
-        enabled_filters = [filter_class.id for filter_class in filters.all()
-                           if filter_class(project).is_enabled()]
+    scrub_data = (org_options.get('sentry:require_scrub_data', False) or
+                  project.get_option('sentry:scrub_data', True))
 
-        project_options['enabled_filters'] = enabled_filters
+    project_options['sentry:scrub_data'] = scrub_data
 
-        scrub_ip_address = (org_options.get('sentry:require_scrub_ip_address', False) or
-                            project.get_option('sentry:scrub_ip_address', False))
+    if scrub_data:
+        # We filter data immediately before it ever gets into the queue
+        sensitive_fields_key = 'sentry:sensitive_fields'
+        sensitive_fields = (
+            org_options.get(sensitive_fields_key, []) +
+            project.get_option(sensitive_fields_key, [])
+        )
+        project_options[sensitive_fields_key] = sensitive_fields
 
-        project_options['sentry:scrub_ip_address'] = scrub_ip_address
+        exclude_fields_key = 'sentry:safe_fields'
+        exclude_fields = (
+            org_options.get(exclude_fields_key, []) +
+            project.get_option(exclude_fields_key, [])
+        )
+        project_options[exclude_fields_key] = exclude_fields
 
-        scrub_data = (org_options.get('sentry:require_scrub_data', False) or
-                      project.get_option('sentry:scrub_data', True))
+        scrub_defaults = (org_options.get('sentry:require_scrub_defaults', False) or
+                          project.get_option('sentry:scrub_defaults', True))
+        project_options['sentry:scrub_defaults'] = scrub_defaults
 
-        project_options['sentry:scrub_data'] = scrub_data
+    cfg['grouping_config'] = get_grouping_config_dict_for_project(project)
 
-        if scrub_data:
-            # We filter data immediately before it ever gets into the queue
-            sensitive_fields_key = 'sentry:sensitive_fields'
-            sensitive_fields = (
-                org_options.get(sensitive_fields_key, []) +
-                project.get_option(sensitive_fields_key, [])
-            )
-            project_options[sensitive_fields_key] = sensitive_fields
-
-            exclude_fields_key = 'sentry:safe_fields'
-            exclude_fields = (
-                org_options.get(exclude_fields_key, []) +
-                project.get_option(exclude_fields_key, [])
-            )
-            project_options[exclude_fields_key] = exclude_fields
-
-            scrub_defaults = (org_options.get('sentry:require_scrub_defaults', False) or
-                              project.get_option('sentry:scrub_defaults', True))
-            project_options['sentry:scrub_defaults'] = scrub_defaults
-
-        cfg['grouping_config'] = get_grouping_config_dict_for_project(project)
-
-        # Rate limit is complicated (this needs to be fixed at a latter date)
-        # rate limit configuration
-        # rate_limit = safe_execute(
-        #     quotas.is_rate_limited, project=project, key=auth_key, _with_transaction=False
-        # )
-        # if isinstance(rate_limit, bool):
-        #     rate_limit = RateLimit(is_limited=rate_limit, retry_after=None)
-        #
-        # if rate_limit is not None:
-        #     cfg['rate_limit'] = rate_limit.to_dict()
+    cfg['origins'] = get_origins(project)
 
     return FullRelayConfig(project, **cfg)
 

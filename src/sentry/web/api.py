@@ -32,18 +32,23 @@ from sentry import features, quotas
 from sentry.attachments import CachedAttachment
 from sentry.coreapi import (
     Auth, APIError, APIForbidden, APIRateLimited, ClientApiHelper, ClientAuthHelper,
-    SecurityAuthHelper, MinidumpAuthHelper, safely_load_json_string, logger as api_logger
+    SecurityAuthHelper, MinidumpAuthHelper, safely_load_json_string, logger as api_logger,
 )
 from sentry.event_manager import EventManager
 from sentry.interfaces import schemas
 from sentry.interfaces.base import get_interface
-from sentry.lang.native.unreal import process_unreal_crash, merge_apple_crash_report, \
-    unreal_attachment_type, merge_unreal_context_event, merge_unreal_logs_event
-from sentry.lang.native.minidump import merge_process_state_event, process_minidump, \
-    merge_attached_event, merge_attached_breadcrumbs, MINIDUMP_ATTACHMENT_TYPE
+from sentry.lang.native.unreal import (
+    process_unreal_crash, merge_apple_crash_report,
+    unreal_attachment_type, merge_unreal_context_event, merge_unreal_logs_event,
+)
+from sentry.lang.native.minidump import (
+    merge_process_state_event, process_minidump,
+    merge_attached_event, merge_attached_breadcrumbs, MINIDUMP_ATTACHMENT_TYPE,
+)
 from sentry.models import Project, OrganizationOption
 from sentry.signals import (
-    event_accepted, event_dropped, event_filtered, event_received)
+    event_accepted, event_dropped, event_filtered, event_received,
+)
 from sentry.quotas.base import RateLimit
 from sentry.utils import json, metrics
 from sentry.utils.data_filters import FilterStatKeys
@@ -93,6 +98,26 @@ def api(func):
         return response
 
     return wrapped
+
+
+def _get_project_id_from_request(project_id, request, auth_helper_cls, helper):
+    """
+    Tries to return the project id (as a string) from the request params or from the auth info
+
+    :param project_id: the project id from the url (or None if not specified)
+    :param request: the HTTP request
+    :param auth_helper_cls: Authentication helper class (from APIView)
+    :param helper: client API helper
+    :return: the project id (as string) if found raises if not found
+
+    :raises APIUnauthorized if bad Authorization header detected or the key is not usable (e.g. disabled)
+    """
+    if project_id is not None:
+        # we have an explicit project id, just return it
+        return str(project_id)  # noqa B308
+    else:  # look in the authentication information for the project id
+        auth = auth_helper_cls.auth_from_request(request)
+        return helper.project_id_from_auth(auth)
 
 
 def process_event(event_manager, project, key, remote_addr, helper, attachments):
@@ -180,7 +205,7 @@ def process_event(event_manager, project, key, remote_addr, helper, attachments)
             event_id=event_id
         )
         raise APIForbidden(
-            'An event with the same ID already exists (%s)' % (event_id, ))
+            'An event with the same ID already exists (%s)' % (event_id,))
 
     scrub_ip_address = (org_options.get('sentry:require_scrub_ip_address', False) or
                         project.get_option('sentry:scrub_ip_address', False))
@@ -234,25 +259,23 @@ def process_event(event_manager, project, key, remote_addr, helper, attachments)
 class APIView(BaseView):
     auth_helper_cls = ClientAuthHelper
 
-    def _parse_header(self, request, helper, project):
+    def _parse_header(self, request, relay_config):
         auth = self.auth_helper_cls.auth_from_request(request)
 
         if auth.version not in PROTOCOL_VERSIONS:
-            if project is not None:
-                track_outcome(
-                    project.organization_id,
-                    project.id,
-                    None,
-                    Outcome.INVALID,
-                    "auth_version")
+            track_outcome(
+                relay_config.organization_id,
+                relay_config.project_id,
+                None,
+                Outcome.INVALID,
+                "auth_version")
             raise APIError(
                 'Client using unsupported server protocol version (%r)' %
                 six.text_type(auth.version or '')
             )
 
         if not auth.client:
-            if project is not None:
-                track_outcome(project.organization_id, project.id, None, Outcome.INVALID, "auth_client")
+            track_outcome(relay_config.organization_id, relay_config.project_id, None, Outcome.INVALID, "auth_client")
             raise APIError("Client did not send 'client' identifier")
 
         return auth
@@ -295,14 +318,19 @@ class APIView(BaseView):
     @csrf_exempt
     @never_cache
     def dispatch(self, request, project_id=None, *args, **kwargs):
+        helper = None
+        origin = None
         try:
-            origin = None
             helper = ClientApiHelper(
                 agent=request.META.get('HTTP_USER_AGENT'),
                 project_id=project_id,
                 ip_address=request.META['REMOTE_ADDR'],
             )
-            relay_config = get_full_relay_config(project_id, request, helper, self.auth_helper_cls)
+
+            # if the project id is not directly specified get it from the authentication information
+            project_id = _get_project_id_from_request(project_id, request, self.auth_helper_cls, helper)
+
+            relay_config = get_full_relay_config(project_id)
 
             project = relay_config.project
             if project:
@@ -313,10 +341,7 @@ class APIView(BaseView):
 
             origin = self.auth_helper_cls.origin_from_request(request)
 
-            response = self._dispatch(
-                request, helper, project_id=project_id, origin=origin,
-                relay_config=relay_config, *args, **kwargs
-            )
+            response = self._dispatch(request, helper, relay_config, origin=origin, *args, **kwargs)
         except APIError as e:
             context = {
                 'error': force_bytes(e.msg, errors='replace'),
@@ -354,7 +379,7 @@ class APIView(BaseView):
             skip_internal=False,
         )
 
-        if helper.context.version:
+        if helper is not None and helper.context is not None and helper.context.version:
             metrics.incr(
                 'client-api.v%s.requests' % (helper.context.version,),
                 skip_internal=False,
@@ -384,41 +409,38 @@ class APIView(BaseView):
 
         return response
 
-    def _dispatch(self, request, helper, project_id=None, origin=None, relay_config=None, *args,
-                  **kwargs):
+    def _dispatch(self, request, helper, relay_config, origin=None, *args, **kwargs):
         request.user = AnonymousUser()
 
         project = relay_config.project
 
         if origin is not None:
-            # This check is specific for clients who need CORS support
-            if not project:
-                raise APIError('Client must be upgraded for CORS support')
-            if not is_valid_origin(origin, project):
+            if not is_valid_origin(origin, allowed=relay_config.origins):
                 track_outcome(
-                    project.organization_id,
-                    project.id,
+                    relay_config.organization_id,
+                    relay_config.project_id,
                     None,
                     Outcome.INVALID,
                     FilterStatKeys.CORS)
-                raise APIForbidden('Invalid origin: %s' % (origin, ))
+                raise APIForbidden('Invalid origin: %s' % (origin,))
 
         # XXX: It seems that the OPTIONS call does not always include custom headers
         if request.method == 'OPTIONS':
             response = self.options(request, project)
         else:
-            auth = self._parse_header(request, helper, project)
+            auth = self._parse_header(request, relay_config)
 
             key = helper.project_key_from_auth(auth)
 
             # Legacy API was /api/store/ and the project ID was only available elsewhere
-            if project and key.project_id != project.id:
+            if str(key.project_id) != str(relay_config.project_id):  # noqa B308
                 raise APIError('Two different projects were specified')
 
             helper.context.bind_auth(auth)
 
             response = super(APIView, self).dispatch(
-                request=request, project=project, auth=auth, helper=helper, key=key, **kwargs
+                request=request, project=project, auth=auth, helper=helper, key=key,
+                relay_config=relay_config, **kwargs
             )
 
         if origin:
@@ -510,11 +532,14 @@ class StoreView(APIView):
         """Mutate the given EventManager. Hook for subtypes of StoreView (CSP)"""
         pass
 
-    def process(self, request, project, key, auth, helper, data, attachments=None, **kwargs):
+    def process(self, request, project, key, auth, helper, data, relay_config, attachments=None, **kwargs):
         metrics.incr('events.total', skip_internal=False)
 
+        project_id = relay_config.project_id
+        organization_id = relay_config.organization_id
+
         if not data:
-            track_outcome(project.organization_id, project.id, key.id, Outcome.INVALID, "no_data")
+            track_outcome(organization_id, project_id, key.id, Outcome.INVALID, "no_data")
             raise APIError('No JSON data was found')
 
         remote_addr = request.META['REMOTE_ADDR']
@@ -541,8 +566,8 @@ class StoreView(APIView):
         if data_size > 10000000:
             metrics.timing('events.size.rejected', data_size)
             track_outcome(
-                project.organization_id,
-                project.id,
+                organization_id,
+                project_id,
                 key.id,
                 Outcome.INVALID,
                 'too_large',
@@ -553,7 +578,7 @@ class StoreView(APIView):
         metrics.timing(
             'events.size.data.post_storeendpoint',
             data_size,
-            tags={'project_id': project.id}
+            tags={'project_id': project_id}
         )
 
         return process_event(event_manager, project,
@@ -562,10 +587,11 @@ class StoreView(APIView):
 
 class MinidumpView(StoreView):
     auth_helper_cls = MinidumpAuthHelper
-    content_types = ('multipart/form-data', )
+    content_types = ('multipart/form-data',)
 
-    def _dispatch(self, request, helper, project_id=None, origin=None, relay_config=None, config_flags=None, *args,
+    def _dispatch(self, request, helper, relay_config, origin=None, config_flags=None, *args,
                   **kwargs):
+
         # TODO(ja): Refactor shared code with CspReportView. Especially, look at
         # the sentry_key override and test it.
 
@@ -586,6 +612,7 @@ class MinidumpView(StoreView):
 
         request.user = AnonymousUser()
 
+        project_id = relay_config.project_id
         project = relay_config.project
         helper.context.bind_project(project)
 
@@ -595,10 +622,10 @@ class MinidumpView(StoreView):
         auth = self.auth_helper_cls.auth_from_request(request)
 
         key = helper.project_key_from_auth(auth)
-        if key.project_id != project.id:
+        if key.project_id != project_id:
             track_outcome(
-                project.organization_id,
-                project.id,
+                relay_config.organization_id,
+                project_id,
                 None,
                 Outcome.INVALID,
                 "multi_project_id")
@@ -770,9 +797,9 @@ class MinidumpView(StoreView):
 
 # Endpoint used by the Unreal Engine 4 (UE4) Crash Reporter.
 class UnrealView(StoreView):
-    content_types = ('application/octet-stream', )
+    content_types = ('application/octet-stream',)
 
-    def _dispatch(self, request, helper, sentry_key, project_id=None, origin=None, relay_config=None,
+    def _dispatch(self, request, helper, relay_config, sentry_key, origin=None,
                   config_flags=None, *args, **kwargs):
         if request.method != 'POST':
             track_outcome(0, 0, None, Outcome.INVALID, "disallowed_method")
@@ -786,15 +813,16 @@ class UnrealView(StoreView):
         request.user = AnonymousUser()
 
         project = relay_config.project
+        project_id = relay_config.project_id
 
         auth = Auth({'sentry_key': sentry_key}, is_public=False)
         auth.client = 'sentry.unreal_engine'
 
         key = helper.project_key_from_auth(auth)
-        if key.project_id != project.id:
+        if key.project_id != project_id:
             track_outcome(
-                project.organization_id,
-                project.id,
+                relay_config.organization_id,
+                project_id,
                 None,
                 Outcome.INVALID,
                 "multi_project_id")
@@ -900,7 +928,7 @@ class SecurityReportView(StoreView):
         'application/expect-staple-report',
     )
 
-    def _dispatch(self, request, helper, project_id=None, origin=None, relay_config=None,
+    def _dispatch(self, request, helper, relay_config, origin=None,
                   config_flags=None, *args, **kwargs):
         # A CSP report is sent as a POST request with no Origin or Referer
         # header. What we're left with is a 'document-uri' key which is
@@ -920,6 +948,7 @@ class SecurityReportView(StoreView):
 
         project = relay_config.project
         helper.context.bind_project(project)
+        project_id = relay_config.project_id
 
         # This is yanking the auth from the querystring since it's not
         # in the POST body. This means we expect a `sentry_key` and
@@ -927,7 +956,7 @@ class SecurityReportView(StoreView):
         auth = self.auth_helper_cls.auth_from_request(request)
 
         key = helper.project_key_from_auth(auth)
-        if key.project_id != project.id:
+        if key.project_id != project_id:
             track_outcome(
                 project.organization_id,
                 project.id,
