@@ -5,13 +5,9 @@ import logging
 import dateutil.parser as dp
 from msgpack import unpack, Unpacker, UnpackException, ExtraData
 
-from sentry.lang.native.utils import get_sdk_from_event, handle_symbolication_failed, merge_symbolicated_frame
-from sentry.lang.native.symbolicator import merge_symbolicator_image
-from sentry.lang.native.symbolizer import SymbolicationFailed
-from sentry.models.eventerror import EventError
 from sentry.attachments import attachment_cache
 from sentry.coreapi import cache_key_for_event
-from sentry.utils.safe import get_path, set_path, setdefault_path
+from sentry.utils.safe import setdefault_path
 
 minidumps_logger = logging.getLogger('sentry.minidumps')
 
@@ -20,17 +16,6 @@ MINIDUMP_ATTACHMENT_TYPE = 'event.minidump'
 
 MAX_MSGPACK_BREADCRUMB_SIZE_BYTES = 50000
 MAX_MSGPACK_EVENT_SIZE_BYTES = 100000
-
-
-def is_minidump_event(data):
-    exceptions = get_path(data, 'exception', 'values', filter=True)
-    return get_path(exceptions, 0, 'mechanism', 'type') in ('minidump', 'unreal')
-
-
-def is_unreal_exception_stacktrace(data):
-    # TODO(markus): Remove after unreal portable callstacks are parsed in enhancers
-    exceptions = get_path(data, 'exception', 'values', filter=True)
-    return get_path(exceptions, 0, 'mechanism', 'type') == 'unreal'
 
 
 def write_minidump_placeholder(data):
@@ -118,88 +103,3 @@ def get_attached_minidump(data):
     cache_key = cache_key_for_event(data)
     attachments = attachment_cache.get(cache_key) or []
     return next((a for a in attachments if a.type == MINIDUMP_ATTACHMENT_TYPE), None)
-
-
-def merge_symbolicator_minidump_system_info(data, system_info):
-    set_path(data, 'contexts', 'os', 'type', value='os')  # Required by "get_sdk_from_event"
-    setdefault_path(data, 'contexts', 'os', 'name', value=system_info.get('os_name'))
-    setdefault_path(data, 'contexts', 'os', 'version', value=system_info.get('os_version'))
-    setdefault_path(data, 'contexts', 'os', 'build', value=system_info.get('os_build'))
-
-    set_path(data, 'contexts', 'device', 'type', value='device')
-    setdefault_path(data, 'contexts', 'device', 'arch', value=system_info.get('cpu_arch'))
-
-
-def merge_symbolicator_minidump_response(data, response):
-    sdk_info = get_sdk_from_event(data)
-
-    data['platform'] = 'native'
-    if response.get('crashed') is not None:
-        data['level'] = 'fatal' if response['crashed'] else 'info'
-
-    if response.get('timestamp'):
-        data['timestamp'] = float(response['timestamp'])
-
-    if response.get('system_info'):
-        merge_symbolicator_minidump_system_info(data, response['system_info'])
-
-    images = []
-    set_path(data, 'debug_meta', 'images', value=images)
-
-    for complete_image in response['modules']:
-        image = {}
-        merge_symbolicator_image(
-            image, complete_image, sdk_info,
-            lambda e: handle_symbolication_failed(e, data=data)
-        )
-        images.append(image)
-
-    # Extract the crash reason and infos
-    data_exception = get_path(data, 'exception', 'values', 0)
-    exc_value = (
-        'Assertion Error: %s' % response.get('assertion')
-        if response.get('assertion')
-        else 'Fatal Error: %s' % response.get('crash_reason')
-    )
-    data_exception['value'] = exc_value
-    data_exception['type'] = response.get('crash_reason')
-
-    data_threads = []
-    if response['stacktraces']:
-        data['threads'] = {'values': data_threads}
-    else:
-        error = SymbolicationFailed(message='minidump has no thread list',
-                                    type=EventError.NATIVE_SYMBOLICATOR_FAILED)
-        handle_symbolication_failed(error, data=data)
-
-    for complete_stacktrace in response['stacktraces']:
-        is_requesting = complete_stacktrace.get('is_requesting')
-        thread_id = complete_stacktrace.get('thread_id')
-
-        data_thread = {
-            'id': thread_id,
-            'crashed': is_requesting,
-        }
-        data_threads.append(data_thread)
-
-        if is_requesting:
-            data_exception['thread_id'] = thread_id
-            data_stacktrace = data_exception.setdefault('stacktrace', {})
-            # Make exemption specifically for unreal portable callstacks
-            # TODO(markus): Allow overriding stacktrace more generically
-            # (without looking into unreal context) once we no longer parse
-            # minidump in the endpoint (right now we can't distinguish that
-            # from user json).
-            if data_stacktrace.get('frames') and is_unreal_exception_stacktrace(data):
-                continue
-            data_stacktrace['frames'] = []
-        else:
-            data_thread['stacktrace'] = data_stacktrace = {'frames': []}
-
-        if complete_stacktrace.get('registers'):
-            data_stacktrace['registers'] = complete_stacktrace['registers']
-
-        for complete_frame in reversed(complete_stacktrace['frames']):
-            new_frame = {}
-            merge_symbolicated_frame(new_frame, complete_frame)
-            data_stacktrace['frames'].append(new_frame)

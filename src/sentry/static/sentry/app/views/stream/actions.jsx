@@ -158,7 +158,7 @@ const StreamActions = createReactClass({
     organization: SentryTypes.Organization,
   },
 
-  mixins: [Reflux.listenTo(SelectedGroupStore, 'onSelectedGroupChange')],
+  mixins: [Reflux.listenTo(SelectedGroupStore, 'handleSelectedGroupChange')],
 
   getDefaultProps() {
     return {
@@ -176,16 +176,6 @@ const StreamActions = createReactClass({
       allInQuerySelected: false, // all in current search query selected (e.g. 1000+)
       selectedIds: new Set(),
     };
-  },
-
-  selectAll() {
-    this.setState({
-      allInQuerySelected: true,
-    });
-  },
-
-  selectStatsPeriod(period) {
-    return this.props.onSelectStatsPeriod(period);
   },
 
   actionSelectedGroups(callback) {
@@ -208,7 +198,28 @@ const StreamActions = createReactClass({
     this.setState({allInQuerySelected: false});
   },
 
-  onUpdate(data) {
+  // Handler for when `SelectedGroupStore` changes
+  handleSelectedGroupChange() {
+    this.setState({
+      pageSelected: SelectedGroupStore.allSelected(),
+      multiSelected: SelectedGroupStore.multiSelected(),
+      anySelected: SelectedGroupStore.anySelected(),
+      allInQuerySelected: false, // any change resets
+      selectedIds: SelectedGroupStore.getSelectedIds(),
+    });
+  },
+
+  handleSelectStatsPeriod(period) {
+    return this.props.onSelectStatsPeriod(period);
+  },
+
+  handleApplyToAll() {
+    this.setState({
+      allInQuerySelected: true,
+    });
+  },
+
+  handleUpdate(data) {
     const {selection} = this.props;
     this.actionSelectedGroups(itemIds => {
       const loadingIndicator = IndicatorStore.add(t('Saving changes..'));
@@ -231,7 +242,7 @@ const StreamActions = createReactClass({
     });
   },
 
-  onDelete(event) {
+  handleDelete() {
     const loadingIndicator = IndicatorStore.add(t('Removing events..'));
     const {selection} = this.props;
 
@@ -254,7 +265,7 @@ const StreamActions = createReactClass({
     });
   },
 
-  onMerge(event) {
+  handleMerge() {
     const loadingIndicator = IndicatorStore.add(t('Merging events..'));
     const {selection} = this.props;
 
@@ -277,21 +288,17 @@ const StreamActions = createReactClass({
     });
   },
 
-  onSelectedGroupChange() {
-    this.setState({
-      pageSelected: SelectedGroupStore.allSelected(),
-      multiSelected: SelectedGroupStore.multiSelected(),
-      anySelected: SelectedGroupStore.anySelected(),
-      allInQuerySelected: false, // any change resets
-      selectedIds: SelectedGroupStore.getSelectedIds(),
-    });
+  handleCreateIncident() {
+    const {organization} = this.props;
+    const issues = this.state.selectedIds;
+    openCreateIncidentModal({organization, issues: Array.from(issues)});
   },
 
-  onSelectAll() {
+  handleSelectAll() {
     SelectedGroupStore.toggleSelectAll();
   },
 
-  onRealtimeChange(evt) {
+  handleRealtimeChange() {
     this.props.onRealtimeChange(!this.props.realtimeActive);
   },
 
@@ -324,7 +331,6 @@ const StreamActions = createReactClass({
       query,
       realtimeActive,
       statsPeriod,
-      organization,
     } = this.props;
     const issues = this.state.selectedIds;
     const numIssues = issues.size;
@@ -337,12 +343,13 @@ const StreamActions = createReactClass({
     const resolveDisabled = !anySelected;
     const resolveDropdownDisabled = !(anySelected && projectId);
     const mergeDisabled = !(multiSelected && projectId);
+    const createNewIncidentDisabled = !anySelected || allInQuerySelected;
 
     return (
       <Sticky>
         <StyledFlex py={1}>
           <ActionsCheckbox pl={2}>
-            <Checkbox onChange={this.onSelectAll} checked={pageSelected} />
+            <Checkbox onChange={this.handleSelectAll} checked={pageSelected} />
           </ActionsCheckbox>
           <ActionSet w={[8 / 12, 8 / 12, 6 / 12]} mx={1} flex="1">
             <ResolveActions
@@ -350,7 +357,7 @@ const StreamActions = createReactClass({
               latestRelease={latestRelease}
               orgId={orgId}
               projectId={projectId}
-              onUpdate={this.onUpdate}
+              onUpdate={this.handleUpdate}
               shouldConfirm={this.shouldConfirm('resolve')}
               confirmMessage={confirm('resolve', true)}
               confirmLabel={label('resolve')}
@@ -358,7 +365,7 @@ const StreamActions = createReactClass({
               disableDropdown={resolveDropdownDisabled}
             />
             <IgnoreActions
-              onUpdate={this.onUpdate}
+              onUpdate={this.handleUpdate}
               shouldConfirm={this.shouldConfirm('ignore')}
               confirmMessage={confirm('ignore', true)}
               confirmLabel={label('ignore')}
@@ -368,7 +375,7 @@ const StreamActions = createReactClass({
               <ActionLink
                 className="btn btn-default btn-sm action-merge"
                 disabled={mergeDisabled}
-                onAction={this.onMerge}
+                onAction={this.handleMerge}
                 shouldConfirm={this.shouldConfirm('merge')}
                 message={confirm('merge', false)}
                 confirmLabel={label('merge')}
@@ -379,8 +386,8 @@ const StreamActions = createReactClass({
             </div>
             <div className="btn-group hidden-xs">
               <ActionLink
-                className="btn btn-default btn-sm action-bookmark hidden-sm hidden-xs"
-                onAction={() => this.onUpdate({isBookmarked: true})}
+                className="btn btn-default btn-sm action-bookmark hidden-md hidden-sm hidden-xs"
+                onAction={() => this.handleUpdate({isBookmarked: true})}
                 shouldConfirm={this.shouldConfirm('bookmark')}
                 message={confirm('bookmark', false)}
                 confirmLabel={label('bookmark')}
@@ -396,12 +403,15 @@ const StreamActions = createReactClass({
                 <ActionLink
                   className="btn btn-default btn-sm hidden-sm hidden-xs"
                   title={t('Create new incident')}
-                  disabled={!anySelected}
-                  onAction={() =>
-                    openCreateIncidentModal({organization, issues: Array.from(issues)})
-                  }
+                  disabled={createNewIncidentDisabled}
+                  onAction={this.handleCreateIncident}
                 >
-                  <InlineSvg data-test-id="create-incident" src="icon-circle-add" />
+                  <IncidentLabel>
+                    <IncidentIcon data-test-id="create-incident" src="icon-circle-add" />
+                    <CreateIncidentText className="hidden-md">
+                      {t('Create Incident')}
+                    </CreateIncidentText>
+                  </IncidentLabel>
                 </ActionLink>
               </div>
             </Feature>
@@ -418,7 +428,7 @@ const StreamActions = createReactClass({
                   <ActionLink
                     className="action-merge hidden-md hidden-lg hidden-xl"
                     disabled={mergeDisabled}
-                    onAction={this.onMerge}
+                    onAction={this.handleMerge}
                     shouldConfirm={this.shouldConfirm('merge')}
                     message={confirm('merge', false)}
                     confirmLabel={label('merge')}
@@ -427,12 +437,22 @@ const StreamActions = createReactClass({
                     {t('Merge')}
                   </ActionLink>
                 </MenuItem>
+                <MenuItem noAnchor={true}>
+                  <ActionLink
+                    className="hidden-md hidden-lg hidden-xl"
+                    disabled={createNewIncidentDisabled}
+                    onAction={this.handleCreateIncident}
+                    title={t('Create new incident')}
+                  >
+                    {t('Create Incident')}
+                  </ActionLink>
+                </MenuItem>
                 <MenuItem divider={true} className="hidden-md hidden-lg hidden-xl" />
                 <MenuItem noAnchor={true}>
                   <ActionLink
-                    className="action-bookmark hidden-md hidden-lg hidden-xl"
+                    className="action-bookmark hidden-lg hidden-xl"
                     disabled={!anySelected}
-                    onAction={() => this.onUpdate({isBookmarked: true})}
+                    onAction={() => this.handleUpdate({isBookmarked: true})}
                     shouldConfirm={this.shouldConfirm('bookmark')}
                     message={confirm('bookmark', false)}
                     confirmLabel={label('bookmark')}
@@ -441,12 +461,12 @@ const StreamActions = createReactClass({
                     {t('Add to Bookmarks')}
                   </ActionLink>
                 </MenuItem>
-                <MenuItem divider={true} className="hidden-md hidden-lg hidden-xl" />
+                <MenuItem divider={true} className="hidden-lg hidden-xl" />
                 <MenuItem noAnchor={true}>
                   <ActionLink
                     className="action-remove-bookmark"
                     disabled={!anySelected}
-                    onAction={() => this.onUpdate({isBookmarked: false})}
+                    onAction={() => this.handleUpdate({isBookmarked: false})}
                     shouldConfirm={this.shouldConfirm('unbookmark')}
                     message={confirm('remove', false, ' from your bookmarks')}
                     confirmLabel={label('remove', ' from your bookmarks')}
@@ -459,7 +479,7 @@ const StreamActions = createReactClass({
                   <ActionLink
                     className="action-unresolve"
                     disabled={!anySelected}
-                    onAction={() => this.onUpdate({status: 'unresolved'})}
+                    onAction={() => this.handleUpdate({status: 'unresolved'})}
                     shouldConfirm={this.shouldConfirm('unresolve')}
                     message={confirm('unresolve', true)}
                     confirmLabel={label('unresolve')}
@@ -472,7 +492,7 @@ const StreamActions = createReactClass({
                   <ActionLink
                     className="action-delete"
                     disabled={!anySelected}
-                    onAction={this.onDelete}
+                    onAction={this.handleDelete}
                     shouldConfirm={this.shouldConfirm('delete')}
                     message={confirm('delete', false)}
                     confirmLabel={label('delete')}
@@ -492,7 +512,7 @@ const StreamActions = createReactClass({
               >
                 <a
                   className="btn btn-default btn-sm hidden-xs realtime-control"
-                  onClick={this.onRealtimeChange}
+                  onClick={this.handleRealtimeChange}
                 >
                   {realtimeActive ? (
                     <span className="icon icon-pause" />
@@ -508,14 +528,14 @@ const StreamActions = createReactClass({
               <StyledToolbarHeader>{t('Graph:')}</StyledToolbarHeader>
               <GraphToggle
                 active={statsPeriod === '24h'}
-                onClick={this.selectStatsPeriod.bind(this, '24h')}
+                onClick={this.handleSelectStatsPeriod.bind(this, '24h')}
               >
                 {t('24h')}
               </GraphToggle>
 
               <GraphToggle
                 active={statsPeriod === '14d'}
-                onClick={this.selectStatsPeriod.bind(this, '14d')}
+                onClick={this.handleSelectStatsPeriod.bind(this, '14d')}
               >
                 {t('14d')}
               </GraphToggle>
@@ -555,7 +575,7 @@ const StreamActions = createReactClass({
                     '%s issues on this page selected.',
                     numIssues
                   )}
-                  <a onClick={this.selectAll}>
+                  <a onClick={this.handleApplyToAll}>
                     {queryCount >= BULK_LIMIT
                       ? tct(
                           'Select the first [count] issues that match this search query.',
@@ -620,6 +640,17 @@ const GraphToggle = styled('a')`
   &:active {
     color: ${p => (p.active ? p.theme.gray4 : p.theme.disabled)};
   }
+`;
+
+const IncidentLabel = styled('div')`
+  display: flex;
+  align-items: center;
+`;
+const IncidentIcon = styled(InlineSvg)`
+  height: 18px;
+`;
+const CreateIncidentText = styled('span')`
+  margin-left: 5px; /* consistent with other items in bar */
 `;
 
 export {StreamActions};

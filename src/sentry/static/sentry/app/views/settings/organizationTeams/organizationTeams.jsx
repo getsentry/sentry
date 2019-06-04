@@ -1,7 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 
-import {getOrganizationState} from 'app/mixins/organizationState';
 import {openCreateTeamModal} from 'app/actionCreators/modal';
 import {t} from 'app/locale';
 import Button from 'app/components/button';
@@ -39,9 +38,7 @@ class OrganizationTeams extends React.Component {
       return null;
     }
 
-    const canCreateTeams = getOrganizationState(organization)
-      .getAccess()
-      .has('project:admin');
+    const canCreateTeams = new Set(organization.access).has('project:admin');
 
     const action = (
       <Button

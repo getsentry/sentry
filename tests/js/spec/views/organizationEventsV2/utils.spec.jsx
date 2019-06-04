@@ -1,4 +1,8 @@
-import {getCurrentView, getQuery} from 'app/views/organizationEventsV2/utils';
+import {
+  getCurrentView,
+  getQuery,
+  eventTagSearchUrl,
+} from 'app/views/organizationEventsV2/utils';
 import {ALL_VIEWS} from 'app/views/organizationEventsV2/data';
 
 describe('getCurrentView()', function() {
@@ -20,19 +24,53 @@ describe('getQuery()', function() {
       id: 'test',
       name: 'test view',
       data: {
-        query: '',
         fields: ['event', 'user', 'issue.id'],
       },
       tags: [],
     };
 
-    expect(getQuery(view).fields).toEqual([
+    expect(getQuery(view, {}).field).toEqual([
       'title',
       'id',
       'project.name',
+      'user',
+      'user.name',
       'user.email',
       'user.ip',
       'issue.id',
     ]);
+  });
+});
+
+describe('eventTagSearchUrl()', function() {
+  let location;
+  beforeEach(function() {
+    location = {
+      pathname: '/organization/org-slug/events/',
+      query: {},
+    };
+  });
+
+  it('adds a query', function() {
+    expect(eventTagSearchUrl({key: 'browser', value: 'firefox'}, location)).toEqual({
+      pathname: location.pathname,
+      query: {query: 'browser:"firefox"'},
+    });
+  });
+
+  it('removes eventSlug', function() {
+    location.query.eventSlug = 'project-slug:deadbeef';
+    expect(eventTagSearchUrl({key: 'browser', value: 'firefox'}, location)).toEqual({
+      pathname: location.pathname,
+      query: {query: 'browser:"firefox"'},
+    });
+  });
+
+  it('appends to an existing query', function() {
+    location.query.query = 'failure';
+    expect(eventTagSearchUrl({key: 'browser', value: 'firefox'}, location)).toEqual({
+      pathname: location.pathname,
+      query: {query: 'failure browser:"firefox"'},
+    });
   });
 });

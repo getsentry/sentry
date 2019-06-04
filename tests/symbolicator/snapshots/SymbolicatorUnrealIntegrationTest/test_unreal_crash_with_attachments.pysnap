@@ -1,5 +1,5 @@
 ---
-created: '2019-05-22T09:06:42.168164Z'
+created: '2019-06-03T14:50:28.969003Z'
 creator: sentry
 source: tests/symbolicator/test_unreal_full.py
 ---
@@ -104,167 +104,9 @@ exception:
   - mechanism:
       handled: false
       synthetic: true
-      type: unreal
-    raw_stacktrace:
-      frames:
-      - in_app: false
-        instruction_addr: '0x7ffe100d1471'
-        package: C:\Windows\System32\ntdll.dll
-        trust: prewalked
-      - in_app: false
-        instruction_addr: '0x7ffe0fd53034'
-        package: C:\Windows\System32\kernel32.dll
-        trust: prewalked
-      - in_app: false
-        instruction_addr: '0x7ff7589c73c6'
-        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
-        trust: prewalked
-      - in_app: false
-        instruction_addr: '0x7ff7548229e6'
-        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
-        trust: prewalked
-      - in_app: false
-        instruction_addr: '0x7ff754814eaa'
-        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
-        trust: prewalked
-      - in_app: false
-        instruction_addr: '0x7ff754814e4c'
-        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
-        trust: prewalked
-      - in_app: false
-        instruction_addr: '0x7ff754805258'
-        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
-        trust: prewalked
-      - in_app: false
-        instruction_addr: '0x7ff7571fcd39'
-        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
-        trust: prewalked
-      - in_app: false
-        instruction_addr: '0x7ff75739984f'
-        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
-        trust: prewalked
-      - in_app: false
-        instruction_addr: '0x7ff75739082f'
-        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
-        trust: prewalked
-      - in_app: false
-        instruction_addr: '0x7ff757aafb58'
-        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
-        trust: prewalked
-      - in_app: false
-        instruction_addr: '0x7ff757aa121d'
-        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
-        trust: prewalked
-      - in_app: false
-        instruction_addr: '0x7ff754d8cf00'
-        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
-        trust: prewalked
-      - in_app: false
-        instruction_addr: '0x7ff754d8cc56'
-        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
-        trust: prewalked
-      - in_app: false
-        instruction_addr: '0x7ff757a56186'
-        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
-        trust: prewalked
-      - in_app: false
-        instruction_addr: '0x7ff757a3e77e'
-        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
-        trust: prewalked
-      - in_app: false
-        instruction_addr: '0x7ff756f2f984'
-        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
-        trust: prewalked
-      - in_app: false
-        instruction_addr: '0x7ff756f06dd3'
-        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
-        trust: prewalked
-      - in_app: false
-        instruction_addr: '0x7ff756cff2ee'
-        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
-        trust: prewalked
-      - in_app: false
-        instruction_addr: '0x7ff754be3394'
-        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
-        trust: prewalked
+      type: minidump
     stacktrace:
       frames:
-      - in_app: false
-        instruction_addr: '0x7ffe100d1471'
-        package: C:\Windows\System32\ntdll.dll
-        trust: prewalked
-      - in_app: false
-        instruction_addr: '0x7ffe0fd53034'
-        package: C:\Windows\System32\kernel32.dll
-        trust: prewalked
-      - in_app: false
-        instruction_addr: '0x7ff7589c73c6'
-        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
-        trust: prewalked
-      - in_app: false
-        instruction_addr: '0x7ff7548229e6'
-        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
-        trust: prewalked
-      - in_app: false
-        instruction_addr: '0x7ff754814eaa'
-        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
-        trust: prewalked
-      - in_app: false
-        instruction_addr: '0x7ff754814e4c'
-        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
-        trust: prewalked
-      - in_app: false
-        instruction_addr: '0x7ff754805258'
-        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
-        trust: prewalked
-      - in_app: false
-        instruction_addr: '0x7ff7571fcd39'
-        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
-        trust: prewalked
-      - in_app: false
-        instruction_addr: '0x7ff75739984f'
-        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
-        trust: prewalked
-      - in_app: false
-        instruction_addr: '0x7ff75739082f'
-        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
-        trust: prewalked
-      - in_app: false
-        instruction_addr: '0x7ff757aafb58'
-        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
-        trust: prewalked
-      - in_app: false
-        instruction_addr: '0x7ff757aa121d'
-        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
-        trust: prewalked
-      - in_app: false
-        instruction_addr: '0x7ff754d8cf00'
-        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
-        trust: prewalked
-      - in_app: false
-        instruction_addr: '0x7ff754d8cc56'
-        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
-        trust: prewalked
-      - in_app: false
-        instruction_addr: '0x7ff757a56186'
-        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
-        trust: prewalked
-      - in_app: false
-        instruction_addr: '0x7ff757a3e77e'
-        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
-        trust: prewalked
-      - in_app: false
-        instruction_addr: '0x7ff756f2f984'
-        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
-        trust: prewalked
-      - in_app: false
-        instruction_addr: '0x7ff756f06dd3'
-        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
-        trust: prewalked
-      - in_app: false
-        instruction_addr: '0x7ff756cff2ee'
-        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
-        trust: prewalked
       - data:
           symbolicator_status: symbolicated
         function: AActor::IsPendingKillPending
@@ -273,7 +115,25 @@ exception:
         package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
         raw_function: AActor::IsPendingKillPending()
         symbol: AActor::IsPendingKillPending()
-        trust: prewalked
+        trust: context
+      registers:
+        r10: '0x7ffef000'
+        r11: '0x23d82c75ab0'
+        r12: '0x23d82c7d000'
+        r13: '0x3'
+        r14: '0x23df8f48bc0'
+        r15: '0x23df9a35d48'
+        r8: '0x8c3f2cd401'
+        r9: '0x7ffe03a9c86e'
+        rax: '0x64'
+        rbp: '0x8c3f2cd650'
+        rbx: '0x0'
+        rcx: '0x0'
+        rdi: '0x1'
+        rdx: '0x0'
+        rip: '0x7ff754be3394'
+        rsi: '0x0'
+        rsp: '0x8c3f2cd4c0'
     thread_id: 6900
     type: EXCEPTION_ACCESS_VIOLATION_READ
     value: 'Fatal Error: EXCEPTION_ACCESS_VIOLATION_READ'

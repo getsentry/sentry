@@ -541,6 +541,9 @@ def _load_configs():
     for fn in os.listdir(base):
         if fn.endswith('.txt'):
             with open(os.path.join(base, fn)) as f:
+                # We cannot use `:` in filenames on Windows but we already have ids with
+                # `:` in their names hence this trickery.
+                fn = fn.replace('@', ':')
                 rv[fn[:-4]] = Enhancements.from_config_string(f.read().decode('utf-8'), id=fn[:-4])
     return rv
 

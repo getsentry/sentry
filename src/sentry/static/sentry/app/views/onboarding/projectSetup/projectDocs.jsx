@@ -1,3 +1,4 @@
+import {css} from 'emotion';
 import PropTypes from 'prop-types';
 import React from 'react';
 import posed, {PoseGroup} from 'react-pose';
@@ -6,7 +7,9 @@ import styled from 'react-emotion';
 import {analytics} from 'app/utils/analytics';
 import {loadDocs} from 'app/actionCreators/projects';
 import {t, tct} from 'app/locale';
+import Alert, {alertStyles} from 'app/components/alert';
 import Button from 'app/components/button';
+import ExternalLink from 'app/components/links/externalLink';
 import FirstEventIndicator from 'app/views/onboarding/projectSetup/firstEventIndicator';
 import LoadingError from 'app/components/loadingError';
 import Panel from 'app/components/panels/panel';
@@ -17,6 +20,12 @@ import platforms from 'app/data/platforms';
 import space from 'app/styles/space';
 import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
+
+/**
+ * The documentation will include the following string should it be missing the
+ * verification example, which currently a lot of docs are.
+ */
+const INCOMPLETE_DOC_FLAG = 'TODO-ADD-VERIFICATION-EXAMPLE';
 
 const recordAnalyticsDocsClicked = ({organization, project, platform}) =>
   analytics('onboarding_v2.full_docs_clicked', {
@@ -81,6 +90,34 @@ class ProjectDocs extends React.Component {
     recordAnalyticsDocsClicked({organization, project, platform});
   };
 
+  /**
+   * TODO(epurkhiser): This can be removed once all documentation has an
+   * example for sending the users first event.
+   */
+  get missingExampleWarning() {
+    const {loadedPlatform, platformDocs} = this.state;
+    const missingExample = platformDocs?.html?.includes(INCOMPLETE_DOC_FLAG);
+
+    if (!missingExample) {
+      return null;
+    }
+
+    return (
+      <Alert type="warning" icon="icon-circle-info">
+        {tct(
+          `Looks like this getting started example is still undergoing some
+           work and doesn't include an example for triggering an event quite
+           yet! If you have trouble sending your first event be sure to consult
+           the [docsLink:full documentation] for [platform].`,
+          {
+            docsLink: <ExternalLink href={platformDocs?.link} />,
+            platform: platforms.find(p => p.id === loadedPlatform).name,
+          }
+        )}
+      </Alert>
+    );
+  }
+
   render() {
     const {organization, project, platform, scrollTargetId} = this.props;
     const {loadedPlatform, platformDocs, hasError} = this.state;
@@ -121,10 +158,10 @@ class ProjectDocs extends React.Component {
 
     const docs = platformDocs !== null && (
       <PoseGroup preEnterPose="init" animateOnMount>
-        <DocsWrapper
-          key={platformDocs.html}
-          dangerouslySetInnerHTML={{__html: platformDocs.html}}
-        />
+        <DocsWrapper key={platformDocs.html}>
+          <div dangerouslySetInnerHTML={{__html: platformDocs.html}} />
+          {this.missingExampleWarning}
+        </DocsWrapper>
       </PoseGroup>
     );
 
@@ -208,6 +245,15 @@ AnimatedPlatformHeading.propTypes = {
   platform: PropTypes.string.isRequired,
 };
 
+const getAlertClass = type => (type === 'default' ? 'alert' : `alert-${type}`);
+const mapAlertStyles = p => type =>
+  css`
+    .${getAlertClass(type)} {
+      ${alertStyles({theme: p.theme, type})};
+      display: block;
+    }
+  `;
+
 const DocsWrapper = styled(posed.div(docsTransition))`
   h1,
   h2,
@@ -219,9 +265,34 @@ const DocsWrapper = styled(posed.div(docsTransition))`
     margin-bottom: 18px;
   }
 
+  code {
+    font-size: 87.5%;
+    color: #e83e8c;
+  }
+
+  pre code {
+    color: inherit;
+    font-size: inherit;
+    white-space: pre;
+  }
+
   h2 {
     font-size: 1.4em;
   }
+
+  .alert h5 {
+    font-size: 1em;
+    margin-bottom: 1rem;
+  }
+
+  /**
+   * XXX(epurkhiser): This comes from the doc styles and avoids bottom margin issues in alerts
+   */
+  .content-flush-bottom *:last-child {
+    margin-bottom: 0;
+  }
+
+  ${p => Object.keys(p.theme.alert).map(mapAlertStyles(p))}
 `;
 
 export default withOrganization(withApi(ProjectDocs));

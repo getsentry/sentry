@@ -1,6 +1,6 @@
 from __future__ import absolute_import
 from django.db import models, transaction
-from jsonfield import JSONField
+from sentry.db.models.fields import JSONField
 from sentry.db.models import (
     Model, FlexibleForeignKey, sane_repr
 )

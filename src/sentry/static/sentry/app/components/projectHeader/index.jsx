@@ -38,13 +38,7 @@ class ProjectHeader extends React.Component {
     const org = this.props.organization;
     const allEnvironmentsLabel = t('All environments');
 
-    const pagesWithEnvironments = new Set([
-      'stream',
-      'releases',
-      'dashboard',
-      'events',
-      'user-feedback',
-    ]);
+    const pagesWithEnvironments = new Set(['stream', 'releases', 'dashboard', 'events']);
     const showEnvironmentsToggle = pagesWithEnvironments.has(navSection);
 
     const activeEnvironmentTitle = activeEnvironment
@@ -69,11 +63,6 @@ class ProjectHeader extends React.Component {
               <li className={navSection == 'dashboard' ? 'active' : ''}>
                 <ProjectLink to={`/${org.slug}/${project.slug}/dashboard/`}>
                   {t('Overview')}
-                </ProjectLink>
-              </li>
-              <li className={navSection == 'user-feedback' ? 'active' : ''}>
-                <ProjectLink to={`/${org.slug}/${project.slug}/user-feedback/`}>
-                  {t('User Feedback')}
                 </ProjectLink>
               </li>
               <li className={navSection == 'releases' ? 'active' : ''}>

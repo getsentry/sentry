@@ -1,21 +1,24 @@
 import React from 'react';
+import styled from 'react-emotion';
 
 import {deepFreeze} from 'app/utils';
 import DynamicWrapper from 'app/components/dynamicWrapper';
 import Link from 'app/components/links/link';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
-import {getUtcDateString} from 'app/utils/dates';
+import space from 'app/styles/space';
+import ProjectBadge from 'app/components/idBadge/projectBadge';
+import UserBadge from 'app/components/idBadge/userBadge';
+import DateTime from 'app/components/dateTime';
+
+import {QueryLink} from './styles';
 
 export const ALL_VIEWS = deepFreeze([
   {
     id: 'all',
     name: 'All Events',
     data: {
-      query: '',
-      fields: ['event', 'event.type', 'project.name', 'user', 'time'],
-      groupBy: [],
-      aggregations: [],
-      sort: '',
+      fields: ['event', 'event.type', 'project', 'user', 'time'],
+      sort: '-timestamp',
     },
     tags: [
       'event.type',
@@ -30,11 +33,9 @@ export const ALL_VIEWS = deepFreeze([
     id: 'errors',
     name: 'Errors',
     data: {
-      query: '',
-      fields: ['project.name', 'fingerprint', 'count', 'user_count'],
-      groupBy: ['count', 'user_count', 'project.name'],
-      aggregations: [['count', null, 'count'], ['count', 'user', 'user_count']],
-      sort: '',
+      fields: ['issue_title', 'event_count', 'user_count', 'project', 'last_seen'],
+      groupby: ['issue.id', 'project.id'],
+      sort: '-last_seen',
     },
     tags: ['error.type', 'project.name'],
   },
@@ -42,11 +43,9 @@ export const ALL_VIEWS = deepFreeze([
     id: 'csp',
     name: 'CSP',
     data: {
-      query: '',
-      fields: ['project.name', 'count', 'user_count'],
-      groupBy: ['count', 'user_count', 'project.name'],
-      aggregations: [['count', null, 'count'], ['count', 'user', 'user_count']],
-      sort: '',
+      fields: ['issue_title', 'event_count', 'user_count', 'project', 'last_seen'],
+      groupby: ['issue.id', 'project.id'],
+      sort: '-last_seen',
     },
     tags: [
       'project.name',
@@ -66,28 +65,88 @@ export const ALL_VIEWS = deepFreeze([
 export const SPECIAL_FIELDS = {
   event: {
     fields: ['title', 'id', 'project.name'],
-    renderFunc: (data, org) => (
-      <Link
-        css={overflowEllipsis}
-        to={`/organizations/${org.slug}/projects/${data['project.name']}/events/${
-          data.id
-        }/`}
-      >
-        {data.title}
-      </Link>
-    ),
+    renderFunc: (data, {organization, location}) => {
+      const target = {
+        pathname: `/organizations/${organization.slug}/events/`,
+        query: {...location.query, eventSlug: `${data['project.name']}:${data.id}`},
+      };
+      return (
+        <Container>
+          <Link css={overflowEllipsis} to={target} data-test-id="event-title">
+            {data.title}
+          </Link>
+        </Container>
+      );
+    },
+  },
+  project: {
+    fields: ['project.name'],
+    renderFunc: (data, {organization}) => {
+      const project = organization.projects.find(p => p.slug === data['project.name']);
+      return (
+        <Container>
+          {project ? (
+            <ProjectBadge project={project} avatarSize={16} />
+          ) : (
+            data['project.name']
+          )}
+        </Container>
+      );
+    },
   },
   user: {
-    fields: ['user.email', 'user.ip'],
-    renderFunc: data => data['user.email'] || data['user.ip'],
+    fields: ['user', 'user.name', 'user.email', 'user.ip'],
+    renderFunc: (data, {onSearch}) => {
+      const userObj = {
+        name: data['user.name'],
+        email: data['user.email'],
+        ip: data['user.ip'],
+      };
+
+      const badge = <UserBadge user={userObj} hideEmail={true} avatarSize={16} />;
+
+      if (!data.user) {
+        return <Container>{badge}</Container>;
+      }
+
+      return <QueryLink onClick={() => onSearch(`user:${data.user}`)}>{badge}</QueryLink>;
+    },
   },
   time: {
-    fields: ['time'],
+    fields: ['timestamp'],
     renderFunc: data => (
-      <DynamicWrapper
-        value={<span css={overflowEllipsis}>{getUtcDateString(data)}</span>}
-        fixed="time"
-      />
+      <Container>
+        <DynamicWrapper value={<StyledDateTime date={data.timestamp} />} fixed="time" />
+      </Container>
+    ),
+  },
+  event_count: {
+    title: 'events',
+    fields: ['event_count'],
+    renderFunc: data => <Container>{data.event_count}</Container>,
+  },
+  user_count: {
+    title: 'users',
+    fields: ['user_count'],
+    renderFunc: data => <Container>{data.user_count}</Container>,
+  },
+  last_seen: {
+    fields: ['last_seen'],
+    renderFunc: data => (
+      <Container>
+        <DynamicWrapper value={<StyledDateTime date={data.last_seen} />} fixed="time" />
+      </Container>
     ),
   },
 };
+
+const Container = styled('div')`
+  display: flex;
+  padding: ${space(1)};
+  ${overflowEllipsis};
+`;
+
+const StyledDateTime = styled(DateTime)`
+  color: ${p => p.theme.gray2};
+  ${overflowEllipsis};
+`;

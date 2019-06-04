@@ -151,7 +151,12 @@ class AuthLoginView(BaseView):
                 login_form.errors['__all__'] = [
                     u'You have made too many login attempts. Please try again later.'
                 ]
-                metrics.incr('login.attempt', instance='rate_limited', skip_internal=True)
+                metrics.incr(
+                    'login.attempt',
+                    instance='rate_limited',
+                    skip_internal=True,
+                    sample_rate=1.0
+                )
             elif login_form.is_valid():
                 user = login_form.get_user()
 
@@ -160,14 +165,24 @@ class AuthLoginView(BaseView):
                     user,
                     organization_id=organization.id if organization else None,
                 )
-                metrics.incr('login.attempt', instance='success', skip_internal=True)
+                metrics.incr(
+                    'login.attempt',
+                    instance='success',
+                    skip_internal=True,
+                    sample_rate=1.0
+                )
 
                 if not user.is_active:
                     return self.redirect(reverse('sentry-reactivate-account'))
 
                 return self.redirect(auth.get_login_redirect(request))
             else:
-                metrics.incr('login.attempt', instance='failure', skip_internal=True)
+                metrics.incr(
+                    'login.attempt',
+                    instance='failure',
+                    skip_internal=True,
+                    sample_rate=1.0
+                )
 
         context = {
             'op': op or 'login',

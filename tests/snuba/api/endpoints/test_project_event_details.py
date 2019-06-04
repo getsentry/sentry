@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+import json
 import six
 
 from datetime import timedelta
@@ -125,3 +126,78 @@ class ProjectEventDetailsTest(APITestCase, SnubaTestCase):
         assert response.data['previousEventID'] is None
         assert response.data['nextEventID'] == self.next_event.event_id
         assert response.data['groupID'] == six.text_type(self.prev_event.group.id)
+
+
+class ProjectEventJsonEndpointTest(APITestCase, SnubaTestCase):
+    def setUp(self):
+        super(ProjectEventJsonEndpointTest, self).setUp()
+        self.login_as(user=self.user)
+        self.event_id = 'c' * 32
+        self.fingerprint = ['group_2']
+        self.min_ago = (timezone.now() - timedelta(minutes=1)).isoformat()[:19]
+        self.event = self.store_event(
+            data={
+                'event_id': self.event_id,
+                'timestamp': self.min_ago,
+                'fingerprint': self.fingerprint,
+                'user': {
+                    'email': self.user.email,
+                },
+            },
+            project_id=self.project.id,
+        )
+        self.url = reverse(
+            'sentry-api-0-event-json',
+            kwargs={
+                'organization_slug': self.organization.slug,
+                'project_slug': self.project.slug,
+                'event_id': self.event_id,
+            }
+        )
+
+    def assert_event(self, data):
+        data = json.loads(data.decode('utf-8'))
+        assert data['event_id'] == self.event_id
+        assert data['user']['email'] == self.user.email
+        assert data['datetime'][:19] == self.min_ago
+        assert data['fingerprint'] == self.fingerprint
+
+    def test_simple(self):
+        response = self.client.get(self.url, format='json')
+        assert response.status_code == 200, response.content
+        self.assert_event(response.data)
+
+    def test_event_does_not_exist(self):
+        self.url = reverse(
+            'sentry-api-0-event-json',
+            kwargs={
+                'organization_slug': self.organization.slug,
+                'project_slug': self.project.slug,
+                'event_id': 'no' * 16,
+            }
+        )
+        response = self.client.get(self.url, format='json')
+        assert response.status_code == 404, response.content
+        assert response.data == {'detail': 'Event not found'}
+
+    def test_user_unauthorized(self):
+        user = self.create_user()
+        self.login_as(user)
+
+        response = self.client.get(self.url, format='json')
+        assert response.status_code == 403, response.content
+        assert response.data == {'detail': 'You do not have permission to perform this action.'}
+
+    def test_project_not_associated_with_event(self):
+        project2 = self.create_project(organization=self.organization)
+        url = reverse(
+            'sentry-api-0-event-json',
+            kwargs={
+                'organization_slug': self.organization.slug,
+                'project_slug': project2.slug,
+                'event_id': self.event_id,
+            }
+        )
+        response = self.client.get(url, format='json')
+        assert response.status_code == 404, response.content
+        assert response.data == {'detail': 'Event not found'}

@@ -316,14 +316,6 @@ function routes() {
         component={errorHandler(ProjectDataForwarding)}
       />
       <Route
-        path="saved-searches/"
-        name="Saved Searches"
-        componentPromise={() =>
-          import(/* webpackChunkName: "ProjectSavedSearches" */ './views/projectSavedSearches')
-        }
-        component={errorHandler(LazyLoad)}
-      />
-      <Route
         path="debug-symbols/"
         name="Debug Information Files"
         component={errorHandler(ProjectDebugFiles)}
@@ -766,7 +758,7 @@ function routes() {
             path=":projectId/configure/:platform/"
             component={errorHandler(OnboardingConfigure)}
           />
-          {hook('routes:onboarding-survey')}
+          {hook('routes:onboarding')}
         </Route>
       </Route>
       <Route component={errorHandler(OrganizationDetails)}>
@@ -1242,13 +1234,8 @@ function routes() {
               component={errorHandler(LazyLoad)}
             />
           </Route>
-          <Route
-            path="user-feedback/"
-            componentPromise={() =>
-              import(/* webpackChunkName: "ProjectUserFeedback" */ './views/userFeedback/projectUserFeedback')
-            }
-            component={errorHandler(LazyLoad)}
-          />
+
+          <Redirect from="user-feedback/" to="/organizations/:orgId/user-feedback/" />
 
           <Route path="settings/" component={errorHandler(ProjectSettings)}>
             <Redirect from="teams/" to="/settings/:orgId/projects/:projectId/teams/" />

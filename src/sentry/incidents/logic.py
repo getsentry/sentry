@@ -18,6 +18,8 @@ from sentry.incidents.models import (
     IncidentSubscription,
     TimeSeriesSnapshot,
 )
+from sentry.incidents.tasks import send_subscriber_notifications
+from sentry.utils.committers import get_event_file_committers
 from sentry.utils.snuba import (
     raw_query,
     SnubaTSResult,
@@ -40,6 +42,7 @@ def create_incident(
     detection_uuid=None,
     projects=None,
     groups=None,
+    user=None,
 ):
     assert status in (IncidentStatus.CREATED, IncidentStatus.DETECTED)
     if date_detected is None:
@@ -80,6 +83,7 @@ def create_incident(
             incident,
             activity_status,
             event_stats_snapshot=event_stats_snapshot,
+            user=user,
         )
     return incident
 
@@ -164,7 +168,7 @@ def create_incident_activity(
         subscribe_to_incident(incident, user)
     value = six.text_type(value) if value is not None else value
     previous_value = six.text_type(previous_value) if previous_value is not None else previous_value
-    return IncidentActivity.objects.create(
+    activity = IncidentActivity.objects.create(
         incident=incident,
         type=activity_type.value,
         user=user,
@@ -173,6 +177,11 @@ def create_incident_activity(
         comment=comment,
         event_stats_snapshot=event_stats_snapshot,
     )
+    send_subscriber_notifications.apply_async(
+        kwargs={'activity_id': activity.id},
+        countdown=10,
+    )
+    return activity
 
 
 def update_comment(activity, comment):
@@ -274,7 +283,31 @@ def unsubscribe_from_incident(incident, user):
     return IncidentSubscription.objects.filter(incident=incident, user=user).delete()
 
 
+def get_incident_subscribers(incident):
+    return IncidentSubscription.objects.filter(incident=incident)
+
+
 def get_incident_activity(incident):
     return IncidentActivity.objects.filter(
         incident=incident,
     ).select_related('user', 'event_stats_snapshot', 'incident')
+
+
+def get_incident_suspects(incident, projects):
+    groups = list(incident.groups.all().filter(project__in=projects))
+    # For now, we want to track whether we've seen a commit before to avoid
+    # duplicates. We'll probably use a commit being seen across multiple groups
+    # as a way to increase score in the future.
+    seen = set()
+    for group in groups:
+        event = group.get_latest_event_for_environments()
+        committers = get_event_file_committers(group.project, event)
+        for committer in committers:
+            author = committer['author']
+            for commit in committer['commits']:
+                commit['author'] = author
+                commit_key = (commit['repository']['id'], commit['id'])
+                if commit_key in seen:
+                    continue
+                seen.add(commit_key)
+                yield commit

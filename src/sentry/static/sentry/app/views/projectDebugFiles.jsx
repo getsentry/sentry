@@ -4,6 +4,7 @@ import React from 'react';
 import styled from 'react-emotion';
 
 import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
+import {fields} from 'app/data/forms/projectDebugFiles';
 import {t} from 'app/locale';
 import Access from 'app/components/acl/access';
 import AsyncComponent from 'app/components/asyncComponent';
@@ -58,57 +59,6 @@ const DebugSymbolDetails = styled('div')`
   margin-top: 4px;
 `;
 
-const formFields = [
-  {
-    name: 'builtinSymbolSources',
-    type: 'select',
-    multiple: true,
-    label: t('Built-in Repositories'),
-    help: t(
-      'Configures which built-in repositories Sentry should use to resolve debug files.'
-    ),
-    choices: [
-      ['microsoft', t('Microsoft')],
-      ['citrix', t('Citrix')],
-      ['intel', t('Intel')],
-      ['amd', t('AMD')],
-      ['nvidia', t('NVIDIA')],
-      ['chromium', t('Chromium')],
-      ['unity', t('Unity')],
-      ['mozilla', t('Mozilla')],
-      ['autodesk', t('Autodesk')],
-    ],
-  },
-  {
-    name: 'symbolSources',
-    type: 'string',
-    label: t('Custom Repositories'),
-    placeholder: t('Paste JSON here.'),
-    multiline: true,
-    monospace: true,
-    autosize: true,
-    inline: false,
-    maxRows: 10,
-    saveOnBlur: false,
-    saveMessageAlertType: 'info',
-    saveMessage: t('Updates will apply to future events only.'),
-    formatMessageValue: false,
-    help: t(
-      'Configures custom repositories containing debug files. At the moment, only Amazon S3 buckets are supported.'
-    ),
-    validate: ({id, form}) => {
-      try {
-        if (form[id].trim()) {
-          JSON.parse(form[id]);
-        }
-      } catch (e) {
-        return [[id, e.toString().replace(/^SyntaxError: JSON.parse: /, '')]];
-      }
-      return [];
-    },
-  },
-];
-
 class ProjectDebugSymbols extends AsyncComponent {
   static contextTypes = {
     organization: PropTypes.object.isRequired,
@@ -116,8 +66,10 @@ class ProjectDebugSymbols extends AsyncComponent {
 
   getEndpoints() {
     const {orgId, projectId} = this.props.params;
+    const {organization} = this.context;
+    const features = new Set(organization.features);
 
-    return [
+    const endpoints = [
       ['project', `/projects/${orgId}/${projectId}/`],
       [
         'debugFiles',
@@ -125,6 +77,12 @@ class ProjectDebugSymbols extends AsyncComponent {
         {query: {query: this.props?.location?.query?.query}},
       ],
     ];
+
+    if (features.has('symbol-sources')) {
+      endpoints.push(['builtinSymbolSources', '/builtin-symbol-sources/']);
+    }
+
+    return endpoints;
   }
 
   onDelete(id) {
@@ -257,6 +215,10 @@ class ProjectDebugSymbols extends AsyncComponent {
     const features = new Set(organization.features);
     const access = new Set(organization.access);
 
+    const fieldProps = {
+      builtinSymbolSources: this.state.builtinSymbolSources,
+    };
+
     return (
       <React.Fragment>
         <SettingsPageHeader title={t('Debug Information Files')} />
@@ -285,7 +247,8 @@ class ProjectDebugSymbols extends AsyncComponent {
                 features={features}
                 title={t('External Sources')}
                 disabled={!access.has('project:write')}
-                fields={formFields}
+                fields={[fields.builtinSymbolSources, fields.symbolSources]}
+                additionalFieldProps={fieldProps}
               />
             </Form>
           </>

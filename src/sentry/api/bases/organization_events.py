@@ -1,11 +1,29 @@
 from __future__ import absolute_import
 
+from copy import deepcopy
 from rest_framework.exceptions import PermissionDenied
 
 from sentry import features
 from sentry.api.bases import OrganizationEndpoint, OrganizationEventsError
 from sentry.api.event_search import get_snuba_query_args, InvalidSearchQuery
 from sentry.models.project import Project
+
+# We support 4 "special fields" on the v2 events API which perform some
+# additional calculations over aggregated event data
+SPECIAL_FIELDS = {
+    'issue_title': {
+        'aggregations': [['anyHeavy', 'title', 'issue_title']],
+    },
+    'last_seen': {
+        'aggregations': [['max', 'timestamp', 'last_seen']],
+    },
+    'event_count': {
+        'aggregations': [['uniq', 'id', 'event_count']],
+    },
+    'user_count': {
+        'aggregations': [['uniq', 'user', 'user_count']],
+    },
+}
 
 
 class OrganizationEventsEndpointBase(OrganizationEndpoint):
@@ -48,7 +66,9 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
         except InvalidSearchQuery as exc:
             raise OrganizationEventsError(exc.message)
 
-        fields = request.GET.getlist('fields')[:]
+        fields = request.GET.getlist('field')[:]
+        aggregations = []
+        groupby = request.GET.getlist('groupby')
 
         if fields:
             # If project.name is requested, get the project.id from Snuba so we
@@ -58,11 +78,19 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
                 if 'project.id' not in fields:
                     fields.append('project.id')
 
-            snuba_args['selected_columns'] = fields
-        else:
-            raise OrganizationEventsError('No fields requested.')
+            for field in fields[:]:
+                if field in SPECIAL_FIELDS:
+                    special_field = deepcopy(SPECIAL_FIELDS[field])
+                    fields.remove(field)
+                    fields.extend(special_field.get('fields', []))
+                    aggregations.extend(special_field.get('aggregations', []))
+                    groupby.extend(special_field.get('groupby', []))
 
-        groupby = request.GET.getlist('groupby')
+            snuba_args['selected_columns'] = fields
+
+        if aggregations:
+            snuba_args['aggregations'] = aggregations
+
         if groupby:
             snuba_args['groupby'] = groupby
 

@@ -23,6 +23,7 @@ class OrganizationEventsTestBase(APITestCase, SnubaTestCase):
 
 
 class OrganizationEventsV2EndpointTest(OrganizationEventsTestBase):
+
     def test_no_projects(self):
         self.login_as(user=self.user)
         with self.feature('organizations:events-v2'):
@@ -31,10 +32,61 @@ class OrganizationEventsV2EndpointTest(OrganizationEventsTestBase):
         assert response.status_code == 200, response.content
         assert len(response.data) == 0
 
+    def test_multi_project_feature_gate_rejection(self):
+        self.login_as(user=self.user)
+        team = self.create_team(organization=self.organization, members=[self.user])
+
+        project = self.create_project(organization=self.organization, teams=[team])
+        project2 = self.create_project(organization=self.organization, teams=[team])
+
+        self.store_event(
+            data={
+                'event_id': 'a' * 32,
+                'timestamp': self.min_ago,
+                'fingerprint': ['group1'],
+            },
+            project_id=project.id
+        )
+        self.store_event(
+            data={
+                'event_id': 'b' * 32,
+                'timestamp': self.min_ago,
+                'fingerprint': ['group2'],
+            },
+            project_id=project2.id
+        )
+
+        query = {
+            'field': ['id', 'project.id'],
+            'project': [project.id, project2.id],
+        }
+        with self.feature({'organizations:events-v2': True, 'organizations:global-views': False}):
+            response = self.client.get(self.url, query, format='json')
+        assert response.status_code == 400
+        assert 'events from multiple projects' in response.data['detail']
+
+    def test_invalid_search_terms(self):
+        self.login_as(user=self.user)
+
+        project = self.create_project()
+        self.store_event(
+            data={
+                'event_id': 'a' * 32,
+                'message': 'how to make fast',
+                'timestamp': self.min_ago,
+            },
+            project_id=project.id
+        )
+
+        with self.feature('organizations:events-v2'):
+            response = self.client.get(self.url, {'query': 'hi \n there'}, format='json')
+
+        assert response.status_code == 400, response.content
+        assert response.data['detail'] == "Parse error: 'search' (column 4). This is commonly caused by unmatched-parentheses. Enclose any text in double quotes."
+
     def test_raw_data(self):
         self.login_as(user=self.user)
         project = self.create_project()
-        project2 = self.create_project()
         self.store_event(
             data={
                 'event_id': 'a' * 32,
@@ -57,7 +109,7 @@ class OrganizationEventsV2EndpointTest(OrganizationEventsTestBase):
                     'email': 'foo@example.com',
                 },
             },
-            project_id=project2.id,
+            project_id=project.id,
         )
 
         with self.feature('organizations:events-v2'):
@@ -65,7 +117,7 @@ class OrganizationEventsV2EndpointTest(OrganizationEventsTestBase):
                 self.url,
                 format='json',
                 data={
-                    'fields': ['id', 'project.id', 'user.email', 'user.ip', 'time'],
+                    'field': ['id', 'project.id', 'user.email', 'user.ip', 'time'],
                     'orderby': '-timestamp',
                 },
             )
@@ -73,7 +125,7 @@ class OrganizationEventsV2EndpointTest(OrganizationEventsTestBase):
         assert response.status_code == 200, response.content
         assert len(response.data) == 2
         assert response.data[0]['id'] == 'b' * 32
-        assert response.data[0]['project.id'] == project2.id
+        assert response.data[0]['project.id'] == project.id
         assert response.data[0]['user.email'] == 'foo@example.com'
 
     def test_project_name(self):
@@ -93,7 +145,7 @@ class OrganizationEventsV2EndpointTest(OrganizationEventsTestBase):
                 self.url,
                 format='json',
                 data={
-                    'fields': ['project.name', 'environment'],
+                    'field': ['project.name', 'environment'],
                 },
             )
 
@@ -136,7 +188,7 @@ class OrganizationEventsV2EndpointTest(OrganizationEventsTestBase):
                 self.url,
                 format='json',
                 data={
-                    'fields': ['project.id', 'environment'],
+                    'field': ['project.id', 'environment'],
                     'groupby': ['project.id', 'environment'],
                     'orderby': 'environment',
                 },
@@ -149,7 +201,7 @@ class OrganizationEventsV2EndpointTest(OrganizationEventsTestBase):
         assert response.data[1]['project.id'] == project.id
         assert response.data[1]['environment'] == 'staging'
 
-    def test_event_count(self):
+    def test_special_fields(self):
         self.login_as(user=self.user)
         project = self.create_project()
         self.store_event(
@@ -157,6 +209,9 @@ class OrganizationEventsV2EndpointTest(OrganizationEventsTestBase):
                 'event_id': 'a' * 32,
                 'timestamp': self.min_ago,
                 'fingerprint': ['group_1'],
+                'user': {
+                    'email': 'foo@example.com',
+                },
             },
             project_id=project.id,
         )
@@ -164,7 +219,10 @@ class OrganizationEventsV2EndpointTest(OrganizationEventsTestBase):
             data={
                 'event_id': 'b' * 32,
                 'timestamp': self.min_ago,
-                'fingerprint': ['group_1'],
+                'fingerprint': ['group_2'],
+                'user': {
+                    'email': 'foo@example.com',
+                },
             },
             project_id=project.id,
         )
@@ -173,6 +231,9 @@ class OrganizationEventsV2EndpointTest(OrganizationEventsTestBase):
                 'event_id': 'c' * 32,
                 'timestamp': self.min_ago,
                 'fingerprint': ['group_2'],
+                'user': {
+                    'email': 'bar@example.com',
+                },
             },
             project_id=project.id,
         )
@@ -184,8 +245,8 @@ class OrganizationEventsV2EndpointTest(OrganizationEventsTestBase):
                 self.url,
                 format='json',
                 data={
-                    'fields': ['issue.id'],
-                    'groupby': ['issue.id'],
+                    'field': ['issue_title', 'event_count', 'user_count'],
+                    'groupby': ['issue.id', 'project.id'],
                     'orderby': 'issue.id'
                 },
             )
@@ -193,4 +254,8 @@ class OrganizationEventsV2EndpointTest(OrganizationEventsTestBase):
         assert response.status_code == 200, response.content
         assert len(response.data) == 2
         assert response.data[0]['issue.id'] == groups[0].id
+        assert response.data[0]['event_count'] == 1
+        assert response.data[0]['user_count'] == 1
         assert response.data[1]['issue.id'] == groups[1].id
+        assert response.data[1]['event_count'] == 2
+        assert response.data[1]['user_count'] == 2

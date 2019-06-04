@@ -487,6 +487,7 @@ CELERY_QUEUES = [
     Queue('events.reprocess_events', routing_key='events.reprocess_events'),
     Queue('events.save_event', routing_key='events.save_event'),
     Queue('files.delete', routing_key='files.delete'),
+    Queue('incidents.notify', routing_key='incidents.notify'),
     Queue('integrations', routing_key='integrations'),
     Queue('merge', routing_key='merge'),
     Queue('options', routing_key='options'),
@@ -780,6 +781,7 @@ LOGGING = {
 REST_FRAMEWORK = {
     'TEST_REQUEST_DEFAULT_FORMAT': 'json',
     'DEFAULT_PERMISSION_CLASSES': ('sentry.api.permissions.NoPermission', ),
+    'EXCEPTION_HANDLER': 'sentry.api.handlers.custom_exception_handler',
 }
 
 CRISPY_TEMPLATE_PACK = 'bootstrap3'
@@ -856,7 +858,7 @@ SENTRY_FEATURES = {
     # DEPCREATED: pending removal.
     'organizations:require-2fa': False,
     # Sentry 10 - multi project interfaces.
-    'organizations:sentry10': False,
+    'organizations:sentry10': True,
     # Enable basic SSO functionality, providing configurable single signon
     # using services like GitHub / Google. This is *not* the same as the signup
     # and login with Github / Azure DevOps that sentry.io provides.
@@ -1505,9 +1507,18 @@ SDK_VERSIONS = {
     'raven-ruby': '2.7.1',
     'sentry-cocoa': '3.11.1',
     'sentry-java': '1.6.4',
-    'sentry-laravel': '0.8.0',
-    'sentry-php': '1.8.2',
-    'sentry-python': '0.7.14',
+    'sentry.javascript.browser': '5.3.0',
+    'sentry.javascript.electron': '0.17.1',
+    'sentry.javascript.node': '5.3.0',
+    'sentry-laravel': '1.0.2',
+    'sentry-php': '2.0.1',
+    'sentry.python': '0.7.14',
+    'sentry.dotnet': '1.2.0',
+    'sentry.dotnet.aspnetcore': '1.2.0',
+    'sentry.dotnet.extensions.logging': '1.2.0',
+    'sentry.dotnet.log4net': '1.2.0',
+    'sentry.dotnet.serilog': '1.2.0',
+    'sentry.dotnet.nlog': '1.2.0',
 }
 
 SDK_URLS = {
@@ -1517,10 +1528,19 @@ SDK_URLS = {
     'raven-ruby': 'https://docs.sentry.io/clients/ruby/',
     'raven-swift': 'https://docs.sentry.io/clients/cocoa/',
     'sentry-java': 'https://docs.sentry.io/clients/java/',
-    'sentry-php': 'https://docs.sentry.io/clients/php/',
-    'sentry-laravel': 'https://docs.sentry.io/clients/php/integrations/laravel/',
+    'sentry.javascript.browser': 'https://docs.sentry.io/platforms/javascript/',
+    'sentry.javascript.electron': 'https://docs.sentry.io/platforms/javascript/electron/',
+    'sentry.javascript.node': 'https://docs.sentry.io/platforms/javascript/',
+    'sentry-php': 'https://docs.sentry.io/platforms/php/',
+    'sentry-laravel': 'https://docs.sentry.io/platforms/php/laravel/',
+    'sentry.python': 'https://docs.sentry.io/platforms/python/',
     'sentry-swift': 'https://docs.sentry.io/clients/cocoa/',
-    'sentry-python': 'https://docs.sentry.io/platforms/python/',
+    'sentry.dotnet': 'https://docs.sentry.io/platforms/dotnet/',
+    'sentry.dotnet.aspnetcore': 'https://docs.sentry.io/platforms/dotnet/aspnetcore/',
+    'sentry.dotnet.extensions.logging': 'https://docs.sentry.io/platforms/dotnet/microsoft-extensions-logging/',
+    'sentry.dotnet.log4net': 'https://docs.sentry.io/platforms/dotnet/log4net/',
+    'sentry.dotnet.serilog': 'https://docs.sentry.io/platforms/dotnet/serilog/',
+    'sentry.dotnet.nlog': 'https://docs.sentry.io/platforms/dotnet/nlog/',
 }
 
 DEPRECATED_SDKS = {
@@ -1530,11 +1550,14 @@ DEPRECATED_SDKS = {
     'raven-java:log4j': 'sentry-java',
     'raven-java:log4j2': 'sentry-java',
     'raven-java:logback': 'sentry-java',
+    'raven-js': 'sentry.javascript.browser',
+    'raven-node': 'sentry.javascript.node',
     'raven-objc': 'sentry-swift',
     'raven-php': 'sentry-php',
+    'raven-python': 'sentry.python',
     'sentry-android': 'raven-java',
     'sentry-swift': 'sentry-cocoa',
-    'raven-python': 'sentry-python',
+    'SharpRaven': 'sentry.dotnet',
 
     # The Ruby SDK used to go by the name 'sentry-raven'...
     'sentry-raven': 'raven-ruby',
@@ -1545,10 +1568,122 @@ SOUTH_TESTS_MIGRATE = os.environ.get('SOUTH_TESTS_MIGRATE', '0') == '1'
 TERMS_URL = None
 PRIVACY_URL = None
 
-# Toggles whether minidumps should be cached
-SENTRY_MINIDUMP_CACHE = False
-# The location for cached minidumps
-SENTRY_MINIDUMP_PATH = '/tmp/minidump'
+# Internal sources for debug information files
+#
+# There are two special values in there: "microsoft" and "ios".  These are
+# added by default to any project created.  The "ios" source is currently
+# not enabled in the open source build of sentry because it points to a
+# sentry internal repository and it's unclear if these can be
+# redistributed under the Apple EULA.  If however someone configures their
+# own iOS source and name it 'ios' it will be enabled by default for all
+# projects.
+SENTRY_BUILTIN_SOURCES = {
+    'microsoft': {
+        'type': 'http',
+        'id': 'sentry:microsoft',
+        'name': 'Microsoft',
+        'layout': {'type': 'symstore'},
+        'filters': {
+            'filetypes': ['pdb', 'pe'],
+            'path_patterns': ['?:/windows/**']
+        },
+        'url': 'https://msdl.microsoft.com/download/symbols/',
+        'is_public': True,
+    },
+    'citrix': {
+        'type': 'http',
+        'id': 'sentry:citrix',
+        'name': 'Citrix',
+        'layout': {'type': 'symstore'},
+        'filters': {
+            'filetypes': ['pdb', 'pe']
+        },
+        'url': 'http://ctxsym.citrix.com/symbols/',
+        'is_public': True,
+    },
+    'intel': {
+        'type': 'http',
+        'id': 'sentry:intel',
+        'name': 'Intel',
+        'layout': {'type': 'symstore'},
+        'filters': {
+            'filetypes': ['pdb', 'pe']
+        },
+        'url': 'https://software.intel.com/sites/downloads/symbols/',
+        'is_public': True,
+    },
+    'amd': {
+        'type': 'http',
+        'id': 'sentry:amd',
+        'name': 'AMD',
+        'layout': {'type': 'symstore'},
+        'filters': {
+            'filetypes': ['pdb', 'pe']
+        },
+        'url': 'https://download.amd.com/dir/bin/',
+        'is_public': True,
+    },
+    'nvidia': {
+        'type': 'http',
+        'id': 'sentry:nvidia',
+        'name': 'NVIDIA',
+        'layout': {'type': 'symstore'},
+        'filters': {
+            'filetypes': ['pdb', 'pe']
+        },
+        'url': 'https://driver-symbols.nvidia.com/',
+        'is_public': True,
+    },
+    'chromium': {
+        'type': 'http',
+        'id': 'sentry:chromium',
+        'name': 'Chromium',
+        'layout': {'type': 'symstore'},
+        'filters': {
+            'filetypes': ['pdb', 'pe']
+        },
+        'url': 'https://chromium-browser-symsrv.commondatastorage.googleapis.com/',
+        'is_public': True,
+    },
+    'unity': {
+        'type': 'http',
+        'id': 'sentry:unity',
+        'name': 'Unity',
+        'layout': {'type': 'symstore'},
+        'filters': {
+            'filetypes': ['pdb', 'pe']
+        },
+        'url': 'https://symbolserver.unity3d.com/',
+        'is_public': True,
+    },
+    'mozilla': {
+        'type': 'http',
+        'id': 'sentry:mozilla',
+        'name': 'Mozilla',
+        'layout': {'type': 'symstore'},
+        'url': 'https://symbols.mozilla.org/',
+        'is_public': True,
+    },
+    'autodesk': {
+        'type': 'http',
+        'id': 'sentry:autodesk',
+        'name': 'Autodesk',
+        'layout': {'type': 'symstore'},
+        'url': 'http://symbols.autodesk.com/',
+        'is_public': True,
+    },
+    'electron': {
+        'type': 'http',
+        'id': 'sentry:electron',
+        'name': 'Electron',
+        'layout': {'type': 'native'},
+        'url': 'https://electron-symbols.githubapp.com/',
+        'filters': {
+            'filetypes': ['pdb', 'breakpad'],
+        },
+        'is_public': True,
+    }
+}
 
 # Relay
 # List of PKs whitelisted by Sentry.  All relays here are always

@@ -211,7 +211,8 @@ def cleanup(days, project, concurrency, silent, model, router, timed):
     if is_filtered(models.OrganizationMember) and not silent:
         click.echo('>> Skipping OrganizationMember')
     else:
-        click.echo('Removing expired values for OrganizationMember')
+        if not silent:
+            click.echo('Removing expired values for OrganizationMember')
         expired_threshold = timezone.now() - timedelta(days=days)
         models.OrganizationMember.delete_expired(expired_threshold)
 
@@ -322,7 +323,7 @@ def cleanup(days, project, concurrency, silent, model, router, timed):
 
     if timed:
         duration = int(time.time() - start_time)
-        metrics.timing('cleanup.duration', duration, instance=router)
+        metrics.timing('cleanup.duration', duration, instance=router, sample_rate=1.0)
         click.echo("Clean up took %s second(s)." % duration)
 
 

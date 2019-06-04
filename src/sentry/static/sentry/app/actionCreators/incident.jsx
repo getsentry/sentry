@@ -54,8 +54,6 @@ export async function fetchIncidentActivities(api, orgId, incidentId) {
  * Creates a note for an incident
  */
 export async function createIncidentNote(api, orgId, incidentId, note) {
-  addLoadingMessage(t('Posting comment...'));
-
   try {
     const result = await api.requestPromise(
       `/organizations/${orgId}/incidents/${incidentId}/comments/`,
@@ -67,8 +65,6 @@ export async function createIncidentNote(api, orgId, incidentId, note) {
       }
     );
 
-    clearIndicators();
-
     return result;
   } catch (err) {
     addErrorMessage(t('Unable to post comment'));
@@ -79,13 +75,16 @@ export async function createIncidentNote(api, orgId, incidentId, note) {
 /**
  * Deletes a note for an incident
  */
-export async function deleteIncidentNote(api, incidentId, item) {
-  addLoadingMessage(t('Removing comment...'));
-
+export async function deleteIncidentNote(api, orgId, incidentId, noteId) {
   try {
-    // TODO: Implement me
+    const result = await api.requestPromise(
+      `/organizations/${orgId}/incidents/${incidentId}/comments/${noteId}/`,
+      {
+        method: 'DELETE',
+      }
+    );
 
-    clearIndicators();
+    return result;
   } catch (err) {
     addErrorMessage(t('Failed to delete comment'));
     throw err;
@@ -95,12 +94,19 @@ export async function deleteIncidentNote(api, incidentId, item) {
 /**
  * Updates a note for an incident
  */
-export async function updateIncidentNote(api, incidentId, item, note) {
-  addLoadingMessage(t('Updating comment...'));
-
+export async function updateIncidentNote(api, orgId, incidentId, noteId, note) {
   try {
-    // TODO: Implement me
+    const result = await api.requestPromise(
+      `/organizations/${orgId}/incidents/${incidentId}/comments/${noteId}/`,
+      {
+        method: 'PUT',
+        data: {
+          comment: note.text,
+        },
+      }
+    );
     clearIndicators();
+    return result;
   } catch (err) {
     addErrorMessage(t('Unable to update comment'));
     throw err;

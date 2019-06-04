@@ -19,15 +19,13 @@ import hashlib
 import logging
 import tempfile
 
-from jsonfield import JSONField
 from django.db import models
 
 from symbolic import Archive, SymbolicError, ObjectErrorUnsupportedObject
 
 from sentry import options
-from sentry.cache import default_cache
 from sentry.constants import KNOWN_DIF_FORMATS
-from sentry.db.models import FlexibleForeignKey, Model, sane_repr, BaseManager
+from sentry.db.models import FlexibleForeignKey, Model, sane_repr, BaseManager, JSONField
 from sentry.models.file import File
 from sentry.reprocessing import resolve_processing_issue, \
     bump_reprocessing_revision
@@ -46,37 +44,6 @@ CONVERSION_ERROR_TTL = 60 * 10
 DIF_MIMETYPES = dict((v, k) for k, v in KNOWN_DIF_FORMATS.items())
 
 _proguard_file_re = re.compile(r'/proguard/(?:mapping-)?(.*?)\.txt$')
-
-
-def _get_idempotency_id(project, checksum):
-    """For some operations an idempotency ID is needed."""
-    return hashlib.sha1(b'%s|%s|project.dsym' % (
-        str(project.id).encode('ascii'),
-        checksum.encode('ascii'),
-    )).hexdigest()
-
-
-def get_assemble_status(project, checksum):
-    """For a given file it checks what the current status of the assembling is.
-    Returns a tuple in the form ``(status, details)`` where details is either
-    `None` or a string identifying an error condition or notice.
-    """
-    cache_key = 'assemble-status:%s' % _get_idempotency_id(
-        project, checksum)
-    rv = default_cache.get(cache_key)
-    if rv is None:
-        return None, None
-    return tuple(rv)
-
-
-def set_assemble_status(project, checksum, state, detail=None):
-    cache_key = 'assemble-status:%s' % _get_idempotency_id(
-        project, checksum)
-
-    # NB: Also cache successfully created debug files to avoid races between
-    # multiple DIFs with the same identifier. On the downside, this blocks
-    # re-uploads for 10 minutes.
-    default_cache.set(cache_key, (state, detail), 600)
 
 
 class BadDif(Exception):

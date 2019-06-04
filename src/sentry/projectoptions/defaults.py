@@ -9,7 +9,7 @@ from __future__ import absolute_import
 from sentry.projectoptions import register
 
 # latest epoch
-LATEST_EPOCH = 1
+LATEST_EPOCH = 2
 
 # grouping related configs
 #
@@ -25,7 +25,6 @@ register(
     key='sentry:grouping_config',
     epoch_defaults={
         1: DEFAULT_GROUPING_CONFIG,
-        # 2: 'combined:2019-04-07',
     }
 )
 
@@ -55,5 +54,16 @@ register(
     key='sentry:default_loader_version',
     epoch_defaults={
         1: '4.x',
+    }
+)
+
+# Default symbol sources.  The ios source does not exist by default and
+# will be skipped later.  The microsoft source exists by default and is
+# unlikely to be disabled.
+register(
+    key='sentry:builtin_symbol_sources',
+    epoch_defaults={
+        1: ['ios'],
+        2: ['ios', 'microsoft'],
     }
 )

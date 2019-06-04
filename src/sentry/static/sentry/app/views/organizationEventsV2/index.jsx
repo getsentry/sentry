@@ -13,13 +13,14 @@ import ListLink from 'app/components/links/listLink';
 import NoProjectMessage from 'app/components/noProjectMessage';
 
 import Events from './events';
+import EventDetails from './eventDetails';
 import {ALL_VIEWS} from './data';
 import {getCurrentView} from './utils';
 
 export default class OrganizationEventsV2 extends React.Component {
   static propTypes = {
     organization: SentryTypes.Organization.isRequired,
-    location: PropTypes.object,
+    location: PropTypes.object.isRequired,
   };
 
   renderTabs() {
@@ -46,6 +47,7 @@ export default class OrganizationEventsV2 extends React.Component {
 
   render() {
     const {organization, location} = this.props;
+    const {eventSlug} = location.query;
 
     return (
       <DocumentTitle title={`Events - ${organization.slug} - Sentry`}>
@@ -64,6 +66,13 @@ export default class OrganizationEventsV2 extends React.Component {
                 view={getCurrentView(location.query.view)}
               />
             </NoProjectMessage>
+            {eventSlug && (
+              <EventDetails
+                orgId={organization.slug}
+                params={this.props.params}
+                eventSlug={eventSlug}
+              />
+            )}
           </PageContent>
         </React.Fragment>
       </DocumentTitle>

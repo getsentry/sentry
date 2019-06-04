@@ -1,6 +1,5 @@
 from __future__ import absolute_import
 
-import os
 import pytest
 import zipfile
 from mock import patch
@@ -13,7 +12,7 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 from sentry.testutils import TransactionTestCase
 from sentry.models import Event, File, ProjectDebugFile
 
-from tests.symbolicator import insta_snapshot_stacktrace_data
+from tests.symbolicator import get_fixture_path, insta_snapshot_stacktrace_data
 
 REAL_RESOLVING_EVENT_DATA = {
     "platform": "cocoa",
@@ -41,9 +40,13 @@ REAL_RESOLVING_EVENT_DATA = {
                 'stacktrace': {
                     "frames": [
                         {
+                            "platform": "foobar",
+                            "function": "hi"
+                        },
+                        {
                             "function": "unknown",
                             "instruction_addr": "0x0000000100000fa0"
-                        },
+                        }
                     ]
                 },
                 "type": "Fail",
@@ -68,8 +71,7 @@ class ResolvingIntegrationTestBase(object):
 
         out = BytesIO()
         f = zipfile.ZipFile(out, 'w')
-        f.write(os.path.join(os.path.dirname(__file__), 'fixtures', 'hello.dsym'),
-                'dSYM/hello')
+        f.write(get_fixture_path('hello.dsym'), 'dSYM/hello')
         f.close()
 
         response = self.client.post(
@@ -96,7 +98,7 @@ class ResolvingIntegrationTestBase(object):
             headers={'Content-Type': 'text/x-breakpad'},
         )
 
-        path = os.path.join(os.path.dirname(__file__), 'fixtures', 'windows.sym')
+        path = get_fixture_path('windows.sym')
         with open(path) as f:
             file.putfile(f)
 
@@ -162,6 +164,19 @@ class ResolvingIntegrationTestBase(object):
         self.login_as(user=self.user)
 
         resp = self._postWithHeader(dict(project=self.project.id, **REAL_RESOLVING_EVENT_DATA))
+        assert resp.status_code == 200
+
+        event = Event.objects.get()
+        assert event.data['culprit'] == 'unknown'
+        insta_snapshot_stacktrace_data(self, event.data)
+
+    def test_missing_debug_images(self):
+        self.login_as(user=self.user)
+
+        payload = dict(project=self.project.id, **REAL_RESOLVING_EVENT_DATA)
+        del payload['debug_meta']
+
+        resp = self._postWithHeader(payload)
         assert resp.status_code == 200
 
         event = Event.objects.get()

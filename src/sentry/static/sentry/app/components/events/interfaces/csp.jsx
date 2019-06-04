@@ -2,7 +2,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import SentryTypes from 'app/sentryTypes';
 
-import GroupEventDataSection from 'app/components/events/eventDataSection';
+import EventDataSection from 'app/components/events/eventDataSection';
 import CSPContent from 'app/components/events/interfaces/cspContent';
 import CSPHelp from 'app/components/events/interfaces/cspHelp';
 import {t} from 'app/locale';
@@ -22,7 +22,6 @@ function getView(view, data) {
 
 export default class CspInterface extends React.Component {
   static propTypes = {
-    group: SentryTypes.Group.isRequired,
     event: SentryTypes.Event.isRequired,
     data: PropTypes.object.isRequired,
   };
@@ -47,7 +46,7 @@ export default class CspInterface extends React.Component {
 
   render() {
     const {view, data} = this.state;
-    const {group, event} = this.props;
+    const {event} = this.props;
 
     const title = (
       <div>
@@ -78,15 +77,9 @@ export default class CspInterface extends React.Component {
     const children = getView(view, data);
 
     return (
-      <GroupEventDataSection
-        group={group}
-        event={event}
-        type="csp"
-        title={title}
-        wrapTitle={false}
-      >
+      <EventDataSection event={event} type="csp" title={title} wrapTitle={false}>
         {children}
-      </GroupEventDataSection>
+      </EventDataSection>
     );
   }
 }

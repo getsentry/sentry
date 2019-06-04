@@ -1,7 +1,7 @@
 ---
-created: '2019-04-24T21:02:36.086683Z'
+created: '2019-06-03T15:00:19.524785Z'
 creator: sentry
-source: tests/symbolicator/test_native_plugin.py
+source: tests/symbolicator/test_payload_full.py
 ---
 contexts: null
 debug_meta:
@@ -28,14 +28,22 @@ exception:
   values:
   - raw_stacktrace:
       frames:
-      - function: unknown
+      - function: hi
         in_app: false
+        platform: foobar
+      - function: unknown
+        in_app: true
         instruction_addr: '0x100000fa0'
         package: Foo.app/Contents/Foo
     stacktrace:
       frames:
-      - function: unknown
+      - function: hi
         in_app: false
+        platform: foobar
+      - data:
+          symbolicator_status: missing
+        function: unknown
+        in_app: true
         instruction_addr: '0x100000fa0'
         package: Foo.app/Contents/Foo
     type: Fail
