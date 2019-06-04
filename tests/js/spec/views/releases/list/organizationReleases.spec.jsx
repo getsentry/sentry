@@ -56,12 +56,27 @@ describe('OrganizationReleases', function() {
     expect(releases.map(item => item.text())).toEqual(['abc', 'def']);
   });
 
-  it('renders no query state if project has a release', function() {
+  it('renders no query state if selected project has a release', function() {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/releases/',
       body: [],
     });
     organization.projects = [TestStubs.Project({latestRelease: 'abcdef'})];
+    wrapper = mount(
+      <OrganizationReleases {...props} />,
+      TestStubs.routerContext([{organization}])
+    );
+    const content = wrapper.find('PageContent');
+    expect(content.text()).toContain('Sorry, no releases match your filters');
+  });
+
+  it('renders no query state if any member project has a release and "All projects" is selected', function() {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/releases/',
+      body: [],
+    });
+    organization.projects = [TestStubs.Project({latestRelease: 'abcdef'})];
+    props.selection = {projects: []};
     wrapper = mount(
       <OrganizationReleases {...props} />,
       TestStubs.routerContext([{organization}])
