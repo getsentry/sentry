@@ -1,6 +1,5 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import {withRouter} from 'react-router';
 import styled from 'react-emotion';
 import {omit, isEqual} from 'lodash';
 import SentryTypes from 'app/sentryTypes';
@@ -23,7 +22,7 @@ const CHART_AXIS_OPTIONS = [
   {label: 'Users', value: 'user_count'},
 ];
 
-class Events extends AsyncComponent {
+export default class Events extends AsyncComponent {
   static propTypes = {
     router: PropTypes.object.isRequired,
     location: PropTypes.object.isRequired,
@@ -132,5 +131,3 @@ const Container = styled('div')`
 const StyledSearchBar = styled(SearchBar)`
   margin-bottom: ${space(2)};
 `;
-
-export default withRouter(Events);

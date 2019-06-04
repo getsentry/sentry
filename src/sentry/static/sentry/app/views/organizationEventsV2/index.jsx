@@ -21,6 +21,7 @@ export default class OrganizationEventsV2 extends React.Component {
   static propTypes = {
     organization: SentryTypes.Organization.isRequired,
     location: PropTypes.object.isRequired,
+    router: PropTypes.object.isRequired,
   };
 
   renderTabs() {
@@ -46,7 +47,7 @@ export default class OrganizationEventsV2 extends React.Component {
   }
 
   render() {
-    const {organization, location} = this.props;
+    const {organization, location, router} = this.props;
     const {eventSlug} = location.query;
 
     return (
@@ -64,6 +65,8 @@ export default class OrganizationEventsV2 extends React.Component {
               <Events
                 organization={organization}
                 view={getCurrentView(location.query.view)}
+                location={location}
+                router={router}
               />
             </NoProjectMessage>
             {eventSlug && (
