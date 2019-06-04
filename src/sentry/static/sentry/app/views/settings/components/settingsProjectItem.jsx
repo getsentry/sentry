@@ -29,8 +29,6 @@ const ProjectItem = createReactClass({
   render() {
     const {project, organization} = this.props;
 
-    const hasNewRoutes = new Set(organization.features).has('sentry10');
-
     return (
       <Container key={project.id}>
         <BookmarkLink
@@ -39,13 +37,7 @@ const ProjectItem = createReactClass({
           isBookmarked={this.state.isBookmarked}
           onToggle={this.handleToggleBookmark}
         />
-        <Link
-          to={
-            hasNewRoutes
-              ? `/settings/${organization.slug}/projects/${project.slug}/`
-              : `/${organization.slug}/${project.slug}/`
-          }
-        >
+        <Link to={`/settings/${organization.slug}/projects/${project.slug}/`}>
           <ProjectLabel project={project} />
         </Link>
       </Container>

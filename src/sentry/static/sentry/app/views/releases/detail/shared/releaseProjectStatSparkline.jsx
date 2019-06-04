@@ -1,8 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import {Link} from 'react-router';
 
-import SentryTypes from 'app/sentryTypes';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import LoadingError from 'app/components/loadingError';
 import {t, tn} from 'app/locale';
@@ -12,7 +10,6 @@ import withApi from 'app/utils/withApi';
 class ReleaseProjectStatSparkline extends React.Component {
   static propTypes = {
     api: PropTypes.object.isRequired,
-    organization: SentryTypes.Organization,
     orgId: PropTypes.string,
     project: PropTypes.object,
     version: PropTypes.string,
@@ -109,8 +106,6 @@ class ReleaseProjectStatSparkline extends React.Component {
   }
 
   render() {
-    const {organization, orgId, project, version} = this.props;
-
     if (this.state.loading) {
       return <LoadingIndicator />;
     }
@@ -121,8 +116,6 @@ class ReleaseProjectStatSparkline extends React.Component {
     const {Sparklines, SparklinesLine, stats} = this.state;
     const values = stats.map(tuple => tuple[1]);
 
-    const hasSentry10 = new Set(organization.features).has('sentry10');
-
     return (
       <li>
         <div className="sparkline pull-right" style={{width: 96}}>
@@ -130,13 +123,7 @@ class ReleaseProjectStatSparkline extends React.Component {
             <SparklinesLine style={{stroke: '#8f85d4', fill: 'none', strokeWidth: 3}} />
           </Sparklines>
         </div>
-        {hasSentry10 ? (
-          <div>{this.renderProjectSummary()}</div>
-        ) : (
-          <Link to={`/${orgId}/${project.slug}/releases/${encodeURIComponent(version)}/`}>
-            {this.renderProjectSummary()}
-          </Link>
-        )}
+        <div>{this.renderProjectSummary()}</div>
       </li>
     );
   }

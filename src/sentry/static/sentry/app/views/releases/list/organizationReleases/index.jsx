@@ -7,9 +7,7 @@ import SearchBar from 'app/components/searchBar';
 import {Panel, PanelBody} from 'app/components/panels';
 import Pagination from 'app/components/pagination';
 import LoadingIndicator from 'app/components/loadingIndicator';
-import Alert from 'app/components/alert';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
-import Feature from 'app/components/acl/feature';
 import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
 import NoProjectMessage from 'app/components/noProjectMessage';
 import AsyncView from 'app/views/asyncView';
@@ -30,25 +28,13 @@ class OrganizationReleasesContainer extends React.Component {
     selection: SentryTypes.GlobalSelection.isRequired,
   };
 
-  renderNoAccess() {
-    return (
-      <PageContent>
-        <Alert type="warning">{t("You don't have access to this feature")}</Alert>
-      </PageContent>
-    );
-  }
-
   render() {
     const {organization} = this.props;
     return (
-      <Feature
-        features={['organizations:sentry10']}
-        organization={organization}
-        renderDisabled={this.renderNoAccess}
-      >
+      <React.Fragment>
         <GlobalSelectionHeader organization={organization} />
         <OrganizationReleases {...this.props} />
-      </Feature>
+      </React.Fragment>
     );
   }
 }

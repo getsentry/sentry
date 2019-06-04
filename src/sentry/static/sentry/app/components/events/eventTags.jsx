@@ -16,8 +16,6 @@ import InlineSvg from 'app/components/inlineSvg';
 
 class EventTags extends React.Component {
   static propTypes = {
-    // organization is not provided in the shared issue view
-    organization: SentryTypes.Organization,
     group: SentryTypes.Group.isRequired,
     event: SentryTypes.Event.isRequired,
     orgId: PropTypes.string.isRequired,
@@ -31,19 +29,11 @@ class EventTags extends React.Component {
       return null;
     }
 
-    const {event, group, organization, orgId, projectId} = this.props;
+    const {event, group, orgId, projectId} = this.props;
 
-    // Just use the sentry 10 paths if we are in a shared view since we
-    // don't have the organization object to check the feature list
-    const hasSentry10 = !organization || new Set(organization.features).has('sentry10');
+    const streamPath = `/organizations/${orgId}/issues/`;
 
-    const streamPath = hasSentry10
-      ? `/organizations/${orgId}/issues/`
-      : `/${orgId}/${projectId}/`;
-
-    const releasesPath = hasSentry10
-      ? `/organizations/${orgId}/releases/`
-      : `/${orgId}/${projectId}/releases/`;
+    const releasesPath = `/organizations/${orgId}/releases/`;
 
     return (
       <EventDataSection
@@ -62,7 +52,7 @@ class EventTags extends React.Component {
                     pathname: streamPath,
                     query: {
                       query: `${tag.key}:"${tag.value}"`,
-                      ...(hasSentry10 && {project: group.project.id}),
+                      project: group.project.id,
                     },
                   }}
                 >
@@ -84,7 +74,7 @@ class EventTags extends React.Component {
                       to={{
                         pathname: `${releasesPath}${tag.value}/`,
                         query: {
-                          ...(hasSentry10 && {project: group.project.id}),
+                          project: group.project.id,
                         },
                       }}
                     >

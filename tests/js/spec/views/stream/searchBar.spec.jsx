@@ -18,7 +18,9 @@ describe('SearchBar', function() {
     TagStore.onLoadTagsSuccess(TestStubs.Tags());
     supportedTags = TagStore.getAllTags();
 
-    options = TestStubs.routerContext([{organization: {id: '123', features: []}}]);
+    options = TestStubs.routerContext([
+      {organization: {id: '123', access: [], features: []}},
+    ]);
 
     tagValuePromise = Promise.resolve([]);
 
@@ -150,32 +152,13 @@ describe('SearchBar', function() {
         })
       );
     });
-    it('does not query for recent searches if `displayRecentSearches` is `false`', async function() {
+
+    it('queries for recent searches', async function() {
       const props = {
         orgId: 'org-slug',
         query: 'timesSeen:',
         tagValueLoader: () => {},
-        recentSearchType: 0,
-        displayRecentSearches: false,
-        supportedTags,
-      };
-      jest.useRealTimers();
-      const wrapper = mount(<SearchBar {...props} />, options);
-
-      wrapper.find('input').simulate('change', {target: {value: 'is:'}});
-
-      await tick();
-      wrapper.update();
-
-      expect(recentSearchMock).not.toHaveBeenCalled();
-    });
-
-    it('queries for recent searches if `displayRecentSearches` is `true`', async function() {
-      const props = {
-        orgId: 'org-slug',
-        query: 'timesSeen:',
-        tagValueLoader: () => {},
-        recentSearchType: 0,
+        savedSearchType: 0,
         displayRecentSearches: true,
         supportedTags,
       };
@@ -203,7 +186,7 @@ describe('SearchBar', function() {
         orgId: 'org-slug',
         query: 'timesSeen:',
         tagValueLoader: () => {},
-        recentSearchType: 0,
+        savedSearchType: 0,
         displayRecentSearches: true,
         supportedTags,
       };
@@ -238,7 +221,7 @@ describe('SearchBar', function() {
     let pinSearch;
     let unpinSearch;
     const {organization, routerContext} = initializeOrg({
-      organization: {features: ['sentry10']},
+      organization: {access: [], features: []},
     });
 
     beforeEach(function() {
@@ -260,7 +243,7 @@ describe('SearchBar', function() {
       });
     });
 
-    it('does not have pin icon without sentry10 featureflag', function() {
+    it('has pin icon', function() {
       const props = {
         orgId: organization.slug,
         query: 'url:"fu"',
@@ -271,13 +254,6 @@ describe('SearchBar', function() {
       };
       const searchBar = mount(<SearchBar {...props} />, routerContext);
       expect(searchBar.find('PinIcon')).toHaveLength(1);
-
-      searchBar.setProps({
-        organization: TestStubs.Organization({features: []}),
-      });
-
-      searchBar.update();
-      expect(searchBar.find('PinIcon')).toHaveLength(0);
     });
 
     it('pins a search from the searchbar', function() {

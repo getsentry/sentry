@@ -15,7 +15,7 @@ Array [
         <Link
           onlyActiveOnIndex={false}
           style={Object {}}
-          to="/orgId/project-slug/issues/1/events/1/"
+          to="/organizations/orgId/issues/1/events/1/"
         >
           <a
             onClick={[Function]}
@@ -45,7 +45,7 @@ Array [
         <Link
           onlyActiveOnIndex={false}
           style={Object {}}
-          to="/orgId/project-slug/issues/1/events/98654/"
+          to="/organizations/orgId/issues/1/events/98654/"
         >
           <a
             onClick={[Function]}

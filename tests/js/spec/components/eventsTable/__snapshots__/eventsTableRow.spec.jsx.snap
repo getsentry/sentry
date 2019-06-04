@@ -9,7 +9,7 @@ exports[`EventsTableRow renders 1`] = `
       <Link
         onlyActiveOnIndex={false}
         style={Object {}}
-        to="/orgId/projectId/issues/groupId/events/904/"
+        to="/organizations/orgId/issues/groupId/events/904/"
       >
         <DateTime
           date="2017-07-26T00:34:20Z"

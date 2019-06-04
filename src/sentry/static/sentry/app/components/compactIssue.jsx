@@ -11,7 +11,6 @@ import SnoozeAction from 'app/components/issues/snoozeAction';
 import GroupChart from 'app/components/stream/groupChart';
 import GroupStore from 'app/stores/groupStore';
 import Link from 'app/components/links/link';
-import ProjectLink from 'app/components/projectLink';
 import {t} from 'app/locale';
 import {PanelItem} from 'app/components/panels';
 import SentryTypes from 'app/sentryTypes';
@@ -68,13 +67,9 @@ class CompactIssueHeader extends React.Component {
   render() {
     const {data, organization, projectId, eventId} = this.props;
 
-    const hasNewRoutes = new Set(organization.features).has('sentry10');
-
     let styles = {};
 
-    const basePath = hasNewRoutes
-      ? `/organizations/${organization.slug}/issues/`
-      : `/${organization.slug}/${projectId}/issues/`;
+    const basePath = `/organizations/${organization.slug}/issues/`;
 
     const issueLink = eventId
       ? `/organizations/${organization.slug}/projects/${projectId}/events/${eventId}/`
@@ -100,13 +95,7 @@ class CompactIssueHeader extends React.Component {
         </Flex>
         <div className="event-extra">
           <span className="project-name">
-            {hasNewRoutes ? (
-              <strong>{data.project.slug}</strong>
-            ) : (
-              <ProjectLink to={`/${organization.slug}/${projectId}/`}>
-                {data.project.slug}
-              </ProjectLink>
-            )}
+            <strong>{data.project.slug}</strong>
           </span>
           {data.numComments !== 0 && (
             <span>
