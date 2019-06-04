@@ -4,8 +4,10 @@ import json
 import mock
 import responses
 import six
+import pytest
 
 from django.core.urlresolvers import reverse
+from django.utils import timezone
 from exam import fixture
 from mock import Mock
 
@@ -595,6 +597,68 @@ class JiraIntegrationTest(APITestCase):
                 'label': 'Labels',
                 'default': label_default,
             }
+
+    @responses.activate
+    def test_get_create_issue_config__no_projects(self):
+        org = self.organization
+        self.login_as(self.user)
+
+        event = self.store_event(
+            data={
+                'message': 'oh no',
+                'timestamp': timezone.now().isoformat()
+            },
+            project_id=self.project.id
+        )
+
+        installation = self.integration.get_installation(org.id)
+
+        # Simulate no projects available.
+        responses.add(
+            responses.GET,
+            'https://example.atlassian.net/rest/api/2/project',
+            content_type='json',
+            match_querystring=False,
+            body='{}'
+        )
+        with pytest.raises(IntegrationError):
+            installation.get_create_issue_config(event.group)
+
+    @responses.activate
+    def test_get_create_issue_config__no_issue_config(self):
+        org = self.organization
+        self.login_as(self.user)
+
+        event = self.store_event(
+            data={
+                'message': 'oh no',
+                'timestamp': timezone.now().isoformat()
+            },
+            project_id=self.project.id
+        )
+
+        installation = self.integration.get_installation(org.id)
+
+        responses.add(
+            responses.GET,
+            'https://example.atlassian.net/rest/api/2/project',
+            content_type='json',
+            match_querystring=False,
+            body="""[
+                {"id": "10000", "key": "SAMP"}
+            ]"""
+        )
+        # Fail to return metadata
+        responses.add(
+            responses.GET,
+            'https://example.atlassian.net/rest/api/2/issue/createmeta',
+            content_type='json',
+            match_querystring=False,
+            status=401,
+            body='',
+        )
+        with pytest.raises(IntegrationError):
+            installation.get_create_issue_config(event.group)
 
     def test_get_link_issue_config(self):
         org = self.organization
