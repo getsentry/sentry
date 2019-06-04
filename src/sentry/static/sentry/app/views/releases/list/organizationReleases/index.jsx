@@ -92,7 +92,13 @@ class OrganizationReleases extends AsyncView {
       organization: {projects},
       selection,
     } = this.props;
-    const projectIds = new Set(selection.projects);
+
+    const projectIds = new Set(
+      selection.projects.length > 0
+        ? selection.projects
+        : projects.filter(p => p.isMember).map(p => parseInt(p.id, 10))
+    );
+
     const activeProjects = projects.filter(project =>
       projectIds.has(parseInt(project.id, 10))
     );
