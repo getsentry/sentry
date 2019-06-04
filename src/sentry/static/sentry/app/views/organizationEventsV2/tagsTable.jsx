@@ -6,7 +6,7 @@ import {withRouter} from 'react-router';
 import Link from 'app/components/links/link';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
-import {eventTagSearchUrl} from './utils';
+import {getEventTagSearchUrl} from './utils';
 
 const TagsTable = props => {
   return (
@@ -18,7 +18,9 @@ const TagsTable = props => {
             <StyledTr key={tag.key}>
               <TagKey>{tag.key}</TagKey>
               <TagValue>
-                <Link to={eventTagSearchUrl(tag, props.location)}>{tag.value}</Link>
+                <Link to={getEventTagSearchUrl(tag.key, tag.value, props.location)}>
+                  {tag.value}
+                </Link>
               </TagValue>
             </StyledTr>
           ))}
