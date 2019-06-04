@@ -1,5 +1,4 @@
 import React from 'react';
-import PropTypes from 'prop-types';
 import {Link} from 'react-router';
 import {isEqual} from 'lodash';
 
@@ -18,7 +17,6 @@ class GroupUserFeedback extends React.Component {
   static propTypes = {
     organization: SentryTypes.Organization.isRequired,
     group: SentryTypes.Group.isRequired,
-    query: PropTypes.object.isRequired,
   };
 
   constructor(props) {
@@ -36,7 +34,7 @@ class GroupUserFeedback extends React.Component {
   }
 
   componentDidUpdate(prevProps) {
-    if (!isEqual(prevProps.query, this.props.query)) {
+    if (!isEqual(prevProps.params, this.props.params)) {
       this.fetchData();
     }
   }
@@ -47,7 +45,7 @@ class GroupUserFeedback extends React.Component {
       error: false,
     });
 
-    fetchGroupUserReports(this.props.group.id, this.props.query)
+    fetchGroupUserReports(this.props.group.id, this.props.params)
       .then(([data, _, jqXHR]) => {
         this.setState({
           error: false,
@@ -101,7 +99,7 @@ class GroupUserFeedback extends React.Component {
       );
     }
 
-    const emptyStateMessage = isEqual(this.props.query, {})
+    const emptyStateMessage = isEqual(this.props.params, {})
       ? t('No user reports match your selected filters.')
       : t('No user reports have been collected.');
 

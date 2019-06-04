@@ -20,7 +20,6 @@ class GroupTags extends React.Component {
     organization: SentryTypes.Organization.isRequired,
     group: SentryTypes.Group.isRequired,
     api: PropTypes.object.isRequired,
-    query: PropTypes.object.isRequired,
     params: PropTypes.object.isRequired,
   };
 
@@ -37,21 +36,14 @@ class GroupTags extends React.Component {
     this.fetchData();
   }
 
-  componentDidUpdate(prevProps) {
-    if (prevProps.query !== this.props.query) {
-      this.fetchData();
-    }
-  }
-
   fetchData = () => {
-    const {api, query, group} = this.props;
+    const {api, group} = this.props;
     this.setState({
       loading: true,
       error: false,
     });
 
     api.request('/issues/' + group.id + '/tags/', {
-      query,
       success: data => {
         this.setState({
           tagList: data,

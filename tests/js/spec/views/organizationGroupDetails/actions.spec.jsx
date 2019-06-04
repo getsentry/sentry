@@ -1,7 +1,7 @@
 import React from 'react';
 import {shallow} from 'enzyme';
 
-import GroupActions from 'app/views/groupDetails/shared/actions';
+import GroupActions from 'app/views/organizationGroupDetails/actions';
 import ConfigStore from 'app/stores/configStore';
 
 describe('GroupActions', function() {

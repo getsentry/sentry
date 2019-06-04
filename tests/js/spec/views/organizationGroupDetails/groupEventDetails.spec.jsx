@@ -3,7 +3,7 @@ import {mount} from 'enzyme';
 import {browserHistory} from 'react-router';
 
 import {initializeOrg} from 'app-test/helpers/initializeOrg';
-import GroupEventDetails from 'app/views/groupDetails/shared/groupEventDetails';
+import GroupEventDetails from 'app/views/organizationGroupDetails/groupEventDetails';
 
 describe('groupEventDetails', () => {
   let org;
