@@ -10,6 +10,7 @@ from itertools import izip
 from parsimonious.grammar import Grammar, NodeVisitor
 from parsimonious.exceptions import ParseError
 
+from sentry import projectoptions
 from sentry.stacktraces.platform import get_behavior_family_for_platform
 from sentry.grouping.utils import get_rule_bool
 from sentry.utils.compat import implements_to_string
@@ -337,6 +338,8 @@ class Enhancements(object):
             'id': self.id,
             'changelog': self.changelog,
             'bases': self.bases,
+            'latest': projectoptions.lookup_well_known_key('sentry:grouping_enhancements_base')
+            .get_default(epoch=projectoptions.LATEST_EPOCH) == self.id,
         }
         if with_rules:
             rv['rules'] = [x.as_dict() for x in self.rules]

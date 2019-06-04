@@ -74,11 +74,13 @@ class Migration(SchemaMigration):
             keep_default=False
         )
 
-        # Adding unique constraint on 'Repository', fields ['organization_id', 'provider', 'external_id']
+        # Adding unique constraint on 'Repository', fields ['organization_id',
+        # 'provider', 'external_id']
         db.create_unique('sentry_repository', ['organization_id', 'provider', 'external_id'])
 
     def backwards(self, orm):
-        # Removing unique constraint on 'Repository', fields ['organization_id', 'provider', 'external_id']
+        # Removing unique constraint on 'Repository', fields ['organization_id',
+        # 'provider', 'external_id']
         db.delete_unique('sentry_repository', ['organization_id', 'provider', 'external_id'])
 
         # Removing unique constraint on 'CommitFileChange', fields ['commit', 'filename']

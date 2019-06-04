@@ -3,6 +3,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import Reflux from 'reflux';
 import createReactClass from 'create-react-class';
+import marked from 'marked';
 
 import {Panel, PanelAlert, PanelHeader} from 'app/components/panels';
 import {
@@ -10,6 +11,7 @@ import {
   removeProject,
   transferProject,
 } from 'app/actionCreators/projects';
+import {addLoadingMessage, clearIndicators} from 'app/actionCreators/indicator';
 import {fields} from 'app/data/forms/projectGeneralSettings';
 import {t, tct} from 'app/locale';
 import AsyncView from 'app/views/asyncView';
@@ -51,7 +53,7 @@ class ProjectGeneralSettings extends AsyncView {
     const endpoints = [['data', `/projects/${orgId}/${projectId}/`]];
     const {organization} = this.context;
     const features = new Set(organization.features);
-    if (features.has('set-grouping-config')) {
+    if (features.has('set-grouping-config') || features.has('tweak-grouping-config')) {
       endpoints.push(['groupingConfigs', '/grouping-configs/']);
       endpoints.push(['groupingEnhancementBases', '/grouping-enhancements/']);
     }
@@ -90,6 +92,96 @@ class ProjectGeneralSettings extends AsyncView {
       window.location.assign('/');
     }, handleXhrErrorResponse('Unable to transfer project'));
   };
+
+  renderUpgradeGrouping() {
+    const {orgId, projectId} = this.props.params;
+
+    if (!this.state.groupingConfigs || !this.state.groupingEnhancementBases) {
+      return null;
+    }
+
+    let updateNotes = '';
+    const newData = {};
+
+    this.state.groupingConfigs.forEach(({id, latest, changelog}) => {
+      if (latest && this.state.data.groupingConfig !== id) {
+        updateNotes += changelog + '\n\n';
+        newData.groupingConfig = id;
+      }
+    });
+
+    this.state.groupingEnhancementBases.forEach(({id, latest, changelog}) => {
+      if (latest && this.state.data.groupingEnhancementsBase !== id) {
+        updateNotes += changelog + '\n\n';
+        newData.groupingEnhancementsBase = id;
+      }
+    });
+
+    if (Object.keys(newData).length === 0) {
+      return null;
+    }
+
+    return (
+      <Field
+        label={t('Upgrade Grouping Strategy')}
+        help={tct(
+          'This project uses an old grouping strategy and an update is possible.[linebreak]Doing so will cause new events to group differently.',
+          {
+            linebreak: <br />,
+          }
+        )}
+      >
+        <Confirm
+          onConfirm={() => {
+            addLoadingMessage(t('Changing grouping...'));
+            this.api
+              .requestPromise(`/projects/${orgId}/${projectId}/`, {
+                method: 'PUT',
+                data: newData,
+              })
+              .then(resp => {
+                clearIndicators();
+                ProjectActions.updateSuccess(resp);
+                this.fetchData();
+              }, handleXhrErrorResponse('Unable to upgrade config'));
+          }}
+          priority="danger"
+          title={t('Upgrade grouping strategy?')}
+          confirmText={t('Upgrade')}
+          message={
+            <div>
+              <TextBlock>
+                <strong>
+                  {t(
+                    'This will upgrade grouping and cause new events to group differently.'
+                  )}
+                </strong>
+              </TextBlock>
+              <TextBlock>
+                {t(
+                  'From this moment onwards new events are likely to generate new groups.'
+                )}
+                <br />
+                <br />
+                <strong>{t('New Behavior')}</strong>
+                <div dangerouslySetInnerHTML={{__html: marked(updateNotes)}} />
+              </TextBlock>
+            </div>
+          }
+        >
+          <div>
+            <Button
+              className="ref-upgrade-grouping-strategy"
+              type="button"
+              priority="primary"
+            >
+              {t('Update Grouping Strategy')}
+            </Button>
+          </div>
+        </Confirm>
+      </Field>
+    );
+  }
 
   isProjectAdmin = () => {
     return new Set(this.context.organization.access).has('project:admin');
@@ -257,6 +349,10 @@ class ProjectGeneralSettings extends AsyncView {
           apiMethod="PUT"
           apiEndpoint={endpoint}
           onSubmitSuccess={resp => {
+            // this is necessary for the grouping upgrade button to be
+            // updating based on the current selection of the grouping
+            // config.
+            this.setState({data: resp});
             if (projectId !== resp.slug) {
               changeProjectSlug(projectId, resp.slug);
               // Container will redirect after stores get updated with new slug
@@ -284,7 +380,8 @@ class ProjectGeneralSettings extends AsyncView {
             fields={[fields.resolveAge]}
           />
 
-          {jsonFormProps.features.has('set-grouping-config') && (
+          {(jsonFormProps.features.has('set-grouping-config') ||
+            jsonFormProps.features.has('tweak-grouping-config')) && (
             <JsonForm
               {...jsonFormProps}
               title={t('Grouping Settings')}
@@ -295,13 +392,17 @@ class ProjectGeneralSettings extends AsyncView {
                 fields.fingerprintingRules,
               ]}
               renderHeader={() => (
-                <PanelAlert type="warning">
-                  <TextBlock noMargin>
-                    {t(
-                      'This is an experimental feature. Changing the value here will only apply to future events and is likely to cause events to create different groups than before.'
-                    )}
-                  </TextBlock>
-                </PanelAlert>
+                <>
+                  <PanelAlert type="warning">
+                    <TextBlock noMargin>
+                      {t(
+                        'This is an experimental feature. Changing the value here will only apply to future events and is likely to cause events to create different groups than before.'
+                      )}
+                    </TextBlock>
+                  </PanelAlert>
+                  {jsonFormProps.features.has('tweak-grouping-config') &&
+                    this.renderUpgradeGrouping()}
+                </>
               )}
             />
           )}

@@ -2,6 +2,7 @@ from __future__ import absolute_import
 
 import inspect
 
+from sentry import projectoptions
 from sentry.grouping.component import GroupingComponent
 from sentry.grouping.enhancer import Enhancements
 
@@ -202,6 +203,8 @@ class StrategyConfiguration(object):
             'strategies': sorted(self.strategies),
             'changelog': self.changelog,
             'delegates': sorted(x.id for x in self.delegates.values()),
+            'latest': projectoptions.lookup_well_known_key('sentry:grouping_config')
+            .get_default(epoch=projectoptions.LATEST_EPOCH) == self.id,
         }
 
 

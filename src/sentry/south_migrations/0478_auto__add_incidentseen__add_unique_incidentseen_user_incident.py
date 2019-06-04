@@ -15,8 +15,10 @@ class Migration(SchemaMigration):
         # Adding model 'IncidentSeen'
         db.create_table('sentry_incidentseen', (
             ('id', self.gf('sentry.db.models.fields.bounded.BoundedBigAutoField')(primary_key=True)),
-            ('incident', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(to=orm['sentry.Incident'])),
-            ('user', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(to=orm['sentry.User'], db_index=False)),
+            ('incident', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(
+                to=orm['sentry.Incident'])),
+            ('user', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(
+                to=orm['sentry.User'], db_index=False)),
             ('last_seen', self.gf('django.db.models.fields.DateTimeField')(default=datetime.datetime.now)),
         ))
         db.send_create_signal('sentry', ['IncidentSeen'])
@@ -24,14 +26,12 @@ class Migration(SchemaMigration):
         # Adding unique constraint on 'IncidentSeen', fields ['user', 'incident']
         db.create_unique('sentry_incidentseen', ['user_id', 'incident_id'])
 
-
     def backwards(self, orm):
         # Removing unique constraint on 'IncidentSeen', fields ['user', 'incident']
         db.delete_unique('sentry_incidentseen', ['user_id', 'incident_id'])
 
         # Deleting model 'IncidentSeen'
         db.delete_table('sentry_incidentseen')
-
 
     models = {
         'sentry.activity': {

@@ -139,6 +139,7 @@ export const fields = {
       return groupingConfigs.map(({id}) => [id.toString(), <code key={id}>{id}</code>]);
     },
     help: t('Sets the grouping algorithm to be used for new events.'),
+    visible: ({features}) => features.has('set-grouping-config'),
   },
   groupingEnhancementsBase: {
     name: 'groupingEnhancementsBase',
@@ -170,6 +171,7 @@ export const fields = {
       ]);
     },
     help: t('The built-in base version of grouping enhancements.'),
+    visible: ({features}) => features.has('set-grouping-config'),
   },
   groupingEnhancements: {
     name: 'groupingEnhancements',
@@ -207,6 +209,8 @@ export const fields = {
     validate: ({id, form}) => {
       return [];
     },
+    visible: ({features}) =>
+      features.has('set-grouping-config') || features.has('tweak-grouping-config'),
   },
   fingerprintingRules: {
     name: 'fingerprintingRules',
@@ -243,6 +247,8 @@ export const fields = {
         </pre>
       </React.Fragment>
     ),
+    visible: ({features}) =>
+      features.has('set-grouping-config') || features.has('tweak-grouping-config'),
   },
 
   dataScrubber: {
