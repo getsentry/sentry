@@ -32,18 +32,23 @@ from sentry import features, quotas, options
 from sentry.attachments import CachedAttachment
 from sentry.coreapi import (
     Auth, APIError, APIForbidden, APIRateLimited, ClientApiHelper, ClientAuthHelper,
-    SecurityAuthHelper, MinidumpAuthHelper, safely_load_json_string, logger as api_logger
+    SecurityAuthHelper, MinidumpAuthHelper, safely_load_json_string, logger as api_logger,
 )
 from sentry.event_manager import EventManager
 from sentry.interfaces import schemas
 from sentry.interfaces.base import get_interface
-from sentry.lang.native.unreal import process_unreal_crash, merge_apple_crash_report, \
-    unreal_attachment_type, merge_unreal_context_event, merge_unreal_logs_event
-from sentry.lang.native.minidump import merge_attached_event, merge_attached_breadcrumbs, write_minidump_placeholder, \
-    MINIDUMP_ATTACHMENT_TYPE
+from sentry.lang.native.unreal import (
+    process_unreal_crash, merge_apple_crash_report,
+    unreal_attachment_type, merge_unreal_context_event, merge_unreal_logs_event,
+)
+from sentry.lang.native.minidump import (
+    merge_attached_event, merge_attached_breadcrumbs, write_minidump_placeholder,
+    MINIDUMP_ATTACHMENT_TYPE,
+)
 from sentry.models import Project, OrganizationOption, Organization, File, EventAttachment, Event
 from sentry.signals import (
-    event_accepted, event_dropped, event_filtered, event_received)
+    event_accepted, event_dropped, event_filtered, event_received,
+)
 from sentry.quotas.base import RateLimit
 from sentry.utils import json, metrics
 from sentry.utils.data_filters import FilterStatKeys
@@ -52,6 +57,7 @@ from sentry.utils.http import (
     is_valid_origin,
     get_origins,
     is_same_domain,
+    origin_from_request,
 )
 from sentry.utils.outcomes import Outcome, track_outcome
 from sentry.utils.pubsub import QueuedPublisherService, KafkaPublisher
@@ -75,6 +81,47 @@ kafka_publisher = QueuedPublisherService(
             None),
         asynchronous=False)
 ) if getattr(settings, 'KAFKA_RAW_EVENTS_PUBLISHER_ENABLED', False) else None
+
+
+def allow_cors_options(func):
+    """
+    Decorator that adds automatic handling of OPTIONS requests for CORS
+
+    If the request is OPTIONS (i.e. pre flight CORS) construct a NO Content (204) response
+    in which we explicitly enable the caller and add the custom headers that we support
+    :param func: the original request handler
+    :return: a request handler that shortcuts OPTIONS requests and just returns an OK (CORS allowed)
+    """
+
+    @wraps(func)
+    def allow_cors_options_wrapper(self, request, *args, **kwargs):
+
+        if request.method == 'OPTIONS':
+            response = HttpResponse(status=200)
+            response['Access-Control-Max-Age'] = '3600'  # don't ask for options again for 1 hour
+        else:
+            response = func(self, request, *args, **kwargs)
+
+        allow = ', '.join(self._allowed_methods())
+        response['Allow'] = allow
+        response['Access-Control-Allow-Methods'] = allow
+        response['Access-Control-Allow-Headers'] = 'X-Sentry-Auth, X-Requested-With, Origin, Accept, ' \
+            'Content-Type, Authentication'
+        response['Access-Control-Expose-Headers'] = 'X-Sentry-Error, Retry-After'
+
+        if request.META.get('HTTP_ORIGIN') == 'null':
+            origin = 'null'  # if ORIGIN header is explicitly specified as 'null' leave it alone
+        else:
+            origin = origin_from_request(request)
+
+        if origin is None or origin == 'null':
+            response['Access-Control-Allow-Origin'] = '*'
+        else:
+            response['Access-Control-Allow-Origin'] = origin
+
+        return response
+
+    return allow_cors_options_wrapper
 
 
 def api(func):
@@ -167,7 +214,7 @@ def process_event(event_manager, project, key, remote_addr, helper, attachments)
 
     # TODO(dcramer): ideally we'd only validate this if the event_id was
     # supplied by the user
-    cache_key = 'ev:%s:%s' % (project.id, event_id, )
+    cache_key = 'ev:%s:%s' % (project.id, event_id,)
 
     if cache.get(cache_key) is not None:
         track_outcome(
@@ -179,7 +226,7 @@ def process_event(event_manager, project, key, remote_addr, helper, attachments)
             event_id=event_id
         )
         raise APIForbidden(
-            'An event with the same ID already exists (%s)' % (event_id, ))
+            'An event with the same ID already exists (%s)' % (event_id,))
 
     scrub_ip_address = (org_options.get('sentry:require_scrub_ip_address', False) or
                         project.get_option('sentry:scrub_ip_address', False))
@@ -301,13 +348,13 @@ class APIView(BaseView):
 
     @csrf_exempt
     @never_cache
+    @allow_cors_options
     def dispatch(self, request, project_id=None, *args, **kwargs):
         helper = ClientApiHelper(
             agent=request.META.get('HTTP_USER_AGENT'),
             project_id=project_id,
             ip_address=request.META['REMOTE_ADDR'],
         )
-        origin = None
 
         if kafka_publisher is not None:
             self._publish_to_kafka(request)
@@ -349,7 +396,7 @@ class APIView(BaseView):
         # tsdb could optimize this
         metrics.incr('client-api.all-versions.requests', skip_internal=False)
         metrics.incr('client-api.all-versions.responses.%s' %
-                     (response.status_code, ), skip_internal=False)
+                     (response.status_code,), skip_internal=False)
         metrics.incr(
             'client-api.all-versions.responses.%sxx' % (six.text_type(response.status_code)[0],),
             skip_internal=False,
@@ -357,7 +404,7 @@ class APIView(BaseView):
 
         if helper.context.version:
             metrics.incr(
-                'client-api.v%s.requests' % (helper.context.version, ),
+                'client-api.v%s.requests' % (helper.context.version,),
                 skip_internal=False,
             )
             metrics.incr(
@@ -369,19 +416,6 @@ class APIView(BaseView):
                                                    six.text_type(response.status_code)[0]),
                 skip_internal=False,
             )
-
-        if response.status_code != 200 and origin:
-            # We allow all origins on errors
-            response['Access-Control-Allow-Origin'] = '*'
-
-        if origin:
-            response['Access-Control-Allow-Headers'] = \
-                'X-Sentry-Auth, X-Requested-With, Origin, Accept, ' \
-                'Content-Type, Authentication'
-            response['Access-Control-Allow-Methods'] = \
-                ', '.join(self._allowed_methods())
-            response['Access-Control-Expose-Headers'] = \
-                'X-Sentry-Error, Retry-After'
 
         return response
 
@@ -403,47 +437,31 @@ class APIView(BaseView):
                     None,
                     Outcome.INVALID,
                     FilterStatKeys.CORS)
-                raise APIForbidden('Invalid origin: %s' % (origin, ))
+                raise APIForbidden('Invalid origin: %s' % (origin,))
 
-        # XXX: It seems that the OPTIONS call does not always include custom headers
-        if request.method == 'OPTIONS':
-            response = self.options(request, project)
-        else:
-            auth = self._parse_header(request, helper, project)
+        auth = self._parse_header(request, helper, project)
 
-            key = helper.project_key_from_auth(auth)
+        key = helper.project_key_from_auth(auth)
 
-            # Legacy API was /api/store/ and the project ID was only available elsewhere
-            if not project:
-                project = Project.objects.get_from_cache(id=key.project_id)
-                helper.context.bind_project(project)
-            elif key.project_id != project.id:
-                raise APIError('Two different projects were specified')
+        # Legacy API was /api/store/ and the project ID was only available elsewhere
+        if not project:
+            project = Project.objects.get_from_cache(id=key.project_id)
+            helper.context.bind_project(project)
+        elif key.project_id != project.id:
+            raise APIError('Two different projects were specified')
 
-            helper.context.bind_auth(auth)
+        helper.context.bind_auth(auth)
 
-            # Explicitly bind Organization so we don't implicitly query it later
-            # this just allows us to comfortably assure that `project.organization` is safe.
-            # This also allows us to pull the object from cache, instead of being
-            # implicitly fetched from database.
-            project.organization = Organization.objects.get_from_cache(
-                id=project.organization_id)
+        # Explicitly bind Organization so we don't implicitly query it later
+        # this just allows us to comfortably assure that `project.organization` is safe.
+        # This also allows us to pull the object from cache, instead of being
+        # implicitly fetched from database.
+        project.organization = Organization.objects.get_from_cache(
+            id=project.organization_id)
 
-            response = super(APIView, self).dispatch(
-                request=request, project=project, auth=auth, helper=helper, key=key, **kwargs
-            )
-
-        if origin:
-            if origin == 'null':
-                # If an Origin is `null`, but we got this far, that means
-                # we've gotten past our CORS check for some reason. But the
-                # problem is that we can't return "null" as a valid response
-                # to `Access-Control-Allow-Origin` and we don't have another
-                # value to work with, so just allow '*' since they've gotten
-                # this far.
-                response['Access-Control-Allow-Origin'] = '*'
-            else:
-                response['Access-Control-Allow-Origin'] = origin
+        response = super(APIView, self).dispatch(
+            request=request, project=project, auth=auth, helper=helper, key=key, **kwargs
+        )
 
         return response
 
@@ -452,10 +470,15 @@ class APIView(BaseView):
         return [m.upper() for m in self.http_method_names if hasattr(self, m)]
 
     def options(self, request, *args, **kwargs):
-        response = HttpResponse()
-        response['Allow'] = ', '.join(self._allowed_methods())
-        response['Content-Length'] = '0'
-        return response
+        """
+        Serves requests for OPTIONS
+
+        NOTE: This function is not called since it is shortcut by the @allow_cors_options descriptor.
+            It is nevertheless used to construct the allowed http methods and it should not be removed.
+        """
+        raise NotImplementedError("Options request should have been handled by @allow_cors_options.\n"
+                                  "If dispatch was overridden either decorate it with @allow_cors_options or provide "
+                                  "a valid implementation for options.")
 
 
 class StoreView(APIView):
@@ -832,7 +855,7 @@ class MinidumpView(StoreView):
 
 # Endpoint used by the Unreal Engine 4 (UE4) Crash Reporter.
 class UnrealView(StoreView):
-    content_types = ('application/octet-stream', )
+    content_types = ('application/octet-stream',)
 
     def _dispatch(self, request, helper, sentry_key, project_id=None, origin=None, *args, **kwargs):
         if request.method != 'POST':
