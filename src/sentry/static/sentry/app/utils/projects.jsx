@@ -17,8 +17,9 @@ class Projects extends React.Component {
   state = {
     fetchedProjects: [],
     projectsFromStore: [],
+    initiallyLoaded: false,
     fetching: false,
-    isIncomplete: false,
+    isIncomplete: null,
   };
 
   componentDidMount() {
@@ -27,7 +28,6 @@ class Projects extends React.Component {
 
   componentDidUpdate() {}
 
-  loaded = false;
   fetchQueue = new Set();
 
   getDetails() {
@@ -39,7 +39,7 @@ class Projects extends React.Component {
     }
 
     const [inStore, notInStore] = partition(slugs, slug =>
-      [].find(project => project.slug === slug)
+      projects.find(project => project.slug === slug)
     );
 
     // Check `projects` (from store)
@@ -50,13 +50,17 @@ class Projects extends React.Component {
     notInStore.forEach(slug => this.fetchQueue.add(slug));
 
     this.setState({
-      // placeholders
+      // placeholders for projects we need to fetch
       fetchedProjects: notInStore.map(slug => ({slug})),
+      initiallyLoaded: true,
       projectsFromStore,
     });
 
+    if (!notInStore.length) {
+      return;
+    }
+
     this.fetchProjects();
-    this.loaded = true;
   }
 
   async fetchProjects() {
@@ -93,10 +97,10 @@ class Projects extends React.Component {
       resultMap.has(slug) ? resultMap.get(slug) : {slug}
     );
 
-    // Results is an array of promises that should
     this.setState({
       fetchedProjects: projectsOrPlaceholder,
-      isIncomplete: this.fetchQueue.size && this.fetchQueue.size !== results.length,
+      isIncomplete: this.fetchQueue.size !== results.length,
+      initiallyLoaded: true,
       fetching: false,
     });
 
@@ -105,12 +109,21 @@ class Projects extends React.Component {
 
   render() {
     const {slugs, children} = this.props;
+
     return children({
-      loaded: this.loaded,
-      projects: this.loaded
+      // May not need to expose this?
+      initiallyLoaded: this.state.initiallyLoaded,
+
+      // We want to make sure that at the minimum, we return a list of objects with only `slug`
+      // while we load actual project data
+      projects: this.state.initiallyLoaded
         ? [...this.state.fetchedProjects, ...this.state.projectsFromStore]
         : slugs.map(slug => ({slug})),
+
+      // This is set when we fail to find some slugs from both store and API
       isIncomplete: this.state.isIncomplete,
+
+      // This is state for when fetching data from API
       fetching: this.state.fetching,
     });
   }
