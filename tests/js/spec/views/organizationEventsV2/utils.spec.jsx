@@ -1,7 +1,7 @@
 import {
   getCurrentView,
   getQuery,
-  eventTagSearchUrl,
+  getEventTagSearchUrl,
 } from 'app/views/organizationEventsV2/utils';
 import {ALL_VIEWS} from 'app/views/organizationEventsV2/data';
 
@@ -52,7 +52,7 @@ describe('eventTagSearchUrl()', function() {
   });
 
   it('adds a query', function() {
-    expect(eventTagSearchUrl({key: 'browser', value: 'firefox'}, location)).toEqual({
+    expect(getEventTagSearchUrl('browser', 'firefox', location)).toEqual({
       pathname: location.pathname,
       query: {query: 'browser:"firefox"'},
     });
@@ -60,7 +60,7 @@ describe('eventTagSearchUrl()', function() {
 
   it('removes eventSlug', function() {
     location.query.eventSlug = 'project-slug:deadbeef';
-    expect(eventTagSearchUrl({key: 'browser', value: 'firefox'}, location)).toEqual({
+    expect(getEventTagSearchUrl('browser', 'firefox', location)).toEqual({
       pathname: location.pathname,
       query: {query: 'browser:"firefox"'},
     });
@@ -68,7 +68,7 @@ describe('eventTagSearchUrl()', function() {
 
   it('appends to an existing query', function() {
     location.query.query = 'failure';
-    expect(eventTagSearchUrl({key: 'browser', value: 'firefox'}, location)).toEqual({
+    expect(getEventTagSearchUrl('browser', 'firefox', location)).toEqual({
       pathname: location.pathname,
       query: {query: 'failure browser:"firefox"'},
     });
