@@ -2,11 +2,13 @@ from __future__ import absolute_import
 
 from copy import deepcopy
 from rest_framework.exceptions import PermissionDenied
+import six
 
 from sentry import features
 from sentry.api.bases import OrganizationEndpoint, OrganizationEventsError
 from sentry.api.event_search import get_snuba_query_args, InvalidSearchQuery
 from sentry.models.project import Project
+from sentry.utils import snuba
 
 # We support 4 "special fields" on the v2 events API which perform some
 # additional calculations over aggregated event data
@@ -108,3 +110,59 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
             raise OrganizationEventsError(
                 'Boolean search operator OR and AND not allowed in this search.')
         return snuba_args
+
+    def next_event_id(self, request, organization, snuba_args, event):
+        """
+        Returns the next event ID if there is a subsequent event matching the
+        conditions provided
+        """
+
+        conditions = snuba_args['conditions'][:]
+        conditions.extend([
+            ['timestamp', '>=', event.timestamp],
+            [['timestamp', '>', event.timestamp], ['event_id', '>', event.event_id]]
+        ])
+
+        result = snuba.raw_query(
+            start=max(event.datetime, snuba_args['start']),
+            end=snuba_args['end'],
+            selected_columns=['event_id'],
+            conditions=conditions,
+            filter_keys=snuba_args['filter_keys'],
+            orderby=['timestamp', 'event_id'],
+            limit=1,
+            referrer='api.organization-events.next_event_id',
+        )
+
+        if 'error' in result or len(result['data']) == 0:
+            return None
+
+        return six.text_type(result['data'][0]['event_id'])
+
+    def prev_event_id(self, request, organization, snuba_args, event):
+        """
+        Returns the previous event ID if there is a previous event matching the
+        conditions provided
+        """
+
+        conditions = snuba_args['conditions'][:]
+        conditions.extend([
+            ['timestamp', '<=', event.timestamp],
+            [['timestamp', '<', event.timestamp], ['event_id', '<', event.event_id]]
+        ])
+
+        result = snuba.raw_query(
+            start=snuba_args['start'],
+            end=min(event.datetime, snuba_args['end']),
+            selected_columns=['event_id'],
+            conditions=conditions,
+            filter_keys=snuba_args['filter_keys'],
+            orderby=['-timestamp', '-event_id'],
+            limit=1,
+            referrer='api.organization-events.prev_event_id',
+        )
+
+        if 'error' in result or len(result['data']) == 0:
+            return None
+
+        return six.text_type(result['data'][0]['event_id'])
