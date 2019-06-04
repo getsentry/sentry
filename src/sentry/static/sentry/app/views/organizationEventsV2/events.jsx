@@ -2,6 +2,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import {withRouter} from 'react-router';
 import styled from 'react-emotion';
+import {omit, isEqual} from 'lodash';
 import SentryTypes from 'app/sentryTypes';
 import space from 'app/styles/space';
 import SearchBar from 'app/views/organizationEvents/searchBar';
@@ -32,6 +33,18 @@ class Events extends AsyncComponent {
   state = {
     zoomed: false,
   };
+
+  componentDidUpdate(prevProps, prevContext) {
+    // Do not update if we are just opening/closing the modal
+    const locationHasChanged = !isEqual(
+      omit(prevProps.location.query, 'eventSlug'),
+      omit(this.props.location.query, 'eventSlug')
+    );
+
+    if (locationHasChanged) {
+      super.componentDidUpdate(prevProps, prevContext);
+    }
+  }
 
   getEndpoints() {
     const {location, organization, view} = this.props;
