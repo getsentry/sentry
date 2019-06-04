@@ -1,7 +1,7 @@
 import React from 'react';
 import {mount} from 'enzyme';
 
-import ReleaseDetails from 'app/views/releases/detail/project';
+import ReleaseDetails from 'app/views/organizationReleases/detail/';
 
 describe('ReleaseDetails', function() {
   let deleteMock;
@@ -9,7 +9,7 @@ describe('ReleaseDetails', function() {
   beforeEach(function() {
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
-      url: '/projects/acme/anvils/releases/9.1.1/',
+      url: '/organizations/acme/releases/9.1.1/',
       body: {
         version: '9.1.1',
         ref: 'some-tag',
