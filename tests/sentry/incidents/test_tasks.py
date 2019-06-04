@@ -80,13 +80,14 @@ class TestGenerateIncidentActivityEmail(BaseIncidentActivityTest, TestCase):
             comment='hello',
         )
         incident = activity.incident
-        message = generate_incident_activity_email(activity)
+        recipient = self.create_user()
+        message = generate_incident_activity_email(activity, recipient)
         assert message.subject == 'Activity on Incident {} (#{})'.format(
             incident.title,
             incident.identifier,
         )
         assert message.type == 'incident.activity'
-        assert message.context == build_activity_context(activity)
+        assert message.context == build_activity_context(activity, recipient)
 
 
 class TestBuildActivityContext(BaseIncidentActivityTest, TestCase):
@@ -96,9 +97,10 @@ class TestBuildActivityContext(BaseIncidentActivityTest, TestCase):
         expected_username,
         expected_action,
         expected_comment,
+        expected_recipient,
     ):
         incident = activity.incident
-        context = build_activity_context(activity)
+        context = build_activity_context(activity, expected_recipient)
         assert context['user_name'] == expected_username
         assert context['action'] == '%s on incident %s (#%s)' % (
             expected_action,
@@ -114,7 +116,7 @@ class TestBuildActivityContext(BaseIncidentActivityTest, TestCase):
         ))
         assert context['comment'] == expected_comment
         assert context['unsubscribe_link'] == generate_signed_link(
-            activity.user,
+            expected_recipient,
             'sentry-account-email-unsubscribe-incident',
             kwargs={'incident_id': incident.id},
         )
@@ -126,11 +128,13 @@ class TestBuildActivityContext(BaseIncidentActivityTest, TestCase):
             user=self.user,
             comment='hello',
         )
+        recepient = self.create_user()
         self.run_test(
             activity,
             expected_username=activity.user.name,
             expected_action='left a comment',
             expected_comment=activity.comment,
+            expected_recipient=recepient,
         )
         activity.type = IncidentActivityType.STATUS_CHANGE
         activity.value = six.text_type(IncidentStatus.CLOSED.value)
@@ -143,4 +147,5 @@ class TestBuildActivityContext(BaseIncidentActivityTest, TestCase):
                 IncidentStatus.CLOSED.name.lower(),
             ),
             expected_comment=activity.comment,
+            expected_recipient=recepient,
         )

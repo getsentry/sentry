@@ -44,32 +44,28 @@ def send_subscriber_notifications(activity_id):
     # Check that the user still has access to at least one of the projects
     # related to the incident. If not then unsubscribe them.
     projects = list(activity.incident.projects.all())
-    emails = []
     for subscriber in get_incident_subscribers(activity.incident).select_related('user'):
         user = subscriber.user
         access = from_user(user, activity.incident.organization)
         if not any(project for project in projects if access.has_project_access(project)):
             unsubscribe_from_incident(activity.incident, user)
         elif user != activity.user:
-            emails.append(user.email)
-
-    if emails:
-        msg = generate_incident_activity_email(activity)
-        msg.send_async(emails)
+            msg = generate_incident_activity_email(activity, user)
+            msg.send_async([user.email])
 
 
-def generate_incident_activity_email(activity):
+def generate_incident_activity_email(activity, user):
     incident = activity.incident
     return MessageBuilder(
         subject=u'Activity on Incident {} (#{})'.format(incident.title, incident.identifier),
         template=u'sentry/emails/incidents/activity.txt',
         html_template=u'sentry/emails/incidents/activity.html',
         type='incident.activity',
-        context=build_activity_context(activity),
+        context=build_activity_context(activity, user),
     )
 
 
-def build_activity_context(activity):
+def build_activity_context(activity, user):
     if activity.type == IncidentActivityType.COMMENT.value:
         action = 'left a comment'
     else:
@@ -93,7 +89,7 @@ def build_activity_context(activity):
         )),
         'comment': activity.comment,
         'unsubscribe_link': generate_signed_link(
-            activity.user,
+            user,
             'sentry-account-email-unsubscribe-incident',
             kwargs={'incident_id': incident.id},
         ),
