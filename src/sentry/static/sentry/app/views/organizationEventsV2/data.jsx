@@ -10,14 +10,14 @@ import ProjectBadge from 'app/components/idBadge/projectBadge';
 import UserBadge from 'app/components/idBadge/userBadge';
 import DateTime from 'app/components/dateTime';
 
-import {QueryLink} from './styles';
+import {QueryButton} from './styles';
 
 export const ALL_VIEWS = deepFreeze([
   {
     id: 'all',
     name: 'All Events',
     data: {
-      fields: ['event', 'event.type', 'project', 'user', 'time'],
+      fields: ['event', 'type', 'project', 'user', 'time'],
       sort: '-timestamp',
     },
     tags: [
@@ -33,7 +33,7 @@ export const ALL_VIEWS = deepFreeze([
     id: 'errors',
     name: 'Errors',
     data: {
-      fields: ['issue_title', 'event_count', 'user_count', 'project', 'last_seen'],
+      fields: ['error', 'event_count', 'user_count', 'project', 'last_seen'],
       groupby: ['issue.id', 'project.id'],
       sort: '-last_seen',
     },
@@ -43,7 +43,7 @@ export const ALL_VIEWS = deepFreeze([
     id: 'csp',
     name: 'CSP',
     data: {
-      fields: ['issue_title', 'event_count', 'user_count', 'project', 'last_seen'],
+      fields: ['csp', 'event_count', 'user_count', 'project', 'last_seen'],
       groupby: ['issue.id', 'project.id'],
       sort: '-last_seen',
     },
@@ -79,6 +79,14 @@ export const SPECIAL_FIELDS = {
       );
     },
   },
+  type: {
+    fields: ['event.type'],
+    renderFunc: (data, {onSearch}) => (
+      <QueryButton onClick={() => onSearch(`event.type:${data['event.type']}`)}>
+        {data['event.type']}
+      </QueryButton>
+    ),
+  },
   project: {
     fields: ['project.name'],
     renderFunc: (data, {organization}) => {
@@ -109,7 +117,9 @@ export const SPECIAL_FIELDS = {
         return <Container>{badge}</Container>;
       }
 
-      return <QueryLink onClick={() => onSearch(`user:${data.user}`)}>{badge}</QueryLink>;
+      return (
+        <QueryButton onClick={() => onSearch(`user:${data.user}`)}>{badge}</QueryButton>
+      );
     },
   },
   time: {
@@ -119,6 +129,14 @@ export const SPECIAL_FIELDS = {
         <DynamicWrapper value={<StyledDateTime date={data.timestamp} />} fixed="time" />
       </Container>
     ),
+  },
+  error: {
+    fields: ['issue_title'],
+    renderFunc: data => <Container>{data.issue_title}</Container>,
+  },
+  csp: {
+    fields: ['issue_title'],
+    renderFunc: data => <Container>{data.issue_title}</Container>,
   },
   event_count: {
     title: 'events',
@@ -131,6 +149,7 @@ export const SPECIAL_FIELDS = {
     renderFunc: data => <Container>{data.user_count}</Container>,
   },
   last_seen: {
+    title: 'last seen',
     fields: ['last_seen'],
     renderFunc: data => (
       <Container>
