@@ -442,12 +442,5 @@ class Organization(Model):
             ip_address=ip_address
         )
 
-    def get_url_viewname(self):
-        from sentry import features
-        if features.has('organizations:sentry10', self):
-            return 'sentry-organization-issue-list'
-        else:
-            return 'sentry-organization-home'
-
     def get_url(self):
-        return reverse(self.get_url_viewname(), args=[self.slug])
+        return reverse('sentry-organization-issue-list', args=[self.slug])

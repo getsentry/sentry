@@ -13,8 +13,6 @@ from sentry.utils.http import absolute_uri
 
 from .mail import MailPreview
 
-from sentry import features
-
 
 class DebugNewReleaseEmailView(View):
     def get(self, request):
@@ -56,27 +54,15 @@ class DebugNewReleaseEmailView(View):
             date_finished=datetime.datetime(2016, 10, 12, 15, 39, tzinfo=pytz.utc),
         )
 
-        has_new_links = features.has('organizations:sentry10', org)
-        if has_new_links:
-            release_links = [
-                absolute_uri(
-                    u'/organizations/{}/releases/{}/?project={}'.format(
-                        org.slug,
-                        release.version,
-                        p.id,
-                    )
-                ) for p in projects
-            ]
-        else:
-            release_links = [
-                absolute_uri(
-                    u'/{}/{}/releases/{}/'.format(
-                        org.slug,
-                        p.slug,
-                        release.version,
-                    )
-                ) for p in projects
-            ]
+        release_links = [
+            absolute_uri(
+                u'/organizations/{}/releases/{}/?project={}'.format(
+                    org.slug,
+                    release.version,
+                    p.id,
+                )
+            ) for p in projects
+        ]
 
         repos = [
             {

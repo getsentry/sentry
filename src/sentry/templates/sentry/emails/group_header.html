@@ -25,11 +25,7 @@
             <span class="count">Seen <strong>{{ group.times_seen }}</strong> time{{ group.times_seen|pluralize }}.</span>
             <span class="last-seen pretty-date"> Last seen: {{ group.last_seen }} UTC</span>
             in
-            {% feature organizations:sentry10 group.organization %}
             <a href="{% absolute_uri new_stream_link %}?project={{group.project.id}}"><strong>{{ group.project.organization.slug }} / {{ group.project.slug }}</strong></a>
-            {% else %}
-            <a href="{% absolute_uri old_project_link %}"><strong>{{ group.project.organization.slug }} / {{ group.project.slug }}</strong></a>
-            {% endfeature %}
           </small>
         </p>
       </td>
