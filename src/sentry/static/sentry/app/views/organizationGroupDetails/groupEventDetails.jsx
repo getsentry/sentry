@@ -178,6 +178,8 @@ class GroupEventDetails extends React.Component {
   }
 }
 
+export {GroupEventDetails};
+
 export default withApi(
   withOrganization(
     withGlobalSelection(props => {
