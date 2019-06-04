@@ -3,6 +3,7 @@ import React from 'react';
 import {isEqual, pickBy, keyBy, isObject} from 'lodash';
 import createReactClass from 'create-react-class';
 
+import ErrorBoundary from 'app/components/errorBoundary';
 import SentryTypes from 'app/sentryTypes';
 import withApi from 'app/utils/withApi';
 import SuggestedOwners from 'app/components/group/suggestedOwners';
@@ -246,13 +247,16 @@ const GroupSidebar = createReactClass({
           project={project}
           allEnvironments={this.state.allEnvironmentsGroupData}
         />
-        <ExternalIssueList
-          event={this.props.event}
-          group={this.props.group}
-          project={project}
-          orgId={organization.slug}
-          sentryAppInstallations={sentryAppInstallations}
-        />
+
+        <ErrorBoundary mini>
+          <ExternalIssueList
+            event={this.props.event}
+            group={this.props.group}
+            project={project}
+            orgId={organization.slug}
+            sentryAppInstallations={sentryAppInstallations}
+          />
+        </ErrorBoundary>
 
         {this.renderPluginIssue()}
 
