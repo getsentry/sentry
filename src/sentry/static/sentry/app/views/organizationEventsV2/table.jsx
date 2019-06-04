@@ -10,7 +10,7 @@ import {t} from 'app/locale';
 import space from 'app/styles/space';
 
 import {SPECIAL_FIELDS} from './data';
-import {QueryButton} from './styles';
+import {QueryLink} from './styles';
 
 export default class Table extends React.Component {
   static propTypes = {
@@ -45,9 +45,9 @@ export default class Table extends React.Component {
             {SPECIAL_FIELDS.hasOwnProperty(field) ? (
               SPECIAL_FIELDS[field].renderFunc(row, {organization, onSearch, location})
             ) : (
-              <QueryButton onClick={() => onSearch(`${field}:${row[field]}`)}>
+              <QueryLink onClick={() => onSearch(`${field}:${row[field]}`)}>
                 {row[field]}
-              </QueryButton>
+              </QueryLink>
             )}
           </Cell>
         ))}
