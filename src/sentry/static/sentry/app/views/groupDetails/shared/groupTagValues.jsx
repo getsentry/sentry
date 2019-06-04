@@ -22,7 +22,6 @@ const GroupTagValues = createReactClass({
 
   propTypes: {
     api: PropTypes.object,
-    organization: SentryTypes.Organization.isRequired,
     group: SentryTypes.Group.isRequired,
     query: PropTypes.object,
   },
@@ -101,9 +100,8 @@ const GroupTagValues = createReactClass({
     }
 
     const {
-      organization,
       group,
-      params: {orgId, projectId},
+      params: {orgId},
     } = this.props;
     const tagKey = this.state.tagKey;
 
@@ -112,9 +110,7 @@ const GroupTagValues = createReactClass({
       property('count')
     ).reverse();
 
-    const issuesPath = new Set(organization.features).has('sentry10')
-      ? `/organizations/${orgId}/issues/`
-      : `/${orgId}/${projectId}/`;
+    const issuesPath = `/organizations/${orgId}/issues/`;
 
     const children = sortedTagValueList.map((tagValue, tagValueIdx) => {
       const pct = percent(tagValue.count, tagKey.totalValues).toFixed(2);

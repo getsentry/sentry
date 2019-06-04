@@ -33,25 +33,14 @@ const GroupReleaseStats = createReactClass({
 
   getInitialState() {
     const envList = OrganizationEnvironmentsStore.getActive();
-
-    let environments = [];
-    if (this.hasSentry10()) {
-      environments = envList.filter(env =>
-        GlobalSelectionStore.get().environments.includes(env.name)
-      );
-    } else {
-      const latestContextEnv = LatestContextStore.getInitialState().environment;
-      environments = latestContextEnv ? [latestContextEnv] : [];
-    }
+    const environments = envList.filter(env =>
+      GlobalSelectionStore.get().environments.includes(env.name)
+    );
 
     return {
       envList,
       environments,
     };
-  },
-
-  hasSentry10() {
-    return this.getFeatures().has('sentry10');
   },
 
   onLatestContextChange(context) {

@@ -25,8 +25,6 @@ const ProjectTable = ({projectMap, projectTotals, orgTotal, organization}) => {
     return <div />;
   }
 
-  const hasSentry10 = new Set(organization.features).has('sentry10');
-
   return projectTotals
     .sort((a, b) => b.received - a.received)
     .map((item, index) => {
@@ -36,9 +34,7 @@ const ProjectTable = ({projectMap, projectTotals, orgTotal, organization}) => {
         return null;
       }
 
-      const projectLink = hasSentry10
-        ? `/settings/${organization.slug}/projects/${project.slug}/`
-        : `/${organization.slug}/${project.slug}/`;
+      const projectLink = `/settings/${organization.slug}/projects/${project.slug}/`;
 
       return (
         <StyledProjectTableLayout key={index}>

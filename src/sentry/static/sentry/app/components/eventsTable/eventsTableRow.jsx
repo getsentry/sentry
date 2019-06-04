@@ -12,7 +12,6 @@ import AttachmentUrl from 'app/utils/attachmentUrl';
 
 class EventsTableRow extends React.Component {
   static propTypes = {
-    organization: SentryTypes.Organization.isRequired,
     hasUser: PropTypes.bool,
     orgId: PropTypes.string.isRequired,
     groupId: PropTypes.string.isRequired,
@@ -63,24 +62,13 @@ class EventsTableRow extends React.Component {
   }
 
   render() {
-    const {
-      organization,
-      className,
-      event,
-      orgId,
-      projectId,
-      groupId,
-      tagList,
-      hasUser,
-    } = this.props;
+    const {className, event, orgId, groupId, tagList, hasUser} = this.props;
     const tagMap = {};
     event.tags.forEach(tag => {
       tagMap[tag.key] = tag.value;
     });
 
-    const basePath = new Set(organization.features).has('sentry10')
-      ? `/organizations/${orgId}/issues/`
-      : `/${orgId}/${projectId}/issues/`;
+    const basePath = `/organizations/${orgId}/issues/`;
 
     return (
       <tr key={event.id} className={className}>

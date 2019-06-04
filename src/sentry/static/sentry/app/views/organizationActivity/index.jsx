@@ -4,7 +4,6 @@ import React from 'react';
 
 import {PageContent} from 'app/styles/organization';
 import {t} from 'app/locale';
-import OrganizationHomeContainer from 'app/components/organizations/homeContainer';
 import PageHeading from 'app/components/pageHeading';
 import SentryTypes from 'app/sentryTypes';
 import withOrganization from 'app/utils/withOrganization';
@@ -18,9 +17,8 @@ class OrganizationActivityContainer extends React.Component {
 
   render() {
     const {organization, params, location} = this.props;
-    const hasSentry10 = new Set(organization.features).has('sentry10');
 
-    return hasSentry10 ? (
+    return (
       <PageContent>
         <div className="organization-home">
           <OrganizationActivity
@@ -30,14 +28,6 @@ class OrganizationActivityContainer extends React.Component {
           />
         </div>
       </PageContent>
-    ) : (
-      <OrganizationHomeContainer>
-        <OrganizationActivity
-          organization={organization}
-          params={params}
-          location={location}
-        />
-      </OrganizationHomeContainer>
     );
   }
 }

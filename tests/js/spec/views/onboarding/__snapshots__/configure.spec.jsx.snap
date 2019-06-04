@@ -499,14 +499,14 @@ exports[`Configure should render correctly render() should render platform docs 
                                                       >
                                                         <Button
                                                           disabled={false}
-                                                          href="/testOrg/project-slug/getting-started/"
+                                                          href="/organizations/testOrg/projects/project-slug/getting-started/"
                                                           size="small"
                                                         >
                                                           <StyledButton
                                                             aria-disabled={false}
                                                             aria-label="< Back"
                                                             disabled={false}
-                                                            href="/testOrg/project-slug/getting-started/"
+                                                            href="/organizations/testOrg/projects/project-slug/getting-started/"
                                                             onClick={[Function]}
                                                             role="button"
                                                             size="small"
@@ -516,7 +516,7 @@ exports[`Configure should render correctly render() should render platform docs 
                                                               aria-label="< Back"
                                                               className="css-1uhlusb-StyledButton-getColors e12ma6z0"
                                                               disabled={false}
-                                                              href="/testOrg/project-slug/getting-started/"
+                                                              href="/organizations/testOrg/projects/project-slug/getting-started/"
                                                               onClick={[Function]}
                                                               role="button"
                                                               size="small"
@@ -525,7 +525,7 @@ exports[`Configure should render correctly render() should render platform docs 
                                                                 aria-disabled={false}
                                                                 aria-label="< Back"
                                                                 className="css-1uhlusb-StyledButton-getColors e12ma6z0"
-                                                                href="/testOrg/project-slug/getting-started/"
+                                                                href="/organizations/testOrg/projects/project-slug/getting-started/"
                                                                 onClick={[Function]}
                                                                 role="button"
                                                                 size="small"

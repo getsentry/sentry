@@ -52,21 +52,12 @@ class ActivityItem extends React.Component {
     }
   }
 
-  hasSentry10 = () => {
-    return new Set(this.props.organization.features).has('sentry10');
-  };
-
   formatProjectActivity = (author, item) => {
     const data = item.data;
     const orgId = this.props.organization.slug;
     const project = item.project;
     const issue = item.issue;
-
-    const hasSentry10 = this.hasSentry10();
-
-    const basePath = hasSentry10
-      ? `/organizations/${orgId}/issues/`
-      : `/${orgId}/${project.slug}/issues/`;
+    const basePath = `/organizations/${orgId}/issues/`;
 
     const issueLink = issue ? (
       <IssueLink
@@ -82,11 +73,7 @@ class ActivityItem extends React.Component {
 
     const versionLink = data.version ? (
       <VersionHoverCard orgId={orgId} projectId={project.slug} version={data.version}>
-        <Version
-          version={data.version}
-          orgId={orgId}
-          projectId={hasSentry10 ? null : project.slug}
-        />
+        <Version version={data.version} orgId={orgId} projectId={null} />
       </VersionHoverCard>
     ) : null;
 
@@ -315,7 +302,6 @@ class ActivityItem extends React.Component {
 
   render() {
     const item = this.props.item;
-    const orgId = this.props.organization.slug;
 
     let bubbleClassName = 'activity-item-bubble';
     if (this.state.clipped) {
@@ -335,15 +321,7 @@ class ActivityItem extends React.Component {
       avatar,
     };
 
-    const hasSentry10 = this.hasSentry10();
-
-    const projectLink = hasSentry10 ? (
-      <strong>{item.project.slug}</strong>
-    ) : (
-      <Link className="project" to={`/${orgId}/${item.project.slug}/`}>
-        {item.project.slug}
-      </Link>
-    );
+    const projectLink = <strong>{item.project.slug}</strong>;
 
     if (item.type === 'note') {
       const noteBody = marked(item.data.text);

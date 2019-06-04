@@ -10,7 +10,6 @@ import {sortProjects} from 'app/utils';
 import {t} from 'app/locale';
 import Button from 'app/components/button';
 import ConfigStore from 'app/stores/configStore';
-import Feature from 'app/components/acl/feature';
 import IdBadge from 'app/components/idBadge';
 import NoProjectMessage from 'app/components/noProjectMessage';
 import PageHeading from 'app/components/pageHeading';
@@ -23,7 +22,6 @@ import withOrganization from 'app/utils/withOrganization';
 import withProjects from 'app/utils/withProjects';
 import withTeams from 'app/utils/withTeams';
 
-import ProjectNav from './projectNav';
 import Resources from './resources';
 import TeamSection from './teamSection';
 
@@ -32,15 +30,14 @@ class Dashboard extends React.Component {
     routes: PropTypes.array,
     teams: PropTypes.array,
     projects: PropTypes.array,
-    hasSentry10: PropTypes.bool,
     organization: SentryTypes.Organization,
   };
 
   componentDidMount() {
-    const {organization, routes, hasSentry10} = this.props;
+    const {organization, routes} = this.props;
     const isOldRoute = getRouteStringFromRoutes(routes) === '/:orgId/';
 
-    if (hasSentry10 && isOldRoute) {
+    if (isOldRoute) {
       browserHistory.replace(`/organizations/${organization.slug}/`);
     }
   }
@@ -49,7 +46,7 @@ class Dashboard extends React.Component {
   }
 
   render() {
-    const {teams, projects, params, hasSentry10, organization} = this.props;
+    const {teams, projects, params, organization} = this.props;
     const sortedProjects = sortProjects(projects);
 
     const {isSuperuser} = ConfigStore.get('user');
@@ -69,7 +66,7 @@ class Dashboard extends React.Component {
 
     return (
       <React.Fragment>
-        {hasSentry10 && projects.length > 0 && (
+        {projects.length > 0 && (
           <ProjectsHeader>
             <PageHeading>Projects</PageHeading>
             <Button
@@ -86,17 +83,6 @@ class Dashboard extends React.Component {
               {t('Create Project')}
             </Button>
           </ProjectsHeader>
-        )}
-        {!hasSentry10 && favorites.length > 0 && (
-          <TeamSection
-            data-test-id="favorites"
-            orgId={params.orgId}
-            showBorder
-            team={null}
-            title={t('Bookmarked projects')}
-            projects={favorites}
-            access={access}
-          />
         )}
 
         {teamSlugs.map((slug, index) => {
@@ -134,14 +120,9 @@ class Dashboard extends React.Component {
 const OrganizationDashboard = createReactClass({
   render() {
     return (
-      <Feature features={['sentry10']}>
-        {({hasFeature}) => (
-          <Flex flex="1" direction="column">
-            {!hasFeature && <ProjectNav />}
-            <Dashboard hasSentry10={hasFeature} {...this.props} />
-          </Flex>
-        )}
-      </Feature>
+      <Flex flex="1" direction="column">
+        <Dashboard {...this.props} />
+      </Flex>
     );
   },
 });

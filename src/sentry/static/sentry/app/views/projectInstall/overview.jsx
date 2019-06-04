@@ -24,10 +24,6 @@ class ProjectInstallOverview extends AsyncComponent {
     return window.location.href.indexOf('getting-started') > 0;
   }
 
-  get hasSentry10() {
-    return this.props.organization.features.includes('sentry10');
-  }
-
   getEndpoints() {
     const {orgId, projectId} = this.props.params;
     return [['keyList', `/projects/${orgId}/${projectId}/keys/`]];
@@ -39,9 +35,7 @@ class ProjectInstallOverview extends AsyncComponent {
     let rootUrl = `${prefix}install`;
 
     if (this.isGettingStarted) {
-      rootUrl = this.hasSentry10
-        ? `/organizations/${orgId}/projects/${projectId}/getting-started`
-        : `/${orgId}/${projectId}/getting-started`;
+      rootUrl = `/organizations/${orgId}/projects/${projectId}/getting-started`;
     }
 
     browserHistory.push(`${rootUrl}/${platform}/`);
@@ -52,12 +46,10 @@ class ProjectInstallOverview extends AsyncComponent {
   };
 
   render() {
-    const {orgId, projectId} = this.props.params;
+    const {orgId} = this.props.params;
     const {keyList} = this.state;
 
-    const issueStreamLink = this.hasSentry10
-      ? `/organizations/${orgId}/issues/#welcome`
-      : `/${orgId}/${projectId}/#welcome`;
+    const issueStreamLink = `/organizations/${orgId}/issues/#welcome`;
 
     const dsn = keyList ? keyList[0].dsn : {};
 

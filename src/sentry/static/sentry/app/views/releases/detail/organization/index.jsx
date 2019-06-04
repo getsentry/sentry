@@ -3,9 +3,6 @@ import React from 'react';
 import {pick} from 'lodash';
 
 import SentryTypes from 'app/sentryTypes';
-import Feature from 'app/components/acl/feature';
-import {t} from 'app/locale';
-import Alert from 'app/components/alert';
 import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
@@ -21,24 +18,12 @@ class OrganizationReleaseDetailsContainer extends React.Component {
     organization: SentryTypes.Organization,
   };
 
-  renderNoAccess() {
-    return (
-      <PageContent>
-        <Alert type="warning">{t("You don't have access to this feature")}</Alert>
-      </PageContent>
-    );
-  }
-
   render() {
     return (
-      <Feature
-        features={['organizations:sentry10']}
-        organization={this.props.organization}
-        renderDisabled={this.renderNoAccess}
-      >
+      <React.Fragment>
         <GlobalSelectionHeader organization={this.props.organization} />
         <OrganizationReleaseDetails {...this.props} />
-      </Feature>
+      </React.Fragment>
     );
   }
 }

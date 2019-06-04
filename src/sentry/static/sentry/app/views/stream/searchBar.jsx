@@ -63,20 +63,7 @@ class SearchBar extends React.Component {
     this.fetchData();
   }
 
-  hasSentry10 = () => {
-    const {organization} = this.props;
-    return organization && organization.features.includes('sentry10');
-  };
-
   fetchData = async () => {
-    if (!this.hasSentry10()) {
-      this.setState({
-        defaultSearchItems: [SEARCH_ITEMS, []],
-      });
-
-      return;
-    }
-
     const resp = await this.getRecentSearches();
 
     this.setState({
@@ -117,11 +104,6 @@ class SearchBar extends React.Component {
   };
 
   handleSavedRecentSearch = () => {
-    // No need to refetch if recent searches feature is not enabled
-    if (!this.hasSentry10()) {
-      return;
-    }
-
     // Reset recent searches
     this.fetchData();
   };
@@ -133,7 +115,6 @@ class SearchBar extends React.Component {
       onSidebarToggle,
       ...props
     } = this.props;
-    const hasPinnedSearch = this.hasSentry10();
 
     return (
       <React.Fragment>
@@ -141,19 +122,14 @@ class SearchBar extends React.Component {
           onGetTagValues={this.getTagValues}
           defaultSearchItems={this.state.defaultSearchItems}
           maxSearchItems={5}
-          hasPinnedSearch={hasPinnedSearch}
+          hasPinnedSearch={true}
           savedSearchType={SEARCH_TYPES.ISSUE}
-          displayRecentSearches={this.hasSentry10()}
+          displayRecentSearches={true}
           onSavedRecentSearch={this.handleSavedRecentSearch}
           onSidebarToggle={onSidebarToggle}
           pinnedSearch={savedSearch && savedSearch.isPinned ? savedSearch : null}
           {...props}
         />
-        {!hasPinnedSearch && onSidebarToggle && (
-          <a className="btn btn-default toggle-stream-sidebar" onClick={onSidebarToggle}>
-            <span className="icon-filter" />
-          </a>
-        )}
       </React.Fragment>
     );
   }

@@ -6,7 +6,6 @@ import Modal from 'react-bootstrap/lib/Modal';
 import {t} from 'app/locale';
 import SentryTypes from 'app/sentryTypes';
 import Access from 'app/components/acl/access';
-import Feature from 'app/components/acl/feature';
 import Button from 'app/components/button';
 import {createSavedSearch} from 'app/actionCreators/savedSearches';
 import {addLoadingMessage, clearIndicators} from 'app/actionCreators/indicator';
@@ -91,65 +90,63 @@ class CreateSavedSearchButton extends React.Component {
     const {organization, query} = this.props;
 
     return (
-      <Feature organization={organization} features={['sentry10']}>
-        <Access organization={organization} access={['org:write']}>
-          <StyledButton
-            title={t('Add to organization filter list')}
-            size="zero"
-            borderless
-            type="button"
-            onClick={this.onToggle}
-            data-test-id="save-current-search"
-            aria-label={t('Add to organization filter list')}
-            icon="icon-add-to-list"
-          />
-          <Modal show={isModalOpen} animation={false} onHide={this.onToggle}>
-            <form onSubmit={this.onSubmit}>
-              <div className="modal-header">
-                <h4>{t('Save Current Search')}</h4>
-              </div>
+      <Access organization={organization} access={['org:write']}>
+        <StyledButton
+          title={t('Add to organization filter list')}
+          size="zero"
+          borderless
+          type="button"
+          onClick={this.onToggle}
+          data-test-id="save-current-search"
+          aria-label={t('Add to organization filter list')}
+          icon="icon-add-to-list"
+        />
+        <Modal show={isModalOpen} animation={false} onHide={this.onToggle}>
+          <form onSubmit={this.onSubmit}>
+            <div className="modal-header">
+              <h4>{t('Save Current Search')}</h4>
+            </div>
 
-              <div className="modal-body">
-                {this.state.error && (
-                  <div className="alert alert-error alert-block">{error}</div>
-                )}
+            <div className="modal-body">
+              {this.state.error && (
+                <div className="alert alert-error alert-block">{error}</div>
+              )}
 
-                <p>{t('All team members will now have access to this search.')}</p>
-                <TextField
-                  key="name"
-                  name="name"
-                  label={t('Name')}
-                  placeholder="e.g. My Search Results"
-                  required={true}
-                  onChange={this.handleChangeName}
-                />
-                <TextField
-                  key="query"
-                  name="query"
-                  label={t('Query')}
-                  value={query}
-                  required={true}
-                  onChange={this.handleChangeQuery}
-                />
-              </div>
-              <div className="modal-footer">
-                <Button
-                  priority="default"
-                  size="small"
-                  disabled={isSaving}
-                  onClick={this.onToggle}
-                  style={{marginRight: space(1)}}
-                >
-                  {t('Cancel')}
-                </Button>
-                <Button priority="primary" size="small" disabled={isSaving}>
-                  {t('Save')}
-                </Button>
-              </div>
-            </form>
-          </Modal>
-        </Access>
-      </Feature>
+              <p>{t('All team members will now have access to this search.')}</p>
+              <TextField
+                key="name"
+                name="name"
+                label={t('Name')}
+                placeholder="e.g. My Search Results"
+                required={true}
+                onChange={this.handleChangeName}
+              />
+              <TextField
+                key="query"
+                name="query"
+                label={t('Query')}
+                value={query}
+                required={true}
+                onChange={this.handleChangeQuery}
+              />
+            </div>
+            <div className="modal-footer">
+              <Button
+                priority="default"
+                size="small"
+                disabled={isSaving}
+                onClick={this.onToggle}
+                style={{marginRight: space(1)}}
+              >
+                {t('Cancel')}
+              </Button>
+              <Button priority="primary" size="small" disabled={isSaving}>
+                {t('Save')}
+              </Button>
+            </div>
+          </form>
+        </Modal>
+      </Access>
     );
   }
 }

@@ -9,7 +9,7 @@ import DiscoverQuery from 'app/views/organizationDashboard/discoverQuery';
 describe('DiscoverQuery', function() {
   const {organization, router, routerContext} = initializeOrg({
     organization: {
-      features: ['sentry10', 'global-views'],
+      features: ['global-views'],
     },
     router: {
       location: {

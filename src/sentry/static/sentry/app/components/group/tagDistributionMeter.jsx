@@ -17,7 +17,6 @@ const GroupTagDistributionMeter = createReactClass({
     tag: PropTypes.string.isRequired,
     name: PropTypes.string,
     organization: SentryTypes.Organization.isRequired,
-    projectId: PropTypes.string.isRequired,
     environment: SentryTypes.Environment,
     totalValues: PropTypes.number,
     topValues: PropTypes.array,
@@ -75,14 +74,10 @@ const GroupTagDistributionMeter = createReactClass({
   },
 
   render() {
-    const {organization, projectId, group, tag, totalValues, topValues} = this.props;
+    const {organization, group, tag, totalValues, topValues} = this.props;
     const {loading, error} = this.state;
 
-    const hasSentry10 = new Set(organization.features).has('sentry10');
-
-    const url = hasSentry10
-      ? `/organizations/${organization.slug}/issues/${group.id}/tags/${tag}/`
-      : `/${organization.slug}/${projectId}/issues/${group.id}/tags/${tag}/`;
+    const url = `/organizations/${organization.slug}/issues/${group.id}/tags/${tag}/`;
 
     let segments = [];
 

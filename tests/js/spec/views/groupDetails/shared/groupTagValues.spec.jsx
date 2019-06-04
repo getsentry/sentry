@@ -5,11 +5,7 @@ import {mount} from 'enzyme';
 import GroupTagValues from 'app/views/groupDetails/shared/groupTagValues';
 
 describe('GroupTagValues', function() {
-  const {routerContext, router} = initializeOrg({
-    organization: {
-      features: ['sentry10'],
-    },
-  });
+  const {routerContext, router} = initializeOrg({});
   const group = TestStubs.Group();
   const tags = TestStubs.Tags();
 

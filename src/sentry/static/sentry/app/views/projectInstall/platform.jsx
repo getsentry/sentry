@@ -20,7 +20,6 @@ import withProject from 'app/utils/withProject';
 class ProjectInstallPlatform extends React.Component {
   static propTypes = {
     api: PropTypes.object,
-    organization: SentryTypes.Organization.isRequired,
     project: SentryTypes.Project.isRequired,
   };
 
@@ -64,17 +63,14 @@ class ProjectInstallPlatform extends React.Component {
 
   redirectToNeutralDocs() {
     const {orgId, projectId} = this.props.params;
-    const {organization} = this.props;
 
-    const url = new Set(organization.features).has('sentry10')
-      ? `/organizations/${orgId}/projects/${projectId}/getting-started/`
-      : `/${orgId}/${projectId}/getting-started/`;
+    const url = `/organizations/${orgId}/projects/${projectId}/getting-started/`;
 
     browserHistory.push(url);
   }
 
   render() {
-    const {organization, project, params} = this.props;
+    const {project, params} = this.props;
     const {orgId, projectId} = params;
 
     const platform = platforms.find(p => p.id === params.platform);
@@ -83,15 +79,10 @@ class ProjectInstallPlatform extends React.Component {
       return <NotFound />;
     }
 
-    const hasSentry10 = new Set(organization.features).has('sentry10');
-
-    const issueStreamLink = hasSentry10
-      ? `/organizations/${orgId}/issues/?project=${project.id}#welcome`
-      : `/${orgId}/${projectId}/#welcome`;
-
-    const gettingStartedLink = hasSentry10
-      ? `/organizations/${orgId}/projects/${projectId}/getting-started/`
-      : `/${orgId}/${projectId}/getting-started/`;
+    const issueStreamLink = `/organizations/${orgId}/issues/?project=${
+      project.id
+    }#welcome`;
+    const gettingStartedLink = `/organizations/${orgId}/projects/${projectId}/getting-started/`;
 
     return (
       <Panel>

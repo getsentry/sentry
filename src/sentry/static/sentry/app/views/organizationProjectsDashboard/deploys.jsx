@@ -61,20 +61,14 @@ class Deploy extends React.Component {
   render() {
     const {deploy, organization, project} = this.props;
 
-    const hasSentry10 = new Set(organization.features).has('sentry10');
-
     return (
       <DeployRow justify="space-between">
         <Environment>{deploy.environment}</Environment>
         <Version>
           <StyledLink
-            to={
-              hasSentry10
-                ? `/organizations/${organization.slug}/releases/${
-                    deploy.version
-                  }/?project=${project.id}`
-                : `/${organization.slug}/${project.slug}/releases/${deploy.version}/`
-            }
+            to={`/organizations/${organization.slug}/releases/${
+              deploy.version
+            }/?project=${project.id}`}
           >
             {getShortVersion(deploy.version)}
           </StyledLink>

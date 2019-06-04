@@ -14,7 +14,7 @@ describe('OrganizationStream --> Create Incident', function() {
 
   const {project, router, routerContext} = initializeOrg({
     organization: {
-      features: ['sentry10', 'global-views', 'incidents'],
+      features: ['global-views', 'incidents'],
       access: ['releases'],
       slug: 'org-slug',
     },

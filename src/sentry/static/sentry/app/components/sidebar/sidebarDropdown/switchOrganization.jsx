@@ -60,9 +60,7 @@ class SwitchOrganization extends React.Component {
                 >
                   <OrganizationList>
                     {organizations.map(organization => {
-                      const url = new Set(organization.features).has('sentry10')
-                        ? `/organizations/${organization.slug}/`
-                        : `/${organization.slug}/`;
+                      const url = `/organizations/${organization.slug}/`;
 
                       return (
                         <SidebarMenuItem key={organization.slug} to={url}>

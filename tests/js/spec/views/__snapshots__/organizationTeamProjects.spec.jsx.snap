@@ -551,12 +551,12 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                             </withApi(BookmarkStar)>
                           </BookmarkLink>
                           <Link
-                            to="/org-slug/project-slug/"
+                            to="/settings/org-slug/projects/project-slug/"
                           >
                             <Link
                               onlyActiveOnIndex={false}
                               style={Object {}}
-                              to="/org-slug/project-slug/"
+                              to="/settings/org-slug/projects/project-slug/"
                             >
                               <a
                                 onClick={[Function]}
@@ -939,12 +939,12 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                             </withApi(BookmarkStar)>
                           </BookmarkLink>
                           <Link
-                            to="/org-slug/project-slug-2/"
+                            to="/settings/org-slug/projects/project-slug-2/"
                           >
                             <Link
                               onlyActiveOnIndex={false}
                               style={Object {}}
-                              to="/org-slug/project-slug-2/"
+                              to="/settings/org-slug/projects/project-slug-2/"
                             >
                               <a
                                 onClick={[Function]}

@@ -42,7 +42,6 @@ class CreateSampleEventButton extends React.Component {
     // TODO(dena): swap out for action creator
     const {api, organization, project, source} = this.props;
     const url = `/projects/${organization.slug}/${project.slug}/create-sample/`;
-    const hasSentry10 = organization.features.includes('sentry10');
 
     analytics('sample_event.created', {
       org_id: parseInt(organization.id, 10),
@@ -54,9 +53,7 @@ class CreateSampleEventButton extends React.Component {
     try {
       const data = await api.requestPromise(url, {method: 'POST'});
 
-      const issueUrl = hasSentry10
-        ? `/organizations/${organization.slug}/issues/${data.groupID}/`
-        : `/${organization.slug}/${project.slug}/issues/${data.groupID}/`;
+      const issueUrl = `/organizations/${organization.slug}/issues/${data.groupID}/`;
       browserHistory.push(issueUrl);
     } catch (error) {
       Sentry.withScope(scope => {

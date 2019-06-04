@@ -16,7 +16,7 @@ describe('OrganizationDashboard', function() {
   const {organization, router, routerContext} = initializeOrg({
     projects: [{isMember: true}, {isMember: true, slug: 'new-project', id: 3}],
     organization: {
-      features: ['sentry10', 'discover', 'global-views'],
+      features: ['discover', 'global-views'],
     },
     router: {
       location: {

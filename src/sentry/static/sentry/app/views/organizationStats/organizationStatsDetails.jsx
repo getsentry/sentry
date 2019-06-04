@@ -15,7 +15,6 @@ import {
   ProjectTableLayout,
   ProjectTableDataElement,
 } from 'app/views/organizationStats/projectTableLayout';
-import ProjectNav from 'app/views/organizationProjectsDashboard/projectNav';
 import {PageContent} from 'app/styles/organization';
 
 class OrganizationStats extends React.Component {
@@ -147,14 +146,8 @@ class OrganizationStats extends React.Component {
   }
 
   render() {
-    const hasSentry10 = new Set(this.props.organization.features).has('sentry10');
     return (
       <React.Fragment>
-        {!hasSentry10 && (
-          <div style={{width: '100%'}}>
-            <ProjectNav />
-          </div>
-        )}
         <PageContent>{this.renderContent()}</PageContent>
       </React.Fragment>
     );

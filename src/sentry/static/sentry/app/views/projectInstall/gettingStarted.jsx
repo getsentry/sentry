@@ -3,7 +3,6 @@ import React from 'react';
 import styled from 'react-emotion';
 
 import ProjectContext from 'app/views/projects/projectContext';
-import ProjectSelector from 'app/components/projectHeader/projectSelector';
 import space from 'app/styles/space';
 
 class GettingStartedBody extends React.Component {
@@ -13,18 +12,8 @@ class GettingStartedBody extends React.Component {
   };
 
   render() {
-    const {project, organization} = this.context;
-    const hasSentry10 = organization.features.includes('sentry10');
-
     return (
       <Container>
-        {!hasSentry10 && (
-          <div className="sub-header flex flex-container flex-vertically-centered">
-            <div className="p-t-1 p-b-1">
-              <ProjectSelector organization={organization} projectId={project.slug} />
-            </div>
-          </div>
-        )}
         <div className="container">
           <Content>{this.props.children}</Content>
         </div>
