@@ -415,6 +415,35 @@ describe('utils.projects', function() {
           ],
         })
       );
+
+      // Should not have duplicates
+      wrapper.find('input').simulate('change', {target: {value: 'test'}});
+
+      await tick();
+      wrapper.update();
+
+      expect(myRenderer).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          projects: [
+            expect.objectContaining({
+              id: '100',
+              slug: 'a',
+            }),
+            expect.objectContaining({
+              id: '101',
+              slug: 'b',
+            }),
+            expect.objectContaining({
+              id: '102',
+              slug: 'test1',
+            }),
+            expect.objectContaining({
+              id: '103',
+              slug: 'test2',
+            }),
+          ],
+        })
+      );
     });
   });
 });

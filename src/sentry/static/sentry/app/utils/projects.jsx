@@ -1,4 +1,4 @@
-import {partition} from 'lodash';
+import {memoize, partition, uniqBy} from 'lodash';
 import PropTypes from 'prop-types';
 import React from 'react';
 
@@ -7,13 +7,27 @@ import parseLinkHeader from 'app/utils/parseLinkHeader';
 import withApi from 'app/utils/withApi';
 import withProjects from 'app/utils/withProjects';
 
+/**
+ * This is a utility component that should be used to fetch an organization's projects (summary).
+ * It can either fetch explicit projects (e.g. via slug) or a paginated list of projects.
+ * These will be passed down to the render prop (`children`).
+ *
+ * The legacy way of handling this is that `ProjectSummary[]` is expected to be included in an
+ * `Organization` as well as being saved to `ProjectsStore`.
+ */
 class Projects extends React.Component {
   static propTypes = {
     api: PropTypes.object.isRequired,
     orgId: PropTypes.string.isRequired,
+
+    // List of projects that have we already have summaries for (i.e. from store)
     projects: PropTypes.arrayOf(SentryTypes.Project).isRequired,
 
+    // List of slugs to look for summaries for, this can be from `props.projects`,
+    // otherwise fetch from API
     slugs: PropTypes.arrayOf(PropTypes.string),
+
+    // Number of projects to return when not using `props.slugs`
     limit: PropTypes.number,
   };
 
@@ -36,22 +50,35 @@ class Projects extends React.Component {
     }
   }
 
-  componentDidUpdate() {}
-
+  /**
+   * List of projects that need to be fetched via API
+   */
   fetchQueue = new Set();
 
+  /**
+   * Memoized function that returns a `Map<project.slug, project>`
+   */
+  getProjectsMap = memoize(
+    projects => new Map(projects.map(project => [project.slug, project]))
+  );
+
+  /**
+   * When `props.slugs` is included, identifies what projects we already
+   * have summaries for and what projects need to be fetched from API
+   */
   loadSpecificProjects = () => {
     const {slugs, projects} = this.props;
 
-    const [inStore, notInStore] = partition(slugs, slug =>
-      projects.find(project => project.slug === slug)
-    );
+    const projectsMap = this.getProjectsMap(projects);
 
-    // Check `projects` (from store)
-    const projectsFromStore = inStore.map(slug =>
-      projects.find(project => project.slug === slug)
-    );
+    // Split slugs into projects that are in store and not in store
+    // (so we can request projects not in store)
+    const [inStore, notInStore] = partition(slugs, slug => projectsMap.has(slug));
 
+    // Get the actual summaries of projects that are in store
+    const projectsFromStore = inStore.map(slug => projectsMap.get(slug));
+
+    // Add to queue
     notInStore.forEach(slug => this.fetchQueue.add(slug));
 
     this.setState({
@@ -68,6 +95,9 @@ class Projects extends React.Component {
     this.fetchSpecificProjects();
   };
 
+  /**
+   * These will fetch projects via API (using project slug) provided by `this.fetchQueue`
+   */
   fetchSpecificProjects = async () => {
     const {api, orgId} = this.props;
 
@@ -80,6 +110,7 @@ class Projects extends React.Component {
     });
 
     let projects = [];
+    let fetchError;
 
     try {
       const {results} = await fetchProjects(api, orgId, {
@@ -87,17 +118,17 @@ class Projects extends React.Component {
       });
       projects = results;
     } catch (err) {
-      // eslint-disable-next-line no-console
-      console.error(err);
+      console.error(err); // eslint-disable-line no-console
+      fetchError = err;
     }
 
-    const projectMap = new Map(projects.map(project => [project.slug, project]));
+    const projectsMap = this.getProjectsMap(projects);
 
     // For each item in the fetch queue, lookup the project object and in the case
     // where something wrong has happened and we were unable to get project summary from
     // the server, just fill in with an object with only the slug
     const projectsOrPlaceholder = Array.from(this.fetchQueue).map(slug =>
-      projectMap.has(slug) ? projectMap.get(slug) : {slug}
+      projectsMap.has(slug) ? projectsMap.get(slug) : {slug}
     );
 
     this.setState({
@@ -105,11 +136,20 @@ class Projects extends React.Component {
       isIncomplete: this.fetchQueue.size !== projects.length,
       initiallyLoaded: true,
       fetching: false,
+      fetchError,
     });
 
     this.fetchQueue.clear();
   };
 
+  /**
+   * If `props.slugs` is not provided, request from API a list of paginated project summaries
+   * that are in `prop.orgId`.
+   *
+   * Provide render prop with results as well as `hasMore` to indicate there are more results.
+   * Downstream consumers should use this to notify users so that they can e.g. narrow down
+   * results using search
+   */
   loadAllProjects = async () => {
     const {api, orgId, limit} = this.props;
 
@@ -127,8 +167,7 @@ class Projects extends React.Component {
         hasMore,
       });
     } catch (err) {
-      // eslint-disable-next-line no-console
-      console.error(err);
+      console.error(err); // eslint-disable-line no-console
 
       this.setState({
         fetching: false,
@@ -139,8 +178,19 @@ class Projects extends React.Component {
     }
   };
 
+  /**
+   * This is an action provided to consumers for them to update the current projects
+   * result set using a simple search query. You can allow the new results to either
+   * be appended or replace the existing results.
+   *
+   * @param {String} search The search term to use
+   * @param {Object} options Options object
+   * @param {Boolean} options.append Results should be appended to existing list (otherwise, will replace)
+   */
   handleSearch = async (search, {append} = {}) => {
     const {api, orgId, limit} = this.props;
+
+    this.setState({fetching: true});
 
     try {
       const {results, hasMore} = await fetchProjects(api, orgId, {search, limit});
@@ -148,8 +198,11 @@ class Projects extends React.Component {
       this.setState(state => {
         let fetchedProjects;
         if (append) {
-          // TODO: dedupe
-          fetchedProjects = [...state.fetchedProjects, ...results];
+          // Remove duplicates
+          fetchedProjects = uniqBy(
+            [...state.fetchedProjects, ...results],
+            ({slug}) => slug
+          );
         } else {
           fetchedProjects = results;
         }
@@ -160,8 +213,12 @@ class Projects extends React.Component {
         };
       });
     } catch (err) {
-      // eslint-disable-next-line no-console
-      console.error(err);
+      console.error(err); // eslint-disable-line no-console
+
+      this.setState({
+        fetching: false,
+        fetchError: err,
+      });
     }
   };
 
