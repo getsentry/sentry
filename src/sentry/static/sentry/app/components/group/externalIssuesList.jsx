@@ -131,7 +131,7 @@ class ExternalIssueList extends AsyncComponent {
       const issue = (externalIssues || []).find(i => i.serviceType == sentryApp.slug);
 
       return (
-        <ErrorBoundary mini>
+        <ErrorBoundary key={sentryApp.slug} mini>
           <SentryAppExternalIssueActions
             key={sentryApp.slug}
             group={group}
