@@ -1274,7 +1274,7 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                                             }
                                           />
                                         }
-                                        className="css-yd3bt1-GroupShortId eec9orn4"
+                                        className="css-yd3bt1-GroupShortId eec9orn3"
                                         shortId="INTERNAL-4G"
                                       >
                                         <StyledShortId
@@ -1293,12 +1293,12 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                                               }
                                             />
                                           }
-                                          className="css-yd3bt1-GroupShortId eec9orn4"
+                                          className="css-yd3bt1-GroupShortId eec9orn3"
                                           onClick={[Function]}
                                           shortId="INTERNAL-4G"
                                         >
                                           <div
-                                            className="eec9orn4 css-1p4nhlc-StyledShortId-GroupShortId ebuncw00"
+                                            className="eec9orn3 css-1p4nhlc-StyledShortId-GroupShortId ebuncw00"
                                             onClick={[Function]}
                                           >
                                             <ProjectBadge
@@ -1478,28 +1478,33 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                                         </StyledShortId>
                                       </ShortId>
                                     </GroupShortId>
-                                    <Times>
-                                      <div
-                                        className="css-5uof9j-Times eec9orn3"
-                                      >
+                                    <Times
+                                      firstSeen="2017-07-10T18:32:43Z"
+                                      lastSeen={null}
+                                    >
+                                      <Container>
                                         <div
-                                          className="css-77t6iv"
+                                          className="css-1l1pep4-Container e1f1on0q0"
                                         >
-                                          <TimeSince
-                                            className="hidden-xs hidden-sm"
-                                            date="2017-07-10T18:32:43Z"
-                                            suffix="old"
+                                          <div
+                                            className="css-77t6iv"
                                           >
-                                            <time
+                                            <TimeSince
                                               className="hidden-xs hidden-sm"
-                                              dateTime="2017-07-10T18:32:43.000Z"
-                                              title="July 10, 2017 6:32 PM UTC"
+                                              date="2017-07-10T18:32:43Z"
+                                              suffix="old"
                                             >
-                                              3 months old
-                                            </time>
-                                          </TimeSince>
+                                              <time
+                                                className="hidden-xs hidden-sm"
+                                                dateTime="2017-07-10T18:32:43.000Z"
+                                                title="July 10, 2017 6:32 PM UTC"
+                                              >
+                                                3 months old
+                                              </time>
+                                            </TimeSince>
+                                          </div>
                                         </div>
-                                      </div>
+                                      </Container>
                                     </Times>
                                     <GroupExtraCommentsAndLogger>
                                       <Base
