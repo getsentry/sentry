@@ -27,7 +27,6 @@ const GroupSidebar = createReactClass({
     group: SentryTypes.Group,
     event: SentryTypes.Event,
     environments: PropTypes.arrayOf(SentryTypes.Environment),
-    sentryAppInstallations: PropTypes.array,
   },
 
   getInitialState() {
@@ -228,13 +227,7 @@ const GroupSidebar = createReactClass({
   },
 
   render() {
-    const {
-      group,
-      organization,
-      project,
-      environments,
-      sentryAppInstallations,
-    } = this.props;
+    const {group, organization, project, environments} = this.props;
     const projectId = project.slug;
 
     return (
@@ -254,7 +247,6 @@ const GroupSidebar = createReactClass({
             group={this.props.group}
             project={project}
             orgId={organization.slug}
-            sentryAppInstallations={sentryAppInstallations}
           />
         </ErrorBoundary>
 

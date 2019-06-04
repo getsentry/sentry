@@ -1,4 +1,5 @@
 import Reflux from 'reflux';
+import {uniqBy} from 'lodash';
 
 const SentryAppStore = Reflux.createStore({
   init() {
@@ -11,7 +12,14 @@ const SentryAppStore = Reflux.createStore({
 
   load(items) {
     this.items = items;
-    this.trigger(items);
+    this.deDup();
+    this.trigger(this.items);
+  },
+
+  add(...apps) {
+    apps.forEach(app => this.items.push(app));
+    this.deDup();
+    this.trigger(this.items);
   },
 
   get(slug) {
@@ -20,6 +28,10 @@ const SentryAppStore = Reflux.createStore({
 
   getAll() {
     return this.items;
+  },
+
+  deDup() {
+    this.items = uniqBy(this.items, i => i.uuid);
   },
 });
 
