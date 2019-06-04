@@ -8,11 +8,7 @@ describe('utils.projects', function() {
   const renderer = jest.fn(() => null);
 
   const createWrapper = props =>
-    mount(
-      <Projects orgId="org-slug" {...props}>
-        {renderer}
-      </Projects>
-    );
+    mount(<Projects orgId="org-slug" children={renderer} {...props} />); // eslint-disable-line
 
   beforeEach(function() {
     renderer.mockClear();
@@ -33,40 +29,46 @@ describe('utils.projects', function() {
       const wrapper = createWrapper({slugs: ['foo', 'bar']});
 
       // This is initial state
-      expect(renderer).toHaveBeenCalledWith({
-        fetching: false,
-        isIncomplete: null,
-        initiallyLoaded: true,
-        projects: [
-          expect.objectContaining({
-            id: '1',
-            slug: 'foo',
-          }),
-          expect.objectContaining({
-            id: '2',
-            slug: 'bar',
-          }),
-        ],
-      });
+      expect(renderer).toHaveBeenCalledWith(
+        expect.objectContaining({
+          fetching: false,
+          isIncomplete: null,
+          hasMore: null,
+          initiallyLoaded: true,
+          projects: [
+            expect.objectContaining({
+              id: '1',
+              slug: 'foo',
+            }),
+            expect.objectContaining({
+              id: '2',
+              slug: 'bar',
+            }),
+          ],
+        })
+      );
 
       await tick();
       wrapper.update();
 
-      expect(renderer).toHaveBeenCalledWith({
-        fetching: false,
-        isIncomplete: null,
-        initiallyLoaded: true,
-        projects: [
-          expect.objectContaining({
-            id: '1',
-            slug: 'foo',
-          }),
-          expect.objectContaining({
-            id: '2',
-            slug: 'bar',
-          }),
-        ],
-      });
+      expect(renderer).toHaveBeenCalledWith(
+        expect.objectContaining({
+          fetching: false,
+          isIncomplete: null,
+          hasMore: null,
+          initiallyLoaded: true,
+          projects: [
+            expect.objectContaining({
+              id: '1',
+              slug: 'foo',
+            }),
+            expect.objectContaining({
+              id: '2',
+              slug: 'bar',
+            }),
+          ],
+        })
+      );
     });
 
     it('fetches projects from API if not found in store', async function() {
@@ -90,19 +92,22 @@ describe('utils.projects', function() {
       const wrapper = createWrapper({slugs: ['foo', 'a', 'b']});
 
       // This is initial state
-      expect(renderer).toHaveBeenCalledWith({
-        fetching: true,
-        isIncomplete: null,
-        initiallyLoaded: true,
-        projects: [
-          {slug: 'a'},
-          {slug: 'b'},
-          expect.objectContaining({
-            id: '1',
-            slug: 'foo',
-          }),
-        ],
-      });
+      expect(renderer).toHaveBeenCalledWith(
+        expect.objectContaining({
+          fetching: true,
+          isIncomplete: null,
+          hasMore: null,
+          initiallyLoaded: true,
+          projects: [
+            {slug: 'a'},
+            {slug: 'b'},
+            expect.objectContaining({
+              id: '1',
+              slug: 'foo',
+            }),
+          ],
+        })
+      );
 
       await tick();
       wrapper.update();
@@ -116,25 +121,28 @@ describe('utils.projects', function() {
         })
       );
 
-      expect(renderer).toHaveBeenCalledWith({
-        fetching: false,
-        isIncomplete: false,
-        initiallyLoaded: true,
-        projects: [
-          expect.objectContaining({
-            id: '100',
-            slug: 'a',
-          }),
-          expect.objectContaining({
-            id: '101',
-            slug: 'b',
-          }),
-          expect.objectContaining({
-            id: '1',
-            slug: 'foo',
-          }),
-        ],
-      });
+      expect(renderer).toHaveBeenCalledWith(
+        expect.objectContaining({
+          fetching: false,
+          isIncomplete: false,
+          hasMore: null,
+          initiallyLoaded: true,
+          projects: [
+            expect.objectContaining({
+              id: '100',
+              slug: 'a',
+            }),
+            expect.objectContaining({
+              id: '101',
+              slug: 'b',
+            }),
+            expect.objectContaining({
+              id: '1',
+              slug: 'foo',
+            }),
+          ],
+        })
+      );
     });
 
     it('only has partial results from API', async function() {
@@ -151,19 +159,22 @@ describe('utils.projects', function() {
       const wrapper = createWrapper({slugs: ['foo', 'a', 'b']});
 
       // This is initial state
-      expect(renderer).toHaveBeenCalledWith({
-        fetching: true,
-        isIncomplete: null,
-        initiallyLoaded: true,
-        projects: [
-          {slug: 'a'},
-          {slug: 'b'},
-          expect.objectContaining({
-            id: '1',
-            slug: 'foo',
-          }),
-        ],
-      });
+      expect(renderer).toHaveBeenCalledWith(
+        expect.objectContaining({
+          fetching: true,
+          isIncomplete: null,
+          hasMore: null,
+          initiallyLoaded: true,
+          projects: [
+            {slug: 'a'},
+            {slug: 'b'},
+            expect.objectContaining({
+              id: '1',
+              slug: 'foo',
+            }),
+          ],
+        })
+      );
 
       await tick();
       wrapper.update();
@@ -177,24 +188,233 @@ describe('utils.projects', function() {
         })
       );
 
-      expect(renderer).toHaveBeenCalledWith({
-        fetching: false,
-        isIncomplete: true,
-        initiallyLoaded: true,
-        projects: [
-          expect.objectContaining({
+      expect(renderer).toHaveBeenCalledWith(
+        expect.objectContaining({
+          fetching: false,
+          isIncomplete: true,
+          hasMore: null,
+          initiallyLoaded: true,
+          projects: [
+            expect.objectContaining({
+              id: '100',
+              slug: 'a',
+            }),
+            {
+              slug: 'b',
+            },
+            expect.objectContaining({
+              id: '1',
+              slug: 'foo',
+            }),
+          ],
+        })
+      );
+    });
+  });
+
+  describe('with no pre-defined projects', function() {
+    let request;
+
+    beforeEach(async function() {
+      request = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/projects/',
+        body: [
+          TestStubs.Project({
             id: '100',
             slug: 'a',
           }),
-          {
+          TestStubs.Project({
+            id: '101',
             slug: 'b',
-          },
-          expect.objectContaining({
-            id: '1',
-            slug: 'foo',
+          }),
+        ],
+        headers: {
+          Link:
+            '<http://127.0.0.1:8000/api/0/organizations/org-slug/projects/?cursor=1443575731:0:1>; rel="previous"; results="true"; cursor="1443575731:0:1", ' +
+            '<http://127.0.0.1:8000/api/0/organizations/org-slug/projects/?cursor=1443575731:0:0>; rel="next"; results="true"; cursor="1443575731:0:0',
+        },
+      });
+      ProjectsStore.loadInitialData([]);
+      await tick();
+    });
+
+    it('fetches projects from API', async function() {
+      const wrapper = createWrapper();
+
+      // This is initial state
+      expect(renderer).toHaveBeenCalledWith(
+        expect.objectContaining({
+          fetching: true,
+          isIncomplete: null,
+          initiallyLoaded: false,
+          hasMore: null,
+          projects: [],
+        })
+      );
+
+      await tick();
+      wrapper.update();
+
+      expect(request).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          query: {},
+        })
+      );
+
+      expect(renderer).toHaveBeenCalledWith(
+        expect.objectContaining({
+          fetching: false,
+          isIncomplete: null,
+          initiallyLoaded: true,
+          hasMore: true,
+          projects: [
+            expect.objectContaining({
+              id: '100',
+              slug: 'a',
+            }),
+            expect.objectContaining({
+              id: '101',
+              slug: 'b',
+            }),
+          ],
+        })
+      );
+    });
+
+    it('queries API for more projects and replaces results', async function() {
+      const myRenderer = jest.fn(({onSearch}) => (
+        <input onChange={({target}) => onSearch(target.value)} />
+      ));
+
+      const wrapper = createWrapper({children: myRenderer});
+
+      // This is initial state
+      expect(myRenderer).toHaveBeenCalledWith(
+        expect.objectContaining({
+          fetching: true,
+          isIncomplete: null,
+          initiallyLoaded: false,
+          hasMore: null,
+          projects: [],
+        })
+      );
+
+      await tick();
+      wrapper.update();
+
+      request.mockClear();
+      request = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/projects/',
+        body: [
+          TestStubs.Project({
+            id: '102',
+            slug: 'test1',
+          }),
+          TestStubs.Project({
+            id: '103',
+            slug: 'test2',
           }),
         ],
       });
+
+      wrapper.find('input').simulate('change', {target: {value: 'test'}});
+      expect(request).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          query: {
+            query: 'test',
+          },
+        })
+      );
+
+      await tick();
+      wrapper.update();
+
+      expect(myRenderer).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          fetching: false,
+          isIncomplete: null,
+          initiallyLoaded: true,
+          hasMore: false,
+          projects: [
+            expect.objectContaining({
+              id: '102',
+              slug: 'test1',
+            }),
+            expect.objectContaining({
+              id: '103',
+              slug: 'test2',
+            }),
+          ],
+        })
+      );
+    });
+
+    it('queries API for more projects and appends results', async function() {
+      const myRenderer = jest.fn(({onSearch}) => (
+        <input onChange={({target}) => onSearch(target.value, {append: true})} />
+      ));
+
+      const wrapper = createWrapper({children: myRenderer});
+
+      await tick();
+      wrapper.update();
+
+      request.mockClear();
+      request = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/projects/',
+        body: [
+          TestStubs.Project({
+            id: '102',
+            slug: 'test1',
+          }),
+          TestStubs.Project({
+            id: '103',
+            slug: 'test2',
+          }),
+        ],
+      });
+
+      wrapper.find('input').simulate('change', {target: {value: 'test'}});
+      expect(request).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          query: {
+            query: 'test',
+          },
+        })
+      );
+
+      await tick();
+      wrapper.update();
+
+      expect(myRenderer).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          fetching: false,
+          isIncomplete: null,
+          initiallyLoaded: true,
+          hasMore: false,
+          projects: [
+            expect.objectContaining({
+              id: '100',
+              slug: 'a',
+            }),
+            expect.objectContaining({
+              id: '101',
+              slug: 'b',
+            }),
+            expect.objectContaining({
+              id: '102',
+              slug: 'test1',
+            }),
+            expect.objectContaining({
+              id: '103',
+              slug: 'test2',
+            }),
+          ],
+        })
+      );
     });
   });
 });
