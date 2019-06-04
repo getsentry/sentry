@@ -1155,27 +1155,6 @@ function routes() {
         </Route>
 
         <Route path=":projectId/" component={errorHandler(ProjectDetails)}>
-          <IndexRoute
-            componentPromise={() =>
-              import(/* webpackChunkName: "Stream" */ './views/stream')
-            }
-            component={errorHandler(LazyLoad)}
-          />
-          <Route
-            path="issues/"
-            componentPromise={() =>
-              import(/* webpackChunkName: "Stream" */ './views/stream')
-            }
-            component={errorHandler(LazyLoad)}
-          />
-
-          <Route
-            path="searches/:searchId/"
-            componentPromise={() =>
-              import(/* webpackChunkName: "Stream" */ './views/stream')
-            }
-            component={errorHandler(LazyLoad)}
-          />
           <Route
             path="dashboard/"
             componentPromise={() =>

@@ -40,7 +40,6 @@ class StreamFilters extends React.Component {
   };
 
   static defaultProps = {
-    projectId: null,
     sort: '',
     query: null,
     onSortChange: function() {},

@@ -1,4 +1,3 @@
-import {Client} from 'app/api';
 import {t} from 'app/locale';
 import TagStore from 'app/stores/tagStore';
 import TagActions from 'app/actions/tagActions';
@@ -59,21 +58,6 @@ function tagFetchSuccess(tags) {
     });
   }
   TagActions.loadTagsSuccess(trimmedTags);
-}
-
-/**
- * Fetch tags for a single project
- */
-export function fetchProjectTags(orgId, projectId) {
-  TagStore.reset();
-  TagActions.loadTags();
-  const api = new Client();
-  const url = `/projects/${orgId}/${projectId}/tags/`;
-
-  const promise = api.requestPromise(url);
-  promise.then(tagFetchSuccess, TagActions.loadTagsError);
-
-  return promise;
 }
 
 /**
