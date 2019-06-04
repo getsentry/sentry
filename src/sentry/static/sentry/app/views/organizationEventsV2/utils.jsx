@@ -50,7 +50,7 @@ export function getQuery(view, location) {
   data.field = [...new Set(fields)];
   data.groupby = groupby;
   data.orderby = view.data.orderby;
-
+  data.per_page = 50;
   return data;
 }
 
