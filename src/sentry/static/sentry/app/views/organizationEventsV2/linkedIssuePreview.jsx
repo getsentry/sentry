@@ -69,7 +69,7 @@ const Title = styled('h4')`
   font-weight: normal;
 
   top: -${space(1)};
-  left: ${space(2)};
+  left: ${space(1)};
   position: absolute;
 `;
 
