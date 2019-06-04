@@ -49,6 +49,7 @@ export default class OrganizationEventsV2 extends React.Component {
   render() {
     const {organization, location, router} = this.props;
     const {eventSlug} = location.query;
+    const currentView = getCurrentView(location.query.view);
 
     return (
       <DocumentTitle title={`Events - ${organization.slug} - Sentry`}>
@@ -64,16 +65,18 @@ export default class OrganizationEventsV2 extends React.Component {
               {this.renderTabs()}
               <Events
                 organization={organization}
-                view={getCurrentView(location.query.view)}
+                view={currentView}
                 location={location}
                 router={router}
               />
             </NoProjectMessage>
             {eventSlug && (
               <EventDetails
-                orgId={organization.slug}
+                organization={organization}
                 params={this.props.params}
                 eventSlug={eventSlug}
+                view={currentView}
+                location={location}
               />
             )}
           </PageContent>

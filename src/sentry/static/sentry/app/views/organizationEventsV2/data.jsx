@@ -131,12 +131,42 @@ export const SPECIAL_FIELDS = {
     ),
   },
   error: {
-    fields: ['issue_title'],
-    renderFunc: data => <Container>{data.issue_title}</Container>,
+    fields: ['issue_title', 'last_event'],
+    renderFunc: (data, {organization, location}) => {
+      const target = {
+        pathname: `/organizations/${organization.slug}/events/`,
+        query: {
+          ...location.query,
+          eventSlug: `${data['project.name']}:${data.last_event}`,
+        },
+      };
+      return (
+        <Container>
+          <Link css={overflowEllipsis} to={target} data-test-id="event-title">
+            {data.issue_title}
+          </Link>
+        </Container>
+      );
+    },
   },
   csp: {
-    fields: ['issue_title'],
-    renderFunc: data => <Container>{data.issue_title}</Container>,
+    fields: ['issue_title', 'last_event'],
+    renderFunc: (data, {organization, location}) => {
+      const target = {
+        pathname: `/organizations/${organization.slug}/events/`,
+        query: {
+          ...location.query,
+          eventSlug: `${data['project.name']}:${data.last_event}`,
+        },
+      };
+      return (
+        <Container>
+          <Link css={overflowEllipsis} to={target} data-test-id="event-title">
+            {data.issue_title}
+          </Link>
+        </Container>
+      );
+    },
   },
   event_count: {
     title: 'events',
