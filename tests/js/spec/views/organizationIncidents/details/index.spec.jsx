@@ -3,10 +3,11 @@ import React from 'react';
 import {initializeOrg} from 'app-test/helpers/initializeOrg';
 import {mount} from 'enzyme';
 import IncidentDetails from 'app/views/organizationIncidents/details';
+import ProjectsStore from 'app/stores/projectsStore';
 
 describe('IncidentDetails', function() {
   const mockIncident = TestStubs.Incident();
-  const {organization, routerContext} = initializeOrg();
+  const {organization, project, routerContext} = initializeOrg();
 
   let activitiesList;
 
@@ -20,6 +21,7 @@ describe('IncidentDetails', function() {
     );
 
   beforeAll(function() {
+    ProjectsStore.loadInitialData([project]);
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/incidents/123/',
       body: mockIncident,
