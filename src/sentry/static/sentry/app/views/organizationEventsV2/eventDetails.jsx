@@ -39,9 +39,7 @@ class EventDetails extends AsyncComponent {
     const [projectId, _] = this.props.eventSlug.split(':');
     return (
       <ModalContainer>
-        <CloseButton onClick={this.handleClose}>
-          <InlineSvg src="icon-close" size="12" />
-        </CloseButton>
+        <CloseButton onClick={this.handleClose} size={30} />
         <EventModalContent
           onTabChange={this.handleTabChange}
           event={this.state.event}
@@ -69,18 +67,31 @@ const ModalContainer = styled('div')`
   z-index: ${p => p.theme.zIndex.modal};
 `;
 
-const CloseButton = styled('button')`
+const CircleButton = styled('button')`
   background: #fff;
-  border-radius: 20px;
-  line-height: 12px;
-  height: 30px;
+  border-radius: ${p => p.size / 2}px;
+  padding: ${p => p.size / 4}px;
+  line-height: ${p => p.size * 0.4}px;
+  height: ${p => p.size}px;
   box-shadow: ${p => p.theme.dropShadowLight};
   border: 1px solid ${p => p.theme.borderDark};
 
   position: absolute;
-  top: -15px;
-  right: -15px;
-  padding: 8px;
+  top: -${p => p.size / 2}px;
+  right: -${p => p.size / 2}px;
 `;
+
+const CloseButton = props => {
+  const iconSize = props.size * 0.4;
+  return (
+    <CircleButton size={props.size} onClick={props.onClick}>
+      <InlineSvg src="icon-close" size={`${iconSize}px`} />
+    </CircleButton>
+  );
+};
+CloseButton.propTypes = {
+  onClick: PropTypes.func,
+  size: PropTypes.number.isRequired,
+};
 
 export default withApi(EventDetails);
