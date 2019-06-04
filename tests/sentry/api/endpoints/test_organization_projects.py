@@ -81,6 +81,22 @@ class OrganizationProjectsTest(APITestCase):
 
         self.check_valid_response(response, [project_bar, project_foo])
 
+    def test_search_by_slugs(self):
+        self.login_as(user=self.user)
+
+        project_bar = self.create_project(teams=[self.team], name='bar', slug='bar')
+        project_foo = self.create_project(teams=[self.team], name='foo', slug='foo')
+        self.create_project(teams=[self.team], name='baz', slug='baz')
+
+        path = u'{}?query=slug:{}'.format(self.path, project_foo.slug)
+        response = self.client.get(path)
+        self.check_valid_response(response, [project_foo])
+
+        path = u'{}?query=slug:{} slug:{}'.format(self.path, project_bar.slug, project_foo.slug)
+        response = self.client.get(path)
+
+        self.check_valid_response(response, [project_bar, project_foo])
+
     def test_bookmarks_appear_first_across_pages(self):
         self.login_as(user=self.user)
 
