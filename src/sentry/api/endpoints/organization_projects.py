@@ -106,6 +106,8 @@ class OrganizationProjectsEndpoint(OrganizationEndpoint, EnvironmentMixin):
                     queryset = queryset.filter(Q(name__icontains=value) | Q(slug__icontains=value))
                 elif key == 'id':
                     queryset = queryset.filter(id__in=value)
+                elif key == 'slug':
+                    queryset = queryset.filter(slug__in=value)
                 elif key == "team":
                     team_list = list(Team.objects.filter(slug__in=value))
                     queryset = queryset.filter(teams__in=team_list)
