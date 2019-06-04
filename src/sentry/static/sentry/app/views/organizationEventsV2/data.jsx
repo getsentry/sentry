@@ -10,7 +10,7 @@ import ProjectBadge from 'app/components/idBadge/projectBadge';
 import UserBadge from 'app/components/idBadge/userBadge';
 import DateTime from 'app/components/dateTime';
 
-import {QueryLink} from './styles';
+import {QueryButton} from './styles';
 
 export const ALL_VIEWS = deepFreeze([
   {
@@ -82,9 +82,9 @@ export const SPECIAL_FIELDS = {
   type: {
     fields: ['event.type'],
     renderFunc: (data, {onSearch}) => (
-      <QueryLink onClick={() => onSearch(`event.type:${data['event.type']}`)}>
+      <QueryButton onClick={() => onSearch(`event.type:${data['event.type']}`)}>
         {data['event.type']}
-      </QueryLink>
+      </QueryButton>
     ),
   },
   project: {
@@ -117,7 +117,9 @@ export const SPECIAL_FIELDS = {
         return <Container>{badge}</Container>;
       }
 
-      return <QueryLink onClick={() => onSearch(`user:${data.user}`)}>{badge}</QueryLink>;
+      return (
+        <QueryButton onClick={() => onSearch(`user:${data.user}`)}>{badge}</QueryButton>
+      );
     },
   },
   time: {
