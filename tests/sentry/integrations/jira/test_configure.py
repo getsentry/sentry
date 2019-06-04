@@ -11,7 +11,7 @@ from sentry.testutils import APITestCase
 from sentry.utils.http import absolute_uri
 
 
-PERMISSIONS_WARNING = 'You must have Owner or Manager permissions in Sentry to complete setup.'
+PERMISSIONS_WARNING = 'You must be an organization owner or manager in Sentry to complete setup.'
 REFRESH_REQUIRED = 'This page has expired, please refresh to configure your Sentry integration'
 LOGIN_REQUIRED = 'Please login to your Sentry account to access the Sentry Add-on configuration'
 ORGANIZATIONS_FORM = 'Enabled Sentry Organizations'

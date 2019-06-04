@@ -1,9 +1,12 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-
 import styled from 'react-emotion';
+
+import DropdownBubble from 'app/components/dropdownBubble';
 import DropdownButton from 'app/components/dropdownButton';
 import DropdownMenu from 'app/components/dropdownMenu';
+import MenuItem from 'app/components/menuItem';
+import space from 'app/styles/space';
 
 /*
  * A higher level dropdown component that helps with building complete dropdowns
@@ -25,28 +28,44 @@ class DropdownControl extends React.Component {
     // Should the menu contents always be rendered?  Defaults to true.
     // Set to false to have menu contents removed from the DOM on close.
     alwaysRenderMenu: PropTypes.bool,
+    // Align the dropdown menu to the right. (Default aligns to left)
+    alignRight: PropTypes.bool,
+    // Props to pass to DropdownButton
+    buttonProps: PropTypes.object,
+    // This makes the dropdown menu blend (e.g. corners are not rounded) with its
+    // actor (opener) component
+    blendWithActor: PropTypes.bool,
   };
 
   static defaultProps = {
-    menuOffset: '39px',
     alwaysRenderMenu: true,
     menuWidth: '100%',
   };
 
   renderButton(isOpen, getActorProps) {
-    const {label, button} = this.props;
+    const {label, button, buttonProps} = this.props;
     if (button) {
       return button({isOpen, getActorProps});
     }
     return (
-      <StyledDropdownButton {...getActorProps({isStyled: true})} isOpen={isOpen}>
+      <StyledDropdownButton
+        {...getActorProps({...buttonProps, isStyled: true})}
+        isOpen={isOpen}
+      >
         {label}
       </StyledDropdownButton>
     );
   }
 
   render() {
-    const {children, alwaysRenderMenu, menuOffset, menuWidth} = this.props;
+    const {
+      children,
+      alwaysRenderMenu,
+      alignRight,
+      menuOffset,
+      menuWidth,
+      blendWithActor,
+    } = this.props;
 
     return (
       <Container>
@@ -57,9 +76,12 @@ class DropdownControl extends React.Component {
                 {this.renderButton(isOpen, getActorProps)}
                 <MenuContainer
                   {...getMenuProps({isStyled: true})}
-                  menuWidth={menuWidth}
+                  alignMenu={alignRight ? 'right' : 'left'}
+                  width={menuWidth}
                   menuOffset={menuOffset}
                   isOpen={isOpen}
+                  blendCorner
+                  blendWithActor={blendWithActor}
                 >
                   {children}
                 </MenuContainer>
@@ -85,23 +107,31 @@ const StyledDropdownButton = styled(
   font-weight: normal;
 `;
 
-const MenuContainer = styled('ul')`
+const MenuContainer = styled(DropdownBubble.withComponent('ul'))`
   list-style: none;
-  width: ${p => p.menuWidth};
-
-  position: absolute;
-  top: ${p => p.menuOffset};
   padding: 0;
   margin: 0;
-  z-index: ${p => p.theme.zIndex.dropdownAutocomplete.menu};
-
-  background: ${p => p.theme.background};
-  border-radius: ${p => p.theme.borderRadiusBottom};
-  box-shadow: ${p => p.theme.dropShadowLight};
-  border: 1px solid ${p => p.theme.borderDark};
-  overflow: hidden;
-
   display: ${p => (p.isOpen ? 'block' : 'none')};
 `;
 
+const DropdownItem = styled(MenuItem)`
+  font-size: ${p => p.theme.fontSizeMedium};
+  color: ${p => p.theme.gray2};
+
+  & a {
+    color: ${p => p.theme.foreground};
+    display: block;
+    padding: ${space(0.5)} ${space(2)};
+  }
+  & a:hover {
+    background: ${p => p.theme.offWhite};
+  }
+  &.active a,
+  &.active a:hover {
+    color: ${p => p.theme.white};
+    background: ${p => p.theme.purple};
+  }
+`;
+
 export default DropdownControl;
+export {DropdownItem};

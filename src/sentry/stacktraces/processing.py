@@ -8,11 +8,9 @@ from django.utils import timezone
 from collections import namedtuple, OrderedDict
 
 from sentry.models import Project, Release
-from sentry.utils.in_app import is_known_third_party
 from sentry.utils.cache import cache
 from sentry.utils.hashlib import hash_values
 from sentry.utils.safe import get_path, safe_execute
-from sentry.stacktraces.platform import get_behavior_family_for_platform
 from sentry.stacktraces.functions import trim_function_name
 
 
@@ -216,19 +214,6 @@ def _normalize_in_app(stacktrace, platform=None, sdk_info=None):
     """
     Ensures consistent values of in_app across a stacktrace.
     """
-    # Native frames have special rules regarding in_app. Apply them before other
-    # normalization, just like grouping enhancers.
-    # TODO(ja): Clean up those rules and put them in enhancers instead
-    for frame in stacktrace:
-        if frame.get('in_app') is not None:
-            continue
-
-        family = get_behavior_family_for_platform(frame.get('platform') or platform)
-        if family == 'native':
-            frame_package = frame.get('package')
-            frame['in_app'] = bool(frame_package) and \
-                not is_known_third_party(frame_package, sdk_info=sdk_info)
-
     has_system_frames = _has_system_frames(stacktrace)
     for frame in stacktrace:
         # If all frames are in_app, flip all of them. This is expected by the UI
@@ -355,12 +340,25 @@ def process_single_stacktrace(processing_task, stacktrace_info, processable_fram
     processed_frames = []
     all_errors = []
 
-    for processable_frame in processable_frames:
-        try:
-            rv = processable_frame.processor.process_frame(processable_frame, processing_task)
-        except Exception:
-            logger.exception('Failed to process frame')
-            rv = None
+    bare_frames = get_path(stacktrace_info.stacktrace, 'frames', filter=True, default=())
+    frame_count = len(bare_frames)
+    processable_frames = {frame.idx: frame for frame in processable_frames}
+
+    for i, bare_frame in enumerate(bare_frames):
+        idx = frame_count - i - 1
+        rv = None
+
+        if idx in processable_frames:
+            processable_frame = processable_frames[idx]
+            assert processable_frame.frame is bare_frame
+            try:
+                rv = processable_frame.processor.process_frame(
+                    processable_frame,
+                    processing_task
+                )
+            except Exception:
+                logger.exception('Failed to process frame')
+
         expand_processed, expand_raw, errors = rv or (None, None, None)
 
         if expand_processed is not None:
@@ -370,13 +368,13 @@ def process_single_stacktrace(processing_task, stacktrace_info, processable_fram
             processed_frames.extend(expand_raw)
             changed_processed = True
         else:
-            processed_frames.append(processable_frame.frame)
+            processed_frames.append(bare_frame)
 
         if expand_raw is not None:
             raw_frames.extend(expand_raw)
             changed_raw = True
         else:
-            raw_frames.append(processable_frame.frame)
+            raw_frames.append(bare_frame)
         all_errors.extend(errors or ())
 
     return (

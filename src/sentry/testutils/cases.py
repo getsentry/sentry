@@ -256,9 +256,15 @@ class BaseTestCase(Fixtures, Exam):
                 **extra
             )
 
-    def _postMinidumpWithHeader(self, upload_file_minidump, data=None, key=None, **extra):
-        data = dict(data or {})
-        data['upload_file_minidump'] = upload_file_minidump
+    def _postMinidumpWithHeader(self, upload_file_minidump, data=None,
+                                key=None, raw=False, **extra):
+        if raw:
+            data = upload_file_minidump.read()
+            extra.setdefault('content_type', 'application/octet-stream')
+        else:
+            data = dict(data or {})
+            data['upload_file_minidump'] = upload_file_minidump
+
         path = reverse('sentry-api-minidump', kwargs={'project_id': self.project.id})
         path += '?sentry_key=%s' % self.projectkey.public_key
         with self.tasks():
@@ -281,6 +287,30 @@ class BaseTestCase(Fixtures, Exam):
                 data=upload_unreal_crash,
                 content_type='application/octet-stream',
                 HTTP_USER_AGENT=DEFAULT_USER_AGENT,
+                **extra
+            )
+
+    def _postEventAttachmentWithHeader(self, attachment, **extra):
+        path = reverse(
+            'sentry-api-event-attachment',
+            kwargs={
+                'project_id': self.project.id,
+                'event_id': self.event.id})
+
+        key = self.projectkey.public_key
+        secret = self.projectkey.secret_key
+
+        with self.tasks():
+            return self.client.post(
+                path,
+                attachment,
+                # HTTP_USER_AGENT=DEFAULT_USER_AGENT,
+                HTTP_X_SENTRY_AUTH=get_auth_header(
+                    '_postWithHeader/0.0.0',
+                    key,
+                    secret,
+                    7,
+                ),
                 **extra
             )
 
@@ -619,12 +649,12 @@ class PermissionTestCase(TestCase):
         self.team = self.create_team(organization=self.organization)
 
     def assert_can_access(self, user, path, method='GET', **kwargs):
-        self.login_as(user)
+        self.login_as(user, superuser=user.is_superuser)
         resp = getattr(self.client, method.lower())(path, **kwargs)
         assert resp.status_code >= 200 and resp.status_code < 300
 
     def assert_cannot_access(self, user, path, method='GET', **kwargs):
-        self.login_as(user)
+        self.login_as(user, superuser=user.is_superuser)
         resp = getattr(self.client, method.lower())(path, **kwargs)
         assert resp.status_code >= 300
 

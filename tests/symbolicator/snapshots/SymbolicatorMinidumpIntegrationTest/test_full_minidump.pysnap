@@ -1,5 +1,5 @@
 ---
-created: '2019-05-08T12:46:10.449505Z'
+created: '2019-06-03T14:50:05.902803Z'
 creator: sentry
 source: tests/symbolicator/test_minidump_full.py
 ---
@@ -137,7 +137,7 @@ debug_meta:
 errors:
 - name: timestamp
   type: past_timestamp
-  value: 1521713273.0
+  value: 1521713273
 exception:
   values:
   - mechanism:

@@ -109,3 +109,22 @@ def slugify_instance(inst, label, reserved=(), max_length=30, field_name='slug',
 
     # If at this point, we've exhausted all possibilities, we'll just end up hitting
     # an IntegrityError from database, which is ok, and unlikely to happen
+
+
+class Creator(object):
+    """
+    A descriptor that invokes `to_python` when attributes are set.
+    This provides backwards compatibility for fields that used to use
+    SubfieldBase which will be removed in Django1.10
+    """
+
+    def __init__(self, field):
+        self.field = field
+
+    def __get__(self, obj, type=None):
+        if obj is None:
+            return self
+        return obj.__dict__[self.field.name]
+
+    def __set__(self, obj, value):
+        obj.__dict__[self.field.name] = self.field.to_python(value)

@@ -63,9 +63,8 @@ class OrganizationIndexEndpoint(Endpoint):
         user bound context.  For API key based requests this will
         only return the organization that belongs to the key.
 
-        :qparam bool member: restrict results to organizations which you have
-                             membership
-        :qparam bool owner: restrict results to organizations which are owner
+        :qparam bool owner: restrict results to organizations in which you are
+                            an organization owner
 
         :auth: required
         """

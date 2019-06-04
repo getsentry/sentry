@@ -76,7 +76,7 @@ class OrganizationMember(Model):
     user = FlexibleForeignKey(
         settings.AUTH_USER_MODEL, null=True, blank=True, related_name="sentry_orgmember_set"
     )
-    email = models.EmailField(null=True, blank=True)
+    email = models.EmailField(null=True, blank=True, max_length=75)
     role = models.CharField(
         choices=roles.get_choices(),
         max_length=32,

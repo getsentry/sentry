@@ -157,7 +157,7 @@ describe('OrganizationIntegrations', () => {
     });
 
     it('sorts Sentry App Integrations among Integrations, alphabetically', () => {
-      const rows = wrapper.find('IntegrationRow');
+      const rows = wrapper.find('[data-test-id="integration-row"]');
 
       expect(rows.length).toBe(4);
 
@@ -265,6 +265,27 @@ describe('OrganizationIntegrations', () => {
       });
     });
 
+    describe('internal apps are separate', () => {
+      it('renders internal sentry app', () => {
+        const internalApp = {...sentryApp, status: 'internal'};
+        Client.addMockResponse({
+          url: `/organizations/${org.slug}/sentry-apps/`,
+          body: [internalApp],
+        });
+        Client.addMockResponse({
+          url: '/sentry-apps/',
+          body: [],
+        });
+        wrapper = mount(
+          <OrganizationIntegrations organization={org} params={params} />,
+          routerContext
+        );
+        expect(
+          wrapper.find('Panel [data-test-id="internal-integration-row"]').exists()
+        ).toBe(true);
+      });
+    });
+
     describe('with installed integrations', () => {
       let updatedIntegration;
 
@@ -367,9 +388,7 @@ describe('OrganizationIntegrations', () => {
       it('displays an Update when the Plugin is enabled but a new Integration is not', () => {
         expect(
           wrapper
-            .find('ProviderRow')
-            .filterWhere(n => n.key() === 'vsts')
-            .find('Button')
+            .find('ProviderRow PanelItem[data-test-id="vsts"] Button')
             .first()
             .text()
         ).toBe('Update');
@@ -378,9 +397,7 @@ describe('OrganizationIntegrations', () => {
       it('displays Add Another button when both Integration and Plugin are enabled', () => {
         expect(
           wrapper
-            .find('ProviderRow')
-            .filterWhere(n => n.key() === 'github')
-            .find('Button')
+            .find('ProviderRow PanelItem[data-test-id="github"] Button')
             .first()
             .text()
         ).toBe('Add Another');
@@ -389,9 +406,7 @@ describe('OrganizationIntegrations', () => {
       it('display an Install button when its not an upgradable Integration', () => {
         expect(
           wrapper
-            .find('ProviderRow')
-            .filterWhere(n => n.key() === 'jira')
-            .find('Button')
+            .find('ProviderRow PanelItem[data-test-id="jira"] Button')
             .first()
             .text()
         ).toBe('Install');

@@ -5,7 +5,7 @@ import styled from 'react-emotion';
 
 import {t} from 'app/locale';
 import IntegrationIcon from 'app/views/organizationIntegrations/integrationIcon';
-import Tooltip2 from 'app/components/tooltip2';
+import Tooltip from 'app/components/tooltip';
 import space from 'app/styles/space';
 
 export default class IntegrationItem extends React.Component {
@@ -26,13 +26,13 @@ export default class IntegrationItem extends React.Component {
           <IntegrationName data-test-id="integration-name">
             {integration.name}
             {integration.status === 'disabled' && (
-              <Tooltip2
+              <Tooltip
                 title={t(
                   'This Integration has been disconnected from the external provider'
                 )}
               >
                 <small> — {t('Disabled')}</small>
-              </Tooltip2>
+              </Tooltip>
             )}
           </IntegrationName>
           <DomainName compact={compact}>{integration.domainName}</DomainName>

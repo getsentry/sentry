@@ -13,9 +13,10 @@ import LoadingIndicator from 'app/components/loadingIndicator';
 import MigrationWarnings from 'app/views/organizationIntegrations/migrationWarnings';
 import PermissionAlert from 'app/views/settings/organization/permissionAlert';
 import ProviderRow from 'app/views/organizationIntegrations/providerRow';
-import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import SentryAppInstallations from 'app/views/organizationIntegrations/sentryAppInstallations';
+import SentryApplicationRow from 'app/views/settings/organizationDeveloperSettings/sentryApplicationRow';
 import SentryTypes from 'app/sentryTypes';
+import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import withOrganization from 'app/utils/withOrganization';
 
 class OrganizationIntegrations extends AsyncComponent {
@@ -134,19 +135,18 @@ class OrganizationIntegrations extends AsyncComponent {
 
   renderProvider(provider) {
     return (
-      <IntegrationRow key={`row-${provider.key}`}>
-        <ProviderRow
-          key={provider.key}
-          provider={provider}
-          orgId={this.props.params.orgId}
-          integrations={provider.integrations}
-          onInstall={this.onInstall}
-          onRemove={this.onRemove}
-          onDisable={this.onDisable}
-          onReinstall={this.onInstall}
-          enabledPlugins={this.enabledPlugins}
-        />
-      </IntegrationRow>
+      <ProviderRow
+        key={`row-${provider.key}`}
+        data-test-id="integration-row"
+        provider={provider}
+        orgId={this.props.params.orgId}
+        integrations={provider.integrations}
+        onInstall={this.onInstall}
+        onRemove={this.onRemove}
+        onDisable={this.onDisable}
+        onReinstall={this.onInstall}
+        enabledPlugins={this.enabledPlugins}
+      />
     );
   }
 
@@ -155,14 +155,29 @@ class OrganizationIntegrations extends AsyncComponent {
     const {appInstalls} = this.state;
 
     return (
-      <IntegrationRow key={`row-${key}`}>
-        <SentryAppInstallations
-          key={key}
-          organization={organization}
-          installs={appInstalls}
-          applications={apps}
-        />
-      </IntegrationRow>
+      <SentryAppInstallations
+        key={`sentry-app-row-${key}`}
+        data-test-id="integration-row"
+        api={this.api}
+        organization={organization}
+        installs={appInstalls}
+        applications={apps}
+      />
+    );
+  }
+
+  renderInternalSentryApps(app, key) {
+    const {organization} = this.props;
+    return (
+      <SentryApplicationRow
+        key={`sentry-app-row-${key}`}
+        data-test-id="internal-integration-row"
+        api={this.api}
+        showPublishStatus
+        isInternal
+        organization={organization}
+        app={app}
+      />
     );
   }
 
@@ -174,7 +189,10 @@ class OrganizationIntegrations extends AsyncComponent {
     const orgOwned = orgOwnedApps.filter(app => {
       return !published.find(p => p.slug == app.slug);
     });
-    const applications = published.concat(orgOwned);
+    const orgOwnedInternal = orgOwned.filter(app => {
+      return app.status === 'internal';
+    });
+    const applications = published.concat(orgOwned.filter(a => a.status !== 'internal'));
 
     const installedProviders = this.providers
       .filter(p => p.isInstalled)
@@ -191,6 +209,10 @@ class OrganizationIntegrations extends AsyncComponent {
     const uninstalledSentryApps = (applications || [])
       .filter(a => !appInstalls.find(i => i.app.slug === a.slug))
       .map(a => [a.name, this.renderSentryApps([a], a.slug)]);
+
+    const internalSentryApps = (orgOwnedInternal || []).map(a => [
+      this.renderInternalSentryApps(a, a.slug),
+    ]);
 
     // Combine the list of Providers and Sentry Apps that have installations.
     const installed = installedProviders
@@ -227,12 +249,22 @@ class OrganizationIntegrations extends AsyncComponent {
             {uninstalled}
           </PanelBody>
         </Panel>
+
+        {internalSentryApps.length > 0 && (
+          <Panel>
+            <PanelHeader disablePadding>
+              <Box px={2} flex="1">
+                {t('Internal Integrations')}
+              </Box>
+              {reloading && <StyledLoadingIndicator mini />}
+            </PanelHeader>
+            <PanelBody>{internalSentryApps}</PanelBody>
+          </Panel>
+        )}
       </React.Fragment>
     );
   }
 }
-
-const IntegrationRow = styled('div')``;
 
 const StyledLoadingIndicator = styled(LoadingIndicator)`
   position: absolute;

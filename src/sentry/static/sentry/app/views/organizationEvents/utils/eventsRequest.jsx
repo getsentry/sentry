@@ -84,10 +84,20 @@ class EventsRequest extends React.PureComponent {
      */
     timeAggregationSeriesName: PropTypes.string,
 
-    // Initial loading state
+    /**
+     * Initial loading state
+     */
     loading: PropTypes.bool,
 
+    /**
+     * Should loading be shown.
+     */
     showLoading: PropTypes.bool,
+
+    /**
+     * The yAxis being plotted
+     */
+    yAxis: PropTypes.string,
   };
 
   static defaultProps = {
@@ -229,7 +239,7 @@ class EventsRequest extends React.PureComponent {
   transformTimeseriesData = data => {
     return [
       {
-        seriesName: 'Events',
+        seriesName: 'Current Period',
         data: data.map(([timestamp, countsForTimestamp]) => ({
           name: timestamp * 1000,
           value: countsForTimestamp.reduce((acc, {count}) => acc + count, 0),

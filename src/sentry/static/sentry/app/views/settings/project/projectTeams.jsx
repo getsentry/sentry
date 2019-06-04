@@ -3,14 +3,13 @@ import styled, {css} from 'react-emotion';
 
 import {addErrorMessage} from 'app/actionCreators/indicator';
 import {addTeamToProject, removeTeamFromProject} from 'app/actionCreators/projects';
-import {getOrganizationState} from 'app/mixins/organizationState';
 import {openCreateTeamModal} from 'app/actionCreators/modal';
 import {t} from 'app/locale';
 import AsyncView from 'app/views/asyncView';
 import Link from 'app/components/links/link';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import TeamSelect from 'app/views/settings/components/teamSelect';
-import Tooltip2 from 'app/components/tooltip2';
+import Tooltip from 'app/components/tooltip';
 import space from 'app/styles/space';
 
 class ProjectTeams extends AsyncView {
@@ -21,7 +20,7 @@ class ProjectTeams extends AsyncView {
 
   canCreateTeam = () => {
     const {organization} = this.props;
-    const access = getOrganizationState(organization).getAccess();
+    const access = new Set(organization.access);
     return (
       access.has('org:write') && access.has('team:write') && access.has('project:write')
     );
@@ -108,7 +107,7 @@ class ProjectTeams extends AsyncView {
     const hasAccess = organization.access.includes('project:write');
     const confirmRemove = t(
       'This is the last team with access to this project. Removing it will mean ' +
-        'only owners and managers will be able to access the project pages. Are ' +
+        'only organization owners and managers will be able to access the project pages. Are ' +
         'you sure you want to remove this team from the project %s?',
       params.projectId
     );
@@ -117,7 +116,7 @@ class ProjectTeams extends AsyncView {
     const menuHeader = (
       <StyledTeamsLabel>
         {t('Teams')}
-        <Tooltip2
+        <Tooltip
           disabled={canCreateTeam}
           title={t('You must be a project admin to create teams')}
           position="top"
@@ -125,7 +124,7 @@ class ProjectTeams extends AsyncView {
           <StyledCreateTeamLink disabled={!canCreateTeam} onClick={this.handleCreateTeam}>
             {t('Create Team')}
           </StyledCreateTeamLink>
-        </Tooltip2>
+        </Tooltip>
       </StyledTeamsLabel>
     );
 

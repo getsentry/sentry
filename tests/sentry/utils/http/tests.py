@@ -321,6 +321,12 @@ class IsValidErrorMessageTestCase(TestCase):
         assert self.is_valid_error_message(None, ['ImportError*'])
         assert self.is_valid_error_message({}, ['ImportError*'])
 
+    def test_bad_characters_in_pattern(self):
+        patterns = [
+            u"*google_tag_manager['GTM-3TL3'].macro(...)*",
+        ]
+        assert self.is_valid_error_message('it bad', patterns)
+
 
 class OriginFromRequestTestCase(TestCase):
     def test_nothing(self):

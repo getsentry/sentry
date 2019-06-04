@@ -92,6 +92,8 @@ class AuditLogEntryEvent(object):
     MONITOR_EDIT = 121
     MONITOR_REMOVE = 122
 
+    INTERNAL_INTEGRATION_ADD = 130
+
 
 class AuditLogEntry(Model):
     __core__ = False
@@ -163,6 +165,7 @@ class AuditLogEntry(Model):
             (AuditLogEntryEvent.SENTRY_APP_REMOVE, 'sentry-app.remove'),
             (AuditLogEntryEvent.SENTRY_APP_INSTALL, 'sentry-app.install'),
             (AuditLogEntryEvent.SENTRY_APP_UNINSTALL, 'sentry-app.uninstall'),
+            (AuditLogEntryEvent.INTERNAL_INTEGRATION_ADD, 'internal-integration.create'),
 
             (AuditLogEntryEvent.SET_ONDEMAND, 'ondemand.edit'),
             (AuditLogEntryEvent.TRIAL_STARTED, 'trial.started'),
@@ -265,11 +268,11 @@ class AuditLogEntry(Model):
         elif self.event == AuditLogEntryEvent.PROJECT_ACCEPT_TRANSFER:
             return 'accepted transfer of project %s' % (self.data['slug'], )
         elif self.event == AuditLogEntryEvent.PROJECT_ENABLE:
-            if isinstance(self.data['state'], six.string_types):
+            if isinstance(self.data['state'], set):
                 return 'enabled project filter %s' % (self.data['state'], )
             return 'enabled project filter %s' % (', '.join(self.data["state"]),)
         elif self.event == AuditLogEntryEvent.PROJECT_DISABLE:
-            if isinstance(self.data['state'], six.string_types):
+            if isinstance(self.data['state'], set):
                 return 'disabled project filter %s' % (self.data['state'], )
             return 'disabled project filter %s' % (', '.join(self.data["state"]),)
 

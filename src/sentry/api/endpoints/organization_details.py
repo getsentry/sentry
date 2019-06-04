@@ -40,6 +40,8 @@ ORG_OPTIONS = (
      bool, org_serializers.REQUIRE_SCRUB_DEFAULTS_DEFAULT),
     ('storeCrashReports', 'sentry:store_crash_reports',
      bool, org_serializers.STORE_CRASH_REPORTS_DEFAULT),
+    ('attachmentsRole', 'sentry:attachments_role',
+     six.text_type, org_serializers.ATTACHMENTS_ROLE_DEFAULT),
     ('scrubIPAddresses', 'sentry:require_scrub_ip_address',
      bool, org_serializers.REQUIRE_SCRUB_IP_ADDRESS_DEFAULT),
     ('trustedRelays', 'sentry:trusted-relays', list, org_serializers.TRUSTED_RELAYS_DEFAULT),
@@ -89,11 +91,11 @@ class OrganizationSerializer(serializers.Serializer):
     sensitiveFields = ListField(child=serializers.CharField(), required=False)
     safeFields = ListField(child=serializers.CharField(), required=False)
     storeCrashReports = serializers.BooleanField(required=False)
+    attachmentsRole = serializers.CharField(required=True)
     scrubIPAddresses = serializers.BooleanField(required=False)
     scrapeJavaScript = serializers.BooleanField(required=False)
     isEarlyAdopter = serializers.BooleanField(required=False)
     require2FA = serializers.BooleanField(required=False)
-    disableNewVisibilityFeatures = serializers.BooleanField(required=False)
     trustedRelays = ListField(child=serializers.CharField(), required=False)
 
     @memoize
@@ -139,6 +141,14 @@ class OrganizationSerializer(serializers.Serializer):
         value = attrs[source]
         if value and not all(value):
             raise serializers.ValidationError('Empty values are not allowed.')
+        return attrs
+
+    def validate_attachmentsRole(self, attrs, source):
+        value = attrs[source]
+        try:
+            roles.get(value)
+        except KeyError:
+            raise serializers.ValidationError('Invalid role')
         return attrs
 
     def validate_require2FA(self, attrs, source):
@@ -231,8 +241,6 @@ class OrganizationSerializer(serializers.Serializer):
             org.flags.enhanced_privacy = self.init_data['enhancedPrivacy']
         if 'isEarlyAdopter' in self.init_data:
             org.flags.early_adopter = self.init_data['isEarlyAdopter']
-        if 'disableNewVisibilityFeatures' in self.init_data:
-            org.flags.disable_new_visibility_features = self.init_data['disableNewVisibilityFeatures']
         if 'require2FA' in self.init_data:
             org.flags.require_2fa = self.init_data['require2FA']
         if 'name' in self.init_data:

@@ -65,7 +65,7 @@ describe('Organization Developer Settings', function() {
 
     it('displays all Apps owned by the Org', () => {
       expect(wrapper.find('SentryApplicationRow').prop('app').name).toBe('Sample App');
-      expect(wrapper.find('PublishStatus').prop('published')).toBe(false);
+      expect(wrapper.find('PublishStatus').prop('status')).toBe('unpublished');
     });
 
     it('allows for deletion', async () => {
@@ -105,11 +105,29 @@ describe('Organization Developer Settings', function() {
     );
 
     it('shows the published status', () => {
-      expect(wrapper.find('PublishStatus').prop('published')).toBe(true);
+      expect(wrapper.find('PublishStatus').prop('status')).toBe('published');
     });
 
     it('trash button is disabled', () => {
       expect(wrapper.find('[icon="icon-trash"]').prop('disabled')).toEqual(true);
+    });
+  });
+
+  describe('with Internal Integrations', () => {
+    const internalIntegration = TestStubs.SentryApp({status: 'internal'});
+
+    Client.addMockResponse({
+      url: `/organizations/${org.slug}/sentry-apps/`,
+      body: [internalIntegration],
+    });
+
+    const wrapper = mount(
+      <OrganizationDeveloperSettings params={{orgId: org.slug}} organization={org} />,
+      routerContext
+    );
+
+    it('allows deleting', () => {
+      expect(wrapper.find('[icon="icon-trash"]').prop('disabled')).toEqual(false);
     });
   });
 

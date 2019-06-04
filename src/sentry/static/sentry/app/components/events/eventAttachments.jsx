@@ -2,11 +2,13 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import {Box} from 'grid-emotion';
 
+import Button from 'app/components/button';
 import FileSize from 'app/components/fileSize';
 
 import {t} from 'app/locale';
 import {Panel, PanelBody, PanelItem} from 'app/components/panels';
 import withApi from 'app/utils/withApi';
+import AttachmentUrl from 'app/utils/attachmentUrl';
 
 class EventAttachments extends React.Component {
   static propTypes = {
@@ -63,13 +65,6 @@ class EventAttachments extends React.Component {
     );
   }
 
-  getDownloadUrl(attachment) {
-    const {orgId, event, projectId} = this.props;
-    return `/api/0/projects/${orgId}/${projectId}/events/${event.id}/attachments/${
-      attachment.id
-    }/?download=1`;
-  }
-
   render() {
     const {attachmentList} = this.state;
     if (!(attachmentList && attachmentList.length)) {
@@ -92,12 +87,32 @@ class EventAttachments extends React.Component {
                       pr={1}
                       style={{wordWrap: 'break-word', wordBreak: 'break-all'}}
                     >
-                      <a href={this.getDownloadUrl(attachment)}>
-                        <strong>{attachment.name}</strong>
-                      </a>
+                      <strong>{attachment.name}</strong>
                     </Box>
                     <Box flex={1} textAlign="right">
                       <FileSize bytes={attachment.size} />
+                    </Box>
+                    <Box flex={1} textAlign="center">
+                      <AttachmentUrl
+                        projectId={this.props.projectId}
+                        event={this.props.event}
+                        attachment={attachment}
+                      >
+                        {downloadUrl => (
+                          <Button
+                            size="xsmall"
+                            icon="icon-download"
+                            href={downloadUrl}
+                            disabled={!downloadUrl}
+                            title={
+                              !downloadUrl &&
+                              t('Insufficient permissions to download attachments')
+                            }
+                          >
+                            {t('Download')}
+                          </Button>
+                        )}
+                      </AttachmentUrl>
                     </Box>
                   </PanelItem>
                 );

@@ -1,8 +1,0 @@
-## * The default configuration of stacktrace grouping enhancers
-
-# Sentry internal functions in Cocoa SDK
-family:native function:kscm_*                                     -app -group
-family:native function:kscrash_*                                  -app -group
-family:native function:"?[KSCrash *"                              -app -group
-family:native function:"?[SentryClient *"                         -app -group
-family:native function:"?[RNSentry *"                             -app -group

@@ -110,7 +110,7 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
         className="css-1go71fn"
         is={null}
       >
-        <Tooltip2
+        <Tooltip
           containerDisplayMode="inline-block"
           position="top"
           title="1 other users"
@@ -131,7 +131,7 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
                 >
                   <span
                     aria-describedby="tooltip-123456"
-                    className="css-1m3e0hg-Container e7ebgxc0"
+                    className="css-1m3e0hg-Container erna86q0"
                     onBlur={[Function]}
                     onFocus={[Function]}
                     onMouseEnter={[Function]}
@@ -159,7 +159,7 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
               </InnerReference>
             </Reference>
           </Manager>
-        </Tooltip2>
+        </Tooltip>
         <StyledAvatar
           hasTooltip={true}
           key="1-foo@example.com"
@@ -257,7 +257,7 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
                 type="letter_avatar"
                 uploadPath="avatar"
               >
-                <Tooltip2
+                <Tooltip
                   containerDisplayMode="inline-block"
                   disabled={false}
                   position="top"
@@ -279,7 +279,7 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
                         >
                           <span
                             aria-describedby="tooltip-123456"
-                            className="css-1m3e0hg-Container e7ebgxc0"
+                            className="css-1m3e0hg-Container erna86q0"
                             onBlur={[Function]}
                             onFocus={[Function]}
                             onMouseEnter={[Function]}
@@ -351,7 +351,7 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
                       </InnerReference>
                     </Reference>
                   </Manager>
-                </Tooltip2>
+                </Tooltip>
               </BaseAvatar>
             </UserAvatar>
           </Avatar>
@@ -453,7 +453,7 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
                 type="letter_avatar"
                 uploadPath="avatar"
               >
-                <Tooltip2
+                <Tooltip
                   containerDisplayMode="inline-block"
                   disabled={false}
                   position="top"
@@ -475,7 +475,7 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
                         >
                           <span
                             aria-describedby="tooltip-123456"
-                            className="css-1m3e0hg-Container e7ebgxc0"
+                            className="css-1m3e0hg-Container erna86q0"
                             onBlur={[Function]}
                             onFocus={[Function]}
                             onMouseEnter={[Function]}
@@ -547,7 +547,7 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
                       </InnerReference>
                     </Reference>
                   </Manager>
-                </Tooltip2>
+                </Tooltip>
               </BaseAvatar>
             </UserAvatar>
           </Avatar>
@@ -649,7 +649,7 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
                 type="letter_avatar"
                 uploadPath="avatar"
               >
-                <Tooltip2
+                <Tooltip
                   containerDisplayMode="inline-block"
                   disabled={false}
                   position="top"
@@ -671,7 +671,7 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
                         >
                           <span
                             aria-describedby="tooltip-123456"
-                            className="css-1m3e0hg-Container e7ebgxc0"
+                            className="css-1m3e0hg-Container erna86q0"
                             onBlur={[Function]}
                             onFocus={[Function]}
                             onMouseEnter={[Function]}
@@ -743,7 +743,7 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
                       </InnerReference>
                     </Reference>
                   </Manager>
-                </Tooltip2>
+                </Tooltip>
               </BaseAvatar>
             </UserAvatar>
           </Avatar>
@@ -845,7 +845,7 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
                 type="letter_avatar"
                 uploadPath="avatar"
               >
-                <Tooltip2
+                <Tooltip
                   containerDisplayMode="inline-block"
                   disabled={false}
                   position="top"
@@ -867,7 +867,7 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
                         >
                           <span
                             aria-describedby="tooltip-123456"
-                            className="css-1m3e0hg-Container e7ebgxc0"
+                            className="css-1m3e0hg-Container erna86q0"
                             onBlur={[Function]}
                             onFocus={[Function]}
                             onMouseEnter={[Function]}
@@ -939,7 +939,7 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
                       </InnerReference>
                     </Reference>
                   </Manager>
-                </Tooltip2>
+                </Tooltip>
               </BaseAvatar>
             </UserAvatar>
           </Avatar>
@@ -1041,7 +1041,7 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
                 type="letter_avatar"
                 uploadPath="avatar"
               >
-                <Tooltip2
+                <Tooltip
                   containerDisplayMode="inline-block"
                   disabled={false}
                   position="top"
@@ -1063,7 +1063,7 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
                         >
                           <span
                             aria-describedby="tooltip-123456"
-                            className="css-1m3e0hg-Container e7ebgxc0"
+                            className="css-1m3e0hg-Container erna86q0"
                             onBlur={[Function]}
                             onFocus={[Function]}
                             onMouseEnter={[Function]}
@@ -1135,7 +1135,7 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
                       </InnerReference>
                     </Reference>
                   </Manager>
-                </Tooltip2>
+                </Tooltip>
               </BaseAvatar>
             </UserAvatar>
           </Avatar>
@@ -1297,7 +1297,7 @@ exports[`AvatarList renders with user avatars 1`] = `
                 type="letter_avatar"
                 uploadPath="avatar"
               >
-                <Tooltip2
+                <Tooltip
                   containerDisplayMode="inline-block"
                   disabled={false}
                   position="top"
@@ -1319,7 +1319,7 @@ exports[`AvatarList renders with user avatars 1`] = `
                         >
                           <span
                             aria-describedby="tooltip-123456"
-                            className="css-1m3e0hg-Container e7ebgxc0"
+                            className="css-1m3e0hg-Container erna86q0"
                             onBlur={[Function]}
                             onFocus={[Function]}
                             onMouseEnter={[Function]}
@@ -1391,7 +1391,7 @@ exports[`AvatarList renders with user avatars 1`] = `
                       </InnerReference>
                     </Reference>
                   </Manager>
-                </Tooltip2>
+                </Tooltip>
               </BaseAvatar>
             </UserAvatar>
           </Avatar>
@@ -1493,7 +1493,7 @@ exports[`AvatarList renders with user avatars 1`] = `
                 type="letter_avatar"
                 uploadPath="avatar"
               >
-                <Tooltip2
+                <Tooltip
                   containerDisplayMode="inline-block"
                   disabled={false}
                   position="top"
@@ -1515,7 +1515,7 @@ exports[`AvatarList renders with user avatars 1`] = `
                         >
                           <span
                             aria-describedby="tooltip-123456"
-                            className="css-1m3e0hg-Container e7ebgxc0"
+                            className="css-1m3e0hg-Container erna86q0"
                             onBlur={[Function]}
                             onFocus={[Function]}
                             onMouseEnter={[Function]}
@@ -1587,7 +1587,7 @@ exports[`AvatarList renders with user avatars 1`] = `
                       </InnerReference>
                     </Reference>
                   </Manager>
-                </Tooltip2>
+                </Tooltip>
               </BaseAvatar>
             </UserAvatar>
           </Avatar>

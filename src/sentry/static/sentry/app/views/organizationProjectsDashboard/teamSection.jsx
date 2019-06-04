@@ -69,7 +69,7 @@ const TeamTitleBar = styled(Flex)`
 `;
 
 const TeamName = styled(PageHeading)`
-  margin: 4px;
+  font-size: 20px;
   line-height: 24px; /* We need this so that header doesn't flicker when lazy loading because avatarList height > this */
 `;
 

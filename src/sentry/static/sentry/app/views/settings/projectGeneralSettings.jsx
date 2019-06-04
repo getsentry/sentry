@@ -11,7 +11,6 @@ import {
   transferProject,
 } from 'app/actionCreators/projects';
 import {fields} from 'app/data/forms/projectGeneralSettings';
-import {getOrganizationState} from 'app/mixins/organizationState';
 import {t, tct} from 'app/locale';
 import AsyncView from 'app/views/asyncView';
 import Button from 'app/components/button';
@@ -92,11 +91,13 @@ class ProjectGeneralSettings extends AsyncView {
     }, handleXhrErrorResponse('Unable to transfer project'));
   };
 
+  isProjectAdmin = () => {
+    return new Set(this.context.organization.access).has('project:admin');
+  };
+
   renderRemoveProject() {
     const project = this.state.data;
-    const isProjectAdmin = getOrganizationState(this.context.organization)
-      .getAccess()
-      .has('project:admin');
+    const isProjectAdmin = this.isProjectAdmin();
     const {isInternal} = project;
 
     return (
@@ -150,9 +151,7 @@ class ProjectGeneralSettings extends AsyncView {
 
   renderTransferProject() {
     const project = this.state.data;
-    const isProjectAdmin = getOrganizationState(this.context.organization)
-      .getAccess()
-      .has('project:admin');
+    const isProjectAdmin = this.isProjectAdmin();
     const {isInternal} = project;
 
     return (
@@ -189,7 +188,7 @@ class ProjectGeneralSettings extends AsyncView {
                 </TextBlock>
                 <TextBlock>
                   {t(
-                    'Please enter the organization owner you would like to transfer this project to.'
+                    'Please enter the email of an organization owner to whom you would like to transfer this project.'
                   )}
                 </TextBlock>
                 <Panel>
@@ -206,11 +205,8 @@ class ProjectGeneralSettings extends AsyncView {
                       label={t('Organization Owner')}
                       placeholder="admin@example.com"
                       required
-                      help={tct(
-                        'A request will be emailed to the new owner in order to transfer [project] to a new organization.',
-                        {
-                          project: <strong> {project.slug} </strong>,
-                        }
+                      help={t(
+                        'A request will be emailed to this address, asking the organization owner to accept the project transfer.'
                       )}
                     />
                   </Form>

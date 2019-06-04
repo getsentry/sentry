@@ -103,6 +103,19 @@ class GitlabIntegration(IntegrationInstallation, GitlabIssueBasic, RepositoryMix
         client = self.get_client()
         return client.search_project_issues(project_id, query, iids)
 
+    def error_message_from_json(self, data):
+        """
+        Extract error messages from gitlab API errors.
+        Generic errors come in the `error` key while validation errors
+        are generally in `message`.
+
+        See https://docs.gitlab.com/ee/api/#data-validation-and-error-reporting
+        """
+        if 'message' in data:
+            return data['message']
+        if 'error' in data:
+            return data['error']
+
 
 class InstallationForm(forms.Form):
     url = forms.CharField(

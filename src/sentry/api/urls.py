@@ -49,6 +49,7 @@ from .endpoints.group_tombstone_details import GroupTombstoneDetailsEndpoint
 from .endpoints.group_tombstone import GroupTombstoneEndpoint
 from .endpoints.group_user_reports import GroupUserReportsEndpoint
 from .endpoints.organization_incident_details import OrganizationIncidentDetailsEndpoint
+from .endpoints.organization_incident_seen import OrganizationIncidentSeenEndpoint
 from .endpoints.index import IndexEndpoint
 from .endpoints.internal_queue_tasks import InternalQueueTasksEndpoint
 from .endpoints.internal_quotas import InternalQuotasEndpoint
@@ -70,7 +71,7 @@ from .endpoints.organization_details import OrganizationDetailsEndpoint
 from .endpoints.organization_discover_query import OrganizationDiscoverQueryEndpoint
 from .endpoints.organization_discover_saved_queries import OrganizationDiscoverSavedQueriesEndpoint
 from .endpoints.organization_discover_saved_query_detail import OrganizationDiscoverSavedQueryDetailEndpoint
-from .endpoints.organization_events import OrganizationEventsEndpoint, OrganizationEventsMetaEndpoint, OrganizationEventsStatsEndpoint
+from .endpoints.organization_events import OrganizationEventsEndpoint, OrganizationEventsMetaEndpoint, OrganizationEventsStatsEndpoint, OrganizationEventsHeatmapEndpoint
 from .endpoints.organization_group_index import OrganizationGroupIndexEndpoint
 from .endpoints.organization_dashboard_details import OrganizationDashboardDetailsEndpoint
 from .endpoints.organization_dashboard_widget_details import OrganizationDashboardWidgetDetailsEndpoint
@@ -80,7 +81,12 @@ from .endpoints.organization_shortid import ShortIdLookupEndpoint
 from .endpoints.organization_environments import OrganizationEnvironmentsEndpoint
 from .endpoints.organization_eventid import EventIdLookupEndpoint
 from .endpoints.organization_slugs import SlugsUpdateEndpoint
+from .endpoints.organization_incident_activity_index import OrganizationIncidentActivityIndexEndpoint
+from .endpoints.organization_incident_comment_index import OrganizationIncidentCommentIndexEndpoint
+from .endpoints.organization_incident_comment_details import OrganizationIncidentCommentDetailsEndpoint
 from .endpoints.organization_incident_index import OrganizationIncidentIndexEndpoint
+from .endpoints.organization_incident_subscription_index import OrganizationIncidentSubscriptionIndexEndpoint
+from .endpoints.organization_incident_suspects_index import OrganizationIncidentSuspectsIndexEndpoint
 from .endpoints.organization_issues_new import OrganizationIssuesNewEndpoint
 from .endpoints.organization_issues_resolved_in_release import OrganizationIssuesResolvedInReleaseEndpoint
 from .endpoints.organization_member_details import OrganizationMemberDetailsEndpoint
@@ -100,6 +106,7 @@ from .endpoints.organization_projects import OrganizationProjectsEndpoint
 from .endpoints.organization_recent_searches import OrganizationRecentSearchesEndpoint
 from .endpoints.organization_releases import OrganizationReleasesEndpoint
 from .endpoints.organization_release_details import OrganizationReleaseDetailsEndpoint
+from .endpoints.organization_release_assemble import OrganizationReleaseAssembleEndpoint
 from .endpoints.organization_release_files import OrganizationReleaseFilesEndpoint
 from .endpoints.organization_release_file_details import OrganizationReleaseFileDetailsEndpoint
 from .endpoints.organization_release_commits import OrganizationReleaseCommitsEndpoint
@@ -136,7 +143,7 @@ from .endpoints.project_environments import ProjectEnvironmentsEndpoint
 from .endpoints.project_environment_details import ProjectEnvironmentDetailsEndpoint
 from .endpoints.project_platforms import ProjectPlatformsEndpoint
 from .endpoints.project_events import ProjectEventsEndpoint
-from .endpoints.project_event_details import ProjectEventDetailsEndpoint
+from .endpoints.project_event_details import ProjectEventDetailsEndpoint, EventJsonEndpoint
 from .endpoints.project_filters import ProjectFiltersEndpoint
 from .endpoints.project_filter_details import ProjectFilterDetailsEndpoint
 from .endpoints.project_group_index import ProjectGroupIndexEndpoint
@@ -184,6 +191,7 @@ from .endpoints.release_deploys import ReleaseDeploysEndpoint
 from .endpoints.debug_files import DebugFilesEndpoint, DifAssembleEndpoint, \
     UnknownDebugFilesEndpoint, AssociateDSymFilesEndpoint
 from .endpoints.sentry_apps import SentryAppsEndpoint
+from .endpoints.sentry_app_features import SentryAppFeaturesEndpoint
 from .endpoints.sentry_apps_stats import SentryAppsStatsEndpoint
 from .endpoints.sentry_app_components import SentryAppComponentsEndpoint, \
     OrganizationSentryAppComponentsEndpoint
@@ -221,6 +229,7 @@ from .endpoints.event_file_committers import EventFileCommittersEndpoint
 from .endpoints.setup_wizard import SetupWizard
 from .endpoints.grouping_configs import GroupingConfigsEndpoint
 from .endpoints.grouping_enhancements import GroupingEnhancementsEndpoint
+from .endpoints.builtin_symbol_sources import BuiltinSymbolSourcesEndpoint
 
 
 urlpatterns = patterns(
@@ -415,14 +424,45 @@ urlpatterns = patterns(
 
     # Incidents
     url(
+        r'^organizations/(?P<organization_slug>[^\/]+)/incidents/(?P<incident_identifier>[^\/]+)/activity/$',
+        OrganizationIncidentActivityIndexEndpoint.as_view(),
+        name='sentry-api-0-organization-incident-activity'
+    ),
+    url(
+        r'^organizations/(?P<organization_slug>[^\/]+)/incidents/(?P<incident_identifier>[^\/]+)/comments/$',
+        OrganizationIncidentCommentIndexEndpoint.as_view(),
+        name='sentry-api-0-organization-incident-comments'
+    ),
+    url(
+        r'^organizations/(?P<organization_slug>[^\/]+)/incidents/(?P<incident_identifier>[^\/]+)/comments/(?P<activity_id>[^\/]+)/$',
+        OrganizationIncidentCommentDetailsEndpoint.as_view(),
+        name='sentry-api-0-organization-incident-comment-details'
+    ),
+    url(
+        r'^organizations/(?P<organization_slug>[^\/]+)/incidents/(?P<incident_identifier>[^\/]+)/$',
+        OrganizationIncidentDetailsEndpoint.as_view(),
+        name='sentry-api-0-organization-incident-details'
+    ),
+    url(
         r'^organizations/(?P<organization_slug>[^\/]+)/incidents/$',
         OrganizationIncidentIndexEndpoint.as_view(),
         name='sentry-api-0-organization-incident-index'
     ),
+
     url(
-        r'^organizations/(?P<organization_slug>[^\/]+)/incidents/(?P<incident_id>[^\/]+)/$',
-        OrganizationIncidentDetailsEndpoint.as_view(),
-        name='sentry-api-0-organization-incident-details'
+        r'^organizations/(?P<organization_slug>[^\/]+)/incidents/(?P<incident_identifier>[^\/]+)/seen/$',
+        OrganizationIncidentSeenEndpoint.as_view(),
+        name='sentry-api-0-organization-incident-seen'
+    ),
+    url(
+        r'^organizations/(?P<organization_slug>[^\/]+)/incidents/(?P<incident_identifier>[^\/]+)/subscriptions/$',
+        OrganizationIncidentSubscriptionIndexEndpoint.as_view(),
+        name='sentry-api-0-organization-incident-subscription-index'
+    ),
+    url(
+        r'^organizations/(?P<organization_slug>[^\/]+)/incidents/(?P<incident_identifier>[^\/]+)/suspects/$',
+        OrganizationIncidentSuspectsIndexEndpoint.as_view(),
+        name='sentry-api-0-organization-incident-suspect-index'
     ),
 
     # Organizations
@@ -571,6 +611,11 @@ urlpatterns = patterns(
         name='sentry-api-0-organization-events-stats'
     ),
     url(
+        r'^organizations/(?P<organization_slug>[^\/]+)/events-heatmap/$',
+        OrganizationEventsHeatmapEndpoint.as_view(),
+        name='sentry-api-0-organization-events-heatmap'
+    ),
+    url(
         r'^organizations/(?P<organization_slug>[^\/]+)/events-meta/$',
         OrganizationEventsMetaEndpoint.as_view(),
         name='sentry-api-0-organization-events-meta'
@@ -710,6 +755,11 @@ urlpatterns = patterns(
         r'^organizations/(?P<organization_slug>[^\/]+)/releases/(?P<version>[^/]+)/$',
         OrganizationReleaseDetailsEndpoint.as_view(),
         name='sentry-api-0-organization-release-details'
+    ),
+    url(
+        r'^organizations/(?P<organization_slug>[^\/]+)/releases/(?P<version>[^/]+)/assemble/$',
+        OrganizationReleaseAssembleEndpoint.as_view(),
+        name='sentry-api-0-organization-release-assemble'
     ),
     url(
         r'^organizations/(?P<organization_slug>[^\/]+)/releases/(?P<version>[^/]+)/files/$',
@@ -921,6 +971,11 @@ urlpatterns = patterns(
         r'^projects/(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/events/(?P<event_id>[\w-]+)/committers/$',
         EventFileCommittersEndpoint.as_view(),
         name='sentry-api-0-event-file-committers'
+    ),
+    url(
+        r'^projects/(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/events/(?P<event_id>[\w-]+)/json/$',
+        EventJsonEndpoint.as_view(),
+        name='sentry-api-0-event-json'
     ),
     url(
         r'^projects/(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/events/(?P<event_id>[\w-]+)/owners/$',
@@ -1298,6 +1353,11 @@ urlpatterns = patterns(
         name='sentry-api-0-sentry-app-details'
     ),
     url(
+        r'^sentry-apps/(?P<sentry_app_slug>[^\/]+)/features/$',
+        SentryAppFeaturesEndpoint.as_view(),
+        name='sentry-api-0-sentry-app-features'
+    ),
+    url(
         r'^sentry-apps/(?P<sentry_app_slug>[^\/]+)/components/$',
         SentryAppComponentsEndpoint.as_view(),
         name='sentry-api-0-sentry-app-components'
@@ -1321,6 +1381,12 @@ urlpatterns = patterns(
     url(
         r'^grouping-enhancements/$', GroupingEnhancementsEndpoint.as_view(),
         name='sentry-api-0-grouping-enhancements'
+    ),
+
+    # Symbolicator Builtin Sources
+    url(
+        r'^builtin-symbol-sources/$', BuiltinSymbolSourcesEndpoint.as_view(),
+        name='sentry-api-0-builtin-symbol-sources',
     ),
 
     # Internal

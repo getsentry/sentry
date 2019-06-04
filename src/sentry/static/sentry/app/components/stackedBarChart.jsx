@@ -4,7 +4,7 @@ import moment from 'moment-timezone';
 import _ from 'lodash';
 import styled, {cx} from 'react-emotion';
 
-import Tooltip2 from 'app/components/tooltip2';
+import Tooltip from 'app/components/tooltip';
 import Count from 'app/components/count';
 import ConfigStore from 'app/stores/configStore';
 import theme from 'app/utils/theme';
@@ -234,7 +234,7 @@ class StackedBarChart extends React.Component {
         viewBox="0 0 10 10"
         size={10}
       >
-        <Tooltip2 title={title} position="bottom">
+        <Tooltip title={title} position="bottom">
           <circle
             data-test-id="chart-column"
             r="4"
@@ -246,7 +246,7 @@ class StackedBarChart extends React.Component {
           >
             {marker.label}
           </circle>
-        </Tooltip2>
+        </Tooltip>
       </CircleSvg>
     );
   }
@@ -322,7 +322,7 @@ class StackedBarChart extends React.Component {
     const tooltipFunc = this.props.tooltip || this.renderTooltip;
 
     return (
-      <Tooltip2
+      <Tooltip
         title={tooltipFunc(this.state.pointIndex[pointIdx], pointIdx, this)}
         position="bottom"
         key={point.x}
@@ -336,7 +336,7 @@ class StackedBarChart extends React.Component {
           />
           {pts}
         </g>
-      </Tooltip2>
+      </Tooltip>
     );
   }
 

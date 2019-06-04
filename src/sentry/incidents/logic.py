@@ -1,17 +1,35 @@
 from __future__ import absolute_import
 
+from datetime import timedelta
+
+import six
 from django.db import transaction
+from django.utils import timezone
 
 from sentry.api.event_search import get_snuba_query_args
 from sentry.incidents.models import (
     Incident,
+    IncidentActivity,
+    IncidentActivityType,
     IncidentGroup,
     IncidentProject,
+    IncidentSeen,
+    IncidentStatus,
+    IncidentSubscription,
+    TimeSeriesSnapshot,
 )
+from sentry.incidents.tasks import send_subscriber_notifications
+from sentry.utils.committers import get_event_file_committers
 from sentry.utils.snuba import (
     raw_query,
     SnubaTSResult,
 )
+
+MAX_INITIAL_INCIDENT_PERIOD = timedelta(days=7)
+
+
+class StatusAlreadyChangedError(Exception):
+    pass
 
 
 def create_incident(
@@ -24,7 +42,9 @@ def create_incident(
     detection_uuid=None,
     projects=None,
     groups=None,
+    user=None,
 ):
+    assert status in (IncidentStatus.CREATED, IncidentStatus.DETECTED)
     if date_detected is None:
         date_detected = date_started
 
@@ -52,11 +72,152 @@ def create_incident(
             IncidentGroup.objects.bulk_create([
                 IncidentGroup(incident=incident, group=group) for group in groups
             ])
+
+        if status == IncidentStatus.CREATED:
+            activity_status = IncidentActivityType.CREATED
+        else:
+            activity_status = IncidentActivityType.DETECTED
+
+        event_stats_snapshot = create_initial_event_stats_snapshot(incident)
+        create_incident_activity(
+            incident,
+            activity_status,
+            event_stats_snapshot=event_stats_snapshot,
+            user=user,
+        )
     return incident
 
 
-def build_incident_query_params(incident):
-    params = {'start': incident.date_started, 'end': incident.current_end_date}
+def update_incident_status(incident, status, user=None, comment=None):
+    """
+    Updates the status of an Incident and write an IncidentActivity row to log
+    the change. When the status is CLOSED we also set the date closed to the
+    current time and (todo) take a snapshot of the current incident state.
+    """
+    if incident.status == status.value:
+        # If the status isn't actually changing just no-op.
+        raise StatusAlreadyChangedError()
+    with transaction.atomic():
+        create_incident_activity(
+            incident,
+            IncidentActivityType.STATUS_CHANGE,
+            user=user,
+            value=status.value,
+            previous_value=incident.status,
+            comment=comment,
+        )
+        if user:
+            subscribe_to_incident(incident, user)
+
+        kwargs = {
+            'status': status.value,
+        }
+        if status == IncidentStatus.CLOSED:
+            kwargs['date_closed'] = timezone.now()
+            # TODO: Take a snapshot of the current state once we implement
+            # snapshots
+        elif incident.status == IncidentStatus.CLOSED.value:
+            # If we're moving back out of closed status then unset the closed
+            # date
+            kwargs['date_closed'] = None
+            # TODO: Delete snapshot? Not sure if needed
+
+        incident.update(**kwargs)
+        return incident
+
+
+def set_incident_seen(incident, user=None):
+    """
+    Updates the incident to be seen
+    """
+    incident_seen, created = IncidentSeen.objects.create_or_update(
+        incident=incident,
+        user=user,
+        values={'last_seen': timezone.now()}
+    )
+
+    return incident_seen
+
+
+def create_initial_event_stats_snapshot(incident):
+    """
+    Creates an event snapshot representing the state at the beginning of
+    an incident. It's intended to capture the history of the events involved in
+    the incident, the spike and a short period of time after that.
+    """
+    initial_period_length = min(
+        timezone.now() - incident.date_started,
+        MAX_INITIAL_INCIDENT_PERIOD,
+    )
+    end = incident.date_started + initial_period_length
+    start = end - (initial_period_length * 8)
+    return create_event_stat_snapshot(incident, start, end)
+
+
+@transaction.atomic
+def create_incident_activity(
+    incident,
+    activity_type,
+    user=None,
+    value=None,
+    previous_value=None,
+    comment=None,
+    event_stats_snapshot=None,
+):
+    if activity_type == IncidentActivityType.COMMENT and user:
+        subscribe_to_incident(incident, user)
+    value = six.text_type(value) if value is not None else value
+    previous_value = six.text_type(previous_value) if previous_value is not None else previous_value
+    activity = IncidentActivity.objects.create(
+        incident=incident,
+        type=activity_type.value,
+        user=user,
+        value=value,
+        previous_value=previous_value,
+        comment=comment,
+        event_stats_snapshot=event_stats_snapshot,
+    )
+    send_subscriber_notifications.apply_async(
+        kwargs={'activity_id': activity.id},
+        countdown=10,
+    )
+    return activity
+
+
+def update_comment(activity, comment):
+    """
+    Specifically updates an IncidentActivity with type IncidentActivityType.COMMENT
+    """
+
+    return activity.update(comment=comment)
+
+
+def delete_comment(activity):
+    """
+    Specifically deletes an IncidentActivity with type IncidentActivityType.COMMENT
+    """
+
+    return activity.delete()
+
+
+def create_event_stat_snapshot(incident, start, end):
+    """
+    Creates an event stats snapshot for an incident in a given period of time.
+    """
+    event_stats = get_incident_event_stats(incident, start, end)
+    return TimeSeriesSnapshot.objects.create(
+        start=start,
+        end=end,
+        values=[[row['time'], row['count']] for row in event_stats.data['data']],
+        period=event_stats.rollup,
+    )
+
+
+def build_incident_query_params(incident, start=None, end=None):
+    params = {
+        'start': incident.date_started if start is None else start,
+        'end': incident.current_end_date if end is None else end,
+    }
     group_ids = list(IncidentGroup.objects.filter(
         incident=incident,
     ).values_list('group_id', flat=True))
@@ -71,8 +232,12 @@ def build_incident_query_params(incident):
     return get_snuba_query_args(incident.query, params)
 
 
-def get_incident_event_stats(incident, data_points=20):
-    kwargs = build_incident_query_params(incident)
+def get_incident_event_stats(incident, start=None, end=None, data_points=50):
+    """
+    Gets event stats for an incident. If start/end are provided, uses that time
+    period, otherwise uses the incident start/current_end.
+    """
+    kwargs = build_incident_query_params(incident, start=start, end=end)
     rollup = max(int(incident.duration.total_seconds() / data_points), 1)
     return SnubaTSResult(
         raw_query(
@@ -93,6 +258,11 @@ def get_incident_event_stats(incident, data_points=20):
 
 
 def get_incident_aggregates(incident):
+    """
+    Calculates aggregate stats across the life of an incident.
+    - count: Total count of events
+    - unique_users: Total number of unique users
+    """
     kwargs = build_incident_query_params(incident)
     return raw_query(
         aggregations=[
@@ -103,3 +273,41 @@ def get_incident_aggregates(incident):
         limit=10000,
         **kwargs
     )['data'][0]
+
+
+def subscribe_to_incident(incident, user):
+    return IncidentSubscription.objects.get_or_create(incident=incident, user=user)
+
+
+def unsubscribe_from_incident(incident, user):
+    return IncidentSubscription.objects.filter(incident=incident, user=user).delete()
+
+
+def get_incident_subscribers(incident):
+    return IncidentSubscription.objects.filter(incident=incident)
+
+
+def get_incident_activity(incident):
+    return IncidentActivity.objects.filter(
+        incident=incident,
+    ).select_related('user', 'event_stats_snapshot', 'incident')
+
+
+def get_incident_suspects(incident, projects):
+    groups = list(incident.groups.all().filter(project__in=projects))
+    # For now, we want to track whether we've seen a commit before to avoid
+    # duplicates. We'll probably use a commit being seen across multiple groups
+    # as a way to increase score in the future.
+    seen = set()
+    for group in groups:
+        event = group.get_latest_event_for_environments()
+        committers = get_event_file_committers(group.project, event)
+        for committer in committers:
+            author = committer['author']
+            for commit in committer['commits']:
+                commit['author'] = author
+                commit_key = (commit['repository']['id'], commit['id'])
+                if commit_key in seen:
+                    continue
+                seen.add(commit_key)
+                yield commit

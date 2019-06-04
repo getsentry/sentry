@@ -1,6 +1,6 @@
 from __future__ import absolute_import
 
-from django.db import models, IntegrityError, transaction
+from django.db import models, IntegrityError
 from django.utils import timezone
 
 from sentry.constants import ObjectStatus
@@ -106,13 +106,16 @@ class Integration(Model):
         Returns False if the OrganizationIntegration was not created
         """
         try:
-            with transaction.atomic():
-                integration = OrganizationIntegration.objects.create(
-                    organization_id=organization.id,
-                    integration_id=self.id,
-                    default_auth_id=default_auth_id,
-                    config={},
-                )
+            org_integration, created = OrganizationIntegration.objects.get_or_create(
+                organization_id=organization.id,
+                integration_id=self.id,
+                defaults={
+                    'default_auth_id': default_auth_id,
+                    'config': {}
+                }
+            )
+            if not created and default_auth_id:
+                org_integration.update(default_auth_id=default_auth_id)
         except IntegrityError:
             return False
         else:
@@ -123,4 +126,4 @@ class Integration(Model):
                 sender=self.__class__,
             )
 
-        return integration
+            return org_integration

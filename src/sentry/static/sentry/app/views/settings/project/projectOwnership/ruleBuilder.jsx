@@ -62,7 +62,7 @@ class RuleBuilder extends React.Component {
     const {type, text, owners, isValid} = this.state;
 
     if (!isValid) {
-      addErrorMessage('A Rule needs a type, a value, and one or more owners.');
+      addErrorMessage('A rule needs a type, a value, and one or more issue owners.');
       return;
     }
 

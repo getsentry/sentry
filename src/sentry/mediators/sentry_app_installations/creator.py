@@ -8,7 +8,6 @@ from sentry.models import (
     AuditLogEntryEvent, ApiGrant, SentryApp, SentryAppInstallation
 )
 from sentry.utils.cache import memoize
-from sentry.utils.audit import create_audit_entry
 from sentry.tasks.sentry_apps import installation_webhook
 
 
@@ -17,6 +16,7 @@ class Creator(Mediator):
     slug = Param(six.string_types)
     user = Param('sentry.models.User')
     request = Param('rest_framework.request.Request', required=False)
+    notify = Param(bool, default=True)
 
     def call(self):
         self._create_api_grant()
@@ -50,9 +50,11 @@ class Creator(Mediator):
         )
 
     def _notify_service(self):
-        installation_webhook.delay(self.install.id, self.user.id)
+        if self.notify:
+            installation_webhook.delay(self.install.id, self.user.id)
 
     def audit(self):
+        from sentry.utils.audit import create_audit_entry
         if self.request:
             create_audit_entry(
                 request=self.request,

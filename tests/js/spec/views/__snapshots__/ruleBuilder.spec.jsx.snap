@@ -575,7 +575,7 @@ exports[`RuleBuilder renders 1`] = `
                 loadOptions={[Function]}
                 onChange={[Function]}
                 onInputChange={[Function]}
-                placeholder="Add Owners"
+                placeholder="owners"
                 value={Array []}
                 valueComponent={[Function]}
               >
@@ -591,7 +591,7 @@ exports[`RuleBuilder renders 1`] = `
                   multiple={true}
                   onChange={[Function]}
                   onInputChange={[Function]}
-                  placeholder="Add Owners"
+                  placeholder="owners"
                   value={Array []}
                   valueComponent={[Function]}
                 >
@@ -611,7 +611,7 @@ exports[`RuleBuilder renders 1`] = `
                     multiple={true}
                     onChange={[Function]}
                     onInputChange={[Function]}
-                    placeholder="Add Owners"
+                    placeholder="owners"
                     value={Array []}
                     valueComponent={[Function]}
                   >
@@ -631,7 +631,7 @@ exports[`RuleBuilder renders 1`] = `
                       multiple={true}
                       onChange={[Function]}
                       onInputChange={[Function]}
-                      placeholder="Add Owners"
+                      placeholder="owners"
                       value={Array []}
                       valueComponent={[Function]}
                     >
@@ -652,7 +652,7 @@ exports[`RuleBuilder renders 1`] = `
                         multiple={true}
                         onChange={[Function]}
                         onInputChange={[Function]}
-                        placeholder="Add Owners"
+                        placeholder="owners"
                         value={Array []}
                         valueComponent={[Function]}
                       >
@@ -676,7 +676,7 @@ exports[`RuleBuilder renders 1`] = `
                           onChange={[Function]}
                           onInputChange={[Function]}
                           options={Array []}
-                          placeholder="Add Owners"
+                          placeholder="owners"
                           searchPromptText="Type to search"
                           value={Array []}
                           valueComponent={[Function]}
@@ -791,7 +791,7 @@ exports[`RuleBuilder renders 1`] = `
                                     justify="space-between"
                                   >
                                     <DisabledLabel>
-                                      <Tooltip2
+                                      <Tooltip
                                         containerDisplayMode="inline-block"
                                         position="left"
                                         title="#team-not-in-project is not a member of project"
@@ -807,9 +807,9 @@ exports[`RuleBuilder renders 1`] = `
                                             }
                                           }
                                         />
-                                      </Tooltip2>
+                                      </Tooltip>
                                     </DisabledLabel>
-                                    <Tooltip2
+                                    <Tooltip
                                       containerDisplayMode="inline-block"
                                       position="top"
                                       title="Add #team-not-in-project to project"
@@ -824,7 +824,7 @@ exports[`RuleBuilder renders 1`] = `
                                           src="icon-circle-add"
                                         />
                                       </AddToProjectButton>
-                                    </Tooltip2>
+                                    </Tooltip>
                                   </Flex>,
                                   "searchKey": "#team-not-in-project",
                                   "value": "team:4",
@@ -837,7 +837,7 @@ exports[`RuleBuilder renders 1`] = `
                                   },
                                   "disabled": true,
                                   "label": <DisabledLabel>
-                                    <Tooltip2
+                                    <Tooltip
                                       containerDisplayMode="inline-block"
                                       position="left"
                                       title="John Smith is not a member of project"
@@ -854,7 +854,7 @@ exports[`RuleBuilder renders 1`] = `
                                           }
                                         }
                                       />
-                                    </Tooltip2>
+                                    </Tooltip>
                                   </DisabledLabel>,
                                   "searchKey": "johnsmith@example.com john smith",
                                   "value": "user:2",
@@ -862,7 +862,7 @@ exports[`RuleBuilder renders 1`] = `
                               ]
                             }
                             pageSize={5}
-                            placeholder="Add Owners"
+                            placeholder="owners"
                             removeSelected={true}
                             required={false}
                             rtl={false}
@@ -894,7 +894,7 @@ exports[`RuleBuilder renders 1`] = `
                                   <div
                                     className="Select-placeholder"
                                   >
-                                    Add Owners
+                                    owners
                                   </div>
                                   <AutosizeInput
                                     aria-activedescendant="react-select-3--value"
@@ -1002,7 +1002,7 @@ exports[`RuleBuilder renders 1`] = `
           >
             <ForwardRef
               aria-disabled={true}
-              className="e1hyuoc79 css-1fas0c7-StyledButton-getColors-AddButton e12ma6z0"
+              className="e1hyuoc79 css-1hgfh2n-StyledButton-getColors-AddButton e12ma6z0"
               disabled={true}
               href={null}
               onClick={[Function]}
@@ -1013,7 +1013,7 @@ exports[`RuleBuilder renders 1`] = `
             >
               <button
                 aria-disabled={true}
-                className="e1hyuoc79 css-1fas0c7-StyledButton-getColors-AddButton e12ma6z0"
+                className="e1hyuoc79 css-1hgfh2n-StyledButton-getColors-AddButton e12ma6z0"
                 href={null}
                 onClick={[Function]}
                 role="button"
@@ -1911,7 +1911,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                 loadOptions={[Function]}
                 onChange={[Function]}
                 onInputChange={[Function]}
-                placeholder="Add Owners"
+                placeholder="owners"
                 value={
                   Array [
                     Object {
@@ -1965,7 +1965,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                   multiple={true}
                   onChange={[Function]}
                   onInputChange={[Function]}
-                  placeholder="Add Owners"
+                  placeholder="owners"
                   value={
                     Array [
                       Object {
@@ -2023,7 +2023,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                     multiple={true}
                     onChange={[Function]}
                     onInputChange={[Function]}
-                    placeholder="Add Owners"
+                    placeholder="owners"
                     value={
                       Array [
                         Object {
@@ -2081,7 +2081,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                       multiple={true}
                       onChange={[Function]}
                       onInputChange={[Function]}
-                      placeholder="Add Owners"
+                      placeholder="owners"
                       value={
                         Array [
                           Object {
@@ -2140,7 +2140,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                         multiple={true}
                         onChange={[Function]}
                         onInputChange={[Function]}
-                        placeholder="Add Owners"
+                        placeholder="owners"
                         value={
                           Array [
                             Object {
@@ -2202,7 +2202,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                           onChange={[Function]}
                           onInputChange={[Function]}
                           options={Array []}
-                          placeholder="Add Owners"
+                          placeholder="owners"
                           searchPromptText="Type to search"
                           value={
                             Array [
@@ -2355,7 +2355,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                                     justify="space-between"
                                   >
                                     <DisabledLabel>
-                                      <Tooltip2
+                                      <Tooltip
                                         containerDisplayMode="inline-block"
                                         position="left"
                                         title="#team-not-in-project is not a member of project"
@@ -2371,9 +2371,9 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                                             }
                                           }
                                         />
-                                      </Tooltip2>
+                                      </Tooltip>
                                     </DisabledLabel>
-                                    <Tooltip2
+                                    <Tooltip
                                       containerDisplayMode="inline-block"
                                       position="top"
                                       title="Add #team-not-in-project to project"
@@ -2388,7 +2388,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                                           src="icon-circle-add"
                                         />
                                       </AddToProjectButton>
-                                    </Tooltip2>
+                                    </Tooltip>
                                   </Flex>,
                                   "searchKey": "#team-not-in-project",
                                   "value": "team:4",
@@ -2401,7 +2401,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                                   },
                                   "disabled": true,
                                   "label": <DisabledLabel>
-                                    <Tooltip2
+                                    <Tooltip
                                       containerDisplayMode="inline-block"
                                       position="left"
                                       title="John Smith is not a member of project"
@@ -2418,7 +2418,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                                           }
                                         }
                                       />
-                                    </Tooltip2>
+                                    </Tooltip>
                                   </DisabledLabel>,
                                   "searchKey": "johnsmith@example.com john smith",
                                   "value": "user:2",
@@ -2426,7 +2426,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                               ]
                             }
                             pageSize={5}
-                            placeholder="Add Owners"
+                            placeholder="owners"
                             removeSelected={true}
                             required={false}
                             rtl={false}
@@ -2500,7 +2500,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                                     key="value-0-user:1"
                                     onClick={null}
                                     onRemove={[Function]}
-                                    placeholder="Add Owners"
+                                    placeholder="owners"
                                     value={
                                       Object {
                                         "actor": Object {
@@ -2615,7 +2615,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                                               type="letter_avatar"
                                               uploadPath="avatar"
                                             >
-                                              <Tooltip2
+                                              <Tooltip
                                                 containerDisplayMode="inline-block"
                                                 disabled={false}
                                                 position="top"
@@ -2637,7 +2637,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                                                       >
                                                         <span
                                                           aria-describedby="tooltip-123456"
-                                                          className="css-1m3e0hg-Container e7ebgxc0"
+                                                          className="css-1m3e0hg-Container erna86q0"
                                                           onBlur={[Function]}
                                                           onFocus={[Function]}
                                                           onMouseEnter={[Function]}
@@ -2709,7 +2709,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                                                     </InnerReference>
                                                   </Reference>
                                                 </Manager>
-                                              </Tooltip2>
+                                              </Tooltip>
                                             </BaseAvatar>
                                           </UserAvatar>
                                         </Avatar>
@@ -2845,7 +2845,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
           >
             <ForwardRef
               aria-disabled={false}
-              className="e1hyuoc79 css-1bmevz4-StyledButton-getColors-AddButton e12ma6z0"
+              className="e1hyuoc79 css-f9lt65-StyledButton-getColors-AddButton e12ma6z0"
               disabled={false}
               onClick={[Function]}
               priority="primary"
@@ -2854,7 +2854,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
             >
               <button
                 aria-disabled={false}
-                className="e1hyuoc79 css-1bmevz4-StyledButton-getColors-AddButton e12ma6z0"
+                className="e1hyuoc79 css-f9lt65-StyledButton-getColors-AddButton e12ma6z0"
                 onClick={[Function]}
                 role="button"
                 size="small"

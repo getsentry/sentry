@@ -1,0 +1,32 @@
+---
+created: '2019-06-03T15:00:16.825909Z'
+creator: sentry
+source: tests/symbolicator/test_payload_full.py
+---
+contexts: null
+debug_meta: null
+errors: null
+exception:
+  values:
+  - raw_stacktrace:
+      frames:
+      - function: hi
+        in_app: false
+        platform: foobar
+      - function: unknown
+        in_app: false
+        instruction_addr: '0x100000fa0'
+    stacktrace:
+      frames:
+      - function: hi
+        in_app: false
+        platform: foobar
+      - data:
+          symbolicator_status: unknown_image
+        function: unknown
+        in_app: false
+        instruction_addr: '0x100000fa0'
+    type: Fail
+    value: fail
+stacktrace: null
+threads: null

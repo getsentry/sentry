@@ -3,9 +3,9 @@ from __future__ import absolute_import, print_function
 import base64
 import math
 
+import io
 import jsonschema
 import logging
-import os
 import random
 import six
 import traceback
@@ -41,11 +41,12 @@ from sentry.lang.native.unreal import (
     process_unreal_crash, merge_apple_crash_report,
     unreal_attachment_type, merge_unreal_context_event, merge_unreal_logs_event,
 )
+
 from sentry.lang.native.minidump import (
-    merge_process_state_event, process_minidump,
-    merge_attached_event, merge_attached_breadcrumbs, MINIDUMP_ATTACHMENT_TYPE,
+    merge_attached_event, merge_attached_breadcrumbs, write_minidump_placeholder,
+    MINIDUMP_ATTACHMENT_TYPE,
 )
-from sentry.models import Project, OrganizationOption
+from sentry.models import Project, OrganizationOption, File, EventAttachment, Event
 from sentry.signals import (
     event_accepted, event_dropped, event_filtered, event_received,
 )
@@ -57,6 +58,7 @@ from sentry.utils.http import (
     is_valid_origin,
     get_origins,
     is_same_domain,
+    origin_from_request,
 )
 from sentry.utils.outcomes import Outcome, track_outcome
 from sentry.utils.pubsub import QueuedPublisherService, KafkaPublisher
@@ -81,6 +83,47 @@ kafka_publisher = QueuedPublisherService(
             None),
         asynchronous=False)
 ) if getattr(settings, 'KAFKA_RAW_EVENTS_PUBLISHER_ENABLED', False) else None
+
+
+def allow_cors_options(func):
+    """
+    Decorator that adds automatic handling of OPTIONS requests for CORS
+
+    If the request is OPTIONS (i.e. pre flight CORS) construct a NO Content (204) response
+    in which we explicitly enable the caller and add the custom headers that we support
+    :param func: the original request handler
+    :return: a request handler that shortcuts OPTIONS requests and just returns an OK (CORS allowed)
+    """
+
+    @wraps(func)
+    def allow_cors_options_wrapper(self, request, *args, **kwargs):
+
+        if request.method == 'OPTIONS':
+            response = HttpResponse(status=200)
+            response['Access-Control-Max-Age'] = '3600'  # don't ask for options again for 1 hour
+        else:
+            response = func(self, request, *args, **kwargs)
+
+        allow = ', '.join(self._allowed_methods())
+        response['Allow'] = allow
+        response['Access-Control-Allow-Methods'] = allow
+        response['Access-Control-Allow-Headers'] = 'X-Sentry-Auth, X-Requested-With, Origin, Accept, ' \
+            'Content-Type, Authentication'
+        response['Access-Control-Expose-Headers'] = 'X-Sentry-Error, Retry-After'
+
+        if request.META.get('HTTP_ORIGIN') == 'null':
+            origin = 'null'  # if ORIGIN header is explicitly specified as 'null' leave it alone
+        else:
+            origin = origin_from_request(request)
+
+        if origin is None or origin == 'null':
+            response['Access-Control-Allow-Origin'] = '*'
+        else:
+            response['Access-Control-Allow-Origin'] = origin
+
+        return response
+
+    return allow_cors_options_wrapper
 
 
 def api(func):
@@ -259,6 +302,18 @@ def process_event(event_manager, project, key, remote_addr, helper, attachments)
 class APIView(BaseView):
     auth_helper_cls = ClientAuthHelper
 
+    def _get_project_from_id(self, project_id):
+        if not project_id:
+            return
+        if not project_id.isdigit():
+            track_outcome(0, 0, None, Outcome.INVALID, "project_id")
+            raise APIError('Invalid project_id: %r' % project_id)
+        try:
+            return Project.objects.get_from_cache(id=project_id)
+        except Project.DoesNotExist:
+            track_outcome(0, 0, None, Outcome.INVALID, "project_id")
+            raise APIError('Invalid project_id: %r' % project_id)
+
     def _parse_header(self, request, relay_config):
         auth = self.auth_helper_cls.auth_from_request(request)
 
@@ -317,6 +372,7 @@ class APIView(BaseView):
 
     @csrf_exempt
     @never_cache
+    @allow_cors_options
     def dispatch(self, request, project_id=None, *args, **kwargs):
         helper = None
         origin = None
@@ -394,19 +450,6 @@ class APIView(BaseView):
                 skip_internal=False,
             )
 
-        if response.status_code != 200 and origin:
-            # We allow all origins on errors
-            response['Access-Control-Allow-Origin'] = '*'
-
-        if origin:
-            response['Access-Control-Allow-Headers'] = \
-                'X-Sentry-Auth, X-Requested-With, Origin, Accept, ' \
-                'Content-Type, Authentication'
-            response['Access-Control-Allow-Methods'] = \
-                ', '.join(self._allowed_methods())
-            response['Access-Control-Expose-Headers'] = \
-                'X-Sentry-Error, Retry-After'
-
         return response
 
     def _dispatch(self, request, helper, relay_config, origin=None, *args, **kwargs):
@@ -424,37 +467,24 @@ class APIView(BaseView):
                     FilterStatKeys.CORS)
                 raise APIForbidden('Invalid origin: %s' % (origin,))
 
-        # XXX: It seems that the OPTIONS call does not always include custom headers
-        if request.method == 'OPTIONS':
-            response = self.options(request, project)
-        else:
-            auth = self._parse_header(request, relay_config)
+        auth = self._parse_header(request, relay_config)
 
-            key = helper.project_key_from_auth(auth)
+        key = helper.project_key_from_auth(auth)
 
-            # Legacy API was /api/store/ and the project ID was only available elsewhere
-            if str(key.project_id) != str(relay_config.project_id):  # noqa B308
-                raise APIError('Two different projects were specified')
+        auth = self._parse_header(request, relay_config)
 
-            helper.context.bind_auth(auth)
+        key = helper.project_key_from_auth(auth)
 
-            response = super(APIView, self).dispatch(
-                request=request, project=project, auth=auth, helper=helper, key=key,
-                relay_config=relay_config, **kwargs
-            )
+        # Legacy API was /api/store/ and the project ID was only available elsewhere
+        if str(key.project_id) != str(relay_config.project_id):  # noqa B308
+            raise APIError('Two different projects were specified')
 
-        if origin:
-            if origin == 'null':
-                # If an Origin is `null`, but we got this far, that means
-                # we've gotten past our CORS check for some reason. But the
-                # problem is that we can't return "null" as a valid response
-                # to `Access-Control-Allow-Origin` and we don't have another
-                # value to work with, so just allow '*' since they've gotten
-                # this far.
-                response['Access-Control-Allow-Origin'] = '*'
-            else:
-                response['Access-Control-Allow-Origin'] = origin
+        helper.context.bind_auth(auth)
 
+        response = super(APIView, self).dispatch(
+            request=request, project=project, auth=auth, helper=helper, key=key,
+            relay_config=relay_config, **kwargs
+        )
         return response
 
     # XXX: backported from Django 1.5
@@ -462,10 +492,15 @@ class APIView(BaseView):
         return [m.upper() for m in self.http_method_names if hasattr(self, m)]
 
     def options(self, request, *args, **kwargs):
-        response = HttpResponse()
-        response['Allow'] = ', '.join(self._allowed_methods())
-        response['Content-Length'] = '0'
-        return response
+        """
+        Serves requests for OPTIONS
+
+        NOTE: This function is not called since it is shortcut by the @allow_cors_options descriptor.
+            It is nevertheless used to construct the allowed http methods and it should not be removed.
+        """
+        raise NotImplementedError("Options request should have been handled by @allow_cors_options.\n"
+                                  "If dispatch was overridden either decorate it with @allow_cors_options or provide "
+                                  "a valid implementation for options.")
 
 
 class StoreView(APIView):
@@ -585,9 +620,57 @@ class StoreView(APIView):
                              key, remote_addr, helper, attachments)
 
 
+class EventAttachmentStoreView(StoreView):
+
+    def post(self, request, project, event_id, **kwargs):
+        if not features.has('organizations:event-attachments',
+                            project.organization, actor=request.user):
+            raise APIForbidden("Event attachments are not enabled for this organization.")
+
+        if len(request.FILES) == 0:
+            return HttpResponse(status=400)
+
+        for name, uploaded_file in six.iteritems(request.FILES):
+            file = File.objects.create(
+                name=uploaded_file.name,
+                type='event.attachment',
+                headers={'Content-Type': uploaded_file.content_type},
+            )
+            file.putfile(uploaded_file)
+
+            # To avoid a race with EventManager which tries to set the group_id on attachments received before
+            # the event, first insert the attachment, then lookup for the event for its group.
+            event_attachment = EventAttachment.objects.create(
+                project_id=project.id,
+                event_id=event_id,
+                name=uploaded_file.name,
+                file=file,
+            )
+
+            try:
+                event = Event.objects.get(
+                    project_id=project.id,
+                    event_id=event_id,
+                )
+            except Event.DoesNotExist:
+                pass
+            else:
+                # If event was created but the group not defined, EventManager will take care of setting the
+                # group to all dangling attachments
+                if event.group_id is not None:
+                    EventAttachment.objects.filter(
+                        id=event_attachment.id,
+                    ).update(
+                        group_id=event.group_id,
+                    )
+
+        return HttpResponse(status=201)
+
+
 class MinidumpView(StoreView):
     auth_helper_cls = MinidumpAuthHelper
-    content_types = ('multipart/form-data',)
+    dump_types = ('application/octet-stream', 'application/x-dmp')
+    content_types = ('multipart/form-data',) + dump_types
 
     def _dispatch(self, request, helper, relay_config, origin=None, config_flags=None, *args,
                   **kwargs):
@@ -638,44 +721,43 @@ class MinidumpView(StoreView):
         )
 
     def post(self, request, project, **kwargs):
-        # Minidump request payloads do not have the same structure as
-        # usual events from other SDKs. Most notably, the event needs
-        # to be transfered in the `sentry` form field. All other form
-        # fields are assumed "extra" information. The only exception
-        # to this is `upload_file_minidump`, which contains the minidump.
+        # Minidump request payloads do not have the same structure as usual
+        # events from other SDKs. The minidump can either be transmitted as
+        # request body, or as `upload_file_minidump` in a multipart formdata
+        # request. Optionally, an event payload can be sent in the `sentry` form
+        # field, either as JSON or as nested form data.
 
-        if any(key.startswith('sentry[') for key in request.POST):
-            # First, try to parse the nested form syntax `sentry[key][key]`
-            # This is required for the Breakpad client library, which only
-            # supports string values of up to 64 characters.
-            extra = parser.parse(request.POST.urlencode())
-            data = extra.pop('sentry', {})
+        request_files = request.FILES or {}
+        content_type = request.META.get('CONTENT_TYPE')
+
+        if content_type in self.dump_types:
+            minidump = io.BytesIO(request.body)
+            minidump_name = "Minidump"
+            data = {}
         else:
-            # Custom clients can submit longer payloads and should JSON
-            # encode event data into the optional `sentry` field.
-            extra = request.POST
-            json_data = extra.pop('sentry', None)
-            data = json.loads(json_data[0]) if json_data else {}
+            minidump = request_files.get('upload_file_minidump')
+            minidump_name = minidump and minidump.name or None
 
-        # Merge additional form fields from the request with `extra`
-        # data from the event payload and set defaults for processing.
-        extra.update(data.get('extra', {}))
-        data['extra'] = extra
+            if any(key.startswith('sentry[') for key in request.POST):
+                # First, try to parse the nested form syntax `sentry[key][key]`
+                # This is required for the Breakpad client library, which only
+                # supports string values of up to 64 characters.
+                extra = parser.parse(request.POST.urlencode())
+                data = extra.pop('sentry', {})
+            else:
+                # Custom clients can submit longer payloads and should JSON
+                # encode event data into the optional `sentry` field.
+                extra = request.POST
+                json_data = extra.pop('sentry', None)
+                data = json.loads(json_data[0]) if json_data else {}
 
-        # Assign our own UUID so we can track this minidump. We cannot trust the
-        # uploaded filename, and if reading the minidump fails there is no way
-        # we can ever retrieve the original UUID from the minidump.
-        event_id = data.get('event_id') or uuid.uuid4().hex
-        data['event_id'] = event_id
+            # Merge additional form fields from the request with `extra` data
+            # from the event payload and set defaults for processing. This is
+            # sent by clients like Breakpad or Crashpad.
+            extra.update(data.get('extra', {}))
+            data['extra'] = extra
 
-        # At this point, we only extract the bare minimum information
-        # needed to continue processing. This requires to process the
-        # minidump without symbols and CFI to obtain an initial stack
-        # trace (most likely via stack scanning). If all validations
-        # pass, the event will be inserted into the database.
-        try:
-            minidump = request.FILES['upload_file_minidump']
-        except KeyError:
+        if not minidump:
             track_outcome(
                 project.organization_id,
                 project.id,
@@ -710,9 +792,10 @@ class MinidumpView(StoreView):
                 for handler in settings.FILE_UPLOAD_HANDLERS
             ]
 
-            _, files = MultiPartParser(meta, minidump, handlers).parse()
+            _, inner_files = MultiPartParser(meta, minidump, handlers).parse()
             try:
-                minidump = files['upload_file_minidump']
+                minidump = inner_files['upload_file_minidump']
+                minidump_name = minidump.name
             except KeyError:
                 track_outcome(
                     project.organization_id,
@@ -722,35 +805,38 @@ class MinidumpView(StoreView):
                     "missing_minidump_upload")
                 raise APIError('Missing minidump upload')
 
-        if minidump.size == 0:
+        minidump.seek(0)
+        if minidump.read(4) != 'MDMP':
             track_outcome(
                 project.organization_id,
                 project.id,
                 None,
                 Outcome.INVALID,
-                "empty_minidump")
-            raise APIError('Empty minidump upload received')
-
-        if settings.SENTRY_MINIDUMP_CACHE:
-            if not os.path.exists(settings.SENTRY_MINIDUMP_PATH):
-                os.mkdir(settings.SENTRY_MINIDUMP_PATH, 0o744)
-
-            with open('%s/%s.dmp' % (settings.SENTRY_MINIDUMP_PATH, event_id), 'wb') as out:
-                for chunk in minidump.chunks():
-                    out.write(chunk)
+                "invalid_minidump")
+            raise APIError('Uploaded file was not a minidump')
 
         # Always store the minidump in attachments so we can access it during
-        # processing, regardless of the event-attachments feature. This will
-        # allow us to stack walk again with CFI once symbols are loaded.
+        # processing, regardless of the event-attachments feature. This is
+        # required to process the minidump with debug information.
         attachments = []
+
+        # The minidump attachment is special. It has its own attachment type to
+        # distinguish it from regular attachments for processing. Also, it might
+        # not be part of `request_files` if it has been uploaded as raw request
+        # body instead of a multipart formdata request.
         minidump.seek(0)
-        attachments.append(CachedAttachment.from_upload(minidump, type=MINIDUMP_ATTACHMENT_TYPE))
-        has_event_attachments = features.has('organizations:event-attachments',
-                                             project.organization, actor=request.user)
+        attachments.append(CachedAttachment(
+            name=minidump_name,
+            content_type='application/octet-stream',
+            data=minidump.read(),
+            type=MINIDUMP_ATTACHMENT_TYPE,
+        ))
 
         # Append all other files as generic attachments. We can skip this if the
         # feature is disabled since they won't be saved.
-        for name, file in six.iteritems(request.FILES):
+        has_event_attachments = features.has('organizations:event-attachments',
+                                             project.organization, actor=request.user)
+        for name, file in six.iteritems(request_files):
             if name == 'upload_file_minidump':
                 continue
 
@@ -766,18 +852,18 @@ class MinidumpView(StoreView):
             if has_event_attachments:
                 attachments.append(CachedAttachment.from_upload(file))
 
-        try:
-            state = process_minidump(minidump)
-            merge_process_state_event(data, state)
-        except ProcessMinidumpError as e:
-            minidumps_logger.exception(e)
-            track_outcome(
-                project.organization_id,
-                project.id,
-                None,
-                Outcome.INVALID,
-                "process_minidump")
-            raise APIError(e.message.split('\n', 1)[0])
+        # Assign our own UUID so we can track this minidump. We cannot trust
+        # the uploaded filename, and if reading the minidump fails there is
+        # no way we can ever retrieve the original UUID from the minidump.
+        event_id = data.get('event_id') or uuid.uuid4().hex
+        data['event_id'] = event_id
+
+        # Write a minimal event payload that is required to kick off native
+        # event processing. It is also used as fallback if processing of the
+        # minidump fails.
+        # NB: This occurs after merging attachments to overwrite potentially
+        # contradicting payloads transmitted in __sentry_event.
+        write_minidump_placeholder(data)
 
         event_id = self.process(
             request,
@@ -837,22 +923,18 @@ class UnrealView(StoreView):
         attachments_enabled = features.has('organizations:event-attachments',
                                            project.organization, actor=request.user)
 
+        is_apple_crash_report = False
+
         attachments = []
         event = {'event_id': uuid.uuid4().hex}
         try:
             unreal = process_unreal_crash(request.body, request.GET.get(
                 'UserID'), request.GET.get('AppEnvironment'), event)
-            process_state = unreal.process_minidump()
-            if process_state:
-                merge_process_state_event(event, process_state)
-            else:
-                apple_crash_report = unreal.get_apple_crash_report()
-                if apple_crash_report:
-                    merge_apple_crash_report(apple_crash_report, event)
-                else:
-                    track_outcome(project.organization_id, project.id, None,
-                                  Outcome.INVALID, "missing_minidump_unreal")
-                    raise APIError("missing minidump in unreal crash report")
+
+            apple_crash_report = unreal.get_apple_crash_report()
+            if apple_crash_report:
+                merge_apple_crash_report(apple_crash_report, event)
+                is_apple_crash_report = True
         except (ProcessMinidumpError, Unreal4Error) as e:
             minidumps_logger.exception(e)
             track_outcome(
@@ -879,6 +961,8 @@ class UnrealView(StoreView):
             # we'll continue without the breadcrumbs
             minidumps_logger.exception(e)
 
+        is_minidump = False
+
         for file in unreal.files():
             # Known attachment: msgpack event
             if file.name == "__sentry-event":
@@ -887,6 +971,9 @@ class UnrealView(StoreView):
             if file.name in ("__sentry-breadcrumb1", "__sentry-breadcrumb2"):
                 merge_attached_breadcrumbs(file.open_stream(), event)
                 continue
+
+            if file.type == "minidump" and not is_apple_crash_report:
+                is_minidump = True
 
             # Always store the minidump in attachments so we can access it during
             # processing, regardless of the event-attachments feature. This will
@@ -897,6 +984,9 @@ class UnrealView(StoreView):
                     data=file.open_stream().read(),
                     type=unreal_attachment_type(file),
                 ))
+
+        if is_minidump:
+            write_minidump_placeholder(event)
 
         event_id = self.process(
             request,

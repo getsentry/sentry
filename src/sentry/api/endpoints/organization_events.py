@@ -5,7 +5,9 @@ from functools import partial
 
 from rest_framework.response import Response
 
+from sentry import tagstore
 from sentry.api.bases import OrganizationEventsEndpointBase, OrganizationEventsError, NoProjects
+from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.helpers.events import get_direct_hit_response
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.serializers import EventSerializer, serialize, SimpleEventSerializer
@@ -14,13 +16,19 @@ from sentry.models import SnubaEvent
 from sentry.utils.dates import parse_stats_period
 from sentry.utils.snuba import (
     raw_query,
+    transform_aliases_and_query,
     SnubaTSResult,
 )
+from sentry import features
+from sentry.models.project import Project
 
 
 class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
 
     def get(self, request, organization):
+        if features.has('organizations:events-v2', organization, actor=request.user):
+            return self.get_v2(request, organization)
+
         # Check for a direct hit on event ID
         query = request.GET.get('query', '').strip()
 
@@ -65,6 +73,54 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
             paginator=GenericOffsetPaginator(data_fn=data_fn)
         )
 
+    def get_v2(self, request, organization):
+        try:
+            params = self.get_filter_params(request, organization)
+            snuba_args = self.get_snuba_query_args_v2(request, organization, params)
+        except OrganizationEventsError as exc:
+            return Response({'detail': exc.message}, status=400)
+        except NoProjects:
+            return Response([])
+
+        filters = snuba_args.get('filter_keys', {})
+        has_global_views = features.has(
+            'organizations:global-views',
+            organization,
+            actor=request.user)
+        if not has_global_views and len(filters.get('project_id', [])) > 1:
+            return Response({
+                'detail': 'You cannot view events from multiple projects.'
+            }, status=400)
+
+        data_fn = partial(
+            lambda **kwargs: transform_aliases_and_query(
+                skip_conditions=True, **kwargs)['data'],
+            referrer='api.organization-events-v2',
+            **snuba_args
+        )
+
+        return self.paginate(
+            request=request,
+            paginator=GenericOffsetPaginator(data_fn=data_fn),
+            on_results=lambda results: self.handle_results(
+                request, organization, params['project_id'], results),
+        )
+
+    def handle_results(self, request, organization, project_ids, results):
+        projects = {p['id']: p['slug'] for p in Project.objects.filter(
+            organization=organization,
+            id__in=project_ids).values('id', 'slug')}
+
+        fields = request.GET.getlist('field')
+
+        if 'project.name' in fields:
+            for result in results:
+                result['project.name'] = projects[result['project.id']]
+                if 'project.id' not in fields:
+                    del result['project.id']
+
+        return results
+
 
 class OrganizationEventsStatsEndpoint(OrganizationEventsEndpointBase):
 
@@ -82,10 +138,20 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsEndpointBase):
 
         rollup = int(interval.total_seconds())
 
+        y_axis = request.GET.get('yAxis', None)
+        if not y_axis or y_axis == 'event_count':
+            aggregations = [('count()', '', 'count')]
+        elif y_axis == 'user_count':
+            aggregations = [
+                ('uniq', 'tags[sentry:user]', 'count'),
+            ]
+            snuba_args['filter_keys']['tags_key'] = ['sentry:user']
+        else:
+            return Response(
+                {'detail': 'Param yAxis value %s not recognized.' % y_axis}, status=400)
+
         result = raw_query(
-            aggregations=[
-                ('count()', '', 'count'),
-            ],
+            aggregations=aggregations,
             orderby='time',
             groupby=['time'],
             rollup=rollup,
@@ -101,6 +167,41 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsEndpointBase):
             ),
             status=200,
         )
+
+
+class OrganizationEventsHeatmapEndpoint(OrganizationEventsEndpointBase):
+    def get(self, request, organization):
+        try:
+            snuba_args = self.get_snuba_query_args(request, organization)
+        except OrganizationEventsError as exc:
+            return Response({'detail': exc.message}, status=400)
+        except NoProjects:
+            return Response({'detail': 'A valid project must be included.'}, status=400)
+
+        lookup_keys = [tagstore.prefix_reserved_key(key) for key in request.GET.getlist('keys')]
+
+        if not lookup_keys:
+            return Response({'detail': 'Tag keys must be specified.'}, status=400)
+        project_ids = snuba_args['filter_keys']['project_id']
+        environment_ids = snuba_args['filter_keys'].get('environment_id')
+
+        has_global_views = features.has(
+            'organizations:global-views',
+            organization,
+            actor=request.user)
+
+        if not has_global_views and len(project_ids) > 1:
+            return Response({
+                'detail': 'You cannot view events from multiple projects.'
+            }, status=400)
+
+        try:
+            tag_key = tagstore.get_group_tag_keys_and_top_values(
+                project_ids, None, environment_ids, keys=lookup_keys, get_excluded_tags=True, **snuba_args)
+        except tagstore.TagKeyNotFound:
+            raise ResourceDoesNotExist
+
+        return Response(serialize(tag_key, request.user))
 
 
 class OrganizationEventsMetaEndpoint(OrganizationEventsEndpointBase):

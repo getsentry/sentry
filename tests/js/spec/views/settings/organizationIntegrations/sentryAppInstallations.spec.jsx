@@ -3,7 +3,7 @@ import React from 'react';
 import {Client} from 'app/api';
 import {mount} from 'enzyme';
 import {openSentryAppPermissionModal} from 'app/actionCreators/modal';
-import {SentryAppInstallations} from 'app/views/organizationIntegrations/sentryAppInstallations';
+import SentryAppInstallations from 'app/views/organizationIntegrations/sentryAppInstallations';
 
 jest.mock('app/actionCreators/modal', () => ({
   openSentryAppPermissionModal: jest.fn(),

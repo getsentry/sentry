@@ -58,7 +58,7 @@ exports[`CreateProject should block if you have access to no teams 1`] = `
             placeholder="Select a Team"
             value={0}
           />
-          <Tooltip2
+          <Tooltip
             containerDisplayMode="inline-block"
             position="top"
             title="Create a team"
@@ -71,7 +71,7 @@ exports[`CreateProject should block if you have access to no teams 1`] = `
               onClick={[Function]}
               type="button"
             />
-          </Tooltip2>
+          </Tooltip>
         </TeamSelectInput>
       </div>
       <div>
@@ -386,7 +386,7 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
             selected={false}
           >
             <Component
-              className="css-16kw2fg-PlatformCard exv4dm86"
+              className="css-1y7hwtx-PlatformCard exv4dm86"
               data-test-id="platform-csharp"
               onClear={[Function]}
               onClick={[Function]}
@@ -402,7 +402,7 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
               selected={false}
             >
               <div
-                className="css-16kw2fg-PlatformCard exv4dm86"
+                className="css-1y7hwtx-PlatformCard exv4dm86"
                 data-test-id="platform-csharp"
                 onClick={[Function]}
               >
@@ -436,7 +436,7 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
             selected={false}
           >
             <Component
-              className="css-16kw2fg-PlatformCard exv4dm86"
+              className="css-1y7hwtx-PlatformCard exv4dm86"
               data-test-id="platform-elixir"
               onClear={[Function]}
               onClick={[Function]}
@@ -452,7 +452,7 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
               selected={false}
             >
               <div
-                className="css-16kw2fg-PlatformCard exv4dm86"
+                className="css-1y7hwtx-PlatformCard exv4dm86"
                 data-test-id="platform-elixir"
                 onClick={[Function]}
               >
@@ -486,7 +486,7 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
             selected={false}
           >
             <Component
-              className="css-16kw2fg-PlatformCard exv4dm86"
+              className="css-1y7hwtx-PlatformCard exv4dm86"
               data-test-id="platform-java"
               onClear={[Function]}
               onClick={[Function]}
@@ -502,7 +502,7 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
               selected={false}
             >
               <div
-                className="css-16kw2fg-PlatformCard exv4dm86"
+                className="css-1y7hwtx-PlatformCard exv4dm86"
                 data-test-id="platform-java"
                 onClick={[Function]}
               >
@@ -536,7 +536,7 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
             selected={false}
           >
             <Component
-              className="css-16kw2fg-PlatformCard exv4dm86"
+              className="css-1y7hwtx-PlatformCard exv4dm86"
               data-test-id="platform-javascript-angular"
               onClear={[Function]}
               onClick={[Function]}
@@ -552,7 +552,7 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
               selected={false}
             >
               <div
-                className="css-16kw2fg-PlatformCard exv4dm86"
+                className="css-1y7hwtx-PlatformCard exv4dm86"
                 data-test-id="platform-javascript-angular"
                 onClick={[Function]}
               >
@@ -586,7 +586,7 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
             selected={false}
           >
             <Component
-              className="css-16kw2fg-PlatformCard exv4dm86"
+              className="css-1y7hwtx-PlatformCard exv4dm86"
               data-test-id="platform-javascript"
               onClear={[Function]}
               onClick={[Function]}
@@ -602,7 +602,7 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
               selected={false}
             >
               <div
-                className="css-16kw2fg-PlatformCard exv4dm86"
+                className="css-1y7hwtx-PlatformCard exv4dm86"
                 data-test-id="platform-javascript"
                 onClick={[Function]}
               >
@@ -636,7 +636,7 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
             selected={false}
           >
             <Component
-              className="css-16kw2fg-PlatformCard exv4dm86"
+              className="css-1y7hwtx-PlatformCard exv4dm86"
               data-test-id="platform-javascript-react"
               onClear={[Function]}
               onClick={[Function]}
@@ -652,7 +652,7 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
               selected={false}
             >
               <div
-                className="css-16kw2fg-PlatformCard exv4dm86"
+                className="css-1y7hwtx-PlatformCard exv4dm86"
                 data-test-id="platform-javascript-react"
                 onClick={[Function]}
               >
@@ -686,7 +686,7 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
             selected={false}
           >
             <Component
-              className="css-16kw2fg-PlatformCard exv4dm86"
+              className="css-1y7hwtx-PlatformCard exv4dm86"
               data-test-id="platform-node-express"
               onClear={[Function]}
               onClick={[Function]}
@@ -702,7 +702,7 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
               selected={false}
             >
               <div
-                className="css-16kw2fg-PlatformCard exv4dm86"
+                className="css-1y7hwtx-PlatformCard exv4dm86"
                 data-test-id="platform-node-express"
                 onClick={[Function]}
               >
@@ -736,7 +736,7 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
             selected={false}
           >
             <Component
-              className="css-16kw2fg-PlatformCard exv4dm86"
+              className="css-1y7hwtx-PlatformCard exv4dm86"
               data-test-id="platform-node"
               onClear={[Function]}
               onClick={[Function]}
@@ -752,7 +752,7 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
               selected={false}
             >
               <div
-                className="css-16kw2fg-PlatformCard exv4dm86"
+                className="css-1y7hwtx-PlatformCard exv4dm86"
                 data-test-id="platform-node"
                 onClick={[Function]}
               >
@@ -786,7 +786,7 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
             selected={false}
           >
             <Component
-              className="css-16kw2fg-PlatformCard exv4dm86"
+              className="css-1y7hwtx-PlatformCard exv4dm86"
               data-test-id="platform-php-laravel"
               onClear={[Function]}
               onClick={[Function]}
@@ -802,7 +802,7 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
               selected={false}
             >
               <div
-                className="css-16kw2fg-PlatformCard exv4dm86"
+                className="css-1y7hwtx-PlatformCard exv4dm86"
                 data-test-id="platform-php-laravel"
                 onClick={[Function]}
               >
@@ -836,7 +836,7 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
             selected={false}
           >
             <Component
-              className="css-16kw2fg-PlatformCard exv4dm86"
+              className="css-1y7hwtx-PlatformCard exv4dm86"
               data-test-id="platform-php"
               onClear={[Function]}
               onClick={[Function]}
@@ -852,7 +852,7 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
               selected={false}
             >
               <div
-                className="css-16kw2fg-PlatformCard exv4dm86"
+                className="css-1y7hwtx-PlatformCard exv4dm86"
                 data-test-id="platform-php"
                 onClick={[Function]}
               >
@@ -886,7 +886,7 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
             selected={false}
           >
             <Component
-              className="css-16kw2fg-PlatformCard exv4dm86"
+              className="css-1y7hwtx-PlatformCard exv4dm86"
               data-test-id="platform-php-symfony2"
               onClear={[Function]}
               onClick={[Function]}
@@ -902,7 +902,7 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
               selected={false}
             >
               <div
-                className="css-16kw2fg-PlatformCard exv4dm86"
+                className="css-1y7hwtx-PlatformCard exv4dm86"
                 data-test-id="platform-php-symfony2"
                 onClick={[Function]}
               >
@@ -936,7 +936,7 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
             selected={false}
           >
             <Component
-              className="css-16kw2fg-PlatformCard exv4dm86"
+              className="css-1y7hwtx-PlatformCard exv4dm86"
               data-test-id="platform-python-django"
               onClear={[Function]}
               onClick={[Function]}
@@ -952,7 +952,7 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
               selected={false}
             >
               <div
-                className="css-16kw2fg-PlatformCard exv4dm86"
+                className="css-1y7hwtx-PlatformCard exv4dm86"
                 data-test-id="platform-python-django"
                 onClick={[Function]}
               >
@@ -986,7 +986,7 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
             selected={false}
           >
             <Component
-              className="css-16kw2fg-PlatformCard exv4dm86"
+              className="css-1y7hwtx-PlatformCard exv4dm86"
               data-test-id="platform-python-flask"
               onClear={[Function]}
               onClick={[Function]}
@@ -1002,7 +1002,7 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
               selected={false}
             >
               <div
-                className="css-16kw2fg-PlatformCard exv4dm86"
+                className="css-1y7hwtx-PlatformCard exv4dm86"
                 data-test-id="platform-python-flask"
                 onClick={[Function]}
               >
@@ -1036,7 +1036,7 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
             selected={false}
           >
             <Component
-              className="css-16kw2fg-PlatformCard exv4dm86"
+              className="css-1y7hwtx-PlatformCard exv4dm86"
               data-test-id="platform-python"
               onClear={[Function]}
               onClick={[Function]}
@@ -1052,7 +1052,7 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
               selected={false}
             >
               <div
-                className="css-16kw2fg-PlatformCard exv4dm86"
+                className="css-1y7hwtx-PlatformCard exv4dm86"
                 data-test-id="platform-python"
                 onClick={[Function]}
               >
@@ -1086,7 +1086,7 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
             selected={false}
           >
             <Component
-              className="css-16kw2fg-PlatformCard exv4dm86"
+              className="css-1y7hwtx-PlatformCard exv4dm86"
               data-test-id="platform-cocoa"
               onClear={[Function]}
               onClick={[Function]}
@@ -1102,7 +1102,7 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
               selected={false}
             >
               <div
-                className="css-16kw2fg-PlatformCard exv4dm86"
+                className="css-1y7hwtx-PlatformCard exv4dm86"
                 data-test-id="platform-cocoa"
                 onClick={[Function]}
               >
@@ -1136,7 +1136,7 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
             selected={false}
           >
             <Component
-              className="css-16kw2fg-PlatformCard exv4dm86"
+              className="css-1y7hwtx-PlatformCard exv4dm86"
               data-test-id="platform-ruby-rails"
               onClear={[Function]}
               onClick={[Function]}
@@ -1152,7 +1152,7 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
               selected={false}
             >
               <div
-                className="css-16kw2fg-PlatformCard exv4dm86"
+                className="css-1y7hwtx-PlatformCard exv4dm86"
                 data-test-id="platform-ruby-rails"
                 onClick={[Function]}
               >
@@ -1186,7 +1186,7 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
             selected={false}
           >
             <Component
-              className="css-16kw2fg-PlatformCard exv4dm86"
+              className="css-1y7hwtx-PlatformCard exv4dm86"
               data-test-id="platform-ruby"
               onClear={[Function]}
               onClick={[Function]}
@@ -1202,7 +1202,7 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
               selected={false}
             >
               <div
-                className="css-16kw2fg-PlatformCard exv4dm86"
+                className="css-1y7hwtx-PlatformCard exv4dm86"
                 data-test-id="platform-ruby"
                 onClick={[Function]}
               >
@@ -1469,7 +1469,7 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
                   </ForwardRef(SelectPicker)>
                 </StyledSelect>
               </SelectControl>
-              <Tooltip2
+              <Tooltip
                 containerDisplayMode="inline-block"
                 position="top"
                 title="Create a team"
@@ -1490,7 +1490,7 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
                       >
                         <span
                           aria-describedby="tooltip-123456"
-                          className="css-1m3e0hg-Container e7ebgxc0"
+                          className="css-1m3e0hg-Container erna86q0"
                           onBlur={[Function]}
                           onFocus={[Function]}
                           onMouseEnter={[Function]}
@@ -1516,7 +1516,7 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
                               <ForwardRef
                                 aria-disabled={false}
                                 borderless={true}
-                                className="css-1ggcm4u-StyledButton-getColors e12ma6z0"
+                                className="css-35eqg2-StyledButton-getColors e12ma6z0"
                                 data-test-id="create-team"
                                 disabled={false}
                                 onClick={[Function]}
@@ -1525,7 +1525,7 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
                               >
                                 <button
                                   aria-disabled={false}
-                                  className="css-1ggcm4u-StyledButton-getColors e12ma6z0"
+                                  className="css-35eqg2-StyledButton-getColors e12ma6z0"
                                   data-test-id="create-team"
                                   onClick={[Function]}
                                   role="button"
@@ -1595,7 +1595,7 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
                     </InnerReference>
                   </Reference>
                 </Manager>
-              </Tooltip2>
+              </Tooltip>
             </div>
           </TeamSelectInput>
         </div>
@@ -1619,7 +1619,7 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
               <ForwardRef
                 aria-disabled={true}
                 aria-label="Create Project"
-                className="css-mla83t-StyledButton-getColors e12ma6z0"
+                className="css-1y2tnyd-StyledButton-getColors e12ma6z0"
                 data-test-id="create-project"
                 disabled={true}
                 href={null}
@@ -1631,7 +1631,7 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
                 <button
                   aria-disabled={true}
                   aria-label="Create Project"
-                  className="css-mla83t-StyledButton-getColors e12ma6z0"
+                  className="css-1y2tnyd-StyledButton-getColors e12ma6z0"
                   data-test-id="create-project"
                   href={null}
                   onClick={[Function]}
@@ -1961,7 +1961,7 @@ exports[`CreateProject should fill in platform name if its provided by url 1`] =
             selected={false}
           >
             <Component
-              className="css-16kw2fg-PlatformCard exv4dm86"
+              className="css-1y7hwtx-PlatformCard exv4dm86"
               data-test-id="platform-ruby-rack"
               onClear={[Function]}
               onClick={[Function]}
@@ -1977,7 +1977,7 @@ exports[`CreateProject should fill in platform name if its provided by url 1`] =
               selected={false}
             >
               <div
-                className="css-16kw2fg-PlatformCard exv4dm86"
+                className="css-1y7hwtx-PlatformCard exv4dm86"
                 data-test-id="platform-ruby-rack"
                 onClick={[Function]}
               >
@@ -2011,7 +2011,7 @@ exports[`CreateProject should fill in platform name if its provided by url 1`] =
             selected={false}
           >
             <Component
-              className="css-16kw2fg-PlatformCard exv4dm86"
+              className="css-1y7hwtx-PlatformCard exv4dm86"
               data-test-id="platform-ruby-rails"
               onClear={[Function]}
               onClick={[Function]}
@@ -2027,7 +2027,7 @@ exports[`CreateProject should fill in platform name if its provided by url 1`] =
               selected={false}
             >
               <div
-                className="css-16kw2fg-PlatformCard exv4dm86"
+                className="css-1y7hwtx-PlatformCard exv4dm86"
                 data-test-id="platform-ruby-rails"
                 onClick={[Function]}
               >
@@ -2061,7 +2061,7 @@ exports[`CreateProject should fill in platform name if its provided by url 1`] =
             selected={true}
           >
             <Component
-              className="css-1aqwt2p-PlatformCard exv4dm86"
+              className="css-d8uoxq-PlatformCard exv4dm86"
               data-test-id="platform-ruby"
               onClear={[Function]}
               onClick={[Function]}
@@ -2077,7 +2077,7 @@ exports[`CreateProject should fill in platform name if its provided by url 1`] =
               selected={true}
             >
               <div
-                className="css-1aqwt2p-PlatformCard exv4dm86"
+                className="css-d8uoxq-PlatformCard exv4dm86"
                 data-test-id="platform-ruby"
                 onClick={[Function]}
               >
@@ -2118,7 +2118,7 @@ exports[`CreateProject should fill in platform name if its provided by url 1`] =
                         <ForwardRef
                           aria-disabled={false}
                           borderless={true}
-                          className="exv4dm85 css-1ac0eh4-StyledButton-getColors-ClearButton e12ma6z0"
+                          className="exv4dm85 css-1ct4fe4-StyledButton-getColors-ClearButton e12ma6z0"
                           disabled={false}
                           onClick={[Function]}
                           role="button"
@@ -2126,7 +2126,7 @@ exports[`CreateProject should fill in platform name if its provided by url 1`] =
                         >
                           <button
                             aria-disabled={false}
-                            className="exv4dm85 css-1ac0eh4-StyledButton-getColors-ClearButton e12ma6z0"
+                            className="exv4dm85 css-1ct4fe4-StyledButton-getColors-ClearButton e12ma6z0"
                             onClick={[Function]}
                             role="button"
                             size="xsmall"
@@ -2450,7 +2450,7 @@ exports[`CreateProject should fill in platform name if its provided by url 1`] =
                   </ForwardRef(SelectPicker)>
                 </StyledSelect>
               </SelectControl>
-              <Tooltip2
+              <Tooltip
                 containerDisplayMode="inline-block"
                 position="top"
                 title="Create a team"
@@ -2471,7 +2471,7 @@ exports[`CreateProject should fill in platform name if its provided by url 1`] =
                       >
                         <span
                           aria-describedby="tooltip-123456"
-                          className="css-1m3e0hg-Container e7ebgxc0"
+                          className="css-1m3e0hg-Container erna86q0"
                           onBlur={[Function]}
                           onFocus={[Function]}
                           onMouseEnter={[Function]}
@@ -2497,7 +2497,7 @@ exports[`CreateProject should fill in platform name if its provided by url 1`] =
                               <ForwardRef
                                 aria-disabled={false}
                                 borderless={true}
-                                className="css-1ggcm4u-StyledButton-getColors e12ma6z0"
+                                className="css-35eqg2-StyledButton-getColors e12ma6z0"
                                 data-test-id="create-team"
                                 disabled={false}
                                 onClick={[Function]}
@@ -2506,7 +2506,7 @@ exports[`CreateProject should fill in platform name if its provided by url 1`] =
                               >
                                 <button
                                   aria-disabled={false}
-                                  className="css-1ggcm4u-StyledButton-getColors e12ma6z0"
+                                  className="css-35eqg2-StyledButton-getColors e12ma6z0"
                                   data-test-id="create-team"
                                   onClick={[Function]}
                                   role="button"
@@ -2576,7 +2576,7 @@ exports[`CreateProject should fill in platform name if its provided by url 1`] =
                     </InnerReference>
                   </Reference>
                 </Manager>
-              </Tooltip2>
+              </Tooltip>
             </div>
           </TeamSelectInput>
         </div>
@@ -2600,7 +2600,7 @@ exports[`CreateProject should fill in platform name if its provided by url 1`] =
               <ForwardRef
                 aria-disabled={true}
                 aria-label="Create Project"
-                className="css-mla83t-StyledButton-getColors e12ma6z0"
+                className="css-1y2tnyd-StyledButton-getColors e12ma6z0"
                 data-test-id="create-project"
                 disabled={true}
                 href={null}
@@ -2612,7 +2612,7 @@ exports[`CreateProject should fill in platform name if its provided by url 1`] =
                 <button
                   aria-disabled={true}
                   aria-label="Create Project"
-                  className="css-mla83t-StyledButton-getColors e12ma6z0"
+                  className="css-1y2tnyd-StyledButton-getColors e12ma6z0"
                   data-test-id="create-project"
                   href={null}
                   onClick={[Function]}
@@ -2942,7 +2942,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
             selected={true}
           >
             <Component
-              className="css-1aqwt2p-PlatformCard exv4dm86"
+              className="css-d8uoxq-PlatformCard exv4dm86"
               data-test-id="platform-csharp"
               onClear={[Function]}
               onClick={[Function]}
@@ -2958,7 +2958,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
               selected={true}
             >
               <div
-                className="css-1aqwt2p-PlatformCard exv4dm86"
+                className="css-d8uoxq-PlatformCard exv4dm86"
                 data-test-id="platform-csharp"
                 onClick={[Function]}
               >
@@ -2999,7 +2999,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
                         <ForwardRef
                           aria-disabled={false}
                           borderless={true}
-                          className="exv4dm85 css-1ac0eh4-StyledButton-getColors-ClearButton e12ma6z0"
+                          className="exv4dm85 css-1ct4fe4-StyledButton-getColors-ClearButton e12ma6z0"
                           disabled={false}
                           onClick={[Function]}
                           role="button"
@@ -3007,7 +3007,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
                         >
                           <button
                             aria-disabled={false}
-                            className="exv4dm85 css-1ac0eh4-StyledButton-getColors-ClearButton e12ma6z0"
+                            className="exv4dm85 css-1ct4fe4-StyledButton-getColors-ClearButton e12ma6z0"
                             onClick={[Function]}
                             role="button"
                             size="xsmall"
@@ -3098,7 +3098,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
             selected={false}
           >
             <Component
-              className="css-16kw2fg-PlatformCard exv4dm86"
+              className="css-1y7hwtx-PlatformCard exv4dm86"
               data-test-id="platform-elixir"
               onClear={[Function]}
               onClick={[Function]}
@@ -3114,7 +3114,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
               selected={false}
             >
               <div
-                className="css-16kw2fg-PlatformCard exv4dm86"
+                className="css-1y7hwtx-PlatformCard exv4dm86"
                 data-test-id="platform-elixir"
                 onClick={[Function]}
               >
@@ -3148,7 +3148,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
             selected={false}
           >
             <Component
-              className="css-16kw2fg-PlatformCard exv4dm86"
+              className="css-1y7hwtx-PlatformCard exv4dm86"
               data-test-id="platform-java"
               onClear={[Function]}
               onClick={[Function]}
@@ -3164,7 +3164,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
               selected={false}
             >
               <div
-                className="css-16kw2fg-PlatformCard exv4dm86"
+                className="css-1y7hwtx-PlatformCard exv4dm86"
                 data-test-id="platform-java"
                 onClick={[Function]}
               >
@@ -3198,7 +3198,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
             selected={false}
           >
             <Component
-              className="css-16kw2fg-PlatformCard exv4dm86"
+              className="css-1y7hwtx-PlatformCard exv4dm86"
               data-test-id="platform-javascript-angular"
               onClear={[Function]}
               onClick={[Function]}
@@ -3214,7 +3214,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
               selected={false}
             >
               <div
-                className="css-16kw2fg-PlatformCard exv4dm86"
+                className="css-1y7hwtx-PlatformCard exv4dm86"
                 data-test-id="platform-javascript-angular"
                 onClick={[Function]}
               >
@@ -3248,7 +3248,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
             selected={false}
           >
             <Component
-              className="css-16kw2fg-PlatformCard exv4dm86"
+              className="css-1y7hwtx-PlatformCard exv4dm86"
               data-test-id="platform-javascript"
               onClear={[Function]}
               onClick={[Function]}
@@ -3264,7 +3264,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
               selected={false}
             >
               <div
-                className="css-16kw2fg-PlatformCard exv4dm86"
+                className="css-1y7hwtx-PlatformCard exv4dm86"
                 data-test-id="platform-javascript"
                 onClick={[Function]}
               >
@@ -3298,7 +3298,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
             selected={false}
           >
             <Component
-              className="css-16kw2fg-PlatformCard exv4dm86"
+              className="css-1y7hwtx-PlatformCard exv4dm86"
               data-test-id="platform-javascript-react"
               onClear={[Function]}
               onClick={[Function]}
@@ -3314,7 +3314,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
               selected={false}
             >
               <div
-                className="css-16kw2fg-PlatformCard exv4dm86"
+                className="css-1y7hwtx-PlatformCard exv4dm86"
                 data-test-id="platform-javascript-react"
                 onClick={[Function]}
               >
@@ -3348,7 +3348,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
             selected={false}
           >
             <Component
-              className="css-16kw2fg-PlatformCard exv4dm86"
+              className="css-1y7hwtx-PlatformCard exv4dm86"
               data-test-id="platform-node-express"
               onClear={[Function]}
               onClick={[Function]}
@@ -3364,7 +3364,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
               selected={false}
             >
               <div
-                className="css-16kw2fg-PlatformCard exv4dm86"
+                className="css-1y7hwtx-PlatformCard exv4dm86"
                 data-test-id="platform-node-express"
                 onClick={[Function]}
               >
@@ -3398,7 +3398,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
             selected={false}
           >
             <Component
-              className="css-16kw2fg-PlatformCard exv4dm86"
+              className="css-1y7hwtx-PlatformCard exv4dm86"
               data-test-id="platform-node"
               onClear={[Function]}
               onClick={[Function]}
@@ -3414,7 +3414,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
               selected={false}
             >
               <div
-                className="css-16kw2fg-PlatformCard exv4dm86"
+                className="css-1y7hwtx-PlatformCard exv4dm86"
                 data-test-id="platform-node"
                 onClick={[Function]}
               >
@@ -3448,7 +3448,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
             selected={false}
           >
             <Component
-              className="css-16kw2fg-PlatformCard exv4dm86"
+              className="css-1y7hwtx-PlatformCard exv4dm86"
               data-test-id="platform-php-laravel"
               onClear={[Function]}
               onClick={[Function]}
@@ -3464,7 +3464,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
               selected={false}
             >
               <div
-                className="css-16kw2fg-PlatformCard exv4dm86"
+                className="css-1y7hwtx-PlatformCard exv4dm86"
                 data-test-id="platform-php-laravel"
                 onClick={[Function]}
               >
@@ -3498,7 +3498,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
             selected={false}
           >
             <Component
-              className="css-16kw2fg-PlatformCard exv4dm86"
+              className="css-1y7hwtx-PlatformCard exv4dm86"
               data-test-id="platform-php"
               onClear={[Function]}
               onClick={[Function]}
@@ -3514,7 +3514,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
               selected={false}
             >
               <div
-                className="css-16kw2fg-PlatformCard exv4dm86"
+                className="css-1y7hwtx-PlatformCard exv4dm86"
                 data-test-id="platform-php"
                 onClick={[Function]}
               >
@@ -3548,7 +3548,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
             selected={false}
           >
             <Component
-              className="css-16kw2fg-PlatformCard exv4dm86"
+              className="css-1y7hwtx-PlatformCard exv4dm86"
               data-test-id="platform-php-symfony2"
               onClear={[Function]}
               onClick={[Function]}
@@ -3564,7 +3564,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
               selected={false}
             >
               <div
-                className="css-16kw2fg-PlatformCard exv4dm86"
+                className="css-1y7hwtx-PlatformCard exv4dm86"
                 data-test-id="platform-php-symfony2"
                 onClick={[Function]}
               >
@@ -3598,7 +3598,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
             selected={false}
           >
             <Component
-              className="css-16kw2fg-PlatformCard exv4dm86"
+              className="css-1y7hwtx-PlatformCard exv4dm86"
               data-test-id="platform-python-django"
               onClear={[Function]}
               onClick={[Function]}
@@ -3614,7 +3614,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
               selected={false}
             >
               <div
-                className="css-16kw2fg-PlatformCard exv4dm86"
+                className="css-1y7hwtx-PlatformCard exv4dm86"
                 data-test-id="platform-python-django"
                 onClick={[Function]}
               >
@@ -3648,7 +3648,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
             selected={false}
           >
             <Component
-              className="css-16kw2fg-PlatformCard exv4dm86"
+              className="css-1y7hwtx-PlatformCard exv4dm86"
               data-test-id="platform-python-flask"
               onClear={[Function]}
               onClick={[Function]}
@@ -3664,7 +3664,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
               selected={false}
             >
               <div
-                className="css-16kw2fg-PlatformCard exv4dm86"
+                className="css-1y7hwtx-PlatformCard exv4dm86"
                 data-test-id="platform-python-flask"
                 onClick={[Function]}
               >
@@ -3698,7 +3698,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
             selected={false}
           >
             <Component
-              className="css-16kw2fg-PlatformCard exv4dm86"
+              className="css-1y7hwtx-PlatformCard exv4dm86"
               data-test-id="platform-python"
               onClear={[Function]}
               onClick={[Function]}
@@ -3714,7 +3714,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
               selected={false}
             >
               <div
-                className="css-16kw2fg-PlatformCard exv4dm86"
+                className="css-1y7hwtx-PlatformCard exv4dm86"
                 data-test-id="platform-python"
                 onClick={[Function]}
               >
@@ -3748,7 +3748,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
             selected={false}
           >
             <Component
-              className="css-16kw2fg-PlatformCard exv4dm86"
+              className="css-1y7hwtx-PlatformCard exv4dm86"
               data-test-id="platform-cocoa"
               onClear={[Function]}
               onClick={[Function]}
@@ -3764,7 +3764,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
               selected={false}
             >
               <div
-                className="css-16kw2fg-PlatformCard exv4dm86"
+                className="css-1y7hwtx-PlatformCard exv4dm86"
                 data-test-id="platform-cocoa"
                 onClick={[Function]}
               >
@@ -3798,7 +3798,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
             selected={false}
           >
             <Component
-              className="css-16kw2fg-PlatformCard exv4dm86"
+              className="css-1y7hwtx-PlatformCard exv4dm86"
               data-test-id="platform-ruby-rails"
               onClear={[Function]}
               onClick={[Function]}
@@ -3814,7 +3814,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
               selected={false}
             >
               <div
-                className="css-16kw2fg-PlatformCard exv4dm86"
+                className="css-1y7hwtx-PlatformCard exv4dm86"
                 data-test-id="platform-ruby-rails"
                 onClick={[Function]}
               >
@@ -3848,7 +3848,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
             selected={false}
           >
             <Component
-              className="css-16kw2fg-PlatformCard exv4dm86"
+              className="css-1y7hwtx-PlatformCard exv4dm86"
               data-test-id="platform-ruby"
               onClear={[Function]}
               onClick={[Function]}
@@ -3864,7 +3864,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
               selected={false}
             >
               <div
-                className="css-16kw2fg-PlatformCard exv4dm86"
+                className="css-1y7hwtx-PlatformCard exv4dm86"
                 data-test-id="platform-ruby"
                 onClick={[Function]}
               >
@@ -4131,7 +4131,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
                   </ForwardRef(SelectPicker)>
                 </StyledSelect>
               </SelectControl>
-              <Tooltip2
+              <Tooltip
                 containerDisplayMode="inline-block"
                 position="top"
                 title="Create a team"
@@ -4152,7 +4152,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
                       >
                         <span
                           aria-describedby="tooltip-123456"
-                          className="css-1m3e0hg-Container e7ebgxc0"
+                          className="css-1m3e0hg-Container erna86q0"
                           onBlur={[Function]}
                           onFocus={[Function]}
                           onMouseEnter={[Function]}
@@ -4178,7 +4178,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
                               <ForwardRef
                                 aria-disabled={false}
                                 borderless={true}
-                                className="css-1ggcm4u-StyledButton-getColors e12ma6z0"
+                                className="css-35eqg2-StyledButton-getColors e12ma6z0"
                                 data-test-id="create-team"
                                 disabled={false}
                                 onClick={[Function]}
@@ -4187,7 +4187,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
                               >
                                 <button
                                   aria-disabled={false}
-                                  className="css-1ggcm4u-StyledButton-getColors e12ma6z0"
+                                  className="css-35eqg2-StyledButton-getColors e12ma6z0"
                                   data-test-id="create-team"
                                   onClick={[Function]}
                                   role="button"
@@ -4257,7 +4257,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
                     </InnerReference>
                   </Reference>
                 </Manager>
-              </Tooltip2>
+              </Tooltip>
             </div>
           </TeamSelectInput>
         </div>
@@ -4281,7 +4281,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
               <ForwardRef
                 aria-disabled={true}
                 aria-label="Create Project"
-                className="css-mla83t-StyledButton-getColors e12ma6z0"
+                className="css-1y2tnyd-StyledButton-getColors e12ma6z0"
                 data-test-id="create-project"
                 disabled={true}
                 href={null}
@@ -4293,7 +4293,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
                 <button
                   aria-disabled={true}
                   aria-label="Create Project"
-                  className="css-mla83t-StyledButton-getColors e12ma6z0"
+                  className="css-1y2tnyd-StyledButton-getColors e12ma6z0"
                   data-test-id="create-project"
                   href={null}
                   onClick={[Function]}

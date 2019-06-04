@@ -9,7 +9,7 @@ from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework import SentryAppSerializer
 from sentry.constants import SentryAppStatus
 from sentry.features.helpers import requires_feature
-from sentry.mediators.sentry_apps import Creator
+from sentry.mediators.sentry_apps import Creator, InternalCreator
 from sentry.models import SentryApp
 
 
@@ -21,13 +21,19 @@ class SentryAppsEndpoint(SentryAppsBaseEndpoint):
             queryset = SentryApp.objects.filter(status=SentryAppStatus.PUBLISHED)
 
         elif status == 'unpublished':
-            if is_active_superuser(request):
-                queryset = SentryApp.objects.filter(
-                    status=SentryAppStatus.UNPUBLISHED
+            queryset = SentryApp.objects.filter(
+                status=SentryAppStatus.UNPUBLISHED,
+            )
+            if not is_active_superuser(request):
+                queryset = queryset.filter(
+                    owner__in=request.user.get_orgs(),
                 )
-            else:
-                queryset = SentryApp.objects.filter(
-                    status=SentryAppStatus.UNPUBLISHED,
+        elif status == 'internal':
+            queryset = SentryApp.objects.filter(
+                status=SentryAppStatus.INTERNAL,
+            )
+            if not is_active_superuser(request):
+                queryset = queryset.filter(
                     owner__in=request.user.get_orgs(),
                 )
         else:
@@ -54,6 +60,7 @@ class SentryAppsEndpoint(SentryAppsBaseEndpoint):
             'webhookUrl': request.json_body.get('webhookUrl'),
             'redirectUrl': request.json_body.get('redirectUrl'),
             'isAlertable': request.json_body.get('isAlertable'),
+            'isInternal': request.json_body.get('isInternal'),
             'scopes': request.json_body.get('scopes', []),
             'events': request.json_body.get('events', []),
             'schema': request.json_body.get('schema', {}),
@@ -67,10 +74,8 @@ class SentryAppsEndpoint(SentryAppsBaseEndpoint):
             data['webhook_url'] = data['webhookUrl']
             data['is_alertable'] = data['isAlertable']
 
-            sentry_app = Creator.run(
-                request=request,
-                **data
-            )
+            creator = InternalCreator if data.get('isInternal') else Creator
+            sentry_app = creator.run(request=request, **data)
 
             return Response(serialize(sentry_app), status=201)
         return Response(serializer.errors, status=400)

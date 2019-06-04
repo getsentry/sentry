@@ -8,8 +8,8 @@ import {capitalize} from 'lodash';
 import ProjectLink from 'app/components/projectLink';
 import {Metadata} from 'app/sentryTypes';
 import EventOrGroupTitle from 'app/components/eventOrGroupTitle';
-import Tooltip2 from 'app/components/tooltip2';
-import {isNativePlatform} from 'app/utils/platform';
+import Tooltip from 'app/components/tooltip';
+import {getMessage, getLocation} from 'app/utils/events';
 
 /**
  * Displays an event or group/issue title (i.e. in Stream)
@@ -43,33 +43,6 @@ class EventOrGroupHeader extends React.Component {
   static defaultProps = {
     includeLink: true,
   };
-
-  getMessage() {
-    const {data} = this.props;
-    const {metadata, type, culprit} = data || {};
-
-    switch (type) {
-      case 'error':
-        return metadata.value;
-      case 'csp':
-        return metadata.message;
-      case 'expectct':
-      case 'expectstaple':
-      case 'hpkp':
-        return '';
-      default:
-        return culprit || '';
-    }
-  }
-
-  getLocation() {
-    const {data} = this.props;
-    if (data.type === 'error' && isNativePlatform(data.platform)) {
-      const {metadata} = data || {};
-      return metadata.filename || null;
-    }
-    return null;
-  }
 
   getTitle() {
     const {hideIcons, hideLevel, includeLink, data, params} = this.props;
@@ -110,9 +83,9 @@ class EventOrGroupHeader extends React.Component {
       >
         {!hideLevel && level && (
           <GroupLevel level={data.level}>
-            <Tooltip2 title={`Error level: ${capitalize(level)}`}>
+            <Tooltip title={`Error level: ${capitalize(level)}`}>
               <span />
-            </Tooltip2>
+            </Tooltip>
           </GroupLevel>
         )}
         {!hideIcons && data.status === 'ignored' && <Muted className="icon-soundoff" />}
@@ -126,10 +99,10 @@ class EventOrGroupHeader extends React.Component {
   }
 
   render() {
-    const {className} = this.props;
+    const {className, data} = this.props;
     const cx = classNames('event-issue-header', className);
-    const message = this.getMessage();
-    const location = this.getLocation();
+    const location = getLocation(data);
+    const message = getMessage(data);
 
     return (
       <div className={cx}>

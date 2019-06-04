@@ -111,6 +111,17 @@ const DiscoverResultsShape = {
 
 export const DiscoverResults = PropTypes.arrayOf(PropTypes.shape(DiscoverResultsShape));
 
+export const EventView = PropTypes.shape({
+  id: PropTypes.string.isRequired,
+  name: PropTypes.string.isRequired,
+  data: PropTypes.shape({
+    fields: PropTypes.arrayOf(PropTypes.string),
+    groupby: PropTypes.arrayOf(PropTypes.string),
+    sort: PropTypes.string,
+  }).isRequired,
+  tags: PropTypes.arrayOf(PropTypes.string).isRequired,
+});
+
 /**
  * A Member is someone that was invited to Sentry but may
  * not have registered for an account yet
@@ -196,6 +207,16 @@ export const Event = PropTypes.shape({
   ),
   type: PropTypes.oneOf(['error', 'csp', 'default']),
   user: PropTypes.object,
+});
+
+export const EventAttachment = PropTypes.shape({
+  id: PropTypes.string.isRequired,
+  name: PropTypes.string.isRequired,
+  headers: PropTypes.object,
+  size: PropTypes.number.isRequired,
+  sha1: PropTypes.string.isRequired,
+  dateCreated: PropTypes.oneOfType([PropTypes.string, PropTypes.instanceOf(Date)]),
+  type: PropTypes.string.isRequired,
 });
 
 export const EventError = PropTypes.shape({
@@ -397,7 +418,7 @@ export const SavedSearch = PropTypes.shape({
 
 export const Incident = PropTypes.shape({
   id: PropTypes.string.isRequired,
-  identifier: PropTypes.number.isRequired,
+  identifier: PropTypes.string.isRequired,
   title: PropTypes.string.isRequired,
   status: PropTypes.number.isRequired,
   query: PropTypes.string,
@@ -415,6 +436,15 @@ export const Activity = PropTypes.shape({
   data: PropTypes.shape({
     text: PropTypes.string,
   }),
+});
+
+export const IncidentActivity = PropTypes.shape({
+  id: PropTypes.string.isRequired,
+  type: PropTypes.number.isRequired,
+  dateCreated: PropTypes.oneOfType([PropTypes.instanceOf(Date), PropTypes.string])
+    .isRequired,
+  user: User,
+  comment: PropTypes.string,
 });
 
 export const GlobalSelection = PropTypes.shape({
@@ -944,12 +974,15 @@ const SentryTypes = {
   DiscoverResults,
   Environment,
   Event,
+  EventAttachment,
+  EventView,
   Organization: PropTypes.shape({
     id: PropTypes.string.isRequired,
   }),
   GlobalSelection,
   Group,
   Incident,
+  IncidentActivity,
   Tag,
   Monitor,
   PageLinks,

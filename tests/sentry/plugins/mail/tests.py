@@ -39,7 +39,7 @@ class MailPluginTest(TestCase):
         return MailPlugin()
 
     @mock.patch(
-        'sentry.models.ProjectOption.objects.get_value', Mock(side_effect=lambda p, k, d: d)
+        'sentry.models.ProjectOption.objects.get_value', Mock(side_effect=lambda p, k, d, **kw: d)
     )
     @mock.patch(
         'sentry.plugins.sentry_mail.models.MailPlugin.get_sendable_users', Mock(return_value=[])
@@ -82,7 +82,7 @@ class MailPluginTest(TestCase):
             project_id=self.project.id,
             message='Soubor ji\xc5\xbe existuje',
             # Create interface so get_title will be called on it.
-            data={'stacktrace': {'frames': []}},
+            data={'stacktrace': {'frames': [{}]}},
         )
 
         notification = Notification(event=event)
@@ -289,7 +289,11 @@ class MailPluginTest(TestCase):
 
     @mock.patch(
         'sentry.models.ProjectOption.objects.get_value',
-        Mock(side_effect=lambda p, k, d: "[Example prefix] " if k == "mail:subject_prefix" else d)
+        Mock(
+            side_effect=lambda p,
+            k,
+            d,
+            **kw: "[Example prefix] " if k == "mail:subject_prefix" else d)
     )
     def test_notify_digest_subject_prefix(self):
         project = self.event.project

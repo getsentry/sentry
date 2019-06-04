@@ -12,8 +12,6 @@ import warnings
 from collections import defaultdict
 
 import six
-from pytz import utc
-from datetime import datetime
 from bitfield import BitField
 from django.conf import settings
 from django.db import IntegrityError, models, transaction
@@ -23,6 +21,7 @@ from django.utils.translation import ugettext_lazy as _
 from django.utils.http import urlencode
 from uuid import uuid1
 
+from sentry import projectoptions
 from sentry.app import locks
 from sentry.constants import ObjectStatus, RESERVED_PROJECT_SLUGS
 from sentry.db.mixin import PendingDeletionMixin, delete_pending_deletion_option
@@ -174,27 +173,16 @@ class Project(Model, PendingDeletionMixin):
 
     # TODO: Make these a mixin
     def update_option(self, *args, **kwargs):
-        from sentry.models import ProjectOption
-        self.update_rev_for_option()
-        return ProjectOption.objects.set_value(self, *args, **kwargs)
+        return projectoptions.set(self, *args, **kwargs)
 
     def get_option(self, *args, **kwargs):
-        from sentry.models import ProjectOption
-        return ProjectOption.objects.get_value(self, *args, **kwargs)
+        return projectoptions.get(self, *args, **kwargs)
 
     def delete_option(self, *args, **kwargs):
-        from sentry.models import ProjectOption
-        self.update_rev_for_option()
-        return ProjectOption.objects.unset_value(self, *args, **kwargs)
+        return projectoptions.delete(self, *args, **kwargs)
 
     def update_rev_for_option(self):
-        from sentry.models import ProjectOption
-        ProjectOption.objects.set_value(self, 'sentry:relay-rev', uuid1().hex)
-        ProjectOption.objects.set_value(
-            self,
-            'sentry:relay-rev-lastchange',
-            datetime.utcnow().replace(
-                tzinfo=utc))
+        return projectoptions.update_rev_for_option(self)
 
     @property
     def callsign(self):

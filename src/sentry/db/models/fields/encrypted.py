@@ -7,14 +7,22 @@ __all__ = (
 import six
 
 from django.conf import settings
-from django.db import models
 from django.db.models import CharField, TextField
-from jsonfield import JSONField
 from picklefield.fields import PickledObjectField
+from sentry.db.models.fields.jsonfield import JSONField
+from sentry.db.models.utils import Creator
 from sentry.utils.encryption import decrypt, encrypt
 
 
 class EncryptedCharField(CharField):
+    def contribute_to_class(self, cls, name):
+        """
+        Add a descriptor for backwards compatibility
+        with previous Django behavior.
+        """
+        super(EncryptedCharField, self).contribute_to_class(cls, name)
+        setattr(cls, name, Creator(self))
+
     def get_db_prep_value(self, value, *args, **kwargs):
         value = super(EncryptedCharField, self).get_db_prep_value(value, *args, **kwargs)
         return encrypt(value)
@@ -74,6 +82,14 @@ class EncryptedPickledObjectField(PickledObjectField):
 
 
 class EncryptedTextField(TextField):
+    def contribute_to_class(self, cls, name):
+        """
+        Add a descriptor for backwards compatibility
+        with previous Django behavior.
+        """
+        super(EncryptedTextField, self).contribute_to_class(cls, name)
+        setattr(cls, name, Creator(self))
+
     def get_db_prep_value(self, value, *args, **kwargs):
         value = super(EncryptedTextField, self).get_db_prep_value(value, *args, **kwargs)
         return encrypt(value)
@@ -91,10 +107,6 @@ class EncryptedTextField(TextField):
             )
         )
 
-
-if hasattr(models, 'SubfieldBase'):
-    EncryptedCharField = six.add_metaclass(models.SubfieldBase)(EncryptedCharField)
-    EncryptedTextField = six.add_metaclass(models.SubfieldBase)(EncryptedTextField)
 
 if 'south' in settings.INSTALLED_APPS:
     from south.modelsinspector import add_introspection_rules

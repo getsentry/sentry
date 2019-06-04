@@ -143,6 +143,14 @@ class SentryApp(ParanoidModel, HasApiScopes):
     def is_published(self):
         return self.status == SentryAppStatus.PUBLISHED
 
+    @property
+    def is_unpublished(self):
+        return self.status == SentryAppStatus.UNPUBLISHED
+
+    @property
+    def is_internal(self):
+        return self.status == SentryAppStatus.INTERNAL
+
     def save(self, *args, **kwargs):
         self._set_slug()
         self.date_updated = timezone.now()

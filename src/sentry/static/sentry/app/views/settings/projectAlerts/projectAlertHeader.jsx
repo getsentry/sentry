@@ -7,7 +7,7 @@ import Button from 'app/components/button';
 import ListLink from 'app/components/links/listLink';
 import NavTabs from 'app/components/navTabs';
 
-import Tooltip2 from 'app/components/tooltip2';
+import Tooltip from 'app/components/tooltip';
 
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 
@@ -31,7 +31,7 @@ export default withOrganization(
         <SettingsPageHeader
           title={t('Alerts')}
           action={
-            <Tooltip2
+            <Tooltip
               disabled={canEditRule}
               title={t('You do not have permission to edit alert rules.')}
             >
@@ -44,7 +44,7 @@ export default withOrganization(
               >
                 {t('New Alert Rule')}
               </Button>
-            </Tooltip2>
+            </Tooltip>
           }
           tabs={
             <NavTabs underlined={true}>

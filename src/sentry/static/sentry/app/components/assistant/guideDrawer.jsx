@@ -6,6 +6,7 @@ import createReactClass from 'create-react-class';
 import styled from 'react-emotion';
 import Button from 'app/components/button';
 import GuideStore from 'app/stores/guideStore';
+import space from 'app/styles/space';
 import {t} from 'app/locale';
 import {
   closeGuide,
@@ -166,7 +167,7 @@ const GuideDrawer = createReactClass({
 const StyledCueText = styled(CueText)`
   width: auto;
   opacity: 1;
-  margin-left: 8px;
+  margin-left: ${space(1)};
 `;
 
 const StyledCueContainer = styled(CueContainer)`
@@ -198,7 +199,7 @@ const StyledTitle = styled('div')`
 `;
 
 const StyledContent = styled('div')`
-  margin: 1.5rem;
+  margin-top: ${space(1)};
   line-height: 1.5;
 
   a {

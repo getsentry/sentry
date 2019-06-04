@@ -4,16 +4,19 @@ import React from 'react';
 import * as Sentry from '@sentry/browser';
 
 import {Client} from 'app/api';
+import {metric} from 'app/utils/analytics';
 import {t} from 'app/locale';
 import AsyncComponentSearchInput from 'app/components/asyncComponentSearchInput';
 import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import PermissionDenied from 'app/views/permissionDenied';
 import RouteError from 'app/views/routeError';
+import getRouteStringFromRoutes from 'app/utils/getRouteStringFromRoutes';
 
 export default class AsyncComponent extends React.Component {
   static propTypes = {
     location: PropTypes.object,
+    router: PropTypes.object,
   };
 
   static contextTypes = {
@@ -66,6 +69,13 @@ export default class AsyncComponent extends React.Component {
     this.render = AsyncComponent.errorHandler(this, this.render.bind(this));
 
     this.state = this.getDefaultState();
+
+    this._measurement = {
+      hasMeasured: false,
+    };
+    if (props.router && props.router.routes) {
+      metric.mark(`async-component-${getRouteStringFromRoutes(props.router.routes)}`);
+    }
   }
 
   componentWillMount() {
@@ -97,6 +107,26 @@ export default class AsyncComponent extends React.Component {
 
     if (!(currentLocation && prevLocation)) {
       return;
+    }
+
+    // Take a measurement from when this component is initially created until it finishes it's first
+    // set of API requests
+    if (
+      !this._measurement.hasMeasured &&
+      this._measurement.finished &&
+      this.props.router &&
+      this.props.router.routes
+    ) {
+      const routeString = getRouteStringFromRoutes(this.props.router.routes);
+      metric.measure({
+        name: 'app.component.async-component',
+        start: `async-component-${routeString}`,
+        data: {
+          route: routeString,
+          error: this._measurement.error,
+        },
+      });
+      this._measurement.hasMeasured = true;
     }
 
     // Re-fetch data when router params change.
@@ -131,6 +161,14 @@ export default class AsyncComponent extends React.Component {
     });
     return state;
   }
+
+  // Check if we should measure render time for this component
+  markShouldMeasure = ({remainingRequests, error} = {}) => {
+    if (!this._measurement.hasMeasured) {
+      this._measurement.finished = remainingRequests === 0;
+      this._measurement.error = error || this._measurement.error;
+    }
+  };
 
   remountComponent = () => {
     if (this.shouldReload) {
@@ -222,6 +260,7 @@ export default class AsyncComponent extends React.Component {
         state.remainingRequests = prevState.remainingRequests - 1;
         state.loading = prevState.remainingRequests > 1;
         state.reloading = prevState.reloading && state.loading;
+        this.markShouldMeasure({remainingRequests: state.remainingRequests});
       }
 
       return state;
@@ -251,6 +290,7 @@ export default class AsyncComponent extends React.Component {
       state.remainingRequests = prevState.remainingRequests - 1;
       state.loading = prevState.remainingRequests > 1;
       state.reloading = prevState.reloading && state.loading;
+      this.markShouldMeasure({remainingRequests: state.remainingRequests, error: true});
 
       return state;
     });
@@ -313,7 +353,7 @@ export default class AsyncComponent extends React.Component {
   }
 
   renderError(error, disableLog = false, disableReport = false) {
-    // 401s are captured by SudaModal, but may be passed back to AsyncComponent if they close the modal without identifying
+    // 401s are captured by SudoModal, but may be passed back to AsyncComponent if they close the modal without identifying
     const unauthorizedErrors = Object.values(this.state.errors).find(
       resp => resp && resp.status === 401
     );

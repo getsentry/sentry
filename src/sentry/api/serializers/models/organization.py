@@ -2,6 +2,8 @@ from __future__ import absolute_import
 
 import six
 
+from django.conf import settings
+
 from sentry import roles
 from sentry.app import quotas
 from sentry.api.serializers import Serializer, register, serialize
@@ -19,6 +21,7 @@ REQUIRE_SCRUB_DEFAULTS_DEFAULT = False
 SENSITIVE_FIELDS_DEFAULT = None
 SAFE_FIELDS_DEFAULT = None
 STORE_CRASH_REPORTS_DEFAULT = False
+ATTACHMENTS_ROLE_DEFAULT = settings.SENTRY_DEFAULT_ROLE
 REQUIRE_SCRUB_IP_ADDRESS_DEFAULT = False
 SCRAPE_JAVASCRIPT_DEFAULT = True
 TRUSTED_RELAYS_DEFAULT = None
@@ -96,7 +99,6 @@ class OrganizationSerializer(Serializer):
             'name': obj.name or obj.slug,
             'dateCreated': obj.date_added,
             'isEarlyAdopter': bool(obj.flags.early_adopter),
-            'disableNewVisibilityFeatures': bool(obj.flags.disable_new_visibility_features),
             'require2FA': bool(obj.flags.require_2fa),
             'avatar': avatar,
             'features': feature_list
@@ -198,6 +200,7 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
             'sensitiveFields': obj.get_option('sentry:sensitive_fields', SENSITIVE_FIELDS_DEFAULT) or [],
             'safeFields': obj.get_option('sentry:safe_fields', SAFE_FIELDS_DEFAULT) or [],
             'storeCrashReports': bool(obj.get_option('sentry:store_crash_reports', STORE_CRASH_REPORTS_DEFAULT)),
+            'attachmentsRole': six.text_type(obj.get_option('sentry:attachments_role', ATTACHMENTS_ROLE_DEFAULT)),
             'scrubIPAddresses': bool(obj.get_option('sentry:require_scrub_ip_address', REQUIRE_SCRUB_IP_ADDRESS_DEFAULT)),
             'scrapeJavaScript': bool(obj.get_option('sentry:scrape_javascript', SCRAPE_JAVASCRIPT_DEFAULT)),
             'trustedRelays': obj.get_option('sentry:trusted-relays', TRUSTED_RELAYS_DEFAULT) or [],

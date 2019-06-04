@@ -14,6 +14,10 @@ from sentry.db.models import (
     Model,
     UUIDField,
 )
+from sentry.db.models import (
+    ArrayField,
+    sane_repr,
+)
 from sentry.db.models.manager import BaseManager
 from sentry.utils.retries import TimedRetryPolicy
 
@@ -60,7 +64,7 @@ class IncidentManager(BaseManager):
         return self.filter(
             organization=organization,
             projects__in=projects,
-        )
+        ).distinct()
 
     @TimedRetryPolicy.wrap(timeout=5, exceptions=(IntegrityError, ))
     def create(self, organization, **kwargs):
@@ -140,3 +144,65 @@ class Incident(Model):
     @property
     def duration(self):
         return self.current_end_date - self.date_started
+
+
+class TimeSeriesSnapshot(Model):
+    __core__ = True
+
+    start = models.DateTimeField()
+    end = models.DateTimeField()
+    values = ArrayField(of=ArrayField(models.IntegerField()))
+    period = models.IntegerField()
+    date_added = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        app_label = 'sentry'
+        db_table = 'sentry_timeseriessnapshot'
+
+    @property
+    def snuba_values(self):
+        """
+        Returns values matching the snuba format, a list of dicts with 'time'
+        and 'count' keys.
+        :return:
+        """
+        return {'data': [{'time': time, 'count': count} for time, count in self.values]}
+
+
+class IncidentActivityType(Enum):
+    CREATED = 0
+    DETECTED = 1
+    STATUS_CHANGE = 2
+    COMMENT = 3
+
+
+class IncidentActivity(Model):
+    __core__ = True
+
+    incident = FlexibleForeignKey('sentry.Incident')
+    user = FlexibleForeignKey('sentry.User', null=True)
+    type = models.IntegerField()
+    value = models.TextField(null=True)
+    previous_value = models.TextField(null=True)
+    comment = models.TextField(null=True)
+    event_stats_snapshot = FlexibleForeignKey('sentry.TimeSeriesSnapshot', null=True)
+    date_added = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        app_label = 'sentry'
+        db_table = 'sentry_incidentactivity'
+
+
+class IncidentSubscription(Model):
+    __core__ = True
+
+    incident = FlexibleForeignKey('sentry.Incident', db_index=False)
+    user = FlexibleForeignKey(settings.AUTH_USER_MODEL)
+    date_added = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        app_label = 'sentry'
+        db_table = 'sentry_incidentsubscription'
+        unique_together = (('incident', 'user'), )
+
+    __repr__ = sane_repr('incident_id', 'user_id')

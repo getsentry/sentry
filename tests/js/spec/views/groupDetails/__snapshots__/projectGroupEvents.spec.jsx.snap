@@ -28,16 +28,20 @@ exports[`groupEvents renders 1`] = `
         events={
           Array [
             Object {
+              "dateCreated": "2019-05-21T18:01:48.762Z",
               "eventID": "12345",
               "groupID": "1",
               "id": "1",
               "message": "ApiException",
+              "tags": Array [],
             },
             Object {
+              "dateCreated": "2019-05-21T18:01:48.762Z",
               "eventID": "12346",
               "groupID": "1",
               "id": "2",
               "message": "TestException",
+              "tags": Array [],
             },
           ]
         }

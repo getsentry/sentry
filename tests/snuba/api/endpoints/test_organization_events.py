@@ -5,6 +5,7 @@ from six.moves.urllib.parse import urlencode
 from datetime import timedelta
 from django.utils import timezone
 from django.core.urlresolvers import reverse
+from uuid import uuid4
 
 from sentry.testutils import APITestCase, SnubaTestCase
 
@@ -155,7 +156,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsTestBase):
         response = self.client.get(url, {'query': 'hi \n there'}, format='json')
 
         assert response.status_code == 400, response.content
-        assert response.data['detail'] == "Parse error: 'search' (column 4)"
+        assert response.data['detail'] == "Parse error: 'search' (column 4). This is commonly caused by unmatched-parentheses. Enclose any text in double quotes."
 
     def test_project_filtering(self):
         user = self.create_user(is_staff=False, is_superuser=False)
@@ -660,40 +661,49 @@ class OrganizationEventsEndpointTest(OrganizationEventsTestBase):
 
 
 class OrganizationEventsStatsEndpointTest(OrganizationEventsTestBase):
-    def test_simple(self):
+    def setUp(self):
+        super(OrganizationEventsStatsEndpointTest, self).setUp()
         self.login_as(user=self.user)
 
-        day_ago = self.day_ago.replace(hour=10, minute=0, second=0, microsecond=0)
+        self.day_ago = self.day_ago.replace(hour=10, minute=0, second=0, microsecond=0)
 
-        project = self.create_project()
-        project2 = self.create_project()
-        group = self.create_group(project=project)
-        group2 = self.create_group(project=project2)
+        self.project = self.create_project()
+        self.project2 = self.create_project()
+
+        self.group = self.create_group(project=self.project)
+        self.group2 = self.create_group(project=self.project2)
+
+        self.user = self.create_user()
+        self.user2 = self.create_user()
         self.create_event(
             event_id='a' * 32,
-            group=group,
-            datetime=day_ago + timedelta(minutes=1)
+            group=self.group,
+            datetime=self.day_ago + timedelta(minutes=1),
+            tags={'sentry:user': self.user.email},
         )
         self.create_event(
             event_id='b' * 32,
-            group=group2,
-            datetime=day_ago + timedelta(hours=1, minutes=1)
+            group=self.group2,
+            datetime=self.day_ago + timedelta(hours=1, minutes=1),
+            tags={'sentry:user': self.user2.email},
         )
         self.create_event(
             event_id='c' * 32,
-            group=group2,
-            datetime=day_ago + timedelta(hours=1, minutes=2)
+            group=self.group2,
+            datetime=self.day_ago + timedelta(hours=1, minutes=2),
+            tags={'sentry:user': self.user2.email},
         )
 
+    def test_simple(self):
         url = reverse(
             'sentry-api-0-organization-events-stats',
             kwargs={
-                'organization_slug': project.organization.slug,
+                'organization_slug': self.project.organization.slug,
             }
         )
         response = self.client.get('%s?%s' % (url, urlencode({
-            'start': day_ago.isoformat()[:19],
-            'end': (day_ago + timedelta(hours=1, minutes=59)).isoformat()[:19],
+            'start': self.day_ago.isoformat()[:19],
+            'end': (self.day_ago + timedelta(hours=1, minutes=59)).isoformat()[:19],
             'interval': '1h',
         })), format='json')
 
@@ -718,6 +728,431 @@ class OrganizationEventsStatsEndpointTest(OrganizationEventsTestBase):
 
         assert response.status_code == 200, response.content
         assert len(response.data['data']) == 0
+
+    def test_user_count(self):
+        self.create_event(
+            event_id='d' * 32,
+            group=self.group2,
+            datetime=self.day_ago + timedelta(minutes=2),
+            tags={'sentry:user': self.user2.email},
+        )
+        url = reverse(
+            'sentry-api-0-organization-events-stats',
+            kwargs={
+                'organization_slug': self.project.organization.slug,
+            }
+        )
+        response = self.client.get('%s?%s' % (url, urlencode({
+            'start': self.day_ago.isoformat()[:19],
+            'end': (self.day_ago + timedelta(hours=1, minutes=59)).isoformat()[:19],
+            'interval': '1h',
+            'yAxis': 'user_count',
+        })), format='json')
+
+        assert response.status_code == 200, response.content
+
+        assert [attrs for time, attrs in response.data['data']] == [
+            [],
+            [{'count': 2}],
+            [{'count': 1}],
+        ]
+
+    def test_with_event_count_flag(self):
+        url = reverse(
+            'sentry-api-0-organization-events-stats',
+            kwargs={
+                'organization_slug': self.project.organization.slug,
+            }
+        )
+        response = self.client.get('%s?%s' % (url, urlencode({
+            'start': self.day_ago.isoformat()[:19],
+            'end': (self.day_ago + timedelta(hours=1, minutes=59)).isoformat()[:19],
+            'interval': '1h',
+            'yAxis': 'event_count',
+        })), format='json')
+
+        assert response.status_code == 200, response.content
+        assert [attrs for time, attrs in response.data['data']] == [
+            [],
+            [{'count': 1}],
+            [{'count': 2}],
+        ]
+
+
+class OrganizationEventsHeatmapEndpointTest(OrganizationEventsTestBase):
+    def setUp(self):
+        super(OrganizationEventsHeatmapEndpointTest, self).setUp()
+        self.login_as(user=self.user)
+        self.project = self.create_project()
+        self.project2 = self.create_project()
+        self.url = reverse(
+            'sentry-api-0-organization-events-heatmap',
+            kwargs={
+                'organization_slug': self.project.organization.slug,
+            }
+        )
+        self.min_ago = self.min_ago.replace(microsecond=0)
+        self.day_ago = self.day_ago.replace(microsecond=0)
+
+    def test_simple(self):
+        self.store_event(
+            data={
+                'event_id': uuid4().hex,
+                'timestamp': self.min_ago.isoformat(),
+                'tags': {'color': 'green'},
+            },
+            project_id=self.project.id
+        )
+        self.store_event(
+            data={
+                'event_id': uuid4().hex,
+                'timestamp': self.min_ago.isoformat(),
+                'tags': {'number': 'one'},
+            },
+            project_id=self.project2.id
+        )
+        self.store_event(
+            data={
+                'event_id': uuid4().hex,
+                'timestamp': self.min_ago.isoformat(),
+                'tags': {'color': 'green'},
+            },
+            project_id=self.project.id
+        )
+        self.store_event(
+            data={
+                'event_id': uuid4().hex,
+                'timestamp': self.min_ago.isoformat(),
+                'tags': {'color': 'red'},
+            },
+            project_id=self.project.id
+        )
+
+        with self.feature('organizations:global-views'):
+            response = self.client.get(self.url, {'keys': ['color', 'number']}, format='json')
+
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 2
+        response.data[0] == {
+            'topValues': [
+                {
+                    'count': 1,
+                    'name': 'one',
+                    'value': 'one',
+                    'lastSeen': self.min_ago,
+                    'key': 'number',
+                    'firstSeen': self.min_ago
+                }
+            ],
+            'totalValues': 1,
+            'name': 'Number',
+            'key': 'number'
+        }
+        response.data[1] == {
+            'topValues': [
+                {
+                    'count': 2,
+                    'name': 'green',
+                    'value': 'green',
+                    'lastSeen': self.min_ago,
+                    'key': 'color',
+                    'firstSeen': self.min_ago
+                },
+                {
+                    'count': 1,
+                    'name': 'red',
+                    'value': 'red',
+                    'lastSeen': self.min_ago,
+                    'key': 'color',
+                    'firstSeen': self.min_ago
+                }
+            ],
+            'totalValues': 3,
+            'name': 'Color',
+            'key': 'color'
+        }
+
+    def test_single_key(self):
+        self.store_event(
+            data={
+                'event_id': uuid4().hex,
+                'timestamp': self.min_ago.isoformat(),
+                'tags': {'world': 'hello'},
+            },
+            project_id=self.project.id
+        )
+        self.store_event(
+            data={
+                'event_id': uuid4().hex,
+                'timestamp': self.min_ago.isoformat(),
+                'tags': {'color': 'yellow'},
+            },
+            project_id=self.project.id
+        )
+        self.store_event(
+            data={
+                'event_id': uuid4().hex,
+                'timestamp': self.min_ago.isoformat(),
+                'tags': {'color': 'red'},
+            },
+            project_id=self.project2.id
+        )
+        self.store_event(
+            data={
+                'event_id': uuid4().hex,
+                'timestamp': self.min_ago.isoformat(),
+                'tags': {'color': 'yellow'},
+            },
+            project_id=self.project.id
+        )
+
+        with self.feature('organizations:global-views'):
+            response = self.client.get(self.url, {'keys': ['color']}, format='json')
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 1
+        assert response.data[0] == {
+            'topValues': [
+                {
+                    'count': 2,
+                    'name': 'yellow',
+                    'value': 'yellow',
+                    'lastSeen': self.min_ago,
+                    'key': 'color',
+                    'firstSeen': self.min_ago
+                },
+                {
+                    'count': 1,
+                    'name': 'red',
+                    'value': 'red',
+                    'lastSeen': self.min_ago,
+                    'key': 'color',
+                    'firstSeen': self.min_ago
+                }
+            ],
+            'totalValues': 3,
+            'name': 'Color',
+            'key': 'color'
+        }
+
+    def test_with_query(self):
+        self.store_event(
+            data={
+                'event_id': uuid4().hex,
+                'timestamp': self.min_ago.isoformat(),
+                'message': 'how to make fast',
+                'tags': {'color': 'green'},
+            },
+            project_id=self.project.id
+        )
+        self.store_event(
+            data={
+                'event_id': uuid4().hex,
+                'timestamp': self.min_ago.isoformat(),
+                'message': 'Delet the Data',
+                'tags': {'color': 'red'},
+            },
+            project_id=self.project.id
+        )
+        self.store_event(
+            data={
+                'event_id': uuid4().hex,
+                'timestamp': self.min_ago.isoformat(),
+                'message': 'Data the Delet ',
+                'tags': {'color': 'yellow'},
+            },
+            project_id=self.project2.id
+        )
+
+        with self.feature('organizations:global-views'):
+            response = self.client.get(
+                self.url, {
+                    'query': 'delet', 'keys': ['color']}, format='json')
+
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 1
+        assert response.data[0] == {
+            'topValues': [
+                {
+                    'count': 1,
+                    'name': 'yellow',
+                    'value': 'yellow',
+                    'lastSeen': self.min_ago,
+                    'key': 'color',
+                    'firstSeen': self.min_ago
+                },
+                {
+                    'count': 1,
+                    'name': 'red',
+                    'value': 'red',
+                    'lastSeen': self.min_ago,
+                    'key': 'color',
+                    'firstSeen': self.min_ago
+                }
+            ],
+            'totalValues': 3,
+            'name': 'Color',
+            'key': 'color'
+        }
+
+    def test_start_end(self):
+        two_days_ago = self.day_ago - timedelta(days=1)
+        hour_ago = self.min_ago - timedelta(hours=1)
+        two_hours_ago = hour_ago - timedelta(hours=1)
+
+        self.store_event(
+            data={
+                'event_id': uuid4().hex,
+                'timestamp': two_days_ago.isoformat(),
+                'tags': {'color': 'red'},
+            },
+            project_id=self.project.id
+        )
+        self.store_event(
+            data={
+                'event_id': uuid4().hex,
+                'timestamp': hour_ago.isoformat(),
+                'tags': {'color': 'red'},
+            },
+            project_id=self.project.id
+        )
+        self.store_event(
+            data={
+                'event_id': uuid4().hex,
+                'timestamp': two_hours_ago.isoformat(),
+                'tags': {'color': 'red'},
+            },
+            project_id=self.project.id
+        )
+        self.store_event(
+            data={
+                'event_id': uuid4().hex,
+                'timestamp': timezone.now().isoformat(),
+                'tags': {'color': 'red'},
+            },
+            project_id=self.project2.id
+        )
+
+        with self.feature('organizations:global-views'):
+            response = self.client.get(
+                self.url,
+                {
+                    'start': self.day_ago.isoformat()[:19],
+                    'end': self.min_ago.isoformat()[:19],
+                    'keys': ['color'],
+                },
+                format='json'
+            )
+
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 1
+        assert response.data[0] == {
+            'topValues': [
+                {
+                    'count': 2,
+                    'name': 'red',
+                    'value': 'red',
+                    'lastSeen': hour_ago,
+                    'key': 'color',
+                    'firstSeen': two_hours_ago
+                }
+            ],
+            'totalValues': 2,
+            'name': 'Color',
+            'key': 'color'
+        }
+
+    def test_excluded_tag(self):
+        self.user = self.create_user()
+        self.user2 = self.create_user()
+        self.store_event(
+            data={
+                'event_id': uuid4().hex,
+                'timestamp': self.day_ago.isoformat(),
+                'tags': {'sentry:user': self.user.email},
+            },
+            project_id=self.project.id
+        )
+        self.store_event(
+            data={
+                'event_id': uuid4().hex,
+                'timestamp': self.day_ago.isoformat(),
+                'tags': {'sentry:user': self.user2.email},
+            },
+            project_id=self.project.id
+        )
+        self.store_event(
+            data={
+                'event_id': uuid4().hex,
+                'timestamp': self.day_ago.isoformat(),
+                'tags': {'sentry:user': self.user2.email},
+            },
+            project_id=self.project.id
+        )
+
+        response = self.client.get(
+            self.url,
+            {
+                'keys': ['user'],
+                'project': [self.project.id]
+            },
+            format='json'
+        )
+
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 1
+        assert response.data[0] == {
+            'topValues': [
+                {
+                    'count': 2,
+                    'name': self.user2.email,
+                    'value': self.user2.email,
+                    'lastSeen': self.day_ago,
+                    'key': 'user',
+                    'firstSeen': self.day_ago
+                },
+                {
+                    'count': 1,
+                    'name': self.user.email,
+                    'value': self.user.email,
+                    'lastSeen': self.day_ago,
+                    'key': 'user',
+                    'firstSeen': self.day_ago
+                }
+            ],
+            'totalValues': 3,
+            'name': 'User',
+            'key': 'user'
+        }
+
+    def test_no_projects(self):
+        org = self.create_organization(owner=self.user)
+        url = reverse(
+            'sentry-api-0-organization-events-heatmap',
+            kwargs={
+                'organization_slug': org.slug,
+            }
+        )
+        response = self.client.get(url, {'keys': ['color']}, format='json')
+        assert response.status_code == 400, response.content
+        assert response.data == {'detail': 'A valid project must be included.'}
+
+    def test_multiple_projects_without_global_view(self):
+        self.store_event(
+            data={
+                'event_id': uuid4().hex,
+            },
+            project_id=self.project.id
+        )
+        self.store_event(
+            data={
+                'event_id': uuid4().hex,
+            },
+            project_id=self.project2.id
+        )
+
+        response = self.client.get(self.url, {'keys': ['color']}, format='json')
+        assert response.status_code == 400, response.content
+        assert response.data == {'detail': 'You cannot view events from multiple projects.'}
 
 
 class OrganizationEventsMetaEndpoint(OrganizationEventsTestBase):

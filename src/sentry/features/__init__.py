@@ -58,12 +58,14 @@ default_manager.add('organizations:boolean-search', OrganizationFeature)  # NOQA
 default_manager.add('organizations:api-keys', OrganizationFeature)  # NOQA
 default_manager.add('organizations:discover', OrganizationFeature)  # NOQA
 default_manager.add('organizations:events', OrganizationFeature)  # NOQA
+default_manager.add('organizations:events-v2', OrganizationFeature)  # NOQA
 default_manager.add('organizations:event-attachments', OrganizationFeature)  # NOQA
 default_manager.add('organizations:symbol-sources', OrganizationFeature)  # NOQA
 default_manager.add('organizations:global-views', OrganizationFeature)  # NOQA
 default_manager.add('organizations:incidents', OrganizationFeature)  # NOQA
 default_manager.add('organizations:integrations-issue-basic', OrganizationFeature)  # NOQA
 default_manager.add('organizations:integrations-issue-sync', OrganizationFeature)  # NOQA
+default_manager.add('organizations:integrations-event-hooks', OrganizationFeature)  # NOQA
 default_manager.add('organizations:internal-catchall', OrganizationFeature)  # NOQA
 default_manager.add('organizations:incidents', OrganizationFeature)  # NOQA
 default_manager.add('organizations:sentry-apps', OrganizationFeature)  # NOQA

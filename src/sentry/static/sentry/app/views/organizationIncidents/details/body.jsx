@@ -1,58 +1,63 @@
 import React from 'react';
 import styled from 'react-emotion';
 
-import {t} from 'app/locale';
-import SentryTypes from 'app/sentryTypes';
-import NavTabs from 'app/components/navTabs';
-import Link from 'app/components/links/link';
-
 import {PageContent} from 'app/styles/organization';
+import {t} from 'app/locale';
+import Chart from 'app/views/organizationIncidents/details/chart';
+import Link from 'app/components/links/link';
+import NavTabs from 'app/components/navTabs';
+import SeenByList from 'app/components/seenByList';
+import SentryTypes from 'app/sentryTypes';
+import SideHeader from 'app/views/organizationIncidents/details/sideHeader';
+import space from 'app/styles/space';
 import theme from 'app/utils/theme';
 
-import IncidentsSuspects from './suspects';
 import Activity from './activity';
-import RelatedIncidents from './relatedIncidents';
-
-const TABS = {
-  activity: {name: t('Activity'), component: Activity},
-  related: {name: t('Related incidents'), component: RelatedIncidents},
-};
+import IncidentsSuspects from './suspects';
 
 export default class DetailsBody extends React.Component {
   static propTypes = {
     incident: SentryTypes.Incident,
   };
-  constructor(props) {
-    super(props);
-    this.state = {
-      activeTab: Object.keys(TABS)[0],
-    };
-  }
-  handleToggle(tab) {
-    this.setState({activeTab: tab});
-  }
 
   render() {
     const {params, incident} = this.props;
-    const {activeTab} = this.state;
-    const ActiveComponent = TABS[activeTab].component;
 
     return (
       <StyledPageContent>
         <Main>
           <PageContent>
-            <NavTabs underlined={true}>
-              {Object.entries(TABS).map(([id, {name}]) => (
-                <li key={id} className={activeTab === id ? 'active' : ''}>
-                  <Link onClick={() => this.handleToggle(id)}>{name}</Link>
-                </li>
-              ))}
-            </NavTabs>
-            <ActiveComponent params={params} incident={incident} />
+            <StyledNavTabs underlined={true}>
+              <li className="active">
+                <Link>{t('Activity')}</Link>
+              </li>
+
+              <SeenByTab>
+                {incident && (
+                  <StyledSeenByList
+                    iconPosition="right"
+                    seenBy={incident.seenBy}
+                    iconTooltip={t('People who have viewed this incident')}
+                  />
+                )}
+              </SeenByTab>
+            </StyledNavTabs>
+            <Activity
+              params={params}
+              incidentStatus={incident ? incident.status : null}
+            />
           </PageContent>
         </Main>
         <Sidebar>
           <PageContent>
+            <SideHeader>{t('Events in Incident')}</SideHeader>
+            {incident && (
+              <Chart
+                data={incident.eventStats.data}
+                detected={incident.dateDetected}
+                closed={incident.dateClosed}
+              />
+            )}
             <IncidentsSuspects suspects={[]} />
           </PageContent>
         </Sidebar>
@@ -84,4 +89,20 @@ const StyledPageContent = styled(PageContent)`
   @media (max-width: ${theme.breakpoints[0]}) {
     flex-direction: column;
   }
+`;
+
+const StyledNavTabs = styled(NavTabs)`
+  display: flex;
+`;
+const SeenByTab = styled('li')`
+  flex: 1;
+  margin-left: ${space(2)};
+
+  .nav-tabs > & {
+    margin-right: 0;
+  }
+`;
+
+const StyledSeenByList = styled(SeenByList)`
+  margin-top: 0;
 `;

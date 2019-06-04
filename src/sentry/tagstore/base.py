@@ -412,7 +412,7 @@ class TagStorage(Service):
         raise NotImplementedError
 
     def get_group_tag_keys_and_top_values(
-            self, project_id, group_id, environment_ids, keys=None, value_limit=TOP_VALUES_DEFAULT_LIMIT):
+            self, project_id, group_id, environment_ids, keys=None, value_limit=TOP_VALUES_DEFAULT_LIMIT, **kwargs):
 
         # only the snuba backend supports multi env, and that overrides this method
         if environment_ids and len(environment_ids) > 1:

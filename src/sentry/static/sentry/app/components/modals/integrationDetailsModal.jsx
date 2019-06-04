@@ -15,7 +15,7 @@ import InlineSvg from 'app/components/inlineSvg';
 import PluginIcon from 'app/plugins/components/pluginIcon';
 import SentryTypes from 'app/sentryTypes';
 import Tag from 'app/views/settings/components/tag';
-import Tooltip2 from 'app/components/tooltip2';
+import Tooltip from 'app/components/tooltip';
 import marked, {singleLineRenderer} from 'app/utils/marked';
 import space from 'app/styles/space';
 
@@ -172,15 +172,17 @@ class IntegrationDetailsModal extends React.Component {
               </Button>
               <Access organization={organization} access={['org:integrations']}>
                 {({hasAccess}) => (
-                  <Tooltip2
-                    title={t('You must be an Owner, Manager or Admin to install this.')}
+                  <Tooltip
+                    title={t(
+                      'You must be an organization owner, manager or admin to install this.'
+                    )}
                     disabled={hasAccess}
                   >
                     <AddButton
                       data-test-id="add-button"
                       disabled={disabled || !hasAccess}
                     />
-                  </Tooltip2>
+                  </Tooltip>
                 )}
               </Access>
             </div>

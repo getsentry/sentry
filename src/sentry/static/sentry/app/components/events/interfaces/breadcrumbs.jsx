@@ -1,6 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import GroupEventDataSection from 'app/components/events/eventDataSection';
+import EventDataSection from 'app/components/events/eventDataSection';
 import SentryTypes from 'app/sentryTypes';
 import GuideAnchor from 'app/components/assistant/guideAnchor';
 import Breadcrumb from 'app/components/events/interfaces/breadcrumbs/breadcrumb';
@@ -19,6 +19,11 @@ function Collapsed(props) {
   );
 }
 
+Collapsed.propTypes = {
+  onClick: PropTypes.func.isRequired,
+  count: PropTypes.number.isRequired,
+};
+
 function moduleToCategory(module) {
   if (!module) {
     return null;
@@ -30,14 +35,8 @@ function moduleToCategory(module) {
   return module.split(/./)[0];
 }
 
-Collapsed.propTypes = {
-  onClick: PropTypes.func.isRequired,
-  count: PropTypes.number.isRequired,
-};
-
 class BreadcrumbsInterface extends React.Component {
   static propTypes = {
-    group: SentryTypes.Group.isRequired,
     event: SentryTypes.Event.isRequired,
     type: PropTypes.string.isRequired,
     data: PropTypes.object.isRequired,
@@ -170,7 +169,6 @@ class BreadcrumbsInterface extends React.Component {
   };
 
   render() {
-    const group = this.props.group;
     const evt = this.props.event;
     const data = this.props.data;
 
@@ -213,9 +211,8 @@ class BreadcrumbsInterface extends React.Component {
       crumbContent = this.renderNoMatch();
     }
     return (
-      <GroupEventDataSection
+      <EventDataSection
         className="breadcrumb-box"
-        group={group}
         event={evt}
         type={this.props.type}
         title={title}
@@ -227,7 +224,7 @@ class BreadcrumbsInterface extends React.Component {
           )}
           {crumbContent}
         </ul>
-      </GroupEventDataSection>
+      </EventDataSection>
     );
   }
 }

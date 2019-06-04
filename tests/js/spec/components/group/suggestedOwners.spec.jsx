@@ -56,7 +56,7 @@ describe('SuggestedOwners', function() {
 
     expect(wrapper.find('ActorAvatar')).toHaveLength(2);
 
-    // One includes committers the other includes ownership rules
+    // One includes committers, the other includes ownership rules
     expect(
       wrapper
         .find('SuggestedOwnerHovercard')

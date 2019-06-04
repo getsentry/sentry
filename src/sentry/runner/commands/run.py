@@ -117,17 +117,23 @@ def web(bind, workers, upgrade, with_lock, noinput, uwsgi):
     with managed_bgtasks(role='web'):
         if not uwsgi:
             click.echo(
-                'Running simple WSGI server. Note that chunked file '
+                'Running simple HTTP server. Note that chunked file '
                 'uploads will likely not work.',
                 err=True
             )
-            click.echo('Address: http://%s:%s/' % bind)
+
             from django.conf import settings
+
+            host = bind[0] or settings.SENTRY_WEB_HOST
+            port = bind[1] or settings.SENTRY_WEB_PORT
+            click.echo('Address: http://%s:%s/' % (host, port))
+
             from wsgiref.simple_server import make_server
             from sentry.wsgi import application
+
             httpd = make_server(
-                bind[0] or settings.SENTRY_WEB_HOST,
-                bind[1] or settings.SENTRY_WEB_PORT,
+                host,
+                port,
                 application
             )
             httpd.serve_forever()

@@ -340,7 +340,7 @@ exports[`IntegrationDetailsModal renders simple integration 1`] = `
       type="warning"
     >
       <div
-        className="ref-warning css-fcu40c-AlertWrapper e1xb5l7j1"
+        className="ref-warning css-17vl1ux-AlertWrapper-alertStyles e1xb5l7j1"
         type="warning"
       >
         <StyledTextBlock>
@@ -428,7 +428,7 @@ exports[`IntegrationDetailsModal renders simple integration 1`] = `
           <ForwardRef
             aria-disabled={false}
             aria-label="Cancel"
-            className="css-o6814l-StyledButton-getColors e12ma6z0"
+            className="css-1uhlusb-StyledButton-getColors e12ma6z0"
             data-test-id="cancel-button"
             disabled={false}
             onClick={[Function]}
@@ -438,7 +438,7 @@ exports[`IntegrationDetailsModal renders simple integration 1`] = `
             <button
               aria-disabled={false}
               aria-label="Cancel"
-              className="css-o6814l-StyledButton-getColors e12ma6z0"
+              className="css-1uhlusb-StyledButton-getColors e12ma6z0"
               data-test-id="cancel-button"
               onClick={[Function]}
               role="button"
@@ -628,11 +628,11 @@ exports[`IntegrationDetailsModal renders simple integration 1`] = `
             renderNoAccessMessage={false}
             requireAll={true}
           >
-            <Tooltip2
+            <Tooltip
               containerDisplayMode="inline-block"
               disabled={true}
               position="top"
-              title="You must be an Owner, Manager or Admin to install this."
+              title="You must be an organization owner, manager or admin to install this."
             >
               <AddButton
                 data-test-id="add-button"
@@ -685,7 +685,7 @@ exports[`IntegrationDetailsModal renders simple integration 1`] = `
                     }
                   }
                 >
-                  <Tooltip2
+                  <Tooltip
                     containerDisplayMode="inline-block"
                     disabled={true}
                     position="top"
@@ -759,7 +759,7 @@ exports[`IntegrationDetailsModal renders simple integration 1`] = `
                           <ForwardRef
                             aria-disabled={false}
                             aria-label="Add Installation"
-                            className="css-1oc9q3a-StyledButton-getColors e12ma6z0"
+                            className="css-23553w-StyledButton-getColors e12ma6z0"
                             data-test-id="add-button"
                             disabled={false}
                             onClick={[Function]}
@@ -775,7 +775,7 @@ exports[`IntegrationDetailsModal renders simple integration 1`] = `
                             <button
                               aria-disabled={false}
                               aria-label="Add Installation"
-                              className="css-1oc9q3a-StyledButton-getColors e12ma6z0"
+                              className="css-23553w-StyledButton-getColors e12ma6z0"
                               data-test-id="add-button"
                               onClick={[Function]}
                               role="button"
@@ -807,10 +807,10 @@ exports[`IntegrationDetailsModal renders simple integration 1`] = `
                         </StyledButton>
                       </Button>
                     </AddIntegration>
-                  </Tooltip2>
+                  </Tooltip>
                 </AddIntegrationButton>
               </AddButton>
-            </Tooltip2>
+            </Tooltip>
           </Access>
         </AccessContainer>
       </withConfig(AccessContainer)>

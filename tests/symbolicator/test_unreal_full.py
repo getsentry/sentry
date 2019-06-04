@@ -1,6 +1,5 @@
 from __future__ import absolute_import
 
-import os
 import pytest
 import zipfile
 from mock import patch
@@ -10,15 +9,35 @@ from six import BytesIO
 from django.core.urlresolvers import reverse
 from django.core.files.uploadedfile import SimpleUploadedFile
 
-from sentry.testutils import TestCase, TransactionTestCase
+from sentry.testutils import TransactionTestCase
 from sentry.models import Event, EventAttachment
 
 
+from tests.symbolicator import get_fixture_path
+
+
 def get_unreal_crash_file():
-    return os.path.join(os.path.dirname(__file__), 'fixtures', 'unreal_crash')
+    return get_fixture_path('unreal_crash')
 
 
-class UnrealIntegrationTestBase(object):
+def get_unreal_crash_apple_file():
+    return get_fixture_path('unreal_crash_apple')
+
+
+class SymbolicatorUnrealIntegrationTest(TransactionTestCase):
+    # For these tests to run, write `symbolicator.enabled: true` into your
+    # `~/.sentry/config.yml` and run `sentry devservices up`
+
+    @pytest.fixture(autouse=True)
+    def initialize(self, live_server):
+        new_prefix = live_server.url
+
+        with patch('sentry.auth.system.is_internal_ip', return_value=True), \
+                self.options({"system.url-prefix": new_prefix}):
+
+            # Run test case:
+            yield
+
     def upload_symbols(self):
         url = reverse(
             'sentry-api-0-dsym-files',
@@ -32,8 +51,7 @@ class UnrealIntegrationTestBase(object):
 
         out = BytesIO()
         f = zipfile.ZipFile(out, 'w')
-        f.write(os.path.join(os.path.dirname(__file__), 'fixtures', 'unreal_crash.sym'),
-                'crash.sym')
+        f.write(get_fixture_path('unreal_crash.sym'), 'crash.sym')
         f.close()
 
         response = self.client.post(
@@ -46,13 +64,13 @@ class UnrealIntegrationTestBase(object):
         assert response.status_code == 201, response.content
         assert len(response.data) == 1
 
-    def test_unreal_crash_with_attachments(self):
+    def unreal_crash_test_impl(self, filename):
         self.project.update_option('sentry:store_crash_reports', True)
         self.upload_symbols()
 
         # attachments feature has to be on for the files extract stick around
         with self.feature('organizations:event-attachments'):
-            with open(get_unreal_crash_file(), 'rb') as f:
+            with open(filename, 'rb') as f:
                 resp = self._postUnrealWithHeader(f.read())
                 assert resp.status_code == 200
 
@@ -65,10 +83,13 @@ class UnrealIntegrationTestBase(object):
             'extra': event.data.get('extra')
         })
 
-        attachments = sorted(
+        return sorted(
             EventAttachment.objects.filter(
                 event_id=event.event_id),
             key=lambda x: x.name)
+
+    def test_unreal_crash_with_attachments(self):
+        attachments = self.unreal_crash_test_impl(get_unreal_crash_file())
         assert len(attachments) == 4
         context, config, minidump, log = attachments
 
@@ -88,27 +109,32 @@ class UnrealIntegrationTestBase(object):
         assert log.file.type == 'event.attachment'
         assert log.file.checksum == '24d1c5f75334cd0912cc2670168d593d5fe6c081'
 
+    def test_unreal_apple_crash_with_attachments(self):
+        attachments = self.unreal_crash_test_impl(get_unreal_crash_apple_file())
 
-class SymbolicUnrealIntegrationTest(UnrealIntegrationTestBase, TestCase):
-    pass
+        assert len(attachments) == 6
+        context, config, diagnostics, log, info, minidump = attachments
 
+        assert context.name == 'CrashContext.runtime-xml'
+        assert context.file.type == 'event.attachment'
+        assert context.file.checksum == '5d2723a7d25111645702fcbbcb8e1d038db56c6e'
 
-class SymbolicatorUnrealIntegrationTest(UnrealIntegrationTestBase, TransactionTestCase):
-    # For these tests to run, write `symbolicator.enabled: true` into your
-    # `~/.sentry/config.yml` and run `sentry devservices up`
+        assert config.name == 'CrashReportClient.ini'
+        assert config.file.type == 'event.attachment'
+        assert config.file.checksum == '4d6a2736e3e4969a68b7adbe197b05c171c29ea0'
 
-    @pytest.fixture(autouse=True)
-    def initialize(self, live_server):
-        new_prefix = live_server.url
+        assert diagnostics.name == 'Diagnostics.txt'
+        assert diagnostics.file.type == 'event.attachment'
+        assert diagnostics.file.checksum == 'aa271bf4e307a78005410234081945352e8fb236'
 
-        with patch('sentry.lang.native.symbolizer.Symbolizer._symbolize_app_frame') \
-            as symbolize_app_frame, \
-                patch('sentry.lang.native.plugin._is_symbolicator_enabled', return_value=True), \
-                patch('sentry.auth.system.is_internal_ip', return_value=True), \
-                self.options({"system.url-prefix": new_prefix}):
+        assert log.name == 'YetAnotherMac.log'  # Log file is named after the project
+        assert log.file.type == 'event.attachment'
+        assert log.file.checksum == '735e751a8b6b943dbc0abce0e6d096f4d48a0c1e'
 
-            # Run test case:
-            yield
+        assert info.name == 'info.txt'
+        assert info.file.type == 'event.attachment'
+        assert info.file.checksum == '279b27ac5d0e6792d088e0662ce1a18413b772bc'
 
-            # Teardown:
-            assert not symbolize_app_frame.called
+        assert minidump.name == 'minidump.dmp'
+        assert minidump.file.type == 'event.minidump'
+        assert minidump.file.checksum == '728d0f4b09cf5a7942da3893b6db79ac842b701a'

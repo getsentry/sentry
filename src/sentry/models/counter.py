@@ -66,34 +66,39 @@ def create_counter_function(db, created_models, app=None, **kwargs):
         return
 
     cursor = connections[db].cursor()
-    cursor.execute(
-        '''
-        create or replace function sentry_increment_project_counter(
-            project bigint, delta int) returns int as $$
-        declare
-          new_val int;
-        begin
-          loop
-            update sentry_projectcounter set value = value + delta
-             where project_id = project
-               returning value into new_val;
-            if found then
-              return new_val;
-            end if;
+    try:
+        cursor.execute(
+            '''
+            create or replace function sentry_increment_project_counter(
+                project bigint, delta int) returns int as $$
+            declare
+            new_val int;
             begin
-              insert into sentry_projectcounter(project_id, value)
-                   values (project, delta)
+            loop
+                update sentry_projectcounter set value = value + delta
+                where project_id = project
                 returning value into new_val;
-              return new_val;
-            exception when unique_violation then
-            end;
-          end loop;
-        end
-        $$ language plpgsql;
-    '''
-    )
+                if found then
+                return new_val;
+                end if;
+                begin
+                insert into sentry_projectcounter(project_id, value)
+                    values (project, delta)
+                    returning value into new_val;
+                return new_val;
+                exception when unique_violation then
+                end;
+            end loop;
+            end
+            $$ language plpgsql;
+        '''
+        )
+    finally:
+        cursor.close()
 
 
+# TODO(dcramer): Remove when Django 1.6 is no longer supported, as this does
+# nothing with Django migrations
 post_syncdb.connect(
     create_counter_function,
     dispatch_uid='create_counter_function',

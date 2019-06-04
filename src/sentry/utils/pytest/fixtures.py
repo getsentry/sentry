@@ -19,6 +19,14 @@ import six
 from datetime import datetime
 
 
+# These chars cannot be used in Windows paths so repalce them:
+# https://docs.microsoft.com/en-us/windows/desktop/FileIO/naming-a-file#naming-conventions
+UNSAFE_PATH_CHARS = ('<', '>', ':', '"', ' | ', '?', '*')
+
+
+DIRECTORY_GROUPING_CHARS = ('::', '-', '[', ']', '\\')
+
+
 DEFAULT_EVENT_DATA = {
     'extra': {
         'loadavg': [0.97607421875, 0.88330078125, 0.833984375],
@@ -147,6 +155,16 @@ def factories():
     from sentry.testutils.factories import Factories
 
     return Factories
+
+
+@pytest.mark.django_db
+@pytest.fixture
+def project(team, factories):
+    return factories.create_project(
+        name='bar',
+        slug='bar',
+        teams=[team]
+    )
 
 
 @pytest.fixture
@@ -284,7 +302,9 @@ def insta_snapshot(request, log):
     def inner(output, reference_file=None, subname=None):
         if reference_file is None:
             name = request.node.name
-            for c in ('::', '-', '[', ']'):
+            for c in UNSAFE_PATH_CHARS:
+                name = name.replace(c, '@')
+            for c in DIRECTORY_GROUPING_CHARS:
                 name = name.replace(c, '/')
             name = name.strip('/')
 

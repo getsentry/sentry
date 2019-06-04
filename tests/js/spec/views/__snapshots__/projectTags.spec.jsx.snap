@@ -446,7 +446,7 @@ exports[`ProjectTags renders 1`] = `
                                   className="css-p3ab1k"
                                   is={null}
                                 >
-                                  <Tooltip2
+                                  <Tooltip
                                     containerDisplayMode="inline-block"
                                     disabled={true}
                                     position="top"
@@ -490,7 +490,7 @@ exports[`ProjectTags renders 1`] = `
                                             >
                                               <ForwardRef
                                                 aria-disabled={false}
-                                                className="css-o6814l-StyledButton-getColors e12ma6z0"
+                                                className="css-1uhlusb-StyledButton-getColors e12ma6z0"
                                                 data-test-id="delete"
                                                 disabled={false}
                                                 onClick={[Function]}
@@ -499,7 +499,7 @@ exports[`ProjectTags renders 1`] = `
                                               >
                                                 <button
                                                   aria-disabled={false}
-                                                  className="css-o6814l-StyledButton-getColors e12ma6z0"
+                                                  className="css-1uhlusb-StyledButton-getColors e12ma6z0"
                                                   data-test-id="delete"
                                                   onClick={[Function]}
                                                   role="button"
@@ -622,7 +622,7 @@ exports[`ProjectTags renders 1`] = `
                                         </Modal>
                                       </Confirm>
                                     </LinkWithConfirmation>
-                                  </Tooltip2>
+                                  </Tooltip>
                                 </div>
                               </Base>
                             </Flex>
@@ -678,7 +678,7 @@ exports[`ProjectTags renders 1`] = `
                                   className="css-p3ab1k"
                                   is={null}
                                 >
-                                  <Tooltip2
+                                  <Tooltip
                                     containerDisplayMode="inline-block"
                                     disabled={true}
                                     position="top"
@@ -722,7 +722,7 @@ exports[`ProjectTags renders 1`] = `
                                             >
                                               <ForwardRef
                                                 aria-disabled={false}
-                                                className="css-o6814l-StyledButton-getColors e12ma6z0"
+                                                className="css-1uhlusb-StyledButton-getColors e12ma6z0"
                                                 data-test-id="delete"
                                                 disabled={false}
                                                 onClick={[Function]}
@@ -731,7 +731,7 @@ exports[`ProjectTags renders 1`] = `
                                               >
                                                 <button
                                                   aria-disabled={false}
-                                                  className="css-o6814l-StyledButton-getColors e12ma6z0"
+                                                  className="css-1uhlusb-StyledButton-getColors e12ma6z0"
                                                   data-test-id="delete"
                                                   onClick={[Function]}
                                                   role="button"
@@ -854,7 +854,7 @@ exports[`ProjectTags renders 1`] = `
                                         </Modal>
                                       </Confirm>
                                     </LinkWithConfirmation>
-                                  </Tooltip2>
+                                  </Tooltip>
                                 </div>
                               </Base>
                             </Flex>
@@ -910,7 +910,7 @@ exports[`ProjectTags renders 1`] = `
                                   className="css-p3ab1k"
                                   is={null}
                                 >
-                                  <Tooltip2
+                                  <Tooltip
                                     containerDisplayMode="inline-block"
                                     disabled={true}
                                     position="top"
@@ -954,7 +954,7 @@ exports[`ProjectTags renders 1`] = `
                                             >
                                               <ForwardRef
                                                 aria-disabled={false}
-                                                className="css-o6814l-StyledButton-getColors e12ma6z0"
+                                                className="css-1uhlusb-StyledButton-getColors e12ma6z0"
                                                 data-test-id="delete"
                                                 disabled={false}
                                                 onClick={[Function]}
@@ -963,7 +963,7 @@ exports[`ProjectTags renders 1`] = `
                                               >
                                                 <button
                                                   aria-disabled={false}
-                                                  className="css-o6814l-StyledButton-getColors e12ma6z0"
+                                                  className="css-1uhlusb-StyledButton-getColors e12ma6z0"
                                                   data-test-id="delete"
                                                   onClick={[Function]}
                                                   role="button"
@@ -1086,7 +1086,7 @@ exports[`ProjectTags renders 1`] = `
                                         </Modal>
                                       </Confirm>
                                     </LinkWithConfirmation>
-                                  </Tooltip2>
+                                  </Tooltip>
                                 </div>
                               </Base>
                             </Flex>
@@ -1142,7 +1142,7 @@ exports[`ProjectTags renders 1`] = `
                                   className="css-p3ab1k"
                                   is={null}
                                 >
-                                  <Tooltip2
+                                  <Tooltip
                                     containerDisplayMode="inline-block"
                                     disabled={false}
                                     position="top"
@@ -1164,7 +1164,7 @@ exports[`ProjectTags renders 1`] = `
                                           >
                                             <span
                                               aria-describedby="tooltip-123456"
-                                              className="css-1m3e0hg-Container e7ebgxc0"
+                                              className="css-1m3e0hg-Container erna86q0"
                                               onBlur={[Function]}
                                               onFocus={[Function]}
                                               onMouseEnter={[Function]}
@@ -1210,7 +1210,7 @@ exports[`ProjectTags renders 1`] = `
                                                       >
                                                         <ForwardRef
                                                           aria-disabled={true}
-                                                          className="css-bzxnfi-StyledButton-getColors e12ma6z0"
+                                                          className="css-15g9rdf-StyledButton-getColors e12ma6z0"
                                                           data-test-id="delete"
                                                           disabled={true}
                                                           href={null}
@@ -1221,7 +1221,7 @@ exports[`ProjectTags renders 1`] = `
                                                         >
                                                           <button
                                                             aria-disabled={true}
-                                                            className="css-bzxnfi-StyledButton-getColors e12ma6z0"
+                                                            className="css-15g9rdf-StyledButton-getColors e12ma6z0"
                                                             data-test-id="delete"
                                                             href={null}
                                                             onClick={[Function]}
@@ -1351,7 +1351,7 @@ exports[`ProjectTags renders 1`] = `
                                         </InnerReference>
                                       </Reference>
                                     </Manager>
-                                  </Tooltip2>
+                                  </Tooltip>
                                 </div>
                               </Base>
                             </Flex>
@@ -1407,7 +1407,7 @@ exports[`ProjectTags renders 1`] = `
                                   className="css-p3ab1k"
                                   is={null}
                                 >
-                                  <Tooltip2
+                                  <Tooltip
                                     containerDisplayMode="inline-block"
                                     position="top"
                                     title="This tag cannot be deleted."
@@ -1428,7 +1428,7 @@ exports[`ProjectTags renders 1`] = `
                                           >
                                             <span
                                               aria-describedby="tooltip-123456"
-                                              className="css-1m3e0hg-Container e7ebgxc0"
+                                              className="css-1m3e0hg-Container erna86q0"
                                               onBlur={[Function]}
                                               onFocus={[Function]}
                                               onMouseEnter={[Function]}
@@ -1474,7 +1474,7 @@ exports[`ProjectTags renders 1`] = `
                                                       >
                                                         <ForwardRef
                                                           aria-disabled={true}
-                                                          className="css-bzxnfi-StyledButton-getColors e12ma6z0"
+                                                          className="css-15g9rdf-StyledButton-getColors e12ma6z0"
                                                           data-test-id="delete"
                                                           disabled={true}
                                                           href={null}
@@ -1485,7 +1485,7 @@ exports[`ProjectTags renders 1`] = `
                                                         >
                                                           <button
                                                             aria-disabled={true}
-                                                            className="css-bzxnfi-StyledButton-getColors e12ma6z0"
+                                                            className="css-15g9rdf-StyledButton-getColors e12ma6z0"
                                                             data-test-id="delete"
                                                             href={null}
                                                             onClick={[Function]}
@@ -1615,7 +1615,7 @@ exports[`ProjectTags renders 1`] = `
                                         </InnerReference>
                                       </Reference>
                                     </Manager>
-                                  </Tooltip2>
+                                  </Tooltip>
                                 </div>
                               </Base>
                             </Flex>

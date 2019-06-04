@@ -38,12 +38,6 @@ const formGroups = [
         label: t('Early Adopter'),
         help: t("Opt-in to new features before they're released to the public"),
       },
-      {
-        name: 'disableNewVisibilityFeatures',
-        type: 'boolean',
-        label: t('Disable New Product Features'),
-        help: t('Temporarily opt-out of new product changes'),
-      },
     ],
   },
 
@@ -205,6 +199,19 @@ const formGroups = [
         label: t('Store Native Crash Reports'),
         help: t(
           'Store native crash reports such as Minidumps for improved processing and download in issue details'
+        ),
+        visible: ({features}) => features.has('event-attachments'),
+      },
+      {
+        name: 'attachmentsRole',
+        type: 'array',
+        choices: ({initialData} = {}) =>
+          (initialData.availableRoles &&
+            initialData.availableRoles.map(r => [r.id, r.name])) ||
+          [],
+        label: t('Attachments Access'),
+        help: t(
+          'Permissions required to download event attachments, such as native crash reports or log files'
         ),
         visible: ({features}) => features.has('event-attachments'),
       },

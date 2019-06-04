@@ -5,7 +5,7 @@ import {isObject} from 'lodash';
 import AsyncComponent from 'app/components/asyncComponent';
 import DropdownAutoComplete from 'app/components/dropdownAutoComplete';
 import DropdownButton from 'app/components/dropdownButton';
-import Tooltip2 from 'app/components/tooltip2';
+import Tooltip from 'app/components/tooltip';
 
 import EventDataSection from 'app/components/events/eventDataSection';
 import SentryTypes from 'app/sentryTypes';
@@ -233,11 +233,11 @@ class GroupingConfigSelect extends AsyncComponent {
         })}
       >
         {({isOpen}) => (
-          <Tooltip2 title="Click here to experiment with other grouping configs">
+          <Tooltip title="Click here to experiment with other grouping configs">
             <DropdownButton isOpen={isOpen} size="small" style={{fontWeight: 'inherit'}}>
               {renderIdLabel(configId)}
             </DropdownButton>
-          </Tooltip2>
+          </Tooltip>
         )}
       </DropdownAutoComplete>
     );
@@ -249,13 +249,14 @@ class EventGroupingInfo extends AsyncComponent {
     api: PropTypes.object,
     organization: SentryTypes.Organization.isRequired,
     group: SentryTypes.Group.isRequired,
+    projectId: PropTypes.string.isRequired,
     event: SentryTypes.Event.isRequired,
   };
 
   getEndpoints() {
-    const {organization, group, event} = this.props;
+    const {organization, event, projectId} = this.props;
 
-    let path = `/projects/${organization.slug}/${group.project.slug}/events/${
+    let path = `/projects/${organization.slug}/${projectId}/events/${
       event.id
     }/grouping-info/`;
     if (this.state && this.state.configOverride) {
@@ -350,7 +351,6 @@ class EventGroupingInfo extends AsyncComponent {
     const isOpen = this.state.isOpen;
     return (
       <EventDataSection
-        group={this.props.group}
         event={this.props.event}
         type="grouping-info"
         className="grouping-info"

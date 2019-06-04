@@ -1,6 +1,12 @@
 import MemberActions from 'app/actions/memberActions';
 import MemberListStore from 'app/stores/memberListStore';
 
+function getMemberUser(member) {
+  const user = member.user;
+  user.role = member.role;
+  return user;
+}
+
 export function fetchOrgMembers(api, orgId, projectIds = null) {
   const endpoint = `/organizations/${orgId}/users/`;
   const query = projectIds ? {project: projectIds} : null;
@@ -10,7 +16,7 @@ export function fetchOrgMembers(api, orgId, projectIds = null) {
     members = members.filter(m => m.user);
 
     // Update the store with just the users, as avatars rely on them.
-    MemberListStore.loadInitialData(members.map(m => m.user));
+    MemberListStore.loadInitialData(members.map(getMemberUser));
 
     return members;
   });
@@ -73,4 +79,8 @@ export function resendMemberInvite(api, params) {
       },
     })
   );
+}
+
+export function getCurrentMember(api, orgId) {
+  return api.requestPromise(`/organizations/${orgId}/members/me/`);
 }

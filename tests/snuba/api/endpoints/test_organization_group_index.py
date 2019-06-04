@@ -423,8 +423,14 @@ class GroupListTest(APITestCase, SnubaTestCase):
             response = self.get_valid_response(statsPeriod='1h')
             assert len(response.data) == 0
 
-    def test_advanced_search_errors(self):
+    @patch('sentry.analytics.record')
+    def test_advanced_search_errors(self, mock_record):
         self.login_as(user=self.user)
+        response = self.get_response(sort_by='date', query='!has:user')
+        assert response.status_code == 200, response.data
+        assert not any(
+            c[0][0] == 'advanced_search.feature_gated' for c in mock_record.call_args_list)
+
         with self.feature({'organizations:advanced-search': False}):
             response = self.get_response(sort_by='date', query='!has:user')
             assert response.status_code == 400, response.data
@@ -433,8 +439,12 @@ class GroupListTest(APITestCase, SnubaTestCase):
                 'search' == response.data['detail']
             )
 
-        response = self.get_response(sort_by='date', query='!has:user')
-        assert response.status_code == 200, response.data
+            mock_record.assert_called_with(
+                'advanced_search.feature_gated',
+                user_id=self.user.id,
+                default_user_id=self.user.id,
+                organization_id=self.organization.id,
+            )
 
 
 class GroupUpdateTest(APITestCase, SnubaTestCase):

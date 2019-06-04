@@ -13,7 +13,13 @@ import {t} from 'app/locale';
  * @param {String} title Title of the incident
  * @param {String[]} groups List of group ids
  */
-export async function createIncident(api, organization, title, groups) {
+export async function createIncident(
+  api,
+  organization,
+  title,
+  groups,
+  dateStarted = new Date()
+) {
   addLoadingMessage(t('Creating new incident...'));
 
   try {
@@ -24,7 +30,7 @@ export async function createIncident(api, organization, title, groups) {
         data: {
           title,
           groups,
-          dateStarted: new Date(),
+          dateStarted,
           query: '',
         },
       }
@@ -40,18 +46,26 @@ export async function createIncident(api, organization, title, groups) {
 /**
  * Fetches a list of activities for an incident
  */
-export async function fetchIncidentActivities(api, orgId, incidentId) {}
+export async function fetchIncidentActivities(api, orgId, incidentId) {
+  return api.requestPromise(`/organizations/${orgId}/incidents/${incidentId}/activity/`);
+}
 
 /**
  * Creates a note for an incident
  */
-export async function createIncidentNote(api, incidentId, note) {
-  addLoadingMessage(t('Posting comment...'));
-
+export async function createIncidentNote(api, orgId, incidentId, note) {
   try {
-    // TODO: Implement me
+    const result = await api.requestPromise(
+      `/organizations/${orgId}/incidents/${incidentId}/comments/`,
+      {
+        method: 'POST',
+        data: {
+          comment: note.text,
+        },
+      }
+    );
 
-    clearIndicators();
+    return result;
   } catch (err) {
     addErrorMessage(t('Unable to post comment'));
     throw err;
@@ -61,13 +75,16 @@ export async function createIncidentNote(api, incidentId, note) {
 /**
  * Deletes a note for an incident
  */
-export async function deleteIncidentNote(api, incidentId, item) {
-  addLoadingMessage(t('Removing comment...'));
-
+export async function deleteIncidentNote(api, orgId, incidentId, noteId) {
   try {
-    // TODO: Implement me
+    const result = await api.requestPromise(
+      `/organizations/${orgId}/incidents/${incidentId}/comments/${noteId}/`,
+      {
+        method: 'DELETE',
+      }
+    );
 
-    clearIndicators();
+    return result;
   } catch (err) {
     addErrorMessage(t('Failed to delete comment'));
     throw err;
@@ -77,14 +94,43 @@ export async function deleteIncidentNote(api, incidentId, item) {
 /**
  * Updates a note for an incident
  */
-export async function updateIncidentNote(api, incidentId, item, note) {
-  addLoadingMessage(t('Updating comment...'));
-
+export async function updateIncidentNote(api, orgId, incidentId, noteId, note) {
   try {
-    // TODO: Implement me
+    const result = await api.requestPromise(
+      `/organizations/${orgId}/incidents/${incidentId}/comments/${noteId}/`,
+      {
+        method: 'PUT',
+        data: {
+          comment: note.text,
+        },
+      }
+    );
     clearIndicators();
+    return result;
   } catch (err) {
     addErrorMessage(t('Unable to update comment'));
     throw err;
+  }
+}
+
+// This doesn't return anything because you shouldn't need to do anything with
+// the result success or fail
+export async function markIncidentAsSeen(api, orgId, incident) {
+  if (!incident || incident.hasSeen) {
+    return;
+  }
+
+  try {
+    await api.requestPromise(
+      `/organizations/${orgId}/incidents/${incident.identifier}/seen/`,
+      {
+        method: 'POST',
+        data: {
+          hasSeen: true,
+        },
+      }
+    );
+  } catch (err) {
+    // do nothing
   }
 }

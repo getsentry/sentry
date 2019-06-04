@@ -7,7 +7,7 @@ import {pickBy} from 'lodash';
 
 import ExternalLink from 'app/components/links/externalLink';
 import InlineSvg from 'app/components/inlineSvg';
-import Tooltip2 from 'app/components/tooltip2';
+import Tooltip from 'app/components/tooltip';
 
 class Button extends React.Component {
   static propTypes = {
@@ -132,7 +132,7 @@ class Button extends React.Component {
 
     // Doing this instead of using `Tooltip`'s `disabled` prop so that we can minimize snapshot nesting
     if (title) {
-      return <Tooltip2 title={title}>{button}</Tooltip2>;
+      return <Tooltip title={title}>{button}</Tooltip>;
     }
 
     return button;
@@ -189,10 +189,9 @@ const getColors = ({priority, disabled, borderless, theme}) => {
     &:active {
       ${colorActive ? 'color: ${colorActive};' : ''};
       background: ${backgroundActive};
-      border: 1px solid
-        ${!borderless && (borderActive || border)
-          ? borderActive || border
-          : 'transparent'};
+      border-color: ${!borderless && (borderActive || border)
+        ? borderActive || border
+        : 'transparent'};
     }
   `;
 };

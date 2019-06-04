@@ -80,10 +80,18 @@ class OrganizationIncidentIndexEndpoint(OrganizationEndpoint):
             self.get_projects(request, organization),
         )
 
+        query_status = request.GET.get('status')
+
+        if query_status == 'open':
+            # status can be detected, created, or closed
+            incidents = incidents.exclude(status=IncidentStatus.CLOSED.value)
+        elif query_status == 'closed':
+            incidents = incidents.filter(status=IncidentStatus.CLOSED.value)
+
         return self.paginate(
             request,
             queryset=incidents,
-            order_by='date_started',
+            order_by='-date_started',
             paginator_cls=OffsetPaginator,
             on_results=lambda x: serialize(x, request.user),
         )
@@ -114,6 +122,7 @@ class OrganizationIncidentIndexEndpoint(OrganizationEndpoint):
                 date_detected=result.get('dateDetected', result['dateStarted']),
                 projects=result['projects'],
                 groups=groups,
+                user=request.user,
             )
             return Response(serialize(incident, request.user), status=201)
         return Response(serializer.errors, status=400)

@@ -18,8 +18,9 @@ from sentry.api.content_negotiation import ConditionalContentNegotiation
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.constants import KNOWN_DIF_FORMATS
-from sentry.models import ChunkFileState, FileBlobOwner, ProjectDebugFile, \
-    create_files_from_dif_zip, get_assemble_status, set_assemble_status
+from sentry.models import FileBlobOwner, ProjectDebugFile, create_files_from_dif_zip
+from sentry.tasks.assemble import get_assemble_status, set_assemble_status, \
+    AssembleTask, ChunkFileState
 from sentry.utils import json
 
 try:
@@ -252,7 +253,10 @@ class DifAssembleEndpoint(ProjectEndpoint):
                         "name": {"type": "string"},
                         "chunks": {
                             "type": "array",
-                            "items": {"type": "string"}
+                            "items": {
+                                "type": "string",
+                                "pattern": "^[0-9a-f]{40}$",
+                            }
                         }
                     },
                     "additionalProperties": False
@@ -273,7 +277,6 @@ class DifAssembleEndpoint(ProjectEndpoint):
 
         file_response = {}
 
-        from sentry.tasks.assemble import assemble_dif
         for checksum, file_to_assemble in six.iteritems(files):
             name = file_to_assemble.get('name', None)
             chunks = file_to_assemble.get('chunks', [])
@@ -281,7 +284,7 @@ class DifAssembleEndpoint(ProjectEndpoint):
             # First, check the cached assemble status. During assembling, a
             # ProjectDebugFile will be created and we need to prevent a race
             # condition.
-            state, detail = get_assemble_status(project, checksum)
+            state, detail = get_assemble_status(AssembleTask.DIF, project.id, checksum)
             if state == ChunkFileState.OK:
                 file_response[checksum] = {
                     'state': state,
@@ -337,7 +340,10 @@ class DifAssembleEndpoint(ProjectEndpoint):
 
             # We don't have a state yet, this means we can now start
             # an assemble job in the background.
-            set_assemble_status(project, checksum, ChunkFileState.CREATED)
+            set_assemble_status(AssembleTask.DIF, project.id, checksum,
+                                ChunkFileState.CREATED)
+
+            from sentry.tasks.assemble import assemble_dif
             assemble_dif.apply_async(
                 kwargs={
                     'project_id': project.id,

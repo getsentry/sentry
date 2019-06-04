@@ -25,7 +25,7 @@ from sentry import nodestore
 from sentry.db.models.fields import BoundedBigIntegerField
 from sentry.utils.cache import cache
 from sentry.utils.hashlib import md5_text
-from sentry.utils.validators import is_event_id
+from sentry.utils.validators import normalize_event_id
 
 from .query import create_or_update
 
@@ -271,7 +271,7 @@ class BaseManager(Manager):
             if key != pk_name:
                 return self.get_from_cache(**{pk_name: retval})
 
-            if type(retval) != self.model:
+            if not isinstance(retval, self.model):
                 if settings.DEBUG:
                     raise ValueError('Unexpected value type returned from cache')
                 logger.error('Cache response returned invalid value %r', retval)
@@ -328,7 +328,8 @@ class SnubaEventManager:
         """
         from sentry.models import SnubaEvent, Event
 
-        if not is_event_id(id_or_event_id):
+        event_id = normalize_event_id(id_or_event_id)
+        if not event_id:
             logger.warning('Attempt to fetch SnubaEvent by primary key', exc_info=True, extra={
                 'stack': True
             })
@@ -338,9 +339,9 @@ class SnubaEventManager:
             if not event:
                 return None
 
-            id_or_event_id = event.event_id
+            event_id = event.event_id
 
-        return SnubaEvent.get_event(project_id, id_or_event_id)
+        return SnubaEvent.get_event(project_id, event_id)
 
 
 class EventManager(BaseManager):
@@ -397,11 +398,13 @@ class EventManager(BaseManager):
                     )
             except ObjectDoesNotExist:
                 pass
-        # If it was not found as a PK, and its a possible event_id, search by that instead.
-        if project_id is not None and event is None and is_event_id(id_or_event_id):
+        # If it was not found as a PK, and its a possible event_id, search by
+        # that instead.
+        event_id = normalize_event_id(id_or_event_id)
+        if project_id is not None and event is None and event_id:
             try:
                 event = self.get(
-                    event_id=id_or_event_id,
+                    event_id=event_id,
                     project_id=project_id,
                 )
             except ObjectDoesNotExist:

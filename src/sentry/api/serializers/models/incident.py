@@ -16,8 +16,10 @@ from sentry.incidents.logic import (
 )
 from sentry.incidents.models import (
     Incident,
+    IncidentGroup,
     IncidentProject,
     IncidentSeen,
+    IncidentSubscription,
 )
 
 
@@ -30,6 +32,7 @@ class IncidentSerializer(Serializer):
             incident_projects[incident_project.incident_id].append(incident_project.project.slug)
 
         results = {}
+
         for incident in item_list:
             results[incident] = {
                 'projects': incident_projects.get(incident.id, []),
@@ -44,7 +47,7 @@ class IncidentSerializer(Serializer):
         aggregates = attrs['aggregates']
         return {
             'id': six.text_type(obj.id),
-            'identifier': obj.identifier,
+            'identifier': six.text_type(obj.identifier),
             'organizationId': six.text_type(obj.organization_id),
             'projects': attrs['projects'],
             'status': obj.status,
@@ -61,15 +64,55 @@ class IncidentSerializer(Serializer):
 
 
 class DetailedIncidentSerializer(IncidentSerializer):
-    def _get_incident_seen_list(self, incident):
+    def get_attrs(self, item_list, user, **kwargs):
+        results = super(DetailedIncidentSerializer, self).get_attrs(
+            item_list,
+            user=user,
+            **kwargs
+        )
+        subscribed_incidents = set()
+        if user.is_authenticated():
+            subscribed_incidents = set(IncidentSubscription.objects.filter(
+                incident__in=item_list,
+                user=user,
+            ).values_list('incident_id', flat=True))
+
+        incident_groups = defaultdict(list)
+        for incident_id, group_id in IncidentGroup.objects.filter(
+            incident__in=item_list,
+        ).values_list('incident_id', 'group_id'):
+            incident_groups[incident_id].append(group_id)
+
+        for item in item_list:
+            results[item]['is_subscribed'] = item.id in subscribed_incidents
+            results[item]['groups'] = incident_groups.get(item.id, [])
+        return results
+
+    def _get_incident_seen_list(self, incident, user):
         incident_seen = list(IncidentSeen.objects.filter(
             incident=incident
         ).select_related('user').order_by('-last_seen'))
-        return [serialize(seenby) for seenby in incident_seen]
+
+        seen_by_list = []
+        has_seen = False
+
+        for seen_by in incident_seen:
+            if seen_by.user == user:
+                has_seen = True
+            seen_by_list.append(serialize(seen_by))
+
+        return {
+            'seen_by': seen_by_list,
+            'has_seen': has_seen,
+        }
 
     def serialize(self, obj, attrs, user):
         context = super(DetailedIncidentSerializer, self).serialize(obj, attrs, user)
-        context.update({
-            'seenBy': self._get_incident_seen_list(obj)
-        })
+        seen_list = self._get_incident_seen_list(obj, user)
+
+        context['isSubscribed'] = attrs['is_subscribed']
+        context['seenBy'] = seen_list['seen_by']
+        context['hasSeen'] = seen_list['has_seen']
+        context['groups'] = attrs['groups']
+
         return context

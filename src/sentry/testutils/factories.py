@@ -5,7 +5,7 @@ from django.conf import settings
 from django.utils.importlib import import_module
 
 import copy
-import json
+import io
 import os
 import petname
 import random
@@ -25,6 +25,7 @@ from sentry.incidents.models import (
     IncidentGroup,
     IncidentProject,
     IncidentSeen,
+    IncidentActivity,
 )
 from sentry.mediators import sentry_apps, sentry_app_installations, service_hooks
 from sentry.models import (
@@ -33,9 +34,23 @@ from sentry.models import (
     CommitAuthor, Repository, CommitFileChange, ProjectDebugFile, File, UserPermission, EventAttachment,
     UserReport, PlatformExternalIssue,
 )
+from sentry.models.integrationfeature import Feature, IntegrationFeature
+from sentry.utils import json
 from sentry.utils.canonical import CanonicalKeyDict
 
 loremipsum = Generator()
+
+
+def get_fixture_path(name):
+    return os.path.join(
+        os.path.dirname(__file__),  # src/sentry/testutils/
+        os.pardir,  # src/sentry/
+        os.pardir,  # src/
+        os.pardir,
+        'tests',
+        'fixtures',
+        name
+    )
 
 
 def make_sentence(words=None):
@@ -169,6 +184,15 @@ DEFAULT_EVENT_DATA = {
     'tags': [],
     'platform': 'python',
 }
+
+
+def _patch_artifact_manifest(path, org, release, project=None):
+    manifest = json.loads(open(path, 'rb').read())
+    manifest['org'] = org
+    manifest['release'] = release
+    if project:
+        manifest['project'] = project
+    return json.dumps(manifest)
 
 
 # TODO(dcramer): consider moving to something more scaleable like factoryboy
@@ -309,6 +333,25 @@ class Factories(object):
             )
 
         return release
+
+    @staticmethod
+    def create_artifact_bundle(org, release, project=None):
+        import zipfile
+
+        bundle = io.BytesIO()
+        bundle_dir = get_fixture_path('artifact_bundle')
+        with zipfile.ZipFile(bundle, 'w', zipfile.ZIP_DEFLATED) as zipfile:
+            for path, _, files in os.walk(bundle_dir):
+                for filename in files:
+                    fullpath = os.path.join(path, filename)
+                    relpath = os.path.relpath(fullpath, bundle_dir)
+                    if filename == 'manifest.json':
+                        manifest = _patch_artifact_manifest(fullpath, org, release, project)
+                        zipfile.writestr(relpath, manifest)
+                    else:
+                        zipfile.write(fullpath, relpath)
+
+        return bundle.getvalue()
 
     @staticmethod
     def create_repo(project, name=None):
@@ -678,34 +721,37 @@ class Factories(object):
         UserPermission.objects.create(user=user, permission=permission)
 
     @staticmethod
-    def create_sentry_app(name=None, author='Sentry', organization=None, published=False, scopes=(),
-                          webhook_url=None, user=None, **kwargs):
-        if not name:
-            name = petname.Generate(2, ' ', letters=10).title()
-        if not organization:
-            organization = Factories.create_organization()
-        if not webhook_url:
-            webhook_url = 'https://example.com/webhook'
+    def create_sentry_app(**kwargs):
+        app = sentry_apps.Creator.run(
+            **Factories._sentry_app_kwargs(**kwargs)
+        )
 
+        if kwargs.get('published'):
+            app.update(status=SentryAppStatus.PUBLISHED)
+
+        return app
+
+    @staticmethod
+    def create_internal_integration(**kwargs):
+        return sentry_apps.InternalCreator.run(
+            **Factories._sentry_app_kwargs(**kwargs)
+        )
+
+    @staticmethod
+    def _sentry_app_kwargs(**kwargs):
         _kwargs = {
-            'user': (user or Factories.create_user()),
-            'name': name,
-            'organization': organization,
-            'author': author,
-            'scopes': scopes,
-            'webhook_url': webhook_url,
+            'user': kwargs.get('user', Factories.create_user()),
+            'name': kwargs.get('name', petname.Generate(2, ' ', letters=10).title()),
+            'organization': kwargs.get('organization', Factories.create_organization()),
+            'author': kwargs.get('author', 'A Company'),
+            'scopes': kwargs.get('scopes', ()),
+            'webhook_url': kwargs.get('webhook_url', 'https://example.com/webhook'),
             'events': [],
             'schema': {},
         }
 
-        _kwargs.update(kwargs)
-
-        app = sentry_apps.Creator.run(**_kwargs)
-
-        if published:
-            app.update(status=SentryAppStatus.PUBLISHED)
-
-        return app
+        _kwargs.update(**kwargs)
+        return _kwargs
 
     @staticmethod
     def create_sentry_app_installation(organization=None, slug=None, user=None):
@@ -812,6 +858,21 @@ class Factories(object):
         return service_hooks.Creator.run(**_kwargs)
 
     @staticmethod
+    def create_sentry_app_feature(feature=None, sentry_app=None, description=None):
+        if not sentry_app:
+            sentry_app = Factories.create_sentry_app()
+
+        integration_feature = IntegrationFeature.objects.create(
+            sentry_app=sentry_app,
+            feature=feature or Feature.API,
+        )
+
+        if description:
+            integration_feature.update(user_description=description)
+
+        return integration_feature
+
+    @staticmethod
     def create_userreport(group, project=None, event_id=None, **kwargs):
         return UserReport.objects.create(
             group=group,
@@ -869,3 +930,12 @@ class Factories(object):
             for user in seen_by:
                 IncidentSeen.objects.create(incident=incident, user=user, last_seen=timezone.now())
         return incident
+
+    @staticmethod
+    def create_incident_activity(incident, type, comment=None, user=None):
+        return IncidentActivity.objects.create(
+            incident=incident,
+            type=type,
+            comment=comment,
+            user=user,
+        )

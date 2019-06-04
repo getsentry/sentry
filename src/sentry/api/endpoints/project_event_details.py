@@ -1,5 +1,8 @@
 from __future__ import absolute_import
 
+import json
+
+from datetime import datetime
 from rest_framework.response import Response
 
 from sentry import options
@@ -79,3 +82,18 @@ class ProjectEventDetailsEndpoint(ProjectEndpoint):
         data['previousEventID'] = prev_event_id
 
         return Response(data)
+
+
+class EventJsonEndpoint(ProjectEndpoint):
+
+    def get(self, request, project, event_id):
+        event = SnubaEvent.objects.from_event_id(event_id, project.id)
+
+        if not event:
+            return Response({'detail': 'Event not found'}, status=404)
+
+        event_dict = event.as_dict()
+        if isinstance(event_dict['datetime'], datetime):
+            event_dict['datetime'] = event_dict['datetime'].isoformat()
+
+        return Response(json.dumps(event_dict), status=200)

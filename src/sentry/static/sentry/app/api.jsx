@@ -35,7 +35,7 @@ export function paramsToQueryArgs(params) {
     ? {id: params.itemIds} // items matching array of itemids
     : params.query
     ? {query: params.query} // items matching search query
-    : undefined; // all items
+    : {}; // all items
 
   // only include environment if it is not null/undefined
   if (params.query && !isNil(params.environment)) {
@@ -43,7 +43,7 @@ export function paramsToQueryArgs(params) {
   }
 
   // only include projects if it is not null/undefined/an empty array
-  if (params.query && params.project && params.project.length) {
+  if (params.project && params.project.length) {
     p.project = params.project;
   }
 
@@ -209,12 +209,12 @@ export class Client {
           Accept: 'application/json; charset=utf-8',
         },
         success: (...args) => {
-          const [resp] = args || [];
+          const [, , xhr] = args || [];
           metric.measure({
             name: 'app.api.request-success',
             start: `api-request-start-${id}`,
             data: {
-              status: resp && resp.status,
+              status: xhr && xhr.status,
             },
           });
           if (!isUndefined(options.success)) {

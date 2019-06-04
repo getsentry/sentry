@@ -27,10 +27,12 @@ export default class SentryApplicationRow extends React.PureComponent {
     onUninstall: PropTypes.func,
     onRemoveApp: PropTypes.func,
     showPublishStatus: PropTypes.bool,
+    isInternal: PropTypes.bool,
   };
 
   static defaultProps = {
     showPublishStatus: false,
+    isInternal: false,
   };
 
   renderRemoveApp(app) {
@@ -64,6 +66,23 @@ export default class SentryApplicationRow extends React.PureComponent {
           {t('Uninstall')}
         </StyledButton>
       </Confirm>
+    );
+  }
+
+  renderStatus() {
+    const {app, showPublishStatus, isInternal} = this.props;
+    const isInstalled = this.isInstalled;
+    if (isInternal) {
+      return <Status enabled isInternal />;
+    }
+    if (showPublishStatus) {
+      return <PublishStatus status={app.status} />;
+    }
+    return (
+      <React.Fragment>
+        <Status enabled={isInstalled} isInternal={false} />
+        <StyledLink onClick={this.openLearnMore}>{t('Learn More')}</StyledLink>
+      </React.Fragment>
     );
   }
 
@@ -104,16 +123,7 @@ export default class SentryApplicationRow extends React.PureComponent {
               )}
               <BetaTag />
             </SentryAppName>
-            <SentryAppDetails>
-              {showPublishStatus ? (
-                <PublishStatus published={app.status === 'published'} />
-              ) : (
-                <React.Fragment>
-                  <Status enabled={isInstalled} />
-                  <StyledLink onClick={this.openLearnMore}>{t('Learn More')}</StyledLink>
-                </React.Fragment>
-              )}
-            </SentryAppDetails>
+            <SentryAppDetails>{this.renderStatus()}</SentryAppDetails>
           </SentryAppBox>
 
           {!showPublishStatus ? (
@@ -133,18 +143,21 @@ export default class SentryApplicationRow extends React.PureComponent {
             </Box>
           ) : (
             <Box>
-              {app.status === 'unpublished' ? (
+              {app.status !== 'published' ? (
                 <Access access={['org:admin']}>
                   {({hasAccess}) => (
                     <React.Fragment>
                       {!hasAccess && (
                         <Button
                           disabled
-                          title={t('Owner permissions are required for this action.')}
+                          title={t(
+                            'Organization owner permissions are required for this action.'
+                          )}
                           size="small"
                           icon="icon-trash"
                         />
                       )}
+
                       {hasAccess && this.renderRemoveApp(app)}
                     </React.Fragment>
                   )}
@@ -204,7 +217,7 @@ const StyledButton = styled(Button)`
 `;
 
 const Status = styled(
-  withTheme(({enabled, ...props}) => {
+  withTheme(({enabled, isInternal, ...props}) => {
     return (
       <Flex align="center">
         <CircleIndicator
@@ -220,7 +233,7 @@ const Status = styled(
   margin-left: ${space(0.5)};
   font-weight: light;
   &:after {
-    content: '|';
+    content: '${props => (props.isInternal ? '' : '|')}';
     color: ${p => p.theme.gray1};
     margin-left: ${space(0.75)};
     font-weight: normal;
@@ -228,14 +241,15 @@ const Status = styled(
   margin-right: ${space(0.75)};
 `;
 
-const PublishStatus = styled(({published, ...props}) => {
+const PublishStatus = styled(({status, ...props}) => {
   return (
     <Flex align="center">
-      <div {...props}>{published ? t('published') : t('unpublished')}</div>
+      <div {...props}>{t(`${status}`)}</div>
     </Flex>
   );
 })`
-  color: ${props => (props.published ? props.theme.success : props.theme.gray2)};
+  color: ${props =>
+    props.status === 'published' ? props.theme.success : props.theme.gray2};
   font-weight: light;
   margin-right: ${space(0.75)};
 `;

@@ -153,7 +153,7 @@ describe('AccountSecurity', function() {
     ).toBe(false);
     expect(
       wrapper
-        .find('Tooltip2')
+        .find('Tooltip')
         .first()
         .prop('disabled')
     ).toBe(true);
@@ -202,8 +202,8 @@ describe('AccountSecurity', function() {
     expect(wrapper.find('CircleIndicator').prop('enabled')).toBe(true);
 
     expect(wrapper.find('RemoveConfirm').prop('disabled')).toBe(true);
-    expect(wrapper.find('Tooltip2').prop('disabled')).toBe(false);
-    expect(wrapper.find('Tooltip2').prop('title')).toContain('test 1 and test 2');
+    expect(wrapper.find('Tooltip').prop('disabled')).toBe(false);
+    expect(wrapper.find('Tooltip').prop('title')).toContain('test 1 and test 2');
 
     // This will open confirm modal
     wrapper.find('Button .icon-trash').simulate('click');
