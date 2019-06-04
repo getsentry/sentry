@@ -1,7 +1,5 @@
 from __future__ import absolute_import
 
-import json
-
 from datetime import datetime
 from rest_framework.response import Response
 
@@ -96,4 +94,4 @@ class EventJsonEndpoint(ProjectEndpoint):
         if isinstance(event_dict['datetime'], datetime):
             event_dict['datetime'] = event_dict['datetime'].isoformat()
 
-        return Response(json.dumps(event_dict), status=200)
+        return Response(event_dict, status=200)
