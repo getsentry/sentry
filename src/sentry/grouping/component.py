@@ -124,7 +124,7 @@ class GroupingComponent(object):
             'name': self.name,
             'contributes': self.contributes,
             'hint': self.hint,
-            'values': []
+            'values': [],
         }
         for value in self.values:
             if isinstance(value, GroupingComponent):
