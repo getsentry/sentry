@@ -174,20 +174,20 @@ describe('groupEventDetails', () => {
       .find('Link');
 
     expect(buttons.at(0).prop('to')).toEqual({
-      pathname: '/org-slug/project-slug/issues/1/events/oldest/',
+      pathname: '/organizations/org-slug/issues/1/events/oldest/',
       query: {environment: 'dev'},
     });
 
     expect(buttons.at(1).prop('to')).toEqual({
-      pathname: '/org-slug/project-slug/issues/1/events/prev-event-id/',
+      pathname: '/organizations/org-slug/issues/1/events/prev-event-id/',
       query: {environment: 'dev'},
     });
     expect(buttons.at(2).prop('to')).toEqual({
-      pathname: '/org-slug/project-slug/issues/1/events/next-event-id/',
+      pathname: '/organizations/org-slug/issues/1/events/next-event-id/',
       query: {environment: 'dev'},
     });
     expect(buttons.at(3).prop('to')).toEqual({
-      pathname: '/org-slug/project-slug/issues/1/events/latest/',
+      pathname: '/organizations/org-slug/issues/1/events/latest/',
       query: {environment: 'dev'},
     });
   });
