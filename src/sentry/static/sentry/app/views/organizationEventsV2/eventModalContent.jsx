@@ -20,6 +20,7 @@ import {getMessage, getTitle} from 'app/utils/events';
 
 import {INTERFACES} from 'app/components/events/eventEntries';
 import TagsTable from './tagsTable';
+import LinkedIssuePreview from './linkedIssuePreview';
 
 const OTHER_SECTIONS = {
   context: EventExtraData,
@@ -127,6 +128,7 @@ const EventModalContent = props => {
         </ErrorBoundary>
       </ContentColumn>
       <SidebarColumn>
+        {event.groupID && <LinkedIssuePreview groupId={event.groupID} />}
         <EventMetadata event={event} />
         <SidebarBlock>
           <TagsTable tags={event.tags} />
