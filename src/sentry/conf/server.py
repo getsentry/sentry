@@ -1651,7 +1651,7 @@ SENTRY_BUILTIN_SOURCES = {
         'filters': {
             'filetypes': ['pdb', 'pe']
         },
-        'url': 'https://symbolserver.unity3d.com/',
+        'url': 'http://symbolserver.unity3d.com/',
         'is_public': True,
     },
     'mozilla': {
