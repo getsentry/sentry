@@ -49,10 +49,10 @@ export default class OrganizationSavedSearchSelector extends React.Component {
 
     return savedSearchList.map(search => (
       <MenuItem key={search.id}>
-        <a tabIndex="-1" onClick={() => onSavedSearchSelect(search)}>
+        <MenuItemLink tabIndex="-1" onClick={() => onSavedSearchSelect(search)}>
           <SearchTitle>{search.name}</SearchTitle>
           <SearchQuery>{search.query}</SearchQuery>
-        </a>
+        </MenuItemLink>
         {search.isGlobal === false && search.isPinned === false && (
           <Access
             organization={organization}
@@ -81,7 +81,7 @@ export default class OrganizationSavedSearchSelector extends React.Component {
     return (
       <Container>
         <DropdownControl
-          menuWidth="375px"
+          menuWidth="35vw"
           blendWithActor
           button={({isOpen, getActorProps}) => (
             <StyledDropdownButton {...getActorProps({isStyled: true})} isOpen={isOpen}>
@@ -171,6 +171,10 @@ const MenuItem = styled('li')`
     flex-grow: 1;
     padding: ${space(1)} ${space(1.5)};
   }
+`;
+
+const MenuItemLink = styled('a')`
+  ${overflowEllipsis}
 `;
 
 const EmptyItem = styled('li')`
