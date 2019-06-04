@@ -17,6 +17,7 @@ import Truncate from 'app/components/truncate';
 import OpenInContextLine from 'app/components/events/interfaces/openInContextLine';
 import SentryAppComponentsStore from 'app/stores/sentryAppComponentsStore';
 import space from 'app/styles/space';
+import ErrorBoundary from 'app/components/errorBoundary';
 
 export function trimPackage(pkg) {
   const pieces = pkg.split(/^([a-z]:\\|\\\\)/i.test(pkg) ? '\\' : '/');
@@ -312,12 +313,14 @@ const Frame = createReactClass({
                   className={className}
                 >
                   {hasComponents && (
-                    <OpenInContextLine
-                      key={index}
-                      lineNo={line[0]}
-                      filename={data.filename}
-                      components={components}
-                    />
+                    <ErrorBoundary mini>
+                      <OpenInContextLine
+                        key={index}
+                        lineNo={line[0]}
+                        filename={data.filename}
+                        components={components}
+                      />
+                    </ErrorBoundary>
                   )}
                 </ContextLine>
               );
