@@ -248,6 +248,7 @@ exports[`StreamGroup renders with anchors 1`] = `
           "userReportCount": 0,
         }
       }
+      height={24}
       id="1337"
       statsPeriod="24h"
     />
