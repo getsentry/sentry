@@ -447,7 +447,11 @@ class FormField extends React.Component {
             {() => {
               const error = this.getError();
               const value = model.getValue(name);
-              return (typeof props.visible === 'function' ? props.visible(props) : true) && selectionInfoFunction({...props, error, value}) || null;
+              return (
+                ((typeof props.visible === 'function' ? props.visible(props) : true) &&
+                  selectionInfoFunction({...props, error, value})) ||
+                null
+              );
             }}
           </Observer>
         )}

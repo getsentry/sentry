@@ -209,7 +209,8 @@ export const fields = {
     validate: ({id, form}) => {
       return [];
     },
-    visible: ({features}) => features.has('set-grouping-config') || features.has('tweak-grouping-config'),
+    visible: ({features}) =>
+      features.has('set-grouping-config') || features.has('tweak-grouping-config'),
   },
   fingerprintingRules: {
     name: 'fingerprintingRules',
@@ -246,7 +247,8 @@ export const fields = {
         </pre>
       </React.Fragment>
     ),
-    visible: ({features}) => features.has('set-grouping-config') || features.has('tweak-grouping-config'),
+    visible: ({features}) =>
+      features.has('set-grouping-config') || features.has('tweak-grouping-config'),
   },
 
   dataScrubber: {

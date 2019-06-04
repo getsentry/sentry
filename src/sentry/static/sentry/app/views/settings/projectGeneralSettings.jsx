@@ -101,7 +101,7 @@ class ProjectGeneralSettings extends AsyncView {
     }
 
     let updateNotes = '';
-    let newData = {};
+    const newData = {};
 
     this.state.groupingConfigs.forEach(({id, latest, changelog}) => {
       if (latest && this.state.data.groupingConfig !== id) {
