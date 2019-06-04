@@ -52,7 +52,7 @@ class Tags extends React.Component {
     const {isLoading, tags} = this.state;
     let segments = [];
     let totalValues = 0;
-    if (!isLoading && tags[tag] && tags[tag]) {
+    if (!isLoading && tags[tag]) {
       totalValues = tags[tag].totalValues;
       segments = tags[tag].topValues;
     }
