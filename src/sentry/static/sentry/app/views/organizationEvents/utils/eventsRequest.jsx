@@ -98,6 +98,11 @@ class EventsRequest extends React.PureComponent {
      * The yAxis being plotted
      */
     yAxis: PropTypes.string,
+
+    /**
+     * issue group id or groupids to filter results by.
+     */
+    groupId: PropTypes.string,
   };
 
   static defaultProps = {
@@ -108,6 +113,7 @@ class EventsRequest extends React.PureComponent {
     limit: 15,
     getCategory: i => i,
     query: '',
+    groupId: '',
 
     includePrevious: true,
     includeTransformedData: true,

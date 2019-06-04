@@ -2,6 +2,7 @@ import React from 'react';
 import styled from 'react-emotion';
 import {browserHistory} from 'react-router';
 import PropTypes from 'prop-types';
+import SentryTypes from 'app/sentryTypes';
 
 import AsyncComponent from 'app/components/asyncComponent';
 import InlineSvg from 'app/components/inlineSvg';
@@ -12,15 +13,17 @@ import EventModalContent from './eventModalContent';
 
 class EventDetails extends AsyncComponent {
   static propTypes = {
-    params: PropTypes.object,
+    organization: SentryTypes.Organization.isRequired,
     eventSlug: PropTypes.string.isRequired,
+    location: PropTypes.object.isRequired,
+    view: PropTypes.object.isRequired,
   };
 
   getEndpoints() {
-    const {orgId} = this.props.params;
+    const {organization} = this.props;
     const [projectId, eventId] = this.props.eventSlug.toString().split(':');
 
-    return [['event', `/projects/${orgId}/${projectId}/events/${eventId}/`]];
+    return [['event', `/projects/${organization.slug}/${projectId}/events/${eventId}/`]];
   }
 
   onRequestSuccess({data}) {
@@ -36,8 +39,9 @@ class EventDetails extends AsyncComponent {
   handleTabChange = tab => this.setState({activeTab: tab});
 
   renderBody() {
-    const {orgId} = this.props.params;
+    const {organization, view, location} = this.props;
     const [projectId, _] = this.props.eventSlug.split(':');
+
     return (
       <ModalContainer>
         <CloseButton onClick={this.handleClose} size={30} />
@@ -46,7 +50,9 @@ class EventDetails extends AsyncComponent {
           event={this.state.event}
           activeTab={this.state.activeTab}
           projectId={projectId}
-          orgId={orgId}
+          organization={organization}
+          view={view}
+          location={location}
         />
       </ModalContainer>
     );
