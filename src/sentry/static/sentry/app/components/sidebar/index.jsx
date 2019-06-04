@@ -231,8 +231,6 @@ class Sidebar extends React.Component {
     };
     const hasOrganization = !!organization;
 
-    const hasSentry10 = hasOrganization && new Set(organization.features).has('sentry10');
-
     return (
       <StyledSidebar innerRef={this.sidebarRef} collapsed={collapsed}>
         <SidebarSectionGroupPrimary>
@@ -257,11 +255,7 @@ class Sidebar extends React.Component {
                     onClick={this.hidePanel}
                     icon={<InlineSvg src="icon-projects" />}
                     label={t('Projects')}
-                    to={
-                      hasSentry10
-                        ? `/organizations/${organization.slug}/projects/`
-                        : `/${organization.slug}/`
-                    }
+                    to={`/organizations/${organization.slug}/projects/`}
                   />
                   <SidebarItem
                     {...sidebarItemProps}
@@ -384,36 +378,6 @@ class Sidebar extends React.Component {
                     />
                   </Feature>
                 </SidebarSection>
-
-                {!hasSentry10 && (
-                  <SidebarSection>
-                    <SidebarItem
-                      {...sidebarItemProps}
-                      onClick={this.hidePanel}
-                      icon={<InlineSvg src="icon-user" />}
-                      label={t('Assigned to me')}
-                      to={`/organizations/${organization.slug}/issues/assigned/`}
-                      id="assigned"
-                    />
-                    <SidebarItem
-                      {...sidebarItemProps}
-                      onClick={this.hidePanel}
-                      icon={<InlineSvg src="icon-star" />}
-                      label={t('Bookmarked issues')}
-                      to={`/organizations/${organization.slug}/issues/bookmarks/`}
-                      id="bookmarks"
-                    />
-                    <SidebarItem
-                      {...sidebarItemProps}
-                      onClick={this.hidePanel}
-                      icon={<InlineSvg src="icon-history" />}
-                      label={t('Recently viewed')}
-                      to={`/organizations/${organization.slug}/issues/history/`}
-                      id="history"
-                    />
-                  </SidebarSection>
-                )}
-
                 <SidebarSection>
                   <SidebarItem
                     {...sidebarItemProps}
