@@ -44,6 +44,7 @@ describe('OrganizationEventsV2', function() {
       <OrganizationEventsV2
         organization={TestStubs.Organization({projects: [TestStubs.Project()]})}
         location={{query: {}}}
+        router={{}}
       />,
       TestStubs.routerContext()
     );
@@ -56,6 +57,7 @@ describe('OrganizationEventsV2', function() {
       <OrganizationEventsV2
         organization={TestStubs.Organization()}
         location={{query: {}}}
+        router={{}}
       />,
       TestStubs.routerContext()
     );
@@ -69,6 +71,7 @@ describe('OrganizationEventsV2', function() {
       <OrganizationEventsV2
         organization={TestStubs.Organization({projects: [TestStubs.Project()]})}
         location={{query: {}}}
+        router={{}}
       />,
       TestStubs.routerContext()
     );
@@ -82,8 +85,9 @@ describe('OrganizationEventsV2', function() {
     const wrapper = mount(
       <OrganizationEventsV2
         organization={organization}
-        location={{query: {eventSlug: 'project-slug:deadbeef'}}}
         params={{orgId: organization.slug}}
+        location={{query: {eventSlug: 'project-slug:deadbeef'}}}
+        router={{}}
       />,
       TestStubs.routerContext()
     );
@@ -109,6 +113,7 @@ describe('OrganizationEventsV2', function() {
         organization={organization}
         params={{orgId: organization.slug}}
         location={routerContext.context.location}
+        router={{}}
       />,
       routerContext
     );
@@ -144,6 +149,7 @@ describe('OrganizationEventsV2', function() {
         organization={organization}
         params={{orgId: organization.slug}}
         location={routerContext.context.location}
+        router={{}}
       />,
       routerContext
     );
