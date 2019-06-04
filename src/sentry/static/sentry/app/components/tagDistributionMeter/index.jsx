@@ -158,7 +158,6 @@ const Segment = styled(Link, {shouldForwardProp: isPropValid})`
 `;
 
 const Description = styled('span', {shouldForwardProp: isPropValid})`
-  background-color: #fff;
   position: absolute;
   text-align: right;
   top: -1px;
