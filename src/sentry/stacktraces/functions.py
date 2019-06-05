@@ -4,6 +4,7 @@ from __future__ import absolute_import
 import re
 
 from sentry.stacktraces.platform import get_behavior_family_for_platform
+from sentry.utils.safe import setdefault_path
 
 
 _windecl_hash = re.compile(r'^@?(.*?)@[0-9]+$')
@@ -109,7 +110,7 @@ def trim_function_name(function, platform, normalize_lambdas=True):
         return function
 
     # Chop off C++ trailers
-    while 1:
+    while True:
         match = _cpp_trailer_re.search(function)
         if match is None:
             break
@@ -199,3 +200,13 @@ def get_function_name_for_frame(frame, platform=None):
     rv = frame.get('function')
     if rv:
         return trim_function_name(rv, frame.get('platform') or platform)
+
+
+def set_in_app(frame, value):
+    orig_in_app = frame.get('in_app')
+    if orig_in_app == value:
+        return
+
+    orig_in_app = int(orig_in_app) if orig_in_app is not None else -1
+    setdefault_path(frame, 'data', 'orig_in_app', value=orig_in_app)
+    frame['in_app'] = value

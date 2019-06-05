@@ -4,6 +4,7 @@ import re
 import six
 
 from sentry.grouping.strategies.configurations import CONFIGURATIONS
+from sentry.grouping.strategies.base import StrategyConfiguration
 from sentry.grouping.component import GroupingComponent
 from sentry.grouping.variants import ChecksumVariant, FallbackVariant, \
     ComponentVariant, CustomFingerprintVariant, SaltedComponentVariant
@@ -201,9 +202,11 @@ def get_grouping_variants_for_event(event, config=None):
             'custom-fingerprint': CustomFingerprintVariant(fingerprint),
         }
 
+    if config is not None and not isinstance(config, StrategyConfiguration):
+        config = load_grouping_config(config)
+
     # At this point we need to calculate the default event values.  If the
     # fingerprint is salted we will wrap it.
-    config = load_grouping_config(config)
     components = _get_calculated_grouping_variants_for_event(event, config)
     rv = {}
 
