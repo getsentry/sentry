@@ -1,5 +1,5 @@
 ---
-created: '2019-06-03T14:50:28.969003Z'
+created: '2019-06-05T20:24:07.236765Z'
 creator: sentry
 source: tests/symbolicator/test_unreal_full.py
 ---
@@ -108,6 +108,7 @@ exception:
     stacktrace:
       frames:
       - data:
+          orig_in_app: -1
           symbolicator_status: symbolicated
         function: AActor::IsPendingKillPending
         in_app: false
@@ -146,30 +147,88 @@ threads:
     stacktrace:
       frames:
       - data:
+          orig_in_app: -1
+          symbolicator_status: missing
+        in_app: false
+        instruction_addr: '0x7ffe100d1471'
+        package: C:\Windows\System32\ntdll.dll
+        trust: cfi
+      - data:
+          orig_in_app: -1
+          symbolicator_status: symbolicated
+        function: BaseThreadInitThunk
+        in_app: false
+        instruction_addr: '0x7ffe0fd53033'
+        package: C:\Windows\System32\kernel32.dll
+        symbol: BaseThreadInitThunk
+        trust: scan
+      - data:
+          orig_in_app: -1
+          symbolicator_status: symbolicated
+        function: ProcessPrng
+        in_app: false
+        instruction_addr: '0x7ffe0c94e264'
+        package: C:\Windows\System32\bcryptPrimitives.dll
+        symbol: ProcessPrng
+        trust: scan
+      - data:
+          orig_in_app: -1
+          symbolicator_status: symbolicated
+        function: ProcessPrng
+        in_app: false
+        instruction_addr: '0x7ffe0c94e4ab'
+        package: C:\Windows\System32\bcryptPrimitives.dll
+        symbol: ProcessPrng
+        trust: scan
+      - data:
+          orig_in_app: -1
+          symbolicator_status: symbolicated
+        function: AActor::IsPendingKillPending
+        in_app: false
+        instruction_addr: '0x7ff754be3393'
+        package: \\Mac\Home\Desktop\WindowsNoEditor\YetAnother\Binaries\Win64\YetAnother.exe
+        raw_function: AActor::IsPendingKillPending()
+        symbol: AActor::IsPendingKillPending()
+        trust: cfi
+      - data:
+          orig_in_app: -1
+          symbolicator_status: missing
+        in_app: false
+        instruction_addr: '0x7ffe100fdc6e'
+        package: C:\Windows\System32\ntdll.dll
+        trust: cfi
+      - data:
+          orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7ffe10066c86'
         package: C:\Windows\System32\ntdll.dll
-        trust: scan
+        trust: cfi
       - data:
+          orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7ffe100fed3d'
         package: C:\Windows\System32\ntdll.dll
         trust: scan
       - data:
+          orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7ffe03a9bf10'
         package: C:\Windows\System32\VCRUNTIME140.dll
         trust: scan
       - data:
-          symbolicator_status: missing
+          orig_in_app: -1
+          symbolicator_status: symbolicated
+        function: WaitForSingleObjectEx
         in_app: false
-        instruction_addr: '0x7ffe0ca99252'
+        instruction_addr: '0x7ffe0ca99251'
         package: C:\Windows\System32\KERNELBASE.dll
-        trust: scan
+        symbol: WaitForSingleObjectEx
+        trust: cfi
       - data:
+          orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7ffe100f9f84'
@@ -198,18 +257,30 @@ threads:
     stacktrace:
       frames:
       - data:
+          orig_in_app: -1
           symbolicator_status: missing
         in_app: false
-        instruction_addr: '0x7ffe10083140'
+        instruction_addr: '0x7ffe100d1471'
         package: C:\Windows\System32\ntdll.dll
-        trust: scan
+        trust: cfi
       - data:
+          orig_in_app: -1
+          symbolicator_status: symbolicated
+        function: BaseThreadInitThunk
+        in_app: false
+        instruction_addr: '0x7ffe0fd53033'
+        package: C:\Windows\System32\kernel32.dll
+        symbol: BaseThreadInitThunk
+        trust: cfi
+      - data:
+          orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7ffe1007f856'
         package: C:\Windows\System32\ntdll.dll
-        trust: scan
+        trust: cfi
       - data:
+          orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7ffe100fd854'
@@ -238,18 +309,30 @@ threads:
     stacktrace:
       frames:
       - data:
+          orig_in_app: -1
           symbolicator_status: missing
         in_app: false
-        instruction_addr: '0x7ffe10083140'
+        instruction_addr: '0x7ffe100d1471'
         package: C:\Windows\System32\ntdll.dll
-        trust: scan
+        trust: cfi
       - data:
+          orig_in_app: -1
+          symbolicator_status: symbolicated
+        function: BaseThreadInitThunk
+        in_app: false
+        instruction_addr: '0x7ffe0fd53033'
+        package: C:\Windows\System32\kernel32.dll
+        symbol: BaseThreadInitThunk
+        trust: cfi
+      - data:
+          orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7ffe1007f856'
         package: C:\Windows\System32\ntdll.dll
-        trust: scan
+        trust: cfi
       - data:
+          orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7ffe100fd854'
@@ -278,18 +361,30 @@ threads:
     stacktrace:
       frames:
       - data:
+          orig_in_app: -1
           symbolicator_status: missing
         in_app: false
-        instruction_addr: '0x7ffe10083140'
+        instruction_addr: '0x7ffe100d1471'
         package: C:\Windows\System32\ntdll.dll
-        trust: scan
+        trust: cfi
       - data:
+          orig_in_app: -1
+          symbolicator_status: symbolicated
+        function: BaseThreadInitThunk
+        in_app: false
+        instruction_addr: '0x7ffe0fd53033'
+        package: C:\Windows\System32\kernel32.dll
+        symbol: BaseThreadInitThunk
+        trust: cfi
+      - data:
+          orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7ffe1007f856'
         package: C:\Windows\System32\ntdll.dll
-        trust: scan
+        trust: cfi
       - data:
+          orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7ffe100fd854'
@@ -320,30 +415,41 @@ threads:
     stacktrace:
       frames:
       - data:
+          orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7ffe100d1471'
         package: C:\Windows\System32\ntdll.dll
-        trust: scan
+        trust: cfi
       - data:
-          symbolicator_status: missing
+          orig_in_app: -1
+          symbolicator_status: symbolicated
+        function: BaseThreadInitThunk
         in_app: false
-        instruction_addr: '0x7ffe0fd53034'
+        instruction_addr: '0x7ffe0fd53033'
         package: C:\Windows\System32\kernel32.dll
+        symbol: BaseThreadInitThunk
         trust: scan
       - data:
-          symbolicator_status: missing
+          orig_in_app: -1
+          symbolicator_status: symbolicated
+        function: VirtualAlloc
         in_app: false
-        instruction_addr: '0x7ffe0cab443b'
+        instruction_addr: '0x7ffe0cab443a'
         package: C:\Windows\System32\KERNELBASE.dll
+        symbol: VirtualAlloc
         trust: scan
       - data:
-          symbolicator_status: missing
+          orig_in_app: -1
+          symbolicator_status: symbolicated
+        function: WaitForSingleObjectEx
         in_app: false
-        instruction_addr: '0x7ffe0ca99252'
+        instruction_addr: '0x7ffe0ca99251'
         package: C:\Windows\System32\KERNELBASE.dll
-        trust: scan
+        symbol: WaitForSingleObjectEx
+        trust: cfi
       - data:
+          orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7ffe100f9f84'
@@ -372,30 +478,41 @@ threads:
     stacktrace:
       frames:
       - data:
+          orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7ffe100d1471'
         package: C:\Windows\System32\ntdll.dll
-        trust: scan
+        trust: cfi
       - data:
-          symbolicator_status: missing
+          orig_in_app: -1
+          symbolicator_status: symbolicated
+        function: BaseThreadInitThunk
         in_app: false
-        instruction_addr: '0x7ffe0fd53034'
+        instruction_addr: '0x7ffe0fd53033'
         package: C:\Windows\System32\kernel32.dll
+        symbol: BaseThreadInitThunk
         trust: scan
       - data:
-          symbolicator_status: missing
+          orig_in_app: -1
+          symbolicator_status: symbolicated
+        function: VirtualAlloc
         in_app: false
-        instruction_addr: '0x7ffe0cab443b'
+        instruction_addr: '0x7ffe0cab443a'
         package: C:\Windows\System32\KERNELBASE.dll
+        symbol: VirtualAlloc
         trust: scan
       - data:
-          symbolicator_status: missing
+          orig_in_app: -1
+          symbolicator_status: symbolicated
+        function: WaitForSingleObjectEx
         in_app: false
-        instruction_addr: '0x7ffe0ca99252'
+        instruction_addr: '0x7ffe0ca99251'
         package: C:\Windows\System32\KERNELBASE.dll
-        trust: scan
+        symbol: WaitForSingleObjectEx
+        trust: cfi
       - data:
+          orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7ffe100f9f84'
@@ -424,30 +541,41 @@ threads:
     stacktrace:
       frames:
       - data:
+          orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7ffe100d1471'
         package: C:\Windows\System32\ntdll.dll
-        trust: scan
+        trust: cfi
       - data:
-          symbolicator_status: missing
+          orig_in_app: -1
+          symbolicator_status: symbolicated
+        function: BaseThreadInitThunk
         in_app: false
-        instruction_addr: '0x7ffe0fd53034'
+        instruction_addr: '0x7ffe0fd53033'
         package: C:\Windows\System32\kernel32.dll
+        symbol: BaseThreadInitThunk
         trust: scan
       - data:
-          symbolicator_status: missing
+          orig_in_app: -1
+          symbolicator_status: symbolicated
+        function: VirtualAlloc
         in_app: false
-        instruction_addr: '0x7ffe0cab443b'
+        instruction_addr: '0x7ffe0cab443a'
         package: C:\Windows\System32\KERNELBASE.dll
+        symbol: VirtualAlloc
         trust: scan
       - data:
-          symbolicator_status: missing
+          orig_in_app: -1
+          symbolicator_status: symbolicated
+        function: WaitForSingleObjectEx
         in_app: false
-        instruction_addr: '0x7ffe0ca99252'
+        instruction_addr: '0x7ffe0ca99251'
         package: C:\Windows\System32\KERNELBASE.dll
-        trust: scan
+        symbol: WaitForSingleObjectEx
+        trust: cfi
       - data:
+          orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7ffe100f9f84'
@@ -476,24 +604,32 @@ threads:
     stacktrace:
       frames:
       - data:
+          orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7ffe100d1471'
         package: C:\Windows\System32\ntdll.dll
-        trust: scan
+        trust: cfi
       - data:
-          symbolicator_status: missing
+          orig_in_app: -1
+          symbolicator_status: symbolicated
+        function: BaseThreadInitThunk
         in_app: false
-        instruction_addr: '0x7ffe0fd53034'
+        instruction_addr: '0x7ffe0fd53033'
         package: C:\Windows\System32\kernel32.dll
+        symbol: BaseThreadInitThunk
         trust: scan
       - data:
-          symbolicator_status: missing
+          orig_in_app: -1
+          symbolicator_status: symbolicated
+        function: WaitForSingleObjectEx
         in_app: false
-        instruction_addr: '0x7ffe0ca99252'
+        instruction_addr: '0x7ffe0ca99251'
         package: C:\Windows\System32\KERNELBASE.dll
-        trust: scan
+        symbol: WaitForSingleObjectEx
+        trust: cfi
       - data:
+          orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7ffe100f9f84'
@@ -522,36 +658,48 @@ threads:
     stacktrace:
       frames:
       - data:
+          orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7ffe100d1471'
         package: C:\Windows\System32\ntdll.dll
-        trust: scan
+        trust: cfi
       - data:
-          symbolicator_status: missing
+          orig_in_app: -1
+          symbolicator_status: symbolicated
+        function: BaseThreadInitThunk
         in_app: false
-        instruction_addr: '0x7ffe0fd53034'
+        instruction_addr: '0x7ffe0fd53033'
         package: C:\Windows\System32\kernel32.dll
+        symbol: BaseThreadInitThunk
         trust: scan
       - data:
-          symbolicator_status: missing
+          orig_in_app: -1
+          symbolicator_status: symbolicated
+        function: VirtualAlloc
         in_app: false
-        instruction_addr: '0x7ffe0cab443b'
+        instruction_addr: '0x7ffe0cab443a'
         package: C:\Windows\System32\KERNELBASE.dll
+        symbol: VirtualAlloc
         trust: scan
       - data:
+          orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7ffe100d1450'
         package: C:\Windows\System32\ntdll.dll
         trust: scan
       - data:
-          symbolicator_status: missing
+          orig_in_app: -1
+          symbolicator_status: symbolicated
+        function: WaitForSingleObjectEx
         in_app: false
-        instruction_addr: '0x7ffe0ca99252'
+        instruction_addr: '0x7ffe0ca99251'
         package: C:\Windows\System32\KERNELBASE.dll
-        trust: scan
+        symbol: WaitForSingleObjectEx
+        trust: cfi
       - data:
+          orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7ffe100f9f84'
@@ -580,30 +728,41 @@ threads:
     stacktrace:
       frames:
       - data:
+          orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7ffe100d1471'
         package: C:\Windows\System32\ntdll.dll
-        trust: scan
+        trust: cfi
       - data:
-          symbolicator_status: missing
+          orig_in_app: -1
+          symbolicator_status: symbolicated
+        function: BaseThreadInitThunk
         in_app: false
-        instruction_addr: '0x7ffe0fd53034'
+        instruction_addr: '0x7ffe0fd53033'
         package: C:\Windows\System32\kernel32.dll
+        symbol: BaseThreadInitThunk
         trust: scan
       - data:
-          symbolicator_status: missing
+          orig_in_app: -1
+          symbolicator_status: symbolicated
+        function: VirtualAlloc
         in_app: false
-        instruction_addr: '0x7ffe0cab443b'
+        instruction_addr: '0x7ffe0cab443a'
         package: C:\Windows\System32\KERNELBASE.dll
+        symbol: VirtualAlloc
         trust: scan
       - data:
-          symbolicator_status: missing
+          orig_in_app: -1
+          symbolicator_status: symbolicated
+        function: WaitForSingleObjectEx
         in_app: false
-        instruction_addr: '0x7ffe0ca99252'
+        instruction_addr: '0x7ffe0ca99251'
         package: C:\Windows\System32\KERNELBASE.dll
-        trust: scan
+        symbol: WaitForSingleObjectEx
+        trust: cfi
       - data:
+          orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7ffe100f9f84'
@@ -632,36 +791,48 @@ threads:
     stacktrace:
       frames:
       - data:
+          orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7ffe100d1471'
         package: C:\Windows\System32\ntdll.dll
-        trust: scan
+        trust: cfi
       - data:
-          symbolicator_status: missing
+          orig_in_app: -1
+          symbolicator_status: symbolicated
+        function: BaseThreadInitThunk
         in_app: false
-        instruction_addr: '0x7ffe0fd53034'
+        instruction_addr: '0x7ffe0fd53033'
         package: C:\Windows\System32\kernel32.dll
+        symbol: BaseThreadInitThunk
         trust: scan
       - data:
-          symbolicator_status: missing
+          orig_in_app: -1
+          symbolicator_status: symbolicated
+        function: VirtualAlloc
         in_app: false
-        instruction_addr: '0x7ffe0cab443b'
+        instruction_addr: '0x7ffe0cab443a'
         package: C:\Windows\System32\KERNELBASE.dll
+        symbol: VirtualAlloc
         trust: scan
       - data:
+          orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7ffe100d1450'
         package: C:\Windows\System32\ntdll.dll
         trust: scan
       - data:
-          symbolicator_status: missing
+          orig_in_app: -1
+          symbolicator_status: symbolicated
+        function: WaitForSingleObjectEx
         in_app: false
-        instruction_addr: '0x7ffe0ca99252'
+        instruction_addr: '0x7ffe0ca99251'
         package: C:\Windows\System32\KERNELBASE.dll
-        trust: scan
+        symbol: WaitForSingleObjectEx
+        trust: cfi
       - data:
+          orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7ffe100f9f84'
@@ -690,36 +861,48 @@ threads:
     stacktrace:
       frames:
       - data:
+          orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7ffe100d1471'
         package: C:\Windows\System32\ntdll.dll
-        trust: scan
+        trust: cfi
       - data:
-          symbolicator_status: missing
+          orig_in_app: -1
+          symbolicator_status: symbolicated
+        function: BaseThreadInitThunk
         in_app: false
-        instruction_addr: '0x7ffe0fd53034'
+        instruction_addr: '0x7ffe0fd53033'
         package: C:\Windows\System32\kernel32.dll
+        symbol: BaseThreadInitThunk
         trust: scan
       - data:
-          symbolicator_status: missing
+          orig_in_app: -1
+          symbolicator_status: symbolicated
+        function: VirtualAlloc
         in_app: false
-        instruction_addr: '0x7ffe0cab443b'
+        instruction_addr: '0x7ffe0cab443a'
         package: C:\Windows\System32\KERNELBASE.dll
+        symbol: VirtualAlloc
         trust: scan
       - data:
+          orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7ffe100d1450'
         package: C:\Windows\System32\ntdll.dll
         trust: scan
       - data:
-          symbolicator_status: missing
+          orig_in_app: -1
+          symbolicator_status: symbolicated
+        function: WaitForSingleObjectEx
         in_app: false
-        instruction_addr: '0x7ffe0ca99252'
+        instruction_addr: '0x7ffe0ca99251'
         package: C:\Windows\System32\KERNELBASE.dll
-        trust: scan
+        symbol: WaitForSingleObjectEx
+        trust: cfi
       - data:
+          orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7ffe100f9f84'
@@ -748,36 +931,48 @@ threads:
     stacktrace:
       frames:
       - data:
+          orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7ffe100d1471'
         package: C:\Windows\System32\ntdll.dll
-        trust: scan
+        trust: cfi
       - data:
-          symbolicator_status: missing
+          orig_in_app: -1
+          symbolicator_status: symbolicated
+        function: BaseThreadInitThunk
         in_app: false
-        instruction_addr: '0x7ffe0fd53034'
+        instruction_addr: '0x7ffe0fd53033'
         package: C:\Windows\System32\kernel32.dll
+        symbol: BaseThreadInitThunk
         trust: scan
       - data:
-          symbolicator_status: missing
+          orig_in_app: -1
+          symbolicator_status: symbolicated
+        function: VirtualAlloc
         in_app: false
-        instruction_addr: '0x7ffe0cab443b'
+        instruction_addr: '0x7ffe0cab443a'
         package: C:\Windows\System32\KERNELBASE.dll
+        symbol: VirtualAlloc
         trust: scan
       - data:
+          orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7ffe100d1450'
         package: C:\Windows\System32\ntdll.dll
         trust: scan
       - data:
-          symbolicator_status: missing
+          orig_in_app: -1
+          symbolicator_status: symbolicated
+        function: WaitForSingleObjectEx
         in_app: false
-        instruction_addr: '0x7ffe0ca99252'
+        instruction_addr: '0x7ffe0ca99251'
         package: C:\Windows\System32\KERNELBASE.dll
-        trust: scan
+        symbol: WaitForSingleObjectEx
+        trust: cfi
       - data:
+          orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7ffe100f9f84'
@@ -806,36 +1001,48 @@ threads:
     stacktrace:
       frames:
       - data:
+          orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7ffe100d1471'
         package: C:\Windows\System32\ntdll.dll
-        trust: scan
+        trust: cfi
       - data:
-          symbolicator_status: missing
+          orig_in_app: -1
+          symbolicator_status: symbolicated
+        function: BaseThreadInitThunk
         in_app: false
-        instruction_addr: '0x7ffe0fd53034'
+        instruction_addr: '0x7ffe0fd53033'
         package: C:\Windows\System32\kernel32.dll
+        symbol: BaseThreadInitThunk
         trust: scan
       - data:
-          symbolicator_status: missing
+          orig_in_app: -1
+          symbolicator_status: symbolicated
+        function: VirtualAlloc
         in_app: false
-        instruction_addr: '0x7ffe0cab443b'
+        instruction_addr: '0x7ffe0cab443a'
         package: C:\Windows\System32\KERNELBASE.dll
+        symbol: VirtualAlloc
         trust: scan
       - data:
+          orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7ffe100d1450'
         package: C:\Windows\System32\ntdll.dll
         trust: scan
       - data:
-          symbolicator_status: missing
+          orig_in_app: -1
+          symbolicator_status: symbolicated
+        function: WaitForSingleObjectEx
         in_app: false
-        instruction_addr: '0x7ffe0ca99252'
+        instruction_addr: '0x7ffe0ca99251'
         package: C:\Windows\System32\KERNELBASE.dll
-        trust: scan
+        symbol: WaitForSingleObjectEx
+        trust: cfi
       - data:
+          orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7ffe100f9f84'
@@ -864,18 +1071,23 @@ threads:
     stacktrace:
       frames:
       - data:
+          orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7ffe100d1450'
         package: C:\Windows\System32\ntdll.dll
         trust: scan
       - data:
-          symbolicator_status: missing
+          orig_in_app: -1
+          symbolicator_status: symbolicated
+        function: WaitForSingleObjectEx
         in_app: false
-        instruction_addr: '0x7ffe0ca99252'
+        instruction_addr: '0x7ffe0ca99251'
         package: C:\Windows\System32\KERNELBASE.dll
-        trust: scan
+        symbol: WaitForSingleObjectEx
+        trust: cfi
       - data:
+          orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7ffe100f9f84'
@@ -904,18 +1116,23 @@ threads:
     stacktrace:
       frames:
       - data:
+          orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7ffe100d1450'
         package: C:\Windows\System32\ntdll.dll
         trust: scan
       - data:
-          symbolicator_status: missing
+          orig_in_app: -1
+          symbolicator_status: symbolicated
+        function: WaitForSingleObjectEx
         in_app: false
-        instruction_addr: '0x7ffe0ca99252'
+        instruction_addr: '0x7ffe0ca99251'
         package: C:\Windows\System32\KERNELBASE.dll
-        trust: scan
+        symbol: WaitForSingleObjectEx
+        trust: cfi
       - data:
+          orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7ffe100f9f84'
@@ -944,12 +1161,16 @@ threads:
     stacktrace:
       frames:
       - data:
-          symbolicator_status: missing
+          orig_in_app: -1
+          symbolicator_status: symbolicated
+        function: WaitForSingleObjectEx
         in_app: false
-        instruction_addr: '0x7ffe0ca99252'
+        instruction_addr: '0x7ffe0ca99251'
         package: C:\Windows\System32\KERNELBASE.dll
-        trust: scan
+        symbol: WaitForSingleObjectEx
+        trust: cfi
       - data:
+          orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7ffe100f9f84'
@@ -978,18 +1199,23 @@ threads:
     stacktrace:
       frames:
       - data:
+          orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7ffe100d1450'
         package: C:\Windows\System32\ntdll.dll
         trust: scan
       - data:
-          symbolicator_status: missing
+          orig_in_app: -1
+          symbolicator_status: symbolicated
+        function: WaitForSingleObjectEx
         in_app: false
-        instruction_addr: '0x7ffe0ca99252'
+        instruction_addr: '0x7ffe0ca99251'
         package: C:\Windows\System32\KERNELBASE.dll
-        trust: scan
+        symbol: WaitForSingleObjectEx
+        trust: cfi
       - data:
+          orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7ffe100f9f84'
@@ -1018,18 +1244,23 @@ threads:
     stacktrace:
       frames:
       - data:
+          orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7ffe100d1450'
         package: C:\Windows\System32\ntdll.dll
         trust: scan
       - data:
-          symbolicator_status: missing
+          orig_in_app: -1
+          symbolicator_status: symbolicated
+        function: WaitForSingleObjectEx
         in_app: false
-        instruction_addr: '0x7ffe0ca99252'
+        instruction_addr: '0x7ffe0ca99251'
         package: C:\Windows\System32\KERNELBASE.dll
-        trust: scan
+        symbol: WaitForSingleObjectEx
+        trust: cfi
       - data:
+          orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7ffe100f9f84'
@@ -1058,30 +1289,41 @@ threads:
     stacktrace:
       frames:
       - data:
+          orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7ffe100d1471'
         package: C:\Windows\System32\ntdll.dll
-        trust: scan
+        trust: cfi
       - data:
-          symbolicator_status: missing
+          orig_in_app: -1
+          symbolicator_status: symbolicated
+        function: BaseThreadInitThunk
         in_app: false
-        instruction_addr: '0x7ffe0fd53034'
+        instruction_addr: '0x7ffe0fd53033'
         package: C:\Windows\System32\kernel32.dll
+        symbol: BaseThreadInitThunk
         trust: scan
       - data:
-          symbolicator_status: missing
+          orig_in_app: -1
+          symbolicator_status: symbolicated
+        function: VirtualAlloc
         in_app: false
-        instruction_addr: '0x7ffe0cab443b'
+        instruction_addr: '0x7ffe0cab443a'
         package: C:\Windows\System32\KERNELBASE.dll
+        symbol: VirtualAlloc
         trust: scan
       - data:
-          symbolicator_status: missing
+          orig_in_app: -1
+          symbolicator_status: symbolicated
+        function: WaitForSingleObjectEx
         in_app: false
-        instruction_addr: '0x7ffe0ca99252'
+        instruction_addr: '0x7ffe0ca99251'
         package: C:\Windows\System32\KERNELBASE.dll
-        trust: scan
+        symbol: WaitForSingleObjectEx
+        trust: cfi
       - data:
+          orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7ffe100f9f84'
@@ -1110,24 +1352,32 @@ threads:
     stacktrace:
       frames:
       - data:
+          orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7ffe100d1471'
         package: C:\Windows\System32\ntdll.dll
-        trust: scan
+        trust: cfi
       - data:
-          symbolicator_status: missing
+          orig_in_app: -1
+          symbolicator_status: symbolicated
+        function: BaseThreadInitThunk
         in_app: false
-        instruction_addr: '0x7ffe0fd53034'
+        instruction_addr: '0x7ffe0fd53033'
         package: C:\Windows\System32\kernel32.dll
+        symbol: BaseThreadInitThunk
         trust: scan
       - data:
-          symbolicator_status: missing
+          orig_in_app: -1
+          symbolicator_status: symbolicated
+        function: WaitForSingleObjectEx
         in_app: false
-        instruction_addr: '0x7ffe0ca99252'
+        instruction_addr: '0x7ffe0ca99251'
         package: C:\Windows\System32\KERNELBASE.dll
-        trust: scan
+        symbol: WaitForSingleObjectEx
+        trust: cfi
       - data:
+          orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7ffe100f9f84'
@@ -1156,24 +1406,32 @@ threads:
     stacktrace:
       frames:
       - data:
+          orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7ffe100d1471'
         package: C:\Windows\System32\ntdll.dll
-        trust: scan
+        trust: cfi
       - data:
-          symbolicator_status: missing
+          orig_in_app: -1
+          symbolicator_status: symbolicated
+        function: BaseThreadInitThunk
         in_app: false
-        instruction_addr: '0x7ffe0fd53034'
+        instruction_addr: '0x7ffe0fd53033'
         package: C:\Windows\System32\kernel32.dll
+        symbol: BaseThreadInitThunk
         trust: scan
       - data:
-          symbolicator_status: missing
+          orig_in_app: -1
+          symbolicator_status: symbolicated
+        function: WaitForSingleObjectEx
         in_app: false
-        instruction_addr: '0x7ffe0ca99252'
+        instruction_addr: '0x7ffe0ca99251'
         package: C:\Windows\System32\KERNELBASE.dll
-        trust: scan
+        symbol: WaitForSingleObjectEx
+        trust: cfi
       - data:
+          orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7ffe100f9f84'
@@ -1202,24 +1460,32 @@ threads:
     stacktrace:
       frames:
       - data:
+          orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7ffe100d1471'
         package: C:\Windows\System32\ntdll.dll
-        trust: scan
+        trust: cfi
       - data:
-          symbolicator_status: missing
+          orig_in_app: -1
+          symbolicator_status: symbolicated
+        function: BaseThreadInitThunk
         in_app: false
-        instruction_addr: '0x7ffe0fd53034'
+        instruction_addr: '0x7ffe0fd53033'
         package: C:\Windows\System32\kernel32.dll
+        symbol: BaseThreadInitThunk
         trust: scan
       - data:
-          symbolicator_status: missing
+          orig_in_app: -1
+          symbolicator_status: symbolicated
+        function: WaitForSingleObjectEx
         in_app: false
-        instruction_addr: '0x7ffe0ca99252'
+        instruction_addr: '0x7ffe0ca99251'
         package: C:\Windows\System32\KERNELBASE.dll
-        trust: scan
+        symbol: WaitForSingleObjectEx
+        trust: cfi
       - data:
+          orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7ffe100f9f84'
@@ -1248,24 +1514,32 @@ threads:
     stacktrace:
       frames:
       - data:
+          orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7ffe100d1471'
         package: C:\Windows\System32\ntdll.dll
-        trust: scan
+        trust: cfi
       - data:
-          symbolicator_status: missing
+          orig_in_app: -1
+          symbolicator_status: symbolicated
+        function: BaseThreadInitThunk
         in_app: false
-        instruction_addr: '0x7ffe0fd53034'
+        instruction_addr: '0x7ffe0fd53033'
         package: C:\Windows\System32\kernel32.dll
+        symbol: BaseThreadInitThunk
         trust: scan
       - data:
-          symbolicator_status: missing
+          orig_in_app: -1
+          symbolicator_status: symbolicated
+        function: WaitForSingleObjectEx
         in_app: false
-        instruction_addr: '0x7ffe0ca99252'
+        instruction_addr: '0x7ffe0ca99251'
         package: C:\Windows\System32\KERNELBASE.dll
-        trust: scan
+        symbol: WaitForSingleObjectEx
+        trust: cfi
       - data:
+          orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7ffe100f9f84'
@@ -1294,24 +1568,32 @@ threads:
     stacktrace:
       frames:
       - data:
+          orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7ffe100d1471'
         package: C:\Windows\System32\ntdll.dll
-        trust: scan
+        trust: cfi
       - data:
-          symbolicator_status: missing
+          orig_in_app: -1
+          symbolicator_status: symbolicated
+        function: BaseThreadInitThunk
         in_app: false
-        instruction_addr: '0x7ffe0fd53034'
+        instruction_addr: '0x7ffe0fd53033'
         package: C:\Windows\System32\kernel32.dll
+        symbol: BaseThreadInitThunk
         trust: scan
       - data:
-          symbolicator_status: missing
+          orig_in_app: -1
+          symbolicator_status: symbolicated
+        function: WaitForSingleObjectEx
         in_app: false
-        instruction_addr: '0x7ffe0ca99252'
+        instruction_addr: '0x7ffe0ca99251'
         package: C:\Windows\System32\KERNELBASE.dll
-        trust: scan
+        symbol: WaitForSingleObjectEx
+        trust: cfi
       - data:
+          orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7ffe100f9f84'
@@ -1340,24 +1622,32 @@ threads:
     stacktrace:
       frames:
       - data:
+          orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7ffe100d1471'
         package: C:\Windows\System32\ntdll.dll
-        trust: scan
+        trust: cfi
       - data:
-          symbolicator_status: missing
+          orig_in_app: -1
+          symbolicator_status: symbolicated
+        function: BaseThreadInitThunk
         in_app: false
-        instruction_addr: '0x7ffe0fd53034'
+        instruction_addr: '0x7ffe0fd53033'
         package: C:\Windows\System32\kernel32.dll
+        symbol: BaseThreadInitThunk
         trust: scan
       - data:
-          symbolicator_status: missing
+          orig_in_app: -1
+          symbolicator_status: symbolicated
+        function: WaitForSingleObjectEx
         in_app: false
-        instruction_addr: '0x7ffe0ca99252'
+        instruction_addr: '0x7ffe0ca99251'
         package: C:\Windows\System32\KERNELBASE.dll
-        trust: scan
+        symbol: WaitForSingleObjectEx
+        trust: cfi
       - data:
+          orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7ffe100f9f84'
@@ -1386,24 +1676,32 @@ threads:
     stacktrace:
       frames:
       - data:
+          orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7ffe100d1471'
         package: C:\Windows\System32\ntdll.dll
-        trust: scan
+        trust: cfi
       - data:
-          symbolicator_status: missing
+          orig_in_app: -1
+          symbolicator_status: symbolicated
+        function: BaseThreadInitThunk
         in_app: false
-        instruction_addr: '0x7ffe0fd53034'
+        instruction_addr: '0x7ffe0fd53033'
         package: C:\Windows\System32\kernel32.dll
+        symbol: BaseThreadInitThunk
         trust: scan
       - data:
-          symbolicator_status: missing
+          orig_in_app: -1
+          symbolicator_status: symbolicated
+        function: WaitForSingleObjectEx
         in_app: false
-        instruction_addr: '0x7ffe0ca99252'
+        instruction_addr: '0x7ffe0ca99251'
         package: C:\Windows\System32\KERNELBASE.dll
-        trust: scan
+        symbol: WaitForSingleObjectEx
+        trust: cfi
       - data:
+          orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7ffe100f9f84'
@@ -1432,24 +1730,32 @@ threads:
     stacktrace:
       frames:
       - data:
+          orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7ffe100d1471'
         package: C:\Windows\System32\ntdll.dll
-        trust: scan
+        trust: cfi
       - data:
-          symbolicator_status: missing
+          orig_in_app: -1
+          symbolicator_status: symbolicated
+        function: BaseThreadInitThunk
         in_app: false
-        instruction_addr: '0x7ffe0fd53034'
+        instruction_addr: '0x7ffe0fd53033'
         package: C:\Windows\System32\kernel32.dll
+        symbol: BaseThreadInitThunk
         trust: scan
       - data:
-          symbolicator_status: missing
+          orig_in_app: -1
+          symbolicator_status: symbolicated
+        function: SleepEx
         in_app: false
-        instruction_addr: '0x7ffe0caa5e9a'
+        instruction_addr: '0x7ffe0caa5e99'
         package: C:\Windows\System32\KERNELBASE.dll
-        trust: scan
+        symbol: SleepEx
+        trust: cfi
       - data:
+          orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7ffe100fa584'
@@ -1478,24 +1784,32 @@ threads:
     stacktrace:
       frames:
       - data:
+          orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7ffe100d1471'
         package: C:\Windows\System32\ntdll.dll
-        trust: scan
+        trust: cfi
       - data:
-          symbolicator_status: missing
+          orig_in_app: -1
+          symbolicator_status: symbolicated
+        function: BaseThreadInitThunk
         in_app: false
-        instruction_addr: '0x7ffe0fd53034'
+        instruction_addr: '0x7ffe0fd53033'
         package: C:\Windows\System32\kernel32.dll
+        symbol: BaseThreadInitThunk
         trust: scan
       - data:
-          symbolicator_status: missing
+          orig_in_app: -1
+          symbolicator_status: symbolicated
+        function: SleepEx
         in_app: false
-        instruction_addr: '0x7ffe0caa5e9a'
+        instruction_addr: '0x7ffe0caa5e99'
         package: C:\Windows\System32\KERNELBASE.dll
-        trust: scan
+        symbol: SleepEx
+        trust: cfi
       - data:
+          orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7ffe100fa584'
@@ -1524,24 +1838,32 @@ threads:
     stacktrace:
       frames:
       - data:
+          orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7ffe100d1471'
         package: C:\Windows\System32\ntdll.dll
-        trust: scan
+        trust: cfi
       - data:
-          symbolicator_status: missing
+          orig_in_app: -1
+          symbolicator_status: symbolicated
+        function: BaseThreadInitThunk
         in_app: false
-        instruction_addr: '0x7ffe0fd53034'
+        instruction_addr: '0x7ffe0fd53033'
         package: C:\Windows\System32\kernel32.dll
+        symbol: BaseThreadInitThunk
         trust: scan
       - data:
-          symbolicator_status: missing
+          orig_in_app: -1
+          symbolicator_status: symbolicated
+        function: WaitForSingleObjectEx
         in_app: false
-        instruction_addr: '0x7ffe0ca99252'
+        instruction_addr: '0x7ffe0ca99251'
         package: C:\Windows\System32\KERNELBASE.dll
-        trust: scan
+        symbol: WaitForSingleObjectEx
+        trust: cfi
       - data:
+          orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7ffe100f9f84'
@@ -1570,24 +1892,32 @@ threads:
     stacktrace:
       frames:
       - data:
+          orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7ffe100d1471'
         package: C:\Windows\System32\ntdll.dll
-        trust: scan
+        trust: cfi
       - data:
-          symbolicator_status: missing
+          orig_in_app: -1
+          symbolicator_status: symbolicated
+        function: BaseThreadInitThunk
         in_app: false
-        instruction_addr: '0x7ffe0fd53034'
+        instruction_addr: '0x7ffe0fd53033'
         package: C:\Windows\System32\kernel32.dll
+        symbol: BaseThreadInitThunk
         trust: scan
       - data:
-          symbolicator_status: missing
+          orig_in_app: -1
+          symbolicator_status: symbolicated
+        function: WaitForSingleObjectEx
         in_app: false
-        instruction_addr: '0x7ffe0ca99252'
+        instruction_addr: '0x7ffe0ca99251'
         package: C:\Windows\System32\KERNELBASE.dll
-        trust: scan
+        symbol: WaitForSingleObjectEx
+        trust: cfi
       - data:
+          orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7ffe100f9f84'
@@ -1616,24 +1946,32 @@ threads:
     stacktrace:
       frames:
       - data:
+          orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7ffe100d1471'
         package: C:\Windows\System32\ntdll.dll
-        trust: scan
+        trust: cfi
       - data:
-          symbolicator_status: missing
+          orig_in_app: -1
+          symbolicator_status: symbolicated
+        function: BaseThreadInitThunk
         in_app: false
-        instruction_addr: '0x7ffe0fd53034'
+        instruction_addr: '0x7ffe0fd53033'
         package: C:\Windows\System32\kernel32.dll
+        symbol: BaseThreadInitThunk
         trust: scan
       - data:
-          symbolicator_status: missing
+          orig_in_app: -1
+          symbolicator_status: symbolicated
+        function: WaitForSingleObjectEx
         in_app: false
-        instruction_addr: '0x7ffe0ca99252'
+        instruction_addr: '0x7ffe0ca99251'
         package: C:\Windows\System32\KERNELBASE.dll
-        trust: scan
+        symbol: WaitForSingleObjectEx
+        trust: cfi
       - data:
+          orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7ffe100f9f84'
@@ -1662,24 +2000,32 @@ threads:
     stacktrace:
       frames:
       - data:
+          orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7ffe100d1471'
         package: C:\Windows\System32\ntdll.dll
-        trust: scan
+        trust: cfi
       - data:
-          symbolicator_status: missing
+          orig_in_app: -1
+          symbolicator_status: symbolicated
+        function: BaseThreadInitThunk
         in_app: false
-        instruction_addr: '0x7ffe0fd53034'
+        instruction_addr: '0x7ffe0fd53033'
         package: C:\Windows\System32\kernel32.dll
+        symbol: BaseThreadInitThunk
         trust: scan
       - data:
-          symbolicator_status: missing
+          orig_in_app: -1
+          symbolicator_status: symbolicated
+        function: WaitForSingleObjectEx
         in_app: false
-        instruction_addr: '0x7ffe0ca99252'
+        instruction_addr: '0x7ffe0ca99251'
         package: C:\Windows\System32\KERNELBASE.dll
-        trust: scan
+        symbol: WaitForSingleObjectEx
+        trust: cfi
       - data:
+          orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7ffe100f9f84'
@@ -1708,24 +2054,32 @@ threads:
     stacktrace:
       frames:
       - data:
+          orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7ffe100d1471'
         package: C:\Windows\System32\ntdll.dll
-        trust: scan
+        trust: cfi
       - data:
-          symbolicator_status: missing
+          orig_in_app: -1
+          symbolicator_status: symbolicated
+        function: BaseThreadInitThunk
         in_app: false
-        instruction_addr: '0x7ffe0fd53034'
+        instruction_addr: '0x7ffe0fd53033'
         package: C:\Windows\System32\kernel32.dll
+        symbol: BaseThreadInitThunk
         trust: scan
       - data:
-          symbolicator_status: missing
+          orig_in_app: -1
+          symbolicator_status: symbolicated
+        function: WaitForSingleObjectEx
         in_app: false
-        instruction_addr: '0x7ffe0ca99252'
+        instruction_addr: '0x7ffe0ca99251'
         package: C:\Windows\System32\KERNELBASE.dll
-        trust: scan
+        symbol: WaitForSingleObjectEx
+        trust: cfi
       - data:
+          orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7ffe100f9f84'
@@ -1754,12 +2108,30 @@ threads:
     stacktrace:
       frames:
       - data:
+          orig_in_app: -1
+          symbolicator_status: missing
+        in_app: false
+        instruction_addr: '0x7ffe100d1471'
+        package: C:\Windows\System32\ntdll.dll
+        trust: cfi
+      - data:
+          orig_in_app: -1
+          symbolicator_status: symbolicated
+        function: BaseThreadInitThunk
+        in_app: false
+        instruction_addr: '0x7ffe0fd53033'
+        package: C:\Windows\System32\kernel32.dll
+        symbol: BaseThreadInitThunk
+        trust: cfi
+      - data:
+          orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7ffe1007f856'
         package: C:\Windows\System32\ntdll.dll
-        trust: scan
+        trust: cfi
       - data:
+          orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7ffe100fd854'
@@ -1788,24 +2160,32 @@ threads:
     stacktrace:
       frames:
       - data:
+          orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7ffe100d1471'
         package: C:\Windows\System32\ntdll.dll
-        trust: scan
+        trust: cfi
       - data:
-          symbolicator_status: missing
+          orig_in_app: -1
+          symbolicator_status: symbolicated
+        function: BaseThreadInitThunk
         in_app: false
-        instruction_addr: '0x7ffe0fd53034'
+        instruction_addr: '0x7ffe0fd53033'
         package: C:\Windows\System32\kernel32.dll
+        symbol: BaseThreadInitThunk
         trust: scan
       - data:
-          symbolicator_status: missing
+          orig_in_app: -1
+          symbolicator_status: symbolicated
+        function: WaitForSingleObjectEx
         in_app: false
-        instruction_addr: '0x7ffe0ca99252'
+        instruction_addr: '0x7ffe0ca99251'
         package: C:\Windows\System32\KERNELBASE.dll
-        trust: scan
+        symbol: WaitForSingleObjectEx
+        trust: cfi
       - data:
+          orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7ffe100f9f84'
@@ -1834,24 +2214,32 @@ threads:
     stacktrace:
       frames:
       - data:
+          orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7ffe100d1471'
         package: C:\Windows\System32\ntdll.dll
-        trust: scan
+        trust: cfi
       - data:
-          symbolicator_status: missing
+          orig_in_app: -1
+          symbolicator_status: symbolicated
+        function: BaseThreadInitThunk
         in_app: false
-        instruction_addr: '0x7ffe0fd53034'
+        instruction_addr: '0x7ffe0fd53033'
         package: C:\Windows\System32\kernel32.dll
+        symbol: BaseThreadInitThunk
         trust: scan
       - data:
-          symbolicator_status: missing
+          orig_in_app: -1
+          symbolicator_status: symbolicated
+        function: WaitForSingleObjectEx
         in_app: false
-        instruction_addr: '0x7ffe0ca99252'
+        instruction_addr: '0x7ffe0ca99251'
         package: C:\Windows\System32\KERNELBASE.dll
-        trust: scan
+        symbol: WaitForSingleObjectEx
+        trust: cfi
       - data:
+          orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7ffe100f9f84'
@@ -1880,18 +2268,30 @@ threads:
     stacktrace:
       frames:
       - data:
+          orig_in_app: -1
           symbolicator_status: missing
         in_app: false
-        instruction_addr: '0x7ffe10083140'
+        instruction_addr: '0x7ffe100d1471'
         package: C:\Windows\System32\ntdll.dll
-        trust: scan
+        trust: cfi
       - data:
+          orig_in_app: -1
+          symbolicator_status: symbolicated
+        function: BaseThreadInitThunk
+        in_app: false
+        instruction_addr: '0x7ffe0fd53033'
+        package: C:\Windows\System32\kernel32.dll
+        symbol: BaseThreadInitThunk
+        trust: cfi
+      - data:
+          orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7ffe1007f856'
         package: C:\Windows\System32\ntdll.dll
-        trust: scan
+        trust: cfi
       - data:
+          orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7ffe100fd854'
@@ -1920,180 +2320,135 @@ threads:
     stacktrace:
       frames:
       - data:
+          orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7ffe100d1471'
         package: C:\Windows\System32\ntdll.dll
-        trust: scan
+        trust: cfi
       - data:
-          symbolicator_status: missing
+          orig_in_app: -1
+          symbolicator_status: symbolicated
+        function: BaseThreadInitThunk
         in_app: false
-        instruction_addr: '0x7ffe0fd53034'
+        instruction_addr: '0x7ffe0fd53033'
         package: C:\Windows\System32\kernel32.dll
-        trust: scan
-      - data:
-          symbolicator_status: missing
+        symbol: BaseThreadInitThunk
+        trust: cfi
+      - abs_path: onecore\com\combase\dcomrem\threads.cxx
+        data:
+          orig_in_app: -1
+          symbolicator_status: symbolicated
+        filename: threads.cxx
+        function: CRpcThreadCache::RpcWorkerThreadEntry
         in_app: false
-        instruction_addr: '0x7ffe0e526d4c'
+        instruction_addr: '0x7ffe0e526d4b'
+        lineno: 72
         package: C:\Windows\System32\combase.dll
-        trust: scan
-      - data:
-          symbolicator_status: missing
+        raw_function: CRpcThreadCache::RpcWorkerThreadEntry(void *)
+        symbol: ?RpcWorkerThreadEntry@CRpcThreadCache@@CAKPEAX@Z
+        trust: cfi
+      - abs_path: onecore\com\combase\dcomrem\threads.cxx
+        data:
+          orig_in_app: -1
+          symbolicator_status: symbolicated
+        filename: threads.cxx
+        function: CRpcThread::WorkerLoop
         in_app: false
-        instruction_addr: '0x7ffe0e4f102e'
+        instruction_addr: '0x7ffe0e491670'
+        lineno: 269
         package: C:\Windows\System32\combase.dll
-        trust: scan
-      - data:
-          symbolicator_status: missing
+        raw_function: CRpcThread::WorkerLoop(void)
+        symbol: ?WorkerLoop@CRpcThread@@QEAAXXZ
+        trust: cfi
+      - abs_path: onecore\com\combase\dcomrem\refcache.cxx
+        data:
+          orig_in_app: -1
+          symbolicator_status: symbolicated
+        filename: refcache.cxx
+        function: CROIDTable::WorkerThreadLoop
         in_app: false
-        instruction_addr: '0x7ffe0e491671'
+        instruction_addr: '0x7ffe0e48dfef'
+        lineno: 1649
         package: C:\Windows\System32\combase.dll
-        trust: scan
-      - data:
-          symbolicator_status: missing
+        raw_function: CROIDTable::WorkerThreadLoop(void *)
+        symbol: ?WorkerThreadLoop@CROIDTable@@CAKPEAX@Z
+        trust: cfi
+      - abs_path: onecore\com\published\comutils\coalescedwait.cxx
+        data:
+          orig_in_app: -1
+          symbolicator_status: symbolicated
+        filename: coalescedwait.cxx
+        function: WaitCoalesced
         in_app: false
-        instruction_addr: '0x7ffe0e4b8b37'
+        instruction_addr: '0x7ffe0e494216'
+        lineno: 70
         package: C:\Windows\System32\combase.dll
+        raw_function: WaitCoalesced(void *,unsigned int,void * const *,unsigned long,unsigned
+          long,int,unsigned long *)
+        symbol: ?WaitCoalesced@@YAJPEAXIPEBQEAXKKHPEAK@Z
         trust: scan
       - data:
-          symbolicator_status: missing
+          orig_in_app: -1
+          symbolicator_status: symbolicated
+        function: SetWaitableTimerEx
         in_app: false
-        instruction_addr: '0x7ffe0e48dff0'
-        package: C:\Windows\System32\combase.dll
-        trust: scan
-      - data:
-          symbolicator_status: missing
-        in_app: false
-        instruction_addr: '0x7ffe10072b55'
-        package: C:\Windows\System32\ntdll.dll
-        trust: scan
-      - data:
-          symbolicator_status: missing
-        in_app: false
-        instruction_addr: '0x7ffe0ca99be3'
+        instruction_addr: '0x7ffe0caa75f8'
         package: C:\Windows\System32\KERNELBASE.dll
-        trust: scan
+        symbol: SetWaitableTimerEx
+        trust: cfi
       - data:
+          orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7ffe100a70e0'
         package: C:\Windows\System32\ntdll.dll
         trust: scan
       - data:
-          symbolicator_status: missing
+          orig_in_app: -1
+          symbolicator_status: unknown_image
         in_app: false
-        instruction_addr: '0x7ffe10073755'
-        package: C:\Windows\System32\ntdll.dll
-        trust: scan
+        instruction_addr: '0x7ffe02000002'
+        trust: cfi
       - data:
-          symbolicator_status: missing
-        in_app: false
-        instruction_addr: '0x7ffe100795c8'
-        package: C:\Windows\System32\ntdll.dll
-        trust: scan
-      - data:
-          symbolicator_status: missing
-        in_app: false
-        instruction_addr: '0x7ffe10077f34'
-        package: C:\Windows\System32\ntdll.dll
-        trust: scan
-      - data:
-          symbolicator_status: missing
-        in_app: false
-        instruction_addr: '0x7ffe101ba460'
-        package: C:\Windows\System32\ntdll.dll
-        trust: scan
-      - data:
-          symbolicator_status: missing
-        in_app: false
-        instruction_addr: '0x7ffe10078044'
-        package: C:\Windows\System32\ntdll.dll
-        trust: scan
-      - data:
-          symbolicator_status: missing
-        in_app: false
-        instruction_addr: '0x7ffe100793e8'
-        package: C:\Windows\System32\ntdll.dll
-        trust: scan
-      - data:
-          symbolicator_status: missing
-        in_app: false
-        instruction_addr: '0x7ffe0e494217'
-        package: C:\Windows\System32\combase.dll
-        trust: scan
-      - data:
-          symbolicator_status: missing
-        in_app: false
-        instruction_addr: '0x7ffe0caa75f9'
-        package: C:\Windows\System32\KERNELBASE.dll
-        trust: scan
-      - data:
-          symbolicator_status: missing
-        in_app: false
-        instruction_addr: '0x7ffe10072b55'
-        package: C:\Windows\System32\ntdll.dll
-        trust: scan
-      - data:
-          symbolicator_status: missing
-        in_app: false
-        instruction_addr: '0x7ffe100a70e0'
-        package: C:\Windows\System32\ntdll.dll
-        trust: scan
-      - data:
+          orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7ffe100d305b'
         package: C:\Windows\System32\ntdll.dll
-        trust: scan
+        trust: cfi
       - data:
-          symbolicator_status: missing
-        in_app: false
-        instruction_addr: '0x7ffe10060000'
-        package: C:\Windows\System32\ntdll.dll
-        trust: scan
-      - data:
+          orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7ffe100d311e'
         package: C:\Windows\System32\ntdll.dll
-        trust: scan
+        trust: cfi
       - data:
-          symbolicator_status: missing
-        in_app: false
-        instruction_addr: '0x7ffe10091b96'
-        package: C:\Windows\System32\ntdll.dll
-        trust: scan
-      - data:
-          symbolicator_status: missing
-        in_app: false
-        instruction_addr: '0x7ffe10091b76'
-        package: C:\Windows\System32\ntdll.dll
-        trust: scan
-      - data:
-          symbolicator_status: missing
-        in_app: false
-        instruction_addr: '0x7ffe07679bf0'
-        package: C:\Windows\System32\RTWorkQ.dll
-        trust: scan
-      - data:
+          orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7ffe10091bae'
         package: C:\Windows\System32\ntdll.dll
         trust: scan
       - data:
+          orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7ffe07679bf0'
         package: C:\Windows\System32\RTWorkQ.dll
         trust: scan
       - data:
-          symbolicator_status: missing
+          orig_in_app: -1
+          symbolicator_status: symbolicated
+        function: WaitForMultipleObjectsEx
         in_app: false
-        instruction_addr: '0x7ffe0caa6099'
+        instruction_addr: '0x7ffe0caa6098'
         package: C:\Windows\System32\KERNELBASE.dll
-        trust: scan
+        symbol: WaitForMultipleObjectsEx
+        trust: cfi
       - data:
+          orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7ffe100faa54'
@@ -2122,24 +2477,32 @@ threads:
     stacktrace:
       frames:
       - data:
+          orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7ffe100d1471'
         package: C:\Windows\System32\ntdll.dll
-        trust: scan
+        trust: cfi
       - data:
-          symbolicator_status: missing
+          orig_in_app: -1
+          symbolicator_status: symbolicated
+        function: BaseThreadInitThunk
         in_app: false
-        instruction_addr: '0x7ffe0fd53034'
+        instruction_addr: '0x7ffe0fd53033'
         package: C:\Windows\System32\kernel32.dll
+        symbol: BaseThreadInitThunk
         trust: scan
       - data:
-          symbolicator_status: missing
+          orig_in_app: -1
+          symbolicator_status: symbolicated
+        function: WaitForSingleObjectEx
         in_app: false
-        instruction_addr: '0x7ffe0ca99252'
+        instruction_addr: '0x7ffe0ca99251'
         package: C:\Windows\System32\KERNELBASE.dll
-        trust: scan
+        symbol: WaitForSingleObjectEx
+        trust: cfi
       - data:
+          orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7ffe100f9f84'
@@ -2168,24 +2531,32 @@ threads:
     stacktrace:
       frames:
       - data:
+          orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7ffe100d1471'
         package: C:\Windows\System32\ntdll.dll
-        trust: scan
+        trust: cfi
       - data:
-          symbolicator_status: missing
+          orig_in_app: -1
+          symbolicator_status: symbolicated
+        function: BaseThreadInitThunk
         in_app: false
-        instruction_addr: '0x7ffe0fd53034'
+        instruction_addr: '0x7ffe0fd53033'
         package: C:\Windows\System32\kernel32.dll
+        symbol: BaseThreadInitThunk
         trust: scan
       - data:
-          symbolicator_status: missing
+          orig_in_app: -1
+          symbolicator_status: symbolicated
+        function: WaitForSingleObjectEx
         in_app: false
-        instruction_addr: '0x7ffe0ca99252'
+        instruction_addr: '0x7ffe0ca99251'
         package: C:\Windows\System32\KERNELBASE.dll
-        trust: scan
+        symbol: WaitForSingleObjectEx
+        trust: cfi
       - data:
+          orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7ffe100f9f84'
@@ -2214,24 +2585,32 @@ threads:
     stacktrace:
       frames:
       - data:
+          orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7ffe100d1471'
         package: C:\Windows\System32\ntdll.dll
-        trust: scan
+        trust: cfi
       - data:
-          symbolicator_status: missing
+          orig_in_app: -1
+          symbolicator_status: symbolicated
+        function: BaseThreadInitThunk
         in_app: false
-        instruction_addr: '0x7ffe0fd53034'
+        instruction_addr: '0x7ffe0fd53033'
         package: C:\Windows\System32\kernel32.dll
+        symbol: BaseThreadInitThunk
         trust: scan
       - data:
-          symbolicator_status: missing
+          orig_in_app: -1
+          symbolicator_status: symbolicated
+        function: WaitForSingleObjectEx
         in_app: false
-        instruction_addr: '0x7ffe0ca99252'
+        instruction_addr: '0x7ffe0ca99251'
         package: C:\Windows\System32\KERNELBASE.dll
-        trust: scan
+        symbol: WaitForSingleObjectEx
+        trust: cfi
       - data:
+          orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7ffe100f9f84'
@@ -2260,24 +2639,32 @@ threads:
     stacktrace:
       frames:
       - data:
+          orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7ffe100d1471'
         package: C:\Windows\System32\ntdll.dll
-        trust: scan
+        trust: cfi
       - data:
-          symbolicator_status: missing
+          orig_in_app: -1
+          symbolicator_status: symbolicated
+        function: BaseThreadInitThunk
         in_app: false
-        instruction_addr: '0x7ffe0fd53034'
+        instruction_addr: '0x7ffe0fd53033'
         package: C:\Windows\System32\kernel32.dll
+        symbol: BaseThreadInitThunk
         trust: scan
       - data:
-          symbolicator_status: missing
+          orig_in_app: -1
+          symbolicator_status: symbolicated
+        function: WaitForSingleObjectEx
         in_app: false
-        instruction_addr: '0x7ffe0ca99252'
+        instruction_addr: '0x7ffe0ca99251'
         package: C:\Windows\System32\KERNELBASE.dll
-        trust: scan
+        symbol: WaitForSingleObjectEx
+        trust: cfi
       - data:
+          orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7ffe100f9f84'
@@ -2306,24 +2693,32 @@ threads:
     stacktrace:
       frames:
       - data:
+          orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7ffe100d1471'
         package: C:\Windows\System32\ntdll.dll
-        trust: scan
+        trust: cfi
       - data:
-          symbolicator_status: missing
+          orig_in_app: -1
+          symbolicator_status: symbolicated
+        function: BaseThreadInitThunk
         in_app: false
-        instruction_addr: '0x7ffe0fd53034'
+        instruction_addr: '0x7ffe0fd53033'
         package: C:\Windows\System32\kernel32.dll
+        symbol: BaseThreadInitThunk
         trust: scan
       - data:
-          symbolicator_status: missing
+          orig_in_app: -1
+          symbolicator_status: symbolicated
+        function: WaitForSingleObjectEx
         in_app: false
-        instruction_addr: '0x7ffe0ca99252'
+        instruction_addr: '0x7ffe0ca99251'
         package: C:\Windows\System32\KERNELBASE.dll
-        trust: scan
+        symbol: WaitForSingleObjectEx
+        trust: cfi
       - data:
+          orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7ffe100f9f84'
@@ -2352,24 +2747,32 @@ threads:
     stacktrace:
       frames:
       - data:
+          orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7ffe100d1471'
         package: C:\Windows\System32\ntdll.dll
-        trust: scan
+        trust: cfi
       - data:
-          symbolicator_status: missing
+          orig_in_app: -1
+          symbolicator_status: symbolicated
+        function: BaseThreadInitThunk
         in_app: false
-        instruction_addr: '0x7ffe0fd53034'
+        instruction_addr: '0x7ffe0fd53033'
         package: C:\Windows\System32\kernel32.dll
+        symbol: BaseThreadInitThunk
         trust: scan
       - data:
-          symbolicator_status: missing
+          orig_in_app: -1
+          symbolicator_status: symbolicated
+        function: WaitForSingleObjectEx
         in_app: false
-        instruction_addr: '0x7ffe0ca99252'
+        instruction_addr: '0x7ffe0ca99251'
         package: C:\Windows\System32\KERNELBASE.dll
-        trust: scan
+        symbol: WaitForSingleObjectEx
+        trust: cfi
       - data:
+          orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7ffe100f9f84'
@@ -2398,24 +2801,32 @@ threads:
     stacktrace:
       frames:
       - data:
+          orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7ffe100d1471'
         package: C:\Windows\System32\ntdll.dll
-        trust: scan
+        trust: cfi
       - data:
-          symbolicator_status: missing
+          orig_in_app: -1
+          symbolicator_status: symbolicated
+        function: BaseThreadInitThunk
         in_app: false
-        instruction_addr: '0x7ffe0fd53034'
+        instruction_addr: '0x7ffe0fd53033'
         package: C:\Windows\System32\kernel32.dll
+        symbol: BaseThreadInitThunk
         trust: scan
       - data:
-          symbolicator_status: missing
+          orig_in_app: -1
+          symbolicator_status: symbolicated
+        function: WaitForSingleObjectEx
         in_app: false
-        instruction_addr: '0x7ffe0ca99252'
+        instruction_addr: '0x7ffe0ca99251'
         package: C:\Windows\System32\KERNELBASE.dll
-        trust: scan
+        symbol: WaitForSingleObjectEx
+        trust: cfi
       - data:
+          orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7ffe100f9f84'
@@ -2444,24 +2855,32 @@ threads:
     stacktrace:
       frames:
       - data:
+          orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7ffe100d1471'
         package: C:\Windows\System32\ntdll.dll
-        trust: scan
+        trust: cfi
       - data:
-          symbolicator_status: missing
+          orig_in_app: -1
+          symbolicator_status: symbolicated
+        function: BaseThreadInitThunk
         in_app: false
-        instruction_addr: '0x7ffe0fd53034'
+        instruction_addr: '0x7ffe0fd53033'
         package: C:\Windows\System32\kernel32.dll
+        symbol: BaseThreadInitThunk
         trust: scan
       - data:
-          symbolicator_status: missing
+          orig_in_app: -1
+          symbolicator_status: symbolicated
+        function: WaitForSingleObjectEx
         in_app: false
-        instruction_addr: '0x7ffe0ca99252'
+        instruction_addr: '0x7ffe0ca99251'
         package: C:\Windows\System32\KERNELBASE.dll
-        trust: scan
+        symbol: WaitForSingleObjectEx
+        trust: cfi
       - data:
+          orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7ffe100f9f84'
@@ -2490,12 +2909,16 @@ threads:
     stacktrace:
       frames:
       - data:
-          symbolicator_status: missing
+          orig_in_app: -1
+          symbolicator_status: symbolicated
+        function: WaitForSingleObjectEx
         in_app: false
-        instruction_addr: '0x7ffe0ca99252'
+        instruction_addr: '0x7ffe0ca99251'
         package: C:\Windows\System32\KERNELBASE.dll
-        trust: scan
+        symbol: WaitForSingleObjectEx
+        trust: cfi
       - data:
+          orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7ffe100f9f84'
@@ -2524,24 +2947,32 @@ threads:
     stacktrace:
       frames:
       - data:
+          orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7ffe100d1471'
         package: C:\Windows\System32\ntdll.dll
-        trust: scan
+        trust: cfi
       - data:
-          symbolicator_status: missing
+          orig_in_app: -1
+          symbolicator_status: symbolicated
+        function: BaseThreadInitThunk
         in_app: false
-        instruction_addr: '0x7ffe0fd53034'
+        instruction_addr: '0x7ffe0fd53033'
         package: C:\Windows\System32\kernel32.dll
+        symbol: BaseThreadInitThunk
         trust: scan
       - data:
-          symbolicator_status: missing
+          orig_in_app: -1
+          symbolicator_status: symbolicated
+        function: SleepEx
         in_app: false
-        instruction_addr: '0x7ffe0caa5e9a'
+        instruction_addr: '0x7ffe0caa5e99'
         package: C:\Windows\System32\KERNELBASE.dll
-        trust: scan
+        symbol: SleepEx
+        trust: cfi
       - data:
+          orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7ffe100fa584'
@@ -2570,102 +3001,98 @@ threads:
     stacktrace:
       frames:
       - data:
+          orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7ffe100d1471'
         package: C:\Windows\System32\ntdll.dll
-        trust: scan
+        trust: cfi
       - data:
-          symbolicator_status: missing
+          orig_in_app: -1
+          symbolicator_status: symbolicated
+        function: BaseThreadInitThunk
         in_app: false
-        instruction_addr: '0x7ffe0fd53034'
+        instruction_addr: '0x7ffe0fd53033'
         package: C:\Windows\System32\kernel32.dll
+        symbol: BaseThreadInitThunk
         trust: scan
       - data:
+          orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7ffdd9762b8a'
         package: C:\Windows\System32\XAudio2_7.dll
         trust: scan
       - data:
-          symbolicator_status: missing
+          orig_in_app: -1
+          symbolicator_status: symbolicated
+        function: WaitForMultipleObjects
         in_app: false
-        instruction_addr: '0x7ffe0caa5f8e'
+        instruction_addr: '0x7ffe0caa5f8d'
         package: C:\Windows\System32\KERNELBASE.dll
+        symbol: WaitForMultipleObjects
         trust: scan
       - data:
+          orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7ffdd9762891'
         package: C:\Windows\System32\XAudio2_7.dll
         trust: scan
       - data:
+          orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7ffdd97635b6'
         package: C:\Windows\System32\XAudio2_7.dll
         trust: scan
       - data:
-          symbolicator_status: missing
+          orig_in_app: -1
+          symbolicator_status: symbolicated
+        function: WaitForMultipleObjects
         in_app: false
-        instruction_addr: '0x7ffe0caa5f8e'
+        instruction_addr: '0x7ffe0caa5f8d'
         package: C:\Windows\System32\KERNELBASE.dll
+        symbol: WaitForMultipleObjects
         trust: scan
       - data:
-          symbolicator_status: missing
+          orig_in_app: -1
+          symbolicator_status: symbolicated
+        function: WaitForSingleObjectEx
         in_app: false
-        instruction_addr: '0x7ffe0ca99252'
+        instruction_addr: '0x7ffe0ca99251'
         package: C:\Windows\System32\KERNELBASE.dll
+        symbol: WaitForSingleObjectEx
         trust: scan
       - data:
-          symbolicator_status: missing
+          orig_in_app: -1
+          symbolicator_status: symbolicated
+        function: InitOnceBeginInitialize
         in_app: false
-        instruction_addr: '0x7ffdde41bf48'
-        package: C:\Windows\System32\AudioSes.dll
-        trust: scan
-      - data:
-          symbolicator_status: missing
-        in_app: false
-        instruction_addr: '0x7ffdde31468b'
-        package: C:\Windows\System32\AudioSes.dll
-        trust: scan
-      - data:
-          symbolicator_status: missing
-        in_app: false
-        instruction_addr: '0x7ffe0ca886f2'
+        instruction_addr: '0x7ffe0ca886f1'
         package: C:\Windows\System32\KERNELBASE.dll
+        symbol: InitOnceBeginInitialize
         trust: scan
       - data:
-          symbolicator_status: missing
+          orig_in_app: -1
+          symbolicator_status: symbolicated
+        function: InitOnceBeginInitialize
         in_app: false
-        instruction_addr: '0x7ffdde314507'
-        package: C:\Windows\System32\AudioSes.dll
-        trust: scan
-      - data:
-          symbolicator_status: missing
-        in_app: false
-        instruction_addr: '0x7ffe0ca886f2'
+        instruction_addr: '0x7ffe0ca886f1'
         package: C:\Windows\System32\KERNELBASE.dll
+        symbol: InitOnceBeginInitialize
         trust: scan
       - data:
-          symbolicator_status: missing
+          orig_in_app: -1
+          symbolicator_status: symbolicated
+        function: WaitForMultipleObjectsEx
         in_app: false
-        instruction_addr: '0x7ffdde41bf48'
-        package: C:\Windows\System32\AudioSes.dll
-        trust: scan
-      - data:
-          symbolicator_status: missing
-        in_app: false
-        instruction_addr: '0x7ffdde3128e1'
-        package: C:\Windows\System32\AudioSes.dll
-        trust: scan
-      - data:
-          symbolicator_status: missing
-        in_app: false
-        instruction_addr: '0x7ffe0caa6099'
+        instruction_addr: '0x7ffe0caa6098'
         package: C:\Windows\System32\KERNELBASE.dll
-        trust: scan
+        symbol: WaitForMultipleObjectsEx
+        trust: cfi
       - data:
+          orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7ffe100faa54'
@@ -2694,12 +3121,16 @@ threads:
     stacktrace:
       frames:
       - data:
-          symbolicator_status: missing
+          orig_in_app: -1
+          symbolicator_status: symbolicated
+        function: WaitForSingleObjectEx
         in_app: false
-        instruction_addr: '0x7ffe0ca99252'
+        instruction_addr: '0x7ffe0ca99251'
         package: C:\Windows\System32\KERNELBASE.dll
-        trust: scan
+        symbol: WaitForSingleObjectEx
+        trust: cfi
       - data:
+          orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7ffe100f9f84'
@@ -2728,24 +3159,32 @@ threads:
     stacktrace:
       frames:
       - data:
+          orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7ffe100d1471'
         package: C:\Windows\System32\ntdll.dll
-        trust: scan
+        trust: cfi
       - data:
-          symbolicator_status: missing
+          orig_in_app: -1
+          symbolicator_status: symbolicated
+        function: BaseThreadInitThunk
         in_app: false
-        instruction_addr: '0x7ffe0fd53034'
+        instruction_addr: '0x7ffe0fd53033'
         package: C:\Windows\System32\kernel32.dll
+        symbol: BaseThreadInitThunk
         trust: scan
       - data:
-          symbolicator_status: missing
+          orig_in_app: -1
+          symbolicator_status: symbolicated
+        function: WaitForSingleObjectEx
         in_app: false
-        instruction_addr: '0x7ffe0ca99252'
+        instruction_addr: '0x7ffe0ca99251'
         package: C:\Windows\System32\KERNELBASE.dll
-        trust: scan
+        symbol: WaitForSingleObjectEx
+        trust: cfi
       - data:
+          orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7ffe100f9f84'
@@ -2774,24 +3213,32 @@ threads:
     stacktrace:
       frames:
       - data:
+          orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7ffe100d1471'
         package: C:\Windows\System32\ntdll.dll
-        trust: scan
+        trust: cfi
       - data:
-          symbolicator_status: missing
+          orig_in_app: -1
+          symbolicator_status: symbolicated
+        function: BaseThreadInitThunk
         in_app: false
-        instruction_addr: '0x7ffe0fd53034'
+        instruction_addr: '0x7ffe0fd53033'
         package: C:\Windows\System32\kernel32.dll
+        symbol: BaseThreadInitThunk
         trust: scan
       - data:
-          symbolicator_status: missing
+          orig_in_app: -1
+          symbolicator_status: symbolicated
+        function: SleepEx
         in_app: false
-        instruction_addr: '0x7ffe0caa5e9a'
+        instruction_addr: '0x7ffe0caa5e99'
         package: C:\Windows\System32\KERNELBASE.dll
-        trust: scan
+        symbol: SleepEx
+        trust: cfi
       - data:
+          orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7ffe100fa584'

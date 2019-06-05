@@ -1,5 +1,5 @@
 ---
-created: '2019-06-03T15:00:21.958338Z'
+created: '2019-06-05T20:22:50.761587Z'
 creator: sentry
 source: tests/symbolicator/test_payload_full.py
 ---
@@ -23,20 +23,27 @@ exception:
   values:
   - raw_stacktrace:
       frames:
-      - function: hi
+      - data:
+          orig_in_app: -1
+        function: hi
         in_app: false
         platform: foobar
-      - function: unknown
+      - data:
+          orig_in_app: -1
+        function: unknown
         in_app: true
         instruction_addr: '0x100000fa0'
         package: Foo.app/Contents/Foo
     stacktrace:
       frames:
-      - function: hi
+      - data:
+          orig_in_app: -1
+        function: hi
         in_app: false
         platform: foobar
       - abs_path: /tmp/hello.c
         data:
+          orig_in_app: -1
           symbolicator_status: symbolicated
         filename: hello.c
         function: main

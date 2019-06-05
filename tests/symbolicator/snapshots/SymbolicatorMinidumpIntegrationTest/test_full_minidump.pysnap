@@ -1,5 +1,5 @@
 ---
-created: '2019-06-03T14:50:05.902803Z'
+created: '2019-06-05T20:20:22.374553Z'
 creator: sentry
 source: tests/symbolicator/test_minidump_full.py
 ---
@@ -127,7 +127,8 @@ debug_meta:
     image_addr: '0x76db0000'
     image_size: 1708032
     type: pe
-  - code_file: C:\Windows\System32\ntdll.dll
+  - arch: x86
+    code_file: C:\Windows\System32\ntdll.dll
     code_id: 59b0d8f3183000
     debug_file: wntdll.pdb
     debug_id: 971f98e5-ce60-41ff-b2d7-235bbeb34578-1
@@ -147,18 +148,25 @@ exception:
     stacktrace:
       frames:
       - data:
-          symbolicator_status: missing
+          orig_in_app: -1
+          symbolicator_status: symbolicated
+        function: RtlSubscribeWnfStateChangeNotification
         in_app: false
-        instruction_addr: '0x771d0f44'
+        instruction_addr: '0x771d0f43'
         package: C:\Windows\System32\ntdll.dll
+        symbol: RtlSubscribeWnfStateChangeNotification
         trust: fp
       - data:
-          symbolicator_status: missing
+          orig_in_app: -1
+          symbolicator_status: symbolicated
+        function: RtlSubscribeWnfStateChangeNotification
         in_app: false
-        instruction_addr: '0x771d0f79'
+        instruction_addr: '0x771d0f78'
         package: C:\Windows\System32\ntdll.dll
+        symbol: RtlSubscribeWnfStateChangeNotification
         trust: fp
       - data:
+          orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x750662c4'
@@ -166,6 +174,7 @@ exception:
         trust: cfi
       - abs_path: f:\dd\vctools\crt\vcstartup\src\startup\exe_common.inl
         data:
+          orig_in_app: -1
           symbolicator_status: symbolicated
         filename: exe_common.inl
         function: __scrt_common_main_seh
@@ -177,6 +186,7 @@ exception:
         trust: cfi
       - abs_path: c:\projects\breakpad-tools\windows\crash\main.cpp
         data:
+          orig_in_app: -1
           symbolicator_status: symbolicated
         filename: main.cpp
         function: main
@@ -210,28 +220,38 @@ threads:
     stacktrace:
       frames:
       - data:
-          symbolicator_status: missing
+          orig_in_app: -1
+          symbolicator_status: symbolicated
+        function: RtlSubscribeWnfStateChangeNotification
         in_app: false
-        instruction_addr: '0x771d0f44'
+        instruction_addr: '0x771d0f43'
         package: C:\Windows\System32\ntdll.dll
+        symbol: RtlSubscribeWnfStateChangeNotification
         trust: fp
       - data:
-          symbolicator_status: missing
+          orig_in_app: -1
+          symbolicator_status: symbolicated
+        function: RtlSubscribeWnfStateChangeNotification
         in_app: false
-        instruction_addr: '0x771d0f79'
+        instruction_addr: '0x771d0f78'
         package: C:\Windows\System32\ntdll.dll
+        symbol: RtlSubscribeWnfStateChangeNotification
         trust: fp
       - data:
+          orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x750662c4'
         package: C:\Windows\System32\kernel32.dll
         trust: fp
       - data:
-          symbolicator_status: missing
+          orig_in_app: -1
+          symbolicator_status: symbolicated
+        function: ZwWaitForWorkViaWorkerFactory
         in_app: false
         instruction_addr: '0x771e016c'
         package: C:\Windows\System32\ntdll.dll
+        symbol: ZwWaitForWorkViaWorkerFactory
         trust: context
       registers:
         eax: '0x0'
@@ -249,28 +269,38 @@ threads:
     stacktrace:
       frames:
       - data:
-          symbolicator_status: missing
+          orig_in_app: -1
+          symbolicator_status: symbolicated
+        function: RtlSubscribeWnfStateChangeNotification
         in_app: false
-        instruction_addr: '0x771d0f44'
+        instruction_addr: '0x771d0f43'
         package: C:\Windows\System32\ntdll.dll
+        symbol: RtlSubscribeWnfStateChangeNotification
         trust: fp
       - data:
-          symbolicator_status: missing
+          orig_in_app: -1
+          symbolicator_status: symbolicated
+        function: RtlSubscribeWnfStateChangeNotification
         in_app: false
-        instruction_addr: '0x771d0f79'
+        instruction_addr: '0x771d0f78'
         package: C:\Windows\System32\ntdll.dll
+        symbol: RtlSubscribeWnfStateChangeNotification
         trust: fp
       - data:
+          orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x750662c4'
         package: C:\Windows\System32\kernel32.dll
         trust: fp
       - data:
-          symbolicator_status: missing
+          orig_in_app: -1
+          symbolicator_status: symbolicated
+        function: ZwWaitForWorkViaWorkerFactory
         in_app: false
         instruction_addr: '0x771e016c'
         package: C:\Windows\System32\ntdll.dll
+        symbol: ZwWaitForWorkViaWorkerFactory
         trust: context
       registers:
         eax: '0x0'
@@ -288,10 +318,13 @@ threads:
     stacktrace:
       frames:
       - data:
-          symbolicator_status: missing
+          orig_in_app: -1
+          symbolicator_status: symbolicated
+        function: ZwGetContextThread
         in_app: false
         instruction_addr: '0x771df3dc'
         package: C:\Windows\System32\ntdll.dll
+        symbol: ZwGetContextThread
         trust: context
       registers:
         eax: '0x0'

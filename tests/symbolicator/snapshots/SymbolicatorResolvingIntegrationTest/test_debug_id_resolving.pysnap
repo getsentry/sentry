@@ -1,5 +1,5 @@
 ---
-created: '2019-05-29T12:11:31.817415Z'
+created: '2019-06-05T20:22:42.059174Z'
 creator: sentry
 source: tests/symbolicator/test_payload_full.py
 ---
@@ -25,7 +25,9 @@ exception:
   values:
   - raw_stacktrace:
       frames:
-      - function: <unknown>
+      - data:
+          orig_in_app: -1
+        function: <unknown>
         in_app: false
         instruction_addr: '0x2a2a3d'
         package: C:\projects\breakpad-tools\windows\Release\crash.exe
@@ -33,6 +35,7 @@ exception:
       frames:
       - abs_path: c:\projects\breakpad-tools\windows\crash\main.cpp
         data:
+          orig_in_app: -1
           symbolicator_status: symbolicated
         filename: main.cpp
         function: main
