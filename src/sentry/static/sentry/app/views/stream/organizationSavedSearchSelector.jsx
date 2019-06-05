@@ -8,6 +8,7 @@ import Button from 'app/components/button';
 import Confirm from 'app/components/confirm';
 import DropdownButton from 'app/components/dropdownButton';
 import DropdownControl from 'app/components/dropdownControl';
+import Tooltip from 'app/components/tooltip';
 import SentryTypes from 'app/sentryTypes';
 import space from 'app/styles/space';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
@@ -47,33 +48,40 @@ export default class OrganizationSavedSearchSelector extends React.Component {
       return <EmptyItem>{t("There don't seem to be any saved searches yet.")}</EmptyItem>;
     }
 
-    return savedSearchList.map(search => (
-      <MenuItem key={search.id}>
-        <MenuItemLink tabIndex="-1" onClick={() => onSavedSearchSelect(search)}>
-          <SearchTitle>{search.name}</SearchTitle>
-          <SearchQuery>{search.query}</SearchQuery>
-        </MenuItemLink>
-        {search.isGlobal === false && search.isPinned === false && (
-          <Access
-            organization={organization}
-            access={['org:write']}
-            renderNoAccessMessage={false}
-          >
-            <Confirm
-              onConfirm={() => onSavedSearchDelete(search)}
-              message={t('Are you sure you want to delete this saved search?')}
-              stopPropagation
+    return savedSearchList.map((search, index) => (
+      <Tooltip
+        title={(<span>{search.name} • <TooltipSearchQuery>{search.query}</TooltipSearchQuery></span>)}
+        containerDisplayMode="block"
+        delay={1000}
+        key={search.id}
+      >
+        <MenuItem last={index == savedSearchList.length - 1}>
+            <MenuItemLink tabIndex="-1" onClick={() => onSavedSearchSelect(search)}>
+              <SearchTitle>{search.name}</SearchTitle>
+              <SearchQuery>{search.query}</SearchQuery>
+            </MenuItemLink>
+          {search.isGlobal === false && search.isPinned === false && (
+            <Access
+              organization={organization}
+              access={['org:write']}
+              renderNoAccessMessage={false}
             >
-              <DeleteButton
-                borderless
-                title={t('Delete this saved search')}
-                icon="icon-trash"
-                size="zero"
-              />
-            </Confirm>
-          </Access>
-        )}
-      </MenuItem>
+              <Confirm
+                onConfirm={() => onSavedSearchDelete(search)}
+                message={t('Are you sure you want to delete this saved search?')}
+                stopPropagation
+              >
+                <DeleteButton
+                  borderless
+                  title={t('Delete this saved search')}
+                  icon="icon-trash"
+                  size="zero"
+                />
+              </Confirm>
+            </Access>
+          )}
+        </MenuItem>
+      </Tooltip>
     ));
   }
 
@@ -139,6 +147,12 @@ const SearchQuery = styled('code')`
   background: inherit;
 `;
 
+const TooltipSearchQuery = styled('span')`
+  color: ${p => p.theme.gray1};
+  font-weight: normal;
+  font-family: ${p => p.theme.text.familyMono};
+`;
+
 const DeleteButton = styled(Button)`
   color: ${p => p.theme.gray1};
   background: transparent;
@@ -155,25 +169,20 @@ const MenuItem = styled('li')`
   display: flex;
 
   position: relative;
-  border-bottom: 1px solid ${p => p.theme.borderLight};
+  border-bottom: ${p => !p.last ? `1px solid ${p.theme.borderLight}` : null};
   font-size: ${p => p.theme.fontSizeMedium};
   padding: 0;
 
-  &:last-child {
-    border-bottom: 0;
-  }
   & :hover {
     background: ${p => p.theme.offWhite};
-  }
-
-  & a {
-    display: block;
-    flex-grow: 1;
-    padding: ${space(1)} ${space(1.5)};
   }
 `;
 
 const MenuItemLink = styled('a')`
+  display: block;
+  flex-grow: 1;
+  padding: ${space(1)} ${space(1.5)};
+
   ${overflowEllipsis}
 `;
 
