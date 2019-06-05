@@ -9,6 +9,7 @@ from sentry.mediators import Mediator, Param
 from sentry.models import (
     AuditLogEntryEvent,
     ApiApplication,
+    IntegrationFeature,
     SentryApp,
     SentryAppComponent,
     User,
@@ -34,6 +35,7 @@ class Creator(Mediator):
         self.api_app = self._create_api_application()
         self.sentry_app = self._create_sentry_app()
         self._create_ui_components()
+        self._create_integration_feature()
         return self.sentry_app
 
     def _create_proxy_user(self):
@@ -74,6 +76,13 @@ class Creator(Mediator):
                 sentry_app_id=self.sentry_app.id,
                 schema=element,
             )
+
+    def _create_integration_feature(self):
+        # sentry apps must have at least one feature
+        # defaults to 'api'
+        IntegrationFeature.objects.create(
+            sentry_app=self.sentry_app,
+        )
 
     def audit(self):
         from sentry.utils.audit import create_audit_entry

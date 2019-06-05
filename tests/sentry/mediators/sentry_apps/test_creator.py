@@ -3,7 +3,15 @@ from __future__ import absolute_import
 from mock import patch
 
 from sentry.mediators.sentry_apps import Creator
-from sentry.models import AuditLogEntry, AuditLogEntryEvent, ApiApplication, SentryApp, SentryAppComponent, User
+from sentry.models import (
+    AuditLogEntry,
+    AuditLogEntryEvent,
+    ApiApplication,
+    IntegrationFeature,
+    SentryApp,
+    SentryAppComponent,
+    User
+)
 from sentry.testutils import TestCase
 
 
@@ -78,6 +86,10 @@ class TestCreator(TestCase):
             sentry_app_id=app.id,
             type='alert-rule-action',
         ).exists()
+
+    def test_creates_integration_feature(self):
+        app = self.creator.call()
+        assert IntegrationFeature.objects.filter(sentry_app=app).exists()
 
     def test_creates_audit_log_entry(self):
         request = self.make_request(user=self.user, method='GET')
