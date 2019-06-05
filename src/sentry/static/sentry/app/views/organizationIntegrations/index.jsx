@@ -13,6 +13,7 @@ import LoadingIndicator from 'app/components/loadingIndicator';
 import MigrationWarnings from 'app/views/organizationIntegrations/migrationWarnings';
 import PermissionAlert from 'app/views/settings/organization/permissionAlert';
 import ProviderRow from 'app/views/organizationIntegrations/providerRow';
+import {removeSentryApp} from 'app/actionCreators/sentryApps';
 import SentryAppInstallations from 'app/views/organizationIntegrations/sentryAppInstallations';
 import SentryApplicationRow from 'app/views/settings/organizationDeveloperSettings/sentryApplicationRow';
 import SentryTypes from 'app/sentryTypes';
@@ -168,6 +169,7 @@ class OrganizationIntegrations extends AsyncComponent {
 
   renderInternalSentryApps(app, key) {
     const {organization} = this.props;
+
     return (
       <SentryApplicationRow
         key={`sentry-app-row-${key}`}
@@ -175,11 +177,22 @@ class OrganizationIntegrations extends AsyncComponent {
         api={this.api}
         showPublishStatus
         isInternal
+        onRemoveApp={() => this.onRemoveInternalApp(app)}
         organization={organization}
         app={app}
       />
     );
   }
+
+  onRemoveInternalApp = app => {
+    const apps = this.state.orgOwnedApps.filter(a => a.slug !== app.slug);
+    removeSentryApp(this.api, app).then(
+      () => {
+        this.setState({orgOwnedApps: apps});
+      },
+      () => {}
+    );
+  };
 
   renderBody() {
     const {reloading, orgOwnedApps, publishedApps, appInstalls} = this.state;

@@ -12,6 +12,7 @@ class Destroyer(Mediator):
     install = Param('sentry.models.SentryAppInstallation')
     user = Param('sentry.models.User')
     request = Param('rest_framework.request.Request', required=False)
+    notify = Param(bool, default=True)
 
     def call(self):
         self._destroy_grant()
@@ -32,11 +33,12 @@ class Destroyer(Mediator):
             service_hooks.Destroyer.run(service_hook=hook)
 
     def _destroy_installation(self):
-        InstallationNotifier.run(
-            install=self.install,
-            user=self.user,
-            action='deleted',
-        )
+        if self.notify:
+            InstallationNotifier.run(
+                install=self.install,
+                user=self.user,
+                action='deleted',
+            )
         self.install.delete()
 
     def audit(self):

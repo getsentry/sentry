@@ -284,6 +284,32 @@ describe('OrganizationIntegrations', () => {
           wrapper.find('Panel [data-test-id="internal-integration-row"]').exists()
         ).toBe(true);
       });
+
+      it('removes an internal app', async function() {
+        const internalApp = {...sentryApp, status: 'internal'};
+        Client.addMockResponse({
+          url: `/organizations/${org.slug}/sentry-apps/`,
+          body: [internalApp],
+        });
+        Client.addMockResponse({
+          url: '/sentry-apps/',
+          body: [],
+        });
+        Client.addMockResponse({
+          url: `/sentry-apps/${internalApp.slug}/`,
+          method: 'DELETE',
+          statusCode: 200,
+        });
+
+        wrapper = mount(
+          <OrganizationIntegrations organization={org} params={params} />,
+          routerContext
+        );
+        wrapper.instance().onRemoveInternalApp(internalApp);
+        await tick();
+        wrapper.update();
+        expect(wrapper.instance().state.orgOwnedApps).toHaveLength(0);
+      });
     });
 
     describe('with installed integrations', () => {
