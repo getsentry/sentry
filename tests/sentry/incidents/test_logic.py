@@ -333,6 +333,33 @@ class CreateIncidentActivityTest(TestCase, BaseIncidentsTest):
         assert activity.previous_value is None
         self.assert_notifications_sent(activity)
 
+    def test_mentioned_user_ids(self):
+        incident = self.create_incident()
+        mentioned_member = self.create_user()
+        comment = 'hello **@%s**' % mentioned_member.username
+        with self.assertChanges(
+            lambda: IncidentSubscription.objects.filter(
+                incident=incident,
+                user=mentioned_member,
+            ).exists(),
+            before=False,
+            after=True,
+        ):
+            activity = create_incident_activity(
+                incident,
+                IncidentActivityType.COMMENT,
+                user=self.user,
+                comment=comment,
+                mentioned_user_ids=[mentioned_member.id],
+            )
+        assert activity.incident == incident
+        assert activity.type == IncidentActivityType.COMMENT.value
+        assert activity.user == self.user
+        assert activity.comment == comment
+        assert activity.value is None
+        assert activity.previous_value is None
+        self.assert_notifications_sent(activity)
+
 
 @freeze_time()
 class CreateInitialEventStatsSnapshotTest(TestCase, BaseIncidentsTest):

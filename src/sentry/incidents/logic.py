@@ -168,6 +168,7 @@ def create_incident_activity(
     previous_value=None,
     comment=None,
     event_stats_snapshot=None,
+    mentioned_user_ids=None,
 ):
     if activity_type == IncidentActivityType.COMMENT and user:
         subscribe_to_incident(incident, user)
@@ -182,6 +183,12 @@ def create_incident_activity(
         comment=comment,
         event_stats_snapshot=event_stats_snapshot,
     )
+
+    if mentioned_user_ids:
+        IncidentSubscription.objects.bulk_create([
+            IncidentSubscription(incident=incident, user_id=mentioned_user_id)
+            for mentioned_user_id in mentioned_user_ids
+        ])
     send_subscriber_notifications.apply_async(
         kwargs={'activity_id': activity.id},
         countdown=10,
