@@ -10,19 +10,22 @@ from sentry.utils.audit import create_audit_entry
 class Destroyer(Mediator):
     sentry_app = Param('sentry.models.SentryApp')
     request = Param('rest_framework.request.Request', required=False)
+    user = Param('sentry.models.User')
 
     def call(self):
-        self._destroy_sentry_app_installations()
         self._destroy_api_application()
+        self._destroy_sentry_app_installations()
         self._destroy_proxy_user()
         self._destroy_sentry_app()
         return self.sentry_app
 
     def _destroy_sentry_app_installations(self):
         for install in self.sentry_app.installations.all():
+            notify = False if self.sentry_app.is_internal else True
             sentry_app_installations.Destroyer.run(
                 install=install,
                 user=self.sentry_app.proxy_user,
+                notify=notify,
             )
 
     def _destroy_api_application(self):
