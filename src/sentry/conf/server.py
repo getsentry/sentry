@@ -868,6 +868,8 @@ SENTRY_FEATURES = {
     'organizations:sso-saml2': True,
     # Enable Rippling SSO functionality.
     'organizations:sso-rippling': False,
+    # Enable filters for extended data retention.
+    'organizations:extended-data-retention': True,
 
     # Enable functionality to specify custom inbound filters on events.
     'projects:custom-inbound-filters': False,
