@@ -2,7 +2,6 @@ from __future__ import absolute_import
 
 from django.http import HttpResponseRedirect, Http404
 from django.core.urlresolvers import reverse
-from sentry import features
 
 from sentry import options
 from sentry.models import Event, SnubaEvent
@@ -23,22 +22,11 @@ class ProjectEventRedirect(ProjectView):
         if event is None:
             raise Http404
 
-        if features.has('organizations:sentry10', organization, actor=request.user):
-            return HttpResponseRedirect(
-                reverse(
-                    'sentry-organization-event-detail',
-                    args=[
-                        organization.slug,
-                        event.group_id,
-                        event.id])
-            )
-
         return HttpResponseRedirect(
             reverse(
-                'sentry-group-event',
+                'sentry-organization-event-detail',
                 args=[
                     organization.slug,
-                    event.project.slug,
                     event.group_id,
                     event.id])
         )
