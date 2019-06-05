@@ -94,6 +94,8 @@ const theme = {
     // Sentry user feedback modal
     sentryErrorEmbed: 1090,
 
+    // If you change modal also update shared-components.less
+    // as the z-index for bootstrap modals lives there.
     modal: 10000,
     toast: 10001,
 
