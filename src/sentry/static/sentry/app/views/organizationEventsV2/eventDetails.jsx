@@ -36,6 +36,7 @@ class EventDetails extends AsyncComponent {
   handleTabChange = tab => this.setState({activeTab: tab});
 
   renderBody() {
+    const {orgId} = this.props.params;
     const [projectId, _] = this.props.eventSlug.split(':');
     return (
       <ModalContainer>
@@ -45,6 +46,7 @@ class EventDetails extends AsyncComponent {
           event={this.state.event}
           activeTab={this.state.activeTab}
           projectId={projectId}
+          orgId={orgId}
         />
       </ModalContainer>
     );
