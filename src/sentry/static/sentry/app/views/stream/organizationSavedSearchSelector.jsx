@@ -50,16 +50,20 @@ export default class OrganizationSavedSearchSelector extends React.Component {
 
     return savedSearchList.map((search, index) => (
       <Tooltip
-        title={(<span>{search.name} • <TooltipSearchQuery>{search.query}</TooltipSearchQuery></span>)}
+        title={
+          <span>
+            {search.name} • <TooltipSearchQuery>{search.query}</TooltipSearchQuery>
+          </span>
+        }
         containerDisplayMode="block"
         delay={1000}
         key={search.id}
       >
         <MenuItem last={index == savedSearchList.length - 1}>
-            <MenuItemLink tabIndex="-1" onClick={() => onSavedSearchSelect(search)}>
-              <SearchTitle>{search.name}</SearchTitle>
-              <SearchQuery>{search.query}</SearchQuery>
-            </MenuItemLink>
+          <MenuItemLink tabIndex="-1" onClick={() => onSavedSearchSelect(search)}>
+            <SearchTitle>{search.name}</SearchTitle>
+            <SearchQuery>{search.query}</SearchQuery>
+          </MenuItemLink>
           {search.isGlobal === false && search.isPinned === false && (
             <Access
               organization={organization}
@@ -169,7 +173,7 @@ const MenuItem = styled('li')`
   display: flex;
 
   position: relative;
-  border-bottom: ${p => !p.last ? `1px solid ${p.theme.borderLight}` : null};
+  border-bottom: ${p => (!p.last ? `1px solid ${p.theme.borderLight}` : null)};
   font-size: ${p => p.theme.fontSizeMedium};
   padding: 0;
 

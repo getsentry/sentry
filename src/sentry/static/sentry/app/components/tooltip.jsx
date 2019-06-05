@@ -45,8 +45,8 @@ class Tooltip extends React.Component {
     containerDisplayMode: PropTypes.oneOf(['block', 'inline-block', 'inline']),
 
     /**
-    * Time to wait (in milliseconds) before showing the tooltip
-    */
+     * Time to wait (in milliseconds) before showing the tooltip
+     */
     delay: PropTypes.number,
   };
 
@@ -77,13 +77,13 @@ class Tooltip extends React.Component {
 
   setOpen = () => {
     this.setState({isOpen: true});
-  }
+  };
 
   handleOpen = evt => {
     const {delay} = this.props;
 
     if (delay) {
-      this.delayTimeout = window.setTimeout(this.setOpen, delay)
+      this.delayTimeout = window.setTimeout(this.setOpen, delay);
     } else {
       this.setOpen();
     }
