@@ -226,9 +226,6 @@ class Projects extends React.Component {
     const {slugs, children} = this.props;
 
     return children({
-      // May not need to expose this?
-      initiallyLoaded: this.state.initiallyLoaded,
-
       // We want to make sure that at the minimum, we return a list of objects with only `slug`
       // while we load actual project data
       projects: this.state.initiallyLoaded

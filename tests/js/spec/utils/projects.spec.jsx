@@ -34,7 +34,6 @@ describe('utils.projects', function() {
           fetching: false,
           isIncomplete: null,
           hasMore: null,
-          initiallyLoaded: true,
           projects: [
             expect.objectContaining({
               id: '1',
@@ -56,7 +55,6 @@ describe('utils.projects', function() {
           fetching: false,
           isIncomplete: null,
           hasMore: null,
-          initiallyLoaded: true,
           projects: [
             expect.objectContaining({
               id: '1',
@@ -97,7 +95,6 @@ describe('utils.projects', function() {
           fetching: true,
           isIncomplete: null,
           hasMore: null,
-          initiallyLoaded: true,
           projects: [
             {slug: 'a'},
             {slug: 'b'},
@@ -126,7 +123,6 @@ describe('utils.projects', function() {
           fetching: false,
           isIncomplete: false,
           hasMore: null,
-          initiallyLoaded: true,
           projects: [
             expect.objectContaining({
               id: '100',
@@ -164,7 +160,6 @@ describe('utils.projects', function() {
           fetching: true,
           isIncomplete: null,
           hasMore: null,
-          initiallyLoaded: true,
           projects: [
             {slug: 'a'},
             {slug: 'b'},
@@ -193,7 +188,6 @@ describe('utils.projects', function() {
           fetching: false,
           isIncomplete: true,
           hasMore: null,
-          initiallyLoaded: true,
           projects: [
             expect.objectContaining({
               id: '100',
@@ -246,7 +240,6 @@ describe('utils.projects', function() {
         expect.objectContaining({
           fetching: true,
           isIncomplete: null,
-          initiallyLoaded: false,
           hasMore: null,
           projects: [],
         })
@@ -266,7 +259,6 @@ describe('utils.projects', function() {
         expect.objectContaining({
           fetching: false,
           isIncomplete: null,
-          initiallyLoaded: true,
           hasMore: true,
           projects: [
             expect.objectContaining({
@@ -294,7 +286,6 @@ describe('utils.projects', function() {
         expect.objectContaining({
           fetching: true,
           isIncomplete: null,
-          initiallyLoaded: false,
           hasMore: null,
           projects: [],
         })
@@ -335,7 +326,6 @@ describe('utils.projects', function() {
         expect.objectContaining({
           fetching: false,
           isIncomplete: null,
-          initiallyLoaded: true,
           hasMore: false,
           projects: [
             expect.objectContaining({
@@ -393,7 +383,6 @@ describe('utils.projects', function() {
         expect.objectContaining({
           fetching: false,
           isIncomplete: null,
-          initiallyLoaded: true,
           hasMore: false,
           projects: [
             expect.objectContaining({
