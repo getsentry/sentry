@@ -1155,6 +1155,9 @@ function routes() {
         </Route>
 
         <Route path=":projectId/" component={errorHandler(ProjectDetails)}>
+          <IndexRedirect to="/organizations/:orgId/issues/" />
+          <Redirect from="issues/" to="/organizations/:orgId/issues/" />
+          <Redirect from="searches/:searchId/" to="/organizations/:orgId/issues/" />
           <Route
             path="dashboard/"
             componentPromise={() =>
@@ -1213,9 +1216,7 @@ function routes() {
               component={errorHandler(LazyLoad)}
             />
           </Route>
-
           <Redirect from="user-feedback/" to="/organizations/:orgId/user-feedback/" />
-
           <Route path="settings/" component={errorHandler(ProjectSettings)}>
             <Redirect from="teams/" to="/settings/:orgId/projects/:projectId/teams/" />
             <Redirect from="alerts/" to="/settings/:orgId/projects/:projectId/alerts/" />
@@ -1323,7 +1324,6 @@ function routes() {
             />
             {projectSettingsRoutes}
           </Route>
-
           <Redirect from="group/:groupId/" to="issues/:groupId/" />
           <Route
             path="issues/:groupId/"
@@ -1351,7 +1351,6 @@ function routes() {
             <Route path="similar/" component={errorHandler(ProjectGroupSimilarView)} />
             <Route path="merged/" component={errorHandler(ProjectGroupMergedView)} />
           </Route>
-
           <Route path="events/:eventId/" component={errorHandler(ProjectEventRedirect)} />
         </Route>
       </Route>
