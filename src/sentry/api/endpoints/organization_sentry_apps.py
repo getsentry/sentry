@@ -1,12 +1,13 @@
 from __future__ import absolute_import
 
-from sentry.api.bases import OrganizationEndpoint
+from sentry.api.bases import OrganizationEndpoint, add_integration_platform_metric_tag
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.models import SentryApp
 
 
 class OrganizationSentryAppsEndpoint(OrganizationEndpoint):
+    @add_integration_platform_metric_tag
     def get(self, request, organization):
         queryset = SentryApp.objects.filter(
             owner=organization,
