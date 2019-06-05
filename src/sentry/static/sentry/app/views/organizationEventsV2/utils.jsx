@@ -49,7 +49,7 @@ export function getQuery(view, location) {
 
   data.field = [...new Set(fields)];
   data.groupby = groupby;
-  data.sort = view.data.sort;
+  data.orderby = view.data.orderby;
 
   return data;
 }
