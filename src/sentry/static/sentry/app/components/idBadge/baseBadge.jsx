@@ -8,11 +8,15 @@ import space from 'app/styles/space';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import SentryTypes from 'app/sentryTypes';
 
+const BasicModelShape = PropTypes.shape({slug: PropTypes.string});
+
 class BaseBadge extends React.PureComponent {
   static propTypes = {
-    team: SentryTypes.Team,
-    organization: SentryTypes.Organization,
-    project: SentryTypes.Project,
+    team: PropTypes.oneOfType([BasicModelShape, SentryTypes.Team]),
+    organization: PropTypes.oneOfType([BasicModelShape, SentryTypes.Organization]),
+    project: PropTypes.oneOfType([BasicModelShape, SentryTypes.Project]),
+    member: PropTypes.oneOfType([BasicModelShape, SentryTypes.Member]),
+    user: PropTypes.oneOfType([BasicModelShape, SentryTypes.User]),
 
     /**
      * Avatar size
