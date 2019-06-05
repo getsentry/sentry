@@ -174,6 +174,11 @@ class EventCommon(object):
         """
         This is similar to `get_hashes` but will instead return the
         grouping components for each variant in a dictionary.
+
+        If `normalize_stacktraces` is set to `True` then the event data will be
+        modified for `in_app` in addition to event variants being created.  This
+        means that after calling that function the event data has been modified
+        in place.
         """
         from sentry.grouping.api import get_grouping_variants_for_event, \
             load_grouping_config

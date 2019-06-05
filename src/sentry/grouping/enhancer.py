@@ -168,7 +168,7 @@ class Action(object):
     def apply_modifications_to_frame(self, frames, idx):
         pass
 
-    def update_frame_components_contributions(self, components, idx, rule=None):
+    def update_frame_components_contributions(self, components, frames, idx, rule=None):
         pass
 
     def modify_stack_state(self, state, rule):
