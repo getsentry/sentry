@@ -442,5 +442,8 @@ class Organization(Model):
             ip_address=ip_address
         )
 
+    def get_url_viewname(self):
+        return 'sentry-organization-issue-list'
+
     def get_url(self):
-        return reverse('sentry-organization-issue-list', args=[self.slug])
+        return reverse(self.get_url_viewname(), args=[self.slug])
