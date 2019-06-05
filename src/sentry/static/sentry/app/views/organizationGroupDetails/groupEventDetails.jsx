@@ -13,7 +13,6 @@ import ResolutionBox from 'app/components/resolutionBox';
 import MutedBox from 'app/components/mutedBox';
 import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
-import withGlobalSelection from 'app/utils/withGlobalSelection';
 import fetchSentryAppInstallations from 'app/utils/fetchSentryAppInstallations';
 import {fetchSentryAppComponents} from 'app/actionCreators/sentryAppComponents';
 import OrganizationEnvironmentsStore from 'app/stores/organizationEnvironmentsStore';
@@ -50,6 +49,7 @@ class GroupEventDetails extends React.Component {
     const eventHasChanged = prevProps.params.eventId !== params.eventId;
     const environmentsHaveChanged = !isEqual(prevProps.environments, environments);
 
+    console.log('did update', eventHasChanged, environmentsHaveChanged);
     // If environments are being actively changed and will no longer contain the
     // current event's environment, redirect to latest
     if (
@@ -61,6 +61,7 @@ class GroupEventDetails extends React.Component {
       const shouldRedirect =
         environments.length > 0 &&
         !environments.find(env => env.name === getEventEnvironment(prevState.event));
+      console.log('should redirecT?', shouldRedirect);
 
       if (shouldRedirect) {
         browserHistory.replace({
@@ -178,17 +179,17 @@ class GroupEventDetails extends React.Component {
   }
 }
 
+function GroupEventDetailsContainer(props) {
+  const environments = OrganizationEnvironmentsStore.getActive().filter(env =>
+    props.environments.includes(env.name)
+  );
+
+  return <GroupEventDetails {...props} environments={environments} />;
+}
+
+GroupEventDetailsContainer.propTypes = {
+  environments: PropTypes.arrayOf(SentryTypes.Environment).isRequired,
+};
+
+export default withApi(withOrganization(GroupEventDetailsContainer));
 export {GroupEventDetails};
-
-export default withApi(
-  withOrganization(
-    withGlobalSelection(props => {
-      const {selection, ...otherProps} = props;
-      const environments = OrganizationEnvironmentsStore.getActive().filter(env =>
-        selection.environments.includes(env.name)
-      );
-
-      return <GroupEventDetails {...otherProps} environments={environments} />;
-    })
-  )
-);

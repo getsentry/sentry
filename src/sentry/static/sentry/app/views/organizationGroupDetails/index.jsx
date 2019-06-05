@@ -21,7 +21,6 @@ class OrganizationGroupDetails extends React.Component {
   }
 
   render() {
-    // eslint-disable-next-line no-unused-vars
     const {selection, ...props} = this.props;
 
     return (
@@ -35,4 +34,10 @@ class OrganizationGroupDetails extends React.Component {
   }
 }
 
-export default withOrganization(withGlobalSelection(OrganizationGroupDetails));
+const OrganizationGroupDetailsHoC = withOrganization(
+  withGlobalSelection(OrganizationGroupDetails)
+);
+
+export default function OrganizationGroupDetailsContainer(props) {
+  return <OrganizationGroupDetailsHoC disableLoadFromStore={true} {...props} />;
+}
