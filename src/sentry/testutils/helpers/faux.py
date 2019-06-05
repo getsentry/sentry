@@ -174,6 +174,12 @@ class Faux(object):
         return ', '.join(u'{}={!r}'.format(k, v) for k, v in six.iteritems(kwargs))
 
 
+class Mock(object):
+    def __init__(self, *args, **kwargs):
+        for k, v in six.iteritems(kwargs):
+            setattr(self, k, v)
+
+
 def faux(mock, call=None):
     if call is not None:
         return Faux(mock.mock_calls[call])
