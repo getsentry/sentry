@@ -79,7 +79,7 @@ class Creator(Mediator):
 
     def _create_integration_feature(self):
         # sentry apps must have at least one feature
-        # defaults to 'api'
+        # defaults to 'integrations-api'
         IntegrationFeature.objects.create(
             sentry_app=self.sentry_app,
         )
