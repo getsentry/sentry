@@ -68,7 +68,7 @@ class OrganizationEventDetailsLatestEndpoint(OrganizationEventsEndpointBase):
             filter_keys=snuba_args['filter_keys'],
             orderby=['-timestamp', '-event_id'],
             limit=2,
-            referrer='api.organization-event-details.latest',
+            referrer='api.organization-event-details-latest',
         )
 
         if 'error' in result or len(result['data']) == 0:
@@ -107,7 +107,7 @@ class OrganizationEventDetailsOldestEndpoint(OrganizationEventsEndpointBase):
             filter_keys=snuba_args['filter_keys'],
             orderby=['timestamp', 'event_id'],
             limit=2,
-            referrer='api.organization-event-details.oldest',
+            referrer='api.organization-event-details-oldest',
         )
 
         if 'error' in result or len(result['data']) == 0:
