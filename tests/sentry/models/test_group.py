@@ -232,10 +232,9 @@ class GroupTest(TestCase):
         assert group.get_email_subject() == '%s - %s' % (group.qualified_short_id, group.title)
 
     def test_get_absolute_url(self):
-        with self.feature('organizations:sentry10'):
-            project = self.create_project(name='pumped-quagga')
-            group = self.create_group(project=project)
+        project = self.create_project(name='pumped-quagga')
+        group = self.create_group(project=project)
 
-            result = group.get_absolute_url({'environment': u'd\u00E9v'})
-            assert result == u'http://testserver/organizations/baz/issues/{}/?environment=d%C3%A9v'.format(
-                group.id)
+        result = group.get_absolute_url({'environment': u'd\u00E9v'})
+        assert result == u'http://testserver/organizations/baz/issues/{}/?environment=d%C3%A9v'.format(
+            group.id)

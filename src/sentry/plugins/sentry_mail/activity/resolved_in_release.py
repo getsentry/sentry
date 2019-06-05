@@ -1,6 +1,5 @@
 from __future__ import absolute_import
 
-from sentry import features
 from sentry.utils.html import escape
 from sentry.utils.http import absolute_uri
 
@@ -14,18 +13,11 @@ class ResolvedInReleaseActivityEmail(ActivityEmail):
     def get_description(self):
         data = self.activity.data
 
-        if features.has('organizations:sentry10', self.organization):
-            url = u'/organizations/{}/releases/{}/?project={}'.format(
-                self.organization.slug,
-                data['version'],
-                self.project.id,
-            )
-        else:
-            url = u'/{}/{}/releases/{}/'.format(
-                self.organization.slug,
-                self.project.slug,
-                data['version'],
-            )
+        url = u'/organizations/{}/releases/{}/?project={}'.format(
+            self.organization.slug,
+            data['version'],
+            self.project.id,
+        )
 
         if data.get('version'):
             return u'{author} marked {an issue} as resolved in {version}', {

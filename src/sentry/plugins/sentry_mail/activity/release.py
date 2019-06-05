@@ -188,7 +188,6 @@ class ReleaseActivityEmail(ActivityEmail):
         }
 
     def get_user_context(self, user):
-        from sentry import features
         if user.is_superuser or self.organization.flags.allow_joinleave:
             projects = self.projects
         else:
@@ -200,27 +199,15 @@ class ReleaseActivityEmail(ActivityEmail):
             )
             projects = [p for p in self.projects if p.id in team_projects]
 
-        has_new_links = features.has('organizations:sentry10', self.organization)
-        if has_new_links:
-            release_links = [
-                absolute_uri(
-                    u'/organizations/{}/releases/{}/?project={}'.format(
-                        self.organization.slug,
-                        self.release.version,
-                        p.id,
-                    )
-                ) for p in projects
-            ]
-        else:
-            release_links = [
-                absolute_uri(
-                    u'/{}/{}/releases/{}/'.format(
-                        self.organization.slug,
-                        p.slug,
-                        self.release.version,
-                    )
-                ) for p in projects
-            ]
+        release_links = [
+            absolute_uri(
+                u'/organizations/{}/releases/{}/?project={}'.format(
+                    self.organization.slug,
+                    self.release.version,
+                    p.id,
+                )
+            ) for p in projects
+        ]
 
         resolved_issue_counts = [self.group_counts_by_project.get(p.id, 0) for p in projects]
         return {

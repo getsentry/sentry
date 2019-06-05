@@ -315,11 +315,7 @@ class Group(Model):
         super(Group, self).save(*args, **kwargs)
 
     def get_absolute_url(self, params=None):
-        from sentry import features
-        if features.has('organizations:sentry10', self.organization):
-            url = reverse('sentry-organization-issue', args=[self.organization.slug, self.id])
-        else:
-            url = reverse('sentry-group', args=[self.organization.slug, self.project.slug, self.id])
+        url = reverse('sentry-organization-issue', args=[self.organization.slug, self.id])
         if params:
             url = url + '?' + urlencode(params)
         return absolute_uri(url)

@@ -151,14 +151,9 @@ class Project(Model, PendingDeletionMixin):
         self.update_rev_for_option()
 
     def get_absolute_url(self, params=None):
-        from sentry import features
-        if features.has('organizations:sentry10', self.organization):
-            url = u'/organizations/{}/issues/'.format(self.organization.slug)
-            params = {} if params is None else params
-            params['project'] = self.id
-        else:
-            url = u'/{}/{}/'.format(self.organization.slug, self.slug)
-
+        url = u'/organizations/{}/issues/'.format(self.organization.slug)
+        params = {} if params is None else params
+        params['project'] = self.id
         if params:
             url = url + '?' + urlencode(params)
         return absolute_uri(url)

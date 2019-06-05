@@ -111,9 +111,8 @@ class TestSendAlertEvent(TestCase):
             kwargs={'sentry_app': self.sentry_app},
         )
 
-        with self.feature('organizations:sentry10'):
-            with self.tasks():
-                notify_sentry_app(event, [rule_future])
+        with self.tasks():
+            notify_sentry_app(event, [rule_future])
 
         data = json.loads(faux(safe_urlopen).kwargs['data'])
 
