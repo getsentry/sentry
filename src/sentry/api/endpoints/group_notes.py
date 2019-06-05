@@ -8,12 +8,11 @@ from rest_framework.response import Response
 from sentry.api.base import DocSection
 from sentry.api.bases.group import GroupEndpoint
 from sentry.api.serializers import serialize
-from sentry.api.serializers.rest_framework.group_notes import NoteSerializer, seperate_resolved_actors
-
-from sentry.api.fields.actor import Actor
+from sentry.api.serializers.rest_framework.group_notes import NoteSerializer
+from sentry.api.serializers.rest_framework.mentions import extract_user_ids_from_mentions
 
 from sentry.models import (
-    Activity, GroupSubscription, GroupSubscriptionReason, User
+    Activity, GroupSubscription, GroupSubscriptionReason
 )
 
 from sentry.utils.functional import extract_lazy_object
@@ -37,7 +36,13 @@ class GroupNotesEndpoint(GroupEndpoint):
         )
 
     def post(self, request, group):
-        serializer = NoteSerializer(data=request.DATA, context={'group': group})
+        serializer = NoteSerializer(
+            data=request.DATA,
+            context={
+                'organization_id': group.organization.id,
+                'projects': [group.project],
+            },
+        )
 
         if not serializer.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -64,31 +69,16 @@ class GroupNotesEndpoint(GroupEndpoint):
             reason=GroupSubscriptionReason.comment,
         )
 
-        actors = Actor.resolve_many(mentions)
-        actor_mentions = seperate_resolved_actors(actors)
-
-        for user in actor_mentions.get('users'):
-            GroupSubscription.objects.subscribe(
-                group=group,
-                user=user,
-                reason=GroupSubscriptionReason.mentioned,
-            )
-
-        mentioned_teams = actor_mentions.get('teams')
-
-        mentioned_team_users = list(
-            User.objects.filter(
-                sentry_orgmember_set__organization_id=group.project.organization_id,
-                sentry_orgmember_set__organizationmemberteam__team__in=mentioned_teams,
-                sentry_orgmember_set__organizationmemberteam__is_active=True,
-                is_active=True,
-            ).exclude(id__in={u.id for u in actor_mentions.get('users')})
-            .values_list('id', flat=True)
+        mentioned_users = extract_user_ids_from_mentions(group.organization.id, mentions)
+        GroupSubscription.objects.bulk_subscribe(
+            group=group,
+            user_ids=mentioned_users['users'],
+            reason=GroupSubscriptionReason.mentioned,
         )
 
         GroupSubscription.objects.bulk_subscribe(
             group=group,
-            user_ids=mentioned_team_users,
+            user_ids=mentioned_users['team_users'],
             reason=GroupSubscriptionReason.team_mentioned,
         )
 
