@@ -30,6 +30,7 @@ from symbolic import ProcessMinidumpError, Unreal4Error
 
 from sentry import features, quotas, options
 from sentry.attachments import CachedAttachment
+from sentry.constants import ObjectStatus
 from sentry.coreapi import (
     Auth, APIError, APIForbidden, APIRateLimited, ClientApiHelper, ClientAuthHelper,
     SecurityAuthHelper, MinidumpAuthHelper, safely_load_json_string, logger as api_logger,
@@ -287,10 +288,15 @@ class APIView(BaseView):
             track_outcome(0, 0, None, Outcome.INVALID, "project_id")
             raise APIError('Invalid project_id: %r' % project_id)
         try:
-            return Project.objects.get_from_cache(id=project_id)
+            project = Project.objects.get_from_cache(id=project_id)
         except Project.DoesNotExist:
             track_outcome(0, 0, None, Outcome.INVALID, "project_id")
             raise APIError('Invalid project_id: %r' % project_id)
+        else:
+            if project.status != ObjectStatus.VISIBLE:
+                track_outcome(0, 0, None, Outcome.INVALID, "project_id")
+                raise APIError('Invalid project_id: %r' % project_id)
+            return project
 
     def _parse_header(self, request, helper, project):
         auth = self.auth_helper_cls.auth_from_request(request)
