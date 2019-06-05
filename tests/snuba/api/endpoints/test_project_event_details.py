@@ -1,6 +1,5 @@
 from __future__ import absolute_import
 
-import json
 import six
 
 from datetime import timedelta
@@ -156,7 +155,6 @@ class ProjectEventJsonEndpointTest(APITestCase, SnubaTestCase):
         )
 
     def assert_event(self, data):
-        data = json.loads(data.decode('utf-8'))
         assert data['event_id'] == self.event_id
         assert data['user']['email'] == self.user.email
         assert data['datetime'][:19] == self.min_ago
