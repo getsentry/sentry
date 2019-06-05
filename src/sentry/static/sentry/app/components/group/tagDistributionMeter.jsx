@@ -2,7 +2,6 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import createReactClass from 'create-react-class';
 
-import {t} from 'app/locale';
 import {deviceNameMapper, loadDeviceListModule} from 'app/components/deviceName';
 import SentryTypes from 'app/sentryTypes';
 import withEnvironment from 'app/utils/withEnvironment';
@@ -82,17 +81,6 @@ const GroupTagDistributionMeter = createReactClass({
     let segments = [];
 
     if (topValues) {
-      const totalVisible = topValues.reduce((sum, value) => sum + value.count, 0);
-      const hasOther = totalVisible < totalValues;
-
-      if (hasOther) {
-        topValues.push({
-          value: 'other',
-          name: t('Other'),
-          count: totalValues - totalVisible,
-        });
-      }
-
       segments = this.state.iOSDeviceList
         ? topValues.map(value => ({
             ...value,
