@@ -203,7 +203,7 @@ const GroupDetails = createReactClass({
   },
 
   renderContent(shouldShowGlobalHeader) {
-    const {params} = this.props;
+    const {params, environments} = this.props;
     const {group, project} = this.state;
 
     const Content = (
@@ -211,6 +211,7 @@ const GroupDetails = createReactClass({
         <div className={this.props.className}>
           <GroupHeader params={params} project={project} group={group} />
           {React.cloneElement(this.props.children, {
+            environments,
             group,
             project,
           })}
