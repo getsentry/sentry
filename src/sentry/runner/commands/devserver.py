@@ -193,7 +193,7 @@ def devserver(reload, watchers, workers, browser_reload, styleguide, prefix, env
     ]
 
     if styleguide:
-        daemons += [('storybook', ['yarn', 'storybook'])]
+        daemons += [('storybook', ['./bin/yarn', 'storybook'])]
 
     cwd = os.path.realpath(os.path.join(settings.PROJECT_ROOT, os.pardir, os.pardir))
 
