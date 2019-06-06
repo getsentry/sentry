@@ -74,7 +74,7 @@ class OrganizationEventDetailsLatestEndpoint(OrganizationEventsEndpointBase):
         if 'error' in result or len(result['data']) == 0:
             return Response({'detail': 'Event not found'}, status=404)
 
-        data = serialize(result['data'][0])
+        data = serialize(SnubaEvent(result['data'][0]))
 
         data['previousEventID'] = None
         data['nextEventID'] = None
@@ -112,7 +112,7 @@ class OrganizationEventDetailsOldestEndpoint(OrganizationEventsEndpointBase):
         if 'error' in result or len(result['data']) == 0:
             return Response(status=404)
 
-        data = serialize(result['data'][0])
+        data = serialize(SnubaEvent(result['data'][0]))
 
         data['previousEventID'] = None
         data['nextEventID'] = None
