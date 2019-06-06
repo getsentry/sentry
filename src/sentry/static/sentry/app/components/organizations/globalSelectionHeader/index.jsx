@@ -114,8 +114,7 @@ class GlobalSelectionHeader extends React.Component {
     const hasMultipleProjectFeature = this.hasMultipleProjectSelection();
 
     const stateFromRouter = getStateFromQuery(location.query);
-    // We should update store if there are any relevant URL parameters when component
-    // is mounted
+    // We should update store if there are any relevant URL parameters when component is mounted
     if (Object.values(stateFromRouter).some(i => !!i)) {
       if (!stateFromRouter.start && !stateFromRouter.end && !stateFromRouter.period) {
         stateFromRouter.period = DEFAULT_STATS_PERIOD;
@@ -258,7 +257,7 @@ class GlobalSelectionHeader extends React.Component {
     // to update global selection store (otherwise we'll get recursive updates)
     const changedKeys = this.changedQueryKeys(prevProps, nextProps);
 
-    if (changedKeys === false) {
+    if (!changedKeys.length) {
       return;
     }
 

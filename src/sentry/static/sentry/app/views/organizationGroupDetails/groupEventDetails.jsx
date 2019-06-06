@@ -49,7 +49,6 @@ class GroupEventDetails extends React.Component {
     const eventHasChanged = prevProps.params.eventId !== params.eventId;
     const environmentsHaveChanged = !isEqual(prevProps.environments, environments);
 
-    console.log('did update', eventHasChanged, environmentsHaveChanged);
     // If environments are being actively changed and will no longer contain the
     // current event's environment, redirect to latest
     if (
@@ -61,7 +60,6 @@ class GroupEventDetails extends React.Component {
       const shouldRedirect =
         environments.length > 0 &&
         !environments.find(env => env.name === getEventEnvironment(prevState.event));
-      console.log('should redirecT?', shouldRedirect);
 
       if (shouldRedirect) {
         browserHistory.replace({
