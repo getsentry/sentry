@@ -175,7 +175,7 @@ class GlobalSelectionHeader extends React.Component {
     }
 
     // Update if URL parameters change
-    if (this.didQueryChange(this.props, nextProps)) {
+    if (this.changedQueryKeys(this.props, nextProps).length > 0) {
       return true;
     }
 
@@ -232,25 +232,21 @@ class GlobalSelectionHeader extends React.Component {
    * Identifies if query string has changed (with query params that this component cares about)
    *
    *
-   * @return {Boolean|String[]} Returns `false` if did not change, otherwise return an array of params that have changed
+   * @return {String[]} Returns `false` if did not change, otherwise return an array of params that have changed
    */
-  didQueryChange = (prevProps, nextProps) => {
+  changedQueryKeys = (prevProps, nextProps) => {
     const urlParamKeys = Object.values(URL_PARAM);
     const prevQuery = pick(prevProps.location.query, urlParamKeys);
     const nextQuery = pick(nextProps.location.query, urlParamKeys);
 
     // If no next query is specified keep the previous global selection values
     if (Object.keys(prevQuery).length === 0 && Object.keys(nextQuery).length === 0) {
-      return false;
+      return [];
     }
 
     const changedKeys = Object.values(urlParamKeys).filter(
       key => !isEqual(prevQuery[key], nextQuery[key])
     );
-
-    if (changedKeys.length === 0) {
-      return false;
-    }
 
     return changedKeys;
   };
@@ -260,7 +256,7 @@ class GlobalSelectionHeader extends React.Component {
     //
     // e.g. if selection store changed, don't trigger more actions
     // to update global selection store (otherwise we'll get recursive updates)
-    const changedKeys = this.didQueryChange(prevProps, nextProps);
+    const changedKeys = this.changedQueryKeys(prevProps, nextProps);
 
     if (changedKeys === false) {
       return;
