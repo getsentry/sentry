@@ -8,6 +8,7 @@ import * as Sentry from '@sentry/browser';
 import moment from 'moment';
 import styled from 'react-emotion';
 
+import {MAX_PICKABLE_DAYS} from 'app/constants';
 import {addErrorMessage} from 'app/actionCreators/indicator';
 import {analytics} from 'app/utils/analytics';
 import {
@@ -23,9 +24,6 @@ import TimePicker from 'app/components/organizations/timeRangeSelector/timePicke
 import getRouteStringFromRoutes from 'app/utils/getRouteStringFromRoutes';
 import space from 'app/styles/space';
 import theme from 'app/utils/theme';
-
-// This is currently the max number of days back you can search
-const MAX_PICKABLE_DAYS = 90;
 
 class DateRange extends React.Component {
   static propTypes = {

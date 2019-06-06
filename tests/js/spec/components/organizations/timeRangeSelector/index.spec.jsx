@@ -268,4 +268,63 @@ describe('TimeRangeSelector', function() {
       utc: false,
     });
   });
+
+  it('disables 90 day filter without extended-data-retention feature', async function() {
+    wrapper = createWrapper({
+      relative: '14d',
+      utc: false,
+    });
+
+    await wrapper.find('HeaderItem').simulate('click');
+    expect(wrapper.find('SelectorItem[value="90d"]').prop('disabled')).toBe(true);
+
+    await wrapper.find('SelectorItem[value="90d"]').simulate('click');
+    expect(onChange).not.toHaveBeenCalled();
+
+    await wrapper.find('SelectorItem[value="absolute"]').simulate('click');
+    expect(
+      wrapper
+        .find('DateRange')
+        .first()
+        .prop('maxPickableDays')
+    ).toBe(30);
+  });
+
+  it('has 90 day filter with extended-data-retention feature', async function() {
+    wrapper = mount(
+      <TimeRangeSelector
+        showAbsolute
+        showRelative
+        onChange={onChange}
+        organization={TestStubs.Organization({features: ['extended-data-retention']})}
+        relative="14d"
+        utc={false}
+      />,
+      routerContext
+    );
+
+    await wrapper.find('HeaderItem').simulate('click');
+    expect(wrapper.find('SelectorItem[value="90d"]').prop('disabled')).toBe(false);
+
+    await wrapper.find('SelectorItem[value="absolute"]').simulate('click');
+    expect(
+      wrapper
+        .find('DateRange')
+        .first()
+        .prop('maxPickableDays')
+    ).toBe(90);
+  });
+
+  it('deselects default filter when absolute date selected', async function() {
+    wrapper = createWrapper({
+      relative: '14d',
+      utc: false,
+    });
+
+    await wrapper.find('HeaderItem').simulate('click');
+    await wrapper.find('SelectorItem[value="absolute"]').simulate('click');
+
+    expect(wrapper.find('SelectorItem[value="absolute"]').prop('selected')).toBe(true);
+    expect(wrapper.find('SelectorItem[value="14d"]').prop('selected')).toBe(false);
+  });
 });

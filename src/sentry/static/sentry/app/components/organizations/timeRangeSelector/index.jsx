@@ -4,7 +4,11 @@ import React from 'react';
 import moment from 'moment';
 import styled from 'react-emotion';
 
-import {DEFAULT_STATS_PERIOD} from 'app/constants';
+import {
+  DEFAULT_STATS_PERIOD,
+  MAX_PICKABLE_DAYS,
+  NOT_EXTENDED_PICKABLE_DAYS,
+} from 'app/constants';
 import {analytics} from 'app/utils/analytics';
 import {defined} from 'app/utils';
 import {
@@ -19,6 +23,7 @@ import {t} from 'app/locale';
 import DateRange from 'app/components/organizations/timeRangeSelector/dateRange';
 import DateSummary from 'app/components/organizations/timeRangeSelector/dateSummary';
 import DropdownMenu from 'app/components/dropdownMenu';
+import Feature from 'app/components/acl/feature';
 import HeaderItem from 'app/components/organizations/headerItem';
 import InlineSvg from 'app/components/inlineSvg';
 import MultipleSelectorSubmitRow from 'app/components/organizations/multipleSelectorSubmitRow';
@@ -332,7 +337,14 @@ class TimeRangeSelector extends React.PureComponent {
                   {shouldShowRelative && (
                     <RelativeSelector
                       onClick={this.handleSelectRelative}
-                      selected={relative || DEFAULT_STATS_PERIOD}
+                      organization={organization}
+                      selected={
+                        relative
+                          ? relative
+                          : isAbsoluteSelected
+                          ? null
+                          : DEFAULT_STATS_PERIOD
+                      }
                     />
                   )}
                   {shouldShowAbsolute && (
@@ -347,15 +359,25 @@ class TimeRangeSelector extends React.PureComponent {
                 </SelectorList>
                 {isAbsoluteSelected && (
                   <div>
-                    <DateRange
-                      showTimePicker
-                      utc={this.state.utc}
-                      start={start}
-                      end={end}
-                      onChange={this.handleSelectDateRange}
-                      onChangeUtc={this.handleUseUtc}
+                    <Feature
+                      features={['organizations:extended-data-retention']}
                       organization={organization}
-                    />
+                    >
+                      {({hasFeature}) => (
+                        <DateRange
+                          showTimePicker
+                          utc={this.state.utc}
+                          start={start}
+                          end={end}
+                          onChange={this.handleSelectDateRange}
+                          onChangeUtc={this.handleUseUtc}
+                          organization={organization}
+                          maxPickableDays={
+                            hasFeature ? MAX_PICKABLE_DAYS : NOT_EXTENDED_PICKABLE_DAYS
+                          }
+                        />
+                      )}
+                    </Feature>
                     {this.state.hasChanges && (
                       <SubmitRow>
                         <MultipleSelectorSubmitRow
