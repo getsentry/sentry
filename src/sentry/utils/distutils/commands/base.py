@@ -125,8 +125,8 @@ class BaseBuildCommand(Command):
             node_version = self._run_command(['node', '--version']).rstrip()
         except OSError:
             log.fatal(
-                u'Cannot find `{0}` executable. Please install {0}`'
-                ' and try again.'.format(app)
+                u'Cannot find node executable. Please install node'
+                ' and try again.'
             )
             sys.exit(1)
 
