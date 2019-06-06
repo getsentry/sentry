@@ -43,6 +43,7 @@ class OrganizationEventDetailsEndpoint(OrganizationEventsEndpointBase):
 
         data['nextEventID'] = self.next_event_id(request, organization, snuba_args, event)
         data['previousEventID'] = self.prev_event_id(request, organization, snuba_args, event)
+        data['projectSlug'] = project_slug
 
         return Response(data)
 
@@ -74,10 +75,17 @@ class OrganizationEventDetailsLatestEndpoint(OrganizationEventsEndpointBase):
         if 'error' in result or len(result['data']) == 0:
             return Response({'detail': 'Event not found'}, status=404)
 
-        data = serialize(SnubaEvent(result['data'][0]))
+        try:
+            project_id = result['data'][0]['project_id']
+            project_slug = Project.objects.get(
+                organization=organization, id=project_id).slug
+        except Project.DoesNotExist:
+            project_slug = None
 
+        data = serialize(SnubaEvent(result['data'][0]))
         data['previousEventID'] = None
         data['nextEventID'] = None
+        data['projectSlug'] = project_slug
 
         if len(result['data']) == 2:
             data['previousEventID'] = six.text_type(result['data'][1]['event_id'])
@@ -112,10 +120,17 @@ class OrganizationEventDetailsOldestEndpoint(OrganizationEventsEndpointBase):
         if 'error' in result or len(result['data']) == 0:
             return Response(status=404)
 
-        data = serialize(SnubaEvent(result['data'][0]))
+        try:
+            project_id = result['data'][0]['project_id']
+            project_slug = Project.objects.get(
+                organization=organization, id=project_id).slug
+        except Project.DoesNotExist:
+            project_slug = None
 
+        data = serialize(SnubaEvent(result['data'][0]))
         data['previousEventID'] = None
         data['nextEventID'] = None
+        data['projectSlug'] = project_slug
 
         if len(result['data']) == 2:
             data['nextEventID'] = six.text_type(result['data'][1]['event_id'])

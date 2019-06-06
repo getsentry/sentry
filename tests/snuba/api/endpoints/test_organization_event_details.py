@@ -60,6 +60,7 @@ class OrganizationEventDetailsEndpointTest(OrganizationEventDetailsTestBase):
         assert response.data['id'] == 'a' * 32
         assert response.data['previousEventID'] is None
         assert response.data['nextEventID'] == 'b' * 32
+        assert response.data['projectSlug'] == self.project.slug
 
     def test_no_access(self):
         url = reverse(
@@ -107,6 +108,7 @@ class OrganizationEventDetailsLatestEndpointTest(OrganizationEventDetailsTestBas
         assert response.data['id'] == 'c' * 32
         assert response.data['previousEventID'] == 'b' * 32
         assert response.data['nextEventID'] is None
+        assert response.data['projectSlug'] == self.project.slug
 
     def test_no_access(self):
         url = reverse(
@@ -152,6 +154,7 @@ class OrganizationEventDetailsOldestEndpointTest(OrganizationEventDetailsTestBas
         assert response.data['id'] == 'a' * 32
         assert response.data['previousEventID'] is None
         assert response.data['nextEventID'] == 'b' * 32
+        assert response.data['projectSlug'] == self.project.slug
 
     def test_no_access(self):
         url = reverse(
