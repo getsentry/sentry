@@ -337,19 +337,18 @@ class SnubaSearchBackend(SearchBackend):
             has_groupenvironment_join = 'sentry_groupenvironment' in group_queryset.query.alias_map
             has_sentry_release_join = 'sentry_release' in group_queryset.query.alias_map
 
-            # if a sentry_groupenvironment join exists in group_queryset,
-            # then promote the join to be a left outer join
-            if has_groupenvironment_join:
-                group_queryset.query.promote_joins(['sentry_groupenvironment'])
-
-            # if a sentry_release join exists in group_queryset,
-            # then demote the join to be an inner join
-            if has_sentry_release_join:
-                group_queryset.query.demote_joins(['sentry_release'])
-
             # a groupenvironment left outer join may duplicate rows,
             # so we would only want distinct groups
             if has_groupenvironment_join and has_sentry_release_join:
+
+                # if a sentry_groupenvironment join exists in group_queryset,
+                # then promote the join to be a left outer join
+                group_queryset.query.promote_joins(['sentry_groupenvironment'])
+
+                # if a sentry_release join exists in group_queryset,
+                # then demote the join to be an inner join
+                group_queryset.query.demote_joins(['sentry_release'])
+
                 group_queryset = group_queryset.distinct()
 
         now = timezone.now()
