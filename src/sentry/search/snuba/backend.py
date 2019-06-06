@@ -318,13 +318,17 @@ class SnubaSearchBackend(SearchBackend):
                 ),
             }).build(group_queryset, search_filters)
         else:
+
             group_queryset = QuerySetBuilder({
-                # if no environments are selected, we filter on both the group's first_release attribute,
-                # and in addition, any related (group, environment)'s first_release attribute (if an environment exists)
                 'first_release': QCallbackCondition(
-                    lambda version: Q(
+                    lambda release_version: Q(
+                        # if no specific environments are supplied, we choose any groups that has a specific first release
+                        # that matches the given release_version, (agnostic of environment)
+                        Q(first_release__version=release_version) |
+                        # or choose any groups whose first occurrence in any environment and the latest release at
+                        # the time of the groups' occurrence matches the given release_version
+                        Q(groupenvironment__first_release__version=release_version),
                         groupenvironment__first_release__organization_id=projects[0].organization_id,
-                        groupenvironment__first_release__version=version,
                     ),
                 ),
                 'first_seen': ScalarCondition('first_seen'),
@@ -339,7 +343,7 @@ class SnubaSearchBackend(SearchBackend):
                 group_queryset.query.promote_joins(['sentry_groupenvironment'])
 
             # if a sentry_release join exists in group_queryset,
-            # then promote the join to be an inner join
+            # then demote the join to be an inner join
             if has_sentry_release_join:
                 group_queryset.query.demote_joins(['sentry_release'])
 
