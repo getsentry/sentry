@@ -2,18 +2,13 @@ import PropTypes from 'prop-types';
 import React from 'react';
 
 import {DEFAULT_RELATIVE_PERIODS, isExtendedStatsPeriod} from 'app/constants';
-import Feature from 'app/components/acl/feature';
-import SentryTypes from 'app/sentryTypes';
 import SelectorItem from './selectorItem';
 
-const RelativeSelector = ({onClick, selected, organization}) => {
+const RelativeSelector = ({onClick, selected, hasFeature, relativePeriods}) => {
   return (
-    <Feature
-      features={['organizations:extended-data-retention']}
-      organization={organization}
-    >
-      {({hasFeature}) =>
-        Object.entries(DEFAULT_RELATIVE_PERIODS).map(([value, label]) => (
+    <React.Fragment>
+      {Object.entries(relativePeriods || DEFAULT_RELATIVE_PERIODS).map(
+        ([value, label]) => (
           <SelectorItem
             key={value}
             onClick={onClick}
@@ -22,16 +17,17 @@ const RelativeSelector = ({onClick, selected, organization}) => {
             selected={selected === value}
             disabled={!hasFeature && isExtendedStatsPeriod(value)}
           />
-        ))
-      }
-    </Feature>
+        )
+      )}
+    </React.Fragment>
   );
 };
 
 RelativeSelector.propTypes = {
   onClick: PropTypes.func,
   selected: PropTypes.string,
-  organization: SentryTypes.Organization,
+  hasFeature: PropTypes.bool,
+  relativePeriods: PropTypes.object,
 };
 
 export default RelativeSelector;

@@ -57,6 +57,7 @@ const validHookNames = new Set([
   'feature-disabled:sso-basic',
   'feature-disabled:sso-rippling',
   'feature-disabled:sso-saml2',
+  'feature-disabled:extended-data-retention',
 
   // Explicit Feature hookNames
   'feature-disabled:events-page',

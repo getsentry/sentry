@@ -290,6 +290,10 @@ class TimeRangeSelector extends React.PureComponent {
     });
   };
 
+  renderRelativeSelector = ({onClick, selected, hasFeature}) => (
+    <RelativeSelector onClick={onClick} selected={selected} hasFeature={hasFeature} />
+  );
+
   render() {
     const {showAbsolute, showRelative, organization} = this.props;
     const {start, end, relative} = this.state;
@@ -303,6 +307,12 @@ class TimeRangeSelector extends React.PureComponent {
     ) : (
       getRelativeSummary(relative || DEFAULT_STATS_PERIOD)
     );
+
+    const selected = relative
+      ? relative
+      : isAbsoluteSelected
+      ? null
+      : DEFAULT_STATS_PERIOD;
 
     return (
       <DropdownMenu
@@ -333,30 +343,32 @@ class TimeRangeSelector extends React.PureComponent {
                 {...getMenuProps({isStyled: true})}
                 isAbsoluteSelected={isAbsoluteSelected}
               >
-                <SelectorList isAbsoluteSelected={isAbsoluteSelected}>
-                  {shouldShowRelative && (
-                    <RelativeSelector
-                      onClick={this.handleSelectRelative}
-                      organization={organization}
-                      selected={
-                        relative
-                          ? relative
-                          : isAbsoluteSelected
-                          ? null
-                          : DEFAULT_STATS_PERIOD
-                      }
-                    />
+                <Feature
+                  features={['organizations:extended-data-retention']}
+                  organization={organization}
+                  renderDisabled={({children, ...props}) => children({...props})}
+                >
+                  {({hasFeature, renderRelativeSelector}) => (
+                    <SelectorList isAbsoluteSelected={isAbsoluteSelected}>
+                      {shouldShowRelative &&
+                        (renderRelativeSelector || this.renderRelativeSelector)({
+                          onClick: this.handleSelectRelative,
+                          selected,
+                          hasFeature,
+                        })}
+                      {shouldShowAbsolute && (
+                        <SelectorItem
+                          onClick={this.handleAbsoluteClick}
+                          value="absolute"
+                          label={t('Absolute Date')}
+                          selected={isAbsoluteSelected}
+                          last={true}
+                        />
+                      )}
+                    </SelectorList>
                   )}
-                  {shouldShowAbsolute && (
-                    <SelectorItem
-                      onClick={this.handleAbsoluteClick}
-                      value="absolute"
-                      label={t('Absolute Date')}
-                      selected={isAbsoluteSelected}
-                      last={true}
-                    />
-                  )}
-                </SelectorList>
+                </Feature>
+
                 {isAbsoluteSelected && (
                   <div>
                     <Feature
