@@ -214,9 +214,9 @@ const MetadataContainer = styled('div')`
 
 const ColumnGrid = styled('div')`
   display: grid;
-  grid-template-columns: 70% 1fr;
+  grid-template-columns: 70% 28%;
   grid-template-rows: auto;
-  grid-column-gap: ${space(3)};
+  grid-column-gap: 2%;
 `;
 
 const HeaderBox = styled('div')`
