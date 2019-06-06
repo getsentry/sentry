@@ -22,7 +22,7 @@ class OrganizationEventDetailsEndpoint(OrganizationEventsEndpointBase):
         except OrganizationEventsError as exc:
             return Response({'detail': exc.message}, status=400)
         except NoProjects:
-            return Response([])
+            return Response(status=404)
 
         try:
             project = Project.objects.get(
