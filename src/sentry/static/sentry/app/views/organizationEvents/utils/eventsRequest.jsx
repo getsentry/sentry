@@ -102,7 +102,7 @@ class EventsRequest extends React.PureComponent {
     /**
      * issue group id or groupids to filter results by.
      */
-    groupId: PropTypes.string,
+    groupId: PropTypes.oneOfType([PropTypes.string, PropTypes.array]),
   };
 
   static defaultProps = {

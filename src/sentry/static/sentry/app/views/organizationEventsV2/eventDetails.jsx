@@ -40,7 +40,7 @@ class EventDetails extends AsyncComponent {
 
   renderBody() {
     const {organization, view, location} = this.props;
-    const [projectId, _] = this.props.eventSlug.split(':');
+    const [projectId] = this.props.eventSlug.split(':');
 
     return (
       <ModalContainer>
