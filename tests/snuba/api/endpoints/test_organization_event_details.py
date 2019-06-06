@@ -4,6 +4,7 @@ from datetime import timedelta
 from django.utils import timezone
 from django.core.urlresolvers import reverse
 from sentry.testutils import APITestCase, SnubaTestCase
+from sentry.models import Group
 
 
 class OrganizationEventDetailsTestBase(APITestCase, SnubaTestCase):
@@ -19,27 +20,29 @@ class OrganizationEventDetailsTestBase(APITestCase, SnubaTestCase):
         self.store_event(
             data={
                 'event_id': 'a' * 32,
-                'environment': 'staging',
                 'timestamp': three_min_ago,
+                'fingerprint': ['group-1'],
+
             },
             project_id=self.project.id,
         )
         self.store_event(
             data={
                 'event_id': 'b' * 32,
-                'environment': 'staging',
                 'timestamp': two_min_ago,
+                'fingerprint': ['group-1'],
             },
             project_id=self.project.id,
         )
         self.store_event(
             data={
                 'event_id': 'c' * 32,
-                'environment': 'staging',
                 'timestamp': min_ago,
+                'fingerprint': ['group-2'],
             },
             project_id=self.project.id,
         )
+        self.groups = Group.objects.all()
 
 
 class OrganizationEventDetailsEndpointTest(OrganizationEventDetailsTestBase):
@@ -137,6 +140,24 @@ class OrganizationEventDetailsLatestEndpointTest(OrganizationEventDetailsTestBas
 
         assert response.status_code == 404, response.content
 
+    def test_query_with_issue_id(self):
+        url = reverse(
+            'sentry-api-0-organization-event-details-latest',
+            kwargs={
+                'organization_slug': self.project.organization.slug,
+            }
+        )
+        query = {'query': 'issue.id:{}'.format(self.groups[1].id)}
+
+        with self.feature('organizations:events-v2'):
+            response = self.client.get(url, query, format='json')
+
+        assert response.status_code == 200, response.content
+        assert response.data['id'] == 'c' * 32
+        assert response.data['previousEventID'] is None
+        assert response.data['nextEventID'] is None
+        assert response.data['projectSlug'] == self.project.slug
+
 
 class OrganizationEventDetailsOldestEndpointTest(OrganizationEventDetailsTestBase):
     def test_simple(self):
@@ -182,3 +203,21 @@ class OrganizationEventDetailsOldestEndpointTest(OrganizationEventDetailsTestBas
             response = self.client.get(url, format='json')
 
         assert response.status_code == 404, response.content
+
+    def test_query_with_issue_id(self):
+        url = reverse(
+            'sentry-api-0-organization-event-details-oldest',
+            kwargs={
+                'organization_slug': self.project.organization.slug,
+            }
+        )
+        query = {'query': 'issue.id:{}'.format(self.groups[1].id)}
+
+        with self.feature('organizations:events-v2'):
+            response = self.client.get(url, query, format='json')
+
+        assert response.status_code == 200, response.content
+        assert response.data['id'] == 'c' * 32
+        assert response.data['previousEventID'] is None
+        assert response.data['nextEventID'] is None
+        assert response.data['projectSlug'] == self.project.slug
