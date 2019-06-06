@@ -395,7 +395,7 @@ def transform_aliases_and_query(skip_conditions=False, **kwargs):
     arrayjoin = kwargs.get('arrayjoin')
     rollup = kwargs.get('rollup')
     orderby = kwargs.get('orderby')
-    having = kwargs.get('having')
+    having = kwargs.get('having', [])
 
     if selected_columns:
         for (idx, col) in enumerate(selected_columns):
@@ -442,20 +442,17 @@ def transform_aliases_and_query(skip_conditions=False, **kwargs):
         return cond
 
     if conditions:
-        kwargs['conditions'] = ([handle_condition(condition) for condition in conditions]
-                                if skip_conditions is False else conditions)
-    if having:
-        kwargs['having'] = []
-        for condition in having:
-            if not QUOTED_LITERAL_RE.match(condition[2]):
-                try:
-                    condition[2] = float(condition[2])
-                except ValueError:
-                    pass
+        kwargs['conditions'] = []
+        for condition in conditions:
             if condition[0] in derived_columns:
-                kwargs['having'].append(condition)
+                having.append(condition)
+            elif skip_conditions is False:
+                kwargs['conditions'].append(condition)
             else:
-                kwargs['having'].append(handle_condition(condition))
+                kwargs['conditions'].append(handle_condition(condition))
+
+    if having:
+        kwargs['having'] = having
 
     if orderby:
         order_by_column = orderby.lstrip('-')

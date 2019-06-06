@@ -327,7 +327,7 @@ class OrganizationEventsV2EndpointTest(OrganizationEventsTestBase):
                 format='json',
                 data={
                     'field': ['issue_title', 'event_count', 'user_count'],
-                    'having': ['event_count,>,1', 'user_count,>,1'],
+                    'query': ['event_count:>1 user_count:>1'],
                     'groupby': ['issue.id', 'project.id'],
                     'orderby': 'issue.id'
                 },
