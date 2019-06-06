@@ -285,7 +285,7 @@ exports[`ProjectDebugFiles renders 1`] = `
     </Component>
   </Panel>
   <Pagination
-    className="stream-pagination"
+    className="css-1yt0wm7-streamCss"
     onCursor={[Function]}
   />
 </ProjectDebugSymbols>
@@ -349,7 +349,7 @@ exports[`ProjectDebugFiles renders empty 1`] = `
     </PanelBody>
   </Panel>
   <Pagination
-    className="stream-pagination"
+    className="css-1yt0wm7-streamCss"
     onCursor={[Function]}
   />
 </Fragment>
