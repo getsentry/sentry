@@ -11,11 +11,17 @@ PIP = LDFLAGS="$(LDFLAGS)" pip
 WEBPACK = NODE_ENV=production ./node_modules/.bin/webpack
 YARN_VERSION = 1.13.0
 
-bootstrap: install-system-pkgs develop create-db apply-migrations
+bootstrap: install-system-pkgs develop init-config run-dependent-services create-db apply-migrations
 
 develop: setup-git ensure-venv develop-only
 
 develop-only: update-submodules install-yarn-pkgs install-sentry-dev
+
+init-config:
+	sentry init --dev
+
+run-dependent-services:
+	sentry devservices up
 
 test: develop lint test-js test-python test-cli
 
