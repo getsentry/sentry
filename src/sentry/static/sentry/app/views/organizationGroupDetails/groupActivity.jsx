@@ -14,7 +14,6 @@ import ActivityAuthor from 'app/components/activity/author';
 import ActivityItem from 'app/components/activity/item';
 import ConfigStore from 'app/stores/configStore';
 import ErrorBoundary from 'app/components/errorBoundary';
-import GroupActivityItem from 'app/views/groupDetails/shared/groupActivityItem';
 import MemberListStore from 'app/stores/memberListStore';
 import Note from 'app/components/activity/note';
 import NoteInputWithStorage from 'app/components/activity/note/inputWithStorage';
@@ -22,6 +21,8 @@ import ProjectsStore from 'app/stores/projectsStore';
 import SentryTypes from 'app/sentryTypes';
 import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
+
+import GroupActivityItem from './groupActivityItem';
 
 function makeDefaultErrorJson() {
   return {detail: t('Unknown error. Please try again.')};

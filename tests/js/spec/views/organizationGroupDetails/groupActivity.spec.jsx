@@ -2,7 +2,7 @@ import React from 'react';
 import {mount} from 'enzyme';
 
 import {initializeOrg} from 'app-test/helpers/initializeOrg';
-import {GroupActivity} from 'app/views/groupDetails/shared/groupActivity';
+import {GroupActivity} from 'app/views/organizationGroupDetails/groupActivity';
 import NoteInput from 'app/components/activity/note/input';
 import ConfigStore from 'app/stores/configStore';
 import GroupStore from 'app/stores/groupStore';

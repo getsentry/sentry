@@ -42,11 +42,10 @@ class IssueDetailsTest(AcceptanceTestCase, SnubaTestCase):
 
     def visit_issue(self, groupid):
         self.dismiss_assistant()
-        with self.feature('organizations:sentry10'):
-            self.browser.get(
-                u'/organizations/{}/issues/{}/'.format(self.org.slug, groupid)
-            )
-            self.wait_until_loaded()
+        self.browser.get(
+            u'/organizations/{}/issues/{}/'.format(self.org.slug, groupid)
+        )
+        self.wait_until_loaded()
 
     def test_python_event(self):
         event = self.create_sample_event(
@@ -83,17 +82,8 @@ class IssueDetailsTest(AcceptanceTestCase, SnubaTestCase):
             platform='javascript'
         )
 
-        # Don't enable sentry10 so we have coverage for sentry9 as well.
         self.dismiss_assistant()
-        self.browser.get(
-            u'/{}/{}/issues/{}/events/{}/'.format(
-                self.org.slug,
-                self.project.slug,
-                event.group.id,
-                event.id
-            )
-        )
-        self.wait_until_loaded()
+        self.visit_issue(event.group.id)
         self.browser.snapshot('issue details javascript - event details')
 
         self.browser.find_element_by_xpath("//a//code[contains(text(), 'curl')]").click()
@@ -154,13 +144,12 @@ class IssueDetailsTest(AcceptanceTestCase, SnubaTestCase):
             platform='python',
         )
 
-        with self.feature('organizations:sentry10'):
-            self.browser.get(
-                u'/organizations/{}/issues/{}/activity/'.format(
-                    self.org.slug, event.group.id)
-            )
-            self.browser.wait_until_test_id('activity-item')
-            self.browser.snapshot('issue activity python')
+        self.browser.get(
+            u'/organizations/{}/issues/{}/activity/'.format(
+                self.org.slug, event.group.id)
+        )
+        self.browser.wait_until_test_id('activity-item')
+        self.browser.snapshot('issue activity python')
 
     def wait_until_loaded(self):
         self.browser.wait_until_not('.loading-indicator')

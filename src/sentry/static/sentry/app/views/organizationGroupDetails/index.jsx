@@ -5,7 +5,7 @@ import {analytics} from 'app/utils/analytics';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 import withOrganization from 'app/utils/withOrganization';
 
-import GroupDetails from '../shared/groupDetails';
+import GroupDetails from './groupDetails';
 
 class OrganizationGroupDetails extends React.Component {
   static propTypes = {
