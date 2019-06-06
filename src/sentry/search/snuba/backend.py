@@ -321,25 +321,28 @@ class SnubaSearchBackend(SearchBackend):
             group_queryset = QuerySetBuilder({
                 'first_release': QCallbackCondition(
                     lambda version: Q(
-                        first_release__version=version,
-                        first_release__organization_id=projects[0].organization_id,
+                        groupenvironment__first_release__organization_id=projects[0].organization_id,
                         groupenvironment__first_release__version=version,
                     ),
                 ),
                 'first_seen': ScalarCondition('first_seen'),
             }).build(group_queryset, search_filters)
 
+            has_groupenvironment_join = 'sentry_groupenvironment' in group_queryset.query.alias_map
+            has_sentry_release_join = 'sentry_release' in group_queryset.query.alias_map
+
             # if a sentry_groupenvironment join exists in, group_queryset promote the join
             # to be an outer join
-            if 'sentry_groupenvironment' in group_queryset.query.alias_map:
+            if has_groupenvironment_join:
                 group_queryset.query.promote_joins(['sentry_groupenvironment'])
 
             # if a sentry_release join exists in, group_queryset promote the join
             # to be an inner join
-            if 'sentry_release' in group_queryset.query.alias_map:
+            if has_sentry_release_join:
                 group_queryset.query.demote_joins(['sentry_release'])
 
-            group_queryset = group_queryset.distinct()
+            if has_groupenvironment_join and has_sentry_release_join:
+                group_queryset = group_queryset.distinct()
 
         now = timezone.now()
         end = None
