@@ -14,7 +14,7 @@ const GroupReleaseStats = createReactClass({
     group: SentryTypes.Group.isRequired,
     project: SentryTypes.Project.isRequired,
     organization: SentryTypes.Organization.isRequired,
-    environments: PropTypes.arrayOf(SentryTypes.Environment),
+    environments: PropTypes.arrayOf(SentryTypes.Environment).isRequired,
     allEnvironments: PropTypes.object,
   },
 
