@@ -306,8 +306,9 @@ class SnubaSearchBackend(SearchBackend):
             group_queryset = QuerySetBuilder({
                 'first_release': QCallbackCondition(
                     lambda version: Q(
-                        first_release__organization_id=projects[0].organization_id,
-                        first_release__version=version,
+                        # if environment(s) are selected, we just filter on the group environment's first_release attribute.
+                        groupenvironment__first_release__organization_id=projects[0].organization_id,
+                        groupenvironment__first_release__version=version,
                         groupenvironment__environment_id__in=environment_ids,
                     )
                 ),
