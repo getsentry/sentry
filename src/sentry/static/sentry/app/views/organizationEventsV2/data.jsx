@@ -124,7 +124,9 @@ export const SPECIAL_FIELDS = {
     fields: ['timestamp'],
     renderFunc: data => (
       <Container>
-        <DynamicWrapper value={<StyledDateTime date={data.timestamp} />} fixed="time" />
+        {data.timestamp ? (
+          <DynamicWrapper value={<StyledDateTime date={data.timestamp} />} fixed="time" />
+        ) : null}
       </Container>
     ),
   },
