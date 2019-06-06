@@ -22,7 +22,7 @@ from hashlib import md5
 
 from semaphore.processing import StoreNormalizer
 
-from sentry import eventtypes
+from sentry import eventtypes, options
 from sentry.constants import EVENT_ORDERING_KEY
 from sentry.db.models import (
     BoundedBigIntegerField,
@@ -39,6 +39,17 @@ from sentry.utils.cache import memoize
 from sentry.utils.canonical import CanonicalKeyDict, CanonicalKeyView
 from sentry.utils.safe import get_path
 from sentry.utils.strings import truncatechars
+
+
+def _should_disable_trim(event_id):
+    if not event_id:
+        return False
+
+    sample_rate = options.get('store.disable-trim-in-renormalization')
+    if sample_rate == 0:
+        return False
+
+    return int(md5(event_id).hexdigest(), 16) % (10 ** 8) <= (sample_rate * (10 ** 8))
 
 
 class EventDict(CanonicalKeyDict):
@@ -58,7 +69,10 @@ class EventDict(CanonicalKeyDict):
         )
 
         if not skip_renormalization and not is_renormalized:
-            normalizer = StoreNormalizer(is_renormalize=True)
+            normalizer = StoreNormalizer(
+                is_renormalize=True,
+                enable_trimming=not _should_disable_trim(data.get('event_id'))
+            )
             data = normalizer.normalize_event(dict(data))
 
         CanonicalKeyDict.__init__(self, data, **kwargs)
