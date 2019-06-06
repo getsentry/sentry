@@ -25,6 +25,9 @@ export default class DetailsBody extends React.Component {
   render() {
     const {params, incident} = this.props;
 
+    // Considered loading when there is no incident object
+    const loading = !incident;
+
     return (
       <StyledPageContent>
         <Main>
@@ -46,14 +49,15 @@ export default class DetailsBody extends React.Component {
             </StyledNavTabs>
             <Activity
               params={params}
-              incidentStatus={incident ? incident.status : null}
+              incidentStatus={!loading ? incident.status : null}
             />
           </PageContent>
         </Main>
         <Sidebar>
           <PageContent>
-            <SideHeader>{t('Events in Incident')}</SideHeader>
-            {incident ? (
+            <SideHeader loading={loading}>{t('Events in Incident')}</SideHeader>
+
+            {!loading ? (
               <Chart
                 data={incident.eventStats.data}
                 detected={incident.dateDetected}
@@ -66,14 +70,14 @@ export default class DetailsBody extends React.Component {
             <Suspects params={params} />
 
             <div>
-              <SidebarHeading>
-                Projects Affected ({incident ? incident.projects.length : '-'})
-              </SidebarHeading>
+              <SideHeader loading={loading}>
+                {t('Projects Affected')} ({!loading ? incident.projects.length : '-'})
+              </SideHeader>
 
-              {incident && (
+              {!loading && (
                 <div>
                   <Projects slugs={incident.projects} orgId={params.orgId}>
-                    {({projects, fetching}) => {
+                    {({projects}) => {
                       return projects.map(project => (
                         <StyledIdBadge key={project.slug} project={project} />
                       ));
@@ -134,12 +138,6 @@ const ChartPlaceholder = styled('div')`
   background-color: ${p => p.theme.offWhite};
   height: 190px;
   margin-bottom: 10px;
-`;
-
-const SidebarHeading = styled('h6')`
-  color: ${p => p.theme.gray3};
-  margin: ${space(2)} 0 ${space(1)} 0;
-  text-transform: uppercase;
 `;
 
 const StyledIdBadge = styled(IdBadge)`

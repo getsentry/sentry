@@ -37,7 +37,8 @@ Message.propTypes = {
 const Suspects = styled(
   class Suspects extends React.Component {
     static propTypes = {
-      suspects: PropTypes.arrayOf(SentryTypes.IncidentSuspect),
+      suspects: PropTypes.arrayOf(SentryTypes.IncidentSuspect).isRequired,
+      loading: PropTypes.bool,
     };
 
     renderEmpty() {
@@ -45,34 +46,45 @@ const Suspects = styled(
     }
 
     render() {
-      const {className, suspects} = this.props;
+      const {className, loading, suspects} = this.props;
 
       return (
         <div className={className}>
-          <SideHeader>{t('Suspects')}</SideHeader>
-          {suspects && suspects.length > 0 && (
-            <Panel>
-              <PanelBody>
-                {suspects.map(({type, data}) => (
-                  <SuspectItem p={1} key={data.id}>
-                    <Type>{type}</Type>
-                    <Message type={type} suspect={data} />
-                    <AuthorRow>
-                      <IdBadge user={data.author} hideEmail />
-                      <LightTimeSince date={data.dateCreated} />
-                    </AuthorRow>
-                  </SuspectItem>
-                ))}
-              </PanelBody>
-            </Panel>
+          <SideHeader loading={loading}>
+            {t('Suspects')} ({loading || !suspects ? '-' : suspects.length})
+          </SideHeader>
+          {loading ? (
+            <Placeholder />
+          ) : (
+            suspects &&
+            suspects.length > 0 && (
+              <Panel>
+                <PanelBody>
+                  {suspects.map(({type, data}) => (
+                    <SuspectItem p={1} key={data.id}>
+                      <Type>{type}</Type>
+                      <Message type={type} suspect={data} />
+                      <AuthorRow>
+                        <IdBadge user={data.author} hideEmail />
+                        <LightTimeSince date={data.dateCreated} />
+                      </AuthorRow>
+                    </SuspectItem>
+                  ))}
+                </PanelBody>
+              </Panel>
+            )
           )}
-          {(!suspects || suspects.length === 0) && this.renderEmpty()}
         </div>
       );
     }
   }
 )`
   margin-top: ${space(1)};
+`;
+
+const Placeholder = styled('div')`
+  background-color: ${p => p.theme.placeholderBackground};
+  padding: ${space(4)};
 `;
 
 export default class SuspectsContainer extends AsyncComponent {
