@@ -46,7 +46,7 @@ from sentry.lang.native.minidump import (
     merge_attached_event, merge_attached_breadcrumbs, write_minidump_placeholder,
     MINIDUMP_ATTACHMENT_TYPE,
 )
-from sentry.models import Project, OrganizationOption, File, EventAttachment, Event
+from sentry.models import Project, File, EventAttachment, Event
 from sentry.signals import (
     event_accepted, event_dropped, event_filtered, event_received,
 )
@@ -64,7 +64,7 @@ from sentry.utils.outcomes import Outcome, track_outcome
 from sentry.utils.pubsub import QueuedPublisherService, KafkaPublisher
 from sentry.utils.safe import safe_execute
 from sentry.web.helpers import render_to_response
-from sentry.web.relay_config import get_full_relay_config
+from sentry.web.relay_config import get_full_relay_config, ProjectOptionNames
 
 logger = logging.getLogger('sentry')
 minidumps_logger = logging.getLogger('sentry.minidumps')
@@ -89,8 +89,10 @@ def allow_cors_options(func):
     """
     Decorator that adds automatic handling of OPTIONS requests for CORS
 
-    If the request is OPTIONS (i.e. pre flight CORS) construct a NO Content (204) response
+    If the request is OPTIONS (i.e. pre flight CORS) construct a OK (200) response
     in which we explicitly enable the caller and add the custom headers that we support
+    For other requests just add the appropriate CORS headers
+
     :param func: the original request handler
     :return: a request handler that shortcuts OPTIONS requests and just returns an OK (CORS allowed)
     """
@@ -108,7 +110,7 @@ def allow_cors_options(func):
         response['Allow'] = allow
         response['Access-Control-Allow-Methods'] = allow
         response['Access-Control-Allow-Headers'] = 'X-Sentry-Auth, X-Requested-With, Origin, Accept, ' \
-            'Content-Type, Authentication'
+                                                   'Content-Type, Authentication'
         response['Access-Control-Expose-Headers'] = 'X-Sentry-Error, Retry-After'
 
         if request.META.get('HTTP_ORIGIN') == 'null':
@@ -157,13 +159,13 @@ def _get_project_id_from_request(project_id, request, auth_helper_cls, helper):
     """
     if project_id is not None:
         # we have an explicit project id, just return it
-        return str(project_id)  # noqa B308
+        return six.text_type(project_id)
     else:  # look in the authentication information for the project id
         auth = auth_helper_cls.auth_from_request(request)
         return helper.project_id_from_auth(auth)
 
 
-def process_event(event_manager, project, key, remote_addr, helper, attachments):
+def process_event(event_manager, project, key, remote_addr, helper, attachments, relay_config):
     event_received.send_robust(ip=remote_addr, project=project, sender=process_event)
 
     start_time = time()
@@ -176,8 +178,8 @@ def process_event(event_manager, project, key, remote_addr, helper, attachments)
 
     if should_filter:
         track_outcome(
-            project.organization_id,
-            project.id,
+            relay_config.organization_id,
+            relay_config.project_id,
             key.id,
             Outcome.FILTERED,
             filter_reason,
@@ -208,8 +210,8 @@ def process_event(event_manager, project, key, remote_addr, helper, attachments)
 
         reason = rate_limit.reason_code if rate_limit else None
         track_outcome(
-            project.organization_id,
-            project.id,
+            relay_config.organization_id,
+            relay_config.project_id,
             key.id,
             Outcome.RATE_LIMITED,
             reason,
@@ -231,17 +233,14 @@ def process_event(event_manager, project, key, remote_addr, helper, attachments)
         if rate_limit is not None:
             raise APIRateLimited(rate_limit.retry_after)
 
-    org_options = OrganizationOption.objects.get_all_values(
-        project.organization_id)
-
     # TODO(dcramer): ideally we'd only validate this if the event_id was
     # supplied by the user
-    cache_key = 'ev:%s:%s' % (project.id, event_id,)
+    cache_key = 'ev:%s:%s' % (relay_config.project_id, event_id,)
 
     if cache.get(cache_key) is not None:
         track_outcome(
-            project.organization_id,
-            project.id,
+            relay_config.organization_id,
+            relay_config.project_id,
             key.id,
             Outcome.INVALID,
             'duplicate',
@@ -250,27 +249,18 @@ def process_event(event_manager, project, key, remote_addr, helper, attachments)
         raise APIForbidden(
             'An event with the same ID already exists (%s)' % (event_id,))
 
-    scrub_ip_address = (org_options.get('sentry:require_scrub_ip_address', False) or
-                        project.get_option('sentry:scrub_ip_address', False))
-    scrub_data = (org_options.get('sentry:require_scrub_data', False) or
-                  project.get_option('sentry:scrub_data', True))
+    project_options = relay_config.project_options
+    scrub_ip_address = project_options.get(ProjectOptionNames.scrub_ip_addresses)
+
+    scrub_data = project_options.get(ProjectOptionNames.scrub_data)
 
     if scrub_data:
         # We filter data immediately before it ever gets into the queue
-        sensitive_fields_key = 'sentry:sensitive_fields'
-        sensitive_fields = (
-            org_options.get(sensitive_fields_key, []) +
-            project.get_option(sensitive_fields_key, [])
-        )
+        sensitive_fields = project_options.get(ProjectOptionNames.sensitive_fields)
 
-        exclude_fields_key = 'sentry:safe_fields'
-        exclude_fields = (
-            org_options.get(exclude_fields_key, []) +
-            project.get_option(exclude_fields_key, [])
-        )
+        exclude_fields = project_options.get(ProjectOptionNames.exclude_fields)
 
-        scrub_defaults = (org_options.get('sentry:require_scrub_defaults', False) or
-                          project.get_option('sentry:scrub_defaults', True))
+        scrub_defaults = project_options.get(ProjectOptionNames.scrub_defaults)
 
         SensitiveDataFilter(
             fields=sensitive_fields,
@@ -375,7 +365,6 @@ class APIView(BaseView):
     @allow_cors_options
     def dispatch(self, request, project_id=None, *args, **kwargs):
         helper = None
-        origin = None
         try:
             helper = ClientApiHelper(
                 agent=request.META.get('HTTP_USER_AGENT'),
@@ -388,9 +377,7 @@ class APIView(BaseView):
 
             relay_config = get_full_relay_config(project_id)
 
-            project = relay_config.project
-            if project:
-                helper.context.bind_project(project)
+            helper.context.bind_project(relay_config.project)
 
             if kafka_publisher is not None:
                 self._publish_to_kafka(request, relay_config)
@@ -471,12 +458,8 @@ class APIView(BaseView):
 
         key = helper.project_key_from_auth(auth)
 
-        auth = self._parse_header(request, relay_config)
-
-        key = helper.project_key_from_auth(auth)
-
         # Legacy API was /api/store/ and the project ID was only available elsewhere
-        if str(key.project_id) != str(relay_config.project_id):  # noqa B308
+        if six.text_type(key.project_id) != six.text_type(relay_config.project_id):
             raise APIError('Two different projects were specified')
 
         helper.context.bind_auth(auth)
@@ -617,15 +600,17 @@ class StoreView(APIView):
         )
 
         return process_event(event_manager, project,
-                             key, remote_addr, helper, attachments)
+                             key, remote_addr, helper, attachments, relay_config)
 
 
 class EventAttachmentStoreView(StoreView):
 
-    def post(self, request, project, event_id, **kwargs):
+    def post(self, request, project, event_id, relay_config, **kwargs):
         if not features.has('organizations:event-attachments',
                             project.organization, actor=request.user):
             raise APIForbidden("Event attachments are not enabled for this organization.")
+
+        project_id = relay_config.project_id
 
         if len(request.FILES) == 0:
             return HttpResponse(status=400)
@@ -641,7 +626,7 @@ class EventAttachmentStoreView(StoreView):
             # To avoid a race with EventManager which tries to set the group_id on attachments received before
             # the event, first insert the attachment, then lookup for the event for its group.
             event_attachment = EventAttachment.objects.create(
-                project_id=project.id,
+                project_id=project_id,
                 event_id=event_id,
                 name=uploaded_file.name,
                 file=file,
@@ -649,7 +634,7 @@ class EventAttachmentStoreView(StoreView):
 
             try:
                 event = Event.objects.get(
-                    project_id=project.id,
+                    project_id=project_id,
                     event_id=event_id,
                 )
             except Event.DoesNotExist:
@@ -697,7 +682,6 @@ class MinidumpView(StoreView):
 
         project_id = relay_config.project_id
         project = relay_config.project
-        helper.context.bind_project(project)
 
         # This is yanking the auth from the querystring since it's not
         # in the POST body. This means we expect a `sentry_key` and
@@ -717,10 +701,10 @@ class MinidumpView(StoreView):
         helper.context.bind_auth(auth)
 
         return super(APIView, self).dispatch(
-            request=request, project=project, auth=auth, helper=helper, key=key, **kwargs
+            request=request, project=project, auth=auth, helper=helper, key=key, relay_config=relay_config, **kwargs
         )
 
-    def post(self, request, project, **kwargs):
+    def post(self, request, project, relay_config, **kwargs):
         # Minidump request payloads do not have the same structure as usual
         # events from other SDKs. The minidump can either be transmitted as
         # request body, or as `upload_file_minidump` in a multipart formdata
@@ -759,8 +743,8 @@ class MinidumpView(StoreView):
 
         if not minidump:
             track_outcome(
-                project.organization_id,
-                project.id,
+                relay_config.organization_id,
+                relay_config.project_id,
                 None,
                 Outcome.INVALID,
                 "missing_minidump_upload")
@@ -798,8 +782,8 @@ class MinidumpView(StoreView):
                 minidump_name = minidump.name
             except KeyError:
                 track_outcome(
-                    project.organization_id,
-                    project.id,
+                    relay_config.organization_id,
+                    relay_config.project_id,
                     None,
                     Outcome.INVALID,
                     "missing_minidump_upload")
@@ -808,8 +792,8 @@ class MinidumpView(StoreView):
         minidump.seek(0)
         if minidump.read(4) != 'MDMP':
             track_outcome(
-                project.organization_id,
-                project.id,
+                relay_config.organization_id,
+                relay_config.project_id,
                 None,
                 Outcome.INVALID,
                 "invalid_minidump")
@@ -832,10 +816,8 @@ class MinidumpView(StoreView):
             type=MINIDUMP_ATTACHMENT_TYPE,
         ))
 
-        # Append all other files as generic attachments. We can skip this if the
-        # feature is disabled since they won't be saved.
-        has_event_attachments = features.has('organizations:event-attachments',
-                                             project.organization, actor=request.user)
+        # Append all other files as generic attachments.
+        # RaduW 4 Jun 2019 always sent attachments for minidump (does not use event-attachments feature)
         for name, file in six.iteritems(request_files):
             if name == 'upload_file_minidump':
                 continue
@@ -849,8 +831,7 @@ class MinidumpView(StoreView):
                 continue
 
             # Add any other file as attachment
-            if has_event_attachments:
-                attachments.append(CachedAttachment.from_upload(file))
+            attachments.append(CachedAttachment.from_upload(file))
 
         # Assign our own UUID so we can track this minidump. We cannot trust
         # the uploaded filename, and if reading the minidump fails there is
@@ -870,6 +851,7 @@ class MinidumpView(StoreView):
             attachments=attachments,
             data=data,
             project=project,
+            relay_config=relay_config,
             **kwargs)
 
         # Return the formatted UUID of the generated event. This is
@@ -901,7 +883,7 @@ class UnrealView(StoreView):
         project = relay_config.project
         project_id = relay_config.project_id
 
-        auth = Auth({'sentry_key': sentry_key}, is_public=False)
+        auth = Auth(public_key=sentry_key, is_public=False)
         auth.client = 'sentry.unreal_engine'
 
         key = helper.project_key_from_auth(auth)
@@ -916,10 +898,10 @@ class UnrealView(StoreView):
 
         helper.context.bind_auth(auth)
         return super(APIView, self).dispatch(
-            request=request, project=project, auth=auth, helper=helper, key=key, **kwargs
+            request=request, project=project, auth=auth, helper=helper, key=key, relay_config=relay_config, **kwargs
         )
 
-    def post(self, request, project, **kwargs):
+    def post(self, request, project, relay_config, **kwargs):
         attachments_enabled = features.has('organizations:event-attachments',
                                            project.organization, actor=request.user)
 
@@ -938,8 +920,8 @@ class UnrealView(StoreView):
         except (ProcessMinidumpError, Unreal4Error) as e:
             minidumps_logger.exception(e)
             track_outcome(
-                project.organization_id,
-                project.id,
+                relay_config.organization_id,
+                relay_config.project_id,
                 None,
                 Outcome.INVALID,
                 "process_minidump_unreal")
@@ -993,6 +975,7 @@ class UnrealView(StoreView):
             attachments=attachments,
             data=event,
             project=project,
+            relay_config=relay_config,
             **kwargs)
 
         # The return here is only useful for consistency
@@ -1037,7 +1020,6 @@ class SecurityReportView(StoreView):
         request.user = AnonymousUser()
 
         project = relay_config.project
-        helper.context.bind_project(project)
         project_id = relay_config.project_id
 
         # This is yanking the auth from the querystring since it's not
@@ -1058,16 +1040,16 @@ class SecurityReportView(StoreView):
         helper.context.bind_auth(auth)
 
         return super(APIView, self).dispatch(
-            request=request, project=project, auth=auth, helper=helper, key=key, **kwargs
+            request=request, project=project, auth=auth, helper=helper, key=key, relay_config=relay_config, **kwargs
         )
 
-    def post(self, request, project, helper, key, **kwargs):
+    def post(self, request, project, helper, key, relay_config, **kwargs):
         json_body = safely_load_json_string(request.body)
         report_type = self.security_report_type(json_body)
         if report_type is None:
             track_outcome(
-                project.organization_id,
-                project.id,
+                relay_config.organization_id,
+                relay_config.project_id,
                 key.id,
                 Outcome.INVALID,
                 "security_report_type")
@@ -1078,8 +1060,8 @@ class SecurityReportView(StoreView):
             instance = interface.from_raw(json_body)
         except jsonschema.ValidationError as e:
             track_outcome(
-                project.organization_id,
-                project.id,
+                relay_config.organization_id,
+                relay_config.project_id,
                 key.id,
                 Outcome.INVALID,
                 "security_report")
@@ -1088,13 +1070,12 @@ class SecurityReportView(StoreView):
         # Do origin check based on the `document-uri` key as explained in `_dispatch`.
         origin = instance.get_origin()
         if not is_valid_origin(origin, project):
-            if project:
-                track_outcome(
-                    project.organization_id,
-                    project.id,
-                    key.id,
-                    Outcome.INVALID,
-                    FilterStatKeys.CORS)
+            track_outcome(
+                relay_config.organization_id,
+                relay_config.project_id,
+                key.id,
+                Outcome.INVALID,
+                FilterStatKeys.CORS)
             raise APIForbidden('Invalid origin')
 
         data = {
@@ -1104,7 +1085,14 @@ class SecurityReportView(StoreView):
             'environment': request.GET.get('sentry_environment'),
         }
 
-        self.process(request, project=project, helper=helper, data=data, key=key, **kwargs)
+        self.process(request,
+                     project=project,
+                     helper=helper,
+                     data=data,
+                     key=key,
+                     relay_config=relay_config,
+                     **kwargs)
+
         return HttpResponse(content_type='application/javascript', status=201)
 
     def security_report_type(self, body):

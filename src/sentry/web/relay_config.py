@@ -28,6 +28,16 @@ _restricted_config_properties = frozenset([
 ])
 
 
+class ProjectOptionNames:
+    scrub_ip_addresses = 'sentry:scrub_ip_addresses'
+    scrub_data = 'sentry:scrub_data'
+    scrub_defaults = 'sentry:scrub_defaults'
+    invalid_releases = 'invalid_releases'
+    enabled_filters = 'enabled_filters'
+    sensitive_fields = 'sentry:sensitive_fields'
+    exclude_fields = 'sentry:safe_fields'
+
+
 class _ConfigBase(object):
     """
     Base class for configuration objects
@@ -130,8 +140,8 @@ class _ConfigBase(object):
     def __str__(self):
         try:
             return json.dumps(self.to_dict(), sort_keys=True)
-        except Exception:
-            return "Content Error"
+        except Exception as e:
+            return "Content Error:{}".format(e)
 
     def __repr__(self):
         return "({0}){1}".format(self.__class__.__name__, self)
@@ -180,7 +190,7 @@ def get_full_relay_config(project_id):
     """
 
     cfg = {}
-    project = _get_project_from_id(str(project_id))  # noqa B308
+    project = _get_project_from_id(six.text_type(project_id))
 
     if project is None:
         raise APIError("Invalid project id:{}".format(project_id))
@@ -214,23 +224,23 @@ def get_full_relay_config(project_id):
 
     invalid_releases = project.get_option(u'sentry:{}'.format(FilterTypes.RELEASES))
     if invalid_releases is not None:
-        project_options['invalid_releases'] = invalid_releases
+        project_options[ProjectOptionNames.invalid_releases] = invalid_releases
 
     # get the filters enabled for the current project
     enabled_filters = [filter_class.id for filter_class in filters.all()
                        if filter_class(project).is_enabled()]
 
-    project_options['enabled_filters'] = enabled_filters
+    project_options[ProjectOptionNames.enabled_filters] = enabled_filters
 
     scrub_ip_address = (org_options.get('sentry:require_scrub_ip_address', False) or
                         project.get_option('sentry:scrub_ip_address', False))
 
-    project_options['sentry:scrub_ip_address'] = scrub_ip_address
+    project_options[ProjectOptionNames.scrub_ip_addresses] = scrub_ip_address
 
     scrub_data = (org_options.get('sentry:require_scrub_data', False) or
                   project.get_option('sentry:scrub_data', True))
 
-    project_options['sentry:scrub_data'] = scrub_data
+    project_options[ProjectOptionNames.scrub_data] = scrub_data
 
     if scrub_data:
         # We filter data immediately before it ever gets into the queue
@@ -239,22 +249,22 @@ def get_full_relay_config(project_id):
             org_options.get(sensitive_fields_key, []) +
             project.get_option(sensitive_fields_key, [])
         )
-        project_options[sensitive_fields_key] = sensitive_fields
+        project_options[ProjectOptionNames.sensitive_fields] = sensitive_fields
 
         exclude_fields_key = 'sentry:safe_fields'
         exclude_fields = (
             org_options.get(exclude_fields_key, []) +
             project.get_option(exclude_fields_key, [])
         )
-        project_options[exclude_fields_key] = exclude_fields
+        project_options[ProjectOptionNames.exclude_fields] = exclude_fields
 
         scrub_defaults = (org_options.get('sentry:require_scrub_defaults', False) or
                           project.get_option('sentry:scrub_defaults', True))
-        project_options['sentry:scrub_defaults'] = scrub_defaults
+        project_options[ProjectOptionNames.scrub_defaults] = scrub_defaults
 
     cfg['grouping_config'] = get_grouping_config_dict_for_project(project)
 
-    cfg['origins'] = get_origins(project)
+    cfg['origins'] = list(get_origins(project))
 
     return FullRelayConfig(project, **cfg)
 
