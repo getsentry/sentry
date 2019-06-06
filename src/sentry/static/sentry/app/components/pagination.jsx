@@ -1,9 +1,19 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import {browserHistory} from 'react-router';
+import {css} from 'react-emotion';
 
 import utils from 'app/utils';
 import {t} from 'app/locale';
+
+const streamCss = css`
+  margin: 20px 0 0 0;
+
+  .icon-arrow-right,
+  .icon-arrow-left {
+    font-size: 20px !important;
+  }
+`;
 
 export default class Pagination extends React.Component {
   static propTypes = {
@@ -25,7 +35,7 @@ export default class Pagination extends React.Component {
         query,
       });
     },
-    className: 'stream-pagination',
+    className: streamCss,
   };
 
   render() {
