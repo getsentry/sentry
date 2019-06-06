@@ -5,9 +5,6 @@ import App from 'app/views/app';
 import HookOrDefault from 'app/components/hookOrDefault';
 import HookStore from 'app/stores/hookStore';
 import LazyLoad from 'app/components/lazyLoad';
-import MyIssuesAssignedToMe from 'app/views/myIssues/assignedToMe';
-import MyIssuesBookmarked from 'app/views/myIssues/bookmarked';
-import MyIssuesViewed from 'app/views/myIssues/viewed';
 import NewProject from 'app/views/projectInstall/newProject';
 import OnboardingConfigure from 'app/views/onboarding/configure';
 import OnboardingNewProject from 'app/views/onboarding/newProject';
@@ -952,18 +949,6 @@ function routes() {
           </Route>
           {/* Once org issues is complete, these routes can be nested under
           /organizations/:orgId/issues */}
-          <Route
-            path="/organizations/:orgId/issues/assigned/"
-            component={errorHandler(MyIssuesAssignedToMe)}
-          />
-          <Route
-            path="/organizations/:orgId/issues/bookmarks/"
-            component={errorHandler(MyIssuesBookmarked)}
-          />
-          <Route
-            path="/organizations/:orgId/issues/history/"
-            component={errorHandler(MyIssuesViewed)}
-          />
           <Route
             path="/organizations/:orgId/issues/:groupId/"
             componentPromise={() =>
