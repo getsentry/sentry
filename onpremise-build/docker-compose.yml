@@ -1,0 +1,54 @@
+# NOTE: This docker-compose.yml is meant to be just an example of how
+# you could accomplish this on your own. It is not intended to work in
+# all use-cases and must be adapted to fit your needs. This is merely
+# a guideline.
+
+# See docs.getsentry.com/on-premise/server/ for full
+# instructions
+
+version: '3.4'
+
+x-defaults: &defaults
+  restart: unless-stopped
+  build: .
+  depends_on:
+    - redis
+    - postgres
+  env_file: .env
+  environment:
+    SENTRY_REDIS_HOST: redis
+    SENTRY_POSTGRES_HOST: postgres
+  volumes:
+    - sentry-data:/var/lib/sentry/files
+
+
+services:
+  redis:
+    restart: unless-stopped
+    image: redis:3.2-alpine
+
+  postgres:
+    restart: unless-stopped
+    image: postgres:9.5
+    volumes:
+      - sentry-postgres:/var/lib/postgresql/data
+
+  web:
+    <<: *defaults
+    ports:
+      - '9000:9000'
+
+  cron:
+    <<: *defaults
+    command: run cron
+
+  worker:
+    <<: *defaults
+    command: run worker
+
+
+volumes:
+    sentry-data:
+      external: true
+    sentry-postgres:
+      external: true
