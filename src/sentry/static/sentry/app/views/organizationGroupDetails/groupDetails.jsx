@@ -17,8 +17,8 @@ import LoadingIndicator from 'app/components/loadingIndicator';
 import ProjectsStore from 'app/stores/projectsStore';
 import SentryTypes from 'app/sentryTypes';
 
-import {ERROR_TYPES} from '../shared/constants';
-import GroupHeader from '../shared/header';
+import {ERROR_TYPES} from './constants';
+import GroupHeader from './header';
 
 const GroupDetails = createReactClass({
   displayName: 'GroupDetails',

@@ -3,7 +3,7 @@ import React from 'react';
 
 import {mount, shallow} from 'enzyme';
 
-import GroupSimilar from 'app/views/groupDetails/shared/groupSimilar';
+import GroupSimilar from 'app/views/organizationGroupDetails/groupSimilar';
 import issues from 'app-test/mocks/issues';
 
 const project = TestStubs.Project({

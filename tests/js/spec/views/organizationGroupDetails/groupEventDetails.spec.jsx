@@ -3,7 +3,7 @@ import {mount} from 'enzyme';
 import {browserHistory} from 'react-router';
 
 import {initializeOrg} from 'app-test/helpers/initializeOrg';
-import GroupEventDetails from 'app/views/groupDetails/shared/groupEventDetails';
+import {GroupEventDetails} from 'app/views/organizationGroupDetails/groupEventDetails';
 
 describe('groupEventDetails', () => {
   let org;
@@ -96,6 +96,7 @@ describe('groupEventDetails', () => {
     });
     const wrapper = mount(
       <GroupEventDetails
+        api={new MockApiClient()}
         group={group}
         project={project}
         organization={org}
@@ -120,6 +121,7 @@ describe('groupEventDetails', () => {
     });
     const wrapper = mount(
       <GroupEventDetails
+        api={new MockApiClient()}
         group={group}
         project={project}
         organization={org}
@@ -155,6 +157,7 @@ describe('groupEventDetails', () => {
 
     const wrapper = mount(
       <GroupEventDetails
+        api={new MockApiClient()}
         group={group}
         project={project}
         organization={org}
@@ -202,6 +205,7 @@ describe('groupEventDetails', () => {
 
     mount(
       <GroupEventDetails
+        api={new MockApiClient()}
         group={group}
         project={project}
         organization={org}
@@ -225,6 +229,7 @@ describe('groupEventDetails', () => {
 
     mount(
       <GroupEventDetails
+        api={new MockApiClient()}
         group={group}
         project={project}
         organization={org}

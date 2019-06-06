@@ -3,7 +3,7 @@ import PropTypes from 'prop-types';
 import {mount, shallow} from 'enzyme';
 import {browserHistory} from 'react-router';
 
-import {GroupEvents} from 'app/views/groupDetails/organization/groupEvents';
+import {GroupEvents} from 'app/views/organizationGroupDetails/groupEvents';
 
 const OrgnanizationGroupEvents = GroupEvents;
 

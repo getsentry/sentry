@@ -2,7 +2,7 @@ import React from 'react';
 
 import {initializeOrg} from 'app-test/helpers/initializeOrg';
 import {mount} from 'enzyme';
-import GroupTags from 'app/views/groupDetails/shared/groupTags';
+import GroupTags from 'app/views/organizationGroupDetails/groupTags';
 
 describe('GroupTags', function() {
   const {routerContext, router} = initializeOrg();
