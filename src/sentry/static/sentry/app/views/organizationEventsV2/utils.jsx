@@ -40,6 +40,8 @@ export function getQuery(view, location) {
   });
 
   const data = pick(location.query, [
+    'project',
+    'environment',
     'start',
     'end',
     'utc',
