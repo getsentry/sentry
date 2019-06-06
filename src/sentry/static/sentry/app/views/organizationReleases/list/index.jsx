@@ -16,11 +16,11 @@ import withGlobalSelection from 'app/utils/withGlobalSelection';
 import {PageContent, PageHeader} from 'app/styles/organization';
 import PageHeading from 'app/components/pageHeading';
 
-import ReleaseList from '../shared/releaseList';
-import ReleaseListHeader from '../shared/releaseListHeader';
-import ReleaseLanding from '../shared/releaseLanding';
-import ReleaseProgress from '../shared/releaseProgress';
-import {getQuery} from '../shared/utils';
+import ReleaseList from './releaseList';
+import ReleaseListHeader from './releaseListHeader';
+import ReleaseLanding from './releaseLanding';
+import ReleaseProgress from './releaseProgress';
+import {getQuery} from './utils';
 
 class OrganizationReleasesContainer extends React.Component {
   static propTypes = {

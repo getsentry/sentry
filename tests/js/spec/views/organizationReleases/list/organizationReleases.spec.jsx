@@ -1,7 +1,7 @@
 import React from 'react';
 import {mount} from 'enzyme';
 
-import OrganizationReleases from 'app/views/releases/list/organizationReleases';
+import OrganizationReleases from 'app/views/organizationReleases/list/';
 
 describe('OrganizationReleases', function() {
   let organization;

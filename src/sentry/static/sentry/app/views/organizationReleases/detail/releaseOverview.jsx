@@ -8,12 +8,12 @@ import RepositoryFileSummary from 'app/components/repositoryFileSummary';
 import AsyncComponent from 'app/components/asyncComponent';
 import {t} from 'app/locale';
 
-import {getFilesByRepository} from '../shared/utils';
-import ReleaseDeploys from '../shared/releaseDeploys';
-import ReleaseEmptyState from '../shared/releaseEmptyState';
-import ReleaseIssues from '../shared/releaseIssues';
-import CommitAuthorStats from '../shared/commitAuthorStats';
-import ReleaseProjectStatSparkline from '../shared/releaseProjectStatSparkline';
+import {getFilesByRepository} from './utils';
+import ReleaseDeploys from './releaseDeploys';
+import ReleaseEmptyState from './releaseEmptyState';
+import ReleaseIssues from './releaseIssues';
+import CommitAuthorStats from './commitAuthorStats';
+import ReleaseProjectStatSparkline from './releaseProjectStatSparkline';
 
 export default class OrganizationReleaseOverview extends AsyncComponent {
   static propTypes = {

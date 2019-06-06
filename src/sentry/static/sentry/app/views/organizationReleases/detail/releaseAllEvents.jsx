@@ -5,7 +5,7 @@ import SentryTypes from 'app/sentryTypes';
 import Alert from 'app/components/alert';
 import {t} from 'app/locale';
 
-import GroupList from '../shared/groupList';
+import GroupList from './groupList';
 
 export default class ReleaseAllEvents extends React.Component {
   static propTypes = {

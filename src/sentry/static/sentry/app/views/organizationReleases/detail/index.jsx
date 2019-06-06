@@ -11,7 +11,7 @@ import withOrganization from 'app/utils/withOrganization';
 import AsyncView from 'app/views/asyncView';
 import {PageContent} from 'app/styles/organization';
 
-import ReleaseHeader from '../shared/releaseHeader';
+import ReleaseHeader from './releaseHeader';
 
 class OrganizationReleaseDetailsContainer extends React.Component {
   static propTypes = {
