@@ -99,7 +99,6 @@ class OrganizationEventDetailsOldestEndpoint(OrganizationEventsEndpointBase):
             return Response(status=404)
 
         result = raw_query(
-            # Search all time for requested event id
             start=snuba_args['start'],
             end=snuba_args['end'],
             selected_columns=SnubaEvent.selected_columns,
