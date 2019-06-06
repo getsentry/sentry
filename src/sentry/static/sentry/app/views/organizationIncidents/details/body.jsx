@@ -63,7 +63,7 @@ export default class DetailsBody extends React.Component {
               <ChartPlaceholder />
             )}
 
-            <IncidentsSuspects suspects={[]} />
+            <IncidentsSuspects params={params} />
 
             <div>
               <SidebarHeading>
