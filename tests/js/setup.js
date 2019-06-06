@@ -65,6 +65,7 @@ jest.mock('react-router', () => {
     Route: ReactRouter.Route,
     withRouter: ReactRouter.withRouter,
     browserHistory: {
+      goBack: jest.fn(),
       push: jest.fn(),
       replace: jest.fn(),
       listen: jest.fn(() => {}),
