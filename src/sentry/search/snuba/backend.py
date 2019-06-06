@@ -19,7 +19,7 @@ from sentry.api.event_search import (
 )
 from sentry.api.paginator import DateTimePaginator, SequencePaginator, Paginator
 from sentry.constants import ALLOWED_FUTURE_DELTA
-from sentry.models import Group
+from sentry.models import Group, Release, GroupEnvironment
 from sentry.search.base import SearchBackend
 from sentry.utils import snuba, metrics
 from sentry.utils.db import is_postgres
@@ -324,38 +324,25 @@ class SnubaSearchBackend(SearchBackend):
                     lambda release_version: Q(
                         # if no specific environments are supplied, we choose any groups that has a specific first release
                         # that matches the given release_version, (agnostic of environment)
-                        Q(first_release__version=release_version) |
+                        Q(
+                            first_release_id__in=Release.objects.filter(
+                                version=release_version,
+                                organization_id=projects[0].organization_id
+                            )
+                        ) |
                         # or choose any groups whose first occurrence in any environment and the latest release at
                         # the time of the groups' occurrence matches the given release_version
-                        Q(groupenvironment__first_release__version=release_version),
-                        first_release__organization_id=projects[0].organization_id
+                        Q(
+                            id__in=GroupEnvironment.objects.filter(
+                                first_release__version=release_version,
+                                first_release__organization_id=projects[0].organization_id,
+                                environment__organization_id=projects[0].organization_id
+                            ).values_list('group_id')
+                        )
                     ),
                 ),
                 'first_seen': ScalarCondition('first_seen'),
             }).build(group_queryset, search_filters)
-
-            if 'first_release' in search_filters:
-                # when searching by first_release, we invoke specialized query
-                # and queryset modifications
-
-                has_groupenvironment_join = 'sentry_groupenvironment' in group_queryset.query.alias_map
-                has_sentry_release_join = 'sentry_release' in group_queryset.query.alias_map
-
-                if has_groupenvironment_join and has_sentry_release_join:
-
-                    # if a sentry_groupenvironment join exists in group_queryset,
-                    # then promote the join to be a left outer join.
-                    # we do this since a group occurring in a first_release may
-                    # occur in no environment at all
-                    group_queryset.query.promote_joins(['sentry_groupenvironment'])
-
-                    # if a sentry_release join exists in group_queryset,
-                    # then demote the join to be an inner join
-                    group_queryset.query.demote_joins(['sentry_release'])
-
-                    # a groupenvironment left outer join may duplicate rows,
-                    # so we would only want distinct groups
-                    group_queryset = group_queryset.distinct()
 
         now = timezone.now()
         end = None
