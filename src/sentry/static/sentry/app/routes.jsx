@@ -1317,7 +1317,35 @@ function routes() {
             {projectSettingsRoutes}
           </Route>
           <Redirect from="group/:groupId/" to="issues/:groupId/" />
-
+          <Redirect from="issues/:groupId/" to="/organizations/:orgId/issues/:groupId/" />
+          <Redirect
+            from="issues/:groupId/events/"
+            to="/organizations/:orgId/issues/:groupId/events/"
+          />
+          <Redirect
+            from="issues/:groupId/events/:eventId/"
+            to="/organizations/:orgId/issues/:groupId/events/:eventId/"
+          />
+          <Redirect
+            from="issues/:groupId/tags/"
+            to="/organizations/:orgId/issues/:groupId/tags/"
+          />
+          <Redirect
+            from="issues/:groupId/tags/:tagKey/"
+            to="/organizations/:orgId/issues/:groupId/tags/:tagKey/"
+          />
+          <Redirect
+            from="issues/:groupId/feedback/"
+            to="/organizations/:orgId/issues/:groupId/feedback/"
+          />
+          <Redirect
+            from="issues/:groupId/similar/"
+            to="/organizations/:orgId/issues/:groupId/similar/"
+          />
+          <Redirect
+            from="issues/:groupId/merged/"
+            to="/organizations/:orgId/issues/:groupId/merged/"
+          />
           <Route path="events/:eventId/" component={errorHandler(ProjectEventRedirect)} />
         </Route>
       </Route>
