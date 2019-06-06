@@ -3,6 +3,7 @@ from __future__ import absolute_import
 from copy import deepcopy
 from rest_framework.exceptions import PermissionDenied
 import six
+from enum import Enum
 
 from sentry import features
 from sentry.api.bases import OrganizationEndpoint, OrganizationEventsError
@@ -26,6 +27,11 @@ SPECIAL_FIELDS = {
         'aggregations': [['uniq', 'user', 'user_count']],
     },
 }
+
+
+class Direction(Enum):
+    NEXT = 0
+    PREV = 1
 
 
 class OrganizationEventsEndpointBase(OrganizationEndpoint):
@@ -111,55 +117,51 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
                 'Boolean search operator OR and AND not allowed in this search.')
         return snuba_args
 
-    def next_event_id(self, request, organization, snuba_args, event):
+    def next_event_id(self, *args):
         """
         Returns the next event ID if there is a subsequent event matching the
         conditions provided
         """
+        return self._get_next_or_prev_id(Direction.NEXT, *args)
 
-        conditions = snuba_args['conditions'][:]
-        conditions.extend([
-            ['timestamp', '>=', event.timestamp],
-            [['timestamp', '>', event.timestamp], ['event_id', '>', event.event_id]]
-        ])
-
-        result = snuba.raw_query(
-            start=max(event.datetime, snuba_args['start']),
-            end=snuba_args['end'],
-            selected_columns=['event_id'],
-            conditions=conditions,
-            filter_keys=snuba_args['filter_keys'],
-            orderby=['timestamp', 'event_id'],
-            limit=1,
-            referrer='api.organization-events.next_event_id',
-        )
-
-        if 'error' in result or len(result['data']) == 0:
-            return None
-
-        return six.text_type(result['data'][0]['event_id'])
-
-    def prev_event_id(self, request, organization, snuba_args, event):
+    def prev_event_id(self, *args):
         """
         Returns the previous event ID if there is a previous event matching the
         conditions provided
         """
+        return self._get_next_or_prev_id(Direction.PREV, *args)
+
+    def _get_next_or_prev_id(self, direction, request, organization, snuba_args, event):
+        if (direction == Direction.NEXT):
+            time_condition = [
+                ['timestamp', '>=', event.timestamp],
+                [['timestamp', '>', event.timestamp], ['event_id', '>', event.event_id]]
+            ]
+            orderby = ['timestamp', 'event_id']
+            start = max(event.datetime, snuba_args['start'])
+            end = snuba_args['end']
+
+        else:
+            time_condition = [
+                ['timestamp', '<=', event.timestamp],
+                [['timestamp', '<', event.timestamp], ['event_id', '<', event.event_id]]
+            ]
+            orderby = ['-timestamp', '-event_id']
+            start = snuba_args['start']
+            end = min(event.datetime, snuba_args['end'])
 
         conditions = snuba_args['conditions'][:]
-        conditions.extend([
-            ['timestamp', '<=', event.timestamp],
-            [['timestamp', '<', event.timestamp], ['event_id', '<', event.event_id]]
-        ])
+        conditions.extend(time_condition)
 
         result = snuba.raw_query(
-            start=snuba_args['start'],
-            end=min(event.datetime, snuba_args['end']),
+            start=start,
+            end=end,
             selected_columns=['event_id'],
             conditions=conditions,
             filter_keys=snuba_args['filter_keys'],
-            orderby=['-timestamp', '-event_id'],
+            orderby=orderby,
             limit=1,
-            referrer='api.organization-events.prev_event_id',
+            referrer='api.organization-events.next-or-prev-id',
         )
 
         if 'error' in result or len(result['data']) == 0:
