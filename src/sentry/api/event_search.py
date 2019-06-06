@@ -1,7 +1,7 @@
 from __future__ import absolute_import
 
 import re
-from collections import namedtuple
+from collections import namedtuple, defaultdict
 from datetime import datetime
 
 import six
@@ -616,7 +616,7 @@ def get_snuba_query_args(query=None, params=None):
 
     kwargs = {
         'conditions': [],
-        'filter_keys': {},
+        'filter_keys': defaultdict(list),
     }
 
     for term in parsed_terms:
@@ -629,7 +629,7 @@ def get_snuba_query_args(query=None, params=None):
                 value = term.value.value
                 if isinstance(value, int):
                     value = [value]
-                kwargs['filter_keys'][snuba_name] = value
+                kwargs['filter_keys'][snuba_name].extend(value)
             else:
                 converted_filter = convert_search_filter_to_snuba_query(term)
                 kwargs['conditions'].append(converted_filter)
