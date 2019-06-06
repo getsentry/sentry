@@ -1,7 +1,7 @@
 import React from 'react';
 import {mount} from 'enzyme';
 
-import OrganizationSavedSearchSelector from 'app/views/stream/organizationSavedSearchSelector';
+import OrganizationSavedSearchSelector from 'app/views/organizationStream/organizationSavedSearchSelector';
 
 describe('OrganizationSavedSearchSelector', function() {
   let wrapper, onCreate, onSelect, onDelete, organization, savedSearchList;

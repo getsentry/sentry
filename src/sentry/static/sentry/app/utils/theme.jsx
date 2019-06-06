@@ -91,14 +91,16 @@ const theme = {
     sidebar: 1010,
     orgAndUserMenu: 1011,
 
-    // tooltips and hovercards
-    tooltip: 1070,
-
     // Sentry user feedback modal
     sentryErrorEmbed: 1090,
 
+    // If you change modal also update shared-components.less
+    // as the z-index for bootstrap modals lives there.
     modal: 10000,
     toast: 10001,
+
+    // tooltips and hovercards can be inside modals sometimes.
+    tooltip: 10002,
   },
 
   grid: 8,

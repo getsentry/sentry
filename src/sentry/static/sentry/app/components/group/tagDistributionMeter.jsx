@@ -2,7 +2,6 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import createReactClass from 'create-react-class';
 
-import {t} from 'app/locale';
 import {deviceNameMapper, loadDeviceListModule} from 'app/components/deviceName';
 import SentryTypes from 'app/sentryTypes';
 import withEnvironment from 'app/utils/withEnvironment';
@@ -17,7 +16,6 @@ const GroupTagDistributionMeter = createReactClass({
     tag: PropTypes.string.isRequired,
     name: PropTypes.string,
     organization: SentryTypes.Organization.isRequired,
-    projectId: PropTypes.string.isRequired,
     environment: SentryTypes.Environment,
     totalValues: PropTypes.number,
     topValues: PropTypes.array,
@@ -75,29 +73,14 @@ const GroupTagDistributionMeter = createReactClass({
   },
 
   render() {
-    const {organization, projectId, group, tag, totalValues, topValues} = this.props;
+    const {organization, group, tag, totalValues, topValues} = this.props;
     const {loading, error} = this.state;
 
-    const hasSentry10 = new Set(organization.features).has('sentry10');
-
-    const url = hasSentry10
-      ? `/organizations/${organization.slug}/issues/${group.id}/tags/${tag}/`
-      : `/${organization.slug}/${projectId}/issues/${group.id}/tags/${tag}/`;
+    const url = `/organizations/${organization.slug}/issues/${group.id}/tags/${tag}/`;
 
     let segments = [];
 
     if (topValues) {
-      const totalVisible = topValues.reduce((sum, value) => sum + value.count, 0);
-      const hasOther = totalVisible < totalValues;
-
-      if (hasOther) {
-        topValues.push({
-          value: 'other',
-          name: t('Other'),
-          count: totalValues - totalVisible,
-        });
-      }
-
       segments = this.state.iOSDeviceList
         ? topValues.map(value => ({
             ...value,

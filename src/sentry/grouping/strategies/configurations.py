@@ -44,7 +44,6 @@ register_strategy_config(
     changelog='''
         * Traditional grouping algorithm
         * Some known weaknesses with regards to grouping of native frames
-        * No support for grouping enhancements
     '''
 )
 

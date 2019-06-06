@@ -1,7 +1,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import {withRouter} from 'react-router';
 import styled from 'react-emotion';
+import {omit, isEqual} from 'lodash';
 import SentryTypes from 'app/sentryTypes';
 import space from 'app/styles/space';
 import SearchBar from 'app/views/organizationEvents/searchBar';
@@ -22,9 +22,10 @@ const CHART_AXIS_OPTIONS = [
   {label: 'Users', value: 'user_count'},
 ];
 
-class Events extends AsyncComponent {
+export default class Events extends AsyncComponent {
   static propTypes = {
-    router: PropTypes.object,
+    router: PropTypes.object.isRequired,
+    location: PropTypes.object.isRequired,
     organization: SentryTypes.Organization.isRequired,
     view: SentryTypes.EventView.isRequired,
   };
@@ -32,6 +33,18 @@ class Events extends AsyncComponent {
   state = {
     zoomed: false,
   };
+
+  componentDidUpdate(prevProps, prevContext) {
+    // Do not update if we are just opening/closing the modal
+    const locationHasChanged = !isEqual(
+      omit(prevProps.location.query, 'eventSlug'),
+      omit(this.props.location.query, 'eventSlug')
+    );
+
+    if (locationHasChanged) {
+      super.componentDidUpdate(prevProps, prevContext);
+    }
+  }
 
   getEndpoints() {
     const {location, organization, view} = this.props;
@@ -102,7 +115,7 @@ class Events extends AsyncComponent {
             />
             <Pagination pageLinks={dataPageLinks} />
           </div>
-          <Tags view={view} />
+          <Tags view={view} organization={organization} location={location} />
         </Container>
       </React.Fragment>
     );
@@ -118,5 +131,3 @@ const Container = styled('div')`
 const StyledSearchBar = styled(SearchBar)`
   margin-bottom: ${space(2)};
 `;
-
-export default withRouter(Events);

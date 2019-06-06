@@ -183,45 +183,44 @@ class BitbucketIssueTest(APITestCase):
             },
         )
 
-        with self.feature('organizations:sentry10'):
-            installation = self.integration.get_installation(self.organization.id)
-            assert installation.get_create_issue_config(self.group) == [
-                {
-                    'name': 'repo',
-                    'required': True,
-                    'updatesForm': True,
-                    'type': 'select',
-                    'url': self.build_autocomplete_url(),
-                    'choices': self.repo_choices,
-                    'default': self.repo_choices[0][0],
-                    'label': 'Bitbucket Repository',
-                }, {
-                    'name': 'title',
-                    'label': 'Title',
-                    'default': u'message',
-                    'type': 'string',
-                    'required': True,
-                }, {
-                    'name': 'description',
-                    'label': 'Description',
-                    'default': u'Sentry Issue: [BAR-1](http://testserver/organizations/baz/issues/%d/?referrer=bitbucket_integration)\n\n```\nStacktrace (most recent call last):\n\n  File "sentry/models/foo.py", line 29, in build_msg\n    string_max_length=self.string_max_length)\n\nmessage\n```' % self.group.id,
-                    'type': 'textarea',
-                    'autosize': True,
-                    'maxRows': 10,
-                }, {
-                    'name': 'issue_type',
-                    'label': 'Issue type',
-                    'default': ISSUE_TYPES[0][0],
-                    'type': 'select',
-                    'choices': ISSUE_TYPES
-                }, {
-                    'name': 'priority',
-                    'label': 'Priority',
-                    'default': PRIORITIES[0][0],
-                    'type': 'select',
-                    'choices': PRIORITIES
-                }
-            ]
+        installation = self.integration.get_installation(self.organization.id)
+        assert installation.get_create_issue_config(self.group) == [
+            {
+                'name': 'repo',
+                'required': True,
+                'updatesForm': True,
+                'type': 'select',
+                'url': self.build_autocomplete_url(),
+                'choices': self.repo_choices,
+                'default': self.repo_choices[0][0],
+                'label': 'Bitbucket Repository',
+            }, {
+                'name': 'title',
+                'label': 'Title',
+                'default': u'message',
+                'type': 'string',
+                'required': True,
+            }, {
+                'name': 'description',
+                'label': 'Description',
+                'default': u'Sentry Issue: [BAR-1](http://testserver/organizations/baz/issues/%d/?referrer=bitbucket_integration)\n\n```\nStacktrace (most recent call last):\n\n  File "sentry/models/foo.py", line 29, in build_msg\n    string_max_length=self.string_max_length)\n\nmessage\n```' % self.group.id,
+                'type': 'textarea',
+                'autosize': True,
+                'maxRows': 10,
+            }, {
+                'name': 'issue_type',
+                'label': 'Issue type',
+                'default': ISSUE_TYPES[0][0],
+                'type': 'select',
+                'choices': ISSUE_TYPES
+            }, {
+                'name': 'priority',
+                'label': 'Priority',
+                'default': PRIORITIES[0][0],
+                'type': 'select',
+                'choices': PRIORITIES
+            }
+        ]
 
     @responses.activate
     def test_get_link_issue_config(self):

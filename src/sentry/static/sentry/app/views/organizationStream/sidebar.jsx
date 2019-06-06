@@ -2,10 +2,10 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import createReactClass from 'create-react-class';
 import _ from 'lodash';
-import StreamTagFilter from 'app/views/stream/tagFilter';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import {queryToObj, objToQuery} from 'app/utils/stream';
 import {t} from 'app/locale';
+import StreamTagFilter from './tagFilter';
 
 const TEXT_FILTER_DEBOUNCE_IN_MS = 300;
 

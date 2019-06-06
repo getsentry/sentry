@@ -4,7 +4,7 @@ import {browserHistory} from 'react-router';
 import PropTypes from 'prop-types';
 
 import AsyncComponent from 'app/components/asyncComponent';
-import Button from 'app/components/button';
+import InlineSvg from 'app/components/inlineSvg';
 import withApi from 'app/utils/withApi';
 import space from 'app/styles/space';
 
@@ -36,15 +36,17 @@ class EventDetails extends AsyncComponent {
   handleTabChange = tab => this.setState({activeTab: tab});
 
   renderBody() {
+    const {orgId} = this.props.params;
     const [projectId, _] = this.props.eventSlug.split(':');
     return (
       <ModalContainer>
-        <CloseButton onClick={this.handleClose} size="zero" icon="icon-close" />
+        <CloseButton onClick={this.handleClose} size={30} />
         <EventModalContent
           onTabChange={this.handleTabChange}
           event={this.state.event}
           activeTab={this.state.activeTab}
           projectId={projectId}
+          orgId={orgId}
         />
       </ModalContainer>
     );
@@ -58,7 +60,7 @@ const ModalContainer = styled('div')`
   right: 0px;
   background: #fff;
 
-  margin: ${space(2)};
+  margin: ${space(3)};
   padding: ${space(3)};
   border: 1px solid ${p => p.theme.borderLight};
   border-radius: ${p => p.theme.borderRadius};
@@ -67,13 +69,31 @@ const ModalContainer = styled('div')`
   z-index: ${p => p.theme.zIndex.modal};
 `;
 
-const CloseButton = styled(Button)`
-  position: absolute;
-  top: -10px;
-  right: -10px;
-  padding: 10px;
-  border-radius: 20px;
+const CircleButton = styled('button')`
+  background: #fff;
+  border-radius: ${p => p.size / 2}px;
+  padding: ${p => p.size / 4}px;
+  line-height: ${p => p.size * 0.4}px;
+  height: ${p => p.size}px;
   box-shadow: ${p => p.theme.dropShadowLight};
+  border: 1px solid ${p => p.theme.borderDark};
+
+  position: absolute;
+  top: -${p => p.size / 2}px;
+  right: -${p => p.size / 2}px;
 `;
+
+const CloseButton = props => {
+  const iconSize = props.size * 0.4;
+  return (
+    <CircleButton size={props.size} onClick={props.onClick}>
+      <InlineSvg src="icon-close" size={`${iconSize}px`} />
+    </CircleButton>
+  );
+};
+CloseButton.propTypes = {
+  onClick: PropTypes.func,
+  size: PropTypes.number.isRequired,
+};
 
 export default withApi(EventDetails);

@@ -231,8 +231,6 @@ class Sidebar extends React.Component {
     };
     const hasOrganization = !!organization;
 
-    const hasSentry10 = hasOrganization && new Set(organization.features).has('sentry10');
-
     return (
       <StyledSidebar innerRef={this.sidebarRef} collapsed={collapsed}>
         <SidebarSectionGroupPrimary>
@@ -257,27 +255,21 @@ class Sidebar extends React.Component {
                     onClick={this.hidePanel}
                     icon={<InlineSvg src="icon-projects" />}
                     label={t('Projects')}
-                    to={
-                      hasSentry10
-                        ? `/organizations/${organization.slug}/projects/`
-                        : `/${organization.slug}/`
-                    }
+                    to={`/organizations/${organization.slug}/projects/`}
                   />
-                  <Feature features={['sentry10']} organization={organization}>
-                    <SidebarItem
-                      {...sidebarItemProps}
-                      onClick={(_id, evt) =>
-                        this.navigateWithGlobalSelection(
-                          `/organizations/${organization.slug}/issues/`,
-                          evt
-                        )
-                      }
-                      icon={<InlineSvg src="icon-issues" />}
-                      label={t('Issues')}
-                      to={`/organizations/${organization.slug}/issues/`}
-                      id="issues"
-                    />
-                  </Feature>
+                  <SidebarItem
+                    {...sidebarItemProps}
+                    onClick={(_id, evt) =>
+                      this.navigateWithGlobalSelection(
+                        `/organizations/${organization.slug}/issues/`,
+                        evt
+                      )
+                    }
+                    icon={<InlineSvg src="icon-issues" />}
+                    label={t('Issues')}
+                    to={`/organizations/${organization.slug}/issues/`}
+                    id="issues"
+                  />
 
                   <Feature
                     features={['events', 'events-v2']}
@@ -316,56 +308,36 @@ class Sidebar extends React.Component {
                     />
                   </Feature>
 
-                  {hasSentry10 && (
-                    <React.Fragment>
-                      <SidebarItem
-                        {...sidebarItemProps}
-                        onClick={(_id, evt) =>
-                          this.navigateWithGlobalSelection(
-                            `/organizations/${organization.slug}/releases/`,
-                            evt
-                          )
-                        }
-                        icon={<InlineSvg src="icon-releases" />}
-                        label={t('Releases')}
-                        to={`/organizations/${organization.slug}/releases/`}
-                        id="releases"
-                      />
-                      <SidebarItem
-                        {...sidebarItemProps}
-                        onClick={(_id, evt) =>
-                          this.navigateWithGlobalSelection(
-                            `/organizations/${organization.slug}/user-feedback/`,
-                            evt
-                          )
-                        }
-                        icon={<InlineSvg src="icon-support" />}
-                        label={t('User Feedback')}
-                        to={`/organizations/${organization.slug}/user-feedback/`}
-                        id="user-feedback"
-                      />
-                    </React.Fragment>
-                  )}
-
-                  {!hasSentry10 && (
-                    <Feature features={['discover']} organization={organization}>
-                      <SidebarItem
-                        {...sidebarItemProps}
-                        onClick={this.hidePanel}
-                        icon={<InlineSvg src="icon-discover" />}
-                        label={t('Discover')}
-                        to={`/organizations/${organization.slug}/discover/`}
-                        id="discover"
-                      />
-                    </Feature>
-                  )}
+                  <SidebarItem
+                    {...sidebarItemProps}
+                    onClick={(_id, evt) =>
+                      this.navigateWithGlobalSelection(
+                        `/organizations/${organization.slug}/releases/`,
+                        evt
+                      )
+                    }
+                    icon={<InlineSvg src="icon-releases" />}
+                    label={t('Releases')}
+                    to={`/organizations/${organization.slug}/releases/`}
+                    id="releases"
+                  />
+                  <SidebarItem
+                    {...sidebarItemProps}
+                    onClick={(_id, evt) =>
+                      this.navigateWithGlobalSelection(
+                        `/organizations/${organization.slug}/user-feedback/`,
+                        evt
+                      )
+                    }
+                    icon={<InlineSvg src="icon-support" />}
+                    label={t('User Feedback')}
+                    to={`/organizations/${organization.slug}/user-feedback/`}
+                    id="user-feedback"
+                  />
                 </SidebarSection>
 
                 <SidebarSection>
-                  <Feature
-                    features={['sentry10', 'discover']}
-                    organization={organization}
-                  >
+                  <Feature features={['discover']} organization={organization}>
                     <SidebarItem
                       {...sidebarItemProps}
                       index
@@ -377,7 +349,7 @@ class Sidebar extends React.Component {
                     />
                   </Feature>
                   <Feature
-                    features={['sentry10', 'discover']}
+                    features={['discover']}
                     hookName="discover-sidebar-item"
                     organization={organization}
                   >
@@ -406,36 +378,6 @@ class Sidebar extends React.Component {
                     />
                   </Feature>
                 </SidebarSection>
-
-                {!hasSentry10 && (
-                  <SidebarSection>
-                    <SidebarItem
-                      {...sidebarItemProps}
-                      onClick={this.hidePanel}
-                      icon={<InlineSvg src="icon-user" />}
-                      label={t('Assigned to me')}
-                      to={`/organizations/${organization.slug}/issues/assigned/`}
-                      id="assigned"
-                    />
-                    <SidebarItem
-                      {...sidebarItemProps}
-                      onClick={this.hidePanel}
-                      icon={<InlineSvg src="icon-star" />}
-                      label={t('Bookmarked issues')}
-                      to={`/organizations/${organization.slug}/issues/bookmarks/`}
-                      id="bookmarks"
-                    />
-                    <SidebarItem
-                      {...sidebarItemProps}
-                      onClick={this.hidePanel}
-                      icon={<InlineSvg src="icon-history" />}
-                      label={t('Recently viewed')}
-                      to={`/organizations/${organization.slug}/issues/history/`}
-                      id="history"
-                    />
-                  </SidebarSection>
-                )}
-
                 <SidebarSection>
                   <SidebarItem
                     {...sidebarItemProps}

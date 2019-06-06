@@ -13,8 +13,8 @@ import StreamGroup from 'app/components/stream/group';
 import TagStore from 'app/stores/tagStore';
 
 // Mock <StreamSidebar> and <StreamActions>
-jest.mock('app/views/stream/sidebar', () => jest.fn(() => null));
-jest.mock('app/views/stream/actions', () => jest.fn(() => null));
+jest.mock('app/views/organizationStream/sidebar', () => jest.fn(() => null));
+jest.mock('app/views/organizationStream/actions', () => jest.fn(() => null));
 jest.mock('app/components/stream/group', () => jest.fn(() => null));
 
 const DEFAULT_LINKS_HEADER =
@@ -123,7 +123,7 @@ describe('OrganizationStream', function() {
   describe('withStores and feature flags', function() {
     const {router, routerContext} = initializeOrg({
       organization: {
-        features: ['sentry10', 'global-views'],
+        features: ['global-views'],
         slug: 'org-slug',
       },
       router: {

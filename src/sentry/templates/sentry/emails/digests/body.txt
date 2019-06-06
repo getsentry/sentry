@@ -4,8 +4,8 @@
 
 {% for rule, groups in digest.iteritems %}{{ rule.label }}
 {% for group, records in groups.iteritems %}
-* {{ group.title }} ({{ group.event_count }} event{{ group.event_count|pluralize }}, {{ group.user_count }} user{{ group.user_count|pluralize }}){% url 'sentry-group' group.organization.slug group.project.slug group.id as old_group_link %}{% url 'sentry-organization-issue' group.organization.slug group.id as new_group_link %}
-  {% feature organizations:sentry10 group.organization %}{% absolute_uri new_group_link %}?referrer=digest_email{% else %}{% absolute_uri old_group_link %}?referrer=digest_email{% endfeature %}
+* {{ group.title }} ({{ group.event_count }} event{{ group.event_count|pluralize }}, {{ group.user_count }} user{{ group.user_count|pluralize }}){% url 'sentry-organization-issue' group.organization.slug group.id as group_link %}
+  {% absolute_uri group_link %}?referrer=digest_email
 {% endfor %}
 {% endfor %}
 

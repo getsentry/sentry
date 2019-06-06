@@ -20,6 +20,7 @@ import {getMessage, getTitle} from 'app/utils/events';
 
 import {INTERFACES} from 'app/components/events/eventEntries';
 import TagsTable from './tagsTable';
+import LinkedIssuePreview from './linkedIssuePreview';
 
 const OTHER_SECTIONS = {
   context: EventExtraData,
@@ -75,7 +76,10 @@ ActiveTab.propTypes = {
  * Controlled by the EventDetails View.
  */
 const EventModalContent = props => {
-  const {event, activeTab, projectId, onTabChange} = props;
+  const {event, activeTab, projectId, orgId, onTabChange} = props;
+  const eventJsonUrl = `/api/0/projects/${orgId}/${projectId}/events/${
+    event.eventID
+  }/json/`;
 
   return (
     <ColumnGrid>
@@ -127,7 +131,8 @@ const EventModalContent = props => {
         </ErrorBoundary>
       </ContentColumn>
       <SidebarColumn>
-        <EventMetadata event={event} />
+        {event.groupID && <LinkedIssuePreview groupId={event.groupID} />}
+        <EventMetadata event={event} eventJsonUrl={eventJsonUrl} />
         <SidebarBlock>
           <TagsTable tags={event.tags} />
         </SidebarBlock>
@@ -138,6 +143,7 @@ const EventModalContent = props => {
 EventModalContent.propTypes = {
   ...ActiveTab.propTypes,
   onTabChange: PropTypes.func.isRequired,
+  orgId: PropTypes.string.isRequired,
 };
 
 /**
@@ -160,8 +166,7 @@ EventHeader.propTypes = {
  * Render metadata about the event and provide a link to the JSON blob
  */
 const EventMetadata = props => {
-  const jsonUrl = 'TODO build this';
-  const {event} = props;
+  const {event, eventJsonUrl} = props;
 
   return (
     <SidebarBlock withSeparator>
@@ -170,7 +175,7 @@ const EventMetadata = props => {
         <DateTime
           date={getDynamicText({value: event.dateCreated, fixed: 'Dummy timestamp'})}
         />
-        <ExternalLink href={jsonUrl} className="json-link">
+        <ExternalLink href={eventJsonUrl} className="json-link">
           JSON (<FileSize bytes={event.size} />)
         </ExternalLink>
       </MetadataContainer>
@@ -179,6 +184,7 @@ const EventMetadata = props => {
 };
 EventMetadata.propTypes = {
   event: SentryTypes.Event.isRequired,
+  eventJsonUrl: PropTypes.string.isRequired,
 };
 
 const MetadataContainer = styled('div')`

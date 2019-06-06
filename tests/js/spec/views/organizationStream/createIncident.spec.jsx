@@ -7,14 +7,14 @@ import GlobalModal from 'app/components/globalModal';
 import OrganizationStreamWithStores from 'app/views/organizationStream/overview';
 import TagStore from 'app/stores/tagStore';
 
-jest.mock('app/views/stream/sidebar', () => jest.fn(() => null));
+jest.mock('app/views/organizationStream/sidebar', () => jest.fn(() => null));
 
 describe('OrganizationStream --> Create Incident', function() {
   let wrapper;
 
   const {project, router, routerContext} = initializeOrg({
     organization: {
-      features: ['sentry10', 'global-views', 'incidents'],
+      features: ['global-views', 'incidents'],
       access: ['releases'],
       slug: 'org-slug',
     },

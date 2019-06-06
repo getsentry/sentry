@@ -10,7 +10,6 @@ import createReactClass from 'create-react-class';
 import {PageContent} from 'app/styles/organization';
 import {t} from 'app/locale';
 import withApi from 'app/utils/withApi';
-import Feature from 'app/components/acl/feature';
 import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
 import GroupStore from 'app/stores/groupStore';
 import LoadingError from 'app/components/loadingError';
@@ -248,29 +247,22 @@ const GroupDetails = createReactClass({
     const isLoading = loading || !group;
 
     return (
-      <Feature features={['sentry10']}>
-        {({hasFeature: hasSentry10}) => {
-          const shouldShowGlobalHeader = hasSentry10 && showGlobalHeader;
-          return (
-            <React.Fragment>
-              {shouldShowGlobalHeader && (
-                <GlobalSelectionHeader
-                  organization={organization}
-                  forceProject={project}
-                  showDateSelector={false}
-                />
-              )}
-              {isLoading ? (
-                <PageContent>
-                  <LoadingIndicator />
-                </PageContent>
-              ) : (
-                this.renderContent(shouldShowGlobalHeader)
-              )}
-            </React.Fragment>
-          );
-        }}
-      </Feature>
+      <React.Fragment>
+        {showGlobalHeader && (
+          <GlobalSelectionHeader
+            organization={organization}
+            forceProject={project}
+            showDateSelector={false}
+          />
+        )}
+        {isLoading ? (
+          <PageContent>
+            <LoadingIndicator />
+          </PageContent>
+        ) : (
+          this.renderContent(showGlobalHeader)
+        )}
+      </React.Fragment>
     );
   },
 });

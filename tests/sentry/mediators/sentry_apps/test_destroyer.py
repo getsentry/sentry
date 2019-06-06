@@ -19,7 +19,7 @@ class TestDestroyer(TestCase):
             scopes=('project:read',),
         )
 
-        self.destroyer = Destroyer(sentry_app=self.sentry_app)
+        self.destroyer = Destroyer(sentry_app=self.sentry_app, user=self.user)
 
     def test_deletes_app_installations(self):
         install = self.create_sentry_app_installation(
@@ -29,6 +29,17 @@ class TestDestroyer(TestCase):
         )
         self.destroyer.call()
         assert not SentryAppInstallation.objects.filter(pk=install.id).exists()
+
+    @patch('sentry.mediators.sentry_app_installations.Destroyer.run')
+    def test_passes_notify_false_if_app_internal(self, run):
+        self.create_project(organization=self.org)
+        internal = self.create_internal_integration(organization=self.org)
+        Destroyer.run(sentry_app=internal, user=self.user)
+        run.assert_called_with(
+            install=internal.installations.first(),
+            user=internal.proxy_user,
+            notify=False,
+        )
 
     def test_deletes_api_application(self):
         application = self.sentry_app.application

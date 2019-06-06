@@ -6,13 +6,11 @@ import CommitLink from 'app/components/commitLink';
 import Duration from 'app/components/duration';
 import MemberListStore from 'app/stores/memberListStore';
 import PullRequestLink from 'app/components/pullRequestLink';
-import SentryTypes from 'app/sentryTypes';
 import TeamStore from 'app/stores/teamStore';
 import Version from 'app/components/version';
 
 class GroupActivityItem extends React.Component {
   static propTypes = {
-    organization: SentryTypes.Organization.isRequired,
     author: PropTypes.node,
     item: PropTypes.object,
     orgId: PropTypes.string,
@@ -20,14 +18,10 @@ class GroupActivityItem extends React.Component {
   };
 
   render() {
-    const {organization, author, item, orgId, projectId} = this.props;
+    const {author, item, orgId, projectId} = this.props;
     const {data} = item;
 
-    const hasSentry10 = new Set(organization.features).has('sentry10');
-
-    const issuesLink = hasSentry10
-      ? `/organizations/${orgId}/issues/`
-      : `/${orgId}/${projectId}/issues/`;
+    const issuesLink = `/organizations/${orgId}/issues/`;
 
     switch (item.type) {
       case 'note':

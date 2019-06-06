@@ -17,8 +17,8 @@ export const ALL_VIEWS = deepFreeze([
     id: 'all',
     name: 'All Events',
     data: {
-      fields: ['event', 'event.type', 'project', 'user', 'time'],
-      sort: '-timestamp',
+      fields: ['event', 'type', 'project', 'user', 'time'],
+      orderby: '-timestamp',
     },
     tags: [
       'event.type',
@@ -33,9 +33,9 @@ export const ALL_VIEWS = deepFreeze([
     id: 'errors',
     name: 'Errors',
     data: {
-      fields: ['issue_title', 'event_count', 'user_count', 'project', 'last_seen'],
+      fields: ['error', 'event_count', 'user_count', 'project', 'last_seen'],
       groupby: ['issue.id', 'project.id'],
-      sort: '-last_seen',
+      orderby: '-last_seen',
     },
     tags: ['error.type', 'project.name'],
   },
@@ -43,9 +43,9 @@ export const ALL_VIEWS = deepFreeze([
     id: 'csp',
     name: 'CSP',
     data: {
-      fields: ['issue_title', 'event_count', 'user_count', 'project', 'last_seen'],
+      fields: ['csp', 'event_count', 'user_count', 'project', 'last_seen'],
       groupby: ['issue.id', 'project.id'],
-      sort: '-last_seen',
+      orderby: '-last_seen',
     },
     tags: [
       'project.name',
@@ -78,6 +78,14 @@ export const SPECIAL_FIELDS = {
         </Container>
       );
     },
+  },
+  type: {
+    fields: ['event.type'],
+    renderFunc: (data, {onSearch}) => (
+      <QueryLink onClick={() => onSearch(`event.type:${data['event.type']}`)}>
+        {data['event.type']}
+      </QueryLink>
+    ),
   },
   project: {
     fields: ['project.name'],
@@ -120,6 +128,14 @@ export const SPECIAL_FIELDS = {
       </Container>
     ),
   },
+  error: {
+    fields: ['issue_title'],
+    renderFunc: data => <Container>{data.issue_title}</Container>,
+  },
+  csp: {
+    fields: ['issue_title'],
+    renderFunc: data => <Container>{data.issue_title}</Container>,
+  },
   event_count: {
     title: 'events',
     fields: ['event_count'],
@@ -131,6 +147,7 @@ export const SPECIAL_FIELDS = {
     renderFunc: data => <Container>{data.user_count}</Container>,
   },
   last_seen: {
+    title: 'last seen',
     fields: ['last_seen'],
     renderFunc: data => (
       <Container>

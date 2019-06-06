@@ -15,6 +15,7 @@ import {t} from 'app/locale';
 import SentryAppInstallationStore from 'app/stores/sentryAppInstallationsStore';
 import SentryAppComponentsStore from 'app/stores/sentryAppComponentsStore';
 import ExternalIssueStore from 'app/stores/externalIssueStore';
+import ErrorBoundary from 'app/components/errorBoundary';
 
 class ExternalIssueList extends AsyncComponent {
   static propTypes = {
@@ -130,14 +131,16 @@ class ExternalIssueList extends AsyncComponent {
       const issue = (externalIssues || []).find(i => i.serviceType == sentryApp.slug);
 
       return (
-        <SentryAppExternalIssueActions
-          key={sentryApp.slug}
-          group={group}
-          event={this.props.event}
-          sentryAppComponent={component}
-          sentryAppInstallation={installation}
-          externalIssue={issue}
-        />
+        <ErrorBoundary key={sentryApp.slug} mini>
+          <SentryAppExternalIssueActions
+            key={sentryApp.slug}
+            group={group}
+            event={this.props.event}
+            sentryAppComponent={component}
+            sentryAppInstallation={installation}
+            externalIssue={issue}
+          />
+        </ErrorBoundary>
       );
     });
   }

@@ -1,5 +1,6 @@
 import {pick} from 'lodash';
 
+import {DEFAULT_PER_PAGE} from 'app/constants';
 import {ALL_VIEWS, SPECIAL_FIELDS} from './data';
 
 /**
@@ -49,8 +50,8 @@ export function getQuery(view, location) {
 
   data.field = [...new Set(fields)];
   data.groupby = groupby;
-  data.sort = view.data.sort;
-
+  data.orderby = view.data.orderby;
+  data.per_page = DEFAULT_PER_PAGE;
   return data;
 }
 
@@ -58,17 +59,18 @@ export function getQuery(view, location) {
  * Return a location object for the current pathname
  * with a query string reflected the provided tag.
  *
- * @param {Object} tag containing key/value properties
+ * @param {String} tagKey
+ * @param {String} tagValue
  * @param {Object} browser location object.
  * @return {Object} router target
  */
-export function eventTagSearchUrl(tag, location) {
+export function getEventTagSearchUrl(tagKey, tagValue, location) {
   const query = {...location.query};
   // Add tag key/value to search
   if (query.query) {
-    query.query += ` ${tag.key}:"${tag.value}"`;
+    query.query += ` ${tagKey}:"${tagValue}"`;
   } else {
-    query.query = `${tag.key}:"${tag.value}"`;
+    query.query = `${tagKey}:"${tagValue}"`;
   }
   // Remove the event slug so the user sees new search results.
   delete query.eventSlug;
@@ -77,4 +79,26 @@ export function eventTagSearchUrl(tag, location) {
     pathname: location.pathname,
     query,
   };
+}
+
+/**
+ * Fetches tag distributions for heatmaps for an array of tag keys
+ *
+ * @param {Object} api
+ * @param {String} orgSlug
+ * @param {Array} tagList
+ * @returns {Promise<Object>}
+ */
+export function fetchTags(api, orgSlug, tagList) {
+  return api
+    .requestPromise(`/organizations/${orgSlug}/events-heatmap/`, {
+      query: {keys: tagList},
+    })
+    .then(resp => {
+      const tags = {};
+      resp.forEach(tag => {
+        tags[tag.key] = tag;
+      });
+      return tags;
+    });
 }

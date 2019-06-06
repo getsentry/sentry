@@ -76,8 +76,6 @@ class OrganizationProjects extends AsyncView {
     const {organization} = this.props;
     const canCreateProjects = new Set(organization.access).has('project:admin');
 
-    const hasNewRoutes = new Set(organization.features).has('sentry10');
-
     const action = (
       <Button
         priority="primary"
@@ -121,17 +119,6 @@ class OrganizationProjects extends AsyncView {
                     stats={projectStats[project.id]}
                   />
                 </Box>
-                {!hasNewRoutes && (
-                  <Box p={2} align="right">
-                    <Button
-                      icon="icon-settings"
-                      size="small"
-                      to={`/settings/${organization.slug}/projects/${project.slug}/`}
-                    >
-                      {t('Settings')}
-                    </Button>
-                  </Box>
-                )}
               </PanelItem>
             ))}
             {projectList.length === 0 && (

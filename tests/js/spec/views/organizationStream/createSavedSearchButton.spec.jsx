@@ -1,14 +1,13 @@
 import React from 'react';
 import {mount} from 'enzyme';
 
-import CreateSavedSearchButton from 'app/views/stream/createSavedSearchButton';
+import CreateSavedSearchButton from 'app/views/organizationStream/createSavedSearchButton';
 
 describe('CreateSavedSearchButton', function() {
   let wrapper, organization, createMock;
 
   beforeEach(function() {
     organization = TestStubs.Organization({
-      features: ['sentry10'],
       access: ['org:write'],
     });
     wrapper = mount(
@@ -80,25 +79,23 @@ describe('CreateSavedSearchButton', function() {
       );
     });
 
-    it('hides button if no feature', function() {
+    it('shows button by default', function() {
       const orgWithoutFeature = TestStubs.Organization({
-        features: [],
         access: ['org:write'],
       });
       wrapper.setProps({organization: orgWithoutFeature});
 
-      const button = wrapper.find('StyledButton');
-      expect(button).toHaveLength(0);
+      const button = wrapper.find('button[aria-label="Add to organization filter list"]');
+      expect(button).toHaveLength(1);
     });
 
     it('hides button if no access', function() {
       const orgWithoutAccess = TestStubs.Organization({
-        features: ['sentry10'],
         access: ['org:read'],
       });
       wrapper.setProps({organization: orgWithoutAccess});
 
-      const button = wrapper.find('StyledButton');
+      const button = wrapper.find('button[aria-label="Add to organization filter list"]');
       expect(button).toHaveLength(0);
     });
   });

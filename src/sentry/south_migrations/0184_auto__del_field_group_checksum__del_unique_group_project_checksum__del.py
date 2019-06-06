@@ -23,7 +23,8 @@ class Migration(SchemaMigration):
             "Cannot reverse this migration. 'Group.checksum' and its values cannot be restored."
         )
 
-        # The following code is provided here to aid in writing a correct migration        # Adding field 'Group.checksum'
+        # The following code is provided here to aid in writing a correct
+        # migration        # Adding field 'Group.checksum'
         db.add_column(
             'sentry_groupedmessage',
             'checksum',
@@ -39,7 +40,8 @@ class Migration(SchemaMigration):
             "Cannot reverse this migration. 'Event.checksum' and its values cannot be restored."
         )
 
-        # The following code is provided here to aid in writing a correct migration        # Adding field 'Event.checksum'
+        # The following code is provided here to aid in writing a correct
+        # migration        # Adding field 'Event.checksum'
         db.add_column(
             'sentry_message',
             'checksum',

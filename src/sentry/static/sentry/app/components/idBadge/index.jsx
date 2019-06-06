@@ -7,7 +7,6 @@ import UserBadge from 'app/components/idBadge/userBadge';
 import TeamBadge from 'app/components/idBadge/teamBadge';
 import ProjectBadge from 'app/components/idBadge/projectBadge';
 import OrganizationBadge from 'app/components/idBadge/organizationBadge';
-import SentryTypes from 'app/sentryTypes';
 
 const COMPONENT_MAP = new Map([
   ['organization', OrganizationBadge],
@@ -24,11 +23,6 @@ const COMPONENT_MAP = new Map([
 export default class IdBadge extends React.Component {
   static propTypes = {
     ...BaseBadge.propTypes,
-    team: SentryTypes.Team,
-    project: SentryTypes.Project,
-    organization: SentryTypes.Organization,
-    member: SentryTypes.Member,
-    user: SentryTypes.User,
   };
 
   render() {
