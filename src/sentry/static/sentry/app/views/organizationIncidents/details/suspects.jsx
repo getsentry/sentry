@@ -34,42 +34,46 @@ Message.propTypes = {
   suspect: SentryTypes.IncidentSuspectData,
 };
 
-class Suspects extends React.Component {
-  static propTypes = {
-    suspects: PropTypes.arrayOf(SentryTypes.IncidentSuspect),
-  };
+const Suspects = styled(
+  class Suspects extends React.Component {
+    static propTypes = {
+      suspects: PropTypes.arrayOf(SentryTypes.IncidentSuspect),
+    };
 
-  renderEmpty() {
-    return t('No suspects found');
+    renderEmpty() {
+      return t('No suspects found');
+    }
+
+    render() {
+      const {className, suspects} = this.props;
+
+      return (
+        <div className={className}>
+          <SideHeader>{t('Suspects')}</SideHeader>
+          {suspects && suspects.length > 0 && (
+            <Panel>
+              <PanelBody>
+                {suspects.map(({type, data}) => (
+                  <SuspectItem p={1} key={data.id}>
+                    <Type>{type}</Type>
+                    <Message type={type} suspect={data} />
+                    <AuthorRow>
+                      <IdBadge user={data.author} hideEmail />
+                      <LightTimeSince date={data.dateCreated} />
+                    </AuthorRow>
+                  </SuspectItem>
+                ))}
+              </PanelBody>
+            </Panel>
+          )}
+          {(!suspects || suspects.length === 0) && this.renderEmpty()}
+        </div>
+      );
+    }
   }
-
-  render() {
-    const {suspects} = this.props;
-
-    return (
-      <Container>
-        <SideHeader>{t('Suspects')}</SideHeader>
-        {suspects && suspects.length > 0 && (
-          <Panel>
-            <PanelBody>
-              {suspects.map(({type, data}) => (
-                <SuspectItem p={1} key={data.id}>
-                  <Type>{type}</Type>
-                  <Message type={type} suspect={data} />
-                  <AuthorRow>
-                    <IdBadge user={data.author} hideEmail />
-                    <LightTimeSince date={data.dateCreated} />
-                  </AuthorRow>
-                </SuspectItem>
-              ))}
-            </PanelBody>
-          </Panel>
-        )}
-        {(!suspects || suspects.length === 0) && this.renderEmpty()}
-      </Container>
-    );
-  }
-}
+)`
+  margin-top: ${space(1)};
+`;
 
 export default class SuspectsContainer extends AsyncComponent {
   getEndpoints() {
@@ -88,10 +92,6 @@ export default class SuspectsContainer extends AsyncComponent {
     );
   }
 }
-
-const Container = styled('div')`
-  margin-top: ${space(1)};
-`;
 
 const Type = styled('div')`
   text-transform: uppercase;

@@ -15,7 +15,7 @@ import space from 'app/styles/space';
 import theme from 'app/utils/theme';
 
 import Activity from './activity';
-import IncidentsSuspects from './suspects';
+import Suspects from './suspects';
 
 export default class DetailsBody extends React.Component {
   static propTypes = {
@@ -63,7 +63,7 @@ export default class DetailsBody extends React.Component {
               <ChartPlaceholder />
             )}
 
-            <IncidentsSuspects params={params} />
+            <Suspects params={params} />
 
             <div>
               <SidebarHeading>
