@@ -334,22 +334,28 @@ class SnubaSearchBackend(SearchBackend):
                 'first_seen': ScalarCondition('first_seen'),
             }).build(group_queryset, search_filters)
 
-            has_groupenvironment_join = 'sentry_groupenvironment' in group_queryset.query.alias_map
-            has_sentry_release_join = 'sentry_release' in group_queryset.query.alias_map
+            if 'first_release' in search_filters:
+                # when searching by first_release, we invoke specialized query
+                # and queryset modifications
 
-            # a groupenvironment left outer join may duplicate rows,
-            # so we would only want distinct groups
-            if has_groupenvironment_join and has_sentry_release_join:
+                has_groupenvironment_join = 'sentry_groupenvironment' in group_queryset.query.alias_map
+                has_sentry_release_join = 'sentry_release' in group_queryset.query.alias_map
 
-                # if a sentry_groupenvironment join exists in group_queryset,
-                # then promote the join to be a left outer join
-                group_queryset.query.promote_joins(['sentry_groupenvironment'])
+                # a groupenvironment left outer join may duplicate rows,
+                # so we would only want distinct groups
+                if has_groupenvironment_join and has_sentry_release_join:
 
-                # if a sentry_release join exists in group_queryset,
-                # then demote the join to be an inner join
-                group_queryset.query.demote_joins(['sentry_release'])
+                    # if a sentry_groupenvironment join exists in group_queryset,
+                    # then promote the join to be a left outer join.
+                    # we do this since a group occurring in a first_release may
+                    # occur in no environment at all
+                    group_queryset.query.promote_joins(['sentry_groupenvironment'])
 
-                group_queryset = group_queryset.distinct()
+                    # if a sentry_release join exists in group_queryset,
+                    # then demote the join to be an inner join
+                    group_queryset.query.demote_joins(['sentry_release'])
+
+                    group_queryset = group_queryset.distinct()
 
         now = timezone.now()
         end = None
