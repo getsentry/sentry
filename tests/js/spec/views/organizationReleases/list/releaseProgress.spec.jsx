@@ -2,7 +2,7 @@ import React from 'react';
 import {Client} from 'app/api';
 import {mount} from 'enzyme';
 
-import {ReleaseProgress} from 'app/views/releases/list/shared/releaseProgress';
+import {ReleaseProgress} from 'app/views/organizationReleases/list/releaseProgress';
 
 describe('ReleaseProgress', function() {
   let wrapper, organization, project, getPromptsMock, putMock, routerContext;
