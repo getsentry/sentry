@@ -1157,6 +1157,28 @@ function routes() {
             }
             component={errorHandler(LazyLoad)}
           />
+          <Redirect from="releases/" to="/organizations/:orgId/releases/" />
+          <Redirect
+            from="releases/:version/"
+            to="/organizations/:orgId/releases/:version/"
+          />
+          <Redirect
+            from="releases/:version/new-events/"
+            to="/organizations/:orgId/releases/:version/new-events/"
+          />
+          <Redirect
+            from="releases/:version/all-events/"
+            to="/organizations/:orgId/releases/:version/all-events/"
+          />
+          <Redirect
+            from="releases/:version/artifacts/"
+            to="/organizations/:orgId/releases/:version/artifacts/"
+          />
+          <Redirect
+            from="releases/:version/commits/"
+            to="/organizations/:orgId/releases/:version/commits/"
+          />
+
           <Redirect from="user-feedback/" to="/organizations/:orgId/user-feedback/" />
           <Route path="settings/" component={errorHandler(ProjectSettings)}>
             <Redirect from="teams/" to="/settings/:orgId/projects/:projectId/teams/" />
