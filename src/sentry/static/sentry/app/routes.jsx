@@ -1150,13 +1150,7 @@ function routes() {
           <IndexRedirect to="/organizations/:orgId/issues/" />
           <Redirect from="issues/" to="/organizations/:orgId/issues/" />
           <Redirect from="searches/:searchId/" to="/organizations/:orgId/issues/" />
-          <Route
-            path="dashboard/"
-            componentPromise={() =>
-              import(/*webpackChunkName: "ProjectDashboard"*/ './views/projectDashboard')
-            }
-            component={errorHandler(LazyLoad)}
-          />
+          <Redirect from="dashboard/" to="/organizations/:orgId/dashboard" />
           <Redirect from="releases/" to="/organizations/:orgId/releases/" />
           <Redirect
             from="releases/:version/"
