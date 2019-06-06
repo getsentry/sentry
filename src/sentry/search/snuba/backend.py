@@ -328,7 +328,7 @@ class SnubaSearchBackend(SearchBackend):
                         # or choose any groups whose first occurrence in any environment and the latest release at
                         # the time of the groups' occurrence matches the given release_version
                         Q(groupenvironment__first_release__version=release_version),
-                        groupenvironment__first_release__organization_id=projects[0].organization_id,
+                        first_release__organization_id=projects[0].organization_id
                     ),
                 ),
                 'first_seen': ScalarCondition('first_seen'),
