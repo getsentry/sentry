@@ -1,7 +1,7 @@
 import React from 'react';
 import {mount} from 'enzyme';
 
-import StreamTagFilter from 'app/views/stream/tagFilter';
+import StreamTagFilter from 'app/views/organizationStream/tagFilter';
 
 describe('Stream TagFilter', function() {
   let tagValueLoader;

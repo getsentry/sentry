@@ -1,7 +1,7 @@
 import React from 'react';
 import {mount, shallow} from 'enzyme';
 
-import {StreamActions} from 'app/views/stream/actions';
+import {StreamActions} from 'app/views/organizationStream/actions';
 import {initializeOrg} from 'app-test/helpers/initializeOrg';
 import SelectedGroupStore from 'app/stores/selectedGroupStore';
 

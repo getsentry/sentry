@@ -1,7 +1,7 @@
 import React from 'react';
 import {mount} from 'enzyme';
 
-import CreateSavedSearchButton from 'app/views/stream/createSavedSearchButton';
+import CreateSavedSearchButton from 'app/views/organizationStream/createSavedSearchButton';
 
 describe('CreateSavedSearchButton', function() {
   let wrapper, organization, createMock;

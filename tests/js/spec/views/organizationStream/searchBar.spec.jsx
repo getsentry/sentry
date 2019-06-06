@@ -2,7 +2,7 @@ import React from 'react';
 
 import {initializeOrg} from 'app-test/helpers/initializeOrg';
 import {mount} from 'enzyme';
-import SearchBar from 'app/views/stream/searchBar';
+import SearchBar from 'app/views/organizationStream/searchBar';
 import TagStore from 'app/stores/tagStore';
 
 describe('SearchBar', function() {

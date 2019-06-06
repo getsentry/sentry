@@ -19,7 +19,7 @@ import {
 } from 'app/actionCreators/savedSearches';
 import {t} from 'app/locale';
 import Button from 'app/components/button';
-import CreateSavedSearchButton from 'app/views/stream/createSavedSearchButton';
+import CreateSavedSearchButton from 'app/views/organizationStream/createSavedSearchButton';
 import InlineSvg from 'app/components/inlineSvg';
 import MemberListStore from 'app/stores/memberListStore';
 import SentryTypes from 'app/sentryTypes';
