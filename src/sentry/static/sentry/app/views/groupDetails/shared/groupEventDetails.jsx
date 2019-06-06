@@ -163,6 +163,7 @@ class GroupEventDetails extends React.Component {
           </div>
           <div className="secondary">
             <GroupSidebar
+              organization={organization}
               project={project}
               group={group}
               event={evt}
