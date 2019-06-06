@@ -117,7 +117,7 @@ export const EventView = PropTypes.shape({
   data: PropTypes.shape({
     fields: PropTypes.arrayOf(PropTypes.string),
     groupby: PropTypes.arrayOf(PropTypes.string),
-    sort: PropTypes.string,
+    orderby: PropTypes.arrayOf(PropTypes.string),
   }).isRequired,
   tags: PropTypes.arrayOf(PropTypes.string).isRequired,
 });
