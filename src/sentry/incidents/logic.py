@@ -308,7 +308,7 @@ def get_incident_suspects(incident, projects):
         event = group.get_latest_event_for_environments()
         try:
             committers = get_event_file_committers(group.project, event)
-        except Release.DoesNotExist, Commit.DoesNotExist:
+        except (Release.DoesNotExist, Commit.DoesNotExist):
             continue
         for committer in committers:
             author = committer['author']
