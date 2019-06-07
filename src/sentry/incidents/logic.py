@@ -7,6 +7,10 @@ from django.db import transaction
 from django.utils import timezone
 
 from sentry.api.event_search import get_snuba_query_args
+from sentry.models import (
+    Commit,
+    Release,
+)
 from sentry.incidents.models import (
     Incident,
     IncidentActivity,
@@ -302,7 +306,10 @@ def get_incident_suspects(incident, projects):
     seen = set()
     for group in groups:
         event = group.get_latest_event_for_environments()
-        committers = get_event_file_committers(group.project, event)
+        try:
+            committers = get_event_file_committers(group.project, event)
+        except Release.DoesNotExist, Commit.DoesNotExist:
+            continue
         for committer in committers:
             author = committer['author']
             for commit in committer['commits']:
