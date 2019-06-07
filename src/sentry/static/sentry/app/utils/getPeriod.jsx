@@ -13,7 +13,7 @@ import {getUtcDateString} from 'app/utils/dates';
  * @param {Date} dateObj.end Ending date object
  * @param {Object} options Options
  * @param {Boolean} [options.shouldDoublePeriod] Doubles the given period (useful for getting previous period data)
- * @return Object Returns an object with either a period or start/end dates ({statsPeriod: string} or {start: string, end: string})
+ * @return {Object} Returns an object with either a period or start/end dates ({statsPeriod: string} or {start: string, end: string})
  */
 export const getPeriod = ({period, start, end}, {shouldDoublePeriod} = {}) => {
   if (!period && !start && !end) {
