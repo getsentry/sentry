@@ -1,13 +1,8 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import Reflux from 'reflux';
 import createReactClass from 'create-react-class';
 import SentryTypes from 'app/sentryTypes';
-import OrganizationEnvironmentsStore from 'app/stores/organizationEnvironmentsStore';
-import LatestContextStore from 'app/stores/latestContextStore';
-import GlobalSelectionStore from 'app/stores/globalSelectionStore';
 import LoadingIndicator from 'app/components/loadingIndicator';
-import OrganizationState from 'app/mixins/organizationState';
 import GroupReleaseChart from 'app/components/group/releaseChart';
 import SeenInfo from 'app/components/group/seenInfo';
 import {t} from 'app/locale';
@@ -18,45 +13,13 @@ const GroupReleaseStats = createReactClass({
   propTypes: {
     group: SentryTypes.Group.isRequired,
     project: SentryTypes.Project.isRequired,
+    organization: SentryTypes.Organization.isRequired,
+    environments: PropTypes.arrayOf(SentryTypes.Environment).isRequired,
     allEnvironments: PropTypes.object,
   },
 
-  contextTypes: {
-    organization: PropTypes.object,
-  },
-
-  mixins: [
-    OrganizationState,
-    Reflux.listenTo(LatestContextStore, 'onLatestContextChange'),
-    Reflux.listenTo(GlobalSelectionStore, 'onGlobalSelectionChange'),
-  ],
-
-  getInitialState() {
-    const envList = OrganizationEnvironmentsStore.getActive();
-    const environments = envList.filter(env =>
-      GlobalSelectionStore.get().environments.includes(env.name)
-    );
-
-    return {
-      envList,
-      environments,
-    };
-  },
-
-  onLatestContextChange(context) {
-    this.setState({environments: context.environment ? [context.environment] : []});
-  },
-
-  onGlobalSelectionChange(selection) {
-    const environments = OrganizationEnvironmentsStore.getActive().filter(env =>
-      selection.environments.includes(env.name)
-    );
-    this.setState({environments});
-  },
-
   render() {
-    const {group, project, allEnvironments} = this.props;
-    const {environments} = this.state;
+    const {group, organization, project, environments, allEnvironments} = this.props;
 
     const environmentLabel = environments.length
       ? environments.map(env => env.displayName).join(', ')
@@ -70,15 +33,16 @@ const GroupReleaseStats = createReactClass({
         : null;
 
     const projectId = project.slug;
-    const orgId = this.getOrganization().slug;
+    const orgId = organization.slug;
     const hasRelease = new Set(project.features).has('releases');
     const isLoading = !group || !allEnvironments;
 
     return (
       <div className="env-stats">
         <h6>
-          <span>{environmentLabel}</span>
+          <span data-test-id="env-label">{environmentLabel}</span>
         </h6>
+
         <div className="env-content">
           {isLoading ? (
             <LoadingIndicator />

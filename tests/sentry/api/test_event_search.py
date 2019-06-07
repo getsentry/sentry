@@ -1124,6 +1124,30 @@ class GetSnubaQueryArgsTest(TestCase):
             'has_boolean_terms': True,
         }
 
+    def test_issue_filter(self):
+        assert get_snuba_query_args('issue.id:1') == {
+            'conditions': [],
+            'filter_keys': {
+                'issue': [1],
+            },
+        }
+
+        assert get_snuba_query_args('issue.id:1 issue.id:2 issue.id:3') == {
+            'conditions': [],
+            'filter_keys': {
+                'issue': [1, 2, 3],
+            },
+        }
+
+        assert get_snuba_query_args('issue.id:1 user.email:foo@example.com') == {
+            'conditions': [
+                ['email', '=', 'foo@example.com']
+            ],
+            'filter_keys': {
+                'issue': [1],
+            },
+        }
+
 
 class ConvertEndpointParamsTests(TestCase):
     def test_simple(self):

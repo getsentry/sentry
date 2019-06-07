@@ -3,70 +3,6 @@
 * ============================================================================
 */
 
-.group-header {
-  min-height: 0;
-}
-
-.stream-actions,
-.stream-actions.toolbar {
-  padding-top: 0;
-  padding-bottom: 0;
-  padding-right: 10px;
-  height: 44px;
-  .flex;
-  .flex.flex-vertically-centered;
-
-  .btn-group > .btn {
-    color: inherit;
-  }
-
-  .checkbox {
-    position: absolute;
-    left: 40px;
-    top: -6px;
-  }
-
-  .btn-group {
-    margin-right: 5px;
-
-    .btn-group {
-      margin-right: 0;
-    }
-  }
-
-  .dropdown-toggle {
-    box-shadow: none !important;
-  }
-
-  .stream-actions-left {
-    position: relative;
-    padding-left: 54px;
-
-    .checkbox {
-      position: absolute;
-    }
-  }
-
-  .stream-actions-graph {
-    font-size: 13px;
-    display: flex;
-    justify-content: space-between;
-  }
-
-  .stream-actions-graph-label {
-    flex: 1;
-  }
-
-  > .btn {
-    color: inherit;
-    background: rgba(255, 255, 255, 0.85);
-
-    &.dropdown-toggle {
-      background: none;
-    }
-  }
-}
-
 .stream-select-all-notice {
   background: @sidebar-bg-color;
   border: 1px solid #e7d796;
@@ -393,7 +329,6 @@
     }
   }
 
-  .event-assignee,
   .event-graph,
   .event-users,
   .event-count {
@@ -403,16 +338,6 @@
   .event-graph {
     .barchart {
       height: 24px;
-    }
-  }
-
-  .event-assignee {
-    color: rgba(105, 109, 128, 0.4);
-    text-align: center;
-
-    .dropdown-menu {
-      right: 0px;
-      top: 32px;
     }
   }
 
@@ -473,30 +398,6 @@
   vertical-align: middle;
   border-radius: 6px;
   box-shadow: 0px 0px 2px #e3e3e3;
-}
-
-.dashboard-widget {
-  .box-header {
-    font-size: 12px;
-    font-weight: 600;
-    color: @gray;
-
-    h3 {
-      font-size: 12px;
-      text-transform: uppercase;
-      margin-left: -5px;
-
-      &.debug-symbols {
-        text-transform: none;
-        padding-left: 12px;
-      }
-    }
-
-    .align-right {
-      text-transform: uppercase;
-      padding-top: 7px;
-    }
-  }
 }
 
 /**
@@ -848,60 +749,6 @@
   font-size: 20px;
 }
 
-.stream-dropdown {
-  margin-right: 5px;
-  z-index: 1001;
-
-  .dropdown {
-    display: inline-block;
-  }
-
-  .dropdown-toggle {
-    .btn-default;
-    width: 176px;
-    font-size: 14px;
-    // Match colours with theme.jsx
-    border: 1px solid #d8d2de;
-    padding: 6px 8px;
-    border-radius: 3px;
-
-    display: block;
-    text-align: center;
-
-    color: inherit;
-
-    .icon-arrow-down {
-      margin-left: 5px;
-      margin-right: -2px;
-      min-width: 16px;
-      top: 4px;
-    }
-  }
-
-  .dropdown-actor-title {
-    display: block;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    overflow: hidden;
-  }
-
-  // Hide the caret
-  .dropdown-menu {
-    top: auto;
-    left: 1px;
-    width: 163px;
-
-    &:after,
-    &:before {
-      display: none;
-    }
-  }
-
-  .dropdown.open .dropdown-toggle {
-    color: inherit;
-  }
-}
-
 /**
 * Stream Columns
 * ============================================================================
@@ -909,11 +756,6 @@
 
 .stream-row {
   .clearfix();
-
-  .search-container {
-    display: flex;
-    width: 58.3%;
-  }
 
   .search {
     width: 100%;
@@ -996,20 +838,6 @@
 }
 
 /**
-* Stream Pagination
-* ============================================================================
-*/
-
-.stream-pagination {
-  margin: 20px 0 0 0;
-
-  .icon-arrow-right,
-  .icon-arrow-left {
-    font-size: 20px !important;
-  }
-}
-
-/**
 * Empty Stream/Empty Alert box
 * ============================================================================
 */
@@ -1072,14 +900,6 @@
 
   .search-clear-form {
     top: 10px !important;
-  }
-
-  .stream-dropdown {
-    line-height: 25px;
-  }
-
-  .search-container {
-    padding-right: 0 !important;
   }
 
   .toggle-stream-sidebar {
@@ -1180,15 +1000,5 @@
         color: @gray-darkest;
       }
     }
-  }
-}
-
-@media (max-width: 400px) {
-  .stream-dropdown {
-    display: none;
-  }
-
-  .search-container {
-    padding-left: 0 !important;
   }
 }

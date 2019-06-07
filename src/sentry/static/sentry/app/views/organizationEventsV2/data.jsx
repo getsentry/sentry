@@ -18,7 +18,7 @@ export const ALL_VIEWS = deepFreeze([
     name: 'All Events',
     data: {
       fields: ['event', 'type', 'project', 'user', 'time'],
-      orderby: '-timestamp',
+      orderby: ['-timestamp', '-id'],
     },
     tags: [
       'event.type',
@@ -35,7 +35,7 @@ export const ALL_VIEWS = deepFreeze([
     data: {
       fields: ['error', 'event_count', 'user_count', 'project', 'last_seen'],
       groupby: ['issue.id', 'project.id'],
-      orderby: '-last_seen',
+      orderby: ['-last_seen', '-issue.id'],
     },
     tags: ['error.type', 'project.name'],
   },
@@ -45,7 +45,7 @@ export const ALL_VIEWS = deepFreeze([
     data: {
       fields: ['csp', 'event_count', 'user_count', 'project', 'last_seen'],
       groupby: ['issue.id', 'project.id'],
-      orderby: '-last_seen',
+      orderby: ['-last_seen', '-issue.id'],
     },
     tags: [
       'project.name',
@@ -124,7 +124,9 @@ export const SPECIAL_FIELDS = {
     fields: ['timestamp'],
     renderFunc: data => (
       <Container>
-        <DynamicWrapper value={<StyledDateTime date={data.timestamp} />} fixed="time" />
+        {data.timestamp ? (
+          <DynamicWrapper value={<StyledDateTime date={data.timestamp} />} fixed="time" />
+        ) : null}
       </Container>
     ),
   },
