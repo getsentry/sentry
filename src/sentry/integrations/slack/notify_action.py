@@ -8,7 +8,7 @@ from sentry.rules.actions.base import EventAction
 from sentry.utils import metrics, json
 from sentry.models import Integration
 
-from .utils import build_attachment
+from .utils import build_group_attachment
 
 MEMBER_PREFIX = '@'
 CHANNEL_PREFIX = '#'
@@ -106,7 +106,7 @@ class SlackNotifyServiceAction(EventAction):
 
         def send_notification(event, futures):
             rules = [f.rule for f in futures]
-            attachment = build_attachment(event.group, event=event, tags=tags, rules=rules)
+            attachment = build_group_attachment(event.group, event=event, tags=tags, rules=rules)
 
             payload = {
                 'token': integration.metadata['access_token'],
