@@ -12,36 +12,22 @@ export default class ReleaseIssues extends React.Component {
     query: PropTypes.object.isRequired,
     version: PropTypes.string.isRequired,
     orgId: PropTypes.string.isRequired,
-    // Provided only in the project version of release issues
-    projectId: PropTypes.string,
   };
-
-  getResolvedPath() {
-    const {version, orgId, projectId} = this.props;
-
-    return projectId
-      ? `/projects/${orgId}/${projectId}/releases/${encodeURIComponent(
-          version
-        )}/resolved/`
-      : `/organizations/${orgId}/releases/${encodeURIComponent(version)}/resolved/`;
-  }
-
-  getIssuesPath() {
-    const {orgId, projectId} = this.props;
-
-    return projectId
-      ? `/projects/${orgId}/${projectId}/issues/`
-      : `/organizations/${orgId}/issues/`;
-  }
 
   render() {
     const {version, orgId, query} = this.props;
+
+    const resolvedPath = `/organizations/${orgId}/releases/${encodeURIComponent(
+      version
+    )}/resolved/`;
+
+    const issuesPath = `/organizations/${orgId}/issues/`;
 
     return (
       <React.Fragment>
         <h5>{t('Issues Resolved in this Release')}</h5>
         <StyledIssueList
-          endpoint={this.getResolvedPath()}
+          endpoint={resolvedPath}
           query={query}
           pagination={false}
           renderEmpty={() => (
@@ -56,7 +42,7 @@ export default class ReleaseIssues extends React.Component {
         />
         <h5>{t('New Issues in this Release')}</h5>
         <StyledIssueList
-          endpoint={this.getIssuesPath()}
+          endpoint={issuesPath}
           query={{
             ...query,
             query: 'first-release:"' + version + '"',

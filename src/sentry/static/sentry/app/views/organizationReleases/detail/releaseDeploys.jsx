@@ -11,22 +11,14 @@ export default class ReleaseDeploys extends React.Component {
     deploys: PropTypes.array.isRequired,
     version: PropTypes.string.isRequired,
     orgId: PropTypes.string.isRequired,
-    // Provided only in the project version of release deploys
-    projectId: PropTypes.string,
   };
-
-  getBasePath() {
-    const {orgId, projectId} = this.props;
-
-    return projectId ? `/${orgId}/${projectId}/` : `/organizations/${orgId}/issues/`;
-  }
 
   renderEmpty() {
     return <div className="box empty">{t('None')}</div>;
   }
 
   render() {
-    const {deploys, version} = this.props;
+    const {deploys, version, orgId} = this.props;
 
     return (
       <React.Fragment>
@@ -35,7 +27,7 @@ export default class ReleaseDeploys extends React.Component {
           {!deploys.length
             ? this.renderEmpty()
             : deploys.map(deploy => {
-                const path = `${this.getBasePath()}?query=release:${version}&environment=${encodeURIComponent(
+                const path = `/organizations/${orgId}/issues/?query=release:${version}&environment=${encodeURIComponent(
                   deploy.environment
                 )}`;
                 return (
