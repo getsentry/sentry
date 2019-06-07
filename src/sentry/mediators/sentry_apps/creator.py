@@ -1,7 +1,6 @@
 from __future__ import absolute_import
 
 import six
-import logging
 
 from collections import Iterable
 from django.db import IntegrityError
@@ -16,8 +15,6 @@ from sentry.models import (
     SentryAppComponent,
     User,
 )
-
-logger = logging.getLogger('sentry.mediators.sentry-apps')
 
 
 class Creator(Mediator):
@@ -89,8 +86,7 @@ class Creator(Mediator):
                 sentry_app=self.sentry_app,
             )
         except IntegrityError as e:
-            logger.info(
-                'creator.error',
+            self.log(
                 extra={
                     'sentry_app': self.sentry_app.slug,
                     'error_message': e.message,
