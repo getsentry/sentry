@@ -115,19 +115,39 @@ describe('OrganizationEventsV2 > EventDetails', function() {
     expect(graph).toHaveLength(1);
   });
 
-  it('goes back when close button is clicked', function() {
+  it('renders pagination buttons in grouped view', function() {
+    const wrapper = mount(
+      <EventDetails
+        organization={TestStubs.Organization({projects: [TestStubs.Project()]})}
+        groupSlug="project-slug:123:latest"
+        location={{query: {groupSlug: 'project-slug:999:latest'}}}
+        view={errorsView}
+      />,
+      TestStubs.routerContext()
+    );
+    const content = wrapper.find('ModalPagination');
+    expect(content).toHaveLength(1);
+  });
+
+  it('changes history when close button is clicked', function() {
     const wrapper = mount(
       <EventDetails
         organization={TestStubs.Organization({projects: [TestStubs.Project()]})}
         eventSlug="project-slug:deadbeef"
-        location={{query: {eventSlug: 'project-slug:deadbeef'}}}
+        location={{
+          pathname: '/organizations/org-slug/events/',
+          query: {eventSlug: 'project-slug:deadbeef'},
+        }}
         view={allEventsView}
       />,
       TestStubs.routerContext()
     );
     const button = wrapper.find('CloseButton');
     button.simulate('click');
-    expect(browserHistory.goBack).toHaveBeenCalled();
+    expect(browserHistory.push).toHaveBeenCalledWith({
+      pathname: '/organizations/org-slug/events/',
+      query: {},
+    });
   });
 
   it('navigates when tag values are clicked', async function() {
