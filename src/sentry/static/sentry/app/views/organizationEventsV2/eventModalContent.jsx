@@ -19,6 +19,7 @@ import utils from 'app/utils';
 import {getMessage, getTitle} from 'app/utils/events';
 
 import {INTERFACES} from 'app/components/events/eventEntries';
+import ModalPagination from './modalPagination';
 import ModalLineGraph from './modalLineGraph';
 import TagsTable from './tagsTable';
 import LinkedIssuePreview from './linkedIssuePreview';
@@ -87,6 +88,9 @@ const EventModalContent = props => {
     <ColumnGrid>
       <HeaderBox>
         <EventHeader event={event} />
+        {isGroupedView && (
+          <ModalPagination event={event} location={location} groupId={event.groupId} />
+        )}
         {isGroupedView &&
           getDynamicText({
             value: (

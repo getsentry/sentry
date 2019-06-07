@@ -2,8 +2,9 @@ import React from 'react';
 import styled from 'react-emotion';
 import {browserHistory} from 'react-router';
 import PropTypes from 'prop-types';
-import SentryTypes from 'app/sentryTypes';
+import {omit} from 'lodash';
 
+import SentryTypes from 'app/sentryTypes';
 import AsyncComponent from 'app/components/asyncComponent';
 import InlineSvg from 'app/components/inlineSvg';
 import withApi from 'app/utils/withApi';
@@ -41,15 +42,12 @@ class EventDetails extends AsyncComponent {
         query.query = `issue.id:${groupId}`;
       }
 
-      return [
-        [
-          'event',
-          `/organizations/${organization.slug}/events/latest/`,
-          {
-            query,
-          },
-        ],
-      ];
+      let path = `/organizations/${organization.slug}/events/latest/`;
+      if (location.query.oldest) {
+        path = `/organizations/${organization.slug}/events/oldest/`;
+      }
+
+      return [['event', path, {query}]];
     }
 
     // Get a specific event. This could be coming from
@@ -67,7 +65,14 @@ class EventDetails extends AsyncComponent {
 
   handleClose = event => {
     event.preventDefault();
-    browserHistory.goBack();
+    const {location} = this.props;
+    // Remove modal related query parameters.
+    const query = omit(location.query, ['groupId', 'eventSlug', 'oldest']);
+
+    browserHistory.push({
+      pathname: location.pathname,
+      query,
+    });
   };
 
   handleTabChange = tab => this.setState({activeTab: tab});
