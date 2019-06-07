@@ -24,12 +24,14 @@ from sentry.incidents.logic import (
     update_incident_status,
 )
 from sentry.incidents.models import (
+    Incident,
     IncidentActivity,
     IncidentActivityType,
     IncidentGroup,
     IncidentProject,
     IncidentStatus,
     IncidentSubscription,
+    IncidentType,
 )
 from sentry.models.repository import Repository
 from sentry.testutils import (
@@ -40,7 +42,7 @@ from sentry.testutils import (
 
 class CreateIncidentTest(TestCase):
     def test_simple(self):
-        status = IncidentStatus.CREATED
+        incident_type = IncidentType.CREATED
         title = 'hello'
         query = 'goodbye'
         date_started = timezone.now()
@@ -48,7 +50,7 @@ class CreateIncidentTest(TestCase):
         other_group = self.create_group(project=other_project)
         incident = create_incident(
             self.organization,
-            status=status,
+            type=incident_type,
             title=title,
             query=query,
             date_started=date_started,
@@ -56,7 +58,7 @@ class CreateIncidentTest(TestCase):
             groups=[self.group, other_group],
         )
         assert incident.identifier == 1
-        assert incident.status == status.value
+        assert incident.status == incident_type.value
         assert incident.title == title
         assert incident.query == query
         assert incident.date_started == date_started
@@ -82,9 +84,9 @@ class UpdateIncidentStatus(TestCase):
         return IncidentActivity.objects.filter(incident=incident).order_by('-id')[:1].get()
 
     def test_status_already_set(self):
-        incident = self.create_incident(IncidentStatus.DETECTED.value)
+        incident = self.create_incident(status=IncidentStatus.OPEN.value)
         with self.assertRaises(StatusAlreadyChangedError):
-            update_incident_status(incident, IncidentStatus.DETECTED)
+            update_incident_status(incident, IncidentStatus.OPEN)
 
     def run_test(
         self,
@@ -96,6 +98,7 @@ class UpdateIncidentStatus(TestCase):
     ):
         prev_status = incident.status
         update_incident_status(incident, status, user=user, comment=comment)
+        incident = Incident.objects.get(id=incident.id)
         assert incident.status == status.value
         assert incident.date_closed == expected_date_closed
         activity = self.get_most_recent_incident_activity(incident)
@@ -117,7 +120,7 @@ class UpdateIncidentStatus(TestCase):
             status=IncidentStatus.CLOSED.value,
             date_closed=timezone.now()
         )
-        self.run_test(incident, IncidentStatus.DETECTED, None)
+        self.run_test(incident, IncidentStatus.OPEN, None)
 
     def test_all_params(self):
         incident = self.create_incident()
@@ -265,13 +268,13 @@ class CreateIncidentActivityTest(TestCase, BaseIncidentsTest):
             IncidentActivityType.STATUS_CHANGE,
             user=self.user,
             value=six.text_type(IncidentStatus.CLOSED.value),
-            previous_value=six.text_type(IncidentStatus.CREATED.value),
+            previous_value=six.text_type(IncidentStatus.OPEN.value),
         )
         assert activity.incident == incident
         assert activity.type == IncidentActivityType.STATUS_CHANGE.value
         assert activity.user == self.user
         assert activity.value == six.text_type(IncidentStatus.CLOSED.value)
-        assert activity.previous_value == six.text_type(IncidentStatus.CREATED.value)
+        assert activity.previous_value == six.text_type(IncidentStatus.OPEN.value)
         self.assert_notifications_sent(activity)
 
     def test_snapshot(self):

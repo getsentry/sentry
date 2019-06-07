@@ -904,7 +904,7 @@ class Factories(object):
 
     @staticmethod
     def create_incident(
-        organization, projects, detection_uuid=None, status=0,
+        organization, projects, detection_uuid=None, status=1,
         title=None, query='test query', date_started=None, date_detected=None,
         date_closed=None, groups=None, seen_by=None,
     ):

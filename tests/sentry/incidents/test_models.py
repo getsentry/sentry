@@ -67,24 +67,20 @@ class FetchForOrganizationTest(TestCase):
 class IncidentCreationTest(TestCase):
 
     def test_simple(self):
-        status = IncidentStatus.CREATED.value
         title = 'hello'
         query = 'goodbye'
         incident = Incident.objects.create(
             self.organization,
-            status=status,
             title=title,
             query=query,
         )
         assert incident.identifier == 1
-        assert incident.status == status
         assert incident.title == title
         assert incident.query == query
 
         # Check identifier correctly increments
         incident = Incident.objects.create(
             self.organization,
-            status=status,
             title=title,
             query=query,
         )
@@ -103,7 +99,7 @@ class IncidentCreationTest(TestCase):
                 with transaction.atomic():
                     incident = Incident.objects.create(
                         self.organization,
-                        status=IncidentStatus.CREATED.value,
+                        status=IncidentStatus.OPEN.value,
                         title='Conflicting Incident',
                         query='Uh oh',
                     )
@@ -123,7 +119,7 @@ class IncidentCreationTest(TestCase):
         with patch.object(BaseManager, 'create', new=mock_base_create):
             incident = Incident.objects.create(
                 self.organization,
-                status=IncidentStatus.CREATED.value,
+                status=IncidentStatus.OPEN.value,
                 title='hi',
                 query='bye',
             )

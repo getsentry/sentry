@@ -15,6 +15,7 @@ from sentry.incidents.logic import create_incident
 from sentry.incidents.models import (
     Incident,
     IncidentStatus,
+    IncidentType,
 )
 from sentry.models.group import Group
 from sentry.models.project import Project
@@ -83,8 +84,7 @@ class OrganizationIncidentIndexEndpoint(OrganizationEndpoint):
         query_status = request.GET.get('status')
 
         if query_status == 'open':
-            # status can be detected, created, or closed
-            incidents = incidents.exclude(status=IncidentStatus.CLOSED.value)
+            incidents = incidents.filter(status=IncidentStatus.OPEN.value)
         elif query_status == 'closed':
             incidents = incidents.filter(status=IncidentStatus.CLOSED.value)
 
@@ -115,7 +115,7 @@ class OrganizationIncidentIndexEndpoint(OrganizationEndpoint):
 
             incident = create_incident(
                 organization=organization,
-                status=IncidentStatus.CREATED,
+                type=IncidentType.CREATED,
                 title=result['title'],
                 query=result.get('query', ''),
                 date_started=result['dateStarted'],
