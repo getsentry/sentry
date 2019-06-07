@@ -1173,8 +1173,6 @@ class SnubaSearchTest(TestCase, SnubaTestCase):
 
     def test_first_release(self):
 
-        print("hi mom")
-
         # expect no groups within the results since there are no releases
 
         results = self.make_query(
@@ -1198,13 +1196,10 @@ class SnubaSearchTest(TestCase, SnubaTestCase):
         self.group1.first_release = release_1
         self.group1.save()
 
-        self.group3.first_release = release_1
-        self.group3.save()
-
         results = self.make_query(
             search_filter_query='first_release:%s' % release_1.version,
         )
-        assert set(results) == set([self.group1, self.group3])
+        assert set(results) == set([self.group1])
 
         # create another release
 
