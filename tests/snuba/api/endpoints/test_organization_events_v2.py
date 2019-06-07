@@ -204,7 +204,7 @@ class OrganizationEventsV2EndpointTest(OrganizationEventsTestBase):
     def test_special_fields(self):
         self.login_as(user=self.user)
         project = self.create_project()
-        event1 = self.store_event(
+        self.store_event(
             data={
                 'event_id': 'a' * 32,
                 'timestamp': self.min_ago,
@@ -226,7 +226,7 @@ class OrganizationEventsV2EndpointTest(OrganizationEventsTestBase):
             },
             project_id=project.id,
         )
-        event3 = self.store_event(
+        self.store_event(
             data={
                 'event_id': 'c' * 32,
                 'timestamp': self.min_ago,
@@ -245,7 +245,7 @@ class OrganizationEventsV2EndpointTest(OrganizationEventsTestBase):
                 self.url,
                 format='json',
                 data={
-                    'field': ['issue_title', 'event_count', 'user_count', 'last_event'],
+                    'field': ['issue_title', 'event_count', 'user_count'],
                     'groupby': ['issue.id', 'project.id'],
                     'orderby': 'issue.id'
                 },
@@ -256,8 +256,6 @@ class OrganizationEventsV2EndpointTest(OrganizationEventsTestBase):
         assert response.data[0]['issue.id'] == groups[0].id
         assert response.data[0]['event_count'] == 1
         assert response.data[0]['user_count'] == 1
-        assert response.data[0]['last_event'] == event1.event_id
         assert response.data[1]['issue.id'] == groups[1].id
         assert response.data[1]['event_count'] == 2
         assert response.data[1]['user_count'] == 2
-        assert response.data[1]['last_event'] == event3.event_id

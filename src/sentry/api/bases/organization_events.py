@@ -14,9 +14,6 @@ SPECIAL_FIELDS = {
     'issue_title': {
         'aggregations': [['anyHeavy', 'title', 'issue_title']],
     },
-    'last_event': {
-        'aggregations': [['max', 'id', 'last_event']],
-    },
     'last_seen': {
         'aggregations': [['max', 'timestamp', 'last_seen']],
     },
