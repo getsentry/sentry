@@ -141,6 +141,9 @@ SEARCH_MAP = dict({
     'first_seen': 'first_seen',
     'last_seen': 'last_seen',
     'times_seen': 'times_seen',
+    # OrganizationEvents aggregations
+    'event_count': 'event_count',
+    'user_count': 'user_count',
 }, **SENTRY_SNUBA_MAP)
 no_conversion = set(['project_id', 'start', 'end'])
 
@@ -209,6 +212,8 @@ class SearchVisitor(NodeVisitor):
         'device.battery_level', 'device.charging', 'device.online',
         'device.simulator', 'error.handled', 'issue.id', 'stack.colno',
         'stack.in_app', 'stack.lineno', 'stack.stack_level',
+        # OrganizationEvents aggregations
+        'event_count', 'user_count',
 
     ])
     date_keys = set([
