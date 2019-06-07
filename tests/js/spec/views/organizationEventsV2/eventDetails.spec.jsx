@@ -23,11 +23,12 @@ describe('OrganizationEventsV2 > EventDetails', function() {
       ],
     });
     MockApiClient.addMockResponse({
-      url: '/projects/org-slug/project-slug/events/deadbeef/',
+      url: '/organizations/org-slug/events/project-slug/deadbeef/',
       method: 'GET',
       body: {
         id: '1234',
         size: 1200,
+        projectSlug: 'org-slug',
         eventID: 'deadbeef',
         groupID: '123',
         title: 'Oh no something bad',
@@ -55,6 +56,29 @@ describe('OrganizationEventsV2 > EventDetails', function() {
         data: [[1234561700, [1]], [1234561800, [1]]],
       },
     });
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events/latest/',
+      method: 'GET',
+      body: {
+        id: '1234',
+        size: 1200,
+        projectSlug: 'org-slug',
+        eventID: 'deadbeef',
+        groupID: '123',
+        title: 'Oh no something bad',
+        message: 'It was not good',
+        dateCreated: '2019-05-23T22:12:48+00:00',
+        entries: [
+          {
+            type: 'message',
+            message: 'bad stuff',
+            data: {},
+          },
+        ],
+        tags: [{key: 'browser', value: 'Firefox'}],
+      },
+    });
   });
 
   it('renders', function() {
@@ -69,18 +93,24 @@ describe('OrganizationEventsV2 > EventDetails', function() {
     );
     const content = wrapper.find('EventHeader');
     expect(content.text()).toContain('Oh no something bad');
+
+    const graph = wrapper.find('ModalLineGraph');
+    expect(graph).toHaveLength(0);
   });
 
   it('renders a chart in grouped view', function() {
     const wrapper = mount(
       <EventDetails
         organization={TestStubs.Organization({projects: [TestStubs.Project()]})}
-        eventSlug="project-slug:deadbeef"
-        location={{query: {eventSlug: 'project-slug:deadbeef'}}}
+        groupId="123"
+        location={{query: {groupId: '999'}}}
         view={errorsView}
       />,
       TestStubs.routerContext()
     );
+    const content = wrapper.find('EventHeader');
+    expect(content.text()).toContain('Oh no something bad');
+
     const graph = wrapper.find('ModalLineGraph');
     expect(graph).toHaveLength(1);
   });
