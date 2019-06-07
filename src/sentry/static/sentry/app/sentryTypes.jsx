@@ -432,7 +432,7 @@ export const Incident = PropTypes.shape({
   totalEvents: PropTypes.number.isRequired,
   uniqueUsers: PropTypes.number.isRequired,
   isSubscribed: PropTypes.bool,
-  dateClosed: PropTypes.string.isRequired,
+  dateClosed: PropTypes.string,
   dateStarted: PropTypes.string.isRequired,
   dateDetected: PropTypes.string.isRequired,
   dateAdded: PropTypes.string.isRequired,

@@ -13,6 +13,80 @@ import TimeSince from 'app/components/timeSince';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
 
+class Suspects extends React.Component {
+  static propTypes = {
+    suspects: PropTypes.arrayOf(SentryTypes.IncidentSuspect),
+    loading: PropTypes.bool,
+  };
+
+  render() {
+    const {className, loading, suspects} = this.props;
+
+    if (!loading && !suspects.length) {
+      return null;
+    }
+
+    return (
+      <div className={className}>
+        <SideHeader loading={loading}>
+          {t('Suspects')} ({loading || !suspects ? '-' : suspects.length})
+        </SideHeader>
+        {loading ? (
+          <Placeholder />
+        ) : (
+          suspects &&
+          suspects.length > 0 && (
+            <Panel>
+              <PanelBody>
+                {suspects.map(({type, data}) => (
+                  <SuspectItem p={1} key={data.id}>
+                    <Type>{type}</Type>
+                    <Message type={type} suspect={data} />
+                    <AuthorRow>
+                      <IdBadge user={data.author} hideEmail />
+                      <LightTimeSince date={data.dateCreated} />
+                    </AuthorRow>
+                  </SuspectItem>
+                ))}
+              </PanelBody>
+            </Panel>
+          )
+        )}
+      </div>
+    );
+  }
+}
+
+const StyledSuspects = styled(Suspects)`
+  margin-top: ${space(1)};
+`;
+
+export default class SuspectsContainer extends AsyncComponent {
+  getEndpoints() {
+    const {orgId, incidentId} = this.props.params;
+
+    return [['data', `/organizations/${orgId}/incidents/${incidentId}/suspects/`]];
+  }
+
+  renderLoading() {
+    return this.renderBody();
+  }
+
+  renderError(error) {
+    return super.renderError(error, true, true);
+  }
+
+  renderBody() {
+    return (
+      <StyledSuspects
+        loading={this.state.loading}
+        suspects={this.state.data}
+        {...this.props}
+      />
+    );
+  }
+}
+
 function Message({type, suspect}) {
   const {message, id, repository} = suspect;
   if (type === 'commit') {
@@ -34,76 +108,10 @@ Message.propTypes = {
   suspect: SentryTypes.IncidentSuspectData,
 };
 
-const Suspects = styled(
-  class Suspects extends React.Component {
-    static propTypes = {
-      suspects: PropTypes.arrayOf(SentryTypes.IncidentSuspect).isRequired,
-      loading: PropTypes.bool,
-    };
-
-    renderEmpty() {
-      return t('No suspects found');
-    }
-
-    render() {
-      const {className, loading, suspects} = this.props;
-
-      return (
-        <div className={className}>
-          <SideHeader loading={loading}>
-            {t('Suspects')} ({loading || !suspects ? '-' : suspects.length})
-          </SideHeader>
-          {loading ? (
-            <Placeholder />
-          ) : (
-            suspects &&
-            suspects.length > 0 && (
-              <Panel>
-                <PanelBody>
-                  {suspects.map(({type, data}) => (
-                    <SuspectItem p={1} key={data.id}>
-                      <Type>{type}</Type>
-                      <Message type={type} suspect={data} />
-                      <AuthorRow>
-                        <IdBadge user={data.author} hideEmail />
-                        <LightTimeSince date={data.dateCreated} />
-                      </AuthorRow>
-                    </SuspectItem>
-                  ))}
-                </PanelBody>
-              </Panel>
-            )
-          )}
-        </div>
-      );
-    }
-  }
-)`
-  margin-top: ${space(1)};
-`;
-
 const Placeholder = styled('div')`
   background-color: ${p => p.theme.placeholderBackground};
   padding: ${space(4)};
 `;
-
-export default class SuspectsContainer extends AsyncComponent {
-  getEndpoints() {
-    const {orgId, incidentId} = this.props.params;
-
-    return [['data', `/organizations/${orgId}/incidents/${incidentId}/suspects/`]];
-  }
-
-  renderLoading() {
-    return this.renderBody();
-  }
-
-  renderBody() {
-    return (
-      <Suspects loading={this.state.loading} suspects={this.state.data} {...this.props} />
-    );
-  }
-}
 
 const Type = styled('div')`
   text-transform: uppercase;
