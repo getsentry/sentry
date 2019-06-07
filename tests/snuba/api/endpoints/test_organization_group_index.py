@@ -297,6 +297,28 @@ class GroupListTest(APITestCase, SnubaTestCase):
         response = self.get_valid_response(organization.slug, query=short_id, shortIdLookup=1)
         assert len(response.data) == 0
 
+    def test_lookup_by_group_id(self):
+        self.login_as(user=self.user)
+        response = self.get_valid_response(group=self.group.id)
+        assert len(response.data) == 1
+        assert response.data[0]['id'] == six.text_type(self.group.id)
+        group_2 = self.create_group()
+        response = self.get_valid_response(group=[self.group.id, group_2.id])
+        assert set([g['id'] for g in response.data]) == set([
+            six.text_type(self.group.id),
+            six.text_type(group_2.id),
+        ])
+
+    def test_lookup_by_group_id_no_perms(self):
+        organization = self.create_organization()
+        project = self.create_project(organization=organization)
+        group = self.create_group(project=project)
+        user = self.create_user()
+        self.create_member(organization=organization, user=user, has_global_access=False)
+        self.login_as(user=user)
+        response = self.get_response(group=[group.id])
+        assert response.status_code == 403
+
     def test_lookup_by_first_release(self):
         now = timezone.now()
         self.login_as(self.user)
