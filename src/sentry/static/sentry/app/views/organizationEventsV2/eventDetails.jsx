@@ -15,7 +15,13 @@ import {getQuery} from './utils';
 class EventDetails extends AsyncComponent {
   static propTypes = {
     organization: SentryTypes.Organization.isRequired,
-    eventSlug: PropTypes.string,
+    eventSlug: function(props, propName, componentName) {
+      const value = props[propName];
+      if (value && !/^[^:]+:[a-f0-9]+$/.test(value)) {
+        return new Error(`Invalid value for ${propName} provided to ${componentName}.`);
+      }
+      return null;
+    },
     groupId: PropTypes.string,
     location: PropTypes.object.isRequired,
     view: PropTypes.object.isRequired,

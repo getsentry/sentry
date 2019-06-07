@@ -109,11 +109,11 @@ class EventsRequest extends React.PureComponent {
     period: null,
     start: null,
     end: null,
+    groupId: null,
     interval: '1d',
     limit: 15,
     getCategory: i => i,
     query: '',
-    groupId: '',
 
     includePrevious: true,
     includeTransformedData: true,
