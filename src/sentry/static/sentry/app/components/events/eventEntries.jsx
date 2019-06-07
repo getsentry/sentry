@@ -161,7 +161,6 @@ class EventEntries extends React.Component {
           <StyledEventUserFeedback
             report={event.userReport}
             orgId={orgId}
-            projectId={project.slug}
             issueId={group.id}
           />
         )}

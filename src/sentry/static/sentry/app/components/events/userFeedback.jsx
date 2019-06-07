@@ -16,16 +16,12 @@ class EventUserFeedback extends React.Component {
     report: PropTypes.object.isRequired,
     orgId: PropTypes.string.isRequired,
     issueId: PropTypes.string.isRequired,
-    // Provided only in the single project scoped version of this component
-    projectId: PropTypes.string,
   };
 
   getUrl() {
-    const {report, orgId, projectId, issueId} = this.props;
+    const {report, orgId, issueId} = this.props;
 
-    return projectId
-      ? `/${orgId}/${projectId}/issues/${issueId}/events/${report.event.eventID}/`
-      : `/organizations/${orgId}/issues/${issueId}/events/${report.event.eventID}/`;
+    return `/organizations/${orgId}/issues/${issueId}/events/${report.event.eventID}/`;
   }
 
   render() {
