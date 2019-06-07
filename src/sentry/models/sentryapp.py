@@ -4,6 +4,7 @@ import six
 import uuid
 import hmac
 import itertools
+import hashlib
 
 from django.db import models
 from django.utils import timezone
@@ -169,6 +170,12 @@ class SentryApp(ParanoidModel, HasApiScopes):
         """
         if not self.slug:
             self.slug = slugify(self.name)
+
+        if self.is_internal:
+            self.slug = u'{}-{}'.format(
+                self.slug,
+                hashlib.sha1(self.owner.slug).hexdigest()[0:6],
+            )
 
     def build_signature(self, body):
         secret = self.application.client_secret
