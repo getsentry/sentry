@@ -31,8 +31,13 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
     def get_snuba_query_args(self, request, organization):
         params = self.get_filter_params(request, organization)
 
-        group_ids = set(map(int, request.GET.getlist('group')))
+        group_ids = request.GET.getlist('group')
         if group_ids:
+            try:
+                group_ids = set(map(int, filter(None, group_ids)))
+            except ValueError:
+                raise OrganizationEventsError('Invalid group parameter. Values must be numbers')
+
             projects = Project.objects.filter(
                 organization=organization,
                 group__id__in=group_ids,

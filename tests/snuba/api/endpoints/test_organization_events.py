@@ -729,6 +729,36 @@ class OrganizationEventsStatsEndpointTest(OrganizationEventsTestBase):
         assert response.status_code == 200, response.content
         assert len(response.data['data']) == 0
 
+    def test_groupid_filter(self):
+        url = reverse(
+            'sentry-api-0-organization-events-stats',
+            kwargs={
+                'organization_slug': self.organization.slug,
+            }
+        )
+        url = '%s?%s' % (url, urlencode({
+            'start': self.day_ago.isoformat()[:19],
+            'end': (self.day_ago + timedelta(hours=1, minutes=59)).isoformat()[:19],
+            'interval': '1h',
+            'group': self.group.id
+        }))
+        response = self.client.get(url, format='json')
+
+        assert response.status_code == 200, response.content
+        assert len(response.data['data'])
+
+    def test_groupid_filter_invalid_value(self):
+        url = reverse(
+            'sentry-api-0-organization-events-stats',
+            kwargs={
+                'organization_slug': self.organization.slug,
+            }
+        )
+        url = '%s?group=not-a-number' % (url,)
+        response = self.client.get(url, format='json')
+
+        assert response.status_code == 400, response.content
+
     def test_user_count(self):
         self.create_event(
             event_id='d' * 32,
