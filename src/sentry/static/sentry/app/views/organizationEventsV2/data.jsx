@@ -131,13 +131,13 @@ export const SPECIAL_FIELDS = {
     ),
   },
   error: {
-    fields: ['issue_title', 'last_event'],
+    fields: ['issue_title', 'issue.id'],
     renderFunc: (data, {organization, location}) => {
       const target = {
         pathname: `/organizations/${organization.slug}/events/`,
         query: {
           ...location.query,
-          eventSlug: `${data['project.name']}:${data.last_event}`,
+          groupId: data['issue.id'],
         },
       };
       return (
@@ -150,13 +150,13 @@ export const SPECIAL_FIELDS = {
     },
   },
   csp: {
-    fields: ['issue_title', 'last_event'],
+    fields: ['issue_title', 'issue.id'],
     renderFunc: (data, {organization, location}) => {
       const target = {
         pathname: `/organizations/${organization.slug}/events/`,
         query: {
           ...location.query,
-          eventSlug: `${data['project.name']}:${data.last_event}`,
+          groupId: data['issue.id'],
         },
       };
       return (

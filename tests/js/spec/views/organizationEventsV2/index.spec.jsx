@@ -17,7 +17,7 @@ describe('OrganizationEventsV2', function() {
       ],
     });
     MockApiClient.addMockResponse({
-      url: '/projects/org-slug/project-slug/events/deadbeef/',
+      url: '/organizations/org-slug/events/project-slug/deadbeef/',
       method: 'GET',
       body: {
         id: '1234',
