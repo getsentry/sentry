@@ -260,7 +260,7 @@ class OrganizationEventsV2EndpointTest(OrganizationEventsTestBase):
         assert response.data[1]['event_count'] == 2
         assert response.data[1]['user_count'] == 2
 
-    def test_aggregation_comparision(self):
+    def test_aggregation_comparison(self):
         self.login_as(user=self.user)
         project = self.create_project()
         self.store_event(
@@ -340,7 +340,7 @@ class OrganizationEventsV2EndpointTest(OrganizationEventsTestBase):
         assert response.data[0]['event_count'] == 2
         assert response.data[0]['user_count'] == 2
 
-    def test_aggregation_comparision_not_displayed(self):
+    def test_aggregation_comparison_not_displayed(self):
         self.login_as(user=self.user)
         project = self.create_project()
         self.store_event(
@@ -420,7 +420,7 @@ class OrganizationEventsV2EndpointTest(OrganizationEventsTestBase):
         assert response.data[0]['event_count'] == 2
         assert response.data[0]['user_count'] == 2
 
-    def test_aggregation_comparision_with_conditions(self):
+    def test_aggregation_comparison_with_conditions(self):
         self.login_as(user=self.user)
         project = self.create_project()
         self.store_event(
