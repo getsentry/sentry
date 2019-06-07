@@ -259,3 +259,235 @@ class OrganizationEventsV2EndpointTest(OrganizationEventsTestBase):
         assert response.data[1]['issue.id'] == groups[1].id
         assert response.data[1]['event_count'] == 2
         assert response.data[1]['user_count'] == 2
+
+    def test_aggregation_comparison(self):
+        self.login_as(user=self.user)
+        project = self.create_project()
+        self.store_event(
+            data={
+                'event_id': 'a' * 32,
+                'timestamp': self.min_ago,
+                'fingerprint': ['group_1'],
+                'user': {
+                    'email': 'foo@example.com',
+                },
+            },
+            project_id=project.id,
+        )
+        self.store_event(
+            data={
+                'event_id': 'b' * 32,
+                'timestamp': self.min_ago,
+                'fingerprint': ['group_2'],
+                'user': {
+                    'email': 'foo@example.com',
+                },
+            },
+            project_id=project.id,
+        )
+        self.store_event(
+            data={
+                'event_id': 'c' * 32,
+                'timestamp': self.min_ago,
+                'fingerprint': ['group_2'],
+                'user': {
+                    'email': 'bar@example.com',
+                },
+            },
+            project_id=project.id,
+        )
+        self.store_event(
+            data={
+                'event_id': 'd' * 32,
+                'timestamp': self.min_ago,
+                'fingerprint': ['group_3'],
+                'user': {
+                    'email': 'bar@example.com',
+                },
+            },
+            project_id=project.id,
+        )
+        self.store_event(
+            data={
+                'event_id': 'e' * 32,
+                'timestamp': self.min_ago,
+                'fingerprint': ['group_3'],
+                'user': {
+                    'email': 'bar@example.com',
+                },
+            },
+            project_id=project.id,
+        )
+
+        groups = Group.objects.all()
+
+        with self.feature('organizations:events-v2'):
+            response = self.client.get(
+                self.url,
+                format='json',
+                data={
+                    'field': ['issue_title', 'event_count', 'user_count'],
+                    'query': ['event_count:>1 user_count:>1'],
+                    'groupby': ['issue.id', 'project.id'],
+                    'orderby': 'issue.id'
+                },
+            )
+
+        assert response.status_code == 200, response.content
+
+        assert len(response.data) == 1
+        assert response.data[0]['issue.id'] == groups[1].id
+        assert response.data[0]['event_count'] == 2
+        assert response.data[0]['user_count'] == 2
+
+    def test_aggregation_comparison_not_displayed(self):
+        self.login_as(user=self.user)
+        project = self.create_project()
+        self.store_event(
+            data={
+                'event_id': 'a' * 32,
+                'timestamp': self.min_ago,
+                'fingerprint': ['group_1'],
+                'user': {
+                    'email': 'foo@example.com',
+                },
+            },
+            project_id=project.id,
+        )
+        self.store_event(
+            data={
+                'event_id': 'b' * 32,
+                'timestamp': self.min_ago,
+                'fingerprint': ['group_2'],
+                'user': {
+                    'email': 'foo@example.com',
+                },
+            },
+            project_id=project.id,
+        )
+        self.store_event(
+            data={
+                'event_id': 'c' * 32,
+                'timestamp': self.min_ago,
+                'fingerprint': ['group_2'],
+                'user': {
+                    'email': 'bar@example.com',
+                },
+            },
+            project_id=project.id,
+        )
+        self.store_event(
+            data={
+                'event_id': 'd' * 32,
+                'timestamp': self.min_ago,
+                'fingerprint': ['group_3'],
+                'user': {
+                    'email': 'bar@example.com',
+                },
+            },
+            project_id=project.id,
+        )
+        self.store_event(
+            data={
+                'event_id': 'e' * 32,
+                'timestamp': self.min_ago,
+                'fingerprint': ['group_3'],
+                'user': {
+                    'email': 'bar@example.com',
+                },
+            },
+            project_id=project.id,
+        )
+
+        groups = Group.objects.all()
+
+        with self.feature('organizations:events-v2'):
+            response = self.client.get(
+                self.url,
+                format='json',
+                data={
+                    'field': ['issue_title', 'event_count'],
+                    'query': ['event_count:>1 user_count:>1'],
+                    'groupby': ['issue.id', 'project.id'],
+                    'orderby': 'issue.id'
+                },
+            )
+
+        assert response.status_code == 200, response.content
+
+        assert len(response.data) == 1
+        assert response.data[0]['issue.id'] == groups[1].id
+        assert response.data[0]['event_count'] == 2
+        assert response.data[0]['user_count'] == 2
+
+    def test_aggregation_comparison_with_conditions(self):
+        self.login_as(user=self.user)
+        project = self.create_project()
+        self.store_event(
+            data={
+                'event_id': 'a' * 32,
+                'timestamp': self.min_ago,
+                'fingerprint': ['group_1'],
+                'user': {
+                    'email': 'foo@example.com',
+                },
+                'environment': 'prod',
+            },
+            project_id=project.id,
+        )
+        self.store_event(
+            data={
+                'event_id': 'b' * 32,
+                'timestamp': self.min_ago,
+                'fingerprint': ['group_2'],
+                'user': {
+                    'email': 'foo@example.com',
+                },
+                'environment': 'staging',
+            },
+            project_id=project.id,
+        )
+        self.store_event(
+            data={
+                'event_id': 'c' * 32,
+                'timestamp': self.min_ago,
+                'fingerprint': ['group_2'],
+                'user': {
+                    'email': 'foo@example.com',
+                },
+                'environment': 'prod',
+            },
+            project_id=project.id,
+        )
+        self.store_event(
+            data={
+                'event_id': 'd' * 32,
+                'timestamp': self.min_ago,
+                'fingerprint': ['group_2'],
+                'user': {
+                    'email': 'foo@example.com',
+                },
+                'environment': 'prod',
+            },
+            project_id=project.id,
+        )
+
+        groups = Group.objects.all()
+
+        with self.feature('organizations:events-v2'):
+            response = self.client.get(
+                self.url,
+                format='json',
+                data={
+                    'field': ['issue_title', 'event_count'],
+                    'query': ['event_count:>1 user.email:foo@example.com environment:prod'],
+                    'groupby': ['issue.id', 'project.id'],
+                    'orderby': 'issue.id'
+                },
+            )
+
+        assert response.status_code == 200, response.content
+
+        assert len(response.data) == 1
+        assert response.data[0]['issue.id'] == groups[1].id
+        assert response.data[0]['event_count'] == 2

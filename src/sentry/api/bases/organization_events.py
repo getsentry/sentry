@@ -93,6 +93,22 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
 
             snuba_args['selected_columns'] = fields
 
+        conditions = snuba_args.get('conditions')
+        # Add special fields to aggregations if missing
+        if conditions:
+            for condition in conditions:
+                field = condition[0]
+                if isinstance(field, (list, tuple)):
+                    continue
+                if field in SPECIAL_FIELDS:
+                    aggregation_included = False
+                    for aggregate in aggregations:
+                        if aggregate[2] == field:
+                            aggregation_included = True
+                            break
+                    if not aggregation_included:
+                        aggregations.extend(deepcopy(SPECIAL_FIELDS[field]).get('aggregations', []))
+
         if aggregations:
             snuba_args['aggregations'] = aggregations
 
