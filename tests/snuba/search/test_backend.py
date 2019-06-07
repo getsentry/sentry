@@ -1191,7 +1191,7 @@ class SnubaSearchTest(TestCase, SnubaTestCase):
         assert set(results) == set([])
 
         # mark group1's first_release to be release_1.
-        # group1 should show up in the previous query
+        # group1 should show up for the same query as the previous query (see above)
 
         self.group1.first_release = release_1
         self.group1.save()
@@ -1201,23 +1201,10 @@ class SnubaSearchTest(TestCase, SnubaTestCase):
         )
         assert set(results) == set([self.group1])
 
-        # create another release
-
-        # release_2 = self.create_release(self.project, date_added=datetime.now() + timedelta(days=1))
-
-        # self.group3.first_release = release_2
-        # self.group3.save()
-        # results = self.make_query(
-        #     search_filter_query='first_release:%s' % release_2.version,
-        # )
-
-        # print("release_2: %s", set(results))
-
-        # assert set(results) == set([self.group1, self.group3])
-
     def test_first_release_any_environments(self):
 
         # create some releases
+
         release_1 = self.create_release(self.project, date_added=datetime.now())
         release_2 = self.create_release(self.project, date_added=datetime.now() + timedelta(days=1))
 
@@ -1260,7 +1247,7 @@ class SnubaSearchTest(TestCase, SnubaTestCase):
         group4_event = self.store_event(
             data={
                 'fingerprint': ['put-me-in-group4'],
-                'event_id': '244AF7A99AF798322815A0196752C4152C412C43',
+                'event_id': '03ee51e630b0a022f83d2f1960fc9dab',
                 'timestamp': (self.base_datetime - timedelta(days=10)).isoformat()[:19],
                 'message': 'foobaz',
                 'stacktrace': {
@@ -1289,30 +1276,75 @@ class SnubaSearchTest(TestCase, SnubaTestCase):
 
         # expect no groups within the results since there are no releases
 
-        results = self.make_query(
-            search_filter_query='first_release:%s' % 'fake',
-        )
-        assert set(results) == set([])
+        # results = self.make_query(
+        #     search_filter_query='first_release:%s' % 'fake',
+        # )
+        # assert set(results) == set([])
 
-        # expect no groups even though there is a release; since no group
-        # is attached to a release
+        # expect no groups even though there are releases; since no group
+        # is attached to any release
 
-        results = self.make_query(
-            search_filter_query='first_release:%s' % release_1.version,
-        )
-        assert set(results) == set([])
+        # results = self.make_query(
+        #     search_filter_query='first_release:%s' % release_1.version,
+        # )
+        # assert set(results) == set([])
 
-        results = self.make_query(
-            search_filter_query='first_release:%s' % release_2.version,
-        )
-        assert set(results) == set([])
+        # results = self.make_query(
+        #     search_filter_query='first_release:%s' % release_2.version,
+        # )
+        # assert set(results) == set([])
 
-        # rename this comment
+        # attach groups' first_release to a release
 
-        group_prod_env = GroupEnvironment.get_or_create(
+        self.group1.first_release = release_1
+        self.group1.save()
+
+        group3.first_release = release_1
+        group3.save()
+
+        group4.first_release = release_2
+        group4.save()
+
+        #  create groupenvs for only group1, and attach groupenvs to releases
+
+        group1_staging_env = GroupEnvironment.get_or_create(
+            group_id=self.group1.id,
+            environment_id=self.environments['staging'].id,
+        )[0]
+
+        group1_staging_env.first_release = release_1
+        group1_staging_env.save()
+
+        group1_prod_env = GroupEnvironment.get_or_create(
             group_id=self.group1.id,
             environment_id=self.environments['production'].id,
         )[0]
+
+        group1_prod_env.first_release = release_2
+        group1_prod_env.save()
+
+        # query for release 1
+
+        # results = self.make_query(
+        #     search_filter_query='first_release:%s' % release_1.version,
+        # )
+        # assert set(results) == set([self.group1, group3])
+
+        # query for release 1 and staging environment
+
+        results = self.make_query(
+            environments=[self.environments['staging']],
+            search_filter_query='first_release:%s' % release_1.version,
+        )
+        assert set(results) == set([self.group1])
+
+        # query for release 1 and production environment
+
+        # results = self.make_query(
+        #     environments=[self.environments['production']],
+        #     search_filter_query='first_release:%s' % release_1.version,
+        # )
+        # assert set(results) == set([])
 
     def test_first_release_environments(self):
         results = self.make_query(
@@ -1341,8 +1373,6 @@ class SnubaSearchTest(TestCase, SnubaTestCase):
             search_filter_query='first_release:%s' % release.version,
         )
         assert set(results) == set([self.group1])
-
-
 
     def test_query_enclosed_in_quotes(self):
         results = self.make_query(search_filter_query='"foo"')
