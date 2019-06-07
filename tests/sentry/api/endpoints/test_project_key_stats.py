@@ -32,6 +32,11 @@ class ProjectKeyStatsTest(APITestCase):
             assert point['total'] == 0
         assert len(response.data) == 24
 
+    def test_invalid_parameters(self):
+        url = self.path + '?resolution=1x'
+        response = self.client.get(url)
+        assert response.status_code == 400
+
     # This test can be removed once the TSDB metrics that were stored
     # under str(key_id) have expired out of redis.
     def test_str_key_id(self):
