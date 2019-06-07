@@ -186,6 +186,9 @@ def pytest_configure(config):
     from sentry import http
     http.DISALLOWED_IPS = set()
 
+    from sentry import options
+    options.set('store.disable-trim-in-renormalization', 1.0)
+
 
 def register_extensions():
     from sentry.plugins import plugins
