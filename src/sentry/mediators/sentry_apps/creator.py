@@ -1,8 +1,10 @@
 from __future__ import absolute_import
 
 import six
+import logging
 
 from collections import Iterable
+from django.db import IntegrityError
 
 from sentry import analytics
 from sentry.mediators import Mediator, Param
@@ -14,6 +16,8 @@ from sentry.models import (
     SentryAppComponent,
     User,
 )
+
+logger = logging.getLogger('sentry.mediators.sentry-apps')
 
 
 class Creator(Mediator):
@@ -80,9 +84,18 @@ class Creator(Mediator):
     def _create_integration_feature(self):
         # sentry apps must have at least one feature
         # defaults to 'integrations-api'
-        IntegrationFeature.objects.create(
-            sentry_app=self.sentry_app,
-        )
+        try:
+            IntegrationFeature.objects.create(
+                sentry_app=self.sentry_app,
+            )
+        except IntegrityError as e:
+            logger.info(
+                'creator.error',
+                extra={
+                    'sentry_app': self.sentry_app.slug,
+                    'error_message': e.message,
+                }
+            )
 
     def audit(self):
         from sentry.utils.audit import create_audit_entry
