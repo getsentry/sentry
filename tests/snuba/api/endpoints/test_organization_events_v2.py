@@ -161,45 +161,47 @@ class OrganizationEventsV2EndpointTest(OrganizationEventsTestBase):
         self.store_event(
             data={
                 'event_id': 'a' * 32,
-                'environment': 'staging',
                 'timestamp': self.min_ago,
+                'fingerprint': ['group_1'],
             },
             project_id=project.id,
         )
         self.store_event(
             data={
                 'event_id': 'b' * 32,
-                'environment': 'staging',
                 'timestamp': self.min_ago,
+                'fingerprint': ['group_1'],
             },
             project_id=project.id,
         )
         self.store_event(
             data={
                 'event_id': 'c' * 32,
-                'environment': 'production',
                 'timestamp': self.min_ago,
+                'fingerprint': ['group_2'],
             },
             project_id=project.id,
         )
+
+        groups = Group.objects.all()
 
         with self.feature('organizations:events-v2'):
             response = self.client.get(
                 self.url,
                 format='json',
                 data={
-                    'field': ['project.id', 'environment'],
-                    'groupby': ['project.id', 'environment'],
-                    'orderby': 'environment',
+                    'field': ['project.id', 'issue.id'],
+                    'groupby': ['project.id', 'issue.id'],
+                    'orderby': 'issue.id',
                 },
             )
 
         assert response.status_code == 200, response.content
         assert len(response.data) == 2
         assert response.data[0]['project.id'] == project.id
-        assert response.data[0]['environment'] == 'production'
+        assert response.data[0]['issue.id'] == groups[0].id
         assert response.data[1]['project.id'] == project.id
-        assert response.data[1]['environment'] == 'staging'
+        assert response.data[1]['issue.id'] == groups[1].id
 
     def test_special_fields(self):
         self.login_as(user=self.user)
@@ -491,3 +493,51 @@ class OrganizationEventsV2EndpointTest(OrganizationEventsTestBase):
         assert len(response.data) == 1
         assert response.data[0]['issue.id'] == groups[1].id
         assert response.data[0]['event_count'] == 2
+
+    def test_invalid_groupby(self):
+        self.login_as(user=self.user)
+
+        project = self.create_project()
+        self.store_event(
+            data={
+                'event_id': 'a' * 32,
+                'message': 'how to make fast',
+                'timestamp': self.min_ago,
+            },
+            project_id=project.id
+        )
+
+        with self.feature('organizations:events-v2'):
+            response = self.client.get(
+                self.url,
+                format='json',
+                data={
+                    'groupby': ['id'],
+                },
+            )
+        assert response.status_code == 400, response.content
+        assert response.data['detail'] == 'Invalid groupby value requested'
+
+    def test_no_requested_fields_or_grouping(self):
+        self.login_as(user=self.user)
+
+        project = self.create_project()
+        self.store_event(
+            data={
+                'event_id': 'a' * 32,
+                'message': 'how to make fast',
+                'timestamp': self.min_ago,
+            },
+            project_id=project.id
+        )
+
+        with self.feature('organizations:events-v2'):
+            response = self.client.get(
+                self.url,
+                format='json',
+                data={
+                    'query': 'test'
+                },
+            )
+        assert response.status_code == 400, response.content
+        assert response.data['detail'] == 'No fields or groupings provided'
