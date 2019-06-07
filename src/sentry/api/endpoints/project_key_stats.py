@@ -24,7 +24,10 @@ class ProjectKeyStatsEndpoint(ProjectEndpoint, StatsMixin):
         except ProjectKey.DoesNotExist:
             raise ResourceDoesNotExist
 
-        stat_args = self._parse_args(request)
+        try:
+            stat_args = self._parse_args(request)
+        except ValueError:
+            return Response({'detail': 'Invalid request data'}, status=400)
 
         stats = OrderedDict()
         for model, name in (
