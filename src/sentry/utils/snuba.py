@@ -444,9 +444,10 @@ def transform_aliases_and_query(skip_conditions=False, **kwargs):
     if conditions:
         kwargs['conditions'] = []
         for condition in conditions:
-            if condition[0] in derived_columns:
+            field = condition[0]
+            if not isinstance(field, (list, tuple)) and field in derived_columns:
                 having.append(condition)
-            elif skip_conditions is False:
+            elif skip_conditions:
                 kwargs['conditions'].append(condition)
             else:
                 kwargs['conditions'].append(handle_condition(condition))

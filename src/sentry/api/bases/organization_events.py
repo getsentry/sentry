@@ -93,6 +93,8 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
         if conditions:
             for condition in conditions:
                 field = condition[0]
+                if isinstance(field, (list, tuple)):
+                    continue
                 if field in SPECIAL_FIELDS:
                     aggregation_included = False
                     for aggregate in aggregations:
