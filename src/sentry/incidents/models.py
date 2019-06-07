@@ -91,9 +91,13 @@ class IncidentManager(BaseManager):
             )
 
 
-class IncidentStatus(Enum):
+class IncidentType(Enum):
     DETECTED = 0
     CREATED = 1
+
+
+class IncidentStatus(Enum):
+    OPEN = 1
     CLOSED = 2
 
 
@@ -117,7 +121,8 @@ class Incident(Model):
     identifier = models.IntegerField()
     # Identifier used to match incoming events from the detection algorithm
     detection_uuid = UUIDField(null=True, db_index=True)
-    status = models.PositiveSmallIntegerField()
+    status = models.PositiveSmallIntegerField(default=IncidentStatus.OPEN.value)
+    type = models.PositiveSmallIntegerField(default=IncidentType.CREATED.value)
     title = models.TextField()
     # Query used to fetch events related to an incident
     query = models.TextField()

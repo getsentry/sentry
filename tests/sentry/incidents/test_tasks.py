@@ -138,12 +138,12 @@ class TestBuildActivityContext(BaseIncidentActivityTest, TestCase):
         )
         activity.type = IncidentActivityType.STATUS_CHANGE
         activity.value = six.text_type(IncidentStatus.CLOSED.value)
-        activity.previous_value = six.text_type(IncidentStatus.CREATED.value)
+        activity.previous_value = six.text_type(IncidentStatus.OPEN.value)
         self.run_test(
             activity,
             expected_username=activity.user.name,
             expected_action='changed status from %s to %s' % (
-                IncidentStatus.CREATED.name.lower(),
+                IncidentStatus.OPEN.name.lower(),
                 IncidentStatus.CLOSED.name.lower(),
             ),
             expected_comment=activity.comment,
