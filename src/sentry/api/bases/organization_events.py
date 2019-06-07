@@ -25,14 +25,21 @@ SPECIAL_FIELDS = {
     },
 }
 
+ALLOWED_GROUPINGS = frozenset(('issue.id', 'project.id'))
+
 
 class OrganizationEventsEndpointBase(OrganizationEndpoint):
 
     def get_snuba_query_args(self, request, organization):
         params = self.get_filter_params(request, organization)
 
-        group_ids = set(map(int, request.GET.getlist('group')))
+        group_ids = request.GET.getlist('group')
         if group_ids:
+            try:
+                group_ids = set(map(int, filter(None, group_ids)))
+            except ValueError:
+                raise OrganizationEventsError('Invalid group parameter. Values must be numbers')
+
             projects = Project.objects.filter(
                 organization=organization,
                 group__id__in=group_ids,
@@ -70,6 +77,12 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
         aggregations = []
         groupby = request.GET.getlist('groupby')
 
+        if not fields and not groupby:
+            raise OrganizationEventsError('No fields or groupings provided')
+
+        if any(field for field in groupby if field not in ALLOWED_GROUPINGS):
+            raise OrganizationEventsError('Invalid groupby value requested')
+
         if fields:
             # If project.name is requested, get the project.id from Snuba so we
             # can use this to look up the name in Sentry
@@ -87,6 +100,22 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
                     groupby.extend(special_field.get('groupby', []))
 
             snuba_args['selected_columns'] = fields
+
+        conditions = snuba_args.get('conditions')
+        # Add special fields to aggregations if missing
+        if conditions:
+            for condition in conditions:
+                field = condition[0]
+                if isinstance(field, (list, tuple)):
+                    continue
+                if field in SPECIAL_FIELDS:
+                    aggregation_included = False
+                    for aggregate in aggregations:
+                        if aggregate[2] == field:
+                            aggregation_included = True
+                            break
+                    if not aggregation_included:
+                        aggregations.extend(deepcopy(SPECIAL_FIELDS[field]).get('aggregations', []))
 
         if aggregations:
             snuba_args['aggregations'] = aggregations

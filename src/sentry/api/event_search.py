@@ -1,7 +1,7 @@
 from __future__ import absolute_import
 
 import re
-from collections import namedtuple
+from collections import namedtuple, defaultdict
 from datetime import datetime
 
 import six
@@ -141,6 +141,9 @@ SEARCH_MAP = dict({
     'first_seen': 'first_seen',
     'last_seen': 'last_seen',
     'times_seen': 'times_seen',
+    # OrganizationEvents aggregations
+    'event_count': 'event_count',
+    'user_count': 'user_count',
 }, **SENTRY_SNUBA_MAP)
 no_conversion = set(['project_id', 'start', 'end'])
 
@@ -209,6 +212,8 @@ class SearchVisitor(NodeVisitor):
         'device.battery_level', 'device.charging', 'device.online',
         'device.simulator', 'error.handled', 'issue.id', 'stack.colno',
         'stack.in_app', 'stack.lineno', 'stack.stack_level',
+        # OrganizationEvents aggregations
+        'event_count', 'user_count',
 
     ])
     date_keys = set([
@@ -616,7 +621,7 @@ def get_snuba_query_args(query=None, params=None):
 
     kwargs = {
         'conditions': [],
-        'filter_keys': {},
+        'filter_keys': defaultdict(list),
     }
 
     for term in parsed_terms:
@@ -626,7 +631,10 @@ def get_snuba_query_args(query=None, params=None):
             if snuba_name in ('start', 'end'):
                 kwargs[snuba_name] = term.value.value
             elif snuba_name in ('project_id', 'issue'):
-                kwargs['filter_keys'][snuba_name] = term.value.value
+                value = term.value.value
+                if isinstance(value, int):
+                    value = [value]
+                kwargs['filter_keys'][snuba_name].extend(value)
             else:
                 converted_filter = convert_search_filter_to_snuba_query(term)
                 kwargs['conditions'].append(converted_filter)

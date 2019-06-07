@@ -3,10 +3,11 @@ import React from 'react';
 import {initializeOrg} from 'app-test/helpers/initializeOrg';
 import {mount} from 'enzyme';
 import IncidentDetails from 'app/views/organizationIncidents/details';
+import ProjectsStore from 'app/stores/projectsStore';
 
 describe('IncidentDetails', function() {
-  const mockIncident = TestStubs.Incident();
-  const {organization, routerContext} = initializeOrg();
+  const {organization, project, routerContext} = initializeOrg();
+  const mockIncident = TestStubs.Incident({projects: [project.slug]});
 
   let activitiesList;
 
@@ -20,13 +21,22 @@ describe('IncidentDetails', function() {
     );
 
   beforeAll(function() {
+    ProjectsStore.loadInitialData([project]);
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/incidents/123/',
       body: mockIncident,
     });
     MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/incidents/123/suspects/',
+      body: [TestStubs.IncidentSuspectCommit()],
+    });
+    MockApiClient.addMockResponse({
       url: '/organizations/org-slug/incidents/456/',
       statusCode: 404,
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/incidents/456/suspects/',
+      body: [],
     });
     activitiesList = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/incidents/${
@@ -65,6 +75,15 @@ describe('IncidentDetails', function() {
         .at(2)
         .text()
     ).toBe('20');
+
+    expect(wrapper.find('SuspectItem')).toHaveLength(1);
+    expect(
+      wrapper
+        .find('SuspectItem')
+        .at(0)
+        .find('MessageOverflow')
+        .text()
+    ).toBe('feat: Do something to raven/base.py');
   });
 
   it('handles invalid incident', async function() {

@@ -12,7 +12,7 @@ import {isOpen} from './utils';
 export default class Status extends React.Component {
   static propTypes = {
     className: PropTypes.string,
-    incident: SentryTypes.Incident.isRequired,
+    incident: SentryTypes.Incident,
   };
 
   render() {

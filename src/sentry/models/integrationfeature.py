@@ -58,6 +58,7 @@ class IntegrationFeature(Model):
     class Meta:
         app_label = 'sentry'
         db_table = 'sentry_integrationfeature'
+        unique_together = (('sentry_app', 'feature'),)
 
     def feature_str(self):
         return Feature.as_str(self.feature)
