@@ -87,7 +87,6 @@ class GroupUserFeedback extends React.Component {
                 <EventUserFeedback
                   key={idx}
                   report={item}
-                  projectId={group.project.slug}
                   orgId={organization.slug}
                   issueId={group.id}
                 />
