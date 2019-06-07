@@ -148,7 +148,7 @@ class TodoList extends React.Component {
     const org = this.props.organization;
     const tasks = TASKS.map(task => {
       for (const serverTask of org.onboardingTasks) {
-        if (serverTask.task == task.task) {
+        if (serverTask.task === task.task) {
           Object.assign(task, serverTask);
           break;
         }
@@ -165,7 +165,7 @@ class TodoList extends React.Component {
       data: {task: skippedTask, status: 'skipped'},
       success: () => {
         const newState = this.state.tasks.map(task => {
-          if (task.task == skippedTask) {
+          if (task.task === skippedTask) {
             task.status = 'skipped';
           }
           return task;

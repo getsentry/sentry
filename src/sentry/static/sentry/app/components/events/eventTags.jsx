@@ -63,7 +63,7 @@ class EventTags extends React.Component {
                     <em className="icon-open" />
                   </a>
                 )}
-                {tag.key == 'release' && (
+                {tag.key === 'release' && (
                   <VersionHoverCard
                     containerClassName="pill-icon"
                     version={tag.value}

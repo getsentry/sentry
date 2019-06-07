@@ -105,7 +105,7 @@ const InviteMember = createReactClass({
         }
       },
       error: error => {
-        if (error.status == 404 && isSuperuser) {
+        if (error.status === 404 && isSuperuser) {
           // use the static list
           this.setState({roleList: STATIC_ROLE_LIST, loading: false});
         } else if (error.status !== 0) {

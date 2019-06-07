@@ -36,20 +36,20 @@ export function getTitle(event) {
   let {title} = event;
   let subtitle = null;
 
-  if (type == 'error') {
+  if (type === 'error') {
     subtitle = culprit;
     if (metadata.type) {
       title = metadata.type;
     } else {
       title = metadata.function || '<unknown>';
     }
-  } else if (type == 'csp') {
+  } else if (type === 'csp') {
     title = metadata.directive;
     subtitle = metadata.uri;
   } else if (type === 'expectct' || type === 'expectstaple' || type === 'hpkp') {
     title = metadata.message;
     subtitle = metadata.origin;
-  } else if (type == 'default') {
+  } else if (type === 'default') {
     title = metadata.title;
   }
 

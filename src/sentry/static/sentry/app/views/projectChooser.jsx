@@ -51,7 +51,7 @@ const ProjectChooser = createReactClass({
   render() {
     const org = this.getOrganization();
     const task = TASKS.filter(
-      task_inst => task_inst.task == this.props.location.query.task
+      task_inst => task_inst.task === parseInt(this.props.location.query.task, 10)
     )[0];
 
     // Expect onboarding=1 and task=<task id> parameters and task.featureLocation == 'project'

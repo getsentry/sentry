@@ -160,7 +160,7 @@ const GroupTagValues = createReactClass({
     return (
       <div>
         <h3>
-          {tagKey.key == 'user' ? t('Affected Users') : tagKey.name}
+          {tagKey.key === 'user' ? t('Affected Users') : tagKey.name}
           <a
             href={`/${orgId}/${group.project.slug}/issues/${group.id}/tags/${
               this.props.params.tagKey

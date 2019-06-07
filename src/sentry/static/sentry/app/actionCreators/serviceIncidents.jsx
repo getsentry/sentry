@@ -4,7 +4,7 @@ import ConfigStore from 'app/stores/configStore';
 import ServiceIncidentActions from 'app/actions/serviceIncidentActions';
 
 function getIncidentsFromIncidentResponse(incidents) {
-  if (incidents === null || incidents.length == 0) {
+  if (incidents === null || incidents.length === 0) {
     return [[], 'none'];
   }
 

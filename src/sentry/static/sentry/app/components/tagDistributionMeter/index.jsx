@@ -73,7 +73,7 @@ export default class TagDistributionMeter extends React.Component {
                 last={index === segments.length - 1}
                 isOther={!!value.isOther}
               >
-                <Description first={index == 0}>
+                <Description first={index === 0}>
                   <Percentage>{pctLabel}%</Percentage>
                   <Label>{value.name}</Label>
                 </Description>

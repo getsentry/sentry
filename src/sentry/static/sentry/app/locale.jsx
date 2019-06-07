@@ -10,7 +10,7 @@ import {getTranslations} from 'app/translations';
 let LOCALE_DEBUG = false;
 
 const sessionStorage = window.sessionStorage;
-if (sessionStorage && sessionStorage.getItem('localeDebug') == '1') {
+if (sessionStorage && sessionStorage.getItem('localeDebug') === '1') {
   LOCALE_DEBUG = true;
 }
 
@@ -86,7 +86,7 @@ function argsInvolveReact(args) {
   if (args.some(React.isValidElement)) {
     return true;
   }
-  if (args.length == 1 && _.isObject(args[0])) {
+  if (args.length === 1 && _.isObject(args[0])) {
     return Object.keys(args[0]).some(key => {
       return React.isValidElement(args[0][key]);
     });
@@ -110,7 +110,7 @@ export function parseComponentTemplate(string) {
         buf.push(substr);
       }
 
-      if (match[0] == ']') {
+      if (match[0] === ']') {
         if (inGroup) {
           satisfied = true;
           break;
@@ -120,7 +120,7 @@ export function parseComponentTemplate(string) {
         }
       }
 
-      if (match[2] == ']') {
+      if (match[2] === ']') {
         pos = regex.lastIndex;
       } else {
         pos = regex.lastIndex = process(regex.lastIndex, match[1], true);
