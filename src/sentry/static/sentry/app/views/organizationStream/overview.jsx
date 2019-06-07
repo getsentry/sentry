@@ -546,7 +546,7 @@ const OrganizationStream = createReactClass({
         />
       );
     });
-    return <PanelBody className="ref-group-list">{groupNodes}</PanelBody>;
+    return <PanelBody>{groupNodes}</PanelBody>;
   },
 
   renderEmpty() {
