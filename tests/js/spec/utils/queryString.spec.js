@@ -1,7 +1,7 @@
 import utils from 'app/utils/queryString';
 
-describe('addQueryParamsToExistingUrl', function () {
-  it('adds new query params to existing query params', function () {
+describe('addQueryParamsToExistingUrl', function() {
+  it('adds new query params to existing query params', function() {
     const url = 'https://example.com?value=3';
     const newParams = {
       id: 4,
@@ -11,7 +11,7 @@ describe('addQueryParamsToExistingUrl', function () {
     );
   });
 
-  it('adds new query params without existing query params', function () {
+  it('adds new query params without existing query params', function() {
     const url = 'https://example.com';
     const newParams = {
       id: 4,
@@ -21,7 +21,7 @@ describe('addQueryParamsToExistingUrl', function () {
     );
   });
 
-  it('returns empty string no url is passed', function () {
+  it('returns empty string no url is passed', function() {
     let url;
     const newParams = {
       id: 4,
