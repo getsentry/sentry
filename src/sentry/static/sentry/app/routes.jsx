@@ -23,7 +23,6 @@ import OrganizationStreamOverview from 'app/views/organizationStream/overview';
 import ProjectChooser from 'app/views/projectChooser';
 import ProjectDataForwarding from 'app/views/projectDataForwarding';
 import ProjectDebugFiles from 'app/views/projectDebugFiles';
-import ProjectDetails from 'app/views/projectDetails';
 import ProjectEnvironments from 'app/views/projectEnvironments';
 import ProjectEventRedirect from 'app/views/projectEventRedirect';
 import ProjectGettingStarted from 'app/views/projectInstall/gettingStarted';
@@ -1131,173 +1130,174 @@ function routes() {
           <Route path=":platform/" component={errorHandler(ProjectInstallPlatform)} />
         </Route>
 
-        <Route path=":projectId/" component={errorHandler(ProjectDetails)}>
-          <IndexRedirect to="/organizations/:orgId/issues/" />
-          <Redirect from="issues/" to="/organizations/:orgId/issues/" />
-          <Redirect from="searches/:searchId/" to="/organizations/:orgId/issues/" />
-          <Redirect from="dashboard/" to="/organizations/:orgId/dashboards/" />
-          <Redirect from="releases/" to="/organizations/:orgId/releases/" />
-          <Redirect
-            from="releases/:version/"
-            to="/organizations/:orgId/releases/:version/"
-          />
-          <Redirect
-            from="releases/:version/new-events/"
-            to="/organizations/:orgId/releases/:version/new-events/"
-          />
-          <Redirect
-            from="releases/:version/all-events/"
-            to="/organizations/:orgId/releases/:version/all-events/"
-          />
-          <Redirect
-            from="releases/:version/artifacts/"
-            to="/organizations/:orgId/releases/:version/artifacts/"
-          />
-          <Redirect
-            from="releases/:version/commits/"
-            to="/organizations/:orgId/releases/:version/commits/"
-          />
+        <Redirect from=":projectId/" to="/organizations/:orgId/issues/" />
+        <Redirect from=":projectId/issues/" to="/organizations/:orgId/issues/" />
+        <Redirect
+          from=":projectId/searches/:searchId/"
+          to="/organizations/:orgId/issues/"
+        />
+        <Redirect from=":projectId/dashboard/" to="/organizations/:orgId/dashboards/" />
+        <Redirect from=":projectId/releases/" to="/organizations/:orgId/releases/" />
+        <Redirect
+          from=":projectId/releases/:version/"
+          to="/organizations/:orgId/releases/:version/"
+        />
+        <Redirect
+          from=":projectId/releases/:version/new-events/"
+          to="/organizations/:orgId/releases/:version/new-events/"
+        />
+        <Redirect
+          from=":projectId/releases/:version/all-events/"
+          to="/organizations/:orgId/releases/:version/all-events/"
+        />
+        <Redirect
+          from=":projectId/releases/:version/artifacts/"
+          to="/organizations/:orgId/releases/:version/artifacts/"
+        />
+        <Redirect
+          from=":projectId/releases/:version/commits/"
+          to="/organizations/:orgId/releases/:version/commits/"
+        />
 
-          <Redirect from="user-feedback/" to="/organizations/:orgId/user-feedback/" />
-          <Route path="settings/" component={errorHandler(ProjectSettings)}>
-            <Redirect from="teams/" to="/settings/:orgId/projects/:projectId/teams/" />
-            <Redirect from="alerts/" to="/settings/:orgId/projects/:projectId/alerts/" />
-            <Redirect
-              from="alerts/rules/"
-              to="/settings/:orgId/projects/:projectId/alerts/rules/"
-            />
-            <Redirect
-              from="alerts/rules/new/"
-              to="/settings/:orgId/projects/:projectId/alerts/rules/new/"
-            />
-            <Redirect
-              from="alerts/rules/:ruleId/"
-              to="/settings/:orgId/projects/:projectId/alerts/rules/:ruleId/"
-            />
-            <Redirect
-              from="environments/"
-              to="/settings/:orgId/projects/:projectId/environments/"
-            />
-            <Redirect
-              from="environments/hidden/"
-              to="/settings/:orgId/projects/:projectId/environments/hidden/"
-            />
-            <Redirect
-              from="tags/"
-              to="/settings/projects/:orgId/projects/:projectId/tags/"
-            />
-            <Redirect
-              from="issue-tracking/"
-              to="/settings/:orgId/projects/:projectId/issue-tracking/"
-            />
-            <Redirect
-              from="release-tracking/"
-              to="/settings/:orgId/projects/:projectId/release-tracking/"
-            />
-            <Redirect
-              from="ownership/"
-              to="/settings/:orgId/projects/:projectId/ownership/"
-            />
-            <Redirect
-              from="data-forwarding/"
-              to="/settings/:orgId/projects/:projectId/data-forwarding/"
-            />
-            <Redirect
-              from="saved-searches/"
-              to="/settings/:orgId/projects/:projectId/saved-searches/"
-            />
-            <Redirect
-              from="debug-symbols/"
-              to="/settings/:orgId/projects/:projectId/debug-symbols/"
-            />
-            <Redirect
-              from="processing-issues/"
-              to="/settings/:orgId/projects/:projectId/processing-issues/"
-            />
-            <Redirect
-              from="filters/"
-              to="/settings/:orgId/projects/:projectId/filters/"
-            />
-            <Redirect from="hooks/" to="/settings/:orgId/projects/:projectId/hooks/" />
-            <Redirect from="keys/" to="/settings/:orgId/projects/:projectId/keys/" />
-            <Redirect
-              from="keys/:keyId/"
-              to="/settings/:orgId/projects/:projectId/keys/:keyId/"
-            />
-            <Redirect
-              from="user-feedback/"
-              to="/settings/:orgId/projects/:projectId/user-feedback/"
-            />
-            <Redirect
-              from="security-headers/"
-              to="/settings/:orgId/projects/:projectId/security-headers/"
-            />
-            <Redirect
-              from="security-headers/csp/"
-              to="/settings/:orgId/projects/:projectId/security-headers/csp/"
-            />
-            <Redirect
-              from="security-headers/expect-ct/"
-              to="/settings/:orgId/projects/:projectId/security-headers/expect-ct/"
-            />
-            <Redirect
-              from="security-headers/hpkp/"
-              to="/settings/:orgId/projects/:projectId/security-headers/hpkp/"
-            />
-            <Redirect
-              from="plugins/"
-              to="/settings/:orgId/projects/:projectId/plugins/"
-            />
-            <Redirect
-              from="plugins/:pluginId/"
-              to="/settings/:orgId/projects/:projectId/plugins/:pluginId/"
-            />
-            <Redirect
-              from="integrations/:providerKey/"
-              to="/settings/:orgId/projects/:projectId/integrations/:providerKey/"
-            />
-            <Redirect
-              from="install/"
-              to="/settings/:orgId/projects/:projectId/install/"
-            />
-            <Redirect
-              from="install/:platform'"
-              to="/settings/:orgId/projects/:projectId/install/:platform/"
-            />
-            {projectSettingsRoutes}
-          </Route>
-          <Redirect from="group/:groupId/" to="issues/:groupId/" />
-          <Redirect from="issues/:groupId/" to="/organizations/:orgId/issues/:groupId/" />
+        <Redirect
+          from=":projectId/user-feedback/"
+          to="/organizations/:orgId/user-feedback/"
+        />
+        <Route path=":projectId/settings/" component={errorHandler(ProjectSettings)}>
+          <Redirect from="teams/" to="/settings/:orgId/projects/:projectId/teams/" />
+          <Redirect from="alerts/" to="/settings/:orgId/projects/:projectId/alerts/" />
           <Redirect
-            from="issues/:groupId/events/"
-            to="/organizations/:orgId/issues/:groupId/events/"
+            from="alerts/rules/"
+            to="/settings/:orgId/projects/:projectId/alerts/rules/"
           />
           <Redirect
-            from="issues/:groupId/events/:eventId/"
-            to="/organizations/:orgId/issues/:groupId/events/:eventId/"
+            from="alerts/rules/new/"
+            to="/settings/:orgId/projects/:projectId/alerts/rules/new/"
           />
           <Redirect
-            from="issues/:groupId/tags/"
-            to="/organizations/:orgId/issues/:groupId/tags/"
+            from="alerts/rules/:ruleId/"
+            to="/settings/:orgId/projects/:projectId/alerts/rules/:ruleId/"
           />
           <Redirect
-            from="issues/:groupId/tags/:tagKey/"
-            to="/organizations/:orgId/issues/:groupId/tags/:tagKey/"
+            from="environments/"
+            to="/settings/:orgId/projects/:projectId/environments/"
           />
           <Redirect
-            from="issues/:groupId/feedback/"
-            to="/organizations/:orgId/issues/:groupId/feedback/"
+            from="environments/hidden/"
+            to="/settings/:orgId/projects/:projectId/environments/hidden/"
           />
           <Redirect
-            from="issues/:groupId/similar/"
-            to="/organizations/:orgId/issues/:groupId/similar/"
+            from="tags/"
+            to="/settings/projects/:orgId/projects/:projectId/tags/"
           />
           <Redirect
-            from="issues/:groupId/merged/"
-            to="/organizations/:orgId/issues/:groupId/merged/"
+            from="issue-tracking/"
+            to="/settings/:orgId/projects/:projectId/issue-tracking/"
           />
-          <Route path="events/:eventId/" component={errorHandler(ProjectEventRedirect)} />
+          <Redirect
+            from="release-tracking/"
+            to="/settings/:orgId/projects/:projectId/release-tracking/"
+          />
+          <Redirect
+            from="ownership/"
+            to="/settings/:orgId/projects/:projectId/ownership/"
+          />
+          <Redirect
+            from="data-forwarding/"
+            to="/settings/:orgId/projects/:projectId/data-forwarding/"
+          />
+          <Redirect
+            from="saved-searches/"
+            to="/settings/:orgId/projects/:projectId/saved-searches/"
+          />
+          <Redirect
+            from="debug-symbols/"
+            to="/settings/:orgId/projects/:projectId/debug-symbols/"
+          />
+          <Redirect
+            from="processing-issues/"
+            to="/settings/:orgId/projects/:projectId/processing-issues/"
+          />
+          <Redirect from="filters/" to="/settings/:orgId/projects/:projectId/filters/" />
+          <Redirect from="hooks/" to="/settings/:orgId/projects/:projectId/hooks/" />
+          <Redirect from="keys/" to="/settings/:orgId/projects/:projectId/keys/" />
+          <Redirect
+            from="keys/:keyId/"
+            to="/settings/:orgId/projects/:projectId/keys/:keyId/"
+          />
+          <Redirect
+            from="user-feedback/"
+            to="/settings/:orgId/projects/:projectId/user-feedback/"
+          />
+          <Redirect
+            from="security-headers/"
+            to="/settings/:orgId/projects/:projectId/security-headers/"
+          />
+          <Redirect
+            from="security-headers/csp/"
+            to="/settings/:orgId/projects/:projectId/security-headers/csp/"
+          />
+          <Redirect
+            from="security-headers/expect-ct/"
+            to="/settings/:orgId/projects/:projectId/security-headers/expect-ct/"
+          />
+          <Redirect
+            from="security-headers/hpkp/"
+            to="/settings/:orgId/projects/:projectId/security-headers/hpkp/"
+          />
+          <Redirect from="plugins/" to="/settings/:orgId/projects/:projectId/plugins/" />
+          <Redirect
+            from="plugins/:pluginId/"
+            to="/settings/:orgId/projects/:projectId/plugins/:pluginId/"
+          />
+          <Redirect
+            from="integrations/:providerKey/"
+            to="/settings/:orgId/projects/:projectId/integrations/:providerKey/"
+          />
+          <Redirect from="install/" to="/settings/:orgId/projects/:projectId/install/" />
+          <Redirect
+            from="install/:platform'"
+            to="/settings/:orgId/projects/:projectId/install/:platform/"
+          />
+          {projectSettingsRoutes}
         </Route>
+        <Redirect from=":projectId/group/:groupId/" to="issues/:groupId/" />
+        <Redirect
+          from=":projectId/issues/:groupId/"
+          to="/organizations/:orgId/issues/:groupId/"
+        />
+        <Redirect
+          from=":projectId/issues/:groupId/events/"
+          to="/organizations/:orgId/issues/:groupId/events/"
+        />
+        <Redirect
+          from=":projectId/issues/:groupId/events/:eventId/"
+          to="/organizations/:orgId/issues/:groupId/events/:eventId/"
+        />
+        <Redirect
+          from=":projectId/issues/:groupId/tags/"
+          to="/organizations/:orgId/issues/:groupId/tags/"
+        />
+        <Redirect
+          from=":projectId/issues/:groupId/tags/:tagKey/"
+          to="/organizations/:orgId/issues/:groupId/tags/:tagKey/"
+        />
+        <Redirect
+          from=":projectId/issues/:groupId/feedback/"
+          to="/organizations/:orgId/issues/:groupId/feedback/"
+        />
+        <Redirect
+          from=":projectId/issues/:groupId/similar/"
+          to="/organizations/:orgId/issues/:groupId/similar/"
+        />
+        <Redirect
+          from=":projectId/issues/:groupId/merged/"
+          to="/organizations/:orgId/issues/:groupId/merged/"
+        />
+        <Route
+          path=":projectId/events/:eventId/"
+          component={errorHandler(ProjectEventRedirect)}
+        />
       </Route>
       {hook('routes')}
       <Route
