@@ -123,9 +123,8 @@ class ExternalIssueList extends AsyncComponent {
 
     return components.map(component => {
       const {sentryApp} = component;
-
       const installation = sentryAppInstallations.find(
-        i => i.sentryApp.uuid === sentryApp.uuid
+        i => i.app.uuid === sentryApp.uuid
       );
 
       const issue = (externalIssues || []).find(i => i.serviceType == sentryApp.slug);

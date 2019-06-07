@@ -12,22 +12,7 @@ describe('groupEventDetails', () => {
   let group;
   let event;
 
-  beforeEach(() => {
-    const props = initializeOrg();
-    org = props.organization;
-    project = props.project;
-    project.organization = org;
-    routerContext = props.routerContext;
-
-    group = TestStubs.Group();
-    event = TestStubs.Event({
-      size: 1,
-      dateCreated: '2019-03-20T00:00:00.000Z',
-      errors: [],
-      entries: [],
-      tags: [{key: 'environment', value: 'dev'}],
-    });
-
+  const mockGroupApis = () => {
     MockApiClient.addMockResponse({
       url: `/issues/${group.id}/`,
       body: group,
@@ -67,9 +52,33 @@ describe('groupEventDetails', () => {
       url: `/groups/${group.id}/integrations/`,
       body: [],
     });
+  };
+
+  beforeEach(() => {
+    const props = initializeOrg();
+    org = props.organization;
+    project = props.project;
+    project.organization = org;
+    routerContext = props.routerContext;
+
+    group = TestStubs.Group();
+    event = TestStubs.Event({
+      size: 1,
+      dateCreated: '2019-03-20T00:00:00.000Z',
+      errors: [],
+      entries: [],
+      tags: [{key: 'environment', value: 'dev'}],
+    });
+
+    mockGroupApis();
 
     MockApiClient.addMockResponse({
       url: '/sentry-apps/',
+      body: [],
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${org.slug}/sentry-apps/`,
       body: [],
     });
 
@@ -195,51 +204,100 @@ describe('groupEventDetails', () => {
     });
   });
 
-  it('loads Sentry Apps', () => {
-    const request = MockApiClient.addMockResponse({
-      url: '/sentry-apps/',
-      body: [],
+  describe('Platform Integrations', () => {
+    let wrapper;  // eslint-disable-line
+    let integrationsRequest;
+    let orgIntegrationsRequest;
+    let componentsRequest;
+
+    const mountWrapper = () => {
+      return mount(
+        <GroupEventDetails
+          api={new MockApiClient()}
+          group={group}
+          project={project}
+          organization={org}
+          environments={[{id: '1', name: 'dev', displayName: 'Dev'}]}
+          params={{orgId: org.slug, groupId: group.id, eventId: '1'}}
+          location={{query: {environment: 'dev'}}}
+        />,
+        routerContext
+      );
+    };
+
+    beforeEach(() => {
+      const integration = TestStubs.SentryApp();
+      const unpublishedIntegration = TestStubs.SentryApp({status: 'unpublished'});
+      const internalIntegration = TestStubs.SentryApp({status: 'internal'});
+
+      const unpublishedInstall = TestStubs.SentryAppInstallation({
+        app: {
+          slug: unpublishedIntegration.slug,
+          uuid: unpublishedIntegration.uuid,
+        },
+      });
+
+      const internalInstall = TestStubs.SentryAppInstallation({
+        app: {
+          slug: internalIntegration.slug,
+          uuid: internalIntegration.uuid,
+        },
+      });
+
+      const component = TestStubs.SentryAppComponent({
+        sentryApp: {
+          uuid: unpublishedIntegration.uuid,
+          slug: unpublishedIntegration.slug,
+          name: unpublishedIntegration.name,
+        },
+      });
+
+      MockApiClient.clearMockResponses();
+      mockGroupApis();
+
+      MockApiClient.addMockResponse({
+        url: `/projects/${org.slug}/${project.slug}/events/1/`,
+        body: event,
+      });
+
+      componentsRequest = MockApiClient.addMockResponse({
+        url: `/organizations/${org.slug}/sentry-app-components/?projectId=${project.id}`,
+        body: [component],
+      });
+
+      MockApiClient.addMockResponse({
+        url: `/projects/${org.slug}/${project.slug}/events/1/`,
+        body: event,
+      });
+
+      integrationsRequest = MockApiClient.addMockResponse({
+        url: '/sentry-apps/',
+        body: [integration],
+      });
+
+      MockApiClient.addMockResponse({
+        url: `/organizations/${org.slug}/sentry-app-installations/`,
+        body: [unpublishedInstall, internalInstall],
+      });
+
+      orgIntegrationsRequest = MockApiClient.addMockResponse({
+        url: `/organizations/${org.slug}/sentry-apps/`,
+        body: [unpublishedIntegration, internalIntegration],
+      });
+
+      wrapper = mountWrapper();
     });
 
-    project.organization = org;
-
-    mount(
-      <GroupEventDetails
-        api={new MockApiClient()}
-        group={group}
-        project={project}
-        organization={org}
-        environments={[{id: '1', name: 'dev', displayName: 'Dev'}]}
-        params={{}}
-        location={{}}
-      />,
-      routerContext
-    );
-
-    expect(request).toHaveBeenCalledTimes(1);
-  });
-
-  it('loads sentry app components when flagged in', () => {
-    const request = MockApiClient.addMockResponse({
-      url: `/organizations/${org.slug}/sentry-app-components/?projectId=${project.id}`,
-      body: [],
+    it('loads Integrations', () => {
+      expect(integrationsRequest).toHaveBeenCalled();
     });
 
-    project.organization = org;
+    it('loads unpublished and internal Integrations', () => {
+      expect(orgIntegrationsRequest).toHaveBeenCalled();
+    });
 
-    mount(
-      <GroupEventDetails
-        api={new MockApiClient()}
-        group={group}
-        project={project}
-        organization={org}
-        environments={[{id: '1', name: 'dev', displayName: 'Dev'}]}
-        params={{}}
-        location={{}}
-      />,
-      routerContext
-    );
-
-    expect(request).toHaveBeenCalledTimes(1);
+    it('loads Integration UI components', () => {
+      expect(componentsRequest).toHaveBeenCalled();
+    });
   });
 });
