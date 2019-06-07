@@ -38,10 +38,12 @@ class EventOrGroupHeader extends React.Component {
     hideIcons: PropTypes.bool,
     hideLevel: PropTypes.bool,
     query: PropTypes.string,
+    size: PropTypes.oneOf(['small', 'normal']),
   };
 
   static defaultProps = {
     includeLink: true,
+    size: 'normal',
   };
 
   getTitle() {
@@ -99,16 +101,16 @@ class EventOrGroupHeader extends React.Component {
   }
 
   render() {
-    const {className, data} = this.props;
+    const {className, size, data} = this.props;
     const cx = classNames('event-issue-header', className);
     const location = getLocation(data);
     const message = getMessage(data);
 
     return (
       <div className={cx}>
-        <Title>{this.getTitle()}</Title>
-        {location && <Location>{location}</Location>}
-        {message && <Message>{message}</Message>}
+        <Title size={size}>{this.getTitle()}</Title>
+        {location && <Location size={size}>{location}</Location>}
+        {message && <Message size={size}>{message}</Message>}
       </div>
     );
   }
@@ -121,9 +123,17 @@ const truncateStyles = css`
   white-space: nowrap;
 `;
 
+const getMargin = ({size}) => {
+  if (size === 'small') {
+    return 'margin: 0;';
+  }
+
+  return 'margin: 0 0 5px';
+};
+
 const Title = styled('div')`
   ${truncateStyles};
-  margin: 0 0 5px;
+  ${getMargin};
   & em {
     font-size: 14px;
     font-style: normal;
@@ -134,10 +144,10 @@ const Title = styled('div')`
 
 const LocationWrapper = styled('div')`
   ${truncateStyles};
+  ${getMargin};
   direction: rtl;
   text-align: left;
   font-size: 14px;
-  margin: 0 0 5px;
   color: ${p => p.theme.gray3};
   span {
     direction: ltr;
@@ -155,8 +165,8 @@ function Location(props) {
 
 const Message = styled('div')`
   ${truncateStyles};
+  ${getMargin};
   font-size: 14px;
-  margin: 0 0 5px;
 `;
 
 const iconStyles = css`
