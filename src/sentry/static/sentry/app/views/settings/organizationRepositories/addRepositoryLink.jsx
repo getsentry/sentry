@@ -128,7 +128,7 @@ class AddRepositoryLink extends PluginComponentBase {
     const provider = this.props.provider;
     let hasIntegration = true;
     provider.config.forEach(field => {
-      if (field.initial === '') {
+      if (!field.initial) {
         hasIntegration = false;
       }
     });
