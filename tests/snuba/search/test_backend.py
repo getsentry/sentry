@@ -1234,6 +1234,33 @@ class SnubaSearchTest(TestCase, SnubaTestCase):
         # SEN-571
         # ISSUE-432
 
+        # given the following setup:
+        #
+        # groups table:
+        # group    first_release
+        # A        1
+        # B        1
+        # C        2
+        #
+        # groupenvironments table:
+        # group    environment    first_release
+        # A        staging        1
+        # A        production     2
+        #
+        # when querying by first release, the appropriate set of groups should be displayed:
+        #
+        #     first_release: 1
+        #         env=[]: A, B
+        #         env=[production, staging]: A
+        #         env=[staging]: A
+        #         env=[production]: nothing
+        #
+        #     first_release: 2
+        #         env=[]: A, C
+        #         env=[production, staging]: A
+        #         env=[staging]: nothing
+        #         env=[production]: A
+
         # create some releases
 
         release_1_timestamp = self.base_datetime
