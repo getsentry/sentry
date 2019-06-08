@@ -1201,151 +1201,6 @@ class SnubaSearchTest(TestCase, SnubaTestCase):
         )
         assert set(results) == set([self.group1])
 
-    def test_first_release_any_environments(self):
-
-        # create some releases
-
-        release_1 = self.create_release(self.project, date_added=datetime.now())
-        release_2 = self.create_release(self.project, date_added=datetime.now() + timedelta(days=1))
-
-        # create group3 which will have no environment, and will be attached to release release_1
-
-        # NOTE: this event intentionally has no environment
-        group3_event = self.store_event(
-            data={
-                'fingerprint': ['put-me-in-group3'],
-                'event_id': '1ba03f57b85fd4e568833e922c609770',
-                'timestamp': (self.base_datetime - timedelta(days=10)).isoformat()[:19],
-                'message': 'foobaz',
-                'stacktrace': {
-                    'frames': [{
-                        'module': 'group3'
-                    }]
-                },
-                'tags': {
-                    'server': 'foobar.com',
-                    'url': 'http://foobar.com',
-                }
-            },
-            project_id=self.project.id
-        )
-        assert group3_event.get_environment().name == u''
-
-        group3 = Group.objects.get(id=group3_event.group.id)
-        assert group3.id == group3_event.group.id
-
-        assert group3.first_seen == group3_event.datetime
-        assert group3.last_seen == group3_event.datetime
-
-        group3.times_seen = 42
-        group3.status = GroupStatus.UNRESOLVED
-        group3.save()
-
-        # create group4 which will have no environment, and will be attached to release release_2
-
-        # NOTE: this event intentionally has no environment
-        group4_event = self.store_event(
-            data={
-                'fingerprint': ['put-me-in-group4'],
-                'event_id': '03ee51e630b0a022f83d2f1960fc9dab',
-                'timestamp': (self.base_datetime - timedelta(days=10)).isoformat()[:19],
-                'message': 'foobaz',
-                'stacktrace': {
-                    'frames': [{
-                        'module': 'group4'
-                    }]
-                },
-                'tags': {
-                    'server': 'foobar.com',
-                    'url': 'http://foobar.com',
-                }
-            },
-            project_id=self.project.id
-        )
-        assert group4_event.get_environment().name == u''
-
-        group4 = Group.objects.get(id=group4_event.group.id)
-        assert group4.id == group4_event.group.id
-
-        assert group4.first_seen == group4_event.datetime
-        assert group4.last_seen == group4_event.datetime
-
-        group4.times_seen = 4242
-        group4.status = GroupStatus.UNRESOLVED
-        group4.save()
-
-        # expect no groups within the results since there are no releases
-
-        # results = self.make_query(
-        #     search_filter_query='first_release:%s' % 'fake',
-        # )
-        # assert set(results) == set([])
-
-        # expect no groups even though there are releases; since no group
-        # is attached to any release
-
-        # results = self.make_query(
-        #     search_filter_query='first_release:%s' % release_1.version,
-        # )
-        # assert set(results) == set([])
-
-        # results = self.make_query(
-        #     search_filter_query='first_release:%s' % release_2.version,
-        # )
-        # assert set(results) == set([])
-
-        # attach groups' first_release to a release
-
-        self.group1.first_release = release_1
-        self.group1.save()
-
-        group3.first_release = release_1
-        group3.save()
-
-        group4.first_release = release_2
-        group4.save()
-
-        #  create groupenvs for only group1, and attach groupenvs to releases
-
-        group1_staging_env = GroupEnvironment.get_or_create(
-            group_id=self.group1.id,
-            environment_id=self.environments['staging'].id,
-        )[0]
-
-        group1_staging_env.first_release = release_1
-        group1_staging_env.save()
-
-        group1_prod_env = GroupEnvironment.get_or_create(
-            group_id=self.group1.id,
-            environment_id=self.environments['production'].id,
-        )[0]
-
-        group1_prod_env.first_release = release_2
-        group1_prod_env.save()
-
-        # query for release 1
-
-        # results = self.make_query(
-        #     search_filter_query='first_release:%s' % release_1.version,
-        # )
-        # assert set(results) == set([self.group1, group3])
-
-        # query for release 1 and staging environment
-
-        results = self.make_query(
-            environments=[self.environments['staging']],
-            search_filter_query='first_release:%s' % release_1.version,
-        )
-        assert set(results) == set([self.group1])
-
-        # query for release 1 and production environment
-
-        # results = self.make_query(
-        #     environments=[self.environments['production']],
-        #     search_filter_query='first_release:%s' % release_1.version,
-        # )
-        # assert set(results) == set([])
-
     def test_first_release_environments(self):
         results = self.make_query(
             environments=[self.environments['production']],
@@ -1373,6 +1228,324 @@ class SnubaSearchTest(TestCase, SnubaTestCase):
             search_filter_query='first_release:%s' % release.version,
         )
         assert set(results) == set([self.group1])
+
+    def test_first_release_any_environments(self):
+
+        # create some releases
+
+        release_1_timestamp = self.base_datetime
+        release_1 = self.create_release(self.project, date_added=release_1_timestamp)
+
+        release_2_timestamp = release_1_timestamp + timedelta(days=2)
+        release_2 = self.create_release(self.project, date_added=release_2_timestamp)
+
+        assert release_2_timestamp > release_1_timestamp  # release_2 occurred after release_1
+
+        # create an issue/group whose events that occur in 2 distinct environments
+
+        group_a_event_1 = self.store_event(
+            data={
+                'fingerprint': ['group_a'],
+                'event_id': 'aaa' + ('1' * 29),
+                'message': 'group_a',
+                'environment': 'example_staging',
+                'tags': {
+                    'server': 'example.com',
+                },
+                'timestamp': (release_1_timestamp + timedelta(days=1)).isoformat()[:19],
+                'stacktrace': {
+                    'frames': [{
+                        'module': 'group_a'
+                    }]
+                },
+            },
+            project_id=self.project.id,
+        )
+
+        group_a_event_2 = self.store_event(
+            data={
+                'fingerprint': ['group_a'],
+                'event_id': 'aaa' + ('2' * 29),
+                'message': 'group_a',
+                'environment': 'example_production',
+                'tags': {
+                    'server': 'example.com',
+                },
+                'timestamp': (release_2_timestamp + timedelta(days=1)).isoformat()[:19],
+                'stacktrace': {
+                    'frames': [{
+                        'module': 'group_a'
+                    }]
+                },
+            },
+            project_id=self.project.id,
+        )
+
+        group_a = Group.objects.get(id=group_a_event_1.group.id)
+        assert group_a.id == group_a_event_1.group.id
+        assert group_a.id == group_a_event_2.group.id
+
+        assert group_a.first_seen == group_a_event_1.datetime
+        assert group_a.last_seen == group_a_event_2.datetime
+        assert group_a.last_seen > group_a.first_seen
+
+        group_a.times_seen = 42
+        group_a.status = GroupStatus.UNRESOLVED
+        group_a.save()
+
+        # get the environments for group_a
+
+        prod_env = group_a_event_2.get_environment()
+        staging_env = group_a_event_1.get_environment()
+
+        # create an issue/group whose event that occur in no environments
+        # but will be tied to release_1
+
+        group_b_event_1 = self.store_event(
+            data={
+                'fingerprint': ['group_b'],
+                'event_id': 'bbb' + ('1' * 29),
+                'message': 'group_b',
+                'tags': {
+                    'server': 'example.com',
+                },
+                'timestamp': (release_1_timestamp + timedelta(days=1)).isoformat()[:19],
+                'stacktrace': {
+                    'frames': [{
+                        'module': 'group_b'
+                    }]
+                },
+            },
+            project_id=self.project.id,
+        )
+        assert group_b_event_1.get_environment().name == u''  # has no environment
+
+        group_b = Group.objects.get(id=group_b_event_1.group.id)
+        assert group_b.id == group_b_event_1.group.id
+
+        assert group_b.first_seen == group_b.last_seen == group_b_event_1.datetime
+
+        # group_b_event_1 occurred before release_2 was created
+        assert group_b_event_1.datetime < release_2_timestamp
+
+        group_b.times_seen = 422
+        group_b.status = GroupStatus.UNRESOLVED
+        group_b.save()
+
+        # create an issue/group whose event that occur in no environments
+        # but will be tied to release_2
+
+        group_c_event_1 = self.store_event(
+            data={
+                'fingerprint': ['group_c'],
+                'event_id': 'ccc' + ('1' * 29),
+                'message': 'group_c',
+                'tags': {
+                    'server': 'example.com',
+                },
+                'timestamp': (release_2_timestamp + timedelta(days=1)).isoformat()[:19],
+                'stacktrace': {
+                    'frames': [{
+                        'module': 'group_c'
+                    }]
+                },
+            },
+            project_id=self.project.id,
+        )
+        assert group_c_event_1.get_environment().name == u''  # has no environment
+
+        group_c = Group.objects.get(id=group_c_event_1.group.id)
+        assert group_c.id == group_c_event_1.group.id
+
+        assert group_c.first_seen == group_c.last_seen == group_c_event_1.datetime
+
+        group_c.times_seen = 666
+        group_c.status = GroupStatus.UNRESOLVED
+        group_c.save()
+
+        # expect no groups since given release version does not exist
+
+        non_existent_release = 'fake'
+        assert release_1.version != non_existent_release
+        assert release_2.version != non_existent_release
+
+        results = self.make_query(
+            search_filter_query='first_release:%s' % non_existent_release,
+        )
+
+        assert set(results) == set([])
+
+        # expect no groups even though there are releases; since no group
+        # is attached to any releases
+
+        results = self.make_query(
+            search_filter_query='first_release:%s' % release_1.version,
+        )
+        assert set(results) == set([])
+
+        results = self.make_query(
+            search_filter_query='first_release:%s' % release_2.version,
+        )
+        assert set(results) == set([])
+
+        # set group_a's first_release to be release_1
+
+        group_a.first_release = release_1
+        group_a.save()
+
+        results = self.make_query(
+            search_filter_query='first_release:%s' % release_1.version,
+        )
+        assert set(results) == set([group_a])
+
+        results = self.make_query(
+            search_filter_query='first_release:%s' % release_2.version,
+        )
+        assert set(results) == set([])
+
+        # set group_b's first_release to be release_1
+
+        group_b.first_release = release_1
+        group_b.save()
+
+        results = self.make_query(
+            search_filter_query='first_release:%s' % release_1.version,
+        )
+        assert set(results) == set([group_a, group_b])
+
+        results = self.make_query(
+            search_filter_query='first_release:%s' % release_2.version,
+        )
+        assert set(results) == set([])
+
+        # set group_c's first_release to be release_2
+
+        group_c.first_release = release_2
+        group_c.save()
+
+        results = self.make_query(
+            search_filter_query='first_release:%s' % release_1.version,
+        )
+        assert set(results) == set([group_a, group_b])
+
+        results = self.make_query(
+            search_filter_query='first_release:%s' % release_2.version,
+        )
+        assert set(results) == set([group_c])
+
+        #  groupenv(group_a, staging, release_1)
+
+        group_a_staging_env = GroupEnvironment.get_or_create(
+            group_id=group_a.id,
+            environment_id=staging_env.id,
+        )[0]
+
+        group_a_staging_env.first_release = release_1
+        group_a_staging_env.save()
+
+        results = self.make_query(
+            search_filter_query='first_release:%s' % release_1.version,
+        )
+        assert set(results) == set([group_a, group_b])
+
+        results = self.make_query(
+            environments=[staging_env, prod_env],
+            search_filter_query='first_release:%s' % release_1.version,
+        )
+        # note that group_b does not show up since it has no events that occured in any environments
+        assert set(results) == set([group_a])
+
+        results = self.make_query(
+            environments=[staging_env],
+            search_filter_query='first_release:%s' % release_1.version,
+        )
+        assert set(results) == set([group_a])
+
+        results = self.make_query(
+            environments=[prod_env],
+            search_filter_query='first_release:%s' % release_1.version,
+        )
+        assert set(results) == set([])
+
+        results = self.make_query(
+            search_filter_query='first_release:%s' % release_2.version,
+        )
+        assert set(results) == set([group_c])
+
+        results = self.make_query(
+            environments=[staging_env, prod_env],
+            search_filter_query='first_release:%s' % release_2.version,
+        )
+        assert set(results) == set([])
+
+        results = self.make_query(
+            environments=[staging_env],
+            search_filter_query='first_release:%s' % release_2.version,
+        )
+        assert set(results) == set([])
+
+        results = self.make_query(
+            environments=[prod_env],
+            search_filter_query='first_release:%s' % release_2.version,
+        )
+        assert set(results) == set([])
+
+        #  groupenv(group_a, prod, release_2)
+
+        group_a_prod_env = GroupEnvironment.get_or_create(
+            group_id=group_a.id,
+            environment_id=prod_env.id,
+        )[0]
+
+        group_a_prod_env.first_release = release_2
+        group_a_prod_env.save()
+
+        results = self.make_query(
+            search_filter_query='first_release:%s' % release_1.version,
+        )
+        assert set(results) == set([group_a, group_b])
+
+        results = self.make_query(
+            environments=[staging_env, prod_env],
+            search_filter_query='first_release:%s' % release_1.version,
+        )
+        # note that group_b does not show up since it has no events that occured in any environments
+        assert set(results) == set([group_a])
+
+        results = self.make_query(
+            environments=[staging_env],
+            search_filter_query='first_release:%s' % release_1.version,
+        )
+        assert set(results) == set([group_a])
+
+        results = self.make_query(
+            environments=[prod_env],
+            search_filter_query='first_release:%s' % release_1.version,
+        )
+        assert set(results) == set([])
+
+        results = self.make_query(
+            search_filter_query='first_release:%s' % release_2.version,
+        )
+        assert set(results) == set([group_a, group_c])
+
+        results = self.make_query(
+            environments=[staging_env, prod_env],
+            search_filter_query='first_release:%s' % release_2.version,
+        )
+        assert set(results) == set([group_a])
+
+        results = self.make_query(
+            environments=[staging_env],
+            search_filter_query='first_release:%s' % release_2.version,
+        )
+        assert set(results) == set([])
+
+        results = self.make_query(
+            environments=[prod_env],
+            search_filter_query='first_release:%s' % release_2.version,
+        )
+        assert set(results) == set([group_a])
 
     def test_query_enclosed_in_quotes(self):
         results = self.make_query(search_filter_query='"foo"')
