@@ -1229,7 +1229,10 @@ class SnubaSearchTest(TestCase, SnubaTestCase):
         )
         assert set(results) == set([self.group1])
 
-    def test_first_release_any_environments(self):
+    def test_first_release_any_or_no_environments(self):
+        # test scenarios for tickets:
+        # SEN-571
+        # ISSUE-432
 
         # create some releases
 
