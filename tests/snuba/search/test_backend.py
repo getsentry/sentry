@@ -1183,7 +1183,7 @@ class SnubaSearchTest(TestCase, SnubaTestCase):
         # expect no groups even though there is a release; since no group
         # is attached to a release
 
-        release_1 = self.create_release(self.project, date_added=datetime.now())
+        release_1 = self.create_release(self.project)
 
         results = self.make_query(
             search_filter_query='first_release:%s' % release_1.version,

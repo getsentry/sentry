@@ -306,7 +306,8 @@ class SnubaSearchBackend(SearchBackend):
             group_queryset = QuerySetBuilder({
                 'first_release': QCallbackCondition(
                     lambda version: Q(
-                        # if environment(s) are selected, we just filter on the group environment's first_release attribute.
+                        # if environment(s) are selected, we just filter on the group
+                        # environment's first_release attribute.
                         groupenvironment__first_release__organization_id=projects[0].organization_id,
                         groupenvironment__first_release__version=version,
                         groupenvironment__environment_id__in=environment_ids,
@@ -322,16 +323,16 @@ class SnubaSearchBackend(SearchBackend):
             group_queryset = QuerySetBuilder({
                 'first_release': QCallbackCondition(
                     lambda release_version: Q(
-                        # if no specific environments are supplied, we choose any groups that has a specific first release
-                        # that matches the given release_version, (agnostic of environment)
+                        # if no specific environments are supplied, we either choose any
+                        # groups/issues whose first release matches the given release_version,
                         Q(
                             first_release_id__in=Release.objects.filter(
                                 version=release_version,
                                 organization_id=projects[0].organization_id
                             )
                         ) |
-                        # or choose any groups whose first occurrence in any environment and the latest release at
-                        # the time of the groups' occurrence matches the given release_version
+                        # or we choose any groups whose first occurrence in any environment and the latest release at
+                        # the time of the groups' first occurrence matches the given release_version
                         Q(
                             id__in=GroupEnvironment.objects.filter(
                                 first_release__version=release_version,
