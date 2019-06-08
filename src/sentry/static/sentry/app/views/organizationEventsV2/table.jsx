@@ -4,13 +4,13 @@ import styled, {css} from 'react-emotion';
 
 import SentryTypes from 'app/sentryTypes';
 import {Panel, PanelHeader, PanelBody, PanelItem} from 'app/components/panels';
-import LoadingIndicator from 'app/components/loadingIndicator';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 
 import {SPECIAL_FIELDS} from './data';
 import {QueryLink} from './styles';
+import LoadingContainer from './loadingContainer';
 
 export default class Table extends React.Component {
   static propTypes = {
@@ -23,14 +23,14 @@ export default class Table extends React.Component {
   };
 
   renderBody() {
-    const {view, data, isLoading, organization, onSearch, location} = this.props;
+    const {view, data, organization, onSearch, location} = this.props;
     const {fields} = view.data;
 
-    if (isLoading) {
-      return <LoadingIndicator />;
+    if (!data) {
+      return null;
     }
 
-    if (data && data.length === 0) {
+    if (data.length === 0) {
       return (
         <EmptyStateWarning>
           <p>{t('No results found')}</p>
@@ -56,7 +56,10 @@ export default class Table extends React.Component {
   }
 
   render() {
-    const {fields} = this.props.view.data;
+    const {isLoading, view, data} = this.props;
+    const {fields} = view.data;
+
+    const hasResults = !!(data && data.length);
 
     return (
       <Panel>
@@ -69,7 +72,11 @@ export default class Table extends React.Component {
             </HeaderItem>
           ))}
         </TableHeader>
-        <PanelBody>{this.renderBody()}</PanelBody>
+        <PanelBody style={{position: 'relative'}}>
+          <LoadingContainer isLoading={isLoading} hasResults={hasResults}>
+            {this.renderBody()}
+          </LoadingContainer>
+        </PanelBody>
       </Panel>
     );
   }
