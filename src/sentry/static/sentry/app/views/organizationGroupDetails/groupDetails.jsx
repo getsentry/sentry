@@ -33,6 +33,9 @@ const GroupDetails = createReactClass({
     environments: PropTypes.arrayOf(PropTypes.string),
     enableSnuba: PropTypes.bool,
     showGlobalHeader: PropTypes.bool,
+
+    // This gets passed to global selection header
+    disableLoadFromStore: PropTypes.bool,
   },
 
   childContextTypes: {
@@ -229,7 +232,7 @@ const GroupDetails = createReactClass({
   },
 
   render() {
-    const {organization, showGlobalHeader} = this.props;
+    const {organization, disableLoadFromStore, showGlobalHeader} = this.props;
     const {group, project, loading} = this.state;
 
     if (this.state.error) {
@@ -251,6 +254,7 @@ const GroupDetails = createReactClass({
       <React.Fragment>
         {showGlobalHeader && (
           <GlobalSelectionHeader
+            disableLoadFromStore={disableLoadFromStore}
             organization={organization}
             forceProject={project}
             showDateSelector={false}
