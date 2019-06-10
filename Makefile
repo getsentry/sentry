@@ -250,7 +250,7 @@ scan-python:
 	bin/scan
 	@echo ""
 
-travis-scan-postgres: scan-noop
+travis-scan-postgres: travis-noop
 travis-scan-acceptance: travis-noop
 travis-scan-snuba: travis-noop
 travis-scan-symbolicator: travis-noop
