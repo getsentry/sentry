@@ -39,6 +39,10 @@ CRAWLERS = re.compile(
             r'Slack',
             # Google indexing bot
             r'Calypso AppCrawler',
+            # Pingdom
+            r'pingdom',
+            # Lytics
+            r'lyticsbot'
         )
     ),
     re.I
