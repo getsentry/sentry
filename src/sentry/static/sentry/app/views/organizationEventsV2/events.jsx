@@ -30,6 +30,8 @@ export default class Events extends AsyncComponent {
     view: SentryTypes.EventView.isRequired,
   };
 
+  shouldReload = true;
+
   componentDidUpdate(prevProps, prevContext) {
     // Do not update if we are just opening/closing the modal
     const locationHasChanged = !isEqual(
