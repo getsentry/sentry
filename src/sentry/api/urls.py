@@ -72,6 +72,7 @@ from .endpoints.organization_discover_query import OrganizationDiscoverQueryEndp
 from .endpoints.organization_discover_saved_queries import OrganizationDiscoverSavedQueriesEndpoint
 from .endpoints.organization_discover_saved_query_detail import OrganizationDiscoverSavedQueryDetailEndpoint
 from .endpoints.organization_events import OrganizationEventsEndpoint, OrganizationEventsMetaEndpoint, OrganizationEventsStatsEndpoint, OrganizationEventsHeatmapEndpoint
+from .endpoints.organization_event_details import OrganizationEventDetailsEndpoint, OrganizationEventDetailsLatestEndpoint, OrganizationEventDetailsOldestEndpoint
 from .endpoints.organization_group_index import OrganizationGroupIndexEndpoint
 from .endpoints.organization_dashboard_details import OrganizationDashboardDetailsEndpoint
 from .endpoints.organization_dashboard_widget_details import OrganizationDashboardWidgetDetailsEndpoint
@@ -604,6 +605,21 @@ urlpatterns = patterns(
         r'^organizations/(?P<organization_slug>[^\/]+)/events/$',
         OrganizationEventsEndpoint.as_view(),
         name='sentry-api-0-organization-events'
+    ),
+    url(
+        r'^organizations/(?P<organization_slug>[^\/]+)/events/(?P<project_slug>[^\/]+):(?P<event_id>(?:\d+|[A-Fa-f0-9]{32}))/$',
+        OrganizationEventDetailsEndpoint.as_view(),
+        name='sentry-api-0-organization-event-details'
+    ),
+    url(
+        r'^organizations/(?P<organization_slug>[^\/]+)/events/latest/$',
+        OrganizationEventDetailsLatestEndpoint.as_view(),
+        name='sentry-api-0-organization-event-details-latest'
+    ),
+    url(
+        r'^organizations/(?P<organization_slug>[^\/]+)/events/oldest/$',
+        OrganizationEventDetailsOldestEndpoint.as_view(),
+        name='sentry-api-0-organization-event-details-oldest'
     ),
     url(
         r'^organizations/(?P<organization_slug>[^\/]+)/events-stats/$',
