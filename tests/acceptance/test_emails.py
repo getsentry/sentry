@@ -63,18 +63,17 @@ class EmailTestCase(AcceptanceTestCase):
         )
 
     def test_emails(self):
-        with self.feature('organizations:sentry10'):
-            for url, name in EMAILS:
-                # HTML output is captured as a snapshot
-                self.browser.get(self.build_url(url, 'html'))
-                self.browser.wait_until('#preview')
-                self.browser.snapshot(u'{} email html'.format(name))
+        for url, name in EMAILS:
+            # HTML output is captured as a snapshot
+            self.browser.get(self.build_url(url, 'html'))
+            self.browser.wait_until('#preview')
+            self.browser.snapshot(u'{} email html'.format(name))
 
-                # Text output is asserted against static fixture files
-                self.browser.get(self.build_url(url, 'txt'))
-                self.browser.wait_until('#preview')
-                elem = self.browser.find_element_by_css_selector('#preview pre')
-                text_src = elem.get_attribute('innerHTML')
+            # Text output is asserted against static fixture files
+            self.browser.get(self.build_url(url, 'txt'))
+            self.browser.wait_until('#preview')
+            elem = self.browser.find_element_by_css_selector('#preview pre')
+            text_src = elem.get_attribute('innerHTML')
 
-                fixture_src = read_txt_email_fixture(name)
-                assert fixture_src == text_src
+            fixture_src = read_txt_email_fixture(name)
+            assert fixture_src == text_src

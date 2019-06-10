@@ -287,17 +287,5 @@ describe('Sidebar', function() {
       wrapper.update();
       expect(wrapper.find('SidebarPanel')).toHaveLength(0);
     });
-
-    it('hides assigned, bookmarks, history, activity and stats for sentry10', function() {
-      const sentry10Org = TestStubs.Organization({features: ['sentry10']});
-      wrapper = createWrapper();
-      wrapper.setProps({organization: sentry10Org});
-      wrapper.update();
-      const labels = wrapper.find('SidebarItemLabel').map(node => node.text());
-      expect(labels).toHaveLength(10);
-      expect(labels).not.toContain('Assigned to me');
-      expect(labels).not.toContain('Bookmarked issues');
-      expect(labels).not.toContain('Recently viewed');
-    });
   });
 });

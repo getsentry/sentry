@@ -26,25 +26,24 @@ class OrganizationOnboardingTest(AcceptanceTestCase):
     @mock.patch('sentry.models.ProjectKey.generate_api_key',
                 return_value='031667ea1758441f92c7995a428d2d14')
     def test_onboarding(self, generate_api_key):
-        with self.feature('organizations:sentry10'):
-            self.browser.get('/onboarding/%s/' % self.org.slug)
-            self.browser.wait_until('.onboarding-container')
-            self.browser.wait_until_not('.loading-indicator')
-            self.browser.snapshot(name='onboarding-choose-platform')
+        self.browser.get('/onboarding/%s/' % self.org.slug)
+        self.browser.wait_until('.onboarding-container')
+        self.browser.wait_until_not('.loading-indicator')
+        self.browser.snapshot(name='onboarding-choose-platform')
 
-            self.browser.click('[data-test-id="platform-javascript-angular"]')
-            self.browser.click('[data-test-id="create-project"]')
+        self.browser.click('[data-test-id="platform-javascript-angular"]')
+        self.browser.click('[data-test-id="create-project"]')
 
-            self.browser.wait_until('.onboarding-Configure')
-            self.browser.wait_until_not('.loading-indicator')
+        self.browser.wait_until('.onboarding-Configure')
+        self.browser.wait_until_not('.loading-indicator')
 
-            project = Project.objects.get(organization=self.org)
-            assert project.name == 'Angular'
-            assert project.platform == 'javascript-angular'
+        project = Project.objects.get(organization=self.org)
+        assert project.name == 'Angular'
+        assert project.platform == 'javascript-angular'
 
-            self.browser.snapshot(name='onboarding-configure-project')
-            self.browser.click('[data-test-id="configure-done"]')
-            self.browser.wait_until_not('.loading-indicator')
+        self.browser.snapshot(name='onboarding-configure-project')
+        self.browser.click('[data-test-id="configure-done"]')
+        self.browser.wait_until_not('.loading-indicator')
 
-            assert self.browser.element_exists('.robot')
-            assert self.browser.element_exists_by_test_id('install-instructions')
+        assert self.browser.element_exists('.robot')
+        assert self.browser.element_exists_by_test_id('install-instructions')
