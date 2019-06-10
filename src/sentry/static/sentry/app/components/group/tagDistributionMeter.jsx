@@ -4,7 +4,6 @@ import createReactClass from 'create-react-class';
 
 import {deviceNameMapper, loadDeviceListModule} from 'app/components/deviceName';
 import SentryTypes from 'app/sentryTypes';
-import withEnvironment from 'app/utils/withEnvironment';
 
 import TagDistributionMeter from 'app/components/tagDistributionMeter';
 
@@ -16,7 +15,6 @@ const GroupTagDistributionMeter = createReactClass({
     tag: PropTypes.string.isRequired,
     name: PropTypes.string,
     organization: SentryTypes.Organization.isRequired,
-    environment: SentryTypes.Environment,
     totalValues: PropTypes.number,
     topValues: PropTypes.array,
   },
@@ -38,16 +36,9 @@ const GroupTagDistributionMeter = createReactClass({
       this.state.error !== nextState.error ||
       this.props.tag !== nextProps.tag ||
       this.props.name !== nextProps.name ||
-      this.props.environment !== nextProps.environment ||
       this.props.totalValues !== nextProps.totalValues ||
       this.props.topValues !== nextProps.topValues
     );
-  },
-
-  componentDidUpdate(prevProps) {
-    if (prevProps.environment !== this.props.environment) {
-      this.fetchData();
-    }
   },
 
   fetchData() {
@@ -105,5 +96,4 @@ const GroupTagDistributionMeter = createReactClass({
   },
 });
 
-export {GroupTagDistributionMeter};
-export default withEnvironment(GroupTagDistributionMeter);
+export default GroupTagDistributionMeter;
