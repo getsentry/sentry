@@ -1296,8 +1296,6 @@ class SnubaSearchTest(TestCase, SnubaTestCase):
         )
 
         group_a = Group.objects.get(id=group_a_event_1.group.id)
-        assert group_a.id == group_a_event_1.group.id
-        assert group_a.id == group_a_event_2.group.id
 
         assert group_a.first_seen == group_a_event_1.datetime
         assert group_a.last_seen == group_a_event_2.datetime
@@ -1335,7 +1333,6 @@ class SnubaSearchTest(TestCase, SnubaTestCase):
         assert group_b_event_1.get_environment().name == u''  # has no environment
 
         group_b = Group.objects.get(id=group_b_event_1.group.id)
-        assert group_b.id == group_b_event_1.group.id
 
         assert group_b.first_seen == group_b.last_seen == group_b_event_1.datetime
 
@@ -1361,7 +1358,6 @@ class SnubaSearchTest(TestCase, SnubaTestCase):
         assert group_c_event_1.get_environment().name == u''  # has no environment
 
         group_c = Group.objects.get(id=group_c_event_1.group.id)
-        assert group_c.id == group_c_event_1.group.id
 
         assert group_c.first_seen == group_c.last_seen == group_c_event_1.datetime
 
