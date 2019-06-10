@@ -39,8 +39,8 @@ TYPES = {
 }
 
 
-def _webhook_event_data(event):
-    group = event.group
+def _webhook_event_data(event, group_id):
+    group = Group.objects.get_from_cache(id=group_id)
     project = Project.objects.get_from_cache(id=group.project_id)
     organization = Organization.objects.get_from_cache(id=project.organization_id)
 
@@ -96,7 +96,7 @@ def send_alert_event(event, rule, sentry_app_id):
         logger.info('event_alert_webhook.missing_installation', extra=extra)
         return
 
-    event_context = _webhook_event_data(event)
+    event_context = _webhook_event_data(event, group.id)
 
     data = {
         'event': event_context,
@@ -131,6 +131,14 @@ def _process_resource_change(action, sender, instance_id, retryer=None, *args, *
                 'event_id': instance_id,
             }
             logger.info('process_resource_change.event_missing_project_id', extra=extra)
+            return
+        if not kwargs.get('group_id'):
+            extra = {
+                'sender': sender,
+                'action': action,
+                'event_id': instance_id,
+            }
+            logger.info('process_resource_change.event_missing_group_id', extra=extra)
             return
 
         name = sender.lower()
@@ -167,7 +175,7 @@ def _process_resource_change(action, sender, instance_id, retryer=None, *args, *
 
     org = None
 
-    if isinstance(instance, (Group, Event)):
+    if isinstance(instance, Group) or issubclass(model, EventCommon):
         org = Organization.objects.get_from_cache(
             id=Project.objects.get_from_cache(
                 id=instance.project_id
@@ -182,7 +190,8 @@ def _process_resource_change(action, sender, instance_id, retryer=None, *args, *
     for installation in installations:
         data = {}
         if issubclass(model, EventCommon):
-            data[name] = _webhook_event_data(instance)
+            group_id = kwargs.get('group_id')
+            data[name] = _webhook_event_data(instance, group_id)
         else:
             data[name] = serialize(instance)
         send_webhooks(installation, event, data=data)

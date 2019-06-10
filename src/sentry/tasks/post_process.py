@@ -190,6 +190,7 @@ def post_process_group(event, is_new, is_regression, is_sample, is_new_group_env
                 sender='Error',
                 instance_id=event.event_id,
                 project_id=event.project_id,
+                group_id=event.group_id,
             )
         if is_new:
             process_resource_change_bound.delay(

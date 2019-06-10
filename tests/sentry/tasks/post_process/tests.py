@@ -427,7 +427,10 @@ class PostProcessGroupTest(TestCase):
             is_new_group_environment=False,
         )
 
-        kwargs = {'project_id': self.project.id}
+        kwargs = {
+            'project_id': self.project.id,
+            'group_id': event.group.id,
+        }
         delay.assert_called_once_with(
             action='created',
             sender='Error',
