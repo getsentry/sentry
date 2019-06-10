@@ -2,7 +2,7 @@
 from south.utils import datetime_utils as datetime
 from south.db import db
 from south.v2 import DataMigration
-from django.db import models
+from django.db import models, transaction, IntegrityError
 
 
 class Migration(DataMigration):
@@ -31,7 +31,11 @@ class Migration(DataMigration):
         sentry_apps = SentryApp.objects.filter(date_deleted=None)
 
         for app in sentry_apps:
-            IntegrationFeature.objects.create(sentry_app=app)
+            try:
+                with transaction.atomic():
+                    IntegrationFeature.objects.create(sentry_app=app)
+            except IntegrityError:
+                pass
 
     def backwards(self, orm):
         "Write your backwards methods here."
