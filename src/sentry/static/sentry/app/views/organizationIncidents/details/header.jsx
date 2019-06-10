@@ -83,7 +83,7 @@ export default class DetailsHeader extends React.Component {
                 </React.Fragment>
               )}
             </Breadcrumb>
-            <IncidentTitle loading={!isIncidentReady}>
+            <IncidentTitle data-test-id="incident-title" loading={!isIncidentReady}>
               {isIncidentReady ? incident.title : 'Loading'}
             </IncidentTitle>
           </PageHeading>
