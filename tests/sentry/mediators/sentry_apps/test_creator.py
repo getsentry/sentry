@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 from mock import patch
+from django.db import IntegrityError
 
 from sentry.mediators.sentry_apps import Creator
 from sentry.models import (
@@ -90,6 +91,18 @@ class TestCreator(TestCase):
     def test_creates_integration_feature(self):
         app = self.creator.call()
         assert IntegrationFeature.objects.filter(sentry_app=app).exists()
+
+    @patch('sentry.mediators.sentry_apps.creator.Creator.log')
+    @patch('sentry.models.integrationfeature.IntegrationFeature.objects.create')
+    def test_raises_error_creating_integration_feature(self, mock_create, mock_log):
+        mock_create.side_effect = IntegrityError()
+        self.creator.call()
+        mock_log.assert_called_with(
+            extra={
+                'sentry_app': 'nulldb',
+                'error_message': '',
+            }
+        )
 
     def test_creates_audit_log_entry(self):
         request = self.make_request(user=self.user, method='GET')
