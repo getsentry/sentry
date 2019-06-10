@@ -1297,10 +1297,6 @@ class SnubaSearchTest(TestCase, SnubaTestCase):
 
         group_a = Group.objects.get(id=group_a_event_1.group.id)
 
-        assert group_a.first_seen == group_a_event_1.datetime
-        assert group_a.last_seen == group_a_event_2.datetime
-        assert group_a.last_seen > group_a.first_seen
-
         # get the environments for group_a
 
         prod_env = group_a_event_2.get_environment()
@@ -1330,8 +1326,6 @@ class SnubaSearchTest(TestCase, SnubaTestCase):
 
         group_b = Group.objects.get(id=group_b_event_1.group.id)
 
-        assert group_b.first_seen == group_b.last_seen == group_b_event_1.datetime
-
         # group_b_event_1 occurred before release_2 was created
         assert group_b_event_1.datetime < release_2_timestamp
 
@@ -1350,8 +1344,6 @@ class SnubaSearchTest(TestCase, SnubaTestCase):
         assert group_c_event_1.get_environment().name == u''  # has no environment
 
         group_c = Group.objects.get(id=group_c_event_1.group.id)
-
-        assert group_c.first_seen == group_c.last_seen == group_c_event_1.datetime
 
         # expect no groups since given release version does not exist
 
