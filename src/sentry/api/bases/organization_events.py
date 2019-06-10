@@ -28,8 +28,6 @@ SPECIAL_FIELDS = {
     },
 }
 
-ALLOWED_GROUPINGS = frozenset(('issue.id', 'project.id'))
-
 
 class Direction(Enum):
     NEXT = 0
@@ -84,12 +82,6 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
         fields = request.GET.getlist('field')[:]
         aggregations = []
         groupby = request.GET.getlist('groupby')
-
-        if not fields and not groupby:
-            raise OrganizationEventsError('No fields or groupings provided')
-
-        if any(field for field in groupby if field not in ALLOWED_GROUPINGS):
-            raise OrganizationEventsError('Invalid groupby value requested')
 
         if fields:
             # If project.name is requested, get the project.id from Snuba so we

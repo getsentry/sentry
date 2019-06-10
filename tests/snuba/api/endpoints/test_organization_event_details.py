@@ -53,7 +53,7 @@ class OrganizationEventDetailsEndpointTest(OrganizationEventDetailsTestBase):
                 'organization_slug': self.project.organization.slug,
                 'project_slug': self.project.slug,
                 'event_id': 'a' * 32,
-            }
+            },
         )
 
         with self.feature('organizations:events-v2'):
