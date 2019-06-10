@@ -22,19 +22,21 @@ describe('RichHttpContent', function() {
 
   describe('getBodySection', function() {
     it('should return plain-text when given unrecognized inferred Content-Type', function() {
-      const out = elem.getBodySection({
-        inferredContentType: null, // no inferred content type
-        data: 'helloworld',
-      });
+      const out = elem.getBodySection(
+        {inferredContentType: null}, // no inferred content type
+        'helloworld',
+        null
+      );
 
       expect(out.type).toEqual('pre');
     });
 
     it('should return a KeyValueList element when inferred Content-Type is x-www-form-urlencoded', function() {
-      const out = elem.getBodySection({
-        inferredContentType: 'application/x-www-form-urlencoded',
-        data: {foo: ['bar'], bar: ['baz']},
-      });
+      const out = elem.getBodySection(
+        {inferredContentType: 'application/x-www-form-urlencoded'},
+        {foo: ['bar'], bar: ['baz']},
+        null
+      );
 
       // NOTE: displayName is set manually in this class
       expect(out.type.displayName).toEqual('KeyValueList');
@@ -42,10 +44,11 @@ describe('RichHttpContent', function() {
     });
 
     it('should return a ContextData element when inferred Content-Type is application/json', function() {
-      const out = elem.getBodySection({
-        inferredContentType: 'application/json',
-        data: {foo: 'bar'},
-      });
+      const out = elem.getBodySection(
+        {inferredContentType: 'application/json'},
+        {foo: 'bar'},
+        null
+      );
 
       // NOTE: displayName is set manually in this class
       expect(out.type.displayName).toEqual('ContextData');
