@@ -18,6 +18,14 @@ export default function errorHandler(Component) {
       error: null,
     };
 
+    componentDidCatch(error, info) {
+      // eslint-disable-next-line no-console
+      console.error(
+        'Component stack trace caught in <ErrorHandler />:',
+        info.componentStack
+      );
+    }
+
     render() {
       if (this.state.hasError) {
         return <RouteError error={this.state.error} />;
