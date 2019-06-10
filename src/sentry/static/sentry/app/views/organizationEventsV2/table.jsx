@@ -4,8 +4,8 @@ import styled, {css} from 'react-emotion';
 
 import SentryTypes from 'app/sentryTypes';
 import {Panel, PanelHeader, PanelBody, PanelItem} from 'app/components/panels';
-import LoadingIndicator from 'app/components/loadingIndicator';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
+import LoadingContainer from 'app/components/loading/loadingContainer';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 
@@ -23,14 +23,14 @@ export default class Table extends React.Component {
   };
 
   renderBody() {
-    const {view, data, isLoading, organization, onSearch, location} = this.props;
+    const {view, data, organization, onSearch, location} = this.props;
     const {fields} = view.data;
 
-    if (isLoading) {
-      return <LoadingIndicator />;
+    if (!data) {
+      return null;
     }
 
-    if (data && data.length === 0) {
+    if (data.length === 0) {
       return (
         <EmptyStateWarning>
           <p>{t('No results found')}</p>
@@ -56,7 +56,11 @@ export default class Table extends React.Component {
   }
 
   render() {
-    const {fields} = this.props.view.data;
+    const {isLoading, view, data} = this.props;
+    const {fields} = view.data;
+
+    // If previous state was empty, don't show the reloading state
+    const isReloading = !!(data && data.length) && isLoading;
 
     return (
       <Panel>
@@ -69,7 +73,11 @@ export default class Table extends React.Component {
             </HeaderItem>
           ))}
         </TableHeader>
-        <PanelBody>{this.renderBody()}</PanelBody>
+        <PanelBody>
+          <LoadingContainer isLoading={isLoading} isReloading={isReloading}>
+            {this.renderBody()}
+          </LoadingContainer>
+        </PanelBody>
       </Panel>
     );
   }
