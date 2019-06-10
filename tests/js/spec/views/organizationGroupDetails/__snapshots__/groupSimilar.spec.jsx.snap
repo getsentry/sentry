@@ -832,13 +832,17 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                                   "setRouteLeaveHook": [MockFunction],
                                 }
                               }
+                              size="normal"
                             >
                               <div
                                 className="event-issue-header"
                               >
-                                <Title>
+                                <Title
+                                  size="normal"
+                                >
                                   <div
-                                    className="css-leroxf-Title-truncateStyles eex8od0"
+                                    className="css-10b3zgy-Title-truncateStyles eex8od0"
+                                    size="normal"
                                   >
                                     <ProjectLink
                                       style={
@@ -1024,6 +1028,7 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                                                 "setRouteLeaveHook": [MockFunction],
                                               }
                                             }
+                                            size="normal"
                                             style={
                                               Object {
                                                 "fontWeight": 600,
@@ -1059,9 +1064,12 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                                     </ProjectLink>
                                   </div>
                                 </Title>
-                                <Message>
+                                <Message
+                                  size="normal"
+                                >
                                   <div
-                                    className="css-y5cfdn-Message-truncateStyles eex8od2"
+                                    className="css-brsp21-Message-truncateStyles eex8od2"
+                                    size="normal"
                                   >
                                     Cannot read property 'length' of undefined
                                   </div>
