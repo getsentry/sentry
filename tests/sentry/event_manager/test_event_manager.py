@@ -13,7 +13,7 @@ from django.utils import timezone
 from time import time
 
 from sentry.app import tsdb
-from sentry.constants import VERSION_LENGTH
+from sentry.constants import MAX_VERSION_LENGTH
 from sentry.event_manager import HashDiscarded, EventManager, EventUser
 from sentry.grouping.utils import hash_from_values
 from sentry.models import (
@@ -688,7 +688,7 @@ class EventManagerTest(TestCase):
 
     def test_release_project_slug_long(self):
         project = self.create_project(name='foo')
-        partial_version_len = VERSION_LENGTH - 4
+        partial_version_len = MAX_VERSION_LENGTH - 4
         release = Release.objects.create(
             version='foo-%s' % ('a' * partial_version_len, ), organization=project.organization
         )

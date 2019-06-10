@@ -39,7 +39,10 @@ def get_all_languages():
 MODULE_ROOT = os.path.dirname(__import__('sentry').__file__)
 DATA_ROOT = os.path.join(MODULE_ROOT, 'data')
 
-VERSION_LENGTH = 200
+BAD_RELEASE_CHARS = '\n\f\t/'
+MAX_VERSION_LENGTH = 200
+MAX_COMMIT_LENGTH = 64
+COMMIT_RANGE_DELIMITER = '..'
 
 SORT_OPTIONS = OrderedDict(
     (

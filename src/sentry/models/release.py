@@ -23,6 +23,7 @@ from sentry.db.models import (
     JSONField, Model, sane_repr
 )
 
+from sentry.constants import BAD_RELEASE_CHARS, COMMIT_RANGE_DELIMITER
 from sentry.models import CommitFileChange
 from sentry.signals import issue_resolved
 
@@ -35,9 +36,7 @@ logger = logging.getLogger(__name__)
 
 _sha1_re = re.compile(r'^[a-f0-9]{40}$')
 _dotted_path_prefix_re = re.compile(r'^([a-zA-Z][a-zA-Z0-9-]+)(\.[a-zA-Z][a-zA-Z0-9-]+)+-')
-BAD_RELEASE_CHARS = '\n\f\t/'
 DB_VERSION_LENGTH = 250
-COMMIT_RANGE_DELIMITER = '..'
 
 
 class ReleaseProject(Model):

@@ -4,7 +4,7 @@ import pytest
 
 from datetime import datetime, timedelta
 
-from sentry.constants import VERSION_LENGTH, MAX_CULPRIT_LENGTH
+from sentry.constants import MAX_VERSION_LENGTH, MAX_CULPRIT_LENGTH
 from sentry.event_manager import EventManager
 
 
@@ -174,7 +174,7 @@ def test_extra_as_string():
 
 def test_release_tag_max_len():
     release_key = u"sentry:release"
-    release_value = "a" * VERSION_LENGTH
+    release_value = "a" * MAX_VERSION_LENGTH
     data = validate_and_normalize(
         {"message": "foo", "tags": [[release_key, release_value]]}
     )
@@ -197,8 +197,8 @@ def test_site_too_long():
 
 
 def test_release_too_long():
-    data = validate_and_normalize({"release": "a" * (VERSION_LENGTH + 1)})
-    assert len(data.get("release")) == VERSION_LENGTH
+    data = validate_and_normalize({"release": "a" * (MAX_VERSION_LENGTH + 1)})
+    assert len(data.get("release")) == MAX_VERSION_LENGTH
 
 
 def test_release_as_non_string():

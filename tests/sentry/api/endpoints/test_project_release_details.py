@@ -4,7 +4,7 @@ from datetime import datetime
 from django.core.urlresolvers import reverse
 
 from sentry.api.endpoints.project_release_details import ReleaseSerializer
-from sentry.constants import VERSION_LENGTH
+from sentry.constants import MAX_VERSION_LENGTH
 from sentry.models import (Activity, File, Release, ReleaseCommit, ReleaseFile, ReleaseProject)
 from sentry.testutils import APITestCase
 
@@ -295,10 +295,10 @@ class ReleaseSerializerTest(unittest.TestCase):
 
     def test_ref_limited_by_max_version_length(self):
         serializer = ReleaseSerializer(data={
-            'ref': 'a' * VERSION_LENGTH,
+            'ref': 'a' * MAX_VERSION_LENGTH,
         })
         assert serializer.is_valid()
         serializer = ReleaseSerializer(data={
-            'ref': 'a' * (VERSION_LENGTH + 1),
+            'ref': 'a' * (MAX_VERSION_LENGTH + 1),
         })
         assert not serializer.is_valid()
