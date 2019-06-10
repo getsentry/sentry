@@ -57,22 +57,6 @@ Sentry.configureScope(scope => {
   }
 });
 
-function __raven_deprecated() {
-  const message = '[DEPRECATED]: Please no longer use Raven, use Sentry instead';
-  // eslint-disable-next-line no-console
-  console.error(message);
-  Sentry.captureMessage(message);
-}
-
-const Raven = {
-  captureMessage: () => __raven_deprecated(),
-  captureException: () => __raven_deprecated(),
-  captureBreadcrumb: () => __raven_deprecated(),
-  showReportDialog: () => __raven_deprecated(),
-  setTagsContext: () => __raven_deprecated(),
-  setExtraContext: () => __raven_deprecated(),
-  setUserContext: () => __raven_deprecated(),
-};
 // -----------------------------------------------------------------
 
 // Used for operational metrics to determine that the application js
@@ -125,7 +109,6 @@ const globals = {
   moment,
   Sentry,
   React,
-  Raven,
   ReactDOM: {
     findDOMNode: ReactDOM.findDOMNode,
     render: ReactDOM.render,
