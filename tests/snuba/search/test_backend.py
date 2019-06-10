@@ -1279,15 +1279,7 @@ class SnubaSearchTest(TestCase, SnubaTestCase):
                 'event_id': 'aaa' + ('1' * 29),
                 'message': 'group_a',
                 'environment': 'example_staging',
-                'tags': {
-                    'server': 'example.com',
-                },
-                'timestamp': (release_1_timestamp + timedelta(days=1)).isoformat()[:19],
-                'stacktrace': {
-                    'frames': [{
-                        'module': 'group_a'
-                    }]
-                },
+                'timestamp': (release_1_timestamp + timedelta(days=1)).isoformat()[:19]
             },
             project_id=self.project.id,
         )
@@ -1298,15 +1290,7 @@ class SnubaSearchTest(TestCase, SnubaTestCase):
                 'event_id': 'aaa' + ('2' * 29),
                 'message': 'group_a',
                 'environment': 'example_production',
-                'tags': {
-                    'server': 'example.com',
-                },
-                'timestamp': (release_2_timestamp + timedelta(days=1)).isoformat()[:19],
-                'stacktrace': {
-                    'frames': [{
-                        'module': 'group_a'
-                    }]
-                },
+                'timestamp': (release_2_timestamp + timedelta(days=1)).isoformat()[:19]
             },
             project_id=self.project.id,
         )
@@ -1370,15 +1354,7 @@ class SnubaSearchTest(TestCase, SnubaTestCase):
                 'fingerprint': ['group_c'],
                 'event_id': 'ccc' + ('1' * 29),
                 'message': 'group_c',
-                'tags': {
-                    'server': 'example.com',
-                },
-                'timestamp': (release_2_timestamp + timedelta(days=1)).isoformat()[:19],
-                'stacktrace': {
-                    'frames': [{
-                        'module': 'group_c'
-                    }]
-                },
+                'timestamp': (release_2_timestamp + timedelta(days=1)).isoformat()[:19]
             },
             project_id=self.project.id,
         )
