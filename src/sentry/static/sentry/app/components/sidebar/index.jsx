@@ -301,7 +301,7 @@ class Sidebar extends React.Component {
                           evt
                         )
                       }
-                      icon={<InlineSvg src="icon-incidents" />}
+                      icon={<InlineSvg src="icon-siren" size="22" />}
                       label={t('Incidents')}
                       to={`/organizations/${organization.slug}/incidents/`}
                       id="incidents"
@@ -329,7 +329,7 @@ class Sidebar extends React.Component {
                         evt
                       )
                     }
-                    icon={<InlineSvg src="icon-support" />}
+                    icon={<InlineSvg src="icon-support" size="22" />}
                     label={t('User Feedback')}
                     to={`/organizations/${organization.slug}/user-feedback/`}
                     id="user-feedback"
