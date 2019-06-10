@@ -7,7 +7,8 @@ import ReleaseStats from 'app/components/releaseStats';
 import Count from 'app/components/count';
 import TimeSince from 'app/components/timeSince';
 import Version from 'app/components/version';
-import LatestDeployOrReleaseTime from 'app/components/latestDeployOrReleaseTime';
+
+import LatestDeployOrReleaseTime from './latestDeployOrReleaseTime';
 
 class ReleaseList extends React.Component {
   static propTypes = {
