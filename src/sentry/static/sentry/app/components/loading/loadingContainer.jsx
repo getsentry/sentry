@@ -5,13 +5,15 @@ import styled from 'react-emotion';
 import LoadingIndicator from 'app/components/loadingIndicator';
 
 export default function LoadingContainer(props) {
-  const {children, hasResults, isLoading} = props;
+  const {children, isReloading, isLoading} = props;
+
+  const isLoadingOrReloading = isLoading || isReloading;
 
   return (
     <Container>
-      {isLoading && (
+      {isLoadingOrReloading && (
         <div>
-          <LoadingMask hasResults={hasResults} />
+          <LoadingMask isReloading={isReloading} />
           <Indicator />
         </div>
       )}
@@ -22,8 +24,13 @@ export default function LoadingContainer(props) {
 
 LoadingContainer.propTypes = {
   isLoading: PropTypes.bool.isRequired,
-  hasResults: PropTypes.bool.isRequired,
+  isReloading: PropTypes.bool.isRequired,
   children: PropTypes.node,
+};
+
+LoadingContainer.defaultProps = {
+  isLoading: false,
+  isReloading: false,
 };
 
 const Container = styled('div')`
@@ -37,7 +44,7 @@ const LoadingMask = styled('div')`
   width: 100%;
   height: 100%;
   min-height: 240px;
-  opacity: ${p => (p.hasResults ? '0.6' : '1')};
+  opacity: ${p => (p.isReloading ? '0.6' : '1')};
 `;
 
 const Indicator = styled(LoadingIndicator)`
