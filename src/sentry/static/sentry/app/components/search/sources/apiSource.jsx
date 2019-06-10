@@ -46,14 +46,6 @@ async function createProjectResults(projectsPromise, orgId) {
   return flatten(
     projects.map(project => [
       {
-        title: `${project.slug} Dashboard`,
-        description: 'Project Dashboard',
-        model: project,
-        sourceType: 'project',
-        resultType: 'route',
-        to: `/${orgId}/${project.slug}/`,
-      },
-      {
         title: `${project.slug} Settings`,
         description: 'Project Settings',
         model: project,
