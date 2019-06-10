@@ -68,7 +68,7 @@ class ExternalIssueList extends AsyncComponent {
   };
 
   onSentryAppComponentsChange = sentryAppComponents => {
-    const components = sentryAppComponents.filter(c => c.type == 'issue-link');
+    const components = sentryAppComponents.filter(c => c.type === 'issue-link');
     this.setState({components});
   };
 
@@ -117,7 +117,7 @@ class ExternalIssueList extends AsyncComponent {
     const {externalIssues, sentryAppInstallations, components} = this.state;
     const {group} = this.props;
 
-    if (components.length == 0) {
+    if (components.length === 0) {
       return null;
     }
 
@@ -127,7 +127,7 @@ class ExternalIssueList extends AsyncComponent {
         i => i.app.uuid === sentryApp.uuid
       );
 
-      const issue = (externalIssues || []).find(i => i.serviceType == sentryApp.slug);
+      const issue = (externalIssues || []).find(i => i.serviceType === sentryApp.slug);
 
       return (
         <ErrorBoundary key={sentryApp.slug} mini>

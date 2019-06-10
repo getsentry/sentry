@@ -113,7 +113,7 @@ const AccountAvatar = createReactClass({
       </Well>
     );
 
-    const isLetter = this.state.user.avatar.avatarType == 'letter_avatar';
+    const isLetter = this.state.user.avatar.avatarType === 'letter_avatar';
 
     return (
       <Panel>
