@@ -2,17 +2,32 @@ import React from 'react';
 import RouteError from 'app/views/routeError';
 
 export default function errorHandler(Component) {
-  const originalRender = Component.prototype.render;
-  Component.prototype.render = function() {
-    try {
-      return originalRender.apply(this, arguments);
-    } catch (err) {
-      /*eslint no-console:0*/
+  class ErrorHandler extends React.Component {
+    static getDerivedStateFromError(error) {
       setTimeout(() => {
-        throw err;
+        throw error;
       });
-      return <RouteError error={err} component={this} />;
+
+      // Update state so the next render will show the fallback UI.
+      return {
+        hasError: true,
+        error,
+      };
     }
-  };
-  return Component;
+
+    state = {
+      hasError: false,
+      error: null,
+    };
+
+    render() {
+      if (this.state.hasError) {
+        return <RouteError error={this.state.error} />;
+      }
+
+      return <Component {...this.props} />;
+    }
+  }
+
+  return ErrorHandler;
 }
