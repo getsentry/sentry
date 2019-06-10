@@ -129,7 +129,7 @@ describe('OrganizationEventsV2 > EventDetails', function() {
     expect(content).toHaveLength(1);
   });
 
-  it('changes history when close button is clicked', function() {
+  it('removes eventSlug when close button is clicked', function() {
     const wrapper = mount(
       <EventDetails
         organization={TestStubs.Organization({projects: [TestStubs.Project()]})}
@@ -137,6 +137,27 @@ describe('OrganizationEventsV2 > EventDetails', function() {
         location={{
           pathname: '/organizations/org-slug/events/',
           query: {eventSlug: 'project-slug:deadbeef'},
+        }}
+        view={allEventsView}
+      />,
+      TestStubs.routerContext()
+    );
+    const button = wrapper.find('CloseButton');
+    button.simulate('click');
+    expect(browserHistory.push).toHaveBeenCalledWith({
+      pathname: '/organizations/org-slug/events/',
+      query: {},
+    });
+  });
+
+  it('removes groupSlug when close button is clicked', function() {
+    const wrapper = mount(
+      <EventDetails
+        organization={TestStubs.Organization({projects: [TestStubs.Project()]})}
+        groupSlug="project-slug:123:latest"
+        location={{
+          pathname: '/organizations/org-slug/events/',
+          query: {groupSlug: 'project-slug:123:latest'},
         }}
         view={allEventsView}
       />,
