@@ -6,19 +6,17 @@ import IncidentDetails from 'app/views/organizationIncidents/details';
 import ProjectsStore from 'app/stores/projectsStore';
 
 describe('IncidentDetails', function() {
-  const {organization, project, routerContext} = initializeOrg();
+  const params = {orgId: 'org-slug', incidentId: '123'};
+  const {organization, project, routerContext} = initializeOrg({
+    router: {
+      params,
+    },
+  });
   const mockIncident = TestStubs.Incident({projects: [project.slug]});
-
   let activitiesList;
 
   const createWrapper = props =>
-    mount(
-      <IncidentDetails
-        params={{orgId: 'org-slug', incidentId: mockIncident.identifier}}
-        {...props}
-      />,
-      routerContext
-    );
+    mount(<IncidentDetails params={params} {...props} />, routerContext);
 
   beforeAll(function() {
     ProjectsStore.loadInitialData([project]);
@@ -159,5 +157,51 @@ describe('IncidentDetails', function() {
     // Click again to re-subscribe
     wrapper.find('SubscribeButton').simulate('click');
     expect(subscribe).toHaveBeenCalled();
+  });
+
+  it('loads related incidents', async function() {
+    MockApiClient.addMockResponse({
+      url: '/issues/1/',
+      body: TestStubs.Group({
+        id: '1',
+        organization,
+      }),
+    });
+    MockApiClient.addMockResponse({
+      url: '/issues/2/',
+      body: TestStubs.Group({
+        id: '2',
+        organization,
+      }),
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/incidents/123/',
+      body: {
+        ...mockIncident,
+
+        groups: ['1', '2'],
+      },
+    });
+
+    const wrapper = createWrapper();
+
+    await tick();
+    wrapper.update();
+
+    expect(wrapper.find('RelatedItem')).toHaveLength(2);
+
+    expect(
+      wrapper
+        .find('RelatedItem Title')
+        .at(0)
+        .text()
+    ).toBe('RequestErrorfetchData(app/components/group/suggestedOwners)');
+
+    expect(
+      wrapper
+        .find('RelatedItem GroupShortId')
+        .at(0)
+        .text()
+    ).toBe('JAVASCRIPT-6QS');
   });
 });
