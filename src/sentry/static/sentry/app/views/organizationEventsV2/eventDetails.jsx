@@ -12,51 +12,58 @@ import space from 'app/styles/space';
 import EventModalContent from './eventModalContent';
 import {getQuery} from './utils';
 
+const slugValidator = function(props, propName, componentName) {
+  const value = props[propName];
+  if (value && !/^(?:[^:]+:)?(?:[^:]+):(?:[a-f0-9]+|latest|oldest)$/.test(value)) {
+    return new Error(`Invalid value for ${propName} provided to ${componentName}.`);
+  }
+  return null;
+};
+
 class EventDetails extends AsyncComponent {
   static propTypes = {
     organization: SentryTypes.Organization.isRequired,
-    eventSlug: function(props, propName, componentName) {
-      const value = props[propName];
-      if (value && !/^[^:]+:[a-f0-9]+$/.test(value)) {
-        return new Error(`Invalid value for ${propName} provided to ${componentName}.`);
-      }
-      return null;
-    },
-    groupId: PropTypes.string,
+    eventSlug: slugValidator,
+    groupSlug: slugValidator,
     location: PropTypes.object.isRequired,
     view: PropTypes.object.isRequired,
   };
 
   getEndpoints() {
-    const {organization, eventSlug, groupId, view, location} = this.props;
+    const {organization, eventSlug, groupSlug, view, location} = this.props;
+    const query = getQuery(view, location);
 
     // If we're getting an issue/group use the latest endpoint.
     // We pass the current query/view state to the API so we get an
     // event that matches the current list filters.
-    if (groupId) {
-      const query = getQuery(view, location);
+    if (groupSlug) {
+      const [projectId, groupId, eventId] = groupSlug.toString().split(':');
+
+      let url = `/organizations/${organization.slug}/events/`;
+      // latest / oldest have dedicated endpoints
+      if (['latest', 'oldest'].includes(eventId)) {
+        url += 'latest/';
+      } else {
+        url += `${projectId}:${eventId}/`;
+      }
       if (query.query) {
-        query.query += `issue.id:${groupId}`;
+        query.query += ` issue.id:${groupId}`;
       } else {
         query.query = `issue.id:${groupId}`;
       }
 
-      return [
-        [
-          'event',
-          `/organizations/${organization.slug}/events/latest/`,
-          {
-            query,
-          },
-        ],
-      ];
+      return [['event', url, {query}]];
     }
 
     // Get a specific event. This could be coming from
     // a paginated group or standalone event.
     const [projectId, eventId] = eventSlug.toString().split(':');
     return [
-      ['event', `/organizations/${organization.slug}/events/${projectId}/${eventId}/`],
+      [
+        'event',
+        `/organizations/${organization.slug}/events/${projectId}:${eventId}/`,
+        {query},
+      ],
     ];
   }
 
@@ -72,13 +79,21 @@ class EventDetails extends AsyncComponent {
 
   handleTabChange = tab => this.setState({activeTab: tab});
 
-  renderBody() {
-    const {organization, view, location, eventSlug} = this.props;
-    const {event, activeTab} = this.state;
-    let projectId = event.projectSlug;
-    if (!projectId && eventSlug) {
-      [projectId] = eventSlug.split(':');
+  get projectId() {
+    if (this.props.eventSlug) {
+      const [projectId] = this.props.eventSlug.split(':');
+      return projectId;
     }
+    if (this.props.groupSlug) {
+      const [projectId] = this.props.groupSlug.split(':');
+      return projectId;
+    }
+    throw new Error('Could not determine projectId');
+  }
+
+  renderBody() {
+    const {organization, view, location} = this.props;
+    const {event, activeTab} = this.state;
 
     return (
       <ModalContainer>
@@ -87,7 +102,7 @@ class EventDetails extends AsyncComponent {
           onTabChange={this.handleTabChange}
           event={event}
           activeTab={activeTab}
-          projectId={projectId}
+          projectId={this.projectId}
           organization={organization}
           view={view}
           location={location}

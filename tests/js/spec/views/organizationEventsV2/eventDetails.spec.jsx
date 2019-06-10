@@ -23,7 +23,7 @@ describe('OrganizationEventsV2 > EventDetails', function() {
       ],
     });
     MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/events/project-slug/deadbeef/',
+      url: '/organizations/org-slug/events/project-slug:deadbeef/',
       method: 'GET',
       body: {
         id: '1234',
@@ -102,8 +102,8 @@ describe('OrganizationEventsV2 > EventDetails', function() {
     const wrapper = mount(
       <EventDetails
         organization={TestStubs.Organization({projects: [TestStubs.Project()]})}
-        groupId="123"
-        location={{query: {groupId: '999'}}}
+        groupSlug="project-slug:123:latest"
+        location={{query: {groupSlug: 'project-slug:123:latest'}}}
         view={errorsView}
       />,
       TestStubs.routerContext()

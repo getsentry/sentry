@@ -17,7 +17,7 @@ describe('OrganizationEventsV2', function() {
       ],
     });
     MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/events/project-slug/deadbeef/',
+      url: '/organizations/org-slug/events/project-slug:deadbeef/',
       method: 'GET',
       body: {
         id: '1234',
@@ -86,6 +86,22 @@ describe('OrganizationEventsV2', function() {
         organization={organization}
         params={{orgId: organization.slug}}
         location={{query: {eventSlug: 'project-slug:deadbeef'}}}
+        router={{}}
+      />,
+      TestStubs.routerContext()
+    );
+
+    const modal = wrapper.find('EventDetails');
+    expect(modal).toHaveLength(1);
+  });
+
+  it('opens a modal when groupSlug is present', async function() {
+    const organization = TestStubs.Organization({projects: [TestStubs.Project()]});
+    const wrapper = mount(
+      <OrganizationEventsV2
+        organization={organization}
+        params={{orgId: organization.slug}}
+        location={{query: {groupSlug: 'project-slug:123:deadbeef'}}}
         router={{}}
       />,
       TestStubs.routerContext()

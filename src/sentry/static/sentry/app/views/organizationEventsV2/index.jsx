@@ -48,9 +48,9 @@ export default class OrganizationEventsV2 extends React.Component {
 
   render() {
     const {organization, location, router} = this.props;
-    const {eventSlug, groupId} = location.query;
+    const {eventSlug, groupSlug} = location.query;
     const currentView = getCurrentView(location.query.view);
-    const showModal = groupId || eventSlug;
+    const showModal = groupSlug || eventSlug;
 
     return (
       <DocumentTitle title={`Events - ${organization.slug} - Sentry`}>
@@ -76,7 +76,7 @@ export default class OrganizationEventsV2 extends React.Component {
                 organization={organization}
                 params={this.props.params}
                 eventSlug={eventSlug}
-                groupId={groupId}
+                groupSlug={groupSlug}
                 view={currentView}
                 location={location}
               />
