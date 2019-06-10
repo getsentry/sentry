@@ -250,12 +250,12 @@ scan-python:
 	bin/scan
 	@echo ""
 
-travis-scan-postgres: scan-python
+travis-scan-postgres: scan-noop
 travis-scan-acceptance: travis-noop
-travis-scan-snuba: scan-python
+travis-scan-snuba: travis-noop
 travis-scan-symbolicator: travis-noop
 travis-scan-js: travis-noop
 travis-scan-cli: travis-noop
 travis-scan-dist: travis-noop
-travis-scan-lint: travis-noop
-travis-scan-riak: scan-python
+travis-scan-lint: scan-python
+travis-scan-riak: travis-noop
