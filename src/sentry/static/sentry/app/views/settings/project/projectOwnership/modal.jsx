@@ -46,9 +46,9 @@ class ProjectOwnershipModal extends AsyncComponent {
 
     // pull frame data out of exception or the stacktrace
     let frames =
-      eventData.entries.find(({type}) => type == 'exception')?.data?.values[0]?.stacktrace
-        ?.frames ||
-      eventData.entries.find(({type}) => type == 'stacktrace')?.data?.frames ||
+      eventData.entries.find(({type}) => type === 'exception')?.data?.values[0]
+        ?.stacktrace?.frames ||
+      eventData.entries.find(({type}) => type === 'stacktrace')?.data?.frames ||
       [];
 
     //filter frames by inApp unless there would be 0

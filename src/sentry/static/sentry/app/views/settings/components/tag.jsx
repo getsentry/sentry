@@ -9,7 +9,7 @@ const getMarginLeft = p => {
   if (!p.inline) {
     return '';
   }
-  return `margin-left: ${p.size == 'small' ? '0.25em' : '0.5em'};`;
+  return `margin-left: ${p.size === 'small' ? '0.25em' : '0.5em'};`;
 };
 
 const getBorder = p =>
@@ -23,16 +23,16 @@ const TagTextStyled = styled(({priority, size, border, inline, ...props}) => (
   <Box {...props} />
 ))`
   display: inline-flex;
-  padding: ${p => (p.size == 'small' ? '0.1em 0.4em 0.2em' : '0.35em 0.8em 0.4em')};
+  padding: ${p => (p.size === 'small' ? '0.1em 0.4em 0.2em' : '0.35em 0.8em 0.4em')};
   font-size: 75%;
   line-height: 1;
   color: ${p => (p.priority ? '#fff' : p.gray5)};
   text-align: center;
   white-space: nowrap;
   vertical-align: middle;
-  border-radius: ${p => (p.size == 'small' ? '0.25em' : '2em')};
+  border-radius: ${p => (p.size === 'small' ? '0.25em' : '2em')};
   text-transform: lowercase;
-  font-weight: ${p => (p.size == 'small' ? 'bold' : 'normal')};
+  font-weight: ${p => (p.size === 'small' ? 'bold' : 'normal')};
   background: ${p =>
     p.priority ? p.theme.alert[p.priority].background : p.theme.offWhite2};
   ${p => getBorder(p)};

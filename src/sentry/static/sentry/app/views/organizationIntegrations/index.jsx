@@ -68,7 +68,7 @@ class OrganizationIntegrations extends AsyncComponent {
     // when at least one Integration is present.
     return this.state.config.providers.map(provider => {
       const integrations = this.state.integrations.filter(
-        i => i.provider.key == provider.key
+        i => i.provider.key === provider.key
       );
       const isInstalled = integrations.length > 0;
 
@@ -200,7 +200,7 @@ class OrganizationIntegrations extends AsyncComponent {
     // we dont want the app to render twice if its the org that created
     // the published app.
     const orgOwned = orgOwnedApps.filter(app => {
-      return !published.find(p => p.slug == app.slug);
+      return !published.find(p => p.slug === app.slug);
     });
     const orgOwnedInternal = orgOwned.filter(app => {
       return app.status === 'internal';

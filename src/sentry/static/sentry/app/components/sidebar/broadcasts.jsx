@@ -137,7 +137,7 @@ class Broadcasts extends React.Component {
           data-test-id="sidebar-broadcasts"
           orientation={orientation}
           collapsed={collapsed}
-          active={currentPanel == 'broadcasts'}
+          active={currentPanel === 'broadcasts'}
           badge={unseenPosts.length}
           icon={<InlineSvg src="icon-broadcast" size="22px" />}
           label={t("What's new")}
@@ -145,7 +145,7 @@ class Broadcasts extends React.Component {
           id="broadcasts"
         />
 
-        {showPanel && currentPanel == 'broadcasts' && (
+        {showPanel && currentPanel === 'broadcasts' && (
           <SidebarPanel
             data-test-id="sidebar-broadcasts-panel"
             orientation={orientation}

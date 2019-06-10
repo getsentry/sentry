@@ -370,7 +370,7 @@ const OrganizationStream = createReactClass({
   },
 
   onSelectStatsPeriod(period) {
-    if (period != this.getGroupStatsPeriod()) {
+    if (period !== this.getGroupStatsPeriod()) {
       this.transitionTo({groupStatsPeriod: period});
     }
   },
@@ -661,7 +661,7 @@ const OrganizationStream = createReactClass({
       hasReleases = new Set(selectedProject.features).has('releases');
       latestRelease = selectedProject.latestRelease;
       projectId = selectedProject.slug;
-    } else if (projects.length == 1) {
+    } else if (projects.length === 1) {
       // If the user has filtered down to a single project
       // we can hint the autocomplete/savedsearch picker with that.
       projectId = projects[0].slug;

@@ -102,7 +102,7 @@ export default class IntegrationRepos extends AsyncComponent {
       if (!(selection.value && item.externalSlug)) {
         return false;
       }
-      return selection.value == item.externalSlug;
+      return selection.value === item.externalSlug;
     })[0];
 
     let promise;

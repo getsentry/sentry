@@ -67,7 +67,7 @@ export function stringifyQueryList(query) {
 
   const queryObj = {};
   for (const kv of query) {
-    if (kv !== null && kv.length == 2) {
+    if (kv !== null && kv.length === 2) {
       const [k, v] = kv;
       if (v !== null) {
         queryObj[k] = v;

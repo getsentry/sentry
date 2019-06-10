@@ -121,7 +121,7 @@ export const fields = {
     saveMessage: t('Changing grouping config will apply to future events only.'),
     selectionInfoFunction: args => {
       const {groupingConfigs, value} = args;
-      const selection = groupingConfigs.find(({id}) => id == value);
+      const selection = groupingConfigs.find(({id}) => id === value);
       const changelog = (selection && selection.changelog) || '';
       if (!changelog) {
         return null;
@@ -150,7 +150,7 @@ export const fields = {
     saveMessage: t('Changing grouping enhancements will apply to future events only.'),
     selectionInfoFunction: args => {
       const {groupingEnhancementBases, value} = args;
-      const selection = groupingEnhancementBases.find(({id}) => id == value);
+      const selection = groupingEnhancementBases.find(({id}) => id === value);
       const changelog = (selection && selection.changelog) || '';
       if (!changelog) {
         return null;

@@ -51,7 +51,7 @@ export default class AdminQueue extends AsyncView {
             return (
               <a
                 className={`btn btn-sm ${
-                  r == this.state.timeWindow ? 'btn-primary' : 'btn-default'
+                  r === this.state.timeWindow ? 'btn-primary' : 'btn-default'
                 }`}
                 onClick={() => this.changeWindow(r)}
                 key={r}

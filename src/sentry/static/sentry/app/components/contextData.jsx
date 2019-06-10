@@ -8,13 +8,13 @@ import {isUrl} from 'app/utils';
 function looksLikeObjectRepr(value) {
   const a = value[0];
   const z = value[value.length - 1];
-  if (a == '<' && z == '>') {
+  if (a === '<' && z === '>') {
     return true;
-  } else if (a == '[' && z == ']') {
+  } else if (a === '[' && z === ']') {
     return true;
-  } else if (a == '(' && z == ')') {
+  } else if (a === '(' && z === ')') {
     return true;
-  } else if (z == ')' && value.match(/^[\w\d._-]+\(/)) {
+  } else if (z === ')' && value.match(/^[\w\d._-]+\(/)) {
     return true;
   }
   return false;

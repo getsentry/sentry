@@ -58,7 +58,7 @@ const getConfirm = (numIssues, allInQuerySelected, query, queryCount) => {
         );
 
     const message =
-      action == 'delete'
+      action === 'delete'
         ? tct(
             'Bulk deletion is only recommended for junk data. To clear your stream, consider resolving or ignoring. [link:When should I delete events?]',
             {

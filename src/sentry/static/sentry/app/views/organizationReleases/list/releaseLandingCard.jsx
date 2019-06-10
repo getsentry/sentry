@@ -16,7 +16,7 @@ class ReleaseLandingCard extends React.Component {
 
   getMessage = () => {
     const {cardsLength, step} = this.props;
-    if (step == 0) {
+    if (step === 0) {
       return t('Tell Me More');
     } else if (step < cardsLength - 1) {
       return t('Next');

@@ -38,9 +38,9 @@ class Switch extends React.Component {
   }
 }
 
-const getSize = p => (p.size == 'sm' ? 16 : 24);
-const getToggleSize = p => getSize(p) - (p.size == 'sm' ? 6 : 10);
-const getToggleTop = p => (p.size == 'sm' ? 2 : 4);
+const getSize = p => (p.size === 'sm' ? 16 : 24);
+const getToggleSize = p => getSize(p) - (p.size === 'sm' ? 6 : 10);
+const getToggleTop = p => (p.size === 'sm' ? 2 : 4);
 const getTranslateX = p => (p.isActive ? getToggleTop(p) + getSize(p) : getToggleTop(p));
 
 const SwitchContainer = styled('div')`

@@ -122,7 +122,7 @@ class Form extends React.Component {
     const hasChanges = requireChanges
       ? Object.keys(data).length && !_.isEqual(data, initialData)
       : true;
-    const isError = this.state.state == FormState.ERROR;
+    const isError = this.state.state === FormState.ERROR;
     const nonFieldErrors = this.state.errors && this.state.errors.non_field_errors;
 
     return (

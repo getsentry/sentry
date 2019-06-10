@@ -73,7 +73,7 @@ export default class SentryApplicationDetails extends AsyncView {
 
   // Events may come from the API as "issue.created" when we just want "issue" here.
   normalize(events) {
-    if (events.length == 0) {
+    if (events.length === 0) {
       return events;
     }
 
@@ -91,7 +91,7 @@ export default class SentryApplicationDetails extends AsyncView {
     const {app} = this.state;
     const scopes = (app && [...app.scopes]) || [];
     const events = (app && this.normalize(app.events)) || [];
-    const statusDisabled = app && app.status == 'internal' ? true : false;
+    const statusDisabled = app && app.status === 'internal' ? true : false;
     const method = app ? 'PUT' : 'POST';
     const endpoint = app ? `/sentry-apps/${app.slug}/` : '/sentry-apps/';
 
@@ -105,7 +105,7 @@ export default class SentryApplicationDetails extends AsyncView {
           initialData={{
             organization: orgId,
             isAlertable: false,
-            isInternal: app && app.status == 'internal' ? true : false,
+            isInternal: app && app.status === 'internal' ? true : false,
             schema: {},
             scopes: [],
             ...app,
@@ -124,7 +124,7 @@ export default class SentryApplicationDetails extends AsyncView {
           {app && (
             <Panel>
               <PanelHeader>{t('Credentials')}</PanelHeader>
-              {app.status == 'internal' ? (
+              {app.status === 'internal' ? (
                 <PanelBody>
                   <FormField name="token" label="Token" overflow>
                     {({value}) => {

@@ -219,7 +219,7 @@ const Frame = createReactClass({
     // we don't want to render out zero line numbers which are used to
     // indicate lack of source information for native setups.  We could
     // TODO(mitsuhiko): only do this for events from native platforms?
-    if (defined(data.lineNo) && data.lineNo != 0) {
+    if (defined(data.lineNo) && data.lineNo !== 0) {
       title.push(
         <span className="in-at in-at-line" key="no">
           {' '}
@@ -370,8 +370,8 @@ const Frame = createReactClass({
   isInlineFrame() {
     return (
       this.props.prevFrame &&
-      this.getPlatform() == (this.props.prevFrame.platform || this.props.platform) &&
-      this.props.data.instructionAddr == this.props.prevFrame.instructionAddr
+      this.getPlatform() === (this.props.prevFrame.platform || this.props.platform) &&
+      this.props.data.instructionAddr === this.props.prevFrame.instructionAddr
     );
   },
 
@@ -382,7 +382,7 @@ const Frame = createReactClass({
     if (this.props.data.trust === 'scan' || this.props.data.trust === 'cfi-scan') {
       return t('Found by stack scanning');
     }
-    if (this.getPlatform() == 'cocoa') {
+    if (this.getPlatform() === 'cocoa') {
       const func = this.props.data.function || '<unknown>';
       if (func.match(/^@objc\s/)) {
         return t('Objective-C -> Swift shim frame');

@@ -80,7 +80,7 @@ class PluginComponentBase extends React.Component {
   }
 
   onSave(callback, ...args) {
-    if (this.state.state == FormState.SAVING) {
+    if (this.state.state === FormState.SAVING) {
       return;
     }
     callback = callbackWithArgs(callback, ...args);

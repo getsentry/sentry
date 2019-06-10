@@ -91,7 +91,7 @@ class SentryAppExternalIssueForm extends React.Component {
 
   getFieldDefault(field) {
     const {group} = this.props;
-    if (field.type == 'textarea') {
+    if (field.type === 'textarea') {
       field.maxRows = 10;
       field.autosize = true;
     }

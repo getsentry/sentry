@@ -72,7 +72,7 @@ class OnboardingWizard extends React.Component {
   }
 
   validateActiveStep() {
-    if (this.activeStepIndex == -1) {
+    if (this.activeStepIndex === -1) {
       const firstStep = this.props.steps[0].id;
       browserHistory.replace(`/onboarding/${this.props.params.orgId}/${firstStep}/`);
     }

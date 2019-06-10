@@ -59,7 +59,7 @@ export default class OrganizationSavedSearchSelector extends React.Component {
         delay={1000}
         key={search.id}
       >
-        <MenuItem last={index == savedSearchList.length - 1}>
+        <MenuItem last={index === savedSearchList.length - 1}>
           <MenuItemLink tabIndex="-1" onClick={() => onSavedSearchSelect(search)}>
             <SearchTitle>{search.name}</SearchTitle>
             <SearchQuery>{search.query}</SearchQuery>

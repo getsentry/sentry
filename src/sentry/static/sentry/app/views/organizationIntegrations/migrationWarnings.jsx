@@ -28,7 +28,7 @@ export default class MigrationWarnings extends AsyncComponent {
   render() {
     return Object.entries(this.unmigratableReposByOrg).map(([orgName, repos]) => {
       // Repos use 'visualstudio', Integrations use 'vsts'. Normalize to 'vsts'.
-      const key = repos[0].provider.id == 'visualstudio' ? 'vsts' : repos[0].provider.id;
+      const key = repos[0].provider.id === 'visualstudio' ? 'vsts' : repos[0].provider.id;
       const provider = this.props.providers.find(p => p.key === key);
 
       // The Org might not have access to this Integration yet.
