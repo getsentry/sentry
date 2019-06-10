@@ -3,7 +3,7 @@ from __future__ import absolute_import
 import six
 
 from collections import Iterable
-from django.db import IntegrityError
+from django.db import IntegrityError, transaction
 
 from sentry import analytics
 from sentry.mediators import Mediator, Param
@@ -82,9 +82,10 @@ class Creator(Mediator):
         # sentry apps must have at least one feature
         # defaults to 'integrations-api'
         try:
-            IntegrationFeature.objects.create(
-                sentry_app=self.sentry_app,
-            )
+            with transaction.atomic():
+                IntegrationFeature.objects.create(
+                    sentry_app=self.sentry_app,
+                )
         except IntegrityError as e:
             self.log(
                 extra={
