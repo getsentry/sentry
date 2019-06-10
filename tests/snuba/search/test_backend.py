@@ -1264,10 +1264,10 @@ class SnubaSearchTest(TestCase, SnubaTestCase):
         # create some releases
 
         release_1_timestamp = self.base_datetime
-        release_1 = self.create_release(self.project, date_added=release_1_timestamp)
+        release_1 = self.create_release(self.project, date_added=release_1_timestamp, version="release_1")
 
         release_2_timestamp = release_1_timestamp + timedelta(days=2)
-        release_2 = self.create_release(self.project, date_added=release_2_timestamp)
+        release_2 = self.create_release(self.project, date_added=release_2_timestamp, version="release_2")
 
         assert release_2_timestamp > release_1_timestamp  # release_2 occurred after release_1
 
@@ -1347,12 +1347,8 @@ class SnubaSearchTest(TestCase, SnubaTestCase):
 
         # expect no groups since given release version does not exist
 
-        non_existent_release = 'fake'
-        assert release_1.version != non_existent_release
-        assert release_2.version != non_existent_release
-
         results = self.make_query(
-            search_filter_query='first_release:%s' % non_existent_release,
+            search_filter_query='first_release:%s' % 'fake',
         )
 
         assert set(results) == set([])
