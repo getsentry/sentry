@@ -8,7 +8,7 @@ export default function LoadingContainer(props) {
   const {children, hasResults, isLoading} = props;
 
   return (
-    <div>
+    <Container>
       {isLoading && (
         <div>
           <LoadingMask hasResults={hasResults} />
@@ -16,7 +16,7 @@ export default function LoadingContainer(props) {
         </div>
       )}
       {children}
-    </div>
+    </Container>
   );
 }
 
@@ -25,6 +25,10 @@ LoadingContainer.propTypes = {
   hasResults: PropTypes.bool.isRequired,
   children: PropTypes.node,
 };
+
+const Container = styled('div')`
+  position: relative;
+`;
 
 const LoadingMask = styled('div')`
   position: absolute;

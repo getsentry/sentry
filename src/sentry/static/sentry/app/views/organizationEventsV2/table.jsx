@@ -72,7 +72,7 @@ export default class Table extends React.Component {
             </HeaderItem>
           ))}
         </TableHeader>
-        <PanelBody style={{position: 'relative'}}>
+        <PanelBody>
           <LoadingContainer isLoading={isLoading} hasResults={hasResults}>
             {this.renderBody()}
           </LoadingContainer>
