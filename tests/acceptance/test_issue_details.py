@@ -59,6 +59,7 @@ class IssueDetailsTest(AcceptanceTestCase, SnubaTestCase):
             platform='python-rawbody',
         )
         self.visit_issue(event.group.id)
+        self.browser.move_to('.request pre span')
         self.browser.snapshot('issue details python raw body')
 
     def test_python_formdata_event(self):
