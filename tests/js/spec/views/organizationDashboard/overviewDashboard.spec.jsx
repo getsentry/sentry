@@ -92,7 +92,6 @@ describe('OverviewDashboard', function() {
 
     createWrapper(dashboardData);
 
-    // TODO(billy): Figure out why releases gets called twice
     expect(discoverMock).toHaveBeenCalledTimes(4);
 
     expect(releasesMock).toHaveBeenCalledTimes(1);
