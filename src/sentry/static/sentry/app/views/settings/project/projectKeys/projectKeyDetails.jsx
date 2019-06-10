@@ -156,6 +156,7 @@ const KeyStats = createReactClass({
               height={150}
               label="events"
               barClasses={['accepted', 'rate-limited']}
+              minHeights={[1, 0]}
               className="standard-barchart"
               style={{border: 'none'}}
               tooltip={this.renderTooltip}
