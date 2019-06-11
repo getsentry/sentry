@@ -31,7 +31,7 @@ const RelatedIssues = styled(
         <div className={className}>
           <IssuesFetcher api={api} issueIds={incident && incident.groups}>
             {({issues, loading, error}) => {
-              // If loading is finished, and there are no issues, do not display anythig
+              // If loading is finished, and there are no issues, do not display anything
               if (!loading && issues && issues.length === 0) {
                 return null;
               }
