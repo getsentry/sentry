@@ -3,8 +3,6 @@ import React from 'react';
 import styled from 'react-emotion';
 
 import {INTERFACES} from 'app/components/events/eventEntries';
-import {getMessage, getTitle} from 'app/utils/events';
-import {objectIsEmpty, toTitleCase} from 'app/utils';
 import {t} from 'app/locale';
 import DateTime from 'app/components/dateTime';
 import ErrorBoundary from 'app/components/errorBoundary';
@@ -16,8 +14,12 @@ import ExternalLink from 'app/components/links/externalLink';
 import FileSize from 'app/components/fileSize';
 import NavTabs from 'app/components/navTabs';
 import SentryTypes from 'app/sentryTypes';
-import getDynamicText from 'app/utils/getDynamicText';
+import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
+import {objectIsEmpty, toTitleCase} from 'app/utils';
+import {getMessage, getTitle} from 'app/utils/events';
+import getDynamicText from 'app/utils/getDynamicText';
+import theme from 'app/utils/theme';
 
 import LinkedIssuePreview from './linkedIssuePreview';
 import ModalPagination from './modalPagination';
@@ -172,7 +174,7 @@ const EventHeader = props => {
   const {title} = getTitle(props.event);
   return (
     <div>
-      <h2>{title}</h2>
+      <OverflowHeader>{title}</OverflowHeader>
       <p>{getMessage(props.event)}</p>
     </div>
   );
@@ -206,6 +208,10 @@ EventMetadata.propTypes = {
   eventJsonUrl: PropTypes.string.isRequired,
 };
 
+const OverflowHeader = styled('h2')`
+  ${overflowEllipsis}
+`;
+
 const MetadataContainer = styled('div')`
   display: flex;
   justify-content: space-between;
@@ -222,6 +228,15 @@ const ColumnGrid = styled('div')`
   grid-template-columns: 70% 28%;
   grid-template-rows: auto;
   grid-column-gap: 2%;
+
+  @media (max-width: ${theme.breakpoints[1]}) {
+    grid-template-columns: 60% 38%;
+  }
+
+  @media (max-width: ${theme.breakpoints[0]}) {
+    display: flex;
+    flex-direction: column;
+  }
 `;
 
 const HeaderBox = styled('div')`
