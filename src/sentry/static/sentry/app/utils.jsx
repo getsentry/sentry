@@ -1,11 +1,5 @@
 import _ from 'lodash';
 
-// import/export sub-utils
-import parseLinkHeader from 'app/utils/parseLinkHeader';
-import PendingChangeQueue from 'app/utils/pendingChangeQueue';
-import CursorPoller from 'app/utils/cursorPoller';
-import StreamManager from 'app/utils/streamManager';
-
 function arrayIsEqual(arr, other, deep) {
   // if the other array is a falsy value, return
   if (!arr && !other) {
@@ -280,31 +274,3 @@ export function deepFreeze(object) {
 
   return Object.freeze(object);
 }
-
-// re-export under utils
-export {parseLinkHeader, PendingChangeQueue, CursorPoller};
-
-// backwards compatible default export for use w/ getsentry (exported
-// as a single object w/ function refs for consumption by getsentry)
-export default {
-  sortArray,
-  objectIsEmpty,
-  defined,
-  nl2br,
-  isUrl,
-  escape,
-  percent,
-  toTitleCase,
-  intcomma,
-  valueIsEqual,
-  parseLinkHeader,
-  buildUserId,
-  buildTeamId,
-  descopeFeatureName,
-
-  // external imports
-  objectToArray,
-  PendingChangeQueue,
-  StreamManager,
-  CursorPoller,
-};
