@@ -98,10 +98,8 @@ class TestCreator(TestCase):
         mock_create.side_effect = IntegrityError()
         self.creator.call()
         mock_log.assert_called_with(
-            extra={
-                'sentry_app': 'nulldb',
-                'error_message': '',
-            }
+            sentry_app='nulldb',
+            error_message='',
         )
 
     def test_creates_audit_log_entry(self):

@@ -88,10 +88,8 @@ class Creator(Mediator):
                 )
         except IntegrityError as e:
             self.log(
-                extra={
-                    'sentry_app': self.sentry_app.slug,
-                    'error_message': e.message,
-                }
+                sentry_app=self.sentry_app.slug,
+                error_message=e.message,
             )
 
     def audit(self):
