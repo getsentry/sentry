@@ -9,6 +9,14 @@ from distutils import log
 from subprocess import check_output
 from distutils.core import Command
 
+import sentry  # We just need its path via __file__
+
+
+SENTRY_ROOT_PATH = os.path.abspath(os.path.join(sentry.__file__, '..', '..', '..'))
+
+
+YARN_PATH = os.path.join(SENTRY_ROOT_PATH, 'bin', 'yarn')
+
 
 class BaseBuildCommand(Command):
     user_options = [
@@ -132,8 +140,8 @@ class BaseBuildCommand(Command):
 
         if node_version[2] is not None:
             log.info(u'using node ({0}))'.format(node_version))
-            self._run_command(
-                ['./bin/yarn', 'install', '--production', '--pure-lockfile', '--quiet']
+            self._run_yarn_command(
+                ['install', '--production', '--pure-lockfile', '--quiet']
             )
 
     def _run_command(self, cmd, env=None):
@@ -143,6 +151,12 @@ class BaseBuildCommand(Command):
         except Exception:
             log.error('command failed [%s] via [%s]' % (' '.join(cmd), self.work_path, ))
             raise
+
+    def _run_yarn_command(self, cmd, env=None):
+        log.debug(u'yarn path: ({0}))'.format(YARN_PATH))
+        self._run_command(
+            [YARN_PATH] + cmd, env=env
+        )
 
     def update_manifests(self):
         # if we were invoked from sdist, we need to inform sdist about
