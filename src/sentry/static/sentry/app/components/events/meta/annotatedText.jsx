@@ -49,13 +49,13 @@ const KNOWN_RULES = {
 };
 
 function getTooltipText(remark, rule) {
-  remark = REMARKS[remark];
-  rule = KNOWN_RULES[rule] || t('PII rule "%s"', rule);
-  let title = rule;
-  if (remark) {
-    title = t('%s because of %s', remark, rule);
+  const remark_title = REMARKS[remark];
+  const rule_title = KNOWN_RULES[rule] || t('PII rule "%s"', rule);
+  if (remark_title) {
+    return t('%s because of %s', remark_title, rule_title);
+  } else {
+    return rule_title;
   }
-  return title;
 }
 
 function renderChunk(chunk) {
