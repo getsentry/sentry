@@ -13,7 +13,7 @@ import space from 'app/styles/space';
 const ModalPagination = props => {
   const {location, event} = props;
 
-  // Remove the groupId and eventSlug keys as we need to create new ones
+  // Remove the groupSlug and eventSlug keys as we need to create new ones
   const query = omit(location.query, ['groupSlug', 'eventSlug']);
   const previousEventUrl = event.previousEventID
     ? {
