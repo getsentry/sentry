@@ -3,8 +3,8 @@ import styled from 'react-emotion';
 
 import {PageContent} from 'app/styles/organization';
 import {t} from 'app/locale';
-import IdBadge from 'app/components/idBadge';
 import Chart from 'app/views/organizationIncidents/details/chart';
+import IdBadge from 'app/components/idBadge';
 import Link from 'app/components/links/link';
 import NavTabs from 'app/components/navTabs';
 import Projects from 'app/utils/projects';
@@ -15,6 +15,7 @@ import space from 'app/styles/space';
 import theme from 'app/utils/theme';
 
 import Activity from './activity';
+import RelatedIssues from './relatedIssues';
 import Suspects from './suspects';
 
 export default class DetailsBody extends React.Component {
@@ -67,8 +68,6 @@ export default class DetailsBody extends React.Component {
               <ChartPlaceholder />
             )}
 
-            <Suspects params={params} />
-
             <div>
               <SideHeader loading={loading}>
                 {t('Projects Affected')} ({!loading ? incident.projects.length : '-'})
@@ -86,6 +85,10 @@ export default class DetailsBody extends React.Component {
                 </div>
               )}
             </div>
+
+            <Suspects params={params} />
+
+            <RelatedIssues params={params} incident={incident} />
           </PageContent>
         </Sidebar>
       </StyledPageContent>

@@ -8,10 +8,12 @@ import AsyncComponent from 'app/components/asyncComponent';
 import CommitLink from 'app/components/commitLink';
 import IdBadge from 'app/components/idBadge';
 import SentryTypes from 'app/sentryTypes';
-import SideHeader from 'app/views/organizationIncidents/details/sideHeader';
 import TimeSince from 'app/components/timeSince';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
+
+import Placeholder from './placeholder';
+import SideHeader from './sideHeader';
 
 class Suspects extends React.Component {
   static propTypes = {
@@ -107,11 +109,6 @@ Message.propTypes = {
   type: PropTypes.oneOf(['commit']),
   suspect: SentryTypes.IncidentSuspectData,
 };
-
-const Placeholder = styled('div')`
-  background-color: ${p => p.theme.placeholderBackground};
-  padding: ${space(4)};
-`;
 
 const Type = styled('div')`
   text-transform: uppercase;
