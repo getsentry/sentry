@@ -40,10 +40,9 @@ class OrganizationIncidentsList extends AsyncComponent {
 
   renderListItem(incident) {
     const {orgId} = this.props.params;
+    const started = moment(incident.dateStarted);
     const duration = moment
-      .duration(
-        moment(incident.dateClosed || new Date()).diff(moment(incident.dateStarted))
-      )
+      .duration(moment(incident.dateClosed || new Date()).diff(started))
       .as('seconds');
 
     return (
@@ -53,9 +52,11 @@ class OrganizationIncidentsList extends AsyncComponent {
             {incident.title}
           </Link>
           <Status incident={incident} />
+          <div>{started.format('LL')}</div>
           <div>
             <Duration seconds={getDynamicText({value: duration, fixed: 1200})} />
           </div>
+
           <div>
             <Count value={incident.uniqueUsers} />
           </div>
@@ -85,6 +86,7 @@ class OrganizationIncidentsList extends AsyncComponent {
             <TableLayout>
               <div>{t('Incident')}</div>
               <div>{t('Status')}</div>
+              <div>{t('Started')}</div>
               <div>{t('Duration')}</div>
               <div>{t('Users affected')}</div>
               <div>{t('Total events')}</div>
@@ -166,9 +168,10 @@ class OrganizationIncidentsListContainer extends React.Component {
 
 const TableLayout = styled('div')`
   display: grid;
-  grid-template-columns: 4fr 1fr 1fr 1fr 1fr;
+  grid-template-columns: 4fr 1fr 1fr 1fr 1fr 1fr;
   grid-column-gap: ${space(1.5)};
   width: 100%;
+  align-items: center;
 `;
 
 export default OrganizationIncidentsListContainer;
