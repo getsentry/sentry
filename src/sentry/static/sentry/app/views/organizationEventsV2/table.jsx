@@ -11,6 +11,7 @@ import space from 'app/styles/space';
 
 import {SPECIAL_FIELDS} from './data';
 import {QueryLink} from './styles';
+import {getCurrentView} from './utils';
 
 export default class Table extends React.Component {
   static propTypes = {
@@ -56,11 +57,13 @@ export default class Table extends React.Component {
   }
 
   render() {
-    const {isLoading, view, data} = this.props;
+    const {isLoading, view, data, location} = this.props;
     const {fields} = view.data;
 
-    // If previous state was empty, don't show the reloading state
-    const isReloading = !!(data && data.length) && isLoading;
+    // If previous state was empty or we are switching tabs, don't show the
+    // reloading state
+    const isSwitchingTab = getCurrentView(location.query.view) !== view.id;
+    const isReloading = !!(data && data.length) && isLoading && !isSwitchingTab;
 
     return (
       <Panel>
@@ -73,11 +76,11 @@ export default class Table extends React.Component {
             </HeaderItem>
           ))}
         </TableHeader>
-        <PanelBody>
+        <StyledPanelBody isLoading={isLoading || isReloading}>
           <LoadingContainer isLoading={isLoading} isReloading={isReloading}>
             {this.renderBody()}
           </LoadingContainer>
-        </PanelBody>
+        </StyledPanelBody>
       </Panel>
     );
   }
@@ -108,4 +111,8 @@ const Cell = styled('div')`
   display: flex;
   align-items: center;
   overflow: hidden;
+`;
+
+const StyledPanelBody = styled(({isLoading, ...props}) => <PanelBody {...props} />)`
+  ${p => p.isLoading && 'min-height: 240px;'};
 `;
