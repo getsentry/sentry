@@ -21,23 +21,18 @@ class OrganizationGroupDetails extends React.Component {
   }
 
   render() {
+    // eslint-disable-next-line no-unused-vars
     const {selection, ...props} = this.props;
 
     return (
       <GroupDetails
         environments={selection.environments}
-        enableSnuba
-        showGlobalHeader
+        enableSnuba={true}
+        showGlobalHeader={true}
         {...props}
       />
     );
   }
 }
 
-const OrganizationGroupDetailsHoC = withOrganization(
-  withGlobalSelection(OrganizationGroupDetails)
-);
-
-export default function OrganizationGroupDetailsContainer(props) {
-  return <OrganizationGroupDetailsHoC disableLoadFromStore {...props} />;
-}
+export default withOrganization(withGlobalSelection(OrganizationGroupDetails));
