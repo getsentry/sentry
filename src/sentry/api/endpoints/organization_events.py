@@ -88,7 +88,9 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
                 return Response({'detail': 'No fields or groupings provided'}, status=400)
 
             if any(field for field in groupby if field not in ALLOWED_GROUPINGS):
-                return Response({'detail': 'Invalid groupby value requested'}, status=400)
+                message = ('Invalid groupby value requested. Allowed values are ' +
+                    ', '.join(ALLOWED_GROUPINGS))
+                return Response({'detail': message}, status=400)
 
         except OrganizationEventsError as exc:
             return Response({'detail': exc.message}, status=400)
