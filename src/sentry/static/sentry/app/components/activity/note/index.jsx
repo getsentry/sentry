@@ -179,7 +179,6 @@ const StyledActivityItem = styled(ActivityItem)`
 
 const ActivityItemWithEditing = styled(StyledActivityItem)`
   &:hover {
-    /* stylelint-disable-next-line no-duplicate-selectors */
     ${EditorTools} {
       display: inline-block;
     }
