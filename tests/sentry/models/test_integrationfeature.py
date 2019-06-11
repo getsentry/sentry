@@ -1,15 +1,14 @@
 from __future__ import absolute_import
 
 from sentry.testutils import TestCase
-from sentry.models.integrationfeature import IntegrationFeature, Feature
+from sentry.models import IntegrationFeature
 
 
 class IntegrationFeatureTest(TestCase):
     def setUp(self):
         sentry_app = self.create_sentry_app()
-        self.integration_feature = IntegrationFeature(
+        self.integration_feature = IntegrationFeature.objects.get(
             sentry_app=sentry_app,
-            feature=Feature.API,
         )
 
     def test_feature_str(self):
