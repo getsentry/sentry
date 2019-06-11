@@ -6,9 +6,8 @@ from django.core.urlresolvers import reverse
 from exam import fixture
 
 from sentry.api.endpoints.project_releases import ReleaseWithVersionSerializer
-from sentry.constants import VERSION_LENGTH
+from sentry.constants import BAD_RELEASE_CHARS, MAX_VERSION_LENGTH
 from sentry.models import (
-    BAD_RELEASE_CHARS,
     CommitAuthor,
     CommitFileChange,
     Environment,
@@ -743,22 +742,22 @@ class ReleaseSerializerTest(TestCase):
     def test_ref_limited_by_max_version_length(self):
         serializer = ReleaseWithVersionSerializer(data={
             'version': self.version,
-            'ref': 'a' * VERSION_LENGTH,
+            'ref': 'a' * MAX_VERSION_LENGTH,
         })
         assert serializer.is_valid()
         serializer = ReleaseWithVersionSerializer(data={
             'version': self.version,
-            'ref': 'a' * (VERSION_LENGTH + 1),
+            'ref': 'a' * (MAX_VERSION_LENGTH + 1),
         })
         assert not serializer.is_valid()
 
     def test_version_limited_by_max_version_length(self):
         serializer = ReleaseWithVersionSerializer(data={
-            'version': 'a' * VERSION_LENGTH,
+            'version': 'a' * MAX_VERSION_LENGTH,
         })
         assert serializer.is_valid()
         serializer = ReleaseWithVersionSerializer(data={
-            'version': 'a' * (VERSION_LENGTH + 1),
+            'version': 'a' * (MAX_VERSION_LENGTH + 1),
         })
         assert not serializer.is_valid()
 

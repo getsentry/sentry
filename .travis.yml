@@ -115,9 +115,9 @@ matrix:
       name: 'Linter'
       env: TEST_SUITE=lint
       install:
+        - SENTRY_LIGHT_BUILD=1 pip install -e ".[dev,tests,optional]"
         - find "$NODE_DIR" -type d -empty -delete
         - nvm install
-        - pip install -r requirements-dev.txt
         - yarn install --pure-lockfile
 
     - <<: *postgres_default

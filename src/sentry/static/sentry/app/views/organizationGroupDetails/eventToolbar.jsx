@@ -20,14 +20,14 @@ const formatDateDelta = (reference, observed) => {
   const results = [];
 
   if (hours) {
-    results.push(`${hours} hour${hours != 1 ? 's' : ''}`);
+    results.push(`${hours} hour${hours !== 1 ? 's' : ''}`);
   }
 
   if (minutes) {
-    results.push(`${minutes} minute${minutes != 1 ? 's' : ''}`);
+    results.push(`${minutes} minute${minutes !== 1 ? 's' : ''}`);
   }
 
-  if (results.length == 0) {
+  if (results.length === 0) {
     results.push('a few seconds');
   }
 

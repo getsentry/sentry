@@ -237,7 +237,7 @@ class ActivityItem extends React.Component {
       case 'assigned':
         let assignee;
 
-        if (data.assigneeType == 'team') {
+        if (data.assigneeType === 'team') {
           const team = TeamStore.getById(data.assignee);
           assignee = team ? team.slug : '<unknown-team>';
 

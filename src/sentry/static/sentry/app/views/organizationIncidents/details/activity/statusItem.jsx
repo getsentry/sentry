@@ -33,11 +33,11 @@ class StatusItem extends React.Component {
     const isDetected = activity.type === INCIDENT_ACTIVITY_TYPE.DETECTED;
     const isClosed =
       activity.type === INCIDENT_ACTIVITY_TYPE.STATUS_CHANGE &&
-      activity.value == INCIDENT_STATUS.CLOSED;
+      activity.value === INCIDENT_STATUS.CLOSED;
     const isReopened =
       activity.type === INCIDENT_ACTIVITY_TYPE.STATUS_CHANGE &&
-      activity.value == INCIDENT_STATUS.CREATED &&
-      activity.previousValue == INCIDENT_STATUS.CLOSED;
+      activity.value === INCIDENT_STATUS.CREATED &&
+      activity.previousValue === INCIDENT_STATUS.CLOSED;
 
     // Unknown activity, don't render anything
     if (!isCreated && !isDetected && !isClosed && !isReopened) {

@@ -51,7 +51,7 @@ const GuideAnchor = createReactClass({
     if (
       data.currentGuide &&
       data.currentStep > 0 &&
-      data.currentGuide.steps[data.currentStep - 1].target == this.props.target &&
+      data.currentGuide.steps[data.currentStep - 1].target === this.props.target &&
       // TODO(adhiraj): It would be more correct to let invisible anchors become active,
       // and use CSS to make them invisible.
       this.props.type !== 'invisible'
@@ -103,7 +103,7 @@ const recedeAnchor = keyframes`
 
 const GuideAnchorContainer = styled('div')`
   ${p =>
-    p.type == 'text' &&
+    p.type === 'text' &&
     `
       display: inline-block;
       position: relative;

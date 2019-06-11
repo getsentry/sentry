@@ -22,7 +22,7 @@ const FormSearchStore = Reflux.createStore({
   /**
    * Adds to search map
    *
-   * @param Array searchMap array of objects: {route, field}
+   * @param {Array} searchMap array of objects: {route, field}
    */
   onLoadSearchMap(searchMap) {
     // Only load once

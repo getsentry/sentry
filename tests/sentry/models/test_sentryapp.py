@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+import hashlib
+
 from sentry.constants import SentryAppStatus
 from sentry.testutils import TestCase
 from sentry.models import ApiApplication, SentryApp
@@ -24,6 +26,14 @@ class SentryAppTest(TestCase):
     def test_slug(self):
         self.sentry_app.save()
         assert self.sentry_app.slug == 'nulldb'
+
+    def test_internal_slug(self):
+        self.sentry_app.status = SentryAppStatus.INTERNAL
+        self.sentry_app.save()
+
+        assert self.sentry_app.slug == u'nulldb-{}'.format(
+            hashlib.sha1(self.org.slug).hexdigest()[0:6]
+        )
 
     def test_paranoid(self):
         self.sentry_app.save()

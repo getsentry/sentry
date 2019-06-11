@@ -120,10 +120,10 @@ const PluginActions = createReactClass({
             <Modal.Title>{`${plugin.name || plugin.title} Issue`}</Modal.Title>
           </Modal.Header>
           <NavTabs underlined={true}>
-            <li className={actionType == 'create' ? 'active' : ''}>
+            <li className={actionType === 'create' ? 'active' : ''}>
               <a onClick={() => this.handleClick('create')}>{t('Create')}</a>
             </li>
-            <li className={actionType == 'link' ? 'active' : ''}>
+            <li className={actionType === 'link' ? 'active' : ''}>
               <a onClick={() => this.handleClick('link')}>{t('Link')}</a>
             </li>
           </NavTabs>
