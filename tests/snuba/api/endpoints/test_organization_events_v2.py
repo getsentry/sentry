@@ -183,7 +183,7 @@ class OrganizationEventsV2EndpointTest(OrganizationEventsTestBase):
             project_id=project.id,
         )
 
-        groups = Group.objects.all()
+        groups = list(Group.objects.all().order_by('id'))
 
         with self.feature('organizations:events-v2'):
             response = self.client.get(
@@ -321,7 +321,7 @@ class OrganizationEventsV2EndpointTest(OrganizationEventsTestBase):
             project_id=project.id,
         )
 
-        groups = Group.objects.all()
+        groups = list(Group.objects.all().order_by('id'))
 
         with self.feature('organizations:events-v2'):
             response = self.client.get(
