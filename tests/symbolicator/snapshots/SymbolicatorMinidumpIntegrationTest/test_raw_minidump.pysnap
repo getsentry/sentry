@@ -1,5 +1,5 @@
 ---
-created: '2019-06-06T10:50:10.706117Z'
+created: '2019-06-11T21:26:07.179068Z'
 creator: sentry
 source: tests/symbolicator/test_minidump_full.py
 ---
@@ -155,6 +155,7 @@ exception:
         lineno: null
         package: C:\Windows\System32\ntdll.dll
         symbol: null
+        trust: fp
       - data:
           symbolicator_status: missing
         function: null
@@ -163,6 +164,7 @@ exception:
         lineno: null
         package: C:\Windows\System32\ntdll.dll
         symbol: null
+        trust: fp
       - data:
           symbolicator_status: missing
         function: null
@@ -171,6 +173,7 @@ exception:
         lineno: null
         package: C:\Windows\System32\kernel32.dll
         symbol: null
+        trust: cfi
       - data:
           symbolicator_status: symbolicated
         function: __scrt_common_main_seh
@@ -179,6 +182,7 @@ exception:
         lineno: 283
         package: C:\projects\breakpad-tools\windows\Release\crash.exe
         symbol: __scrt_common_main_seh
+        trust: cfi
       - data:
           symbolicator_status: symbolicated
         function: main
@@ -187,6 +191,7 @@ exception:
         lineno: 35
         package: C:\projects\breakpad-tools\windows\Release\crash.exe
         symbol: main
+        trust: context
       registers:
         eax: '0x0'
         ebp: '0x10ff670'
@@ -221,6 +226,7 @@ threads:
         lineno: null
         package: C:\Windows\System32\ntdll.dll
         symbol: null
+        trust: fp
       - data:
           symbolicator_status: missing
         function: null
@@ -229,6 +235,7 @@ threads:
         lineno: null
         package: C:\Windows\System32\ntdll.dll
         symbol: null
+        trust: fp
       - data:
           symbolicator_status: missing
         function: null
@@ -237,6 +244,7 @@ threads:
         lineno: null
         package: C:\Windows\System32\kernel32.dll
         symbol: null
+        trust: fp
       - data:
           symbolicator_status: missing
         function: null
@@ -245,6 +253,7 @@ threads:
         lineno: null
         package: C:\Windows\System32\ntdll.dll
         symbol: null
+        trust: context
       registers:
         eax: '0x0'
         ebp: '0x159faa4'
@@ -269,6 +278,7 @@ threads:
         lineno: null
         package: C:\Windows\System32\ntdll.dll
         symbol: null
+        trust: fp
       - data:
           symbolicator_status: missing
         function: null
@@ -277,6 +287,7 @@ threads:
         lineno: null
         package: C:\Windows\System32\ntdll.dll
         symbol: null
+        trust: fp
       - data:
           symbolicator_status: missing
         function: null
@@ -285,6 +296,7 @@ threads:
         lineno: null
         package: C:\Windows\System32\kernel32.dll
         symbol: null
+        trust: fp
       - data:
           symbolicator_status: missing
         function: null
@@ -293,6 +305,7 @@ threads:
         lineno: null
         package: C:\Windows\System32\ntdll.dll
         symbol: null
+        trust: context
       registers:
         eax: '0x0'
         ebp: '0x169fb98'
@@ -317,6 +330,7 @@ threads:
         lineno: null
         package: C:\Windows\System32\ntdll.dll
         symbol: null
+        trust: context
       registers:
         eax: '0x0'
         ebp: '0x179f2b8'

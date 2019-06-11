@@ -25,7 +25,7 @@ def strip_frame(frame):
             'package': frame.get('package'),
             'lineno': frame.get('lineno'),
             'in_app': frame.get('in_app'),
-
+            'trust': frame.get('trust'),
         }
 
     return frame

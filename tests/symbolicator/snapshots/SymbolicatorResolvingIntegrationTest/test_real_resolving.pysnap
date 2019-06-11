@@ -1,5 +1,5 @@
 ---
-created: '2019-06-06T10:50:20.590772Z'
+created: '2019-06-11T21:26:18.500120Z'
 creator: sentry
 source: tests/symbolicator/test_payload_full.py
 ---
@@ -31,6 +31,7 @@ exception:
         lineno: null
         package: null
         symbol: null
+        trust: null
       - data:
           symbolicator_status: null
         function: unknown
@@ -39,6 +40,7 @@ exception:
         lineno: null
         package: Foo.app/Contents/Foo
         symbol: null
+        trust: null
     stacktrace:
       frames:
       - data:
@@ -49,6 +51,7 @@ exception:
         lineno: null
         package: null
         symbol: null
+        trust: null
       - data:
           symbolicator_status: symbolicated
         function: main
@@ -57,6 +60,7 @@ exception:
         lineno: 1
         package: Foo.app/Contents/Foo
         symbol: main
+        trust: null
     type: Fail
     value: fail
 stacktrace: null
