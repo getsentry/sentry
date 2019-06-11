@@ -39,9 +39,8 @@ TYPES = {
 }
 
 
-def _webhook_event_data(event, group_id):
-    group = Group.objects.get_from_cache(id=group_id)
-    project = Project.objects.get_from_cache(id=group.project_id)
+def _webhook_event_data(event, group_id, project_id):
+    project = Project.objects.get_from_cache(id=project_id)
     organization = Organization.objects.get_from_cache(id=project.organization_id)
 
     event_context = event.as_dict()
@@ -53,7 +52,7 @@ def _webhook_event_data(event, group_id):
 
     event_context['web_url'] = absolute_uri(reverse('sentry-organization-event-detail', args=[
         organization.slug,
-        group.id,
+        group_id,
         event.event_id,
     ]))
 
@@ -61,7 +60,7 @@ def _webhook_event_data(event, group_id):
     # a valid URL (it can't know which option to pick). We have to manually
     # create this URL for, that reason.
     event_context['issue_url'] = absolute_uri(
-        '/api/0/issues/{}/'.format(group.id),
+        '/api/0/issues/{}/'.format(group_id),
     )
 
     return event_context
@@ -96,7 +95,7 @@ def send_alert_event(event, rule, sentry_app_id):
         logger.info('event_alert_webhook.missing_installation', extra=extra)
         return
 
-    event_context = _webhook_event_data(event, group.id)
+    event_context = _webhook_event_data(event, group.id, project.id)
 
     data = {
         'event': event_context,
@@ -191,7 +190,8 @@ def _process_resource_change(action, sender, instance_id, retryer=None, *args, *
         data = {}
         if issubclass(model, EventCommon):
             group_id = kwargs.get('group_id')
-            data[name] = _webhook_event_data(instance, group_id)
+            project_id = kwargs.get('project_id')
+            data[name] = _webhook_event_data(instance, group_id, project_id)
         else:
             data[name] = serialize(instance)
         send_webhooks(installation, event, data=data)
