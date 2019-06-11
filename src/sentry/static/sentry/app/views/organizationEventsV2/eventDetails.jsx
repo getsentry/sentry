@@ -51,6 +51,15 @@ class EventDetails extends AsyncComponent {
       </ModalContainer>
     );
   }
+
+  renderLoading() {
+    return (
+      <ModalContainer>
+        <CloseButton onClick={this.handleClose} size={30} />
+        {super.renderLoading()}
+      </ModalContainer>
+    );
+  }
 }
 
 const ModalContainer = styled('div')`
