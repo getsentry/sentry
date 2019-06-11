@@ -113,6 +113,6 @@ const Cell = styled('div')`
   overflow: hidden;
 `;
 
-const StyledPanelBody = styled(PanelBody)`
+const StyledPanelBody = styled(({isLoading, ...props}) => <PanelBody {...props} />)`
   ${p => p.isLoading && 'min-height: 240px;'};
 `;
