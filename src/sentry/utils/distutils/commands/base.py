@@ -136,10 +136,8 @@ class BaseBuildCommand(Command):
 
         if node_version[2] is not None:
             log.info(u'using node ({0}))'.format(node_version))
-            yarn_path = os.path.join(self.get_sentry_root_path(), 'bin', 'yarn')
-            log.info(u'yarn path: ({0}))'.format(yarn_path))
-            self._run_command(
-                [yarn_path, 'install', '--production', '--pure-lockfile', '--quiet']
+            self._run_yarn_command(
+                ['install', '--production', '--pure-lockfile', '--quiet']
             )
 
     def _run_command(self, cmd, env=None):
@@ -149,6 +147,13 @@ class BaseBuildCommand(Command):
         except Exception:
             log.error('command failed [%s] via [%s]' % (' '.join(cmd), self.work_path, ))
             raise
+
+    def _run_yarn_command(self, cmd, env=None):
+        yarn_path = os.path.join(self.get_sentry_root_path(), 'bin', 'yarn')
+        log.debug(u'yarn path: ({0}))'.format(yarn_path))
+        self._run_command(
+            [yarn_path].extend(cmd), env=env
+        )
 
     def update_manifests(self):
         # if we were invoked from sdist, we need to inform sdist about
