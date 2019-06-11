@@ -1,22 +1,4 @@
 import EnvironmentActions from 'app/actions/environmentActions';
-import EnvironmentStore from 'app/stores/environmentStore';
-
-export function setActiveEnvironment(environment) {
-  EnvironmentActions.setActive(environment);
-}
-
-export function setActiveEnvironmentName(name) {
-  const environment = EnvironmentStore.getByName(name);
-
-  if (!environment) {
-    return;
-  }
-  setActiveEnvironment(environment);
-}
-
-export function clearActiveEnvironment() {
-  EnvironmentActions.clearActive();
-}
 
 export function loadEnvironments(data, envName) {
   EnvironmentActions.loadData(data, envName);
