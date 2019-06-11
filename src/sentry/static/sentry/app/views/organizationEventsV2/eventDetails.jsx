@@ -105,11 +105,13 @@ class EventDetails extends AsyncComponent {
   }
 
   componentDidMount() {
+    this.restoreOverflow = document.body.style.overflow;
+
     document.body.style.overflow = 'hidden';
   }
 
   componentWillUnmount() {
-    document.body.style.overflow = 'auto';
+    document.body.style.overflow = this.restoreOverflow;
   }
 
   renderBody() {
