@@ -10,7 +10,7 @@ BRANCH_PROCESSED=$(echo "${DEPLOY_BRANCH}" | tr '[:upper:]./' '[:lower:]--' | tr
 BUCKET_DIR_NAME="branches/${BRANCH_PROCESSED}"
 echo "Bucket directory: ${BUCKET_DIR_NAME}"
 
-npm run storybook-build
+./bin/yarn run storybook-build
 
 # Upload the files
 gsutil cp .storybook-out/favicon.ico "gs://${GS_BUCKET_NAME}/favicon.ico"

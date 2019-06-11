@@ -8,8 +8,8 @@ ifneq "$(wildcard /usr/local/opt/openssl/lib)" ""
 endif
 
 PIP = LDFLAGS="$(LDFLAGS)" pip
-WEBPACK = NODE_ENV=production ./node_modules/.bin/webpack
-YARN_VERSION = 1.13.0
+WEBPACK = NODE_ENV=production ./bin/yarn webpack
+YARN = ./bin/yarn
 
 bootstrap: install-system-pkgs develop init-config run-dependent-services create-db apply-migrations
 
@@ -76,19 +76,17 @@ node-version-check:
 install-system-pkgs: node-version-check
 	@echo "--> Installing system packages (from Brewfile)"
 	@command -v brew 2>&1 > /dev/null && brew bundle || (echo 'WARNING: homebrew not found or brew bundle failed - skipping system dependencies.')
-	@echo "--> Installing yarn $(YARN_VERSION) (via npm)"
-	@$(volta --version 2>&1 > /dev/null || npm install -g "yarn@$(YARN_VERSION)")
 
 install-yarn-pkgs:
 	@echo "--> Installing Yarn packages (for development)"
-	@command -v yarn 2>&1 > /dev/null || (echo 'yarn not found. Please install it before proceeding.'; exit 1)
+	@command -v $(YARN) 2>&1 > /dev/null || (echo 'yarn not found. Please install it before proceeding.'; exit 1)
 	# Use NODE_ENV=development so that yarn installs both dependencies + devDependencies
-	NODE_ENV=development yarn install --pure-lockfile
+	NODE_ENV=development $(YARN) install --pure-lockfile
 	# A common problem is with node packages not existing in `node_modules` even though `yarn install`
 	# says everything is up to date. Even though `yarn install` is run already, it doesn't take into
 	# account the state of the current filesystem (it only checks .yarn-integrity).
 	# Add an additional check against `node_modules`
-	yarn check --verify-tree || yarn install --check-files
+	$(YARN) check --verify-tree || $(YARN) install --check-files
 
 install-sentry-dev:
 	@echo "--> Installing Sentry (for development)"
@@ -135,13 +133,13 @@ test-js: node-version-check
 	@echo "--> Building static assets"
 	@$(WEBPACK) --profile --json > .artifacts/webpack-stats.json
 	@echo "--> Running JavaScript tests"
-	@npm run test-ci
+	@$(YARN) run test-ci
 	@echo ""
 
 # builds and creates percy snapshots
 test-styleguide:
 	@echo "--> Building and snapshotting styleguide"
-	@npm run snapshot
+	@$(YARN) run snapshot
 	@echo ""
 
 test-python:
