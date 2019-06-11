@@ -1,23 +1,23 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import createReactClass from 'create-react-class';
 
 import {Panel} from 'app/components/panels';
 import {addLoadingMessage, removeIndicator} from 'app/actionCreators/indicator';
 import {t, tn} from 'app/locale';
 import Access from 'app/components/acl/access';
 import withApi from 'app/utils/withApi';
+import withOrganization from 'app/utils/withOrganization';
 import Button from 'app/components/button';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
 import Form from 'app/views/settings/components/forms/form';
 import JsonForm from 'app/views/settings/components/forms/jsonForm';
 import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
-import OrganizationState from 'app/mixins/organizationState';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import TextBlock from 'app/views/settings/components/text/textBlock';
 import TimeSince from 'app/components/timeSince';
 import formGroups from 'app/data/forms/processingIssues';
+import SentryTypes from 'app/sentryTypes';
 
 const MESSAGES = {
   native_no_crashed_thread: t('No crashed thread found in crash report'),
@@ -44,29 +44,26 @@ const HELP_LINKS = {
   native_missing_symbol: 'https://docs.sentry.io/server/dsym/',
 };
 
-const ProjectProcessingIssues = createReactClass({
-  displayName: 'ProjectProcessingIssues',
-  propTypes: {
-    api: PropTypes.object,
-  },
-  mixins: [OrganizationState],
+class ProjectProcessingIssues extends React.Component {
+  static propTypes = {
+    api: PropTypes.object.isRequired,
+    organization: SentryTypes.Organization.isRequired,
+  };
 
-  getInitialState() {
-    return {
-      formData: {},
-      loading: true,
-      reprocessing: false,
-      expected: 0,
-      error: false,
-      processingIssues: null,
-    };
-  },
+  state = {
+    formData: {},
+    loading: true,
+    reprocessing: false,
+    expected: 0,
+    error: false,
+    processingIssues: null,
+  };
 
   componentDidMount() {
     this.fetchData();
-  },
+  }
 
-  fetchData() {
+  fetchData = () => {
     const {orgId, projectId} = this.props.params;
     this.setState({
       expected: this.state.expected + 2,
@@ -113,9 +110,9 @@ const ProjectProcessingIssues = createReactClass({
         },
       }
     );
-  },
+  };
 
-  sendReprocessing() {
+  sendReprocessing = () => {
     this.setState({
       reprocessing: true,
     });
@@ -138,9 +135,9 @@ const ProjectProcessingIssues = createReactClass({
         removeIndicator(loadingIndicator);
       },
     });
-  },
+  };
 
-  discardEvents() {
+  discardEvents = () => {
     const {orgId, projectId} = this.props.params;
     this.setState({
       expected: this.state.expected + 1,
@@ -167,9 +164,9 @@ const ProjectProcessingIssues = createReactClass({
         });
       },
     });
-  },
+  };
 
-  deleteProcessingIssues() {
+  deleteProcessingIssues = () => {
     const {orgId, projectId} = this.props.params;
     this.setState({
       expected: this.state.expected + 1,
@@ -196,9 +193,9 @@ const ProjectProcessingIssues = createReactClass({
         });
       },
     });
-  },
+  };
 
-  renderDebugTable() {
+  renderDebugTable = () => {
     let body;
     if (this.state.loading) {
       body = this.renderLoading();
@@ -215,17 +212,17 @@ const ProjectProcessingIssues = createReactClass({
     }
 
     return body;
-  },
+  };
 
-  renderLoading() {
+  renderLoading = () => {
     return (
       <div className="box">
         <LoadingIndicator />
       </div>
     );
-  },
+  };
 
-  renderEmpty() {
+  renderEmpty = () => {
     return (
       <Panel>
         <EmptyStateWarning>
@@ -233,19 +230,19 @@ const ProjectProcessingIssues = createReactClass({
         </EmptyStateWarning>
       </Panel>
     );
-  },
+  };
 
-  getProblemDescription(item) {
+  getProblemDescription = item => {
     const msg = MESSAGES[item.type];
     return msg || item.message || 'Unknown Error';
-  },
+  };
 
-  getImageName(path) {
+  getImageName = path => {
     const pathSegments = path.split(/^([a-z]:\\|\\\\)/i.test(path) ? '\\' : '/');
     return pathSegments[pathSegments.length - 1];
-  },
+  };
 
-  renderProblem(item) {
+  renderProblem = item => {
     const description = this.getProblemDescription(item);
     const helpLink = HELP_LINKS[item.type];
     return (
@@ -258,9 +255,9 @@ const ProjectProcessingIssues = createReactClass({
         )}
       </div>
     );
-  },
+  };
 
-  renderDetails(item) {
+  renderDetails = item => {
     let dsymUUID = null;
     let dsymName = null;
     let dsymArch = null;
@@ -284,9 +281,9 @@ const ProjectProcessingIssues = createReactClass({
         {dsymName && <span> (for {dsymName})</span>}
       </span>
     );
-  },
+  };
 
-  renderResolveButton() {
+  renderResolveButton = () => {
     const issues = this.state.processingIssues;
     if (issues === null || this.state.reprocessing) {
       return null;
@@ -304,9 +301,9 @@ const ProjectProcessingIssues = createReactClass({
         Pro Tip: <a onClick={this.sendReprocessing}>{fixButton}</a>
       </div>
     );
-  },
+  };
 
-  renderResults() {
+  renderResults = () => {
     const fixLink = this.state.processingIssues
       ? this.state.processingIssues.signedLink
       : false;
@@ -404,10 +401,10 @@ const ProjectProcessingIssues = createReactClass({
         </div>
       </div>
     );
-  },
+  };
 
-  renderReprocessingSettings() {
-    const access = this.getAccess();
+  renderReprocessingSettings = () => {
+    const access = new Set(this.props.organization.access);
     if (this.state.loading) {
       return this.renderLoading();
     }
@@ -425,7 +422,7 @@ const ProjectProcessingIssues = createReactClass({
         <JsonForm access={access} forms={formGroups} />
       </Form>
     );
-  },
+  };
 
   render() {
     return (
@@ -447,9 +444,9 @@ const ProjectProcessingIssues = createReactClass({
         {this.renderReprocessingSettings()}
       </div>
     );
-  },
-});
+  }
+}
 
 export {ProjectProcessingIssues};
 
-export default withApi(ProjectProcessingIssues);
+export default withApi(withOrganization(ProjectProcessingIssues));
