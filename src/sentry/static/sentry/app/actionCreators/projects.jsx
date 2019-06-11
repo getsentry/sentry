@@ -9,15 +9,6 @@ import {t, tct} from 'app/locale';
 import ProjectActions from 'app/actions/projectActions';
 import ProjectsStatsStore from 'app/stores/projectsStatsStore';
 
-export function fetchProject(api, orgId, slug) {
-  const promise = api.requestPromise(`/projects/${orgId}/${slug}/`, {method: 'GET'});
-  promise.then(project => {
-    ProjectActions.fetchSuccess(project);
-  });
-
-  return promise;
-}
-
 export function update(api, params) {
   ProjectActions.update(params.projectId, params.data);
 

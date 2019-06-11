@@ -4,9 +4,6 @@ import {toTitleCase} from 'app/utils';
 import ProjectActions from 'app/actions/projectActions';
 import EnvironmentActions from 'app/actions/environmentActions';
 
-import {setActiveEnvironment} from 'app/actionCreators/environments';
-import {ALL_ENVIRONMENTS_KEY} from 'app/constants';
-
 const DEFAULT_EMPTY_ENV_NAME = '(No Environment)';
 const DEFAULT_EMPTY_ROUTING_NAME = 'none';
 
@@ -23,14 +20,6 @@ const EnvironmentStore = Reflux.createStore({
 
   loadInitialData(items, activeEnvironmentName) {
     this.loadActiveData(items);
-    // Update the default environment in the latest context store
-    // The active environment will be null (aka All Environments) if the name matches
-    // ALL_ENVIRONMENTS_KEY otherwise find the environment matching the name provided
-    let activeEnvironment = null;
-    if (activeEnvironmentName !== ALL_ENVIRONMENTS_KEY) {
-      activeEnvironment = this.getByName(activeEnvironmentName) || this.getDefault();
-    }
-    setActiveEnvironment(activeEnvironment);
   },
 
   loadHiddenData(items) {

@@ -61,23 +61,6 @@ function tagFetchSuccess(tags) {
 }
 
 /**
- * Fetch tag values for a single project. Used for sentry9 views.
- */
-export function fetchProjectTagValues(api, orgId, projectId, tagKey, search = null) {
-  const url = `/projects/${orgId}/${projectId}/tags/${tagKey}/values/`;
-
-  const query = {};
-  if (search) {
-    query.query = search;
-  }
-
-  return api.requestPromise(url, {
-    method: 'GET',
-    query,
-  });
-}
-
-/**
  * Fetch tags for an organization or a subset or projects.
  */
 export function fetchOrganizationTags(api, orgId, projectIds = null) {
