@@ -310,6 +310,7 @@ def get_incident_suspects(incident, projects):
             committers = get_event_file_committers(group.project, event)
         except (Release.DoesNotExist, Commit.DoesNotExist):
             continue
+
         for committer in committers:
             author = committer['author']
             for commit in committer['commits']:

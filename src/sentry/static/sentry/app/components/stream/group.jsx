@@ -94,7 +94,13 @@ const StreamGroup = createReactClass({
     const {query, hasGuideAnchor, canSelect, memberList} = this.props;
 
     return (
-      <Group onClick={this.toggleSelect} py={1} px={0} align="center">
+      <Group
+        data-test-id="group"
+        onClick={this.toggleSelect}
+        py={1}
+        px={0}
+        align="center"
+      >
         {canSelect && (
           <GroupCheckbox ml={2}>
             {hasGuideAnchor && <GuideAnchor target="issues" type="text" />}

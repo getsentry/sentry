@@ -3,6 +3,7 @@
 exports[`StreamGroup renders with anchors 1`] = `
 <Group
   align="center"
+  data-test-id="group"
   onClick={[Function]}
   p={2}
   px={0}

@@ -17,6 +17,7 @@ import EmptyStateWarning from 'app/components/emptyStateWarning';
 import Link from 'app/components/links/link';
 import PageHeading from 'app/components/pageHeading';
 import Pagination from 'app/components/pagination';
+import getDynamicText from 'app/utils/getDynamicText';
 import space from 'app/styles/space';
 
 import Status from '../status';
@@ -53,7 +54,7 @@ class OrganizationIncidentsList extends AsyncComponent {
           </Link>
           <Status incident={incident} />
           <div>
-            <Duration seconds={duration} />
+            <Duration seconds={getDynamicText({value: duration, fixed: 1200})} />
           </div>
           <div>
             <Count value={incident.uniqueUsers} />
