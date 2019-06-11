@@ -1,6 +1,5 @@
 from __future__ import absolute_import
 
-import imp
 import os
 import os.path
 import shutil
@@ -9,6 +8,14 @@ import sys
 from distutils import log
 from subprocess import check_output
 from distutils.core import Command
+
+import sentry  # We just need its path via __file__
+
+
+SENTRY_ROOT_PATH = os.path.abspath(os.path.dirname(os.path.dirname(sentry.__file__)))
+
+
+YARN_PATH = os.path.join(SENTRY_ROOT_PATH, 'bin', 'yarn')
 
 
 class BaseBuildCommand(Command):
@@ -35,9 +42,6 @@ class BaseBuildCommand(Command):
 
     def get_root_path(self):
         return os.path.abspath(os.path.dirname(sys.modules['__main__'].__file__))
-
-    def get_sentry_root_path(self):
-        return os.path.abspath(os.path.dirname(os.path.dirname(imp.find_module('sentry')[1])))
 
     def get_dist_paths(self):
         return []
@@ -149,10 +153,9 @@ class BaseBuildCommand(Command):
             raise
 
     def _run_yarn_command(self, cmd, env=None):
-        yarn_path = os.path.join(self.get_sentry_root_path(), 'bin', 'yarn')
-        log.debug(u'yarn path: ({0}))'.format(yarn_path))
+        log.debug(u'yarn path: ({0}))'.format(YARN_PATH))
         self._run_command(
-            [yarn_path] + cmd, env=env
+            [YARN_PATH] + cmd, env=env
         )
 
     def update_manifests(self):
