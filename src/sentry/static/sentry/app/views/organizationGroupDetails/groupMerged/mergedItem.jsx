@@ -157,12 +157,14 @@ const Controls = styled(({expanded: _expanded, ...props}) => (
   padding: ${space(0.5)} 0;
   ${p => p.expanded && `border-bottom: 1px solid ${p.theme.borderLight}`};
 
-  ${MergedGroup}:first-child & {
-    border-top: none;
-  }
-  ${MergedGroup}:last-child & {
-    border-top: none;
-    border-bottom: 1px solid ${p => p.theme.borderLight};
+  ${MergedGroup} {
+    &:first-child & {
+      border-top: none;
+    }
+    &:last-child & {
+      border-top: none;
+      border-bottom: 1px solid ${p => p.theme.borderLight};
+    }
   }
 `;
 
