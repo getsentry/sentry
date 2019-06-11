@@ -8,11 +8,6 @@ import {Client} from 'app/api';
 import events from 'app-test/mocks/events';
 
 jest.mock('app/api');
-jest.mock('app/mixins/projectState', () => {
-  return {
-    getFeatures: () => new Set([]),
-  };
-});
 
 const mockData = {
   merged: [
