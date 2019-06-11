@@ -111,20 +111,6 @@ describe('GlobalSelectionHeader', function() {
       })
     );
 
-    // component will initially try to sync router + stores
-    expect(globalActions.updateDateTime).toHaveBeenCalledWith({
-      period: '7d',
-      utc: null,
-      start: null,
-      end: null,
-    });
-    expect(globalActions.updateProjects).toHaveBeenCalledWith([]);
-    expect(globalActions.updateEnvironments).toHaveBeenCalledWith([]);
-
-    globalActions.updateDateTime.mockClear();
-    globalActions.updateProjects.mockClear();
-    globalActions.updateEnvironments.mockClear();
-
     wrapper.setContext(
       changeQuery(routerContext, {
         statsPeriod: '21d',
@@ -139,10 +125,8 @@ describe('GlobalSelectionHeader', function() {
       start: null,
       end: null,
     });
-
-    // These should not be called because they have not changed, only date has changed
-    expect(globalActions.updateProjects).not.toHaveBeenCalled();
-    expect(globalActions.updateEnvironments).not.toHaveBeenCalled();
+    expect(globalActions.updateProjects).toHaveBeenCalledWith([]);
+    expect(globalActions.updateEnvironments).toHaveBeenCalledWith([]);
 
     expect(GlobalSelectionStore.get()).toEqual({
       datetime: {
@@ -262,51 +246,6 @@ describe('GlobalSelectionHeader', function() {
       environments: [],
       projects: [],
     });
-  });
-
-  it('updates store when there are no query params in URL and `disableLoadFromStore` is false', function() {
-    const initializationObj = initializeOrg({
-      organization: {
-        features: ['global-views'],
-      },
-      router: {
-        params: {orgId: 'org-slug'}, // we need this to be set to make sure org in context is same as current org in URL
-        location: {query: {project: [1, 2]}},
-      },
-    });
-
-    mount(
-      <GlobalSelectionHeader organization={initializationObj.organization} />,
-      initializationObj.routerContext
-    );
-
-    expect(globalActions.updateProjects).toHaveBeenCalledWith([1, 2]);
-    expect(globalActions.updateEnvironments).toHaveBeenCalledWith([]);
-    expect(globalActions.updateDateTime).toHaveBeenCalled();
-  });
-
-  it('does not update store when there are no query params in URL and `disableLoadFromStore` is true', function() {
-    const initializationObj = initializeOrg({
-      organization: {
-        features: ['global-views'],
-      },
-      router: {
-        params: {orgId: 'org-slug'}, // we need this to be set to make sure org in context is same as current org in URL
-        location: {query: {}},
-      },
-    });
-
-    mount(
-      <GlobalSelectionHeader
-        organization={initializationObj.organization}
-        disableLoadFromStore={true}
-      />,
-      initializationObj.routerContext
-    );
-
-    expect(globalActions.updateProjects).not.toHaveBeenCalled();
-    expect(globalActions.updateEnvironments).not.toHaveBeenCalled();
-    expect(globalActions.updateDateTime).not.toHaveBeenCalled();
   });
 
   describe('Single project selection mode', function() {

@@ -51,11 +51,6 @@ class GlobalSelectionHeader extends React.Component {
     forceProject: SentryTypes.Project,
 
     /**
-     * If true, do not initially update URL with values from store
-     */
-    disableLoadFromStore: PropTypes.bool,
-
-    /**
      * Currently selected values(s)
      */
     selection: SentryTypes.GlobalSelection,
@@ -114,7 +109,8 @@ class GlobalSelectionHeader extends React.Component {
     const hasMultipleProjectFeature = this.hasMultipleProjectSelection();
 
     const stateFromRouter = getStateFromQuery(location.query);
-    // We should update store if there are any relevant URL parameters when component is mounted
+    // We should update store if there are any relevant URL parameters when component
+    // is mounted
     if (Object.values(stateFromRouter).some(i => !!i)) {
       if (!stateFromRouter.start && !stateFromRouter.end && !stateFromRouter.period) {
         stateFromRouter.period = DEFAULT_STATS_PERIOD;
@@ -147,10 +143,6 @@ class GlobalSelectionHeader extends React.Component {
       // update URL parameters to reflect current store
       const {datetime, environments, projects} = selection;
 
-      if (this.props.disableLoadFromStore) {
-        return;
-      }
-
       if (hasMultipleProjectFeature || projects.length === 1) {
         updateParamsWithoutHistory(
           {project: projects, environment: environments, ...datetime},
@@ -174,7 +166,7 @@ class GlobalSelectionHeader extends React.Component {
     }
 
     // Update if URL parameters change
-    if (this.changedQueryKeys(this.props, nextProps).length > 0) {
+    if (this.didQueryChange(this.props, nextProps)) {
       return true;
     }
 
@@ -227,27 +219,17 @@ class GlobalSelectionHeader extends React.Component {
     return new Set(this.props.organization.features).has('global-views');
   };
 
-  /**
-   * Identifies if query string has changed (with query params that this component cares about)
-   *
-   *
-   * @return {String[]} Returns `false` if did not change, otherwise return an array of params that have changed
-   */
-  changedQueryKeys = (prevProps, nextProps) => {
+  didQueryChange = (prevProps, nextProps) => {
     const urlParamKeys = Object.values(URL_PARAM);
     const prevQuery = pick(prevProps.location.query, urlParamKeys);
     const nextQuery = pick(nextProps.location.query, urlParamKeys);
 
     // If no next query is specified keep the previous global selection values
     if (Object.keys(prevQuery).length === 0 && Object.keys(nextQuery).length === 0) {
-      return [];
+      return false;
     }
 
-    const changedKeys = Object.values(urlParamKeys).filter(
-      key => !isEqual(prevQuery[key], nextQuery[key])
-    );
-
-    return changedKeys;
+    return !isEqual(prevQuery, nextQuery);
   };
 
   updateStoreIfChange = (prevProps, nextProps) => {
@@ -255,9 +237,7 @@ class GlobalSelectionHeader extends React.Component {
     //
     // e.g. if selection store changed, don't trigger more actions
     // to update global selection store (otherwise we'll get recursive updates)
-    const changedKeys = this.changedQueryKeys(prevProps, nextProps);
-
-    if (!changedKeys.length) {
+    if (!this.didQueryChange(prevProps, nextProps)) {
       return;
     }
 
@@ -265,19 +245,9 @@ class GlobalSelectionHeader extends React.Component {
       nextProps.location.query
     );
 
-    if (changedKeys.includes(URL_PARAM.PROJECT)) {
-      updateProjects(project || []);
-    }
-    if (changedKeys.includes(URL_PARAM.ENVIRONMENT)) {
-      updateEnvironments(environment || []);
-    }
-    if (
-      [URL_PARAM.START, URL_PARAM.END, URL_PARAM.UTC, URL_PARAM.PERIOD].find(key =>
-        changedKeys.includes(key)
-      )
-    ) {
-      updateDateTime({start, end, period, utc});
-    }
+    updateDateTime({start, end, period, utc});
+    updateEnvironments(environment || []);
+    updateProjects(project || []);
   };
 
   // Returns `router` from props if `hasCustomRouting` property is false
