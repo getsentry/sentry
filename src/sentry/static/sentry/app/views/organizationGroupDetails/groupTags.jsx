@@ -20,7 +20,6 @@ class GroupTags extends React.Component {
     organization: SentryTypes.Organization.isRequired,
     group: SentryTypes.Group.isRequired,
     api: PropTypes.object.isRequired,
-    params: PropTypes.object.isRequired,
   };
 
   constructor() {
@@ -65,13 +64,11 @@ class GroupTags extends React.Component {
   }
 
   render() {
-    const {group, organization, params} = this.props;
+    const {group, organization} = this.props;
 
     let children = [];
 
-    const baseUrl = params.projectId
-      ? `/${organization.slug}/${group.project.slug}/issues/`
-      : `/organizations/${organization.slug}/issues/`;
+    const baseUrl = `/organizations/${organization.slug}/issues/`;
 
     if (this.state.loading) {
       return <LoadingIndicator />;

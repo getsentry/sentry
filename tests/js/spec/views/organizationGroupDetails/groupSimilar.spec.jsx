@@ -111,7 +111,7 @@ describe('Issues Similar View', function() {
     );
 
     expect(browserHistory.push).toHaveBeenCalledWith(
-      '/org-slug/project-slug/issues/321/similar/'
+      '/organizations/org-slug/issues/321/similar/'
     );
   });
 });
