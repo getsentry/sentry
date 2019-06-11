@@ -50,8 +50,8 @@ const ModalPagination = props => {
 
   return (
     <Wrapper>
-      <Container>
-        <StyledLink to={oldestUrl}>
+      <ShadowBox>
+        <StyledLink to={oldestUrl} disabled={previousEventUrl === null}>
           <InlineSvg src="icon-prev" size="14px" />
         </StyledLink>
         <StyledLink to={previousEventUrl} disabled={previousEventUrl === null}>
@@ -60,10 +60,10 @@ const ModalPagination = props => {
         <StyledLink to={nextEventUrl} disabled={nextEventUrl === null}>
           {t('Newer Event')}
         </StyledLink>
-        <StyledLink to={newestUrl} isLast>
+        <StyledLink to={newestUrl} disabled={nextEventUrl === null} isLast>
           <InlineSvg src="icon-next" size="14px" />
         </StyledLink>
-      </Container>
+      </ShadowBox>
     </Wrapper>
   );
 };
@@ -84,7 +84,7 @@ const Wrapper = styled('div')`
   display: flex;
 `;
 
-const Container = styled('div')`
+const ShadowBox = styled('div')`
   display: flex;
   background: ${p => p.theme.offWhite};
   border: 1px solid ${p => p.theme.borderDark};

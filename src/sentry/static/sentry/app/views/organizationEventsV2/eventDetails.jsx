@@ -15,6 +15,11 @@ import {getQuery} from './utils';
 
 const slugValidator = function(props, propName, componentName) {
   const value = props[propName];
+  // Accept slugs that look like:
+  // * project-slug:123:latest
+  // * project-slug:123:oldest
+  // * project-slug:123:deadbeef
+  // * project-slug:deadbeef
   if (value && !/^(?:[^:]+:)?(?:[^:]+):(?:[a-f0-9]+|latest|oldest)$/.test(value)) {
     return new Error(`Invalid value for ${propName} provided to ${componentName}.`);
   }
