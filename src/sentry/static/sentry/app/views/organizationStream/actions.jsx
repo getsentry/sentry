@@ -407,7 +407,11 @@ const StreamActions = createReactClass({
                   onAction={this.handleCreateIncident}
                 >
                   <IncidentLabel>
-                    <IncidentIcon data-test-id="create-incident" src="icon-circle-add" />
+                    <IncidentIcon
+                      data-test-id="create-incident"
+                      size="16"
+                      src="icon-siren-add"
+                    />
                     <CreateIncidentText className="hidden-md">
                       {t('Create Incident')}
                     </CreateIncidentText>
@@ -647,7 +651,8 @@ const IncidentLabel = styled('div')`
   align-items: center;
 `;
 const IncidentIcon = styled(InlineSvg)`
-  height: 18px;
+  position: relative;
+  top: -1px;
 `;
 const CreateIncidentText = styled('span')`
   margin-left: 5px; /* consistent with other items in bar */
