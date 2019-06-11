@@ -1,6 +1,5 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import createReactClass from 'create-react-class';
 
 import {t} from 'app/locale';
 import withApi from 'app/utils/withApi';
@@ -8,39 +7,30 @@ import Badge from 'app/components/badge';
 import ListLink from 'app/components/links/listLink';
 import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
-import OrganizationState from 'app/mixins/organizationState';
 import PluginNavigation from 'app/views/projectSettings/pluginNavigation';
 import ExternalLink from 'app/components/links/externalLink';
+import withOrganization from 'app/utils/withOrganization';
+import SentryTypes from 'app/sentryTypes';
 
-const ProjectSettings = createReactClass({
-  displayName: 'ProjectSettings',
-
-  propTypes: {
+class ProjectSettings extends React.Component {
+  static propTypes = {
     api: PropTypes.object,
+    organization: SentryTypes.Organization.isRequired,
     setProjectNavSection: PropTypes.func,
-  },
+  };
 
-  contextTypes: {
-    location: PropTypes.object,
-    organization: PropTypes.object,
-  },
-
-  mixins: [OrganizationState],
-
-  getInitialState() {
-    return {
-      loading: true,
-      error: false,
-      project: null,
-    };
-  },
+  state = {
+    loading: true,
+    error: false,
+    project: null,
+  };
 
   componentWillMount() {
     const {setProjectNavSection} = this.props;
 
     setProjectNavSection('settings');
     this.fetchData();
-  },
+  }
 
   componentWillReceiveProps(nextProps) {
     const params = this.props.params;
@@ -56,9 +46,9 @@ const ProjectSettings = createReactClass({
         this.fetchData
       );
     }
-  },
+  }
 
-  fetchData() {
+  fetchData = () => {
     const params = this.props.params;
 
     this.props.api.request(`/projects/${params.orgId}/${params.projectId}/`, {
@@ -76,7 +66,7 @@ const ProjectSettings = createReactClass({
         });
       },
     });
-  },
+  };
 
   render() {
     // TODO(dcramer): move sidebar into component
@@ -86,7 +76,7 @@ const ProjectSettings = createReactClass({
       return <LoadingError onRetry={this.fetchData} />;
     }
 
-    const access = this.getAccess();
+    const access = new Set(this.props.organization.access);
     const {orgId, projectId} = this.props.params;
     const pathPrefix = `/settings/${orgId}/projects/${projectId}`;
     const settingsUrlRoot = pathPrefix;
@@ -94,7 +84,7 @@ const ProjectSettings = createReactClass({
     const rootInstallPath = `${pathPrefix}/install/`;
     const path = this.props.location.pathname;
     const processingIssues = this.state.project.processingIssues;
-    const organization = this.context.organization;
+    const organization = this.props.organization;
 
     return (
       <div className="row">
@@ -185,9 +175,9 @@ const ProjectSettings = createReactClass({
         </div>
       </div>
     );
-  },
-});
+  }
+}
 
 export {ProjectSettings};
 
-export default withApi(ProjectSettings);
+export default withApi(withOrganization(ProjectSettings));

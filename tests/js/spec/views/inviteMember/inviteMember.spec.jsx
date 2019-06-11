@@ -8,34 +8,39 @@ jest.mock('app/api');
 jest.mock('jquery');
 
 describe('InviteMember', function() {
-  const baseProps = {
-    api: new MockApiClient(),
-    params: {
-      orgId: 'testOrg',
-    },
-    location: {query: {}},
-  };
-
-  const teams = [
-    {slug: 'bar', id: '1', name: 'bar', hasAccess: true},
-    {slug: 'foo', id: '2', name: 'foo', hasAccess: false},
-  ];
-
-  const baseContext = TestStubs.routerContext([
-    {
-      organization: {
-        id: '1',
-        slug: 'testOrg',
-        teams: [
-          {slug: 'bar', id: '1', name: 'bar', hasAccess: true},
-          {slug: 'foo', id: '2', name: 'foo', hasAccess: false},
-        ],
-      },
-      location: {query: {}},
-    },
-  ]);
+  let organization, baseProps, teams, baseContext;
 
   beforeEach(function() {
+    organization = TestStubs.Organization({
+      id: '1',
+      slug: 'testOrg',
+      teams: [
+        {slug: 'bar', id: '1', name: 'bar', hasAccess: true},
+        {slug: 'foo', id: '2', name: 'foo', hasAccess: false},
+      ],
+    });
+
+    baseProps = {
+      api: new MockApiClient(),
+      params: {
+        orgId: 'testOrg',
+      },
+      organization,
+      location: {query: {}},
+    };
+
+    teams = [
+      {slug: 'bar', id: '1', name: 'bar', hasAccess: true},
+      {slug: 'foo', id: '2', name: 'foo', hasAccess: false},
+    ];
+
+    baseContext = TestStubs.routerContext([
+      {
+        organization,
+        location: {query: {}},
+      },
+    ]);
+
     jest.spyOn(ConfigStore, 'getConfig').mockImplementation(() => ({
       id: 1,
       invitesEnabled: true,
@@ -70,8 +75,8 @@ describe('InviteMember', function() {
 
     const context = _.cloneDeep(baseContext);
 
-    const team = context.context.organization.teams.slice(0, 1);
-    context.context.organization.teams = team;
+    const team = organization.teams.slice(0, 1);
+    organization.teams = team;
 
     const wrapper = mount(<InviteMember {...baseProps} />, context);
 

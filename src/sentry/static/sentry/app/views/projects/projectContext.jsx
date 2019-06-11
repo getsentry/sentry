@@ -14,10 +14,10 @@ import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import MemberListStore from 'app/stores/memberListStore';
 import MissingProjectMembership from 'app/components/missingProjectMembership';
-import OrganizationState from 'app/mixins/organizationState';
 import ProjectsStore from 'app/stores/projectsStore';
 import SentryTypes from 'app/sentryTypes';
 import withProjects from 'app/utils/withProjects';
+import withOrganization from 'app/utils/withOrganization';
 
 const ERROR_TYPES = {
   MISSING_MEMBERSHIP: 'MISSING_MEMBERSHIP',
@@ -42,7 +42,7 @@ const ProjectContext = createReactClass({
      * If true, this will not change `state.loading` during `fetchData` phase
      */
     skipReload: PropTypes.bool,
-
+    organization: SentryTypes.Organization,
     projects: PropTypes.arrayOf(SentryTypes.Project),
     projectId: PropTypes.string,
     orgId: PropTypes.string,
@@ -56,7 +56,6 @@ const ProjectContext = createReactClass({
   mixins: [
     Reflux.connect(MemberListStore, 'memberList'),
     Reflux.listenTo(ProjectsStore, 'onProjectChange'),
-    OrganizationState,
   ],
 
   getInitialState() {
@@ -267,7 +266,7 @@ const ProjectContext = createReactClass({
           // out into a reusable missing access error component
           return (
             <MissingProjectMembership
-              organization={this.getOrganization()}
+              organization={this.props.organization}
               projectId={this.state.project.slug}
             />
           );
@@ -290,4 +289,4 @@ const ProjectContext = createReactClass({
 
 export {ProjectContext};
 
-export default withApi(withProjects(withRouter(ProjectContext)));
+export default withApi(withOrganization(withProjects(withRouter(ProjectContext))));

@@ -1,27 +1,26 @@
 import $ from 'jquery';
 import React from 'react';
-import createReactClass from 'create-react-class';
 import PropTypes from 'prop-types';
 import DocumentTitle from 'react-document-title';
 
 import withApi from 'app/utils/withApi';
-import OrganizationState from 'app/mixins/organizationState';
-
 import LazyLoad from 'app/components/lazyLoad';
+import withOrganization from 'app/utils/withOrganization';
+import SentryTypes from 'app/sentryTypes';
 
-const OrganizationStatsContainer = createReactClass({
-  displayName: 'OrganizationStatsContainer ',
-  propTypes: {
-    api: PropTypes.object,
-    routes: PropTypes.array,
-  },
-  mixins: [OrganizationState],
+class OrganizationStatsContainer extends React.Component {
+  static propTypes = {
+    api: PropTypes.object.isRequired,
+    routes: PropTypes.array.isRequired,
+    organization: SentryTypes.Organization.isRequired,
+  };
 
-  getInitialState() {
+  constructor(props) {
+    super(props);
     const until = Math.floor(new Date().getTime() / 1000);
     const since = until - 3600 * 24 * 7;
 
-    return {
+    this.state = {
       projectsError: false,
       projectsLoading: false,
       projectsRequestsPending: 0,
@@ -37,11 +36,11 @@ const OrganizationStatsContainer = createReactClass({
       querySince: since,
       queryUntil: until,
     };
-  },
+  }
 
   componentWillMount() {
     this.fetchData();
-  },
+  }
 
   componentWillReceiveProps(nextProps) {
     // If query string changes, it will be due to pagination.
@@ -54,7 +53,7 @@ const OrganizationStatsContainer = createReactClass({
         projectsLoading: true,
       });
     }
-  },
+  }
 
   componentDidUpdate(prevProps) {
     const prevParams = prevProps.params,
@@ -80,7 +79,7 @@ const OrganizationStatsContainer = createReactClass({
     if (state.projectsLoading && !state.projectsRequestsPending) {
       this.processProjectData();
     }
-  },
+  }
 
   fetchProjectData() {
     this.props.api.request(this.getOrganizationProjectsEndpoint(), {
@@ -105,7 +104,7 @@ const OrganizationStatsContainer = createReactClass({
         });
       },
     });
-  },
+  }
 
   fetchData() {
     this.setState({
@@ -174,17 +173,17 @@ const OrganizationStatsContainer = createReactClass({
     });
 
     this.fetchProjectData();
-  },
+  }
 
   getOrganizationStatsEndpoint() {
     const params = this.props.params;
     return '/organizations/' + params.orgId + '/stats/';
-  },
+  }
 
   getOrganizationProjectsEndpoint() {
     const params = this.props.params;
     return '/organizations/' + params.orgId + '/projects/';
-  },
+  }
 
   processOrgData() {
     let oReceived = 0;
@@ -221,7 +220,7 @@ const OrganizationStatsContainer = createReactClass({
       },
       statsLoading: false,
     });
-  },
+  }
 
   processProjectData() {
     const rawProjectData = this.state.rawProjectData;
@@ -247,10 +246,10 @@ const OrganizationStatsContainer = createReactClass({
       projectTotals,
       projectsLoading: false,
     });
-  },
+  }
 
   render() {
-    const organization = this.getOrganization();
+    const organization = this.props.organization;
 
     return (
       <DocumentTitle title={`Stats - ${organization.slug} - Sentry`}>
@@ -265,9 +264,9 @@ const OrganizationStatsContainer = createReactClass({
         />
       </DocumentTitle>
     );
-  },
-});
+  }
+}
 
 export {OrganizationStatsContainer};
 
-export default withApi(OrganizationStatsContainer);
+export default withApi(withOrganization(OrganizationStatsContainer));

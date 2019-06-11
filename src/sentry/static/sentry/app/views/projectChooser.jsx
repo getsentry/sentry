@@ -1,5 +1,4 @@
 import React from 'react';
-import createReactClass from 'create-react-class';
 import {browserHistory} from 'react-router';
 import $ from 'jquery';
 import {Box} from 'grid-emotion';
@@ -7,7 +6,6 @@ import styled from 'react-emotion';
 
 import {t} from 'app/locale';
 import Link from 'app/components/links/link';
-import OrganizationState from 'app/mixins/organizationState';
 import {sortProjects} from 'app/utils';
 import theme from 'app/utils/theme';
 import {TASKS} from 'app/components/onboardingWizard/todos';
@@ -15,41 +13,38 @@ import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import ProjectLabel from 'app/components/projectLabel';
 import SentryTypes from 'app/sentryTypes';
+import withOrganization from 'app/utils/withOrganization';
 
-const ProjectChooser = createReactClass({
-  displayName: 'ProjectChooser',
-
-  propTypes: {
-    organization: SentryTypes.Organization,
-  },
-
-  mixins: [OrganizationState],
+class ProjectChooser extends React.Component {
+  static propTypes = {
+    organization: SentryTypes.Organization.isRequired,
+  };
 
   componentWillMount() {
     this.redirectNoMultipleProjects();
-  },
+  }
 
   componentWillUnmount() {
     $(document.body).removeClass('narrow');
-  },
+  }
 
   redirectNoMultipleProjects() {
-    const org = this.getOrganization();
-    const projects = org.projects;
+    const {organization} = this.props;
+    const projects = organization.projects;
     const tasks = TASKS.filter(
       task_inst => task_inst.task === this.props.location.query.task
     );
 
     if (projects.length === 0) {
-      browserHistory.push(`/organizations/${org.slug}/projects/new/`);
+      browserHistory.push(`/organizations/${organization.slug}/projects/new/`);
     } else if (projects.length === 1 && tasks && tasks.length === 1) {
       const project = projects[0];
-      browserHistory.push(`/${org.slug}/${project.slug}/${tasks[0].location}`);
+      browserHistory.push(`/${organization.slug}/${project.slug}/${tasks[0].location}`);
     }
-  },
+  }
 
   render() {
-    const org = this.getOrganization();
+    const {organization} = this.props;
     const task = TASKS.filter(
       task_inst => task_inst.task === parseInt(this.props.location.query.task, 10)
     )[0];
@@ -65,11 +60,11 @@ const ProjectChooser = createReactClass({
         <Panel>
           <PanelHeader hasButtons>{t('Projects')}</PanelHeader>
           <PanelBody css={{width: '100%'}}>
-            {sortProjects(org.projects).map((project, i) => (
+            {sortProjects(organization.projects).map((project, i) => (
               <PanelItem p={0} key={project.slug} align="center">
                 <Box p={2} flex="1">
                   <Link
-                    to={`/${org.slug}/${project.slug}/${task.location}`}
+                    to={`/${organization.slug}/${project.slug}/${task.location}`}
                     css={{color: theme.gray3}}
                   >
                     <StyledProjectLabel
@@ -84,11 +79,11 @@ const ProjectChooser = createReactClass({
         </Panel>
       </div>
     );
-  },
-});
+  }
+}
 
 const StyledProjectLabel = styled(ProjectLabel)`
   color: ${p => p.theme.blue};
 `;
 
-export default ProjectChooser;
+export default withOrganization(ProjectChooser);
