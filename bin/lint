@@ -31,7 +31,6 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('files', nargs='*')
     parser.add_argument('--js', default=None, action='store_true')
-    parser.add_argument('--relax', default=False, action='store_true')
     parser.add_argument('--python', default=None, action='store_true')
     parser.add_argument('--format', action='store_true')
     parser.add_argument('--parseable', action='store_true')

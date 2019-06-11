@@ -41,10 +41,6 @@ def get_prettier_path():
     return get_node_modules_bin('prettier')
 
 
-def get_strict_eslint_config():
-    return os.path.join(get_node_modules(), 'eslint-config-sentry-app-strict', 'index.js')
-
-
 def get_files(path):
     results = []
     for root, _, files in os.walk(path):
@@ -104,10 +100,12 @@ def get_python_files(file_list=None):
     ]
 
 
-def js_lint(file_list=None, parseable=False, format=False, relax=False):
+def js_lint(file_list=None, parseable=False, format=False):
 
     # We require eslint in path but we actually call an eslint wrapper
     eslint_path = get_node_modules_bin('eslint')
+
+    # Note, in CI, we run a relaxed version of our eslint rules (.eslint.relax.js)
     eslint_wrapper_path = get_sentry_bin('eslint-travis-wrapper')
 
     if not os.path.exists(eslint_path):
@@ -127,10 +125,6 @@ def js_lint(file_list=None, parseable=False, format=False, relax=False):
             cmd.append('--fix')
         if parseable:
             cmd.append('--format=checkstyle')
-
-        if not relax:
-            cmd.append('--config')
-            cmd.append(get_strict_eslint_config())
 
         status = Popen(cmd + js_file_list).wait()
         has_errors = status != 0
@@ -214,7 +208,7 @@ def is_prettier_valid(project_root, prettier_path):
     return True
 
 
-def js_lint_format(file_list=None, relax=False):
+def js_lint_format(file_list=None):
     """
     We only format JavaScript code as part of this pre-commit hook. It is not part
     of the lint engine. This uses eslint's `--fix` formatting feature.
@@ -235,10 +229,6 @@ def js_lint_format(file_list=None, relax=False):
     # manually exclude some bad files
     js_file_list = [x for x in js_file_list if '/javascript/example-project/' not in x]
     cmd = [eslint_path, '--fix', ]
-
-    if not relax:
-        cmd.append('--config')
-        cmd.append(get_strict_eslint_config())
 
     has_package_json_errors = False if 'package.json' not in file_list else run_formatter(
         [
@@ -343,7 +333,7 @@ def run_formatter(cmd, file_list, prompt_on_changes=True):
 
 
 def run(file_list=None, format=True, lint=True, js=True, py=True,
-        less=True, yarn=True, test=False, parseable=False, relax=False):
+        less=True, yarn=True, test=False, parseable=False):
     # pep8.py uses sys.argv to find setup.cfg
     old_sysargv = sys.argv
 
@@ -367,7 +357,7 @@ def run(file_list=None, format=True, lint=True, js=True, py=True,
                 results.append(py_format(file_list))
             if js:
                 # run eslint with --fix and skip these linters down below
-                results.append(js_lint_format(file_list, relax=relax))
+                results.append(js_lint_format(file_list))
             if less:
                 results.append(less_format(file_list))
 
@@ -384,7 +374,7 @@ def run(file_list=None, format=True, lint=True, js=True, py=True,
 
                 if not format:
                     # these tasks are called when we need to format, so skip it here
-                    results.append(js_lint(file_list, parseable=parseable, format=format, relax=relax))
+                    results.append(js_lint(file_list, parseable=parseable, format=format))
 
         if test:
             if js:
