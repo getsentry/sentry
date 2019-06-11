@@ -43,7 +43,6 @@ const LoadingMask = styled('div')`
   background-color: ${p => p.theme.white};
   width: 100%;
   height: 100%;
-  min-height: 240px;
   opacity: ${p => (p.isReloading ? '0.6' : '1')};
 `;
 
