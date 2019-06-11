@@ -1263,13 +1263,8 @@ class SnubaSearchTest(TestCase, SnubaTestCase):
 
         # create some releases
 
-        release_1_timestamp = self.base_datetime
-        release_1 = self.create_release(self.project, date_added=release_1_timestamp, version="release_1")
-
-        release_2_timestamp = release_1_timestamp + timedelta(days=2)
-        release_2 = self.create_release(self.project, date_added=release_2_timestamp, version="release_2")
-
-        assert release_2_timestamp > release_1_timestamp  # release_2 occurred after release_1
+        release_1 = self.create_release(self.project, version="release_1")
+        release_2 = self.create_release(self.project, version="release_2")
 
         # create an issue/group whose events that occur in 2 distinct environments
 
@@ -1277,9 +1272,7 @@ class SnubaSearchTest(TestCase, SnubaTestCase):
             data={
                 'fingerprint': ['group_a'],
                 'event_id': 'aaa' + ('1' * 29),
-                'message': 'group_a',
-                'environment': 'example_staging',
-                'timestamp': (release_1_timestamp + timedelta(days=1)).isoformat()[:19]
+                'environment': 'example_staging'
             },
             project_id=self.project.id,
         )
@@ -1288,9 +1281,7 @@ class SnubaSearchTest(TestCase, SnubaTestCase):
             data={
                 'fingerprint': ['group_a'],
                 'event_id': 'aaa' + ('2' * 29),
-                'message': 'group_a',
-                'environment': 'example_production',
-                'timestamp': (release_2_timestamp + timedelta(days=1)).isoformat()[:19]
+                'environment': 'example_production'
             },
             project_id=self.project.id,
         )
@@ -1308,17 +1299,7 @@ class SnubaSearchTest(TestCase, SnubaTestCase):
         group_b_event_1 = self.store_event(
             data={
                 'fingerprint': ['group_b'],
-                'event_id': 'bbb' + ('1' * 29),
-                'message': 'group_b',
-                'tags': {
-                    'server': 'example.com',
-                },
-                'timestamp': (release_1_timestamp + timedelta(days=1)).isoformat()[:19],
-                'stacktrace': {
-                    'frames': [{
-                        'module': 'group_b'
-                    }]
-                },
+                'event_id': 'bbb' + ('1' * 29)
             },
             project_id=self.project.id,
         )
@@ -1326,18 +1307,13 @@ class SnubaSearchTest(TestCase, SnubaTestCase):
 
         group_b = group_b_event_1.group
 
-        # group_b_event_1 occurred before release_2 was created
-        assert group_b_event_1.datetime < release_2_timestamp
-
         # create an issue/group whose event that occur in no environments
         # but will be tied to release_2
 
         group_c_event_1 = self.store_event(
             data={
                 'fingerprint': ['group_c'],
-                'event_id': 'ccc' + ('1' * 29),
-                'message': 'group_c',
-                'timestamp': (release_2_timestamp + timedelta(days=1)).isoformat()[:19]
+                'event_id': 'ccc' + ('1' * 29)
             },
             project_id=self.project.id,
         )
