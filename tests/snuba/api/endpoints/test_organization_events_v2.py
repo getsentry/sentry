@@ -329,7 +329,7 @@ class OrganizationEventsV2EndpointTest(OrganizationEventsTestBase):
                 format='json',
                 data={
                     'field': ['issue_title', 'event_count', 'user_count'],
-                    'query': ['event_count:>1 user_count:>1'],
+                    'query': 'event_count:>1 user_count:>1',
                     'groupby': ['issue.id', 'project.id'],
                     'orderby': 'issue.id'
                 },
@@ -409,7 +409,7 @@ class OrganizationEventsV2EndpointTest(OrganizationEventsTestBase):
                 format='json',
                 data={
                     'field': ['issue_title', 'event_count'],
-                    'query': ['event_count:>1 user_count:>1'],
+                    'query': 'event_count:>1 user_count:>1',
                     'groupby': ['issue.id', 'project.id'],
                     'orderby': 'issue.id'
                 },
@@ -482,7 +482,7 @@ class OrganizationEventsV2EndpointTest(OrganizationEventsTestBase):
                 format='json',
                 data={
                     'field': ['issue_title', 'event_count'],
-                    'query': ['event_count:>1 user.email:foo@example.com environment:prod'],
+                    'query': 'event_count:>1 user.email:foo@example.com environment:prod',
                     'groupby': ['issue.id', 'project.id'],
                     'orderby': 'issue.id'
                 },
