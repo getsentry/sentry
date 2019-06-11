@@ -15,7 +15,18 @@ module.exports = {
     ['@babel/plugin-proposal-class-properties', {loose: true}],
   ],
   env: {
-    production: {},
+    production: {
+      plugins: [
+        [
+          'transform-react-remove-prop-types',
+          {
+            mode: 'remove', // remove from bundle
+            removeImport: true, // removes `prop-types` import statements
+            // additionalLibraries: [/app\/sentryTypes$/],
+          },
+        ],
+      ],
+    },
     development: {
       plugins: [
         ['emotion', {sourceMap: true, autoLabel: true}],
