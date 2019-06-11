@@ -123,7 +123,7 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
         if groupby:
             snuba_args['groupby'] = groupby
 
-        orderby = request.GET.get('orderby')
+        orderby = request.GET.getlist('orderby')
         if orderby:
             snuba_args['orderby'] = orderby
 
