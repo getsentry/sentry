@@ -21,6 +21,47 @@ exports[`InviteMember should render roles when available and allowed, and handle
       "query": Object {},
     }
   }
+  organization={
+    Object {
+      "access": Array [
+        "org:read",
+        "org:write",
+        "org:admin",
+        "org:integrations",
+        "project:read",
+        "project:write",
+        "project:admin",
+        "team:read",
+        "team:write",
+        "team:admin",
+      ],
+      "features": Array [],
+      "id": "1",
+      "name": "Organization Name",
+      "onboardingTasks": Array [],
+      "projects": Array [],
+      "scrapeJavaScript": true,
+      "slug": "testOrg",
+      "status": Object {
+        "id": "active",
+        "name": "active",
+      },
+      "teams": Array [
+        Object {
+          "hasAccess": true,
+          "id": "1",
+          "name": "bar",
+          "slug": "bar",
+        },
+        Object {
+          "hasAccess": false,
+          "id": "2",
+          "name": "foo",
+          "slug": "foo",
+        },
+      ],
+    }
+  }
   params={
     Object {
       "orgId": "testOrg",
@@ -351,8 +392,29 @@ exports[`InviteMember should render roles when available and allowed, and handle
         onRemoveTeam={[Function]}
         organization={
           Object {
+            "access": Array [
+              "org:read",
+              "org:write",
+              "org:admin",
+              "org:integrations",
+              "project:read",
+              "project:write",
+              "project:admin",
+              "team:read",
+              "team:write",
+              "team:admin",
+            ],
+            "features": Array [],
             "id": "1",
+            "name": "Organization Name",
+            "onboardingTasks": Array [],
+            "projects": Array [],
+            "scrapeJavaScript": true,
             "slug": "testOrg",
+            "status": Object {
+              "id": "active",
+              "name": "active",
+            },
             "teams": Array [
               Object {
                 "hasAccess": true,
@@ -377,8 +439,29 @@ exports[`InviteMember should render roles when available and allowed, and handle
           onRemoveTeam={[Function]}
           organization={
             Object {
+              "access": Array [
+                "org:read",
+                "org:write",
+                "org:admin",
+                "org:integrations",
+                "project:read",
+                "project:write",
+                "project:admin",
+                "team:read",
+                "team:write",
+                "team:admin",
+              ],
+              "features": Array [],
               "id": "1",
+              "name": "Organization Name",
+              "onboardingTasks": Array [],
+              "projects": Array [],
+              "scrapeJavaScript": true,
               "slug": "testOrg",
+              "status": Object {
+                "id": "active",
+                "name": "active",
+              },
               "teams": Array [
                 Object {
                   "hasAccess": true,

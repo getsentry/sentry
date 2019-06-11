@@ -1,7 +1,7 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`GroupActions render() renders correctly 1`] = `
-<GroupDetailsActions
+<WithOrganizationMockWrapper
   api={Client {}}
   group={
     Object {
@@ -70,6 +70,34 @@ exports[`GroupActions render() renders correctly 1`] = `
       "type": "error",
       "userCount": 35097,
       "userReportCount": 0,
+    }
+  }
+  organization={
+    Object {
+      "access": Array [
+        "org:read",
+        "org:write",
+        "org:admin",
+        "org:integrations",
+        "project:read",
+        "project:write",
+        "project:admin",
+        "team:read",
+        "team:write",
+        "team:admin",
+      ],
+      "features": Array [],
+      "id": "4660",
+      "name": "Organization Name",
+      "onboardingTasks": Array [],
+      "projects": Array [],
+      "scrapeJavaScript": true,
+      "slug": "org",
+      "status": Object {
+        "id": "active",
+        "name": "active",
+      },
+      "teams": Array [],
     }
   }
   project={

@@ -25,15 +25,11 @@ describe('GroupActions', function() {
             name: 'project name',
             slug: 'project',
           })}
-        />,
-        {
-          context: {
-            organization: TestStubs.Organization({
-              id: '4660',
-              slug: 'org',
-            }),
-          },
-        }
+          organization={TestStubs.Organization({
+            id: '4660',
+            slug: 'org',
+          })}
+        />
       );
       expect(wrapper).toMatchSnapshot();
     });

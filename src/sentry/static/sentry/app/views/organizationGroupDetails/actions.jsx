@@ -12,7 +12,6 @@ import DropdownLink from 'app/components/dropdownLink';
 import Feature from 'app/components/acl/feature';
 import FeatureDisabled from 'app/components/acl/featureDisabled';
 import GroupActions from 'app/actions/groupActions';
-import OrganizationState from 'app/mixins/organizationState';
 import GuideAnchor from 'app/components/assistant/guideAnchor';
 import IgnoreActions from 'app/components/actions/ignore';
 import IndicatorStore from 'app/stores/indicatorStore';
@@ -23,6 +22,7 @@ import SentryTypes from 'app/sentryTypes';
 import ShareIssue from 'app/components/shareIssue';
 import space from 'app/styles/space';
 import {uniqueId} from 'app/utils/guid';
+import withOrganization from 'app/utils/withOrganization';
 
 class DeleteActions extends React.Component {
   static propTypes = {
@@ -110,12 +110,11 @@ const GroupDetailsActions = createReactClass({
   displayName: 'GroupDetailsActions',
 
   propTypes: {
-    api: PropTypes.object,
+    api: PropTypes.object.isRequired,
     group: SentryTypes.Group.isRequired,
-    project: SentryTypes.Project,
+    project: SentryTypes.Project.isRequired,
+    organization: SentryTypes.Organization.isRequired,
   },
-
-  mixins: [OrganizationState],
 
   getInitialState() {
     return {ignoreModal: null, shareBusy: false};
@@ -135,13 +134,12 @@ const GroupDetailsActions = createReactClass({
   },
 
   onDelete() {
-    const {group, project} = this.props;
-    const org = this.getOrganization();
+    const {group, project, organization} = this.props;
     const loadingIndicator = IndicatorStore.add(t('Delete event..'));
 
     this.props.api.bulkDelete(
       {
-        orgId: org.slug,
+        orgId: organization.slug,
         projectId: project.slug,
         itemIds: [group.id],
       },
@@ -149,20 +147,19 @@ const GroupDetailsActions = createReactClass({
         complete: () => {
           IndicatorStore.remove(loadingIndicator);
 
-          browserHistory.push(`/${org.slug}/${project.slug}/`);
+          browserHistory.push(`/${organization.slug}/${project.slug}/`);
         },
       }
     );
   },
 
   onUpdate(data) {
-    const {group, project} = this.props;
-    const org = this.getOrganization();
+    const {group, project, organization} = this.props;
     const loadingIndicator = IndicatorStore.add(t('Saving changes..'));
 
     this.props.api.bulkUpdate(
       {
-        orgId: org.slug,
+        orgId: organization.slug,
         projectId: project.slug,
         itemIds: [group.id],
         data,
@@ -176,14 +173,13 @@ const GroupDetailsActions = createReactClass({
   },
 
   onShare(shared) {
-    const {group, project} = this.props;
-    const org = this.getOrganization();
+    const {group, project, organization} = this.props;
     this.setState({shareBusy: true});
 
     // not sure why this is a bulkUpdate
     this.props.api.bulkUpdate(
       {
-        orgId: org.slug,
+        orgId: organization.slug,
         projectId: project.slug,
         itemIds: [group.id],
         data: {
@@ -210,8 +206,7 @@ const GroupDetailsActions = createReactClass({
   },
 
   onDiscard() {
-    const {group, project} = this.props;
-    const org = this.getOrganization();
+    const {group, project, organization} = this.props;
     const id = uniqueId();
     const loadingIndicator = IndicatorStore.add(t('Discarding event..'));
 
@@ -222,7 +217,7 @@ const GroupDetailsActions = createReactClass({
       data: {discard: true},
       success: response => {
         GroupActions.discardSuccess(id, group.id, response);
-        browserHistory.push(`/${org.slug}/${project.slug}/`);
+        browserHistory.push(`/${organization.slug}/${project.slug}/`);
       },
       error: error => {
         GroupActions.discardError(id, group.id, error);
@@ -234,9 +229,8 @@ const GroupDetailsActions = createReactClass({
   },
 
   render() {
-    const {group, project} = this.props;
-    const org = this.getOrganization();
-    const orgFeatures = new Set(org.features);
+    const {group, project, organization} = this.props;
+    const orgFeatures = new Set(organization.features);
 
     let bookmarkClassName = 'group-bookmark btn btn-default btn-sm';
     if (group.isBookmarked) {
@@ -254,7 +248,7 @@ const GroupDetailsActions = createReactClass({
           hasRelease={hasRelease}
           latestRelease={project.latestRelease}
           onUpdate={this.onUpdate}
-          orgId={org.slug}
+          orgId={organization.slug}
           projectId={project.slug}
           isResolved={isResolved}
           isAutoResolved={isResolved && group.statusDetails.autoResolved}
@@ -271,7 +265,7 @@ const GroupDetailsActions = createReactClass({
           </a>
         </div>
         <DeleteActions
-          organization={org}
+          organization={organization}
           project={project}
           onDelete={this.onDelete}
           onDiscard={this.onDiscard}
@@ -296,4 +290,4 @@ const GroupDetailsActions = createReactClass({
 
 export {GroupDetailsActions};
 
-export default withApi(GroupDetailsActions);
+export default withApi(withOrganization(GroupDetailsActions));

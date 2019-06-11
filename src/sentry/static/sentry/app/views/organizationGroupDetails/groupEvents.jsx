@@ -1,7 +1,6 @@
 import PropTypes from 'prop-types';
 import {browserHistory} from 'react-router';
 import React from 'react';
-import createReactClass from 'create-react-class';
 import {pick} from 'lodash';
 
 import SentryTypes from 'app/sentryTypes';
@@ -10,40 +9,34 @@ import {t} from 'app/locale';
 import withApi from 'app/utils/withApi';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
 import EventsTable from 'app/components/eventsTable/eventsTable';
-import OrganizationState from 'app/mixins/organizationState';
 import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import Pagination from 'app/components/pagination';
 import SearchBar from 'app/components/searchBar';
 import parseApiError from 'app/utils/parseApiError';
 
-const GroupEvents = createReactClass({
-  displayName: 'GroupEvents',
-
-  propTypes: {
+class GroupEvents extends React.Component {
+  static propTypes = {
     api: PropTypes.object,
     group: SentryTypes.Group.isRequired,
-  },
+  };
 
-  mixins: [OrganizationState],
+  constructor(props) {
+    super(props);
 
-  getInitialState() {
     const queryParams = this.props.location.query;
-
-    const initialState = {
+    this.state = {
       eventList: [],
       loading: true,
       error: false,
       pageLinks: '',
       query: queryParams.query || '',
     };
-
-    return initialState;
-  },
+  }
 
   componentWillMount() {
     this.fetchData();
-  },
+  }
 
   componentWillReceiveProps(nextProps) {
     if (this.props.location.search !== nextProps.location.search) {
@@ -56,9 +49,9 @@ const GroupEvents = createReactClass({
         this.fetchData
       );
     }
-  },
+  }
 
-  handleSearch(query) {
+  handleSearch = query => {
     const targetQueryParams = {...this.props.location.query};
     targetQueryParams.query = query;
     const {groupId, orgId} = this.props.params;
@@ -67,9 +60,9 @@ const GroupEvents = createReactClass({
       pathname: `/organizations/${orgId}/issues/${groupId}/events/`,
       query: targetQueryParams,
     });
-  },
+  };
 
-  fetchData() {
+  fetchData = () => {
     this.setState({
       loading: true,
       error: false,
@@ -99,7 +92,7 @@ const GroupEvents = createReactClass({
         });
       },
     });
-  },
+  };
 
   renderNoQueryResults() {
     return (
@@ -107,7 +100,7 @@ const GroupEvents = createReactClass({
         <p>{t('Sorry, no events match your search query.')}</p>
       </EmptyStateWarning>
     );
-  },
+  }
 
   renderEmpty() {
     return (
@@ -115,7 +108,7 @@ const GroupEvents = createReactClass({
         <p>{t("There don't seem to be any events yet.")}</p>
       </EmptyStateWarning>
     );
-  },
+  }
 
   renderResults() {
     const {group, params} = this.props;
@@ -130,7 +123,7 @@ const GroupEvents = createReactClass({
         groupId={params.groupId}
       />
     );
-  },
+  }
 
   renderBody() {
     let body;
@@ -148,7 +141,7 @@ const GroupEvents = createReactClass({
     }
 
     return body;
-  },
+  }
 
   render() {
     return (
@@ -167,8 +160,8 @@ const GroupEvents = createReactClass({
         <Pagination pageLinks={this.state.pageLinks} />
       </div>
     );
-  },
-});
+  }
+}
 
 export {GroupEvents};
 
