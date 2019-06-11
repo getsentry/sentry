@@ -11,6 +11,7 @@ import qs from 'query-string';
 import {Client} from 'app/api';
 import {Panel, PanelBody} from 'app/components/panels';
 import {analytics} from 'app/utils/analytics';
+import {defined} from 'app/utils';
 import {
   deleteSavedSearch,
   fetchSavedSearches,
@@ -22,6 +23,7 @@ import {fetchOrganizationTags, fetchTagValues} from 'app/actionCreators/tags';
 import {getUtcDateString} from 'app/utils/dates';
 import {t} from 'app/locale';
 import ConfigStore from 'app/stores/configStore';
+import CursorPoller from 'app/utils/cursorPoller';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
 import ErrorRobot from 'app/components/errorRobot';
 import GroupStore from 'app/stores/groupStore';
@@ -32,10 +34,10 @@ import ProcessingIssueList from 'app/components/stream/processingIssueList';
 import SelectedGroupStore from 'app/stores/selectedGroupStore';
 import SentryTypes from 'app/sentryTypes';
 import StreamGroup from 'app/components/stream/group';
+import StreamManager from 'app/utils/streamManager';
 import TagStore from 'app/stores/tagStore';
 import parseApiError from 'app/utils/parseApiError';
 import parseLinkHeader from 'app/utils/parseLinkHeader';
-import utils from 'app/utils';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 import withOrganization from 'app/utils/withOrganization';
 import withSavedSearches from 'app/utils/withSavedSearches';
@@ -94,8 +96,8 @@ const OrganizationStream = createReactClass({
 
   componentDidMount() {
     this.api = new Client();
-    this._streamManager = new utils.StreamManager(GroupStore);
-    this._poller = new utils.CursorPoller({
+    this._streamManager = new StreamManager(GroupStore);
+    this._poller = new CursorPoller({
       success: this.onRealtimePoll,
     });
 
@@ -231,7 +233,7 @@ const OrganizationStream = createReactClass({
     }
 
     // only include defined values.
-    return pickBy(params, v => utils.defined(v));
+    return pickBy(params, v => defined(v));
   },
 
   getFeatures() {
@@ -370,7 +372,7 @@ const OrganizationStream = createReactClass({
   },
 
   onSelectStatsPeriod(period) {
-    if (period != this.getGroupStatsPeriod()) {
+    if (period !== this.getGroupStatsPeriod()) {
       this.transitionTo({groupStatsPeriod: period});
     }
   },
@@ -661,7 +663,7 @@ const OrganizationStream = createReactClass({
       hasReleases = new Set(selectedProject.features).has('releases');
       latestRelease = selectedProject.latestRelease;
       projectId = selectedProject.slug;
-    } else if (projects.length == 1) {
+    } else if (projects.length === 1) {
       // If the user has filtered down to a single project
       // we can hint the autocomplete/savedsearch picker with that.
       projectId = projects[0].slug;

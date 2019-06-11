@@ -141,7 +141,7 @@ class Sidebar extends React.Component {
   };
 
   hashChangeHandler = () => {
-    if (window.location.hash == '#welcome') {
+    if (window.location.hash === '#welcome') {
       this.togglePanel('todos');
     }
   };

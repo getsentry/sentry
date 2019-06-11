@@ -1,28 +1,28 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
-import PropTypes from 'prop-types';
 
+import {INTERFACES} from 'app/components/events/eventEntries';
+import {getMessage, getTitle} from 'app/utils/events';
+import {objectIsEmpty, toTitleCase} from 'app/utils';
 import {t} from 'app/locale';
-import SentryTypes from 'app/sentryTypes';
 import DateTime from 'app/components/dateTime';
 import ErrorBoundary from 'app/components/errorBoundary';
-import ExternalLink from 'app/components/links/externalLink';
 import EventDataSection from 'app/components/events/eventDataSection';
 import EventDevice from 'app/components/events/device';
 import EventExtraData from 'app/components/events/extraData';
 import EventPackageData from 'app/components/events/packageData';
+import ExternalLink from 'app/components/links/externalLink';
 import FileSize from 'app/components/fileSize';
 import NavTabs from 'app/components/navTabs';
-import space from 'app/styles/space';
+import SentryTypes from 'app/sentryTypes';
 import getDynamicText from 'app/utils/getDynamicText';
-import utils from 'app/utils';
-import {getMessage, getTitle} from 'app/utils/events';
+import space from 'app/styles/space';
 
-import {INTERFACES} from 'app/components/events/eventEntries';
+import LinkedIssuePreview from './linkedIssuePreview';
 import ModalPagination from './modalPagination';
 import ModalLineGraph from './modalLineGraph';
 import TagsTable from './tagsTable';
-import LinkedIssuePreview from './linkedIssuePreview';
 
 const OTHER_SECTIONS = {
   context: EventExtraData,
@@ -118,13 +118,13 @@ const EventModalContent = props => {
                     onTabChange(type);
                   }}
                 >
-                  {utils.toTitleCase(type)}
+                  {toTitleCase(type)}
                 </a>
               </li>
             );
           })}
           {Object.keys(OTHER_SECTIONS).map(section => {
-            if (utils.objectIsEmpty(event[section])) {
+            if (objectIsEmpty(event[section])) {
               return null;
             }
             const classname = section === activeTab ? 'active' : null;
@@ -137,7 +137,7 @@ const EventModalContent = props => {
                     onTabChange(section);
                   }}
                 >
-                  {utils.toTitleCase(section)}
+                  {toTitleCase(section)}
                 </a>
               </li>
             );

@@ -528,7 +528,7 @@ const AutoCompleteItem = styled('div')`
 
   font-size: 0.9em;
   background-color: ${p =>
-    p.index == p.highlightedIndex ? p.theme.offWhite : 'transparent'};
+    p.index === p.highlightedIndex ? p.theme.offWhite : 'transparent'};
   padding: ${p => getItemPaddingForSize(p.size)};
   cursor: pointer;
   border-bottom: 1px solid ${p => p.theme.borderLight};

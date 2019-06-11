@@ -5,7 +5,6 @@ import styled, {css} from 'react-emotion';
 import classNames from 'classnames';
 import {capitalize} from 'lodash';
 
-import ProjectLink from 'app/components/projectLink';
 import {Metadata} from 'app/sentryTypes';
 import EventOrGroupTitle from 'app/components/eventOrGroupTitle';
 import Tooltip from 'app/components/tooltip';
@@ -48,7 +47,7 @@ class EventOrGroupHeader extends React.Component {
 
   getTitle() {
     const {hideIcons, hideLevel, includeLink, data, params} = this.props;
-    const {orgId, projectId} = params;
+    const {orgId} = params;
 
     const {id, level, groupID} = data || {};
     const isEvent = !!data.eventID;
@@ -56,9 +55,7 @@ class EventOrGroupHeader extends React.Component {
     const props = {};
     let Wrapper;
 
-    const basePath = projectId
-      ? `/${orgId}/${projectId}/issues/`
-      : `/organizations/${orgId}/issues/`;
+    const basePath = `/organizations/${orgId}/issues/`;
 
     if (includeLink) {
       props.to = {
@@ -69,11 +66,7 @@ class EventOrGroupHeader extends React.Component {
           this.props.query ? `?query=${window.encodeURIComponent(this.props.query)}` : ''
         }`,
       };
-      if (projectId) {
-        Wrapper = ProjectLink;
-      } else {
-        Wrapper = Link;
-      }
+      Wrapper = Link;
     } else {
       Wrapper = 'span';
     }

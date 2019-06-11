@@ -78,7 +78,7 @@ const GuideStore = Reflux.createStore({
     const {currentGuide} = this.state;
     this.state.guides[
       Object.keys(this.state.guides).find(key => {
-        return this.state.guides[key].id == currentGuide.id;
+        return this.state.guides[key].id === currentGuide.id;
       })
     ].seen = true;
     // Don't continue to force show if the user dismissed the guide.
@@ -89,7 +89,7 @@ const GuideStore = Reflux.createStore({
   onNextStep() {
     this.state.currentStep += 1;
     this.trigger(this.state);
-    if (this.state.currentGuide && this.state.currentStep == 1) {
+    if (this.state.currentGuide && this.state.currentStep === 1) {
       analytics('assistant.guide_opened', {
         guide: this.state.currentGuide.id,
       });

@@ -23,6 +23,8 @@ from sentry.utils.snuba import (
 from sentry import features
 from sentry.models.project import Project
 
+ALLOWED_GROUPINGS = frozenset(('issue.id', 'project.id'))
+
 
 class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
 
@@ -78,6 +80,18 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
         try:
             params = self.get_filter_params(request, organization)
             snuba_args = self.get_snuba_query_args_v2(request, organization, params)
+
+            fields = snuba_args.get('selected_columns')
+            groupby = snuba_args.get('groupby', [])
+
+            if not fields and not groupby:
+                return Response({'detail': 'No fields or groupings provided'}, status=400)
+
+            if any(field for field in groupby if field not in ALLOWED_GROUPINGS):
+                message = ('Invalid groupby value requested. Allowed values are ' +
+                    ', '.join(ALLOWED_GROUPINGS))
+                return Response({'detail': message}, status=400)
+
         except OrganizationEventsError as exc:
             return Response({'detail': exc.message}, status=400)
         except NoProjects:

@@ -71,6 +71,16 @@ class WebCrawlersFilterTest(TestCase):
         )
         assert self.apply_filter(data)
 
+    def test_filters_pingdom_bot(self):
+        data = self.get_mock_data(
+            'Mozilla/5.0 (Unknown; Linux x86_64) AppleWebKit/534.34 (KHTML, like Gecko) PingdomTMS/0.8.5 Safari/534.34'
+        )
+        assert self.apply_filter(data)
+
+    def test_filters_lytics_bot(self):
+        data = self.get_mock_data('lyticsbot-external')
+        assert self.apply_filter(data)
+
     def test_filters_google_apis(self):
         data = self.get_mock_data('APIs-Google')
         assert not self.apply_filter(data)

@@ -183,7 +183,7 @@ class OrganizationEventsV2EndpointTest(OrganizationEventsTestBase):
             project_id=project.id,
         )
 
-        groups = Group.objects.all()
+        groups = list(Group.objects.all().order_by('id'))
 
         with self.feature('organizations:events-v2'):
             response = self.client.get(
@@ -321,7 +321,7 @@ class OrganizationEventsV2EndpointTest(OrganizationEventsTestBase):
             project_id=project.id,
         )
 
-        groups = Group.objects.all()
+        groups = list(Group.objects.all().order_by('id'))
 
         with self.feature('organizations:events-v2'):
             response = self.client.get(
@@ -329,7 +329,7 @@ class OrganizationEventsV2EndpointTest(OrganizationEventsTestBase):
                 format='json',
                 data={
                     'field': ['issue_title', 'event_count', 'user_count'],
-                    'query': ['event_count:>1 user_count:>1'],
+                    'query': 'event_count:>1 user_count:>1',
                     'groupby': ['issue.id', 'project.id'],
                     'orderby': 'issue.id'
                 },
@@ -409,7 +409,7 @@ class OrganizationEventsV2EndpointTest(OrganizationEventsTestBase):
                 format='json',
                 data={
                     'field': ['issue_title', 'event_count'],
-                    'query': ['event_count:>1 user_count:>1'],
+                    'query': 'event_count:>1 user_count:>1',
                     'groupby': ['issue.id', 'project.id'],
                     'orderby': 'issue.id'
                 },
@@ -482,7 +482,7 @@ class OrganizationEventsV2EndpointTest(OrganizationEventsTestBase):
                 format='json',
                 data={
                     'field': ['issue_title', 'event_count'],
-                    'query': ['event_count:>1 user.email:foo@example.com environment:prod'],
+                    'query': 'event_count:>1 user.email:foo@example.com environment:prod',
                     'groupby': ['issue.id', 'project.id'],
                     'orderby': 'issue.id'
                 },
@@ -516,7 +516,7 @@ class OrganizationEventsV2EndpointTest(OrganizationEventsTestBase):
                 },
             )
         assert response.status_code == 400, response.content
-        assert response.data['detail'] == 'Invalid groupby value requested'
+        assert response.data['detail'] == 'Invalid groupby value requested. Allowed values are project.id, issue.id'
 
     def test_no_requested_fields_or_grouping(self):
         self.login_as(user=self.user)
