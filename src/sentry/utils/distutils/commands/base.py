@@ -12,7 +12,7 @@ from distutils.core import Command
 import sentry  # We just need its path via __file__
 
 
-SENTRY_ROOT_PATH = os.path.abspath(os.path.dirname(os.path.dirname(sentry.__file__)))
+SENTRY_ROOT_PATH = os.path.abspath(os.path.join(sentry.__file__, '..', '..', '..'))
 
 
 YARN_PATH = os.path.join(SENTRY_ROOT_PATH, 'bin', 'yarn')
