@@ -1,21 +1,21 @@
+import {isEqual} from 'lodash';
 import PropTypes from 'prop-types';
 import React from 'react';
-import createReactClass from 'create-react-class';
 import Reflux from 'reflux';
-import {isEqual} from 'lodash';
+import createReactClass from 'create-react-class';
 import qs from 'query-string';
 
-import SentryTypes from 'app/sentryTypes';
+import {Panel, PanelBody} from 'app/components/panels';
 import {fetchOrgMembers, indexMembersByProject} from 'app/actionCreators/members';
+import {t} from 'app/locale';
+import EmptyStateWarning from 'app/components/emptyStateWarning';
 import GroupStore from 'app/stores/groupStore';
 import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
+import SentryTypes from 'app/sentryTypes';
 import StreamGroup from 'app/components/stream/group';
-import utils from 'app/utils';
+import StreamManager from 'app/utils/streamManager';
 import withApi from 'app/utils/withApi';
-import {t} from 'app/locale';
-import EmptyStateWarning from 'app/components/emptyStateWarning';
-import {Panel, PanelBody} from 'app/components/panels';
 
 import GroupListHeader from './groupListHeader';
 
@@ -55,7 +55,7 @@ const GroupList = createReactClass({
   },
 
   componentWillMount() {
-    this._streamManager = new utils.StreamManager(GroupStore);
+    this._streamManager = new StreamManager(GroupStore);
 
     this.fetchData();
   },

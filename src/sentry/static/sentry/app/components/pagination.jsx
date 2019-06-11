@@ -1,10 +1,10 @@
+import {browserHistory} from 'react-router';
 import PropTypes from 'prop-types';
 import React from 'react';
-import {browserHistory} from 'react-router';
 import {css} from 'react-emotion';
 
-import utils from 'app/utils';
 import {t} from 'app/locale';
+import parseLinkHeader from 'app/utils/parseLinkHeader';
 
 const streamCss = css`
   margin: 20px 0 0 0;
@@ -48,7 +48,7 @@ export default class Pagination extends React.Component {
     const path = this.props.to || location.pathname;
     const query = location.query;
 
-    const links = utils.parseLinkHeader(pageLinks);
+    const links = parseLinkHeader(pageLinks);
 
     let previousPageClassName = 'btn btn-default btn-lg prev';
     if (links.previous.results === false) {
