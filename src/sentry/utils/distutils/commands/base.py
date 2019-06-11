@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+import imp
 import os
 import os.path
 import shutil
@@ -34,6 +35,9 @@ class BaseBuildCommand(Command):
 
     def get_root_path(self):
         return os.path.abspath(os.path.dirname(sys.modules['__main__'].__file__))
+
+    def get_sentry_root_path(self):
+        return os.path.abspath(os.path.dirname(os.path.dirname(imp.find_module('sentry')[1])))
 
     def get_dist_paths(self):
         return []
@@ -132,8 +136,10 @@ class BaseBuildCommand(Command):
 
         if node_version[2] is not None:
             log.info(u'using node ({0}))'.format(node_version))
+            yarn_path = os.path.join(self.get_sentry_root_path(), 'bin', 'yarn')
+            log.info(u'yarn path: ({0}))'.format(yarn_path))
             self._run_command(
-                ['./bin/yarn', 'install', '--production', '--pure-lockfile', '--quiet']
+                [yarn_path, 'install', '--production', '--pure-lockfile', '--quiet']
             )
 
     def _run_command(self, cmd, env=None):
