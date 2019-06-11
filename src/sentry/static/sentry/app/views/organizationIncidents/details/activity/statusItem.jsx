@@ -10,6 +10,7 @@ import {t} from 'app/locale';
 import ActivityItem from 'app/components/activity/item';
 import Chart from 'app/views/organizationIncidents/details/chart';
 import SentryTypes from 'app/sentryTypes';
+import getDynamicText from 'app/utils/getDynamicText';
 
 /**
  * StatusItem renders status changes for Incidents
@@ -59,7 +60,7 @@ class StatusItem extends React.Component {
             {isReopened && t('re-opened')} {t('an Incident')}
           </div>
         }
-        date={activity.dateCreated}
+        date={getDynamicText({value: activity.dateCreated, fixed: new Date(0)})}
       >
         {activity.eventStats && (
           <Chart
