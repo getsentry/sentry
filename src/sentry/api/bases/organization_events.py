@@ -2,11 +2,14 @@ from __future__ import absolute_import
 
 from copy import deepcopy
 from rest_framework.exceptions import PermissionDenied
+import six
+from enum import Enum
 
 from sentry import features
 from sentry.api.bases import OrganizationEndpoint, OrganizationEventsError
 from sentry.api.event_search import get_snuba_query_args, InvalidSearchQuery
 from sentry.models.project import Project
+from sentry.utils import snuba
 
 # We support 4 "special fields" on the v2 events API which perform some
 # additional calculations over aggregated event data
@@ -25,7 +28,10 @@ SPECIAL_FIELDS = {
     },
 }
 
-ALLOWED_GROUPINGS = frozenset(('issue.id', 'project.id'))
+
+class Direction(Enum):
+    NEXT = 0
+    PREV = 1
 
 
 class OrganizationEventsEndpointBase(OrganizationEndpoint):
@@ -76,12 +82,6 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
         fields = request.GET.getlist('field')[:]
         aggregations = []
         groupby = request.GET.getlist('groupby')
-
-        if not fields and not groupby:
-            raise OrganizationEventsError('No fields or groupings provided')
-
-        if any(field for field in groupby if field not in ALLOWED_GROUPINGS):
-            raise OrganizationEventsError('Invalid groupby value requested')
 
         if fields:
             # If project.name is requested, get the project.id from Snuba so we
@@ -137,3 +137,55 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
             raise OrganizationEventsError(
                 'Boolean search operator OR and AND not allowed in this search.')
         return snuba_args
+
+    def next_event_id(self, *args):
+        """
+        Returns the next event ID if there is a subsequent event matching the
+        conditions provided
+        """
+        return self._get_next_or_prev_id(Direction.NEXT, *args)
+
+    def prev_event_id(self, *args):
+        """
+        Returns the previous event ID if there is a previous event matching the
+        conditions provided
+        """
+        return self._get_next_or_prev_id(Direction.PREV, *args)
+
+    def _get_next_or_prev_id(self, direction, request, organization, snuba_args, event):
+        if (direction == Direction.NEXT):
+            time_condition = [
+                ['timestamp', '>=', event.timestamp],
+                [['timestamp', '>', event.timestamp], ['event_id', '>', event.event_id]]
+            ]
+            orderby = ['timestamp', 'event_id']
+            start = max(event.datetime, snuba_args['start'])
+            end = snuba_args['end']
+
+        else:
+            time_condition = [
+                ['timestamp', '<=', event.timestamp],
+                [['timestamp', '<', event.timestamp], ['event_id', '<', event.event_id]]
+            ]
+            orderby = ['-timestamp', '-event_id']
+            start = snuba_args['start']
+            end = min(event.datetime, snuba_args['end'])
+
+        conditions = snuba_args['conditions'][:]
+        conditions.extend(time_condition)
+
+        result = snuba.raw_query(
+            start=start,
+            end=end,
+            selected_columns=['event_id'],
+            conditions=conditions,
+            filter_keys=snuba_args['filter_keys'],
+            orderby=orderby,
+            limit=1,
+            referrer='api.organization-events.next-or-prev-id',
+        )
+
+        if 'error' in result or len(result['data']) == 0:
+            return None
+
+        return six.text_type(result['data'][0]['event_id'])
