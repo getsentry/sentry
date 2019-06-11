@@ -104,6 +104,14 @@ class EventDetails extends AsyncComponent {
     throw new Error('Could not determine projectId');
   }
 
+  componentDidMount() {
+    document.body.style.overflow = 'hidden';
+  }
+
+  componentWillUnmount() {
+    document.body.style.overflow = 'auto';
+  }
+
   renderBody() {
     const {organization, view, location} = this.props;
     const {event, activeTab} = this.state;
@@ -135,14 +143,16 @@ class EventDetails extends AsyncComponent {
 }
 
 const ModalContainer = styled('div')`
-  position: absolute;
+  position: fixed;
   top: 0px;
   left: 0px;
   right: 0px;
+  bottom: 0px;
   background: #fff;
 
   margin: ${space(3)};
   padding: ${space(3)};
+
   border: 1px solid ${p => p.theme.borderLight};
   border-radius: ${p => p.theme.borderRadius};
   box-shadow: ${p => p.theme.dropShadowHeavy};
