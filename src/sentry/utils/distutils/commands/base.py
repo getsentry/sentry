@@ -152,7 +152,7 @@ class BaseBuildCommand(Command):
         yarn_path = os.path.join(self.get_sentry_root_path(), 'bin', 'yarn')
         log.debug(u'yarn path: ({0}))'.format(yarn_path))
         self._run_command(
-            [yarn_path].extend(cmd), env=env
+            [yarn_path] + cmd, env=env
         )
 
     def update_manifests(self):
