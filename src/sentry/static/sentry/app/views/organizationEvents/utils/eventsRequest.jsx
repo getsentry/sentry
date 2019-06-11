@@ -98,12 +98,18 @@ class EventsRequest extends React.PureComponent {
      * The yAxis being plotted
      */
     yAxis: PropTypes.string,
+
+    /**
+     * issue group id or groupids to filter results by.
+     */
+    groupId: PropTypes.oneOfType([PropTypes.string, PropTypes.array]),
   };
 
   static defaultProps = {
     period: null,
     start: null,
     end: null,
+    groupId: null,
     interval: '1d',
     limit: 15,
     getCategory: i => i,

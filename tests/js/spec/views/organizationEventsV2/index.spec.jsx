@@ -1,6 +1,5 @@
 import React from 'react';
 import {mount} from 'enzyme';
-import {initializeOrg} from 'app-test/helpers/initializeOrg';
 
 import OrganizationEventsV2 from 'app/views/organizationEventsV2';
 
@@ -18,7 +17,7 @@ describe('OrganizationEventsV2', function() {
       ],
     });
     MockApiClient.addMockResponse({
-      url: '/projects/org-slug/project-slug/events/deadbeef/',
+      url: '/organizations/org-slug/events/project-slug:deadbeef/',
       method: 'GET',
       body: {
         id: '1234',
@@ -96,74 +95,19 @@ describe('OrganizationEventsV2', function() {
     expect(modal).toHaveLength(1);
   });
 
-  it('navigates when tag values are clicked', async function() {
-    const {organization, routerContext} = initializeOrg({
-      organization: TestStubs.Organization({projects: [TestStubs.Project()]}),
-      router: {
-        location: {
-          pathname: '/organizations/org-slug/events/',
-          query: {
-            eventSlug: 'project-slug:deadbeef',
-          },
-        },
-      },
-    });
+  it('opens a modal when groupSlug is present', async function() {
+    const organization = TestStubs.Organization({projects: [TestStubs.Project()]});
     const wrapper = mount(
       <OrganizationEventsV2
         organization={organization}
         params={{orgId: organization.slug}}
-        location={routerContext.context.location}
+        location={{query: {groupSlug: 'project-slug:123:deadbeef'}}}
         router={{}}
       />,
-      routerContext
+      TestStubs.routerContext()
     );
-    await tick();
-    await wrapper.update();
 
-    // Get the first link as we wrap react-router's link
-    const tagLink = wrapper.find('EventDetails TagsTable TagValue Link').first();
-
-    // Should remove eventSlug and append new tag value causing
-    // the view to re-render
-    expect(tagLink.props().to).toEqual({
-      pathname: '/organizations/org-slug/events/',
-      query: {query: 'browser:"Firefox"'},
-    });
-  });
-
-  it('appends tag value to existing query when clicked', async function() {
-    const {organization, routerContext} = initializeOrg({
-      organization: TestStubs.Organization({projects: [TestStubs.Project()]}),
-      router: {
-        location: {
-          pathname: '/organizations/org-slug/events/',
-          query: {
-            query: 'Dumpster',
-            eventSlug: 'project-slug:deadbeef',
-          },
-        },
-      },
-    });
-    const wrapper = mount(
-      <OrganizationEventsV2
-        organization={organization}
-        params={{orgId: organization.slug}}
-        location={routerContext.context.location}
-        router={{}}
-      />,
-      routerContext
-    );
-    await tick();
-    await wrapper.update();
-
-    // Get the first link as we wrap react-router's link
-    const tagLink = wrapper.find('EventDetails TagsTable TagValue Link').first();
-
-    // Should remove eventSlug and append new tag value causing
-    // the view to re-render
-    expect(tagLink.props().to).toEqual({
-      pathname: '/organizations/org-slug/events/',
-      query: {query: 'Dumpster browser:"Firefox"'},
-    });
+    const modal = wrapper.find('EventDetails');
+    expect(modal).toHaveLength(1);
   });
 });

@@ -20,6 +20,8 @@ import getDynamicText from 'app/utils/getDynamicText';
 import space from 'app/styles/space';
 
 import LinkedIssuePreview from './linkedIssuePreview';
+import ModalPagination from './modalPagination';
+import ModalLineGraph from './modalLineGraph';
 import TagsTable from './tagsTable';
 
 const OTHER_SECTIONS = {
@@ -76,15 +78,30 @@ ActiveTab.propTypes = {
  * Controlled by the EventDetails View.
  */
 const EventModalContent = props => {
-  const {event, activeTab, projectId, orgId, onTabChange} = props;
-  const eventJsonUrl = `/api/0/projects/${orgId}/${projectId}/events/${
+  const {event, activeTab, projectId, organization, onTabChange, location, view} = props;
+  const isGroupedView = !!view.data.groupby;
+  const eventJsonUrl = `/api/0/projects/${organization.slug}/${projectId}/events/${
     event.eventID
   }/json/`;
 
   return (
     <ColumnGrid>
-      <ContentColumn>
+      <HeaderBox>
         <EventHeader event={event} />
+        {isGroupedView && <ModalPagination event={event} location={location} />}
+        {isGroupedView &&
+          getDynamicText({
+            value: (
+              <ModalLineGraph
+                organization={organization}
+                groupId={event.groupID}
+                location={location}
+              />
+            ),
+            fixed: 'events chart',
+          })}
+      </HeaderBox>
+      <ContentColumn>
         <NavTabs underlined={true}>
           {event.entries.map(entry => {
             if (!INTERFACES.hasOwnProperty(entry.type)) {
@@ -143,7 +160,9 @@ const EventModalContent = props => {
 EventModalContent.propTypes = {
   ...ActiveTab.propTypes,
   onTabChange: PropTypes.func.isRequired,
-  orgId: PropTypes.string.isRequired,
+  organization: SentryTypes.Organization.isRequired,
+  view: PropTypes.object.isRequired,
+  location: PropTypes.object.isRequired,
 };
 
 /**
@@ -197,11 +216,14 @@ const MetadataContainer = styled('div')`
 
 const ColumnGrid = styled('div')`
   display: grid;
-  grid-template-columns: 70% 1fr;
+  grid-template-columns: 70% 28%;
   grid-template-rows: auto;
-  grid-column-gap: ${space(3)};
+  grid-column-gap: 2%;
 `;
 
+const HeaderBox = styled('div')`
+  grid-column: 1 / 3;
+`;
 const ContentColumn = styled('div')`
   grid-column: 1 / 2;
 `;
