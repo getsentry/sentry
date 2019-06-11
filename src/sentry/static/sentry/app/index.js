@@ -6,21 +6,13 @@ import 'bootstrap/js/dropdown';
 import 'app/utils/statics-setup';
 import 'app/utils/emotion-setup';
 
-import {renderToStaticMarkup} from 'react-dom/server';
-import * as Emotion from 'emotion';
-import * as EmotionTheming from 'emotion-theming';
-import * as GridEmotion from 'grid-emotion';
-import JsCookie from 'js-cookie';
 import PropTypes from 'prop-types';
 import React from 'react';
-import ReactBootstrapModal from 'react-bootstrap/lib/Modal';
 import ReactDOM from 'react-dom';
-import * as ReactEmotion from 'react-emotion';
 import Reflux from 'reflux';
 import * as Router from 'react-router';
 import * as Sentry from '@sentry/browser';
 import {ExtraErrorData, Tracing} from '@sentry/integrations';
-import createReactClass from 'create-react-class';
 import jQuery from 'jquery';
 import moment from 'moment';
 
@@ -28,8 +20,6 @@ import {metric} from 'app/utils/analytics';
 import ConfigStore from 'app/stores/configStore';
 import Main from 'app/main';
 import ajaxCsrfSetup from 'app/utils/ajaxCsrfSetup';
-import * as api from 'app/api';
-import * as il8n from 'app/locale';
 import plugins from 'app/plugins';
 
 // SDK INIT  --------------------------------------------------------
@@ -104,142 +94,53 @@ async function loadPasswordStrength(callback) {
 }
 
 const globals = {
-  $: jQuery,
-  jQuery,
-  moment,
-  Sentry,
+  // This is the primary entrypoint for rendering the sentry app.
+  SentryRenderApp: () => render(Main),
+
+  // The following globals are used in sentry-plugins webpack externals
+  // configuration.
+  PropTypes,
   React,
+  Reflux,
+  Router,
+  Sentry,
+  moment,
   ReactDOM: {
     findDOMNode: ReactDOM.findDOMNode,
     render: ReactDOM.render,
   },
-  PropTypes,
-  ReactDOMServer: {
-    renderToStaticMarkup,
+
+  // jQuery is still exported to the window as some bootsrap functionality
+  // makes use of it.
+  $: jQuery,
+  jQuery,
+};
+
+// The SentryApp global contains exported app modules for use in javascript
+// modules that are not compiled with the sentry bundle.
+globals.SentryApp = {
+  // The following components are used in sentry-plugins.
+  Form: require('app/components/forms/form').default,
+  FormState: require('app/components/forms/index').FormState,
+  LoadingIndicator: require('app/components/loadingIndicator').default,
+  plugins: {
+    add: plugins.add,
+    addContext: plugins.addContext,
+    BasePlugin: plugins.BasePlugin,
+    DefaultIssuePlugin: plugins.DefaultIssuePlugin,
   },
-  createReactClass,
-  ReactBootstrap: {
-    Modal: ReactBootstrapModal,
-  },
-  Reflux,
-  Router,
-  JsCookie,
-  Emotion,
-  EmotionTheming,
-  ReactEmotion,
-  GridEmotion,
 
-  SentryRenderApp: () => render(Main),
-
-  SentryApp: {
-    api,
-    forms: {
-      // we dont yet export all form field classes as they're not
-      // all needed by sentry.io
-      ApiForm: require('app/views/settings/components/forms/apiForm').default,
-      BooleanField: require('app/views/settings/components/forms/booleanField').default,
-      DateTimeField: require('app/views/settings/components/forms/dateTimeField').default,
-      EmailField: require('app/views/settings/components/forms/emailField').default,
-      Form: require('app/views/settings/components/forms/form').default,
-      RadioBooleanField: require('app/views/settings/components/forms/radioBooleanField')
-        .default,
-      RadioGroupField: require('app/views/settings/components/forms/radioField').default,
-      RangeField: require('app/views/settings/components/forms/rangeField').default,
-      SelectField: require('app/views/settings/components/forms/selectField').default,
-      TextField: require('app/views/settings/components/forms/textField').default,
-      TextareaField: require('app/views/settings/components/forms/textareaField').default,
-    },
-    plugins: {
-      add: plugins.add,
-      addContext: plugins.addContext,
-      BasePlugin: plugins.BasePlugin,
-      DefaultIssuePlugin: plugins.DefaultIssuePlugin,
-    },
-
-    Alert: require('app/components/alert').default,
-    Alerts: require('app/components/alerts').default,
-    AlertActions: require('app/actions/alertActions').default,
-    AsyncComponent: require('app/components/asyncComponent').default,
-    AsyncView: require('app/views/asyncView').default,
-    Avatar: require('app/components/avatar').default,
-    addSuccessMessage: require('app/actionCreators/indicator').addSuccessMessage,
-    addErrorMessage: require('app/actionCreators/indicator').addErrorMessage,
-    Button: require('app/components/button').default,
-    BarChart: require('app/components/barChart').default,
-    i18n: il8n,
-    ConfigStore: require('app/stores/configStore').default,
-    Confirm: require('app/components/confirm').default,
-    Count: require('app/components/count').default,
-    DateTime: require('app/components/dateTime').default,
-    DropdownLink: require('app/components/dropdownLink').default,
-    DynamicWrapper: require('app/components/dynamicWrapper').default,
-    ErrorBoundary: require('app/components/errorBoundary').default,
-    Field: require('app/views/settings/components/forms/field').default,
-    Form: require('app/components/forms/form').default,
-    FormState: require('app/components/forms/index').FormState,
-    GuideAnchor: require('app/components/assistant/guideAnchor').default,
-    HookStore: require('app/stores/hookStore').default,
-    Hovercard: require('app/components/hovercard').default,
-    Indicators: require('app/components/indicators').default,
-    IndicatorStore: require('app/stores/indicatorStore').default,
-    InlineSvg: require('app/components/inlineSvg').default,
-    InviteMember: require('app/views/settings/organizationMembers/inviteMember').default,
-    LoadingError: require('app/components/loadingError').default,
-    LoadingIndicator: require('app/components/loadingIndicator').default,
-    ListLink: require('app/components/links/listLink').default,
-    MenuItem: require('app/components/menuItem').default,
-    NarrowLayout: require('app/components/narrowLayout').default,
-    NavTabs: require('app/components/navTabs').default,
-    OrganizationAuth: require('app/views/settings/organizationAuth').default,
-    OrganizationHomeContainer: require('app/components/organizations/homeContainer')
-      .default,
-    OrganizationsLoader: require('app/components/organizations/organizationsLoader')
-      .default,
-    OrganizationMembersView: require('app/views/settings/organizationMembers').default,
-    Panel: require('app/components/panels/panel').default,
-    PanelHeader: require('app/components/panels/panelHeader').default,
-    PanelBody: require('app/components/panels/panelBody').default,
-    PanelItem: require('app/components/panels/panelItem').default,
-    PanelAlert: require('app/components/panels/panelAlert').default,
-    EmptyMessage: require('app/views/settings/components/emptyMessage').default,
-    Pagination: require('app/components/pagination').default,
-    PluginConfig: require('app/components/pluginConfig').default,
-    ProjectSelector: require('app/components/projectHeader/projectSelector').default,
-    SentryTypes: require('app/sentryTypes').default,
-    SettingsPageHeader: require('app/views/settings/components/settingsPageHeader')
-      .default,
-
-    Sidebar: require('app/components/sidebar').default,
-    StackedBarChart: require('app/components/stackedBarChart').default,
-    Text: require('app/components/text').default,
-    TextBlock: require('app/views/settings/components/text/textBlock').default,
-    TimeSince: require('app/components/timeSince').default,
-    TodoList: require('app/components/onboardingWizard/todos').default,
-    Tooltip: require('app/components/tooltip').default,
-    U2fEnrollment: require('app/components/u2f/u2fenrollment').default,
-    U2fSign: require('app/components/u2f/u2fsign').default,
-    Badge: require('app/components/badge').default,
-    Tag: require('app/views/settings/components/tag').default,
-    Switch: require('app/components/switch').default,
-    Search: require('app/components/search').default,
-    HelpSource: require('app/components/search/sources/helpSource').default,
-    GlobalModal: require('app/components/globalModal').default,
-    SetupWizard: require('app/components/setupWizard').default,
-    Well: require('app/components/well').default,
-    theme: require('app/utils/theme').default,
-    space: require('app/styles/space').default,
-    utils: {
-      errorHandler: require('app/utils/errorHandler').default,
-      ajaxCsrfSetup: require('app/utils/ajaxCsrfSetup').default,
-      logging: require('app/utils/logging'),
-      descopeFeatureName: require('app/utils').descopeFeatureName,
-      withApi: require('app/utils/withApi').default,
-      getDisplayName: require('app/utils/getDisplayName').default,
-    },
-    passwordStrength: {
-      load: loadPasswordStrength,
-    },
-  },
+  // The following components are used in legacy django HTML views
+  passwordStrength: {load: loadPasswordStrength},
+  U2fSign: require('app/components/u2f/u2fsign').default,
+  ConfigStore: require('app/stores/configStore').default,
+  Alerts: require('app/components/alerts').default,
+  Indicators: require('app/components/indicators').default,
+  ProjectSelector: require('app/components/projectHeader/projectSelector').default,
+  Sidebar: require('app/components/sidebar').default,
+  SetupWizard: require('app/components/setupWizard').default,
+  OrganizationsLoader: require('app/components/organizations/organizationsLoader')
+    .default,
 };
 
 // Make globals available on the window object
