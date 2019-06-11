@@ -1320,24 +1320,6 @@ class SnubaSearchTest(TestCase, SnubaTestCase):
 
         group_c = group_c_event_1.group
 
-        # group_a occured in staging environment, and the latest release at the time
-        # of this occurrence was release_1
-
-        GroupEnvironment.get_or_create(
-            group_id=group_a.id,
-            environment_id=staging_env.id,
-            defaults={'first_release_id': group_a.first_release.id}
-        )[0]
-
-        # group_a occured in production environment, and the latest release at the time
-        # of this occurrence was release_2
-
-        GroupEnvironment.get_or_create(
-            group_id=group_a.id,
-            environment_id=prod_env.id,
-            defaults={'first_release': group_a_event_2.release}
-        )[0]
-
         # query by release release_1
 
         results = self.make_query(
