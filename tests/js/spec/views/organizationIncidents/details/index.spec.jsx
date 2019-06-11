@@ -204,4 +204,24 @@ describe('IncidentDetails', function() {
         .text()
     ).toBe('JAVASCRIPT-6QS');
   });
+
+  it('renders incident without issues', async function() {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/incidents/123/',
+      body: {
+        ...mockIncident,
+        groups: [],
+      },
+    });
+
+    const wrapper = createWrapper();
+
+    expect(wrapper.find('RelatedIssues Placeholder')).toHaveLength(1);
+
+    await tick();
+    wrapper.update();
+
+    expect(wrapper.find('RelatedItem')).toHaveLength(0);
+    expect(wrapper.find('RelatedIssues Placeholder')).toHaveLength(0);
+  });
 });

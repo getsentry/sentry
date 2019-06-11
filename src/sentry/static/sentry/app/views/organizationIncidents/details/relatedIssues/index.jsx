@@ -31,6 +31,11 @@ const RelatedIssues = styled(
         <div className={className}>
           <IssuesFetcher api={api} issueIds={incident && incident.groups}>
             {({issues, loading, error}) => {
+              // If loading is finished, and there are no issues, do not display anythig
+              if (!loading && issues && issues.length === 0) {
+                return null;
+              }
+
               return (
                 <React.Fragment>
                   <SideHeader loading={loading}>

@@ -25,11 +25,12 @@ class IssuesFetcher extends React.PureComponent {
 
   fetchData = async () => {
     const {api, issueIds} = this.props;
-    this.setState({loading: true});
 
     if (!issueIds) {
       return;
     }
+
+    this.setState({loading: true});
 
     try {
       const issues = await Promise.all(
