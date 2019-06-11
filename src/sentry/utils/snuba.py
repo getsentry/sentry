@@ -264,7 +264,7 @@ def zerofill(data, start, end, rollup, orderby):
         else:
             rv.append({'time': key})
 
-    if len(orderby) > 0 and orderby[0].startswith('-'):
+    if '-time' in orderby:
         return list(reversed(rv))
 
     return rv
