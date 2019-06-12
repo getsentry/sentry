@@ -1502,7 +1502,7 @@ SUDO_URL = 'sentry-sudo'
 
 # Endpoint to https://github.com/getsentry/sentry-release-registry, used for
 # alerting the user on outdated SDKs.
-SENTRY_RELEASE_REGISTRY_BASEURL = 'https://release-registry.services.sentry.io'
+SENTRY_RELEASE_REGISTRY_BASEURL = None
 
 # Hardcoded SDK versions for SDKs that do not have an entry in the release
 # registry.
