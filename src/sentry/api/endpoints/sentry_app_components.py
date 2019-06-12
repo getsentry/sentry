@@ -2,7 +2,9 @@ from __future__ import absolute_import
 
 from rest_framework.response import Response
 
-from sentry.api.bases import OrganizationEndpoint, SentryAppBaseEndpoint
+from sentry.api.bases import (
+    OrganizationEndpoint, SentryAppBaseEndpoint, add_integration_platform_metric_tag,
+)
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.coreapi import APIError
@@ -21,6 +23,7 @@ class SentryAppComponentsEndpoint(SentryAppBaseEndpoint):
 
 
 class OrganizationSentryAppComponentsEndpoint(OrganizationEndpoint):
+    @add_integration_platform_metric_tag
     def get(self, request, organization):
         try:
             project = Project.objects.get(

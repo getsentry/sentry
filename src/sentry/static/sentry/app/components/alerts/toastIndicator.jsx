@@ -47,7 +47,7 @@ const Icon = styled('div')`
     display: block;
   }
 
-  color: ${p => (p.type == 'success' ? p.theme.green : p.theme.red)};
+  color: ${p => (p.type === 'success' ? p.theme.green : p.theme.red)};
 `;
 
 const Message = styled('div')`
@@ -88,9 +88,9 @@ function ToastIndicator({indicator, onDismiss, className, ...props}) {
     }
   };
 
-  if (type == 'success') {
+  if (type === 'success') {
     icon = <InlineSvg src="icon-circle-check" size="24px" />;
-  } else if (type == 'error') {
+  } else if (type === 'error') {
     icon = <InlineSvg src="icon-circle-close" size="24px" />;
   }
   return (
@@ -99,7 +99,7 @@ function ToastIndicator({indicator, onDismiss, className, ...props}) {
       className={cx(className, 'ref-toast', `ref-${type}`)}
       {...props}
     >
-      {type == 'loading' ? (
+      {type === 'loading' ? (
         <StyledLoadingIndicator mini />
       ) : (
         <Icon type={type}>{icon}</Icon>

@@ -221,8 +221,8 @@ export default withApi(withOrganization(SuggestedOwners));
  */
 function findMatchedRules(rules, owner) {
   const matchOwner = (actorType, key) =>
-    (actorType == 'user' && key === owner.email) ||
-    (actorType == 'team' && key == owner.name);
+    (actorType === 'user' && key === owner.email) ||
+    (actorType === 'team' && key === owner.name);
 
   const actorHasOwner = ([actorType, key]) =>
     actorType === owner.type && matchOwner(actorType, key);

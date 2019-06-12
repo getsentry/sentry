@@ -36,19 +36,17 @@ class OrganizationGroupIndexTest(AcceptanceTestCase, SnubaTestCase):
 
     def test_with_onboarding(self):
         self.project.update(first_event=None)
-        with self.feature(['organizations:sentry10', 'organizations:discover']):
-            self.browser.get(self.path)
-            self.wait_until_loaded()
-            self.browser.wait_until_test_id('awaiting-events')
-            self.browser.snapshot('organization issues onboarding')
+        self.browser.get(self.path)
+        self.wait_until_loaded()
+        self.browser.wait_until_test_id('awaiting-events')
+        self.browser.snapshot('organization issues onboarding')
 
     def test_with_no_results(self):
         self.project.update(first_event=timezone.now())
-        with self.feature(['organizations:sentry10', 'organizations:discover']):
-            self.browser.get(self.path)
-            self.wait_until_loaded()
-            self.browser.wait_until_test_id('empty-state')
-            self.browser.snapshot('organization issues no results')
+        self.browser.get(self.path)
+        self.wait_until_loaded()
+        self.browser.wait_until_test_id('empty-state')
+        self.browser.snapshot('organization issues no results')
 
     @patch('django.utils.timezone.now')
     def test_with_results(self, mock_now):
@@ -71,16 +69,15 @@ class OrganizationGroupIndexTest(AcceptanceTestCase, SnubaTestCase):
             },
             project_id=self.project.id
         )
-        with self.feature(['organizations:sentry10', 'organizations:discover']):
-            self.browser.get(self.path)
-            self.wait_until_loaded()
-            self.browser.wait_until('.event-issue-header')
-            self.browser.snapshot('organization issues with issues')
+        self.browser.get(self.path)
+        self.wait_until_loaded()
+        self.browser.wait_until('.event-issue-header')
+        self.browser.snapshot('organization issues with issues')
 
-            groups = self.browser.find_elements_by_class_name('event-issue-header')
-            assert len(groups) == 2
-            assert 'oh snap' in groups[0].text
-            assert 'oh no' in groups[1].text
+        groups = self.browser.find_elements_by_class_name('event-issue-header')
+        assert len(groups) == 2
+        assert 'oh snap' in groups[0].text
+        assert 'oh no' in groups[1].text
 
     def wait_until_loaded(self):
         self.browser.wait_until_not('.loading')

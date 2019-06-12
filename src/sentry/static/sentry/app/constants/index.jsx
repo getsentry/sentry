@@ -153,3 +153,5 @@ export const SEARCH_TYPES = {
   EVENT: 1,
 };
 export const MAX_RECENT_SEARCHES = 3;
+
+export const DEFAULT_PER_PAGE = 50;

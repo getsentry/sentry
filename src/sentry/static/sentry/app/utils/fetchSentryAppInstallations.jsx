@@ -3,10 +3,15 @@ import SentryAppStore from 'app/stores/sentryAppStore';
 
 const fetchSentryAppInstallations = (api, orgSlug) => {
   const sentryAppsUri = '/sentry-apps/';
+  const ownedSentryAppsUri = `/organizations/${orgSlug}/sentry-apps/`;
   const installsUri = `/organizations/${orgSlug}/sentry-app-installations/`;
 
   function updateSentryAppStore(sentryApps) {
     SentryAppStore.load(sentryApps);
+  }
+
+  function fetchOwnedSentryApps() {
+    api.requestPromise(ownedSentryAppsUri).then(apps => SentryAppStore.add(...apps));
   }
 
   function fetchInstalls() {
@@ -28,6 +33,7 @@ const fetchSentryAppInstallations = (api, orgSlug) => {
   api
     .requestPromise(sentryAppsUri)
     .then(updateSentryAppStore)
+    .then(fetchOwnedSentryApps)
     .then(fetchInstalls);
 };
 

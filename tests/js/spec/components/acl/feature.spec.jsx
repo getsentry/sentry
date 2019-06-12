@@ -192,7 +192,7 @@ describe('Feature', function() {
         <Feature features={['org-bar']} renderDisabled={() => <span>disabled</span>} />,
         routerContext
       );
-      expect(wrapper.find('Feature').text()).toBeNull();
+      expect(wrapper.find('Feature').text()).toBe('');
     });
   });
 

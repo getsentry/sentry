@@ -130,11 +130,7 @@
               <em>=</em>
               <span>
               {% with query=tag_key|as_tag_alias|add:":\""|add:tag_value|add:"\""|urlencode %}
-              {% feature organizations:sentry10 group.project.organization %}
-                  <a href="{% absolute_uri '/organizations/{}/issues/' group.project.organization.slug %}?project={{ group.project.id }}&query={{ query }}">{{ tag_value|truncatechars:50 }}</a> {% if tag_value|is_url %}<a href="{{ tag_value }}" class="icon-share"></a>{% endif %}
-              {% else %}
-                  <a href="{% absolute_uri '/{}/{}/' group.project.organization.slug group.project.slug %}?query={{ query }}">{{ tag_value|truncatechars:50 }}</a> {% if tag_value|is_url %}<a href="{{ tag_value }}" class="icon-share"></a>{% endif %}
-              {% endfeature %}
+                <a href="{% absolute_uri '/organizations/{}/issues/' group.project.organization.slug %}?project={{ group.project.id }}&query={{ query }}">{{ tag_value|truncatechars:50 }}</a> {% if tag_value|is_url %}<a href="{{ tag_value }}" class="icon-share"></a>{% endif %}
               {% endwith %}
               </span>
           </li>

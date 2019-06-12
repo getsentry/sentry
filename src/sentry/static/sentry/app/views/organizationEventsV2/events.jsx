@@ -30,9 +30,7 @@ export default class Events extends AsyncComponent {
     view: SentryTypes.EventView.isRequired,
   };
 
-  state = {
-    zoomed: false,
-  };
+  shouldReload = true;
 
   componentDidUpdate(prevProps, prevContext) {
     // Do not update if we are just opening/closing the modal
@@ -70,8 +68,6 @@ export default class Events extends AsyncComponent {
     });
   };
 
-  handleZoom = () => this.setState({zoomed: true});
-
   renderLoading() {
     return this.renderBody();
   }
@@ -90,7 +86,6 @@ export default class Events extends AsyncComponent {
                 router={router}
                 query={query}
                 organization={organization}
-                onZoom={this.handleZoom}
                 showLegend
                 yAxisOptions={CHART_AXIS_OPTIONS}
               />

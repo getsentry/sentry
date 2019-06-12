@@ -2,6 +2,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
 
+import {nl2br, escape} from 'app/utils';
 import {t} from 'app/locale';
 import ActivityAuthor from 'app/components/activity/author';
 import ActivityItem from 'app/components/activity/item';
@@ -9,23 +10,18 @@ import Clipboard from 'app/components/clipboard';
 import InlineSvg from 'app/components/inlineSvg';
 import Link from 'app/components/links/link';
 import space from 'app/styles/space';
-import utils from 'app/utils';
 
 class EventUserFeedback extends React.Component {
   static propTypes = {
     report: PropTypes.object.isRequired,
     orgId: PropTypes.string.isRequired,
     issueId: PropTypes.string.isRequired,
-    // Provided only in the single project scoped version of this component
-    projectId: PropTypes.string,
   };
 
   getUrl() {
-    const {report, orgId, projectId, issueId} = this.props;
+    const {report, orgId, issueId} = this.props;
 
-    return projectId
-      ? `/${orgId}/${projectId}/issues/${issueId}/events/${report.event.eventID}/`
-      : `/organizations/${orgId}/issues/${issueId}/events/${report.event.eventID}/`;
+    return `/organizations/${orgId}/issues/${issueId}/events/${report.event.eventID}/`;
   }
 
   render() {
@@ -54,7 +50,7 @@ class EventUserFeedback extends React.Component {
         >
           <p
             dangerouslySetInnerHTML={{
-              __html: utils.nl2br(utils.escape(report.comments)),
+              __html: nl2br(escape(report.comments)),
             }}
           />
         </ActivityItem>

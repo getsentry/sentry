@@ -6,69 +6,74 @@ import {defined} from 'app/utils';
 import {fetchPlugins} from 'app/actionCreators/plugins';
 import getDisplayName from 'app/utils/getDisplayName';
 import PluginsStore from 'app/stores/pluginsStore';
-import ProjectState from 'app/mixins/projectState';
 import SentryTypes from 'app/sentryTypes';
+
+import withOrganization from 'app/utils/withOrganization';
+import withProject from 'app/utils/withProject';
 
 /**
  * Higher order component that fetches list of plugins and
  * passes PluginsStore to component as `plugins`
  */
 const withPlugins = WrappedComponent =>
-  createReactClass({
-    displayName: `withPlugins(${getDisplayName(WrappedComponent)})`,
-    propTypes: {
-      organization: SentryTypes.Organization,
-      project: SentryTypes.Project,
-    },
-    mixins: [ProjectState, Reflux.connect(PluginsStore, 'store')],
+  withOrganization(
+    withProject(
+      createReactClass({
+        displayName: `withPlugins(${getDisplayName(WrappedComponent)})`,
+        propTypes: {
+          organization: SentryTypes.Organization,
+          project: SentryTypes.Project,
+        },
+        mixins: [Reflux.connect(PluginsStore, 'store')],
 
-    componentDidMount() {
-      this.fetchPlugins();
-    },
+        componentDidMount() {
+          this.fetchPlugins();
+        },
 
-    componentDidUpdate(prevProps, prevState, prevContext) {
-      const organization = this.props.organization || this.getOrganization();
-      const project = this.props.project || this.getProject();
+        componentDidUpdate(prevProps, prevState, prevContext) {
+          const {organization, project} = this.props;
 
-      // Only fetch plugins when a org slug or project slug has changed
-      const prevOrg = prevProps.organization || (prevContext && prevContext.organization);
-      const prevProject = prevProps.project || (prevContext && prevContext.project);
+          // Only fetch plugins when a org slug or project slug has changed
+          const prevOrg =
+            prevProps.organization || (prevContext && prevContext.organization);
+          const prevProject = prevProps.project || (prevContext && prevContext.project);
 
-      // If previous org/project is undefined then it means:
-      // the HoC has mounted, `fetchPlugins` has been called (via cDM), and
-      // store was updated. We don't need to fetchPlugins again (or it will cause an infinite loop)
-      //
-      // This is for the unusual case where component is mounted and receives a new org/project prop
-      // e.g. when switching projects via breadcrumbs in settings.
-      if (!defined(prevProject) || !defined(prevOrg)) {
-        return;
-      }
+          // If previous org/project is undefined then it means:
+          // the HoC has mounted, `fetchPlugins` has been called (via cDM), and
+          // store was updated. We don't need to fetchPlugins again (or it will cause an infinite loop)
+          //
+          // This is for the unusual case where component is mounted and receives a new org/project prop
+          // e.g. when switching projects via breadcrumbs in settings.
+          if (!defined(prevProject) || !defined(prevOrg)) {
+            return;
+          }
 
-      const isOrgSame = prevOrg.slug === organization.slug;
-      const isProjectSame = prevProject.slug === project.slug;
+          const isOrgSame = prevOrg.slug === organization.slug;
+          const isProjectSame = prevProject.slug === project.slug;
 
-      // Don't do anything if org and project are the same
-      if (isOrgSame && isProjectSame) {
-        return;
-      }
+          // Don't do anything if org and project are the same
+          if (isOrgSame && isProjectSame) {
+            return;
+          }
 
-      this.fetchPlugins();
-    },
+          this.fetchPlugins();
+        },
 
-    fetchPlugins() {
-      const organization = this.props.organization || this.getOrganization();
-      const project = this.props.project || this.getProject();
+        fetchPlugins() {
+          const {organization, project} = this.props;
 
-      if (!project || !organization) {
-        return;
-      }
+          if (!project || !organization) {
+            return;
+          }
 
-      fetchPlugins({projectId: project.slug, orgId: organization.slug});
-    },
+          fetchPlugins({projectId: project.slug, orgId: organization.slug});
+        },
 
-    render() {
-      return <WrappedComponent {...this.props} plugins={this.state.store} />;
-    },
-  });
+        render() {
+          return <WrappedComponent {...this.props} plugins={this.state.store} />;
+        },
+      })
+    )
+  );
 
 export default withPlugins;

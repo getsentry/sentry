@@ -28,7 +28,7 @@ const SentryAppComponentsStore = Reflux.createStore({
     if (!type) {
       return this.getAll();
     }
-    return this.items.filter(item => item.type == type);
+    return this.items.filter(item => item.type === type);
   },
 });
 

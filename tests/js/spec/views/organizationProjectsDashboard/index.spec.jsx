@@ -118,12 +118,8 @@ describe('OrganizationDashboard', function() {
         TestStubs.routerContext()
       );
       const emptyState = wrapper.find('NoProjectMessage');
-      const favorites = wrapper.find('TeamSection[data-test-id="favorites"]');
       const teamSection = wrapper.find('TeamSection');
       expect(emptyState).toHaveLength(0);
-      // Note: we have a project that is bookmarked but there is no Favorites section
-      // We removed this as part of sentry 10
-      expect(favorites).toHaveLength(0);
       expect(teamSection).toHaveLength(1);
     });
 
@@ -268,8 +264,6 @@ describe('OrganizationDashboard', function() {
         routerContext
       );
 
-      // Favorites = ~3~0 + 6 for first team
-      // Note: Favorites does not exist in sentry10
       expect(loadStatsSpy).toHaveBeenCalledTimes(6);
       expect(mock).not.toHaveBeenCalled();
 

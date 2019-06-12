@@ -25,7 +25,7 @@ class RadioField extends React.Component {
           <RadioGroup
             choices={props.choices}
             disabled={disabled}
-            value={value == '' ? null : value}
+            value={value === '' ? null : value}
             label={props.label}
             onChange={(id, e) => this.onChange(id, onChange, onBlur, e)}
           />

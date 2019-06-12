@@ -4,6 +4,7 @@ import styled from 'react-emotion';
 
 import {analytics} from 'app/utils/analytics';
 import {logException} from 'app/utils/logging';
+import {objectIsEmpty} from 'app/utils';
 import {t} from 'app/locale';
 import BreadcrumbsInterface from 'app/components/events/interfaces/breadcrumbs';
 import CspInterface from 'app/components/events/interfaces/csp';
@@ -29,7 +30,6 @@ import SentryTypes from 'app/sentryTypes';
 import StacktraceInterface from 'app/components/events/interfaces/stacktrace';
 import TemplateInterface from 'app/components/events/interfaces/template';
 import ThreadsInterface from 'app/components/events/interfaces/threads';
-import utils from 'app/utils';
 import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
 
@@ -141,7 +141,7 @@ class EventEntries extends React.Component {
     const features = organization ? new Set(organization.features) : new Set();
 
     const hasContext =
-      event && (!utils.objectIsEmpty(event.user) || !utils.objectIsEmpty(event.contexts));
+      event && (!objectIsEmpty(event.user) || !objectIsEmpty(event.contexts));
 
     if (!event) {
       return (
@@ -153,7 +153,7 @@ class EventEntries extends React.Component {
 
     return (
       <div className="entries">
-        {!utils.objectIsEmpty(event.errors) && <EventErrors event={event} />}{' '}
+        {!objectIsEmpty(event.errors) && <EventErrors event={event} />}{' '}
         {!isShare && !!group.firstRelease && (
           <EventCause event={event} orgId={orgId} projectId={project.slug} />
         )}
@@ -161,7 +161,6 @@ class EventEntries extends React.Component {
           <StyledEventUserFeedback
             report={event.userReport}
             orgId={orgId}
-            projectId={project.slug}
             issueId={group.id}
           />
         )}
@@ -175,14 +174,14 @@ class EventEntries extends React.Component {
         />
         {this.renderEntries()}
         {hasContext && <EventContexts group={group} event={event} />}
-        {!utils.objectIsEmpty(event.context) && <EventExtraData event={event} />}
-        {!utils.objectIsEmpty(event.packages) && <EventPackageData event={event} />}
-        {!utils.objectIsEmpty(event.device) && <EventDevice event={event} />}
+        {!objectIsEmpty(event.context) && <EventExtraData event={event} />}
+        {!objectIsEmpty(event.packages) && <EventPackageData event={event} />}
+        {!objectIsEmpty(event.device) && <EventDevice event={event} />}
         {!isShare && features.has('event-attachments') && (
           <EventAttachments event={event} orgId={orgId} projectId={project.slug} />
         )}
-        {!utils.objectIsEmpty(event.sdk) && <EventSdk event={event} />}
-        {!utils.objectIsEmpty(event.sdk) && event.sdk.upstream.isNewer && (
+        {!objectIsEmpty(event.sdk) && <EventSdk event={event} />}
+        {!objectIsEmpty(event.sdk) && event.sdk.upstream.isNewer && (
           <div className="alert-block alert-info box">
             <span className="icon-exclamation" />
             {t(

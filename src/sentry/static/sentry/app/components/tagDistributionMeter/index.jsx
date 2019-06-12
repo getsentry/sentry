@@ -38,6 +38,18 @@ export default class TagDistributionMeter extends React.Component {
   renderSegments() {
     const {segments, totalValues} = this.props;
 
+    const totalVisible = segments.reduce((sum, value) => sum + value.count, 0);
+    const hasOther = totalVisible < totalValues;
+
+    if (hasOther) {
+      segments.push({
+        isOther: true,
+        name: t('Other'),
+        value: 'other',
+        count: totalValues - totalVisible,
+      });
+    }
+
     return (
       <React.Fragment>
         {segments.map((value, index) => {
@@ -55,12 +67,13 @@ export default class TagDistributionMeter extends React.Component {
             <Tooltip key={value.value} title={tooltipHtml} containerDisplayMode="inline">
               <Segment
                 style={{width: pct + '%'}}
-                to={value.url}
+                to={value.isOther ? null : value.url}
                 index={index}
                 first={index === 0}
                 last={index === segments.length - 1}
+                isOther={!!value.isOther}
               >
-                <Description first={index == 0}>
+                <Description first={index === 0}>
                   <Percentage>{pctLabel}%</Percentage>
                   <Label>{value.name}</Label>
                 </Description>
@@ -124,20 +137,18 @@ const Title = styled('div')`
   line-height: 1;
 `;
 
-const getColor = p => {
-  return [
-    '#7c7484',
-    '#867f90',
-    '#918a9b',
-    '#9b96a7',
-    '#a6a1b3',
-    '#b0acbe',
-    '#bbb7ca',
-    '#c5c3d6',
-    '#d0cee1',
-    '#dad9ed',
-  ][p.index];
-};
+const colors = [
+  '#7c7484',
+  '#867f90',
+  '#918a9b',
+  '#9b96a7',
+  '#a6a1b3',
+  '#b0acbe',
+  '#bbb7ca',
+  '#c5c3d6',
+  '#d0cee1',
+  '#dad9ed',
+];
 
 const Segment = styled(Link, {shouldForwardProp: isPropValid})`
   height: 16px;
@@ -154,7 +165,7 @@ const Segment = styled(Link, {shouldForwardProp: isPropValid})`
   border-top-right-radius: ${p => p.last && p.theme.borderRadius};
   border-bottom-right-radius: ${p => p.last && p.theme.borderRadius};
 
-  background-color: ${getColor};
+  background-color: ${p => (p.isOther ? colors[colors.length - 1] : colors[p.index])};
 `;
 
 const Description = styled('span', {shouldForwardProp: isPropValid})`

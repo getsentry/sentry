@@ -443,11 +443,7 @@ class Organization(Model):
         )
 
     def get_url_viewname(self):
-        from sentry import features
-        if features.has('organizations:sentry10', self):
-            return 'sentry-organization-issue-list'
-        else:
-            return 'sentry-organization-home'
+        return 'sentry-organization-issue-list'
 
     def get_url(self):
         return reverse(self.get_url_viewname(), args=[self.slug])

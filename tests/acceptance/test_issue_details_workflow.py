@@ -46,13 +46,12 @@ class IssueDetailsWorkflowTest(AcceptanceTestCase, SnubaTestCase):
         event = self.create_sample_event(
             platform='python',
         )
-        with self.feature('organizations:sentry10'):
-            self.page.visit_issue(self.org.slug, event.group.id)
-            self.page.resolve_issue()
+        self.page.visit_issue(self.org.slug, event.group.id)
+        self.page.resolve_issue()
 
-            res = self.page.api_issue_get(event.group.id)
-            assert res.status_code == 200, res
-            assert res.data['status'] == 'resolved'
+        res = self.page.api_issue_get(event.group.id)
+        assert res.status_code == 200, res
+        assert res.data['status'] == 'resolved'
 
     def test_ignore_basic(self):
         event = self.create_sample_event(

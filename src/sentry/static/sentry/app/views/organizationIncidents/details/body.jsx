@@ -4,8 +4,10 @@ import styled from 'react-emotion';
 import {PageContent} from 'app/styles/organization';
 import {t} from 'app/locale';
 import Chart from 'app/views/organizationIncidents/details/chart';
+import IdBadge from 'app/components/idBadge';
 import Link from 'app/components/links/link';
 import NavTabs from 'app/components/navTabs';
+import Projects from 'app/utils/projects';
 import SeenByList from 'app/components/seenByList';
 import SentryTypes from 'app/sentryTypes';
 import SideHeader from 'app/views/organizationIncidents/details/sideHeader';
@@ -13,7 +15,8 @@ import space from 'app/styles/space';
 import theme from 'app/utils/theme';
 
 import Activity from './activity';
-import IncidentsSuspects from './suspects';
+import RelatedIssues from './relatedIssues';
+import Suspects from './suspects';
 
 export default class DetailsBody extends React.Component {
   static propTypes = {
@@ -22,6 +25,9 @@ export default class DetailsBody extends React.Component {
 
   render() {
     const {params, incident} = this.props;
+
+    // Considered loading when there is no incident object
+    const loading = !incident;
 
     return (
       <StyledPageContent>
@@ -44,21 +50,45 @@ export default class DetailsBody extends React.Component {
             </StyledNavTabs>
             <Activity
               params={params}
-              incidentStatus={incident ? incident.status : null}
+              incidentStatus={!loading ? incident.status : null}
             />
           </PageContent>
         </Main>
         <Sidebar>
           <PageContent>
-            <SideHeader>{t('Events in Incident')}</SideHeader>
-            {incident && (
+            <SideHeader loading={loading}>{t('Events in Incident')}</SideHeader>
+
+            {!loading ? (
               <Chart
                 data={incident.eventStats.data}
                 detected={incident.dateDetected}
                 closed={incident.dateClosed}
               />
+            ) : (
+              <ChartPlaceholder />
             )}
-            <IncidentsSuspects suspects={[]} />
+
+            <div>
+              <SideHeader loading={loading}>
+                {t('Projects Affected')} ({!loading ? incident.projects.length : '-'})
+              </SideHeader>
+
+              {!loading && (
+                <div>
+                  <Projects slugs={incident.projects} orgId={params.orgId}>
+                    {({projects}) => {
+                      return projects.map(project => (
+                        <StyledIdBadge key={project.slug} project={project} />
+                      ));
+                    }}
+                  </Projects>
+                </div>
+              )}
+            </div>
+
+            <Suspects params={params} />
+
+            <RelatedIssues params={params} incident={incident} />
           </PageContent>
         </Sidebar>
       </StyledPageContent>
@@ -105,4 +135,14 @@ const SeenByTab = styled('li')`
 
 const StyledSeenByList = styled(SeenByList)`
   margin-top: 0;
+`;
+
+const ChartPlaceholder = styled('div')`
+  background-color: ${p => p.theme.offWhite};
+  height: 190px;
+  margin-bottom: 10px;
+`;
+
+const StyledIdBadge = styled(IdBadge)`
+  margin-bottom: ${space(1)};
 `;

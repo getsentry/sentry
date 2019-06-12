@@ -9,7 +9,6 @@ import withApi from 'app/utils/withApi';
 import SuggestedOwners from 'app/components/group/suggestedOwners';
 import GroupParticipants from 'app/components/group/participants';
 import GroupReleaseStats from 'app/components/group/releaseStats';
-import OrganizationState from 'app/mixins/organizationState';
 import IndicatorStore from 'app/stores/indicatorStore';
 import TagDistributionMeter from 'app/components/group/tagDistributionMeter';
 import LoadingError from 'app/components/loadingError';
@@ -23,18 +22,12 @@ const GroupSidebar = createReactClass({
 
   propTypes: {
     api: PropTypes.object,
+    organization: SentryTypes.Organization,
     project: SentryTypes.Project,
     group: SentryTypes.Group,
     event: SentryTypes.Event,
     environments: PropTypes.arrayOf(SentryTypes.Environment),
-    sentryAppInstallations: PropTypes.array,
   },
-
-  contextTypes: {
-    location: PropTypes.object,
-  },
-
-  mixins: [OrganizationState],
 
   getInitialState() {
     return {participants: [], environments: this.props.environments};
@@ -87,7 +80,7 @@ const GroupSidebar = createReactClass({
       query: pickBy({
         key: group.tags.map(data => data.key),
         environment: this.state.environments.map(env => env.name),
-        enable_snuba: this.getFeatures().has('sentry10') ? '1' : '0',
+        enable_snuba: '1',
       }),
       success: data => {
         this.setState({
@@ -115,13 +108,12 @@ const GroupSidebar = createReactClass({
   },
 
   toggleSubscription() {
-    const {group, project} = this.props;
-    const org = this.getOrganization();
+    const {group, project, organization} = this.props;
     const loadingIndicator = IndicatorStore.add(t('Saving changes..'));
 
     this.props.api.bulkUpdate(
       {
-        orgId: org.slug,
+        orgId: organization.slug,
         projectId: project.slug,
         itemIds: [group.id],
         data: {
@@ -235,9 +227,8 @@ const GroupSidebar = createReactClass({
   },
 
   render() {
-    const {group, project, sentryAppInstallations} = this.props;
+    const {group, organization, project, environments} = this.props;
     const projectId = project.slug;
-    const organization = this.getOrganization();
 
     return (
       <div className="group-stats">
@@ -245,6 +236,8 @@ const GroupSidebar = createReactClass({
         <GroupReleaseStats
           group={this.props.group}
           project={project}
+          environments={environments}
+          organization={organization}
           allEnvironments={this.state.allEnvironmentsGroupData}
         />
 
@@ -254,7 +247,6 @@ const GroupSidebar = createReactClass({
             group={this.props.group}
             project={project}
             orgId={organization.slug}
-            sentryAppInstallations={sentryAppInstallations}
           />
         </ErrorBoundary>
 
@@ -306,7 +298,5 @@ const GroupSidebar = createReactClass({
     );
   },
 });
-
-export {GroupSidebar};
 
 export default withApi(GroupSidebar);

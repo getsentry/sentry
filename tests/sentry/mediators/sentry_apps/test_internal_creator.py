@@ -28,8 +28,8 @@ class TestInternalCreator(TestCase):
         )
 
     def test_creates_internal_sentry_app(self):
-        self.creator.call()
-        assert SentryApp.objects.filter(slug='nulldb').exists()
+        sentry_app = self.creator.call()
+        assert SentryApp.objects.filter(slug=sentry_app.slug).exists()
 
     def test_installs_to_org(self):
         sentry_app = self.creator.call()

@@ -57,7 +57,7 @@ class ProjectFilters extends React.Component {
             </NavTabs>
           )}
 
-          {filterType == 'discarded-groups' ? (
+          {filterType === 'discarded-groups' ? (
             <GroupTombstones orgId={orgId} projectId={projectId} />
           ) : (
             <ProjectFiltersSettings

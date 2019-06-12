@@ -31,14 +31,6 @@ class EventOrGroupExtraDetails extends React.Component {
     project: SentryTypes.Project,
   };
 
-  getIssuesPath() {
-    const {orgId, projectId} = this.props.params;
-
-    return projectId
-      ? `/${orgId}/${projectId}/issues/`
-      : `/organizations/${orgId}/issues/`;
-  }
-
   render() {
     const {
       id,
@@ -52,9 +44,10 @@ class EventOrGroupExtraDetails extends React.Component {
       showAssignee,
       shortId,
       project,
+      params,
     } = this.props;
 
-    const issuesPath = this.getIssuesPath();
+    const issuesPath = `/organizations/${params.orgId}/issues/`;
 
     return (
       <GroupExtra align="center">

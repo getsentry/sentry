@@ -18,7 +18,10 @@ module.exports = {
   env: {
     production: {},
     development: {
-      plugins: [['emotion', {sourceMap: true, autoLabel: true}]],
+      plugins: [
+        ['emotion', {sourceMap: true, autoLabel: true}],
+        '@babel/plugin-transform-react-jsx-source',
+      ],
     },
     test: {
       plugins: [['emotion', {autoLabel: true}], 'dynamic-import-node'],

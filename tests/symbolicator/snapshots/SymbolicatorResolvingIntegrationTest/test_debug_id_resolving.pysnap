@@ -1,5 +1,5 @@
 ---
-created: '2019-06-05T20:22:42.059174Z'
+created: '2019-06-11T21:26:10.030669Z'
 creator: sentry
 source: tests/symbolicator/test_payload_full.py
 ---
@@ -26,26 +26,28 @@ exception:
   - raw_stacktrace:
       frames:
       - data:
-          orig_in_app: -1
+          symbolicator_status: null
         function: <unknown>
         in_app: false
         instruction_addr: '0x2a2a3d'
+        lineno: null
         package: C:\projects\breakpad-tools\windows\Release\crash.exe
+        symbol: null
+        trust: null
     stacktrace:
       frames:
-      - abs_path: c:\projects\breakpad-tools\windows\crash\main.cpp
-        data:
-          orig_in_app: -1
+      - data:
           symbolicator_status: symbolicated
-        filename: main.cpp
         function: main
         in_app: false
         instruction_addr: '0x2a2a3d'
         lineno: 35
         package: C:\projects\breakpad-tools\windows\Release\crash.exe
         symbol: main
+        trust: null
     thread_id: 1636
     type: EXCEPTION_ACCESS_VIOLATION_WRITE
     value: 'Fatal Error: EXCEPTION_ACCESS_VIOLATION_WRITE'
 stacktrace: null
-threads: null
+threads:
+  values: []

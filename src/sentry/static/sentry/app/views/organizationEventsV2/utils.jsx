@@ -1,5 +1,6 @@
 import {pick} from 'lodash';
 
+import {DEFAULT_PER_PAGE} from 'app/constants';
 import {ALL_VIEWS, SPECIAL_FIELDS} from './data';
 
 /**
@@ -39,6 +40,8 @@ export function getQuery(view, location) {
   });
 
   const data = pick(location.query, [
+    'project',
+    'environment',
     'start',
     'end',
     'utc',
@@ -50,7 +53,7 @@ export function getQuery(view, location) {
   data.field = [...new Set(fields)];
   data.groupby = groupby;
   data.orderby = view.data.orderby;
-
+  data.per_page = DEFAULT_PER_PAGE;
   return data;
 }
 

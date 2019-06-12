@@ -6,7 +6,6 @@ from celery.task import current
 from django.core.urlresolvers import reverse
 from requests.exceptions import RequestException
 
-from sentry import features
 from sentry.http import safe_urlopen
 from sentry.tasks.base import instrumented_task, retry
 from sentry.utils.http import absolute_uri
@@ -72,19 +71,11 @@ def send_alert_event(event, rule, sentry_app_id):
         event.event_id,
     ]))
 
-    if features.has('organizations:sentry10', organization):
-        event_context['web_url'] = absolute_uri(reverse('sentry-organization-event-detail', args=[
-            organization.slug,
-            group.id,
-            event.event_id,
-        ]))
-    else:
-        event_context['web_url'] = absolute_uri(reverse('sentry-group-event', args=[
-            organization.slug,
-            project.slug,
-            group.id,
-            event.event_id,
-        ]))
+    event_context['web_url'] = absolute_uri(reverse('sentry-organization-event-detail', args=[
+        organization.slug,
+        group.id,
+        event.event_id,
+    ]))
 
     # The URL has a regex OR in it ("|") which means `reverse` cannot generate
     # a valid URL (it can't know which option to pick). We have to manually

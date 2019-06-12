@@ -79,7 +79,7 @@ class AccountSecurity extends AsyncView {
           }
         />
 
-        {!isEmpty && countEnrolled == 0 && <TwoFactorRequired />}
+        {!isEmpty && countEnrolled === 0 && <TwoFactorRequired />}
 
         <PasswordForm />
 

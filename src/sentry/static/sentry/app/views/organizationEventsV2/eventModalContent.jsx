@@ -1,26 +1,28 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
-import PropTypes from 'prop-types';
 
+import {INTERFACES} from 'app/components/events/eventEntries';
+import {getMessage, getTitle} from 'app/utils/events';
+import {objectIsEmpty, toTitleCase} from 'app/utils';
 import {t} from 'app/locale';
-import SentryTypes from 'app/sentryTypes';
 import DateTime from 'app/components/dateTime';
 import ErrorBoundary from 'app/components/errorBoundary';
-import ExternalLink from 'app/components/links/externalLink';
 import EventDataSection from 'app/components/events/eventDataSection';
 import EventDevice from 'app/components/events/device';
 import EventExtraData from 'app/components/events/extraData';
 import EventPackageData from 'app/components/events/packageData';
+import ExternalLink from 'app/components/links/externalLink';
 import FileSize from 'app/components/fileSize';
 import NavTabs from 'app/components/navTabs';
-import space from 'app/styles/space';
+import SentryTypes from 'app/sentryTypes';
 import getDynamicText from 'app/utils/getDynamicText';
-import utils from 'app/utils';
-import {getMessage, getTitle} from 'app/utils/events';
+import space from 'app/styles/space';
 
-import {INTERFACES} from 'app/components/events/eventEntries';
-import TagsTable from './tagsTable';
 import LinkedIssuePreview from './linkedIssuePreview';
+import ModalPagination from './modalPagination';
+import ModalLineGraph from './modalLineGraph';
+import TagsTable from './tagsTable';
 
 const OTHER_SECTIONS = {
   context: EventExtraData,
@@ -76,12 +78,30 @@ ActiveTab.propTypes = {
  * Controlled by the EventDetails View.
  */
 const EventModalContent = props => {
-  const {event, activeTab, projectId, onTabChange} = props;
+  const {event, activeTab, projectId, organization, onTabChange, location, view} = props;
+  const isGroupedView = !!view.data.groupby;
+  const eventJsonUrl = `/api/0/projects/${organization.slug}/${projectId}/events/${
+    event.eventID
+  }/json/`;
 
   return (
     <ColumnGrid>
-      <ContentColumn>
+      <HeaderBox>
         <EventHeader event={event} />
+        {isGroupedView && <ModalPagination event={event} location={location} />}
+        {isGroupedView &&
+          getDynamicText({
+            value: (
+              <ModalLineGraph
+                organization={organization}
+                groupId={event.groupID}
+                location={location}
+              />
+            ),
+            fixed: 'events chart',
+          })}
+      </HeaderBox>
+      <ContentColumn>
         <NavTabs underlined={true}>
           {event.entries.map(entry => {
             if (!INTERFACES.hasOwnProperty(entry.type)) {
@@ -98,13 +118,13 @@ const EventModalContent = props => {
                     onTabChange(type);
                   }}
                 >
-                  {utils.toTitleCase(type)}
+                  {toTitleCase(type)}
                 </a>
               </li>
             );
           })}
           {Object.keys(OTHER_SECTIONS).map(section => {
-            if (utils.objectIsEmpty(event[section])) {
+            if (objectIsEmpty(event[section])) {
               return null;
             }
             const classname = section === activeTab ? 'active' : null;
@@ -117,7 +137,7 @@ const EventModalContent = props => {
                     onTabChange(section);
                   }}
                 >
-                  {utils.toTitleCase(section)}
+                  {toTitleCase(section)}
                 </a>
               </li>
             );
@@ -129,7 +149,7 @@ const EventModalContent = props => {
       </ContentColumn>
       <SidebarColumn>
         {event.groupID && <LinkedIssuePreview groupId={event.groupID} />}
-        <EventMetadata event={event} />
+        <EventMetadata event={event} eventJsonUrl={eventJsonUrl} />
         <SidebarBlock>
           <TagsTable tags={event.tags} />
         </SidebarBlock>
@@ -140,6 +160,9 @@ const EventModalContent = props => {
 EventModalContent.propTypes = {
   ...ActiveTab.propTypes,
   onTabChange: PropTypes.func.isRequired,
+  organization: SentryTypes.Organization.isRequired,
+  view: PropTypes.object.isRequired,
+  location: PropTypes.object.isRequired,
 };
 
 /**
@@ -162,8 +185,7 @@ EventHeader.propTypes = {
  * Render metadata about the event and provide a link to the JSON blob
  */
 const EventMetadata = props => {
-  const jsonUrl = 'TODO build this';
-  const {event} = props;
+  const {event, eventJsonUrl} = props;
 
   return (
     <SidebarBlock withSeparator>
@@ -172,7 +194,7 @@ const EventMetadata = props => {
         <DateTime
           date={getDynamicText({value: event.dateCreated, fixed: 'Dummy timestamp'})}
         />
-        <ExternalLink href={jsonUrl} className="json-link">
+        <ExternalLink href={eventJsonUrl} className="json-link">
           JSON (<FileSize bytes={event.size} />)
         </ExternalLink>
       </MetadataContainer>
@@ -181,6 +203,7 @@ const EventMetadata = props => {
 };
 EventMetadata.propTypes = {
   event: SentryTypes.Event.isRequired,
+  eventJsonUrl: PropTypes.string.isRequired,
 };
 
 const MetadataContainer = styled('div')`
@@ -193,11 +216,14 @@ const MetadataContainer = styled('div')`
 
 const ColumnGrid = styled('div')`
   display: grid;
-  grid-template-columns: 70% 1fr;
+  grid-template-columns: 70% 28%;
   grid-template-rows: auto;
-  grid-column-gap: ${space(3)};
+  grid-column-gap: 2%;
 `;
 
+const HeaderBox = styled('div')`
+  grid-column: 1 / 3;
+`;
 const ContentColumn = styled('div')`
   grid-column: 1 / 2;
 `;

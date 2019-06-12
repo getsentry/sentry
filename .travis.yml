@@ -34,7 +34,6 @@ env:
     - DJANGO_VERSION=">=1.8,<1.9"
     # node's version is pinned by .nvmrc and is autodetected by `nvm install`.
     - NODE_DIR="${HOME}/.nvm/versions/node/v$(< .nvmrc)"
-    - YARN_VERSION="1.13.0"
     - NODE_OPTIONS=--max-old-space-size=4096
 
 script:
@@ -55,7 +54,7 @@ after_script:
         pip install codecov
         codecov -e TEST_SUITE
       fi
-  - npm install -g @zeus-ci/cli
+  - ./bin/yarn global add @zeus-ci/cli
   - zeus upload -t "text/xml+xunit" .artifacts/*junit.xml
   - zeus upload -t "text/xml+coverage" .artifacts/*coverage.xml
   - zeus upload -t "text/xml+coverage" .artifacts/coverage/cobertura-coverage.xml
@@ -90,7 +89,6 @@ base_acceptance: &acceptance_default
   before_install:
     - find "$NODE_DIR" -type d -empty -delete
     - nvm install
-    - npm install -g "yarn@${YARN_VERSION}"
     - docker run -d --network host --name clickhouse-server --ulimit nofile=262144:262144 yandex/clickhouse-server:18.14.9
     - docker run -d --network host --name snuba --env SNUBA_SETTINGS=test --env CLICKHOUSE_SERVER=localhost:9000 getsentry/snuba
     - docker ps -a
@@ -117,10 +115,9 @@ matrix:
       name: 'Linter'
       env: TEST_SUITE=lint
       install:
+        - SENTRY_LIGHT_BUILD=1 pip install -e ".[dev,tests,optional]"
         - find "$NODE_DIR" -type d -empty -delete
         - nvm install
-        - npm install -g "yarn@${YARN_VERSION}"
-        - pip install -r requirements-dev.txt
         - yarn install --pure-lockfile
 
     - <<: *postgres_default
@@ -158,7 +155,6 @@ matrix:
       before_install:
         - find "$NODE_DIR" -type d -empty -delete
         - nvm install
-        - npm install -g "yarn@${YARN_VERSION}"
       install:
         - yarn install --pure-lockfile
 
@@ -180,7 +176,6 @@ matrix:
       before_install:
         - find "$NODE_DIR" -type d -empty -delete
         - nvm install
-        - npm install -g "yarn@${YARN_VERSION}"
 
     - <<: *postgres_default
       name: 'Symbolicator Integration'
@@ -225,7 +220,6 @@ matrix:
         - tar -xzf credentials.tar.gz
         # Use the decrypted service account credentials to authenticate the command line tool
         - gcloud auth activate-service-account --key-file client-secret.json
-        - npm install -g "yarn@${YARN_VERSION}"
       install:
         - yarn install --pure-lockfile
         - gcloud version
@@ -238,12 +232,6 @@ matrix:
   allow_failures:
     - language: node_js
       env: STORYBOOK_BUILD=1
-
-    # XXX(ja): Should be removed once symbolicator's interface is more stable or
-    # tests have been refactored to be more lenient. At the moment, snapshots
-    # break every time when a new attribute is added or some secondary attribute
-    # is changed.
-    - env: TEST_SUITE=symbolicator
 
 notifications:
   webhooks:

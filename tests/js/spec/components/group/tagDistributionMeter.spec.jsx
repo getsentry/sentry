@@ -1,7 +1,7 @@
 import React from 'react';
 import {mount} from 'enzyme';
 
-import {GroupTagDistributionMeter} from 'app/components/group/tagDistributionMeter';
+import GroupTagDistributionMeter from 'app/components/group/tagDistributionMeter';
 
 describe('TagDistributionMeter', function() {
   let element;

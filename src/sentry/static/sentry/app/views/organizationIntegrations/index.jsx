@@ -13,6 +13,7 @@ import LoadingIndicator from 'app/components/loadingIndicator';
 import MigrationWarnings from 'app/views/organizationIntegrations/migrationWarnings';
 import PermissionAlert from 'app/views/settings/organization/permissionAlert';
 import ProviderRow from 'app/views/organizationIntegrations/providerRow';
+import {removeSentryApp} from 'app/actionCreators/sentryApps';
 import SentryAppInstallations from 'app/views/organizationIntegrations/sentryAppInstallations';
 import SentryApplicationRow from 'app/views/settings/organizationDeveloperSettings/sentryApplicationRow';
 import SentryTypes from 'app/sentryTypes';
@@ -67,7 +68,7 @@ class OrganizationIntegrations extends AsyncComponent {
     // when at least one Integration is present.
     return this.state.config.providers.map(provider => {
       const integrations = this.state.integrations.filter(
-        i => i.provider.key == provider.key
+        i => i.provider.key === provider.key
       );
       const isInstalled = integrations.length > 0;
 
@@ -168,6 +169,7 @@ class OrganizationIntegrations extends AsyncComponent {
 
   renderInternalSentryApps(app, key) {
     const {organization} = this.props;
+
     return (
       <SentryApplicationRow
         key={`sentry-app-row-${key}`}
@@ -175,11 +177,22 @@ class OrganizationIntegrations extends AsyncComponent {
         api={this.api}
         showPublishStatus
         isInternal
+        onRemoveApp={() => this.onRemoveInternalApp(app)}
         organization={organization}
         app={app}
       />
     );
   }
+
+  onRemoveInternalApp = app => {
+    const apps = this.state.orgOwnedApps.filter(a => a.slug !== app.slug);
+    removeSentryApp(this.api, app).then(
+      () => {
+        this.setState({orgOwnedApps: apps});
+      },
+      () => {}
+    );
+  };
 
   renderBody() {
     const {reloading, orgOwnedApps, publishedApps, appInstalls} = this.state;
@@ -187,7 +200,7 @@ class OrganizationIntegrations extends AsyncComponent {
     // we dont want the app to render twice if its the org that created
     // the published app.
     const orgOwned = orgOwnedApps.filter(app => {
-      return !published.find(p => p.slug == app.slug);
+      return !published.find(p => p.slug === app.slug);
     });
     const orgOwnedInternal = orgOwned.filter(app => {
       return app.status === 'internal';

@@ -1084,7 +1084,7 @@ exports[`OrganizationTeamProjects Should render 1`] = `
     </Panel>
     <Pagination
       api={Client {}}
-      className="stream-pagination"
+      className="css-1yt0wm7-streamCss"
       location={
         Object {
           "query": Object {},

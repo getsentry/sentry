@@ -68,9 +68,9 @@ export function openCreateIncidentModal(options = {}) {
   import(/* webpackChunkName: "CreateIncidentModal" */ 'app/components/modals/createIncidentModal')
     .then(mod => mod.default)
     .then(Modal => {
-      openModal(deps => <Modal {...deps} {...options} />, {
-        modalClassName: 'create-incident-modal',
-      });
+      openModal(deps => (
+        <Modal data-test-id="create-incident-modal" {...deps} {...options} />
+      ));
     });
 }
 

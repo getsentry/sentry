@@ -5,6 +5,7 @@ import six
 
 from django.conf import settings
 
+from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
 
 from sentry import features
@@ -145,6 +146,18 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
                     )
                     response['X-Sentry-Direct-Hit'] = '1'
                     return response
+
+        # If group ids specified, just ignore any query components
+        try:
+            group_ids = set(map(int, request.GET.getlist('group')))
+        except ValueError:
+            return Response({'detail': 'Group ids must be integers'}, status=400)
+
+        if group_ids:
+            groups = list(Group.objects.filter(id__in=group_ids, project_id__in=project_ids))
+            if any(g for g in groups if not request.access.has_project_access(g.project)):
+                raise PermissionDenied
+            return Response(serialize(groups, request.user, serializer()))
 
         try:
             start, end = get_date_range_from_params(request.GET)

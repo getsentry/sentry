@@ -10,7 +10,7 @@ import ProjectBadge from 'app/components/idBadge/projectBadge';
 import UserBadge from 'app/components/idBadge/userBadge';
 import DateTime from 'app/components/dateTime';
 
-import {QueryButton} from './styles';
+import {QueryLink} from './styles';
 
 export const ALL_VIEWS = deepFreeze([
   {
@@ -18,7 +18,7 @@ export const ALL_VIEWS = deepFreeze([
     name: 'All Events',
     data: {
       fields: ['event', 'type', 'project', 'user', 'time'],
-      orderby: '-timestamp',
+      orderby: ['-timestamp', '-id'],
     },
     tags: [
       'event.type',
@@ -35,7 +35,7 @@ export const ALL_VIEWS = deepFreeze([
     data: {
       fields: ['error', 'event_count', 'user_count', 'project', 'last_seen'],
       groupby: ['issue.id', 'project.id'],
-      orderby: '-last_seen',
+      orderby: ['-last_seen', '-issue.id'],
     },
     tags: ['error.type', 'project.name'],
   },
@@ -45,7 +45,7 @@ export const ALL_VIEWS = deepFreeze([
     data: {
       fields: ['csp', 'event_count', 'user_count', 'project', 'last_seen'],
       groupby: ['issue.id', 'project.id'],
-      orderby: '-last_seen',
+      orderby: ['-last_seen', '-issue.id'],
     },
     tags: [
       'project.name',
@@ -82,9 +82,9 @@ export const SPECIAL_FIELDS = {
   type: {
     fields: ['event.type'],
     renderFunc: (data, {onSearch}) => (
-      <QueryButton onClick={() => onSearch(`event.type:${data['event.type']}`)}>
+      <QueryLink onClick={() => onSearch(`event.type:${data['event.type']}`)}>
         {data['event.type']}
-      </QueryButton>
+      </QueryLink>
     ),
   },
   project: {
@@ -117,26 +117,56 @@ export const SPECIAL_FIELDS = {
         return <Container>{badge}</Container>;
       }
 
-      return (
-        <QueryButton onClick={() => onSearch(`user:${data.user}`)}>{badge}</QueryButton>
-      );
+      return <QueryLink onClick={() => onSearch(`user:${data.user}`)}>{badge}</QueryLink>;
     },
   },
   time: {
     fields: ['timestamp'],
     renderFunc: data => (
       <Container>
-        <DynamicWrapper value={<StyledDateTime date={data.timestamp} />} fixed="time" />
+        {data.timestamp ? (
+          <DynamicWrapper value={<StyledDateTime date={data.timestamp} />} fixed="time" />
+        ) : null}
       </Container>
     ),
   },
   error: {
-    fields: ['issue_title'],
-    renderFunc: data => <Container>{data.issue_title}</Container>,
+    fields: ['issue_title', 'project.name', 'issue.id'],
+    renderFunc: (data, {organization, location}) => {
+      const target = {
+        pathname: `/organizations/${organization.slug}/events/`,
+        query: {
+          ...location.query,
+          groupSlug: `${data['project.name']}:${data['issue.id']}:latest`,
+        },
+      };
+      return (
+        <Container>
+          <Link css={overflowEllipsis} to={target} data-test-id="event-title">
+            {data.issue_title}
+          </Link>
+        </Container>
+      );
+    },
   },
   csp: {
-    fields: ['issue_title'],
-    renderFunc: data => <Container>{data.issue_title}</Container>,
+    fields: ['issue_title', 'project.name', 'issue.id'],
+    renderFunc: (data, {organization, location}) => {
+      const target = {
+        pathname: `/organizations/${organization.slug}/events/`,
+        query: {
+          ...location.query,
+          groupSlug: `${data['project.name']}:${data['issue.id']}:latest`,
+        },
+      };
+      return (
+        <Container>
+          <Link css={overflowEllipsis} to={target} data-test-id="event-title">
+            {data.issue_title}
+          </Link>
+        </Container>
+      );
+    },
   },
   event_count: {
     title: 'events',

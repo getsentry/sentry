@@ -2,7 +2,6 @@ import React from 'react';
 import {mount} from 'enzyme';
 
 import {ProjectContext} from 'app/views/projects/projectContext';
-import SentryTypes from 'app/sentryTypes';
 
 jest.unmock('app/utils/recreateRoute');
 jest.mock('app/actionCreators/modal', () => ({
@@ -58,10 +57,7 @@ describe('projectContext component', function() {
       />
     );
 
-    const wrapper = mount(projectContext, {
-      context: {organization: org},
-      childContextTypes: {organization: SentryTypes.Organization},
-    });
+    const wrapper = mount(projectContext);
 
     await tick();
     wrapper.update();
@@ -93,10 +89,7 @@ describe('projectContext component', function() {
       />
     );
 
-    const wrapper = mount(projectContext, {
-      context: {organization: org},
-      childContextTypes: {organization: SentryTypes.Organization},
-    });
+    const wrapper = mount(projectContext);
 
     expect(fetchMock).toHaveBeenCalledTimes(1);
 
@@ -141,10 +134,7 @@ describe('projectContext component', function() {
       />
     );
 
-    const wrapper = mount(projectContext, {
-      context: {organization: org},
-      childContextTypes: {organization: SentryTypes.Organization},
-    });
+    const wrapper = mount(projectContext);
 
     expect(fetchMock).toHaveBeenCalledTimes(1);
 

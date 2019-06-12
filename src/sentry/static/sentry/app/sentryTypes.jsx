@@ -117,7 +117,7 @@ export const EventView = PropTypes.shape({
   data: PropTypes.shape({
     fields: PropTypes.arrayOf(PropTypes.string),
     groupby: PropTypes.arrayOf(PropTypes.string),
-    sort: PropTypes.string,
+    orderby: PropTypes.arrayOf(PropTypes.string),
   }).isRequired,
   tags: PropTypes.arrayOf(PropTypes.string).isRequired,
 });
@@ -419,13 +419,37 @@ export const SavedSearch = PropTypes.shape({
 export const Incident = PropTypes.shape({
   id: PropTypes.string.isRequired,
   identifier: PropTypes.string.isRequired,
+  organizationId: PropTypes.string.isRequired,
   title: PropTypes.string.isRequired,
   status: PropTypes.number.isRequired,
   query: PropTypes.string,
   projects: PropTypes.array.isRequired,
+  eventStats: PropTypes.shape({
+    data: PropTypes.arrayOf(
+      PropTypes.arrayOf(PropTypes.oneOfType([PropTypes.number, PropTypes.array]))
+    ),
+  }),
   totalEvents: PropTypes.number.isRequired,
   uniqueUsers: PropTypes.number.isRequired,
-  isSubscribed: PropTypes.bool.isRequired,
+  isSubscribed: PropTypes.bool,
+  dateClosed: PropTypes.string,
+  dateStarted: PropTypes.string.isRequired,
+  dateDetected: PropTypes.string.isRequired,
+  dateAdded: PropTypes.string.isRequired,
+});
+
+export const IncidentSuspectData = PropTypes.shape({
+  author: User,
+  dateCreated: PropTypes.string.isRequired,
+  id: PropTypes.string.isRequired,
+  message: PropTypes.string,
+  repository: Repository,
+  score: PropTypes.number,
+});
+
+export const IncidentSuspect = PropTypes.shape({
+  type: PropTypes.oneOf(['commit']).isRequired,
+  data: IncidentSuspectData.isRequired,
 });
 
 export const Activity = PropTypes.shape({
@@ -983,6 +1007,8 @@ const SentryTypes = {
   Group,
   Incident,
   IncidentActivity,
+  IncidentSuspect,
+  IncidentSuspectData,
   Tag,
   Monitor,
   PageLinks,

@@ -6,7 +6,6 @@ from sentry import features
 from sentry.api.bases.sentryapps import SentryAppBaseEndpoint
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework import SentryAppSerializer
-from sentry.constants import SentryAppStatus
 from sentry.mediators.sentry_apps import Updater, Destroyer
 
 
@@ -68,7 +67,7 @@ class SentryAppDetailsEndpoint(SentryAppBaseEndpoint):
                             actor=request.user):
             return Response(status=404)
 
-        if sentry_app.status == SentryAppStatus.UNPUBLISHED:
+        if sentry_app.is_unpublished or sentry_app.is_internal:
             Destroyer.run(
                 user=request.user,
                 sentry_app=sentry_app,

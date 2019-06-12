@@ -127,6 +127,7 @@ function findBestThread(threads) {
 class Thread extends React.Component {
   static propTypes = {
     event: SentryTypes.Event.isRequired,
+    projectId: PropTypes.string.isRequired,
     data: PropTypes.object.isRequired,
     stackView: PropTypes.string,
     stackType: PropTypes.string,
@@ -160,6 +161,7 @@ class Thread extends React.Component {
     const {
       data,
       event,
+      projectId,
       stackView,
       stackType,
       newestFirst,
@@ -184,6 +186,7 @@ class Thread extends React.Component {
             stackType={stackType}
             stackView={stackView}
             newestFirst={newestFirst}
+            projectId={projectId}
             exception={exception}
             stacktrace={stacktrace}
           />
@@ -196,6 +199,7 @@ class Thread extends React.Component {
 class ThreadsInterface extends React.Component {
   static propTypes = {
     event: SentryTypes.Event.isRequired,
+    projectId: PropTypes.string.isRequired,
     type: PropTypes.string.isRequired,
     data: PropTypes.object.isRequired,
   };
@@ -244,6 +248,7 @@ class ThreadsInterface extends React.Component {
 
   render() {
     const evt = this.props.event;
+    const {projectId} = this.props;
     const {stackView, stackType, newestFirst, activeThread} = this.state;
     const exception = this.getException();
     const stacktrace = this.getStacktrace();
@@ -301,6 +306,7 @@ class ThreadsInterface extends React.Component {
           stacktrace={stacktrace}
           event={evt}
           newestFirst={newestFirst}
+          projectId={projectId}
         />
       </EventDataSection>
     );

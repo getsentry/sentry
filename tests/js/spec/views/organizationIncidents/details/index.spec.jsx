@@ -3,30 +3,38 @@ import React from 'react';
 import {initializeOrg} from 'app-test/helpers/initializeOrg';
 import {mount} from 'enzyme';
 import IncidentDetails from 'app/views/organizationIncidents/details';
+import ProjectsStore from 'app/stores/projectsStore';
 
 describe('IncidentDetails', function() {
-  const mockIncident = TestStubs.Incident();
-  const {organization, routerContext} = initializeOrg();
-
+  const params = {orgId: 'org-slug', incidentId: '123'};
+  const {organization, project, routerContext} = initializeOrg({
+    router: {
+      params,
+    },
+  });
+  const mockIncident = TestStubs.Incident({projects: [project.slug]});
   let activitiesList;
 
   const createWrapper = props =>
-    mount(
-      <IncidentDetails
-        params={{orgId: 'org-slug', incidentId: mockIncident.identifier}}
-        {...props}
-      />,
-      routerContext
-    );
+    mount(<IncidentDetails params={params} {...props} />, routerContext);
 
   beforeAll(function() {
+    ProjectsStore.loadInitialData([project]);
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/incidents/123/',
       body: mockIncident,
     });
     MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/incidents/123/suspects/',
+      body: [TestStubs.IncidentSuspectCommit()],
+    });
+    MockApiClient.addMockResponse({
       url: '/organizations/org-slug/incidents/456/',
       statusCode: 404,
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/incidents/456/suspects/',
+      body: [],
     });
     activitiesList = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/incidents/${
@@ -65,6 +73,15 @@ describe('IncidentDetails', function() {
         .at(2)
         .text()
     ).toBe('20');
+
+    expect(wrapper.find('SuspectItem')).toHaveLength(1);
+    expect(
+      wrapper
+        .find('SuspectItem')
+        .at(0)
+        .find('MessageOverflow')
+        .text()
+    ).toBe('feat: Do something to raven/base.py');
   });
 
   it('handles invalid incident', async function() {
@@ -140,5 +157,71 @@ describe('IncidentDetails', function() {
     // Click again to re-subscribe
     wrapper.find('SubscribeButton').simulate('click');
     expect(subscribe).toHaveBeenCalled();
+  });
+
+  it('loads related incidents', async function() {
+    MockApiClient.addMockResponse({
+      url: '/issues/1/',
+      body: TestStubs.Group({
+        id: '1',
+        organization,
+      }),
+    });
+    MockApiClient.addMockResponse({
+      url: '/issues/2/',
+      body: TestStubs.Group({
+        id: '2',
+        organization,
+      }),
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/incidents/123/',
+      body: {
+        ...mockIncident,
+
+        groups: ['1', '2'],
+      },
+    });
+
+    const wrapper = createWrapper();
+
+    await tick();
+    wrapper.update();
+
+    expect(wrapper.find('RelatedItem')).toHaveLength(2);
+
+    expect(
+      wrapper
+        .find('RelatedItem Title')
+        .at(0)
+        .text()
+    ).toBe('RequestErrorfetchData(app/components/group/suggestedOwners)');
+
+    expect(
+      wrapper
+        .find('RelatedItem GroupShortId')
+        .at(0)
+        .text()
+    ).toBe('JAVASCRIPT-6QS');
+  });
+
+  it('renders incident without issues', async function() {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/incidents/123/',
+      body: {
+        ...mockIncident,
+        groups: [],
+      },
+    });
+
+    const wrapper = createWrapper();
+
+    expect(wrapper.find('RelatedIssues Placeholder')).toHaveLength(1);
+
+    await tick();
+    wrapper.update();
+
+    expect(wrapper.find('RelatedItem')).toHaveLength(0);
+    expect(wrapper.find('RelatedIssues Placeholder')).toHaveLength(0);
   });
 });

@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 import six
+import re
 
 from django.core.urlresolvers import reverse
 
@@ -404,7 +405,7 @@ class PostSentryAppsTest(SentryAppsTest):
 
         response = self._post(isInternal=True)
 
-        assert response.data['slug'] == 'myapp'
+        assert re.match(r'myapp\-[0-9a-zA-Z]+', response.data['slug'])
         assert response.data['status'] == SentryAppStatus.as_str(SentryAppStatus.INTERNAL)
 
     def _post(self, **kwargs):

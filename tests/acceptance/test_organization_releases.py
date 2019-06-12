@@ -26,23 +26,21 @@ class OrganizationReleasesTest(AcceptanceTestCase):
             self.org.slug)
 
     def test_with_releases(self):
-        with self.feature('organizations:sentry10'):
-            release = self.create_release(
-                project=self.project,
-                version='1.0',
-            )
-            self.create_group(
-                first_release=release,
-                project=self.project,
-                message='Foo bar',
-            )
-            self.project.update(first_event=timezone.now())
-            self.browser.get(self.path)
-            self.browser.wait_until_not('.loading')
-            self.browser.snapshot('organization releases with releases')
+        release = self.create_release(
+            project=self.project,
+            version='1.0',
+        )
+        self.create_group(
+            first_release=release,
+            project=self.project,
+            message='Foo bar',
+        )
+        self.project.update(first_event=timezone.now())
+        self.browser.get(self.path)
+        self.browser.wait_until_not('.loading')
+        self.browser.snapshot('organization releases with releases')
 
     def test_with_no_releases(self):
-        with self.feature('organizations:sentry10'):
-            self.browser.get(self.path)
-            self.browser.wait_until_not('.loading')
-            self.browser.snapshot('organization releases without releases')
+        self.browser.get(self.path)
+        self.browser.wait_until_not('.loading')
+        self.browser.snapshot('organization releases without releases')

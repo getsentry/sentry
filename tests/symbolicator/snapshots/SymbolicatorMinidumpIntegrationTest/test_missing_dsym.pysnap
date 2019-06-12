@@ -1,5 +1,5 @@
 ---
-created: '2019-06-05T20:21:32.684469Z'
+created: '2019-06-11T21:26:04.163727Z'
 creator: sentry
 source: tests/symbolicator/test_minidump_full.py
 ---
@@ -151,89 +151,122 @@ exception:
       handled: false
       synthetic: true
       type: minidump
+    raw_stacktrace: null
     stacktrace:
       frames:
       - data:
-          orig_in_app: -1
-          symbolicator_status: symbolicated
-        function: _RtlUserThreadStart
+          symbolicator_status: missing
+        function: null
         in_app: false
-        instruction_addr: '0x771d0f43'
+        instruction_addr: '0x771d0f44'
+        lineno: null
         package: C:\Windows\System32\ntdll.dll
-        raw_function: _RtlUserThreadStart@8
-        symbol: _RtlUserThreadStart@8
-        trust: cfi
+        symbol: null
+        trust: fp
       - data:
-          orig_in_app: -1
-          symbolicator_status: symbolicated
-        function: __RtlUserThreadStart
+          symbolicator_status: missing
+        function: null
         in_app: false
-        instruction_addr: '0x771d0f78'
+        instruction_addr: '0x771d0f79'
+        lineno: null
         package: C:\Windows\System32\ntdll.dll
-        raw_function: __RtlUserThreadStart@8
-        symbol: __RtlUserThreadStart@8
-        trust: cfi
+        symbol: null
+        trust: fp
       - data:
           orig_in_app: -1
           symbolicator_status: missing
+        function: null
         in_app: false
         instruction_addr: '0x750662c4'
+        lineno: null
         package: C:\Windows\System32\kernel32.dll
+        symbol: null
         trust: fp
       - data:
           orig_in_app: -1
           symbolicator_status: missing
+        function: null
         in_app: false
         instruction_addr: '0x2a2d97'
+        lineno: null
         package: C:\projects\breakpad-tools\windows\Release\crash.exe
+        symbol: null
         trust: scan
       - data:
           orig_in_app: -1
           symbolicator_status: missing
+        function: null
         in_app: false
         instruction_addr: '0x2a3435'
+        lineno: null
         package: C:\projects\breakpad-tools\windows\Release\crash.exe
+        symbol: null
         trust: scan
       - data:
-          orig_in_app: -1
-          symbolicator_status: symbolicated
-        function: FreeWrapper
+          symbolicator_status: missing
+        function: null
         in_app: false
-        instruction_addr: '0x7584e9bf'
+        instruction_addr: '0x7584e9c0'
+        lineno: null
         package: C:\Windows\System32\rpcrt4.dll
-        raw_function: FreeWrapper(void *)
-        symbol: ?FreeWrapper@@YGXPAX@Z
+        symbol: null
+        trust: scan
+      - data:
+          symbolicator_status: missing
+        function: null
+        in_app: false
+        instruction_addr: '0x75810000'
+        lineno: null
+        package: C:\Windows\System32\rpcrt4.dll
+        symbol: null
         trust: scan
       - data:
           orig_in_app: -1
           symbolicator_status: missing
+        function: null
         in_app: false
         instruction_addr: '0x70b7ae40'
+        lineno: null
         package: C:\Windows\System32\dbgcore.dll
+        symbol: null
         trust: scan
       - data:
-          orig_in_app: -1
-          symbolicator_status: symbolicated
-        function: FreeWrapper
+          symbolicator_status: missing
+        function: null
         in_app: false
-        instruction_addr: '0x7584e9bf'
+        instruction_addr: '0x70850000'
+        lineno: null
+        package: C:\Windows\System32\dbghelp.dll
+        symbol: null
+        trust: scan
+      - data:
+          symbolicator_status: missing
+        function: null
+        in_app: false
+        instruction_addr: '0x7584e9c0'
+        lineno: null
         package: C:\Windows\System32\rpcrt4.dll
-        raw_function: FreeWrapper(void *)
-        symbol: ?FreeWrapper@@YGXPAX@Z
+        symbol: null
         trust: scan
       - data:
           orig_in_app: -1
           symbolicator_status: missing
+        function: null
         in_app: false
         instruction_addr: '0x2a28d0'
+        lineno: null
         package: C:\projects\breakpad-tools\windows\Release\crash.exe
+        symbol: null
         trust: fp
       - data:
           orig_in_app: -1
           symbolicator_status: missing
+        function: null
         in_app: false
         instruction_addr: '0x2a2a3d'
+        lineno: null
         package: C:\projects\breakpad-tools\windows\Release\crash.exe
+        symbol: null
         trust: context
       registers:
         eax: '0x0'
@@ -254,56 +287,49 @@ threads:
   values:
   - crashed: true
     id: 1636
+    raw_stacktrace: null
+    stacktrace: null
   - crashed: false
     id: 3580
+    raw_stacktrace: null
     stacktrace:
       frames:
       - data:
-          orig_in_app: -1
-          symbolicator_status: symbolicated
-        function: _RtlUserThreadStart
+          symbolicator_status: missing
+        function: null
         in_app: false
-        instruction_addr: '0x771d0f43'
+        instruction_addr: '0x771d0f44'
+        lineno: null
         package: C:\Windows\System32\ntdll.dll
-        raw_function: _RtlUserThreadStart@8
-        symbol: _RtlUserThreadStart@8
-        trust: cfi
+        symbol: null
+        trust: fp
       - data:
-          orig_in_app: -1
-          symbolicator_status: symbolicated
-        function: __RtlUserThreadStart
+          symbolicator_status: missing
+        function: null
         in_app: false
-        instruction_addr: '0x771d0f78'
+        instruction_addr: '0x771d0f79'
+        lineno: null
         package: C:\Windows\System32\ntdll.dll
-        raw_function: __RtlUserThreadStart@8
-        symbol: __RtlUserThreadStart@8
-        trust: cfi
+        symbol: null
+        trust: fp
       - data:
           orig_in_app: -1
           symbolicator_status: missing
+        function: null
         in_app: false
         instruction_addr: '0x750662c4'
+        lineno: null
         package: C:\Windows\System32\kernel32.dll
-        trust: cfi
+        symbol: null
+        trust: fp
       - data:
-          orig_in_app: -1
-          symbolicator_status: symbolicated
-        function: TppWorkerThread
-        in_app: false
-        instruction_addr: '0x771a6a10'
-        package: C:\Windows\System32\ntdll.dll
-        raw_function: TppWorkerThread@4
-        symbol: TppWorkerThread@4
-        trust: cfi
-      - data:
-          orig_in_app: -1
-          symbolicator_status: symbolicated
-        function: ZwWaitForWorkViaWorkerFactory
+          symbolicator_status: missing
+        function: null
         in_app: false
         instruction_addr: '0x771e016c'
+        lineno: null
         package: C:\Windows\System32\ntdll.dll
-        raw_function: ZwWaitForWorkViaWorkerFactory@20
-        symbol: ZwWaitForWorkViaWorkerFactory@20
+        symbol: null
         trust: context
       registers:
         eax: '0x0'
@@ -318,54 +344,45 @@ threads:
         esp: '0x159f900'
   - crashed: false
     id: 2600
+    raw_stacktrace: null
     stacktrace:
       frames:
       - data:
-          orig_in_app: -1
-          symbolicator_status: symbolicated
-        function: _RtlUserThreadStart
+          symbolicator_status: missing
+        function: null
         in_app: false
-        instruction_addr: '0x771d0f43'
+        instruction_addr: '0x771d0f44'
+        lineno: null
         package: C:\Windows\System32\ntdll.dll
-        raw_function: _RtlUserThreadStart@8
-        symbol: _RtlUserThreadStart@8
-        trust: cfi
+        symbol: null
+        trust: fp
       - data:
-          orig_in_app: -1
-          symbolicator_status: symbolicated
-        function: __RtlUserThreadStart
+          symbolicator_status: missing
+        function: null
         in_app: false
-        instruction_addr: '0x771d0f78'
+        instruction_addr: '0x771d0f79'
+        lineno: null
         package: C:\Windows\System32\ntdll.dll
-        raw_function: __RtlUserThreadStart@8
-        symbol: __RtlUserThreadStart@8
-        trust: cfi
+        symbol: null
+        trust: fp
       - data:
           orig_in_app: -1
           symbolicator_status: missing
+        function: null
         in_app: false
         instruction_addr: '0x750662c4'
+        lineno: null
         package: C:\Windows\System32\kernel32.dll
-        trust: cfi
+        symbol: null
+        trust: fp
       - data:
-          orig_in_app: -1
-          symbolicator_status: symbolicated
-        function: TppWorkerThread
-        in_app: false
-        instruction_addr: '0x771a6a10'
-        package: C:\Windows\System32\ntdll.dll
-        raw_function: TppWorkerThread@4
-        symbol: TppWorkerThread@4
-        trust: cfi
-      - data:
-          orig_in_app: -1
-          symbolicator_status: symbolicated
-        function: ZwWaitForWorkViaWorkerFactory
+          symbolicator_status: missing
+        function: null
         in_app: false
         instruction_addr: '0x771e016c'
+        lineno: null
         package: C:\Windows\System32\ntdll.dll
-        raw_function: ZwWaitForWorkViaWorkerFactory@20
-        symbol: ZwWaitForWorkViaWorkerFactory@20
+        symbol: null
         trust: context
       registers:
         eax: '0x0'
@@ -380,26 +397,17 @@ threads:
         esp: '0x169f9f4'
   - crashed: false
     id: 2920
+    raw_stacktrace: null
     stacktrace:
       frames:
       - data:
-          orig_in_app: -1
-          symbolicator_status: symbolicated
-        function: NlsIsUserDefaultLocale
-        in_app: false
-        instruction_addr: '0x76e75dbf'
-        package: C:\Windows\System32\KERNELBASE.dll
-        symbol: NlsIsUserDefaultLocale
-        trust: cfi
-      - data:
-          orig_in_app: -1
-          symbolicator_status: symbolicated
-        function: ZwGetContextThread
+          symbolicator_status: missing
+        function: null
         in_app: false
         instruction_addr: '0x771df3dc'
+        lineno: null
         package: C:\Windows\System32\ntdll.dll
-        raw_function: ZwGetContextThread@8
-        symbol: ZwGetContextThread@8
+        symbol: null
         trust: context
       registers:
         eax: '0x0'

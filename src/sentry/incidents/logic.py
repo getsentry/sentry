@@ -7,6 +7,10 @@ from django.db import transaction
 from django.utils import timezone
 
 from sentry.api.event_search import get_snuba_query_args
+from sentry.models import (
+    Commit,
+    Release,
+)
 from sentry.incidents.models import (
     Incident,
     IncidentActivity,
@@ -16,6 +20,7 @@ from sentry.incidents.models import (
     IncidentSeen,
     IncidentStatus,
     IncidentSubscription,
+    IncidentType,
     TimeSeriesSnapshot,
 )
 from sentry.incidents.tasks import send_subscriber_notifications
@@ -34,7 +39,7 @@ class StatusAlreadyChangedError(Exception):
 
 def create_incident(
     organization,
-    status,
+    type,
     title,
     query,
     date_started,
@@ -44,7 +49,6 @@ def create_incident(
     groups=None,
     user=None,
 ):
-    assert status in (IncidentStatus.CREATED, IncidentStatus.DETECTED)
     if date_detected is None:
         date_detected = date_started
 
@@ -58,7 +62,8 @@ def create_incident(
         incident = Incident.objects.create(
             organization=organization,
             detection_uuid=detection_uuid,
-            status=status.value,
+            status=IncidentStatus.OPEN.value,
+            type=type.value,
             title=title,
             query=query,
             date_started=date_started,
@@ -73,7 +78,7 @@ def create_incident(
                 IncidentGroup(incident=incident, group=group) for group in groups
             ])
 
-        if status == IncidentStatus.CREATED:
+        if type == IncidentType.CREATED:
             activity_status = IncidentActivityType.CREATED
         else:
             activity_status = IncidentActivityType.DETECTED
@@ -116,7 +121,7 @@ def update_incident_status(incident, status, user=None, comment=None):
             kwargs['date_closed'] = timezone.now()
             # TODO: Take a snapshot of the current state once we implement
             # snapshots
-        elif incident.status == IncidentStatus.CLOSED.value:
+        elif status == IncidentStatus.OPEN:
             # If we're moving back out of closed status then unset the closed
             # date
             kwargs['date_closed'] = None
@@ -301,7 +306,11 @@ def get_incident_suspects(incident, projects):
     seen = set()
     for group in groups:
         event = group.get_latest_event_for_environments()
-        committers = get_event_file_committers(group.project, event)
+        try:
+            committers = get_event_file_committers(group.project, event)
+        except (Release.DoesNotExist, Commit.DoesNotExist):
+            continue
+
         for committer in committers:
             author = committer['author']
             for commit in committer['commits']:

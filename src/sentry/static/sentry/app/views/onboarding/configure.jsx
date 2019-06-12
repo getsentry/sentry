@@ -41,7 +41,7 @@ class Configure extends React.Component {
 
   get project() {
     return this.props.organization.projects.find(
-      p => p.slug == this.props.params.projectId
+      p => p.slug === this.props.params.projectId
     );
   }
 

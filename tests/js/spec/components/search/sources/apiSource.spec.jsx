@@ -231,18 +231,6 @@ describe('ApiSource', function() {
         expect.objectContaining({
           item: expect.objectContaining({
             model: expect.objectContaining({
-              slug: 'foo-project',
-            }),
-            sourceType: 'project',
-            resultType: 'route',
-            to: '/org-slug/foo-project/',
-          }),
-          matches: expect.anything(),
-          score: expect.anything(),
-        }),
-        expect.objectContaining({
-          item: expect.objectContaining({
-            model: expect.objectContaining({
               slug: 'foo-team',
             }),
             sourceType: 'team',
@@ -256,7 +244,7 @@ describe('ApiSource', function() {
     });
 
     // There are no members that match
-    expect(mock.mock.calls[1][0].results).toHaveLength(5);
+    expect(mock.mock.calls[1][0].results).toHaveLength(4);
   });
 
   it('render function is called with correct results when API requests partially succeed', async function() {
@@ -321,7 +309,7 @@ describe('ApiSource', function() {
     wrapper.update();
 
     // There are no members that match
-    expect(mock.mock.calls[1][0].results).toHaveLength(5);
+    expect(mock.mock.calls[1][0].results).toHaveLength(4);
     expect(mock.mock.calls[1][0].results[0].item.model.slug).toBe('foo-org');
 
     mock.mockClear();
@@ -329,8 +317,8 @@ describe('ApiSource', function() {
     await tick();
     wrapper.update();
 
-    // Still have 5 results, but is re-ordered
-    expect(mock.mock.calls[0][0].results).toHaveLength(5);
+    // Still have 4 results, but is re-ordered
+    expect(mock.mock.calls[0][0].results).toHaveLength(4);
     expect(mock.mock.calls[0][0].results[0].item.model.slug).toBe('foo-team');
   });
 

@@ -23,14 +23,13 @@ class ProjectEventTest(TestCase):
         self.event = self.create_event(event_id='a' * 32, group=self.group)
 
     def test_redirect_to_event(self):
-        with self.feature('organizations:sentry10'):
-            resp = self.client.get(
-                reverse(
-                    'sentry-project-event-redirect',
-                    args=[
-                        self.org.slug,
-                        self.project.slug,
-                        'a' * 32]))
+        resp = self.client.get(
+            reverse(
+                'sentry-project-event-redirect',
+                args=[
+                    self.org.slug,
+                    self.project.slug,
+                    'a' * 32]))
         assert resp.status_code == 302
         assert resp['Location'] == '{}/organizations/{}/issues/{}/events/{}/'.format(
             options.get('system.url-prefix'),

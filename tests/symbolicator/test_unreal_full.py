@@ -30,6 +30,7 @@ class SymbolicatorUnrealIntegrationTest(TransactionTestCase):
 
     @pytest.fixture(autouse=True)
     def initialize(self, live_server):
+        self.project.update_option('sentry:builtin_symbol_sources', [])
         new_prefix = live_server.url
 
         with patch('sentry.auth.system.is_internal_ip', return_value=True), \

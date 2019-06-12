@@ -51,7 +51,7 @@ export default class AlertMessage extends React.PureComponent {
     const {alert, system} = this.props;
     let icon;
 
-    if (alert.type == 'success') {
+    if (alert.type === 'success') {
       icon = 'icon-circle-check';
     } else {
       icon = 'icon-circle-exclamation';

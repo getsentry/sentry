@@ -69,6 +69,33 @@ class TestDestroyer(TestCase):
         assert not ServiceHook.objects.filter(pk=hook.id).exists()
 
     @responses.activate
+    @patch('sentry.mediators.sentry_app_installations.InstallationNotifier.run')
+    def test_sends_notification(self, run):
+        with self.tasks():
+            responses.add(responses.POST, 'https://example.com/webhook')
+            request = self.make_request(user=self.user, method='GET')
+            Destroyer.run(
+                install=self.install,
+                user=self.user,
+                request=request,
+            )
+            run.assert_called_once_with(install=self.install, user=self.user, action='deleted')
+
+    @responses.activate
+    @patch('sentry.mediators.sentry_app_installations.InstallationNotifier.run')
+    def test_notify_false_does_not_send_notification(self, run):
+        with self.tasks():
+            responses.add(responses.POST, 'https://example.com/webhook')
+            request = self.make_request(user=self.user, method='GET')
+            Destroyer.run(
+                install=self.install,
+                user=self.user,
+                request=request,
+                notify=False,
+            )
+            assert not run.called
+
+    @responses.activate
     def test_creates_audit_log_entry(self):
         responses.add(responses.POST, 'https://example.com/webhook')
         request = self.make_request(user=self.user, method='GET')

@@ -16,7 +16,6 @@ import GroupChart from 'app/components/stream/groupChart';
 import GroupCheckBox from 'app/components/stream/groupCheckBox';
 import GroupStore from 'app/stores/groupStore';
 import GuideAnchor from 'app/components/assistant/guideAnchor';
-import ProjectState from 'app/mixins/projectState';
 import SelectedGroupStore from 'app/stores/selectedGroupStore';
 
 const StreamGroup = createReactClass({
@@ -31,7 +30,7 @@ const StreamGroup = createReactClass({
     memberList: PropTypes.array,
   },
 
-  mixins: [Reflux.listenTo(GroupStore, 'onGroupChange'), ProjectState],
+  mixins: [Reflux.listenTo(GroupStore, 'onGroupChange')],
 
   getDefaultProps() {
     return {
@@ -95,7 +94,13 @@ const StreamGroup = createReactClass({
     const {query, hasGuideAnchor, canSelect, memberList} = this.props;
 
     return (
-      <Group onClick={this.toggleSelect} py={1} px={0} align="center">
+      <Group
+        data-test-id="group"
+        onClick={this.toggleSelect}
+        py={1}
+        px={0}
+        align="center"
+      >
         {canSelect && (
           <GroupCheckbox ml={2}>
             {hasGuideAnchor && <GuideAnchor target="issues" type="text" />}

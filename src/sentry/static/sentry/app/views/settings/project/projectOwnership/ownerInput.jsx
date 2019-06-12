@@ -34,7 +34,7 @@ class OwnerInput extends React.Component {
   }
 
   componentWillReceiveProps({initialText}) {
-    if (initialText != this.state.initialText) {
+    if (initialText !== this.state.initialText) {
       this.setState({initialText});
     }
   }
@@ -148,7 +148,7 @@ class OwnerInput extends React.Component {
         <div
           style={{position: 'relative'}}
           onKeyDown={e => {
-            if (e.metaKey && e.key == 'Enter') {
+            if (e.metaKey && e.key === 'Enter') {
               this.handleUpdateOwnership();
             }
           }}

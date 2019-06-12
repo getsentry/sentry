@@ -32,7 +32,7 @@ class EventsTableBody extends React.PureComponent {
       }/events/${event.eventID}/`;
 
       return (
-        <TableRow key={`${project.slug}-${event.eventID}`} first={eventIdx == 0}>
+        <TableRow key={`${project.slug}-${event.eventID}`} first={eventIdx === 0}>
           <TableData>
             <EventTitle>
               <Link to={eventLink}>{trimmedMessage}</Link>

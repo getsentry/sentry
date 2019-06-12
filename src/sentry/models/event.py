@@ -468,6 +468,7 @@ class SnubaEvent(EventCommon):
                 'project_id': [project_id],
             },
             referrer='SnubaEvent.get_event',
+            limit=1,
         )
         if 'error' not in result and len(result['data']) == 1:
             return SnubaEvent(result['data'][0])

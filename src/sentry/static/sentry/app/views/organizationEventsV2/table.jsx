@@ -4,13 +4,14 @@ import styled, {css} from 'react-emotion';
 
 import SentryTypes from 'app/sentryTypes';
 import {Panel, PanelHeader, PanelBody, PanelItem} from 'app/components/panels';
-import LoadingIndicator from 'app/components/loadingIndicator';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
+import LoadingContainer from 'app/components/loading/loadingContainer';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 
 import {SPECIAL_FIELDS} from './data';
-import {QueryButton} from './styles';
+import {QueryLink} from './styles';
+import {getCurrentView} from './utils';
 
 export default class Table extends React.Component {
   static propTypes = {
@@ -23,14 +24,14 @@ export default class Table extends React.Component {
   };
 
   renderBody() {
-    const {view, data, isLoading, organization, onSearch, location} = this.props;
+    const {view, data, organization, onSearch, location} = this.props;
     const {fields} = view.data;
 
-    if (isLoading) {
-      return <LoadingIndicator />;
+    if (!data) {
+      return null;
     }
 
-    if (data && data.length === 0) {
+    if (data.length === 0) {
       return (
         <EmptyStateWarning>
           <p>{t('No results found')}</p>
@@ -45,9 +46,9 @@ export default class Table extends React.Component {
             {SPECIAL_FIELDS.hasOwnProperty(field) ? (
               SPECIAL_FIELDS[field].renderFunc(row, {organization, onSearch, location})
             ) : (
-              <QueryButton onClick={() => onSearch(`${field}:${row[field]}`)}>
+              <QueryLink onClick={() => onSearch(`${field}:${row[field]}`)}>
                 {row[field]}
-              </QueryButton>
+              </QueryLink>
             )}
           </Cell>
         ))}
@@ -56,7 +57,13 @@ export default class Table extends React.Component {
   }
 
   render() {
-    const {fields} = this.props.view.data;
+    const {isLoading, view, data, location} = this.props;
+    const {fields} = view.data;
+
+    // If previous state was empty or we are switching tabs, don't show the
+    // reloading state
+    const isSwitchingTab = getCurrentView(location.query.view) !== view.id;
+    const isReloading = !!(data && data.length) && isLoading && !isSwitchingTab;
 
     return (
       <Panel>
@@ -69,7 +76,11 @@ export default class Table extends React.Component {
             </HeaderItem>
           ))}
         </TableHeader>
-        <PanelBody>{this.renderBody()}</PanelBody>
+        <StyledPanelBody isLoading={isLoading || isReloading}>
+          <LoadingContainer isLoading={isLoading} isReloading={isReloading}>
+            {this.renderBody()}
+          </LoadingContainer>
+        </StyledPanelBody>
       </Panel>
     );
   }
@@ -100,4 +111,8 @@ const Cell = styled('div')`
   display: flex;
   align-items: center;
   overflow: hidden;
+`;
+
+const StyledPanelBody = styled(({isLoading, ...props}) => <PanelBody {...props} />)`
+  ${p => p.isLoading && 'min-height: 240px;'};
 `;

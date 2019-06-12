@@ -9,6 +9,13 @@ from django.http import Http404
 from sentry.utils import metrics
 
 
+def add_request_metric_tags(request, **kwargs):
+    if not hasattr(request, '_metric_tags'):
+        request._metric_tags = {}
+
+    request._metric_tags.update(**kwargs)
+
+
 class ResponseCodeMiddleware(object):
     def process_response(self, request, response):
         metrics.incr('response', instance=six.text_type(response.status_code), skip_internal=False)
@@ -27,6 +34,9 @@ class RequestTimingMiddleware(object):
     )
 
     def process_view(self, request, view_func, view_args, view_kwargs):
+        if not hasattr(request, '_metric_tags'):
+            request._metric_tags = {}
+
         if request.method not in self.allowed_methods:
             return
 
@@ -56,13 +66,16 @@ class RequestTimingMiddleware(object):
         if not hasattr(request, '_view_path'):
             return
 
+        tags = request._metric_tags if hasattr(request, '_metric_tags') else {}
+        tags.update({
+            'method': request.method,
+            'status_code': status_code,
+        })
+
         metrics.incr(
             'view.response',
             instance=request._view_path,
-            tags={
-                'method': request.method,
-                'status_code': status_code,
-            },
+            tags=tags,
             skip_internal=False,
         )
 
