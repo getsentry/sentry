@@ -81,11 +81,17 @@ export const SPECIAL_FIELDS = {
   },
   type: {
     fields: ['event.type'],
-    renderFunc: (data, {onSearch}) => (
-      <QueryLink onClick={() => onSearch(`event.type:${data['event.type']}`)}>
-        {data['event.type']}
-      </QueryLink>
-    ),
+    renderFunc: (data, {location, organization}) => {
+      const target = {
+        pathname: `/organizations/${organization.slug}/events/`,
+        query: {
+          ...location.query,
+          query: `event.type:${data['event.type']}`,
+        },
+      };
+
+      return <QueryLink to={target}>{data['event.type']}</QueryLink>;
+    },
   },
   project: {
     fields: ['project.name'],
@@ -104,7 +110,7 @@ export const SPECIAL_FIELDS = {
   },
   user: {
     fields: ['user', 'user.name', 'user.email', 'user.ip'],
-    renderFunc: (data, {onSearch}) => {
+    renderFunc: (data, {organization, location}) => {
       const userObj = {
         name: data['user.name'],
         email: data['user.email'],
@@ -117,7 +123,15 @@ export const SPECIAL_FIELDS = {
         return <Container>{badge}</Container>;
       }
 
-      return <QueryLink onClick={() => onSearch(`user:${data.user}`)}>{badge}</QueryLink>;
+      const target = {
+        pathname: `/organizations/${organization.slug}/events/`,
+        query: {
+          ...location.query,
+          query: `user:${data.user}`,
+        },
+      };
+
+      return <QueryLink to={target}>{badge}</QueryLink>;
     },
   },
   time: {
