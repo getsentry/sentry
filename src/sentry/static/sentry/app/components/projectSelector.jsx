@@ -11,7 +11,7 @@ import {alertHighlight, pulse} from 'app/styles/animations';
 import Button from 'app/components/button';
 import ConfigStore from 'app/stores/configStore';
 import InlineSvg from 'app/components/inlineSvg';
-import BookmarkStar from 'app/components/bookmarkStar';
+import BookmarkStar from 'app/components/projects/bookmarkStar';
 import DropdownAutoComplete from 'app/components/dropdownAutoComplete';
 import GlobalSelectionHeaderRow from 'app/components/globalSelectionHeaderRow';
 import Highlight from 'app/components/highlight';

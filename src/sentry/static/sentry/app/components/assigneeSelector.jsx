@@ -7,7 +7,7 @@ import styled from 'react-emotion';
 import {assignToUser, assignToActor, clearAssignment} from 'app/actionCreators/group';
 import {t} from 'app/locale';
 import {valueIsEqual, buildUserId, buildTeamId} from 'app/utils';
-import ActorAvatar from 'app/components/actorAvatar';
+import ActorAvatar from 'app/components/avatar/actorAvatar';
 import Avatar from 'app/components/avatar';
 import ConfigStore from 'app/stores/configStore';
 import DropdownAutoComplete from 'app/components/dropdownAutoComplete';
