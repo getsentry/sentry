@@ -306,9 +306,11 @@ def build_incident_attachment(incident):
 
     ts = incident.date_started
 
+    title = u'INCIDENT: {} (#{})'.format(incident.title, incident.identifier)
+
     return {
-        'fallback': u'{} (#{})'.format(incident.title, incident.identifier),
-        'title': u'{} (#{})'.format(incident.title, incident.identifier),
+        'fallback': title,
+        'title': title,
         'title_link': absolute_uri(reverse(
             'sentry-incident',
             kwargs={
