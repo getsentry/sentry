@@ -29,7 +29,7 @@ export default class Table extends React.Component {
 
   componentDidUpdate(prevProps) {
     const tabChanged = prevProps.view.id !== this.props.view.id;
-    if (tabChanged) {
+    if (!this.state.isChangingTabs && tabChanged) {
       // eslint-disable-next-line react/no-did-update-set-state
       this.setState({isChangingTabs: true});
     }
