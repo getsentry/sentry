@@ -94,7 +94,7 @@ const EventModalContent = props => {
             value: (
               <ModalLineGraph
                 organization={organization}
-                groupId={event.groupID}
+                currentEvent={event}
                 location={location}
               />
             ),

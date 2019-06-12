@@ -7,14 +7,50 @@ import {getInterval, useShortInterval} from 'app/components/charts/utils';
 import {getFormattedDate} from 'app/utils/dates';
 import EventsRequest from 'app/views/organizationEvents/utils/eventsRequest';
 import LineChart from 'app/components/charts/lineChart';
+import MarkLine from 'app/components/charts/components/markLine';
 import {Panel} from 'app/components/panels';
 import withApi from 'app/utils/withApi';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
+import theme from 'app/utils/theme';
 
 const defaultGetCategory = () => t('Events');
 
+const getCurrentEventMarker = currentEvent => {
+  const title = t('Current Event');
+  const eventTime = +new Date(currentEvent.dateCreated);
+
+  return {
+    type: 'line',
+    data: [],
+    markLine: MarkLine({
+      // TODO replace the diamond with a custom image.
+      symbol: ['diamond', 'none'],
+      lineStyle: {
+        normal: {
+          color: theme.red,
+          type: 'dotted',
+        },
+      },
+      tooltip: {
+        formatter: ({data}) => {
+          return `<div>${getFormattedDate(eventTime, 'MMM D, YYYY LT')}</div>`;
+        },
+      },
+      label: {
+        show: false,
+      },
+      data: [
+        {
+          xAxis: eventTime,
+          name: title,
+        },
+      ],
+    }),
+  };
+};
+
 const ModalLineGraph = props => {
-  const {api, groupId, organization, location, selection} = props;
+  const {api, organization, location, selection, currentEvent} = props;
 
   const isUtc = selection.datetime.utc;
   const dateFormat = 'lll';
@@ -23,6 +59,7 @@ const ModalLineGraph = props => {
   const hasShortInterval = useShortInterval(selection.datetime);
 
   const xAxisOptions = {
+    type: 'time',
     axisLabel: {
       formatter: (value, index) => {
         const firstItem = index === 0;
@@ -53,21 +90,21 @@ const ModalLineGraph = props => {
         showLoading={true}
         query={location.query.query}
         includePrevious={false}
-        groupId={groupId}
+        groupId={currentEvent.groupID}
       >
         {({loading, reloading, timeseriesData}) => (
           <LineChart
             loading={loading}
             reloading={reloading}
-            series={timeseriesData}
+            series={[...timeseriesData, getCurrentEventMarker(currentEvent)]}
             seriesOptions={{
               showSymbol: false,
             }}
             tooltip={tooltip}
             xAxis={xAxisOptions}
             grid={{
-              left: '30px',
-              right: '18px',
+              left: '20px',
+              right: '10px',
             }}
           />
         )}
@@ -77,9 +114,9 @@ const ModalLineGraph = props => {
 };
 ModalLineGraph.propTypes = {
   api: PropTypes.object.isRequired,
-  organization: SentryTypes.Organization.isRequired,
-  groupId: PropTypes.string.isRequired,
+  currentEvent: SentryTypes.Event.isRequired,
   location: PropTypes.object.isRequired,
+  organization: SentryTypes.Organization.isRequired,
   selection: PropTypes.object.isRequired,
 };
 
