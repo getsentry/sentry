@@ -1,5 +1,8 @@
 from __future__ import absolute_import
 
+import six
+
+from collections import OrderedDict
 from datetime import timedelta
 from functools import partial
 
@@ -89,7 +92,7 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
 
             if any(field for field in groupby if field not in ALLOWED_GROUPINGS):
                 message = ('Invalid groupby value requested. Allowed values are ' +
-                    ', '.join(ALLOWED_GROUPINGS))
+                           ', '.join(ALLOWED_GROUPINGS))
                 return Response({'detail': message}, status=400)
 
         except OrganizationEventsError as exc:
@@ -218,27 +221,30 @@ class OrganizationEventsHeatmapEndpoint(OrganizationEventsEndpointBase):
             }, status=400)
 
         try:
-            tag_keys = tagstore.get_group_tag_keys_and_top_values(
+            top_values_by_key = tagstore.get_top_values_by_keys(
                 project_ids, None, environment_ids, keys=lookup_keys, get_excluded_tags=True, **snuba_args)
         except tagstore.TagKeyNotFound:
             raise ResourceDoesNotExist
 
         if non_tag_lookup_keys:
-            tag_keys.update(self.handle_non_tag_keys(non_tag_lookup_keys, snuba_args))
+            self.handle_non_tag_keys(non_tag_lookup_keys, snuba_args, top_values_by_key)
 
+        tag_keys = self._create_tag_objects(top_values_by_key)
         return Response(serialize(tag_keys, request.user))
 
-    def handle_non_tag_keys(self, keys, snuba_args):
+    def handle_non_tag_keys(self, keys, snuba_args, top_values_by_key):
         result = set([])
         for key in keys:
+            values_dict = OrderedDict()
+
             if key == 'project.name':
                 data = self._query_non_tag_data('project_id', snuba_args)
                 projects = Project.objects.filter(id__in=snuba_args['filter_keys']['project_id'])
-                for project_data in data:
-                    project = projects.filter(id=project_data['project_id'])[0]
-                    project_data['key'] = 'project.name'
-                    project_data['value'] = project.slug
-            result.add(self._create_tag_key_tag_value_objects('project', data))
+                for value in data:
+                    project_slug = projects.filter(id=value['project_id'])[0].slug
+                    values_dict[project_slug] = value
+
+            top_values_by_key[key] = values_dict
         return result
 
     def _query_non_tag_data(self, key, snuba_args):
@@ -248,7 +254,6 @@ class OrganizationEventsHeatmapEndpoint(OrganizationEventsEndpointBase):
                 ['count()', '', 'count'],
                 ['min', 'timestamp', 'first_seen'],
                 ['max', 'timestamp', 'last_seen'],
-                ['uniq', key, 'values_seen'],
             ],
             orderby='-count',
             referrer='api.organization-events-heatmap',
@@ -256,26 +261,25 @@ class OrganizationEventsHeatmapEndpoint(OrganizationEventsEndpointBase):
         )['data']
         return data
 
-    def _create_tag_key_tag_value_objects(self, key, data):
-        tag_values = []
-        values_seen = 0
-        for datum in data:
-            tag_values.append(TagValue(
-                key=key,
-                value=datum['value'],
-                times_seen=datum['count'],
-                last_seen=datum['last_seen'],
-                first_seen=datum['first_seen'],
-            ))
-            values_seen += datum['count']
-
-        tag_key = TagKey(
-            key=key,
-            values_seen=len(tag_values),
-            count=values_seen,
-            top_values=tag_values,
-        )
-        return tag_key
+    def _create_tag_objects(self, top_values_by_key):
+        tag_keys = []
+        for key, top_values in six.iteritems(top_values_by_key):
+            tag_key = TagKey(key=key, top_values=[], values_seen=len(top_values))
+            total_count = 0
+            for value_key, value_data in six.iteritems(top_values):
+                tag_key.top_values.append(
+                    TagValue(
+                        key=key,
+                        value=value_key,
+                        times_seen=value_data['count'],
+                        first_seen=value_data['first_seen'],
+                        last_seen=value_data['last_seen'],
+                    )
+                )
+                total_count += value_data['count']
+            tag_key.count = total_count
+            tag_keys.append(tag_key)
+        return tag_keys
 
 
 class OrganizationEventsMetaEndpoint(OrganizationEventsEndpointBase):

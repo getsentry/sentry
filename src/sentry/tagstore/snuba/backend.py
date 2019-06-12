@@ -408,6 +408,36 @@ class SnubaTagStorage(TagStorage):
             project_id, group_id, environment_ids, keys=keys, start=start, end=end)
 
         # Then get the top values with first_seen/last_seen/count for each
+        values_by_key = self.__get_values_by_keys(
+            project_id, group_id, environment_ids, keys, value_limit, **kwargs)
+
+        # Then supplement the key objects with the top values for each.
+        if group_id is None:
+            value_ctor = TagValue
+        else:
+            value_ctor = functools.partial(GroupTagValue, group_id=group_id)
+
+        for keyobj in keys_with_counts:
+            key = keyobj.key
+            values = values_by_key.get(key, [])
+            keyobj.top_values = [
+                value_ctor(
+                    key=keyobj.key,
+                    value=value,
+                    times_seen=data['count'],
+                    first_seen=parse_datetime(data['first_seen']),
+                    last_seen=parse_datetime(data['last_seen']),
+                ) for value, data in six.iteritems(values)
+            ]
+
+        return keys_with_counts
+
+    def get_top_values_by_keys(self, project_id, group_id, environment_ids,
+                               keys, value_limit=TOP_VALUES_DEFAULT_LIMIT, **kwargs):
+        default_start, default_end = self.get_time_range()
+        start = kwargs.get('start', default_start)
+        end = kwargs.get('end', default_end)
+
         filters = {
             'project_id': get_project_list(project_id),
         }
@@ -432,27 +462,7 @@ class SnubaTagStorage(TagStorage):
             orderby='-count', limitby=[value_limit, 'tags_key'],
             referrer='tagstore.__get_tag_keys_and_top_values'
         )
-
-        # Then supplement the key objects with the top values for each.
-        if group_id is None:
-            value_ctor = TagValue
-        else:
-            value_ctor = functools.partial(GroupTagValue, group_id=group_id)
-
-        for keyobj in keys_with_counts:
-            key = keyobj.key
-            values = values_by_key.get(key, [])
-            keyobj.top_values = [
-                value_ctor(
-                    key=keyobj.key,
-                    value=value,
-                    times_seen=data['count'],
-                    first_seen=parse_datetime(data['first_seen']),
-                    last_seen=parse_datetime(data['last_seen']),
-                ) for value, data in six.iteritems(values)
-            ]
-
-        return keys_with_counts
+        return values_by_key
 
     def __get_release(self, project_id, group_id, first=True):
         start, end = self.get_time_range()

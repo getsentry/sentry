@@ -40,6 +40,7 @@ class TagStorage(Service):
         'get_tag_keys',
         'get_tag_value',
         'get_tag_values',
+        'get_top_values_by_keys',
         'get_group_tag_key',
         'get_group_tag_keys',
         'get_group_tag_value',
@@ -241,6 +242,10 @@ class TagStorage(Service):
         """
         >>> get_tag_values(1, 2, "key1")
         """
+        raise NotImplementedError
+
+    def get_top_values_by_keys(self, project_id, group_id,
+                               environment_ids, keys, value_limit, **kwargs):
         raise NotImplementedError
 
     @raises([GroupTagKeyNotFound])
