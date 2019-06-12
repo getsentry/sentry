@@ -15,7 +15,7 @@ import ProjectsStore from 'app/stores/projectsStore';
 import TeamStore from 'app/stores/teamStore';
 import IdBadge from 'app/components/idBadge';
 import MultiSelectControl from 'app/components/forms/multiSelectControl';
-import ActorAvatar from 'app/components/actorAvatar';
+import ActorAvatar from 'app/components/avatar/actorAvatar';
 import SentryTypes from 'app/sentryTypes';
 import Button from 'app/components/button';
 import InlineSvg from 'app/components/inlineSvg';

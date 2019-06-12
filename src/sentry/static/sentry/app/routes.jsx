@@ -23,7 +23,6 @@ import OrganizationStreamOverview from 'app/views/organizationStream/overview';
 import ProjectChooser from 'app/views/projectChooser';
 import ProjectDataForwarding from 'app/views/projectDataForwarding';
 import ProjectDebugFiles from 'app/views/projectDebugFiles';
-import ProjectEnvironments from 'app/views/projectEnvironments';
 import ProjectEventRedirect from 'app/views/projectEventRedirect';
 import ProjectGettingStarted from 'app/views/projectInstall/gettingStarted';
 import ProjectInstallOverview from 'app/views/projectInstall/overview';
@@ -275,7 +274,10 @@ function routes() {
       <Route
         name="Environments"
         path="environments/"
-        component={errorHandler(ProjectEnvironments)}
+        componentPromise={() =>
+          import(/* webpackChunkName: "ProjectEnvironments" */ './views/settings/project/projectEnvironments')
+        }
+        component={errorHandler(LazyLoad)}
       >
         <IndexRoute />
         <Route path="hidden/" />

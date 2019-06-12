@@ -1,7 +1,7 @@
 import {mount} from 'enzyme';
 import React from 'react';
 
-import BookmarkStar from 'app/components/bookmarkStar';
+import BookmarkStar from 'app/components/projects/bookmarkStar';
 
 describe('BookmarkStar', function() {
   let wrapper, projectMock;

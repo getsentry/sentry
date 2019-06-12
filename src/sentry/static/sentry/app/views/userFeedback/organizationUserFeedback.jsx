@@ -4,7 +4,7 @@ import styled from 'react-emotion';
 import {PageContent} from 'app/styles/organization';
 import {t} from 'app/locale';
 import AsyncView from 'app/views/asyncView';
-import CompactIssue from 'app/components/compactIssue';
+import CompactIssue from 'app/components/issues/compactIssue';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
 import EventUserFeedback from 'app/components/events/userFeedback';
 import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
