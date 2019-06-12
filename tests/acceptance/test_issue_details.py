@@ -54,6 +54,21 @@ class IssueDetailsTest(AcceptanceTestCase, SnubaTestCase):
         self.visit_issue(event.group.id)
         self.browser.snapshot('issue details python')
 
+    def test_python_rawbody_event(self):
+        event = self.create_sample_event(
+            platform='python-rawbody',
+        )
+        self.visit_issue(event.group.id)
+        self.browser.move_to('.request pre span')
+        self.browser.snapshot('issue details python raw body')
+
+    def test_python_formdata_event(self):
+        event = self.create_sample_event(
+            platform='python-formdata',
+        )
+        self.visit_issue(event.group.id)
+        self.browser.snapshot('issue details python formdata')
+
     def test_cocoa_event(self):
         event = self.create_sample_event(
             platform='cocoa',

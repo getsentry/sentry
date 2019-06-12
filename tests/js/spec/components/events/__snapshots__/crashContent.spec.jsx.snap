@@ -127,7 +127,7 @@ exports[`CrashContent renders with meta data 1`] = `
                       <Tooltip
                         containerDisplayMode="inline-block"
                         position="top"
-                        title="Pseudonymized due to PII rule \\"device_id\\""
+                        title="Pseudonymized because of PII rule \\"device_id\\""
                       >
                         <Manager>
                           <Reference>

@@ -8,23 +8,43 @@ import ClippedBox from 'app/components/clippedBox';
 import ContextData from 'app/components/contextData';
 import ErrorBoundary from 'app/components/errorBoundary';
 import KeyValueList from 'app/components/events/interfaces/keyValueList';
+import AnnotatedText from 'app/components/events/meta/annotatedText';
+import MetaData from 'app/components/events/meta/metaData';
 
 class RichHttpContent extends React.Component {
   static propTypes = {
     data: PropTypes.object.isRequired,
   };
 
-  getBodySection = data => {
+  getBodySection = (data, value, meta) => {
     // The http interface provides an inferred content type for the data body.
-    switch (data.inferredContentType) {
-      case 'application/json':
-        return <ContextData data={data.data} />;
-      case 'application/x-www-form-urlencoded':
-        return (
-          <KeyValueList data={objectToSortedTupleArray(data.data)} isContextData={true} />
-        );
-      default:
-        return <pre>{JSON.stringify(data.data, null, 2)}</pre>;
+    if (meta && (!value || value instanceof String)) {
+      // TODO(markus): Currently annotated nested objects are shown without
+      // annotations.
+      return (
+        <pre>
+          <AnnotatedText
+            value={value}
+            chunks={meta.chunks}
+            remarks={meta.rem}
+            errors={meta.err}
+          />
+        </pre>
+      );
+    } else if (value) {
+      switch (data.inferredContentType) {
+        case 'application/json':
+          return <ContextData data={value} />;
+        case 'application/x-www-form-urlencoded':
+        case 'multipart/form-data':
+          return (
+            <KeyValueList data={objectToSortedTupleArray(value)} isContextData={true} />
+          );
+        default:
+          return <pre>{JSON.stringify(value, null, 2)}</pre>;
+      }
+    } else {
+      return null;
     }
   };
 
@@ -55,11 +75,19 @@ class RichHttpContent extends React.Component {
           </ClippedBox>
         )}
 
-        {data.data && (
-          <ClippedBox title={t('Body')}>
-            <ErrorBoundary mini>{this.getBodySection(data)}</ErrorBoundary>
-          </ClippedBox>
-        )}
+        <MetaData object={data} prop="data">
+          {(value, meta) => {
+            if (value || meta) {
+              return (
+                <ClippedBox title={t('Body')}>
+                  {this.getBodySection(data, value, meta)}
+                </ClippedBox>
+              );
+            }
+
+            return null;
+          }}
+        </MetaData>
 
         {data.cookies && !objectIsEmpty(data.cookies) && (
           <ClippedBox title={t('Cookies')} defaultCollapsed>
