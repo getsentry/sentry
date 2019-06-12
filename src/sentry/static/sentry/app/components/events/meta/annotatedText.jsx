@@ -36,15 +36,31 @@ const ErrorIcon = styled(InlineSvg)`
 const REMARKS = {
   a: 'Annotated',
   x: 'Removed',
-  s: 'Substituted',
+  s: 'Replaced',
   m: 'Masked',
   p: 'Pseudonymized',
   e: 'Encrypted',
 };
 
+const KNOWN_RULES = {
+  '!limit': 'size limits',
+  '!raw': 'raw payload',
+  '!config': 'SDK configuration',
+};
+
+function getTooltipText(remark, rule) {
+  const remark_title = REMARKS[remark];
+  const rule_title = KNOWN_RULES[rule] || t('PII rule "%s"', rule);
+  if (remark_title) {
+    return t('%s because of %s', remark_title, rule_title);
+  } else {
+    return rule_title;
+  }
+}
+
 function renderChunk(chunk) {
   if (chunk.type === 'redaction') {
-    const title = t('%s due to PII rule "%s"', REMARKS[chunk.remark], chunk.rule_id);
+    const title = getTooltipText(chunk.remark, chunk.rule_id);
     return (
       <Tooltip title={title}>
         <Redaction>{chunk.text}</Redaction>
@@ -56,22 +72,18 @@ function renderChunk(chunk) {
 }
 
 function renderChunks(chunks) {
-  if (chunks.length === 1) {
-    return chunks[0].text;
-  }
-
   const spans = chunks.map((chunk, key) => React.cloneElement(renderChunk(chunk), {key}));
 
   return <Chunks>{spans}</Chunks>;
 }
 
 function renderValue(value, chunks, errors, remarks) {
-  if (chunks.length) {
+  if (chunks.length > 1) {
     return renderChunks(chunks);
   }
 
   let element = null;
-  if (!_.isNull(value)) {
+  if (value) {
     element = <Redaction>{value}</Redaction>;
   } else if (errors && errors.length) {
     element = <Placeholder>invalid</Placeholder>;
@@ -80,7 +92,7 @@ function renderValue(value, chunks, errors, remarks) {
   }
 
   if (remarks && remarks.length) {
-    const title = t('%s due to PII rule "%s"', REMARKS[remarks[0][1]], remarks[0][0]);
+    const title = getTooltipText(remarks[0][1], remarks[0][0]);
     element = <Tooltip title={title}>{element}</Tooltip>;
   }
 
