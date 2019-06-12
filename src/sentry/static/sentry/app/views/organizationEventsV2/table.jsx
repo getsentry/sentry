@@ -1,6 +1,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import styled, {css} from 'react-emotion';
+import {isEqual} from 'lodash';
 
 import SentryTypes from 'app/sentryTypes';
 import {Panel, PanelHeader, PanelBody, PanelItem} from 'app/components/panels';
@@ -11,7 +12,6 @@ import space from 'app/styles/space';
 
 import {SPECIAL_FIELDS} from './data';
 import {QueryLink} from './styles';
-import {getCurrentView} from './utils';
 
 export default class Table extends React.Component {
   static propTypes = {
@@ -22,6 +22,23 @@ export default class Table extends React.Component {
     onSearch: PropTypes.func.isRequired,
     location: PropTypes.object,
   };
+
+  state = {
+    isChangingTabs: false,
+  };
+
+  componentDidUpdate(prevProps) {
+    const tabChanged = prevProps.view.id !== this.props.view.id;
+    if (!this.state.isChangingTabs && tabChanged) {
+      // eslint-disable-next-line react/no-did-update-set-state
+      this.setState({isChangingTabs: true});
+    }
+
+    if (this.state.isChangingTabs && !isEqual(prevProps.data, this.props.data)) {
+      // eslint-disable-next-line react/no-did-update-set-state
+      this.setState({isChangingTabs: false});
+    }
+  }
 
   renderBody() {
     const {view, data, organization, onSearch, location} = this.props;
@@ -57,13 +74,13 @@ export default class Table extends React.Component {
   }
 
   render() {
-    const {isLoading, view, data, location} = this.props;
+    const {isLoading, view, data} = this.props;
     const {fields} = view.data;
+    const {isChangingTabs} = this.state;
 
     // If previous state was empty or we are switching tabs, don't show the
     // reloading state
-    const isSwitchingTab = getCurrentView(location.query.view) !== view.id;
-    const isReloading = !!(data && data.length) && isLoading && !isSwitchingTab;
+    const isReloading = !!(data && data.length) && isLoading && !isChangingTabs;
 
     return (
       <Panel>
