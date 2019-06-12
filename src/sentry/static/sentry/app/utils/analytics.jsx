@@ -12,7 +12,7 @@ import HookStore from 'app/stores/hookStore';
  *
  *       https://github.com/getsentry/reload/blob/master/reload_app/events.py
  *
- * NOTE: sentry.io contributors, if you are using `guage` or `increment` the
+ * NOTE: sentry.io contributors, if you are using `gauge` or `increment` the
  *       name must be added to the Reload metrics module:
  *
  *       https://github.com/getsentry/reload/blob/master/reload_app/metrics/__init__.py
