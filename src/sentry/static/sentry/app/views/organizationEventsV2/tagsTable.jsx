@@ -65,8 +65,4 @@ const TagValue = styled(TagKey)`
   ${overflowEllipsis};
 `;
 
-const StyledTable = styled('table')`
-  width: 100%;
-`;
-
 export default withRouter(TagsTable);
