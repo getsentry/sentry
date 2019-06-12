@@ -21,12 +21,14 @@ from django.utils.encoding import force_text
 from sentry import buffer, eventtypes, eventstream, features, tagstore, tsdb, filters
 from sentry.constants import (
     DEFAULT_STORE_NORMALIZER_ARGS, LOG_LEVELS, LOG_LEVELS_MAP,
-    MAX_TAG_VALUE_LENGTH, MAX_SECS_IN_FUTURE, MAX_SECS_IN_PAST
+    MAX_TAG_VALUE_LENGTH, MAX_SECS_IN_FUTURE, MAX_SECS_IN_PAST,
 )
-from sentry.grouping.api import get_grouping_config_dict_for_project, \
-    get_grouping_config_dict_for_event_data, load_grouping_config, \
-    apply_server_fingerprinting, get_fingerprinting_config_for_project, \
-    GroupingConfigNotFound
+from sentry.grouping.api import (
+    get_grouping_config_dict_for_project,
+    get_grouping_config_dict_for_event_data, load_grouping_config,
+    apply_server_fingerprinting, get_fingerprinting_config_for_project,
+    GroupingConfigNotFound,
+)
 from sentry.coreapi import (
     APIError,
     APIForbidden,
@@ -41,7 +43,7 @@ from sentry.models import (
     Activity, Environment, Event, EventDict, EventError, EventMapping, EventUser, Group,
     GroupEnvironment, GroupHash, GroupLink, GroupRelease, GroupResolution, GroupStatus,
     Project, Release, ReleaseEnvironment, ReleaseProject,
-    ReleaseProjectEnvironment, UserReport, Organization, EventAttachment
+    ReleaseProjectEnvironment, UserReport, Organization, EventAttachment,
 )
 from sentry.plugins import plugins
 from sentry.signals import event_discarded, event_saved, first_event_received
@@ -62,9 +64,7 @@ from sentry.utils.safe import safe_execute, trim, get_path, setdefault_path
 from sentry.stacktraces.processing import normalize_stacktraces_for_grouping
 from sentry.culprit import generate_culprit
 
-
 logger = logging.getLogger("sentry.events")
-
 
 SECURITY_REPORT_INTERFACES = (
     "csp",
@@ -270,11 +270,17 @@ class EventManager(object):
         key=None,
         content_encoding=None,
         is_renormalize=False,
-        remove_other=None
+        remove_other=None,
+        relay_config=None
     ):
         self._data = _decode_event(data, content_encoding=content_encoding)
         self.version = version
         self._project = project
+        # if not explicitly specified try to get the grouping from relay_config
+        if grouping_config is None and relay_config is not None:
+            config = relay_config.config
+            grouping_config = config.get('grouping_config')
+        # if we still don't have a grouping also try the project
         if grouping_config is None and project is not None:
             grouping_config = get_grouping_config_dict_for_project(self._project)
         self._grouping_config = grouping_config
