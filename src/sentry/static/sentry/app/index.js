@@ -13,6 +13,7 @@ import Reflux from 'reflux';
 import * as Router from 'react-router';
 import * as Sentry from '@sentry/browser';
 import {ExtraErrorData, Tracing} from '@sentry/integrations';
+import createReactClass from 'create-react-class';
 import jQuery from 'jquery';
 import moment from 'moment';
 
@@ -114,6 +115,9 @@ const globals = {
   // makes use of it.
   $: jQuery,
   jQuery,
+
+  // django templates make use of these globals
+  createReactClass,
 };
 
 // The SentryApp global contains exported app modules for use in javascript
