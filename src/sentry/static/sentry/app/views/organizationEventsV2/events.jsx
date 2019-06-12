@@ -105,7 +105,6 @@ export default class Events extends AsyncComponent {
               organization={organization}
               data={data}
               isLoading={loading}
-              onSearch={this.handleSearch}
               location={location}
             />
             <Pagination pageLinks={dataPageLinks} />

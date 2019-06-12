@@ -19,7 +19,6 @@ export default class Table extends React.Component {
     data: PropTypes.arrayOf(PropTypes.object),
     isLoading: PropTypes.bool,
     organization: SentryTypes.Organization.isRequired,
-    onSearch: PropTypes.func.isRequired,
     location: PropTypes.object,
   };
 
@@ -41,7 +40,7 @@ export default class Table extends React.Component {
   }
 
   renderBody() {
-    const {view, data, organization, onSearch, location} = this.props;
+    const {view, data, organization, location} = this.props;
     const {fields} = view.data;
 
     if (!data) {
@@ -58,17 +57,25 @@ export default class Table extends React.Component {
 
     return data.map((row, idx) => (
       <Row key={idx} className={getGridStyle(fields.length)}>
-        {fields.map(field => (
-          <Cell key={field}>
-            {SPECIAL_FIELDS.hasOwnProperty(field) ? (
-              SPECIAL_FIELDS[field].renderFunc(row, {organization, onSearch, location})
-            ) : (
-              <QueryLink onClick={() => onSearch(`${field}:${row[field]}`)}>
-                {row[field]}
-              </QueryLink>
-            )}
-          </Cell>
-        ))}
+        {fields.map(field => {
+          const target = {
+            pathname: `/organizations/${organization.slug}/events/`,
+            query: {
+              ...location.query,
+              query: `${field}:${row[field]}`,
+            },
+          };
+
+          return (
+            <Cell key={field}>
+              {SPECIAL_FIELDS.hasOwnProperty(field) ? (
+                SPECIAL_FIELDS[field].renderFunc(row, {organization, location})
+              ) : (
+                <QueryLink to={target}>{row[field]}</QueryLink>
+              )}
+            </Cell>
+          );
+        })}
       </Row>
     ));
   }
