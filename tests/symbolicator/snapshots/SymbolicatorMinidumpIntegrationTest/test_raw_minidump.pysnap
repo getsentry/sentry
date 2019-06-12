@@ -1,5 +1,5 @@
 ---
-created: '2019-06-11T21:26:07.179068Z'
+created: '2019-06-12T09:33:18.287875Z'
 creator: sentry
 source: tests/symbolicator/test_minidump_full.py
 ---
@@ -148,6 +148,7 @@ exception:
     stacktrace:
       frames:
       - data:
+          orig_in_app: -1
           symbolicator_status: missing
         function: null
         in_app: false
@@ -157,6 +158,7 @@ exception:
         symbol: null
         trust: fp
       - data:
+          orig_in_app: -1
           symbolicator_status: missing
         function: null
         in_app: false
@@ -166,6 +168,7 @@ exception:
         symbol: null
         trust: fp
       - data:
+          orig_in_app: -1
           symbolicator_status: missing
         function: null
         in_app: false
@@ -175,6 +178,7 @@ exception:
         symbol: null
         trust: cfi
       - data:
+          orig_in_app: -1
           symbolicator_status: symbolicated
         function: __scrt_common_main_seh
         in_app: false
@@ -184,6 +188,7 @@ exception:
         symbol: __scrt_common_main_seh
         trust: cfi
       - data:
+          orig_in_app: -1
           symbolicator_status: symbolicated
         function: main
         in_app: false
@@ -219,6 +224,7 @@ threads:
     stacktrace:
       frames:
       - data:
+          orig_in_app: -1
           symbolicator_status: missing
         function: null
         in_app: false
@@ -228,6 +234,7 @@ threads:
         symbol: null
         trust: fp
       - data:
+          orig_in_app: -1
           symbolicator_status: missing
         function: null
         in_app: false
@@ -237,6 +244,7 @@ threads:
         symbol: null
         trust: fp
       - data:
+          orig_in_app: -1
           symbolicator_status: missing
         function: null
         in_app: false
@@ -246,6 +254,7 @@ threads:
         symbol: null
         trust: fp
       - data:
+          orig_in_app: -1
           symbolicator_status: missing
         function: null
         in_app: false
@@ -271,6 +280,7 @@ threads:
     stacktrace:
       frames:
       - data:
+          orig_in_app: -1
           symbolicator_status: missing
         function: null
         in_app: false
@@ -280,6 +290,7 @@ threads:
         symbol: null
         trust: fp
       - data:
+          orig_in_app: -1
           symbolicator_status: missing
         function: null
         in_app: false
@@ -289,6 +300,7 @@ threads:
         symbol: null
         trust: fp
       - data:
+          orig_in_app: -1
           symbolicator_status: missing
         function: null
         in_app: false
@@ -298,6 +310,7 @@ threads:
         symbol: null
         trust: fp
       - data:
+          orig_in_app: -1
           symbolicator_status: missing
         function: null
         in_app: false
@@ -323,6 +336,7 @@ threads:
     stacktrace:
       frames:
       - data:
+          orig_in_app: -1
           symbolicator_status: missing
         function: null
         in_app: false

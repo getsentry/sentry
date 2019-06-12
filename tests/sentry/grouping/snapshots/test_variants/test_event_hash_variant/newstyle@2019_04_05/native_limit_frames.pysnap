@@ -1,5 +1,5 @@
 ---
-created: '2019-05-16T11:55:55.023780Z'
+created: '2019-06-05T11:45:15.715625Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -27,10 +27,10 @@ system:
     system*
       exception*
         stacktrace*
-          frame (ignored because only 1 frame is considered by grouping enhancement rule (family:native))
+          frame (ignored because only 1 frame is considered by grouping enhancement rule (family:native max-frames=1))
             function* (isolated function)
               u'Scaleform::GFx::IME::GImeNamesManagerVista::OnActivated'
-          frame (ignored because only 1 frame is considered by grouping enhancement rule (family:native))
+          frame (ignored because only 1 frame is considered by grouping enhancement rule (family:native max-frames=1))
             function* (isolated function)
               u'Scaleform::GFx::AS3::IMEManager::DispatchEvent'
           frame*

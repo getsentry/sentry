@@ -1,5 +1,5 @@
 ---
-created: '2019-05-02T18:53:32.162383Z'
+created: '2019-06-05T11:45:17.444061Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -12,19 +12,19 @@ app:
           frame (non app frame)
             function*
               u'_main'
-          frame (non app frame)
+          frame (marked out of app by grouping enhancement rule (family:native function:std::* -app))
             function*
               u'std::rt::lang_start_internal'
           frame (non app frame)
             function*
               u'___rust_maybe_catch_panic'
-          frame (non app frame)
+          frame (marked out of app by grouping enhancement rule (family:native function:std::* -app))
             function*
               u'std::panicking::try::do_call'
-          frame (non app frame)
+          frame (marked out of app by grouping enhancement rule (family:native function:std::* -app))
             function*
               u'std::rt::lang_start::{{closure}}'
-          frame* (marked in-app by grouping enhancement rule (family:native function:log_demo::*))
+          frame* (marked in-app by grouping enhancement rule (family:native function:log_demo::* +app))
             function*
               u'log_demo::main'
           frame (non app frame)
@@ -44,19 +44,19 @@ system:
           frame*
             function*
               u'_main'
-          frame*
+          frame* (marked out of app by grouping enhancement rule (family:native function:std::* -app))
             function*
               u'std::rt::lang_start_internal'
           frame*
             function*
               u'___rust_maybe_catch_panic'
-          frame*
+          frame* (marked out of app by grouping enhancement rule (family:native function:std::* -app))
             function*
               u'std::panicking::try::do_call'
-          frame*
+          frame* (marked out of app by grouping enhancement rule (family:native function:std::* -app))
             function*
               u'std::rt::lang_start::{{closure}}'
-          frame* (marked in-app by grouping enhancement rule (family:native function:log_demo::*))
+          frame* (marked in-app by grouping enhancement rule (family:native function:log_demo::* +app))
             function*
               u'log_demo::main'
           frame*

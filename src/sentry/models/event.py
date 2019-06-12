@@ -184,12 +184,19 @@ class EventCommon(object):
         return filter(None, [
             x.get_hash() for x in self.get_grouping_variants(force_config).values()])
 
-    def get_grouping_variants(self, force_config=None):
+    def get_grouping_variants(self, force_config=None, normalize_stacktraces=False):
         """
         This is similar to `get_hashes` but will instead return the
         grouping components for each variant in a dictionary.
+
+        If `normalize_stacktraces` is set to `True` then the event data will be
+        modified for `in_app` in addition to event variants being created.  This
+        means that after calling that function the event data has been modified
+        in place.
         """
-        from sentry.grouping.api import get_grouping_variants_for_event
+        from sentry.grouping.api import get_grouping_variants_for_event, \
+            load_grouping_config
+        from sentry.stacktraces.processing import normalize_stacktraces_for_grouping
 
         # Forcing configs has two separate modes.  One is where just the
         # config ID is given in which case it's merged with the stored or
@@ -207,6 +214,10 @@ class EventCommon(object):
         # the default.
         else:
             config = self.data.get('grouping_config')
+
+        config = load_grouping_config(config)
+        if normalize_stacktraces:
+            normalize_stacktraces_for_grouping(self.data, config)
 
         return get_grouping_variants_for_event(self, config)
 

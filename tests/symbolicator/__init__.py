@@ -18,7 +18,10 @@ def get_fixture_path(name):
 def strip_frame(frame):
     if frame:
         frame = {
-            'data': {'symbolicator_status': get_path(frame, 'data', 'symbolicator_status')},
+            'data': {
+                'symbolicator_status': get_path(frame, 'data', 'symbolicator_status'),
+                'orig_in_app': get_path(frame, 'data', 'orig_in_app'),
+            },
             'function': frame.get('function'),
             'instruction_addr': frame.get('instruction_addr'),
             'symbol': frame.get('symbol'),
