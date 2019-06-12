@@ -31,7 +31,6 @@ const GroupHeader = createReactClass({
     api: PropTypes.object,
     group: SentryTypes.Group.isRequired,
     project: SentryTypes.Project,
-    params: PropTypes.object,
   },
 
   contextTypes: {
@@ -91,7 +90,7 @@ const GroupHeader = createReactClass({
   },
 
   render() {
-    const {project, group, params} = this.props;
+    const {project, group} = this.props;
     const projectFeatures = new Set(project ? project.features : []);
     const userCount = group.userCount;
 
@@ -118,9 +117,7 @@ const GroupHeader = createReactClass({
 
     const hasSimilarView = projectFeatures.has('similarity-view');
 
-    const baseUrl = params.projectId
-      ? `/${orgId}/${params.projectId}/issues/`
-      : `/organizations/${orgId}/issues/`;
+    const baseUrl = `/organizations/${orgId}/issues/`;
 
     const searchTermWithoutQuery = omit(location.query, 'query');
     const eventRouteToObject = {
