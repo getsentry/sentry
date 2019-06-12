@@ -7,6 +7,7 @@ import AsyncComponent from 'app/components/asyncComponent';
 import GroupChart from 'app/components/stream/groupChart';
 import InlineSvg from 'app/components/inlineSvg';
 import Link from 'app/components/links/link';
+import Placeholder from 'app/components/placeholder';
 import ProjectBadge from 'app/components/idBadge/projectBadge';
 import SeenByList from 'app/components/seenByList';
 import ShortId from 'app/components/shortId';
@@ -23,6 +24,10 @@ class LinkedIssuePreview extends AsyncComponent {
     const groupUrl = `/issues/${groupId}/`;
 
     return [['group', groupUrl]];
+  }
+
+  renderLoading() {
+    return <Placeholder height="120px" bottomGutter={2} />;
   }
 
   renderBody() {

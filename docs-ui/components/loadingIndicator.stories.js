@@ -4,7 +4,7 @@ import {withInfo} from '@storybook/addon-info';
 
 import LoadingIndicator from 'app/components/loadingIndicator';
 
-storiesOf('UI|LoadingIndicator', module)
+storiesOf('UI|Loaders/LoadingIndicator', module)
   .add(
     'all',
     withInfo('Loading indicators. Triangle has negative margins.')(() => (

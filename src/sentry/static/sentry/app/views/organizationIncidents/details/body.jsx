@@ -8,6 +8,7 @@ import IdBadge from 'app/components/idBadge';
 import Link from 'app/components/links/link';
 import NavTabs from 'app/components/navTabs';
 import Projects from 'app/utils/projects';
+import Placeholder from 'app/components/placeholder';
 import SeenByList from 'app/components/seenByList';
 import SentryTypes from 'app/sentryTypes';
 import SideHeader from 'app/views/organizationIncidents/details/sideHeader';
@@ -65,7 +66,7 @@ export default class DetailsBody extends React.Component {
                 closed={incident.dateClosed}
               />
             ) : (
-              <ChartPlaceholder />
+              <Placeholder height="190px" bottomGutter={2} />
             )}
 
             <div>
@@ -135,12 +136,6 @@ const SeenByTab = styled('li')`
 
 const StyledSeenByList = styled(SeenByList)`
   margin-top: 0;
-`;
-
-const ChartPlaceholder = styled('div')`
-  background-color: ${p => p.theme.offWhite};
-  height: 190px;
-  margin-bottom: 10px;
 `;
 
 const StyledIdBadge = styled(IdBadge)`
