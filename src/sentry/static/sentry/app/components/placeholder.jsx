@@ -17,12 +17,7 @@ const Placeholder = styled(props => {
   width: ${p => p.width};
   height: ${p => p.height};
   ${p => (p.shape == 'circle' ? 'border-radius: 100%;' : '')}
-  ${p =>
-    p.bottomGutter > 0 ? `margin-bottom: ${space(p.bottomGutter)};` : ''}
-
-  & .loading {
-    margin: auto;
-  }
+  ${p => (p.bottomGutter > 0 ? `margin-bottom: ${space(p.bottomGutter)};` : '')}
 `;
 
 Placeholder.propTypes = {
@@ -35,6 +30,7 @@ Placeholder.defaultProps = {
   shape: 'rect',
   bottomGutter: 0,
   width: '100%',
+  height: '60px',
 };
 
 export default Placeholder;

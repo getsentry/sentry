@@ -5,7 +5,7 @@ import {text, number} from '@storybook/addon-knobs';
 
 import Placeholder from 'app/components/placeholder';
 
-storiesOf('UI|Placeholder', module).add(
+storiesOf('UI|Loaders/Placeholder', module).add(
   'default',
   withInfo(
     'When you want a rough sized placeholder for content that is loading asynchronously'
