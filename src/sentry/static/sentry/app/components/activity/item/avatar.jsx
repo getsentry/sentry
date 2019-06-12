@@ -4,6 +4,7 @@ import styled from 'react-emotion';
 
 import Avatar from 'app/components/avatar';
 import InlineSvg from 'app/components/inlineSvg';
+import Placeholder from 'app/components/placeholder';
 import SentryTypes from 'app/sentryTypes';
 
 class ActivityAvatar extends React.Component {
@@ -19,7 +20,6 @@ class ActivityAvatar extends React.Component {
 
   render() {
     const {className, type, user, size} = this.props;
-
     if (user) {
       return <Avatar user={user} size={size} className={className} />;
     }
@@ -33,7 +33,14 @@ class ActivityAvatar extends React.Component {
       );
     }
 
-    return <Placeholder className={className} size={size} />;
+    return (
+      <Placeholder
+        className={className}
+        width={`${size}px`}
+        height={`${size}px`}
+        shape="circle"
+      />
+    );
   }
 }
 
@@ -49,12 +56,4 @@ const SystemAvatar = styled('span')`
 
 const Logo = styled(InlineSvg)`
   color: ${p => p.theme.gray5};
-`;
-
-const Placeholder = styled('div')`
-  height: ${p => p.size}px;
-  width: ${p => p.size}px;
-  border-radius: 100%;
-  background-color: ${p => p.theme.placeholderBackground};
-  flex-shrink: 0;
 `;
