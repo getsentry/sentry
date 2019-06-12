@@ -160,6 +160,10 @@ const ModalContainer = styled('div')`
   box-shadow: ${p => p.theme.dropShadowHeavy};
 
   z-index: ${p => p.theme.zIndex.modal};
+
+  @media (max-width: ${p => p.theme.breakpoints[1]}) {
+    margin: ${space(2)};
+  }
 `;
 
 const CircleButton = styled('button')`

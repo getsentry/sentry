@@ -75,13 +75,22 @@ ModalPagination.propTypes = {
 const StyledLink = styled(Link, {shouldForwardProp: isPropValid})`
   color: ${p => (p.disabled ? p.theme.disabled : p.theme.gray3)};
   font-size: ${p => p.fontSizeMedium};
+  text-align: center;
   padding: ${space(0.5)} ${space(1.5)};
   ${p => (p.isLast ? '' : `border-right: 1px solid ${p.theme.borderDark};`)}
   ${p => (p.disabled ? 'pointer-events: none;' : '')}
+
+  @media(max-width: ${p => p.theme.breakpoints[0]}) {
+    flex-grow: 1;
+  }
 `;
 
 const Wrapper = styled('div')`
   display: flex;
+
+  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+    width: 100%;
+  }
 `;
 
 const ShadowBox = styled('div')`
@@ -92,6 +101,10 @@ const ShadowBox = styled('div')`
   margin-bottom: ${space(3)};
   box-shadow: 3px 3px 0 ${p => p.theme.offWhite}, 3px 3px 0 1px ${p => p.theme.borderDark},
     7px 7px ${p => p.theme.offWhite}, 7px 7px 0 1px ${p => p.theme.borderDark};
+
+  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+    width: 100%;
+  }
 `;
 
 export default ModalPagination;
