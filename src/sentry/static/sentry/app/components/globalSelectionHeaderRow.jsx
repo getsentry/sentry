@@ -21,10 +21,10 @@ class GlobalSelectionHeaderRow extends React.Component {
     const {checked, onCheckClick, multi, children, ...props} = this.props;
 
     return (
-      <Container {...props}>
+      <Container isMulti={multi} isChecked={checked} {...props}>
         <Content multi={multi}>{children}</Content>
         <CheckboxWrapper onClick={multi ? onCheckClick : null} checked={checked}>
-          <Checkbox checked={checked} />
+          <CheckboxFancy disabled={!multi} checked={multi && checked} />
         </CheckboxWrapper>
       </Container>
     );
@@ -41,9 +41,13 @@ const Container = styled('div')`
   height: ${p => p.theme.headerSelectorRowHeight}px;
   flex-shrink: 0;
 
-  /* thanks bootstrap? */
-  input[type='checkbox'] {
-    margin: 0;
+  /* stylelint-disable-next-line no-duplicate-selectors */
+  ${CheckboxFancy} {
+    opacity: ${p => (p.isMulti && p.isChecked ? 1 : 0.33)};
+  }
+
+  &:hover ${CheckboxFancy} {
+    opacity: 1;
   }
 `;
 
@@ -62,10 +66,6 @@ const Content = styled('div')`
   }
 `;
 
-const Checkbox = styled(CheckboxFancy)`
-  transition: 0.2s transform;
-`;
-
 const CheckboxWrapper = styled('div')`
   margin: 0 -${space(1)} 0 0; /* pushes the click box to be flush with the edge of the menu */
   padding: 0 ${space(1.5)} 0 ${space(1.25)};
@@ -73,12 +73,6 @@ const CheckboxWrapper = styled('div')`
   display: flex;
   justify-content: flex-end;
   align-items: center;
-  transition: 0.2s all;
-
-  &:hover ${Checkbox} {
-    transform: scale(1.1);
-    border-color: ${p => (p.checked ? p.theme.purple : p.theme.gray2)};
-  }
 `;
 
 export default GlobalSelectionHeaderRow;
