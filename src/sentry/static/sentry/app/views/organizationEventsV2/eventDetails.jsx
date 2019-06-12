@@ -48,7 +48,7 @@ class EventDetails extends AsyncComponent {
       let url = `/organizations/${organization.slug}/events/`;
       // latest / oldest have dedicated endpoints
       if (['latest', 'oldest'].includes(eventId)) {
-        url += 'latest/';
+        url += `${eventId}/`;
       } else {
         url += `${projectId}:${eventId}/`;
       }
