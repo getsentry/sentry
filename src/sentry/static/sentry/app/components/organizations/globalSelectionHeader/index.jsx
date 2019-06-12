@@ -4,10 +4,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
 
-import {
-  DATE_TIME_KEYS,
-  URL_PARAM,
-} from 'app/components/organizations/globalSelectionHeader/constants';
+import {DATE_TIME_KEYS, URL_PARAM} from 'app/constants/globalSelectionHeader';
 import {DEFAULT_STATS_PERIOD} from 'app/constants';
 import {callIfFunction} from 'app/utils/callIfFunction';
 import {isEqualWithDates} from 'app/utils/isEqualWithDates';

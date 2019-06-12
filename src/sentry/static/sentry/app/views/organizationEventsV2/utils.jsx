@@ -1,7 +1,7 @@
 import {pick} from 'lodash';
 
 import {DEFAULT_PER_PAGE} from 'app/constants';
-import {URL_PARAM} from 'app/components/organizations/globalSelectionHeader/constants';
+import {URL_PARAM} from 'app/constants/globalSelectionHeader';
 import {ALL_VIEWS, SPECIAL_FIELDS} from './data';
 
 /**
