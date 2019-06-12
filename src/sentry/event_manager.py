@@ -278,7 +278,8 @@ class EventManager(object):
         self._project = project
         # if not explicitly specified try to get the grouping from relay_config
         if grouping_config is None and relay_config is not None:
-            grouping_config = relay_config.grouping_config
+            config = relay_config.config
+            grouping_config = config.get('grouping_config')
         # if we still don't have a grouping also try the project
         if grouping_config is None and project is not None:
             grouping_config = get_grouping_config_dict_for_project(self._project)

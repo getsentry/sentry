@@ -231,6 +231,8 @@ def get_full_relay_config(project_id):
                   project.get_option('sentry:scrub_data', True))
 
     project_cfg['scrub_data'] = scrub_data
+    project_cfg['grouping_config'] = get_grouping_config_dict_for_project(project)
+    project_cfg['allowed_domains'] = list(get_origins(project))
 
     if scrub_data:
         # We filter data immediately before it ever gets into the queue
@@ -251,10 +253,6 @@ def get_full_relay_config(project_id):
         scrub_defaults = (org_options.get('sentry:require_scrub_defaults', False) or
                           project.get_option('sentry:scrub_defaults', True))
         project_cfg['scrub_defaults'] = scrub_defaults
-
-    cfg['grouping_config'] = get_grouping_config_dict_for_project(project)
-
-    cfg['origins'] = list(get_origins(project))
 
     return FullRelayConfig(project, **cfg)
 

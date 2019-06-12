@@ -445,9 +445,11 @@ class APIView(BaseView):
         request.user = AnonymousUser()
 
         project = relay_config.project
+        config = relay_config.config
+        allowed = config.get('allowed_domains')
 
         if origin is not None:
-            if not is_valid_origin(origin, allowed=relay_config.origins):
+            if not is_valid_origin(origin, allowed=allowed):
                 track_outcome(
                     relay_config.organization_id,
                     relay_config.project_id,
