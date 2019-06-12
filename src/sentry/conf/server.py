@@ -852,6 +852,8 @@ SENTRY_FEATURES = {
     # Enable organizations to create and utilize Sentry Apps.
     'organizations:sentry-apps': False,
 
+    # Enable filters for extended data retention.
+    'organizations:extended-data-retention': True,
     # Enable the relay functionality, for use with sentry semaphore. See
     # https://github.com/getsentry/semaphore.
     'organizations:relay': False,
@@ -868,8 +870,6 @@ SENTRY_FEATURES = {
     'organizations:sso-saml2': True,
     # Enable Rippling SSO functionality.
     'organizations:sso-rippling': False,
-    # Enable filters for extended data retention.
-    'organizations:extended-data-retention': True,
 
     # Enable functionality to specify custom inbound filters on events.
     'projects:custom-inbound-filters': False,
