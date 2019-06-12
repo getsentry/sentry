@@ -1,5 +1,5 @@
 ---
-created: '2019-06-11T21:26:07.179068Z'
+created: '2019-06-12T09:11:31.055582Z'
 creator: sentry
 source: tests/symbolicator/test_minidump_full.py
 ---
@@ -92,8 +92,7 @@ debug_meta:
     image_addr: '0x74450000'
     image_size: 266240
     type: pe
-  - arch: x86
-    code_file: C:\Windows\System32\kernel32.dll
+  - code_file: C:\Windows\System32\kernel32.dll
     code_id: 590285e9e0000
     debug_file: wkernel32.pdb
     debug_id: d3474559-96f7-47d6-bf43-c176b2171e68-1
@@ -121,16 +120,14 @@ debug_meta:
     image_addr: '0x758f0000'
     image_size: 917504
     type: pe
-  - arch: x86
-    code_file: C:\Windows\System32\KERNELBASE.dll
+  - code_file: C:\Windows\System32\KERNELBASE.dll
     code_id: 59bf2bcf1a1000
     debug_file: wkernelbase.pdb
     debug_id: 8462294a-c645-402d-ac82-a4e95f61ddf9-1
     image_addr: '0x76db0000'
     image_size: 1708032
     type: pe
-  - arch: x86
-    code_file: C:\Windows\System32\ntdll.dll
+  - code_file: C:\Windows\System32\ntdll.dll
     code_id: 59b0d8f3183000
     debug_file: wntdll.pdb
     debug_id: 971f98e5-ce60-41ff-b2d7-235bbeb34578-1

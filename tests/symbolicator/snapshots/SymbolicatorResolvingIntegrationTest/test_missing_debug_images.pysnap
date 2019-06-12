@@ -1,5 +1,5 @@
 ---
-created: '2019-06-11T21:26:12.836777Z'
+created: '2019-06-12T09:11:36.216105Z'
 creator: sentry
 source: tests/symbolicator/test_payload_full.py
 ---
@@ -40,7 +40,6 @@ exception:
         symbol: null
         trust: null
       - data:
-          orig_in_app: -1
           symbolicator_status: unknown_image
         function: unknown
         in_app: false

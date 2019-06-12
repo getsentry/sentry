@@ -1,5 +1,5 @@
 ---
-created: '2019-06-11T21:25:58.992806Z'
+created: '2019-06-12T09:11:25.121573Z'
 creator: sentry
 source: tests/symbolicator/test_minidump_full.py
 ---
@@ -127,8 +127,7 @@ debug_meta:
     image_addr: '0x76db0000'
     image_size: 1708032
     type: pe
-  - arch: x86
-    code_file: C:\Windows\System32\ntdll.dll
+  - code_file: C:\Windows\System32\ntdll.dll
     code_id: 59b0d8f3183000
     debug_file: wntdll.pdb
     debug_id: 971f98e5-ce60-41ff-b2d7-235bbeb34578-1
@@ -167,7 +166,6 @@ exception:
         symbol: null
         trust: fp
       - data:
-          orig_in_app: -1
           symbolicator_status: missing
         function: null
         in_app: false
@@ -239,7 +237,6 @@ threads:
         symbol: null
         trust: fp
       - data:
-          orig_in_app: -1
           symbolicator_status: missing
         function: null
         in_app: false
@@ -292,7 +289,6 @@ threads:
         symbol: null
         trust: fp
       - data:
-          orig_in_app: -1
           symbolicator_status: missing
         function: null
         in_app: false
