@@ -21,6 +21,7 @@ from six.moves.urllib.parse import urlparse
 
 from sentry.models import EventError
 from sentry.exceptions import RestrictedIPAddress
+from sentry.utils import metrics
 from sentry.utils.cache import cache
 from sentry.utils.hashlib import md5_text
 from sentry.utils.strings import truncatechars
@@ -84,7 +85,8 @@ def safe_urlopen(
     allow_redirects=False,
     timeout=30,
     verify_ssl=True,
-    user_agent=None
+    user_agent=None,
+    metrics=None,
 ):
     """
     A slightly safer version of ``urlib2.urlopen`` which prevents redirection
@@ -115,14 +117,42 @@ def safe_urlopen(
     if method is None:
         method = 'POST' if (data or json) else 'GET'
 
-    response = session.request(
-        method=method,
-        url=url,
-        allow_redirects=allow_redirects,
-        timeout=timeout,
-        verify=verify_ssl,
-        **kwargs
-    )
+    if metrics:
+        record_metric('sent', **metrics)
+
+    try:
+        response = session.request(
+            method=method,
+            url=url,
+            allow_redirects=allow_redirects,
+            timeout=timeout,
+            verify=verify_ssl,
+            **kwargs
+        )
+    except Exception:
+        if metrics:
+            record_metric('failed', **metrics)
+        raise
+
+    rmetrics = None
+
+    if metrics:
+        # Dup so we don't change values in the initial `record_metric` object
+        import copy
+        rmetrics = copy.deepcopy(metrics)
+
+    if rmetrics:
+        rmetrics.setdefault('tags', {})
+        rmetrics['tags'].update(status_code=response.status_code)
+
+    try:
+        response.raise_for_status()
+    except Exception:
+        if rmetrics:
+            record_metric('failed', **rmetrics)
+
+    if rmetrics:
+        record_metric('delivered', **rmetrics)
 
     return response
 
@@ -265,3 +295,16 @@ def fetch_file(
             response.close()
 
     return UrlResult(url, result[0], result[1], result[2], result[3])
+
+
+def record_metric(metric, key=None, instance=None, tags=None):
+    key = key or 'request'
+    instance = instance or 'sentry.http'
+    tags = tags or {}
+
+    metrics.incr(
+        u'{}.{}'.format(key, metric),
+        instance=instance,
+        tags=tags,
+        skip_internal=False,
+    )

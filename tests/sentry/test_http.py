@@ -6,7 +6,7 @@ import pytest
 import tempfile
 
 from django.core.exceptions import SuspiciousOperation
-from mock import patch
+from mock import patch, call
 from urllib3.util.connection import HAS_IPV6
 
 from sentry import http
@@ -86,3 +86,97 @@ def test_fetch_file():
     assert result.body is None
     assert temp.read() == 'foo bar'
     temp.close()
+
+
+@responses.activate
+@patch('sentry.utils.metrics.incr')
+def test_metrics(incr):
+    responses.add(responses.GET, 'http://example.com')
+
+    http.safe_urlopen(
+        'http://example.com',
+        metrics={
+            'key': 'foo',
+            'instance': 'instance-name',
+            'tags': {'hey': 'hi'},
+        }
+    )
+
+    calls = [
+        call(
+            'foo.sent',
+            instance='instance-name',
+            tags={'hey': 'hi'},
+            skip_internal=False,
+        ),
+        call(
+            'foo.delivered',
+            instance='instance-name',
+            tags={'hey': 'hi', 'status_code': 200},
+            skip_internal=False,
+        ),
+    ]
+
+    incr.assert_has_calls(calls, any_order=True)
+
+
+@responses.activate
+@patch('sentry.utils.metrics.incr')
+def test_metrics_defaults(incr):
+    responses.add(responses.GET, 'http://example.com')
+
+    http.safe_urlopen(
+        'http://example.com',
+        metrics={
+            'key': 'request',
+        }
+    )
+
+    calls = [
+        call(
+            'request.sent',
+            instance='sentry.http',
+            tags={},
+            skip_internal=False,
+        ),
+        call(
+            'request.delivered',
+            instance='sentry.http',
+            tags={'status_code': 200},
+            skip_internal=False,
+        ),
+    ]
+
+    incr.assert_has_calls(calls, any_order=True)
+
+
+@responses.activate
+@patch('sentry.utils.metrics.incr')
+def test_metrics_on_failure(incr):
+    responses.add(responses.GET, 'http://example.com', status=400)
+
+    http.safe_urlopen(
+        'http://example.com',
+        metrics={
+            'key': 'foo',
+            'instance': 'instance-name',
+            'tags': {'hey': 'hi'},
+        },
+    )
+
+    calls = [
+        call(
+            'foo.sent',
+            instance='instance-name',
+            tags={'hey': 'hi'},
+            skip_internal=False,
+        ),
+        call(
+            'foo.failed',
+            instance='instance-name',
+            tags={'hey': 'hi', 'status_code': 400},
+            skip_internal=False,
+        ),
+    ]
+
+    incr.assert_has_calls(calls, any_order=True)
