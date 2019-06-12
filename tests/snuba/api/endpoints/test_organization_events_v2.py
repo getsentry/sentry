@@ -203,6 +203,44 @@ class OrganizationEventsV2EndpointTest(OrganizationEventsTestBase):
         assert response.data[1]['project.id'] == project.id
         assert response.data[1]['issue.id'] == groups[1].id
 
+    def test_orderby(self):
+        self.login_as(user=self.user)
+        project = self.create_project()
+        self.store_event(
+            data={
+                'event_id': 'a' * 32,
+                'timestamp': self.two_min_ago,
+            },
+            project_id=project.id,
+        )
+        self.store_event(
+            data={
+                'event_id': 'b' * 32,
+                'timestamp': self.min_ago,
+            },
+            project_id=project.id,
+        )
+        self.store_event(
+            data={
+                'event_id': 'c' * 32,
+                'timestamp': self.min_ago,
+            },
+            project_id=project.id,
+        )
+        with self.feature('organizations:events-v2'):
+            response = self.client.get(
+                self.url,
+                format='json',
+                data={
+                    'field': ['id'],
+                    'orderby': ['-timestamp', '-id']
+                },
+            )
+
+        assert response.data[0]['id'] == 'c' * 32
+        assert response.data[1]['id'] == 'b' * 32
+        assert response.data[2]['id'] == 'a' * 32
+
     def test_special_fields(self):
         self.login_as(user=self.user)
         project = self.create_project()
