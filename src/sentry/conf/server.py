@@ -1499,7 +1499,13 @@ EMAIL_SUBJECT_PREFIX = DEAD
 
 SUDO_URL = 'sentry-sudo'
 
-# TODO(dcramer): move this to sentry.io so it can be automated
+
+# Endpoint to https://github.com/getsentry/sentry-release-registry, used for
+# alerting the user on outdated SDKs.
+SENTRY_RELEASE_REGISTRY_BASEURL = None
+
+# Hardcoded SDK versions for SDKs that do not have an entry in the release
+# registry.
 SDK_VERSIONS = {
     'raven-js': '3.21.0',
     'raven-node': '2.3.0',
@@ -1507,18 +1513,8 @@ SDK_VERSIONS = {
     'raven-ruby': '2.7.1',
     'sentry-cocoa': '3.11.1',
     'sentry-java': '1.6.4',
-    'sentry.javascript.browser': '5.3.0',
-    'sentry.javascript.electron': '0.17.1',
-    'sentry.javascript.node': '5.3.0',
     'sentry-laravel': '1.0.2',
     'sentry-php': '2.0.1',
-    'sentry.python': '0.7.14',
-    'sentry.dotnet': '1.2.0',
-    'sentry.dotnet.aspnetcore': '1.2.0',
-    'sentry.dotnet.extensions.logging': '1.2.0',
-    'sentry.dotnet.log4net': '1.2.0',
-    'sentry.dotnet.serilog': '1.2.0',
-    'sentry.dotnet.nlog': '1.2.0',
 }
 
 SDK_URLS = {
@@ -1528,19 +1524,9 @@ SDK_URLS = {
     'raven-ruby': 'https://docs.sentry.io/clients/ruby/',
     'raven-swift': 'https://docs.sentry.io/clients/cocoa/',
     'sentry-java': 'https://docs.sentry.io/clients/java/',
-    'sentry.javascript.browser': 'https://docs.sentry.io/platforms/javascript/',
-    'sentry.javascript.electron': 'https://docs.sentry.io/platforms/javascript/electron/',
-    'sentry.javascript.node': 'https://docs.sentry.io/platforms/javascript/',
     'sentry-php': 'https://docs.sentry.io/platforms/php/',
     'sentry-laravel': 'https://docs.sentry.io/platforms/php/laravel/',
-    'sentry.python': 'https://docs.sentry.io/platforms/python/',
     'sentry-swift': 'https://docs.sentry.io/clients/cocoa/',
-    'sentry.dotnet': 'https://docs.sentry.io/platforms/dotnet/',
-    'sentry.dotnet.aspnetcore': 'https://docs.sentry.io/platforms/dotnet/aspnetcore/',
-    'sentry.dotnet.extensions.logging': 'https://docs.sentry.io/platforms/dotnet/microsoft-extensions-logging/',
-    'sentry.dotnet.log4net': 'https://docs.sentry.io/platforms/dotnet/log4net/',
-    'sentry.dotnet.serilog': 'https://docs.sentry.io/platforms/dotnet/serilog/',
-    'sentry.dotnet.nlog': 'https://docs.sentry.io/platforms/dotnet/nlog/',
 }
 
 DEPRECATED_SDKS = {
