@@ -71,13 +71,16 @@ const OrganizationContext = createReactClass({
       this.props.params.orgId &&
       prevProps.params.orgId !== this.props.params.orgId;
 
+    // protect against the case where we finish fetching org details
+    // and then `OrganizationsStore` finishes loading:
+    // only fetch in the case where we don't have an orgId
     const organizationLoadingChanged =
       prevProps.organizationsLoading !== this.props.organizationsLoading &&
       this.props.organizationsLoading === false;
 
     if (
       hasOrgIdAndChanged ||
-      organizationLoadingChanged ||
+      (!this.props.params.orgId && organizationLoadingChanged) ||
       (this.props.location.state === 'refresh' && prevProps.location.state !== 'refresh')
     ) {
       this.remountComponent();
@@ -146,6 +149,7 @@ const OrganizationContext = createReactClass({
       })
       .catch(err => {
         let errorType = null;
+
         switch (err.statusText) {
           case 'NOT FOUND':
             errorType = ERROR_TYPES.ORG_NOT_FOUND;
@@ -161,6 +165,10 @@ const OrganizationContext = createReactClass({
         // If user is superuser, open sudo window
         const user = ConfigStore.get('user');
         if (!user || !user.isSuperuser || err.status !== 403) {
+          // This `catch` can swallow up errors in development (and tests)
+          // So let's log them. This may create some noise, especially the test case where
+          // we specifically test this branch
+          console.error(err); // eslint-disable-line no-console
           return;
         }
         openSudo({
