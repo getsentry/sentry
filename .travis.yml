@@ -233,12 +233,6 @@ matrix:
     - language: node_js
       env: STORYBOOK_BUILD=1
 
-    # XXX(ja): Should be removed once symbolicator's interface is more stable or
-    # tests have been refactored to be more lenient. At the moment, snapshots
-    # break every time when a new attribute is added or some secondary attribute
-    # is changed.
-    - env: TEST_SUITE=symbolicator
-
 notifications:
   webhooks:
     urls:
