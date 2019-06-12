@@ -545,6 +545,84 @@ class OrganizationEventsV2EndpointTest(OrganizationEventsTestBase):
         assert response.status_code == 400, response.content
         assert response.data['detail'] == 'Invalid groupby value requested. Allowed values are project.id, issue.id'
 
+    def test_non_aggregated_fields_with_groupby(self):
+        self.login_as(user=self.user)
+
+        project = self.create_project()
+        self.store_event(
+            data={
+                'event_id': 'a' * 32,
+                'message': 'how to make fast',
+                'timestamp': self.min_ago,
+            },
+            project_id=project.id
+        )
+
+        with self.feature('organizations:events-v2'):
+            response = self.client.get(
+                self.url,
+                format='json',
+                data={
+                    'field': ['project.id'],
+                    'groupby': ['issue.id'],
+                },
+            )
+        assert response.status_code == 400, response.content
+        assert response.data['detail'] == 'Invalid query.'
+
+    def test_non_existent_params(self):
+        self.login_as(user=self.user)
+
+        project = self.create_project()
+        self.store_event(
+            data={
+                'event_id': 'a' * 32,
+                'message': 'how to make fast',
+                'timestamp': self.min_ago,
+            },
+            project_id=project.id
+        )
+
+        with self.feature('organizations:events-v2'):
+            response = self.client.get(
+                self.url,
+                format='json',
+                data={
+                    # TODO(lb): is it ok if extraneous data is included as long as the minimum
+                    # is met?
+                    'strange_field_name': ['issue.id'],
+                    'groupby': ['issue.id'],
+                },
+            )
+        assert response.status_code == 200, response.content
+        assert response.data == [{"issue.id": 1}]
+
+    def test_non_existent_fields(self):
+        self.login_as(user=self.user)
+
+        project = self.create_project()
+        self.store_event(
+            data={
+                'event_id': 'a' * 32,
+                'message': 'how to make fast',
+                'timestamp': self.min_ago,
+            },
+            project_id=project.id
+        )
+
+        with self.feature('organizations:events-v2'):
+            response = self.client.get(
+                self.url,
+                format='json',
+                data={
+                    # TODO(lb): is it ok if extraneous data is included as long as the minimum
+                    # is met?
+                    'field': ['issue_world.id'],
+                },
+            )
+        assert response.status_code == 200, response.content
+        assert response.data == [{u'issue_world.id': u''}]
+
     def test_no_requested_fields_or_grouping(self):
         self.login_as(user=self.user)
 
