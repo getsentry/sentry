@@ -11,10 +11,12 @@ from parsimonious.grammar import Grammar, NodeVisitor
 from parsimonious.exceptions import ParseError
 
 from sentry import projectoptions
+from sentry.stacktraces.functions import set_in_app
 from sentry.stacktraces.platform import get_behavior_family_for_platform
 from sentry.grouping.utils import get_rule_bool
 from sentry.utils.compat import implements_to_string
 from sentry.utils.glob import glob_match
+from sentry.utils.safe import get_path
 
 
 # Grammar is defined in EBNF syntax.
@@ -166,7 +168,7 @@ class Action(object):
     def apply_modifications_to_frame(self, frames, idx):
         pass
 
-    def update_frame_components_contributions(self, components, idx, rule=None):
+    def update_frame_components_contributions(self, components, frames, idx, rule=None):
         pass
 
     def modify_stack_state(self, state, rule):
@@ -207,15 +209,25 @@ class FlagAction(Action):
             return seq[idx + 1:]
         return []
 
+    def _in_app_changed(self, frame, component):
+        orig_in_app = get_path(frame, 'data', 'orig_in_app')
+
+        if orig_in_app is not None:
+            if orig_in_app == -1:
+                orig_in_app = None
+            return orig_in_app != frame.get('in_app')
+        else:
+            return self.flag == component.contributes
+
     def apply_modifications_to_frame(self, frames, idx):
         # Grouping is not stored on the frame
         if self.key == 'group':
             return
         for frame in self._slice_to_range(frames, idx):
             if self.key == 'app':
-                frame['in_app'] = self.flag
+                set_in_app(frame, self.flag)
 
-    def update_frame_components_contributions(self, components, idx, rule=None):
+    def update_frame_components_contributions(self, components, frames, idx, rule=None):
         rule_hint = 'grouping enhancement rule'
         if rule:
             rule_hint = '%s (%s)' % (
@@ -223,7 +235,9 @@ class FlagAction(Action):
                 rule.matcher_description,
             )
 
-        for component in self._slice_to_range(components, idx):
+        sliced_components = self._slice_to_range(components, idx)
+        sliced_frames = self._slice_to_range(frames, idx)
+        for component, frame in izip(sliced_components, sliced_frames):
             if self.key == 'group' and self.flag != component.contributes:
                 component.update(
                     contributes=self.flag,
@@ -232,9 +246,7 @@ class FlagAction(Action):
                 )
             # The in app flag was set by `apply_modifications_to_frame`
             # but we want to add a hint if there is none yet.
-            elif self.key == 'app' and \
-                    self.flag == component.contributes and \
-                    component.hint is None:
+            elif self.key == 'app' and self._in_app_changed(frame, component):
                 component.update(
                     hint='marked %s by %s' % (
                         self.flag and 'in-app' or 'out of app', rule_hint)
@@ -311,7 +323,7 @@ class Enhancements(object):
                 actions = rule.get_matching_frame_actions(frame, platform)
                 for action in actions or ():
                     action.update_frame_components_contributions(
-                        components, idx, rule=rule)
+                        components, frames, idx, rule=rule)
                     action.modify_stack_state(stack_state, rule)
 
         # Use the stack state to update frame contributions again
@@ -406,8 +418,8 @@ class Rule(object):
     @property
     def matcher_description(self):
         rv = ' '.join(x.description for x in self.matchers)
-        if any(x.range is not None for x in self.actions):
-            rv += ' - ranged'
+        for action in self.actions:
+            rv = '%s %s' % (rv, action)
         return rv
 
     def as_dict(self):

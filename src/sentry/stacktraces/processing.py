@@ -11,7 +11,7 @@ from sentry.models import Project, Release
 from sentry.utils.cache import cache
 from sentry.utils.hashlib import hash_values
 from sentry.utils.safe import get_path, safe_execute
-from sentry.stacktraces.functions import trim_function_name
+from sentry.stacktraces.functions import set_in_app, trim_function_name
 
 
 logger = logging.getLogger(__name__)
@@ -218,12 +218,12 @@ def _normalize_in_app(stacktrace, platform=None, sdk_info=None):
     for frame in stacktrace:
         # If all frames are in_app, flip all of them. This is expected by the UI
         if not has_system_frames:
-            frame['in_app'] = False
+            set_in_app(frame, False)
 
         # Default to false in all cases where processors or grouping enhancers
         # have not yet set in_app.
         elif frame.get('in_app') is None:
-            frame['in_app'] = False
+            set_in_app(frame, False)
 
 
 def normalize_stacktraces_for_grouping(data, grouping_config=None):
@@ -250,6 +250,13 @@ def normalize_stacktraces_for_grouping(data, grouping_config=None):
     # unnecessarily.
     for frames in stacktraces:
         for frame in frames:
+            # Restore the original in_app value before the first grouping
+            # enhancers have been run. This allows to re-apply grouping
+            # enhancers on the original frame data.
+            orig_in_app = get_path(frame, 'data', 'orig_in_app')
+            if orig_in_app is not None:
+                frame['in_app'] = None if orig_in_app == -1 else bool(orig_in_app)
+
             if frame.get('raw_function') is not None:
                 continue
             raw_func = frame.get('function')

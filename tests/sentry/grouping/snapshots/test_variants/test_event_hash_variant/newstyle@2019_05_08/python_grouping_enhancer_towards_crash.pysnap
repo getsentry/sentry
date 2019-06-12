@@ -1,5 +1,5 @@
 ---
-created: '2019-05-10T12:07:55.361414Z'
+created: '2019-06-05T11:45:18.682125Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -54,7 +54,7 @@ app:
               u'bound_func'
             context-line*
               u'return func(self, *args2, **kwargs2)'
-          frame (ignored by grouping enhancement rule (function:wrapped_view - ranged))
+          frame (ignored by grouping enhancement rule (function:wrapped_view ^-group -group))
             module*
               u'sentry.web.frontend.release_webhook'
             filename (module takes precedence)
@@ -72,7 +72,7 @@ app:
               u'dispatch'
             context-line*
               u'return handler(request, *args, **kwargs)'
-          frame (ignored by grouping enhancement rule (function:wrapped_view - ranged))
+          frame (ignored by grouping enhancement rule (function:wrapped_view ^-group -group))
             module*
               u'sentry.web.frontend.release_webhook'
             filename (module takes precedence)
@@ -81,7 +81,7 @@ app:
               u'post'
             context-line*
               u'hook.handle(request)'
-          frame (ignored by grouping enhancement rule (function:wrapped_view - ranged))
+          frame (ignored by grouping enhancement rule (function:wrapped_view ^-group -group))
             module*
               u'sentry_plugins.heroku.plugin'
             filename (module takes precedence)
@@ -137,7 +137,7 @@ system:
               u'_wrapper'
             context-line*
               u'return bound_func(*args, **kwargs)'
-          frame (ignored by grouping enhancement rule (function:wrapped_view - ranged))
+          frame (ignored by grouping enhancement rule (function:wrapped_view ^-group -group))
             module*
               u'django.views.decorators.csrf'
             filename (module takes precedence)
@@ -146,7 +146,7 @@ system:
               u'wrapped_view'
             context-line*
               u'return view_func(*args, **kwargs)'
-          frame (ignored by grouping enhancement rule (function:wrapped_view - ranged))
+          frame (ignored by grouping enhancement rule (function:wrapped_view ^-group -group))
             module*
               u'django.utils.decorators'
             filename (module takes precedence)
@@ -155,7 +155,7 @@ system:
               u'bound_func'
             context-line*
               u'return func(self, *args2, **kwargs2)'
-          frame (ignored by grouping enhancement rule (function:wrapped_view - ranged))
+          frame (ignored by grouping enhancement rule (function:wrapped_view ^-group -group))
             module*
               u'sentry.web.frontend.release_webhook'
             filename (module takes precedence)
@@ -164,7 +164,7 @@ system:
               u'dispatch'
             context-line*
               u'return super(ReleaseWebhookView, self).dispatch(*args, **kwargs)'
-          frame (ignored by grouping enhancement rule (function:wrapped_view - ranged))
+          frame (ignored by grouping enhancement rule (function:wrapped_view ^-group -group))
             module*
               u'django.views.generic.base'
             filename (module takes precedence)
@@ -173,7 +173,7 @@ system:
               u'dispatch'
             context-line*
               u'return handler(request, *args, **kwargs)'
-          frame (ignored by grouping enhancement rule (function:wrapped_view - ranged))
+          frame (ignored by grouping enhancement rule (function:wrapped_view ^-group -group))
             module*
               u'sentry.web.frontend.release_webhook'
             filename (module takes precedence)
@@ -182,7 +182,7 @@ system:
               u'post'
             context-line*
               u'hook.handle(request)'
-          frame (ignored by grouping enhancement rule (function:wrapped_view - ranged))
+          frame (ignored by grouping enhancement rule (function:wrapped_view ^-group -group))
             module*
               u'sentry_plugins.heroku.plugin'
             filename (module takes precedence)
@@ -191,7 +191,7 @@ system:
               u'handle'
             context-line*
               u"email = request.POST['user']"
-          frame (ignored by grouping enhancement rule (function:wrapped_view - ranged))
+          frame (ignored by grouping enhancement rule (function:wrapped_view ^-group -group))
             module*
               u'django.utils.datastructures'
             filename (module takes precedence)

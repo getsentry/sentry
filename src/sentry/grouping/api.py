@@ -97,6 +97,10 @@ def load_grouping_config(config_dict=None):
     return CONFIGURATIONS[config_id](**config_dict)
 
 
+def load_default_grouping_config():
+    return load_grouping_config(config_dict=None)
+
+
 def get_fingerprinting_config_for_project(project):
     from sentry.grouping.fingerprinting import FingerprintingRules, \
         InvalidFingerprintingConfig
@@ -201,9 +205,11 @@ def get_grouping_variants_for_event(event, config=None):
             'custom-fingerprint': CustomFingerprintVariant(fingerprint),
         }
 
+    if config is None:
+        config = load_default_grouping_config()
+
     # At this point we need to calculate the default event values.  If the
     # fingerprint is salted we will wrap it.
-    config = load_grouping_config(config)
     components = _get_calculated_grouping_variants_for_event(event, config)
     rv = {}
 

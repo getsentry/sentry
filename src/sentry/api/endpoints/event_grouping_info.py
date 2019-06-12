@@ -41,7 +41,8 @@ class EventGroupingInfoEndpoint(ProjectEndpoint):
         hashes = event.get_hashes()
 
         try:
-            variants = event.get_grouping_variants(config_name)
+            variants = event.get_grouping_variants(force_config=config_name,
+                                                   normalize_stacktraces=True)
         except GroupingConfigNotFound:
             raise ResourceDoesNotExist(detail='Unknown grouping config')
 

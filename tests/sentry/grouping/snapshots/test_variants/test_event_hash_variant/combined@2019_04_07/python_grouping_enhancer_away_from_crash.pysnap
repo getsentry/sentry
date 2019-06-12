@@ -1,5 +1,5 @@
 ---
-created: '2019-05-10T11:49:03.468450Z'
+created: '2019-06-05T11:45:13.045473Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -64,7 +64,7 @@ app:
               u'bound_func'
             lineno (line number is used only if module or filename are available)
               25
-          frame (ignored by grouping enhancement rule (path:**/release_webhook.py - ranged))
+          frame (ignored by grouping enhancement rule (path:**/release_webhook.py v-group))
             module*
               u'sentry.web.frontend.release_webhook'
             filename (module takes precedence)
@@ -130,7 +130,7 @@ system:
     system*
       exception*
         stacktrace*
-          frame (ignored by grouping enhancement rule (path:**/release_webhook.py - ranged))
+          frame (ignored by grouping enhancement rule (path:**/release_webhook.py v-group))
             module*
               u'django.core.handlers.base'
             filename (module takes precedence)
@@ -141,7 +141,7 @@ system:
               u'get_response'
             lineno (line number is used only if module or filename are available)
               112
-          frame (ignored by grouping enhancement rule (path:**/release_webhook.py - ranged))
+          frame (ignored by grouping enhancement rule (path:**/release_webhook.py v-group))
             module*
               u'django.views.generic.base'
             filename (module takes precedence)
@@ -152,7 +152,7 @@ system:
               u'view'
             lineno (line number is used only if module or filename are available)
               69
-          frame (ignored by grouping enhancement rule (path:**/release_webhook.py - ranged))
+          frame (ignored by grouping enhancement rule (path:**/release_webhook.py v-group))
             module*
               u'django.utils.decorators'
             filename (module takes precedence)
@@ -163,7 +163,7 @@ system:
               u'_wrapper'
             lineno (line number is used only if module or filename are available)
               29
-          frame (ignored by grouping enhancement rule (path:**/release_webhook.py - ranged))
+          frame (ignored by grouping enhancement rule (path:**/release_webhook.py v-group))
             module*
               u'django.views.decorators.csrf'
             filename (module takes precedence)
@@ -174,7 +174,7 @@ system:
               u'wrapped_view'
             lineno (line number is used only if module or filename are available)
               57
-          frame (ignored by grouping enhancement rule (path:**/release_webhook.py - ranged))
+          frame (ignored by grouping enhancement rule (path:**/release_webhook.py v-group))
             module*
               u'django.utils.decorators'
             filename (module takes precedence)
@@ -185,7 +185,7 @@ system:
               u'bound_func'
             lineno (line number is used only if module or filename are available)
               25
-          frame (ignored by grouping enhancement rule (path:**/release_webhook.py - ranged))
+          frame (ignored by grouping enhancement rule (path:**/release_webhook.py v-group))
             module*
               u'sentry.web.frontend.release_webhook'
             filename (module takes precedence)
@@ -196,7 +196,7 @@ system:
               u'dispatch'
             lineno (line number is used only if module or filename are available)
               37
-          frame (ignored by grouping enhancement rule (path:**/release_webhook.py - ranged))
+          frame (ignored by grouping enhancement rule (path:**/release_webhook.py v-group))
             module*
               u'django.views.generic.base'
             filename (module takes precedence)

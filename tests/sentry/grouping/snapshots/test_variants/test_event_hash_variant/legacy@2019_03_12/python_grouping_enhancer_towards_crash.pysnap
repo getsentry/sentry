@@ -1,5 +1,5 @@
 ---
-created: '2019-05-10T12:07:51.358110Z'
+created: '2019-06-05T11:45:14.388605Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -64,7 +64,7 @@ app:
               u'bound_func'
             lineno (line number is used only if module or filename are available)
               25
-          frame (ignored by grouping enhancement rule (function:wrapped_view - ranged))
+          frame (ignored by grouping enhancement rule (function:wrapped_view ^-group -group))
             module*
               u'sentry.web.frontend.release_webhook'
             filename (module takes precedence)
@@ -86,7 +86,7 @@ app:
               u'dispatch'
             lineno (line number is used only if module or filename are available)
               87
-          frame (ignored by grouping enhancement rule (function:wrapped_view - ranged))
+          frame (ignored by grouping enhancement rule (function:wrapped_view ^-group -group))
             module*
               u'sentry.web.frontend.release_webhook'
             filename (module takes precedence)
@@ -97,7 +97,7 @@ app:
               u'post'
             lineno (line number is used only if module or filename are available)
               127
-          frame (ignored by grouping enhancement rule (function:wrapped_view - ranged))
+          frame (ignored by grouping enhancement rule (function:wrapped_view ^-group -group))
             module*
               u'sentry_plugins.heroku.plugin'
             filename (module takes precedence)
@@ -163,7 +163,7 @@ system:
               u'_wrapper'
             lineno (line number is used only if module or filename are available)
               29
-          frame (ignored by grouping enhancement rule (function:wrapped_view - ranged))
+          frame (ignored by grouping enhancement rule (function:wrapped_view ^-group -group))
             module*
               u'django.views.decorators.csrf'
             filename (module takes precedence)
@@ -174,7 +174,7 @@ system:
               u'wrapped_view'
             lineno (line number is used only if module or filename are available)
               57
-          frame (ignored by grouping enhancement rule (function:wrapped_view - ranged))
+          frame (ignored by grouping enhancement rule (function:wrapped_view ^-group -group))
             module*
               u'django.utils.decorators'
             filename (module takes precedence)
@@ -185,7 +185,7 @@ system:
               u'bound_func'
             lineno (line number is used only if module or filename are available)
               25
-          frame (ignored by grouping enhancement rule (function:wrapped_view - ranged))
+          frame (ignored by grouping enhancement rule (function:wrapped_view ^-group -group))
             module*
               u'sentry.web.frontend.release_webhook'
             filename (module takes precedence)
@@ -196,7 +196,7 @@ system:
               u'dispatch'
             lineno (line number is used only if module or filename are available)
               37
-          frame (ignored by grouping enhancement rule (function:wrapped_view - ranged))
+          frame (ignored by grouping enhancement rule (function:wrapped_view ^-group -group))
             module*
               u'django.views.generic.base'
             filename (module takes precedence)
@@ -207,7 +207,7 @@ system:
               u'dispatch'
             lineno (line number is used only if module or filename are available)
               87
-          frame (ignored by grouping enhancement rule (function:wrapped_view - ranged))
+          frame (ignored by grouping enhancement rule (function:wrapped_view ^-group -group))
             module*
               u'sentry.web.frontend.release_webhook'
             filename (module takes precedence)
@@ -218,7 +218,7 @@ system:
               u'post'
             lineno (line number is used only if module or filename are available)
               127
-          frame (ignored by grouping enhancement rule (function:wrapped_view - ranged))
+          frame (ignored by grouping enhancement rule (function:wrapped_view ^-group -group))
             module*
               u'sentry_plugins.heroku.plugin'
             filename (module takes precedence)
@@ -229,7 +229,7 @@ system:
               u'handle'
             lineno (line number is used only if module or filename are available)
               17
-          frame (ignored by grouping enhancement rule (function:wrapped_view - ranged))
+          frame (ignored by grouping enhancement rule (function:wrapped_view ^-group -group))
             module*
               u'django.utils.datastructures'
             filename (module takes precedence)
