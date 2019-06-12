@@ -17,7 +17,7 @@ class BuildIncidentAttachmentTest(TestCase):
         logo_url = absolute_uri(get_asset_url('sentry', 'images/sentry-email-avatar.png'))
 
         incident = self.create_incident()
-        title = '{} (#{})'.format(incident.title, incident.identifier)
+        title = 'INCIDENT: {} (#{})'.format(incident.title, incident.identifier)
         assert build_incident_attachment(incident) == {
             'fallback': title,
             'title': title,
