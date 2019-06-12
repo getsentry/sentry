@@ -13,7 +13,7 @@ import withApi from 'app/utils/withApi';
 import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import MemberListStore from 'app/stores/memberListStore';
-import MissingProjectMembership from 'app/components/missingProjectMembership';
+import MissingProjectMembership from 'app/components/projects/missingProjectMembership';
 import ProjectsStore from 'app/stores/projectsStore';
 import SentryTypes from 'app/sentryTypes';
 import withProjects from 'app/utils/withProjects';

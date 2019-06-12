@@ -4,7 +4,7 @@ import moment from 'moment';
 import styled from 'react-emotion';
 
 import {t, tct} from 'app/locale';
-import ActorAvatar from 'app/components/actorAvatar';
+import ActorAvatar from 'app/components/avatar/actorAvatar';
 import Alert from 'app/components/alert';
 import Hovercard from 'app/components/hovercard';
 import InlineSvg from 'app/components/inlineSvg';
