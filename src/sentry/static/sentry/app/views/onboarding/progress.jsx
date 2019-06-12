@@ -3,8 +3,8 @@ import React from 'react';
 import createReactClass from 'create-react-class';
 import styled from 'react-emotion';
 
-import {analytics, amplitude} from 'app/utils/analytics';
 import {onboardingSteps, stepDescriptions} from 'app/views/onboarding/utils';
+import {trackAnalyticsEvent} from 'app/utils/analytics';
 import ConfigStore from 'app/stores/configStore';
 import HookStore from 'app/stores/hookStore';
 import InlineSvg from 'app/components/inlineSvg';
@@ -27,10 +27,11 @@ const ProgressNodes = createReactClass({
     const step = this.inferStep();
 
     if (step === 1) {
-      analytics('onboarding.create_project_viewed', {
-        org_id: parseInt(organization.id, 10),
+      trackAnalyticsEvent({
+        eventKey: 'onboarding.create_project_viewed',
+        eventName: 'Viewed Onboarding Create Project',
+        organization_id: organization.id,
       });
-      amplitude('Viewed Onboarding Create Project', parseInt(organization.id, 10));
     }
   },
 

@@ -11,9 +11,12 @@ const validHookNames = new Set([
   'routes:organization-root',
 
   // Analytics and tracking hooks
-  'amplitude:event',
-  'analytics:event',
   'analytics:init-user',
+  'analytics:track-event',
+  'analytics:track-adhoc-event',
+
+  // TODO(epurkhser): This is deprecated and should be replaced
+  'analytics:event',
 
   // Operational metrics
   'metrics:event',
