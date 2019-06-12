@@ -1,20 +1,19 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import styled from 'react-emotion';
-import {isEqual} from 'lodash';
+import {isEqual, omit} from 'lodash';
 
 import SentryTypes from 'app/sentryTypes';
 import TagDistributionMeter from 'app/components/tagDistributionMeter';
 import withApi from 'app/utils/withApi';
-import withGlobalSelection from 'app/utils/withGlobalSelection';
 import {fetchTags, getEventTagSearchUrl} from './utils';
+import {MODAL_QUERY_KEYS} from './data';
 
 class Tags extends React.Component {
   static propTypes = {
     api: PropTypes.object.isRequired,
     organization: SentryTypes.Organization.isRequired,
     view: SentryTypes.EventView.isRequired,
-    selection: SentryTypes.GlobalSelection.isRequired,
     location: PropTypes.object.isRequired,
   };
 
@@ -28,19 +27,22 @@ class Tags extends React.Component {
   }
 
   componentDidUpdate(prevProps) {
-    if (
-      this.props.view.id !== prevProps.view.id ||
-      !isEqual(this.props.selection, prevProps.selection)
-    ) {
+    // Do not update if we are just opening/closing the modal
+    const locationHasChanged = !isEqual(
+      omit(prevProps.location.query, MODAL_QUERY_KEYS),
+      omit(this.props.location.query, MODAL_QUERY_KEYS)
+    );
+
+    if (this.props.view.id !== prevProps.view.id || locationHasChanged) {
       this.fetchData();
     }
   }
 
   fetchData = async () => {
-    const {api, organization, view} = this.props;
+    const {api, organization, view, location} = this.props;
 
     try {
-      const tags = await fetchTags(api, organization.slug, view.tags);
+      const tags = await fetchTags(api, organization.slug, view.tags, location.query);
       this.setState({tags, isLoading: false});
     } catch (err) {
       this.setState({tags: {}, isLoading: false});
@@ -87,4 +89,4 @@ const Placeholder = styled('div')`
 `;
 
 export {Tags};
-export default withApi(withGlobalSelection(Tags));
+export default withApi(Tags);

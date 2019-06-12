@@ -12,6 +12,8 @@ import DateTime from 'app/components/dateTime';
 
 import {QueryLink} from './styles';
 
+export const MODAL_QUERY_KEYS = ['eventSlug', 'groupSlug'];
+
 export const ALL_VIEWS = deepFreeze([
   {
     id: 'all',
