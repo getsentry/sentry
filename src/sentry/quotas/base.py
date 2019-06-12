@@ -28,6 +28,20 @@ class RateLimit(object):
         # machine readable description
         self.reason_code = reason_code
 
+    def to_dict(self):
+        """
+        Converts the object into a plain dictionary
+        :return: a dict containing the non None elm of the RateLimit
+
+        >>> x = RateLimit(is_limited = False, retry_after = 33)
+        >>> x.to_dict() == {'is_limited': False, 'retry_after': 33}
+        True
+
+        """
+        return {
+            name: getattr(self, name, None) for name in self.__slots__ if getattr(self, name, None) is not None
+        }
+
 
 class NotRateLimited(RateLimit):
     def __init__(self, **kwargs):
