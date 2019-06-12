@@ -6,13 +6,13 @@ import {Panel, PanelBody, PanelItem} from 'app/components/panels';
 import {t} from 'app/locale';
 import EventOrGroupExtraDetails from 'app/components/eventOrGroupExtraDetails';
 import EventOrGroupHeader from 'app/components/eventOrGroupHeader';
+import Placeholder from 'app/components/placeholder';
 import SentryTypes from 'app/sentryTypes';
 import space from 'app/styles/space';
 import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
 
 import IssuesFetcher from './issuesFetcher';
-import Placeholder from '../placeholder';
 import SideHeader from '../sideHeader';
 
 const RelatedIssues = styled(
@@ -42,7 +42,7 @@ const RelatedIssues = styled(
                     {t('Related Issues')} ({loading || !issues ? '-' : issues.length})
                   </SideHeader>
                   {loading ? (
-                    <Placeholder />
+                    <Placeholder height="60px" bottomGutter={1} />
                   ) : (
                     issues &&
                     issues.length > 0 && (

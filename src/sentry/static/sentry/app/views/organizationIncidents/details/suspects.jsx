@@ -7,12 +7,12 @@ import {t} from 'app/locale';
 import AsyncComponent from 'app/components/asyncComponent';
 import CommitLink from 'app/components/commitLink';
 import IdBadge from 'app/components/idBadge';
+import Placeholder from 'app/components/placeholder';
 import SentryTypes from 'app/sentryTypes';
 import TimeSince from 'app/components/timeSince';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
 
-import Placeholder from './placeholder';
 import SideHeader from './sideHeader';
 
 class Suspects extends React.Component {
@@ -34,7 +34,7 @@ class Suspects extends React.Component {
           {t('Suspects')} ({loading || !suspects ? '-' : suspects.length})
         </SideHeader>
         {loading ? (
-          <Placeholder />
+          <Placeholder height="60px" bottomGutter={1} />
         ) : (
           suspects &&
           suspects.length > 0 && (
