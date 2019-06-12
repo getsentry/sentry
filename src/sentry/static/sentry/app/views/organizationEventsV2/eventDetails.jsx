@@ -9,7 +9,6 @@ import AsyncComponent from 'app/components/asyncComponent';
 import InlineSvg from 'app/components/inlineSvg';
 import withApi from 'app/utils/withApi';
 import space from 'app/styles/space';
-import theme from 'app/utils/theme';
 
 import EventModalContent from './eventModalContent';
 import {getQuery} from './utils';
@@ -162,7 +161,7 @@ const ModalContainer = styled('div')`
 
   z-index: ${p => p.theme.zIndex.modal};
 
-  @media (max-width: ${theme.breakpoints[1]}) {
+  @media (max-width: ${p => p.theme.breakpoints[1]}) {
     margin: ${space(2)};
   }
 `;

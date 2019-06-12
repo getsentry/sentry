@@ -19,7 +19,6 @@ import space from 'app/styles/space';
 import {objectIsEmpty, toTitleCase} from 'app/utils';
 import {getMessage, getTitle} from 'app/utils/events';
 import getDynamicText from 'app/utils/getDynamicText';
-import theme from 'app/utils/theme';
 
 import LinkedIssuePreview from './linkedIssuePreview';
 import ModalPagination from './modalPagination';
@@ -229,11 +228,11 @@ const ColumnGrid = styled('div')`
   grid-template-rows: auto;
   grid-column-gap: 2%;
 
-  @media (max-width: ${theme.breakpoints[1]}) {
+  @media (max-width: ${p => p.theme.breakpoints[1]}) {
     grid-template-columns: 60% 38%;
   }
 
-  @media (max-width: ${theme.breakpoints[0]}) {
+  @media (max-width: ${p => p.theme.breakpoints[0]}) {
     display: flex;
     flex-direction: column;
   }

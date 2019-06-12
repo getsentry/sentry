@@ -9,7 +9,6 @@ import Link from 'app/components/links/link';
 import SentryTypes from 'app/sentryTypes';
 import InlineSvg from 'app/components/inlineSvg';
 import space from 'app/styles/space';
-import theme from 'app/utils/theme';
 
 const ModalPagination = props => {
   const {location, event} = props;
@@ -81,7 +80,7 @@ const StyledLink = styled(Link, {shouldForwardProp: isPropValid})`
   ${p => (p.isLast ? '' : `border-right: 1px solid ${p.theme.borderDark};`)}
   ${p => (p.disabled ? 'pointer-events: none;' : '')}
 
-  @media(max-width: ${theme.breakpoints[0]}) {
+  @media(max-width: ${p => p.theme.breakpoints[0]}) {
     flex-grow: 1;
   }
 `;
@@ -89,7 +88,7 @@ const StyledLink = styled(Link, {shouldForwardProp: isPropValid})`
 const Wrapper = styled('div')`
   display: flex;
 
-  @media (max-width: ${theme.breakpoints[0]}) {
+  @media (max-width: ${p => p.theme.breakpoints[0]}) {
     width: 100%;
   }
 `;
@@ -103,7 +102,7 @@ const ShadowBox = styled('div')`
   box-shadow: 3px 3px 0 ${p => p.theme.offWhite}, 3px 3px 0 1px ${p => p.theme.borderDark},
     7px 7px ${p => p.theme.offWhite}, 7px 7px 0 1px ${p => p.theme.borderDark};
 
-  @media (max-width: ${theme.breakpoints[0]}) {
+  @media (max-width: ${p => p.theme.breakpoints[0]}) {
     width: 100%;
   }
 `;
