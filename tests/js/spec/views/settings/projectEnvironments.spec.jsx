@@ -2,7 +2,7 @@ import React from 'react';
 import {mount} from 'enzyme';
 
 import EnvironmentStore from 'app/stores/environmentStore';
-import ProjectEnvironments from 'app/views/projectEnvironments';
+import ProjectEnvironments from 'app/views/settings/project/projectEnvironments';
 import recreateRoute from 'app/utils/recreateRoute';
 import {ALL_ENVIRONMENTS_KEY} from 'app/constants';
 
