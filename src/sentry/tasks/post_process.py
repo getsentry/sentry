@@ -49,27 +49,36 @@ def _should_send_error_created_hooks(project):
     from sentry import options
     import random
 
+    use_sampling = options.get('post-process.use-error-hook-sampling')
+
+    # XXX(Meredith): Sampling is used to test the process_resource_change task.
+    # We have an option to explicity say we want to use sampling, and the other
+    # to determine what that rate should be.
+    # Going forward the sampling will be removed and the task will only be
+    # gated using the integrations-event-hooks (i.e. gated by plan)
+    #
+    # We also don't want to cache the result in case we need to manually lower the
+    # sample rate immediately, or turn it down completely.
+    if use_sampling:
+        if random.random() >= options.get('post-process.error-hook-sample-rate'):
+            return False
+
+        org = Organization.objects.get_from_cache(id=project.organization_id)
+        result = ServiceHook.objects.filter(
+            organization_id=org.id,
+        ).extra(where=["events @> '{error.created}'"]).exists()
+
+        return result
+
     cache_key = u'servicehooks-error-created:1:{}'.format(project.id)
     result = cache.get(cache_key)
 
     if result is None:
 
-        use_sampling = options.get('post-process.use-error-hook-sampling')
         org = Organization.objects.get_from_cache(id=project.organization_id)
-
-        # XXX(Meredith): Sampling is used to test the process_resource_change task.
-        # We have an option to explicity say we want to use sampling, and the other
-        # to determine what that rate should be.
-        # Going forward the sampling will be removed and the task will only be
-        # gated using the integrations-event-hooks (i.e. gated by plan)
-        if use_sampling:
-            if random.random() >= options.get('post-process.error-hook-sample-rate'):
-                cache.set(cache_key, 0, 60)
-                return False
-        else:
-            if not features.has('organizations:integrations-event-hooks', organization=org):
-                cache.set(cache_key, 0, 60)
-                return False
+        if not features.has('organizations:integrations-event-hooks', organization=org):
+            cache.set(cache_key, 0, 60)
+            return False
 
         result = ServiceHook.objects.filter(
             organization_id=org.id,
