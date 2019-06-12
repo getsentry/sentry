@@ -15,20 +15,21 @@ import IndicatorStore from 'app/stores/indicatorStore';
 import {joinTeam, leaveTeam} from 'app/actionCreators/teams';
 import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
-import OrganizationState from 'app/mixins/organizationState';
 import {Panel, PanelHeader} from 'app/components/panels';
 import InlineSvg from 'app/components/inlineSvg';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
+import withOrganization from 'app/utils/withOrganization';
+import SentryTypes from 'app/sentryTypes';
 
 const TeamMembers = createReactClass({
   displayName: 'TeamMembers',
   propTypes: {
-    api: PropTypes.object,
+    api: PropTypes.object.isRequired,
+    organization: SentryTypes.Organization.isRequired,
   },
-  mixins: [OrganizationState],
 
   getInitialState() {
     return {
@@ -277,9 +278,9 @@ const TeamMembers = createReactClass({
       return <LoadingError onRetry={this.fetchData} />;
     }
 
-    const {params} = this.props;
+    const {params, organization} = this.props;
 
-    const access = this.getAccess();
+    const access = new Set(organization.access);
 
     return (
       <Panel>
@@ -346,4 +347,4 @@ const StyledCreateMemberLink = styled(Link)`
 
 export {TeamMembers};
 
-export default withApi(TeamMembers);
+export default withApi(withOrganization(TeamMembers));
