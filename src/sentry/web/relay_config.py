@@ -28,16 +28,6 @@ _restricted_config_properties = frozenset([
 ])
 
 
-class ProjectOptionNames:
-    scrub_ip_addresses = 'sentry:scrub_ip_addresses'
-    scrub_data = 'sentry:scrub_data'
-    scrub_defaults = 'sentry:scrub_defaults'
-    invalid_releases = 'invalid_releases'
-    enabled_filters = 'enabled_filters'
-    sensitive_fields = 'sentry:sensitive_fields'
-    exclude_fields = 'sentry:safe_fields'
-
-
 class _ConfigBase(object):
     """
     Base class for configuration objects
@@ -198,13 +188,6 @@ def get_full_relay_config(project_id):
     cfg['project_id'] = project.id
     cfg['organization_id'] = project.organization_id
 
-    # getting kafka info
-    try:
-        cfg['kafka_max_event_size'] = options.get('kafka-publisher.max-event-size')
-        cfg['kafka_raw_event_sample_rate'] = options.get('kafka-publisher.raw-event-sample-rate')
-    except Exception:
-        pass  # should we log ?
-
     # Explicitly bind Organization so we don't implicitly query it later
     # this just allows us to comfortably assure that `project.organization` is safe.
     # This also allows us to pull the object from cache, instead of being
@@ -219,28 +202,35 @@ def get_full_relay_config(project_id):
         org_options = {}
 
     # get the project options
-    project_options = {}
-    cfg['project_options'] = project_options
+    project_cfg = {}
+    cfg['config'] = project_cfg
+
+    # getting kafka info
+    try:
+        project_cfg['kafka_max_event_size'] = options.get('kafka-publisher.max-event-size')
+        project_cfg['kafka_raw_event_sample_rate'] = options.get('kafka-publisher.raw-event-sample-rate')
+    except Exception:
+        pass  # should we log ?
 
     invalid_releases = project.get_option(u'sentry:{}'.format(FilterTypes.RELEASES))
     if invalid_releases is not None:
-        project_options[ProjectOptionNames.invalid_releases] = invalid_releases
+        project_cfg['invalid_releases'] = invalid_releases
 
     # get the filters enabled for the current project
     enabled_filters = [filter_class.id for filter_class in filters.all()
                        if filter_class(project).is_enabled()]
 
-    project_options[ProjectOptionNames.enabled_filters] = enabled_filters
+    project_cfg['enabled_filters'] = enabled_filters
 
     scrub_ip_address = (org_options.get('sentry:require_scrub_ip_address', False) or
                         project.get_option('sentry:scrub_ip_address', False))
 
-    project_options[ProjectOptionNames.scrub_ip_addresses] = scrub_ip_address
+    project_cfg['scrub_ip_addresses'] = scrub_ip_address
 
     scrub_data = (org_options.get('sentry:require_scrub_data', False) or
                   project.get_option('sentry:scrub_data', True))
 
-    project_options[ProjectOptionNames.scrub_data] = scrub_data
+    project_cfg['scrub_data'] = scrub_data
 
     if scrub_data:
         # We filter data immediately before it ever gets into the queue
@@ -249,18 +239,18 @@ def get_full_relay_config(project_id):
             org_options.get(sensitive_fields_key, []) +
             project.get_option(sensitive_fields_key, [])
         )
-        project_options[ProjectOptionNames.sensitive_fields] = sensitive_fields
+        project_cfg['sensitive_fields'] = sensitive_fields
 
         exclude_fields_key = 'sentry:safe_fields'
         exclude_fields = (
             org_options.get(exclude_fields_key, []) +
             project.get_option(exclude_fields_key, [])
         )
-        project_options[ProjectOptionNames.exclude_fields] = exclude_fields
+        project_cfg['exclude_fields'] = exclude_fields
 
         scrub_defaults = (org_options.get('sentry:require_scrub_defaults', False) or
                           project.get_option('sentry:scrub_defaults', True))
-        project_options[ProjectOptionNames.scrub_defaults] = scrub_defaults
+        project_cfg['scrub_defaults'] = scrub_defaults
 
     cfg['grouping_config'] = get_grouping_config_dict_for_project(project)
 

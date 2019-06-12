@@ -64,7 +64,7 @@ from sentry.utils.outcomes import Outcome, track_outcome
 from sentry.utils.pubsub import QueuedPublisherService, KafkaPublisher
 from sentry.utils.safe import safe_execute
 from sentry.web.helpers import render_to_response
-from sentry.web.relay_config import get_full_relay_config, ProjectOptionNames
+from sentry.web.relay_config import get_full_relay_config
 
 logger = logging.getLogger('sentry')
 minidumps_logger = logging.getLogger('sentry.minidumps')
@@ -249,18 +249,18 @@ def process_event(event_manager, project, key, remote_addr, helper, attachments,
         raise APIForbidden(
             'An event with the same ID already exists (%s)' % (event_id,))
 
-    project_options = relay_config.project_options
-    scrub_ip_address = project_options.get(ProjectOptionNames.scrub_ip_addresses)
+    config = relay_config.config
+    scrub_ip_address = config.get('scrub_ip_addresses')
 
-    scrub_data = project_options.get(ProjectOptionNames.scrub_data)
+    scrub_data = config.get('scrub_data')
 
     if scrub_data:
         # We filter data immediately before it ever gets into the queue
-        sensitive_fields = project_options.get(ProjectOptionNames.sensitive_fields)
+        sensitive_fields = config.get('sensitive_fields')
 
-        exclude_fields = project_options.get(ProjectOptionNames.exclude_fields)
+        exclude_fields = config.get('exclude_fields')
 
-        scrub_defaults = project_options.get(ProjectOptionNames.scrub_defaults)
+        scrub_defaults = config.get('scrub_defaults')
 
         SensitiveDataFilter(
             fields=sensitive_fields,
@@ -333,12 +333,14 @@ class APIView(BaseView):
             # This may fail when we e.g. send a multipart form. We ignore those errors for now.
             data = request.body
 
-            max_event_size = relay_config.kafka_max_event_size
+            config = relay_config.config
+
+            max_event_size = config.get('kafka_max_event_size')
             if not data or max_event_size is None or len(data) > max_event_size:
                 return
 
             # Sampling
-            raw_event_sample_rate = relay_config.kafka_raw_event_sample_rate
+            raw_event_sample_rate = config.get('kafka_raw_event_sample_rate')
             if raw_event_sample_rate is None or random.random() >= raw_event_sample_rate:
                 return
 
