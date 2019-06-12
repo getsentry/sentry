@@ -1,5 +1,5 @@
 ---
-created: '2019-06-12T09:11:39.455772Z'
+created: '2019-06-12T09:33:25.826448Z'
 creator: sentry
 source: tests/symbolicator/test_payload_full.py
 ---
@@ -29,6 +29,7 @@ exception:
   - raw_stacktrace:
       frames:
       - data:
+          orig_in_app: -1
           symbolicator_status: null
         function: hi
         in_app: false
@@ -38,6 +39,7 @@ exception:
         symbol: null
         trust: null
       - data:
+          orig_in_app: -1
           symbolicator_status: null
         function: unknown
         in_app: true
@@ -49,6 +51,7 @@ exception:
     stacktrace:
       frames:
       - data:
+          orig_in_app: -1
           symbolicator_status: null
         function: hi
         in_app: false
@@ -58,6 +61,7 @@ exception:
         symbol: null
         trust: null
       - data:
+          orig_in_app: -1
           symbolicator_status: missing
         function: unknown
         in_app: true
