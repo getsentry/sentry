@@ -6,13 +6,14 @@ import {withRouter} from 'react-router';
 import Link from 'app/components/links/link';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
+import overflowEllipsis from 'app/styles/overflowEllipsis';
 import {getEventTagSearchUrl} from './utils';
 
 const TagsTable = props => {
   return (
     <div>
       <TagHeading>{t('Tags')}</TagHeading>
-      <table>
+      <StyledTable>
         <tbody>
           {props.tags.map(tag => (
             <StyledTr key={tag.key}>
@@ -25,7 +26,7 @@ const TagsTable = props => {
             </StyledTr>
           ))}
         </tbody>
-      </table>
+      </StyledTable>
     </div>
   );
 };
@@ -33,6 +34,12 @@ TagsTable.propTypes = {
   tags: PropTypes.array.isRequired,
   location: PropTypes.object,
 };
+
+const StyledTable = styled('table')`
+  table-layout: fixed;
+  width: 100%;
+  max-width: 100%;
+`;
 
 const TagHeading = styled('h5')`
   text-transform: uppercase;
@@ -55,6 +62,7 @@ const TagKey = styled('td')`
 
 const TagValue = styled(TagKey)`
   text-align: right;
+  ${overflowEllipsis};
 `;
 
 export default withRouter(TagsTable);
