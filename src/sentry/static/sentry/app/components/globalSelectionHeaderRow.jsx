@@ -28,12 +28,12 @@ class GlobalSelectionHeaderRow extends React.Component {
   render() {
     const {checked, onCheckClick, multi, renderCheckbox, children, ...props} = this.props;
 
-    const checkbox = <CheckboxFancy disabled={!multi} checked={multi && checked} />;
+    const checkbox = <CheckboxFancy disabled={!multi} checked={checked} />;
 
     return (
-      <Container isMulti={multi} isChecked={checked} {...props}>
+      <Container isChecked={checked} {...props}>
         <Content multi={multi}>{children}</Content>
-        <CheckboxHitbox onClick={multi ? onCheckClick : null} checked={checked}>
+        <CheckboxHitbox onClick={multi ? onCheckClick : null}>
           {renderCheckbox({checkbox, checked})}
         </CheckboxHitbox>
       </Container>
@@ -53,7 +53,7 @@ const Container = styled('div')`
 
   /* stylelint-disable-next-line no-duplicate-selectors */
   ${CheckboxFancy} {
-    opacity: ${p => (p.isMulti && p.isChecked ? 1 : 0.33)};
+    opacity: ${p => (p.isChecked ? 1 : 0.33)};
   }
 
   &:hover ${CheckboxFancy} {
