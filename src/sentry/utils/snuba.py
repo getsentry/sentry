@@ -264,7 +264,7 @@ def zerofill(data, start, end, rollup, orderby):
         else:
             rv.append({'time': key})
 
-    if orderby.startswith('-'):
+    if '-time' in orderby:
         return list(reversed(rv))
 
     return rv
@@ -456,12 +456,19 @@ def transform_aliases_and_query(skip_conditions=False, **kwargs):
         kwargs['having'] = having
 
     if orderby:
-        order_by_column = orderby.lstrip('-')
-        kwargs['orderby'] = u'{}{}'.format(
-            '-' if orderby.startswith('-') else '',
-            order_by_column if order_by_column in derived_columns else get_snuba_column_name(
-                order_by_column)
-        ) or None
+        if orderby is None:
+            orderby = []
+        orderby = orderby if isinstance(orderby, (list, tuple)) else [orderby]
+        translated_orderby = []
+
+        for field_with_order in orderby:
+            field = field_with_order.lstrip('-')
+            translated_orderby.append(u'{}{}'.format(
+                '-' if field_with_order.startswith('-') else '',
+                field if field in derived_columns else get_snuba_column_name(field)
+            ))
+
+        kwargs['orderby'] = translated_orderby
 
     kwargs['arrayjoin'] = arrayjoin_map.get(arrayjoin, arrayjoin)
 
