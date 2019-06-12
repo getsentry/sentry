@@ -60,6 +60,7 @@ const validHookNames = new Set([
   'feature-disabled:events-sidebar-item',
   'feature-disabled:discover-page',
   'feature-disabled:discover-sidebar-item',
+  'feature-disabled:project-selector-checkbox',
 ]);
 
 /**

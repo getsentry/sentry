@@ -172,7 +172,7 @@ describe('ProjectSelector', function() {
 
     // Select first project
     wrapper
-      .find('CheckboxWrapper')
+      .find('CheckboxHitbox')
       .first()
       .simulate('click');
 
@@ -190,7 +190,7 @@ describe('ProjectSelector', function() {
 
     // Select first project
     wrapper
-      .find('CheckboxWrapper')
+      .find('CheckboxHitbox')
       .at(0)
       .simulate('click', {target: {checked: true}});
 
@@ -220,7 +220,7 @@ describe('ProjectSelector', function() {
 
     // second project
     wrapper
-      .find('CheckboxWrapper')
+      .find('CheckboxHitbox')
       .at(1)
       .simulate('click', {target: {checked: true}});
 
@@ -254,7 +254,7 @@ describe('ProjectSelector', function() {
 
     // Can unselect item
     wrapper
-      .find('CheckboxWrapper')
+      .find('CheckboxHitbox')
       .at(1)
       .simulate('click', {target: {checked: false}});
 

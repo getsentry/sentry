@@ -13,13 +13,31 @@ import ConfigStore from 'app/stores/configStore';
 import InlineSvg from 'app/components/inlineSvg';
 import BookmarkStar from 'app/components/projects/bookmarkStar';
 import DropdownAutoComplete from 'app/components/dropdownAutoComplete';
+import Feature from 'app/components/acl/feature';
+import FeatureDisabled from 'app/components/acl/featureDisabled';
 import GlobalSelectionHeaderRow from 'app/components/globalSelectionHeaderRow';
 import Highlight from 'app/components/highlight';
+import Hovercard from 'app/components/hovercard';
 import IdBadge from 'app/components/idBadge';
 import SentryTypes from 'app/sentryTypes';
 import space from 'app/styles/space';
 import theme from 'app/utils/theme';
 import withProjects from 'app/utils/withProjects';
+
+const renderDisabledCheckbox = p => (
+  <Hovercard
+    body={
+      <FeatureDisabled
+        features={p.features}
+        hideHelpToggle
+        message={t('Multiple project selection disabled')}
+        featureName={t('Multiple Project Selection')}
+      />
+    }
+  >
+    {p.children}
+  </Hovercard>
+);
 
 class ProjectSelector extends React.Component {
   static propTypes = {
@@ -370,6 +388,15 @@ class ProjectSelectorItem extends React.PureComponent {
           onCheckClick={this.handleClick}
           multi={multi}
           priority="secondary"
+          renderCheckbox={({checkbox}) => (
+            <Feature
+              features={['organizations:global-views']}
+              hookName="project-selector-checkbox"
+              renderDisabled={renderDisabledCheckbox}
+            >
+              {checkbox}
+            </Feature>
+          )}
         >
           <BadgeWrapper multi={multi}>
             <IdBadge
