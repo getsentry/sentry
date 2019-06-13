@@ -25,7 +25,7 @@
     "babel-loader": "^8.0.0",
     "babel-plugin-emotion": "9.2.11",
     "babel-plugin-lodash": "^3.3.4",
-    "bootstrap": "3.3.5",
+    "bootstrap": "3.4.0",
     "classnames": "2.2.0",
     "clipboard": "^1.7.1",
     "color": "^3.1.0",
