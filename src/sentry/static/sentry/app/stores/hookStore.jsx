@@ -50,14 +50,14 @@ const validHookNames = new Set([
   // feature-disabled:<feature-flag> hooks should return components that will
   // be rendered in place for Feature components when the feature is not
   // enabled.
+  'feature-disabled:custom-inbound-filters',
   'feature-disabled:discard-groups',
   'feature-disabled:data-forwarding',
-  'feature-disabled:custom-inbound-filters',
+  'feature-disabled:extended-data-retention',
   'feature-disabled:rate-limits',
   'feature-disabled:sso-basic',
   'feature-disabled:sso-rippling',
   'feature-disabled:sso-saml2',
-  'feature-disabled:extended-data-retention',
 
   // Explicit Feature hookNames
   'feature-disabled:events-page',
