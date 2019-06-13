@@ -1,4 +1,8 @@
-import {getInterval, getDiffInMinutes} from 'app/components/charts/utils';
+import {
+  getInterval,
+  getDiffInMinutes,
+  intervalToMilliseconds,
+} from 'app/components/charts/utils';
 
 describe('Chart Utils', function() {
   describe('getInterval()', function() {
@@ -50,5 +54,20 @@ describe('Chart Utils', function() {
 
     // This uses moment so we probably don't need to test it too extensively
     describe('with absolute dates', function() {});
+  });
+
+  describe('intervalToMilliseconds()', function() {
+    it('can convert standard formats', function() {
+      expect(intervalToMilliseconds('24h')).toBe(86400000);
+      expect(intervalToMilliseconds('30m')).toBe(1800000);
+      expect(intervalToMilliseconds('15m')).toBe(900000);
+      expect(intervalToMilliseconds('5m')).toBe(300000);
+      expect(intervalToMilliseconds('1m')).toBe(60000);
+    });
+
+    it('can convert arbitrary formats', function() {
+      expect(intervalToMilliseconds('1h')).toBe(3600000);
+      expect(intervalToMilliseconds('2m')).toBe(120000);
+    });
   });
 });
