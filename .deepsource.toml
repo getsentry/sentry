@@ -1,0 +1,15 @@
+version = 1
+
+test_patterns = [
+  "tests/*",
+  "test_*.py"
+]
+
+[[analyzers]]
+name = "python"
+enabled = true
+runtime_version = "2.x.x"
+
+  [analyzers.meta]
+  max_line_length = 88
+  skip_doc_coverage = ["module", "magic", "init"]
