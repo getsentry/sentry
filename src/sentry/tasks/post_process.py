@@ -44,6 +44,52 @@ def _get_service_hooks(project_id):
     return result
 
 
+def _should_send_error_created_hooks(project):
+    from sentry.models import ServiceHook, Organization
+    from sentry import options
+    import random
+
+    use_sampling = options.get('post-process.use-error-hook-sampling')
+
+    # XXX(Meredith): Sampling is used to test the process_resource_change task.
+    # We have an option to explicity say we want to use sampling, and the other
+    # to determine what that rate should be.
+    # Going forward the sampling will be removed and the task will only be
+    # gated using the integrations-event-hooks (i.e. gated by plan)
+    #
+    # We also don't want to cache the result in case we need to manually lower the
+    # sample rate immediately, or turn it down completely.
+    if use_sampling:
+        if random.random() >= options.get('post-process.error-hook-sample-rate'):
+            return False
+
+        org = Organization.objects.get_from_cache(id=project.organization_id)
+        result = ServiceHook.objects.filter(
+            organization_id=org.id,
+        ).extra(where=["events @> '{error.created}'"]).exists()
+
+        return result
+
+    cache_key = u'servicehooks-error-created:1:{}'.format(project.id)
+    result = cache.get(cache_key)
+
+    if result is None:
+
+        org = Organization.objects.get_from_cache(id=project.organization_id)
+        if not features.has('organizations:integrations-event-hooks', organization=org):
+            cache.set(cache_key, 0, 60)
+            return False
+
+        result = ServiceHook.objects.filter(
+            organization_id=org.id,
+        ).extra(where=["events @> '{error.created}'"]).exists()
+
+        cache_value = 1 if result else 0
+        cache.set(cache_key, cache_value, 60)
+
+    return result
+
+
 def _capture_stats(event, is_new):
     # TODO(dcramer): limit platforms to... something?
     group = event.group
@@ -161,6 +207,14 @@ def post_process_group(event, is_new, is_regression, is_sample, is_new_group_env
                             event=event,
                         )
 
+        if event.get_event_type() == 'error' and _should_send_error_created_hooks(event.project):
+            process_resource_change_bound.delay(
+                action='created',
+                sender='Error',
+                instance_id=event.event_id,
+                project_id=event.project_id,
+                group_id=event.group_id,
+            )
         if is_new:
             process_resource_change_bound.delay(
                 action='created',

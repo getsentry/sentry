@@ -7,9 +7,11 @@ from django.utils import timezone
 from mock import Mock, patch
 
 from sentry import tagstore
+from sentry import options
 from sentry.models import Group, GroupSnooze, GroupStatus, ProjectOwnership
 from sentry.ownership.grammar import Rule, Matcher, Owner, dump_schema
 from sentry.testutils import TestCase
+from sentry.testutils.helpers import with_feature
 from sentry.tasks.merge import merge_groups
 from sentry.tasks.post_process import index_event_tags, post_process_group
 
@@ -395,6 +397,164 @@ class PostProcessGroupTest(TestCase):
             action='created',
             sender='Group',
             instance_id=group.id,
+        )
+
+    @with_feature('organizations:integrations-event-hooks')
+    @patch('sentry.tasks.sentry_apps.process_resource_change_bound.delay')
+    def test_processes_resource_change_task_on_error_events(self, delay):
+        event = self.store_event(
+            data={
+                'message': 'Foo bar',
+                'exception': {"type": "Foo", "value": "shits on fiah yo"},
+                'level': 'error',
+                'timestamp': timezone.now().isoformat()[:19]
+            },
+            project_id=self.project.id,
+            assert_no_errors=False
+        )
+
+        self.create_service_hook(
+            project=self.project,
+            organization=self.project.organization,
+            actor=self.user,
+            events=['error.created'],
+        )
+
+        post_process_group(
+            event=event,
+            is_new=False,
+            is_regression=False,
+            is_sample=False,
+            is_new_group_environment=False,
+        )
+
+        kwargs = {
+            'project_id': self.project.id,
+            'group_id': event.group.id,
+        }
+        delay.assert_called_once_with(
+            action='created',
+            sender='Error',
+            instance_id=event.event_id,
+            **kwargs
+        )
+
+    @with_feature('organizations:integrations-event-hooks')
+    @patch('sentry.tasks.sentry_apps.process_resource_change_bound.delay')
+    def test_processes_resource_change_task_not_called_for_non_errors(self, delay):
+        event = self.store_event(
+            data={
+                'message': 'Foo bar',
+                'level': 'info',
+                'timestamp': timezone.now().isoformat()[:19]
+            },
+            project_id=self.project.id,
+            assert_no_errors=False
+        )
+
+        post_process_group(
+            event=event,
+            is_new=False,
+            is_regression=False,
+            is_sample=False,
+            is_new_group_environment=False,
+        )
+
+        assert not delay.called
+
+    @patch('sentry.tasks.sentry_apps.process_resource_change_bound.delay')
+    def test_processes_resource_change_task_not_called_without_feature_flag(self, delay):
+        event = self.store_event(
+            data={
+                'message': 'Foo bar',
+                'level': 'info',
+                'timestamp': timezone.now().isoformat()[:19]
+            },
+            project_id=self.project.id,
+            assert_no_errors=False
+        )
+
+        post_process_group(
+            event=event,
+            is_new=False,
+            is_regression=False,
+            is_sample=False,
+            is_new_group_environment=False,
+        )
+
+        assert not delay.called
+
+    @with_feature('organizations:integrations-event-hooks')
+    @patch('sentry.tasks.sentry_apps.process_resource_change_bound.delay')
+    def test_processes_resource_change_task_not_called_without_error_created(self, delay):
+        event = self.store_event(
+            data={
+                'message': 'Foo bar',
+                'level': 'error',
+                'exception': {"type": "Foo", "value": "shits on fiah yo"},
+                'timestamp': timezone.now().isoformat()[:19]
+            },
+            project_id=self.project.id,
+            assert_no_errors=False
+        )
+
+        self.create_service_hook(
+            project=self.project,
+            organization=self.project.organization,
+            actor=self.user,
+            events=[],
+        )
+
+        post_process_group(
+            event=event,
+            is_new=False,
+            is_regression=False,
+            is_sample=False,
+            is_new_group_environment=False,
+        )
+
+        assert not delay.called
+
+    @patch('sentry.tasks.sentry_apps.process_resource_change_bound.delay')
+    def test_processes_resource_change_task_uses_sampling_option(self, delay):
+        options.set('post-process.use-error-hook-sampling', True)
+        options.set('post-process.error-hook-sample-rate', 1)
+        event = self.store_event(
+            data={
+                'message': 'Foo bar',
+                'level': 'error',
+                'exception': {"type": "Foo", "value": "shits on fiah yo"},
+                'timestamp': timezone.now().isoformat()[:19]
+            },
+            project_id=self.project.id,
+            assert_no_errors=False
+        )
+
+        self.create_service_hook(
+            project=self.project,
+            organization=self.project.organization,
+            actor=self.user,
+            events=['error.created'],
+        )
+
+        post_process_group(
+            event=event,
+            is_new=False,
+            is_regression=False,
+            is_sample=False,
+            is_new_group_environment=False,
+        )
+
+        kwargs = {
+            'project_id': self.project.id,
+            'group_id': event.group.id,
+        }
+
+        delay.assert_called_once_with(
+            action='created',
+            sender='Error',
+            instance_id=event.event_id,
+            **kwargs
         )
 
 
