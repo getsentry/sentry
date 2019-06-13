@@ -18,12 +18,12 @@ import Button from 'app/components/button';
 import Confirm from 'app/components/confirm';
 import Duration from 'app/components/duration';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
-import EnvironmentStore from 'app/stores/environmentStore';
 import PermissionAlert from 'app/views/settings/project/permissionAlert';
 import SentryTypes from 'app/sentryTypes';
 import Tooltip from 'app/components/tooltip';
 import recreateRoute from 'app/utils/recreateRoute';
 import withApi from 'app/utils/withApi';
+import {getDisplayName} from 'app/utils/environment';
 
 import ProjectAlertHeader from './projectAlertHeader';
 
@@ -92,9 +92,9 @@ const RuleRow = withApi(
       const {data, canEdit} = this.props;
       const editLink = recreateRoute(`${data.id}/`, this.props);
 
-      const env = EnvironmentStore.getByName(data.environment);
-
-      const environmentName = env ? env.displayName : t('All Environments');
+      const environmentName = data.environment
+        ? getDisplayName({name: data.environment})
+        : t('All Environments');
 
       return (
         <Panel>

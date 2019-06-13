@@ -3,9 +3,8 @@ import {mount} from 'enzyme';
 import {browserHistory} from 'react-router';
 
 import ProjectAlertRuleDetails from 'app/views/settings/projectAlerts/projectAlertRuleDetails';
-import EnvironmentStore from 'app/stores/environmentStore';
 
-import {selectByValue} from '../../helpers/select';
+import {selectByValue} from 'app-test/helpers/select';
 
 jest.mock('jquery');
 jest.unmock('app/utils/recreateRoute');
@@ -47,19 +46,20 @@ describe('ProjectAlertRuleDetails', function() {
     {path: ':ruleId/', name: 'Edit'},
   ];
 
-  beforeEach(function() {
+  beforeEach(async function() {
     browserHistory.replace = jest.fn();
     MockApiClient.addMockResponse({
       url: '/projects/org-slug/project-slug/rules/configuration/',
-      method: 'GET',
       body: TestStubs.ProjectAlertRuleConfiguration(),
     });
     MockApiClient.addMockResponse({
       url: '/projects/org-slug/project-slug/rules/1/',
-      method: 'GET',
       body: TestStubs.ProjectAlertRule(),
     });
-    EnvironmentStore.loadActiveData(TestStubs.Environments());
+    MockApiClient.addMockResponse({
+      url: '/projects/org-slug/project-slug/environments/',
+      body: TestStubs.Environments(),
+    });
   });
 
   afterEach(function() {
@@ -68,7 +68,7 @@ describe('ProjectAlertRuleDetails', function() {
 
   describe('New alert rule', function() {
     let wrapper, mock;
-    beforeEach(function() {
+    beforeEach(async function() {
       mock = MockApiClient.addMockResponse({
         url: '/projects/org-slug/project-slug/rules/',
         method: 'POST',
@@ -82,10 +82,12 @@ describe('ProjectAlertRuleDetails', function() {
         />,
         TestStubs.routerContext()
       );
+      await tick();
+      wrapper.update();
     });
 
     it('sets defaults', function() {
-      const selects = wrapper.find('SelectField Select');
+      const selects = wrapper.find('SelectControl');
       expect(selects.first().props().value).toBe('all');
       expect(selects.last().props().value).toBe(30);
     });
@@ -119,7 +121,7 @@ describe('ProjectAlertRuleDetails', function() {
   describe('Edit alert rule', function() {
     let wrapper, mock;
     const endpoint = '/projects/org-slug/project-slug/rules/1/';
-    beforeEach(function() {
+    beforeEach(async function() {
       mock = MockApiClient.addMockResponse({
         url: endpoint,
         method: 'PUT',
@@ -133,6 +135,8 @@ describe('ProjectAlertRuleDetails', function() {
         />,
         TestStubs.routerContext()
       );
+      await tick();
+      wrapper.update();
     });
 
     it('updates', function() {

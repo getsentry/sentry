@@ -16,11 +16,11 @@ import {
 import {t} from 'app/locale';
 import withApi from 'app/utils/withApi';
 import Button from 'app/components/button';
-import EnvironmentStore from 'app/stores/environmentStore';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import RuleNodeList from 'app/views/settings/projectAlerts/ruleEditor/ruleNodeList';
 import recreateRoute from 'app/utils/recreateRoute';
 import space from 'app/styles/space';
+import {getDisplayName} from 'app/utils/environment';
 
 const FREQUENCY_CHOICES = [
   ['5', t('5 minutes')],
@@ -57,11 +57,12 @@ const RuleEditor = createReactClass({
       rule: null,
       loading: false,
       error: null,
+      environments: [],
     };
   },
 
   componentDidMount() {
-    this.fetchRule();
+    this.fetchData();
   },
 
   componentDidUpdate() {
@@ -70,30 +71,31 @@ const RuleEditor = createReactClass({
     }
   },
 
-  fetchRule() {
-    const {ruleId, projectId, orgId} = this.props.params;
+  fetchData() {
+    const {
+      api,
+      params: {ruleId, projectId, orgId},
+    } = this.props;
 
-    if (ruleId) {
-      const endpoint = `/projects/${orgId}/${projectId}/rules/${ruleId}/`;
-      this.props.api.request(endpoint, {
-        success: rule => {
-          this.setState({
-            rule,
-          });
-        },
-      });
-    } else {
-      const defaultRule = {
-        actionMatch: 'all',
-        actions: [],
-        conditions: [],
-        name: '',
-        frequency: 30,
-        environment: ALL_ENVIRONMENTS_KEY,
-      };
+    const defaultRule = {
+      actionMatch: 'all',
+      actions: [],
+      conditions: [],
+      name: '',
+      frequency: 30,
+      environment: ALL_ENVIRONMENTS_KEY,
+    };
 
-      this.setState({rule: defaultRule});
-    }
+    const promises = [
+      api.requestPromise(`/projects/${orgId}/${projectId}/environments/`),
+      ruleId
+        ? api.requestPromise(`/projects/${orgId}/${projectId}/rules/${ruleId}/`)
+        : Promise.resolve(defaultRule),
+    ];
+
+    Promise.all(promises).then(([environments, rule]) => {
+      this.setState({environments, rule});
+    });
   },
 
   handleSubmit(e) {
@@ -195,10 +197,10 @@ const RuleEditor = createReactClass({
   },
 
   render() {
-    const activeEnvs = EnvironmentStore.getActive() || [];
+    const {environments} = this.state;
     const environmentChoices = [
       [ALL_ENVIRONMENTS_KEY, t('All Environments')],
-      ...activeEnvs.map(env => [env.name, env.displayName]),
+      ...environments.map(env => [env.name, getDisplayName(env)]),
     ];
 
     if (!this.state.rule) {
