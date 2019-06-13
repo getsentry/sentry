@@ -1,23 +1,17 @@
 import {Flex} from 'grid-emotion';
 import PropTypes from 'prop-types';
 import React from 'react';
-import Reflux from 'reflux';
 import createReactClass from 'create-react-class';
 import styled from 'react-emotion';
 
 import {ALL_ENVIRONMENTS_KEY} from 'app/constants';
 import {Panel, PanelHeader, PanelBody, PanelItem} from 'app/components/panels';
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
-import {
-  loadActiveEnvironments,
-  loadHiddenEnvironments,
-} from 'app/actionCreators/environments';
 import {t, tct} from 'app/locale';
 import Access from 'app/components/acl/access';
 import withApi from 'app/utils/withApi';
 import Button from 'app/components/button';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
-import EnvironmentStore from 'app/stores/environmentStore';
 import ListLink from 'app/components/links/listLink';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import NavTabs from 'app/components/navTabs';
@@ -27,6 +21,8 @@ import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader
 import recreateRoute from 'app/utils/recreateRoute';
 import space from 'app/styles/space';
 
+const DEFAULT_EMPTY_ROUTING_NAME = 'none';
+
 const ProjectEnvironments = createReactClass({
   propTypes: {
     api: PropTypes.object,
@@ -34,64 +30,39 @@ const ProjectEnvironments = createReactClass({
     params: PropTypes.object,
   },
 
-  mixins: [Reflux.listenTo(EnvironmentStore, 'onEnvironmentsChange')],
-
   getInitialState() {
-    const isHidden = this.props.location.pathname.endsWith('hidden/');
-    const environments = isHidden
-      ? EnvironmentStore.getHidden()
-      : EnvironmentStore.getActive();
-
     return {
       project: null,
-      environments,
-      isHidden,
+      environments: null,
+      isLoading: true,
     };
   },
 
   componentDidMount() {
-    if (this.state.environments === null) {
-      this.fetchData(this.state.isHidden);
+    this.fetchData();
+  },
+
+  componentDidUpdate(prevProps) {
+    if (
+      this.props.location.pathname.endsWith('hidden/') !==
+      prevProps.location.pathname.endsWith('hidden/')
+    ) {
+      this.fetchData();
     }
-
-    // Fetch project details instead of using project context to guarantee we have latest project details
-    this.fetchProjectDetails();
   },
 
-  componentWillReceiveProps(nextProps) {
+  fetchData() {
     const isHidden = this.props.location.pathname.endsWith('hidden/');
-    const environments = isHidden
-      ? EnvironmentStore.getHidden()
-      : EnvironmentStore.getActive();
 
-    this.setState(
-      {
-        isHidden,
-        environments,
-      },
-      () => {
-        if (environments === null) {
-          this.fetchData(isHidden);
-        }
-      }
-    );
-  },
+    this.setState({isLoading: true});
 
-  refetchAll() {
-    this.fetchData(true);
-    this.fetchData(false);
-    this.fetchProjectDetails();
-  },
-
-  fetchData(hidden) {
     const {orgId, projectId} = this.props.params;
     this.props.api.request(`/projects/${orgId}/${projectId}/environments/`, {
       query: {
-        visibility: hidden ? 'hidden' : 'visible',
+        visibility: isHidden ? 'hidden' : 'visible',
       },
-      success: env => {
-        const load = hidden ? loadHiddenEnvironments : loadActiveEnvironments;
-        load(env);
+      success: environments => {
+        this.setState({environments, isLoading: false});
       },
     });
   },
@@ -105,22 +76,12 @@ const ProjectEnvironments = createReactClass({
     });
   },
 
-  onEnvironmentsChange() {
-    const {isHidden} = this.state;
-
-    this.setState({
-      environments: isHidden
-        ? EnvironmentStore.getHidden()
-        : EnvironmentStore.getActive(),
-    });
-  },
-
   // Toggle visibility of environment
   toggleEnv(env, shouldHide) {
     const {orgId, projectId} = this.props.params;
 
     this.props.api.request(
-      `/projects/${orgId}/${projectId}/environments/${env.urlRoutingName}/`,
+      `/projects/${orgId}/${projectId}/environments/${getUrlRoutingName(env)}/`,
       {
         method: 'PUT',
         data: {
@@ -141,13 +102,13 @@ const ProjectEnvironments = createReactClass({
             })
           );
         },
-        complete: this.refetchAll,
+        complete: this.fetchData,
       }
     );
   },
 
   renderEmpty() {
-    const {isHidden} = this.state;
+    const isHidden = this.props.location.pathname.endsWith('hidden/');
     const message = isHidden
       ? t("You don't have any hidden environments.")
       : t("You don't have any environments yet.");
@@ -162,7 +123,8 @@ const ProjectEnvironments = createReactClass({
    */
   renderSystemRows() {
     // Not available in "Hidden" tab
-    if (this.state.isHidden) {
+    const isHidden = this.props.location.pathname.endsWith('hidden/');
+    if (isHidden) {
       return null;
     }
     return (
@@ -179,7 +141,7 @@ const ProjectEnvironments = createReactClass({
   },
 
   renderEnvironmentList(envs) {
-    const {isHidden} = this.state;
+    const isHidden = this.props.location.pathname.endsWith('hidden/');
     const buttonText = isHidden ? t('Show') : t('Hide');
 
     return (
@@ -202,13 +164,25 @@ const ProjectEnvironments = createReactClass({
     );
   },
 
-  render() {
-    const {environments} = this.state;
-    const {routes, params} = this.props;
+  renderBody() {
+    const {environments, isLoading} = this.state;
 
-    if (environments === null) {
+    if (isLoading) {
       return <LoadingIndicator />;
     }
+
+    return (
+      <PanelBody>
+        {environments.length
+          ? this.renderEnvironmentList(environments)
+          : this.renderEmpty()}
+      </PanelBody>
+    );
+  },
+
+  render() {
+    const {routes, params, location} = this.props;
+    const isHidden = location.pathname.endsWith('hidden/');
 
     const baseUrl = recreateRoute('', {routes, params, stepBack: -1});
     return (
@@ -217,14 +191,10 @@ const ProjectEnvironments = createReactClass({
           title={t('Manage Environments')}
           tabs={
             <NavTabs underlined={true}>
-              <ListLink to={baseUrl} index={true} isActive={() => !this.state.isHidden}>
+              <ListLink to={baseUrl} index={true} isActive={() => !isHidden}>
                 {t('Environments')}
               </ListLink>
-              <ListLink
-                to={`${baseUrl}hidden/`}
-                index={true}
-                isActive={() => this.state.isHidden}
-              >
+              <ListLink to={`${baseUrl}hidden/`} index={true} isActive={() => isHidden}>
                 {t('Hidden')}
               </ListLink>
             </NavTabs>
@@ -233,15 +203,8 @@ const ProjectEnvironments = createReactClass({
         <PermissionAlert />
 
         <Panel>
-          <PanelHeader>
-            {this.state.isHidden ? t('Hidden') : t('Active Environments')}
-          </PanelHeader>
-
-          <PanelBody>
-            {environments.length
-              ? this.renderEnvironmentList(environments)
-              : this.renderEmpty()}
-          </PanelBody>
+          <PanelHeader>{isHidden ? t('Hidden') : t('Active Environments')}</PanelHeader>
+          {this.renderBody()}
         </Panel>
       </div>
     );
@@ -291,3 +254,7 @@ const EnvironmentButton = styled(Button)`
 
 export {ProjectEnvironments};
 export default withApi(ProjectEnvironments);
+
+function getUrlRoutingName(env) {
+  return encodeURIComponent(env.name) || DEFAULT_EMPTY_ROUTING_NAME;
+}
