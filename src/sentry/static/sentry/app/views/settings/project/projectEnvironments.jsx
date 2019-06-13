@@ -54,7 +54,9 @@ const ProjectEnvironments = createReactClass({
   fetchData() {
     const isHidden = this.props.location.pathname.endsWith('hidden/');
 
-    this.setState({isLoading: true});
+    if (!this.state.isLoading) {
+      this.setState({isLoading: true});
+    }
 
     const {orgId, projectId} = this.props.params;
     this.props.api.request(`/projects/${orgId}/${projectId}/environments/`, {
