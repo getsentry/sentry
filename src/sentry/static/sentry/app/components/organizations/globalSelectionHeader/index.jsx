@@ -20,6 +20,7 @@ import {
   updateProjects,
 } from 'app/actionCreators/globalSelection';
 import BackToIssues from 'app/components/organizations/backToIssues';
+import ConfigStore from 'app/stores/configStore';
 import Header from 'app/components/organizations/header';
 import HeaderItemPosition from 'app/components/organizations/headerItemPosition';
 import HeaderSeparator from 'app/components/organizations/headerSeparator';
@@ -29,10 +30,9 @@ import MultipleProjectSelector from 'app/components/organizations/multipleProjec
 import SentryTypes from 'app/sentryTypes';
 import TimeRangeSelector from 'app/components/organizations/timeRangeSelector';
 import Tooltip from 'app/components/tooltip';
-import withGlobalSelection from 'app/utils/withGlobalSelection';
-import ConfigStore from 'app/stores/configStore';
-import withProjects from 'app/utils/withProjects';
 import space from 'app/styles/space';
+import withGlobalSelection from 'app/utils/withGlobalSelection';
+import withProjects from 'app/utils/withProjects';
 
 import {getStateFromQuery} from './utils';
 
@@ -106,8 +106,6 @@ class GlobalSelectionHeader extends React.Component {
 
     const {location, params, organization, selection} = this.props;
 
-    const hasMultipleProjectFeature = this.hasMultipleProjectSelection();
-
     const stateFromRouter = getStateFromQuery(location.query);
     // We should update store if there are any relevant URL parameters when component
     // is mounted
@@ -125,7 +123,7 @@ class GlobalSelectionHeader extends React.Component {
 
       const requestedProjects = project || [];
 
-      if (hasMultipleProjectFeature) {
+      if (this.hasMultipleProjectSelection) {
         updateProjects(requestedProjects);
       } else {
         const allowedProjects =
@@ -143,7 +141,7 @@ class GlobalSelectionHeader extends React.Component {
       // update URL parameters to reflect current store
       const {datetime, environments, projects} = selection;
 
-      if (hasMultipleProjectFeature || projects.length === 1) {
+      if (this.hasMultipleProjectSelection || projects.length === 1) {
         updateParamsWithoutHistory(
           {project: projects, environment: environments, ...datetime},
           this.getRouter()
@@ -215,9 +213,9 @@ class GlobalSelectionHeader extends React.Component {
     this.updateStoreIfChange(prevProps, this.props);
   }
 
-  hasMultipleProjectSelection = () => {
-    return new Set(this.props.organization.features).has('global-views');
-  };
+  get hasMultipleProjectSelection() {
+    return this.props.organization.features.includes('global-views');
+  }
 
   didQueryChange = (prevProps, nextProps) => {
     const urlParamKeys = Object.values(URL_PARAM);
@@ -373,7 +371,7 @@ class GlobalSelectionHeader extends React.Component {
             value={this.state.projects || this.props.selection.projects}
             onChange={this.handleChangeProjects}
             onUpdate={this.handleUpdateProjects}
-            multi={this.hasMultipleProjectSelection()}
+            multi={this.hasMultipleProjectSelection}
           />
         </HeaderItemPosition>
 
