@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 from django.core.urlresolvers import reverse
+from six.moves.urllib.parse import urlencode
 
 from sentry.auth.access import from_user
 from sentry.incidents.models import (
@@ -86,7 +87,7 @@ def build_activity_context(activity, user):
                 'organization_slug': incident.organization.slug,
                 'incident_id': incident.identifier,
             },
-        )),
+        )) + '?' + urlencode({'referrer': 'incident_activity_email'}),
         'comment': activity.comment,
         'unsubscribe_link': generate_signed_link(
             user,

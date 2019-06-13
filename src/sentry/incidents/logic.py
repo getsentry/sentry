@@ -6,11 +6,8 @@ import six
 from django.db import transaction
 from django.utils import timezone
 
+from sentry import analytics
 from sentry.api.event_search import get_snuba_query_args
-from sentry.models import (
-    Commit,
-    Release,
-)
 from sentry.incidents.models import (
     Incident,
     IncidentActivity,
@@ -24,6 +21,10 @@ from sentry.incidents.models import (
     TimeSeriesSnapshot,
 )
 from sentry.incidents.tasks import send_subscriber_notifications
+from sentry.models import (
+    Commit,
+    Release,
+)
 from sentry.utils.committers import get_event_file_committers
 from sentry.utils.snuba import (
     raw_query,
@@ -90,6 +91,13 @@ def create_incident(
             event_stats_snapshot=event_stats_snapshot,
             user=user,
         )
+        analytics.record(
+            'incident.created',
+            incident_id=incident.id,
+            organization_id=incident.organization_id,
+            incident_type=type.value,
+        )
+
     return incident
 
 
@@ -114,6 +122,8 @@ def update_incident_status(incident, status, user=None, comment=None):
         if user:
             subscribe_to_incident(incident, user)
 
+        prev_status = incident.status
+
         kwargs = {
             'status': status.value,
         }
@@ -128,6 +138,14 @@ def update_incident_status(incident, status, user=None, comment=None):
             # TODO: Delete snapshot? Not sure if needed
 
         incident.update(**kwargs)
+        analytics.record(
+            'incident.status_change',
+            incident_id=incident.id,
+            organization_id=incident.organization_id,
+            incident_type=incident.type,
+            prev_status=prev_status,
+            status=incident.status,
+        )
         return incident
 
 
@@ -193,6 +211,16 @@ def create_incident_activity(
         kwargs={'activity_id': activity.id},
         countdown=10,
     )
+    if activity_type == IncidentActivityType.COMMENT:
+        analytics.record(
+            'incident.comment',
+            incident_id=incident.id,
+            organization_id=incident.organization_id,
+            incident_type=incident.type,
+            user_id=user.id if user else None,
+            activity_id=activity.id,
+        )
+
     return activity
 
 

@@ -10,6 +10,11 @@ import six
 from django.utils import timezone
 from django.utils.functional import cached_property
 
+from sentry.incidents.events import (
+    IncidentCommentCreatedEvent,
+    IncidentCreatedEvent,
+    IncidentStatusUpdatedEvent,
+)
 from sentry.incidents.logic import (
     create_event_stat_snapshot,
     create_incident,
@@ -41,6 +46,8 @@ from sentry.testutils import (
 
 
 class CreateIncidentTest(TestCase):
+    record_event = patcher('sentry.analytics.base.Analytics.record_event')
+
     def test_simple(self):
         incident_type = IncidentType.CREATED
         title = 'hello'
@@ -48,6 +55,7 @@ class CreateIncidentTest(TestCase):
         date_started = timezone.now()
         other_project = self.create_project()
         other_group = self.create_group(project=other_project)
+        self.record_event.reset_mock()
         incident = create_incident(
             self.organization,
             type=incident_type,
@@ -76,10 +84,20 @@ class CreateIncidentTest(TestCase):
             type=IncidentActivityType.CREATED.value,
             event_stats_snapshot__isnull=False,
         ).count() == 1
+        assert len(self.record_event.call_args_list) == 1
+        event = self.record_event.call_args[0][0]
+        assert isinstance(event, IncidentCreatedEvent)
+        assert event.data == {
+            'organization_id': six.text_type(self.organization.id),
+            'incident_id': six.text_type(incident.id),
+            'incident_type': six.text_type(IncidentType.CREATED.value),
+        }
 
 
 @freeze_time()
 class UpdateIncidentStatus(TestCase):
+    record_event = patcher('sentry.analytics.base.Analytics.record_event')
+
     def get_most_recent_incident_activity(self, incident):
         return IncidentActivity.objects.filter(incident=incident).order_by('-id')[:1].get()
 
@@ -97,6 +115,7 @@ class UpdateIncidentStatus(TestCase):
         comment=None,
     ):
         prev_status = incident.status
+        self.record_event.reset_mock()
         update_incident_status(incident, status, user=user, comment=comment)
         incident = Incident.objects.get(id=incident.id)
         assert incident.status == status.value
@@ -110,6 +129,17 @@ class UpdateIncidentStatus(TestCase):
         assert activity.previous_value == six.text_type(prev_status)
         assert activity.comment == comment
         assert activity.event_stats_snapshot is None
+
+        assert len(self.record_event.call_args_list) == 1
+        event = self.record_event.call_args[0][0]
+        assert isinstance(event, IncidentStatusUpdatedEvent)
+        assert event.data == {
+            'organization_id': six.text_type(self.organization.id),
+            'incident_id': six.text_type(incident.id),
+            'incident_type': six.text_type(incident.type),
+            'prev_status': six.text_type(prev_status),
+            'status': six.text_type(incident.status),
+        }
 
     def test_closed(self):
         incident = self.create_incident()
@@ -254,6 +284,7 @@ class CreateEventStatTest(TestCase, BaseIncidentsTest):
 @freeze_time()
 class CreateIncidentActivityTest(TestCase, BaseIncidentsTest):
     send_subscriber_notifications = patcher('sentry.incidents.logic.send_subscriber_notifications')
+    record_event = patcher('sentry.analytics.base.Analytics.record_event')
 
     def assert_notifications_sent(self, activity):
         self.send_subscriber_notifications.apply_async.assert_called_once_with(
@@ -263,6 +294,7 @@ class CreateIncidentActivityTest(TestCase, BaseIncidentsTest):
 
     def test_no_snapshot(self):
         incident = self.create_incident()
+        self.record_event.reset_mock()
         activity = create_incident_activity(
             incident,
             IncidentActivityType.STATUS_CHANGE,
@@ -276,6 +308,7 @@ class CreateIncidentActivityTest(TestCase, BaseIncidentsTest):
         assert activity.value == six.text_type(IncidentStatus.CLOSED.value)
         assert activity.previous_value == six.text_type(IncidentStatus.OPEN.value)
         self.assert_notifications_sent(activity)
+        assert not self.record_event.called
 
     def test_snapshot(self):
         self.create_event(self.now - timedelta(minutes=2))
@@ -295,6 +328,7 @@ class CreateIncidentActivityTest(TestCase, BaseIncidentsTest):
             projects=[self.project]
         )
         event_stats_snapshot = create_initial_event_stats_snapshot(incident)
+        self.record_event.reset_mock()
         activity = create_incident_activity(
             incident,
             IncidentActivityType.CREATED,
@@ -307,6 +341,7 @@ class CreateIncidentActivityTest(TestCase, BaseIncidentsTest):
 
         assert event_stats_snapshot == activity.event_stats_snapshot
         self.assert_notifications_sent(activity)
+        assert not self.record_event.called
 
     def test_comment(self):
         incident = self.create_incident()
@@ -319,6 +354,7 @@ class CreateIncidentActivityTest(TestCase, BaseIncidentsTest):
             before=False,
             after=True,
         ):
+            self.record_event.reset_mock()
             activity = create_incident_activity(
                 incident,
                 IncidentActivityType.COMMENT,
@@ -332,6 +368,16 @@ class CreateIncidentActivityTest(TestCase, BaseIncidentsTest):
         assert activity.value is None
         assert activity.previous_value is None
         self.assert_notifications_sent(activity)
+        assert len(self.record_event.call_args_list) == 1
+        event = self.record_event.call_args[0][0]
+        assert isinstance(event, IncidentCommentCreatedEvent)
+        assert event.data == {
+            'organization_id': six.text_type(self.organization.id),
+            'incident_id': six.text_type(incident.id),
+            'incident_type': six.text_type(incident.type),
+            'user_id': six.text_type(self.user.id),
+            'activity_id': six.text_type(activity.id),
+        }
 
     def test_mentioned_user_ids(self):
         incident = self.create_incident()
@@ -345,6 +391,7 @@ class CreateIncidentActivityTest(TestCase, BaseIncidentsTest):
             before=False,
             after=True,
         ):
+            self.record_event.reset_mock()
             activity = create_incident_activity(
                 incident,
                 IncidentActivityType.COMMENT,
@@ -359,6 +406,16 @@ class CreateIncidentActivityTest(TestCase, BaseIncidentsTest):
         assert activity.value is None
         assert activity.previous_value is None
         self.assert_notifications_sent(activity)
+        assert len(self.record_event.call_args_list) == 1
+        event = self.record_event.call_args[0][0]
+        assert isinstance(event, IncidentCommentCreatedEvent)
+        assert event.data == {
+            'organization_id': six.text_type(self.organization.id),
+            'incident_id': six.text_type(incident.id),
+            'incident_type': six.text_type(incident.type),
+            'user_id': six.text_type(self.user.id),
+            'activity_id': six.text_type(activity.id),
+        }
 
 
 @freeze_time()
