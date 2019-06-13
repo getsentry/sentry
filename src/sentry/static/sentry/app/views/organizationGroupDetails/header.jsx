@@ -2,7 +2,6 @@ import {Link} from 'react-router';
 import {omit} from 'lodash';
 import PropTypes from 'prop-types';
 import React from 'react';
-import createReactClass from 'create-react-class';
 import styled from 'react-emotion';
 
 import {fetchOrgMembers} from 'app/actionCreators/members';
@@ -11,10 +10,8 @@ import AssigneeSelector from 'app/components/assigneeSelector';
 import Count from 'app/components/count';
 import EventOrGroupTitle from 'app/components/eventOrGroupTitle';
 import GuideAnchor from 'app/components/assistant/guideAnchor';
-import IndicatorStore from 'app/stores/indicatorStore';
 import ListLink from 'app/components/links/listLink';
 import NavTabs from 'app/components/navTabs';
-import OrganizationState from 'app/mixins/organizationState';
 import ProjectBadge from 'app/components/idBadge/projectBadge';
 import SeenByList from 'app/components/seenByList';
 import SentryTypes from 'app/sentryTypes';
@@ -24,25 +21,19 @@ import withApi from 'app/utils/withApi';
 
 import GroupActions from './actions';
 
-const GroupHeader = createReactClass({
-  displayName: 'GroupHeader',
-
-  propTypes: {
+class GroupHeader extends React.Component {
+  static propTypes = {
     api: PropTypes.object,
     group: SentryTypes.Group.isRequired,
     project: SentryTypes.Project,
-  },
+  };
 
-  contextTypes: {
+  static contextTypes = {
     location: PropTypes.object,
     organization: SentryTypes.Organization,
-  },
+  };
 
-  mixins: [OrganizationState],
-
-  getInitialState() {
-    return {memberList: null};
-  },
+  state = {memberList: null};
 
   componentDidMount() {
     const {organization} = this.context;
@@ -52,29 +43,7 @@ const GroupHeader = createReactClass({
       const users = memberList.map(member => member.user);
       this.setState({memberList: users});
     });
-  },
-
-  onToggleMute() {
-    const group = this.props.group;
-    const org = this.context.organization;
-    const loadingIndicator = IndicatorStore.add(t('Saving changes..'));
-
-    this.props.api.bulkUpdate(
-      {
-        orgId: org.slug,
-        projectId: group.project.slug,
-        itemIds: [group.id],
-        data: {
-          status: group.status === 'ignored' ? 'unresolved' : 'ignored',
-        },
-      },
-      {
-        complete: () => {
-          IndicatorStore.remove(loadingIndicator);
-        },
-      }
-    );
-  },
+  }
 
   getMessage() {
     const data = this.props.group;
@@ -87,7 +56,7 @@ const GroupHeader = createReactClass({
       default:
         return this.props.group.culprit || '';
     }
-  },
+  }
 
   render() {
     const {project, group} = this.props;
@@ -269,8 +238,8 @@ const GroupHeader = createReactClass({
         </NavTabs>
       </div>
     );
-  },
-});
+  }
+}
 
 const StyledProjectBadge = styled(ProjectBadge)`
   flex-shrink: 0;

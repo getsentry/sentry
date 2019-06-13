@@ -923,7 +923,6 @@ function routes() {
               component={errorHandler(LazyLoad)}
             />
           </Route>
-
           <Route
             path="/organizations/:orgId/projects/:projectId/getting-started/"
             component={errorHandler(ProjectGettingStarted)}
@@ -931,12 +930,10 @@ function routes() {
             <IndexRoute component={errorHandler(ProjectInstallOverview)} />
             <Route path=":platform/" component={errorHandler(ProjectInstallPlatform)} />
           </Route>
-
           <Route
             path="/organizations/:orgId/projects/:projectId/events/:eventId/"
             component={errorHandler(ProjectEventRedirect)}
           />
-
           <Route
             path="/organizations/:orgId/issues/"
             component={errorHandler(OrganizationStreamContainer)}
@@ -1020,7 +1017,6 @@ function routes() {
               component={errorHandler(LazyLoad)}
             />
           </Route>
-
           <Route
             path="/organizations/:orgId/user-feedback/"
             componentPromise={() =>
@@ -1085,35 +1081,59 @@ function routes() {
             component={errorHandler(LazyLoad)}
           />
           <Route path="/organizations/:orgId/" component={OrganizationHomeContainer}>
-            <Redirect from="projects/" to="/:orgId/" />
+            <Redirect from="/organizations/:orgId/projects/" to="/:orgId/" />
             {hook('routes:organization')}
-            <Redirect path="teams/" to="/settings/:orgId/teams/" />
-            <Redirect path="teams/your-teams/" to="/settings/:orgId/teams/" />
-            <Redirect path="teams/all-teams/" to="/settings/:orgId/teams/" />
-            <Redirect path="teams/:teamId/" to="/settings/:orgId/teams/:teamId/" />
+            <Redirect path="/organizations/:orgId/teams/" to="/settings/:orgId/teams/" />
             <Redirect
-              path="teams/:teamId/members/"
+              path="/organizations/:orgId/teams/your-teams/"
+              to="/settings/:orgId/teams/"
+            />
+            <Redirect
+              path="/organizations/:orgId/teams/all-teams/"
+              to="/settings/:orgId/teams/"
+            />
+            <Redirect
+              path="/organizations/:orgId/teams/:teamId/"
+              to="/settings/:orgId/teams/:teamId/"
+            />
+            <Redirect
+              path="/organizations/:orgId/teams/:teamId/members/"
               to="/settings/:orgId/teams/:teamId/members/"
             />
             <Redirect
-              path="teams/:teamId/projects/"
+              path="/organizations/:orgId/teams/:teamId/projects/"
               to="/settings/:orgId/teams/:teamId/projects/"
             />
             <Redirect
-              path="teams/:teamId/settings/"
+              path="/organizations/:orgId/teams/:teamId/settings/"
               to="/settings/:orgId/teams/:teamId/settings/"
             />
-            <Redirect path="settings/" to="/settings/:orgId/" />
-            <Redirect path="api-keys/" to="/settings/:orgId/api-keys/" />
-            <Redirect path="api-keys/:apiKey/" to="/settings/:orgId/api-keys/:apiKey/" />
-            <Redirect path="members/" to="/settings/:orgId/members/" />
-            <Redirect path="members/new/" to="/settings/:orgId/members/new/" />
+            <Redirect path="/organizations/:orgId/settings/" to="/settings/:orgId/" />
             <Redirect
-              path="members/:memberId/"
+              path="/organizations/:orgId/api-keys/"
+              to="/settings/:orgId/api-keys/"
+            />
+            <Redirect
+              path="/organizations/:orgId/api-keys/:apiKey/"
+              to="/settings/:orgId/api-keys/:apiKey/"
+            />
+            <Redirect
+              path="/organizations/:orgId/members/"
+              to="/settings/:orgId/members/"
+            />
+            <Redirect
+              path="/organizations/:orgId/members/new/"
+              to="/settings/:orgId/members/new/"
+            />
+            <Redirect
+              path="/organizations/:orgId/members/:memberId/"
               to="/settings/:orgId/members/:memberId/"
             />
-            <Redirect path="rate-limits/" to="/settings/:orgId/rate-limits/" />
-            <Redirect path="repos/" to="/settings/:orgId/repos/" />
+            <Redirect
+              path="/organizations/:orgId/rate-limits/"
+              to="/settings/:orgId/rate-limits/"
+            />
+            <Redirect path="/organizations/:orgId/repos/" to="/settings/:orgId/repos/" />
           </Route>
           <Route
             path="/organizations/:orgId/projects/new/"
