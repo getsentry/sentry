@@ -26,4 +26,5 @@ class OrganizationSerializerTest(TestCase):
             'sso-saml2',
             'sso-basic',
             'sentry10',
+            'extended-data-retention',
         ])
