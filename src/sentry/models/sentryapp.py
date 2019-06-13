@@ -32,6 +32,9 @@ EVENT_EXPANSION = {
         'issue.ignored',
         'issue.assigned',
     ],
+    'error': [
+        'error.created',
+    ],
 }
 
 # We present Webhook Subscriptions per-resource (Issue, Project, etc.), not
@@ -39,10 +42,12 @@ EVENT_EXPANSION = {
 # resources a Sentry App may subscribe to.
 VALID_EVENT_RESOURCES = (
     'issue',
+    'error',
 )
 
 REQUIRED_EVENT_PERMISSIONS = {
     'issue': 'event:read',
+    'error': 'event:read',
     'project': 'project:read',
     'member': 'member:read',
     'organization': 'org:read',
