@@ -72,10 +72,12 @@ describe('DropdownLink', function() {
         wrapper.find('a').simulate('click');
       });
 
-      it('closes when clicked outside', function() {
+      it('closes when clicked outside', async function() {
         const evt = document.createEvent('HTMLEvents');
         evt.initEvent('click', false, true);
         document.body.dispatchEvent(evt);
+        jest.runAllTimers();
+        await Promise.resolve();
         wrapper.update();
         expect(wrapper.find('li')).toHaveLength(0);
       });

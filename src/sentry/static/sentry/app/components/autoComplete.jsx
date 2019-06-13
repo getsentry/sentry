@@ -147,13 +147,19 @@ class AutoComplete extends React.Component {
   };
 
   // Dropdown detected click outside, we should close
-  handleClickOutside = () => {
+  handleClickOutside = async () => {
     // Otherwise, it's possible that this gets fired multiple times
     // e.g. click outside triggers closeMenu and at the same time input gets blurred, so
     // a timer is set to close the menu
     if (this.blurTimer) {
       clearTimeout(this.blurTimer);
     }
+
+    // Wait until the current macrotask completes, in the case that the click
+    // happened on a hovercard or some other element rendered outside of the
+    // autocomplete, but controlled by the existance of the autocomplete, we
+    // need to ensure any click handlers are run.
+    await new Promise(resolve => setTimeout(resolve));
 
     this.closeMenu();
   };
