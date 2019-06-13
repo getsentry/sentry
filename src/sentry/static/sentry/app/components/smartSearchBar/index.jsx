@@ -768,19 +768,19 @@ class SmartSearchBar extends React.Component {
           </StyledForm>
           <ButtonBar>
             {this.state.query !== '' && (
-              <SidebarButton
+              <InputButton
                 type="button"
-                title={'Clear search'}
+                title="Clear search"
                 borderless
-                aria-label={'Clear search'}
+                aria-label="Clear search"
                 size="zero"
                 containerDisplayMode="inline-flex"
                 onClick={this.clearSearch}
               >
                 <InlineSvg src="icon-close" size="11" />
-              </SidebarButton>
+              </InputButton>
             )}
-            <SidebarButton
+            <InputButton
               type="button"
               title={pinTooltip}
               borderless
@@ -789,6 +789,7 @@ class SmartSearchBar extends React.Component {
               size="zero"
               containerDisplayMode="inline-flex"
               onClick={this.onTogglePinnedSearch}
+              collapseIntoEllipsisMenu={1}
               isActive={!!pinnedSearch}
             >
               <InlineSvg src={pinIconSrc} />
@@ -798,14 +799,15 @@ class SmartSearchBar extends React.Component {
               organization={organization}
               disabled={!hasQuery}
             >
-              {(onToggle) => (
-                <SidebarButton
+              {onToggle => (
+                <InputButton
                   title={t('Add to organization filter list')}
                   size="zero"
                   borderless
                   containerDisplayMode="inline-flex"
                   type="button"
                   onClick={onToggle}
+                  collapseIntoEllipsisMenu={2}
                   data-test-id="save-current-search"
                   aria-label={t('Add to organization filter list')}
                   icon="icon-add-to-list"
@@ -817,30 +819,49 @@ class SmartSearchBar extends React.Component {
               borderless
               size="zero"
               containerDisplayMode="inline-flex"
+              collapseIntoEllipsisMenu={2}
               aria-label={t('Toggle search builder')}
               onClick={onSidebarToggle}
             >
-              <InlineSvg src="icon-sliders" size={13} />
+              <InlineSvg src="icon-sliders" size="13" />
             </SearchBuilderButton>
             <StyledDropdownLink
               anchorRight={true}
               caret={false}
               title={
-                <div style={{display: 'flex', alignItems: 'center'}}>
-                  <EllipsisIcon src="icon-ellipsis-filled"/>
-                </div>
+                <EllipsisButton
+                  size="zero"
+                  borderless
+                  containerDisplayMode="flex"
+                  type="button"
+                  aria-label={t('Show more')}
+                >
+                  <EllipsisIcon src="icon-ellipsis-filled" />
+                </EllipsisButton>
               }
             >
+              <DropdownElement
+                showBelowMediaQuery={1}
+                onClick={pinTooltip}
+              >
+                <MenuIcon data-test-id="pin-icon" src={pinIconSrc} size="13" />
+                {!!pinnedSearch ? 'Unpin Search' : 'Pin Search'}
+              </DropdownElement>
               <CreateSavedSearchButton
                 query={this.state.query}
                 organization={organization}
               >
-                {(onToggle) => (
-                  <DropdownElement onClick={onToggle}>Create Saved Search</DropdownElement>
+                {onToggle => (
+                  <DropdownElement showBelowMediaQuery={2} onClick={onToggle}>
+                    <MenuIcon size="15" src="icon-add-to-list" />
+                    Create Saved Search
+                  </DropdownElement>
                 )}
               </CreateSavedSearchButton>
-              <DropdownElement onClick={onSidebarToggle}>Toggle sidebar</DropdownElement>
-              <DropdownElement last onClick={pinTooltip}>{!!pinnedSearch ? 'Unpin Search' : 'Pin Search'}</DropdownElement>
+              <DropdownElement showBelowMediaQuery={2} last onClick={onSidebarToggle}>
+                <MenuIcon src="icon-sliders" size="12" />
+                Toggle sidebar
+              </DropdownElement>
             </StyledDropdownLink>
           </ButtonBar>
         </Container>
@@ -942,7 +963,6 @@ const Container = styled('div')`
   }
 `;
 
-
 const ButtonBar = styled('div')`
   display: flex;
   justify-content: flex-end;
@@ -983,7 +1003,15 @@ const StyledInput = styled('input')`
   }
 `;
 
-const SidebarButton = styled(Button)`
+const getMediaQuery = (size, type) => `
+  display: ${type};
+
+  @media (min-width: ${size}) {
+    display: ${type == 'none' ? 'block' : 'none'};
+  }
+`;
+
+const InputButton = styled(Button)`
   color: ${p => (p.isActive ? p.theme.blueLight : p.theme.gray2)};
   margin-left: ${space(0.5)};
   width: 18px;
@@ -992,19 +1020,18 @@ const SidebarButton = styled(Button)`
     color: ${p => p.theme.gray3};
   }
 
-  @media (max-width: ${p => p.theme.breakpoints[2]}) {
-    display: none;
-  }
+  ${p =>
+    p.collapseIntoEllipsisMenu &&
+    getMediaQuery(p.theme.breakpoints[p.collapseIntoEllipsisMenu], 'none')};
 `;
 
-const SearchBuilderButton = styled(SidebarButton)`
+const SearchBuilderButton = styled(InputButton)`
   margin-left: ${space(0.25)};
   margin-right: ${space(0.5)};
 `;
 
 const StyledDropdownLink = styled(DropdownLink)`
   display: none;
-  margin-left: ${space(0.5)};
 
   @media (max-width: ${p => p.theme.breakpoints[2]}) {
     display: flex;
@@ -1012,14 +1039,35 @@ const StyledDropdownLink = styled(DropdownLink)`
 `;
 
 const DropdownElement = styled('a')`
-  padding: 0 ${space(1)} ${p => p.last ? null : space(0.5)};
-  margin-bottom: ${p => p.last ? null : space(0.5)};
-  border-bottom: ${p => p.last ? null : `1px solid ${p.theme.gray1}`};
-  display: block;
+  padding: 0 ${space(1)} ${p => (p.last ? null : space(0.5))};
+  margin-bottom: ${p => (p.last ? null : space(0.5))};
+  border-bottom: ${p => (p.last ? null : `1px solid ${p.theme.gray1}`)};
+  display: none;
+  color: ${p => p.theme.gray4};
+  align-items: center;
+  min-width: 190px;
+  height: 38px;
+  padding-left: ${space(1.5)};
+  padding-right: ${space(1.5)};
+
+  ${p =>
+    p.showBelowMediaQuery &&
+    getMediaQuery(p.theme.breakpoints[p.showBelowMediaQuery], 'flex')}
+`;
+
+const MenuIcon = styled(InlineSvg)`
+  margin-right: ${space(1)};
+`;
+
+const EllipsisButton = styled(InputButton)`
+  /* this is necessary because DropdownLink wraps the button in an unstyled span */
+  margin: 6px 0 0 0;
 `;
 
 const EllipsisIcon = styled(InlineSvg)`
-  color: ${p => p.theme.gray2};
+  width: 12px;
+  height: 12px;
+  transform: rotate(90deg);
 `;
 
 function getTitleForType(type) {
