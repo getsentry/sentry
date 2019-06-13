@@ -156,9 +156,9 @@ const Segments = styled('div')`
 `;
 
 const Segment = styled(Link, {shouldForwardProp: isPropValid})`
-  display: block;
   width: 100%;
   height: 16px;
+  display: inline-block;
   color: inherit;
 
   &:hover {
@@ -185,12 +185,14 @@ const Description = styled('span', {shouldForwardProp: isPropValid})`
 `;
 
 const Percentage = styled('span')`
+  display: inline-block;
   margin-right: 6px;
   color: ${p => p.theme.gray2};
   vertical-align: middle;
 `;
 
 const Label = styled('span')`
+  display: inline-block;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
