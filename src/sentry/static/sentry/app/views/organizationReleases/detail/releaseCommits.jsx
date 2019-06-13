@@ -4,7 +4,7 @@ import React from 'react';
 import createReactClass from 'create-react-class';
 
 import {Panel, PanelHeader, PanelBody} from 'app/components/panels';
-import {URL_PARAM} from 'app/components/organizations/globalSelectionHeader/constants';
+import {URL_PARAM} from 'app/constants/globalSelectionHeader';
 import {t} from 'app/locale';
 import withApi from 'app/utils/withApi';
 import CommitRow from 'app/components/commitRow';

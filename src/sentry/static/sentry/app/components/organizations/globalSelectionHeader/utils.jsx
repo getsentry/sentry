@@ -3,7 +3,7 @@ import {pick, pickBy, identity} from 'lodash';
 import {defined} from 'app/utils';
 import {getUtcToLocalDateObject} from 'app/utils/dates';
 
-import {URL_PARAM} from './constants';
+import {URL_PARAM} from 'app/constants/globalSelectionHeader';
 
 // Parses URL query parameters for values relevant to global selection header
 export function getStateFromQuery(query) {

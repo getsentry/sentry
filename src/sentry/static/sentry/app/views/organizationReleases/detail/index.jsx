@@ -6,7 +6,7 @@ import SentryTypes from 'app/sentryTypes';
 import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
-import {URL_PARAM} from 'app/components/organizations/globalSelectionHeader/constants';
+import {URL_PARAM} from 'app/constants/globalSelectionHeader';
 import withOrganization from 'app/utils/withOrganization';
 import AsyncView from 'app/views/asyncView';
 import {PageContent} from 'app/styles/organization';

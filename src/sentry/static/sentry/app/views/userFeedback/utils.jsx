@@ -1,7 +1,7 @@
 import {pick} from 'lodash';
 import qs from 'query-string';
 
-import {URL_PARAM} from 'app/components/organizations/globalSelectionHeader/constants';
+import {URL_PARAM} from 'app/constants/globalSelectionHeader';
 
 const DEFAULT_STATUS = 'unresolved';
 
