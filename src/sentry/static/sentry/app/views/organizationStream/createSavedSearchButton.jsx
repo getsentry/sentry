@@ -91,7 +91,20 @@ class CreateSavedSearchButton extends React.Component {
 
     return (
       <Access organization={organization} access={['org:write']}>
-        {children(this.onToggle)}
+        {children ? (
+          children(this.onToggle)
+        ) : (
+          <StyledButton
+            title={t('Add to organization filter list')}
+            size="zero"
+            borderless
+            type="button"
+            onClick={this.onToggle}
+            data-test-id="save-current-search"
+            aria-label={t('Add to organization filter list')}
+            icon="icon-add-to-list"
+          />
+        )}
         <Modal show={isModalOpen} animation={false} onHide={this.onToggle}>
           <form onSubmit={this.onSubmit}>
             <div className="modal-header">
