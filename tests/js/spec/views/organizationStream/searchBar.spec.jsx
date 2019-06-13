@@ -253,19 +253,7 @@ describe('SearchBar', function() {
         organization,
       };
       const searchBar = mount(<SearchBar {...props} />, routerContext);
-<<<<<<< HEAD:tests/js/spec/views/organizationStream/searchBar.spec.jsx
-      expect(searchBar.find('PinIcon')).toHaveLength(1);
-=======
-
       expect(searchBar.find('[data-test-id="pin-icon"]')).toHaveLength(2);
-
-      searchBar.setProps({
-        organization: TestStubs.Organization({features: []}),
-      });
-
-      searchBar.update();
-      expect(searchBar.find('[data-test-id="pin-icon"]')).toHaveLength(0);
->>>>>>> improve menu:tests/js/spec/views/stream/searchBar.spec.jsx
     });
 
     it('pins a search from the searchbar', function() {

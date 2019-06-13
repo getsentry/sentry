@@ -793,7 +793,7 @@ class SmartSearchBar extends React.Component {
               isActive={!!pinnedSearch}
             >
               <InlineSvg src={pinIconSrc} />
-            </SidebarButton>
+            </InputButton>
             <CreateSavedSearchButton
               query={this.state.query}
               organization={organization}
@@ -842,9 +842,10 @@ class SmartSearchBar extends React.Component {
             >
               <DropdownElement
                 showBelowMediaQuery={1}
-                onClick={pinTooltip}
+                data-test-id="pin-icon"
+                onClick={this.onTogglePinnedSearch}
               >
-                <MenuIcon data-test-id="pin-icon" src={pinIconSrc} size="13" />
+                <MenuIcon src={pinIconSrc} size="13" />
                 {!!pinnedSearch ? 'Unpin Search' : 'Pin Search'}
               </DropdownElement>
               <CreateSavedSearchButton
