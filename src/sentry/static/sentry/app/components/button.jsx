@@ -44,6 +44,10 @@ class Button extends React.Component {
      * `children` will be used by default (only if it is a string), but this property takes priority.
      */
     label: PropTypes.string,
+    /**
+     * Passed down to built-in tooltip component
+     */
+    containerDisplayMode: PropTypes.string,
 
     onClick: PropTypes.func,
   };
@@ -133,7 +137,11 @@ class Button extends React.Component {
 
     // Doing this instead of using `Tooltip`'s `disabled` prop so that we can minimize snapshot nesting
     if (title) {
-      return <Tooltip containerDisplayMode={containerDisplayMode} title={title}>{button}</Tooltip>;
+      return (
+        <Tooltip containerDisplayMode={containerDisplayMode} title={title}>
+          {button}
+        </Tooltip>
+      );
     }
 
     return button;
