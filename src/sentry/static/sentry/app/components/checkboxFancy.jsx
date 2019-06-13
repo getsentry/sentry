@@ -4,10 +4,9 @@ import PropTypes from 'prop-types';
 import InlineSvg from 'app/components/inlineSvg';
 
 const getDisabledStyles = p =>
-  !p.checked &&
   p.disabled &&
   css`
-    background: ${p.theme.gray1};
+    background: ${p.checked ? p.theme.gray1 : p.theme.offWhite};
     border-color: ${p.theme.gray1};
   `;
 
@@ -19,7 +18,7 @@ const getHoverStyles = p =>
 
 const CheckboxFancy = styled(({checked, disabled, ...props}) => (
   <div role="checkbox" aria-disabled={disabled} aria-checked={checked} {...props}>
-    {(checked || disabled) && <Check src="icon-checkmark-sm" />}
+    {checked && <Check src="icon-checkmark-sm" />}
   </div>
 ))`
   width: ${p => p.size};
