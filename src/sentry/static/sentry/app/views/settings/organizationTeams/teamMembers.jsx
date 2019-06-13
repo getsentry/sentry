@@ -1,7 +1,6 @@
 import PropTypes from 'prop-types';
 import {debounce} from 'lodash';
 import React from 'react';
-import createReactClass from 'create-react-class';
 import styled from 'react-emotion';
 
 import withApi from 'app/utils/withApi';
@@ -15,34 +14,32 @@ import IndicatorStore from 'app/stores/indicatorStore';
 import {joinTeam, leaveTeam} from 'app/actionCreators/teams';
 import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
-import OrganizationState from 'app/mixins/organizationState';
 import {Panel, PanelHeader} from 'app/components/panels';
 import InlineSvg from 'app/components/inlineSvg';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
+import withOrganization from 'app/utils/withOrganization';
+import SentryTypes from 'app/sentryTypes';
 
-const TeamMembers = createReactClass({
-  displayName: 'TeamMembers',
-  propTypes: {
-    api: PropTypes.object,
-  },
-  mixins: [OrganizationState],
+class TeamMembers extends React.Component {
+  static propTypes = {
+    api: PropTypes.object.isRequired,
+    organization: SentryTypes.Organization.isRequired,
+  };
 
-  getInitialState() {
-    return {
-      loading: true,
-      error: false,
-      dropdownBusy: false,
-      teamMemberList: null,
-      orgMemberList: null,
-    };
-  },
+  state = {
+    loading: true,
+    error: false,
+    dropdownBusy: false,
+    teamMemberList: null,
+    orgMemberList: null,
+  };
 
   componentWillMount() {
     this.fetchData();
-  },
+  }
 
   componentWillReceiveProps(nextProps) {
     const params = this.props.params;
@@ -58,16 +55,16 @@ const TeamMembers = createReactClass({
         this.fetchData
       );
     }
-  },
+  }
 
-  debouncedFetchMembersRequest: debounce(function(query) {
+  debouncedFetchMembersRequest = debounce(function(query) {
     this.setState(
       {
         dropdownBusy: true,
       },
       () => this.fetchMembersRequest(query)
     );
-  }, 200),
+  }, 200);
 
   removeMember(member) {
     const {params} = this.props;
@@ -98,7 +95,7 @@ const TeamMembers = createReactClass({
         },
       }
     );
-  },
+  }
 
   fetchMembersRequest(query) {
     const {orgId} = this.props.params;
@@ -121,9 +118,9 @@ const TeamMembers = createReactClass({
         });
       },
     });
-  },
+  }
 
-  fetchData() {
+  fetchData = () => {
     const params = this.props.params;
 
     this.props.api.request(`/teams/${params.orgId}/${params.teamId}/members/`, {
@@ -143,9 +140,9 @@ const TeamMembers = createReactClass({
     });
 
     this.fetchMembersRequest('');
-  },
+  };
 
-  addTeamMember(selection) {
+  addTeamMember = selection => {
     const params = this.props.params;
 
     this.setState({
@@ -184,19 +181,19 @@ const TeamMembers = createReactClass({
         },
       }
     );
-  },
+  };
 
   /**
    * We perform an API request to support orgs with > 100 members (since that's the max API returns)
    *
    * @param {Event} e React Event when member filter input changes
    */
-  handleMemberFilterChange(e) {
+  handleMemberFilterChange = e => {
     this.setState({dropdownBusy: true});
     this.debouncedFetchMembersRequest(e.target.value);
-  },
+  };
 
-  renderDropdown(access) {
+  renderDropdown = access => {
     const {params} = this.props;
 
     if (!access.has('org:write')) {
@@ -255,9 +252,9 @@ const TeamMembers = createReactClass({
         )}
       </DropdownAutoComplete>
     );
-  },
+  };
 
-  removeButton(member) {
+  removeButton = member => {
     return (
       <Button size="small" onClick={this.removeMember.bind(this, member)}>
         <InlineSvg
@@ -268,7 +265,7 @@ const TeamMembers = createReactClass({
         {t('Remove')}
       </Button>
     );
-  },
+  };
 
   render() {
     if (this.state.loading) {
@@ -277,9 +274,9 @@ const TeamMembers = createReactClass({
       return <LoadingError onRetry={this.fetchData} />;
     }
 
-    const {params} = this.props;
+    const {params, organization} = this.props;
 
-    const access = this.getAccess();
+    const access = new Set(organization.access);
 
     return (
       <Panel>
@@ -301,8 +298,8 @@ const TeamMembers = createReactClass({
         )}
       </Panel>
     );
-  },
-});
+  }
+}
 
 const StyledMemberContainer = styled('div')`
   display: flex;
@@ -346,4 +343,4 @@ const StyledCreateMemberLink = styled(Link)`
 
 export {TeamMembers};
 
-export default withApi(TeamMembers);
+export default withApi(withOrganization(TeamMembers));
