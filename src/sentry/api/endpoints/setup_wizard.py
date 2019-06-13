@@ -52,7 +52,7 @@ class SetupWizard(Endpoint):
                 logger.info('setup-wizard.rate-limit')
                 return Response(
                     {
-                        'Too wizard requests',
+                        'Too many wizard requests',
                     }, status=403
                 )
             wizard_hash = get_random_string(
