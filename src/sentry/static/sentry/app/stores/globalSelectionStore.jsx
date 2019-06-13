@@ -5,7 +5,7 @@ import {
   DATE_TIME,
   URL_PARAM,
   LOCAL_STORAGE_KEY,
-} from 'app/components/organizations/globalSelectionHeader/constants';
+} from 'app/constants/globalSelectionHeader';
 import {getStateFromQuery} from 'app/components/organizations/globalSelectionHeader/utils';
 import {isEqualWithDates} from 'app/utils/isEqualWithDates';
 import OrganizationsStore from 'app/stores/organizationsStore';

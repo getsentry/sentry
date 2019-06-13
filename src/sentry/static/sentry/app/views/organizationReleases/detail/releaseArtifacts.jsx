@@ -4,7 +4,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 
 import {Panel, PanelHeader, PanelBody, PanelItem} from 'app/components/panels';
-import {URL_PARAM} from 'app/components/organizations/globalSelectionHeader/constants';
+import {URL_PARAM} from 'app/constants/globalSelectionHeader';
 import {t} from 'app/locale';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
 import FileSize from 'app/components/fileSize';

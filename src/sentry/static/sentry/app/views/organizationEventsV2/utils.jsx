@@ -1,6 +1,7 @@
 import {pick} from 'lodash';
 
 import {DEFAULT_PER_PAGE} from 'app/constants';
+import {URL_PARAM} from 'app/constants/globalSelectionHeader';
 import {ALL_VIEWS, SPECIAL_FIELDS} from './data';
 
 /**
@@ -91,10 +92,12 @@ export function getEventTagSearchUrl(tagKey, tagValue, location) {
  * @param {Array} tagList
  * @returns {Promise<Object>}
  */
-export function fetchTags(api, orgSlug, tagList) {
+export function fetchTags(api, orgSlug, tagList, query) {
+  const urlParams = pick(query, Object.values(URL_PARAM));
+
   return api
     .requestPromise(`/organizations/${orgSlug}/events-heatmap/`, {
-      query: {keys: tagList},
+      query: {...urlParams, keys: tagList, query: query.query},
     })
     .then(resp => {
       const tags = {};
