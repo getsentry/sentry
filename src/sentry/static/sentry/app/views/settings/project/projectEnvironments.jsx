@@ -20,8 +20,7 @@ import SentryTypes from 'app/sentryTypes';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import recreateRoute from 'app/utils/recreateRoute';
 import space from 'app/styles/space';
-
-const DEFAULT_EMPTY_ROUTING_NAME = 'none';
+import {getUrlRoutingName, getDisplayName} from 'app/utils/environment';
 
 const ProjectEnvironments = createReactClass({
   propTypes: {
@@ -93,14 +92,14 @@ const ProjectEnvironments = createReactClass({
         success: e => {
           addSuccessMessage(
             tct('Updated [environment]', {
-              environment: env.displayName,
+              environment: getDisplayName(env),
             })
           );
         },
         error: err => {
           addErrorMessage(
             tct('Unable to update [environment]', {
-              environment: env.displayName,
+              environment: getDisplayName(env),
             })
           );
         },
@@ -123,7 +122,7 @@ const ProjectEnvironments = createReactClass({
    * - "No Environment"
    *
    */
-  renderSystemRows() {
+  renderAllEnvironmentsSystemRow() {
     // Not available in "Hidden" tab
     const isHidden = this.props.location.pathname.endsWith('hidden/');
     if (isHidden) {
@@ -134,7 +133,6 @@ const ProjectEnvironments = createReactClass({
         name={ALL_ENVIRONMENTS_KEY}
         environment={{
           id: ALL_ENVIRONMENTS_KEY,
-          displayName: t('All Environments'),
           name: ALL_ENVIRONMENTS_KEY,
         }}
         isSystemRow
@@ -148,7 +146,7 @@ const ProjectEnvironments = createReactClass({
 
     return (
       <React.Fragment>
-        {this.renderSystemRows()}
+        {this.renderAllEnvironmentsSystemRow()}
         {envs.map(env => {
           return (
             <EnvironmentRow
@@ -229,7 +227,7 @@ class EnvironmentRow extends React.Component {
     return (
       <PanelItem align="center" justify="space-between">
         <Flex align="center">
-          {isSystemRow ? environment.displayName : environment.name}
+          {isSystemRow ? t('All Environments') : environment.name}
         </Flex>
         <Access access={['project:write']}>
           {({hasAccess}) => (
@@ -256,7 +254,3 @@ const EnvironmentButton = styled(Button)`
 
 export {ProjectEnvironments};
 export default withApi(ProjectEnvironments);
-
-function getUrlRoutingName(env) {
-  return encodeURIComponent(env.name) || DEFAULT_EMPTY_ROUTING_NAME;
-}
