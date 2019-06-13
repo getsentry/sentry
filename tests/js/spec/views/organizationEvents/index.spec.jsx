@@ -97,7 +97,7 @@ describe('OrganizationEvents', function() {
       wrapper
         .find('EnvironmentSelectorItem')
         .at(1)
-        .find('CheckboxWrapper')
+        .find('CheckboxHitbox')
         .simulate('click');
 
       expect(wrapper.find('MultipleEnvironmentSelector').prop('value')).toEqual([
@@ -173,14 +173,14 @@ describe('OrganizationEvents', function() {
       wrapper.find('MultipleProjectSelector HeaderItem').simulate('click');
 
       wrapper
-        .find('MultipleProjectSelector AutoCompleteItem CheckboxWrapper')
+        .find('MultipleProjectSelector AutoCompleteItem CheckboxHitbox')
         .at(0)
         .simulate('click');
 
       expect(wrapper.find('MultipleProjectSelector').prop('value')).toEqual([2]);
 
       wrapper
-        .find('MultipleProjectSelector AutoCompleteItem CheckboxWrapper')
+        .find('MultipleProjectSelector AutoCompleteItem CheckboxHitbox')
         .at(1)
         .simulate('click');
 

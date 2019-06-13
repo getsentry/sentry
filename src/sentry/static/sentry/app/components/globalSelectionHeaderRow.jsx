@@ -11,21 +11,31 @@ class GlobalSelectionHeaderRow extends React.Component {
     multi: PropTypes.bool,
     onCheckClick: PropTypes.func.isRequired,
     children: PropTypes.node.isRequired,
+
+    /**
+     * This is a render prop which may be used to augment the checkbox rendered
+     * to the right of the row. It will receive the default `checkbox` as a
+     * prop anlong with the `checked` boolean.
+     */
+    renderCheckbox: PropTypes.func,
   };
 
   static defaultProps = {
+    renderCheckbox: ({checkbox}) => checkbox,
     multi: true,
   };
 
   render() {
-    const {checked, onCheckClick, multi, children, ...props} = this.props;
+    const {checked, onCheckClick, multi, renderCheckbox, children, ...props} = this.props;
+
+    const checkbox = <CheckboxFancy disabled={!multi} checked={multi && checked} />;
 
     return (
       <Container isMulti={multi} isChecked={checked} {...props}>
         <Content multi={multi}>{children}</Content>
-        <CheckboxWrapper onClick={multi ? onCheckClick : null} checked={checked}>
-          <CheckboxFancy disabled={!multi} checked={multi && checked} />
-        </CheckboxWrapper>
+        <CheckboxHitbox onClick={multi ? onCheckClick : null} checked={checked}>
+          {renderCheckbox({checkbox, checked})}
+        </CheckboxHitbox>
       </Container>
     );
   }
@@ -66,7 +76,7 @@ const Content = styled('div')`
   }
 `;
 
-const CheckboxWrapper = styled('div')`
+const CheckboxHitbox = styled('div')`
   margin: 0 -${space(1)} 0 0; /* pushes the click box to be flush with the edge of the menu */
   padding: 0 ${space(1.5)} 0 ${space(1.25)};
   height: 100%;
