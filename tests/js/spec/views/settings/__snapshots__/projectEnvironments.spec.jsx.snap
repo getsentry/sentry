@@ -1167,10 +1167,9 @@ exports[`ProjectEnvironments render hidden renders environment list 1`] = `
                 actionText="Show"
                 environment={
                   Object {
-                    "displayName": "Zzz",
                     "id": "1",
+                    "isHidden": true,
                     "name": "zzz",
-                    "urlRoutingName": "zzz",
                   }
                 }
                 isHidden={true}

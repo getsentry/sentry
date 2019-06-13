@@ -1,7 +1,6 @@
 import React from 'react';
 import {mount} from 'enzyme';
 
-import EnvironmentStore from 'app/stores/environmentStore';
 import ProjectEnvironments from 'app/views/settings/project/projectEnvironments';
 import recreateRoute from 'app/utils/recreateRoute';
 import {ALL_ENVIRONMENTS_KEY} from 'app/constants';
@@ -45,7 +44,11 @@ describe('ProjectEnvironments', function() {
 
   describe('render active', function() {
     it('renders empty message', function() {
-      EnvironmentStore.loadInitialData([]);
+      MockApiClient.addMockResponse({
+        url: '/projects/org-slug/project-slug/environments/',
+        body: [],
+      });
+
       const wrapper = mountComponent(false);
       const errorMessage = wrapper.find('div').first();
 
@@ -54,7 +57,10 @@ describe('ProjectEnvironments', function() {
     });
 
     it('renders environment list', async function() {
-      EnvironmentStore.loadInitialData(TestStubs.Environments(false));
+      MockApiClient.addMockResponse({
+        url: '/projects/org-slug/project-slug/environments/',
+        body: TestStubs.Environments(false),
+      });
       const wrapper = mountComponent(false);
 
       const productionRow = wrapper.find('EnvironmentRow[name="production"]');
@@ -65,7 +71,10 @@ describe('ProjectEnvironments', function() {
 
   describe('render hidden', function() {
     it('renders empty message', function() {
-      EnvironmentStore.loadHiddenData([]);
+      MockApiClient.addMockResponse({
+        url: '/projects/org-slug/project-slug/environments/',
+        body: [],
+      });
 
       const wrapper = mountComponent(true);
       const errorMessage = wrapper.find('div').first();
@@ -76,7 +85,10 @@ describe('ProjectEnvironments', function() {
     });
 
     it('renders environment list', function() {
-      EnvironmentStore.loadHiddenData(TestStubs.Environments(true));
+      MockApiClient.addMockResponse({
+        url: '/projects/org-slug/project-slug/environments/',
+        body: TestStubs.Environments(true),
+      });
       const wrapper = mountComponent(true);
 
       // Hidden buttons should not have "Set as default"
@@ -103,7 +115,11 @@ describe('ProjectEnvironments', function() {
       });
     });
     it('hides', function() {
-      EnvironmentStore.loadInitialData(TestStubs.Environments(false));
+      MockApiClient.addMockResponse({
+        url: baseUrl,
+        body: TestStubs.Environments(false),
+      });
+
       const wrapper = mountComponent(false);
       wrapper.find('EnvironmentRow[name="production"] Button').simulate('click');
       expect(hideMock).toHaveBeenCalledWith(
@@ -115,15 +131,18 @@ describe('ProjectEnvironments', function() {
     });
 
     it('hides names requiring encoding', function() {
+      MockApiClient.addMockResponse({
+        url: baseUrl,
+        body: [{id: '1', name: '%app_env%', isHidden: false}],
+      });
+
       hideMock = MockApiClient.addMockResponse({
         url: `${baseUrl}%25app_env%25/`,
         method: 'PUT',
       });
 
-      const environments = [{id: '1', name: '%app_env%', isHidden: false}];
-      EnvironmentStore.loadInitialData(environments);
-
       const wrapper = mountComponent(false);
+
       wrapper
         .find('EnvironmentRow[name="%app_env%"] button[aria-label="Hide"]')
         .simulate('click');
@@ -136,7 +155,11 @@ describe('ProjectEnvironments', function() {
     });
 
     it('shows', function() {
-      EnvironmentStore.loadHiddenData(TestStubs.Environments(true));
+      MockApiClient.addMockResponse({
+        url: baseUrl,
+        body: TestStubs.Environments(true),
+      });
+
       const wrapper = mountComponent(true);
       wrapper.find('EnvironmentRow[name="zzz"] Button').simulate('click');
       expect(showMock).toHaveBeenCalledWith(
@@ -148,7 +171,11 @@ describe('ProjectEnvironments', function() {
     });
 
     it('does not have "All Enviroments" rows', function() {
-      EnvironmentStore.loadHiddenData(TestStubs.Environments(true));
+      MockApiClient.addMockResponse({
+        url: baseUrl,
+        body: TestStubs.Environments(true),
+      });
+
       const wrapper = mountComponent(true);
       expect(wrapper.find(`EnvironmentRow[name="${ALL_ENVIRONMENTS_KEY}"]`)).toHaveLength(
         0
