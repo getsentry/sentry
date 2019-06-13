@@ -156,9 +156,9 @@ const Segments = styled('div')`
 `;
 
 const Segment = styled(Link, {shouldForwardProp: isPropValid})`
+  display: block;
   width: 100%;
   height: 16px;
-  display: inline-block;
   color: inherit;
 
   &:hover {
