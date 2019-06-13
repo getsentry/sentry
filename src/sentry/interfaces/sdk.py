@@ -44,8 +44,8 @@ def get_sdk_index():
 
 def get_sdk_versions():
     try:
-        rv = settings.SDK_VERSIONS
-        rv.update((key, info['value']) for (key, info) in get_sdk_index().items())
+        rv = dict(settings.SDK_VERSIONS)
+        rv.update((key, info['version']) for (key, info) in get_sdk_index().items())
         return rv
     except Exception:
         logger.exception("sentry-release-registry.sdk-versions")
@@ -54,8 +54,8 @@ def get_sdk_versions():
 
 def get_sdk_urls():
     try:
-        rv = settings.SDK_URLS
-        rv.update((key, info['docs_url']) for (key, info) in get_sdk_versions())
+        rv = dict(settings.SDK_URLS)
+        rv.update((key, info['main_docs_url']) for (key, info) in get_sdk_index().items())
         return rv
     except Exception:
         logger.exception("sentry-release-registry.sdk-urls")
