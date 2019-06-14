@@ -6,7 +6,7 @@ import ProjectContext from 'app/views/projects/projectContext';
 import ProjectGeneralSettings from 'app/views/settings/projectGeneralSettings';
 import ProjectsStore from 'app/stores/projectsStore';
 
-import {selectByValue} from '../../helpers/select';
+import {selectByValue} from 'app-test/helpers/select';
 
 jest.mock('jquery');
 
@@ -294,11 +294,6 @@ describe('projectGeneralSettings', function() {
       method: 'GET',
       body: {...project, slug: 'new-project'},
     });
-    const newProjectEnv = MockApiClient.addMockResponse({
-      url: `/projects/${org.slug}/new-project/environments/`,
-      method: 'GET',
-      body: [],
-    });
     const newProjectMembers = MockApiClient.addMockResponse({
       url: `/organizations/${org.slug}/users/`,
       method: 'GET',
@@ -320,7 +315,6 @@ describe('projectGeneralSettings', function() {
     await tick();
     wrapper.update();
     expect(newProjectGet).toHaveBeenCalled();
-    expect(newProjectEnv).toHaveBeenCalled();
     expect(newProjectMembers).toHaveBeenCalled();
   });
 
