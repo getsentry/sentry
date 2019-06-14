@@ -232,7 +232,7 @@ class OrganizationEventsHeatmapEndpoint(OrganizationEventsEndpointBase):
             }, status=400)
 
         try:
-            total_count = self.get_total_value_count(**deepcopy(snuba_args))
+            total_count = self.get_total_value_count(**snuba_args)
         except (KeyError, SnubaError):
             logger.info(  # TODO(lb): should this be level error?
                 'api.organization-events-heatmap',
@@ -249,7 +249,7 @@ class OrganizationEventsHeatmapEndpoint(OrganizationEventsEndpointBase):
 
         if lookup_keys:
             try:
-                top_values = self.get_top_values(keys=lookup_keys, **deepcopy(snuba_args))
+                top_values = self.get_top_values(keys=lookup_keys, **snuba_args)
             except (KeyError, SnubaError):
                 logger.info(  # TODO(lb): should this be level error?
                     'api.organization-events-heatmap',
@@ -267,7 +267,7 @@ class OrganizationEventsHeatmapEndpoint(OrganizationEventsEndpointBase):
             top_values = []
 
         if non_tag_lookup_keys:
-            self.handle_non_tag_keys(non_tag_lookup_keys, deepcopy(snuba_args), top_values)
+            self.handle_non_tag_keys(non_tag_lookup_keys, snuba_args, top_values)
 
         tag_keys = self._create_tag_objects(keys, total_count, top_values)
 
@@ -298,6 +298,7 @@ class OrganizationEventsHeatmapEndpoint(OrganizationEventsEndpointBase):
         top_values = sorted(top_values, key=lambda x: x['count'])
 
     def _query_non_tag_data(self, key, snuba_args):
+        snuba_args = deepcopy(snuba_args)
         data = raw_query(
             groupby=[key],
             conditions=snuba_args.pop('conditions', []) + [
@@ -347,12 +348,12 @@ class OrganizationEventsHeatmapEndpoint(OrganizationEventsEndpointBase):
         return tag_keys_dict.values()
 
     def get_total_value_count(self, **kwargs):
+        kwargs = deepcopy(kwargs)
         aggregations = kwargs.pop('aggregations', [])
         aggregations += [
             ['count()', '', 'count'],
         ]
 
-        # TODO(lb): try-catch needed
         total_count = raw_query(
             aggregations=aggregations,
             referrer='api.organization-events-heatmap',
@@ -361,6 +362,7 @@ class OrganizationEventsHeatmapEndpoint(OrganizationEventsEndpointBase):
         return total_count
 
     def get_top_values(self, keys, value_limit=TOP_VALUES_DEFAULT_LIMIT, **kwargs):
+        kwargs = deepcopy(kwargs)
         filters = kwargs.pop('filter_keys', {})
         filters['tags_key'] = keys
 
@@ -377,7 +379,7 @@ class OrganizationEventsHeatmapEndpoint(OrganizationEventsEndpointBase):
             orderby='-count', limitby=[value_limit, 'tags_key'],
             referrer='api.organization-events-heatmap',
             **kwargs
-        )['data']  # TODO(lb): error handling
+        )['data']
         return values
 
 
