@@ -1,6 +1,8 @@
 from __future__ import absolute_import
 
+import logging
 import re
+
 from copy import deepcopy
 from collections import OrderedDict
 from datetime import timedelta
@@ -12,7 +14,6 @@ from sentry import tagstore
 from sentry.tagstore.base import TOP_VALUES_DEFAULT_LIMIT
 from sentry.tagstore.types import TagKey, TagValue
 from sentry.api.bases import OrganizationEventsEndpointBase, OrganizationEventsError, NoProjects
-from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.helpers.events import get_direct_hit_response
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.serializers import EventSerializer, serialize, SimpleEventSerializer
@@ -23,12 +24,14 @@ from sentry.utils.snuba import (
     raw_query,
     transform_aliases_and_query,
     SnubaTSResult,
-    SENTRY_SNUBA_MAP
+    SENTRY_SNUBA_MAP,
+    SnubaError,
 )
 from sentry import features
 from sentry.models.project import Project
 
 ALLOWED_GROUPINGS = frozenset(('issue.id', 'project.id'))
+logger = logging.getLogger('sentry.api.organization-events')
 
 
 class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
@@ -228,12 +231,38 @@ class OrganizationEventsHeatmapEndpoint(OrganizationEventsEndpointBase):
                 'detail': 'You cannot view events from multiple projects.'
             }, status=400)
 
-        total_count = self.get_total_value_count(**deepcopy(snuba_args))
+        try:
+            total_count = self.get_total_value_count(**deepcopy(snuba_args))
+        except (KeyError, SnubaError):
+            logger.info(  # TODO(lb): should this be level error?
+                'api.organization-events-heatmap',
+                extra={
+                    'organization_id': organization.id,
+                    'user_id': request.user.id,
+                    'keys': keys,
+                    'snuba_args': snuba_args,
+                }
+            )
+            return Response({
+                'detail': 'Invalid query.'  # TODO(lb): is this ok?
+            }, status=400)
+
         if lookup_keys:
             try:
                 top_values = self.get_top_values(keys=lookup_keys, **deepcopy(snuba_args))
-            except tagstore.TagKeyNotFound:  # TODO(lb): error check
-                raise ResourceDoesNotExist
+            except (KeyError, SnubaError):
+                logger.info(  # TODO(lb): should this be level error?
+                    'api.organization-events-heatmap',
+                    extra={
+                        'organization_id': organization.id,
+                        'user_id': request.user.id,
+                        'keys': keys,
+                        'snuba_args': snuba_args,
+                    }
+                )
+                return Response({
+                    'detail': 'Invalid query.'  # TODO(lb): is this ok?
+                }, status=400)
         else:
             top_values = []
 
@@ -342,14 +371,14 @@ class OrganizationEventsHeatmapEndpoint(OrganizationEventsEndpointBase):
             ['max', 'timestamp', 'last_seen'],
         ]
 
-        values_by_key = raw_query(
+        values = raw_query(
             groupby=['tags_key', 'tags_value'],
             filter_keys=filters, aggregations=aggregations,
             orderby='-count', limitby=[value_limit, 'tags_key'],
             referrer='api.organization-events-heatmap',
             **kwargs
         )['data']  # TODO(lb): error handling
-        return values_by_key
+        return values
 
 
 class OrganizationEventsMetaEndpoint(OrganizationEventsEndpointBase):

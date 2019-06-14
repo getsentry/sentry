@@ -1551,6 +1551,27 @@ class OrganizationEventsHeatmapEndpointTest(OrganizationEventsTestBase):
             'key': 'color'
         }
 
+    def test_malformed_query(self):
+        self.store_event(
+            data={
+                'event_id': uuid4().hex,
+            },
+            project_id=self.project.id
+        )
+        self.store_event(
+            data={
+                'event_id': uuid4().hex,
+            },
+            project_id=self.project2.id
+        )
+
+        response = self.client.get(
+            self.url, {
+                'keys': ['color'], 'query': '\n\n\n\n'}, format='json')
+        assert response.status_code == 400, response.content
+        assert response.data == {
+            'detail': "Parse error: 'search' (column 1). This is commonly caused by unmatched-parentheses. Enclose any text in double quotes."}
+
 
 class OrganizationEventsMetaEndpoint(OrganizationEventsTestBase):
     def test_simple(self):
