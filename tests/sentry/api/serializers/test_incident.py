@@ -56,4 +56,4 @@ class DetailedIncidentSerializerTest(TestCase):
         assert result['groups'] == []
         IncidentGroup.objects.create(incident=incident, group=self.group)
         result = serialize(incident, serializer=serializer)
-        assert result['groups'] == [self.group.id]
+        assert result['groups'] == [six.text_type(self.group.id)]
