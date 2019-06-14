@@ -1186,6 +1186,55 @@ class OrganizationEventsHeatmapEndpointTest(OrganizationEventsTestBase):
         assert response.status_code == 400, response.content
         assert response.data == {'detail': 'You cannot view events from multiple projects.'}
 
+    def test_project_selected(self):
+        self.store_event(
+            data={
+                'event_id': uuid4().hex,
+                'timestamp': self.min_ago_iso,
+                'tags': {'color': 'green'},
+            },
+            project_id=self.project.id
+        )
+        self.store_event(
+            data={
+                'event_id': uuid4().hex,
+                'timestamp': self.min_ago_iso,
+                'tags': {'number': 'one'},
+            },
+            project_id=self.project2.id
+        )
+
+        with self.feature('organizations:global-views'):
+            response = self.client.get(
+                self.url, {
+                    'keys': [
+                        'number', 'color'], 'project': [
+                        self.project.id]}, format='json')
+
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 2
+        assert response.data[0] == {
+            'topValues': [],
+            'totalValues': 1,
+            'name': 'Number',
+            'key': 'number'
+        }
+        assert response.data[1] == {
+            'topValues': [
+                {
+                    'count': 1,
+                    'name': 'green',
+                    'value': 'green',
+                    'lastSeen': self.min_ago_iso,
+                    'key': 'color',
+                    'firstSeen': self.min_ago_iso
+                },
+            ],
+            'totalValues': 1,
+            'name': 'Color',
+            'key': 'color'
+        }
+
     def test_project_key(self):
         self.store_event(
             data={
@@ -1291,7 +1340,131 @@ class OrganizationEventsHeatmapEndpointTest(OrganizationEventsTestBase):
         }
 
     def test_non_tag_key(self):
-        pass
+        user1 = {
+            'id': '1',
+            'ip_address': '127.0.0.1',
+            'email': 'foo@example.com',
+            'username': 'foo',
+        }
+        user2 = {
+            'id': '2',
+            'ip_address': '127.0.0.2',
+            'email': 'bar@example.com',
+            'username': 'bar',
+        }
+        self.store_event(
+            data={
+                'event_id': uuid4().hex,
+                'timestamp': self.min_ago_iso,
+                'user': user1,
+            },
+            project_id=self.project.id
+        )
+        self.store_event(
+            data={
+                'event_id': uuid4().hex,
+                'timestamp': self.min_ago_iso,
+                'tags': {'color': 'green'},
+                'user': user2,
+            },
+            project_id=self.project2.id
+        )
+        self.store_event(
+            data={
+                'event_id': uuid4().hex,
+                'timestamp': self.min_ago_iso,
+                'tags': {'color': 'green'},
+            },
+            project_id=self.project.id
+        )
+        self.store_event(
+            data={
+                'event_id': uuid4().hex,
+                'timestamp': self.min_ago_iso,
+                'tags': {'color': 'red'},
+                'user': user1,
+            },
+            project_id=self.project.id
+        )
+
+        with self.feature('organizations:global-views'):
+            response = self.client.get(
+                self.url, {
+                    'keys': [
+                        'user.email', 'user.ip', 'color']}, format='json')
+
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 3
+
+        assert response.data[0] == {
+            'topValues': [
+                {
+                    'count': 2,
+                    'name': user1['email'],
+                    'value': user1['email'],
+                    'lastSeen': self.min_ago_iso,
+                    'key': 'user.email',
+                    'firstSeen': self.min_ago_iso
+                },
+                {
+                    'count': 1,
+                    'name': user2['email'],
+                    'value': user2['email'],
+                    'lastSeen': self.min_ago_iso,
+                    'key': 'user.email',
+                    'firstSeen': self.min_ago_iso
+                }
+            ],
+            'totalValues': 4,
+            'name': 'User.Email',
+            'key': 'user.email'
+        }
+        assert response.data[1] == {
+            'topValues': [
+                {
+                    'count': 2,
+                    'name': user1['ip_address'],
+                    'value': user1['ip_address'],
+                    'lastSeen': self.min_ago_iso,
+                    'key': 'user.ip',
+                    'firstSeen': self.min_ago_iso
+                },
+                {
+                    'count': 1,
+                    'name': user2['ip_address'],
+                    'value': user2['ip_address'],
+                    'lastSeen': self.min_ago_iso,
+                    'key': 'user.ip',
+                    'firstSeen': self.min_ago_iso
+                },
+            ],
+            'totalValues': 4,
+            'name': 'User.Ip',
+            'key': 'user.ip'
+        }
+        assert response.data[2] == {
+            'topValues': [
+                {
+                    'count': 2,
+                    'name': 'green',
+                    'value': 'green',
+                    'lastSeen': self.min_ago_iso,
+                    'key': 'color',
+                    'firstSeen': self.min_ago_iso
+                },
+                {
+                    'count': 1,
+                    'name': 'red',
+                    'value': 'red',
+                    'lastSeen': self.min_ago_iso,
+                    'key': 'color',
+                    'firstSeen': self.min_ago_iso
+                },
+            ],
+            'totalValues': 4,
+            'name': 'Color',
+            'key': 'color'
+        }
 
 
 class OrganizationEventsMetaEndpoint(OrganizationEventsTestBase):
