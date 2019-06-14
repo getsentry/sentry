@@ -19,7 +19,7 @@ import withApi from 'app/utils/withApi';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 import theme from 'app/utils/theme';
 
-import {MODAL_QUERY_KEYS} from './data';
+import {MODAL_QUERY_KEYS, PIN_ICON} from './data';
 
 /**
  * Generate the data to display a vertical line for the current
@@ -33,8 +33,8 @@ const getCurrentEventMarker = currentEvent => {
     type: 'line',
     data: [],
     markLine: MarkLine({
-      // TODO replace the diamond with a custom image.
-      symbol: ['diamond', 'none'],
+      symbol: [PIN_ICON, 'none'],
+      symbolSize: [15, 30],
       lineStyle: {
         normal: {
           color: theme.red,

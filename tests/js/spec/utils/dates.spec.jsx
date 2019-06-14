@@ -43,7 +43,7 @@ describe('utils.dates', function() {
       expect(parsePeriodToHours('1h')).toBe(1);
       expect(parsePeriodToHours('24h')).toBe(24);
       expect(parsePeriodToHours('1d')).toBe(24);
-      expect(parsePeriodToHours('2w')).toBe(168);
+      expect(parsePeriodToHours('2w')).toBe(336);
     });
   });
 });

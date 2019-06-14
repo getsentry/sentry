@@ -167,7 +167,6 @@ export function intervalToMilliseconds(interval) {
   return parseInt(value, 10) * multipliers[unit] * 1000;
 }
 
-
 /**
  * This parses our period shorthand strings (e.g. <int><unit>)
  * and converts it into hours
