@@ -70,7 +70,7 @@ class OrganizationIncidentsList extends AsyncComponent {
   renderEmpty() {
     return (
       <EmptyStateWarning>
-        <p>{t("You don't have any incidents yet")}</p>
+        <p>{t("You don't have any Incidents yet")}</p>
       </EmptyStateWarning>
     );
   }
@@ -117,7 +117,7 @@ class OrganizationIncidentsListContainer extends React.Component {
       <DocumentTitle title={`Incidents - ${orgId} - Sentry`}>
         <PageContent>
           <PageHeader>
-            <PageHeading withMargins>
+            <PageHeading>
               {t('Incidents')} <BetaTag />
             </PageHeading>
 
@@ -152,7 +152,7 @@ class OrganizationIncidentsListContainer extends React.Component {
             icon="icon-circle-info"
           >
             {tct(
-              'To create a new incident, select one or more issues from the Issues view. Then, click the [create:Create Incident] button.',
+              'To create a new Incident, select one or more issues from the Issues view. Then, click the [create:Create Incident] button.',
               {create: <em />}
             )}
           </AlertLink>

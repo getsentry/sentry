@@ -46,7 +46,7 @@ describe('OrganizationIncidentsList', function() {
       routerContext
     );
     expect(wrapper.find('PanelItem')).toHaveLength(0);
-    expect(wrapper.text()).toContain("You don't have any incidents yet");
+    expect(wrapper.text()).toContain("You don't have any Incidents yet");
   });
 
   it('toggles all/open', function() {
