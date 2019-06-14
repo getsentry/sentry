@@ -860,11 +860,11 @@ class OrganizationEventsHeatmapEndpointTest(OrganizationEventsTestBase):
         )
 
         with self.feature('organizations:global-views'):
-            response = self.client.get(self.url, {'keys': ['color', 'number']}, format='json')
+            response = self.client.get(self.url, {'keys': ['number', 'color']}, format='json')
 
         assert response.status_code == 200, response.content
         assert len(response.data) == 2
-        response.data[0] == {
+        assert response.data[0] == {
             'topValues': [
                 {
                     'count': 1,
@@ -875,11 +875,11 @@ class OrganizationEventsHeatmapEndpointTest(OrganizationEventsTestBase):
                     'firstSeen': self.min_ago_iso
                 }
             ],
-            'totalValues': 1,
+            'totalValues': 4,
             'name': 'Number',
             'key': 'number'
         }
-        response.data[1] == {
+        assert response.data[1] == {
             'topValues': [
                 {
                     'count': 2,
@@ -898,7 +898,7 @@ class OrganizationEventsHeatmapEndpointTest(OrganizationEventsTestBase):
                     'firstSeen': self.min_ago_iso
                 }
             ],
-            'totalValues': 3,
+            'totalValues': 4,
             'name': 'Color',
             'key': 'color'
         }
@@ -960,8 +960,7 @@ class OrganizationEventsHeatmapEndpointTest(OrganizationEventsTestBase):
                     'firstSeen': self.min_ago_iso
                 }
             ],
-            'uniqueValues': 2,
-            'totalValues': 3,
+            'totalValues': 4,
             'name': 'Color',
             'key': 'color'
         }
@@ -1022,7 +1021,6 @@ class OrganizationEventsHeatmapEndpointTest(OrganizationEventsTestBase):
                     'firstSeen': self.min_ago_iso
                 }
             ],
-            'uniqueValues': 2,
             'totalValues': 2,
             'name': 'Color',
             'key': 'color'
@@ -1090,7 +1088,6 @@ class OrganizationEventsHeatmapEndpointTest(OrganizationEventsTestBase):
                     'firstSeen': two_hours_ago.isoformat()
                 }
             ],
-            'uniqueValues': 1,
             'totalValues': 2,
             'name': 'Color',
             'key': 'color'
@@ -1154,7 +1151,6 @@ class OrganizationEventsHeatmapEndpointTest(OrganizationEventsTestBase):
                     'firstSeen': self.day_ago.isoformat()
                 }
             ],
-            'uniqueValues': 2,
             'totalValues': 3,
             'name': 'User',
             'key': 'user'
@@ -1194,7 +1190,7 @@ class OrganizationEventsHeatmapEndpointTest(OrganizationEventsTestBase):
         self.store_event(
             data={
                 'event_id': uuid4().hex,
-                'timestamp': self.min_ago.isoformat(),
+                'timestamp': self.min_ago_iso,
                 'tags': {'color': 'green'},
             },
             project_id=self.project.id
@@ -1202,7 +1198,7 @@ class OrganizationEventsHeatmapEndpointTest(OrganizationEventsTestBase):
         self.store_event(
             data={
                 'event_id': uuid4().hex,
-                'timestamp': self.min_ago.isoformat(),
+                'timestamp': self.min_ago_iso,
                 'tags': {'number': 'one'},
             },
             project_id=self.project2.id
@@ -1210,7 +1206,7 @@ class OrganizationEventsHeatmapEndpointTest(OrganizationEventsTestBase):
         self.store_event(
             data={
                 'event_id': uuid4().hex,
-                'timestamp': self.min_ago.isoformat(),
+                'timestamp': self.min_ago_iso,
                 'tags': {'color': 'green'},
             },
             project_id=self.project.id
@@ -1218,7 +1214,7 @@ class OrganizationEventsHeatmapEndpointTest(OrganizationEventsTestBase):
         self.store_event(
             data={
                 'event_id': uuid4().hex,
-                'timestamp': self.min_ago.isoformat(),
+                'timestamp': self.min_ago_iso,
                 'tags': {'color': 'red'},
             },
             project_id=self.project.id
@@ -1228,72 +1224,74 @@ class OrganizationEventsHeatmapEndpointTest(OrganizationEventsTestBase):
             response = self.client.get(
                 self.url, {
                     'keys': [
-                        'color', 'number', 'project.name']}, format='json')
+                        'project.name', 'number', 'color']}, format='json')
 
         assert response.status_code == 200, response.content
         assert len(response.data) == 3
-        response.data[0] == {
+        assert response.data[0] == {
             'topValues': [
                 {
                     'count': 3,
                     'name': self.project.slug,
                     'value': self.project.slug,
-                    'lastSeen': self.min_ago,
-                    'key': 'project',
-                    'firstSeen': self.min_ago
+                    'lastSeen': self.min_ago_iso,
+                    'key': 'project.name',
+                    'firstSeen': self.min_ago_iso
                 },
                 {
                     'count': 1,
                     'name': self.project2.slug,
                     'value': self.project2.slug,
-                    'lastSeen': self.min_ago,
-                    'key': 'project',
-                    'firstSeen': self.min_ago
+                    'lastSeen': self.min_ago_iso,
+                    'key': 'project.name',
+                    'firstSeen': self.min_ago_iso
                 }
             ],
             'totalValues': 4,
-            'uniqueValues': 2,
-            'name': 'Project',
-            'key': 'project'
+            'name': 'Project.Name',
+            'key': 'project.name'
         }
-        response.data[1] == {
+        assert response.data[1] == {
             'topValues': [
                 {
                     'count': 1,
                     'name': 'one',
                     'value': 'one',
-                    'lastSeen': self.min_ago,
+                    'lastSeen': self.min_ago_iso,
                     'key': 'number',
-                    'firstSeen': self.min_ago
+                    'firstSeen': self.min_ago_iso
                 }
             ],
-            'totalValues': 1,
+            'totalValues': 4,
             'name': 'Number',
             'key': 'number'
         }
-        response.data[2] == {
+        assert response.data[2] == {
             'topValues': [
                 {
                     'count': 2,
                     'name': 'green',
                     'value': 'green',
-                    'lastSeen': self.min_ago,
+                    'lastSeen': self.min_ago_iso,
                     'key': 'color',
-                    'firstSeen': self.min_ago
+                    'firstSeen': self.min_ago_iso
                 },
                 {
                     'count': 1,
                     'name': 'red',
                     'value': 'red',
-                    'lastSeen': self.min_ago,
+                    'lastSeen': self.min_ago_iso,
                     'key': 'color',
-                    'firstSeen': self.min_ago
+                    'firstSeen': self.min_ago_iso
                 }
             ],
-            'totalValues': 3,
+            'totalValues': 4,
             'name': 'Color',
             'key': 'color'
         }
+
+    def test_non_tag_key(self):
+        pass
 
 
 class OrganizationEventsMetaEndpoint(OrganizationEventsTestBase):

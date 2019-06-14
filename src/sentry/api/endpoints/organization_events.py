@@ -1,6 +1,6 @@
 from __future__ import absolute_import
 
-import six
+import re
 
 from collections import OrderedDict
 from datetime import timedelta
@@ -9,6 +9,7 @@ from functools import partial
 from rest_framework.response import Response
 
 from sentry import tagstore
+from sentry.tagstore.base import TOP_VALUES_DEFAULT_LIMIT
 from sentry.tagstore.types import TagKey, TagValue
 from sentry.api.bases import OrganizationEventsEndpointBase, OrganizationEventsError, NoProjects
 from sentry.api.exceptions import ResourceDoesNotExist
@@ -189,6 +190,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsEndpointBase):
 
 class OrganizationEventsHeatmapEndpoint(OrganizationEventsEndpointBase):
     NON_TAG_KEYS = frozenset(['project.name'])
+    SENTRY_PREFIX = re.compile(r'sentry:(?P<tag_key>.*)')
 
     def get(self, request, organization):
         try:
@@ -221,31 +223,38 @@ class OrganizationEventsHeatmapEndpoint(OrganizationEventsEndpointBase):
             }, status=400)
 
         try:
-            top_values_by_key = tagstore.get_top_values_by_keys(
-                project_ids, None, environment_ids, keys=lookup_keys, get_excluded_tags=True, **snuba_args)
-        except tagstore.TagKeyNotFound:
+            total_count = self.get_total_value_count(project_ids, environment_ids, **snuba_args)
+            top_values_by_key = self.get_top_values_by_keys(
+                project_ids, environment_ids, keys=lookup_keys, **snuba_args)
+        except tagstore.TagKeyNotFound:  # TODO(lb): error check
             raise ResourceDoesNotExist
 
         if non_tag_lookup_keys:
             self.handle_non_tag_keys(non_tag_lookup_keys, snuba_args, top_values_by_key)
 
-        tag_keys = self._create_tag_objects(top_values_by_key)
+        tag_keys = self._create_tag_objects(total_count, top_values_by_key)
+
+        # sort heatmap categories in the same order requested.
+        keys = request.GET.getlist('keys')
+        tag_keys = sorted(tag_keys, key=lambda x: keys.index(x.key))
+
         return Response(serialize(tag_keys, request.user))
 
-    def handle_non_tag_keys(self, keys, snuba_args, top_values_by_key):
-        result = set([])
+    def handle_non_tag_keys(self, keys, snuba_args, top_values):
         for key in keys:
-            values_dict = OrderedDict()
 
             if key == 'project.name':
                 data = self._query_non_tag_data('project_id', snuba_args)
                 projects = Project.objects.filter(id__in=snuba_args['filter_keys']['project_id'])
                 for value in data:
                     project_slug = projects.filter(id=value['project_id'])[0].slug
-                    values_dict[project_slug] = value
+                    value['tags_value'] = project_slug
+                    value['tags_key'] = key
 
-            top_values_by_key[key] = values_dict
-        return result
+            top_values += data
+
+        # order combined values by count
+        top_values = sorted(top_values, key=lambda x: x['count'])
 
     def _query_non_tag_data(self, key, snuba_args):
         data = raw_query(
@@ -261,25 +270,67 @@ class OrganizationEventsHeatmapEndpoint(OrganizationEventsEndpointBase):
         )['data']
         return data
 
-    def _create_tag_objects(self, top_values_by_key):
-        tag_keys = []
-        for key, top_values in six.iteritems(top_values_by_key):
-            tag_key = TagKey(key=key, top_values=[], values_seen=len(top_values))
-            total_count = 0
-            for value_key, value_data in six.iteritems(top_values):
-                tag_key.top_values.append(
-                    TagValue(
-                        key=key,
-                        value=value_key,
-                        times_seen=value_data['count'],
-                        first_seen=value_data['first_seen'],
-                        last_seen=value_data['last_seen'],
-                    )
+    def _create_tag_objects(self, total_count, top_values):
+        def remove_sentry_prefix(key):
+            match = self.SENTRY_PREFIX.match(key)
+            return match.group('tag_key') if match else key
+
+        tag_keys_dict = OrderedDict()
+
+        for top_value in top_values:
+            key = remove_sentry_prefix(top_value['tags_key'])
+            if key not in tag_keys_dict:
+                tag_keys_dict[key] = TagKey(
+                    key=key,
+                    top_values=[],
+                    count=total_count,
                 )
-                total_count += value_data['count']
-            tag_key.count = total_count
-            tag_keys.append(tag_key)
-        return tag_keys
+            tag_keys_dict[key].top_values.append(
+                TagValue(
+                    key=key,
+                    value=top_value['tags_value'],
+                    times_seen=top_value['count'],
+                    first_seen=top_value['first_seen'],
+                    last_seen=top_value['last_seen'],
+                )
+            )
+        return tag_keys_dict.values()
+
+    def get_total_value_count(self, project_id, environment_ids, **kwargs):
+        aggregations = kwargs.pop('aggregations', [])
+        aggregations += [
+            ['count()', '', 'count'],
+        ]
+
+        # TODO(lb): try-catch needed
+        total_count = raw_query(
+            aggregations=aggregations,
+            referrer='api.organization-events-heatmap',
+            **kwargs
+        )['data'][0]['count']
+        return total_count
+
+    def get_top_values_by_keys(self, project_id, environment_ids,
+                               keys, value_limit=TOP_VALUES_DEFAULT_LIMIT, **kwargs):
+
+        filters = kwargs.pop('filter_keys', {})
+        filters['tags_key'] = keys
+
+        aggregations = kwargs.pop('aggregations', [])
+        aggregations += [
+            ['count()', '', 'count'],
+            ['min', 'timestamp', 'first_seen'],
+            ['max', 'timestamp', 'last_seen'],
+        ]
+
+        values_by_key = raw_query(
+            groupby=['tags_key', 'tags_value'],
+            filter_keys=filters, aggregations=aggregations,
+            orderby='-count', limitby=[value_limit, 'tags_key'],
+            referrer='api.organization-events-heatmap',
+            **kwargs
+        )['data']  # TODO(lb): error handling
+        return values_by_key
 
 
 class OrganizationEventsMetaEndpoint(OrganizationEventsEndpointBase):
