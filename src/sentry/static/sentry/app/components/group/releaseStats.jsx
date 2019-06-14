@@ -5,6 +5,7 @@ import SentryTypes from 'app/sentryTypes';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import GroupReleaseChart from 'app/components/group/releaseChart';
 import SeenInfo from 'app/components/group/seenInfo';
+import getDynamicText from 'app/utils/getDynamicText';
 import {t} from 'app/locale';
 
 const GroupReleaseStats = createReactClass({
@@ -79,7 +80,10 @@ const GroupReleaseStats = createReactClass({
               <SeenInfo
                 orgId={orgId}
                 projectId={projectId}
-                date={group.firstSeen}
+                date={getDynamicText({
+                  value: group.firstSeen,
+                  fixed: '2015-08-13T03:08:25Z',
+                })}
                 dateGlobal={allEnvironments.firstSeen}
                 hasRelease={hasRelease}
                 environment={shortEnvironmentLabel}
@@ -94,7 +98,10 @@ const GroupReleaseStats = createReactClass({
               <SeenInfo
                 orgId={orgId}
                 projectId={projectId}
-                date={group.lastSeen}
+                date={getDynamicText({
+                  value: group.lastSeen,
+                  fixed: '2016-01-13T03:08:25Z',
+                })}
                 dateGlobal={allEnvironments.lastSeen}
                 hasRelease={hasRelease}
                 environment={shortEnvironmentLabel}
