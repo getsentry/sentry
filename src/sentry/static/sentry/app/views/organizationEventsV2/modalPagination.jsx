@@ -54,10 +54,18 @@ const ModalPagination = props => {
         <StyledLink to={oldestUrl} disabled={previousEventUrl === null}>
           <InlineSvg src="icon-prev" size="14px" />
         </StyledLink>
-        <StyledLink to={previousEventUrl} disabled={previousEventUrl === null}>
+        <StyledLink
+          data-test-id="older-event"
+          to={previousEventUrl}
+          disabled={previousEventUrl === null}
+        >
           {t('Older Event')}
         </StyledLink>
-        <StyledLink to={nextEventUrl} disabled={nextEventUrl === null}>
+        <StyledLink
+          data-test-id="newer-event"
+          to={nextEventUrl}
+          disabled={nextEventUrl === null}
+        >
           {t('Newer Event')}
         </StyledLink>
         <StyledLink to={newestUrl} disabled={nextEventUrl === null} isLast>

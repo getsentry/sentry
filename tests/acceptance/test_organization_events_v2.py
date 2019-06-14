@@ -4,7 +4,9 @@ from datetime import datetime, timedelta
 from django.utils import timezone
 import pytz
 from mock import patch
+
 from sentry.testutils import AcceptanceTestCase, SnubaTestCase
+from sentry.utils.samples import load_data
 
 
 FEATURE_NAME = 'organizations:events-v2'
@@ -31,6 +33,10 @@ class OrganizationEventsTest(AcceptanceTestCase, SnubaTestCase):
         self.login_as(self.user)
         self.path = u'/organizations/{}/events/'.format(self.org.slug)
 
+    def wait_until_loaded(self):
+        self.browser.wait_until_not('.loading-indicator')
+        self.browser.wait_until_not('[data-test-id="placeholder"]')
+
     def test_all_events_empty(self):
         with self.feature(FEATURE_NAME):
             self.browser.get(self.path)
@@ -54,7 +60,7 @@ class OrganizationEventsTest(AcceptanceTestCase, SnubaTestCase):
 
         with self.feature(FEATURE_NAME):
             self.browser.get(self.path)
-            self.browser.wait_until_not('.loading-indicator')
+            self.wait_until_loaded()
             self.browser.snapshot('events-v2 - all events')
 
     @patch('django.utils.timezone.now')
@@ -84,5 +90,75 @@ class OrganizationEventsTest(AcceptanceTestCase, SnubaTestCase):
 
         with self.feature(FEATURE_NAME):
             self.browser.get(self.path + '?view=errors')
-            self.browser.wait_until_not('.loading-indicator')
-            self.browser.snapshot('events-v2 - errors')
+            self.wait_until_loaded()
+            self.browser.snapshot('events-v2 - error list')
+
+    @patch('django.utils.timezone.now')
+    def test_modal_from_all_events(self, mock_now):
+        mock_now.return_value = datetime.utcnow().replace(tzinfo=pytz.utc)
+        min_ago = (timezone.now() - timedelta(minutes=1)).isoformat()[:19]
+
+        event_data = load_data('python')
+        event_data['timestamp'] = min_ago
+        event_data['received'] = min_ago
+        event_data['fingerprint'] = ['group-1']
+        self.store_event(
+            data=event_data,
+            project_id=self.project.id,
+            assert_no_errors=False
+        )
+
+        with self.feature(FEATURE_NAME):
+            # Get the list page.
+            self.browser.get(self.path)
+            self.wait_until_loaded()
+
+            # Click the event link to open the modal
+            self.browser.element('[data-test-id="event-title"]').click()
+            self.wait_until_loaded()
+
+            header = self.browser.element('[data-test-id="event-detail-modal"] h2')
+            assert event_data['message'] in header.text
+
+            self.browser.snapshot('events-v2 - single error modal')
+
+    @patch('django.utils.timezone.now')
+    def test_modal_from_errors_view(self, mock_now):
+        mock_now.return_value = datetime.utcnow().replace(tzinfo=pytz.utc)
+
+        event_source = (
+            ('a', 1), ('b', 39), ('c', 69),
+        )
+        event_ids = []
+        event_data = load_data('python')
+        event_data['fingerprint'] = ['group-1']
+        for id_prefix, offset in event_source:
+            event_time = (timezone.now() - timedelta(minutes=offset)).isoformat()[:19]
+            event_data['timestamp'] = event_time
+            event_data['received'] = event_time
+            event_data['event_id'] = id_prefix * 32
+            event = self.store_event(
+                data=event_data,
+                project_id=self.project.id,
+                assert_no_errors=False
+            )
+            event_ids.append(event.event_id)
+
+        with self.feature(FEATURE_NAME):
+            # Get the list page
+            self.browser.get(self.path + '?view=errors&statsPeriod=24h')
+            self.wait_until_loaded()
+
+            # Click the event link to open the modal
+            self.browser.element('[data-test-id="event-title"]').click()
+            self.wait_until_loaded()
+
+            self.browser.snapshot('events-v2 - grouped error modal')
+
+            # Check that the newest event is loaded first and that pagination
+            # controls display
+            display_id = self.browser.element('[data-test-id="event-id"]')
+            assert event_ids[0] in display_id.text
+
+            assert self.browser.element_exists_by_test_id('older-event')
+            assert self.browser.element_exists_by_test_id('newer-event')
