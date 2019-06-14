@@ -1,21 +1,20 @@
 import React from 'react';
-import {Box} from 'grid-emotion';
-import {PanelHeader} from 'app/components/panels';
 
+import {PanelHeader} from 'app/components/panels';
 import {t} from 'app/locale';
+
+import {LastEvent, Layout, NewCount, ReleaseName, Stats} from './layout';
 
 export default class ReleaseListHeader extends React.Component {
   render() {
     return (
       <PanelHeader>
-        <Box flex="1">{t('Version')}</Box>
-        <Box w={4 / 12} pl={2} className="hidden-xs" />
-        <Box w={2 / 12} pl={2}>
-          {t('New Issues')}
-        </Box>
-        <Box w={2 / 12} pl={2}>
-          {t('Last Event')}
-        </Box>
+        <Layout>
+          <ReleaseName>{t('Version')}</ReleaseName>
+          <Stats />
+          <NewCount>{t('New Issues')}</NewCount>
+          <LastEvent>{t('Last Event')}</LastEvent>
+        </Layout>
       </PanelHeader>
     );
   }
