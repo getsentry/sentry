@@ -181,7 +181,7 @@ export function parsePeriodToHours(str) {
     case 'm':
       return periodNumber / 60;
     case 'h':
-      return periodNumber;
+      return parseInt(periodNumber, 10);
     case 'd':
       return periodNumber * 24;
     case 'w':

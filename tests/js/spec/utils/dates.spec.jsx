@@ -1,4 +1,4 @@
-import {setDateToTime, intervalToMilliseconds} from 'app/utils/dates';
+import {setDateToTime, intervalToMilliseconds, parsePeriodToHours} from 'app/utils/dates';
 
 describe('utils.dates', function() {
   describe('setDateToTime', function() {
@@ -33,6 +33,17 @@ describe('utils.dates', function() {
     it('can convert arbitrary formats', function() {
       expect(intervalToMilliseconds('1h')).toBe(3600000);
       expect(intervalToMilliseconds('2m')).toBe(120000);
+    });
+  });
+
+  describe('parsePeriodToHours()', function() {
+    it('can convert standard formats', function() {
+      expect(parsePeriodToHours('30s').toFixed(4)).toBe('0.0083');
+      expect(parsePeriodToHours('1m').toFixed(4)).toBe('0.0167');
+      expect(parsePeriodToHours('1h')).toBe(1);
+      expect(parsePeriodToHours('24h')).toBe(24);
+      expect(parsePeriodToHours('1d')).toBe(24);
+      expect(parsePeriodToHours('2w')).toBe(168);
     });
   });
 });
