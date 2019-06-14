@@ -64,7 +64,7 @@ describe('IncidentDetails', function() {
     expect(
       wrapper
         .find('ItemValue')
-        .at(1)
+        .at(3)
         .text()
     ).toBe('100');
     expect(

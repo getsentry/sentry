@@ -56,12 +56,12 @@ class OrganizationIncidentsList extends AsyncComponent {
           <div>
             <Duration seconds={getDynamicText({value: duration, fixed: 1200})} />
           </div>
-          <div>
+          <AlignRight>
             <Count value={incident.uniqueUsers} />
-          </div>
-          <div>
+          </AlignRight>
+          <AlignRight>
             <Count value={incident.totalEvents} />
-          </div>
+          </AlignRight>
         </TableLayout>
       </PanelItem>
     );
@@ -86,8 +86,8 @@ class OrganizationIncidentsList extends AsyncComponent {
               <div>{t('Incident')}</div>
               <div>{t('Status')}</div>
               <div>{t('Duration')}</div>
-              <div>{t('Users affected')}</div>
-              <div>{t('Total events')}</div>
+              <AlignRight>{t('Users affected')}</AlignRight>
+              <AlignRight>{t('Total events')}</AlignRight>
             </TableLayout>
           </PanelHeader>
           <PanelBody>
@@ -169,6 +169,10 @@ const TableLayout = styled('div')`
   grid-template-columns: 4fr 1fr 1fr 1fr 1fr;
   grid-column-gap: ${space(1.5)};
   width: 100%;
+`;
+
+const AlignRight = styled('div')`
+  text-align: right;
 `;
 
 export default OrganizationIncidentsListContainer;

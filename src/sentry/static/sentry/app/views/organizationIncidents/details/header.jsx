@@ -9,6 +9,7 @@ import {t} from 'app/locale';
 import Access from 'app/components/acl/access';
 import Count from 'app/components/count';
 import DropdownControl from 'app/components/dropdownControl';
+import Duration from 'app/components/duration';
 import InlineSvg from 'app/components/inlineSvg';
 import LoadingError from 'app/components/loadingError';
 import MenuItem from 'app/components/menuItem';
@@ -16,6 +17,7 @@ import PageHeading from 'app/components/pageHeading';
 import SentryTypes from 'app/sentryTypes';
 import SubscribeButton from 'app/components/subscribeButton';
 import space from 'app/styles/space';
+import getDynamicText from 'app/utils/getDynamicText';
 
 import {isOpen} from '../utils';
 import Status from '../status';
@@ -44,7 +46,7 @@ export default class DetailsHeader extends React.Component {
           label={incident && <Status incident={incident} />}
           menuWidth="160px"
           alignRight
-          buttonProps={!incident ? {disabled: true} : null}
+          buttonProps={!incident ? {disabled: true, size: 'small'} : {size: 'small'}}
         >
           <StyledMenuItem onSelect={onStatusChange}>
             {isIncidentOpen ? t('Close this incident') : t('Reopen this incident')}
@@ -67,6 +69,13 @@ export default class DetailsHeader extends React.Component {
       },
     };
     const dateStarted = incident && moment(incident.dateStarted).format('LL');
+    const duration =
+      incident &&
+      moment
+        .duration(
+          moment(incident.dateClosed || new Date()).diff(moment(incident.dateStarted))
+        )
+        .as('seconds');
 
     return (
       <Header>
@@ -97,13 +106,10 @@ export default class DetailsHeader extends React.Component {
               <ItemValue>{this.renderStatus()}</ItemValue>
             </HeaderItem>
             <HeaderItem>
-              <ItemTitle>{t('Event count')}</ItemTitle>
+              <ItemTitle>{t('Duration')}</ItemTitle>
               {isIncidentReady && (
                 <ItemValue>
-                  <Count value={incident.totalEvents} />
-                  <OpenLink to={eventLink}>
-                    <InlineSvg src="icon-open" />
-                  </OpenLink>
+                  <Duration seconds={getDynamicText({value: duration, fixed: 1200})} />
                 </ItemValue>
               )}
             </HeaderItem>
@@ -116,12 +122,24 @@ export default class DetailsHeader extends React.Component {
               )}
             </HeaderItem>
             <HeaderItem>
+              <ItemTitle>{t('Total events')}</ItemTitle>
+              {isIncidentReady && (
+                <ItemValue>
+                  <Count value={incident.totalEvents} />
+                  <OpenLink to={eventLink}>
+                    <InlineSvg src="icon-open" size="14" />
+                  </OpenLink>
+                </ItemValue>
+              )}
+            </HeaderItem>
+            <HeaderItem>
               <ItemTitle>{t('Notifications')}</ItemTitle>
               <ItemValue>
                 <SubscribeButton
                   disabled={!isIncidentReady}
                   isSubscribed={incident && !!incident.isSubscribed}
                   onClick={onSubscriptionChange}
+                  size="small"
                 />
               </ItemValue>
             </HeaderItem>
@@ -153,7 +171,8 @@ const GroupedHeaderItems = styled('div')`
 `;
 
 const HeaderItem = styled('div')`
-  padding: 0 ${space(3)};
+  padding: 0 ${space(4)};
+  min-width: 0; /* Prevent text from horizontally stretching flexbox */
 `;
 
 const ItemTitle = styled('h6')`
@@ -168,13 +187,14 @@ const ItemValue = styled('div')`
   display: flex;
   justify-content: flex-end;
   align-items: center;
-  font-size: ${p => p.theme.headerFontSize};
+  font-size: ${p => p.theme.fontSizeExtraLarge};
   height: 40px; /* This is the height of the Status dropdown */
 `;
 
 const Breadcrumb = styled('div')`
   display: flex;
   align-items: center;
+  font-size: ${p => p.theme.fontSizeLarge};
   margin-bottom: ${space(1)};
 `;
 
