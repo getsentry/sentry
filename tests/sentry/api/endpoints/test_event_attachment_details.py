@@ -2,7 +2,8 @@ from __future__ import absolute_import
 
 import six
 
-from datetime import datetime
+from datetime import timedelta
+from django.utils import timezone
 from six import BytesIO
 
 from sentry.models import EventAttachment, File
@@ -13,12 +14,15 @@ class CreateAttachmentMixin(object):
     def create_attachment(self):
         self.project = self.create_project()
         self.release = self.create_release(self.project, self.user)
-        self.group = self.create_group(project=self.project, first_release=self.release)
-        self.event = self.create_event(
-            event_id='a',
-            group=self.group,
-            datetime=datetime(2016, 8, 13, 3, 8, 25),
-            tags={'sentry:release': self.release.version}
+        min_ago = (timezone.now() - timedelta(minutes=1)).isoformat()[:19]
+        self.event = self.store_event(
+            data={
+                # 'event_id': 'a' * 32,
+                'fingerprint': ['group1'],
+                'timestamp': min_ago,
+                'tags': {'sentry:release': self.release.version},
+            },
+            project_id=self.project.id,
         )
 
         self.file = File.objects.create(
@@ -46,7 +50,7 @@ class EventAttachmentDetailsTest(APITestCase, CreateAttachmentMixin):
         path = u'/api/0/projects/{}/{}/events/{}/attachments/{}/'.format(
             self.organization.slug,
             self.project.slug,
-            self.event.id,
+            self.event.event_id,
             self.attachment.id,
         )
 
@@ -63,7 +67,7 @@ class EventAttachmentDetailsTest(APITestCase, CreateAttachmentMixin):
         path = u'/api/0/projects/{}/{}/events/{}/attachments/{}/?download'.format(
             self.organization.slug,
             self.project.slug,
-            self.event.id,
+            self.event.event_id,
             self.attachment.id,
         )
 
@@ -84,7 +88,7 @@ class EventAttachmentDetailsPermissionTest(PermissionTestCase, CreateAttachmentM
         self.path = u'/api/0/projects/{}/{}/events/{}/attachments/{}/?download'.format(
             self.organization.slug,
             self.project.slug,
-            self.event.id,
+            self.event.event_id,
             self.attachment.id,
         )
 

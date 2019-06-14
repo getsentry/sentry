@@ -1,9 +1,9 @@
 from __future__ import absolute_import
 
+from datetime import timedelta
 from exam import patcher
 from freezegun import freeze_time
 
-from datetime import timedelta
 from uuid import uuid4
 
 import six
@@ -494,6 +494,7 @@ class GetIncidentSuspectCommitsTest(TestCase, BaseIncidentsTest):
         included_commits = set([letter * 40 for letter in ('a', 'b', 'c', 'd')])
         commit_iter = iter(included_commits)
 
+        one_min_ago = (timezone.now() - timedelta(minutes=1)).isoformat()[:19]
         event = self.store_event(
             data={
                 'fingerprint': ['group-1'],
@@ -506,6 +507,7 @@ class GetIncidentSuspectCommitsTest(TestCase, BaseIncidentsTest):
                     ]
                 },
                 'release': release.version,
+                'timestamp': one_min_ago,
             },
             project_id=self.project.id,
         )
@@ -553,6 +555,7 @@ class GetIncidentSuspectCommitsTest(TestCase, BaseIncidentsTest):
                     ],
                 },
                 'release': release_2.version,
+                'timestamp': one_min_ago,
             },
             project_id=self.project.id,
         )

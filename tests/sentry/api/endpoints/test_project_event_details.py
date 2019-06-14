@@ -20,7 +20,7 @@ class ProjectEventDetailsTest(APITestCase):
 
         self.prev_event = self.store_event(
             data={
-                'event_id': 'a' * 32,
+                # 'event_id': 'a' * 32,
                 'timestamp': three_min_ago,
                 'fingerprint': ['group-1']
             },
@@ -28,7 +28,7 @@ class ProjectEventDetailsTest(APITestCase):
         )
         self.cur_event = self.store_event(
             data={
-                'event_id': 'b' * 32,
+                # 'event_id': 'b' * 32,
                 'timestamp': two_min_ago,
                 'fingerprint': ['group-1']
             },
@@ -36,7 +36,7 @@ class ProjectEventDetailsTest(APITestCase):
         )
         self.next_event = self.store_event(
             data={
-                'event_id': 'c' * 32,
+                # 'event_id': 'c' * 32,
                 'timestamp': one_min_ago,
                 'fingerprint': ['group-1'],
                 'environment': 'production',
@@ -55,9 +55,8 @@ class ProjectEventDetailsTest(APITestCase):
             }
         )
         response = self.client.get(url, format='json')
-
         assert response.status_code == 200, response.content
-        assert response.data['id'] == six.text_type(self.cur_event.id)
+        assert response.data['id'] == six.text_type(self.cur_event.event_id)
         assert response.data['nextEventID'] == six.text_type(self.next_event.event_id)
         assert response.data['previousEventID'] == six.text_type(self.prev_event.event_id)
         assert response.data['groupID'] == six.text_type(self.cur_event.group.id)
@@ -66,7 +65,7 @@ class ProjectEventDetailsTest(APITestCase):
         url = reverse(
             'sentry-api-0-project-event-details',
             kwargs={
-                'event_id': self.cur_event.id,
+                'event_id': self.cur_event.event_id,
                 'project_slug': self.cur_event.project.slug,
                 'organization_slug': self.cur_event.project.organization.slug,
             }
@@ -74,7 +73,7 @@ class ProjectEventDetailsTest(APITestCase):
         response = self.client.get(url, format='json')
 
         assert response.status_code == 200, response.content
-        assert response.data['id'] == six.text_type(self.cur_event.id)
+        assert response.data['id'] == six.text_type(self.cur_event.event_id)
         assert response.data['nextEventID'] == six.text_type(self.next_event.event_id)
         assert response.data['previousEventID'] == six.text_type(self.prev_event.event_id)
         assert response.data['groupID'] == six.text_type(self.cur_event.group.id)
@@ -95,7 +94,7 @@ class ProjectEventDetailsTest(APITestCase):
         response = self.client.get(url, format='json')
 
         assert response.status_code == 200, response.content
-        assert response.data['id'] == six.text_type(self.prev_event.id)
+        assert response.data['id'] == six.text_type(self.prev_event.event_id)
         assert response.data['previousEventID'] is None
         assert response.data['nextEventID'] == self.cur_event.event_id
         assert response.data['groupID'] == six.text_type(self.prev_event.group.id)

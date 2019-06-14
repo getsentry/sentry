@@ -4,7 +4,9 @@ import six
 
 from celery import Task
 from collections import namedtuple
+from datetime import timedelta
 from django.core.urlresolvers import reverse
+from django.utils import timezone
 from mock import patch
 
 from sentry.models import Rule, SentryApp, SentryAppInstallation
@@ -231,11 +233,13 @@ class TestProcessResourceChange(TestCase):
             slug=sentry_app.slug,
         )
 
+        one_min_ago = (timezone.now() - timedelta(minutes=1)).isoformat()[:19]
         event = self.store_event(
             data={
                 'message': 'Foo bar',
                 'exception': {"type": "Foo", "value": "shits on fiah yo"},
                 'level': 'error',
+                'timestamp': one_min_ago,
             },
             project_id=self.project.id,
             assert_no_errors=False
