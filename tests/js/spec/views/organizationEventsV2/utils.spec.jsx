@@ -40,6 +40,18 @@ describe('getQuery()', function() {
       'issue.id',
     ]);
   });
+
+  it('appends any additional conditions defined for view', function() {
+    const view = {
+      id: 'test',
+      name: 'test view',
+      data: {fields: ['id'], query: 'event.type:csp'},
+      tags: [],
+    };
+
+    expect(getQuery(view, {}).query).toEqual('event.type:csp');
+    expect(getQuery(view, {query: {query: 'test'}}).query).toEqual('test event.type:csp');
+  });
 });
 
 describe('eventTagSearchUrl()', function() {
