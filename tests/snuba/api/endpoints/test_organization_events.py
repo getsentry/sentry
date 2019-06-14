@@ -965,7 +965,7 @@ class OrganizationEventsHeatmapEndpointTest(OrganizationEventsTestBase):
             'key': 'color'
         }
 
-    def test_with_query(self):
+    def test_with_message_query(self):
         self.store_event(
             data={
                 'event_id': uuid4().hex,
@@ -1024,6 +1024,75 @@ class OrganizationEventsHeatmapEndpointTest(OrganizationEventsTestBase):
             'totalValues': 2,
             'name': 'Color',
             'key': 'color'
+        }
+
+    def test_with_condition(self):
+        self.store_event(
+            data={
+                'event_id': uuid4().hex,
+                'timestamp': self.min_ago_iso,
+                'message': 'how to make fast',
+                'tags': {'color': 'green'},
+            },
+            project_id=self.project.id
+        )
+        self.store_event(
+            data={
+                'event_id': uuid4().hex,
+                'timestamp': self.min_ago_iso,
+                'message': 'Delet the Data',
+                'tags': {'color': 'red'},
+            },
+            project_id=self.project.id
+        )
+        self.store_event(
+            data={
+                'event_id': uuid4().hex,
+                'timestamp': self.min_ago_iso,
+                'message': 'Data the Delet ',
+                'tags': {'color': 'yellow'},
+            },
+            project_id=self.project2.id
+        )
+
+        with self.feature('organizations:global-views'):
+            response = self.client.get(
+                self.url, {
+                    'query': 'color:yellow', 'keys': ['color', 'project.name']}, format='json')
+
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 2
+
+        assert response.data[0] == {
+            'topValues': [
+                {
+                    'count': 1,
+                    'name': 'yellow',
+                    'value': 'yellow',
+                    'lastSeen': self.min_ago_iso,
+                    'key': 'color',
+                    'firstSeen': self.min_ago_iso
+                },
+            ],
+            'totalValues': 1,
+            'name': 'Color',
+            'key': 'color'
+        }
+
+        assert response.data[1] == {
+            'topValues': [
+                {
+                    'count': 1,
+                    'name': self.project2.slug,
+                    'value': self.project2.slug,
+                    'lastSeen': self.min_ago_iso,
+                    'key': 'project.name',
+                    'firstSeen': self.min_ago_iso
+                }
+            ],
+            'totalValues': 1,
+            'name': 'Project.Name',
+            'key': 'project.name'
         }
 
     def test_start_end(self):
