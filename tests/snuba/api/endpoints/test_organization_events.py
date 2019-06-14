@@ -1208,11 +1208,11 @@ class OrganizationEventsHeatmapEndpointTest(OrganizationEventsTestBase):
             response = self.client.get(
                 self.url, {
                     'keys': [
-                        'number', 'color'], 'project': [
+                        'number', 'color', 'project.name'], 'project': [
                         self.project.id]}, format='json')
 
         assert response.status_code == 200, response.content
-        assert len(response.data) == 2
+        assert len(response.data) == 3
         assert response.data[0] == {
             'topValues': [],
             'totalValues': 1,
@@ -1233,6 +1233,22 @@ class OrganizationEventsHeatmapEndpointTest(OrganizationEventsTestBase):
             'totalValues': 1,
             'name': 'Color',
             'key': 'color'
+        }
+
+        assert response.data[2] == {
+            'topValues': [
+                {
+                    'count': 1,
+                    'name': self.project.slug,
+                    'value': self.project.slug,
+                    'lastSeen': self.min_ago_iso,
+                    'key': 'project.name',
+                    'firstSeen': self.min_ago_iso
+                },
+            ],
+            'totalValues': 1,
+            'name': 'Project.Name',
+            'key': 'project.name'
         }
 
     def test_project_key(self):
