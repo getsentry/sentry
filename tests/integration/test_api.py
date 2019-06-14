@@ -11,6 +11,7 @@ from sentry.utils.linksign import generate_signed_link
 
 
 class AuthenticationTest(AuthProviderTestCase):
+   
     def test_sso_auth_required(self):
         user = self.create_user('foo@example.com', is_superuser=False)
         organization = self.create_organization(name='foo')
