@@ -17,6 +17,7 @@ import EmptyStateWarning from 'app/components/emptyStateWarning';
 import Link from 'app/components/links/link';
 import PageHeading from 'app/components/pageHeading';
 import Pagination from 'app/components/pagination';
+import Placeholder from 'app/components/placeholder';
 import getDynamicText from 'app/utils/getDynamicText';
 import space from 'app/styles/space';
 
@@ -76,8 +77,12 @@ class OrganizationIncidentsList extends AsyncComponent {
     );
   }
 
+  renderLoading() {
+    return this.renderBody();
+  }
+
   renderBody() {
-    const {incidentList, incidentListPageLinks} = this.state;
+    const {loading, incidentList, incidentListPageLinks} = this.state;
 
     return (
       <React.Fragment>
@@ -91,9 +96,23 @@ class OrganizationIncidentsList extends AsyncComponent {
               <div>{t('Total events')}</div>
             </TableLayout>
           </PanelHeader>
+
           <PanelBody>
-            {incidentList.length === 0 && this.renderEmpty()}
-            {incidentList.map(incident => this.renderListItem(incident))}
+            {loading && (
+              <React.Fragment>
+                {[...Array(3)].map((_, i) => (
+                  <PanelItem key={`placeholder-${i}`}>
+                    <Placeholder height="30px" />
+                  </PanelItem>
+                ))}
+              </React.Fragment>
+            )}
+            {!loading && (
+              <React.Fragment>
+                {incidentList.length === 0 && this.renderEmpty()}
+                {incidentList.map(incident => this.renderListItem(incident))}
+              </React.Fragment>
+            )}
           </PanelBody>
         </Panel>
         <Pagination pageLinks={incidentListPageLinks} />
