@@ -75,7 +75,7 @@ def build_attachment_title(group, event=None):
     if ev_type == 'error':
         if 'type' in ev_metadata:
             if group.culprit:
-                return u'{} - {}'.format(ev_metadata['type'][:97], group.culprit)
+                return u'{} - {}'.format(ev_metadata['type'][:40], group.culprit)
             return ev_metadata['type']
         if group.culprit:
             return u'{} - {}'.format(group.title, group.culprit)
@@ -84,7 +84,7 @@ def build_attachment_title(group, event=None):
         return u'{} - {}'.format(ev_metadata['directive'], ev_metadata['uri'])
     else:
         if group.culprit:
-            return u'{} - {}'.format(group.title[:40], group.culprit)
+            return u'{} - {}'.format(group.title, group.culprit)
         return group.title
 
 
