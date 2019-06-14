@@ -15,9 +15,9 @@ import Count from 'app/components/count';
 import Duration from 'app/components/duration';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
 import Link from 'app/components/links/link';
+import LoadingIndicator from 'app/components/loadingIndicator';
 import PageHeading from 'app/components/pageHeading';
 import Pagination from 'app/components/pagination';
-import Placeholder from 'app/components/placeholder';
 import getDynamicText from 'app/utils/getDynamicText';
 import space from 'app/styles/space';
 
@@ -98,15 +98,7 @@ class OrganizationIncidentsList extends AsyncComponent {
           </PanelHeader>
 
           <PanelBody>
-            {loading && (
-              <React.Fragment>
-                {[...Array(3)].map((_, i) => (
-                  <PanelItem key={`placeholder-${i}`}>
-                    <Placeholder height="30px" />
-                  </PanelItem>
-                ))}
-              </React.Fragment>
-            )}
+            {loading && <LoadingIndicator />}
             {!loading && (
               <React.Fragment>
                 {incidentList.length === 0 && this.renderEmpty()}
