@@ -130,7 +130,7 @@ export default class SentryApplicationRow extends React.PureComponent {
             <Box>
               {!isInstalled ? (
                 <Button
-                  onClick={() => this.props.onInstall(app)}
+                  onClick={() => this.openLearnMore()}
                   size="small"
                   icon="icon-circle-add"
                   className="btn btn-default"
