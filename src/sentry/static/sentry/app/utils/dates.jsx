@@ -144,3 +144,48 @@ export function getPeriodAgo(period, unit) {
 export function getStartOfPeriodAgo(period, unit, options) {
   return getStartOfDay(getPeriodAgo(period, unit), options);
 }
+
+/**
+ * Convert an interval string into a number of seconds.
+ * This allows us to create end timestamps from starting ones
+ * enabling us to find events in narrow windows.
+ *
+ * @param {String} interval The interval to convert.
+ * @return {Integer}
+ */
+export function intervalToMilliseconds(interval) {
+  const pattern = /^(\d+)(h|m)$/;
+  const matches = pattern.exec(interval);
+  if (!matches) {
+    return 0;
+  }
+  const [_, value, unit] = matches;
+  const multipliers = {
+    h: 60 * 60,
+    m: 60,
+  };
+  return parseInt(value, 10) * multipliers[unit] * 1000;
+}
+
+/**
+ * This parses our period shorthand strings (e.g. <int><unit>)
+ * and converts it into hours
+ */
+export function parsePeriodToHours(str) {
+  const [, periodNumber, periodLength] = str.match(/([0-9]+)([smhdw])/);
+
+  switch (periodLength) {
+    case 's':
+      return periodNumber / (60 * 60);
+    case 'm':
+      return periodNumber / 60;
+    case 'h':
+      return parseInt(periodNumber, 10);
+    case 'd':
+      return periodNumber * 24;
+    case 'w':
+      return periodNumber * 24 * 7;
+    default:
+      return -1;
+  }
+}
