@@ -5,7 +5,7 @@ import React from 'react';
 import {DEFAULT_STATS_PERIOD} from 'app/constants';
 import {getInterval} from 'app/components/charts/utils';
 import {getPeriod} from 'app/utils/getPeriod';
-import {parsePeriodToHours} from 'app/utils';
+import {parsePeriodToHours} from 'app/utils/dates';
 import SentryTypes from 'app/sentryTypes';
 import createQueryBuilder from 'app/views/organizationDiscover/queryBuilder';
 

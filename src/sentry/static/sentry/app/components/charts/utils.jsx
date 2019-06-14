@@ -1,7 +1,7 @@
 import moment from 'moment';
 
 import {DEFAULT_STATS_PERIOD} from 'app/constants';
-import {parsePeriodToHours} from 'app/utils';
+import {parsePeriodToHours} from 'app/utils/dates';
 
 const DEFAULT_TRUNCATE_LENGTH = 80;
 
