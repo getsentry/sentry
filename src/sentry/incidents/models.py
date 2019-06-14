@@ -211,3 +211,16 @@ class IncidentSubscription(Model):
         unique_together = (('incident', 'user'), )
 
     __repr__ = sane_repr('incident_id', 'user_id')
+
+
+class IncidentSuspectCommit(Model):
+    __core__ = True
+
+    incident = FlexibleForeignKey('sentry.Incident', db_index=False)
+    commit = FlexibleForeignKey('sentry.Commit', db_constraint=False)
+    order = models.SmallIntegerField()
+
+    class Meta:
+        app_label = 'sentry'
+        db_table = 'sentry_incidentsuspectcommit'
+        unique_together = (('incident', 'commit'), )

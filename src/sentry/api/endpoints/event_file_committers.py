@@ -5,7 +5,7 @@ from rest_framework.response import Response
 from sentry import options
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.models import Commit, Event, SnubaEvent, Release
-from sentry.utils.committers import get_event_file_committers
+from sentry.utils.committers import get_serialized_event_file_committers
 
 
 class EventFileCommittersEndpoint(ProjectEndpoint):
@@ -35,7 +35,7 @@ class EventFileCommittersEndpoint(ProjectEndpoint):
         Event.objects.bind_nodes([event], 'data')
 
         try:
-            committers = get_event_file_committers(
+            committers = get_serialized_event_file_committers(
                 project,
                 event,
                 frame_limit=int(request.GET.get('frameLimit', 25)),

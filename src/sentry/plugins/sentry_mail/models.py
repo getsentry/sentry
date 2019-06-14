@@ -27,7 +27,7 @@ from sentry.plugins.base.structs import Notification
 from sentry.plugins.bases.notify import NotificationPlugin
 from sentry.utils import metrics
 from sentry.utils.cache import cache
-from sentry.utils.committers import get_event_file_committers
+from sentry.utils.committers import get_serialized_event_file_committers
 from sentry.utils.email import MessageBuilder, group_id_to_email
 from sentry.utils.http import absolute_uri
 from sentry.utils.linksign import generate_signed_link
@@ -229,7 +229,7 @@ class MailPlugin(NotificationPlugin):
         # lets identify possibly suspect commits and owners
         commits = {}
         try:
-            committers = get_event_file_committers(project, event)
+            committers = get_serialized_event_file_committers(project, event)
         except (Commit.DoesNotExist, Release.DoesNotExist):
             pass
         except Exception as exc:

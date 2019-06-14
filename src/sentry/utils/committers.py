@@ -125,10 +125,10 @@ def _get_committers(annotated_frames, commits):
     user_dicts = [
         {
             'author': users_by_author.get(six.text_type(author_id)),
-            'commits': _get_commits_committer(
-                commits,
-                author_id,
-            )
+            'commits': [
+                (commit, score) for (commit, score) in commits
+                if commit.author.id == author_id
+            ],
         } for author_id in sorted_committers
     ]
 
@@ -229,9 +229,29 @@ def get_event_file_committers(project, event, frame_limit=25):
         {match for match in commit_path_matches for match in commit_path_matches[match]}
     )
 
-    committers = _get_committers(annotated_frames, relevant_commits)
+    return _get_committers(annotated_frames, relevant_commits)
+
+
+def get_serialized_event_file_committers(project, event, frame_limit=25):
+    committers = get_event_file_committers(project, event, frame_limit=frame_limit)
+    commits = [commit for committer in committers for commit in committer['commits']]
+    serialized_commits = serialize(
+        [c for (c, score) in commits], serializer=CommitSerializer(exclude=['author']),
+    )
+
+    serialized_commits_by_id = {}
+
+    for (commit, score), serialized_commit in zip(commits, serialized_commits):
+        serialized_commit['score'] = score
+        serialized_commits_by_id[commit.id] = serialized_commit
+
+    for committer in committers:
+        commit_ids = [commit.id for (commit, _) in committer['commits']]
+        committer['commits'] = [serialized_commits_by_id[commit_id] for commit_id in commit_ids]
+
     metrics.incr(
         'feature.owners.has-committers',
         instance='hit' if committers else 'miss',
-        skip_internal=False)
+        skip_internal=False,
+    )
     return committers
