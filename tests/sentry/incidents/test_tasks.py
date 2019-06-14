@@ -14,11 +14,17 @@ from sentry.incidents.models import (
     IncidentActivityType,
     IncidentStatus,
     IncidentSubscription,
+    IncidentSuspectCommit,
 )
 from sentry.incidents.tasks import (
     build_activity_context,
+    calculate_incident_suspects,
     generate_incident_activity_email,
     send_subscriber_notifications,
+)
+from sentry.models import (
+    Commit,
+    Repository,
 )
 from sentry.testutils import TestCase
 from sentry.utils.linksign import generate_signed_link
@@ -149,3 +155,39 @@ class TestBuildActivityContext(BaseIncidentActivityTest, TestCase):
             expected_comment=activity.comment,
             expected_recipient=recepient,
         )
+
+
+class CalculateIncidentSuspectsTest(TestCase):
+    def test_simple(self):
+        release = self.create_release(project=self.project, version='v12')
+        event = self.store_event(
+            data={
+                'fingerprint': ['group-1'],
+                'message': 'Kaboom!',
+                'platform': 'python',
+                'stacktrace': {'frames': [{'filename': 'sentry/models/release.py'}]},
+                'release': release.version,
+            },
+            project_id=self.project.id,
+        )
+        group = event.group
+        self.repo = Repository.objects.create(
+            organization_id=self.organization.id,
+            name=self.organization.id,
+        )
+        release.set_commits([{
+            'id': 'a' * 40,
+            'repository': self.repo.name,
+            'author_email': 'bob@example.com',
+            'author_name': 'Bob',
+            'message': 'i fixed a bug',
+            'patch_set': [{'path': 'src/sentry/models/release.py', 'type': 'M'}]
+        }])
+
+        commit = Commit.objects.filter(releasecommit__release__in=[release])
+        incident = self.create_incident(self.organization, groups=[group])
+        calculate_incident_suspects(incident.id)
+        assert IncidentSuspectCommit.objects.filter(
+            incident=incident,
+            commit=commit,
+        ).exists()

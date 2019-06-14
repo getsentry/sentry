@@ -20,10 +20,13 @@ from sentry.incidents.models import (
     IncidentType,
     TimeSeriesSnapshot,
 )
-from sentry.incidents.tasks import send_subscriber_notifications
 from sentry.models import (
     Commit,
     Release,
+)
+from sentry.incidents.tasks import (
+    calculate_incident_suspects,
+    send_subscriber_notifications,
 )
 from sentry.utils.committers import get_event_file_committers
 from sentry.utils.snuba import (
@@ -98,6 +101,7 @@ def create_incident(
             incident_type=type.value,
         )
 
+    calculate_incident_suspects.apply_async(kwargs={'incident_id': incident.id})
     return incident
 
 
@@ -334,7 +338,14 @@ def get_incident_activity(incident):
 
 
 def get_incident_suspects(incident, projects):
-    groups = list(incident.groups.all().filter(project__in=projects))
+    return Commit.objects.filter(
+        incidentsuspectcommit__incident=incident,
+        releasecommit__release__projects__in=projects,
+    ).distinct()
+
+
+def get_incident_suspect_commits(incident):
+    groups = list(incident.groups.all())
     # For now, we want to track whether we've seen a commit before to avoid
     # duplicates. We'll probably use a commit being seen across multiple groups
     # as a way to increase score in the future.
@@ -347,11 +358,8 @@ def get_incident_suspects(incident, projects):
             continue
 
         for committer in committers:
-            author = committer['author']
-            for commit in committer['commits']:
-                commit['author'] = author
-                commit_key = (commit['repository']['id'], commit['id'])
-                if commit_key in seen:
+            for (commit, _) in committer['commits']:
+                if commit.id in seen:
                     continue
-                seen.add(commit_key)
-                yield commit
+                seen.add(commit.id)
+                yield commit.id
