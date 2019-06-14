@@ -1,25 +1,26 @@
-import React from 'react';
-import PropTypes from 'prop-types';
-import {isEqual} from 'lodash';
 import {browserHistory} from 'react-router';
+import {isEqual} from 'lodash';
+import PropTypes from 'prop-types';
+import React from 'react';
 
-import SentryTypes from 'app/sentryTypes';
+import {fetchSentryAppComponents} from 'app/actionCreators/sentryAppComponents';
 import {withMeta} from 'app/components/events/meta/metaProxy';
 import EventEntries from 'app/components/events/eventEntries';
+import GlobalSelectionStore from 'app/stores/globalSelectionStore';
 import GroupEventDetailsLoadingError from 'app/components/errors/groupEventDetailsLoadingError';
 import GroupSidebar from 'app/components/group/sidebar';
 import LoadingIndicator from 'app/components/loadingIndicator';
-import ResolutionBox from 'app/components/resolutionBox';
 import MutedBox from 'app/components/mutedBox';
-import withApi from 'app/utils/withApi';
-import withOrganization from 'app/utils/withOrganization';
-import withGlobalSelection from 'app/utils/withGlobalSelection';
-import fetchSentryAppInstallations from 'app/utils/fetchSentryAppInstallations';
-import {fetchSentryAppComponents} from 'app/actionCreators/sentryAppComponents';
 import OrganizationEnvironmentsStore from 'app/stores/organizationEnvironmentsStore';
+import ResolutionBox from 'app/components/resolutionBox';
+import SentryTypes from 'app/sentryTypes';
+import fetchSentryAppInstallations from 'app/utils/fetchSentryAppInstallations';
+import withApi from 'app/utils/withApi';
+import withGlobalSelection from 'app/utils/withGlobalSelection';
+import withOrganization from 'app/utils/withOrganization';
 
-import GroupEventToolbar from './eventToolbar';
 import {fetchGroupEventAndMarkSeen, getEventEnvironment} from './utils';
+import GroupEventToolbar from './eventToolbar';
 
 class GroupEventDetails extends React.Component {
   static propTypes = {
@@ -77,7 +78,24 @@ class GroupEventDetails extends React.Component {
   }
 
   componentWillUnmount() {
-    this.props.api.clear();
+    const {api, organization} = this.props;
+
+    // Note: We do not load global selection store with any data when this component is used
+    // This is handled in `<OrganizationContext>` by examining the routes.
+    //
+    // When this view gets unmounted, attempt to load initial data so that projects/envs
+    // gets loaded with the last used one (via local storage). `forceUrlSync` will make
+    // `<GlobalSelectionHeader>` sync values from store to the URL (if they are different),
+    // otherwise they can out of sync because the component only syncs in `DidMount`, and
+    // the timing for that is not guaranteed.
+    //
+    // TBD: if this behavior is actually desired
+    GlobalSelectionStore.loadInitialData(organization, this.props.location.query, {
+      onlyIfNeverLoaded: true,
+      forceUrlSync: true,
+    });
+
+    api.clear();
   }
 
   fetchData = () => {

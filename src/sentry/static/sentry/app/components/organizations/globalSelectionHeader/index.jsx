@@ -17,6 +17,7 @@ import {
   updateProjects,
 } from 'app/actionCreators/globalSelection';
 import BackToIssues from 'app/components/organizations/backToIssues';
+import ConfigStore from 'app/stores/configStore';
 import Header from 'app/components/organizations/header';
 import HeaderItemPosition from 'app/components/organizations/headerItemPosition';
 import HeaderSeparator from 'app/components/organizations/headerSeparator';
@@ -26,10 +27,9 @@ import MultipleProjectSelector from 'app/components/organizations/multipleProjec
 import SentryTypes from 'app/sentryTypes';
 import TimeRangeSelector from 'app/components/organizations/timeRangeSelector';
 import Tooltip from 'app/components/tooltip';
-import withGlobalSelection from 'app/utils/withGlobalSelection';
-import ConfigStore from 'app/stores/configStore';
-import withProjects from 'app/utils/withProjects';
 import space from 'app/styles/space';
+import withGlobalSelection from 'app/utils/withGlobalSelection';
+import withProjects from 'app/utils/withProjects';
 
 import {getStateFromQuery} from './utils';
 
@@ -74,6 +74,15 @@ class GlobalSelectionHeader extends React.Component {
      * Show relative date selectors
      */
     showRelative: PropTypes.bool,
+
+    // GlobalSelectionStore is not always initialized (e.g. Group Details) before this is rendered
+    //
+    // This component intentionally attempts to sync store --> URL Parameter
+    // only when mounted, except when this prop changes.
+    //
+    // XXX: This comes from GlobalSelectionStore and currently does not reset,
+    // so it happens at most once. Can add a reset as needed.
+    forceUrlSync: PropTypes.bool,
 
     // Callbacks //
     onChangeProjects: PropTypes.func,
@@ -186,7 +195,7 @@ class GlobalSelectionHeader extends React.Component {
       return true;
     }
 
-    //update if any projects are starred or reordered
+    // update if any projects are starred or reordered
     if (
       this.props.projects &&
       nextProps.projects &&
@@ -198,12 +207,37 @@ class GlobalSelectionHeader extends React.Component {
       return true;
     }
 
+    // Update if `forceUrlSync` changes
+    if (this.props.forceUrlSync !== nextProps.forceUrlSync && !this.props.forceUrlSync) {
+      return true;
+    }
+
     return false;
   }
 
   componentDidUpdate(prevProps) {
-    if (this.props.hasCustomRouting) {
+    const {hasCustomRouting, location, forceUrlSync, selection} = this.props;
+
+    if (hasCustomRouting) {
       return;
+    }
+
+    // Kind of gross
+    if (forceUrlSync !== prevProps.forceUrlSync && !prevProps.forceUrlSync) {
+      const {project, environment} = getStateFromQuery(location.query);
+
+      if (
+        !isEqual(project, selection.projects) ||
+        !isEqual(environment, selection.environments)
+      ) {
+        updateParamsWithoutHistory(
+          {
+            project: selection.projects,
+            environment: selection.environments,
+          },
+          this.getRouter()
+        );
+      }
     }
 
     // If component has updated (e.g. due to re-render from a router action),

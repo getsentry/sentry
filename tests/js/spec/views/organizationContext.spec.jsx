@@ -30,6 +30,7 @@ describe('OrganizationContext', function() {
         api={new MockApiClient()}
         params={{orgId: 'org-slug'}}
         location={{query: {}}}
+        routes={[]}
         {...props}
       >
         <div />
@@ -55,6 +56,7 @@ describe('OrganizationContext', function() {
     TeamStore.loadInitialData.mockRestore();
     ProjectsStore.loadInitialData.mockRestore();
     ConfigStore.get.mockRestore();
+    GlobalSelectionStore.loadInitialData.mockRestore();
   });
 
   it('renders and fetches org', async function() {
@@ -219,5 +221,18 @@ describe('OrganizationContext', function() {
     });
 
     expect(getOrgMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not call `GlobalSelectionStore.loadInitialData` on group details route', async function() {
+    wrapper = createWrapper({
+      routes: [{path: '/organizations/:orgId/issues/:groupId/'}],
+    });
+    await tick();
+    wrapper.update();
+
+    expect(wrapper.state('loading')).toBe(false);
+    expect(wrapper.state('error')).toBe(false);
+
+    expect(GlobalSelectionStore.loadInitialData).not.toHaveBeenCalled();
   });
 });
