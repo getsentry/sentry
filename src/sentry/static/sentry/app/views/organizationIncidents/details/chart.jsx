@@ -33,7 +33,7 @@ function getNearbyIndex(data, needle) {
 
 export default class Chart extends React.PureComponent {
   static propTypes = {
-    data: PropTypes.arrayOf(PropTypes.number),
+    data: PropTypes.arrayOf(PropTypes.shape({count: PropTypes.number})),
     detected: PropTypes.string,
     closed: PropTypes.string,
   };
