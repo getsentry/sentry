@@ -13,7 +13,7 @@ from sentry.utils.committers import (
     _get_commit_file_changes,
     _get_frame_paths,
     _match_commits_path,
-    get_event_file_committers,
+    get_serialized_event_file_committers,
     get_previous_releases,
     score_path_match_length,
     tokenize_path
@@ -281,7 +281,7 @@ class GetEventFileCommitters(CommitTestCase):
             }
         ])
 
-        result = get_event_file_committers(self.project, event)
+        result = get_serialized_event_file_committers(self.project, event)
         assert len(result) == 1
         assert 'commits' in result[0]
         assert len(result[0]['commits']) == 1
@@ -329,7 +329,7 @@ class GetEventFileCommitters(CommitTestCase):
             }
         ])
 
-        result = get_event_file_committers(self.project, event)
+        result = get_serialized_event_file_committers(self.project, event)
         assert len(result) == 1
         assert 'commits' in result[0]
         assert len(result[0]['commits']) == 1
@@ -377,7 +377,7 @@ class GetEventFileCommitters(CommitTestCase):
             }
         ])
 
-        result = get_event_file_committers(self.project, event)
+        result = get_serialized_event_file_committers(self.project, event)
         assert len(result) == 0
 
     def test_no_commits(self):
@@ -408,4 +408,4 @@ class GetEventFileCommitters(CommitTestCase):
         )
 
         with self.assertRaises(Commit.DoesNotExist):
-            get_event_file_committers(self.project, event)
+            get_serialized_event_file_committers(self.project, event)

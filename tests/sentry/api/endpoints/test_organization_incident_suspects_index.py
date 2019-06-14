@@ -2,7 +2,10 @@ from __future__ import absolute_import
 
 from exam import fixture
 
-from sentry.models import Repository
+from sentry.api.serializers import serialize
+from sentry.api.serializers.models.commit import CommitSerializer
+from sentry.incidents.models import IncidentSuspectCommit
+from sentry.models import Commit, Repository
 from sentry.testutils import APITestCase
 
 
@@ -32,49 +35,23 @@ class OrganizationIncidentSuspectsListEndpointTest(APITestCase):
         self.login_as(self.user)
         release = self.create_release(project=self.project, version='v12')
 
-        event = self.store_event(
-            data={
-                'fingerprint': ['group-1'],
-                'message': 'Kaboom!',
-                'platform': 'python',
-                'stacktrace': {
-                    'frames': [
-                        {
-                            "function": "set_commits",
-                            "abs_path": "/usr/src/sentry/src/sentry/models/release.py",
-                            "module": "sentry.models.release",
-                            "in_app": True,
-                            "lineno": 39,
-                            "filename": "sentry/models/release.py",
-                        }
-                    ]
-                },
-                'release': release.version,
-            },
-            project_id=self.project.id,
-        )
-        group = event.group
         self.repo = Repository.objects.create(
             organization_id=self.organization.id,
             name=self.organization.id,
         )
         commit_id = 'a' * 40
-        release.set_commits([
-            {
-                'id': commit_id,
-                'repository': self.repo.name,
-                'author_email': 'bob@example.com',
-                'author_name': 'Bob',
-                'message': 'i fixed a bug',
-                'patch_set': [
-                    {
-                        'path': 'src/sentry/models/release.py',
-                        'type': 'M',
-                    },
-                ]
-            },
-        ])
-        incident = self.create_incident(self.organization, groups=[group])
+        release.set_commits([{
+            'id': commit_id,
+            'repository': self.repo.name,
+            'author_email': 'bob@example.com',
+            'author_name': 'Bob',
+            'message': 'i fixed a bug',
+            'patch_set': [{'path': 'src/sentry/models/release.py', 'type': 'M'}]
+        }])
+        incident = self.create_incident(self.organization)
+        commit = Commit.objects.get(releasecommit__release=release)
+        IncidentSuspectCommit.objects.create(incident=incident, commit=commit, order=1)
+
         with self.feature('organizations:incidents'):
             resp = self.get_valid_response(
                 self.organization.slug,
@@ -83,7 +60,7 @@ class OrganizationIncidentSuspectsListEndpointTest(APITestCase):
         assert len(resp.data) == 1
         suspect = resp.data[0]
         assert suspect['type'] == 'commit'
-        assert suspect['data']['id'] == commit_id
+        assert suspect['data'] == serialize(commit, self.user, serializer=CommitSerializer())
 
     def test_access(self):
         other_user = self.create_user()
