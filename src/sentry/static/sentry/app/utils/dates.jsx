@@ -144,3 +144,25 @@ export function getPeriodAgo(period, unit) {
 export function getStartOfPeriodAgo(period, unit, options) {
   return getStartOfDay(getPeriodAgo(period, unit), options);
 }
+
+/**
+ * Convert an interval string into a number of seconds.
+ * This allows us to create end timestamps from starting ones
+ * enabling us to find events in narrow windows.
+ *
+ * @param {String} interval The interval to convert.
+ * @return {Integer}
+ */
+export function intervalToMilliseconds(interval) {
+  const pattern = /^(\d+)(h|m)$/;
+  const matches = pattern.exec(interval);
+  if (!matches) {
+    return 0;
+  }
+  const [_, value, unit] = matches;
+  const multipliers = {
+    h: 60 * 60,
+    m: 60,
+  };
+  return parseInt(value, 10) * multipliers[unit] * 1000;
+}

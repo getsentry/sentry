@@ -5,12 +5,12 @@ import {omit} from 'lodash';
 
 import {t} from 'app/locale';
 import SentryTypes from 'app/sentryTypes';
+import {getInterval, useShortInterval} from 'app/components/charts/utils';
 import {
-  getInterval,
+  getFormattedDate,
+  getUtcDateString,
   intervalToMilliseconds,
-  useShortInterval,
-} from 'app/components/charts/utils';
-import {getFormattedDate, getUtcDateString} from 'app/utils/dates';
+} from 'app/utils/dates';
 import EventsRequest from 'app/views/organizationEvents/utils/eventsRequest';
 import LineChart from 'app/components/charts/lineChart';
 import MarkLine from 'app/components/charts/components/markLine';
