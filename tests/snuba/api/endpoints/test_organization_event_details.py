@@ -42,7 +42,7 @@ class OrganizationEventDetailsTestBase(APITestCase, SnubaTestCase):
             },
             project_id=self.project.id,
         )
-        self.groups = Group.objects.all()
+        self.groups = list(Group.objects.all().order_by('id'))
 
 
 class OrganizationEventDetailsEndpointTest(OrganizationEventDetailsTestBase):
