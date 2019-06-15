@@ -6,7 +6,6 @@ from .error import ErrorEvent
 from .manager import EventTypeManager
 from .transaction import TransactionEvent
 
-# types are ordered by priority, default should always be last
 default_manager = EventTypeManager()
 default_manager.register(DefaultEvent)
 default_manager.register(ErrorEvent)
