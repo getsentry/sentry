@@ -6,9 +6,6 @@ from .base import BaseEvent
 class CspEvent(BaseEvent):
     key = 'csp'
 
-    def has_metadata(self, data):
-        return data.get('csp') is not None
-
     def get_metadata(self, data):
         from sentry.interfaces.security import Csp
         # TODO(dcramer): pull get message into here to avoid instantiation
@@ -31,9 +28,6 @@ class CspEvent(BaseEvent):
 class HpkpEvent(BaseEvent):
     key = 'hpkp'
 
-    def has_metadata(self, data):
-        return data.get('hpkp') is not None
-
     def get_metadata(self, data):
         from sentry.interfaces.security import Hpkp
         hpkp = Hpkp.to_python(data['hpkp'])
@@ -52,9 +46,6 @@ class HpkpEvent(BaseEvent):
 class ExpectCTEvent(BaseEvent):
     key = 'expectct'
 
-    def has_metadata(self, data):
-        return data.get('expectct') is not None
-
     def get_metadata(self, data):
         from sentry.interfaces.security import ExpectCT
         expectct = ExpectCT.to_python(data['expectct'])
@@ -72,9 +63,6 @@ class ExpectCTEvent(BaseEvent):
 
 class ExpectStapleEvent(BaseEvent):
     key = 'expectstaple'
-
-    def has_metadata(self, data):
-        return data.get('expectstaple') is not None
 
     def get_metadata(self, data):
         from sentry.interfaces.security import ExpectStaple
