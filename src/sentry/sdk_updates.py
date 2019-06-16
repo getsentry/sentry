@@ -278,8 +278,10 @@ def _get_suggested_updates_step(
             continue
 
         try:
-            if LooseVersion(support_info['sdk_version_added']
-                            ) > LooseVersion(setup_state.sdk_version):
+            if (
+                LooseVersion(support_info['sdk_version_added'])
+                > LooseVersion(setup_state.sdk_version)
+            ):
                 continue
         except Exception:
             continue
