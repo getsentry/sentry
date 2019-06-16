@@ -115,8 +115,9 @@ class UpdateSDKSuggestion(Suggestion):
 
 
 class ChangeSDKSuggestion(Suggestion):
-    def __init__(self, new_sdk_name):
+    def __init__(self, new_sdk_name, new_module_name=None):
         self.new_sdk_name = new_sdk_name
+        self.new_module_name = new_module_name
 
     def to_json(self):
         return {
@@ -127,6 +128,9 @@ class ChangeSDKSuggestion(Suggestion):
 
     def get_new_state(self, old_state):
         if old_state.sdk_name == self.new_sdk_name:
+            return old_state
+
+        if self.new_module_name and self.new_module_name in old_state.modules:
             return old_state
 
         new_state = old_state.copy()
@@ -206,6 +210,48 @@ SDK_SUPPORTED_MODULES = [
         'module_version_min': '5.0.0',
         'suggestion': EnableIntegrationSuggestion('tornado', 'https://docs.sentry.io/platforms/python/tornado/')
     },
+    {
+        'sdk_name': 'sentry.dotnet',
+        'sdk_version_added': '0.0.0',
+        'module_name': 'Microsoft.AspNetCore.Hosting',
+        'module_version_min': '2.1.0',
+        'suggestion': ChangeSDKSuggestion('sentry.dotnet.aspnetcore', 'Sentry.AspNetCore'),
+    },
+    {
+        'sdk_name': 'sentry.dotnet',
+        'sdk_version_added': '0.0.0',
+        'module_name': 'EntityFramework',
+        'module_version_min': '6.0.0',
+        'suggestion': ChangeSDKSuggestion('sentry.dotnet.entityframework', 'Sentry.EntityFramework'),
+    },
+    {
+        'sdk_name': 'sentry.dotnet',
+        'sdk_version_added': '0.0.0',
+        'module_name': 'log4net',
+        'module_version_min': '2.0.8',
+        'suggestion': ChangeSDKSuggestion('sentry.dotnet.log4net', 'Sentry.Log4Net'),
+    },
+    {
+        'sdk_name': 'sentry.dotnet',
+        'sdk_version_added': '0.0.0',
+        'module_name': 'Microsoft.Extensions.Logging.Configuration',
+        'module_version_min': '2.1.0',
+        'suggestion': ChangeSDKSuggestion('sentry.dotnet.extensions.logging', 'Sentry.Extensions.Logging'),
+    },
+    {
+        'sdk_name': 'sentry.dotnet',
+        'sdk_version_added': '0.0.0',
+        'module_name': 'Serilog',
+        'module_version_min': '2.7.1',
+        'suggestion': ChangeSDKSuggestion('sentry.dotnet.serilog', 'Sentry.Serilog'),
+    },
+    {
+        'sdk_name': 'sentry.dotnet',
+        'sdk_version_added': '0.0.0',
+        'module_name': 'NLog',
+        'module_version_min': '4.6.0',
+        'suggestion': ChangeSDKSuggestion('sentry.dotnet.nlog', 'Sentry.NLog'),
+    },
 ]
 
 
@@ -271,7 +317,10 @@ def _get_suggested_updates_step(
     yield ChangeSDKSuggestion(newest_name)
 
     for support_info in SDK_SUPPORTED_MODULES:
-        if support_info['sdk_name'] != setup_state.sdk_name:
+        if (
+            support_info['sdk_name'] != setup_state.sdk_name
+            and not setup_state.sdk_name.startswith(support_info['sdk_name'] + '.')
+        ):
             continue
 
         if support_info['module_name'] not in setup_state.modules:
@@ -287,12 +336,14 @@ def _get_suggested_updates_step(
             continue
 
         try:
-            if LooseVersion(support_info['module_version_min']) > LooseVersion(
-                    setup_state.modules[support_info['module_name']]):
+            if (
+                LooseVersion(support_info['module_version_min'])
+                > LooseVersion(setup_state.modules[support_info['module_name']])
+            ):
                 # TODO(markus): Maybe we want to suggest people to upgrade their module?
                 #
-                # E.g. "please upgrade Django so you can get the
-                # Django integration"
+                # E.g. "please upgrade Django so you can get the Django
+                # integration"
                 continue
         except Exception:
             continue
