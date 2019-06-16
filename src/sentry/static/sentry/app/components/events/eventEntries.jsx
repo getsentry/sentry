@@ -20,6 +20,7 @@ import EventExtraData from 'app/components/events/extraData';
 import EventGroupingInfo from 'app/components/events/groupingInfo';
 import EventPackageData from 'app/components/events/packageData';
 import EventSdk from 'app/components/events/sdk';
+import EventSdkUpdates from 'app/components/events/sdkUpdates';
 import EventTags from 'app/components/events/eventTags';
 import EventUserFeedback from 'app/components/events/userFeedback';
 import ExceptionInterface from 'app/components/events/interfaces/exception';
@@ -181,20 +182,9 @@ class EventEntries extends React.Component {
           <EventAttachments event={event} orgId={orgId} projectId={project.slug} />
         )}
         {!objectIsEmpty(event.sdk) && <EventSdk event={event} />}
-        {!objectIsEmpty(event.sdk) && event.sdk.upstream.isNewer && (
-          <div className="alert-block alert-info box">
-            <span className="icon-exclamation" />
-            {t(
-              'This event was reported with an old version of the %s SDK.',
-              event.platform
-            )}
-            {event.sdk.upstream.url && (
-              <a href={event.sdk.upstream.url} className="btn btn-sm btn-default">
-                {t('Learn More')}
-              </a>
-            )}
-          </div>
-        )}{' '}
+        {!isShare && event.sdkUpdates && event.sdkUpdates.length > 0 && (
+          <EventSdkUpdates event={event} />
+        )}
         {!isShare && features.has('grouping-info') && (
           <EventGroupingInfo projectId={project.slug} event={event} />
         )}

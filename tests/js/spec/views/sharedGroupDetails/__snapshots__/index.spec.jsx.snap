@@ -898,7 +898,6 @@ exports[`SharedGroupDetails renders 1`] = `
                                   </div>
                                 </EventDataSection>
                               </MessageInterface>
-                               
                             </div>
                           </EventEntries>
                         </withApi(EventEntries)>
