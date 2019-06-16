@@ -149,6 +149,63 @@ SDK_SUPPORTED_MODULES = [
         'module_version_min': '0.11.0',
         'suggestion': EnableIntegrationSuggestion('flask', 'https://docs.sentry.io/platforms/python/flask/')
     },
+    {
+        'sdk_name': 'sentry.python',
+        'sdk_version_added': '0.7.9',
+        'module_name': 'bottle',
+        'module_version_min': '0.12.0',
+        'suggestion': EnableIntegrationSuggestion('bottle', 'https://docs.sentry.io/platforms/python/bottle/')
+    },
+    {
+        'sdk_name': 'sentry.python',
+        'sdk_version_added': '0.7.11',
+        'module_name': 'falcon',
+        'module_version_min': '1.4.0',
+        'suggestion': EnableIntegrationSuggestion('falcon', 'https://docs.sentry.io/platforms/python/falcon/')
+    },
+    {
+        'sdk_name': 'sentry.python',
+        'sdk_version_added': '0.3.6',
+        'module_name': 'sanic',
+        'module_version_min': '0.8.0',
+        'suggestion': EnableIntegrationSuggestion('sanic', 'https://docs.sentry.io/platforms/python/sanic/')
+    },
+    {
+        'sdk_name': 'sentry.python',
+        'sdk_version_added': '0.3.2',
+        'module_name': 'celery',
+        'module_version_min': '3.0.0',
+        'suggestion': EnableIntegrationSuggestion('celery', 'https://docs.sentry.io/platforms/python/celery/')
+    },
+    # TODO: Detect AWS Lambda for Python
+    {
+        'sdk_name': 'sentry.python',
+        'sdk_version_added': '0.5.0',
+        'module_name': 'pyramid',
+        'module_version_min': '1.3.0',
+        'suggestion': EnableIntegrationSuggestion('pyramid', 'https://docs.sentry.io/platforms/python/pyramid/')
+    },
+    {
+        'sdk_name': 'sentry.python',
+        'sdk_version_added': '0.5.1',
+        'module_name': 'rq',
+        'module_version_min': '0.6',
+        'suggestion': EnableIntegrationSuggestion('rq', 'https://docs.sentry.io/platforms/python/rq/')
+    },
+    {
+        'sdk_name': 'sentry.python',
+        'sdk_version_added': '0.6.1',
+        'module_name': 'aiohttp',
+        'module_version_min': '3.4.0',
+        'suggestion': EnableIntegrationSuggestion('aiohttp', 'https://docs.sentry.io/platforms/python/aiohttp/')
+    },
+    {
+        'sdk_name': 'sentry.python',
+        'sdk_version_added': '0.6.3',
+        'module_name': 'tornado',
+        'module_version_min': '5.0.0',
+        'suggestion': EnableIntegrationSuggestion('tornado', 'https://docs.sentry.io/platforms/python/tornado/')
+    },
 ]
 
 
