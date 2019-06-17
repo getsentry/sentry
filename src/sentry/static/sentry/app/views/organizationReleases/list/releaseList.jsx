@@ -65,7 +65,7 @@ export default ReleaseList;
 
 const ReleasePanelItem = styled(PanelItem)`
   align-items: center;
-  padding: ${space(2)} ${space(1)};
+  padding: ${space(1)} ${space(2)};
 `;
 
 const VersionWrapper = styled('div')`
