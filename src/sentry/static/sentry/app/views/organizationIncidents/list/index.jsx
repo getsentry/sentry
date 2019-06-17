@@ -15,6 +15,7 @@ import Count from 'app/components/count';
 import Duration from 'app/components/duration';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
 import Link from 'app/components/links/link';
+import LoadingIndicator from 'app/components/loadingIndicator';
 import PageHeading from 'app/components/pageHeading';
 import Pagination from 'app/components/pagination';
 import getDynamicText from 'app/utils/getDynamicText';
@@ -76,8 +77,12 @@ class OrganizationIncidentsList extends AsyncComponent {
     );
   }
 
+  renderLoading() {
+    return this.renderBody();
+  }
+
   renderBody() {
-    const {incidentList, incidentListPageLinks} = this.state;
+    const {loading, incidentList, incidentListPageLinks} = this.state;
 
     return (
       <React.Fragment>
@@ -91,9 +96,15 @@ class OrganizationIncidentsList extends AsyncComponent {
               <div>{t('Total events')}</div>
             </TableLayout>
           </PanelHeader>
+
           <PanelBody>
-            {incidentList.length === 0 && this.renderEmpty()}
-            {incidentList.map(incident => this.renderListItem(incident))}
+            {loading && <LoadingIndicator />}
+            {!loading && (
+              <React.Fragment>
+                {incidentList.length === 0 && this.renderEmpty()}
+                {incidentList.map(incident => this.renderListItem(incident))}
+              </React.Fragment>
+            )}
           </PanelBody>
         </Panel>
         <Pagination pageLinks={incidentListPageLinks} />
