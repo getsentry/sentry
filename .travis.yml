@@ -93,7 +93,7 @@ base_acceptance: &acceptance_default
     - docker run -d --network host --name snuba --env SNUBA_SETTINGS=test --env CLICKHOUSE_SERVER=localhost:9000 getsentry/snuba
     - docker ps -a
   install:
-    - ./bin yarn install --pure-lockfile
+    - ./bin/yarn install --pure-lockfile
     - python setup.py install_egg_info
     - pip install -e ".[dev,tests,optional]"
     - wget -N "https://chromedriver.storage.googleapis.com/$(curl https://chromedriver.storage.googleapis.com/LATEST_RELEASE_74)/chromedriver_linux64.zip" -P ~/
