@@ -31,6 +31,7 @@ import ProjectPluginDetails from 'app/views/projectPluginDetails';
 import ProjectPlugins from 'app/views/projectPlugins';
 import ProjectSettings from 'app/views/projectSettings';
 import ProjectTags from 'app/views/projectTags';
+import RedirectToIssueStream from 'app/views/projects/redirectToIssueStream';
 import RouteNotFound from 'app/views/routeNotFound';
 import SettingsProjectProvider from 'app/views/settings/components/settingsProjectProvider';
 import SettingsWrapper from 'app/views/settings/components/settingsWrapper';
@@ -939,6 +940,7 @@ function routes() {
             component={errorHandler(OrganizationStreamContainer)}
           >
             <Redirect from="/organizations/:orgId/" to="/organizations/:orgId/issues/" />
+            {/* HERE */}
             <IndexRoute component={errorHandler(OrganizationStreamOverview)} />
             <Route
               path="searches/:searchId/"
@@ -1152,14 +1154,16 @@ function routes() {
           <Route path=":platform/" component={errorHandler(ProjectInstallPlatform)} />
         </Route>
 
+        {/* OLD <Redirect from=":projectId/" to="/organizations/:orgId/issues/" /> */}
+        {/* OLD <Redirect from=":projectId/issues/" to="/organizations/:orgId/issues/" /> */}
         <Route path=":projectId/">
           <IndexRedirect to="issues/" />
-          <Route
-            path="issues/"
-            component={errorHandler(() => {
-              return <div>hi mom</div>;
-            })}
-          />
+          <Route path="issues/" component={errorHandler(RedirectToIssueStream)} />
+          {/* <Route path="searches/:searchId/" component={errorHandler(RedirectToIssueStream)} /> */}
+          {/* <Route path="dashboard/" component={errorHandler(RedirectToIssueStream)} /> */}
+          {/* <Route path="releases/" component={errorHandler(RedirectToIssueStream)} /> */}
+          {/* <Route path="releases/:version" component={errorHandler(RedirectToIssueStream)} /> */}
+          {/* and others */}
         </Route>
         <Redirect
           from=":projectId/searches/:searchId/"
