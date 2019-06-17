@@ -117,12 +117,7 @@ class CommitAuthorStats extends React.Component {
               return (
                 <PanelItem key={i} p={1} align="center">
                   <Flex>
-                    <Avatar
-                      user={author}
-                      size={20}
-                      hasTooltip
-                      tooltip={`${author.name} ${author.email}`}
-                    />
+                    <Avatar user={author} size={20} hasTooltip />
                   </Flex>
                   <Flex flex="1" px={1}>
                     <CommitBar
