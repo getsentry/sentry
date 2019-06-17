@@ -73,11 +73,6 @@ class EventDetails extends AsyncComponent {
     ];
   }
 
-  onRequestSuccess({data}) {
-    // Select the first interface as the active sub-tab
-    this.setState({activeTab: data.entries[0].type});
-  }
-
   handleClose = event => {
     event.preventDefault();
     const {location} = this.props;
@@ -89,8 +84,6 @@ class EventDetails extends AsyncComponent {
       query,
     });
   };
-
-  handleTabChange = tab => this.setState({activeTab: tab});
 
   get projectId() {
     if (this.props.eventSlug) {
@@ -116,7 +109,7 @@ class EventDetails extends AsyncComponent {
 
   renderBody() {
     const {organization, view, location} = this.props;
-    const {event, activeTab} = this.state;
+    const {event} = this.state;
 
     return (
       <ModalContainer>
@@ -124,7 +117,6 @@ class EventDetails extends AsyncComponent {
         <EventModalContent
           onTabChange={this.handleTabChange}
           event={event}
-          activeTab={activeTab}
           projectId={this.projectId}
           organization={organization}
           view={view}
