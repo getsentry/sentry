@@ -224,9 +224,18 @@ def cleanup(days, project, concurrency, silent, model, router, timed):
             if not silent:
                 click.echo(u'>> Skipping {}'.format(model.__name__))
         else:
-            model.objects.filter(
+            queryset = model.objects.filter(
                 expires_at__lt=(timezone.now() - timedelta(days=API_TOKEN_TTL_IN_DAYS)),
-            ).delete()
+            )
+
+            # SentryAppInstallations are associated to ApiTokens. We're okay
+            # with these tokens sticking around so that the Integration can
+            # refresh them, but all other non-associated tokens should be
+            # deleted.
+            if model is models.ApiToken:
+                queryset = queryset.filter(sentry_app_installation__isnull=True)
+
+            queryset.delete()
 
     project_id = None
     if project:
