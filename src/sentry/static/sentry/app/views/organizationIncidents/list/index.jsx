@@ -22,6 +22,7 @@ import getDynamicText from 'app/utils/getDynamicText';
 import space from 'app/styles/space';
 
 import Status from '../status';
+import SparkLine from './sparkLine';
 
 const DEFAULT_QUERY_STATUS = '';
 
@@ -47,11 +48,14 @@ class OrganizationIncidentsList extends AsyncComponent {
       .as('seconds');
 
     return (
-      <PanelItem key={incident.id}>
+      <IncidentPanelItem key={incident.id}>
         <TableLayout>
-          <Link to={`/organizations/${orgId}/incidents/${incident.identifier}/`}>
-            {incident.title}
-          </Link>
+          <TitleAndSparkLine>
+            <Link to={`/organizations/${orgId}/incidents/${incident.identifier}/`}>
+              {incident.title}
+            </Link>
+            <SparkLine incident={incident} />
+          </TitleAndSparkLine>
           <Status incident={incident} />
           <div>
             {started.format('LL')}
@@ -65,7 +69,7 @@ class OrganizationIncidentsList extends AsyncComponent {
             <Count value={incident.totalEvents} />
           </div>
         </TableLayout>
-      </PanelItem>
+      </IncidentPanelItem>
     );
   }
 
@@ -188,6 +192,16 @@ const LightDuration = styled(Duration)`
   color: ${p => p.theme.gray1};
   font-size: 0.9em;
   margin-left: ${space(1)};
+`;
+
+const TitleAndSparkLine = styled('div')`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+`;
+
+const IncidentPanelItem = styled(PanelItem)`
+  padding: ${space(1)} ${space(2)};
 `;
 
 export default OrganizationIncidentsListContainer;

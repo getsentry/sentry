@@ -29,7 +29,7 @@ describe('OrganizationIncidentsList', function() {
       TestStubs.routerContext()
     );
 
-    const items = wrapper.find('PanelItem');
+    const items = wrapper.find('IncidentPanelItem');
 
     expect(items).toHaveLength(2);
     expect(items.at(0).text()).toContain('First incident');
@@ -45,7 +45,7 @@ describe('OrganizationIncidentsList', function() {
       <OrganizationIncidentsList params={{orgId: 'org-slug'}} location={{query: {}}} />,
       routerContext
     );
-    expect(wrapper.find('PanelItem')).toHaveLength(0);
+    expect(wrapper.find('IncidentPanelItem')).toHaveLength(0);
     expect(wrapper.text()).toContain("You don't have any incidents yet");
   });
 
