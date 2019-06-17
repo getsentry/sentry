@@ -1152,8 +1152,15 @@ function routes() {
           <Route path=":platform/" component={errorHandler(ProjectInstallPlatform)} />
         </Route>
 
-        <Redirect from=":projectId/" to="/organizations/:orgId/issues/" />
-        <Redirect from=":projectId/issues/" to="/organizations/:orgId/issues/" />
+        <Route path=":projectId/">
+          <IndexRedirect to="issues/" />
+          <Route
+            path="issues/"
+            component={errorHandler(() => {
+              return <div>hi mom</div>;
+            })}
+          />
+        </Route>
         <Redirect
           from=":projectId/searches/:searchId/"
           to="/organizations/:orgId/issues/"
