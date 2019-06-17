@@ -56,7 +56,7 @@ class ProjectFilterDetailsEndpoint(ProjectEndpoint):
             returned_state = filter.id
             removed = current_state - new_state
 
-            if removed == -1:
+            if removed == 1:
                 audit_log_state = AuditLogEntryEvent.PROJECT_DISABLE
 
         self.create_audit_entry(
