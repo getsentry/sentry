@@ -108,6 +108,7 @@ EventMetadata.propTypes = {
 };
 
 const OverflowHeader = styled('h2')`
+  line-height: 1.2;
   ${overflowEllipsis}
 `;
 
@@ -121,8 +122,6 @@ const MetadataContainer = styled('div')`
 
 const ColumnGrid = styled('div')`
   display: grid;
-  max-height: 100%;
-  overflow: auto;
 
   grid-template-columns: 70% 28%;
   grid-template-rows: auto;
