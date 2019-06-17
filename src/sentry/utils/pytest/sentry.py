@@ -1,6 +1,5 @@
 from __future__ import absolute_import
 
-import pytest
 import mock
 import os
 
@@ -253,8 +252,3 @@ def pytest_runtest_teardown(item):
         model.objects.clear_local_cache()
 
     Hub.main.bind_client(None)
-
-
-@pytest.fixture(autouse=True)
-def _disable_renormalization_trim(monkeypatch):
-    monkeypatch.setattr('sentry.models.event._should_disable_trim', lambda _: True)
