@@ -31,7 +31,7 @@ import ProjectPluginDetails from 'app/views/projectPluginDetails';
 import ProjectPlugins from 'app/views/projectPlugins';
 import ProjectSettings from 'app/views/projectSettings';
 import ProjectTags from 'app/views/projectTags';
-import RedirectToIssueStream from 'app/views/projects/redirectToIssueStream';
+import redirectSentry9Project from 'app/views/projects/redirectSentry9Project';
 import RouteNotFound from 'app/views/routeNotFound';
 import SettingsProjectProvider from 'app/views/settings/components/settingsProjectProvider';
 import SettingsWrapper from 'app/views/settings/components/settingsWrapper';
@@ -1153,12 +1153,25 @@ function routes() {
           <IndexRoute component={errorHandler(ProjectInstallOverview)} />
           <Route path=":platform/" component={errorHandler(ProjectInstallPlatform)} />
         </Route>
-
-        {/* OLD <Redirect from=":projectId/" to="/organizations/:orgId/issues/" /> */}
-        {/* OLD <Redirect from=":projectId/issues/" to="/organizations/:orgId/issues/" /> */}
         <Route path=":projectId/">
-          <IndexRedirect to="issues/" />
-          <Route path="issues/" component={errorHandler(RedirectToIssueStream)} />
+          {/* Support for Sentry 9 URLs. We just redirect users to new canonical URLs. */}
+          <IndexRoute
+            component={errorHandler(
+              redirectSentry9Project(
+                ({orgId, projectId}) =>
+                  `/organizations/${orgId}/issues/?project=${projectId}`
+              )
+            )}
+          />
+          <Route
+            path="issues/"
+            component={errorHandler(
+              redirectSentry9Project(
+                ({orgId, projectId}) =>
+                  `/organizations/${orgId}/issues/?project=${projectId}`
+              )
+            )}
+          />
           {/* <Route path="searches/:searchId/" component={errorHandler(RedirectToIssueStream)} /> */}
           {/* <Route path="dashboard/" component={errorHandler(RedirectToIssueStream)} /> */}
           {/* <Route path="releases/" component={errorHandler(RedirectToIssueStream)} /> */}
