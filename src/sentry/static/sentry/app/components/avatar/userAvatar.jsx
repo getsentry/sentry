@@ -53,6 +53,8 @@ class UserAvatar extends React.Component {
         tooltip={
           typeof renderTooltip === 'function'
             ? renderTooltip(user)
+            : props.tooltip
+            ? props.tooltip
             : userDisplayName(user)
         }
         title={user.name || user.email || user.username || ''}
