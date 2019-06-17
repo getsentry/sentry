@@ -56,7 +56,7 @@ export default class Table extends React.Component {
     }
 
     return data.map((row, idx) => (
-      <Row key={idx} className={getGridStyle(fields.length)}>
+      <Row key={idx} className={getGridStyle(view)}>
         {fields.map(field => {
           const target = {
             pathname: `/organizations/${organization.slug}/events/`,
@@ -91,7 +91,7 @@ export default class Table extends React.Component {
 
     return (
       <Panel>
-        <TableHeader className={getGridStyle(fields.length)}>
+        <TableHeader className={getGridStyle(view)}>
           {fields.map(field => (
             <HeaderItem key={field}>
               {SPECIAL_FIELDS.hasOwnProperty(field)
@@ -110,10 +110,14 @@ export default class Table extends React.Component {
   }
 }
 
-function getGridStyle(colCount) {
+function getGridStyle(view) {
+  const cols = Array.isArray(view.columnWidths)
+    ? view.columnWidths.join(' ')
+    : `3fr repeat(${view.data.fields.length - 1}, 1fr)`;
+
   return css`
     display: grid;
-    grid-template-columns: 3fr repeat(${colCount - 1}, 1fr);
+    grid-template-columns: ${cols};
     grid-gap: ${space(1)};
   `;
 }

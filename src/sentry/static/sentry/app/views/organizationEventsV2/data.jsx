@@ -32,6 +32,7 @@ export const ALL_VIEWS = deepFreeze([
       'user.ip',
       'environment',
     ],
+    columnWidths: ['3fr', '80px', '1fr', '1fr', '1.5fr'],
   },
   {
     id: 'errors',
@@ -43,6 +44,7 @@ export const ALL_VIEWS = deepFreeze([
       query: 'event.type:error',
     },
     tags: ['error.type', 'project.name'],
+    columnWidths: ['3fr', '70px', '70px', '1fr', '1.5fr'],
   },
   {
     id: 'csp',
@@ -60,6 +62,7 @@ export const ALL_VIEWS = deepFreeze([
       'os.name',
       'effective-directive',
     ],
+    columnWidths: ['3fr', '70px', '70px', '1fr', '1.5fr'],
   },
 ]);
 
