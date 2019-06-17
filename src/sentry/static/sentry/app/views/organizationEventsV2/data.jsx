@@ -40,6 +40,7 @@ export const ALL_VIEWS = deepFreeze([
       fields: ['error', 'event_count', 'user_count', 'project', 'last_seen'],
       groupby: ['issue.id', 'project.id'],
       orderby: ['-last_seen', '-issue.id'],
+      query: 'event.type:error',
     },
     tags: ['error.type', 'project.name'],
   },
@@ -50,6 +51,7 @@ export const ALL_VIEWS = deepFreeze([
       fields: ['csp', 'event_count', 'user_count', 'project', 'last_seen'],
       groupby: ['issue.id', 'project.id'],
       orderby: ['-last_seen', '-issue.id'],
+      query: 'event.type:csp',
     },
     tags: [
       'project.name',

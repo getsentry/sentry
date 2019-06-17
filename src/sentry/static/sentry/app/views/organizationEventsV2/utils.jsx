@@ -55,6 +55,14 @@ export function getQuery(view, location) {
   data.groupby = groupby;
   data.orderby = view.data.orderby;
   data.per_page = DEFAULT_PER_PAGE;
+
+  if (view.data.query) {
+    if (data.query) {
+      data.query = `${data.query} ${view.data.query}`;
+    } else {
+      data.query = view.data.query;
+    }
+  }
   return data;
 }
 
