@@ -30,7 +30,7 @@ def create_first_user(created_models, verbosity, db, app=None, **kwargs):
         return
 
     from sentry.runner import call_command
-    call_command('sentry.runner.commands.createuser.createuser')
+    call_command('sentry.runner.commands.createuser.createuser', superuser=True)
 
 
 post_syncdb.connect(
