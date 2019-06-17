@@ -108,6 +108,7 @@ EventMetadata.propTypes = {
 };
 
 const OverflowHeader = styled('h2')`
+  line-height: 1.2;
   ${overflowEllipsis}
 `;
 
