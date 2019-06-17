@@ -8,6 +8,7 @@ import TagStore from 'app/stores/tagStore';
 
 // Mock <StreamSidebar> (need <StreamActions> to toggling real time polling)
 jest.mock('app/views/organizationStream/sidebar', () => jest.fn(() => null));
+jest.mock('app/views/organizationStream/filters', () => jest.fn(() => null));
 jest.mock('app/components/stream/group', () => jest.fn(() => null));
 
 jest.mock('js-cookie', () => ({
