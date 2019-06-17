@@ -6,12 +6,13 @@ import styled from 'react-emotion';
 
 import {DEFAULT_STATS_PERIOD} from 'app/constants';
 import {analytics} from 'app/utils/analytics';
-import {defined, parsePeriodToHours} from 'app/utils';
+import {defined} from 'app/utils';
 import {
   getLocalToSystem,
   getPeriodAgo,
   getUserTimezone,
   getUtcToSystem,
+  parsePeriodToHours,
 } from 'app/utils/dates';
 import {getRelativeSummary} from 'app/components/organizations/timeRangeSelector/utils';
 import {t} from 'app/locale';
