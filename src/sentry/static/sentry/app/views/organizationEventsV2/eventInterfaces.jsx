@@ -37,12 +37,12 @@ const ActiveTab = props => {
         type={entry.type}
         data={entry.data}
         isShare={false}
-        showGuides={false}
+        hideGuide
       />
     );
   } else if (OTHER_SECTIONS[activeTab]) {
     const Component = OTHER_SECTIONS[activeTab];
-    return <Component event={event} isShare={false} showGuides={false} />;
+    return <Component event={event} isShare={false} hideGuide />;
   } else {
     /*eslint no-console:0*/
     window.console &&

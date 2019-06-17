@@ -10,13 +10,13 @@ class EventDataSection extends React.Component {
     wrapTitle: PropTypes.bool,
     toggleRaw: PropTypes.func,
     raw: PropTypes.bool,
-    showGuides: PropTypes.bool,
+    hideGuide: PropTypes.bool,
   };
 
   static defaultProps = {
     wrapTitle: true,
     raw: false,
-    showGuides: true,
+    hideGuide: false,
   };
 
   componentDidMount() {
@@ -43,7 +43,7 @@ class EventDataSection extends React.Component {
     const {
       children,
       className,
-      showGuides,
+      hideGuide,
       type,
       title,
       toggleRaw,
@@ -51,7 +51,9 @@ class EventDataSection extends React.Component {
       wrapTitle,
     } = this.props;
     const guideAnchor =
-      type === 'tags' && showGuides ? <GuideAnchor target="tags" type="text" /> : null;
+      type === 'tags' && hideGuide === false ? (
+        <GuideAnchor target="tags" type="text" />
+      ) : null;
 
     return (
       <div className={(className || '') + ' box'}>

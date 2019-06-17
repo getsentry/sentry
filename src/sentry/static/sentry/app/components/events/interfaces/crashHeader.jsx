@@ -16,11 +16,11 @@ class CrashHeader extends React.Component {
     newestFirst: PropTypes.bool.isRequired,
     stackType: PropTypes.string, // 'original', 'minified', or falsy (none)
     onChange: PropTypes.func,
-    showGuides: PropTypes.bool,
+    hideGuide: PropTypes.bool,
   };
 
   static defaultProps = {
-    showGuides: true,
+    hideGuide: false,
   };
 
   hasSystemFrames() {
@@ -85,19 +85,12 @@ class CrashHeader extends React.Component {
   }
 
   render() {
-    const {
-      title,
-      beforeTitle,
-      showGuides,
-      stackView,
-      stackType,
-      newestFirst,
-    } = this.props;
+    const {title, beforeTitle, hideGuide, stackView, stackType, newestFirst} = this.props;
 
     return (
       <div className="crash-title">
         {beforeTitle}
-        {showGuides && <GuideAnchor target="exception" type="text" />}
+        {hideGuide === false && <GuideAnchor target="exception" type="text" />}
         <h3 className="pull-left">
           {title}
           <small style={{marginLeft: 5}}>
