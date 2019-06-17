@@ -1,30 +1,25 @@
 from __future__ import absolute_import
 
 import logging
-import re
+import six
 
-from copy import deepcopy
-from collections import OrderedDict
 from datetime import timedelta
 from functools import partial
-
 from rest_framework.response import Response
 
 from sentry import tagstore
-from sentry.tagstore.base import TOP_VALUES_DEFAULT_LIMIT
-from sentry.tagstore.types import TagKey, TagValue
 from sentry.api.bases import OrganizationEventsEndpointBase, OrganizationEventsError, NoProjects
 from sentry.api.helpers.events import get_direct_hit_response
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.serializers import EventSerializer, serialize, SimpleEventSerializer
 from sentry.api.serializers.snuba import SnubaTSResultSerializer
 from sentry.models import SnubaEvent
+from sentry.search.snuba.logic import lookup_tags
 from sentry.utils.dates import parse_stats_period
 from sentry.utils.snuba import (
     raw_query,
     transform_aliases_and_query,
     SnubaTSResult,
-    SENTRY_SNUBA_MAP,
     SnubaError,
 )
 from sentry import features
@@ -193,9 +188,6 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsEndpointBase):
 
 
 class OrganizationEventsHeatmapEndpoint(OrganizationEventsEndpointBase):
-    NON_TAG_KEYS = SENTRY_SNUBA_MAP.copy()
-    NON_TAG_KEYS.update({'project.name': 'project_id'})
-    SENTRY_PREFIX = re.compile(r'sentry:(?P<tag_key>.*)')
 
     def get(self, request, organization):
         try:
@@ -205,22 +197,43 @@ class OrganizationEventsHeatmapEndpoint(OrganizationEventsEndpointBase):
         except NoProjects:
             return Response({'detail': 'A valid project must be included.'}, status=400)
 
-        lookup_keys = []
-        non_tag_lookup_keys = []
+        try:
+            keys = self._validate_keys(request)
+            self._validate_project_ids(request, organization, snuba_args)
+        except OrganizationEventsError as error:
+            return Response({'detail': six.text_type(error)}, status=400)
 
-        # TODO(lb): some validation should probably occur but I'm not clear what
+        try:
+            tags = lookup_tags(keys, **snuba_args)
+        except (KeyError, SnubaError) as error:
+            logger.info(
+                'api.organization-events-heatmap',
+                extra={
+                    'organization_id': organization.id,
+                    'user_id': request.user.id,
+                    'keys': keys,
+                    'snuba_args': snuba_args,
+                    'error': six.text_type(error)
+                }
+            )
+            return Response({
+                'detail': 'Invalid query.'
+            }, status=400)
+
+        return Response(serialize(tags, request.user))
+
+    def _validate_keys(self, request):
         keys = request.GET.getlist('keys')
-        for key in keys:
-            if not tagstore.is_valid_key(key):
-                return Response({'detail': 'Tag key %s is not valid.' % key}, status=400)
-            if key in self.NON_TAG_KEYS:
-                non_tag_lookup_keys.append(key)
-            else:
-                lookup_keys.append(tagstore.prefix_reserved_key(key))
-
-        if not (lookup_keys or non_tag_lookup_keys):
+        if not keys:
             return Response({'detail': 'Tag keys must be specified.'}, status=400)
 
+        for key in keys:
+            if not tagstore.is_valid_key(key):
+                raise OrganizationEventsError('Tag key %s is not valid.' % key)
+
+        return keys
+
+    def _validate_project_ids(self, request, organization, snuba_args):
         project_ids = snuba_args['filter_keys']['project_id']
 
         has_global_views = features.has(
@@ -229,160 +242,9 @@ class OrganizationEventsHeatmapEndpoint(OrganizationEventsEndpointBase):
             actor=request.user)
 
         if not has_global_views and len(project_ids) > 1:
-            return Response({
-                'detail': 'You cannot view events from multiple projects.'
-            }, status=400)
+            raise OrganizationEventsError('You cannot view events from multiple projects.')
 
-        try:
-            total_count = self.get_total_value_count(**snuba_args)
-        except (KeyError, SnubaError):
-            logger.info(  # TODO(lb): should this be level error?
-                'api.organization-events-heatmap',
-                extra={
-                    'organization_id': organization.id,
-                    'user_id': request.user.id,
-                    'keys': keys,
-                    'snuba_args': snuba_args,
-                }
-            )
-            return Response({
-                'detail': 'Invalid query.'  # TODO(lb): is this ok?
-            }, status=400)
-
-        if lookup_keys:
-            try:
-                top_values = self.get_top_values(keys=lookup_keys, **snuba_args)
-            except (KeyError, SnubaError):
-                logger.info(  # TODO(lb): should this be level error?
-                    'api.organization-events-heatmap',
-                    extra={
-                        'organization_id': organization.id,
-                        'user_id': request.user.id,
-                        'keys': keys,
-                        'snuba_args': snuba_args,
-                    }
-                )
-                return Response({
-                    'detail': 'Invalid query.'  # TODO(lb): is this ok?
-                }, status=400)
-        else:
-            top_values = []
-
-        if non_tag_lookup_keys:
-            self.handle_non_tag_keys(non_tag_lookup_keys, snuba_args, top_values)
-
-        tag_keys = self._create_tag_objects(keys, total_count, top_values)
-
-        # sort heatmap categories in the same order requested.
-        tag_keys = sorted(tag_keys, key=lambda x: keys.index(x.key))
-
-        return Response(serialize(tag_keys, request.user))
-
-    def handle_non_tag_keys(self, keys, snuba_args, top_values):
-        for key in keys:
-
-            data = self._query_non_tag_data(self.NON_TAG_KEYS[key], snuba_args)
-
-            if key == 'project.name':
-                projects = Project.objects.filter(id__in=snuba_args['filter_keys']['project_id'])
-                for value in data:
-                    project_slug = projects.filter(id=value['project_id'])[0].slug
-                    value['tags_value'] = project_slug
-                    value['tags_key'] = key
-            else:
-                for value in data:
-                    value['tags_key'] = key
-                    value['tags_value'] = value[self.NON_TAG_KEYS[key]]
-
-            top_values += data
-
-        # order combined values by count
-        top_values = sorted(top_values, key=lambda x: x['count'])
-
-    def _query_non_tag_data(self, key, snuba_args):
-        snuba_args = deepcopy(snuba_args)
-        data = raw_query(
-            groupby=[key],
-            conditions=snuba_args.pop('conditions', []) + [
-                [['isNotNull', [key]], '=', 1]
-            ],
-            aggregations=snuba_args.pop('aggregations', []) + [
-                ['count()', '', 'count'],
-                ['min', 'timestamp', 'first_seen'],
-                ['max', 'timestamp', 'last_seen'],
-            ],
-            orderby='-count',
-            referrer='api.organization-events-heatmap',
-            **snuba_args
-        )
-        return data['data']
-
-    def _create_tag_objects(self, keys, total_count, top_values):
-        tag_keys_dict = OrderedDict()
-
-        for top_value in top_values:
-            key = top_value['tags_key']
-
-            if key not in tag_keys_dict:
-                tag_keys_dict[key] = TagKey(
-                    key=key,
-                    top_values=[],
-                    count=total_count,
-                )
-            tag_keys_dict[key].top_values.append(
-                TagValue(
-                    key=key,
-                    value=top_value['tags_value'],
-                    times_seen=top_value['count'],
-                    first_seen=top_value['first_seen'],
-                    last_seen=top_value['last_seen'],
-                )
-            )
-
-        # Add categories with no values
-        for key in keys:
-            if key not in tag_keys_dict:
-                tag_keys_dict[key] = TagKey(
-                    key=key,
-                    top_values=[],
-                    count=total_count,
-                )
-        return tag_keys_dict.values()
-
-    def get_total_value_count(self, **kwargs):
-        kwargs = deepcopy(kwargs)
-        aggregations = kwargs.pop('aggregations', [])
-        aggregations += [
-            ['count()', '', 'count'],
-        ]
-
-        total_count = raw_query(
-            aggregations=aggregations,
-            referrer='api.organization-events-heatmap',
-            **kwargs
-        )['data'][0]['count']
-        return total_count
-
-    def get_top_values(self, keys, value_limit=TOP_VALUES_DEFAULT_LIMIT, **kwargs):
-        kwargs = deepcopy(kwargs)
-        filters = kwargs.pop('filter_keys', {})
-        filters['tags_key'] = keys
-
-        aggregations = kwargs.pop('aggregations', [])
-        aggregations += [
-            ['count()', '', 'count'],
-            ['min', 'timestamp', 'first_seen'],
-            ['max', 'timestamp', 'last_seen'],
-        ]
-
-        values = raw_query(
-            groupby=['tags_key', 'tags_value'],
-            filter_keys=filters, aggregations=aggregations,
-            orderby='-count', limitby=[value_limit, 'tags_key'],
-            referrer='api.organization-events-heatmap',
-            **kwargs
-        )['data']
-        return values
+        return project_ids
 
 
 class OrganizationEventsMetaEndpoint(OrganizationEventsEndpointBase):
