@@ -1,4 +1,4 @@
-import {parsePeriodToHours} from 'app/utils';
+import {parsePeriodToHours} from 'app/utils/dates';
 // Max period (in hours) before we can no long include previous period
 const MAX_PERIOD_HOURS_INCLUDE_PREVIOUS = 45 * 24;
 

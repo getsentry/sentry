@@ -51,7 +51,7 @@ export default class TagDistributionMeter extends React.Component {
     }
 
     return (
-      <React.Fragment>
+      <Segments>
         {segments.map((value, index) => {
           const pct = percent(value.count, totalValues);
           const pctLabel = Math.floor(pct);
@@ -64,24 +64,23 @@ export default class TagDistributionMeter extends React.Component {
           );
 
           return (
-            <Tooltip key={value.value} title={tooltipHtml} containerDisplayMode="inline">
-              <Segment
-                style={{width: pct + '%'}}
-                to={value.isOther ? null : value.url}
-                index={index}
-                first={index === 0}
-                last={index === segments.length - 1}
-                isOther={!!value.isOther}
-              >
-                <Description first={index === 0}>
-                  <Percentage>{pctLabel}%</Percentage>
-                  <Label>{value.name}</Label>
-                </Description>
-              </Segment>
-            </Tooltip>
+            <div key={value.value} style={{width: pct + '%'}}>
+              <Tooltip title={tooltipHtml} containerDisplayMode="block">
+                <Segment
+                  to={value.isOther ? null : value.url}
+                  index={index}
+                  isOther={!!value.isOther}
+                >
+                  <Description first={index === 0}>
+                    <Percentage>{pctLabel}%</Percentage>
+                    <Label>{value.name}</Label>
+                  </Description>
+                </Segment>
+              </Tooltip>
+            </div>
           );
         })}
-      </React.Fragment>
+      </Segments>
     );
   }
 
@@ -150,20 +149,21 @@ const colors = [
   '#dad9ed',
 ];
 
+const Segments = styled('div')`
+  display: flex;
+  border-radius: ${p => p.theme.borderRadius};
+  overflow: hidden;
+`;
+
 const Segment = styled(Link, {shouldForwardProp: isPropValid})`
+  display: block;
+  width: 100%;
   height: 16px;
-  display: inline-block;
   color: inherit;
 
   &:hover {
     background: ${p => p.theme.purple};
   }
-
-  border-top-left-radius: ${p => p.first && p.theme.borderRadius};
-  border-bottom-left-radius: ${p => p.first && p.theme.borderRadius};
-
-  border-top-right-radius: ${p => p.last && p.theme.borderRadius};
-  border-bottom-right-radius: ${p => p.last && p.theme.borderRadius};
 
   background-color: ${p => (p.isOther ? colors[colors.length - 1] : colors[p.index])};
 `;
@@ -185,9 +185,9 @@ const Description = styled('span', {shouldForwardProp: isPropValid})`
 `;
 
 const Percentage = styled('span')`
+  display: inline-block;
   margin-right: 6px;
   color: ${p => p.theme.gray2};
-  display: inline-block;
   vertical-align: middle;
 `;
 

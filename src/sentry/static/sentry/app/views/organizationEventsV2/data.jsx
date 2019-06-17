@@ -9,8 +9,12 @@ import space from 'app/styles/space';
 import ProjectBadge from 'app/components/idBadge/projectBadge';
 import UserBadge from 'app/components/idBadge/userBadge';
 import DateTime from 'app/components/dateTime';
+import pinIcon from 'app/../images/location-pin.png';
 
 import {QueryLink} from './styles';
+
+export const MODAL_QUERY_KEYS = ['eventSlug', 'groupSlug'];
+export const PIN_ICON = `image://${pinIcon}`;
 
 export const ALL_VIEWS = deepFreeze([
   {

@@ -6,6 +6,7 @@ from sentry.api.serializers import serialize
 from sentry.incidents.models import (
     IncidentActivity,
     IncidentActivityType,
+    IncidentSubscription,
 )
 from sentry.testutils import APITestCase
 
@@ -48,6 +49,41 @@ class OrganizationIncidentCommentCreateEndpointTest(APITestCase):
         assert activity.user == self.user
         assert activity.comment == comment
         assert resp.data == serialize([activity], self.user)[0]
+
+    def test_mentions(self):
+        self.create_member(
+            user=self.user,
+            organization=self.organization,
+            role='owner',
+            teams=[self.team],
+        )
+        mentioned_member = self.create_user()
+        self.create_member(
+            user=mentioned_member,
+            organization=self.organization,
+            role='owner',
+            teams=[self.team],
+        )
+        self.login_as(self.user)
+        comment = 'hello **@%s**' % mentioned_member.username
+        incident = self.create_incident()
+        with self.feature('organizations:incidents'):
+            resp = self.get_valid_response(
+                self.organization.slug,
+                incident.identifier,
+                comment=comment,
+                mentions=['user:%s' % mentioned_member.id],
+                status_code=201,
+            )
+        activity = IncidentActivity.objects.get(id=resp.data['id'])
+        assert activity.type == IncidentActivityType.COMMENT.value
+        assert activity.user == self.user
+        assert activity.comment == comment
+        assert resp.data == serialize([activity], self.user)[0]
+        assert IncidentSubscription.objects.filter(
+            user=mentioned_member,
+            incident=incident,
+        ).exists()
 
     def test_access(self):
         other_user = self.create_user()

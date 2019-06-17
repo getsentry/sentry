@@ -46,12 +46,14 @@ describe('DropdownMenu', function() {
     expect(wrapper.find('ul')).toHaveLength(0);
   });
 
-  it('closes dropdown when clicking outside of menu', function() {
+  it('closes dropdown when clicking outside of menu', async function() {
     wrapper.find('button').simulate('click');
     // Simulate click on document
     const evt = document.createEvent('HTMLEvents');
     evt.initEvent('click', false, true);
     document.body.dispatchEvent(evt);
+    jest.runAllTimers();
+    await Promise.resolve();
     wrapper.update();
 
     expect(wrapper.find('ul')).toHaveLength(0);

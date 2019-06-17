@@ -16,6 +16,7 @@ import {getParams} from 'app/views/organizationEvents/utils/getParams';
 import Table from './table';
 import Tags from './tags';
 import {getQuery} from './utils';
+import {MODAL_QUERY_KEYS} from './data';
 
 const CHART_AXIS_OPTIONS = [
   {label: 'Count', value: 'event_count'},
@@ -35,8 +36,8 @@ export default class Events extends AsyncComponent {
   componentDidUpdate(prevProps, prevContext) {
     // Do not update if we are just opening/closing the modal
     const locationHasChanged = !isEqual(
-      omit(prevProps.location.query, 'eventSlug'),
-      omit(this.props.location.query, 'eventSlug')
+      omit(prevProps.location.query, MODAL_QUERY_KEYS),
+      omit(this.props.location.query, MODAL_QUERY_KEYS)
     );
 
     if (locationHasChanged) {

@@ -46,6 +46,7 @@ class EventsRequest extends React.PureComponent {
      * Absolute start date for query
      */
     start: PropTypes.instanceOf(Date),
+
     /**
      * Absolute end date for query
      */

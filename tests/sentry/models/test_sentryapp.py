@@ -35,6 +35,15 @@ class SentryAppTest(TestCase):
             hashlib.sha1(self.org.slug).hexdigest()[0:6]
         )
 
+    def test_internal_slug_on_update(self):
+        self.sentry_app.status = SentryAppStatus.INTERNAL
+        self.sentry_app.save()
+        self.sentry_app.save()
+
+        assert self.sentry_app.slug == u'nulldb-{}'.format(
+            hashlib.sha1(self.org.slug).hexdigest()[0:6]
+        )
+
     def test_paranoid(self):
         self.sentry_app.save()
         self.sentry_app.delete()
