@@ -142,7 +142,7 @@ describe('OrganizationEventsV2 > EventDetails', function() {
       />,
       TestStubs.routerContext()
     );
-    const button = wrapper.find('CloseButton');
+    const button = wrapper.find('DismissButton');
     button.simulate('click');
     expect(browserHistory.push).toHaveBeenCalledWith({
       pathname: '/organizations/org-slug/events/',
@@ -163,7 +163,7 @@ describe('OrganizationEventsV2 > EventDetails', function() {
       />,
       TestStubs.routerContext()
     );
-    const button = wrapper.find('CloseButton');
+    const button = wrapper.find('DismissButton');
     button.simulate('click');
     expect(browserHistory.push).toHaveBeenCalledWith({
       pathname: '/organizations/org-slug/events/',
