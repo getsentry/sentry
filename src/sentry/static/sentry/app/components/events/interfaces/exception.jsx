@@ -13,6 +13,11 @@ class ExceptionInterface extends React.Component {
     type: PropTypes.string.isRequired,
     data: PropTypes.object.isRequired,
     projectId: PropTypes.string.isRequired,
+    showGuides: PropTypes.bool,
+  };
+
+  static defaultProps = {
+    showGuides: true,
   };
 
   constructor(...args) {
@@ -29,7 +34,7 @@ class ExceptionInterface extends React.Component {
   };
 
   render() {
-    const {projectId, event, data, type} = this.props;
+    const {projectId, event, data, showGuides, type} = this.props;
     const {stackView, stackType, newestFirst} = this.state;
 
     // in case there are threads in the event data, we don't render the
@@ -47,6 +52,7 @@ class ExceptionInterface extends React.Component {
         stackView={stackView}
         newestFirst={newestFirst}
         stackType={stackType}
+        showGuides={showGuides}
         onChange={newState => {
           this.setState(newState);
         }}

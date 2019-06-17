@@ -20,6 +20,11 @@ class EventTags extends React.Component {
     event: SentryTypes.Event.isRequired,
     orgId: PropTypes.string.isRequired,
     projectId: PropTypes.string.isRequired,
+    showGuides: PropTypes.bool,
+  };
+
+  static defaultProps = {
+    showGuides: true,
   };
 
   render() {
@@ -29,7 +34,7 @@ class EventTags extends React.Component {
       return null;
     }
 
-    const {event, group, orgId, projectId} = this.props;
+    const {event, group, orgId, projectId, showGuides} = this.props;
 
     const streamPath = `/organizations/${orgId}/issues/`;
 
@@ -42,6 +47,7 @@ class EventTags extends React.Component {
         title={t('Tags')}
         type="tags"
         className="p-b-1"
+        showGuides={showGuides}
       >
         <Pills className="no-margin">
           {tags.map(tag => {

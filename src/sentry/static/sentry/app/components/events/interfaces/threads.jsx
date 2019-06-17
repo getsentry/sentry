@@ -202,6 +202,11 @@ class ThreadsInterface extends React.Component {
     projectId: PropTypes.string.isRequired,
     type: PropTypes.string.isRequired,
     data: PropTypes.object.isRequired,
+    showGuides: PropTypes.bool,
+  };
+
+  static defaultProps = {
+    showGuides: true,
   };
 
   constructor(props) {
@@ -248,7 +253,7 @@ class ThreadsInterface extends React.Component {
 
   render() {
     const evt = this.props.event;
-    const {projectId} = this.props;
+    const {projectId, showGuides} = this.props;
     const {stackView, stackType, newestFirst, activeThread} = this.state;
     const exception = this.getException();
     const stacktrace = this.getStacktrace();
@@ -282,6 +287,7 @@ class ThreadsInterface extends React.Component {
         thread={activeThread}
         stacktrace={stacktrace}
         exception={exception}
+        showGuides={showGuides}
         stackView={stackView}
         newestFirst={newestFirst}
         stackType={stackType}
