@@ -10,7 +10,7 @@ import Version from 'app/components/version';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
 
-import {LastEvent, Layout, NewCount, ReleaseName, Stats} from './layout';
+import {LastEventColumn, Layout, CountColumn, VersionColumn, StatsColumn} from './layout';
 import LatestDeployOrReleaseTime from './latestDeployOrReleaseTime';
 
 class ReleaseList extends React.Component {
@@ -29,7 +29,7 @@ class ReleaseList extends React.Component {
           return (
             <ReleasePanelItem key={release.version}>
               <Layout>
-                <ReleaseName>
+                <VersionColumn>
                   <VersionWrapper>
                     <Version
                       orgId={orgId}
@@ -38,20 +38,20 @@ class ReleaseList extends React.Component {
                     />
                   </VersionWrapper>
                   <LatestDeployOrReleaseTime orgId={orgId} release={release} />
-                </ReleaseName>
-                <Stats>
+                </VersionColumn>
+                <StatsColumn>
                   <ReleaseStats release={release} />
-                </Stats>
-                <NewCount>
+                </StatsColumn>
+                <CountColumn>
                   <Count className="release-count" value={release.newGroups || 0} />
-                </NewCount>
-                <LastEvent>
+                </CountColumn>
+                <LastEventColumn>
                   {release.lastEvent ? (
                     <SmallTimeSince date={release.lastEvent} />
                   ) : (
                     <span>—</span>
                   )}
-                </LastEvent>
+                </LastEventColumn>
               </Layout>
             </ReleasePanelItem>
           );

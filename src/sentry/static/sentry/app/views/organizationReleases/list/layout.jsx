@@ -16,21 +16,21 @@ const Layout = styled('div')`
   }
 `;
 
-const ReleaseName = styled('div')`
+const VersionColumn = styled('div')`
   grid-area: release-name;
   overflow: hidden;
 `;
-const Stats = styled('div')`
+const StatsColumn = styled('div')`
   grid-area: stats;
 
   @media (max-width: ${p => p.theme.breakpoints[0]}) {
     display: none;
   }
 `;
-const NewCount = styled('div')`
+const CountColumn = styled('div')`
   grid-area: new-count;
 `;
-const LastEvent = styled('div')`
+const LastEventColumn = styled('div')`
   grid-area: last-event;
 `;
-export {Layout, ReleaseName, Stats, NewCount, LastEvent};
+export {Layout, VersionColumn, StatsColumn, CountColumn, LastEventColumn};
