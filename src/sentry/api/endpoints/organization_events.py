@@ -211,6 +211,8 @@ class OrganizationEventsHeatmapEndpoint(OrganizationEventsEndpointBase):
         # TODO(lb): some validation should probably occur but I'm not clear what
         keys = request.GET.getlist('keys')
         for key in keys:
+            if not tagstore.is_valid_key(key):
+                return Response({'detail': 'Tag key %s is not valid.' % key}, status=400)
             if key in self.NON_TAG_KEYS:
                 non_tag_lookup_keys.append(key)
             else:

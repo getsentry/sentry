@@ -1572,6 +1572,13 @@ class OrganizationEventsHeatmapEndpointTest(OrganizationEventsTestBase):
         assert response.data == {
             'detail': "Parse error: 'search' (column 1). This is commonly caused by unmatched-parentheses. Enclose any text in double quotes."}
 
+    def test_invalid_tag(self):
+        response = self.client.get(
+            self.url, {
+                'keys': ['color;;;']}, format='json')
+        assert response.status_code == 400, response.content
+        assert response.data == {'detail': "Tag key color;;; is not valid."}
+
 
 class OrganizationEventsMetaEndpoint(OrganizationEventsTestBase):
     def test_simple(self):
