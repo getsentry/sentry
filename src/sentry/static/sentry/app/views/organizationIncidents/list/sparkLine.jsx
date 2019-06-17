@@ -1,8 +1,12 @@
 import React from 'react';
 import styled from 'react-emotion';
 
+import Placeholder from 'app/components/placeholder';
 import SentryTypes from 'app/sentryTypes';
 import theme from 'app/utils/theme';
+
+// Height of sparkline
+const SPARKLINE_HEIGHT = 38;
 
 class SparkLine extends React.Component {
   static propTypes = {
@@ -40,7 +44,7 @@ class SparkLine extends React.Component {
     const {Sparklines, SparklinesLine, loading} = this.state;
 
     if (loading) {
-      return null;
+      return <SparkLinePlaceholder />;
     }
 
     const data = incident.eventStats.data.map(([, value]) =>
@@ -56,9 +60,16 @@ class SparkLine extends React.Component {
     );
   }
 }
+
 const StyledSparkLine = styled(SparkLine)`
   flex-shrink: 0;
   width: 120px;
+  height: ${SPARKLINE_HEIGHT}px;
+`;
+
+const SparkLinePlaceholder = styled(Placeholder)`
+  background-color: transparent;
+  height: ${SPARKLINE_HEIGHT}px;
 `;
 
 export default StyledSparkLine;

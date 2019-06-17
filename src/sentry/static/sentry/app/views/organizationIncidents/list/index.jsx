@@ -48,7 +48,7 @@ class OrganizationIncidentsList extends AsyncComponent {
       .as('seconds');
 
     return (
-      <PanelItem key={incident.id}>
+      <IncidentPanelItem key={incident.id}>
         <TableLayout>
           <TitleAndSparkLine>
             <Link to={`/organizations/${orgId}/incidents/${incident.identifier}/`}>
@@ -69,7 +69,7 @@ class OrganizationIncidentsList extends AsyncComponent {
             <Count value={incident.totalEvents} />
           </div>
         </TableLayout>
-      </PanelItem>
+      </IncidentPanelItem>
     );
   }
 
@@ -198,6 +198,10 @@ const TitleAndSparkLine = styled('div')`
   display: flex;
   justify-content: space-between;
   align-items: center;
+`;
+
+const IncidentPanelItem = styled(PanelItem)`
+  padding: ${space(1)} ${space(2)};
 `;
 
 export default OrganizationIncidentsListContainer;
