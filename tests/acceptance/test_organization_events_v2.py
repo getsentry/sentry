@@ -87,11 +87,21 @@ class OrganizationEventsTest(AcceptanceTestCase, SnubaTestCase):
             project_id=self.project.id,
             assert_no_errors=False,
         )
+        self.store_event(
+            data={
+                'event_id': 'c' * 32,
+                'message': 'this is bad.',
+                'timestamp': min_ago,
+                'fingerprint': ['group-2']
+            },
+            project_id=self.project.id,
+            assert_no_errors=False,
+        )
 
         with self.feature(FEATURE_NAME):
             self.browser.get(self.path + '?view=errors')
             self.wait_until_loaded()
-            self.browser.snapshot('events-v2 - error list')
+            self.browser.snapshot('events-v2 - errors')
 
     @patch('django.utils.timezone.now')
     def test_modal_from_all_events(self, mock_now):
