@@ -55,7 +55,7 @@ class EventSdkUpdateSuggestion extends React.Component {
       case 'updateSdk':
         href = suggestion.sdkUrl;
         content = t(
-          'Update your SDK from version %s to version %s',
+          'update your SDK from version %s to version %s',
           event.sdk.version,
           suggestion.newSdkVersion
         );
@@ -68,7 +68,7 @@ class EventSdkUpdateSuggestion extends React.Component {
         break;
       case 'enableIntegration':
         href = suggestion.integrationUrl;
-        content = t("Enable the '%s' integration", suggestion.integrationName);
+        content = t("enable the '%s' integration", suggestion.integrationName);
         break;
       default:
         return null;
