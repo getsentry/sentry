@@ -6,6 +6,23 @@ import _ from 'lodash';
 import {t} from 'app/locale';
 import withApi from 'app/utils/withApi';
 
+// TODO: This is react-router v4 <Redirect to="path/" /> component to allow things
+//       to be declarative
+class Redirect extends React.Component {
+  static propTypes = {
+    router: PropTypes.object.isRequired,
+    to: PropTypes.string.isRequired,
+  };
+
+  componentDidMount() {
+    this.props.router.replace(this.props.to);
+  }
+
+  render() {
+    return null;
+  }
+}
+
 const redirectSentry9Project = generateRedirectRoute => {
   class RedirectSentry9Project extends React.Component {
     static propTypes = {
@@ -26,30 +43,6 @@ const redirectSentry9Project = generateRedirectRoute => {
 
     componentDidMount() {
       this.fetchData();
-    }
-
-    componentDidUpdate(prevProps, prevState) {
-      const previousProjectId = this.getProjectId(prevState.project);
-      const currentProjectId = this.getProjectId(this.state.project);
-      const hasProjectId = this.hasProjectId(this.state.project);
-
-      if (
-        previousProjectId !== currentProjectId &&
-        hasProjectId &&
-        this.state.loading === false
-      ) {
-        const routeProps = {
-          orgId: this.props.params.orgId,
-          projectId: currentProjectId,
-          router: {
-            params: {
-              ...this.props.params,
-            },
-          },
-        };
-
-        this.props.router.replace(generateRedirectRoute(routeProps));
-      }
     }
 
     fetchData = async () => {
@@ -111,10 +104,21 @@ const redirectSentry9Project = generateRedirectRoute => {
         );
       }
 
-      console.log('project', this.state.project);
+      const currentProjectId = this.getProjectId(this.state.project);
 
-      // TODO: flesh this out
-      return <div>redirecting</div>;
+      const routeProps = {
+        orgId: this.props.params.orgId,
+        projectId: currentProjectId,
+        router: {
+          params: {
+            ...this.props.params,
+          },
+        },
+      };
+
+      return (
+        <Redirect router={this.props.router} to={generateRedirectRoute(routeProps)} />
+      );
     }
   }
 
