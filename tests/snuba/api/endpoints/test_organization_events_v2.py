@@ -475,7 +475,7 @@ class OrganizationEventsV2EndpointTest(OrganizationEventsTestBase):
             },
             project_id=project.id,
         )
-        self.store_event(
+        event2 = self.store_event(
             data={
                 'event_id': 'b' * 32,
                 'timestamp': self.min_ago,
@@ -512,7 +512,7 @@ class OrganizationEventsV2EndpointTest(OrganizationEventsTestBase):
             project_id=project.id,
         )
 
-        groups = Group.objects.all()
+        group = Group.objects.get(id=event2.group_id)
 
         with self.feature('organizations:events-v2'):
             response = self.client.get(
@@ -529,7 +529,7 @@ class OrganizationEventsV2EndpointTest(OrganizationEventsTestBase):
         assert response.status_code == 200, response.content
 
         assert len(response.data) == 1
-        assert response.data[0]['issue.id'] == groups[1].id
+        assert response.data[0]['issue.id'] == group.id
         assert response.data[0]['event_count'] == 2
 
     def test_invalid_groupby(self):
