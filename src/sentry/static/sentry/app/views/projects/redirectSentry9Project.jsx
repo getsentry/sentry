@@ -53,11 +53,11 @@ const redirectSentry9Project = generateRedirectRoute => {
 
       const {orgId, projectId} = this.props.params;
 
-      const projectRequest = this.props.api.requestPromise(
-        `/projects/${orgId}/${projectId}/`
-      );
-
       try {
+        const projectRequest = this.props.api.requestPromise(
+          `/projects/${orgId}/${projectId}/`
+        );
+
         const project = await projectRequest;
         this.setState({
           loading: false,
@@ -87,12 +87,7 @@ const redirectSentry9Project = generateRedirectRoute => {
         return null;
       }
 
-      if (!this.hasProjectId()) {
-        if (this.state.error) {
-          // TODO: handle this
-          return <div>error</div>;
-        }
-
+      if (!this.hasProjectId() || this.state.error) {
         return (
           <div className="container">
             <div className="alert alert-block" style={{margin: '30px 0 10px'}}>
