@@ -1176,10 +1176,12 @@ function routes() {
           <Route
             path="searches/:searchId/"
             component={errorHandler(
-              redirectSentry9ProjectSavedSearch(
-                ({orgId, projectId}) =>
-                  `/organizations/${orgId}/issues/?project=${projectId}`
-              )
+              redirectSentry9ProjectSavedSearch(({orgId, projectId, searchQuery}) => {
+                return {
+                  pathname: `/organizations/${orgId}/issues/`,
+                  query: {...searchQuery, project: projectId},
+                };
+              })
             )}
           />
           <Route

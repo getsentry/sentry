@@ -7,23 +7,7 @@ import {t} from 'app/locale';
 import withApi from 'app/utils/withApi';
 import LoadingError from 'app/components/loadingError';
 import {fetchProjectSavedSearches} from 'app/actionCreators/savedSearches';
-
-// TODO: This is react-router v4 <Redirect to="path/" /> component to allow things
-//       to be declarative
-class Redirect extends React.Component {
-  static propTypes = {
-    router: PropTypes.object.isRequired,
-    to: PropTypes.string.isRequired,
-  };
-
-  componentDidMount() {
-    this.props.router.replace(this.props.to);
-  }
-
-  render() {
-    return null;
-  }
-}
+import {ProjectDetails, Redirect} from './redirectSentry9Project';
 
 const DEFAULT_SORT = 'date';
 const DEFAULT_STATS_PERIOD = '24h';
@@ -96,12 +80,15 @@ const redirectSentry9ProjectSavedSearch = generateRedirectRoute => {
       const currentQuery = this.props.location.query || {};
 
       const queryParams = {
-        query: searchQuery,
         sort: currentQuery.sort || DEFAULT_SORT,
         statsPeriod: STATS_PERIODS.has(currentQuery.statsPeriod)
           ? currentQuery.statsPeriod
           : DEFAULT_STATS_PERIOD,
       };
+
+      if (searchQuery.query) {
+        queryParams.query = searchQuery.query;
+      }
 
       if (currentQuery.environment) {
         queryParams.environment = currentQuery.environment;
@@ -129,19 +116,50 @@ const redirectSentry9ProjectSavedSearch = generateRedirectRoute => {
         return <LoadingError onRetry={this.fetchData} />;
       }
 
-      const routeProps = {
-        orgId: this.props.params.orgId,
-        projectId: currentProjectId,
-        router: {
-          params: {
-            ...this.props.params,
-          },
-        },
-        searchQuery: this.getSearchQuery(),
-      };
+      const {orgId, projectId} = this.props.params;
 
       return (
-        <Redirect router={this.props.router} to={generateRedirectRoute(routeProps)} />
+        <ProjectDetails orgId={orgId} projectId={projectId}>
+          {({loading, error, hasProjectId, getProjectId}) => {
+            if (loading) {
+              return null;
+            }
+
+            if (!hasProjectId()) {
+              if (_.get(error, 'status') === 404) {
+                return (
+                  <div className="container">
+                    <div className="alert alert-block" style={{margin: '30px 0 10px'}}>
+                      {t('The project you were looking for was not found.')}
+                    </div>
+                  </div>
+                );
+              }
+
+              return <LoadingError onRetry={this.fetchData} />;
+            }
+
+            const currentProjectId = getProjectId();
+
+            const routeProps = {
+              orgId: this.props.params.orgId,
+              projectId: currentProjectId,
+              router: {
+                params: {
+                  ...this.props.params,
+                },
+              },
+              searchQuery: this.getSearchQuery(),
+            };
+
+            return (
+              <Redirect
+                router={this.props.router}
+                to={generateRedirectRoute(routeProps)}
+              />
+            );
+          }}
+        </ProjectDetails>
       );
     }
   }
