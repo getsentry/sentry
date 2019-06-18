@@ -1,16 +1,10 @@
 import React from 'react';
-import styled from 'react-emotion';
 import PropTypes from 'prop-types';
-
 import SentryTypes from 'app/sentryTypes';
 import Alert from 'app/components/alert';
 import ExternalLink from 'app/components/links/externalLink';
-import {t, tct} from 'app/locale';
-import space from 'app/styles/space';
 
-const StyledAlert = styled(Alert)`
-  margin: 0 ${space(2)};
-`;
+import {t, tct} from 'app/locale';
 
 export const EnableIntegrationSuggestion = PropTypes.shape({
   type: PropTypes.string,
@@ -117,17 +111,17 @@ class EventSdkUpdates extends React.Component {
     const data = event.sdkUpdates;
 
     return (
-      <div>
+      <div className="box">
         {data.map(suggestion => {
           return (
-            <StyledAlert
+            <Alert
               type="info"
               icon="icon-upgrade"
               key={getSuggestionComponentKey(suggestion)}
             >
               {t('We recommend you ')}
               <EventSdkUpdateSuggestion event={event} suggestion={suggestion} />
-            </StyledAlert>
+            </Alert>
           );
         })}
       </div>
