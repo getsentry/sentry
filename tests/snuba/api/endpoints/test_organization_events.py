@@ -861,7 +861,7 @@ class OrganizationEventsHeatmapEndpointTest(OrganizationEventsTestBase):
         )
 
         with self.feature('organizations:global-views'):
-            response = self.client.get(self.url, {'keys': ['number', 'color']}, format='json')
+            response = self.client.get(self.url, {'key': ['number', 'color']}, format='json')
 
         assert response.status_code == 200, response.content
         assert len(response.data) == 2
@@ -939,7 +939,7 @@ class OrganizationEventsHeatmapEndpointTest(OrganizationEventsTestBase):
         )
 
         with self.feature('organizations:global-views'):
-            response = self.client.get(self.url, {'keys': ['color']}, format='json')
+            response = self.client.get(self.url, {'key': ['color']}, format='json')
         assert response.status_code == 200, response.content
         assert len(response.data) == 1
         assert response.data[0] == {
@@ -998,7 +998,7 @@ class OrganizationEventsHeatmapEndpointTest(OrganizationEventsTestBase):
         with self.feature('organizations:global-views'):
             response = self.client.get(
                 self.url, {
-                    'query': 'delet', 'keys': ['color']}, format='json')
+                    'query': 'delet', 'key': ['color']}, format='json')
 
         assert response.status_code == 200, response.content
         assert len(response.data) == 1
@@ -1059,7 +1059,7 @@ class OrganizationEventsHeatmapEndpointTest(OrganizationEventsTestBase):
         with self.feature('organizations:global-views'):
             response = self.client.get(
                 self.url, {
-                    'query': 'color:yellow', 'keys': ['color', 'project.name']}, format='json')
+                    'query': 'color:yellow', 'key': ['color', 'project.name']}, format='json')
 
         assert response.status_code == 200, response.content
         assert len(response.data) == 2
@@ -1140,7 +1140,7 @@ class OrganizationEventsHeatmapEndpointTest(OrganizationEventsTestBase):
                 {
                     'start': self.day_ago.isoformat()[:19],
                     'end': self.min_ago.isoformat()[:19],
-                    'keys': ['color'],
+                    'key': ['color'],
                 },
                 format='json'
             )
@@ -1194,7 +1194,7 @@ class OrganizationEventsHeatmapEndpointTest(OrganizationEventsTestBase):
         response = self.client.get(
             self.url,
             {
-                'keys': ['user'],
+                'key': ['user'],
                 'project': [self.project.id]
             },
             format='json'
@@ -1234,7 +1234,7 @@ class OrganizationEventsHeatmapEndpointTest(OrganizationEventsTestBase):
                 'organization_slug': org.slug,
             }
         )
-        response = self.client.get(url, {'keys': ['color']}, format='json')
+        response = self.client.get(url, {'key': ['color']}, format='json')
         assert response.status_code == 400, response.content
         assert response.data == {'detail': 'A valid project must be included.'}
 
@@ -1252,7 +1252,7 @@ class OrganizationEventsHeatmapEndpointTest(OrganizationEventsTestBase):
             project_id=self.project2.id
         )
 
-        response = self.client.get(self.url, {'keys': ['color']}, format='json')
+        response = self.client.get(self.url, {'key': ['color']}, format='json')
         assert response.status_code == 400, response.content
         assert response.data == {'detail': 'You cannot view events from multiple projects.'}
 
@@ -1277,7 +1277,7 @@ class OrganizationEventsHeatmapEndpointTest(OrganizationEventsTestBase):
         with self.feature('organizations:global-views'):
             response = self.client.get(
                 self.url, {
-                    'keys': [
+                    'key': [
                         'number', 'color', 'project.name'], 'project': [
                         self.project.id]}, format='json')
 
@@ -1358,7 +1358,7 @@ class OrganizationEventsHeatmapEndpointTest(OrganizationEventsTestBase):
         with self.feature('organizations:global-views'):
             response = self.client.get(
                 self.url, {
-                    'keys': [
+                    'key': [
                         'project.name', 'number', 'color']}, format='json')
 
         assert response.status_code == 200, response.content
@@ -1476,7 +1476,7 @@ class OrganizationEventsHeatmapEndpointTest(OrganizationEventsTestBase):
         with self.feature('organizations:global-views'):
             response = self.client.get(
                 self.url, {
-                    'keys': [
+                    'key': [
                         'user.email', 'user.ip']}, format='json')
 
         assert response.status_code == 200, response.content
@@ -1558,7 +1558,7 @@ class OrganizationEventsHeatmapEndpointTest(OrganizationEventsTestBase):
         with self.feature('organizations:global-views'):
             response = self.client.get(
                 self.url, {
-                    'keys': ['project.name', 'color']}, format='json')
+                    'key': ['project.name', 'color']}, format='json')
 
         assert response.status_code == 200, response.content
         assert len(response.data) == 2
@@ -1589,7 +1589,7 @@ class OrganizationEventsHeatmapEndpointTest(OrganizationEventsTestBase):
 
         response = self.client.get(
             self.url, {
-                'keys': ['color'], 'query': '\n\n\n\n'}, format='json')
+                'key': ['color'], 'query': '\n\n\n\n'}, format='json')
         assert response.status_code == 400, response.content
         assert response.data == {
             'detail': "Parse error: 'search' (column 1). This is commonly caused by unmatched-parentheses. Enclose any text in double quotes."}
@@ -1597,7 +1597,7 @@ class OrganizationEventsHeatmapEndpointTest(OrganizationEventsTestBase):
     def test_invalid_tag(self):
         response = self.client.get(
             self.url, {
-                'keys': ['color;;;']}, format='json')
+                'key': ['color;;;']}, format='json')
         assert response.status_code == 400, response.content
         assert response.data == {'detail': "Tag key color;;; is not valid."}
 

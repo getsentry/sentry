@@ -223,7 +223,7 @@ class OrganizationEventsHeatmapEndpoint(OrganizationEventsEndpointBase):
         return Response(serialize(tags, request.user))
 
     def _validate_keys(self, request):
-        keys = request.GET.getlist('keys')
+        keys = request.GET.getlist('key')
         if not keys:
             return Response({'detail': 'Tag keys must be specified.'}, status=400)
 
