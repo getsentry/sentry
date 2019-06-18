@@ -28,7 +28,7 @@ const redirectSentry9Project = generateRedirectRoute => {
   class RedirectSentry9Project extends React.Component {
     static propTypes = {
       router: PropTypes.object.isRequired,
-      api: PropTypes.object,
+      api: PropTypes.object.isRequired,
 
       params: PropTypes.shape({
         orgId: PropTypes.string.isRequired,
