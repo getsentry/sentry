@@ -74,12 +74,19 @@ const handleClick = async function(
   // Get the timestamp that was clicked.
   const value = series.value[0];
 
+  // Apply the issue.id condition to the request.
+  let search = location.query.query;
+  if (search && search.length) {
+    search += ` issue.id:${groupId}`;
+  } else {
+    search = `issue.id:${groupId}`;
+  }
+
   // Get events that match the clicked timestamp
   // taking into account the group and current environment & query
   const query = {
     environment: selection.environments,
-    query: location.query.query,
-    group: groupId,
+    query: search,
     start: getUtcDateString(value),
     end: getUtcDateString(value + intervalToMilliseconds(interval)),
   };
