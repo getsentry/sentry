@@ -1,29 +1,32 @@
 from __future__ import absolute_import
 
+import logging
+import six
+
 from datetime import timedelta
 from functools import partial
-
 from rest_framework.response import Response
 
 from sentry import tagstore
-from sentry.tagstore.types import TagKey, TagValue
 from sentry.api.bases import OrganizationEventsEndpointBase, OrganizationEventsError, NoProjects
-from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.helpers.events import get_direct_hit_response
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.serializers import EventSerializer, serialize, SimpleEventSerializer
 from sentry.api.serializers.snuba import SnubaTSResultSerializer
 from sentry.models import SnubaEvent
+from sentry.tagstore.snuba.utils import lookup_tags
 from sentry.utils.dates import parse_stats_period
 from sentry.utils.snuba import (
     raw_query,
     transform_aliases_and_query,
     SnubaTSResult,
+    SnubaError,
 )
 from sentry import features
 from sentry.models.project import Project
 
 ALLOWED_GROUPINGS = frozenset(('issue.id', 'project.id'))
+logger = logging.getLogger('sentry.api.organization-events')
 
 
 class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
@@ -89,7 +92,7 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
 
             if any(field for field in groupby if field not in ALLOWED_GROUPINGS):
                 message = ('Invalid groupby value requested. Allowed values are ' +
-                    ', '.join(ALLOWED_GROUPINGS))
+                           ', '.join(ALLOWED_GROUPINGS))
                 return Response({'detail': message}, status=400)
 
         except OrganizationEventsError as exc:
@@ -185,7 +188,6 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsEndpointBase):
 
 
 class OrganizationEventsHeatmapEndpoint(OrganizationEventsEndpointBase):
-    NON_TAG_KEYS = frozenset(['project.name'])
 
     def get(self, request, organization):
         try:
@@ -195,17 +197,44 @@ class OrganizationEventsHeatmapEndpoint(OrganizationEventsEndpointBase):
         except NoProjects:
             return Response({'detail': 'A valid project must be included.'}, status=400)
 
-        lookup_keys = []
-        non_tag_lookup_keys = []
-        for key in request.GET.getlist('keys'):
-            if key in self.NON_TAG_KEYS:
-                non_tag_lookup_keys.append(key)
-            lookup_keys.append(tagstore.prefix_reserved_key(key))
+        try:
+            keys = self._validate_keys(request)
+            self._validate_project_ids(request, organization, snuba_args)
+        except OrganizationEventsError as error:
+            return Response({'detail': six.text_type(error)}, status=400)
 
-        if not lookup_keys:
-            return Response({'detail': 'Tag keys must be specified.'}, status=400)
+        try:
+            tags = lookup_tags(keys, **snuba_args)
+        except (KeyError, SnubaError) as error:
+            logger.info(
+                'api.organization-events-heatmap',
+                extra={
+                    'organization_id': organization.id,
+                    'user_id': request.user.id,
+                    'keys': keys,
+                    'snuba_args': snuba_args,
+                    'error': six.text_type(error)
+                }
+            )
+            return Response({
+                'detail': 'Invalid query.'
+            }, status=400)
+
+        return Response(serialize(tags, request.user))
+
+    def _validate_keys(self, request):
+        keys = request.GET.getlist('key')
+        if not keys:
+            raise OrganizationEventsError('Tag keys must be specified.')
+
+        for key in keys:
+            if not tagstore.is_valid_key(key):
+                raise OrganizationEventsError('Tag key %s is not valid.' % key)
+
+        return keys
+
+    def _validate_project_ids(self, request, organization, snuba_args):
         project_ids = snuba_args['filter_keys']['project_id']
-        environment_ids = snuba_args['filter_keys'].get('environment_id')
 
         has_global_views = features.has(
             'organizations:global-views',
@@ -213,69 +242,9 @@ class OrganizationEventsHeatmapEndpoint(OrganizationEventsEndpointBase):
             actor=request.user)
 
         if not has_global_views and len(project_ids) > 1:
-            return Response({
-                'detail': 'You cannot view events from multiple projects.'
-            }, status=400)
+            raise OrganizationEventsError('You cannot view events from multiple projects.')
 
-        try:
-            tag_keys = tagstore.get_group_tag_keys_and_top_values(
-                project_ids, None, environment_ids, keys=lookup_keys, get_excluded_tags=True, **snuba_args)
-        except tagstore.TagKeyNotFound:
-            raise ResourceDoesNotExist
-
-        if non_tag_lookup_keys:
-            tag_keys.update(self.handle_non_tag_keys(non_tag_lookup_keys, snuba_args))
-
-        return Response(serialize(tag_keys, request.user))
-
-    def handle_non_tag_keys(self, keys, snuba_args):
-        result = set([])
-        for key in keys:
-            if key == 'project.name':
-                data = self._query_non_tag_data('project_id', snuba_args)
-                projects = Project.objects.filter(id__in=snuba_args['filter_keys']['project_id'])
-                for project_data in data:
-                    project = projects.filter(id=project_data['project_id'])[0]
-                    project_data['key'] = 'project.name'
-                    project_data['value'] = project.slug
-            result.add(self._create_tag_key_tag_value_objects('project', data))
-        return result
-
-    def _query_non_tag_data(self, key, snuba_args):
-        data = raw_query(
-            groupby=[key],
-            aggregations=snuba_args.get('aggregations', []) + [
-                ['count()', '', 'count'],
-                ['min', 'timestamp', 'first_seen'],
-                ['max', 'timestamp', 'last_seen'],
-                ['uniq', key, 'values_seen'],
-            ],
-            orderby='-count',
-            referrer='api.organization-events-heatmap',
-            **snuba_args
-        )['data']
-        return data
-
-    def _create_tag_key_tag_value_objects(self, key, data):
-        tag_values = []
-        values_seen = 0
-        for datum in data:
-            tag_values.append(TagValue(
-                key=key,
-                value=datum['value'],
-                times_seen=datum['count'],
-                last_seen=datum['last_seen'],
-                first_seen=datum['first_seen'],
-            ))
-            values_seen += datum['count']
-
-        tag_key = TagKey(
-            key=key,
-            values_seen=len(tag_values),
-            count=values_seen,
-            top_values=tag_values,
-        )
-        return tag_key
+        return project_ids
 
 
 class OrganizationEventsMetaEndpoint(OrganizationEventsEndpointBase):
