@@ -62,6 +62,19 @@ class FindReferencedGroupsTest(TestCase):
         assert group in groups
         assert group2 in groups
 
+        commit = Commit.objects.create(
+            key=sha1(uuid4().hex).hexdigest(),
+            repository_id=repo.id,
+            organization_id=group.organization.id,
+            message=u'Foo Biz\n\nFixes: {}'.format(
+                group.qualified_short_id,
+            ),
+        )
+
+        groups = commit.find_referenced_groups()
+        assert len(groups) == 1
+        assert group in groups
+
     def test_multiple_matches_comma_separated(self):
         group = self.create_group()
         group2 = self.create_group()
