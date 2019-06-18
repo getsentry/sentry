@@ -28,6 +28,11 @@ class StacktraceInterface extends React.Component {
     type: PropTypes.string.isRequired,
     data: PropTypes.object.isRequired,
     projectId: PropTypes.string.isRequired,
+    hideGuide: PropTypes.bool,
+  };
+
+  static defaultProps = {
+    hideGuide: false,
   };
 
   constructor(...args) {
@@ -45,7 +50,7 @@ class StacktraceInterface extends React.Component {
   };
 
   render() {
-    const {projectId, event, data} = this.props;
+    const {projectId, event, data, hideGuide} = this.props;
     const {stackView, newestFirst} = this.state;
 
     const title = (
@@ -55,6 +60,7 @@ class StacktraceInterface extends React.Component {
         stacktrace={data}
         stackView={stackView}
         newestFirst={newestFirst}
+        hideGuide={hideGuide}
         onChange={newState => {
           this.setState(newState);
         }}
