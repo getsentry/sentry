@@ -12,7 +12,7 @@ import pytz
 
 from django.conf import settings
 from django.middleware.locale import LocaleMiddleware
-from django.utils.translation import _trans
+from django.utils.translation import _trans, LANGUAGE_SESSION_KEY
 
 from sentry.models import UserOption
 from sentry.utils.safe import safe_execute
@@ -49,7 +49,7 @@ class SentryLocaleMiddleware(LocaleMiddleware):
 
         language = UserOption.objects.get_value(user=request.user, key='language')
         if language:
-            request.session['django_language'] = language
+            request.session[LANGUAGE_SESSION_KEY] = language
 
         timezone = UserOption.objects.get_value(user=request.user, key='timezone')
         if timezone:
