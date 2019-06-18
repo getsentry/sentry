@@ -1268,33 +1268,6 @@ function routes() {
           from=":projectId/searches/:searchId/"
           to="/organizations/:orgId/issues/"
         />
-        <Redirect from=":projectId/dashboard/" to="/organizations/:orgId/dashboards/" />
-        <Redirect from=":projectId/releases/" to="/organizations/:orgId/releases/" />
-        <Redirect
-          from=":projectId/releases/:version/"
-          to="/organizations/:orgId/releases/:version/"
-        />
-        <Redirect
-          from=":projectId/releases/:version/new-events/"
-          to="/organizations/:orgId/releases/:version/new-events/"
-        />
-        <Redirect
-          from=":projectId/releases/:version/all-events/"
-          to="/organizations/:orgId/releases/:version/all-events/"
-        />
-        <Redirect
-          from=":projectId/releases/:version/artifacts/"
-          to="/organizations/:orgId/releases/:version/artifacts/"
-        />
-        <Redirect
-          from=":projectId/releases/:version/commits/"
-          to="/organizations/:orgId/releases/:version/commits/"
-        />
-
-        <Redirect
-          from=":projectId/user-feedback/"
-          to="/organizations/:orgId/user-feedback/"
-        />
         <Route path=":projectId/settings/" component={errorHandler(ProjectSettings)}>
           <Redirect from="teams/" to="/settings/:orgId/projects/:projectId/teams/" />
           <Redirect from="alerts/" to="/settings/:orgId/projects/:projectId/alerts/" />
