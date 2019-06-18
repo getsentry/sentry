@@ -138,9 +138,6 @@ export const DEFAULT_RELATIVE_PERIODS = {
   '90d': t('Last 90 days'),
 };
 
-export const MAX_PICKABLE_DAYS = 90;
-export const NOT_EXTENDED_PICKABLE_DAYS = 30;
-
 // Special Search characters
 export const NEGATION_OPERATOR = '!';
 export const SEARCH_WILDCARD = '*';

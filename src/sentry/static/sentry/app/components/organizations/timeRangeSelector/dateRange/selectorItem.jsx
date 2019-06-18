@@ -10,14 +10,10 @@ class SelectorItem extends React.PureComponent {
     onClick: PropTypes.func.isRequired,
     value: PropTypes.string,
     label: PropTypes.node,
-    disabled: PropTypes.bool,
   };
 
   handleClick = e => {
-    const {onClick, value, disabled} = this.props;
-    if (disabled) {
-      return null;
-    }
+    const {onClick, value} = this.props;
     return onClick(value, e);
   };
 
@@ -40,10 +36,9 @@ const StyledSelectorItem = styled(SelectorItem)`
   background-color: ${p => (p.selected ? p.theme.offWhite : 'transparent')};
   font-weight: ${p => (p.selected ? 'bold' : 'normal')};
   border-bottom: 1px solid ${p => (p.last ? 'transparent' : p.theme.borderLight)};
-  color: ${p => p.disabled && p.theme.disabled};
 
   &:hover {
-    background: ${p => !p.disabled && p.theme.offWhite};
+    background: ${p => p.theme.offWhite};
   }
 `;
 
