@@ -12,25 +12,29 @@ Array [
   >
     <td>
       <h5>
-        <Link
-          onlyActiveOnIndex={false}
-          style={Object {}}
+        <GlobalSelectionLink
           to="/organizations/orgId/issues/1/events/1/"
         >
-          <a
-            onClick={[Function]}
+          <Link
+            onlyActiveOnIndex={false}
             style={Object {}}
+            to="/organizations/orgId/issues/1/events/1/"
           >
-            <DateTime
-              date="2019-05-21T18:01:48.762Z"
-              seconds={true}
+            <a
+              onClick={[Function]}
+              style={Object {}}
             >
-              <time>
-                May 21, 2019 6:01:48 PM UTC
-              </time>
-            </DateTime>
-          </a>
-        </Link>
+              <DateTime
+                date="2019-05-21T18:01:48.762Z"
+                seconds={true}
+              >
+                <time>
+                  May 21, 2019 6:01:48 PM UTC
+                </time>
+              </DateTime>
+            </a>
+          </Link>
+        </GlobalSelectionLink>
         <small>
           ApiException
         </small>
@@ -42,25 +46,29 @@ Array [
   >
     <td>
       <h5>
-        <Link
-          onlyActiveOnIndex={false}
-          style={Object {}}
+        <GlobalSelectionLink
           to="/organizations/orgId/issues/1/events/98654/"
         >
-          <a
-            onClick={[Function]}
+          <Link
+            onlyActiveOnIndex={false}
             style={Object {}}
+            to="/organizations/orgId/issues/1/events/98654/"
           >
-            <DateTime
-              date="2019-05-21T18:00:23Z"
-              seconds={true}
+            <a
+              onClick={[Function]}
+              style={Object {}}
             >
-              <time>
-                May 21, 2019 6:00:23 PM UTC
-              </time>
-            </DateTime>
-          </a>
-        </Link>
+              <DateTime
+                date="2019-05-21T18:00:23Z"
+                seconds={true}
+              >
+                <time>
+                  May 21, 2019 6:00:23 PM UTC
+                </time>
+              </DateTime>
+            </a>
+          </Link>
+        </GlobalSelectionLink>
         <small>
           TestException
         </small>

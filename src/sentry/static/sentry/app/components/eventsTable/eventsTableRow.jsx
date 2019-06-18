@@ -1,14 +1,14 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import {Link} from 'react-router';
 
-import SentryTypes from 'app/sentryTypes';
+import AttachmentUrl from 'app/utils/attachmentUrl';
 import Avatar from 'app/components/avatar';
 import DateTime from 'app/components/dateTime';
 import DeviceName from 'app/components/deviceName';
 import FileSize from 'app/components/fileSize';
+import GlobalSelectionLink from 'app/components/globalSelectionLink';
+import SentryTypes from 'app/sentryTypes';
 import withOrganization from 'app/utils/withOrganization';
-import AttachmentUrl from 'app/utils/attachmentUrl';
 
 class EventsTableRow extends React.Component {
   static propTypes = {
@@ -67,16 +67,15 @@ class EventsTableRow extends React.Component {
     event.tags.forEach(tag => {
       tagMap[tag.key] = tag.value;
     });
-
-    const basePath = `/organizations/${orgId}/issues/`;
+    const link = `/organizations/${orgId}/issues/${groupId}/events/${event.id}/`;
 
     return (
       <tr key={event.id} className={className}>
         <td>
           <h5>
-            <Link to={`${basePath}${groupId}/events/${event.id}/`}>
+            <GlobalSelectionLink to={link}>
               <DateTime date={event.dateCreated} />
-            </Link>
+            </GlobalSelectionLink>
             <small>{(this.getEventTitle(event) || '').substr(0, 100)}</small>
             {this.renderCrashFileLink()}
           </h5>
