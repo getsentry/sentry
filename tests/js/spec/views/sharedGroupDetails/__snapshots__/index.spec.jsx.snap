@@ -757,6 +757,7 @@ exports[`SharedGroupDetails renders 1`] = `
                                     "userReportCount": 0,
                                   }
                                 }
+                                hideGuide={false}
                                 orgId="test-org"
                                 organization={
                                   Object {
@@ -838,6 +839,7 @@ exports[`SharedGroupDetails renders 1`] = `
                                       "tags": Array [],
                                     }
                                   }
+                                  hideGuide={false}
                                   raw={false}
                                   title="Message"
                                   type="message"
