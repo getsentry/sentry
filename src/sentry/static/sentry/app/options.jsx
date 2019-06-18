@@ -176,11 +176,6 @@ export function getOptionDefault(option) {
   return meta.defaultValue ? meta.defaultValue() : undefined;
 }
 
-export function isOptionRequired(option) {
-  const meta = getOption(option);
-  return meta.required && !meta.allowEmpty;
-}
-
 function optionsForSection(section) {
   return definitions.filter(option => option.key.split('.')[0] === section.key);
 }
@@ -194,7 +189,7 @@ export function getOptionField(option, field) {
       name={option}
       key={option}
       defaultValue={getOptionDefault(option)}
-      required={isOptionRequired(option)}
+      required={meta.required && !meta.allowEmpt}
       disabledReason={meta.disabledReason && disabledReasons[meta.disabledReason]}
     />
   );
