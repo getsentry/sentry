@@ -125,7 +125,7 @@ class EventSdkUpdates extends React.Component {
               icon="icon-upgrade"
               key={getSuggestionComponentKey(suggestion)}
             >
-              {t('We recommend you')}
+              {t('We recommend you ')}
               <EventSdkUpdateSuggestion event={event} suggestion={suggestion} />
             </StyledAlert>
           );
