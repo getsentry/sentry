@@ -59,7 +59,7 @@ def handle_non_tag_keys(keys, top_values, **kwargs):
                 # This happens most commonly with error.type and chained
                 # exceptions.
                 if isinstance(tag_value, list):
-                    tag_value = tag_value[-1]
+                    tag_value = tag_value[-1] if len(tag_value) else ''
                 value['tags_key'] = key
                 value['tags_value'] = tag_value
 
