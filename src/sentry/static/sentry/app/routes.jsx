@@ -941,7 +941,6 @@ function routes() {
             component={errorHandler(OrganizationStreamContainer)}
           >
             <Redirect from="/organizations/:orgId/" to="/organizations/:orgId/issues/" />
-            {/* HERE */}
             <IndexRoute component={errorHandler(OrganizationStreamOverview)} />
             <Route
               path="searches/:searchId/"

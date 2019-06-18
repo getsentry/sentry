@@ -66,7 +66,7 @@ const redirectSentry9ProjectSavedSearch = generateRedirectRoute => {
       const {savedSearch} = this.state;
 
       if (!_.isArray(savedSearch)) {
-        return null;
+        return {};
       }
 
       const {searchId} = this.props.params;
@@ -74,7 +74,7 @@ const redirectSentry9ProjectSavedSearch = generateRedirectRoute => {
       const searchQuery = savedSearch.find(search => search.id === searchId);
 
       if (!searchQuery) {
-        return null;
+        return {};
       }
 
       const currentQuery = this.props.location.query || {};
