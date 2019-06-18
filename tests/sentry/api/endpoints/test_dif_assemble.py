@@ -252,6 +252,7 @@ class DifAssembleEndpoint(APITestCase):
                 'name': 'test',
                 'chunks': chunks,
                 'checksum': total_checksum,
+                'debug_id': None,
             }
         )
 

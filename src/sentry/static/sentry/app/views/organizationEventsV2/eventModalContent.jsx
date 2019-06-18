@@ -2,84 +2,27 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
 
-import {INTERFACES} from 'app/components/events/eventEntries';
-import {t} from 'app/locale';
+import SentryTypes from 'app/sentryTypes';
 import DateTime from 'app/components/dateTime';
-import ErrorBoundary from 'app/components/errorBoundary';
-import EventDataSection from 'app/components/events/eventDataSection';
-import EventDevice from 'app/components/events/device';
-import EventExtraData from 'app/components/events/extraData';
-import EventPackageData from 'app/components/events/packageData';
 import ExternalLink from 'app/components/links/externalLink';
 import FileSize from 'app/components/fileSize';
-import NavTabs from 'app/components/navTabs';
-import SentryTypes from 'app/sentryTypes';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
-import {objectIsEmpty, toTitleCase} from 'app/utils';
-import {getMessage, getTitle} from 'app/utils/events';
 import getDynamicText from 'app/utils/getDynamicText';
+import {getMessage, getTitle} from 'app/utils/events';
 
+import EventInterfaces from './eventInterfaces';
 import LinkedIssuePreview from './linkedIssuePreview';
 import ModalPagination from './modalPagination';
 import ModalLineGraph from './modalLineGraph';
 import TagsTable from './tagsTable';
-
-const OTHER_SECTIONS = {
-  context: EventExtraData,
-  packages: EventPackageData,
-  device: EventDevice,
-};
-
-/**
- * Render the currently active event interface tab.
- * Some but not all interface elements require a projectId.
- */
-const ActiveTab = props => {
-  const {projectId, event, activeTab} = props;
-  if (!activeTab) {
-    return null;
-  }
-  const entry = event.entries.find(item => item.type === activeTab);
-  if (INTERFACES[activeTab]) {
-    const Component = INTERFACES[activeTab];
-    return (
-      <Component
-        projectId={projectId}
-        event={event}
-        type={entry.type}
-        data={entry.data}
-        isShare={false}
-      />
-    );
-  } else if (OTHER_SECTIONS[activeTab]) {
-    const Component = OTHER_SECTIONS[activeTab];
-    return <Component event={event} isShare={false} />;
-  } else {
-    /*eslint no-console:0*/
-    window.console &&
-      console.error &&
-      console.error('Unregistered interface: ' + activeTab);
-
-    return (
-      <EventDataSection event={event} type={entry.type} title={entry.type}>
-        <p>{t('There was an error rendering this data.')}</p>
-      </EventDataSection>
-    );
-  }
-};
-ActiveTab.propTypes = {
-  event: SentryTypes.Event.isRequired,
-  activeTab: PropTypes.string,
-  projectId: PropTypes.string.isRequired,
-};
 
 /**
  * Render the columns and navigation elements inside the event modal view.
  * Controlled by the EventDetails View.
  */
 const EventModalContent = props => {
-  const {event, activeTab, projectId, organization, onTabChange, location, view} = props;
+  const {event, projectId, organization, location, view} = props;
   const isGroupedView = !!view.data.groupby;
   const eventJsonUrl = `/api/0/projects/${organization.slug}/${projectId}/events/${
     event.eventID
@@ -103,50 +46,7 @@ const EventModalContent = props => {
           })}
       </HeaderBox>
       <ContentColumn>
-        <NavTabs underlined={true}>
-          {event.entries.map(entry => {
-            if (!INTERFACES.hasOwnProperty(entry.type)) {
-              return null;
-            }
-            const type = entry.type;
-            const classname = type === activeTab ? 'active' : null;
-            return (
-              <li key={type} className={classname}>
-                <a
-                  href="#"
-                  onClick={evt => {
-                    evt.preventDefault();
-                    onTabChange(type);
-                  }}
-                >
-                  {toTitleCase(type)}
-                </a>
-              </li>
-            );
-          })}
-          {Object.keys(OTHER_SECTIONS).map(section => {
-            if (objectIsEmpty(event[section])) {
-              return null;
-            }
-            const classname = section === activeTab ? 'active' : null;
-            return (
-              <li key={section} className={classname}>
-                <a
-                  href="#"
-                  onClick={evt => {
-                    evt.preventDefault();
-                    onTabChange(section);
-                  }}
-                >
-                  {toTitleCase(section)}
-                </a>
-              </li>
-            );
-          })}
-        </NavTabs>
-        <ErrorBoundary message={t('Could not render event details')}>
-          <ActiveTab event={event} activeTab={activeTab} projectId={projectId} />
-        </ErrorBoundary>
+        <EventInterfaces event={event} projectId={projectId} />
       </ContentColumn>
       <SidebarColumn>
         {event.groupID && <LinkedIssuePreview groupId={event.groupID} />}
@@ -159,8 +59,8 @@ const EventModalContent = props => {
   );
 };
 EventModalContent.propTypes = {
-  ...ActiveTab.propTypes,
-  onTabChange: PropTypes.func.isRequired,
+  event: SentryTypes.Event.isRequired,
+  projectId: PropTypes.string.isRequired,
   organization: SentryTypes.Organization.isRequired,
   view: PropTypes.object.isRequired,
   location: PropTypes.object.isRequired,
@@ -208,6 +108,7 @@ EventMetadata.propTypes = {
 };
 
 const OverflowHeader = styled('h2')`
+  line-height: 1.2;
   ${overflowEllipsis}
 `;
 
@@ -221,8 +122,6 @@ const MetadataContainer = styled('div')`
 
 const ColumnGrid = styled('div')`
   display: grid;
-  max-height: 100%;
-  overflow: auto;
 
   grid-template-columns: 70% 28%;
   grid-template-rows: auto;

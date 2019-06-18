@@ -9,6 +9,7 @@ import createReactClass from 'create-react-class';
 import qs from 'query-string';
 
 import {Client} from 'app/api';
+import {DEFAULT_STATS_PERIOD} from 'app/constants';
 import {Panel, PanelBody} from 'app/components/panels';
 import {analytics} from 'app/utils/analytics';
 import {defined} from 'app/utils';
@@ -41,6 +42,7 @@ import parseLinkHeader from 'app/utils/parseLinkHeader';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 import withOrganization from 'app/utils/withOrganization';
 import withSavedSearches from 'app/utils/withSavedSearches';
+
 import StreamActions from './actions';
 import StreamFilters from './filters';
 import StreamSidebar from './sidebar';
@@ -48,7 +50,9 @@ import StreamSidebar from './sidebar';
 const MAX_ITEMS = 25;
 const DEFAULT_QUERY = 'is:unresolved';
 const DEFAULT_SORT = 'date';
-const DEFAULT_STATS_PERIOD = '24h';
+// the default period for the graph in each issue row
+const DEFAULT_GRAPH_STATS_PERIOD = '24h';
+// the allowed period choices for graph in each issue row
 const STATS_PERIODS = new Set(['14d', '24h']);
 
 const OrganizationStream = createReactClass({
@@ -198,7 +202,7 @@ const OrganizationStream = createReactClass({
 
   getGroupStatsPeriod() {
     const currentPeriod = this.props.location.query.groupStatsPeriod;
-    return STATS_PERIODS.has(currentPeriod) ? currentPeriod : DEFAULT_STATS_PERIOD;
+    return STATS_PERIODS.has(currentPeriod) ? currentPeriod : DEFAULT_GRAPH_STATS_PERIOD;
   },
 
   getEndpointParams() {
@@ -228,7 +232,7 @@ const OrganizationStream = createReactClass({
     }
 
     const groupStatsPeriod = this.getGroupStatsPeriod();
-    if (groupStatsPeriod !== DEFAULT_STATS_PERIOD) {
+    if (groupStatsPeriod !== DEFAULT_GRAPH_STATS_PERIOD) {
       params.groupStatsPeriod = groupStatsPeriod;
     }
 
@@ -284,6 +288,11 @@ const OrganizationStream = createReactClass({
     const currentQuery = this.props.location.query || {};
     if ('cursor' in currentQuery) {
       requestParams.cursor = currentQuery.cursor;
+    }
+
+    // If no stats period values are set, use default
+    if (!requestParams.statsPeriod && !requestParams.start) {
+      requestParams.statsPeriod = DEFAULT_STATS_PERIOD;
     }
 
     if (this.lastRequest) {

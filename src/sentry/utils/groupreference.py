@@ -3,7 +3,7 @@ from __future__ import absolute_import
 import re
 
 _fixes_re = re.compile(
-    r'\b(?:Fix|Fixes|Fixed|Close|Closes|Closed|Resolve|Resolves|Resolved)\s+([A-Za-z0-9_\-\s\,]+)\b',
+    r'\b(?:Fix|Fixes|Fixed|Close|Closes|Closed|Resolve|Resolves|Resolved):?\s+([A-Za-z0-9_\-\s\,]+)\b',
     re.I
 )
 _short_id_re = re.compile(r'\b([A-Z0-9_-]+-[A-Z0-9]+)\b', re.I)

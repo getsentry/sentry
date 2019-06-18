@@ -6,7 +6,7 @@ import space from 'app/styles/space';
 
 const Placeholder = styled(props => {
   const {className} = props;
-  return <div className={className} />;
+  return <div data-test-id="loading-placeholder" className={className} />;
 })`
   display: flex;
   flex-direction: column;

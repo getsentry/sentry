@@ -113,7 +113,7 @@ class TestBuildActivityContext(BaseIncidentActivityTest, TestCase):
                 'organization_slug': incident.organization.slug,
                 'incident_id': incident.identifier,
             },
-        ))
+        )) + '?referrer=incident_activity_email'
         assert context['comment'] == expected_comment
         assert context['unsubscribe_link'] == generate_signed_link(
             expected_recipient,

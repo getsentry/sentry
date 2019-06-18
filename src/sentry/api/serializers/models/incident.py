@@ -82,7 +82,7 @@ class DetailedIncidentSerializer(IncidentSerializer):
         for incident_id, group_id in IncidentGroup.objects.filter(
             incident__in=item_list,
         ).values_list('incident_id', 'group_id'):
-            incident_groups[incident_id].append(group_id)
+            incident_groups[incident_id].append(six.text_type(group_id))
 
         for item in item_list:
             results[item]['is_subscribed'] = item.id in subscribed_incidents

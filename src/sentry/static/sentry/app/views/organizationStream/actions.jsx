@@ -23,6 +23,7 @@ import SentryTypes from 'app/sentryTypes';
 import ToolbarHeader from 'app/components/toolbarHeader';
 import Tooltip from 'app/components/tooltip';
 import withApi from 'app/utils/withApi';
+import GroupStore from 'app/stores/groupStore';
 
 const BULK_LIMIT = 1000;
 const BULK_LIMIT_STR = BULK_LIMIT.toLocaleString();
@@ -223,13 +224,22 @@ const StreamActions = createReactClass({
     const {selection} = this.props;
     this.actionSelectedGroups(itemIds => {
       const loadingIndicator = IndicatorStore.add(t('Saving changes..'));
+
+      let projectId;
+
+      try {
+        projectId = GroupStore.get(itemIds[0]).project.slug;
+      } catch (err) {
+        // nothing
+      }
+
       this.props.api.bulkUpdate(
         {
           orgId: this.props.orgId,
           itemIds,
           data,
           query: this.props.query,
-          project: selection.projects,
+          projectId,
           environment: selection.environments,
           ...selection.datetime,
         },
@@ -515,7 +525,8 @@ const StreamActions = createReactClass({
                 )}
               >
                 <a
-                  className="btn btn-default btn-sm hidden-xs realtime-control"
+                  data-test-id="realtime-control"
+                  className="btn btn-default btn-sm hidden-xs"
                   onClick={this.handleRealtimeChange}
                 >
                   {realtimeActive ? (

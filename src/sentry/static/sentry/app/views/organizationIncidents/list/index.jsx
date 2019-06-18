@@ -15,12 +15,14 @@ import Count from 'app/components/count';
 import Duration from 'app/components/duration';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
 import Link from 'app/components/links/link';
+import LoadingIndicator from 'app/components/loadingIndicator';
 import PageHeading from 'app/components/pageHeading';
 import Pagination from 'app/components/pagination';
 import getDynamicText from 'app/utils/getDynamicText';
 import space from 'app/styles/space';
 
 import Status from '../status';
+import SparkLine from './sparkLine';
 
 const DEFAULT_QUERY_STATUS = '';
 
@@ -40,21 +42,24 @@ class OrganizationIncidentsList extends AsyncComponent {
 
   renderListItem(incident) {
     const {orgId} = this.props.params;
+    const started = moment(incident.dateStarted);
     const duration = moment
-      .duration(
-        moment(incident.dateClosed || new Date()).diff(moment(incident.dateStarted))
-      )
+      .duration(moment(incident.dateClosed || new Date()).diff(started))
       .as('seconds');
 
     return (
-      <PanelItem key={incident.id}>
+      <IncidentPanelItem key={incident.id}>
         <TableLayout>
-          <Link to={`/organizations/${orgId}/incidents/${incident.identifier}/`}>
-            {incident.title}
-          </Link>
+          <TitleAndSparkLine>
+            <Link to={`/organizations/${orgId}/incidents/${incident.identifier}/`}>
+              {incident.title}
+            </Link>
+            <SparkLine incident={incident} />
+          </TitleAndSparkLine>
           <Status incident={incident} />
           <div>
-            <Duration seconds={getDynamicText({value: duration, fixed: 1200})} />
+            {started.format('LL')}
+            <LightDuration seconds={getDynamicText({value: duration, fixed: 1200})} />
           </div>
           <AlignRight>
             <Count value={incident.uniqueUsers} />
@@ -63,7 +68,7 @@ class OrganizationIncidentsList extends AsyncComponent {
             <Count value={incident.totalEvents} />
           </AlignRight>
         </TableLayout>
-      </PanelItem>
+      </IncidentPanelItem>
     );
   }
 
@@ -75,8 +80,12 @@ class OrganizationIncidentsList extends AsyncComponent {
     );
   }
 
+  renderLoading() {
+    return this.renderBody();
+  }
+
   renderBody() {
-    const {incidentList, incidentListPageLinks} = this.state;
+    const {loading, incidentList, incidentListPageLinks} = this.state;
 
     return (
       <React.Fragment>
@@ -90,9 +99,15 @@ class OrganizationIncidentsList extends AsyncComponent {
               <AlignRight>{t('Total events')}</AlignRight>
             </TableLayout>
           </PanelHeader>
+
           <PanelBody>
-            {incidentList.length === 0 && this.renderEmpty()}
-            {incidentList.map(incident => this.renderListItem(incident))}
+            {loading && <LoadingIndicator />}
+            {!loading && (
+              <React.Fragment>
+                {incidentList.length === 0 && this.renderEmpty()}
+                {incidentList.map(incident => this.renderListItem(incident))}
+              </React.Fragment>
+            )}
           </PanelBody>
         </Panel>
         <Pagination pageLinks={incidentListPageLinks} />
@@ -166,9 +181,26 @@ class OrganizationIncidentsListContainer extends React.Component {
 
 const TableLayout = styled('div')`
   display: grid;
-  grid-template-columns: 4fr 1fr 1fr 1fr 1fr;
+  grid-template-columns: 4fr 1fr 2fr 1fr 1fr;
   grid-column-gap: ${space(1.5)};
   width: 100%;
+  align-items: center;
+`;
+
+const LightDuration = styled(Duration)`
+  color: ${p => p.theme.gray1};
+  font-size: 0.9em;
+  margin-left: ${space(1)};
+`;
+
+const TitleAndSparkLine = styled('div')`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+`;
+
+const IncidentPanelItem = styled(PanelItem)`
+  padding: ${space(1)} ${space(2)};
 `;
 
 const AlignRight = styled('div')`
