@@ -5,6 +5,7 @@ import _ from 'lodash';
 
 import {t} from 'app/locale';
 import withApi from 'app/utils/withApi';
+import LoadingError from 'app/components/loadingError';
 
 // TODO: This is react-router v4 <Redirect to="path/" /> component to allow things
 //       to be declarative
@@ -87,14 +88,18 @@ const redirectSentry9Project = generateRedirectRoute => {
         return null;
       }
 
-      if (!this.hasProjectId() || this.state.error) {
-        return (
-          <div className="container">
-            <div className="alert alert-block" style={{margin: '30px 0 10px'}}>
-              {t('The project you were looking for was not found.')}
+      if (!this.hasProjectId()) {
+        if (_.get(this.state.error, 'status') === 404) {
+          return (
+            <div className="container">
+              <div className="alert alert-block" style={{margin: '30px 0 10px'}}>
+                {t('The project you were looking for was not found.')}
+              </div>
             </div>
-          </div>
-        );
+          );
+        }
+
+        return <LoadingError onRetry={this.fetchData} />;
       }
 
       const currentProjectId = this.getProjectId();
