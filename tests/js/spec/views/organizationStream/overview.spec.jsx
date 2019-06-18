@@ -1189,16 +1189,24 @@ describe('OrganizationStream', function() {
 
   describe('componentDidUpdate fetching groups', function() {
     let fetchDataMock;
+
     beforeEach(function() {
-      fetchDataMock = jest.fn();
+      fetchDataMock = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/issues/',
+        body: [group],
+        headers: {
+          Link: DEFAULT_LINKS_HEADER,
+        },
+      });
+      fetchDataMock.mockReset();
       wrapper = shallow(<OrganizationStream {...props} />, {
         disableLifecycleMethods: false,
       });
-      wrapper.instance().fetchData = fetchDataMock;
     });
 
     it('fetches data on selection change', function() {
       const selection = {projects: [99], environments: [], datetime: {period: '24h'}};
+
       wrapper.setProps({selection, foo: 'bar'});
 
       expect(fetchDataMock).toHaveBeenCalled();
@@ -1215,16 +1223,30 @@ describe('OrganizationStream', function() {
     it('fetches data on location change', function() {
       const queryAttrs = ['query', 'sort', 'statsPeriod', 'cursor', 'groupStatsPeriod'];
       let location = clonedeep(props.location);
-      queryAttrs.forEach((attr, i) => {
+      queryAttrs.forEach(async (attr, i) => {
         // reclone each iteration so that only one property changes.
         location = clonedeep(location);
         location.query[attr] = 'newValue';
         wrapper.setProps({location});
+        await tick();
         wrapper.update();
 
-        // Each propery change should cause a new fetch incrementing the call count.
+        // Each property change should cause a new fetch incrementing the call count.
         expect(fetchDataMock).toHaveBeenCalledTimes(i + 1);
       });
+    });
+
+    it('uses correct statsPeriod when fetching issues list and no datetime given', async function() {
+      const selection = {projects: [99], environments: [], datetime: {}};
+      wrapper.setProps({selection, foo: 'bar'});
+
+      expect(fetchDataMock).toHaveBeenLastCalledWith(
+        '/organizations/org-slug/issues/',
+        expect.objectContaining({
+          data:
+            'limit=25&project=99&query=is%3Aunresolved&shortIdLookup=1&statsPeriod=14d',
+        })
+      );
     });
   });
 
