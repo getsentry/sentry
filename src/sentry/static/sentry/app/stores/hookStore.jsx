@@ -24,6 +24,7 @@ const validHookNames = new Set([
   // Specific component customizations
   'component:org-auth-view',
   'component:org-members-view',
+  'component:date-range',
 
   // Additional settings
   'settings:organization-navigation',

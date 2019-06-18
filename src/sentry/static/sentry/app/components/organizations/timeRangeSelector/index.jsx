@@ -4,11 +4,7 @@ import React from 'react';
 import moment from 'moment';
 import styled from 'react-emotion';
 
-import {
-  DEFAULT_STATS_PERIOD,
-  MAX_PICKABLE_DAYS,
-  NOT_EXTENDED_PICKABLE_DAYS,
-} from 'app/constants';
+import {DEFAULT_STATS_PERIOD} from 'app/constants';
 import {analytics} from 'app/utils/analytics';
 import {defined} from 'app/utils';
 import {
@@ -25,6 +21,7 @@ import DateSummary from 'app/components/organizations/timeRangeSelector/dateSumm
 import DropdownMenu from 'app/components/dropdownMenu';
 import Feature from 'app/components/acl/feature';
 import HeaderItem from 'app/components/organizations/headerItem';
+import HookOrDefault from 'app/components/hookOrDefault';
 import InlineSvg from 'app/components/inlineSvg';
 import MultipleSelectorSubmitRow from 'app/components/organizations/multipleSelectorSubmitRow';
 import RelativeSelector from 'app/components/organizations/timeRangeSelector/dateRange/relativeSelector';
@@ -56,6 +53,11 @@ const getInternalDate = (date, utc) => {
     );
   }
 };
+
+const DateRangeHook = HookOrDefault({
+  hookName: 'component:date-range',
+  defaultComponent: DateRange,
+});
 
 class TimeRangeSelector extends React.PureComponent {
   static propTypes = {
@@ -308,7 +310,7 @@ class TimeRangeSelector extends React.PureComponent {
       getRelativeSummary(relative || DEFAULT_STATS_PERIOD)
     );
 
-    const selected = relative
+    const isRelativeSelected = relative
       ? relative
       : isAbsoluteSelected
       ? null
@@ -353,7 +355,7 @@ class TimeRangeSelector extends React.PureComponent {
                       {shouldShowRelative &&
                         (renderRelativeSelector || this.renderRelativeSelector)({
                           onClick: this.handleSelectRelative,
-                          selected,
+                          selected: isRelativeSelected,
                           hasFeature,
                         })}
                       {shouldShowAbsolute && (
@@ -372,25 +374,15 @@ class TimeRangeSelector extends React.PureComponent {
 
                 {isAbsoluteSelected && (
                   <div>
-                    <Feature
-                      features={['organizations:extended-data-retention']}
+                    <DateRangeHook
+                      showTimePicker
+                      utc={this.state.utc}
+                      start={start}
+                      end={end}
+                      onChange={this.handleSelectDateRange}
+                      onChangeUtc={this.handleUseUtc}
                       organization={organization}
-                    >
-                      {({hasFeature}) => (
-                        <DateRange
-                          showTimePicker
-                          utc={this.state.utc}
-                          start={start}
-                          end={end}
-                          onChange={this.handleSelectDateRange}
-                          onChangeUtc={this.handleUseUtc}
-                          organization={organization}
-                          maxPickableDays={
-                            hasFeature ? MAX_PICKABLE_DAYS : NOT_EXTENDED_PICKABLE_DAYS
-                          }
-                        />
-                      )}
-                    </Feature>
+                    />
                     {this.state.hasChanges && (
                       <SubmitRow>
                         <MultipleSelectorSubmitRow
