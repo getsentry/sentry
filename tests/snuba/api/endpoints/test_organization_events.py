@@ -7,6 +7,7 @@ from django.utils import timezone
 from django.core.urlresolvers import reverse
 from uuid import uuid4
 
+from sentry.tagstore.base import TOP_VALUES_DEFAULT_LIMIT
 from sentry.testutils import APITestCase, SnubaTestCase
 
 
@@ -1476,10 +1477,10 @@ class OrganizationEventsHeatmapEndpointTest(OrganizationEventsTestBase):
             response = self.client.get(
                 self.url, {
                     'keys': [
-                        'user.email', 'user.ip', 'color']}, format='json')
+                        'user.email', 'user.ip']}, format='json')
 
         assert response.status_code == 200, response.content
-        assert len(response.data) == 3
+        assert len(response.data) == 2
 
         assert response.data[0] == {
             'topValues': [
@@ -1527,28 +1528,49 @@ class OrganizationEventsHeatmapEndpointTest(OrganizationEventsTestBase):
             'name': 'User.Ip',
             'key': 'user.ip'
         }
-        assert response.data[2] == {
-            'topValues': [
-                {
-                    'count': 2,
-                    'name': 'green',
-                    'value': 'green',
-                    'lastSeen': self.min_ago_iso,
-                    'key': 'color',
-                    'firstSeen': self.min_ago_iso
+
+    def test_value_limit(self):
+        for i in range(0, 12):
+            self.store_event(
+                data={
+                    'event_id': uuid4().hex,
+                    'timestamp': self.min_ago_iso,
+                    'tags': {'color': 'color%d' % i}
                 },
-                {
-                    'count': 1,
-                    'name': 'red',
-                    'value': 'red',
-                    'lastSeen': self.min_ago_iso,
-                    'key': 'color',
-                    'firstSeen': self.min_ago_iso
-                },
-            ],
-            'totalValues': 4,
-            'name': 'Color',
-            'key': 'color'
+                project_id=self.create_project().id
+            )
+        self.store_event(
+            data={
+                'event_id': uuid4().hex,
+                'timestamp': self.min_ago_iso,
+                'tags': {'color': 'yellow'}
+            },
+            project_id=self.project2.id
+        )
+        self.store_event(
+            data={
+                'event_id': uuid4().hex,
+                'timestamp': self.min_ago_iso,
+                'tags': {'color': 'yellow'}
+            },
+            project_id=self.project2.id
+        )
+        with self.feature('organizations:global-views'):
+            response = self.client.get(
+                self.url, {
+                    'keys': ['project.name', 'color']}, format='json')
+
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 2
+        assert len(response.data[0]['topValues']) == TOP_VALUES_DEFAULT_LIMIT
+        assert response.data[0]['topValues'][0] == {
+            'count': 2, 'name': self.project2.slug, 'value': self.project2.slug,
+            'lastSeen': self.min_ago_iso, 'key': 'project.name', 'firstSeen': self.min_ago_iso
+        }
+        assert len(response.data[1]['topValues']) == TOP_VALUES_DEFAULT_LIMIT
+        assert response.data[1]['topValues'][0] == {
+            'count': 2, 'name': 'yellow', 'value': 'yellow',
+            'lastSeen': self.min_ago_iso, 'key': 'color', 'firstSeen': self.min_ago_iso
         }
 
     def test_malformed_query(self):

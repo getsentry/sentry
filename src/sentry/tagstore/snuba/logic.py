@@ -32,7 +32,7 @@ def lookup_tags(keys, **snuba_args):
         top_values = []
 
     if non_tag_keys:
-        handle_non_tag_keys(non_tag_keys, snuba_args, top_values)
+        handle_non_tag_keys(non_tag_keys, top_values, **snuba_args)
 
     total_count = get_total_value_count(**snuba_args)
     tag_keys = create_tag_objects(keys, total_count, top_values)
@@ -42,12 +42,12 @@ def lookup_tags(keys, **snuba_args):
     return tag_keys
 
 
-def handle_non_tag_keys(keys, snuba_args, top_values):
+def handle_non_tag_keys(keys, top_values, **kwargs):
     for key in keys:
-        data = query_non_tag_data(NON_TAG_KEYS[key], snuba_args)
+        data = query_non_tag_data(NON_TAG_KEYS[key], **kwargs)
 
         if key == 'project.name':
-            projects = Project.objects.filter(id__in=snuba_args['filter_keys']['project_id'])
+            projects = Project.objects.filter(id__in=kwargs['filter_keys']['project_id'])
             for value in data:
                 project_slug = projects.filter(id=value['project_id'])[0].slug
                 value['tags_value'] = project_slug
@@ -64,22 +64,24 @@ def handle_non_tag_keys(keys, snuba_args, top_values):
     return top_values
 
 
-def query_non_tag_data(key, snuba_args):
-    snuba_args = deepcopy(snuba_args)
+def query_non_tag_data(key, value_limit=TOP_VALUES_DEFAULT_LIMIT, **kwargs):
+    kwargs = deepcopy(kwargs)
     data = raw_query(
         groupby=[key],
-        conditions=snuba_args.pop('conditions', []) + [
+        conditions=kwargs.pop('conditions', []) + [
             [['isNotNull', [key]], '=', 1]
         ],
-        aggregations=snuba_args.pop('aggregations', []) + [
+        aggregations=kwargs.pop('aggregations', []) + [
             ['count()', '', 'count'],
             ['min', 'timestamp', 'first_seen'],
             ['max', 'timestamp', 'last_seen'],
         ],
         orderby='-count',
         referrer='api.organization-events-heatmap',
-        **snuba_args
+        limit=value_limit,
+        **kwargs
     )
+
     return data['data']
 
 
@@ -132,6 +134,7 @@ def get_total_value_count(**kwargs):
 
 
 def get_top_values(keys, value_limit=TOP_VALUES_DEFAULT_LIMIT, **kwargs):
+
     kwargs = deepcopy(kwargs)
     filters = kwargs.pop('filter_keys', {})
     filters['tags_key'] = keys
@@ -149,5 +152,5 @@ def get_top_values(keys, value_limit=TOP_VALUES_DEFAULT_LIMIT, **kwargs):
         orderby='-count', limitby=[value_limit, 'tags_key'],
         referrer='api.organization-events-heatmap',
         **kwargs
-    )['data']
-    return values
+    )
+    return values['data']

@@ -14,7 +14,7 @@ from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.serializers import EventSerializer, serialize, SimpleEventSerializer
 from sentry.api.serializers.snuba import SnubaTSResultSerializer
 from sentry.models import SnubaEvent
-from sentry.search.snuba.logic import lookup_tags
+from sentry.tagstore.snuba.logic import lookup_tags
 from sentry.utils.dates import parse_stats_period
 from sentry.utils.snuba import (
     raw_query,
