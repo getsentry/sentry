@@ -11,7 +11,7 @@ import TextField from './textField';
 import TextareaField from './textareaField';
 import RadioField from './radioField';
 import InputField from './inputField';
-import ChoiceMapper from './choiceMapper';
+import ChoiceMapperField from './choiceMapperField';
 
 export default class FieldFromConfig extends React.Component {
   static propTypes = {
@@ -105,7 +105,7 @@ export default class FieldFromConfig extends React.Component {
 
         return <SelectField {...props} />;
       case 'choice_mapper':
-        return <ChoiceMapper {...props} />;
+        return <ChoiceMapperField {...props} />;
       case 'radio':
         return <RadioField {...props} />;
       default:
