@@ -71,7 +71,7 @@ class EventSdkUpdates extends React.Component {
         {data.map(suggestion => {
           return (
             <div className="alert-block alert-info box row" key={suggestion}>
-              We recommend to <EventSdkUpdateSuggestion suggestion={suggestion} />
+              {t('We recommend to ')}<EventSdkUpdateSuggestion suggestion={suggestion} />
             </div>
           );
         })}
