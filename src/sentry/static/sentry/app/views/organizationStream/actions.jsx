@@ -525,7 +525,8 @@ const StreamActions = createReactClass({
                 )}
               >
                 <a
-                  className="btn btn-default btn-sm hidden-xs realtime-control"
+                  data-test-id="realtime-control"
+                  className="btn btn-default btn-sm hidden-xs"
                   onClick={this.handleRealtimeChange}
                 >
                   {realtimeActive ? (
