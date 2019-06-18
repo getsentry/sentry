@@ -86,7 +86,7 @@ class EventSdkUpdateSuggestion extends React.Component {
     return (
       <span>
         {title}
-        {t(' so you can: ')}
+        {t(' so you can')}
         <ul>
           {suggestion.enables.map((suggestion2, i) => {
             return (
