@@ -40,7 +40,7 @@ class EventSdkUpdateSuggestion extends React.Component {
     }
 
     return (
-      <span>
+      <div>
         {title}
         {t(' so you can: ')}
         <ul>
@@ -52,7 +52,7 @@ class EventSdkUpdateSuggestion extends React.Component {
             );
           })}
         </ul>
-      </span>
+      </div>
     );
   }
 }
@@ -71,7 +71,8 @@ class EventSdkUpdates extends React.Component {
         {data.map(suggestion => {
           return (
             <div className="alert-block alert-info box row" key={suggestion}>
-              {t('We recommend to ')}<EventSdkUpdateSuggestion suggestion={suggestion} />
+              {t('We recommend to ')}
+              <EventSdkUpdateSuggestion suggestion={suggestion} />
             </div>
           );
         })}
