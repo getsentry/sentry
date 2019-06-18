@@ -1238,6 +1238,11 @@ class OrganizationEventsHeatmapEndpointTest(OrganizationEventsTestBase):
         assert response.status_code == 400, response.content
         assert response.data == {'detail': 'A valid project must be included.'}
 
+    def test_no_key_param(self):
+        response = self.client.get(self.url, {'project': [self.project.id]}, format='json')
+        assert response.status_code == 400, response.content
+        assert response.data == {'detail': 'Tag keys must be specified.'}
+
     def test_multiple_projects_without_global_view(self):
         self.store_event(
             data={

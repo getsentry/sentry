@@ -225,7 +225,7 @@ class OrganizationEventsHeatmapEndpoint(OrganizationEventsEndpointBase):
     def _validate_keys(self, request):
         keys = request.GET.getlist('key')
         if not keys:
-            return Response({'detail': 'Tag keys must be specified.'}, status=400)
+            raise OrganizationEventsError('Tag keys must be specified.')
 
         for key in keys:
             if not tagstore.is_valid_key(key):
