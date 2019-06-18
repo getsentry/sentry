@@ -171,6 +171,11 @@ export function getOption(option) {
   return definitionsMap[option];
 }
 
+export function getOptionDefault(option) {
+  const meta = getOption(option);
+  return meta.defaultValue ? meta.defaultValue() : undefined;
+}
+
 function optionsForSection(section) {
   return definitions.filter(option => option.key.split('.')[0] === section.key);
 }
@@ -183,7 +188,7 @@ export function getOptionField(option, field) {
       {...meta}
       name={option}
       key={option}
-      defaultValue={meta.defaultValue ? meta.defaultValue() : undefined}
+      defaultValue={getOptionDefault(option)}
       required={meta.required && !meta.allowEmpty}
       disabledReason={meta.disabledReason && disabledReasons[meta.disabledReason]}
     />
