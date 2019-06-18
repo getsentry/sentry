@@ -140,17 +140,19 @@ class OrganizationEventsTest(AcceptanceTestCase, SnubaTestCase):
             ('a', 1), ('b', 39), ('c', 69),
         )
         event_ids = []
-        event_data = load_data('python')
+        event_data = load_data('javascript')
         event_data['fingerprint'] = ['group-1']
         for id_prefix, offset in event_source:
             event_time = (timezone.now() - timedelta(minutes=offset)).isoformat()[:19]
-            event_data['timestamp'] = event_time
-            event_data['received'] = event_time
-            event_data['event_id'] = id_prefix * 32
+            event_data.update({
+                'timestamp': event_time,
+                'received': event_time,
+                'event_id': id_prefix * 32,
+                'type': 'error'
+            })
             event = self.store_event(
                 data=event_data,
                 project_id=self.project.id,
-                assert_no_errors=False
             )
             event_ids.append(event.event_id)
 
