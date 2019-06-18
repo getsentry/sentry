@@ -43,36 +43,38 @@ class EventSdkUpdateSuggestion extends React.Component {
 
   getSuggestionTitle() {
     const {event, suggestion} = this.props;
+    let href;
+    let content;
     switch (suggestion.type) {
       case 'updateSdk':
-        return (
-          <ExternalLink href={suggestion.sdkUrl}>
-            {t(
-              'Update your SDK from version %s to version %s',
-              event.sdk.version,
-              suggestion.newSdkVersion
-            )}
-          </ExternalLink>
+        href = suggestion.sdkUrl;
+        content = t(
+          'Update your SDK from version %s to version %s',
+          event.sdk.version,
+          suggestion.newSdkVersion
         );
+        break;
       case 'changeSdk':
-        return (
-          <ExternalLink href={suggestion.sdkUrl}>
-            {t("Migrate to the '%s' SDK", suggestion.newSdkName)}
-          </ExternalLink>
-        );
+        href = suggestion.sdkUrl;
+        content = t("Migrate to the '%s' SDK", suggestion.newSdkName);
+        break;
       case 'enableIntegration':
-        return (
-          <ExternalLink href={suggestion.integrationUrl}>
-            {t("Enable the '%s' integration", suggestion.integrationName)}
-          </ExternalLink>
-        );
+        href = suggestion.integrationUrl;
+        content = t("Enable the '%s' integration", suggestion.integrationName);
+        break;
       default:
         return null;
     }
+
+    if (!href) {
+      return content;
+    }
+
+    return <ExternalLink href={href}>{content}</ExternalLink>;
   }
 
   render() {
-    const {suggestion} = this.props;
+    const {event, suggestion} = this.props;
     const title = this.getSuggestionTitle();
 
     if (suggestion.enables.length == 0) {
