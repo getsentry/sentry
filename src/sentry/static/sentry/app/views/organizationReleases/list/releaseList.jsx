@@ -1,13 +1,16 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import {Box} from 'grid-emotion';
+import styled from 'react-emotion';
 
 import {PanelItem} from 'app/components/panels';
-import ReleaseStats from 'app/components/releaseStats';
 import Count from 'app/components/count';
+import ReleaseStats from 'app/components/releaseStats';
 import TimeSince from 'app/components/timeSince';
 import Version from 'app/components/version';
+import overflowEllipsis from 'app/styles/overflowEllipsis';
+import space from 'app/styles/space';
 
+import {LastEventColumn, Layout, CountColumn, VersionColumn, StatsColumn} from './layout';
 import LatestDeployOrReleaseTime from './latestDeployOrReleaseTime';
 
 class ReleaseList extends React.Component {
@@ -24,33 +27,33 @@ class ReleaseList extends React.Component {
       <div>
         {this.props.releaseList.map(release => {
           return (
-            <PanelItem key={release.version} align="center" px={2} py={1}>
-              <Box flex="1">
-                <div>
-                  <div style={{fontWeight: 'bold', marginBottom: 2}}>
+            <ReleasePanelItem key={release.version}>
+              <Layout>
+                <VersionColumn>
+                  <VersionWrapper>
                     <Version
                       orgId={orgId}
                       projectId={projectId}
                       version={release.version}
                     />
-                  </div>
+                  </VersionWrapper>
                   <LatestDeployOrReleaseTime orgId={orgId} release={release} />
-                </div>
-              </Box>
-              <Box w={4 / 12} pl={2} className="hidden-xs">
-                <ReleaseStats release={release} />
-              </Box>
-              <Box w={2 / 12} pl={2}>
-                <Count className="release-count" value={release.newGroups || 0} />
-              </Box>
-              <Box w={2 / 12} pl={2}>
-                {release.lastEvent ? (
-                  <TimeSince date={release.lastEvent} style={{fontSize: 13}} />
-                ) : (
-                  <span>—</span>
-                )}
-              </Box>
-            </PanelItem>
+                </VersionColumn>
+                <StatsColumn>
+                  <ReleaseStats release={release} />
+                </StatsColumn>
+                <CountColumn>
+                  <Count className="release-count" value={release.newGroups || 0} />
+                </CountColumn>
+                <LastEventColumn>
+                  {release.lastEvent ? (
+                    <SmallTimeSince date={release.lastEvent} />
+                  ) : (
+                    <span>—</span>
+                  )}
+                </LastEventColumn>
+              </Layout>
+            </ReleasePanelItem>
           );
         })}
       </div>
@@ -59,3 +62,18 @@ class ReleaseList extends React.Component {
 }
 
 export default ReleaseList;
+
+const ReleasePanelItem = styled(PanelItem)`
+  align-items: center;
+  padding: ${space(1)} ${space(2)};
+`;
+
+const VersionWrapper = styled('div')`
+  font-weight: bold;
+  margin-bottom: ${space(0.25)};
+  ${overflowEllipsis};
+`;
+
+const SmallTimeSince = styled(TimeSince)`
+  font-size: ${p => p.theme.fontSizeSmall};
+`;
