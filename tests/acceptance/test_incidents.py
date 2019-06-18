@@ -48,7 +48,7 @@ class OrganizationIncidentsListTest(AcceptanceTestCase, SnubaTestCase):
             self.browser.wait_until_not('.loading-indicator')
             self.browser.wait_until_test_id('incident-title')
 
-            # TODO: wait until sidebar loads
+            self.browser.wait_until_not('[data-test-id="loading-placeholder"]')
             self.browser.snapshot('incidents - details')
 
     @patch('django.utils.timezone.now')
