@@ -80,14 +80,14 @@ describe('InstallWizard', function() {
 
     expect(
       wrapper.find('input[name="beacon.anonymous"][value="false"]').prop('checked')
-    ).toBe(true);
+    ).toBe(false);
 
     expect(
       wrapper.find('input[name="beacon.anonymous"][value="true"]').prop('checked')
     ).toBe(false);
   });
 
-  it('has "Please keep my usage anonymous" when beacon.anonymous is true', function() {
+  it('has "Please keep my usage anonymous" when beacon.anonymous is false', function() {
     MockApiClient.addMockResponse({
       url: '/internal/options/?query=is:required',
       body: TestStubs.InstallWizard({
@@ -112,6 +112,6 @@ describe('InstallWizard', function() {
 
     expect(
       wrapper.find('input[name="beacon.anonymous"][value="true"]').prop('checked')
-    ).toBe(true);
+    ).toBe(false);
   });
 });

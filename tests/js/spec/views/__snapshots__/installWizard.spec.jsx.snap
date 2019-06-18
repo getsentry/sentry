@@ -247,10 +247,10 @@ exports[`InstallWizard renders 1`] = `
                     key="mail.username"
                     label="SMTP Username"
                     name="mail.username"
-                    required={false}
+                    required={true}
                   >
                     <div
-                      className="control-group"
+                      className="control-group required"
                     >
                       <div
                         className="controls"
@@ -267,7 +267,7 @@ exports[`InstallWizard renders 1`] = `
                           id="id-mail.username"
                           name="mail.username"
                           onChange={[Function]}
-                          required={false}
+                          required={true}
                           type="text"
                           value=""
                         />
@@ -285,10 +285,10 @@ exports[`InstallWizard renders 1`] = `
                     key="mail.password"
                     label="SMTP Password"
                     name="mail.password"
-                    required={false}
+                    required={true}
                   >
                     <div
-                      className="control-group"
+                      className="control-group required"
                     >
                       <div
                         className="controls"
@@ -305,7 +305,7 @@ exports[`InstallWizard renders 1`] = `
                           id="id-mail.password"
                           name="mail.password"
                           onChange={[Function]}
-                          required={false}
+                          required={true}
                           type="text"
                           value=""
                         />
@@ -324,7 +324,7 @@ exports[`InstallWizard renders 1`] = `
                     key="mail.use-tls"
                     label="Use TLS?"
                     name="mail.use-tls"
-                    required={false}
+                    required={true}
                   >
                     <div
                       className="control-group checkbox"
@@ -367,7 +367,7 @@ exports[`InstallWizard renders 1`] = `
                     key="auth.allow-registration"
                     label="Allow Registration"
                     name="auth.allow-registration"
-                    required={false}
+                    required={true}
                   >
                     <div
                       className="control-group checkbox"
@@ -431,12 +431,12 @@ exports[`InstallWizard renders 1`] = `
                     label="Usage Statistics"
                     name="beacon.anonymous"
                     noLabel="Send my contact information along with usage statistics"
-                    required={false}
+                    required={true}
                     yesFirst={false}
                     yesLabel="Please keep my usage information anonymous"
                   >
                     <div
-                      className="control-group"
+                      className="control-group required"
                     >
                       <div
                         className="controls"
