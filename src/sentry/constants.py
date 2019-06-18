@@ -229,6 +229,8 @@ KNOWN_DIF_FORMATS = {
     'text/x-breakpad': 'breakpad',
     'application/x-mach-binary': 'macho',
     'application/x-elf-binary': 'elf',
+    'application/x-dosexec': 'pe',
+    'application/x-ms-pdb': 'pdb',
     'text/x-proguard+plain': 'proguard',
 }
 

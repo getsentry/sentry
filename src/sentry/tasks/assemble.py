@@ -79,7 +79,7 @@ def set_assemble_status(task, scope, checksum, state, detail=None):
 
 
 @instrumented_task(name='sentry.tasks.assemble.assemble_dif', queue='assemble')
-def assemble_dif(project_id, name, checksum, chunks, **kwargs):
+def assemble_dif(project_id, name, checksum, chunks, debug_id=None, **kwargs):
     """
     Assembles uploaded chunks into a ``ProjectDebugFile``.
     """
@@ -109,7 +109,11 @@ def assemble_dif(project_id, name, checksum, chunks, **kwargs):
             # We only permit split difs to hit this endpoint.  The
             # client is required to split them up first or we error.
             try:
-                result = debugfile.detect_dif_from_path(temp_file.name, name=name)
+                result = debugfile.detect_dif_from_path(
+                    temp_file.name,
+                    name=name,
+                    debug_id=debug_id,
+                )
             except BadDif as e:
                 set_assemble_status(AssembleTask.DIF, project.id, checksum,
                                     ChunkFileState.ERROR, detail=e.args[0])

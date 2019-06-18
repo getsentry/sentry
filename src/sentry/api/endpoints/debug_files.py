@@ -251,6 +251,7 @@ class DifAssembleEndpoint(ProjectEndpoint):
                     "required": ["name", "chunks"],
                     "properties": {
                         "name": {"type": "string"},
+                        "debug_id": {"type": "string"},
                         "chunks": {
                             "type": "array",
                             "items": {
@@ -259,7 +260,7 @@ class DifAssembleEndpoint(ProjectEndpoint):
                             }
                         }
                     },
-                    "additionalProperties": False
+                    "additionalProperties": True
                 }
             },
             "additionalProperties": False
@@ -279,6 +280,7 @@ class DifAssembleEndpoint(ProjectEndpoint):
 
         for checksum, file_to_assemble in six.iteritems(files):
             name = file_to_assemble.get('name', None)
+            debug_id = file_to_assemble.get('debug_id', None)
             chunks = file_to_assemble.get('chunks', [])
 
             # First, check the cached assemble status. During assembling, a
@@ -348,6 +350,7 @@ class DifAssembleEndpoint(ProjectEndpoint):
                 kwargs={
                     'project_id': project.id,
                     'name': name,
+                    'debug_id': debug_id,
                     'checksum': checksum,
                     'chunks': chunks,
                 }

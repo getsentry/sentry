@@ -21,7 +21,7 @@ import tempfile
 
 from django.db import models
 
-from symbolic import Archive, SymbolicError, ObjectErrorUnsupportedObject
+from symbolic import Archive, SymbolicError, ObjectErrorUnsupportedObject, normalize_debug_id
 
 from sentry import options
 from sentry.constants import KNOWN_DIF_FORMATS
@@ -140,15 +140,24 @@ class ProjectDebugFile(Model):
         return KNOWN_DIF_FORMATS.get(ct, 'unknown')
 
     @property
+    def file_type(self):
+        if self.data:
+            return self.data.get('type')
+
+    @property
     def file_extension(self):
         if self.file_format == 'breakpad':
             return '.sym'
         if self.file_format == 'macho':
-            return '.dSYM'
+            return '' if self.file_type == 'exe' else '.dSYM'
         if self.file_format == 'proguard':
             return '.txt'
         if self.file_format == 'elf':
-            return '.debug'
+            return '' if self.file_type == 'exe' else '.debug'
+        if self.file_format == 'pe':
+            return '.exe' if self.file_type == 'exe' else '.dll'
+        if self.file_format == 'pdb':
+            return '.pdb'
 
         return ''
 
@@ -189,7 +198,7 @@ def create_dif_from_id(project, meta, fileobj=None, file=None):
     """
     if meta.file_format == 'proguard':
         object_name = 'proguard-mapping'
-    elif meta.file_format in ('macho', 'elf'):
+    elif meta.file_format in ('macho', 'elf', 'pdb', 'pe'):
         object_name = meta.name
     elif meta.file_format == 'breakpad':
         object_name = meta.name[:-4] if meta.name.endswith('.sym') else meta.name
@@ -284,11 +293,24 @@ class DifMeta(object):
             self.name = os.path.basename(path)
 
     @classmethod
-    def from_object(cls, obj, path, name=None):
+    def from_object(cls, obj, path, name=None, debug_id=None):
+        if debug_id is not None:
+            try:
+                debug_id = normalize_debug_id(debug_id)
+            except SymbolicError:
+                debug_id = None
+
+        # Only allow overrides in the debug_id's age if the rest of the debug id
+        # matches with what we determine from the object file. We generally
+        # trust the server more than the client.
+        obj_id = obj.debug_id
+        if obj_id and debug_id and obj_id[:36] == debug_id[:36]:
+            obj_id = debug_id
+
         return cls(
             file_format=obj.file_format,
             arch=obj.arch,
-            debug_id=obj.debug_id,
+            debug_id=obj_id,
             code_id=obj.code_id,
             path=path,
             # TODO: Extract the object name from the object
@@ -304,7 +326,7 @@ class DifMeta(object):
         return os.path.basename(self.path)
 
 
-def detect_dif_from_path(path, name=None):
+def detect_dif_from_path(path, name=None, debug_id=None):
     """This detects which kind of dif(Debug Information File) the path
     provided is. It returns an array since an Archive can contain more than
     one Object.
@@ -335,7 +357,7 @@ def detect_dif_from_path(path, name=None):
     else:
         objs = []
         for obj in archive.iter_objects():
-            objs.append(DifMeta.from_object(obj, path, name=name))
+            objs.append(DifMeta.from_object(obj, path, name=name, debug_id=debug_id))
         return objs
 
 
