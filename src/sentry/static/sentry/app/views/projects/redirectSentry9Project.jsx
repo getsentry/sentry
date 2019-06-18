@@ -24,7 +24,7 @@ const redirectSentry9Project = generateRedirectRoute => {
       project: null,
     };
 
-    componentWillMount() {
+    componentDidMount() {
       this.fetchData();
     }
 
