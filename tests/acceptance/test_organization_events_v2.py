@@ -35,12 +35,12 @@ class OrganizationEventsTest(AcceptanceTestCase, SnubaTestCase):
 
     def wait_until_loaded(self):
         self.browser.wait_until_not('.loading-indicator')
-        self.browser.wait_until_not('[data-test-id="placeholder"]')
+        self.browser.wait_until_not('[data-test-id="loading-placeholder"]')
 
     def test_all_events_empty(self):
         with self.feature(FEATURE_NAME):
             self.browser.get(self.path)
-            self.browser.wait_until_not('.loading-indicator')
+            self.wait_until_loaded()
             self.browser.snapshot('events-v2 - all events empty state')
 
     @patch('django.utils.timezone.now')
@@ -127,7 +127,7 @@ class OrganizationEventsTest(AcceptanceTestCase, SnubaTestCase):
             self.browser.element('[data-test-id="event-title"]').click()
             self.wait_until_loaded()
 
-            header = self.browser.element('[data-test-id="event-detail-modal"] h2')
+            header = self.browser.element('[data-test-id="modal-dialog"] h2')
             assert event_data['message'] in header.text
 
             self.browser.snapshot('events-v2 - single error modal')
