@@ -1210,11 +1210,59 @@ function routes() {
               )
             )}
           />
-          {/* <Route path="searches/:searchId/" component={errorHandler(RedirectToIssueStream)} /> */}
-          {/* <Route path="dashboard/" component={errorHandler(RedirectToIssueStream)} /> */}
-          {/* <Route path="releases/" component={errorHandler(RedirectToIssueStream)} /> */}
-          {/* <Route path="releases/:version" component={errorHandler(RedirectToIssueStream)} /> */}
-          {/* and others */}
+          <Route
+            path="releases/:version/new-events/"
+            component={errorHandler(
+              redirectSentry9Project(
+                ({orgId, projectId, router}) =>
+                  `/organizations/${orgId}/releases/${
+                    router.params.version
+                  }/new-events/?project=${projectId}`
+              )
+            )}
+          />
+          <Route
+            path="releases/:version/all-events/"
+            component={errorHandler(
+              redirectSentry9Project(
+                ({orgId, projectId, router}) =>
+                  `/organizations/${orgId}/releases/${
+                    router.params.version
+                  }/all-events/?project=${projectId}`
+              )
+            )}
+          />
+          <Route
+            path="releases/:version/artifacts/"
+            component={errorHandler(
+              redirectSentry9Project(
+                ({orgId, projectId, router}) =>
+                  `/organizations/${orgId}/releases/${
+                    router.params.version
+                  }/artifacts/?project=${projectId}`
+              )
+            )}
+          />
+          <Route
+            path="releases/:version/commits/"
+            component={errorHandler(
+              redirectSentry9Project(
+                ({orgId, projectId, router}) =>
+                  `/organizations/${orgId}/releases/${
+                    router.params.version
+                  }/commits/?project=${projectId}`
+              )
+            )}
+          />
+          <Route
+            path="user-feedback/"
+            component={errorHandler(
+              redirectSentry9Project(
+                ({orgId, projectId}) =>
+                  `/organizations/${orgId}/user-feedback/?project=${projectId}`
+              )
+            )}
+          />
         </Route>
         <Redirect
           from=":projectId/searches/:searchId/"
