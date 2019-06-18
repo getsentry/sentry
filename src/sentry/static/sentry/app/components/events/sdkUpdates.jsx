@@ -56,7 +56,9 @@ class EventSdkUpdateSuggestion extends React.Component {
         break;
       case 'changeSdk':
         href = suggestion.sdkUrl;
-        content = t("Migrate to the '%s' SDK", suggestion.newSdkName);
+        content = tct("migrate to the [sdkName] SDK", {
+          sdkName: <code>{suggestion.newSdkName}</code>
+        });
         break;
       case 'enableIntegration':
         href = suggestion.integrationUrl;
