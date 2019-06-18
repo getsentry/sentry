@@ -19,7 +19,6 @@ import {t} from 'app/locale';
 import DateRange from 'app/components/organizations/timeRangeSelector/dateRange';
 import DateSummary from 'app/components/organizations/timeRangeSelector/dateSummary';
 import DropdownMenu from 'app/components/dropdownMenu';
-import Feature from 'app/components/acl/feature';
 import HeaderItem from 'app/components/organizations/headerItem';
 import HookOrDefault from 'app/components/hookOrDefault';
 import InlineSvg from 'app/components/inlineSvg';
@@ -57,6 +56,13 @@ const getInternalDate = (date, utc) => {
 const DateRangeHook = HookOrDefault({
   hookName: 'component:date-range',
   defaultComponent: DateRange,
+});
+
+const SelectorListHook = HookOrDefault({
+  hookName: 'component:selector-list',
+  defaultComponent: ({children}) => {
+    return <React.Fragment>{children}</React.Fragment>;
+  },
 });
 
 class TimeRangeSelector extends React.PureComponent {
@@ -292,10 +298,6 @@ class TimeRangeSelector extends React.PureComponent {
     });
   };
 
-  renderRelativeSelector = ({onClick, selected, hasFeature}) => (
-    <RelativeSelector onClick={onClick} selected={selected} hasFeature={hasFeature} />
-  );
-
   render() {
     const {showAbsolute, showRelative, organization} = this.props;
     const {start, end, relative} = this.state;
@@ -309,6 +311,8 @@ class TimeRangeSelector extends React.PureComponent {
     ) : (
       getRelativeSummary(relative || DEFAULT_STATS_PERIOD)
     );
+
+    const relativeSelected = isAbsoluteSelected ? null : relative || DEFAULT_STATS_PERIOD;
 
     return (
       <DropdownMenu
@@ -339,35 +343,32 @@ class TimeRangeSelector extends React.PureComponent {
                 {...getMenuProps({isStyled: true})}
                 isAbsoluteSelected={isAbsoluteSelected}
               >
-                <Feature
-                  features={['organizations:extended-data-retention']}
-                  organization={organization}
-                  renderDisabled={({children, ...props}) => children({...props})}
-                >
-                  {({hasFeature, renderRelativeSelector, renderDisabled}) => (
-                    <SelectorList isAbsoluteSelected={isAbsoluteSelected}>
-                      {shouldShowRelative &&
-                        (renderRelativeSelector || this.renderRelativeSelector)({
-                          onClick: this.handleSelectRelative,
-                          selected: isAbsoluteSelected
-                            ? null
-                            : relative || DEFAULT_STATS_PERIOD,
-                          hasFeature,
-                        })}
-                      {shouldShowAbsolute && (
-                        <SelectorItem
-                          onClick={this.handleAbsoluteClick}
-                          value="absolute"
-                          label={t('Absolute date')}
-                          selected={isAbsoluteSelected}
-                          last={true}
-                        />
-                      )}
-                      {!hasFeature && renderDisabled && renderDisabled()}
-                    </SelectorList>
-                  )}
-                </Feature>
-
+                <SelectorList isAbsoluteSelected={isAbsoluteSelected}>
+                  <SelectorListHook
+                    isAbsoluteSelected={isAbsoluteSelected}
+                    relativeSelected={relativeSelected}
+                    handleSelectRelative={this.handleSelectRelative}
+                    handleAbsoluteClick={this.handleAbsoluteClick}
+                    shouldShowRelative={shouldShowRelative}
+                    shouldShowAbsolute={shouldShowAbsolute}
+                  >
+                    {shouldShowRelative && (
+                      <RelativeSelector
+                        onClick={this.handleSelectRelative}
+                        selected={relativeSelected}
+                      />
+                    )}
+                    {shouldShowAbsolute && (
+                      <SelectorItem
+                        onClick={this.handleAbsoluteClick}
+                        value="absolute"
+                        label={t('Absolute date')}
+                        selected={isAbsoluteSelected}
+                        last={true}
+                      />
+                    )}
+                  </SelectorListHook>
+                </SelectorList>
                 {isAbsoluteSelected && (
                   <div>
                     <DateRangeHook

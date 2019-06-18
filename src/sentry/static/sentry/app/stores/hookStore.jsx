@@ -25,6 +25,7 @@ const validHookNames = new Set([
   'component:org-auth-view',
   'component:org-members-view',
   'component:date-range',
+  'component:selector-list',
 
   // Additional settings
   'settings:organization-navigation',
@@ -54,7 +55,6 @@ const validHookNames = new Set([
   'feature-disabled:custom-inbound-filters',
   'feature-disabled:discard-groups',
   'feature-disabled:data-forwarding',
-  'feature-disabled:extended-data-retention',
   'feature-disabled:rate-limits',
   'feature-disabled:sso-basic',
   'feature-disabled:sso-rippling',

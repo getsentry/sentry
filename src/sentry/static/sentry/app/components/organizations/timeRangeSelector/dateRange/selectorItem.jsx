@@ -14,7 +14,7 @@ class SelectorItem extends React.PureComponent {
 
   handleClick = e => {
     const {onClick, value} = this.props;
-    return onClick(value, e);
+    onClick(value, e);
   };
 
   render() {
