@@ -105,7 +105,7 @@ export function fetchTags(api, orgSlug, tagList, query) {
 
   return api
     .requestPromise(`/organizations/${orgSlug}/events-heatmap/`, {
-      query: {...urlParams, keys: tagList, query: query.query},
+      query: {...urlParams, key: tagList, query: query.query},
     })
     .then(resp => {
       const tags = {};
