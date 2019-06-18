@@ -32,6 +32,7 @@ import ProjectPlugins from 'app/views/projectPlugins';
 import ProjectSettings from 'app/views/projectSettings';
 import ProjectTags from 'app/views/projectTags';
 import redirectSentry9Project from 'app/views/projects/redirectSentry9Project';
+import redirectSentry9ProjectSavedSearch from 'app/views/projects/redirectSentry9ProjectSavedSearch';
 import RouteNotFound from 'app/views/routeNotFound';
 import SettingsProjectProvider from 'app/views/settings/components/settingsProjectProvider';
 import SettingsWrapper from 'app/views/settings/components/settingsWrapper';
@@ -1172,15 +1173,15 @@ function routes() {
               )
             )}
           />
-          {/* TODO(dashed): <Route
+          <Route
             path="searches/:searchId/"
             component={errorHandler(
-              redirectSentry9Project(
+              redirectSentry9ProjectSavedSearch(
                 ({orgId, projectId}) =>
                   `/organizations/${orgId}/issues/?project=${projectId}`
               )
             )}
-          /> */}
+          />
           <Route
             path="dashboard/"
             component={errorHandler(
