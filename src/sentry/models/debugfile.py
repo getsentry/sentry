@@ -140,15 +140,24 @@ class ProjectDebugFile(Model):
         return KNOWN_DIF_FORMATS.get(ct, 'unknown')
 
     @property
+    def file_type(self):
+        if self.data:
+            return self.data.get('type')
+
+    @property
     def file_extension(self):
         if self.file_format == 'breakpad':
             return '.sym'
         if self.file_format == 'macho':
-            return '.dSYM'
+            return '' if self.file_type == 'exe' else '.dSYM'
         if self.file_format == 'proguard':
             return '.txt'
         if self.file_format == 'elf':
-            return '.debug'
+            return '' if self.file_type == 'exe' else '.debug'
+        if self.file_format == 'pe':
+            return '.exe' if self.file_type == 'exe' else '.dll'
+        if self.file_format == 'pdb':
+            return '.pdb'
 
         return ''
 
@@ -189,7 +198,7 @@ def create_dif_from_id(project, meta, fileobj=None, file=None):
     """
     if meta.file_format == 'proguard':
         object_name = 'proguard-mapping'
-    elif meta.file_format in ('macho', 'elf'):
+    elif meta.file_format in ('macho', 'elf', 'pdb', 'pe'):
         object_name = meta.name
     elif meta.file_format == 'breakpad':
         object_name = meta.name[:-4] if meta.name.endswith('.sym') else meta.name
