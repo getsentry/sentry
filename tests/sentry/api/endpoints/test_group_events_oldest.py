@@ -20,7 +20,6 @@ class GroupEventsOldestTest(APITestCase):
 
         self.event1 = self.store_event(
             data={
-                'event_id': 'a' * 32,
                 'environment': 'staging',
                 'fingerprint': ['group_1'],
                 'timestamp': two_min_ago
@@ -30,7 +29,6 @@ class GroupEventsOldestTest(APITestCase):
 
         self.event2 = self.store_event(
             data={
-                'event_id': 'b' * 32,
                 'environment': 'production',
                 'fingerprint': ['group_1'],
                 'timestamp': min_ago
@@ -45,4 +43,4 @@ class GroupEventsOldestTest(APITestCase):
         response = self.client.get(url, format='json')
 
         assert response.status_code == 200
-        assert response.data['id'] == six.text_type(self.event1.id)
+        assert response.data['id'] == six.text_type(self.event1.event_id)

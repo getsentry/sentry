@@ -20,7 +20,6 @@ class ProjectEventDetailsTest(APITestCase):
 
         self.prev_event = self.store_event(
             data={
-                # 'event_id': 'a' * 32,
                 'timestamp': three_min_ago,
                 'fingerprint': ['group-1']
             },
@@ -28,7 +27,6 @@ class ProjectEventDetailsTest(APITestCase):
         )
         self.cur_event = self.store_event(
             data={
-                # 'event_id': 'b' * 32,
                 'timestamp': two_min_ago,
                 'fingerprint': ['group-1']
             },
@@ -36,7 +34,6 @@ class ProjectEventDetailsTest(APITestCase):
         )
         self.next_event = self.store_event(
             data={
-                # 'event_id': 'c' * 32,
                 'timestamp': one_min_ago,
                 'fingerprint': ['group-1'],
                 'environment': 'production',
