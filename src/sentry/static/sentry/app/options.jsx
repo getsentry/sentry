@@ -189,7 +189,7 @@ export function getOptionField(option, field) {
       name={option}
       key={option}
       defaultValue={getOptionDefault(option)}
-      required={meta.required && !meta.allowEmpt}
+      required={meta.required && !meta.allowEmpty}
       disabledReason={meta.disabledReason && disabledReasons[meta.disabledReason]}
     />
   );

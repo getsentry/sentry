@@ -53,7 +53,7 @@ exports[`AdminSettings render() renders 1`] = `
         label="Root URL"
         name="system.url-prefix"
         placeholder="https://sentry.example.com"
-        required={true}
+        required={false}
       />
       <EmailField
         allowEmpty={false}
