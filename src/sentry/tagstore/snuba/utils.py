@@ -103,8 +103,6 @@ def create_tag_objects(keys, total_count, top_values):
                 top_values=[],
                 count=total_count,
             )
-        # import logging
-        # logging.info('tag values %s', top_value)
         tag_keys_dict[key].top_values.append(
             TagValue(
                 key=key,
