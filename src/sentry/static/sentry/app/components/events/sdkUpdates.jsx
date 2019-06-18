@@ -1,10 +1,16 @@
 import React from 'react';
+import styled from 'react-emotion';
 import PropTypes from 'prop-types';
+
 import SentryTypes from 'app/sentryTypes';
 import Alert from 'app/components/alert';
 import ExternalLink from 'app/components/links/externalLink';
+import {t, tct} from 'app/locale';
+import space from 'app/styles/space';
 
-import {t} from 'app/locale';
+const StyledAlert = styled(Alert)`
+  margin: 0 ${space(2)};
+`;
 
 export const EnableIntegrationSuggestion = PropTypes.shape({
   type: PropTypes.string,
@@ -56,8 +62,8 @@ class EventSdkUpdateSuggestion extends React.Component {
         break;
       case 'changeSdk':
         href = suggestion.sdkUrl;
-        content = tct("migrate to the [sdkName] SDK", {
-          sdkName: <code>{suggestion.newSdkName}</code>
+        content = tct('migrate to the [sdkName] SDK', {
+          sdkName: <code>{suggestion.newSdkName}</code>,
         });
         break;
       case 'enableIntegration':
@@ -114,14 +120,14 @@ class EventSdkUpdates extends React.Component {
       <div>
         {data.map(suggestion => {
           return (
-            <Alert
+            <StyledAlert
               type="info"
               icon="icon-upgrade"
               key={getSuggestionComponentKey(suggestion)}
             >
               {t('We recommend you')}
               <EventSdkUpdateSuggestion event={event} suggestion={suggestion} />
-            </Alert>
+            </StyledAlert>
           );
         })}
       </div>
