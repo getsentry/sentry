@@ -46,8 +46,6 @@ const redirectSentry9Project = generateRedirectRoute => {
     }
 
     fetchData = async () => {
-      console.log('props', this.props);
-
       this.setState({
         loading: true,
         error: null,
@@ -75,12 +73,12 @@ const redirectSentry9Project = generateRedirectRoute => {
       }
     };
 
-    getProjectId = project => {
-      return _.get(project, 'id');
+    getProjectId = () => {
+      return _.get(this.state.project, 'id');
     };
 
-    hasProjectId = project => {
-      const projectID = this.getProjectId(project);
+    hasProjectId = () => {
+      const projectID = this.getProjectId(this.state.project);
       return _.isString(projectID) && projectID.length > 0;
     };
 
@@ -89,7 +87,7 @@ const redirectSentry9Project = generateRedirectRoute => {
         return null;
       }
 
-      if (!this.hasProjectId(this.state.project)) {
+      if (!this.hasProjectId()) {
         if (this.state.error) {
           // TODO: handle this
           return <div>error</div>;
@@ -104,7 +102,7 @@ const redirectSentry9Project = generateRedirectRoute => {
         );
       }
 
-      const currentProjectId = this.getProjectId(this.state.project);
+      const currentProjectId = this.getProjectId();
 
       const routeProps = {
         orgId: this.props.params.orgId,
