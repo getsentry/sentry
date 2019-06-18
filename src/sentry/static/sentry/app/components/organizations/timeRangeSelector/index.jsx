@@ -310,12 +310,6 @@ class TimeRangeSelector extends React.PureComponent {
       getRelativeSummary(relative || DEFAULT_STATS_PERIOD)
     );
 
-    const isRelativeSelected = relative
-      ? relative
-      : isAbsoluteSelected
-      ? null
-      : DEFAULT_STATS_PERIOD;
-
     return (
       <DropdownMenu
         isOpen={this.state.isOpen}
@@ -355,7 +349,9 @@ class TimeRangeSelector extends React.PureComponent {
                       {shouldShowRelative &&
                         (renderRelativeSelector || this.renderRelativeSelector)({
                           onClick: this.handleSelectRelative,
-                          selected: isRelativeSelected,
+                          selected: isAbsoluteSelected
+                            ? null
+                            : relative || DEFAULT_STATS_PERIOD,
                           hasFeature,
                         })}
                       {shouldShowAbsolute && (
