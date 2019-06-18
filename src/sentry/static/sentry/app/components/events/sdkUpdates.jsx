@@ -80,7 +80,7 @@ class EventSdkUpdateSuggestion extends React.Component {
     }
 
     return (
-      <div>
+      <span>
         {title}
         {t(' so you can: ')}
         <ul>
@@ -92,7 +92,7 @@ class EventSdkUpdateSuggestion extends React.Component {
             );
           })}
         </ul>
-      </div>
+      </span>
     );
   }
 }
