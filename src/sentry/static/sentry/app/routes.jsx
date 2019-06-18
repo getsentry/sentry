@@ -1172,6 +1172,44 @@ function routes() {
               )
             )}
           />
+          {/* TODO(dashed): <Route
+            path="searches/:searchId/"
+            component={errorHandler(
+              redirectSentry9Project(
+                ({orgId, projectId}) =>
+                  `/organizations/${orgId}/issues/?project=${projectId}`
+              )
+            )}
+          /> */}
+          <Route
+            path="dashboard/"
+            component={errorHandler(
+              redirectSentry9Project(
+                ({orgId, projectId}) =>
+                  `/organizations/${orgId}/dashboards/?project=${projectId}`
+              )
+            )}
+          />
+          <Route
+            path="releases/"
+            component={errorHandler(
+              redirectSentry9Project(
+                ({orgId, projectId}) =>
+                  `/organizations/${orgId}/releases/?project=${projectId}`
+              )
+            )}
+          />
+          <Route
+            path="releases/:version/"
+            component={errorHandler(
+              redirectSentry9Project(
+                ({orgId, projectId, router}) =>
+                  `/organizations/${orgId}/releases/${
+                    router.params.version
+                  }/?project=${projectId}`
+              )
+            )}
+          />
           {/* <Route path="searches/:searchId/" component={errorHandler(RedirectToIssueStream)} /> */}
           {/* <Route path="dashboard/" component={errorHandler(RedirectToIssueStream)} /> */}
           {/* <Route path="releases/" component={errorHandler(RedirectToIssueStream)} /> */}

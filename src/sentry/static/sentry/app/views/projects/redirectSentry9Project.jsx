@@ -33,10 +33,6 @@ const redirectSentry9Project = generateRedirectRoute => {
       const currentProjectId = this.getProjectId(this.state.project);
       const hasProjectId = this.hasProjectId(this.state.project);
 
-      console.log('previousProjectId', previousProjectId);
-      console.log('currentProjectId', currentProjectId);
-      console.log('this.hasProjectId()', hasProjectId);
-
       if (
         previousProjectId !== currentProjectId &&
         hasProjectId &&
@@ -45,6 +41,11 @@ const redirectSentry9Project = generateRedirectRoute => {
         const routeProps = {
           orgId: this.props.params.orgId,
           projectId: currentProjectId,
+          router: {
+            params: {
+              ...this.props.params,
+            },
+          },
         };
 
         this.props.router.replace(generateRedirectRoute(routeProps));
