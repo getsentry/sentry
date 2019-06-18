@@ -6,7 +6,7 @@ import AsyncView from 'app/views/asyncView';
 import {t} from 'app/locale';
 import ConfigStore from 'app/stores/configStore';
 import {ApiForm} from 'app/components/forms';
-import {getOptionField, getForm} from 'app/options';
+import {getOptionDefault, getOptionField, getForm} from 'app/options';
 
 export default class InstallWizard extends AsyncView {
   static propTypes = {
@@ -64,16 +64,21 @@ export default class InstallWizard extends AsyncView {
       if (option.field.disabled) {
         return;
       }
-      // XXX(dcramer): we need the user to explicitly choose beacon.anonymous
-      // vs using an implied default so effectively this is binding
-      // all values to their server-defaults (as client-side defaults dont really work)
+
       // TODO(dcramer): we need to rethink this logic as doing multiple "is this value actually set"
       // is problematic
+      // all values to their server-defaults (as client-side defaults dont really work)
+      const displayValue = option.value || getOptionDefault(optionName);
       if (
-        option.value !== undefined && option.value !== "" && option.value !== null &&
-        (option.field.isSet || optionName != 'beacon.anonymous')
+        // XXX(dcramer): we need the user to explicitly choose beacon.anonymous
+        // vs using an implied default so effectively this is binding
+        optionName != 'beacon.anonymous' &&
+        // XXX(byk): if we don't have a set value but have a default value filled
+        // instead, from the client, set it on the data so it is sent to the server
+        !option.field.isSet &&
+        displayValue !== undefined
       ) {
-        data[optionName] = option.value;
+        data[optionName] = displayValue;
       }
     });
     return data;
