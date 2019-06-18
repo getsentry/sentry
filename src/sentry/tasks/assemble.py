@@ -79,7 +79,7 @@ def set_assemble_status(task, scope, checksum, state, detail=None):
 
 
 @instrumented_task(name='sentry.tasks.assemble.assemble_dif', queue='assemble')
-def assemble_dif(project_id, name, debug_id, checksum, chunks, **kwargs):
+def assemble_dif(project_id, name, checksum, chunks, debug_id=None, **kwargs):
     """
     Assembles uploaded chunks into a ``ProjectDebugFile``.
     """
