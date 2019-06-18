@@ -4,6 +4,7 @@ from collections import (
     namedtuple,
     OrderedDict,
 )
+from copy import deepcopy
 from contextlib import contextmanager
 from datetime import datetime, timedelta
 from dateutil.parser import parse as parse_datetime
@@ -548,7 +549,7 @@ def raw_query(start, end, groupby=None, conditions=None, filter_keys=None,
     else:
         project_ids = []
 
-    for col, keys in six.iteritems(forward(filter_keys.copy())):
+    for col, keys in six.iteritems(forward(deepcopy(filter_keys))):
         if keys:
             if len(keys) == 1 and None in keys:
                 conditions.append((col, 'IS NULL', None))
