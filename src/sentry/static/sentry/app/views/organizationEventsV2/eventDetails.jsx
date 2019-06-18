@@ -129,7 +129,11 @@ class EventDetails extends AsyncComponent {
   }
 
   renderLoading() {
-    return <ModalDialog className={modalStyles}>{super.renderLoading()}</ModalDialog>;
+    return (
+      <ModalDialog onDismiss={this.onDismiss} className={modalStyles}>
+        {super.renderLoading()}
+      </ModalDialog>
+    );
   }
 }
 
