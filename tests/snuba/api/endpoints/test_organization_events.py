@@ -1534,6 +1534,55 @@ class OrganizationEventsHeatmapEndpointTest(OrganizationEventsTestBase):
             'key': 'user.ip'
         }
 
+    def test_non_tag_key__multiple_values(self):
+        frame = {
+            'filename': 'server.php',
+            'lineno': 21,
+            'in_app': True,
+        }
+
+        # Check that error.type works with chained exceptions
+        # as they create multiple results for exception_stacks.type
+        self.store_event(
+            data={
+                'event_id': uuid4().hex,
+                'timestamp': self.min_ago_iso,
+                'exception': {
+                    'values': [
+                        {'type': 'PDOException', 'stacktrace': {
+                            'frames': [frame]}, 'value': 'Database error'},
+                        {'type': 'QueryException', 'stacktrace': {
+                            'frames': [frame]}, 'value': 'Query failed'},
+                    ]
+                }
+            },
+            project_id=self.project.id
+        )
+
+        response = self.client.get(
+            self.url,
+            {'key': ['error.type'], 'project': [self.project.id]},
+            format='json')
+
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 1
+
+        assert response.data[0] == {
+            'topValues': [
+                {
+                    'count': 1,
+                    'name': 'QueryException',
+                    'value': 'QueryException',
+                    'lastSeen': self.min_ago_iso,
+                    'key': 'error.type',
+                    'firstSeen': self.min_ago_iso
+                },
+            ],
+            'totalValues': 1,
+            'name': 'Error.Type',
+            'key': 'error.type'
+        }
+
     def test_value_limit(self):
         for i in range(0, 12):
             self.store_event(

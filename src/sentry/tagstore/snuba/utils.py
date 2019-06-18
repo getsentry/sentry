@@ -54,8 +54,14 @@ def handle_non_tag_keys(keys, top_values, **kwargs):
                 value['tags_key'] = key
         else:
             for value in data:
+                tag_value = value[NON_TAG_KEYS[key]]
+                # If we have multiple values take the last one.
+                # This happens most commonly with error.type and chained
+                # exceptions.
+                if isinstance(tag_value, list):
+                    tag_value = tag_value[-1]
                 value['tags_key'] = key
-                value['tags_value'] = value[NON_TAG_KEYS[key]]
+                value['tags_value'] = tag_value
 
         top_values += data
 
@@ -97,6 +103,8 @@ def create_tag_objects(keys, total_count, top_values):
                 top_values=[],
                 count=total_count,
             )
+        # import logging
+        # logging.info('tag values %s', top_value)
         tag_keys_dict[key].top_values.append(
             TagValue(
                 key=key,
@@ -148,8 +156,10 @@ def get_top_values(keys, value_limit=TOP_VALUES_DEFAULT_LIMIT, **kwargs):
 
     values = raw_query(
         groupby=['tags_key', 'tags_value'],
-        filter_keys=filters, aggregations=aggregations,
-        orderby='-count', limitby=[value_limit, 'tags_key'],
+        filter_keys=filters,
+        aggregations=aggregations,
+        orderby='-count',
+        limitby=[value_limit, 'tags_key'],
         referrer='api.organization-events-heatmap',
         **kwargs
     )
