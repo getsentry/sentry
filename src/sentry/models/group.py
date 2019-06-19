@@ -24,6 +24,7 @@ from sentry import eventtypes, tagstore, options
 from sentry.constants import (
     DEFAULT_LOGGER_NAME, EVENT_ORDERING_KEY, LOG_LEVELS, MAX_CULPRIT_LENGTH
 )
+from sentry.db.deletion import conditional_protect
 from sentry.db.models import (
     BaseManager, BoundedBigIntegerField, BoundedIntegerField, BoundedPositiveIntegerField,
     FlexibleForeignKey, GzippedDictField, Model, sane_repr
@@ -235,6 +236,24 @@ class GroupManager(BaseManager):
         )
 
 
+def filter_out_groups_pending_deletion(group_queryset):
+    """
+    Given a queryset of Group objects, filter them to only include ones NOT
+    queued for deletion. Returns another queryset.
+
+    (Useful here to allow a release to be deleted once all of its related
+    groups* are queued for deletion, but before they've actually been deleted.
+
+    *related via Group.first_release
+    )
+    """
+
+    return group_queryset.exclude(status__in=[
+        GroupStatus.PENDING_DELETION,
+        GroupStatus.DELETION_IN_PROGRESS,
+    ])
+
+
 class Group(Model):
     """
     Aggregated message which summarizes a set of Events.
@@ -267,7 +286,14 @@ class Group(Model):
     times_seen = BoundedPositiveIntegerField(default=1, db_index=True)
     last_seen = models.DateTimeField(default=timezone.now, db_index=True)
     first_seen = models.DateTimeField(default=timezone.now, db_index=True)
-    first_release = FlexibleForeignKey('sentry.Release', null=True, on_delete=models.PROTECT)
+    first_release = FlexibleForeignKey(
+        'sentry.Release',
+        null=True,
+        on_delete=conditional_protect(
+            filter_out_groups_pending_deletion,
+            models.SET_NULL
+        )
+    )
     resolved_at = models.DateTimeField(null=True, db_index=True)
     # active_at should be the same as first_seen by default
     active_at = models.DateTimeField(null=True, db_index=True)

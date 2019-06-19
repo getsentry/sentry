@@ -4,7 +4,7 @@ import itertools
 from uuid import uuid4
 
 from datetime import timedelta
-from django.db import connections, router
+from django.db import connections, models, router
 from django.utils import timezone
 
 from sentry.utils import db
@@ -220,3 +220,47 @@ class BulkDeleteQuery(object):
                 chunk = []
         if chunk:
             yield tuple(chunk)
+
+
+def conditional_protect(filter_function, alternative_action):
+    """
+    Given a foreign key relationship:
+
+        A.related_model = B
+
+    this controls if a particular B can be deleted while there are still A's
+    referring to it, and what to do with those A's if so.
+
+
+    Parameters:
+        `filter_function` (function):
+            related_objs (queryset) -> objs_preventing_deletion (queryset)
+            (both querysets containing A's; the latter is a subset of the former)
+
+        `alternative_action` (function):
+            a valid on_delete option (from django.db.models or otherwise) - what to
+            with B's related A objects if none prevent B's deletion
+
+    Returns:
+        an on_delete function which acts like `django.db.models.PROTECT` when
+        `filter_function` returns results, and acts like `alternative_action`
+        otherwise.
+
+    See https://docs.djangoproject.com/en/1.8/ref/models/fields/#django.db.models.ForeignKey.on_delete
+    """
+
+    def on_delete(collector, field, sub_objs, using):
+        """
+        Handle objects (sub_objs) related via a foreign key (field) to the object
+        being deleted.
+        """
+
+        objs_preventing_deletion = filter_function(sub_objs)
+        if objs_preventing_deletion.exists():
+            models.PROTECT(collector, field, objs_preventing_deletion, using)
+        else:
+            alternative_action(collector, field, sub_objs, using)
+
+    on_delete.deconstruct = lambda: (
+        'sentry.db.deletion.conditional_protect', (filter_function,), {})
+    return on_delete

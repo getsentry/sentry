@@ -7,7 +7,7 @@ from sentry.api.bases.organization import OrganizationReleasesBaseEndpoint
 from sentry.api.exceptions import InvalidRepository, ResourceDoesNotExist
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework import ListField, ReleaseSerializer, ReleaseHeadCommitSerializer, ReleaseHeadCommitSerializerDeprecated
-from sentry.models import Activity, Group, Release, ReleaseFile
+from sentry.models import Activity, Group, GroupStatus, Release, ReleaseFile
 from sentry.utils.apidocs import scenario, attach_scenarios
 
 ERR_RELEASE_REFERENCED = "This release is referenced by active issues and cannot be removed."
@@ -202,10 +202,17 @@ class OrganizationReleaseDetailsEndpoint(OrganizationReleasesBaseEndpoint):
         if not self.has_release_permission(request, organization, release):
             raise ResourceDoesNotExist
 
-        # we don't want to remove the first_release metadata on the Group, and
+        # We don't want to remove the first_release metadata on the Group, and
         # while people might want to kill a release (maybe to remove files),
-        # removing the release is prevented
-        if Group.objects.filter(first_release=release).exists():
+        # removing the release is prevented if any groups still refer to it.
+        # (That said, we make an exception if said groups are already marked for
+        # deletion.)
+        if Group.objects.filter(
+            first_release=release
+        ).exclude(status__in=[
+            GroupStatus.PENDING_DELETION,
+            GroupStatus.DELETION_IN_PROGRESS
+        ]).exists():
             return Response({"detail": ERR_RELEASE_REFERENCED}, status=400)
 
         # TODO(dcramer): this needs to happen in the queue as it could be a long

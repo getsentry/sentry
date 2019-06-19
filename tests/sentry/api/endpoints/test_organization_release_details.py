@@ -6,7 +6,7 @@ from django.core.urlresolvers import reverse
 
 from sentry.constants import MAX_VERSION_LENGTH
 from sentry.models import (
-    Activity, Environment, File, Release, ReleaseCommit, ReleaseFile, ReleaseProject, ReleaseProjectEnvironment, Repository
+    Activity, Environment, File, GroupStatus, Release, ReleaseCommit, ReleaseFile, ReleaseProject, ReleaseProjectEnvironment, Repository
 )
 from sentry.testutils import APITestCase
 from sentry.api.endpoints.organization_release_details import OrganizationReleaseSerializer
@@ -602,6 +602,48 @@ class ReleaseDeleteTest(APITestCase):
         assert response.status_code == 400, response.content
 
         assert Release.objects.filter(id=release.id).exists()
+
+    def test_existing_group_pending_deletion(self):
+        user = self.create_user(is_staff=False, is_superuser=False)
+        org = self.organization
+        # org.flags.allow_joinleave = False
+        # org.save()
+
+        team = self.create_team(organization=org)
+
+        project = self.create_project(teams=[team], organization=org)
+
+        release = Release.objects.create(
+            organization_id=org.id,
+            version='abcabcabc',
+        )
+
+        release.add_project(project)
+        self.create_group(
+            first_release=release,
+            status=GroupStatus.PENDING_DELETION
+        )
+        self.create_group(
+            first_release=release,
+            status=GroupStatus.DELETION_IN_PROGRESS
+        )
+
+        self.create_member(teams=[team], user=user, organization=org)
+
+        self.login_as(user=user)
+
+        url = reverse(
+            'sentry-api-0-organization-release-details',
+            kwargs={
+                'organization_slug': org.slug,
+                'version': release.version,
+            }
+        )
+        response = self.client.delete(url)
+
+        assert response.status_code == 204, response.content
+
+        assert not Release.objects.filter(id=release.id).exists()
 
     def test_bad_repo_name(self):
         user = self.create_user(is_staff=False, is_superuser=False)
