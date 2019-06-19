@@ -8,6 +8,7 @@ import withApi from 'app/utils/withApi';
 import LoadingError from 'app/components/loadingError';
 import {fetchProjectSavedSearches} from 'app/actionCreators/savedSearches';
 import {analytics} from 'app/utils/analytics';
+import Alert from 'app/components/alert';
 
 import {ProjectDetails, Redirect} from './redirectLegacyProjectRoute';
 
@@ -75,7 +76,10 @@ const redirectLegacyProjectSavedSearchRoute = generateRedirectRoute => {
 
       const {searchId} = this.props.params;
 
-      const searchQuery = savedSearch.find(search => search.id === searchId);
+      const searchQuery = savedSearch.find(search => {
+        const needle = search?.id;
+        return needle === searchId;
+      });
 
       if (!searchQuery) {
         return {};
@@ -119,11 +123,9 @@ const redirectLegacyProjectSavedSearchRoute = generateRedirectRoute => {
       if (this.state.error) {
         if (_.get(this.state.error, 'status') === 404) {
           return (
-            <div className="container">
-              <div className="alert alert-block" style={{margin: '30px 0 10px'}}>
-                {t('The project you were looking for was not found.')}
-              </div>
-            </div>
+            <Alert type="error">
+              {t('The project you were looking for was not found.')}
+            </Alert>
           );
         }
 
@@ -142,11 +144,9 @@ const redirectLegacyProjectSavedSearchRoute = generateRedirectRoute => {
             if (!hasProjectId) {
               if (_.get(error, 'status') === 404) {
                 return (
-                  <div className="container">
-                    <div className="alert alert-block" style={{margin: '30px 0 10px'}}>
-                      {t('The project you were looking for was not found.')}
-                    </div>
-                  </div>
+                  <Alert type="error">
+                    {t('The project you were looking for was not found.')}
+                  </Alert>
                 );
               }
 

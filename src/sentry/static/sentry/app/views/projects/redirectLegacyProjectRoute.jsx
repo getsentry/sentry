@@ -6,6 +6,7 @@ import {t} from 'app/locale';
 import withApi from 'app/utils/withApi';
 import LoadingError from 'app/components/loadingError';
 import {analytics} from 'app/utils/analytics';
+import Alert from 'app/components/alert';
 
 // TODO: This is react-router v4 <Redirect to="path/" /> component to allow things
 //       to be declarative
@@ -129,11 +130,9 @@ const redirectSentry9Project = generateRedirectRoute => {
             if (!hasProjectId) {
               if (_.get(error, 'status') === 404) {
                 return (
-                  <div className="container">
-                    <div className="alert alert-block" style={{margin: '30px 0 10px'}}>
-                      {t('The project you were looking for was not found.')}
-                    </div>
-                  </div>
+                  <Alert type="error">
+                    {t('The project you were looking for was not found.')}
+                  </Alert>
                 );
               }
 
