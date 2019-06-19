@@ -49,17 +49,15 @@ const Action = styled('div')`
   ${MarginStyles};
 `;
 
-const EmptyMessage = ({title, description, icon, children, action, size}) => {
-  return (
-    <Wrapper data-test-id="empty-message" size={size}>
-      {icon && <StyledInlineSvg src={icon} size="36px" />}
-      {title && <Title>{title}</Title>}
-      {description && <Description>{description}</Description>}
-      {children && <Description noMargin>{children}</Description>}
-      {action && <Action>{action}</Action>}
-    </Wrapper>
-  );
-};
+const EmptyMessage = ({title, description, icon, children, action, size, className}) => (
+  <Wrapper className={className} data-test-id="empty-message" size={size}>
+    {icon && <StyledInlineSvg src={icon} size="36px" />}
+    {title && <Title>{title}</Title>}
+    {description && <Description>{description}</Description>}
+    {children && <Description noMargin>{children}</Description>}
+    {action && <Action>{action}</Action>}
+  </Wrapper>
+);
 
 EmptyMessage.propTypes = {
   title: PropTypes.node,
