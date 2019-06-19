@@ -5,47 +5,6 @@ from sentry.testutils import TestCase
 
 
 class ErrorEventTest(TestCase):
-    def test_has_metadata_none(self):
-        inst = ErrorEvent()
-        assert not inst.has_metadata({})
-
-        inst = ErrorEvent()
-        data = {'exception': None}
-        assert not inst.has_metadata(data)
-
-        inst = ErrorEvent()
-        data = {'exception': {'values': None}}
-        assert not inst.has_metadata(data)
-
-        inst = ErrorEvent()
-        data = {'exception': {'values': [None]}}
-        assert not inst.has_metadata(data)
-
-        inst = ErrorEvent()
-        data = {'exception': {'values': [{}]}}
-        assert not inst.has_metadata(data)
-
-        inst = ErrorEvent()
-        data = {'exception': {'values': [{
-            'type': None,
-            'value': None,
-        }]}}
-        assert not inst.has_metadata(data)
-
-    def test_has_metadata(self):
-        inst = ErrorEvent()
-        data = {'exception': {'values': [{
-            'type': 'Exception',
-            'value': 'Foo',
-        }]}}
-        assert inst.has_metadata(data)
-
-        inst = ErrorEvent()
-        data = {'exception': {'values': [{
-            'stacktrace': {},
-        }]}}
-        assert inst.has_metadata(data)
-
     def test_get_metadata(self):
         inst = ErrorEvent()
         data = {'exception': {'values': [{

@@ -1,6 +1,5 @@
 from __future__ import absolute_import
 
-import six
 
 from sentry.utils.safe import get_path, trim
 from sentry.utils.strings import truncatechars
@@ -24,10 +23,6 @@ def get_crash_location(exception, platform=None):
 
 class ErrorEvent(BaseEvent):
     key = 'error'
-
-    def has_metadata(self, data):
-        exception = get_path(data, 'exception', 'values', -1)
-        return exception and any(v is not None for v in six.itervalues(exception))
 
     def get_metadata(self, data):
         exception = get_path(data, 'exception', 'values', -1)

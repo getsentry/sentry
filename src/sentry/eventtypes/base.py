@@ -5,12 +5,12 @@ from warnings import warn
 from sentry.utils.strings import truncatechars, strip
 from sentry.utils.safe import get_path
 
+# Note: Detecting eventtypes is implemented in the semaphore Rust
+# library.
+
 
 class BaseEvent(object):
     id = None
-
-    def has_metadata(self, data):
-        raise NotImplementedError
 
     def get_metadata(self, data):
         raise NotImplementedError
@@ -29,10 +29,6 @@ class BaseEvent(object):
 
 class DefaultEvent(BaseEvent):
     key = 'default'
-
-    def has_metadata(self, data):
-        # the default event can always work
-        return True
 
     def get_metadata(self, data):
         message = strip(get_path(data, 'logentry', 'formatted') or
