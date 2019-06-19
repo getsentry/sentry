@@ -47,7 +47,7 @@ class ReleaseList extends React.Component {
                 </CountColumn>
                 <LastEventColumn>
                   {release.lastEvent ? (
-                    <SmallTimeSince date={release.lastEvent} />
+                    <TimeSince date={release.lastEvent} />
                   ) : (
                     <span>—</span>
                   )}
@@ -72,8 +72,4 @@ const VersionWrapper = styled('div')`
   font-weight: bold;
   margin-bottom: ${space(0.25)};
   ${overflowEllipsis};
-`;
-
-const SmallTimeSince = styled(TimeSince)`
-  font-size: ${p => p.theme.fontSizeSmall};
 `;

@@ -1,21 +1,20 @@
+import {Box} from 'grid-emotion';
 import PropTypes from 'prop-types';
 import React from 'react';
-import createReactClass from 'create-react-class';
 import _ from 'lodash';
-
-import AvatarList from 'app/components/avatar/avatarList';
-
-import {Box} from 'grid-emotion';
-import Button from 'app/components/button';
-import LastCommit from 'app/components/lastCommit';
-import LoadingIndicator from 'app/components/loadingIndicator';
-import LoadingError from 'app/components/loadingError';
-import TimeSince from 'app/components/timeSince';
-import Hovercard from 'app/components/hovercard';
+import createReactClass from 'create-react-class';
+import styled from 'react-emotion';
 
 import {getShortVersion} from 'app/utils';
 import {t, tct} from 'app/locale';
-
+import AvatarList from 'app/components/avatar/avatarList';
+import Button from 'app/components/button';
+import Hovercard from 'app/components/hovercard';
+import LastCommit from 'app/components/lastCommit';
+import LoadingError from 'app/components/loadingError';
+import LoadingIndicator from 'app/components/loadingIndicator';
+import RepoLabel from 'app/components/repoLabel';
+import TimeSince from 'app/components/timeSince';
 import withApi from 'app/utils/withApi';
 
 const VersionHoverCard = createReactClass({
@@ -187,19 +186,7 @@ const VersionHoverCard = createReactClass({
                 return (
                   <div className="deploy" key={idx}>
                     <div className="deploy-meta" style={{position: 'relative'}}>
-                      <strong
-                        className="repo-label truncate"
-                        style={{
-                          padding: 3,
-                          display: 'inline-block',
-                          width: 86,
-                          maxWidth: 86,
-                          textAlign: 'center',
-                          fontSize: 12,
-                        }}
-                      >
-                        {env}
-                      </strong>
+                      <VersionRepoLabel>{env}</VersionRepoLabel>
                       {dateFinished && (
                         <span
                           className="text-light"
@@ -250,3 +237,7 @@ const VersionHoverCard = createReactClass({
 export {VersionHoverCard};
 
 export default withApi(VersionHoverCard);
+
+const VersionRepoLabel = styled(RepoLabel)`
+  width: 86px;
+`;

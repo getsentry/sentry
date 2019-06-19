@@ -1,10 +1,12 @@
-import React from 'react';
 import PropTypes from 'prop-types';
+import React from 'react';
+import styled from 'react-emotion';
 
-import InlineSvg from 'app/components/inlineSvg';
-import TimeSince from 'app/components/timeSince';
-import Link from 'app/components/links/link';
 import {t} from 'app/locale';
+import InlineSvg from 'app/components/inlineSvg';
+import Link from 'app/components/links/link';
+import RepoLabel from 'app/components/repoLabel';
+import TimeSince from 'app/components/timeSince';
 
 export default class ReleaseDeploys extends React.Component {
   static propTypes = {
@@ -35,10 +37,10 @@ export default class ReleaseDeploys extends React.Component {
                     <Link to={path} title={t('View in stream')}>
                       <div className="row row-flex row-center-vertically">
                         <div className="col-xs-6">
-                          <span className="repo-label" style={{verticalAlign: 'bottom'}}>
+                          <ReleaseRepoLabel>
                             {deploy.environment}
                             <InlineSvg src="icon-open" style={{marginLeft: 6}} />
-                          </span>
+                          </ReleaseRepoLabel>
                         </div>
                         <div className="col-xs-6 align-right">
                           <small>
@@ -55,3 +57,8 @@ export default class ReleaseDeploys extends React.Component {
     );
   }
 }
+
+const ReleaseRepoLabel = styled(RepoLabel)`
+  padding: 5px 8px;
+  vertical-align: bottom;
+`;
