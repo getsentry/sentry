@@ -31,8 +31,8 @@ import ProjectPluginDetails from 'app/views/projectPluginDetails';
 import ProjectPlugins from 'app/views/projectPlugins';
 import ProjectSettings from 'app/views/projectSettings';
 import ProjectTags from 'app/views/projectTags';
-import redirectSentry9Project from 'app/views/projects/redirectSentry9Project';
-import redirectSentry9ProjectSavedSearch from 'app/views/projects/redirectSentry9ProjectSavedSearch';
+import redirectLegacyProjectRoute from 'app/views/projects/redirectSentry9Project';
+import redirectLegacyProjectSavedSearchRoute from 'app/views/projects/redirectSentry9ProjectSavedSearch';
 import RouteNotFound from 'app/views/routeNotFound';
 import SettingsProjectProvider from 'app/views/settings/components/settingsProjectProvider';
 import SettingsWrapper from 'app/views/settings/components/settingsWrapper';
@@ -1154,10 +1154,10 @@ function routes() {
           <Route path=":platform/" component={errorHandler(ProjectInstallPlatform)} />
         </Route>
         <Route path=":projectId/">
-          {/* Support for Sentry 9 URLs. We just redirect users to new canonical URLs. */}
+          {/* Support for legacy URLs (pre-Sentry 10). We just redirect users to new canonical URLs. */}
           <IndexRoute
             component={errorHandler(
-              redirectSentry9Project(
+              redirectLegacyProjectRoute(
                 ({orgId, projectId}) =>
                   `/organizations/${orgId}/issues/?project=${projectId}`
               )
@@ -1166,7 +1166,7 @@ function routes() {
           <Route
             path="issues/"
             component={errorHandler(
-              redirectSentry9Project(
+              redirectLegacyProjectRoute(
                 ({orgId, projectId}) =>
                   `/organizations/${orgId}/issues/?project=${projectId}`
               )
@@ -1175,7 +1175,7 @@ function routes() {
           <Route
             path="searches/:searchId/"
             component={errorHandler(
-              redirectSentry9ProjectSavedSearch(({orgId, projectId, searchQuery}) => {
+              redirectLegacyProjectSavedSearchRoute(({orgId, projectId, searchQuery}) => {
                 return {
                   pathname: `/organizations/${orgId}/issues/`,
                   query: {...searchQuery, project: projectId},
@@ -1186,7 +1186,7 @@ function routes() {
           <Route
             path="dashboard/"
             component={errorHandler(
-              redirectSentry9Project(
+              redirectLegacyProjectRoute(
                 ({orgId, projectId}) =>
                   `/organizations/${orgId}/dashboards/?project=${projectId}`
               )
@@ -1195,7 +1195,7 @@ function routes() {
           <Route
             path="releases/"
             component={errorHandler(
-              redirectSentry9Project(
+              redirectLegacyProjectRoute(
                 ({orgId, projectId}) =>
                   `/organizations/${orgId}/releases/?project=${projectId}`
               )
@@ -1204,7 +1204,7 @@ function routes() {
           <Route
             path="releases/:version/"
             component={errorHandler(
-              redirectSentry9Project(
+              redirectLegacyProjectRoute(
                 ({orgId, projectId, router}) =>
                   `/organizations/${orgId}/releases/${
                     router.params.version
@@ -1215,7 +1215,7 @@ function routes() {
           <Route
             path="releases/:version/new-events/"
             component={errorHandler(
-              redirectSentry9Project(
+              redirectLegacyProjectRoute(
                 ({orgId, projectId, router}) =>
                   `/organizations/${orgId}/releases/${
                     router.params.version
@@ -1226,7 +1226,7 @@ function routes() {
           <Route
             path="releases/:version/all-events/"
             component={errorHandler(
-              redirectSentry9Project(
+              redirectLegacyProjectRoute(
                 ({orgId, projectId, router}) =>
                   `/organizations/${orgId}/releases/${
                     router.params.version
@@ -1237,7 +1237,7 @@ function routes() {
           <Route
             path="releases/:version/artifacts/"
             component={errorHandler(
-              redirectSentry9Project(
+              redirectLegacyProjectRoute(
                 ({orgId, projectId, router}) =>
                   `/organizations/${orgId}/releases/${
                     router.params.version
@@ -1248,7 +1248,7 @@ function routes() {
           <Route
             path="releases/:version/commits/"
             component={errorHandler(
-              redirectSentry9Project(
+              redirectLegacyProjectRoute(
                 ({orgId, projectId, router}) =>
                   `/organizations/${orgId}/releases/${
                     router.params.version
@@ -1259,7 +1259,7 @@ function routes() {
           <Route
             path="user-feedback/"
             component={errorHandler(
-              redirectSentry9Project(
+              redirectLegacyProjectRoute(
                 ({orgId, projectId}) =>
                   `/organizations/${orgId}/user-feedback/?project=${projectId}`
               )
