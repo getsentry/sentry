@@ -1,10 +1,17 @@
 import React from 'react';
 import PropTypes from 'prop-types';
+import styled from 'react-emotion';
+
 import SentryTypes from 'app/sentryTypes';
 import Alert from 'app/components/alert';
 import ExternalLink from 'app/components/links/externalLink';
-
 import {t, tct} from 'app/locale';
+import space from 'app/styles/space';
+
+const AlertUl = styled('ul')`
+  margin-top: ${space(1)};
+  margin-bottom: ${space(1)};
+`;
 
 export const EnableIntegrationSuggestion = PropTypes.shape({
   type: PropTypes.string,
@@ -87,7 +94,7 @@ class EventSdkUpdateSuggestion extends React.Component {
       <span>
         {title}
         {t(' so you can')}
-        <ul>
+        <AlertUl>
           {suggestion.enables.map((suggestion2, i) => {
             return (
               <li key={getSuggestionComponentKey(suggestion2)}>
@@ -95,7 +102,7 @@ class EventSdkUpdateSuggestion extends React.Component {
               </li>
             );
           })}
-        </ul>
+        </AlertUl>
       </span>
     );
   }
