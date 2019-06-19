@@ -1,10 +1,12 @@
 from __future__ import absolute_import
 
-from exam import patcher
-
+from datetime import timedelta
 
 import six
 from django.core.urlresolvers import reverse
+from django.utils import timezone
+from exam import patcher
+from freezegun import freeze_time
 
 from sentry.incidents.logic import (
     create_incident_activity,
@@ -78,6 +80,7 @@ class TestSendSubscriberNotifications(BaseIncidentActivityTest, TestCase):
 
 
 class TestGenerateIncidentActivityEmail(BaseIncidentActivityTest, TestCase):
+    @freeze_time()
     def test_simple(self):
         activity = create_incident_activity(
             self.incident,
@@ -162,6 +165,7 @@ class CalculateIncidentSuspectsTest(TestCase):
         release = self.create_release(project=self.project, version='v12')
         event = self.store_event(
             data={
+                'timestamp': (timezone.now() - timedelta(minutes=1)).isoformat()[:19],
                 'fingerprint': ['group-1'],
                 'message': 'Kaboom!',
                 'platform': 'python',
