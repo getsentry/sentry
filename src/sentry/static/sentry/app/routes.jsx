@@ -1153,7 +1153,7 @@ function routes() {
           <IndexRoute component={errorHandler(ProjectInstallOverview)} />
           <Route path=":platform/" component={errorHandler(ProjectInstallPlatform)} />
         </Route>
-        <Route path=":projectId/">
+        <Route path=":projectSlug/">
           {/* Support for legacy URLs (pre-Sentry 10). We just redirect users to new canonical URLs. */}
           <IndexRoute
             component={errorHandler(

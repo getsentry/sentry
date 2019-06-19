@@ -28,7 +28,7 @@ class ProjectDetailsInner extends React.Component {
     api: PropTypes.object.isRequired,
 
     orgId: PropTypes.string.isRequired,
-    projectId: PropTypes.string.isRequired,
+    projectSlug: PropTypes.string.isRequired,
   };
 
   state = {
@@ -47,14 +47,13 @@ class ProjectDetailsInner extends React.Component {
       error: null,
     });
 
-    const {orgId, projectId} = this.props;
+    const {orgId, projectSlug} = this.props;
 
     try {
-      const projectRequest = this.props.api.requestPromise(
-        `/projects/${orgId}/${projectId}/`
+      const project = await this.props.api.requestPromise(
+        `/projects/${orgId}/${projectSlug}/`
       );
 
-      const project = await projectRequest;
       this.setState({
         loading: false,
         error: null,
@@ -81,7 +80,7 @@ class ProjectDetailsInner extends React.Component {
   render() {
     const childrenProps = {
       ...this.state,
-      getProjectId: this.getProjectId,
+      projectId: this.getProjectId(),
       hasProjectId: this.hasProjectId,
     };
 
@@ -98,21 +97,25 @@ const redirectSentry9Project = generateRedirectRoute => {
 
       params: PropTypes.shape({
         orgId: PropTypes.string.isRequired,
-        projectId: PropTypes.string.isRequired,
+        projectSlug: PropTypes.string.isRequired,
       }).isRequired,
     };
 
     render() {
-      const {orgId, projectId} = this.props.params;
+      const {orgId, projectSlug} = this.props.params;
 
       return (
-        <ProjectDetails router={this.props.router} orgId={orgId} projectId={projectId}>
-          {({loading, error, hasProjectId, getProjectId}) => {
+        <ProjectDetails
+          router={this.props.router}
+          orgId={orgId}
+          projectSlug={projectSlug}
+        >
+          {({loading, error, hasProjectId, projectId}) => {
             if (loading) {
               return null;
             }
 
-            if (!hasProjectId()) {
+            if (!hasProjectId) {
               if (_.get(error, 'status') === 404) {
                 return (
                   <div className="container">
@@ -126,11 +129,9 @@ const redirectSentry9Project = generateRedirectRoute => {
               return <LoadingError onRetry={this.fetchData} />;
             }
 
-            const currentProjectId = getProjectId();
-
             const routeProps = {
               orgId,
-              projectId: currentProjectId,
+              projectId,
               router: {
                 params: {
                   ...this.props.params,

@@ -45,9 +45,11 @@ const redirectLegacyProjectSavedSearchRoute = generateRedirectRoute => {
       const {orgId, projectId} = this.props.params;
 
       try {
-        const request = fetchProjectSavedSearches(this.props.api, orgId, projectId);
-
-        const savedSearch = await request;
+        const savedSearch = await fetchProjectSavedSearches(
+          this.props.api,
+          orgId,
+          projectId
+        );
         this.setState({
           loading: false,
           error: null,
@@ -120,12 +122,12 @@ const redirectLegacyProjectSavedSearchRoute = generateRedirectRoute => {
 
       return (
         <ProjectDetails orgId={orgId} projectId={projectId}>
-          {({loading, error, hasProjectId, getProjectId}) => {
+          {({loading, error, hasProjectId, projectId}) => {
             if (loading) {
               return null;
             }
 
-            if (!hasProjectId()) {
+            if (!hasProjectId) {
               if (_.get(error, 'status') === 404) {
                 return (
                   <div className="container">
@@ -139,11 +141,9 @@ const redirectLegacyProjectSavedSearchRoute = generateRedirectRoute => {
               return <LoadingError onRetry={this.fetchData} />;
             }
 
-            const currentProjectId = getProjectId();
-
             const routeProps = {
               orgId: this.props.params.orgId,
-              projectId: currentProjectId,
+              projectId,
               router: {
                 params: {
                   ...this.props.params,
