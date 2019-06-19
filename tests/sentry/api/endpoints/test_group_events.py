@@ -18,6 +18,9 @@ class GroupEventsTest(APITestCase):
         super(GroupEventsTest, self).setUp()
         options.set('snuba.events-queries.enabled', False)
 
+    def tearDown(self):
+        options.set('snuba.events-queries.enabled', True)
+
     def test_simple(self):
         self.login_as(user=self.user)
 

@@ -6,22 +6,34 @@ from datetime import timedelta
 from django.utils import timezone
 from django.core.urlresolvers import reverse
 
-from sentry import options
-from sentry.testutils import APITestCase
+from sentry.testutils import APITestCase, SnubaTestCase
 
 
-class ProjectEventsTest(APITestCase):
+class ProjectEventsTest(APITestCase, SnubaTestCase):
     def setUp(self):
         super(ProjectEventsTest, self).setUp()
-        options.set('snuba.events-queries.enabled', False)
 
     def test_simple(self):
         self.login_as(user=self.user)
 
         project = self.create_project()
-        group = self.create_group(project=project)
-        event_1 = self.create_event('a' * 32, group=group)
-        event_2 = self.create_event('b' * 32, group=group)
+        min_ago = (timezone.now() - timedelta(minutes=1)).isoformat()[:19]
+
+        event_1 = self.store_event(
+            data={
+                'fingerprint': ['group_1'],
+                'timestamp': min_ago
+            },
+            project_id=project.id,
+        )
+
+        event_2 = self.store_event(
+            data={
+                'fingerprint': ['group_1'],
+                'timestamp': min_ago
+            },
+            project_id=project.id,
+        )
 
         url = reverse(
             'sentry-api-0-project-events',
@@ -36,8 +48,8 @@ class ProjectEventsTest(APITestCase):
         assert len(response.data) == 2
         assert sorted(map(lambda x: x['id'], response.data)) == sorted(
             [
-                six.text_type(event_1.id),
-                six.text_type(event_2.id),
+                six.text_type(event_1.event_id),
+                six.text_type(event_2.event_id),
             ]
         )
 
@@ -45,14 +57,24 @@ class ProjectEventsTest(APITestCase):
         self.login_as(user=self.user)
 
         project = self.create_project()
-        group = self.create_group(project=project)
-        self.create_event(
-            'a' *
-            32,
-            group=group,
-            datetime=timezone.now() - timedelta(days=2),
+        min_ago = (timezone.now() - timedelta(minutes=1)).isoformat()[:19]
+        two_days_ago = (timezone.now() - timedelta(days=2)).isoformat()[:19]
+
+        self.store_event(
+            data={
+                'fingerprint': ['group_2'],
+                'timestamp': two_days_ago
+            },
+            project_id=project.id,
         )
-        event_2 = self.create_event('b' * 32, group=group)
+
+        event_2 = self.store_event(
+            data={
+                'fingerprint': ['group_2'],
+                'timestamp': min_ago
+            },
+            project_id=project.id,
+        )
 
         with self.options({'system.event-retention-days': 1}):
             url = reverse(
@@ -68,6 +90,6 @@ class ProjectEventsTest(APITestCase):
         assert len(response.data) == 1
         assert sorted(map(lambda x: x['id'], response.data)) == sorted(
             [
-                six.text_type(event_2.id),
+                six.text_type(event_2.event_id),
             ]
         )

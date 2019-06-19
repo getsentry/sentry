@@ -21,9 +21,11 @@ class AuthenticationTest(AuthProviderTestCase):
             user=user, organization=organization, teams=[team])
         setattr(member.flags, 'sso:linked', True)
         member.save()
-        group = self.create_group(project=project)
-        self.create_event(group=group)
-
+        event = self.store_event(
+            data={},
+            project_id=project.id,
+        )
+        group_id = event.group_id
         auth_provider = AuthProvider.objects.create(
             organization=organization,
             provider='dummy',
@@ -41,9 +43,9 @@ class AuthenticationTest(AuthProviderTestCase):
             u'/api/0/organizations/{}/'.format(organization.slug),
             u'/api/0/projects/{}/{}/'.format(organization.slug, project.slug),
             u'/api/0/teams/{}/{}/'.format(organization.slug, team.slug),
-            u'/api/0/issues/{}/'.format(group.id),
+            u'/api/0/issues/{}/'.format(group_id),
             # this uses the internal API, which once upon a time was broken
-            u'/api/0/issues/{}/events/latest/'.format(group.id),
+            u'/api/0/issues/{}/events/latest/'.format(group_id),
         )
 
         for path in paths:
@@ -78,8 +80,11 @@ class AuthenticationTest(AuthProviderTestCase):
             user=user, organization=organization, teams=[team])
         setattr(member.flags, 'sso:linked', True)
         member.save()
-        group = self.create_group(project=project)
-        self.create_event(group=group)
+
+        self.store_event(
+            data={},
+            project_id=project.id,
+        )
 
         auth_provider = AuthProvider.objects.create(
             organization=organization,
