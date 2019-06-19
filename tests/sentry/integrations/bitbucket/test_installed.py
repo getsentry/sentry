@@ -18,7 +18,6 @@ class BitbucketInstalledEndpointTest(APITestCase):
         self.provider = 'bitbucket'
         self.path = '/extensions/bitbucket/installed/'
 
-        self.username = u'sentryuser'
         self.client_key = u'connection:123'
         self.public_key = u'123abcDEFg'
         self.shared_secret = u'G12332434SDfsjkdfgsd'
@@ -28,7 +27,6 @@ class BitbucketInstalledEndpointTest(APITestCase):
         self.icon = u'https://bitbucket.org/account/sentryuser/avatar/32/'
 
         self.user_data = {
-            u'username': self.username,
             u'display_name': self.display_name,
             u'account_id': u'123456t256371u',
             u'links': {
@@ -91,7 +89,7 @@ class BitbucketInstalledEndpointTest(APITestCase):
             provider=self.provider,
             external_id=self.client_key
         )
-        assert integration.name == self.username
+        assert integration.name == self.display_name
         assert integration.metadata == self.metadata
 
     @responses.activate
@@ -206,7 +204,7 @@ class BitbucketInstalledEndpointTest(APITestCase):
             provider=self.provider,
             external_id=self.client_key,
             defaults={
-                'name': self.username,
+                'name': self.display_name,
                 'metadata': self.metadata,
             }
         )[0]
