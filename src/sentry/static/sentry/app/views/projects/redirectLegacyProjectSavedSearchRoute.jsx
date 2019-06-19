@@ -121,15 +121,9 @@ const redirectLegacyProjectSavedSearchRoute = generateRedirectRoute => {
       }
 
       if (this.state.error) {
-        if (_.get(this.state.error, 'status') === 404) {
-          return (
-            <Alert type="error">
-              {t('The project you were looking for was not found.')}
-            </Alert>
-          );
+        if (this.state.error?.status !== 404) {
+          return <LoadingError onRetry={this.fetchData} />;
         }
-
-        return <LoadingError onRetry={this.fetchData} />;
       }
 
       const {orgId, projectSlug} = this.props.params;
@@ -142,7 +136,7 @@ const redirectLegacyProjectSavedSearchRoute = generateRedirectRoute => {
             }
 
             if (!hasProjectId) {
-              if (_.get(error, 'status') === 404) {
+              if (error?.status === 404) {
                 return (
                   <Alert type="error">
                     {t('The project you were looking for was not found.')}
