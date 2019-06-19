@@ -71,7 +71,6 @@ const getInputButtonStyles = p => css`
 const getDropdownElementStyles = p => css`
   padding: 0 ${space(1)} ${p.last ? null : space(0.5)};
   margin-bottom: ${p.last ? null : space(0.5)};
-  border-bottom: ${p.last ? null : `1px solid ${theme.gray1}`};
   display: none;
   color: ${theme.gray4};
   align-items: center;
@@ -79,6 +78,15 @@ const getDropdownElementStyles = p => css`
   height: 38px;
   padding-left: ${space(1.5)};
   padding-right: ${space(1.5)};
+
+  &,
+  &:hover {
+    border-bottom: ${p.last ? null : `1px solid ${theme.gray1}`};
+  }
+
+  &:hover {
+    color: ${theme.blueDark};
+  }
 
   ${p.showBelowMediaQuery &&
     getMediaQuery(theme.breakpoints[p.showBelowMediaQuery], 'flex')}
@@ -812,7 +820,9 @@ class SmartSearchBar extends React.Component {
                 borderless
                 aria-label="Clear search"
                 size="zero"
-                containerDisplayMode="inline-flex"
+                tooltipProps={{
+                  containerDisplayMode: 'inline-flex',
+                }}
                 onClick={this.clearSearch}
               >
                 <InlineSvg src="icon-close" size="11" />
@@ -825,7 +835,9 @@ class SmartSearchBar extends React.Component {
               disabled={!hasQuery}
               aria-label={pinTooltip}
               size="zero"
-              containerDisplayMode="inline-flex"
+              tooltipProps={{
+                containerDisplayMode: 'inline-flex',
+              }}
               onClick={this.onTogglePinnedSearch}
               collapseIntoEllipsisMenu={1}
               isActive={!!pinnedSearch}
@@ -836,9 +848,9 @@ class SmartSearchBar extends React.Component {
               query={this.state.query}
               organization={organization}
               disabled={!hasQuery}
+              withTooltip={true}
               iconOnly={true}
               buttonClassName={getInputButtonStyles({
-                isActive: !!pinnedSearch,
                 collapseIntoEllipsisMenu: 2,
               })}
             />
@@ -846,7 +858,9 @@ class SmartSearchBar extends React.Component {
               title={t('Toggle search builder')}
               borderless
               size="zero"
-              containerDisplayMode="inline-flex"
+              tooltipProps={{
+                containerDisplayMode: 'inline-flex',
+              }}
               collapseIntoEllipsisMenu={2}
               aria-label={t('Toggle search builder')}
               onClick={onSidebarToggle}
@@ -860,7 +874,9 @@ class SmartSearchBar extends React.Component {
                 <EllipsisButton
                   size="zero"
                   borderless
-                  containerDisplayMode="flex"
+                  tooltipProps={{
+                    containerDisplayMode: 'flex',
+                  }}
                   type="button"
                   aria-label={t('Show more')}
                 >
