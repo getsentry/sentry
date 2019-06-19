@@ -21,7 +21,7 @@ const redirectLegacyProjectSavedSearchRoute = generateRedirectRoute => {
 
       params: PropTypes.shape({
         orgId: PropTypes.string.isRequired,
-        projectId: PropTypes.string.isRequired,
+        projectSlug: PropTypes.string.isRequired,
         searchId: PropTypes.string.isRequired,
       }).isRequired,
     };
@@ -42,13 +42,13 @@ const redirectLegacyProjectSavedSearchRoute = generateRedirectRoute => {
         error: null,
       });
 
-      const {orgId, projectId} = this.props.params;
+      const {orgId, projectSlug} = this.props.params;
 
       try {
         const savedSearch = await fetchProjectSavedSearches(
           this.props.api,
           orgId,
-          projectId
+          projectSlug
         );
         this.setState({
           loading: false,
@@ -118,10 +118,10 @@ const redirectLegacyProjectSavedSearchRoute = generateRedirectRoute => {
         return <LoadingError onRetry={this.fetchData} />;
       }
 
-      const {orgId, projectId} = this.props.params;
+      const {orgId, projectSlug} = this.props.params;
 
       return (
-        <ProjectDetails orgId={orgId} projectId={projectId}>
+        <ProjectDetails orgId={orgId} projectSlug={projectSlug}>
           {({loading, error, hasProjectId, projectId}) => {
             if (loading) {
               return null;

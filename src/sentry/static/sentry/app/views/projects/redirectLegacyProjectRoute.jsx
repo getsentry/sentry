@@ -81,7 +81,7 @@ class ProjectDetailsInner extends React.Component {
     const childrenProps = {
       ...this.state,
       projectId: this.getProjectId(),
-      hasProjectId: this.hasProjectId,
+      hasProjectId: this.hasProjectId(),
     };
 
     return this.props.children(childrenProps);
