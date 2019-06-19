@@ -208,7 +208,7 @@ class GlobalSelectionHeader extends React.Component {
     }
 
     // Update if `forceUrlSync` changes
-    if (this.props.forceUrlSync !== nextProps.forceUrlSync && !this.props.forceUrlSync) {
+    if (!this.props.forceUrlSync && nextProps.forceUrlSync) {
       return true;
     }
 
@@ -223,7 +223,7 @@ class GlobalSelectionHeader extends React.Component {
     }
 
     // Kind of gross
-    if (forceUrlSync !== prevProps.forceUrlSync && !prevProps.forceUrlSync) {
+    if (forceUrlSync && !prevProps.forceUrlSync) {
       const {project, environment} = getStateFromQuery(location.query);
 
       if (
@@ -250,10 +250,9 @@ class GlobalSelectionHeader extends React.Component {
   };
 
   /**
-   * Identifies if query string has changed (with query params that this component cares about)
+   * Identifies the query params (that are relevant to this component) that have changed
    *
-   *
-   * @return {String[]} Returns `false` if did not change, otherwise return an array of params that have changed
+   * @return {String[]} Returns an array of param keys that have changed
    */
   changedQueryKeys = (prevProps, nextProps) => {
     const urlParamKeys = Object.values(URL_PARAM);
