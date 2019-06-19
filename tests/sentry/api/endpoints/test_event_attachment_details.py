@@ -17,7 +17,6 @@ class CreateAttachmentMixin(object):
         min_ago = (timezone.now() - timedelta(minutes=1)).isoformat()[:19]
         self.event = self.store_event(
             data={
-                # 'event_id': 'a' * 32,
                 'fingerprint': ['group1'],
                 'timestamp': min_ago,
                 'tags': {'sentry:release': self.release.version},
