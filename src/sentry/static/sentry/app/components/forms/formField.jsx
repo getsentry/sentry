@@ -5,6 +5,7 @@ import styled from 'react-emotion';
 
 import {defined} from 'app/utils';
 import InlineSvg from 'app/components/inlineSvg';
+import Tooltip from 'app/components/tooltip';
 
 const StyledInlineSvg = styled(InlineSvg)`
   display: block;
@@ -140,9 +141,9 @@ export default class FormField extends React.PureComponent {
       return null;
     }
     return (
-      <span className="disabled-indicator tip" title={disabledReason}>
+      <Tooltip title={disabledReason}>
         <StyledInlineSvg src="icon-circle-question" size="18px" />
-      </span>
+      </Tooltip>
     );
   }
 

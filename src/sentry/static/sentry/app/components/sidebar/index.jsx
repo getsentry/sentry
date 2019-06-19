@@ -1,4 +1,3 @@
-import $ from 'jquery';
 import {ThemeProvider} from 'emotion-theming';
 import {isEqual} from 'lodash';
 import {withRouter, browserHistory} from 'react-router';
@@ -56,21 +55,10 @@ class Sidebar extends React.Component {
   }
 
   componentDidMount() {
-    const {router} = this.props;
     document.body.classList.add('body-sidebar');
     document.addEventListener('click', this.documentClickHandler);
 
     loadIncidents();
-
-    // router can potentially not exist in server side (django) views
-    // Otherwise when we change routes using collapsed sidebar, the tooltips will remain after
-    // route changes.
-    this.routerListener =
-      router &&
-      router.listen(() => {
-        this.hashChangeHandler();
-        $('.tooltip').tooltip('hide');
-      });
 
     this.hashChangeHandler();
     this.doCollapse(this.props.collapsed);
