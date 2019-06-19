@@ -236,7 +236,7 @@ class GroupManager(BaseManager):
         )
 
 
-def filter_out_groups_pending_deletion(group_queryset):
+def exclude_groups_pending_deletion(group_queryset):
     """
     Given a queryset of Group objects, filter them to only include ones NOT
     queued for deletion. Returns another queryset.
