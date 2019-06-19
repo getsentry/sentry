@@ -61,6 +61,14 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
         except InvalidSearchQuery as exc:
             raise OrganizationEventsError(exc.message)
 
+        # Filter out special aggregates.
+        conditions = []
+        for condition in snuba_args.get('conditions', []):
+            field_name = condition[0]
+            if isinstance(field_name, (list, tuple)) or field_name not in SPECIAL_FIELDS:
+                conditions.append(condition)
+        snuba_args['conditions'] = conditions
+
         # TODO(lb): remove once boolean search is fully functional
         has_boolean_op_flag = features.has(
             'organizations:boolean-search',
