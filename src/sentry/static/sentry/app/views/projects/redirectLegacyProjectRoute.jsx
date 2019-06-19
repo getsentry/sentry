@@ -1,5 +1,4 @@
 import React from 'react';
-import {withRouter} from 'react-router';
 import PropTypes from 'prop-types';
 import _ from 'lodash';
 
@@ -90,7 +89,7 @@ class ProjectDetailsInner extends React.Component {
   }
 }
 
-export const ProjectDetails = withRouter(withApi(ProjectDetailsInner));
+export const ProjectDetails = withApi(ProjectDetailsInner);
 
 const redirectSentry9Project = generateRedirectRoute => {
   class RedirectSentry9Project extends React.Component {
@@ -107,7 +106,7 @@ const redirectSentry9Project = generateRedirectRoute => {
       const {orgId, projectId} = this.props.params;
 
       return (
-        <ProjectDetails orgId={orgId} projectId={projectId}>
+        <ProjectDetails router={this.props.router} orgId={orgId} projectId={projectId}>
           {({loading, error, hasProjectId, getProjectId}) => {
             if (loading) {
               return null;

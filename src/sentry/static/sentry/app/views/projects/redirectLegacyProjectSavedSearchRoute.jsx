@@ -7,14 +7,14 @@ import {t} from 'app/locale';
 import withApi from 'app/utils/withApi';
 import LoadingError from 'app/components/loadingError';
 import {fetchProjectSavedSearches} from 'app/actionCreators/savedSearches';
-import {ProjectDetails, Redirect} from './redirectSentry9Project';
+import {ProjectDetails, Redirect} from './redirectLegacyProjectRoute';
 
 const DEFAULT_SORT = 'date';
 const DEFAULT_STATS_PERIOD = '24h';
 const STATS_PERIODS = new Set(['14d', '24h']);
 
-const redirectSentry9ProjectSavedSearch = generateRedirectRoute => {
-  class RedirectSentry9ProjectSavedSearch extends React.Component {
+const redirectLegacyProjectSavedSearchRoute = generateRedirectRoute => {
+  class RedirectLegacyProjectSavedSearchRoute extends React.Component {
     static propTypes = {
       router: PropTypes.object.isRequired,
       api: PropTypes.object.isRequired,
@@ -164,7 +164,7 @@ const redirectSentry9ProjectSavedSearch = generateRedirectRoute => {
     }
   }
 
-  return withRouter(withApi(RedirectSentry9ProjectSavedSearch));
+  return withRouter(withApi(RedirectLegacyProjectSavedSearchRoute));
 };
 
-export default redirectSentry9ProjectSavedSearch;
+export default redirectLegacyProjectSavedSearchRoute;
