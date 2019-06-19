@@ -151,10 +151,10 @@ theme.error = theme.red;
 theme.disabled = theme.gray1;
 
 theme.alert = {
-  default: {
+  muted: {
     backgroundLight: theme.offWhite,
     background: theme.gray1,
-    border: theme.borderLight,
+    border: theme.gray6,
   },
   info: {
     backgroundLight: theme.blueLightest,
