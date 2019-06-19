@@ -128,7 +128,7 @@ const redirectSentry9Project = generateRedirectRoute => {
             }
 
             if (!hasProjectId) {
-              if (_.get(error, 'status') === 404) {
+              if (error?.status === 404) {
                 return (
                   <Alert type="error">
                     {t('The project you were looking for was not found.')}
