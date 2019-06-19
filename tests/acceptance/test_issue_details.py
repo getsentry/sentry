@@ -36,19 +36,18 @@ class IssueDetailsTest(AcceptanceTestCase, SnubaTestCase):
         # Only set these properties if we were given a time.
         # event processing will mark old time values as processing errors.
         if time:
-            event_data['timestamp'] = time.isoformat()
             event_data['received'] = time.isoformat()
 
         # We need a fallback datetime for the event
         if time is None:
-            time = datetime(2017, 9, 6, 0, 0)
+            time = (now - timedelta(days=1))
+
+        event_data['timestamp'] = time.isoformat()
         event = self.store_event(
             data=event_data,
             project_id=self.project.id,
             assert_no_errors=False,
         )
-        event.datetime = time
-        event.save()
         event.group.update(
             first_seen=datetime(2015, 8, 13, 3, 8, 25, tzinfo=timezone.utc),
             last_seen=time

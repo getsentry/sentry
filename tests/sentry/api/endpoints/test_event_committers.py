@@ -1,13 +1,17 @@
 from __future__ import absolute_import
 
-from datetime import datetime
+import copy
+
+from datetime import timedelta
+from django.utils import timezone
 from django.core.urlresolvers import reverse
 
-from sentry.models import Event
 from sentry.testutils import APITestCase
-
+from sentry.testutils.factories import DEFAULT_EVENT_DATA
 
 # TODO(dcramer): These tests rely too much on implicit fixtures
+
+
 class EventCommittersTest(APITestCase):
     def test_simple(self):
         self.login_as(user=self.user)
@@ -15,20 +19,21 @@ class EventCommittersTest(APITestCase):
         project = self.create_project()
 
         release = self.create_release(project, self.user)
-
-        group = self.create_group(project=project, first_release=release)
-
-        event = self.create_event(
-            event_id='a',
-            group=group,
-            datetime=datetime(2016, 8, 13, 3, 8, 25),
-            tags={'sentry:release': release.version}
+        min_ago = (timezone.now() - timedelta(minutes=1)).isoformat()[:19]
+        event = self.store_event(
+            data={
+                'fingerprint': ['group1'],
+                'timestamp': min_ago,
+                'release': release.version,
+                'stacktrace': copy.deepcopy(DEFAULT_EVENT_DATA['stacktrace']),
+            },
+            project_id=project.id,
         )
 
         url = reverse(
             'sentry-api-0-event-file-committers',
             kwargs={
-                'event_id': event.id,
+                'event_id': event.event_id,
                 'project_slug': event.project.slug,
                 'organization_slug': event.project.organization.slug,
             }
@@ -51,18 +56,21 @@ class EventCommittersTest(APITestCase):
     def test_no_release(self):
         self.login_as(user=self.user)
 
-        group = self.create_group()
+        project = self.create_project()
 
-        event = self.create_event(
-            event_id='a',
-            group=group,
-            datetime=datetime(2016, 8, 13, 3, 8, 25),
+        min_ago = (timezone.now() - timedelta(minutes=1)).isoformat()[:19]
+        event = self.store_event(
+            data={
+                'fingerprint': ['group1'],
+                'timestamp': min_ago,
+            },
+            project_id=project.id,
         )
 
         url = reverse(
             'sentry-api-0-event-file-committers',
             kwargs={
-                'event_id': event.id,
+                'event_id': event.event_id,
                 'project_slug': event.project.slug,
                 'organization_slug': event.project.organization.slug,
             }
@@ -82,24 +90,10 @@ class EventCommittersTest(APITestCase):
             self.user,
         )
 
-        group = self.create_group(
-            project=project,
-            first_release=release,
-        )
-
-        event = self.create_event(
-            event_id='a',
-            group=group,
-            datetime=datetime(2016, 8, 13, 3, 8, 25),
-            tags={'sentry:release': release.version}
-        )
-
-        event = Event.objects.create(
-            project_id=project.id,
-            group_id=group.id,
-            event_id='abcd',
-            message='hello 123456',
+        min_ago = (timezone.now() - timedelta(minutes=1)).isoformat()[:19]
+        event = self.store_event(
             data={
+                'fingerprint': ['group1'],
                 'environment': 'production',
                 'type': 'default',
                 'exception': {
@@ -116,13 +110,16 @@ class EventCommittersTest(APITestCase):
                     ['environment', 'production'],
                     ['sentry:release', release.version],
                 ],
+                'release': release.version,
+                'timestamp': min_ago,
             },
+            project_id=project.id,
         )
 
         url = reverse(
             'sentry-api-0-event-file-committers',
             kwargs={
-                'event_id': event.id,
+                'event_id': event.event_id,
                 'project_slug': event.project.slug,
                 'organization_slug': event.project.organization.slug,
             }
