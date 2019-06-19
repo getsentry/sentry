@@ -80,7 +80,7 @@ def build_attachment_title(group, event=None):
         return u'{} - {}'.format(ev_metadata['directive'], ev_metadata['uri'])
     else:
         if group.culprit:
-            return u'{} - {}'.format(group.title[:40], group.culprit)
+            return u'{} - {}'.format(group.title, group.culprit)
         return group.title
 
 
