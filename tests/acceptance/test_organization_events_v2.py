@@ -109,9 +109,12 @@ class OrganizationEventsTest(AcceptanceTestCase, SnubaTestCase):
         min_ago = (timezone.now() - timedelta(minutes=1)).isoformat()[:19]
 
         event_data = load_data('python')
-        event_data['timestamp'] = min_ago
-        event_data['received'] = min_ago
-        event_data['fingerprint'] = ['group-1']
+        event_data.update({
+            'event_id': 'a' * 32,
+            'timestamp': min_ago,
+            'received': min_ago,
+            'fingerprint': ['group-1']
+        })
         self.store_event(
             data=event_data,
             project_id=self.project.id,
