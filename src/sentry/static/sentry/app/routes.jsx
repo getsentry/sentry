@@ -1266,10 +1266,6 @@ function routes() {
             )}
           />
         </Route>
-        <Redirect
-          from=":projectId/searches/:searchId/"
-          to="/organizations/:orgId/issues/"
-        />
         <Route path=":projectId/settings/" component={errorHandler(ProjectSettings)}>
           <Redirect from="teams/" to="/settings/:orgId/projects/:projectId/teams/" />
           <Redirect from="alerts/" to="/settings/:orgId/projects/:projectId/alerts/" />
