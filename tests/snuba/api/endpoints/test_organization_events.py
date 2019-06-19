@@ -1534,7 +1534,7 @@ class OrganizationEventsHeatmapEndpointTest(OrganizationEventsTestBase):
             'key': 'user.ip'
         }
 
-    def test_non_tag_key__multiple_values(self):
+    def test_non_tag_key__multiple_values_and_no_value(self):
         frame = {
             'filename': 'server.php',
             'lineno': 21,
@@ -1558,6 +1558,17 @@ class OrganizationEventsHeatmapEndpointTest(OrganizationEventsTestBase):
             },
             project_id=self.project.id
         )
+        # No stack traces
+        self.store_event(
+            data={
+                'event_id': uuid4().hex,
+                'timestamp': self.min_ago_iso,
+                'exception': {
+                    'values': []
+                }
+            },
+            project_id=self.project.id
+        )
 
         response = self.client.get(
             self.url,
@@ -1571,6 +1582,14 @@ class OrganizationEventsHeatmapEndpointTest(OrganizationEventsTestBase):
             'topValues': [
                 {
                     'count': 1,
+                    'name': '',
+                    'value': '',
+                    'lastSeen': self.min_ago_iso,
+                    'key': 'error.type',
+                    'firstSeen': self.min_ago_iso
+                },
+                {
+                    'count': 1,
                     'name': 'QueryException',
                     'value': 'QueryException',
                     'lastSeen': self.min_ago_iso,
@@ -1578,7 +1597,7 @@ class OrganizationEventsHeatmapEndpointTest(OrganizationEventsTestBase):
                     'firstSeen': self.min_ago_iso
                 },
             ],
-            'totalValues': 1,
+            'totalValues': 2,
             'name': 'Error.Type',
             'key': 'error.type'
         }
