@@ -70,7 +70,7 @@ class ProjectDetailsInner extends React.Component {
   };
 
   getProjectId = () => {
-    return _.get(this.state.project, 'id');
+    return this.state.project?.id;
   };
 
   hasProjectId = () => {
