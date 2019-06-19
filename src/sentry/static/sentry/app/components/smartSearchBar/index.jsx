@@ -808,7 +808,7 @@ class SmartSearchBar extends React.Component {
             {this.state.query !== '' && (
               <InputButton
                 type="button"
-                title="Clear search"
+                title={t('Clear search')}
                 borderless
                 aria-label="Clear search"
                 size="zero"
