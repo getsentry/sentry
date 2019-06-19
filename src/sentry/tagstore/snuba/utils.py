@@ -47,11 +47,15 @@ def handle_non_tag_keys(keys, top_values, **kwargs):
         data = query_non_tag_data(NON_TAG_KEYS[key], **kwargs)
 
         if key == 'project.name':
-            projects = Project.objects.filter(id__in=kwargs['filter_keys']['project_id'])
             for value in data:
-                project_slug = projects.filter(id=value['project_id'])[0].slug
-                value['tags_value'] = project_slug
+                # Skip the project as the current user might not be able to see it.
+                if value['project_id'] not in kwargs['filter_keys']['project_id']:
+                    continue
+                project_slug = (Project.objects
+                                .values_list('slug', flat=True)
+                                .get(id=value['project_id']))
                 value['tags_key'] = key
+                value['tags_value'] = project_slug
         else:
             for value in data:
                 tag_value = value[NON_TAG_KEYS[key]]

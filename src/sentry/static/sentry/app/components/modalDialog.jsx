@@ -63,7 +63,11 @@ class ModalDialog extends React.Component {
     return (
       <ModalScrollTrap>
         <ModalOverlay />
-        <ModalContainer aria-modal="true" className={className}>
+        <ModalContainer
+          data-test-id="modal-dialog"
+          aria-modal="true"
+          className={className}
+        >
           {this.renderDismiss()}
           {children}
         </ModalContainer>
