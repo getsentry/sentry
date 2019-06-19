@@ -1,8 +1,9 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 
-import Link from 'app/components/links/link';
 import {getShortVersion} from 'app/utils';
+import GlobalSelectionLink from 'app/components/globalSelectionLink';
+import Link from 'app/components/links/link';
 import withOrganization from 'app/utils/withOrganization';
 
 class Version extends React.Component {
@@ -11,6 +12,11 @@ class Version extends React.Component {
     version: PropTypes.string.isRequired,
     orgId: PropTypes.string,
     showShortVersion: PropTypes.bool,
+
+    /**
+     * Should link to Release preserve user's global selection values
+     */
+    preserveGlobalSelection: PropTypes.bool,
   };
 
   static defaultProps = {
@@ -19,21 +25,29 @@ class Version extends React.Component {
   };
 
   render() {
-    const {orgId, showShortVersion, version, anchor, className} = this.props;
-    const versionTitle = showShortVersion ? getShortVersion(version) : version;
+    const {
+      orgId,
+      showShortVersion,
+      version,
+      anchor,
+      className,
+      preserveGlobalSelection,
+    } = this.props;
 
-    if (anchor) {
-      if (orgId) {
-        return (
-          <Link
-            to={`/organizations/${orgId}/releases/${encodeURIComponent(version)}`}
-            className={className}
-          >
-            <span title={version}>{versionTitle}</span>
-          </Link>
-        );
-      }
+    const versionTitle = showShortVersion ? getShortVersion(version) : version;
+    const LinkComponent = preserveGlobalSelection ? GlobalSelectionLink : Link;
+
+    if (anchor && orgId) {
+      return (
+        <LinkComponent
+          to={`/organizations/${orgId}/releases/${encodeURIComponent(version)}/`}
+          className={className}
+        >
+          <span title={version}>{versionTitle}</span>
+        </LinkComponent>
+      );
     }
+
     return <span title={version}>{versionTitle}</span>;
   }
 }
