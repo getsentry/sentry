@@ -34,7 +34,7 @@ const getSystemAlertColorStyles = ({backgroundLight, border, iconColor}) => `
   }
 `;
 
-const alertStyles = ({theme, type, system}) => css`
+const alertStyles = ({theme, type, system, alignTop}) => css`
   display: flex;
   margin: 0 0 ${space(3)};
   padding: ${space(2)};
@@ -43,7 +43,7 @@ const alertStyles = ({theme, type, system}) => css`
   border-radius: ${theme.borderRadius};
   background: ${theme.whiteDark};
   border: 1px solid ${theme.borderDark};
-  align-items: center;
+  align-items: ${alignTop ? 'top' : 'center'};
 
   a:not([role='button']) {
     color: ${theme.textColor};
@@ -84,11 +84,13 @@ Alert.propTypes = {
   type: PropTypes.string,
   icon: PropTypes.string,
   iconSize: PropTypes.string,
+  alignTop: PropTypes.bool,
 };
 
 Alert.defaultProps = {
   iconSize: '24px',
   type: 'info',
+  alignTop: false,
 };
 
 export {alertStyles};

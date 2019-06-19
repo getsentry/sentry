@@ -331,11 +331,13 @@ exports[`IntegrationDetailsModal renders simple integration 1`] = `
     </Base>
   </Metadata>
   <Alert
+    alignTop={false}
     iconSize="24px"
     key="0"
     type="warning"
   >
     <AlertWrapper
+      alignTop={false}
       className="ref-warning"
       type="warning"
     >

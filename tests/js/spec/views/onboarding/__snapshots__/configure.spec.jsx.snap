@@ -770,6 +770,7 @@ exports[`Configure should render correctly render() should render platform docs 
                                         type="info"
                                       >
                                         <Alert
+                                          alignTop={false}
                                           className="css-e1otmf-PanelAlert e1wrupv90"
                                           icon="icon-circle-info"
                                           iconSize="24px"
@@ -777,6 +778,7 @@ exports[`Configure should render correctly render() should render platform docs 
                                           type="info"
                                         >
                                           <AlertWrapper
+                                            alignTop={false}
                                             className="ref-info css-e1otmf-PanelAlert e1wrupv90"
                                             system={true}
                                             type="info"
