@@ -157,9 +157,7 @@ const redirectLegacyProjectSavedSearchRoute = generateRedirectRoute => {
               orgId: this.props.params.orgId,
               projectId,
               router: {
-                params: {
-                  ...this.props.params,
-                },
+                params: this.props.params,
               },
               searchQuery: this.getSearchQuery(),
             };

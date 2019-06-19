@@ -144,9 +144,7 @@ const redirectSentry9Project = generateRedirectRoute => {
               orgId,
               projectId,
               router: {
-                params: {
-                  ...this.props.params,
-                },
+                params: this.props.params,
               },
             };
 
