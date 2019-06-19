@@ -35,6 +35,7 @@ class ReleaseList extends React.Component {
                       orgId={orgId}
                       projectId={projectId}
                       version={release.version}
+                      preserveGlobalSelection
                     />
                   </VersionWrapper>
                   <LatestDeployOrReleaseTime orgId={orgId} release={release} />
