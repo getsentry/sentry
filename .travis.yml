@@ -51,7 +51,7 @@ after_script:
   - |
       coverage_files=$(ls .artifacts/*coverage.xml || true)
       if [[ -n "$coverage_files" || -f .artifacts/coverage/cobertura-coverage.xml ]]; then
-        pip install codecov
+        pip install -U codecov
         codecov -e TEST_SUITE
       fi
   - ./bin/yarn global add @zeus-ci/cli
@@ -71,7 +71,7 @@ base_postgres: &postgres_default
     - postgresql
   install:
     - python setup.py install_egg_info
-    - pip install -e ".[dev,tests,optional]"
+    - pip install -U -e ".[dev,tests,optional]"
   before_script:
     - psql -c 'create database sentry;' -U postgres
   before_install:
@@ -95,7 +95,7 @@ base_acceptance: &acceptance_default
   install:
     - yarn install --pure-lockfile
     - python setup.py install_egg_info
-    - pip install -e ".[dev,tests,optional]"
+    - pip install -U -e ".[dev,tests,optional]"
     - wget -N "https://chromedriver.storage.googleapis.com/$(curl https://chromedriver.storage.googleapis.com/LATEST_RELEASE_74)/chromedriver_linux64.zip" -P ~/
     - unzip ~/chromedriver_linux64.zip -d ~/
     - rm ~/chromedriver_linux64.zip
@@ -115,7 +115,7 @@ matrix:
       name: 'Linter'
       env: TEST_SUITE=lint
       install:
-        - SENTRY_LIGHT_BUILD=1 pip install -e ".[dev,tests,optional]"
+        - SENTRY_LIGHT_BUILD=1 pip install -U -e ".[dev,tests,optional]"
         - find "$NODE_DIR" -type d -empty -delete
         - nvm install
         - yarn install --pure-lockfile
@@ -137,7 +137,7 @@ matrix:
         - riak
       install:
         - python setup.py install_egg_info
-        - pip install -e ".[dev,tests,optional]"
+        - pip install -U -e ".[dev,tests,optional]"
       before_script:
         - psql -c 'create database sentry;' -U postgres
       before_install:
@@ -166,7 +166,7 @@ matrix:
         - redis-server
       install:
         - python setup.py install_egg_info
-        - pip install -e .
+        - pip install -U -e .
       before_script:
         - psql -c 'create database sentry;' -U postgres
 
@@ -203,7 +203,7 @@ matrix:
         - docker ps -a
       install:
         - python setup.py install_egg_info
-        - pip install -e ".[dev,tests,optional]"
+        - pip install -U -e ".[dev,tests,optional]"
         - pip install confluent-kafka
       before_script:
         - psql -c 'create database sentry;' -U postgres
