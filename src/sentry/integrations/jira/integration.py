@@ -692,7 +692,8 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
                     continue
                 try:
                     jira_user = [
-                        r for r in res if r['emailAddress'] and r['emailAddress'].lower() == ue.email.lower()
+                        r for r in res
+                        if r.get('emailAddress') and r['emailAddress'].lower() == ue.email.lower()
                     ][0]
                 except IndexError:
                     pass

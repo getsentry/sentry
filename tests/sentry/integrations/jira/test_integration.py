@@ -827,6 +827,30 @@ class JiraIntegrationTest(APITestCase):
         assert assign_issue_response.status_code == 200
         assert assign_issue_response.request.body == '{"accountId": "deadbeef123"}'
 
+    @responses.activate
+    def test_sync_assignee_outbound_no_email(self):
+        self.user = self.create_user(email='bob@example.com')
+        issue_id = 'APP-123'
+        installation = self.integration.get_installation(self.organization.id)
+        external_issue = ExternalIssue.objects.create(
+            organization_id=self.organization.id,
+            integration_id=installation.model.id,
+            key=issue_id,
+        )
+        responses.add(
+            responses.GET,
+            'https://example.atlassian.net/rest/api/2/user/assignable/search',
+            json=[{
+                'accountId': 'deadbeef123',
+                'displayName': 'Dead Beef',
+            }],
+            match_querystring=False,
+        )
+        installation.sync_assignee_outbound(external_issue, self.user)
+
+        # No sync made as jira users don't have email addresses
+        assert len(responses.calls) == 1
+
     def test_update_organization_config(self):
         org = self.organization
         self.login_as(self.user)
