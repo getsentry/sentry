@@ -5,7 +5,6 @@ from datetime import timedelta
 from django.utils import timezone
 from django.core.urlresolvers import reverse
 
-from sentry.models import Group
 from sentry.testutils import APITestCase, SnubaTestCase
 
 
@@ -158,7 +157,7 @@ class OrganizationEventsV2EndpointTest(OrganizationEventsTestBase):
     def test_groupby(self):
         self.login_as(user=self.user)
         project = self.create_project()
-        self.store_event(
+        event1 = self.store_event(
             data={
                 'event_id': 'a' * 32,
                 'timestamp': self.min_ago,
@@ -174,7 +173,7 @@ class OrganizationEventsV2EndpointTest(OrganizationEventsTestBase):
             },
             project_id=project.id,
         )
-        self.store_event(
+        event2 = self.store_event(
             data={
                 'event_id': 'c' * 32,
                 'timestamp': self.min_ago,
@@ -182,8 +181,6 @@ class OrganizationEventsV2EndpointTest(OrganizationEventsTestBase):
             },
             project_id=project.id,
         )
-
-        groups = list(Group.objects.all().order_by('id'))
 
         with self.feature('organizations:events-v2'):
             response = self.client.get(
@@ -199,9 +196,9 @@ class OrganizationEventsV2EndpointTest(OrganizationEventsTestBase):
         assert response.status_code == 200, response.content
         assert len(response.data) == 2
         assert response.data[0]['project.id'] == project.id
-        assert response.data[0]['issue.id'] == groups[0].id
+        assert response.data[0]['issue.id'] == event1.group_id
         assert response.data[1]['project.id'] == project.id
-        assert response.data[1]['issue.id'] == groups[1].id
+        assert response.data[1]['issue.id'] == event2.group_id
 
     def test_orderby(self):
         self.login_as(user=self.user)
@@ -244,7 +241,7 @@ class OrganizationEventsV2EndpointTest(OrganizationEventsTestBase):
     def test_special_fields(self):
         self.login_as(user=self.user)
         project = self.create_project()
-        self.store_event(
+        event1 = self.store_event(
             data={
                 'event_id': 'a' * 32,
                 'timestamp': self.min_ago,
@@ -255,7 +252,7 @@ class OrganizationEventsV2EndpointTest(OrganizationEventsTestBase):
             },
             project_id=project.id,
         )
-        self.store_event(
+        event2 = self.store_event(
             data={
                 'event_id': 'b' * 32,
                 'timestamp': self.min_ago,
@@ -278,8 +275,6 @@ class OrganizationEventsV2EndpointTest(OrganizationEventsTestBase):
             project_id=project.id,
         )
 
-        groups = list(Group.objects.all().order_by('id'))
-
         with self.feature('organizations:events-v2'):
             response = self.client.get(
                 self.url,
@@ -293,10 +288,10 @@ class OrganizationEventsV2EndpointTest(OrganizationEventsTestBase):
 
         assert response.status_code == 200, response.content
         assert len(response.data) == 2
-        assert response.data[0]['issue.id'] == groups[0].id
+        assert response.data[0]['issue.id'] == event1.group_id
         assert response.data[0]['event_count'] == 1
         assert response.data[0]['user_count'] == 1
-        assert response.data[1]['issue.id'] == groups[1].id
+        assert response.data[1]['issue.id'] == event2.group_id
         assert response.data[1]['event_count'] == 2
         assert response.data[1]['user_count'] == 2
 
@@ -314,7 +309,7 @@ class OrganizationEventsV2EndpointTest(OrganizationEventsTestBase):
             },
             project_id=project.id,
         )
-        self.store_event(
+        event = self.store_event(
             data={
                 'event_id': 'b' * 32,
                 'timestamp': self.min_ago,
@@ -359,8 +354,6 @@ class OrganizationEventsV2EndpointTest(OrganizationEventsTestBase):
             project_id=project.id,
         )
 
-        groups = list(Group.objects.all().order_by('id'))
-
         with self.feature('organizations:events-v2'):
             response = self.client.get(
                 self.url,
@@ -376,7 +369,7 @@ class OrganizationEventsV2EndpointTest(OrganizationEventsTestBase):
         assert response.status_code == 200, response.content
 
         assert len(response.data) == 1
-        assert response.data[0]['issue.id'] == groups[1].id
+        assert response.data[0]['issue.id'] == event.group_id
         assert response.data[0]['event_count'] == 2
         assert response.data[0]['user_count'] == 2
 
@@ -394,7 +387,7 @@ class OrganizationEventsV2EndpointTest(OrganizationEventsTestBase):
             },
             project_id=project.id,
         )
-        self.store_event(
+        event = self.store_event(
             data={
                 'event_id': 'b' * 32,
                 'timestamp': self.min_ago,
@@ -439,8 +432,6 @@ class OrganizationEventsV2EndpointTest(OrganizationEventsTestBase):
             project_id=project.id,
         )
 
-        groups = list(Group.objects.all().order_by('id'))
-
         with self.feature('organizations:events-v2'):
             response = self.client.get(
                 self.url,
@@ -456,7 +447,7 @@ class OrganizationEventsV2EndpointTest(OrganizationEventsTestBase):
         assert response.status_code == 200, response.content
 
         assert len(response.data) == 1
-        assert response.data[0]['issue.id'] == groups[1].id
+        assert response.data[0]['issue.id'] == event.group_id
         assert response.data[0]['event_count'] == 2
         assert response.data[0]['user_count'] == 2
 
@@ -475,7 +466,7 @@ class OrganizationEventsV2EndpointTest(OrganizationEventsTestBase):
             },
             project_id=project.id,
         )
-        event2 = self.store_event(
+        event = self.store_event(
             data={
                 'event_id': 'b' * 32,
                 'timestamp': self.min_ago,
@@ -512,8 +503,6 @@ class OrganizationEventsV2EndpointTest(OrganizationEventsTestBase):
             project_id=project.id,
         )
 
-        group = Group.objects.get(id=event2.group_id)
-
         with self.feature('organizations:events-v2'):
             response = self.client.get(
                 self.url,
@@ -529,7 +518,7 @@ class OrganizationEventsV2EndpointTest(OrganizationEventsTestBase):
         assert response.status_code == 200, response.content
 
         assert len(response.data) == 1
-        assert response.data[0]['issue.id'] == group.id
+        assert response.data[0]['issue.id'] == event.group_id
         assert response.data[0]['event_count'] == 2
 
     def test_invalid_groupby(self):
