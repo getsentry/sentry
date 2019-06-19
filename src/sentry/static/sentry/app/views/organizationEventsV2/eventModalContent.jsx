@@ -90,7 +90,7 @@ const EventMetadata = props => {
 
   return (
     <SidebarBlock withSeparator>
-      <MetadataContainer>ID {event.eventID}</MetadataContainer>
+      <MetadataContainer data-test-id="event-id">ID {event.eventID}</MetadataContainer>
       <MetadataContainer>
         <DateTime
           date={getDynamicText({value: event.dateCreated, fixed: 'Dummy timestamp'})}
