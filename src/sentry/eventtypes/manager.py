@@ -23,9 +23,3 @@ class EventTypeManager(object):
     def register(self, cls):
         self.__values.append(cls)
         self.__lookup[cls.key] = cls
-
-    def infer(self, data):
-        for eventtype in self.__values:
-            if eventtype(data).has_metadata():
-                return eventtype
-        raise Exception('No event types registered which can handle data.')
