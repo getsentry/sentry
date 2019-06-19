@@ -6,7 +6,7 @@ import * as Sentry from '@sentry/browser';
 import _ from 'lodash';
 import classNames from 'classnames';
 import createReactClass from 'create-react-class';
-import styled from 'react-emotion';
+import styled, {css} from 'react-emotion';
 
 import {NEGATION_OPERATOR, SEARCH_WILDCARD} from 'app/constants';
 import {analytics} from 'app/utils/analytics';
@@ -25,6 +25,7 @@ import DropdownLink from 'app/components/dropdownLink';
 import MemberListStore from 'app/stores/memberListStore';
 import SentryTypes from 'app/sentryTypes';
 import space from 'app/styles/space';
+import theme from 'app/utils/theme';
 import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
 
@@ -45,6 +46,43 @@ export function removeSpace(query = '') {
     return query;
   }
 }
+
+const getMediaQuery = (size, type) => `
+  display: ${type};
+
+  @media (min-width: ${size}) {
+    display: ${type == 'none' ? 'block' : 'none'};
+  }
+`;
+
+const getInputButtonStyles = p => css`
+  color: ${p.isActive ? theme.blueLight : theme.gray2};
+  margin-left: ${space(0.5)};
+  width: 18px;
+
+  &:hover {
+    color: ${theme.gray3};
+  }
+
+  ${p.collapseIntoEllipsisMenu &&
+    getMediaQuery(theme.breakpoints[p.collapseIntoEllipsisMenu], 'none')};
+`;
+
+const getDropdownElementStyles = p => css`
+  padding: 0 ${space(1)} ${p.last ? null : space(0.5)};
+  margin-bottom: ${p.last ? null : space(0.5)};
+  border-bottom: ${p.last ? null : `1px solid ${theme.gray1}`};
+  display: none;
+  color: ${theme.gray4};
+  align-items: center;
+  min-width: 190px;
+  height: 38px;
+  padding-left: ${space(1.5)};
+  padding-right: ${space(1.5)};
+
+  ${p.showBelowMediaQuery &&
+    getMediaQuery(theme.breakpoints[p.showBelowMediaQuery], 'flex')}
+`;
 
 class SmartSearchBar extends React.Component {
   static propTypes = {
@@ -798,22 +836,12 @@ class SmartSearchBar extends React.Component {
               query={this.state.query}
               organization={organization}
               disabled={!hasQuery}
-            >
-              {onToggle => (
-                <InputButton
-                  title={t('Add to organization filter list')}
-                  size="zero"
-                  borderless
-                  containerDisplayMode="inline-flex"
-                  type="button"
-                  onClick={onToggle}
-                  collapseIntoEllipsisMenu={2}
-                  data-test-id="save-current-search"
-                  aria-label={t('Add to organization filter list')}
-                  icon="icon-add-to-list"
-                />
-              )}
-            </CreateSavedSearchButton>
+              iconOnly={true}
+              buttonClassName={getInputButtonStyles({
+                isActive: !!pinnedSearch,
+                collapseIntoEllipsisMenu: 2,
+              })}
+            />
             <SearchBuilderButton
               title={t('Toggle search builder')}
               borderless
@@ -851,14 +879,12 @@ class SmartSearchBar extends React.Component {
               <CreateSavedSearchButton
                 query={this.state.query}
                 organization={organization}
-              >
-                {onToggle => (
-                  <DropdownElement showBelowMediaQuery={2} onClick={onToggle}>
-                    <MenuIcon size="15" src="icon-add-to-list" />
-                    Create Saved Search
-                  </DropdownElement>
-                )}
-              </CreateSavedSearchButton>
+                disabled={!hasQuery}
+                buttonClassName={getDropdownElementStyles({
+                  showBelowMediaQuery: 2,
+                  last: false,
+                })}
+              />
               <DropdownElement showBelowMediaQuery={2} last onClick={onSidebarToggle}>
                 <MenuIcon src="icon-sliders" size="12" />
                 Toggle sidebar
@@ -1004,26 +1030,8 @@ const StyledInput = styled('input')`
   }
 `;
 
-const getMediaQuery = (size, type) => `
-  display: ${type};
-
-  @media (min-width: ${size}) {
-    display: ${type == 'none' ? 'block' : 'none'};
-  }
-`;
-
 const InputButton = styled(Button)`
-  color: ${p => (p.isActive ? p.theme.blueLight : p.theme.gray2)};
-  margin-left: ${space(0.5)};
-  width: 18px;
-
-  &:hover {
-    color: ${p => p.theme.gray3};
-  }
-
-  ${p =>
-    p.collapseIntoEllipsisMenu &&
-    getMediaQuery(p.theme.breakpoints[p.collapseIntoEllipsisMenu], 'none')};
+  ${p => getInputButtonStyles(p)}
 `;
 
 const SearchBuilderButton = styled(InputButton)`
@@ -1040,20 +1048,7 @@ const StyledDropdownLink = styled(DropdownLink)`
 `;
 
 const DropdownElement = styled('a')`
-  padding: 0 ${space(1)} ${p => (p.last ? null : space(0.5))};
-  margin-bottom: ${p => (p.last ? null : space(0.5))};
-  border-bottom: ${p => (p.last ? null : `1px solid ${p.theme.gray1}`)};
-  display: none;
-  color: ${p => p.theme.gray4};
-  align-items: center;
-  min-width: 190px;
-  height: 38px;
-  padding-left: ${space(1.5)};
-  padding-right: ${space(1.5)};
-
-  ${p =>
-    p.showBelowMediaQuery &&
-    getMediaQuery(p.theme.breakpoints[p.showBelowMediaQuery], 'flex')}
+  ${p => getDropdownElementStyles(p)}
 `;
 
 const MenuIcon = styled(InlineSvg)`
