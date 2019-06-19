@@ -5,6 +5,7 @@ import _ from 'lodash';
 import {t} from 'app/locale';
 import withApi from 'app/utils/withApi';
 import LoadingError from 'app/components/loadingError';
+import {analytics} from 'app/utils/analytics';
 
 // TODO: This is react-router v4 <Redirect to="path/" /> component to allow things
 //       to be declarative
@@ -101,6 +102,16 @@ const redirectSentry9Project = generateRedirectRoute => {
       }).isRequired,
     };
 
+    trackRedirect = nextRoute => {
+      // track redirects of legacy URLs for analytics
+      analytics('legacy_urls_pre_sentry10.redirect', {
+        from: this.props.location,
+        to: nextRoute,
+      });
+
+      return nextRoute;
+    };
+
     render() {
       const {orgId, projectSlug} = this.props.params;
 
@@ -142,7 +153,7 @@ const redirectSentry9Project = generateRedirectRoute => {
             return (
               <Redirect
                 router={this.props.router}
-                to={generateRedirectRoute(routeProps)}
+                to={this.trackRedirect(generateRedirectRoute(routeProps))}
               />
             );
           }}

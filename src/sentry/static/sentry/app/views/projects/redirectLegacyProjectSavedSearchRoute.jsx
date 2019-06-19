@@ -7,6 +7,8 @@ import {t} from 'app/locale';
 import withApi from 'app/utils/withApi';
 import LoadingError from 'app/components/loadingError';
 import {fetchProjectSavedSearches} from 'app/actionCreators/savedSearches';
+import {analytics} from 'app/utils/analytics';
+
 import {ProjectDetails, Redirect} from './redirectLegacyProjectRoute';
 
 const DEFAULT_SORT = 'date';
@@ -99,6 +101,16 @@ const redirectLegacyProjectSavedSearchRoute = generateRedirectRoute => {
       return queryParams;
     };
 
+    trackRedirect = nextRoute => {
+      // track redirects of legacy URLs for analytics
+      analytics('legacy_urls_pre_sentry10.redirect', {
+        from: this.props.location,
+        to: nextRoute,
+      });
+
+      return nextRoute;
+    };
+
     render() {
       if (this.state.loading) {
         return null;
@@ -155,7 +167,7 @@ const redirectLegacyProjectSavedSearchRoute = generateRedirectRoute => {
             return (
               <Redirect
                 router={this.props.router}
-                to={generateRedirectRoute(routeProps)}
+                to={this.trackRedirect(generateRedirectRoute(routeProps))}
               />
             );
           }}
