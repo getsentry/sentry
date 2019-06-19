@@ -1,9 +1,13 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import createReactClass from 'create-react-class';
-import Tooltip from 'app/components/tooltip';
-import TimeSince from 'app/components/timeSince';
+import styled from 'react-emotion';
+
 import {t} from 'app/locale';
+import RepoLabel from 'app/components/repoLabel';
+import TimeSince from 'app/components/timeSince';
+import Tooltip from 'app/components/tooltip';
+import space from 'app/styles/space';
 
 const LatestDeployOrReleaseTime = createReactClass({
   displayName: 'LatestDeployOrReleaseTime',
@@ -24,21 +28,17 @@ const LatestDeployOrReleaseTime = createReactClass({
         {latestDeploy && latestDeploy.dateFinished ? (
           <div className="deploy">
             <p className="m-b-0 text-light">
-              <span
-                className="repo-label"
+              <ReleaseRepoLabel
                 style={{
                   padding: 3,
-                  display: 'inline-block',
                   width: 70,
                   maxWidth: 86,
-                  textAlign: 'center',
                   fontSize: 12,
                 }}
               >
                 {latestDeploy.environment + ' '}
-              </span>{' '}
-              <span className="icon icon-clock" />{' '}
-              <TimeSince date={latestDeploy.dateFinished} />
+              </ReleaseRepoLabel>{' '}
+              <TimeWithIcon date={latestDeploy.dateFinished} />
               {earlierDeploysNum > 0 && (
                 <Tooltip title={t('%s earlier deploys', earlierDeploysNum)}>
                   <span className="badge">{earlierDeploysNum}</span>
@@ -47,9 +47,7 @@ const LatestDeployOrReleaseTime = createReactClass({
             </p>
           </div>
         ) : (
-          <p className="m-b-0 text-light">
-            <span className="icon icon-clock" /> <TimeSince date={release.dateCreated} />
-          </p>
+          <TimeWithIcon date={release.dateCreated} />
         )}
       </div>
     );
@@ -57,3 +55,23 @@ const LatestDeployOrReleaseTime = createReactClass({
 });
 
 export default LatestDeployOrReleaseTime;
+
+const ReleaseRepoLabel = styled(RepoLabel)`
+  width: 70px;
+`;
+
+const TimeWithIcon = styled(({date, ...props}) => (
+  <span {...props}>
+    <ClockIcon className="icon icon-clock" />
+    <TimeSince date={date} />
+  </span>
+))`
+  display: inline-flex;
+  align-items: center;
+  color: ${p => p.theme.gray2};
+  font-size: ${p => p.theme.fontSizeSmall};
+`;
+
+const ClockIcon = styled('span')`
+  margin-right: ${space(0.25)};
+`;
