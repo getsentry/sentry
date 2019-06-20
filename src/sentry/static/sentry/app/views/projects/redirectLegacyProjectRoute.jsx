@@ -12,7 +12,9 @@ import Alert from 'app/components/alert';
 //       to be declarative
 export class Redirect extends React.Component {
   static propTypes = {
-    router: PropTypes.object.isRequired,
+    router: PropTypes.shape({
+      replace: PropTypes.func.isRequired,
+    }).isRequired,
     to: PropTypes.oneOfType([PropTypes.string, PropTypes.object]).isRequired,
   };
 
