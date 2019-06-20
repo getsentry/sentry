@@ -353,6 +353,7 @@ class OrganizationMemberListPostTest(APITestCase):
         )
         assert resp.status_code == 201
         om = OrganizationMember.objects.get(id=resp.data['id'])
+        assert om.user_id is None
         assert om.email == 'jane@gmail.com'
         assert om.role == 'member'
         assert list(om.teams.all()) == [self.team]
@@ -367,6 +368,25 @@ class OrganizationMemberListPostTest(APITestCase):
         )
         assert resp.status_code == 201
         om = OrganizationMember.objects.get(id=resp.data['id'])
+        assert om.user_id is None
         assert om.email == 'jane@gmail.com'
         assert om.role == 'member'
         assert list(om.teams.all()) == []
+
+    @patch.object(OrganizationMember, 'send_invite_email')
+    def test_no_email(self, mock_send_invite_email):
+        resp = self.get_response(
+            self.org.slug,
+            email='jane@gmail.com',
+            role='member',
+            teams=[self.team.slug],
+            sendInvite=False,
+        )
+        assert resp.status_code == 201
+        om = OrganizationMember.objects.get(id=resp.data['id'])
+        assert om.user_id is None
+        assert om.email == 'jane@gmail.com'
+        assert om.role == 'member'
+        assert list(om.teams.all()) == [self.team]
+
+        assert not mock_send_invite_email.mock_calls
