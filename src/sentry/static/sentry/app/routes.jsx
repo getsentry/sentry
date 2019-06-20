@@ -31,8 +31,8 @@ import ProjectPluginDetails from 'app/views/projectPluginDetails';
 import ProjectPlugins from 'app/views/projectPlugins';
 import ProjectSettings from 'app/views/projectSettings';
 import ProjectTags from 'app/views/projectTags';
-import redirectLegacyProjectRoute from 'app/views/projects/redirectLegacyProjectRoute';
-import redirectLegacyProjectSavedSearchRoute from 'app/views/projects/redirectLegacyProjectSavedSearchRoute';
+import redirectDeprecatedProjectRoute from 'app/views/projects/redirectDeprecatedProjectRoute';
+import redirectDeprecatedProjectSavedSearchRoute from 'app/views/projects/redirectDeprecatedProjectSavedSearchRoute';
 import RouteNotFound from 'app/views/routeNotFound';
 import SettingsProjectProvider from 'app/views/settings/components/settingsProjectProvider';
 import SettingsWrapper from 'app/views/settings/components/settingsWrapper';
@@ -1157,7 +1157,7 @@ function routes() {
           {/* Support for legacy URLs (pre-Sentry 10). We just redirect users to new canonical URLs. */}
           <IndexRoute
             component={errorHandler(
-              redirectLegacyProjectRoute(
+              redirectDeprecatedProjectRoute(
                 ({orgId, projectId}) =>
                   `/organizations/${orgId}/issues/?project=${projectId}`
               )
@@ -1166,7 +1166,7 @@ function routes() {
           <Route
             path="issues/"
             component={errorHandler(
-              redirectLegacyProjectRoute(
+              redirectDeprecatedProjectRoute(
                 ({orgId, projectId}) =>
                   `/organizations/${orgId}/issues/?project=${projectId}`
               )
@@ -1175,18 +1175,20 @@ function routes() {
           <Route
             path="searches/:searchId/"
             component={errorHandler(
-              redirectLegacyProjectSavedSearchRoute(({orgId, projectId, searchQuery}) => {
-                return {
-                  pathname: `/organizations/${orgId}/issues/`,
-                  query: {...searchQuery, project: projectId},
-                };
-              })
+              redirectDeprecatedProjectSavedSearchRoute(
+                ({orgId, projectId, searchQuery}) => {
+                  return {
+                    pathname: `/organizations/${orgId}/issues/`,
+                    query: {...searchQuery, project: projectId},
+                  };
+                }
+              )
             )}
           />
           <Route
             path="dashboard/"
             component={errorHandler(
-              redirectLegacyProjectRoute(
+              redirectDeprecatedProjectRoute(
                 ({orgId, projectId}) =>
                   `/organizations/${orgId}/dashboards/?project=${projectId}`
               )
@@ -1195,7 +1197,7 @@ function routes() {
           <Route
             path="releases/"
             component={errorHandler(
-              redirectLegacyProjectRoute(
+              redirectDeprecatedProjectRoute(
                 ({orgId, projectId}) =>
                   `/organizations/${orgId}/releases/?project=${projectId}`
               )
@@ -1204,7 +1206,7 @@ function routes() {
           <Route
             path="releases/:version/"
             component={errorHandler(
-              redirectLegacyProjectRoute(
+              redirectDeprecatedProjectRoute(
                 ({orgId, projectId, router}) =>
                   `/organizations/${orgId}/releases/${
                     router.params.version
@@ -1215,7 +1217,7 @@ function routes() {
           <Route
             path="releases/:version/new-events/"
             component={errorHandler(
-              redirectLegacyProjectRoute(
+              redirectDeprecatedProjectRoute(
                 ({orgId, projectId, router}) =>
                   `/organizations/${orgId}/releases/${
                     router.params.version
@@ -1226,7 +1228,7 @@ function routes() {
           <Route
             path="releases/:version/all-events/"
             component={errorHandler(
-              redirectLegacyProjectRoute(
+              redirectDeprecatedProjectRoute(
                 ({orgId, projectId, router}) =>
                   `/organizations/${orgId}/releases/${
                     router.params.version
@@ -1237,7 +1239,7 @@ function routes() {
           <Route
             path="releases/:version/artifacts/"
             component={errorHandler(
-              redirectLegacyProjectRoute(
+              redirectDeprecatedProjectRoute(
                 ({orgId, projectId, router}) =>
                   `/organizations/${orgId}/releases/${
                     router.params.version
@@ -1248,7 +1250,7 @@ function routes() {
           <Route
             path="releases/:version/commits/"
             component={errorHandler(
-              redirectLegacyProjectRoute(
+              redirectDeprecatedProjectRoute(
                 ({orgId, projectId, router}) =>
                   `/organizations/${orgId}/releases/${
                     router.params.version
@@ -1259,7 +1261,7 @@ function routes() {
           <Route
             path="user-feedback/"
             component={errorHandler(
-              redirectLegacyProjectRoute(
+              redirectDeprecatedProjectRoute(
                 ({orgId, projectId}) =>
                   `/organizations/${orgId}/user-feedback/?project=${projectId}`
               )

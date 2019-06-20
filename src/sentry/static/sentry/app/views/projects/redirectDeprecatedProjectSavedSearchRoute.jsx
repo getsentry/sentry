@@ -10,14 +10,14 @@ import {analytics} from 'app/utils/analytics';
 import Alert from 'app/components/alert';
 import Redirect from 'app/utils/redirect';
 
-import {ProjectDetails} from './redirectLegacyProjectRoute';
+import {ProjectDetails} from './redirectDeprecatedProjectRoute';
 
 const DEFAULT_SORT = 'date';
 const DEFAULT_STATS_PERIOD = '24h';
 const STATS_PERIODS = new Set(['14d', '24h']);
 
-const redirectLegacyProjectSavedSearchRoute = generateRedirectRoute => {
-  class RedirectLegacyProjectSavedSearchRoute extends React.Component {
+const redirectDeprecatedProjectSavedSearchRoute = generateRedirectRoute => {
+  class RedirectDeprecatedProjectSavedSearchRoute extends React.Component {
     static propTypes = {
       router: PropTypes.object.isRequired,
 
@@ -187,7 +187,7 @@ const redirectLegacyProjectSavedSearchRoute = generateRedirectRoute => {
     }
   }
 
-  return withApi(RedirectLegacyProjectSavedSearchRoute);
+  return withApi(RedirectDeprecatedProjectSavedSearchRoute);
 };
 
-export default redirectLegacyProjectSavedSearchRoute;
+export default redirectDeprecatedProjectSavedSearchRoute;

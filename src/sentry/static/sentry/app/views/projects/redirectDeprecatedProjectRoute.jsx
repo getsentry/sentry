@@ -81,8 +81,8 @@ class ProjectDetailsInner extends React.Component {
 
 export const ProjectDetails = withApi(ProjectDetailsInner);
 
-const redirectSentry9Project = generateRedirectRoute => {
-  class RedirectSentry9Project extends React.Component {
+const redirectDeprecatedProjectRoute = generateRedirectRoute => {
+  class RedirectDeprecatedProjectRoute extends React.Component {
     static propTypes = {
       router: PropTypes.object.isRequired,
 
@@ -156,7 +156,7 @@ const redirectSentry9Project = generateRedirectRoute => {
     }
   }
 
-  return RedirectSentry9Project;
+  return RedirectDeprecatedProjectRoute;
 };
 
-export default redirectSentry9Project;
+export default redirectDeprecatedProjectRoute;
