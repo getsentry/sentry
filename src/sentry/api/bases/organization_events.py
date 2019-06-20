@@ -184,8 +184,11 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
         conditions = []
         for condition in snuba_args['conditions']:
             field = condition[0]
-            if not isinstance(field, (list, tuple)
-                              ) and field in SPECIAL_FIELDS and field not in special_fields:
+            if (
+                not isinstance(field, (list, tuple))
+                and field in SPECIAL_FIELDS
+                and field not in special_fields
+            ):
                 # skip over special field.
                 continue
             conditions.append(condition)
