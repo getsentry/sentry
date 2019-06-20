@@ -105,7 +105,7 @@ class CreateSavedSearchButton extends React.Component {
           icon="icon-add-to-list"
           className={buttonClassName}
         >
-          {!iconOnly && 'Create Saved Search'}
+          {!iconOnly && t('Create Saved Search')}
         </Button>
         <Modal show={isModalOpen} animation={false} onHide={this.onToggle}>
           <form onSubmit={this.onSubmit}>
