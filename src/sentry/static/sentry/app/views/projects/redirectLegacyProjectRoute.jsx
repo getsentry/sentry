@@ -63,11 +63,16 @@ class ProjectDetailsInner extends React.Component {
     return _.isString(projectID) && projectID.length > 0;
   };
 
+  getOrganizationId = () => {
+    return this.state.project?.organization?.id;
+  };
+
   render() {
     const childrenProps = {
       ...this.state,
       projectId: this.getProjectId(),
       hasProjectId: this.hasProjectId(),
+      organizationId: this.getOrganizationId(),
     };
 
     return this.props.children(childrenProps);
@@ -92,16 +97,19 @@ const redirectSentry9Project = generateRedirectRoute => {
       }).isRequired,
     };
 
-    trackRedirect = nextRoute => {
+    trackRedirect = (organizationId, nextRoute) => {
       const {pathname, search} = this.props.location;
 
       const payload = {
-        from: `${pathname}${search}`,
-        to: nextRoute,
+        feature: 'global_views',
+        url: `${pathname}${search}`, // the URL being redirected from
+        org_id: parseInt(organizationId, 10),
       };
 
-      // track redirects of legacy URLs for analytics
-      analytics('legacy_urls_pre_sentry10.redirect', payload);
+      console.log('payload', payload);
+
+      // track redirects of deprecated URLs for analytics
+      analytics('deprecated_urls.redirect', payload);
 
       return nextRoute;
     };
@@ -111,7 +119,7 @@ const redirectSentry9Project = generateRedirectRoute => {
 
       return (
         <ProjectDetails orgId={orgId} projectSlug={projectSlug}>
-          {({loading, error, hasProjectId, projectId}) => {
+          {({loading, error, hasProjectId, projectId, organizationId}) => {
             if (loading) {
               return null;
             }
@@ -139,7 +147,7 @@ const redirectSentry9Project = generateRedirectRoute => {
             return (
               <Redirect
                 router={this.props.router}
-                to={this.trackRedirect(generateRedirectRoute(routeProps))}
+                to={this.trackRedirect(organizationId, generateRedirectRoute(routeProps))}
               />
             );
           }}
