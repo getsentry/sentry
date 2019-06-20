@@ -106,8 +106,6 @@ const redirectDeprecatedProjectRoute = generateRedirectRoute => {
         org_id: parseInt(organizationId, 10),
       };
 
-      console.log('payload', payload);
-
       // track redirects of deprecated URLs for analytics
       analytics('deprecated_urls.redirect', payload);
 
