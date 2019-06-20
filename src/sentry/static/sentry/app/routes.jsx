@@ -31,6 +31,7 @@ import ProjectPluginDetails from 'app/views/projectPluginDetails';
 import ProjectPlugins from 'app/views/projectPlugins';
 import ProjectSettings from 'app/views/projectSettings';
 import ProjectTags from 'app/views/projectTags';
+import redirectDeprecatedProjectRoute from 'app/views/projects/redirectDeprecatedProjectRoute';
 import RouteNotFound from 'app/views/routeNotFound';
 import SettingsProjectProvider from 'app/views/settings/components/settingsProjectProvider';
 import SettingsWrapper from 'app/views/settings/components/settingsWrapper';
@@ -1151,40 +1152,100 @@ function routes() {
           <IndexRoute component={errorHandler(ProjectInstallOverview)} />
           <Route path=":platform/" component={errorHandler(ProjectInstallPlatform)} />
         </Route>
-
-        <Redirect from=":projectId/" to="/organizations/:orgId/issues/" />
-        <Redirect from=":projectId/issues/" to="/organizations/:orgId/issues/" />
-        <Redirect
-          from=":projectId/searches/:searchId/"
-          to="/organizations/:orgId/issues/"
-        />
-        <Redirect from=":projectId/dashboard/" to="/organizations/:orgId/dashboards/" />
-        <Redirect from=":projectId/releases/" to="/organizations/:orgId/releases/" />
-        <Redirect
-          from=":projectId/releases/:version/"
-          to="/organizations/:orgId/releases/:version/"
-        />
-        <Redirect
-          from=":projectId/releases/:version/new-events/"
-          to="/organizations/:orgId/releases/:version/new-events/"
-        />
-        <Redirect
-          from=":projectId/releases/:version/all-events/"
-          to="/organizations/:orgId/releases/:version/all-events/"
-        />
-        <Redirect
-          from=":projectId/releases/:version/artifacts/"
-          to="/organizations/:orgId/releases/:version/artifacts/"
-        />
-        <Redirect
-          from=":projectId/releases/:version/commits/"
-          to="/organizations/:orgId/releases/:version/commits/"
-        />
-
-        <Redirect
-          from=":projectId/user-feedback/"
-          to="/organizations/:orgId/user-feedback/"
-        />
+        <Route path=":projectId/">
+          {/* Support for deprecated URLs (pre-Sentry 10). We just redirect users to new canonical URLs. */}
+          <IndexRoute
+            component={errorHandler(
+              redirectDeprecatedProjectRoute(
+                ({orgId, projectId}) =>
+                  `/organizations/${orgId}/issues/?project=${projectId}`
+              )
+            )}
+          />
+          <Route
+            path="issues/"
+            component={errorHandler(
+              redirectDeprecatedProjectRoute(
+                ({orgId, projectId}) =>
+                  `/organizations/${orgId}/issues/?project=${projectId}`
+              )
+            )}
+          />
+          <Redirect from="dashboard/" to="/organizations/:orgId/dashboards/" />
+          <Route
+            path="releases/"
+            component={errorHandler(
+              redirectDeprecatedProjectRoute(
+                ({orgId, projectId}) =>
+                  `/organizations/${orgId}/releases/?project=${projectId}`
+              )
+            )}
+          />
+          <Route
+            path="releases/:version/"
+            component={errorHandler(
+              redirectDeprecatedProjectRoute(
+                ({orgId, projectId, router}) =>
+                  `/organizations/${orgId}/releases/${
+                    router.params.version
+                  }/?project=${projectId}`
+              )
+            )}
+          />
+          <Route
+            path="releases/:version/new-events/"
+            component={errorHandler(
+              redirectDeprecatedProjectRoute(
+                ({orgId, projectId, router}) =>
+                  `/organizations/${orgId}/releases/${
+                    router.params.version
+                  }/new-events/?project=${projectId}`
+              )
+            )}
+          />
+          <Route
+            path="releases/:version/all-events/"
+            component={errorHandler(
+              redirectDeprecatedProjectRoute(
+                ({orgId, projectId, router}) =>
+                  `/organizations/${orgId}/releases/${
+                    router.params.version
+                  }/all-events/?project=${projectId}`
+              )
+            )}
+          />
+          <Route
+            path="releases/:version/artifacts/"
+            component={errorHandler(
+              redirectDeprecatedProjectRoute(
+                ({orgId, projectId, router}) =>
+                  `/organizations/${orgId}/releases/${
+                    router.params.version
+                  }/artifacts/?project=${projectId}`
+              )
+            )}
+          />
+          <Route
+            path="releases/:version/commits/"
+            component={errorHandler(
+              redirectDeprecatedProjectRoute(
+                ({orgId, projectId, router}) =>
+                  `/organizations/${orgId}/releases/${
+                    router.params.version
+                  }/commits/?project=${projectId}`
+              )
+            )}
+          />
+          <Route
+            path="user-feedback/"
+            component={errorHandler(
+              redirectDeprecatedProjectRoute(
+                ({orgId, projectId}) =>
+                  `/organizations/${orgId}/user-feedback/?project=${projectId}`
+              )
+            )}
+          />
+        </Route>
         <Route path=":projectId/settings/" component={errorHandler(ProjectSettings)}>
           <Redirect from="teams/" to="/settings/:orgId/projects/:projectId/teams/" />
           <Redirect from="alerts/" to="/settings/:orgId/projects/:projectId/alerts/" />
