@@ -104,7 +104,6 @@ const StyledDropdownButton = styled(
 )`
   z-index: ${p => p.theme.zIndex.dropdownAutocomplete.actor};
   white-space: nowrap;
-  font-weight: normal;
 `;
 
 const MenuContainer = styled(DropdownBubble.withComponent('ul'))`

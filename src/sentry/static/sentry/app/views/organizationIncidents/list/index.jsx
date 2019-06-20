@@ -61,13 +61,12 @@ class OrganizationIncidentsList extends AsyncComponent {
             {started.format('LL')}
             <LightDuration seconds={getDynamicText({value: duration, fixed: 1200})} />
           </div>
-
-          <div>
+          <NumericColumn>
             <Count value={incident.uniqueUsers} />
-          </div>
-          <div>
+          </NumericColumn>
+          <NumericColumn>
             <Count value={incident.totalEvents} />
-          </div>
+          </NumericColumn>
         </TableLayout>
       </IncidentPanelItem>
     );
@@ -76,7 +75,7 @@ class OrganizationIncidentsList extends AsyncComponent {
   renderEmpty() {
     return (
       <EmptyStateWarning>
-        <p>{t("You don't have any incidents yet")}</p>
+        <p>{t("You don't have any Incidents yet")}</p>
       </EmptyStateWarning>
     );
   }
@@ -96,8 +95,8 @@ class OrganizationIncidentsList extends AsyncComponent {
               <div>{t('Incident')}</div>
               <div>{t('Status')}</div>
               <div>{t('Started')}</div>
-              <div>{t('Users affected')}</div>
-              <div>{t('Total events')}</div>
+              <NumericColumn>{t('Users affected')}</NumericColumn>
+              <NumericColumn>{t('Total events')}</NumericColumn>
             </TableLayout>
           </PanelHeader>
 
@@ -133,7 +132,7 @@ class OrganizationIncidentsListContainer extends React.Component {
       <DocumentTitle title={`Incidents - ${orgId} - Sentry`}>
         <PageContent>
           <PageHeader>
-            <PageHeading withMargins>
+            <PageHeading>
               {t('Incidents')} <BetaTag />
             </PageHeading>
 
@@ -168,7 +167,7 @@ class OrganizationIncidentsListContainer extends React.Component {
             icon="icon-circle-info"
           >
             {tct(
-              'To create a new incident, select one or more issues from the Issues view. Then, click the [create:Create Incident] button.',
+              'To create a new Incident, select one or more issues from the Issues view. Then, click the [create:Create Incident] button.',
               {create: <em />}
             )}
           </AlertLink>
@@ -198,10 +197,15 @@ const TitleAndSparkLine = styled('div')`
   display: flex;
   justify-content: space-between;
   align-items: center;
+  padding-right: ${space(2)};
 `;
 
 const IncidentPanelItem = styled(PanelItem)`
   padding: ${space(1)} ${space(2)};
+`;
+
+const NumericColumn = styled('div')`
+  text-align: right;
 `;
 
 export default OrganizationIncidentsListContainer;

@@ -72,7 +72,7 @@ export default class SeenByList extends React.Component {
         />
         <IconWrapper>
           <Tooltip title={iconTooltip}>
-            <EyeIcon className="icon-eye" />
+            <EyeIcon className="icon-eye" iconPosition={iconPosition} />
           </Tooltip>
         </IconWrapper>
       </SeenByWrapper>
@@ -94,7 +94,7 @@ const IconWrapper = styled('div')`
   width: 28px;
   line-height: 26px;
   text-align: center;
-  margin-right: 10px;
+  ${p => (p.iconPosition === 'left' ? 'margin-right: 10px' : '')};
 `;
 
 const EyeIcon = styled('span')`
