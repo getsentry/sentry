@@ -42,7 +42,12 @@ class Tooltip extends React.Component {
     /**
      * Display mode for the container element
      */
-    containerDisplayMode: PropTypes.oneOf(['block', 'inline-block', 'inline']),
+    containerDisplayMode: PropTypes.oneOf([
+      'block',
+      'inline-block',
+      'inline',
+      'inline-flex',
+    ]),
 
     /**
      * Time to wait (in milliseconds) before showing the tooltip
