@@ -120,14 +120,16 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
         _, allowed_roles = get_allowed_roles(request, organization)
 
         # ensure listed teams are real teams
-        teams = list(Team.objects.filter(
-            organization=organization,
-            status=TeamStatus.VISIBLE,
-            slug__in=result['teams'],
-        ))
-
-        if len(set(result['teams'])) != len(teams):
-            return Response({'teams': 'Invalid team'}, 400)
+        if result.get('teams'):
+            teams = list(Team.objects.filter(
+                organization=organization,
+                status=TeamStatus.VISIBLE,
+                slug__in=result['teams'],
+            ))
+            if len(set(result['teams'])) != len(teams):
+                return Response({'teams': 'Invalid team'}, 400)
+        else:
+            teams = []
 
         if not result['role'] in {r.id for r in allowed_roles}:
             return Response({'role': 'You do not have permission to invite that role.'}, 403)
@@ -158,9 +160,10 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
         except IntegrityError:
             return Response({'email': 'The user %s is already a member' % result['email']}, 409)
 
-        lock = locks.get(u'org:member:{}'.format(om.id), duration=5)
-        with TimedRetryPolicy(10)(lock.acquire):
-            self.save_team_assignments(om, teams)
+        if teams:
+            lock = locks.get(u'org:member:{}'.format(om.id), duration=5)
+            with TimedRetryPolicy(10)(lock.acquire):
+                self.save_team_assignments(om, teams)
 
         if settings.SENTRY_ENABLE_INVITES:
             om.send_invite_email()
