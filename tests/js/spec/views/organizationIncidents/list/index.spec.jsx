@@ -45,8 +45,8 @@ describe('OrganizationIncidentsList', function() {
       <OrganizationIncidentsList params={{orgId: 'org-slug'}} location={{query: {}}} />,
       routerContext
     );
-    expect(wrapper.find('IncidentPanelItem')).toHaveLength(0);
-    expect(wrapper.text()).toContain("You don't have any incidents yet");
+    expect(wrapper.find('PanelItem')).toHaveLength(0);
+    expect(wrapper.text()).toContain("You don't have any Incidents yet");
   });
 
   it('toggles all/open', function() {

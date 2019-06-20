@@ -29,7 +29,6 @@ export default class DetailsBody extends React.Component {
 
     // Considered loading when there is no incident object
     const loading = !incident;
-
     return (
       <StyledPageContent>
         <Main>
@@ -108,6 +107,12 @@ const Sidebar = styled('div')`
   width: 40%;
   border-left: 1px solid ${p => p.theme.borderLight};
   background-color: ${p => p.theme.white};
+
+  /* stylelint-disable-next-line no-duplicate-selectors */
+  ${PageContent} {
+    padding-top: ${space(3)};
+  }
+
   @media (max-width: ${theme.breakpoints[0]}) {
     width: 100%;
     border: 0;
@@ -125,9 +130,11 @@ const StyledPageContent = styled(PageContent)`
 const StyledNavTabs = styled(NavTabs)`
   display: flex;
 `;
+
 const SeenByTab = styled('li')`
   flex: 1;
   margin-left: ${space(2)};
+  margin-right: 0;
 
   .nav-tabs > & {
     margin-right: 0;
