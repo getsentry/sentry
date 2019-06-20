@@ -66,6 +66,10 @@ EXTENSION_EXC_SOURCES = re.compile(
             r'metrics\.itunes\.apple\.com\.edgesuite\.net\/',
             # Kaspersky Protection browser extension
             r'kaspersky-labs\.com',
+            # Firefox extensions
+            r'^moz(?:-extension)?:\/\/',
+            # Safari extensions
+            r'^safari(?:-extension)?:\/\/',
         )
     ),
     re.I
@@ -83,6 +87,12 @@ class BrowserExtensionsFilter(Filter):
         except (LookupError, TypeError):
             return ''
 
+    def get_exception_extra_source(self, data):
+        try:
+            return data['extra']['SyntaxError']['sourceURL']
+        except (LookupError, TypeError):
+            return ''
+
     def get_exception_source(self, data):
         try:
             return data['exception']['values'][0]['stacktrace']['frames'
@@ -92,7 +102,7 @@ class BrowserExtensionsFilter(Filter):
 
     def test(self, data):
         """
-        Test the exception value to determine if it looks like the error is
+        Test the exception value and source to determine if it looks like the error is
         caused by a common browser extension.
         """
         if data.get('platform') != 'javascript':
@@ -106,6 +116,11 @@ class BrowserExtensionsFilter(Filter):
         exc_source = self.get_exception_source(data)
         if exc_source:
             if EXTENSION_EXC_SOURCES.search(exc_source):
+                return True
+
+        exc_extra_source = self.get_exception_extra_source(data)
+        if exc_extra_source:
+            if EXTENSION_EXC_SOURCES.search(exc_extra_source):
                 return True
 
         return False
