@@ -6,16 +6,15 @@ import styled from 'react-emotion';
 
 import {t} from 'app/locale';
 import Button from 'app/components/button';
+import ConfigStore from 'app/stores/configStore';
 import NavTabs from 'app/components/navTabs';
 import SentryTypes from 'app/sentryTypes';
 import space from 'app/styles/space';
 import textStyles from 'app/styles/text';
 import withApi from 'app/utils/withApi';
 
+import Mentionables from './mentionables';
 import mentionStyle from './mentionStyle';
-
-const buildUserId = id => `user:${id}`;
-const buildTeamId = id => `team:${id}`;
 
 class NoteInput extends React.Component {
   static propTypes = {
@@ -62,9 +61,6 @@ class NoteInput extends React.Component {
     const {text} = props;
     const defaultText = text || '';
 
-    this.memberMentions = [];
-    this.teamMentions = [];
-
     this.state = {
       preview: false,
       value: defaultText,
@@ -77,24 +73,6 @@ class NoteInput extends React.Component {
     return text
       .replace(/\[sentry\.strip:member\]/g, '@')
       .replace(/\[sentry\.strip:team\]/g, '');
-  }
-
-  mentionableUsers() {
-    const {memberList} = this.props;
-    return memberList.map(member => ({
-      id: buildUserId(member.id),
-      display: member.name,
-      email: member.email,
-    }));
-  }
-
-  mentionableTeams() {
-    const {teams} = this.props;
-    return teams.map(team => ({
-      id: buildTeamId(team.id),
-      display: `#${team.slug}`,
-      email: team.id,
-    }));
   }
 
   submitForm = () => {
@@ -121,7 +99,8 @@ class NoteInput extends React.Component {
 
     if (onUpdate) {
       onUpdate({
-        text: this.state.value,
+        text: this.cleanMarkdown(this.state.value),
+        mentions: this.finalizeMentions(),
       });
     }
   };
@@ -186,7 +165,16 @@ class NoteInput extends React.Component {
 
   render() {
     const {preview, value} = this.state;
-    const {modelId, busy, error, placeholder, minHeight, errorJSON} = this.props;
+    const {
+      modelId,
+      busy,
+      error,
+      placeholder,
+      minHeight,
+      errorJSON,
+      memberList,
+      teams,
+    } = this.props;
 
     const existingItem = !!modelId;
     const btnText = existingItem ? t('Save Comment') : t('Post Comment');
@@ -247,14 +235,14 @@ class NoteInput extends React.Component {
               <Mention
                 type="member"
                 trigger="@"
-                data={this.mentionableUsers()}
+                data={memberList}
                 onAdd={this.handleAddMember}
                 appendSpaceOnAdd={true}
               />
               <Mention
                 type="team"
                 trigger="#"
-                data={this.mentionableTeams()}
+                data={teams}
                 onAdd={this.handleAddTeam}
                 appendSpaceOnAdd={true}
               />
@@ -280,9 +268,29 @@ class NoteInput extends React.Component {
   }
 }
 
-export {NoteInput};
+class NoteInputContainer extends React.Component {
+  static propTypes = {
+    projectSlugs: PropTypes.arrayOf(PropTypes.string),
+  };
 
-export default withApi(NoteInput);
+  renderInput = ({members, teams}) => {
+    const {projectSlugs: _, ...props} = this.props;
+    return <NoteInput memberList={members} teams={teams} {...props} />;
+  };
+
+  render() {
+    const {projectSlugs} = this.props;
+    const me = ConfigStore.get('user');
+
+    return (
+      <Mentionables me={me} projectSlugs={projectSlugs}>
+        {this.renderInput}
+      </Mentionables>
+    );
+  }
+}
+
+export default withApi(NoteInputContainer);
 
 // This styles both the note preview and the note editor input
 const getNotePreviewCss = p => {

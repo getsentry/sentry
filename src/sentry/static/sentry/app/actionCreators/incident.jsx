@@ -60,6 +60,7 @@ export async function createIncidentNote(api, orgId, incidentId, note) {
       {
         method: 'POST',
         data: {
+          mentions: note.mentions,
           comment: note.text,
         },
       }
@@ -101,6 +102,7 @@ export async function updateIncidentNote(api, orgId, incidentId, noteId, note) {
       {
         method: 'PUT',
         data: {
+          mentions: note.mentions,
           comment: note.text,
         },
       }
