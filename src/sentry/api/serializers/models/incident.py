@@ -11,8 +11,9 @@ from sentry.api.serializers import (
 )
 from sentry.api.serializers.snuba import SnubaTSResultSerializer
 from sentry.incidents.logic import (
-    get_incident_aggregates,
-    get_incident_event_stats,
+    bulk_build_incident_query_params,
+    bulk_get_incident_aggregates,
+    bulk_get_incident_event_stats,
 )
 from sentry.incidents.models import (
     Incident,
@@ -33,11 +34,15 @@ class IncidentSerializer(Serializer):
 
         results = {}
 
-        for incident in item_list:
+        incident_query_params_list = bulk_build_incident_query_params(item_list)
+        bulk_event_stats = bulk_get_incident_event_stats(item_list, incident_query_params_list)
+        bulk_aggregates = bulk_get_incident_aggregates(incident_query_params_list)
+
+        for incident, event_stats, aggregates in zip(item_list, bulk_event_stats, bulk_aggregates):
             results[incident] = {
                 'projects': incident_projects.get(incident.id, []),
-                'event_stats': get_incident_event_stats(incident),
-                'aggregates': get_incident_aggregates(incident),
+                'event_stats': event_stats,
+                'aggregates': aggregates,
             }
 
         return results

@@ -15,6 +15,7 @@ import six
 import time
 import urllib3
 
+from concurrent.futures import ThreadPoolExecutor
 from django.conf import settings
 
 from sentry import quotas
@@ -240,6 +241,7 @@ _snuba_pool = connection_from_url(
     timeout=30,
     maxsize=10,
 )
+_query_thread_pool = ThreadPoolExecutor(max_workers=10)
 
 
 epoch_naive = datetime(1970, 1, 1, tzinfo=None)
@@ -519,11 +521,87 @@ def transform_aliases_and_query(skip_conditions=False, **kwargs):
     return result
 
 
-def raw_query(start, end, groupby=None, conditions=None, filter_keys=None,
-              aggregations=None, rollup=None, referrer=None,
-              is_grouprelease=False, **kwargs):
+def _prepare_query_params(query_params):
+    # convert to naive UTC datetimes, as Snuba only deals in UTC
+    # and this avoids offset-naive and offset-aware issues
+    start = naiveify_datetime(query_params.start)
+    end = naiveify_datetime(query_params.end)
+
+    with timer('get_snuba_map'):
+        forward, reverse = get_snuba_translators(
+            query_params.filter_keys,
+            is_grouprelease=query_params.is_grouprelease,
+        )
+
+    if 'project_id' in query_params.filter_keys:
+        # If we are given a set of project ids, use those directly.
+        project_ids = list(set(query_params.filter_keys['project_id']))
+    elif query_params.filter_keys:
+        # Otherwise infer the project_ids from any related models
+        with timer('get_related_project_ids'):
+            ids = [
+                get_related_project_ids(k, query_params.filter_keys[k])
+                for k in query_params.filter_keys
+            ]
+            project_ids = list(set.union(*map(set, ids)))
+    else:
+        project_ids = []
+
+    for col, keys in six.iteritems(forward(deepcopy(query_params.filter_keys))):
+        if keys:
+            if len(keys) == 1 and None in keys:
+                query_params.conditions.append((col, 'IS NULL', None))
+            else:
+                query_params.conditions.append((col, 'IN', keys))
+
+    if not project_ids:
+        raise UnqualifiedQueryError(
+            "No project_id filter, or none could be inferred from other filters.")
+
+    # any project will do, as they should all be from the same organization
+    project = Project.objects.get(pk=project_ids[0])
+    retention = quotas.get_event_retention(
+        organization=Organization(project.organization_id)
+    )
+    if retention:
+        start = max(start, datetime.utcnow() - timedelta(days=retention))
+        if start > end:
+            raise QueryOutsideRetentionError
+
+    # if `shrink_time_window` pushed `start` after `end` it means the user queried
+    # a Group for T1 to T2 when the group was only active for T3 to T4, so the query
+    # wouldn't return any results anyway
+    new_start = shrink_time_window(query_params.filter_keys.get('issue'), start)
+
+    # TODO (alexh) this is a quick emergency fix for an occasion where a search
+    # results in only 1 django candidate, which is then passed to snuba to
+    # check and we raised because of it. Remove this once we figure out why the
+    # candidate was returned from django at all if it existed only outside the
+    # time range of the query
+    if new_start <= end:
+        start = new_start
+
+    if start > end:
+        raise QueryOutsideGroupActivityError
+
+    query_params.kwargs.update({
+        'from_date': start.isoformat(),
+        'to_date': end.isoformat(),
+        'groupby': query_params.groupby,
+        'conditions': query_params.conditions,
+        'aggregations': query_params.aggregations,
+        'project': project_ids,
+        'granularity': query_params.rollup,  # TODO name these things the same
+    })
+    kwargs = {k: v for k, v in six.iteritems(query_params.kwargs) if v is not None}
+
+    kwargs.update(OVERRIDE_OPTIONS)
+    return kwargs, forward, reverse
+
+
+class SnubaQueryParams(object):
     """
-    Sends a query to snuba.
+    Represents the information needed to make a query to Snuba.
 
     `start` and `end`: The beginning and end of the query time window (required)
 
@@ -548,116 +626,106 @@ def raw_query(start, end, groupby=None, conditions=None, filter_keys=None,
     See the snuba schema for details.
     """
 
-    # convert to naive UTC datetimes, as Snuba only deals in UTC
-    # and this avoids offset-naive and offset-aware issues
-    start = naiveify_datetime(start)
-    end = naiveify_datetime(end)
+    def __init__(
+        self, start, end, groupby=None, conditions=None, filter_keys=None,
+        aggregations=None, rollup=None, referrer=None, is_grouprelease=False,
+        **kwargs
+    ):
+        self.start = start
+        self.end = end
+        self.groupby = groupby or []
+        self.conditions = conditions or []
+        self.aggregations = aggregations or []
+        self.filter_keys = filter_keys or {}
+        self.rollup = rollup
+        self.referrer = referrer
+        self.is_grouprelease = is_grouprelease
+        self.kwargs = kwargs
 
-    groupby = groupby or []
-    conditions = conditions or []
-    aggregations = aggregations or []
-    filter_keys = filter_keys or {}
 
-    with timer('get_snuba_map'):
-        forward, reverse = get_snuba_translators(filter_keys, is_grouprelease=is_grouprelease)
-
-    if 'project_id' in filter_keys:
-        # If we are given a set of project ids, use those directly.
-        project_ids = list(set(filter_keys['project_id']))
-    elif filter_keys:
-        # Otherwise infer the project_ids from any related models
-        with timer('get_related_project_ids'):
-            ids = [get_related_project_ids(k, filter_keys[k]) for k in filter_keys]
-            project_ids = list(set.union(*map(set, ids)))
-    else:
-        project_ids = []
-
-    for col, keys in six.iteritems(forward(deepcopy(filter_keys))):
-        if keys:
-            if len(keys) == 1 and None in keys:
-                conditions.append((col, 'IS NULL', None))
-            else:
-                conditions.append((col, 'IN', keys))
-
-    if not project_ids:
-        raise UnqualifiedQueryError(
-            "No project_id filter, or none could be inferred from other filters.")
-
-    # any project will do, as they should all be from the same organization
-    project = Project.objects.get(pk=project_ids[0])
-    retention = quotas.get_event_retention(
-        organization=Organization(project.organization_id)
+def raw_query(start, end, groupby=None, conditions=None, filter_keys=None,
+              aggregations=None, rollup=None, referrer=None,
+              is_grouprelease=False, **kwargs):
+    """
+    Sends a query to snuba.  See `SnubaQueryParams` docstring for param
+    descriptions.
+    """
+    snuba_params = SnubaQueryParams(
+        start=start,
+        end=end,
+        groupby=groupby,
+        conditions=conditions,
+        filter_keys=filter_keys,
+        aggregations=aggregations,
+        rollup=rollup,
+        is_grouprelease=is_grouprelease,
+        **kwargs
     )
-    if retention:
-        start = max(start, datetime.utcnow() - timedelta(days=retention))
-        if start > end:
-            raise QueryOutsideRetentionError
+    return bulk_raw_query([snuba_params], referrer=referrer)[0]
 
-    # if `shrink_time_window` pushed `start` after `end` it means the user queried
-    # a Group for T1 to T2 when the group was only active for T3 to T4, so the query
-    # wouldn't return any results anyway
-    new_start = shrink_time_window(filter_keys.get('issue'), start)
 
-    # TODO (alexh) this is a quick emergency fix for an occasion where a search
-    # results in only 1 django candidate, which is then passed to snuba to
-    # check and we raised because of it. Remove this once we figure out why the
-    # candidate was returned from django at all if it existed only outside the
-    # time range of the query
-    if new_start <= end:
-        start = new_start
-
-    if start > end:
-        raise QueryOutsideGroupActivityError
-
-    kwargs.update({
-        'from_date': start.isoformat(),
-        'to_date': end.isoformat(),
-        'groupby': groupby,
-        'conditions': conditions,
-        'aggregations': aggregations,
-        'project': project_ids,
-        'granularity': rollup,  # TODO name these things the same
-    })
-    kwargs = {k: v for k, v in six.iteritems(kwargs) if v is not None}
-
-    kwargs.update(OVERRIDE_OPTIONS)
-
+def bulk_raw_query(snuba_param_list, referrer=None):
     headers = {}
     if referrer:
         headers['referer'] = referrer
 
-    try:
-        with timer('snuba_query'):
-            response = _snuba_pool.urlopen(
-                'POST', '/query', body=json.dumps(kwargs), headers=headers)
-    except urllib3.exceptions.HTTPError as err:
-        raise SnubaError(err)
+    query_param_list = map(_prepare_query_params, snuba_param_list)
 
-    try:
-        body = json.loads(response.data)
-    except ValueError:
-        raise UnexpectedResponseError(u"Could not decode JSON response: {}".format(response.data))
+    def snuba_query(params):
+        query_params, forward, reverse = params
+        try:
+            with timer('snuba_query'):
+                return (
+                    _snuba_pool.urlopen(
+                        'POST',
+                        '/query',
+                        body=json.dumps(query_params),
+                        headers=headers,
+                    ),
+                    forward,
+                    reverse,
+                )
+        except urllib3.exceptions.HTTPError as err:
+            raise SnubaError(err)
 
-    if response.status != 200:
-        if body.get('error'):
-            error = body['error']
-            if response.status == 429:
-                raise RateLimitExceeded(error['message'])
-            elif error['type'] == 'schema':
-                raise SchemaValidationError(error['message'])
-            elif error['type'] == 'clickhouse':
-                raise clickhouse_error_codes_map.get(
-                    error['code'],
-                    QueryExecutionError,
-                )(error['message'])
+    if len(snuba_param_list) > 1:
+        query_results = _query_thread_pool.map(snuba_query, query_param_list)
+    else:
+        # No need to submit to the thread pool if we're just performing a
+        # single query
+        query_results = [snuba_query(query_param_list[0])]
+
+    results = []
+    for response, _, reverse in query_results:
+        try:
+            body = json.loads(response.data)
+        except ValueError:
+            raise UnexpectedResponseError(
+                u"Could not decode JSON response: {}".format(response.data),
+            )
+
+        if response.status != 200:
+            if body.get('error'):
+                error = body['error']
+                if response.status == 429:
+                    raise RateLimitExceeded(error['message'])
+                elif error['type'] == 'schema':
+                    raise SchemaValidationError(error['message'])
+                elif error['type'] == 'clickhouse':
+                    raise clickhouse_error_codes_map.get(
+                        error['code'],
+                        QueryExecutionError,
+                    )(error['message'])
+                else:
+                    raise SnubaError(error['message'])
             else:
-                raise SnubaError(error['message'])
-        else:
-            raise SnubaError(u'HTTP {}'.format(response.status))
+                raise SnubaError(u'HTTP {}'.format(response.status))
 
-    # Forward and reverse translation maps from model ids to snuba keys, per column
-    body['data'] = [reverse(d) for d in body['data']]
-    return body
+        # Forward and reverse translation maps from model ids to snuba keys, per column
+        body['data'] = [reverse(d) for d in body['data']]
+        results.append(body)
+
+    return results
 
 
 def query(start, end, groupby, conditions=None, filter_keys=None, aggregations=None,
