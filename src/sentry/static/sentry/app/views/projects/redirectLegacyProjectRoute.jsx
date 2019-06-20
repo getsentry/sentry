@@ -97,6 +97,11 @@ const redirectSentry9Project = generateRedirectRoute => {
     static propTypes = {
       router: PropTypes.object.isRequired,
 
+      location: PropTypes.shape({
+        pathname: PropTypes.string.isRequired,
+        search: PropTypes.string.isRequired,
+      }).isRequired,
+
       params: PropTypes.shape({
         orgId: PropTypes.string.isRequired,
         projectSlug: PropTypes.string.isRequired,
@@ -104,11 +109,15 @@ const redirectSentry9Project = generateRedirectRoute => {
     };
 
     trackRedirect = nextRoute => {
-      // track redirects of legacy URLs for analytics
-      analytics('legacy_urls_pre_sentry10.redirect', {
-        from: this.props.location,
+      const {pathname, search} = this.props.location;
+
+      const payload = {
+        from: `${pathname}${search}`,
         to: nextRoute,
-      });
+      };
+
+      // track redirects of legacy URLs for analytics
+      analytics('legacy_urls_pre_sentry10.redirect', payload);
 
       return nextRoute;
     };
@@ -117,11 +126,7 @@ const redirectSentry9Project = generateRedirectRoute => {
       const {orgId, projectSlug} = this.props.params;
 
       return (
-        <ProjectDetails
-          router={this.props.router}
-          orgId={orgId}
-          projectSlug={projectSlug}
-        >
+        <ProjectDetails orgId={orgId} projectSlug={projectSlug}>
           {({loading, error, hasProjectId, projectId}) => {
             if (loading) {
               return null;

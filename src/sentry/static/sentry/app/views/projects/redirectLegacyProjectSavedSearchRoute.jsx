@@ -1,5 +1,4 @@
 import React from 'react';
-import {withRouter} from 'react-router';
 import PropTypes from 'prop-types';
 import _ from 'lodash';
 
@@ -20,7 +19,13 @@ const redirectLegacyProjectSavedSearchRoute = generateRedirectRoute => {
   class RedirectLegacyProjectSavedSearchRoute extends React.Component {
     static propTypes = {
       router: PropTypes.object.isRequired,
+
       api: PropTypes.object.isRequired,
+
+      location: PropTypes.shape({
+        pathname: PropTypes.string.isRequired,
+        search: PropTypes.string.isRequired,
+      }).isRequired,
 
       params: PropTypes.shape({
         orgId: PropTypes.string.isRequired,
@@ -106,11 +111,15 @@ const redirectLegacyProjectSavedSearchRoute = generateRedirectRoute => {
     };
 
     trackRedirect = nextRoute => {
-      // track redirects of legacy URLs for analytics
-      analytics('legacy_urls_pre_sentry10.redirect', {
-        from: this.props.location,
+      const {pathname, search} = this.props.location;
+
+      const payload = {
+        from: `${pathname}${search}`,
         to: nextRoute,
-      });
+      };
+
+      // track redirects of legacy URLs for analytics
+      analytics('legacy_urls_pre_sentry10.redirect', payload);
 
       return nextRoute;
     };
@@ -168,7 +177,7 @@ const redirectLegacyProjectSavedSearchRoute = generateRedirectRoute => {
     }
   }
 
-  return withRouter(withApi(RedirectLegacyProjectSavedSearchRoute));
+  return withApi(RedirectLegacyProjectSavedSearchRoute);
 };
 
 export default redirectLegacyProjectSavedSearchRoute;
