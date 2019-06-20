@@ -1154,7 +1154,7 @@ function routes() {
           <Route path=":platform/" component={errorHandler(ProjectInstallPlatform)} />
         </Route>
         <Route path=":projectId/">
-          {/* Support for legacy URLs (pre-Sentry 10). We just redirect users to new canonical URLs. */}
+          {/* Support for deprecated URLs (pre-Sentry 10). We just redirect users to new canonical URLs. */}
           <IndexRoute
             component={errorHandler(
               redirectDeprecatedProjectRoute(
@@ -1185,15 +1185,7 @@ function routes() {
               )
             )}
           />
-          <Route
-            path="dashboard/"
-            component={errorHandler(
-              redirectDeprecatedProjectRoute(
-                ({orgId, projectId}) =>
-                  `/organizations/${orgId}/dashboards/?project=${projectId}`
-              )
-            )}
-          />
+          <Redirect from="dashboard/" to="/organizations/:orgId/dashboards/" />
           <Route
             path="releases/"
             component={errorHandler(
