@@ -1,9 +1,11 @@
 from __future__ import absolute_import
 
 from datetime import datetime, timedelta
+
 import pytest
 import time
 import uuid
+from django.utils import timezone
 
 from sentry.testutils import SnubaTestCase, TestCase
 from sentry.utils import snuba
@@ -125,3 +127,49 @@ class SnubaTest(TestCase, SnubaTestCase):
                 'issue': group.id,
                 'timestamp': base_time.strftime('%Y-%m-%dT%H:%M:%S+00:00'),
             }]
+
+
+class BulkRawQueryTest(TestCase, SnubaTestCase):
+    def test_simple(self):
+        one_min_ago = (timezone.now() - timedelta(minutes=1)).isoformat()[:19]
+        event_1 = self.store_event(
+            data={
+                'fingerprint': ['group-1'],
+                'message': 'hello',
+                'timestamp': one_min_ago,
+            },
+            project_id=self.project.id,
+        )
+        event_2 = self.store_event(
+            data={
+                'fingerprint': ['group-2'],
+                'message': 'hello',
+                'timestamp': one_min_ago,
+            },
+            project_id=self.project.id,
+        )
+
+        results = snuba.bulk_raw_query([
+            snuba.SnubaQueryParams(
+                start=timezone.now() - timedelta(days=1),
+                end=timezone.now(),
+                selected_columns=['event_id', 'issue', 'timestamp'],
+                filter_keys={
+                    'project_id': [self.project.id],
+                    'issue': [event_1.group.id]
+                },
+            ),
+            snuba.SnubaQueryParams(
+                start=timezone.now() - timedelta(days=1),
+                end=timezone.now(),
+                selected_columns=['event_id', 'issue', 'timestamp'],
+                filter_keys={
+                    'project_id': [self.project.id],
+                    'issue': [event_2.group.id]
+                },
+            ),
+        ])
+        assert [{'issue': r['data'][0]['issue'], 'event_id': r['data'][0]['event_id']} for r in results] == [
+            {'issue': event_1.group.id, 'event_id': event_1.event_id},
+            {'issue': event_2.group.id, 'event_id': event_2.event_id},
+        ]

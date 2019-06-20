@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+from collections import defaultdict
 from datetime import timedelta
 
 import six
@@ -30,7 +31,8 @@ from sentry.incidents.tasks import (
 )
 from sentry.utils.committers import get_event_file_committers
 from sentry.utils.snuba import (
-    raw_query,
+    bulk_raw_query,
+    SnubaQueryParams,
     SnubaTSResult,
 )
 
@@ -263,22 +265,36 @@ def create_event_stat_snapshot(incident, start, end):
 
 
 def build_incident_query_params(incident, start=None, end=None):
-    params = {
-        'start': incident.date_started if start is None else start,
-        'end': incident.current_end_date if end is None else end,
-    }
-    group_ids = list(IncidentGroup.objects.filter(
-        incident=incident,
-    ).values_list('group_id', flat=True))
-    if group_ids:
-        params['issue.id'] = group_ids
-    project_ids = list(IncidentProject.objects.filter(
-        incident=incident,
-    ).values_list('project_id', flat=True))
-    if project_ids:
-        params['project_id'] = project_ids
+    return bulk_build_incident_query_params([incident], start=start, end=end)[0]
 
-    return get_snuba_query_args(incident.query, params)
+
+def bulk_build_incident_query_params(incidents, start=None, end=None):
+    incident_groups = defaultdict(list)
+    for incident_id, group_id in IncidentGroup.objects.filter(
+        incident__in=incidents,
+    ).values_list('incident_id', 'group_id'):
+        incident_groups[incident_id].append(group_id)
+    incident_projects = defaultdict(list)
+    for incident_id, project_id in IncidentProject.objects.filter(
+        incident__in=incidents,
+    ).values_list('incident_id', 'project_id'):
+        incident_projects[incident_id].append(project_id)
+
+    query_args_list = []
+    for incident in incidents:
+        params = {
+            'start': incident.date_started if start is None else start,
+            'end': incident.current_end_date if end is None else end,
+        }
+        group_ids = incident_groups[incident.id]
+        if group_ids:
+            params['issue.id'] = group_ids
+        project_ids = incident_projects[incident.id]
+        if project_ids:
+            params['project_id'] = project_ids
+        query_args_list.append(get_snuba_query_args(incident.query, params))
+
+    return query_args_list
 
 
 def get_incident_event_stats(incident, start=None, end=None, data_points=50):
@@ -286,24 +302,33 @@ def get_incident_event_stats(incident, start=None, end=None, data_points=50):
     Gets event stats for an incident. If start/end are provided, uses that time
     period, otherwise uses the incident start/current_end.
     """
-    kwargs = build_incident_query_params(incident, start=start, end=end)
-    rollup = max(int(incident.duration.total_seconds() / data_points), 1)
-    return SnubaTSResult(
-        raw_query(
+    query_params = bulk_build_incident_query_params([incident], start=start, end=end)
+    return bulk_get_incident_event_stats([incident], query_params, data_points=data_points)[0]
+
+
+def bulk_get_incident_event_stats(incidents, query_params_list, data_points=50):
+    snuba_params_list = [
+        SnubaQueryParams(
             aggregations=[
                 ('count()', '', 'count'),
             ],
             orderby='time',
             groupby=['time'],
-            rollup=rollup,
-            referrer='incidents.get_incident_event_stats',
+            rollup=max(int(incident.duration.total_seconds() / data_points), 1),
             limit=10000,
-            **kwargs
-        ),
-        kwargs['start'],
-        kwargs['end'],
-        rollup,
-    )
+            **query_param
+        ) for incident, query_param in zip(incidents, query_params_list)
+    ]
+    results = bulk_raw_query(snuba_params_list, referrer='incidents.get_incident_event_stats')
+    return [
+        SnubaTSResult(
+            result,
+            snuba_params.start,
+            snuba_params.end,
+            snuba_params.rollup,
+        )
+        for snuba_params, result in zip(snuba_params_list, results)
+    ]
 
 
 def get_incident_aggregates(incident):
@@ -312,16 +337,23 @@ def get_incident_aggregates(incident):
     - count: Total count of events
     - unique_users: Total number of unique users
     """
-    kwargs = build_incident_query_params(incident)
-    return raw_query(
-        aggregations=[
-            ('count()', '', 'count'),
-            ('uniq', 'tags[sentry:user]', 'unique_users'),
-        ],
-        referrer='incidents.get_incident_aggregates',
-        limit=10000,
-        **kwargs
-    )['data'][0]
+    query_params = build_incident_query_params(incident)
+    return bulk_get_incident_aggregates([query_params])[0]
+
+
+def bulk_get_incident_aggregates(query_params_list):
+    snuba_params_list = [
+        SnubaQueryParams(
+            aggregations=[
+                ('count()', '', 'count'),
+                ('uniq', 'tags[sentry:user]', 'unique_users'),
+            ],
+            limit=10000,
+            **query_param
+        ) for query_param in query_params_list
+    ]
+    results = bulk_raw_query(snuba_params_list, referrer='incidents.get_incident_aggregates')
+    return [result['data'][0] for result in results]
 
 
 def subscribe_to_incident(incident, user):
