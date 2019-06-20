@@ -51,7 +51,7 @@ const getMediaQuery = (size, type) => `
   display: ${type};
 
   @media (min-width: ${size}) {
-    display: ${type == 'none' ? 'block' : 'none'};
+    display: ${type === 'none' ? 'block' : 'none'};
   }
 `;
 
