@@ -38,7 +38,7 @@ describe('SentryAppDetailsModal', function() {
   });
 
   it('displays the Integrations description', () => {
-    expect(wrapper.find('Description').text()).toBe(sentryApp.overview);
+    expect(wrapper.find('Description').text()).toContain(sentryApp.overview);
   });
 
   it('closes when Cancel is clicked', () => {
