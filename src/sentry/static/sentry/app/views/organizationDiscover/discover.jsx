@@ -224,7 +224,7 @@ export default class OrganizationDiscover extends React.Component {
         if (shouldRedirect) {
           browserHistory.push({
             pathname: `/organizations/${organization.slug}/discover/`,
-            // This is kind of a hack, but this causes a re-render in result where this.props == nextProps after
+            // This is kind of a hack, but this causes a re-render in result where this.props === nextProps after
             // a query has completed... we don't preserve `state` when we update browser history, so
             // if this is present in `Result.shouldComponentUpdate` then should perform a render
             state: 'fetching',

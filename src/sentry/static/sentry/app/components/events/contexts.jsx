@@ -52,7 +52,10 @@ class ContextChunk extends React.Component {
   }
 
   componentDidUpdate(prevProps, prevState) {
-    if (prevProps.group.id != this.props.group.id || prevProps.type != this.props.type) {
+    if (
+      prevProps.group.id !== this.props.group.id ||
+      prevProps.type !== this.props.type
+    ) {
       this.syncPlugin();
     }
   }

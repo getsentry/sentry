@@ -133,7 +133,7 @@ class GroupEventDetails extends React.Component {
                 location={location}
               />
             )}
-            {group.status != 'unresolved' && (
+            {group.status !== 'unresolved' && (
               <div className="issue-status">
                 {group.status === 'ignored' && (
                   <MutedBox statusDetails={group.statusDetails} />

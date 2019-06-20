@@ -86,7 +86,7 @@ class EventSdkUpdateSuggestion extends React.Component {
     const {event, suggestion} = this.props;
     const title = this.getSuggestionTitle();
 
-    if (suggestion.enables.length == 0) {
+    if (suggestion.enables.length === 0) {
       return title;
     }
 

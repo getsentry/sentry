@@ -49,7 +49,7 @@ class ProjectChooser extends React.Component {
       task_inst => task_inst.task === parseInt(this.props.location.query.task, 10)
     )[0];
 
-    // Expect onboarding=1 and task=<task id> parameters and task.featureLocation == 'project'
+    // Expect onboarding=1 and task=<task id> parameters and task.featureLocation === 'project'
     // TODO throw up report dialog if not true
     if (!task || task.featureLocation !== 'project') {
       throw new Error('User arrived on project chooser without a valid task id.');
