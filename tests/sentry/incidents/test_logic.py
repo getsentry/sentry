@@ -389,7 +389,12 @@ class CreateIncidentActivityTest(TestCase, BaseIncidentsTest):
     def test_mentioned_user_ids(self):
         incident = self.create_incident()
         mentioned_member = self.create_user()
-        comment = 'hello **@%s**' % mentioned_member.username
+        subscribed_mentioned_member = self.create_user()
+        IncidentSubscription.objects.create(incident=incident, user=subscribed_mentioned_member)
+        comment = 'hello **@%s** and **@%s**' % (
+            mentioned_member.username,
+            subscribed_mentioned_member.username,
+        )
         with self.assertChanges(
             lambda: IncidentSubscription.objects.filter(
                 incident=incident,
@@ -404,7 +409,7 @@ class CreateIncidentActivityTest(TestCase, BaseIncidentsTest):
                 IncidentActivityType.COMMENT,
                 user=self.user,
                 comment=comment,
-                mentioned_user_ids=[mentioned_member.id],
+                mentioned_user_ids=[mentioned_member.id, subscribed_mentioned_member.id],
             )
         assert activity.incident == incident
         assert activity.type == IncidentActivityType.COMMENT.value

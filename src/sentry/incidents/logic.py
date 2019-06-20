@@ -207,10 +207,15 @@ def create_incident_activity(
     )
 
     if mentioned_user_ids:
-        IncidentSubscription.objects.bulk_create([
-            IncidentSubscription(incident=incident, user_id=mentioned_user_id)
-            for mentioned_user_id in mentioned_user_ids
-        ])
+        user_ids_to_subscribe = set(mentioned_user_ids) - set(IncidentSubscription.objects.filter(
+            incident=incident,
+            user_id__in=mentioned_user_ids,
+        ).values_list('user_id', flat=True))
+        if user_ids_to_subscribe:
+            IncidentSubscription.objects.bulk_create([
+                IncidentSubscription(incident=incident, user_id=mentioned_user_id)
+                for mentioned_user_id in user_ids_to_subscribe
+            ])
     send_subscriber_notifications.apply_async(
         kwargs={'activity_id': activity.id},
         countdown=10,
