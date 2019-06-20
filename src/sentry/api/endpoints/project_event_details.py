@@ -52,7 +52,7 @@ class ProjectEventDetailsEndpoint(ProjectEndpoint):
         if snuba_event is None:
             return Response({'detail': 'Event not found'}, status=404)
 
-        data = serialize(snuba_event)
+        data = serialize(snuba_event, request.user, DetailedEventSerializer())
         requested_environments = set(request.GET.getlist('environment'))
 
         next_event_id = snuba_event.next_event_id(environments=requested_environments)
