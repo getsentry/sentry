@@ -134,7 +134,7 @@ const CompactIssue = createReactClass({
   },
 
   componentWillReceiveProps(nextProps) {
-    if (nextProps.id != this.props.id) {
+    if (nextProps.id !== this.props.id) {
       this.setState({
         issue: GroupStore.get(this.props.id),
       });

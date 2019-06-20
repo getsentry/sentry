@@ -46,8 +46,8 @@ class ActivityFeed extends React.Component {
     const location = this.props.location;
     const nextLocation = nextProps.location;
     if (
-      location.pathname != nextLocation.pathname ||
-      location.search != nextLocation.search
+      location.pathname !== nextLocation.pathname ||
+      location.search !== nextLocation.search
     ) {
       this.setState({
         itemList: [],

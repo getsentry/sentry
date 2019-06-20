@@ -36,7 +36,7 @@ class WidgetChart extends React.Component {
       return false;
     }
 
-    // It's not a big deal to re-render if this.prop.results == nextProps.results == []
+    // It's not a big deal to re-render if this.prop.results === nextProps.results === []
     const isDataEqual =
       this.props.results.length &&
       nextProps.results.length &&

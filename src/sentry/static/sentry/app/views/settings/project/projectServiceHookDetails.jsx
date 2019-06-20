@@ -135,7 +135,7 @@ export default class ProjectServiceHookDetails extends AsyncView {
           hookId={hookId}
           initialData={{
             ...hook,
-            isActive: hook.status != 'disabled',
+            isActive: hook.status !== 'disabled',
           }}
         />
         <Panel>

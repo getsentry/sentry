@@ -61,7 +61,7 @@ class SentryAppInstallations extends React.Component {
   uninstall = install => {
     const {api} = this.props;
     const origInstalls = [...this.state.installs];
-    const installs = this.state.installs.filter(i => install.uuid != i.uuid);
+    const installs = this.state.installs.filter(i => install.uuid !== i.uuid);
 
     uninstallSentryApp(api, install).then(
       () => this.setState({installs}),

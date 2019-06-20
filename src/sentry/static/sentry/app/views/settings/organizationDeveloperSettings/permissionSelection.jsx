@@ -33,7 +33,7 @@ import SelectField from 'app/views/settings/components/forms/selectField';
  *    This components displays things per Resource. Meaning the User selects
  *    "Read", "Read & Write", or "Admin" for Project or Organization or etc.
  *
- *    == Scopes to Permissions
+ *    === Scopes to Permissions
  *
  *    The first thing this component does on instantiation is take the list of API
  *    Scopes passed via `props` and converts them to "Permissions.

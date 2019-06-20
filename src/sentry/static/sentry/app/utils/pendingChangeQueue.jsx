@@ -13,7 +13,7 @@ class PendingChangeQueue {
 
   remove(changeId, itemId) {
     this.changes = this.changes.filter(
-      change => change[0] != changeId || change[1] != itemId
+      change => change[0] !== changeId || change[1] !== itemId
     );
   }
 

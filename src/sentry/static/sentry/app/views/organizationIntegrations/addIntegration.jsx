@@ -24,9 +24,9 @@ export default class AddIntegration extends React.Component {
   }
 
   computeCenteredWindow(width, height) {
-    const screenLeft = window.screenLeft != undefined ? window.screenLeft : screen.left;
+    const screenLeft = window.screenLeft !== undefined ? window.screenLeft : screen.left;
 
-    const screenTop = window.screenTop != undefined ? window.screenTop : screen.top;
+    const screenTop = window.screenTop !== undefined ? window.screenTop : screen.top;
 
     const innerWidth = window.innerWidth
       ? window.innerWidth

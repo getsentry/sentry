@@ -75,7 +75,7 @@ describe('Condition', function() {
       expect(options[7]).toEqual({value: 'col3 IS NOT NULL', label: 'col3 IS NOT NULL'});
     });
 
-    it('limits operators to = and != for array fields', function() {
+    it('limits operators to = and !== for array fields', function() {
       wrapper.setState({inputValue: 'error.type'});
       const options = wrapper.instance().filterOptions([]);
       expect(options).toHaveLength(4);

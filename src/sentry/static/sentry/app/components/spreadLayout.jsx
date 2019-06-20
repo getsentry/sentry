@@ -4,7 +4,7 @@ import classNames from 'classnames';
 
 // Flexbox container whose children will have `justify-content: space-between`
 //
-// Intended for children.length == 2
+// Intended for children.length === 2
 // "responsive" will change flex-direction to be column on small widths
 const SpreadLayout = ({children, className, responsive, center, ...props}) => {
   const cx = classNames('spread-layout', className, {

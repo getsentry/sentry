@@ -20,7 +20,7 @@ class EventRow extends React.Component {
   }
 
   componentWillReceiveProps(nextProps) {
-    if (nextProps.id != this.props.id) {
+    if (nextProps.id !== this.props.id) {
       this.setState({
         event: EventStore.get(this.props.id),
       });

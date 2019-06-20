@@ -47,7 +47,7 @@ const StreamGroup = createReactClass({
   },
 
   componentWillReceiveProps(nextProps) {
-    if (nextProps.id != this.props.id) {
+    if (nextProps.id !== this.props.id) {
       this.setState({
         data: GroupStore.get(this.props.id),
       });

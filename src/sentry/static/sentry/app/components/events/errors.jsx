@@ -21,7 +21,7 @@ class EventErrors extends React.Component {
   }
 
   shouldComponentUpdate(nextProps, nextState) {
-    if (this.state.isOpen != nextState.isOpen) {
+    if (this.state.isOpen !== nextState.isOpen) {
       return true;
     }
     return this.props.event.id !== nextProps.event.id;

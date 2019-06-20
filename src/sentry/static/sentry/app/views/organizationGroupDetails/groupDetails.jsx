@@ -107,7 +107,7 @@ const GroupDetails = createReactClass({
         // rather than blindly pattern matching like we do here. Unfortunately,
         // `formatPattern` isn't actually exported until `react-router` 2.0.1:
         // https://github.com/reactjs/react-router/blob/v2.0.1/modules/index.js#L25
-        if (this.props.params.groupId != data.id) {
+        if (this.props.params.groupId !== data.id) {
           const location = this.props.location;
           browserHistory.push(
             location.pathname.replace(

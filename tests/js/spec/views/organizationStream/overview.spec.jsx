@@ -975,7 +975,7 @@ describe('OrganizationStream', function() {
         .first()
         .simulate('click');
 
-      // cursor is undefined because "prev" cursor is == initial "next" cursor
+      // cursor is undefined because "prev" cursor is === initial "next" cursor
       expect(browserHistory.push).toHaveBeenLastCalledWith({
         pathname: '/organizations/org-slug/issues/',
         query: {

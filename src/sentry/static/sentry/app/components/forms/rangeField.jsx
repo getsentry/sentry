@@ -7,7 +7,7 @@ import InputField from 'app/components/forms/inputField';
 export default class RangeField extends InputField {
   static formatMinutes = value => {
     value = value / 60;
-    return `${value} minute${value != 1 ? 's' : ''}`;
+    return `${value} minute${value !== 1 ? 's' : ''}`;
   };
 
   static propTypes = {
