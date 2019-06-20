@@ -35,6 +35,7 @@ class OrganizationMemberSerializer(serializers.Serializer):
     email = AllowedEmailField(max_length=75, required=True)
     role = serializers.ChoiceField(choices=roles.get_choices(), required=True)
     teams = ListField(required=False, allow_null=False)
+    sendInvite = serializers.BooleanField(required=False, default=True, write_only=True)
 
 
 class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
@@ -165,7 +166,7 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
             with TimedRetryPolicy(10)(lock.acquire):
                 self.save_team_assignments(om, teams)
 
-        if settings.SENTRY_ENABLE_INVITES:
+        if settings.SENTRY_ENABLE_INVITES and result.get('sendInvite'):
             om.send_invite_email()
             member_invited.send_robust(member=om, user=request.user, sender=self,
                                        referrer=request.DATA.get('referrer'))
