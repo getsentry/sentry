@@ -60,6 +60,12 @@ const getInputButtonStyles = p => css`
   margin-left: ${space(0.5)};
   width: 18px;
 
+  &,
+  &:hover,
+  &:focus {
+    background: transparent;
+  }
+
   &:hover {
     color: ${theme.gray3};
   }
@@ -80,8 +86,10 @@ const getDropdownElementStyles = p => css`
   padding-right: ${space(1.5)};
 
   &,
-  &:hover {
+  &:hover,
+  &:focus {
     border-bottom: ${p.last ? null : `1px solid ${theme.gray1}`};
+    border-radius: 0;
   }
 
   &:hover {
