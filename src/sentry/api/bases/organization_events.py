@@ -62,12 +62,7 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
             raise OrganizationEventsError(exc.message)
 
         # Filter out special aggregates.
-        conditions = []
-        for condition in snuba_args.get('conditions', []):
-            field_name = condition[0]
-            if isinstance(field_name, (list, tuple)) or field_name not in SPECIAL_FIELDS:
-                conditions.append(condition)
-        snuba_args['conditions'] = conditions
+        self._filter_unspecified_special_fields_in_conditions(snuba_args, set())
 
         # TODO(lb): remove once boolean search is fully functional
         has_boolean_op_flag = features.has(
@@ -111,16 +106,7 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
 
             snuba_args['selected_columns'] = fields
 
-        conditions = []
-        for condition in snuba_args['conditions']:
-            field = condition[0]
-            if not isinstance(field, (list, tuple)
-                              ) and field in SPECIAL_FIELDS and field not in special_fields:
-                # skip over special field.
-                continue
-            conditions.append(condition)
-        snuba_args['conditions'] = conditions
-
+        self._filter_unspecified_special_fields_in_conditions(snuba_args, special_fields)
         if aggregations:
             snuba_args['aggregations'] = aggregations
 
@@ -193,3 +179,14 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
             return None
 
         return six.text_type(result['data'][0]['event_id'])
+
+    def _filter_unspecified_special_fields_in_conditions(self, snuba_args, special_fields):
+        conditions = []
+        for condition in snuba_args['conditions']:
+            field = condition[0]
+            if not isinstance(field, (list, tuple)
+                              ) and field in SPECIAL_FIELDS and field not in special_fields:
+                # skip over special field.
+                continue
+            conditions.append(condition)
+        snuba_args['conditions'] = conditions
