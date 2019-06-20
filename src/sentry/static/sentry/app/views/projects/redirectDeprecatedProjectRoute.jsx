@@ -80,7 +80,7 @@ class ProjectDetailsInner extends React.Component {
   }
 }
 
-export const ProjectDetails = withApi(ProjectDetailsInner);
+const ProjectDetails = withApi(ProjectDetailsInner);
 
 const redirectDeprecatedProjectRoute = generateRedirectRoute => {
   class RedirectDeprecatedProjectRoute extends React.Component {

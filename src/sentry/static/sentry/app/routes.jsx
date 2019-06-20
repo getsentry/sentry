@@ -32,7 +32,6 @@ import ProjectPlugins from 'app/views/projectPlugins';
 import ProjectSettings from 'app/views/projectSettings';
 import ProjectTags from 'app/views/projectTags';
 import redirectDeprecatedProjectRoute from 'app/views/projects/redirectDeprecatedProjectRoute';
-import redirectDeprecatedProjectSavedSearchRoute from 'app/views/projects/redirectDeprecatedProjectSavedSearchRoute';
 import RouteNotFound from 'app/views/routeNotFound';
 import SettingsProjectProvider from 'app/views/settings/components/settingsProjectProvider';
 import SettingsWrapper from 'app/views/settings/components/settingsWrapper';
@@ -1169,19 +1168,6 @@ function routes() {
               redirectDeprecatedProjectRoute(
                 ({orgId, projectId}) =>
                   `/organizations/${orgId}/issues/?project=${projectId}`
-              )
-            )}
-          />
-          <Route
-            path="searches/:searchId/"
-            component={errorHandler(
-              redirectDeprecatedProjectSavedSearchRoute(
-                ({orgId, projectId, searchQuery}) => {
-                  return {
-                    pathname: `/organizations/${orgId}/issues/`,
-                    query: {...searchQuery, project: projectId},
-                  };
-                }
               )
             )}
           />
