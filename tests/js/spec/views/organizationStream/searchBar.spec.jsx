@@ -253,7 +253,7 @@ describe('SearchBar', function() {
         organization,
       };
       const searchBar = mount(<SearchBar {...props} />, routerContext);
-      expect(searchBar.find('PinIcon')).toHaveLength(1);
+      expect(searchBar.find('[data-test-id="pin-icon"]')).toHaveLength(2);
     });
 
     it('pins a search from the searchbar', function() {

@@ -1,6 +1,5 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import styled from 'react-emotion';
 import Modal from 'react-bootstrap/lib/Modal';
 
 import {t} from 'app/locale';
@@ -16,6 +15,9 @@ import withApi from 'app/utils/withApi';
 class CreateSavedSearchButton extends React.Component {
   static propTypes = {
     api: PropTypes.object.isRequired,
+    buttonClassName: PropTypes.string,
+    iconOnly: PropTypes.bool,
+    withTooltip: PropTypes.bool,
     query: PropTypes.string.isRequired,
     organization: SentryTypes.Organization.isRequired,
   };
@@ -87,20 +89,24 @@ class CreateSavedSearchButton extends React.Component {
 
   render() {
     const {isSaving, isModalOpen, error} = this.state;
-    const {organization, query} = this.props;
+    const {organization, query, buttonClassName, iconOnly, withTooltip} = this.props;
 
     return (
       <Access organization={organization} access={['org:write']}>
-        <StyledButton
-          title={t('Add to organization filter list')}
-          size="zero"
-          borderless
-          type="button"
+        <Button
+          title={withTooltip ? t('Add to organization filter list') : null}
           onClick={this.onToggle}
           data-test-id="save-current-search"
+          size="zero"
+          borderless={true}
+          containerDisplayMode="inline-flex"
+          type="button"
           aria-label={t('Add to organization filter list')}
           icon="icon-add-to-list"
-        />
+          className={buttonClassName}
+        >
+          {!iconOnly && t('Create Saved Search')}
+        </Button>
         <Modal show={isModalOpen} animation={false} onHide={this.onToggle}>
           <form onSubmit={this.onSubmit}>
             <div className="modal-header">
@@ -150,14 +156,5 @@ class CreateSavedSearchButton extends React.Component {
     );
   }
 }
-
-const StyledButton = styled(Button)`
-  & svg {
-    color: ${p => p.theme.gray2};
-  }
-  &:hover svg {
-    color: ${p => p.theme.gray3};
-  }
-`;
 
 export default withApi(CreateSavedSearchButton);
