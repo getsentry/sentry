@@ -134,6 +134,12 @@ const redirectLegacyProjectSavedSearchRoute = generateRedirectRoute => {
         if (this.state.error?.status !== 404) {
           return <LoadingError onRetry={this.fetchData} />;
         }
+
+        // invariant:
+        // There was an error fetching a search query for the given projectSlug.
+        // We can salvage the request by at least redirecting the user to the
+        // issue stream filtered by the given projectSlug, if a project identified
+        // by projectSlug exists.
       }
 
       const {orgId, projectSlug} = this.props.params;
