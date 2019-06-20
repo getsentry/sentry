@@ -11,7 +11,7 @@ export default class AlertLink extends React.Component {
     to: PropTypes.string,
     href: PropTypes.string,
     icon: PropTypes.string,
-    priority: PropTypes.oneOf(['info', 'warning', 'success', 'error', 'default']),
+    priority: PropTypes.oneOf(['info', 'warning', 'success', 'error', 'muted']),
     size: PropTypes.oneOf(['small', 'normal']),
   };
 

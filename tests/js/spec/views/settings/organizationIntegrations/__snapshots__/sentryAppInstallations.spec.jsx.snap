@@ -254,11 +254,6 @@ exports[`Sentry App Installations when Apps exist displays all Apps owned by the
                                         "beta": Object {
                                           "background": "linear-gradient(90deg, #F868BC, #6C5FC7)",
                                         },
-                                        "default": Object {
-                                          "background": "#BDB4C7",
-                                          "backgroundLight": "#FAF9FB",
-                                          "border": "#E2DBE8",
-                                        },
                                         "error": Object {
                                           "background": "#e03e2f",
                                           "backgroundLight": "#FDF6F5",
@@ -271,6 +266,11 @@ exports[`Sentry App Installations when Apps exist displays all Apps owned by the
                                           "backgroundLight": "#F5FAFE",
                                           "border": "#628BD6",
                                           "iconColor": "#3B6ECC",
+                                        },
+                                        "muted": Object {
+                                          "background": "#BDB4C7",
+                                          "backgroundLight": "#FAF9FB",
+                                          "border": "#AFA3BB",
                                         },
                                         "success": Object {
                                           "background": "#57be8c",
@@ -527,11 +527,6 @@ exports[`Sentry App Installations when Apps exist displays all Apps owned by the
                                                 "beta": Object {
                                                   "background": "linear-gradient(90deg, #F868BC, #6C5FC7)",
                                                 },
-                                                "default": Object {
-                                                  "background": "#BDB4C7",
-                                                  "backgroundLight": "#FAF9FB",
-                                                  "border": "#E2DBE8",
-                                                },
                                                 "error": Object {
                                                   "background": "#e03e2f",
                                                   "backgroundLight": "#FDF6F5",
@@ -544,6 +539,11 @@ exports[`Sentry App Installations when Apps exist displays all Apps owned by the
                                                   "backgroundLight": "#F5FAFE",
                                                   "border": "#628BD6",
                                                   "iconColor": "#3B6ECC",
+                                                },
+                                                "muted": Object {
+                                                  "background": "#BDB4C7",
+                                                  "backgroundLight": "#FAF9FB",
+                                                  "border": "#AFA3BB",
                                                 },
                                                 "success": Object {
                                                   "background": "#57be8c",
