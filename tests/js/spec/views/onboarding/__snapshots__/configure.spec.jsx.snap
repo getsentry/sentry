@@ -782,7 +782,7 @@ exports[`Configure should render correctly render() should render platform docs 
                                             type="info"
                                           >
                                             <div
-                                              className="ref-info e1wrupv90 css-1yek4dg-AlertWrapper-alertStyles-PanelAlert e1xb5l7j1"
+                                              className="ref-info e1wrupv90 css-omcr89-AlertWrapper-alertStyles-PanelAlert e1xb5l7j1"
                                               type="info"
                                             >
                                               <StyledInlineSvg

@@ -42,7 +42,7 @@ exports[`EventSdkUpdates renders a suggestion to update the sdk and then enable 
         type="info"
       >
         <div
-          className="ref-info css-1ngonsm-AlertWrapper-alertStyles e1xb5l7j1"
+          className="ref-info css-tnorzn-AlertWrapper-alertStyles e1xb5l7j1"
           type="info"
         >
           <StyledInlineSvg
