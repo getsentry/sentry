@@ -8,8 +8,9 @@ import LoadingError from 'app/components/loadingError';
 import {fetchProjectSavedSearches} from 'app/actionCreators/savedSearches';
 import {analytics} from 'app/utils/analytics';
 import Alert from 'app/components/alert';
+import Redirect from 'app/utils/redirect';
 
-import {ProjectDetails, Redirect} from './redirectLegacyProjectRoute';
+import {ProjectDetails} from './redirectLegacyProjectRoute';
 
 const DEFAULT_SORT = 'date';
 const DEFAULT_STATS_PERIOD = '24h';

@@ -7,25 +7,7 @@ import withApi from 'app/utils/withApi';
 import LoadingError from 'app/components/loadingError';
 import {analytics} from 'app/utils/analytics';
 import Alert from 'app/components/alert';
-
-// TODO: This is react-router v4 <Redirect to="path/" /> component to allow things
-//       to be declarative
-export class Redirect extends React.Component {
-  static propTypes = {
-    router: PropTypes.shape({
-      replace: PropTypes.func.isRequired,
-    }).isRequired,
-    to: PropTypes.oneOfType([PropTypes.string, PropTypes.object]).isRequired,
-  };
-
-  componentDidMount() {
-    this.props.router.replace(this.props.to);
-  }
-
-  render() {
-    return null;
-  }
-}
+import Redirect from 'app/utils/redirect';
 
 class ProjectDetailsInner extends React.Component {
   static propTypes = {
