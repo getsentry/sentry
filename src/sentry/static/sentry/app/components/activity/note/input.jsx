@@ -8,7 +8,6 @@ import {t} from 'app/locale';
 import Button from 'app/components/button';
 import ConfigStore from 'app/stores/configStore';
 import NavTabs from 'app/components/navTabs';
-import SentryTypes from 'app/sentryTypes';
 import space from 'app/styles/space';
 import textStyles from 'app/styles/text';
 import withApi from 'app/utils/withApi';
@@ -16,10 +15,16 @@ import withApi from 'app/utils/withApi';
 import Mentionables from './mentionables';
 import mentionStyle from './mentionStyle';
 
+const mentionShape = PropTypes.shape({
+  display: PropTypes.string,
+  email: PropTypes.string,
+  id: PropTypes.string,
+});
+
 class NoteInput extends React.Component {
   static propTypes = {
-    teams: PropTypes.arrayOf(SentryTypes.Team).isRequired,
-    memberList: PropTypes.array.isRequired,
+    teams: PropTypes.arrayOf(mentionShape).isRequired,
+    memberList: PropTypes.arrayOf(mentionShape).isRequired,
 
     // This is the id of the note object from the server
     // This is to indicate you are editing an existing item
