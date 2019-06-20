@@ -8,6 +8,7 @@ import LoadingError from 'app/components/loadingError';
 import {analytics} from 'app/utils/analytics';
 import Alert from 'app/components/alert';
 import Redirect from 'app/utils/redirect';
+import getRouteStringFromRoutes from 'app/utils/getRouteStringFromRoutes';
 
 class ProjectDetailsInner extends React.Component {
   static propTypes = {
@@ -95,14 +96,14 @@ const redirectDeprecatedProjectRoute = generateRedirectRoute => {
         orgId: PropTypes.string.isRequired,
         projectId: PropTypes.string.isRequired,
       }).isRequired,
+
+      routes: PropTypes.arrayOf(PropTypes.object).isRequired,
     };
 
     trackRedirect = (organizationId, nextRoute) => {
-      const {pathname, search} = this.props.location;
-
       const payload = {
         feature: 'global_views',
-        url: `${pathname}${search}`, // the URL being redirected from
+        url: getRouteStringFromRoutes(this.props.routes), // the URL being redirected from
         org_id: parseInt(organizationId, 10),
       };
 
