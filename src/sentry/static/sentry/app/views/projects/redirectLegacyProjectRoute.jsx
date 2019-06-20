@@ -93,7 +93,7 @@ const redirectSentry9Project = generateRedirectRoute => {
 
       params: PropTypes.shape({
         orgId: PropTypes.string.isRequired,
-        projectSlug: PropTypes.string.isRequired,
+        projectId: PropTypes.string.isRequired,
       }).isRequired,
     };
 
@@ -115,10 +115,10 @@ const redirectSentry9Project = generateRedirectRoute => {
     };
 
     render() {
-      const {orgId, projectSlug} = this.props.params;
+      const {orgId} = this.props.params;
 
       return (
-        <ProjectDetails orgId={orgId} projectSlug={projectSlug}>
+        <ProjectDetails orgId={orgId} projectSlug={this.props.params.projectId}>
           {({loading, error, hasProjectId, projectId, organizationId}) => {
             if (loading) {
               return null;

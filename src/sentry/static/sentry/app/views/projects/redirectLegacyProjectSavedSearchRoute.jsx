@@ -30,7 +30,7 @@ const redirectLegacyProjectSavedSearchRoute = generateRedirectRoute => {
 
       params: PropTypes.shape({
         orgId: PropTypes.string.isRequired,
-        projectSlug: PropTypes.string.isRequired,
+        projectId: PropTypes.string.isRequired,
         searchId: PropTypes.string.isRequired,
       }).isRequired,
     };
@@ -51,13 +51,13 @@ const redirectLegacyProjectSavedSearchRoute = generateRedirectRoute => {
         error: null,
       });
 
-      const {orgId, projectSlug} = this.props.params;
+      const {orgId, projectId} = this.props.params;
 
       try {
         const savedSearch = await fetchProjectSavedSearches(
           this.props.api,
           orgId,
-          projectSlug
+          projectId
         );
         this.setState({
           loading: false,
@@ -139,16 +139,16 @@ const redirectLegacyProjectSavedSearchRoute = generateRedirectRoute => {
         }
 
         // invariant:
-        // There was an error fetching a search query for the given projectSlug.
+        // There was an error fetching a search query for the given projectId.
         // We can salvage the request by at least redirecting the user to the
-        // issue stream filtered by the given projectSlug, if a project identified
-        // by projectSlug exists.
+        // issue stream filtered by the given projectId, if a project identified
+        // by projectId exists.
       }
 
-      const {orgId, projectSlug} = this.props.params;
+      const {orgId} = this.props.params;
 
       return (
-        <ProjectDetails orgId={orgId} projectSlug={projectSlug}>
+        <ProjectDetails orgId={orgId} projectSlug={this.props.params.projectId}>
           {({loading, error, hasProjectId, projectId, organizationId}) => {
             if (loading) {
               return null;
