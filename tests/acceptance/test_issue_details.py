@@ -41,6 +41,7 @@ class IssueDetailsTest(AcceptanceTestCase, SnubaTestCase):
         # We need a fallback datetime for the event
         if time is None:
             time = (now - timedelta(days=1))
+            time = time.replace(hour=0, minute=0, second=0, microsecond=0)
 
         event_data['timestamp'] = time.isoformat()
         event = self.store_event(
