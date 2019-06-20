@@ -184,7 +184,7 @@ class ExternalIssueList extends AsyncComponent {
           </h6>
           <AlertLink
             icon="icon-generic-box"
-            priority="default"
+            priority="muted"
             size="small"
             to={`/settings/${this.props.orgId}/integrations`}
           >

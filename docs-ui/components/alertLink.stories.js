@@ -20,7 +20,7 @@ storiesOf('UI|Alerts/AlertLink', module)
       <AlertLink to="/settings/account/notifications" priority="success" key="4">
         Gj you did it. Now go here.
       </AlertLink>,
-      <AlertLink to="/settings/account/notifications" priority="default" key="5">
+      <AlertLink to="/settings/account/notifications" priority="muted" key="5">
         I am saying nothing, ok?
       </AlertLink>,
     ])
@@ -58,7 +58,7 @@ storiesOf('UI|Alerts/AlertLink', module)
       <AlertLink
         to="/settings/account/notifications"
         icon="icon-generic-box"
-        priority="default"
+        priority="muted"
         key="5"
       >
         I am saying nothing, ok?
