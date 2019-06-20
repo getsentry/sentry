@@ -29,6 +29,18 @@ class GroupDetailsTest(APITestCase):
         assert response.data['id'] == six.text_type(group.id)
         assert response.data['firstRelease'] is None
 
+    def test_with_qualified_short_id(self):
+        self.login_as(user=self.user)
+
+        group = self.create_group()
+        assert group.qualified_short_id
+
+        url = u'/api/0/issues/{}/'.format(group.qualified_short_id)
+        response = self.client.get(url, format='json')
+
+        assert response.status_code == 200, response.content
+        assert response.data['id'] == six.text_type(group.id)
+
     def test_with_first_release(self):
         self.login_as(user=self.user)
 
