@@ -26,7 +26,7 @@ from sentry import features
 from sentry.models.project import Project
 
 ALLOWED_GROUPINGS = frozenset(('issue.id', 'project.id'))
-logger = logging.getLogger('sentry.api.organization-events')
+logger = logging.getLogger(__name__)
 
 
 class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
@@ -117,12 +117,25 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
             **snuba_args
         )
 
-        return self.paginate(
-            request=request,
-            paginator=GenericOffsetPaginator(data_fn=data_fn),
-            on_results=lambda results: self.handle_results(
-                request, organization, params['project_id'], results),
-        )
+        try:
+            return self.paginate(
+                request=request,
+                paginator=GenericOffsetPaginator(data_fn=data_fn),
+                on_results=lambda results: self.handle_results(
+                    request, organization, params['project_id'], results),
+            )
+        except SnubaError as error:
+            logger.info(
+                'organization.events.snuba-error',
+                extra={
+                    'organization_id': organization.id,
+                    'user_id': request.user.id,
+                    'error': six.text_type(error),
+                }
+            )
+            return Response({
+                'detail': 'Invalid query.'
+            }, status=400)
 
     def handle_results(self, request, organization, project_ids, results):
         projects = {p['id']: p['slug'] for p in Project.objects.filter(
