@@ -16,7 +16,7 @@ const Placeholder = styled(props => {
   background-color: ${p => p.theme.placeholderBackground};
   width: ${p => p.width};
   height: ${p => p.height};
-  ${p => (p.shape == 'circle' ? 'border-radius: 100%;' : '')}
+  ${p => (p.shape === 'circle' ? 'border-radius: 100%;' : '')}
   ${p => (p.bottomGutter > 0 ? `margin-bottom: ${space(p.bottomGutter)};` : '')}
 `;
 

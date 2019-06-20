@@ -72,7 +72,7 @@ export default class InstallWizard extends AsyncView {
       if (
         // XXX(dcramer): we need the user to explicitly choose beacon.anonymous
         // vs using an implied default so effectively this is binding
-        optionName != 'beacon.anonymous' &&
+        optionName !== 'beacon.anonymous' &&
         // XXX(byk): if we don't have a set value but have a default value filled
         // instead, from the client, set it on the data so it is sent to the server
         !option.field.isSet &&

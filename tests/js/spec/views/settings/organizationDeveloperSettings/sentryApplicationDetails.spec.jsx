@@ -39,7 +39,7 @@ describe('Sentry Application Details', function() {
       // new app starts off with no scopes selected
       expect(wrapper.find('PermissionsObserver').prop('scopes')).toEqual([]);
       expect(
-        wrapper.find('PanelHeader').findWhere(h => h.text() == 'Permissions')
+        wrapper.find('PanelHeader').findWhere(h => h.text() === 'Permissions')
       ).toBeDefined();
     });
 

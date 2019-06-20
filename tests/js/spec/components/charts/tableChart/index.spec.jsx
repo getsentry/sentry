@@ -171,7 +171,7 @@ describe('TableChart', function() {
       />
     );
 
-    // table headers == Number of data columns + total column
+    // table headers === Number of data columns + total column
     expect(renderTableHeaderCell).toHaveBeenCalledTimes(5);
     expect(renderTableHeaderCell).toHaveBeenLastCalledWith(
       expect.objectContaining({

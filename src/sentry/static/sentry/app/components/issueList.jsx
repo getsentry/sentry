@@ -59,8 +59,8 @@ const IssueList = createReactClass({
     }
 
     if (
-      location.pathname != nextLocation.pathname ||
-      location.search != nextLocation.search
+      location.pathname !== nextLocation.pathname ||
+      location.search !== nextLocation.search
     ) {
       this.remountComponent();
     }

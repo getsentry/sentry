@@ -139,7 +139,7 @@ const PluginConfig = createReactClass({
               </strong>
             </div>
           ) : null}
-          {this.state.testResults != '' ? (
+          {this.state.testResults !== '' ? (
             <div className="alert alert-block alert-warning">
               <strong>Test Results: </strong>
               <p>{this.state.testResults}</p>

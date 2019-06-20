@@ -11,7 +11,7 @@ function arrayIsEqual(arr, other, deep) {
   }
 
   // compare lengths - can save a lot of time
-  if (arr.length != other.length) {
+  if (arr.length !== other.length) {
     return false;
   }
 
@@ -46,7 +46,7 @@ function objectMatchesSubset(obj, other, deep) {
 
   if (deep !== true) {
     for (k in other) {
-      if (obj[k] != other[k]) {
+      if (obj[k] !== other[k]) {
         return false;
       }
     }
