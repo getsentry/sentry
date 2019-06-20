@@ -61,12 +61,12 @@ class OrganizationIncidentsList extends AsyncComponent {
             {started.format('LL')}
             <LightDuration seconds={getDynamicText({value: duration, fixed: 1200})} />
           </div>
-          <AlignRight>
+          <NumericColumn>
             <Count value={incident.uniqueUsers} />
-          </AlignRight>
-          <AlignRight>
+          </NumericColumn>
+          <NumericColumn>
             <Count value={incident.totalEvents} />
-          </AlignRight>
+          </NumericColumn>
         </TableLayout>
       </IncidentPanelItem>
     );
@@ -94,9 +94,9 @@ class OrganizationIncidentsList extends AsyncComponent {
             <TableLayout>
               <div>{t('Incident')}</div>
               <div>{t('Status')}</div>
-              <div>{t('Duration')}</div>
-              <AlignRight>{t('Users affected')}</AlignRight>
-              <AlignRight>{t('Total events')}</AlignRight>
+              <div>{t('Started')}</div>
+              <NumericColumn>{t('Users affected')}</NumericColumn>
+              <NumericColumn>{t('Total events')}</NumericColumn>
             </TableLayout>
           </PanelHeader>
 
@@ -197,13 +197,14 @@ const TitleAndSparkLine = styled('div')`
   display: flex;
   justify-content: space-between;
   align-items: center;
+  padding-right: ${space(2)};
 `;
 
 const IncidentPanelItem = styled(PanelItem)`
   padding: ${space(1)} ${space(2)};
 `;
 
-const AlignRight = styled('div')`
+const NumericColumn = styled('div')`
   text-align: right;
 `;
 
