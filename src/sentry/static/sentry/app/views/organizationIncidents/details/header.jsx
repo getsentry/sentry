@@ -46,7 +46,7 @@ export default class DetailsHeader extends React.Component {
           label={incident && <Status incident={incident} />}
           menuWidth="160px"
           alignRight
-          buttonProps={!incident ? {disabled: true, size: 'small'} : {size: 'small'}}
+          buttonProps={{size: 'small', disabled: !incident}}
         >
           <StyledMenuItem onSelect={onStatusChange}>
             {isIncidentOpen ? t('Close this incident') : t('Reopen this incident')}
