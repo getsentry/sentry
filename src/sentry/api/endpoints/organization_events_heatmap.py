@@ -1,23 +1,20 @@
 from __future__ import absolute_import
 
-import logging
 import six
 
 from rest_framework.response import Response
-
-from sentry import tagstore
 from sentry.api.bases import OrganizationEventsEndpointBase, OrganizationEventsError, NoProjects
-from sentry.api.serializers import serialize
-from sentry.tagstore.snuba.utils import lookup_tags
-from sentry.utils.snuba import SnubaError
-from sentry import features
-
-logger = logging.getLogger('sentry.api.organization-events-heatmap')
+from sentry.utils.snuba import get_snuba_column_name, raw_query
+from sentry import features, tagstore
+from sentry.tagstore.base import TOP_VALUES_DEFAULT_LIMIT
 
 
 class OrganizationEventsHeatmapEndpoint(OrganizationEventsEndpointBase):
-
     def get(self, request, organization):
+        # If requested key is project.name, get the project.id from Snuba
+        # and it back to the name
+        PROJECT_KEY = 'project.name'
+
         try:
             snuba_args = self.get_snuba_query_args(request, organization)
         except OrganizationEventsError as exc:
@@ -26,40 +23,66 @@ class OrganizationEventsHeatmapEndpoint(OrganizationEventsEndpointBase):
             return Response({'detail': 'A valid project must be included.'}, status=400)
 
         try:
-            keys = self._validate_keys(request)
+            key = self._validate_key(request)
             self._validate_project_ids(request, organization, snuba_args)
         except OrganizationEventsError as error:
             return Response({'detail': six.text_type(error)}, status=400)
 
-        try:
-            tags = lookup_tags(keys, **snuba_args)
-        except (KeyError, SnubaError) as error:
-            logger.info(
-                'api.organization-events-heatmap',
-                extra={
-                    'organization_id': organization.id,
-                    'user_id': request.user.id,
-                    'keys': keys,
-                    'snuba_args': snuba_args,
-                    'error': six.text_type(error)
-                }
-            )
-            return Response({
-                'detail': 'Invalid query.'
-            }, status=400)
+        colname = get_snuba_column_name(key)
 
-        return Response(serialize(tags, request.user))
+        if key == PROJECT_KEY:
+            colname = 'project_id'
 
-    def _validate_keys(self, request):
-        keys = request.GET.getlist('key')
-        if not keys:
-            raise OrganizationEventsError('Tag keys must be specified.')
+        top_values = raw_query(
+            start=snuba_args['start'],
+            end=snuba_args['end'],
+            conditions=snuba_args['conditions'] + [[colname, 'IS NOT NULL', None]],
+            filter_keys=snuba_args['filter_keys'],
+            groupby=[colname],
+            aggregations=[('count()', None, 'count')],
+            orderby='-count',
+            limit=TOP_VALUES_DEFAULT_LIMIT,
+            referrer='api.organization-events-heatmap',
+        )['data']
 
-        for key in keys:
-            if not tagstore.is_valid_key(key):
-                raise OrganizationEventsError('Tag key %s is not valid.' % key)
+        projects = {p.id: p.slug for p in self.get_projects(request, organization)}
 
-        return keys
+        if key == PROJECT_KEY:
+            resp = {
+                'key': PROJECT_KEY,
+                'topValues': [
+                    {
+                        'value': projects[v['project_id']],
+                        'name': projects[v['project_id']],
+                        'count': v['count'],
+                    } for v in top_values
+                ]
+            }
+        else:
+            resp = {
+                'key': key,
+                'topValues': [
+                    {
+                        'value': v[colname],
+                        'name': tagstore.get_tag_value_label(colname, v[colname]),
+                        'count': v['count'],
+                    }
+                    for v in top_values
+                ],
+            }
+
+        return Response(resp)
+
+    def _validate_key(self, request):
+        key = request.GET.get('key')
+
+        if not key:
+            raise OrganizationEventsError('Tag key must be specified.')
+
+        if not tagstore.is_valid_key(key):
+            raise OrganizationEventsError('Tag key %s is not valid.' % key)
+
+        return key
 
     def _validate_project_ids(self, request, organization, snuba_args):
         project_ids = snuba_args['filter_keys']['project_id']

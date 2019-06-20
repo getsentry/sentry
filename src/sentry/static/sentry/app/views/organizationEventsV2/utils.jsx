@@ -93,25 +93,36 @@ export function getEventTagSearchUrl(tagKey, tagValue, location) {
 }
 
 /**
- * Fetches tag distributions for heatmaps for an array of tag keys
+ * Fetches tag distributions for heatmaps for a single tag keys
  *
  * @param {Object} api
  * @param {String} orgSlug
- * @param {Array} tagList
+ * @param {String} key
+ * @param {string} query
  * @returns {Promise<Object>}
  */
-export function fetchTags(api, orgSlug, tagList, query) {
+export function fetchTagDistribution(api, orgSlug, key, query) {
+  const urlParams = pick(query, Object.values(URL_PARAM));
+
+  return api.requestPromise(`/organizations/${orgSlug}/events-heatmap/`, {
+    query: {...urlParams, key, query: query.query},
+  });
+}
+
+/**
+ * Fetches total count of events for a given query
+ *
+ * @param {Object} api
+ * @param {String} orgSlug
+ * @param {string} query
+ * @returns {Promise<Number>}
+ */
+export function fetchTotalCount(api, orgSlug, query) {
   const urlParams = pick(query, Object.values(URL_PARAM));
 
   return api
-    .requestPromise(`/organizations/${orgSlug}/events-heatmap/`, {
-      query: {...urlParams, key: tagList, query: query.query},
+    .requestPromise(`/organizations/${orgSlug}/events-meta/`, {
+      query: {...urlParams, query: query.query},
     })
-    .then(resp => {
-      const tags = {};
-      resp.forEach(tag => {
-        tags[tag.key] = tag;
-      });
-      return tags;
-    });
+    .then(res => res.count);
 }
