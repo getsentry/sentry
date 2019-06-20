@@ -93,7 +93,7 @@ def merge_groups(
         )
 
     try:
-        group = Group.objects.get(id=from_object_id)
+        group = Group.objects.select_related('project').get(id=from_object_id)
     except Group.DoesNotExist:
         from_object_ids.remove(from_object_id)
 
@@ -161,7 +161,12 @@ def merge_groups(
 
             previous_group_id = group.id
 
-            group.delete()
+            with transaction.atomic():
+                GroupRedirect.create_for_group(
+                    group, new_group
+                )
+                group.delete()
+
             delete_logger.info(
                 'object.delete.executed',
                 extra={
@@ -170,15 +175,6 @@ def merge_groups(
                     'model': Group.__name__,
                 }
             )
-
-            try:
-                with transaction.atomic():
-                    GroupRedirect.objects.create(
-                        group_id=new_group.id,
-                        previous_group_id=previous_group_id,
-                    )
-            except IntegrityError:
-                pass
 
             new_group.update(
                 # TODO(dcramer): ideally these would be SQL clauses

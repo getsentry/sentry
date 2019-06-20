@@ -1298,99 +1298,99 @@ urlpatterns = patterns(
     # Groups
     url(r'^(?:issues|groups)/', include([
         url(
-            r'^(?P<issue_id>\d+)/$',
+            r'^(?P<issue_id>[^\/]+)/$',
             GroupDetailsEndpoint.as_view(),
             name='sentry-api-0-group-details'
         ),
         url(
-            r'^(?P<issue_id>\d+)/events/$',
+            r'^(?P<issue_id>[^\/]+)/events/$',
             GroupEventsEndpoint.as_view(),
             name='sentry-api-0-group-events'
         ),
         url(
-            r'^(?P<issue_id>\d+)/events/latest/$',
+            r'^(?P<issue_id>[^\/]+)/events/latest/$',
             GroupEventsLatestEndpoint.as_view(),
             name='sentry-api-0-group-events-latest'
         ),
         url(
-            r'^(?P<issue_id>\d+)/events/oldest/$',
+            r'^(?P<issue_id>[^\/]+)/events/oldest/$',
             GroupEventsOldestEndpoint.as_view(),
             name='sentry-api-0-group-events-oldest'
         ),
         url(
-            r'^(?P<issue_id>\d+)/(?:notes|comments)/$',
+            r'^(?P<issue_id>[^\/]+)/(?:notes|comments)/$',
             GroupNotesEndpoint.as_view(),
             name='sentry-api-0-group-notes'
         ),
         url(
-            r'^(?P<issue_id>\d+)/(?:notes|comments)/(?P<note_id>[^\/]+)/$',
+            r'^(?P<issue_id>[^\/]+)/(?:notes|comments)/(?P<note_id>[^\/]+)/$',
             GroupNotesDetailsEndpoint.as_view(),
             name='sentry-api-0-group-notes-details'
         ),
         url(
-            r'^(?P<issue_id>\d+)/hashes/$',
+            r'^(?P<issue_id>[^\/]+)/hashes/$',
             GroupHashesEndpoint.as_view(),
             name='sentry-api-0-group-events'
         ),
         url(
-            r'^(?P<issue_id>\d+)/stats/$',
+            r'^(?P<issue_id>[^\/]+)/stats/$',
             GroupStatsEndpoint.as_view(),
             name='sentry-api-0-group-stats'
         ),
         url(
-            r'^(?P<issue_id>\d+)/tags/$',
+            r'^(?P<issue_id>[^\/]+)/tags/$',
             GroupTagsEndpoint.as_view(),
             name='sentry-api-0-group-tags'
         ),
         url(
-            r'^(?P<issue_id>\d+)/tags/(?P<key>[^/]+)/$',
+            r'^(?P<issue_id>[^\/]+)/tags/(?P<key>[^/]+)/$',
             GroupTagKeyDetailsEndpoint.as_view(),
             name='sentry-api-0-group-tagkey-details'
         ),
         url(
-            r'^(?P<issue_id>\d+)/tags/(?P<key>[^/]+)/values/$',
+            r'^(?P<issue_id>[^\/]+)/tags/(?P<key>[^/]+)/values/$',
             GroupTagKeyValuesEndpoint.as_view(),
             name='sentry-api-0-group-tagkey-values'
         ),
         url(
-            r'^(?P<issue_id>\d+)/(?:user-feedback|user-reports)/$',
+            r'^(?P<issue_id>[^\/]+)/(?:user-feedback|user-reports)/$',
             GroupUserReportsEndpoint.as_view(),
             name='sentry-api-0-group-user-reports'
         ),
         url(
-            r'^(?P<issue_id>\d+)/similar/$',
+            r'^(?P<issue_id>[^\/]+)/similar/$',
             GroupSimilarIssuesEndpoint.as_view(),
             name='sentry-api-0-group-similar-issues'
         ),
         url(
-            r'^(?P<issue_id>\d+)/external-issues/$',
+            r'^(?P<issue_id>[^\/]+)/external-issues/$',
             GroupExternalIssuesEndpoint.as_view(),
             name='sentry-api-0-group-external-issues'
         ),
         url(
-            r'^(?P<issue_id>\d+)/external-issues/(?P<external_issue_id>\d+)/$',
+            r'^(?P<issue_id>[^\/]+)/external-issues/(?P<external_issue_id>\d+)/$',
             GroupExternalIssueDetailsEndpoint.as_view(),
             name='sentry-api-0-group-external-issue-details'
         ),
         url(
-            r'^(?P<issue_id>\d+)/integrations/$',
+            r'^(?P<issue_id>[^\/]+)/integrations/$',
             GroupIntegrationsEndpoint.as_view(),
             name='sentry-api-0-group-integrations'
         ),
         url(
-            r'^(?P<issue_id>\d+)/integrations/(?P<integration_id>\d+)/$',
+            r'^(?P<issue_id>[^\/]+)/integrations/(?P<integration_id>\d+)/$',
             GroupIntegrationDetailsEndpoint.as_view(),
             name='sentry-api-0-group-integration-details'
         ),
         # Load plugin group urls
         url(
-            r'^(?P<issue_id>\d+)/plugins?/',
+            r'^(?P<issue_id>[^\/]+)/plugins?/',
             include('sentry.plugins.base.group_api_urls')
         ),
     ])),
 
     url(
-        r'^issues/(?P<issue_id>\d+)/participants/$',
+        r'^issues/(?P<issue_id>[^\/]+)/participants/$',
         GroupParticipantsEndpoint.as_view(),
         name='sentry-api-0-group-stats'
     ),
@@ -1403,7 +1403,7 @@ urlpatterns = patterns(
 
     # Events
     url(
-        r'^events/(?P<event_id>\d+)/$',
+        r'^events/(?P<event_id>[^\/]+)/$',
         EventDetailsEndpoint.as_view(),
         name='sentry-api-0-event-details'
     ),

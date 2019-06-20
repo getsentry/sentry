@@ -11,6 +11,7 @@ import logging
 import math
 import re
 import warnings
+from collections import namedtuple
 from enum import Enum
 
 from datetime import datetime, timedelta
@@ -36,9 +37,71 @@ logger = logging.getLogger(__name__)
 
 _short_id_re = re.compile(r'^(.*?)(?:[\s_-])([A-Za-z0-9]+)$')
 
+ShortId = namedtuple('ShortId', ['project_slug', 'short_id'])
+
+
+def parse_short_id(short_id):
+    match = _short_id_re.match(short_id.strip())
+    if match is None:
+        return None
+    slug, id = match.groups()
+    slug = slug.lower()
+    try:
+        short_id = base32_decode(id)
+        # We need to make sure the short id is not overflowing the
+        # field's max or the lookup will fail with an assertion error.
+        max_id = Group._meta.get_field_by_name('short_id')[0].MAX_VALUE
+        if short_id > max_id:
+            return None
+    except ValueError:
+        return None
+    return ShortId(slug, short_id)
+
 
 def looks_like_short_id(value):
     return _short_id_re.match((value or '').strip()) is not None
+
+
+def get_group_with_redirect(id_or_qualified_short_id, queryset=None):
+    """
+    Retrieve a group by ID, checking the redirect table if the requested group
+    does not exist. Returns a two-tuple of ``(object, redirected)``.
+    """
+    if queryset is None:
+        queryset = Group.objects.all()
+        # When not passing a queryset, we want to read from cache
+        getter = Group.objects.get_from_cache
+    else:
+        getter = queryset.get
+
+    if not (isinstance(id_or_qualified_short_id, (long, int)) or id_or_qualified_short_id.isdigit()):  # NOQA
+        short_id = parse_short_id(id_or_qualified_short_id)
+        if not short_id:
+            raise Group.DoesNotExist()
+        params = {'project__slug': short_id.project_slug, 'short_id': short_id.short_id}
+    else:
+        short_id = None
+        params = {'id': id_or_qualified_short_id}
+
+    try:
+        return getter(**params), False
+    except Group.DoesNotExist as error:
+        from sentry.models import GroupRedirect
+        if short_id:
+            params = {
+                'id': GroupRedirect.objects.filter(
+                    previous_short_id=short_id.short_id,
+                    previous_project_slug=short_id.project_slug
+                ).values_list('group_id', flat=True),
+            }
+        else:
+            params['id'] = GroupRedirect.objects.filter(
+                previous_group_id=params['id'],
+            ).values_list('group_id', flat=True)
+        try:
+            return queryset.get(**params), True
+        except Group.DoesNotExist:
+            raise error  # raise original `DoesNotExist`
 
 
 # TODO(dcramer): pull in enum library
@@ -52,29 +115,6 @@ class GroupStatus(object):
 
     # TODO(dcramer): remove in 9.0
     MUTED = IGNORED
-
-
-def get_group_with_redirect(id, queryset=None):
-    """
-    Retrieve a group by ID, checking the redirect table if the requested group
-    does not exist. Returns a two-tuple of ``(object, redirected)``.
-    """
-    if queryset is None:
-        queryset = Group.objects.all()
-        # When not passing a queryset, we want to read from cache
-        getter = Group.objects.get_from_cache
-    else:
-        getter = queryset.get
-
-    try:
-        return getter(id=id), False
-    except Group.DoesNotExist as error:
-        from sentry.models import GroupRedirect
-        qs = GroupRedirect.objects.filter(previous_group_id=id).values_list('group_id', flat=True)
-        try:
-            return queryset.get(id=qs), True
-        except Group.DoesNotExist:
-            raise error  # raise original `DoesNotExist`
 
 
 class EventOrdering(Enum):
@@ -116,19 +156,8 @@ class GroupManager(BaseManager):
     use_for_related_fields = True
 
     def by_qualified_short_id(self, organization_id, short_id):
-        match = _short_id_re.match(short_id.strip())
-        if match is None:
-            raise Group.DoesNotExist()
-        slug, id = match.groups()
-        slug = slug.lower()
-        try:
-            short_id = base32_decode(id)
-            # We need to make sure the short id is not overflowing the
-            # field's max or the lookup will fail with an assertion error.
-            max_id = Group._meta.get_field_by_name('short_id')[0].MAX_VALUE
-            if short_id > max_id:
-                raise ValueError()
-        except ValueError:
+        short_id = parse_short_id(short_id)
+        if not short_id:
             raise Group.DoesNotExist()
         return Group.objects.exclude(status__in=[
             GroupStatus.PENDING_DELETION,
@@ -136,8 +165,8 @@ class GroupManager(BaseManager):
             GroupStatus.PENDING_MERGE,
         ]).get(
             project__organization=organization_id,
-            project__slug=slug,
-            short_id=short_id,
+            project__slug=short_id.project_slug,
+            short_id=short_id.short_id,
         )
 
     def from_kwargs(self, project, **kwargs):
