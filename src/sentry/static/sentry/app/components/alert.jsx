@@ -45,7 +45,7 @@ const alertStyles = ({theme, type, system}) => css`
   border: 1px solid ${theme.borderDark};
   align-items: center;
 
-  a {
+  a:not([role='button']) {
     color: ${theme.textColor};
     border-bottom: 1px dotted ${theme.textColor};
   }
