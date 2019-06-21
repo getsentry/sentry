@@ -93,7 +93,7 @@ export function getEventTagSearchUrl(tagKey, tagValue, location) {
 }
 
 /**
- * Fetches tag distributions for heatmaps for a single tag keys
+ * Fetches tag distributions for a single tag key
  *
  * @param {Object} api
  * @param {String} orgSlug
