@@ -90,34 +90,35 @@ const localeChunkGroups = {};
 
 // No need to split the english locale out as it will be completely empty and
 // is not included in the django layout.html.
-supportedLocales.filter(l => l !== 'en').forEach(locale => {
-  const language = localeToLanguage(locale);
-  const group = `locale/${language}`;
+supportedLocales
+  .filter(l => l !== 'en')
+  .forEach(locale => {
+    const language = localeToLanguage(locale);
+    const group = `locale/${language}`;
 
-  // List of module path tests to group into locale chunks
-  const localeGroupTests = [
-    new RegExp(`locale\\/${locale}\\/.*\\.po$`),
-    new RegExp(`moment\\/locale\\/${language}\\.js$`),
-  ];
+    // List of module path tests to group into locale chunks
+    const localeGroupTests = [
+      new RegExp(`locale\\/${locale}\\/.*\\.po$`),
+      new RegExp(`moment\\/locale\\/${language}\\.js$`),
+    ];
 
-  // module test taken from [0] and modified to support testing against
-  // multiple expressions.
-  //
-  // [0] https://github.com/webpack/webpack/blob/7a6a71f1e9349f86833de12a673805621f0fc6f6/lib/optimize/SplitChunksPlugin.js#L309-L320
-  const groupTest = module =>
-    localeGroupTests.some(
-      pattern =>
+    // module test taken from [0] and modified to support testing against
+    // multiple expressions.
+    //
+    // [0] https://github.com/webpack/webpack/blob/7a6a71f1e9349f86833de12a673805621f0fc6f6/lib/optimize/SplitChunksPlugin.js#L309-L320
+    const groupTest = module =>
+      localeGroupTests.some(pattern =>
         module.nameForCondition && pattern.test(module.nameForCondition())
           ? true
           : Array.from(module.chunksIterable).some(c => c.name && pattern.test(c.name))
-    );
+      );
 
-  localeChunkGroups[group] = {
-    name: group,
-    test: groupTest,
-    enforce: true,
-  };
-});
+    localeChunkGroups[group] = {
+      name: group,
+      test: groupTest,
+      enforce: true,
+    };
+  });
 
 /**
  * Restirct translation files that are pulled in through app/translations.jsx
@@ -150,12 +151,14 @@ const localeRestrictionPlugins = [
 const pluginName = 'OptionalLocaleChunkPlugin';
 
 const clearLocaleChunks = chunks =>
-  chunks.filter(chunk => chunk.name !== 'app').forEach(chunk => {
-    const mainGroup = Array.from(chunk.groupsIterable)[0];
-    mainGroup.chunks = mainGroup.chunks.filter(
-      c => c.name && !c.name.startsWith('locale')
-    );
-  });
+  chunks
+    .filter(chunk => chunk.name !== 'app')
+    .forEach(chunk => {
+      const mainGroup = Array.from(chunk.groupsIterable)[0];
+      mainGroup.chunks = mainGroup.chunks.filter(
+        c => c.name && !c.name.startsWith('locale')
+      );
+    });
 
 class OptionalLocaleChunkPlugin {
   apply(compiler) {
