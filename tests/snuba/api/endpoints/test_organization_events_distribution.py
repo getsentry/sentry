@@ -9,16 +9,16 @@ from sentry.tagstore.base import TOP_VALUES_DEFAULT_LIMIT
 from sentry.testutils import APITestCase, SnubaTestCase
 
 
-class OrganizationEventsHeatmapEndpointTest(APITestCase, SnubaTestCase):
+class OrganizationEventsDistributionEndpointTest(APITestCase, SnubaTestCase):
     def setUp(self):
-        super(OrganizationEventsHeatmapEndpointTest, self).setUp()
+        super(OrganizationEventsDistributionEndpointTest, self).setUp()
         self.min_ago = (timezone.now() - timedelta(minutes=1)).replace(microsecond=0)
         self.day_ago = (timezone.now() - timedelta(days=1)).replace(microsecond=0)
         self.login_as(user=self.user)
         self.project = self.create_project()
         self.project2 = self.create_project()
         self.url = reverse(
-            'sentry-api-0-organization-events-heatmap',
+            'sentry-api-0-organization-events-distribution',
             kwargs={
                 'organization_slug': self.project.organization.slug,
             }
@@ -289,7 +289,7 @@ class OrganizationEventsHeatmapEndpointTest(APITestCase, SnubaTestCase):
     def test_no_projects(self):
         org = self.create_organization(owner=self.user)
         url = reverse(
-            'sentry-api-0-organization-events-heatmap',
+            'sentry-api-0-organization-events-distribution',
             kwargs={
                 'organization_slug': org.slug,
             }
