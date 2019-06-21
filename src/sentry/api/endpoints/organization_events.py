@@ -76,7 +76,6 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
         try:
             params = self.get_filter_params(request, organization)
             snuba_args = self.get_snuba_query_args_v2(request, organization, params)
-
             fields = snuba_args.get('selected_columns')
             groupby = snuba_args.get('groupby', [])
 
