@@ -258,7 +258,7 @@ class MultipleEnvironmentSelector extends React.PureComponent {
           <StyledHeaderItem
             icon={<StyledInlineSvg src="icon-window" />}
             isOpen={isOpen}
-            hasSelected={value && !!value.length}
+            hasSelected={value && !!value.length && environments.length > 0}
             onClear={this.handleClear}
             {...getActorProps({
               isStyled: true,
