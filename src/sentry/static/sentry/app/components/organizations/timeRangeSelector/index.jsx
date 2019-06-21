@@ -15,15 +15,14 @@ import {
   parsePeriodToHours,
 } from 'app/utils/dates';
 import {getRelativeSummary} from 'app/components/organizations/timeRangeSelector/utils';
-import {t} from 'app/locale';
 import DateRange from 'app/components/organizations/timeRangeSelector/dateRange';
 import DateSummary from 'app/components/organizations/timeRangeSelector/dateSummary';
 import DropdownMenu from 'app/components/dropdownMenu';
 import HeaderItem from 'app/components/organizations/headerItem';
+import HookOrDefault from 'app/components/hookOrDefault';
 import InlineSvg from 'app/components/inlineSvg';
 import MultipleSelectorSubmitRow from 'app/components/organizations/multipleSelectorSubmitRow';
-import RelativeSelector from 'app/components/organizations/timeRangeSelector/dateRange/relativeSelector';
-import SelectorItem from 'app/components/organizations/timeRangeSelector/dateRange/selectorItem';
+import SelectorItems from 'app/components/organizations/timeRangeSelector/dateRange/selectorItems';
 import SentryTypes from 'app/sentryTypes';
 import space from 'app/styles/space';
 import getDynamicText from 'app/utils/getDynamicText';
@@ -51,6 +50,16 @@ const getInternalDate = (date, utc) => {
     );
   }
 };
+
+const DateRangeHook = HookOrDefault({
+  hookName: 'component:header-date-range',
+  defaultComponent: DateRange,
+});
+
+const SelectorItemsHook = HookOrDefault({
+  hookName: 'component:header-selector-items',
+  defaultComponent: SelectorItems,
+});
 
 class TimeRangeSelector extends React.PureComponent {
   static propTypes = {
@@ -299,6 +308,8 @@ class TimeRangeSelector extends React.PureComponent {
       getRelativeSummary(relative || DEFAULT_STATS_PERIOD)
     );
 
+    const relativeSelected = isAbsoluteSelected ? null : relative || DEFAULT_STATS_PERIOD;
+
     return (
       <DropdownMenu
         isOpen={this.state.isOpen}
@@ -329,32 +340,29 @@ class TimeRangeSelector extends React.PureComponent {
                 isAbsoluteSelected={isAbsoluteSelected}
               >
                 <SelectorList isAbsoluteSelected={isAbsoluteSelected}>
-                  {shouldShowRelative && (
-                    <RelativeSelector
-                      onClick={this.handleSelectRelative}
-                      selected={relative || DEFAULT_STATS_PERIOD}
-                    />
-                  )}
-                  {shouldShowAbsolute && (
-                    <SelectorItem
-                      onClick={this.handleAbsoluteClick}
-                      value="absolute"
-                      label={t('Absolute Date')}
-                      selected={isAbsoluteSelected}
-                      last={true}
-                    />
-                  )}
+                  <SelectorItemsHook
+                    {...{
+                      isAbsoluteSelected,
+                      relativeSelected,
+                      shouldShowRelative,
+                      shouldShowAbsolute,
+                    }}
+                    handleAbsoluteClick={this.handleAbsoluteClick}
+                    handleSelectRelative={this.handleSelectRelative}
+                  />
                 </SelectorList>
                 {isAbsoluteSelected && (
                   <div>
-                    <DateRange
+                    <DateRangeHook
+                      {...{
+                        start,
+                        end,
+                        organization,
+                      }}
                       showTimePicker
                       utc={this.state.utc}
-                      start={start}
-                      end={end}
                       onChange={this.handleSelectDateRange}
                       onChangeUtc={this.handleUseUtc}
-                      organization={organization}
                     />
                     {this.state.hasChanges && (
                       <SubmitRow>

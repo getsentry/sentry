@@ -24,6 +24,8 @@ const validHookNames = new Set([
   // Specific component customizations
   'component:org-auth-view',
   'component:org-members-view',
+  'component:header-date-range',
+  'component:header-selector-items',
 
   // Additional settings
   'settings:organization-navigation',
@@ -50,9 +52,9 @@ const validHookNames = new Set([
   // feature-disabled:<feature-flag> hooks should return components that will
   // be rendered in place for Feature components when the feature is not
   // enabled.
+  'feature-disabled:custom-inbound-filters',
   'feature-disabled:discard-groups',
   'feature-disabled:data-forwarding',
-  'feature-disabled:custom-inbound-filters',
   'feature-disabled:rate-limits',
   'feature-disabled:sso-basic',
   'feature-disabled:sso-rippling',
