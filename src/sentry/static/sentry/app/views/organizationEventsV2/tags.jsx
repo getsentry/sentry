@@ -5,6 +5,7 @@ import {isEqual, omit} from 'lodash';
 import * as Sentry from '@sentry/browser';
 
 import SentryTypes from 'app/sentryTypes';
+import Placeholder from 'app/components/placeholder';
 import TagDistributionMeter from 'app/components/tagDistributionMeter';
 import withApi from 'app/utils/withApi';
 import {fetchTagDistribution, fetchTotalCount, getEventTagSearchUrl} from './utils';
@@ -88,7 +89,7 @@ class Tags extends React.Component {
         segments={segments}
         totalValues={totalValues}
         isLoading={isLoading}
-        renderLoading={() => <Placeholder />}
+        renderLoading={() => <StyledPlaceholder height="16px" />}
       />
     );
   }
@@ -98,12 +99,8 @@ class Tags extends React.Component {
   }
 }
 
-const Placeholder = styled('div')`
-  height: 16px;
-  width: 100%;
-  display: inline-block;
+const StyledPlaceholder = styled(Placeholder)`
   border-radius: ${p => p.theme.borderRadius};
-  background-color: #dad9ed;
 `;
 
 export {Tags};

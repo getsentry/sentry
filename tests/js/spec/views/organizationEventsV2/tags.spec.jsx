@@ -47,9 +47,9 @@ describe('Tags', function() {
       />
     );
 
-    expect(wrapper.find('Placeholder')).toHaveLength(2);
+    expect(wrapper.find('StyledPlaceholder')).toHaveLength(2);
     await tick();
     wrapper.update();
-    expect(wrapper.find('Placeholder')).toHaveLength(0);
+    expect(wrapper.find('StyledPlaceholder')).toHaveLength(0);
   });
 });
