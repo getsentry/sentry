@@ -84,7 +84,6 @@ default_manager.add('organizations:sso-saml2', OrganizationFeature)  # NOQA
 default_manager.add('organizations:grouping-info', OrganizationFeature)  # NOQA
 default_manager.add('organizations:tweak-grouping-config', OrganizationFeature)  # NOQA
 default_manager.add('organizations:set-grouping-config', OrganizationFeature)  # NOQA
-default_manager.add('organizations:extended-data-retention', OrganizationFeature)  # NOQA
 
 # Project scoped features
 default_manager.add('projects:custom-inbound-filters', ProjectFeature)  # NOQA

@@ -16,6 +16,7 @@ import {
   isValidTime,
   setDateToTime,
 } from 'app/utils/dates';
+import {MAX_PICKABLE_DAYS} from 'app/constants';
 import {t} from 'app/locale';
 import Checkbox from 'app/components/checkbox';
 import SentryTypes from 'app/sentryTypes';
@@ -23,9 +24,6 @@ import TimePicker from 'app/components/organizations/timeRangeSelector/timePicke
 import getRouteStringFromRoutes from 'app/utils/getRouteStringFromRoutes';
 import space from 'app/styles/space';
 import theme from 'app/utils/theme';
-
-// This is currently the max number of days back you can search
-const MAX_PICKABLE_DAYS = 90;
 
 class DateRange extends React.Component {
   static propTypes = {

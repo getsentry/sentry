@@ -854,8 +854,6 @@ SENTRY_FEATURES = {
     # Enable organizations to create and utilize Sentry Apps.
     'organizations:sentry-apps': False,
 
-    # Enable filters for extended data retention.
-    'organizations:extended-data-retention': True,
     # Enable the relay functionality, for use with sentry semaphore. See
     # https://github.com/getsentry/semaphore.
     'organizations:relay': False,

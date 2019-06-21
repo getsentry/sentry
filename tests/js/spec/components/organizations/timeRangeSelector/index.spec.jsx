@@ -268,4 +268,17 @@ describe('TimeRangeSelector', function() {
       utc: false,
     });
   });
+
+  it('deselects default filter when absolute date selected', async function() {
+    wrapper = createWrapper({
+      relative: '14d',
+      utc: false,
+    });
+
+    await wrapper.find('HeaderItem').simulate('click');
+    await wrapper.find('SelectorItem[value="absolute"]').simulate('click');
+
+    expect(wrapper.find('SelectorItem[value="absolute"]').prop('selected')).toBe(true);
+    expect(wrapper.find('SelectorItem[value="14d"]').prop('selected')).toBe(false);
+  });
 });
