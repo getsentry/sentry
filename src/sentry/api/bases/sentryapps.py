@@ -131,9 +131,10 @@ class SentryAppPermission(SentryPermission):
         if is_active_superuser(request):
             return True
 
-        # User must be in the Org who owns the app.
-        if sentry_app.owner not in request.user.get_orgs():
-            raise Http404
+        # if app is unpublished, user must be in the Org who owns the app.
+        if not sentry_app.is_published:
+            if sentry_app.owner not in request.user.get_orgs():
+                raise Http404
 
         return ensure_scoped_permission(
             request,
