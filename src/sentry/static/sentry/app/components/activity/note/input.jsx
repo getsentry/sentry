@@ -10,7 +10,6 @@ import ConfigStore from 'app/stores/configStore';
 import NavTabs from 'app/components/navTabs';
 import space from 'app/styles/space';
 import textStyles from 'app/styles/text';
-import withApi from 'app/utils/withApi';
 
 import Mentionables from './mentionables';
 import mentionStyle from './mentionStyle';
@@ -295,7 +294,7 @@ class NoteInputContainer extends React.Component {
   }
 }
 
-export default withApi(NoteInputContainer);
+export default NoteInputContainer;
 
 // This styles both the note preview and the note editor input
 const getNotePreviewCss = p => {
