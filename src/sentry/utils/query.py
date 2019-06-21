@@ -18,7 +18,7 @@ from django.db.models.signals import pre_delete, pre_save, post_save, post_delet
 
 from sentry.utils import db
 
-_leaf_re = re.compile(r'^(Event|Group)(.+)')
+_leaf_re = re.compile(r'^(UserReport|Event|Group)(.+)')
 
 
 class InvalidQuerySetError(ValueError):
