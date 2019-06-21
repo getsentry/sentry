@@ -955,6 +955,8 @@ function routes() {
             }
             component={errorHandler(LazyLoad)}
           >
+            {/* XXX: if we change the path for group details, we *must* update `OrganizationContext`.
+            There is behavior that depends on this path and unfortunately no great way to test for this contract */}
             <IndexRoute
               componentPromise={() =>
                 import(/* webpackChunkName: "OrganizationGroupEventDetails" */ './views/organizationGroupDetails/groupEventDetails')
