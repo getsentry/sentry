@@ -104,7 +104,7 @@ export function getEventTagSearchUrl(tagKey, tagValue, location) {
 export function fetchTagDistribution(api, orgSlug, key, query) {
   const urlParams = pick(query, Object.values(URL_PARAM));
 
-  return api.requestPromise(`/organizations/${orgSlug}/events-heatmap/`, {
+  return api.requestPromise(`/organizations/${orgSlug}/events-distribution/`, {
     query: {...urlParams, key, query: query.query},
   });
 }

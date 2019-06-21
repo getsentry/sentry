@@ -14,7 +14,7 @@ from sentry.tagstore.base import TOP_VALUES_DEFAULT_LIMIT
 PROJECT_KEY = 'project.name'
 
 
-class OrganizationEventsHeatmapEndpoint(OrganizationEventsEndpointBase):
+class OrganizationEventsDistributionEndpoint(OrganizationEventsEndpointBase):
     def get(self, request, organization):
         try:
             snuba_args = self.get_snuba_query_args(request, organization)
@@ -43,7 +43,7 @@ class OrganizationEventsHeatmapEndpoint(OrganizationEventsEndpointBase):
             aggregations=[('count()', None, 'count')],
             orderby='-count',
             limit=TOP_VALUES_DEFAULT_LIMIT,
-            referrer='api.organization-events-heatmap',
+            referrer='api.organization-events-distribution',
         )['data']
 
         projects = {p.id: p.slug for p in self.get_projects(request, organization)}

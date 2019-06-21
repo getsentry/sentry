@@ -8,7 +8,7 @@ describe('Tags', function() {
   const org = TestStubs.Organization();
   beforeEach(function() {
     Client.addMockResponse({
-      url: `/organizations/${org.slug}/events-heatmap/`,
+      url: `/organizations/${org.slug}/events-distribution/`,
       body: {
         key: 'release',
         name: 'Release',
