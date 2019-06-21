@@ -194,12 +194,12 @@ export const SPECIAL_FIELDS = {
   event_count: {
     title: 'events',
     fields: ['event_count'],
-    renderFunc: data => <Container>{data.event_count}</Container>,
+    renderFunc: data => <Container>{data.event_count.toLocaleString()}</Container>,
   },
   user_count: {
     title: 'users',
     fields: ['user_count'],
-    renderFunc: data => <Container>{data.user_count}</Container>,
+    renderFunc: data => <Container>{data.user_count.toLocaleString()}</Container>,
   },
   last_seen: {
     title: 'last seen',
