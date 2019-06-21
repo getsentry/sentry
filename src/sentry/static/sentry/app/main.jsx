@@ -1,6 +1,5 @@
-/* global module */
+import {hot} from 'react-hot-loader/root'; // This needs to come before react
 import React from 'react';
-import {hot} from 'react-hot-loader';
 import {Router, browserHistory} from 'react-router';
 
 import routes from 'app/routes';
@@ -16,4 +15,4 @@ class Main extends React.Component {
   }
 }
 
-export default hot(module)(Main);
+export default hot(Main);

@@ -72,7 +72,7 @@
     "react-document-title": "2.0.3",
     "react-dom": "16.7.0",
     "react-emotion": "9.2.12",
-    "react-hot-loader": "4.5.3",
+    "react-hot-loader": "4.11.1",
     "react-keydown": "^1.9.7",
     "react-lazyload": "^2.3.0",
     "react-mentions": "^1.2.0",
