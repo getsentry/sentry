@@ -62,6 +62,27 @@ after_script:
   - zeus upload -t "text/plain+pycodestyle" .artifacts/*pycodestyle.log
   - zeus upload -t "text/xml+checkstyle" .artifacts/*checkstyle.xml
   - zeus upload -t "application/webpack-stats+json" .artifacts/*webpack-stats.json
+  # Trigger a build for the `git` image on docker-sentry
+  - >
+      curl -s -X POST
+      -H "Content-Type: application/json"
+      -H "Accept: application/json"
+      -H "Travis-API-Version: 3"
+      -H "Authorization: token $TRAVIS_TOKEN"
+      -d '{
+        "request": {
+          "branch": "master",
+          "config": {
+            "env": {
+              "matrix": [
+                "VERSION=git"
+              ]
+            }
+          },
+          "message": "Build for getsentry/sentry@'"$TRAVIS_COMMIT"'"
+        }
+      }'
+      https://api.travis-ci.org/repo/getsentry%2Fdocker-sentry/requests
 
 base_postgres: &postgres_default
   python: 2.7
