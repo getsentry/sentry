@@ -469,6 +469,8 @@ export const IncidentActivity = PropTypes.shape({
     .isRequired,
   user: User,
   comment: PropTypes.string,
+  value: PropTypes.string,
+  previousValue: PropTypes.string,
 });
 
 export const GlobalSelection = PropTypes.shape({

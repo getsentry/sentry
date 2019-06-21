@@ -8,6 +8,21 @@ import OrganizationIncidentsList from 'app/views/organizationIncidents/list';
 describe('OrganizationIncidentsList', function() {
   const {routerContext} = initializeOrg();
   let mock;
+  let wrapper;
+
+  const createWrapper = async props => {
+    wrapper = mount(
+      <OrganizationIncidentsList
+        params={{orgId: 'org-slug'}}
+        location={{query: {}, search: ''}}
+      />,
+      routerContext
+    );
+    // Wait for sparklines library
+    await tick();
+    wrapper.update();
+    return wrapper;
+  };
 
   beforeEach(function() {
     mock = MockApiClient.addMockResponse({
@@ -23,11 +38,8 @@ describe('OrganizationIncidentsList', function() {
     MockApiClient.clearMockResponses();
   });
 
-  it('displays list', function() {
-    const wrapper = mount(
-      <OrganizationIncidentsList params={{orgId: 'org-slug'}} location={{query: {}}} />,
-      TestStubs.routerContext()
-    );
+  it('displays list', async function() {
+    wrapper = await createWrapper();
 
     const items = wrapper.find('IncidentPanelItem');
 
@@ -36,27 +48,19 @@ describe('OrganizationIncidentsList', function() {
     expect(items.at(1).text()).toContain('Second incident');
   });
 
-  it('displays empty state', function() {
+  it('displays empty state', async function() {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/incidents/',
       body: [],
     });
-    const wrapper = mount(
-      <OrganizationIncidentsList params={{orgId: 'org-slug'}} location={{query: {}}} />,
-      routerContext
-    );
+
+    wrapper = await createWrapper();
     expect(wrapper.find('PanelItem')).toHaveLength(0);
     expect(wrapper.text()).toContain("You don't have any Incidents yet");
   });
 
-  it('toggles all/open', function() {
-    const wrapper = mount(
-      <OrganizationIncidentsList
-        params={{orgId: 'org-slug'}}
-        location={{query: {}, search: ''}}
-      />,
-      routerContext
-    );
+  it('toggles all/open', async function() {
+    wrapper = await createWrapper();
 
     expect(
       wrapper
