@@ -1070,14 +1070,14 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
             </Component>
           </PlatformCard>
           <PlatformCard
-            data-test-id="platform-cocoa"
-            key="cocoa"
+            data-test-id="platform-react-native"
+            key="react-native"
             onClear={[Function]}
             onClick={[Function]}
             platform={
               Object {
-                "id": "cocoa",
-                "language": "cocoa",
+                "id": "react-native",
+                "language": "react-native",
                 "link": "https://docs.getsentry.com/hosted/clients/react-native/",
                 "name": "React-Native",
                 "type": "language",
@@ -1087,13 +1087,13 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
           >
             <Component
               className="css-1y7hwtx-PlatformCard exv4dm86"
-              data-test-id="platform-cocoa"
+              data-test-id="platform-react-native"
               onClear={[Function]}
               onClick={[Function]}
               platform={
                 Object {
-                  "id": "cocoa",
-                  "language": "cocoa",
+                  "id": "react-native",
+                  "language": "react-native",
                   "link": "https://docs.getsentry.com/hosted/clients/react-native/",
                   "name": "React-Native",
                   "type": "language",
@@ -1103,14 +1103,14 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
             >
               <div
                 className="css-1y7hwtx-PlatformCard exv4dm86"
-                data-test-id="platform-cocoa"
+                data-test-id="platform-react-native"
                 onClick={[Function]}
               >
                 <StyledPlatformIconTile
-                  platform="cocoa"
+                  platform="react-native"
                 >
                   <div
-                    className="css-10i69ba-PlatformIconTile-getColorStyles-StyledPlatformIconTile exv4dm84"
+                    className="css-79er81-PlatformIconTile-getColorStyles-StyledPlatformIconTile exv4dm84"
                   />
                 </StyledPlatformIconTile>
                 <h3>
@@ -3732,14 +3732,14 @@ exports[`CreateProject should fill in project name if its empty when platform is
             </Component>
           </PlatformCard>
           <PlatformCard
-            data-test-id="platform-cocoa"
-            key="cocoa"
+            data-test-id="platform-react-native"
+            key="react-native"
             onClear={[Function]}
             onClick={[Function]}
             platform={
               Object {
-                "id": "cocoa",
-                "language": "cocoa",
+                "id": "react-native",
+                "language": "react-native",
                 "link": "https://docs.getsentry.com/hosted/clients/react-native/",
                 "name": "React-Native",
                 "type": "language",
@@ -3749,13 +3749,13 @@ exports[`CreateProject should fill in project name if its empty when platform is
           >
             <Component
               className="css-1y7hwtx-PlatformCard exv4dm86"
-              data-test-id="platform-cocoa"
+              data-test-id="platform-react-native"
               onClear={[Function]}
               onClick={[Function]}
               platform={
                 Object {
-                  "id": "cocoa",
-                  "language": "cocoa",
+                  "id": "react-native",
+                  "language": "react-native",
                   "link": "https://docs.getsentry.com/hosted/clients/react-native/",
                   "name": "React-Native",
                   "type": "language",
@@ -3765,14 +3765,14 @@ exports[`CreateProject should fill in project name if its empty when platform is
             >
               <div
                 className="css-1y7hwtx-PlatformCard exv4dm86"
-                data-test-id="platform-cocoa"
+                data-test-id="platform-react-native"
                 onClick={[Function]}
               >
                 <StyledPlatformIconTile
-                  platform="cocoa"
+                  platform="react-native"
                 >
                   <div
-                    className="css-10i69ba-PlatformIconTile-getColorStyles-StyledPlatformIconTile exv4dm84"
+                    className="css-79er81-PlatformIconTile-getColorStyles-StyledPlatformIconTile exv4dm84"
                   />
                 </StyledPlatformIconTile>
                 <h3>
