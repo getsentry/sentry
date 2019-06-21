@@ -118,16 +118,18 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
             # check to see if we've got an event ID
             event_id = normalize_event_id(query)
             if event_id:
-                groups = list(
-                    Group.objects.filter_by_event_id(project_ids, event_id)
+                # For a direct hit lookup we want to use any passed project ids
+                # (we've already checked permissions on these) plus any other
+                # projects that the user is a member of. This gives us a better
+                # chance of returning the correct result, even if the wrong
+                # project is selected.
+                direct_hit_projects = set(project_ids) | set(
+                    [project.id for project in request.access.projects]
                 )
+                groups = list(Group.objects.filter_by_event_id(direct_hit_projects, event_id))
                 if len(groups) == 1:
                     response = Response(
-                        serialize(
-                            groups, request.user, serializer(
-                                matching_event_id=event_id
-                            )
-                        )
+                        serialize(groups, request.user, serializer(matching_event_id=event_id))
                     )
                     response['X-Sentry-Direct-Hit'] = '1'
                     return response

@@ -227,6 +227,33 @@ class GroupListTest(APITestCase, SnubaTestCase):
         assert response.data[0]['id'] == six.text_type(group.id)
         assert response.data[0]['matchingEventId'] == event_id
 
+    def test_lookup_by_event_id_incorrect_project_id(self):
+        self.store_event(
+            data={'event_id': 'a' * 32, 'timestamp': self.min_ago.isoformat()[:19]},
+            project_id=self.project.id
+        )
+        event_id = 'b' * 32
+        event = self.store_event(
+            data={'event_id': event_id, 'timestamp': self.min_ago.isoformat()[:19]},
+            project_id=self.project.id
+        )
+
+        other_project = self.create_project(teams=[self.team])
+        user = self.create_user()
+        self.create_member(
+            organization=self.organization,
+            teams=[self.team],
+            user=user,
+        )
+        self.login_as(user=user)
+
+        with self.feature('organizations:global-views'):
+            response = self.get_valid_response(query=event_id, project=[other_project.id])
+        assert response['X-Sentry-Direct-Hit'] == '1'
+        assert len(response.data) == 1
+        assert response.data[0]['id'] == six.text_type(event.group.id)
+        assert response.data[0]['matchingEventId'] == event_id
+
     def test_lookup_by_event_id_with_whitespace(self):
         project = self.project
         project.update_option('sentry:resolve_age', 1)
