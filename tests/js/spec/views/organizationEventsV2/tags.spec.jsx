@@ -9,20 +9,19 @@ describe('Tags', function() {
   beforeEach(function() {
     Client.addMockResponse({
       url: `/organizations/${org.slug}/events-heatmap/`,
-      body: [
-        {
-          key: 'release',
-          name: 'Release',
-          totalValues: 2,
-          topValues: [{count: 2, value: 'abcd123', name: 'abcd123'}],
-        },
-        {
-          key: 'environment',
-          name: 'Environment',
-          totalValues: 1,
-          topValues: [{count: 1, value: 'production', name: 'production'}],
-        },
-      ],
+      body: {
+        key: 'release',
+        name: 'Release',
+        totalValues: 2,
+        topValues: [{count: 2, value: 'abcd123', name: 'abcd123'}],
+      },
+    });
+
+    Client.addMockResponse({
+      url: `/organizations/${org.slug}/events-meta/`,
+      body: {
+        count: 2,
+      },
     });
   });
 

@@ -2,11 +2,12 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import styled from 'react-emotion';
 import {isEqual, omit} from 'lodash';
+import * as Sentry from '@sentry/browser';
 
 import SentryTypes from 'app/sentryTypes';
 import TagDistributionMeter from 'app/components/tagDistributionMeter';
 import withApi from 'app/utils/withApi';
-import {fetchTags, getEventTagSearchUrl} from './utils';
+import {fetchTagDistribution, fetchTotalCount, getEventTagSearchUrl} from './utils';
 import {MODAL_QUERY_KEYS} from './data';
 
 class Tags extends React.Component {
@@ -18,8 +19,8 @@ class Tags extends React.Component {
   };
 
   state = {
-    isLoading: true,
     tags: {},
+    totalValues: null,
   };
 
   componentDidMount() {
@@ -41,21 +42,38 @@ class Tags extends React.Component {
   fetchData = async () => {
     const {api, organization, view, location} = this.props;
 
+    this.setState({tags: {}, totalValues: null});
+
+    view.tags.forEach(async tag => {
+      try {
+        const val = await fetchTagDistribution(
+          api,
+          organization.slug,
+          tag,
+          location.query
+        );
+
+        this.setState(state => ({tags: {...state.tags, [tag]: val}}));
+      } catch (err) {
+        Sentry.captureException(err);
+      }
+    });
+
     try {
-      const tags = await fetchTags(api, organization.slug, view.tags, location.query);
-      this.setState({tags, isLoading: false});
+      const totalValues = await fetchTotalCount(api, organization.slug, location.query);
+      this.setState({totalValues});
     } catch (err) {
-      this.setState({tags: {}, isLoading: false});
+      Sentry.captureException(err);
     }
   };
 
   renderTag(tag) {
     const {location} = this.props;
-    const {isLoading, tags} = this.state;
+    const {tags, totalValues} = this.state;
+    const isLoading = !tags[tag] || totalValues === null;
     let segments = [];
-    let totalValues = 0;
-    if (!isLoading && tags[tag]) {
-      totalValues = tags[tag].totalValues;
+
+    if (!isLoading) {
       segments = tags[tag].topValues;
     }
 
