@@ -32,7 +32,11 @@ describe('PlatformPicker', function() {
         .map(node => node.prop('platform').id);
 
       expect(filteredPlatforms).not.toContain('java');
-      expect(filteredPlatforms).toContain('swift');
+      expect(filteredPlatforms).toContain('cocoa-swift');
+      expect(filteredPlatforms).toContain('react-native');
+      expect(filteredPlatforms).toContain('cocoa-objc');
+      expect(filteredPlatforms).toContain('java-android');
+      expect(filteredPlatforms).toContain('cordova');
     });
 
     it('should render renderPlatformList with Python when filtered with py', function() {

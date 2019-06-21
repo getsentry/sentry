@@ -16,7 +16,7 @@ const popular = [
   'php',
   'ruby',
   'node',
-  'cocoa',
+  'react-native',
   'javascript-angular',
 ];
 
@@ -30,7 +30,7 @@ const frontend = [
   'javascript-vue',
 ];
 
-const mobile = ['objc', 'swift', 'java-android', 'cocoa', 'cordova'];
+const mobile = ['cocoa-objc', 'cocoa-swift', 'java-android', 'cordova', 'react-native'];
 
 const backend = [
   'go',

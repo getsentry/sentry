@@ -15,6 +15,24 @@
     {
       "integrations": [
         {
+          "link": "https://docs.getsentry.com/hosted/clients/cocoa/",
+          "type": "language",
+          "id": "cocoa-swift",
+          "name": "Swift"
+        },
+        {
+          "link": "https://docs.getsentry.com/hosted/clients/cocoa/",
+          "type": "language",
+          "id": "cocoa-objc",
+          "name": "Objective-C"
+        }
+      ],
+      "id": "cocoa",
+      "name": "Objective-C"
+    },
+    {
+      "integrations": [
+        {
           "link": "https://docs.getsentry.com/hosted/clients/cordova/",
           "type": "language",
           "id": "cordova",
@@ -207,18 +225,6 @@
     {
       "integrations": [
         {
-          "link": "https://docs.getsentry.com/hosted/clients/cocoa/",
-          "type": "language",
-          "id": "objc",
-          "name": "Objective-C"
-        }
-      ],
-      "id": "objc",
-      "name": "Objective-C"
-    },
-    {
-      "integrations": [
-        {
           "link": "https://docs.getsentry.com/hosted/clients/php/integrations/laravel/",
           "type": "framework",
           "id": "php-laravel",
@@ -311,11 +317,11 @@
         {
           "link": "https://docs.getsentry.com/hosted/clients/react-native/",
           "type": "language",
-          "id": "cocoa",
+          "id": "react-native",
           "name": "React-Native"
         }
       ],
-      "id": "cocoa",
+      "id": "react-native",
       "name": "React-Native"
     },
     {
@@ -353,18 +359,6 @@
       ],
       "id": "rust",
       "name": "Rust"
-    },
-    {
-      "integrations": [
-        {
-          "link": "https://docs.getsentry.com/hosted/clients/cocoa/",
-          "type": "language",
-          "id": "swift",
-          "name": "Swift"
-        }
-      ],
-      "id": "swift",
-      "name": "Swift"
     },
     {
       "integrations": [
