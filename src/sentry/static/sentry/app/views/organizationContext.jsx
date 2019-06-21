@@ -34,6 +34,7 @@ const OrganizationContext = createReactClass({
 
   propTypes: {
     api: PropTypes.object,
+    routes: PropTypes.arrayOf(PropTypes.object),
     includeSidebar: PropTypes.bool,
     useLastOrganization: PropTypes.bool,
     organizationsLoading: PropTypes.bool,
@@ -136,7 +137,17 @@ const OrganizationContext = createReactClass({
 
         TeamStore.loadInitialData(data.teams);
         ProjectsStore.loadInitialData(data.projects);
-        GlobalSelectionStore.loadInitialData(data, this.props.location.query);
+
+        // Make an exception for issue details in the case where it is accessed directly (e.g. from email)
+        // We do not want to load the user's last used env/project in this case, otherwise will
+        // lead to very confusing behavior.
+        if (
+          !this.props.routes.find(
+            ({path}) => path && path.includes('/organizations/:orgId/issues/:groupId/')
+          )
+        ) {
+          GlobalSelectionStore.loadInitialData(data, this.props.location.query);
+        }
         OrganizationEnvironmentsStore.loadInitialData(environments);
 
         this.setState({

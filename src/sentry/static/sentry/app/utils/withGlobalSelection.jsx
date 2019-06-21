@@ -2,8 +2,8 @@ import React from 'react';
 import Reflux from 'reflux';
 import createReactClass from 'create-react-class';
 
-import getDisplayName from 'app/utils/getDisplayName';
 import GlobalSelectionStore from 'app/stores/globalSelectionStore';
+import getDisplayName from 'app/utils/getDisplayName';
 
 /**
  * Higher order component that uses GlobalSelectionStore and provides the
@@ -19,13 +19,33 @@ const withGlobalSelection = WrappedComponent =>
       };
     },
 
-    onUpdate() {
-      this.setState({
-        selection: GlobalSelectionStore.get(),
-      });
+    componentDidMount() {
+      this.updateSelection();
     },
+
+    onUpdate() {
+      this.updateSelection();
+    },
+
+    updateSelection() {
+      const selection = GlobalSelectionStore.get();
+
+      if (this.state.selection !== selection) {
+        this.setState({
+          selection,
+        });
+      }
+    },
+
     render() {
-      return <WrappedComponent selection={this.state.selection} {...this.props} />;
+      const {forceUrlSync, ...selection} = this.state.selection;
+      return (
+        <WrappedComponent
+          forceUrlSync={forceUrlSync}
+          selection={selection}
+          {...this.props}
+        />
+      );
     },
   });
 
