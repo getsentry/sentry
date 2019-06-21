@@ -9,12 +9,13 @@ from sentry import features, tagstore
 from sentry.tagstore.base import TOP_VALUES_DEFAULT_LIMIT
 
 
+# If the requested key is project.name, we get the distribution by project.id
+# from Snuba and convert those values back to names
+PROJECT_KEY = 'project.name'
+
+
 class OrganizationEventsHeatmapEndpoint(OrganizationEventsEndpointBase):
     def get(self, request, organization):
-        # If requested key is project.name, get the project.id from Snuba
-        # and it back to the name
-        PROJECT_KEY = 'project.name'
-
         try:
             snuba_args = self.get_snuba_query_args(request, organization)
         except OrganizationEventsError as exc:
