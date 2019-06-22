@@ -201,6 +201,10 @@ const appConfig = {
         },
       },
       {
+        test: /\.tsx?$/,
+        loader: 'awesome-typescript-loader',
+      },
+      {
         test: /\.po$/,
         use: {
           loader: 'po-catalog-loader',
@@ -286,7 +290,7 @@ const appConfig = {
           : path.join(__dirname, 'src/sentry/integration-docs/_platforms.json'),
     },
     modules: ['node_modules'],
-    extensions: ['.jsx', '.js', '.json'],
+    extensions: ['.jsx', '.js', '.json', '.ts', '.tsx'],
   },
   output: {
     path: distPath,
