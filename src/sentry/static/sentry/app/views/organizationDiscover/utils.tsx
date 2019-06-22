@@ -1,7 +1,9 @@
 import moment from 'moment';
-import {Client} from 'app/api';
+
 import {isEqual, pick} from 'lodash';
 import qs from 'query-string';
+
+import {Client} from 'app/api';
 import {isValidAggregation} from './aggregations/utils';
 import {NON_SNUBA_FIELDS} from './data';
 
@@ -75,12 +77,11 @@ export function getOrderbyFields(queryBuilder) {
     return [...acc, {value: name, label: name}];
   }, []);
 
-  const aggregationOptions = [
-    // Ensure aggregations are unique (since users might input duplicates)
-    ...new Set(validAggregations.map(aggregation => aggregation[2])),
-  ].reduce((acc, agg) => {
-    return [...acc, {value: agg, label: agg}];
-  }, []);
+  const aggregationOptions = validAggregations
+    .map(aggregation => aggregation[2])
+    .reduce((acc, agg) => {
+      return [...acc, {value: agg, label: agg}];
+    }, []);
 
   return [...columnOptions, ...aggregationOptions];
 }
