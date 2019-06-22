@@ -1,0 +1,13 @@
+{
+    "compilerOptions": {
+        "module": "commonjs",
+        "jsx": "react",
+        "baseUrl": ".",
+        "paths": {
+            "app/*": ["src/sentry/static/sentry/app/*"]
+        },
+    },
+    "include": [
+        "src"
+    ]
+}
