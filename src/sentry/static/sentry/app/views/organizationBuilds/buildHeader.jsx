@@ -1,7 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 
-import TimeSince from 'app/components/timeSince';
 import {t} from 'app/locale';
 import SentryTypes from 'app/sentryTypes';
 

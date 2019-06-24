@@ -999,6 +999,7 @@ const SentryTypes = {
   Actor,
   Activity,
   AuthProvider,
+  Build,
   Config,
   Deploy,
   DiscoverQuery,
