@@ -1,8 +1,10 @@
 {
+    "extends": "./node_modules/@sentry/typescript/tsconfig.json",
     "compilerOptions": {
         "module": "commonjs",
         "jsx": "react",
         "baseUrl": ".",
+        "outDir": "src/sentry/static/sentry/dist",
         "paths": {
             "app/*": ["src/sentry/static/sentry/app/*"]
         },
