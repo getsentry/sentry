@@ -244,11 +244,16 @@ def post_process_group(event, is_new, is_regression, is_sample, is_new_group_env
 
 
 def index_build_context(event):
+    import os
     from django.db import transaction
     from hashlib import sha1
     from sentry.models import Build
 
     context = event.data['contexts']['build']
+
+    context.setdefault('name', os.environ.get('COMMIT_NAME') or "Build #1: A test")
+    context.setdefault('commit', os.environ.get("COMMIT_SHA")
+                       or "945a6fa4e9e383a83336936ce2c478faa1c641a8")
 
     params = {}
     if context.get('commit'):

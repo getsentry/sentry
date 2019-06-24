@@ -197,8 +197,6 @@ def pytest_configure(config):
         with sentry_sdk.configure_scope() as scope:
             scope.set_context('build', {
                 'id': build_identifier,
-                'name': os.environ.get('COMMIT_NAME') or "Build #1: A test",
-                'commit': os.environ.get("COMMIT_SHA") or "945a6fa4e9e383a83336936ce2c478faa1c641a8",
             })
 
 
