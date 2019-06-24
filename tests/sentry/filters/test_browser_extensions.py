@@ -33,6 +33,34 @@ class BrowserExtensionsFilterTest(TestCase):
             }
         }
 
+    def get_mock_data_with_extra_source(self, exc_value=None, exc_source=None):
+        return {
+            'platform': 'javascript',
+            'exception': {
+                'values': [
+                    {
+                        'type': 'Error',
+                        'value': exc_value or 'undefined is not defined',
+                        'stacktrace': {
+                            'frames': [
+                                {
+                                    'abs_path': 'http://example.com/foo.js'
+                                },
+                                {
+                                    'abs_path': 'http://example.com/bar.js'
+                                },
+                            ],
+                        }
+                    }
+                ]
+            },
+            'extra': {
+                'SyntaxError': {
+                    'sourceURL': exc_source or 'http://example.com/bar.js'
+                }
+            }
+        }
+
     def test_bails_without_javascript_event(self):
         data = {'platform': 'python'}
         assert not self.apply_filter(data)
@@ -65,6 +93,14 @@ class BrowserExtensionsFilterTest(TestCase):
         data = self.get_mock_data(exc_source='chrome-extension://my-extension/or/something')
         assert self.apply_filter(data)
 
+    def test_filters_chrome_extensions_extra(self):
+        data = self.get_mock_data_with_extra_source(exc_source='chrome://my-extension/or/something')
+        assert self.apply_filter(data)
+
+    def test_filters_chrome_extensions_second_format_extra(self):
+        data = self.get_mock_data_with_extra_source(exc_source='chrome-extension://my-extension/or/something')
+        assert self.apply_filter(data)
+
     def test_does_not_filter_generic_data(self):
         data = self.get_mock_data()
         assert not self.apply_filter(data)
@@ -88,4 +124,20 @@ class BrowserExtensionsFilterTest(TestCase):
     def test_filters_itunes_source(self):
         data = self.get_mock_data(
             exc_source='http://metrics.itunes.apple.com.edgesuite.net/itunespreview/itunes/browser:firefo')
+        assert self.apply_filter(data)
+
+    def test_filters_firefox_extensions(self):
+        data = self.get_mock_data(exc_source='moz-extension://my-extension/or/something')
+        assert self.apply_filter(data)
+
+    def test_filters_firefox_extensions_extra(self):
+        data = self.get_mock_data_with_extra_source(exc_source='moz-extension://my-extension/or/something')
+        assert self.apply_filter(data)
+
+    def test_filters_safari_extensions(self):
+        data = self.get_mock_data(exc_source='safari-extension://my-extension/or/something')
+        assert self.apply_filter(data)
+
+    def test_filters_safari_extensions_extra(self):
+        data = self.get_mock_data_with_extra_source(exc_source='safari-extension://my-extension/or/something')
         assert self.apply_filter(data)
