@@ -41,7 +41,11 @@ from sentry.web.frontend.organization_integration_setup import \
     OrganizationIntegrationSetupView
 from sentry.web.frontend.out import OutView
 from sentry.web.frontend.project_avatar import ProjectAvatarPhotoView
-from sentry.web.frontend.react_page import GenericReactPageView, ReactPageView
+from sentry.web.frontend.react_page import (
+    AnonymousReactPageView,
+    GenericReactPageView,
+    ReactPageView
+)
 from sentry.web.frontend.reactivate_account import ReactivateAccountView
 from sentry.web.frontend.release_webhook import ReleaseWebhookView
 from sentry.web.frontend.restore_organization import RestoreOrganizationView
@@ -78,6 +82,7 @@ init_all_applications()
 
 # Only create one instance of the ReactPageView since it's duplicated errywhere
 generic_react_page_view = GenericReactPageView.as_view()
+anonymous_react_page_view = AnonymousReactPageView.as_view()
 react_page_view = ReactPageView.as_view()
 
 urlpatterns = patterns('')
@@ -135,6 +140,13 @@ urlpatterns += patterns(
     ),
     url(r'^api/store/schema$', api.StoreSchemaView.as_view(), name='sentry-api-store-schema'),
 
+    # Frontend client config
+    url(
+        r'^api/client-config/?$',
+        api.ClientConfigView.as_view(),
+        name='sentry-api-client-config'
+    ),
+
     # The static version is either a 10 digit timestamp, a sha1, or md5 hash
     url(
         r'^_static/(?:(?P<version>\d{10}|[a-f0-9]{32,40})/)?(?P<module>[^/]+)/(?P<path>.*)$',
@@ -183,7 +195,7 @@ urlpatterns += patterns(
         AuthOrganizationLoginView.as_view(),
         name='sentry-auth-link-identity'
     ),
-    url(r'^auth/login/$', AuthLoginView.as_view(), name='sentry-login'),
+    url(r'^auth/login/$', anonymous_react_page_view, name='sentry-login'),
     url(
         r'^auth/login/(?P<organization_slug>[^/]+)/$',
         AuthOrganizationLoginView.as_view(),
