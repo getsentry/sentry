@@ -1,13 +1,15 @@
+export type AggregationResult = Array<string | null>;
+
 /**
  * Returns true if an aggregation is valid and false if not
  *
- * @param {Array} aggregation Aggregation in external Snuba format
- * @param {Object} cols List of column objects
- * @param {String} cols.name Column name
- * @param {String} cols.type Type of column
- * @returns {Boolean} True if valid aggregation, false if not
+ * @param aggregation Aggregation in external Snuba format
+ * @param cols List of column objects
+ * @param cols.name Column name
+ * @param cols.type Type of column
+ * @returns True if valid aggregation, false if not
  */
-export function isValidAggregation(aggregation, cols) {
+export function isValidAggregation(aggregation: AggregationResult, cols: [{name: string, type: string}]): boolean {
   const columns = new Set(cols.map(({name}) => name));
   const [func, col] = aggregation;
 
@@ -16,18 +18,18 @@ export function isValidAggregation(aggregation, cols) {
   }
 
   if (func === 'count()') {
-    return col === null;
+    return !col;
   }
 
   if (func === 'uniq') {
-    return columns.has(col);
+    return columns.has(col || '');
   }
 
   if (func === 'avg') {
     const validCols = new Set(
       cols.filter(({type}) => type === 'number').map(({name}) => name)
     );
-    return validCols.has(col);
+    return validCols.has(col || '');
   }
 
   return false;
@@ -36,13 +38,13 @@ export function isValidAggregation(aggregation, cols) {
 /**
  * Converts aggregation from external Snuba format to internal format for dropdown
  *
- * @param {Array} external Aggregation in external Snuba format
- * @return {String} Aggregation in internal format
- **/
-export function getInternal(external) {
+ * @param external Aggregation in external Snuba format
+ * @return Aggregation in internal format
+ */
+export function getInternal(external: Array<string | null>): string {
   const [func, col] = external;
 
-  if (func === null) {
+  if (!func) {
     return '';
   }
 
@@ -66,10 +68,10 @@ export function getInternal(external) {
  * or a string with an underscore instead of square brackets for tags. We'll also
  * replace the characters `.`, `:` and `-` from aliases.
  *
- * @param {String} columnName Name of column
- * @return {String} Alias
+ * @param columnName Name of column
+ * @return Alias
  */
-function getAlias(columnName) {
+function getAlias(columnName: string): string {
   const tagMatch = columnName.match(/^tags\[(.+)]$/);
   return tagMatch
     ? `tags_${tagMatch[1].replace(/[.:-]/, '_')}`
@@ -79,10 +81,10 @@ function getAlias(columnName) {
 /**
  * Converts aggregation internal string format to external Snuba representation
  *
- * @param {String} internal Aggregation in internal format
- * @return {Array} Aggregation in external Snuba format
+ * @param internal Aggregation in internal format
+ * @return Aggregation in external Snuba format
  */
-export function getExternal(internal) {
+export function getExternal(internal: string): AggregationResult | string {
   const uniqRegex = /^uniq\((.+)\)$/;
   const avgRegex = /^avg\((.+)\)$/;
 
@@ -90,14 +92,15 @@ export function getExternal(internal) {
     return ['count()', null, 'count'];
   }
 
-  if (internal.match(uniqRegex)) {
-    const column = internal.match(uniqRegex)[1];
-
+  let match = internal.match(uniqRegex);
+  if (match && match[1]) {
+    const column = match[1];
     return ['uniq', column, `uniq_${getAlias(column)}`];
   }
 
-  if (internal.match(avgRegex)) {
-    const column = internal.match(avgRegex)[1];
+  match = internal.match(avgRegex);
+  if (match && match[1]) {
+    const column = match[1];
     return ['avg', column, `avg_${getAlias(column)}`];
   }
 

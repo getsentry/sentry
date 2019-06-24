@@ -95,6 +95,8 @@ export const NON_SNUBA_FIELDS = ['project.name'];
 
 export const NON_CONDITIONS_FIELDS = [...NON_SNUBA_FIELDS, 'project.id'];
 
+// The order of these fields will be checked in unittests
+// tslint:disable:object-literal-sort-keys
 export const OPERATOR = {
   GREATER_THAN: '>',
   LESS_THAN: '<',
@@ -107,6 +109,7 @@ export const OPERATOR = {
   LIKE: 'LIKE',
   NOT_LIKE: 'NOT LIKE',
 };
+// tslint:enable:object-literal-sort-keys
 
 export const CONDITION_OPERATORS = Object.values(OPERATOR);
 
