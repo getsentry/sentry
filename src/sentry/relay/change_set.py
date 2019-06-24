@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 import logging
+from importlib import import_module
 
 from sentry.relay.utils import type_to_class_name
 from sentry.relay.changesets.base import ChangesetError
@@ -9,8 +10,6 @@ logger = logging.getLogger(__name__)
 
 
 def execute_changesets(relay, changesets):
-    from django.utils.importlib import import_module
-
     for changeset in changesets:
         try:
             relay_changeset = import_module(

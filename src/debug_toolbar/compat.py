@@ -23,10 +23,7 @@ except ImportError:  # Django < 1.8
     from django.template.context import get_standard_processors  # NOQA
     from django.template.loader import find_template_loader  # NOQA
 
-try:
-    from importlib import import_module
-except ImportError:  # python = 2.6
-    from django.utils.importlib import import_module  # NOQA
+from importlib import import_module  # NOQA
 
 try:
     from collections import OrderedDict

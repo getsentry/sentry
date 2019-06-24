@@ -2,7 +2,6 @@
 from __future__ import absolute_import, print_function, unicode_literals
 
 from django.conf import settings
-from django.utils.importlib import import_module
 
 import copy
 import io
@@ -11,6 +10,7 @@ import petname
 import random
 import six
 import warnings
+from importlib import import_module
 
 from django.utils import timezone
 from django.utils.text import slugify
