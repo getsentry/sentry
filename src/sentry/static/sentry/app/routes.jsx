@@ -721,6 +721,13 @@ function routes() {
           component={errorHandler(LazyLoad)}
         />
         <Route
+          path="status/environment/"
+          componentPromise={() =>
+            import(/* webpackChunkName: "AdminEnvironment" */ 'app/views/admin/adminEnvironment')
+          }
+          component={errorHandler(LazyLoad)}
+        />
+        <Route
           path="status/packages/"
           componentPromise={() =>
             import(/* webpackChunkName: "AdminPackages" */ 'app/views/admin/adminPackages')

@@ -8,18 +8,15 @@ sentry.web.frontend.admin
 from __future__ import absolute_import, print_function
 
 import logging
-import sys
 import uuid
 
 import six
-from django.conf import settings
 from django.core.context_processors import csrf
 from django.db import transaction
 from django.http import HttpResponse, HttpResponseRedirect
 from django.views.decorators.csrf import csrf_protect
 
 from sentry import options
-from sentry.app import env
 from sentry.models import Project, User
 from sentry.plugins import plugins
 from sentry.utils.email import send_mail
@@ -152,31 +149,6 @@ def remove_user(request, user_id):
     })
 
     return render_to_response('sentry/admin/users/remove.html', context, request)
-
-
-@requires_admin
-def status_env(request):
-    reserved = ('PASSWORD', 'SECRET', 'KEY')
-    config = []
-    for k in sorted(dir(settings)):
-        v_repr = repr(getattr(settings, k))
-        if any(r.lower() in v_repr.lower() for r in reserved):
-            v_repr = '*' * 16
-        if any(r in k for r in reserved):
-            v_repr = '*' * 16
-        if k.startswith('_'):
-            continue
-        if k.upper() != k:
-            continue
-        config.append((k, v_repr))
-
-    return render_to_response(
-        'sentry/admin/status/env.html', {
-            'python_version': sys.version,
-            'config': config,
-            'environment': env.data,
-        }, request
-    )
 
 
 @requires_admin

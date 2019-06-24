@@ -308,8 +308,6 @@ urlpatterns += patterns(
     url(r'^onboarding/', generic_react_page_view),
 
     # Admin
-    url(r'^manage/status/environment/$',
-        admin.status_env, name='sentry-admin-status'),
     url(r'^manage/status/mail/$', admin.status_mail,
         name='sentry-admin-mail-status'),
 

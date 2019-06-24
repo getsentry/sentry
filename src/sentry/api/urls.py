@@ -56,6 +56,7 @@ from .endpoints.internal_quotas import InternalQuotasEndpoint
 from .endpoints.internal_stats import InternalStatsEndpoint
 from .endpoints.internal_warnings import InternalWarningsEndpoint
 from .endpoints.internal_packages import InternalPackagesEndpoint
+from .endpoints.internal_environment import InternalEnvironmentEndpoint
 from .endpoints.monitor_checkins import MonitorCheckInsEndpoint
 from .endpoints.monitor_checkin_details import MonitorCheckInDetailsEndpoint
 from .endpoints.monitor_details import MonitorDetailsEndpoint
@@ -1421,6 +1422,7 @@ urlpatterns = patterns(
     url(r'^internal/stats/$', InternalStatsEndpoint.as_view()),
     url(r'^internal/warnings/$', InternalWarningsEndpoint.as_view()),
     url(r'^internal/packages/$', InternalPackagesEndpoint.as_view()),
+    url(r'^internal/environment/$', InternalEnvironmentEndpoint.as_view()),
 
     # Project Wizard
     url(
