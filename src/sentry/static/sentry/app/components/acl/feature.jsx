@@ -150,7 +150,6 @@ class Feature extends React.Component {
     const method = requireAll ? 'every' : 'some';
     const hasFeature =
       !features || features[method](feat => this.hasFeature(feat, allFeatures));
-
     // Default renderDisabled to the ComingSoon component
     let customDisabledRender =
       renderDisabled === false

@@ -365,6 +365,21 @@ class Sidebar extends React.Component {
                       id="monitors"
                     />
                   </Feature>
+                  <Feature features={['builds']} organization={organization}>
+                    <SidebarItem
+                      {...sidebarItemProps}
+                      onClick={(_id, evt) =>
+                        this.navigateWithGlobalSelection(
+                          `/organizations/${organization.slug}/builds/`,
+                          evt
+                        )
+                      }
+                      icon={<InlineSvg src="icon-labs" />}
+                      label={t('Builds')}
+                      to={`/organizations/${organization.slug}/builds/`}
+                      id="builds"
+                    />
+                  </Feature>
                 </SidebarSection>
                 <SidebarSection>
                   <SidebarItem

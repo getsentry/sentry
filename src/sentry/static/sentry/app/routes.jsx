@@ -896,6 +896,20 @@ function routes() {
             />
           </Route>
           <Route
+            path="/organizations/:orgId/builds/"
+            componentPromise={() =>
+              import(/* webpackChunkName: "OrganizationBuildsContainer" */ './views/organizationBuilds')
+            }
+            component={errorHandler(LazyLoad)}
+          >
+            <IndexRoute
+              componentPromise={() =>
+                import(/* webpackChunkName: "OrganizationBuilds" */ './views/organizationBuilds/builds')
+              }
+              component={errorHandler(LazyLoad)}
+            />
+          </Route>
+          <Route
             path="/organizations/:orgId/monitors/"
             componentPromise={() =>
               import(/* webpackChunkName: "OrganizationMonitorsContainer" */ './views/organizationMonitors')

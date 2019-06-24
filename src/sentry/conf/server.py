@@ -854,6 +854,8 @@ SENTRY_FEATURES = {
     # Enable organizations to create and utilize Sentry Apps.
     'organizations:sentry-apps': False,
 
+    'organizations:builds': True,
+
     # Enable the relay functionality, for use with sentry semaphore. See
     # https://github.com/getsentry/semaphore.
     'organizations:relay': False,

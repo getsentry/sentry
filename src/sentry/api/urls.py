@@ -71,6 +71,7 @@ from .endpoints.organization_auth_providers import OrganizationAuthProvidersEndp
 from .endpoints.organization_auth_provider_details import OrganizationAuthProviderDetailsEndpoint
 from .endpoints.organization_auth_provider_send_reminders import OrganizationAuthProviderSendRemindersEndpoint
 from .endpoints.organization_avatar import OrganizationAvatarEndpoint
+from .endpoints.organization_builds import OrganizationBuildsEndpoint
 from .endpoints.organization_details import OrganizationDetailsEndpoint
 from .endpoints.organization_discover_query import OrganizationDiscoverQueryEndpoint
 from .endpoints.organization_discover_saved_queries import OrganizationDiscoverSavedQueriesEndpoint
@@ -597,6 +598,10 @@ urlpatterns = patterns(
         r'^organizations/(?P<organization_slug>[^\/]+)/avatar/$',
         OrganizationAvatarEndpoint.as_view(),
         name='sentry-api-0-organization-avatar'
+    ),
+    url(
+        r'^organizations/(?P<organization_slug>[^\/]+)/builds/$',
+        OrganizationBuildsEndpoint.as_view(),
     ),
     url(
         r'^organizations/(?P<organization_slug>[^\/]+)/config/integrations/$',
