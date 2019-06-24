@@ -314,8 +314,6 @@ urlpatterns += patterns(
         name='sentry-admin-packages-status'),
     url(r'^manage/status/mail/$', admin.status_mail,
         name='sentry-admin-mail-status'),
-    url(r'^manage/status/warnings/$', admin.status_warnings,
-        name='sentry-admin-warnings-status'),
 
     # Admin - Users
     url(r'^manage/users/new/$', admin.create_new_user,

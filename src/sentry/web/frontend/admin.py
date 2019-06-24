@@ -7,11 +7,9 @@ sentry.web.frontend.admin
 """
 from __future__ import absolute_import, print_function
 
-import functools
 import logging
 import sys
 import uuid
-from collections import defaultdict
 
 import pkg_resources
 import six
@@ -27,7 +25,6 @@ from sentry.models import Project, User
 from sentry.plugins import plugins
 from sentry.utils.email import send_mail
 from sentry.utils.http import absolute_uri
-from sentry.utils.warnings import DeprecatedSettingWarning, UnsupportedBackend, seen_warnings
 from sentry.web.decorators import requires_admin
 from sentry.web.forms import (ChangeUserForm, NewUserForm, RemoveUserForm, TestEmailForm)
 from sentry.utils import auth
@@ -205,36 +202,6 @@ def status_packages(request):
             ],
         },
         request
-    )
-
-
-@requires_admin
-def status_warnings(request):
-    groupings = {
-        DeprecatedSettingWarning: 'Deprecated Settings',
-        UnsupportedBackend: 'Unsupported Backends',
-    }
-
-    groups = defaultdict(list)
-    warnings = []
-    for warning in seen_warnings:
-        cls = type(warning)
-        if cls in groupings:
-            groups[cls].append(warning)
-        else:
-            warnings.append(warning)
-
-    sort_by_message = functools.partial(sorted, key=six.binary_type)
-
-    return render_to_response(
-        'sentry/admin/status/warnings.html',
-        {
-            'groups':
-            sorted([(groupings[key], sort_by_message(values)) for key, values in groups.items()]),
-            'warnings':
-            sort_by_message(warnings),
-        },
-        request,
     )
 
 

@@ -720,6 +720,13 @@ function routes() {
           }
           component={errorHandler(LazyLoad)}
         />
+        <Route
+          path="status/warnings/"
+          componentPromise={() =>
+            import(/* webpackChunkName: "AdminWarnings" */ 'app/views/admin/adminWarnings')
+          }
+          component={errorHandler(LazyLoad)}
+        />
         {hook('routes:admin')}
       </Route>
       <Redirect from="/share/group/:shareId/" to="/share/issue/:shareId/" />
