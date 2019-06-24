@@ -12149,7 +12149,7 @@ send@0.16.2:
     range-parser "~1.2.0"
     statuses "~1.4.0"
 
-sentry-dreamy-components@^1.0.1:
+sentry-dreamy-components@^1.0.2:
   version "1.0.2"
   resolved "https://registry.yarnpkg.com/sentry-dreamy-components/-/sentry-dreamy-components-1.0.2.tgz#18f5c1997e4a2c42faf079304a2d920466db87f3"
   integrity sha512-z/L3AFA8YBF4BmxrMd4HVxQ1LFChJor7SfESSVqpwtWloQJPIFiBJQbolq0VxEDNS850WwIE4C8lfzyJRFk04w==
