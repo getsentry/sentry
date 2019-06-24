@@ -33,7 +33,7 @@ class BuildSerializer(Serializer):
             'totalIssues': obj.total_issues,
             'totalEvents': obj.total_events,
             'status': obj.get_status_display(),
-            'name': obj.name,
+            'name': obj.name or 'Unknown build',
             'dateCreated': obj.date_added,
             'project': attrs['project'],
         }

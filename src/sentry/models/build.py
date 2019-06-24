@@ -31,7 +31,7 @@ class Build(Model):
     project_id = BoundedPositiveIntegerField(db_index=True)
     build_id = models.TextField()
     build_id_hash = models.CharField(max_length=128)
-    name = models.TextField()
+    name = models.TextField(null=True)
     status = BoundedPositiveIntegerField(
         default=BuildStatus.NEEDS_APPROVED,
         choices=BuildStatus.as_choices(),
@@ -44,6 +44,6 @@ class Build(Model):
     class Meta:
         app_label = 'sentry'
         db_table = 'sentry_build'
-        unique_together = (('organization_id', 'build_id_hash'),)
+        unique_together = (('project_id', 'build_id_hash'),)
 
     __repr__ = sane_repr('guid', 'project_id')

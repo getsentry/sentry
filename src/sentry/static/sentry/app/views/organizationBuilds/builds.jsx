@@ -80,7 +80,7 @@ class OrganizationBuilds extends AsyncView {
           <StyledSearchBar
             organization={organization}
             query={(location.query && location.query.query) || ''}
-            placeholder={t('Search for buildss.')}
+            placeholder={t('Search for builds.')}
             onSearch={this.handleSearch}
           />
         </PageHeader>
@@ -93,7 +93,11 @@ class OrganizationBuilds extends AsyncView {
                     <BuildIcon status={build.status} size={16} />
                   </Box>
                   <Box flex="1" mr={2}>
-                    <Link to={`/organizations/${organization.slug}/builds/${build.id}/`}>
+                    <Link
+                      to={`/organizations/${
+                        organization.slug
+                      }/events/?query=build.id:${encodeURIComponent(build.id)}`}
+                    >
                       {build.name}
                     </Link>
                   </Box>

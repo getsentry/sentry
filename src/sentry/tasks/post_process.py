@@ -231,12 +231,33 @@ def post_process_group(event, is_new, is_regression, is_sample, is_new_group_env
                 is_sample=is_sample,
             )
 
+        if 'build' in event.data.get('contexts', {}):
+            index_build_context(event)
+
         event_processed.send_robust(
             sender=post_process_group,
             project=event.project,
             group=event.group,
             event=event,
             primary_hash=kwargs.get('primary_hash'),
+        )
+
+
+def index_build_context(event):
+    from django.db import transaction
+    from hashlib import sha1
+    from sentry.models import Build
+
+    context = event.data['contexts']['build']
+    with transaction.atomic():
+        build, _ = Build.objects.get_or_create(
+            project_id=event.project_id,
+            build_id_hash=sha1(context['id']).hexdigest(),
+            defaults={
+                'organization_id': event.project.organization_id,
+                'build_id': context['id'],
+                'name': context.get('name'),
+            },
         )
 
 
