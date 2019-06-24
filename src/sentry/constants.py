@@ -232,6 +232,7 @@ KNOWN_DIF_FORMATS = {
     'application/x-dosexec': 'pe',
     'application/x-ms-pdb': 'pdb',
     'text/x-proguard+plain': 'proguard',
+    'application/sentry-bundle+zip': 'bundle',
 }
 
 NATIVE_UNKNOWN_STRING = '<unknown>'
