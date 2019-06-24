@@ -8,11 +8,11 @@ import os.path
 import re
 import sys
 from functools import reduce
+from importlib import import_module
 from optparse import make_option
 
 from django.core.management.base import BaseCommand
 from django.conf import settings
-from django.utils.importlib import import_module
 
 from south import migration
 from south.migration import Migrations
