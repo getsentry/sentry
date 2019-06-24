@@ -1,6 +1,8 @@
 {
     "extends": "./node_modules/@sentry/typescript/tsconfig.json",
     "compilerOptions": {
+        "declaration": false,
+        "allowJs": true,
         "module": "commonjs",
         "jsx": "react",
         "baseUrl": ".",
