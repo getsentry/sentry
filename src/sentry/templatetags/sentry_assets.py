@@ -2,6 +2,7 @@ from __future__ import absolute_import
 
 from django.conf import settings
 from django.template import Library
+from six.moves.urllib.parse import urljoin
 
 from sentry import options
 from sentry.utils.assets import get_asset_url
@@ -24,7 +25,10 @@ def absolute_asset_url(context, module, path):
     request = context['request']
     base_url = request.META.get('HTTP_X_SENTRY_FE_BASE')
 
-    return absolute_uri(get_asset_url(module, path), base=base_url)
+    if base_url is not None:
+        return '{}/{}/{}'.format(base_url.rstrip('/'), module, path.lstrip('/'))
+    else:
+        return absolute_uri(get_asset_url(module, path))
 
 
 @register.simple_tag
