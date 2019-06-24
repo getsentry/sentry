@@ -116,6 +116,7 @@
     "babel-gettext-extractor": "^3.0.0",
     "babel-jest": "24.1.0",
     "babel-plugin-dynamic-import-node": "^2.2.0",
+    "copy-webpack-plugin": "^5.0.3",
     "enzyme": "3.10.0",
     "enzyme-adapter-react-16": "1.14.0",
     "enzyme-to-json": "3.3.5",

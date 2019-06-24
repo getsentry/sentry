@@ -6,6 +6,7 @@ const webpack = require('webpack');
 const babelConfig = require('./babel.config');
 const OptionalLocaleChunkPlugin = require('./build-utils/optional-locale-chunk-plugin');
 const IntegrationDocsFetchPlugin = require('./build-utils/integration-docs-fetch-plugin');
+const CopyPlugin = require('copy-webpack-plugin');
 const ExtractTextPlugin = require('mini-css-extract-plugin');
 const CompressionPlugin = require('compression-webpack-plugin');
 const OptimizeCssAssetsPlugin = require('optimize-css-assets-webpack-plugin');
@@ -217,6 +218,10 @@ const appConfig = {
     ],
   },
   plugins: [
+    // Needed for Netlify configs
+    new CopyPlugin([
+      {from: path.join(staticPrefix, '_+(headers|redirects)'), to: distPath},
+    ]),
     /**
      * Used to make our lodash modules even smaller
      */
