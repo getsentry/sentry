@@ -1,10 +1,10 @@
 export type AggregationResult = Array<string | null>;
 
 export type Column = {
-  name: string,
-  type: string,
-  isTag?: boolean,
-}
+  name: string;
+  type: string;
+  isTag?: boolean;
+};
 
 /**
  * Returns true if an aggregation is valid and false if not
@@ -15,7 +15,10 @@ export type Column = {
  * @param cols.type Type of column
  * @returns True if valid aggregation, false if not
  */
-export function isValidAggregation(aggregation: AggregationResult, cols: [{name: string, type: string}]): boolean {
+export function isValidAggregation(
+  aggregation: AggregationResult,
+  cols: [{name: string; type: string}]
+): boolean {
   const columns = new Set(cols.map(({name}) => name));
   const [func, col] = aggregation;
 
