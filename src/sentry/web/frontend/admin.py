@@ -11,7 +11,6 @@ import logging
 import sys
 import uuid
 
-import pkg_resources
 import six
 from django.conf import settings
 from django.core.context_processors import csrf
@@ -177,31 +176,6 @@ def status_env(request):
             'config': config,
             'environment': env.data,
         }, request
-    )
-
-
-@requires_admin
-def status_packages(request):
-    config = []
-    for k in sorted(dir(settings)):
-        if k == 'KEY':
-            continue
-        if k.startswith('_'):
-            continue
-        if k.upper() != k:
-            continue
-        config.append((k, getattr(settings, k)))
-
-    return render_to_response(
-        'sentry/admin/status/packages.html', {
-            'modules':
-            sorted([(p.project_name, p.version) for p in pkg_resources.working_set]),
-            'extensions': [
-                (p.get_title(), '%s.%s' % (p.__module__, p.__class__.__name__))
-                for p in plugins.all(version=None)
-            ],
-        },
-        request
     )
 
 

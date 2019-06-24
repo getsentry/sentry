@@ -310,8 +310,6 @@ urlpatterns += patterns(
     # Admin
     url(r'^manage/status/environment/$',
         admin.status_env, name='sentry-admin-status'),
-    url(r'^manage/status/packages/$', admin.status_packages,
-        name='sentry-admin-packages-status'),
     url(r'^manage/status/mail/$', admin.status_mail,
         name='sentry-admin-mail-status'),
 

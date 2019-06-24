@@ -55,6 +55,7 @@ from .endpoints.internal_queue_tasks import InternalQueueTasksEndpoint
 from .endpoints.internal_quotas import InternalQuotasEndpoint
 from .endpoints.internal_stats import InternalStatsEndpoint
 from .endpoints.internal_warnings import InternalWarningsEndpoint
+from .endpoints.internal_packages import InternalPackagesEndpoint
 from .endpoints.monitor_checkins import MonitorCheckInsEndpoint
 from .endpoints.monitor_checkin_details import MonitorCheckInDetailsEndpoint
 from .endpoints.monitor_details import MonitorDetailsEndpoint
@@ -1417,10 +1418,9 @@ urlpatterns = patterns(
     ),
     url(r'^internal/quotas/$', InternalQuotasEndpoint.as_view()),
     url(r'^internal/queue/tasks/$', InternalQueueTasksEndpoint.as_view()),
-    url(r'^internal/stats/$', InternalStatsEndpoint.as_view(),
-        name='sentry-api-0-internal-stats'),
-    url(r'^internal/warnings/$', InternalWarningsEndpoint.as_view(),
-        name='sentry-api-0-internal-warnings'),
+    url(r'^internal/stats/$', InternalStatsEndpoint.as_view()),
+    url(r'^internal/warnings/$', InternalWarningsEndpoint.as_view()),
+    url(r'^internal/packages/$', InternalPackagesEndpoint.as_view()),
 
     # Project Wizard
     url(
