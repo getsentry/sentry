@@ -262,6 +262,7 @@ INSTALLED_APPS = (
     'django.contrib.admin', 'django.contrib.auth', 'django.contrib.contenttypes',
     'django.contrib.messages', 'django.contrib.sessions', 'django.contrib.sites',
     'crispy_forms', 'debug_toolbar',
+    "graphene_django",
     'rest_framework', 'sentry', 'sentry.analytics', 'sentry.incidents',
     'sentry.analytics.events', 'sentry.nodestore', 'sentry.search', 'sentry.lang.java',
     'sentry.lang.javascript', 'sentry.lang.native', 'sentry.plugins.sentry_interface_types',
@@ -1360,7 +1361,8 @@ SENTRY_DEVSERVICES = {
         }
     },
     'postgres': {
-        'image': 'postgres:9.6-alpine',
+        # 'image': 'postgres:9.6-alpine',
+        'image': 'filippo-postgres6',
         'ports': {'5432/tcp': 5432},
         'environment': {
             'POSTGRES_DB': 'sentry',
@@ -1751,3 +1753,7 @@ KAFKA_TOPICS = {
 # never need to switch this unless you created a workspace app before slack
 # disabled them.
 SLACK_INTEGRATION_USE_WST = False
+
+GRAPHENE = {
+    'SCHEMA': 'sentry.api.graphql.schema',
+}

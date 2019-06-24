@@ -18,6 +18,7 @@ enum34>=1.1.6,<1.2.0
 exam>=0.5.1
 functools32>=3.2.3,<3.3
 futures>=3.2.0,<4.0.0
+graphene-django==2.1.0
 # broken on python3
 hiredis>=0.1.0,<0.2.0
 honcho>=1.0.0,<1.1.0
