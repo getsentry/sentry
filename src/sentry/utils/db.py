@@ -11,7 +11,12 @@ import six
 
 from django.conf import settings
 from django.db import connections, DEFAULT_DB_ALIAS
-from django.db.models.fields.related import SingleRelatedObjectDescriptor
+
+# TODO: (Django 1.9) Remove once on Django 1.9+
+try:
+    from django.db.models.fields.related_descriptors import ReverseOneToOneDescriptor
+except ImportError:
+    from django.db.models.fields.related import SingleRelatedObjectDescriptor as ReverseOneToOneDescriptor
 
 
 def get_db_engine(alias='default'):
@@ -39,7 +44,7 @@ def attach_foreignkey(objects, field, related=(), database=None):
     if database is None:
         database = list(objects)[0]._state.db
 
-    is_foreignkey = isinstance(field, SingleRelatedObjectDescriptor)
+    is_foreignkey = isinstance(field, ReverseOneToOneDescriptor)
 
     if not is_foreignkey:
         field = field.field
