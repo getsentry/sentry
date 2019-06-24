@@ -1,7 +1,7 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import styled, {css} from 'react-emotion';
-import {uniq, intersection} from 'lodash';
+import {uniq} from 'lodash';
 
 import {analytics} from 'app/utils/analytics';
 import getRouteStringFromRoutes from 'app/utils/getRouteStringFromRoutes';
@@ -60,27 +60,14 @@ class MultipleEnvironmentSelector extends React.PureComponent {
   }
 
   componentDidUpdate(prevProps, prevState) {
-    // When projects change we may need to update the selected value if the current values
-    // become invalid.
-    const sharedProjects = intersection(
-      prevProps.selectedProjects,
-      this.props.selectedProjects
-    );
-    if (sharedProjects.length !== prevProps.selectedProjects.length) {
-      const selectedEnvs = Array.from(this.state.selectedEnvs.values());
-      const validEnvironments = this.getEnvironments();
-      const newSelection = validEnvironments.filter(env => selectedEnvs.includes(env));
-
-      if (newSelection.length !== selectedEnvs.length) {
-        this.replaceSelected(newSelection);
-      }
+    // Need to sync state
+    if (this.props.value !== prevProps.value) {
+      this.syncSelectedStateFriomProps();
     }
   }
 
-  replaceSelected(newSelection) {
-    this.setState({selectedEnvs: new Set(newSelection)});
-    this.props.onChange(newSelection);
-  }
+  syncSelectedStateFriomProps = () =>
+    this.setState({selectedEnvs: new Set(this.props.value)});
 
   /**
    * If value in state is different than value from props, propagate changes

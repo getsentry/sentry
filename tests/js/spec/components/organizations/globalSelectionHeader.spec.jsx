@@ -165,7 +165,7 @@ describe('GlobalSelectionHeader', function() {
     });
   });
 
-  it('updates environments when switching projects that do not have overlapping environments', async function() {
+  it('updates environments when switching projects', async function() {
     const wrapper = mount(
       <GlobalSelectionHeader
         organization={organization}
@@ -202,7 +202,7 @@ describe('GlobalSelectionHeader', function() {
       .simulate('click');
     wrapper.find('MultipleEnvironmentSelector HeaderItem').simulate('click');
     await tick();
-    // wrapper.update();
+
     expect(wrapper.find('MultipleEnvironmentSelector Content').text()).toBe('staging');
 
     expect(GlobalSelectionStore.get()).toEqual({
@@ -220,23 +220,6 @@ describe('GlobalSelectionHeader', function() {
       environment: 'staging',
       project: ['2', '3'],
     });
-
-    // this is kind of shitty but if we use UI to change projects, GlobalSelectionHeader updates store
-    // before router get a chance to update its props
-    const newLocation = {
-      router: {
-        ...router,
-        location: {
-          ...router.location,
-          query: {
-            ...query,
-            project: ['2'],
-          },
-        },
-      },
-    };
-    wrapper.setProps(newLocation);
-    wrapper.update();
 
     // Now change projects, first project has no enviroments
     wrapper.find('MultipleProjectSelector HeaderItem').simulate('click');

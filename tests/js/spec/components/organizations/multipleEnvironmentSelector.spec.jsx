@@ -58,32 +58,15 @@ describe('MultipleEnvironmentSelector', function() {
     expect(onChange).toHaveBeenCalledTimes(3);
     expect(onChange).toHaveBeenLastCalledWith(envs, expect.anything());
 
-    wrapper.setProps({value: envs});
-    wrapper.update();
+    // console.log(wrapper.find('MultipleSelectorSubmitRow').debug());
     wrapper
-      .find('MultipleEnvironmentSelector')
-      .instance()
-      .doUpdate();
-    expect(onUpdate).toHaveBeenCalledWith();
-  });
-
-  it('will call onUpdate when project selection change causes invalid values', async function() {
-    await wrapper.find('MultipleEnvironmentSelector HeaderItem').simulate('click');
-
-    // Select 'production'
-    await wrapper
-      .find('MultipleEnvironmentSelector AutoCompleteItem CheckboxHitbox')
-      .at(0)
+      .find('MultipleSelectorSubmitRow button[aria-label="Apply"]')
       .simulate('click');
-    await wrapper.update();
-
-    // Update project selection so that 'production' is no longer an option.
-    wrapper.setProps({selectedProjects: [2]});
-    await wrapper.update();
-
-    expect(onChange).toHaveBeenCalled();
-    const selector = wrapper.find('MultipleEnvironmentSelector').instance();
-    expect(selector.state.selectedEnvs).toEqual(new Set([]));
+    // wrapper
+    // .find('MultipleEnvironmentSelector')
+    // .instance()
+    // .doUpdate();
+    expect(onUpdate).toHaveBeenCalledWith();
   });
 
   it('selects multiple environments and uses chevron to update', async function() {

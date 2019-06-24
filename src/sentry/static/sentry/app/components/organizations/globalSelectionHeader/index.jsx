@@ -351,8 +351,22 @@ class GlobalSelectionHeader extends React.Component {
 
   handleUpdateProjects = () => {
     const {projects} = this.state;
-    updateProjects(projects, this.getRouter(), this.getUpdateOptions());
-    updateEnvironments(null, this.getRouter(), this.getUpdateOptions());
+
+    // Clear environments when switching projects
+    //
+    // Update both params at once, otherwise:
+    // - if you update projects first, we could get a flicker
+    //   because you'll have projects & environments before we update
+    // - if you update environments first, there could be race conditions
+    //   with value of router.location.query
+    updateParams(
+      {
+        environment: null,
+        project: projects,
+      },
+      this.getRouter(),
+      this.getUpdateOptions()
+    );
     this.setState({projects: null, environments: null});
     callIfFunction(this.props.onUpdateProjects, projects);
   };
