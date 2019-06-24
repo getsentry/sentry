@@ -3,7 +3,7 @@ import {isEqual, pick} from 'lodash';
 import moment from 'moment';
 import qs from 'query-string';
 
-import {isValidAggregation} from './aggregations/utils';
+import {AggregationResult, isValidAggregation} from './aggregations/utils';
 import {NON_SNUBA_FIELDS} from './data';
 
 const VALID_QUERY_KEYS = [
@@ -26,7 +26,7 @@ export function getQueryFromQueryString(queryString: string): {[key: string]: st
     if (item.includes('=')) {
       const [key, value] = item.split('=');
       if (queryKeys.has(key)) {
-        result[key] = `${JSON.parse(decodeURIComponent(value))}`;
+        result[key] = JSON.parse(decodeURIComponent(value));
       }
     }
   });
@@ -54,7 +54,7 @@ export function getOrderbyFields(queryBuilder: any): any {
   const query = queryBuilder.getInternal();
 
   // If there are valid aggregations, only allow summarized fields and aggregations in orderby
-  const validAggregations = query.aggregations.filter((agg: string) =>
+  const validAggregations = query.aggregations.filter((agg: AggregationResult) =>
     isValidAggregation(agg, columns)
   );
 
@@ -106,6 +106,9 @@ export function getView(params: any, requestedView: string): string {
 /**
  * Returns true if the underlying discover query has changed based on the
  * querystring, otherwise false.
+ *
+ * @param prev previous location.search string
+ * @param next next location.search string
  */
 export function queryHasChanged(prev: string, next: string): boolean {
   return !isEqual(
@@ -130,7 +133,7 @@ export function fetchSavedQuery(organization: any, queryId: any): any {
 
   return api.requestPromise(endpoint, {
     method: 'GET',
-  });
+  } as any); // TODO: Remove as any
 }
 
 export function fetchSavedQueries(organization: any): any {
@@ -139,7 +142,7 @@ export function fetchSavedQueries(organization: any): any {
 
   return api.requestPromise(endpoint, {
     method: 'GET',
-  });
+  } as any); // TODO: Remove as any
 }
 
 export function createSavedQuery(organization: any, data: any): any {
@@ -149,7 +152,7 @@ export function createSavedQuery(organization: any, data: any): any {
   return api.requestPromise(endpoint, {
     data,
     method: 'POST',
-  });
+  } as any); // TODO: Remove as any
 }
 
 export function updateSavedQuery(organization: any, id: any, data: any): any {
@@ -159,7 +162,7 @@ export function updateSavedQuery(organization: any, id: any, data: any): any {
   return api.requestPromise(endpoint, {
     data,
     method: 'PUT',
-  });
+  } as any); // TODO: Remove as any
 }
 
 export function deleteSavedQuery(organization: any, id: any): any {
@@ -168,7 +171,7 @@ export function deleteSavedQuery(organization: any, id: any): any {
 
   return api.requestPromise(endpoint, {
     method: 'DELETE',
-  });
+  } as any); // TODO: Remove as any
 }
 
 /**
