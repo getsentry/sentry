@@ -97,7 +97,7 @@ class OrganizationBuilds extends AsyncView {
                       to={`/organizations/${
                         organization.slug
                       }/events/?environment=test&query=build.id:${encodeURIComponent(
-                        build.id
+                        build.buildId
                       )}`}
                     >
                       {build.name}
