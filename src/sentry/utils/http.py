@@ -20,10 +20,12 @@ from sentry.utils import json
 ParsedUriMatch = namedtuple('ParsedUriMatch', ['scheme', 'domain', 'path'])
 
 
-def absolute_uri(url=None):
+def absolute_uri(url=None, base=None):
+    if base is None:
+        base = options.get('system.url-prefix')
     if not url:
-        return options.get('system.url-prefix')
-    return urljoin(options.get('system.url-prefix').rstrip('/') + '/', url.lstrip('/'))
+        return base
+    return urljoin(base.rstrip('/') + '/', url.lstrip('/'))
 
 
 def origin_from_url(url):

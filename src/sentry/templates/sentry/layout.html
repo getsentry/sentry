@@ -28,14 +28,14 @@
   <link rel="mask-icon" sizes="any" href="{% absolute_asset_url "sentry" "images/icons/sentry-glyph-black.svg" %}" color="#FB4226">
 
   {% block css %}
-  <link href="{% asset_url "sentry" "dist/sentry.css" %}" rel="stylesheet"/>
+  <link href="{% absolute_asset_url "sentry" "dist/sentry.css" %}" rel="stylesheet"/>
   {% endblock %}
 
   <title>{% block title %}Sentry{% endblock %}</title>
 
   <script>
     window.csrfCookieName = '{{ CSRF_COOKIE_NAME }}';
-    window.__sentryGlobalStaticPrefix = '{% asset_url "sentry" "dist/" %}';
+    window.__sentryGlobalStaticPrefix = '{% absolute_asset_url "sentry" "dist/" %}';
     window.__initialData = {% get_react_config %};
     window.__languageCode = {{ request.LANGUAGE_CODE|to_json|safe }};
   </script>
@@ -43,14 +43,14 @@
   {% block scripts %}
   {% include "sentry/includes/sdk-config.html" %}
   {% locale_js_include %}
-  <script src="{% asset_url "sentry" "dist/vendor.js" %}"{% crossorigin %}></script>
-  <script src="{% asset_url "sentry" "dist/app.js" %}"{% crossorigin %}></script>
+  <script src="{% absolute_asset_url "sentry" "dist/vendor.js" %}"{% crossorigin %}></script>
+  <script src="{% absolute_asset_url "sentry" "dist/app.js" %}"{% crossorigin %}></script>
 
   <script>
     // if the ads.js file loads below it will mark this variable as false
     window.adblockSuspected = true;
   </script>
-  <script src="{% asset_url 'sentry' 'js/ads.js' %}"></script>
+  <script src="{% absolute_asset_url 'sentry' 'js/ads.js' %}"></script>
   {% endblock %}
 
   {% block meta %}
