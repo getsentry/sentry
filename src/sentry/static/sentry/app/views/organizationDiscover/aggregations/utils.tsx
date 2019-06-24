@@ -1,5 +1,11 @@
 export type AggregationResult = Array<string | null>;
 
+export type Column = {
+  name: string,
+  type: string,
+  isTag?: boolean,
+}
+
 /**
  * Returns true if an aggregation is valid and false if not
  *
