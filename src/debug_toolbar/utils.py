@@ -16,10 +16,13 @@ from django.utils.encoding import force_text
 from django.utils.html import escape
 from django.utils.safestring import mark_safe
 from django.utils import six
-from django.views.debug import linebreak_iter
 
 from .settings import CONFIG
 from debug_toolbar.compat import import_module
+try:
+    from django.template.base import linebreak_iter  # NOQA
+except ImportError:  # Django < 1.9
+    from django.views.debug import linebreak_iter  # NOQA
 
 # Figure out some paths
 django_path = os.path.realpath(os.path.dirname(django.__file__))
