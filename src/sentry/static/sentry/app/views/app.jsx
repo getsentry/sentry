@@ -7,7 +7,7 @@ import Cookies from 'js-cookie';
 import PropTypes from 'prop-types';
 import React from 'react';
 import keydown from 'react-keydown';
-import {isEqual} from 'lodash';
+import {get, isEqual} from 'lodash';
 
 import {openCommandPalette} from 'app/actionCreators/modal';
 import {t} from 'app/locale';
@@ -117,8 +117,8 @@ class App extends React.Component {
         return;
       }
 
-      const code = jqXHR?.responseJSON?.detail?.code;
-      const extra = jqXHR?.responseJSON?.detail?.extra;
+      const code = get(jqXHR, 'responseJSON.detail.code');
+      const extra = get(jqXHR, 'responseJSON.detail.extra');
 
       // 401s can also mean sudo is required or it's a request that is allowed to fail
       // Ignore if these are the cases

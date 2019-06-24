@@ -114,7 +114,7 @@ class OnboardingPlatform extends React.Component {
   render() {
     const {active, project, platform, scrollTargetId} = this.props;
 
-    const selectedPlatform = platform || project?.platform;
+    const selectedPlatform = platform || (project && project.platform);
 
     const continueDisabled =
       !selectedPlatform || this.state.progressing || (this.hasFirstProject && !active);

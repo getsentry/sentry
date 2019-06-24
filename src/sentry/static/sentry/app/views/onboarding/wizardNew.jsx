@@ -95,7 +95,7 @@ class OnboardingWizard extends React.Component {
   }
 
   get projectPlatform() {
-    return this.state.platform || this.firstProject?.platform;
+    return this.state.platform || (this.firstProject && this.firstProject.platform);
   }
 
   handleUpdate = data => {
