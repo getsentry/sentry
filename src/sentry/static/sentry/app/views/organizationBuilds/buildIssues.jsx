@@ -1,38 +1,44 @@
-import React, {Component} from 'react';
 import PropTypes from 'prop-types';
+import React from 'react';
 
-import IssueList from 'app/components/issueList';
-import {t} from 'app/locale';
+import {Panel, PanelBody} from 'app/components/panels';
+import CompactIssue from 'app/components/issues/compactIssue';
+import AsyncComponent from 'app/components/asyncComponent';
 
-export default class BuildIssues extends Component {
+export default class BuildIssues extends AsyncComponent {
   static propTypes = {
     orgId: PropTypes.string.isRequired,
     build: PropTypes.object.isRequired,
   };
 
-  getIssuesPath() {
-    const {orgId} = this.props;
-    return `/organizations/${orgId}/issues/`;
+  getEndpoints() {
+    return [
+      [
+        'issueList',
+        `/organizations/${this.props.orgId}/issues/`,
+        {query: {query: 'build.id:"' + this.props.build.buildId + '"'}},
+      ],
+    ];
   }
 
-  render() {
-    const {build, orgId} = this.props;
-
+  renderBody() {
     return (
-      <IssueList
-        endpoint={this.getIssuesPath()}
-        query={{
-          query: 'build.id:"' + build.buildId + '"',
-          limit: 5,
-        }}
-        statsPeriod="0"
-        pagination={false}
-        emptyText={t('No issues found')}
-        showActions={false}
-        noBorder={true}
-        noMargin={true}
-        params={{orgId}}
-      />
+      <Panel style={{border: 0, borderRadius: 0, marginBottom: 0}}>
+        <button>CLICK ME TO REVIEW THESE REALLY BAD BUGS</button>
+        <PanelBody className="issue-list">
+          {this.state.issueList.map(issue => {
+            return (
+              <CompactIssue
+                key={issue.id}
+                id={issue.id}
+                data={issue}
+                statsPeriod=""
+                showActions={false}
+              />
+            );
+          })}
+        </PanelBody>
+      </Panel>
     );
   }
 }
