@@ -1,8 +1,0 @@
-{
-    "extends": "@sentry/typescript/tslint",
-    "rules": {
-      "no-unsafe-any": false,
-      "completed-docs": false,
-      "no-implicit-dependencies": [true, ["app"]]
-    }
-  }
