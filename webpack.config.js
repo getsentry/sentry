@@ -202,7 +202,9 @@ const appConfig = {
       },
       {
         test: /\.tsx?$/,
-        loader: 'awesome-typescript-loader',
+        include: [staticPrefix],
+        exclude: /(vendor|node_modules|dist)/,
+        loader: 'ts-loader',
       },
       {
         test: /\.po$/,
