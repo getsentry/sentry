@@ -242,6 +242,13 @@ export const Team = PropTypes.shape({
   slug: PropTypes.string.isRequired,
 });
 
+export const Build = PropTypes.shape({
+  id: PropTypes.string.isRequired,
+  buildId: PropTypes.string.isRequired,
+  name: PropTypes.string.isRequired,
+  dateCreated: PropTypes.string,
+});
+
 export const Monitor = PropTypes.shape({
   id: PropTypes.string.isRequired,
   name: PropTypes.string.isRequired,

@@ -93,13 +93,7 @@ class OrganizationBuilds extends AsyncView {
                     <BuildIcon status={build.status} size={16} />
                   </Box>
                   <Box flex="1" mr={2}>
-                    <Link
-                      to={`/organizations/${
-                        organization.slug
-                      }/events/?environment=test&query=build.id:${encodeURIComponent(
-                        build.buildId
-                      )}`}
-                    >
+                    <Link to={`/organizations/${organization.slug}/builds/${build.id}/`}>
                       {build.name}
                     </Link>
                   </Box>

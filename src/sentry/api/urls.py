@@ -20,6 +20,7 @@ from .endpoints.auth_index import AuthIndexEndpoint
 from .endpoints.authenticator_index import AuthenticatorIndexEndpoint
 from .endpoints.broadcast_details import BroadcastDetailsEndpoint
 from .endpoints.broadcast_index import BroadcastIndexEndpoint
+from .endpoints.build_details import BuildDetailsEndpoint
 from .endpoints.catchall import CatchallEndpoint
 from .endpoints.chunk import ChunkUploadEndpoint
 from .endpoints.event_attachment_details import EventAttachmentDetailsEndpoint
@@ -332,6 +333,9 @@ urlpatterns = patterns(
     # Project transfer
     url(r'^accept-transfer/$', AcceptProjectTransferEndpoint.as_view(),
         name='sentry-api-0-accept-project-transfer'),
+
+    # Builds
+    url(r'^builds/(?P<build_id>[^\/]+)/$', BuildDetailsEndpoint.as_view()),
 
     # Monitors
     url(r'^monitors/(?P<monitor_id>[^\/]+)/$', MonitorDetailsEndpoint.as_view()),
