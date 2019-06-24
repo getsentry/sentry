@@ -67,9 +67,9 @@ EXTENSION_EXC_SOURCES = re.compile(
             # Kaspersky Protection browser extension
             r'kaspersky-labs\.com',
             # Firefox extensions
-            r'^moz(?:-extension)?:\/\/',
+            r'^moz-extension:\/\/',
             # Safari extensions
-            r'^safari(?:-extension)?:\/\/',
+            r'^safari-extension:\/\/',
         )
     ),
     re.I
