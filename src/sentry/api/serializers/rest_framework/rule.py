@@ -12,15 +12,15 @@ from . import ListField
 ValidationError = serializers.ValidationError
 
 
-class RuleNodeField(serializers.WritableField):
+class RuleNodeField(serializers.Field):
     def __init__(self, type):
         super(RuleNodeField, self).__init__()
         self.type_name = type
 
-    def to_native(self, obj):
-        return obj
+    def to_representation(self, value):
+        return value
 
-    def from_native(self, data):
+    def to_internal_value(self, data):
         if not isinstance(data, dict):
             msg = 'Incorrect type. Expected a mapping, but got %s'
             raise ValidationError(msg % type(data).__name__)

@@ -18,7 +18,7 @@ class ImageTooLarge(APIException):
     default_code = 'too_large'
 
 
-class AvatarField(serializers.WritableField):
+class AvatarField(serializers.Field):
     def __init__(
         self,
         max_size=settings.SENTRY_MAX_AVATAR_SIZE,
@@ -31,12 +31,12 @@ class AvatarField(serializers.WritableField):
         self.min_dimension = min_dimension
         self.max_dimension = max_dimension
 
-    def to_native(self, obj):
-        if not obj:
+    def to_representation(self, value):
+        if not value:
             return ''
-        return obj.getvalue()
+        return value.getvalue()
 
-    def from_native(self, data):
+    def to_internal_value(self, data):
         if not data:
             return None
         data = b64decode(data)

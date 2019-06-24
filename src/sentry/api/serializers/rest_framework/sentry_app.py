@@ -11,7 +11,7 @@ from sentry.models import ApiScopes, SentryApp
 from sentry.models.sentryapp import VALID_EVENT_RESOURCES, REQUIRED_EVENT_PERMISSIONS
 
 
-class ApiScopesField(serializers.WritableField):
+class ApiScopesField(serializers.Field):
     def validate(self, data):
         valid_scopes = ApiScopes()
 
@@ -23,7 +23,7 @@ class ApiScopesField(serializers.WritableField):
                 raise ValidationError(u'{} not a valid scope'.format(scope))
 
 
-class EventListField(serializers.WritableField):
+class EventListField(serializers.Field):
     def validate(self, data):
         if not data:
             return
@@ -34,7 +34,7 @@ class EventListField(serializers.WritableField):
             ))
 
 
-class SchemaField(serializers.WritableField):
+class SchemaField(serializers.Field):
     def validate(self, data):
         if not data or data == {}:
             return
@@ -45,7 +45,7 @@ class SchemaField(serializers.WritableField):
             raise ValidationError(e.message)
 
 
-class URLField(serializers.URLField):
+class URLField(serializers.Field):
     def validate(self, url):
         # The Django URLField doesn't distinguish between different types of
         # invalid URLs, so do any manual checks here to give the User a better

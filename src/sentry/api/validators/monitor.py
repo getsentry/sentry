@@ -42,7 +42,7 @@ class CronJobValidator(serializers.Serializer):
     schedule_type = serializers.ChoiceField(
         choices=zip(SCHEDULE_TYPES.keys(), SCHEDULE_TYPES.keys()),
     )
-    schedule = serializers.WritableField()
+    schedule = serializers.Field()
     checkin_margin = serializers.IntegerField(required=False)
     max_runtime = serializers.IntegerField(required=False)
 

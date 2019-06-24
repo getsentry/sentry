@@ -3,13 +3,17 @@ from __future__ import absolute_import
 import six
 
 from collections import defaultdict
-from rest_framework.serializers import WritableField, ValidationError
+from rest_framework.serializers import (
+    Field,
+    ReadOnlyField,
+    ValidationError,
+)
 
 
-class ListField(WritableField):
+class ListField(Field):
     def __init__(self, child=None, allow_null=True, **kwargs):
         if child:
-            assert isinstance(child, WritableField)
+            assert not isinstance(child, ReadOnlyField)
         self.child = child
         self.allow_null = allow_null
         super(ListField, self).__init__(**kwargs)
@@ -22,25 +26,25 @@ class ListField(WritableField):
             self._child_errors = defaultdict(list)
             self.child.initialize(parent, field_name)
 
-    def to_native(self, value):
+    def to_representation(self, value):
         return value
 
-    def from_native(self, value):
-        if value is None:
+    def to_internal_value(self, data):
+        if data is None:
             return None
 
-        if not value:
+        if not data:
             return []
 
-        if not isinstance(value, list):
+        if not isinstance(data, list):
             msg = 'Incorrect type. Expected a list, but got %s'
-            raise ValidationError(msg % type(value).__name__)
+            raise ValidationError(msg % type(data).__name__)
 
         if self.child is None:
-            return value
+            return data
 
         children = []
-        for item in value:
+        for item in data:
             children.append(self.child.from_native(item))
             self.add_child_errors()
         return children
