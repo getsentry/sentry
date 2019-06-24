@@ -29,6 +29,7 @@ class Build(Model):
     guid = UUIDField(unique=True, auto_add=True)
     organization_id = BoundedPositiveIntegerField(db_index=True)
     project_id = BoundedPositiveIntegerField(db_index=True)
+    commit_key = models.CharField(max_length=64, null=True)
     build_id = models.TextField()
     build_id_hash = models.CharField(max_length=128)
     name = models.TextField(null=True)
@@ -44,6 +45,11 @@ class Build(Model):
     class Meta:
         app_label = 'sentry'
         db_table = 'sentry_build'
-        unique_together = (('project_id', 'build_id_hash'),)
+        unique_together = (('project_id', 'build_id_hash', 'commit_key'),)
 
     __repr__ = sane_repr('guid', 'project_id')
+
+    @property
+    def organization(self):
+        from sentry.models import Organization
+        return Organization.objects.get_from_cache(id=self.organization_id)
