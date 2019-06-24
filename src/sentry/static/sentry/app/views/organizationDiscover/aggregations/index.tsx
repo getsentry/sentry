@@ -1,32 +1,34 @@
-import React from 'react';
-import PropTypes from 'prop-types';
-
-import Link from 'app/components/links/link';
-import InlineSvg from 'app/components/inlineSvg';
+import * as React from 'react';
+import styled from 'react-emotion';
 import {t} from 'app/locale';
+import space from 'app/styles/space';
 
-import Aggregation from './aggregation';
+const InlineSvg: any = require('app/components/inlineSvg').default;
+const Link: any = require('app/components/links/link').default;
+const Aggregation: any = require('./aggregation').default;
+
 import {PlaceholderText, SelectListItem, AddText, SidebarLabel} from '../styles';
+import {AggregationResult, Column} from './utils';
 
-export default class Aggregations extends React.Component {
-  static propTypes = {
-    value: PropTypes.array.isRequired,
-    onChange: PropTypes.func.isRequired,
-    columns: PropTypes.array,
-    disabled: PropTypes.bool,
-  };
+type AggregationsProps = {
+  value: AggregationResult[];
+  onChange: (value: AggregationResult[]) => void;
+  columns: Column[];
+  disabled: boolean;
+};
 
+export default class Aggregations extends React.Component<AggregationsProps, any> {
   addRow() {
     this.props.onChange([...this.props.value, [null, null, null]]);
   }
 
-  removeRow(idx) {
+  removeRow(idx: number) {
     const aggregations = this.props.value.slice();
     aggregations.splice(idx, 1);
     this.props.onChange(aggregations);
   }
 
-  handleChange(val, idx) {
+  handleChange(val: AggregationResult, idx: number) {
     const aggregations = this.props.value.slice();
 
     aggregations[idx] = val;
@@ -54,7 +56,7 @@ export default class Aggregations extends React.Component {
           <SelectListItem key={`${idx}_${aggregation[2]}`}>
             <Aggregation
               value={aggregation}
-              onChange={val => this.handleChange(val, idx)}
+              onChange={(val: AggregationResult) => this.handleChange(val, idx)}
               columns={columns}
               disabled={disabled}
             />
