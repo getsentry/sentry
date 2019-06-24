@@ -3,6 +3,7 @@ from __future__ import absolute_import, print_function
 import inspect
 import json
 import logging
+import os
 import six
 import zlib
 
@@ -84,10 +85,16 @@ def configure_sdk():
 
     options = settings.SENTRY_SDK_CONFIG
 
+    dsn = options.setdefault('dsn', os.environ.get("SENTRY_DSN"))
+
     internal_transport = InternalTransport()
     upstream_transport = None
-    if options.get('dsn'):
+    if dsn:
         upstream_transport = make_transport(get_options(options))
+
+    sdk_logger.info('upstream-transport.configured', extra={
+        'dsn': dsn,
+    })
 
     def capture_event(event):
         # Make sure we log to upstream when available first

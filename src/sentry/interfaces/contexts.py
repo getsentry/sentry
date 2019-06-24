@@ -152,6 +152,14 @@ class GpuContextType(ContextType):
 
 
 @contexttype
+class BuildContextType(ContextType):
+    type = 'build'
+    indexed_fields = {
+        'id': u'{id}',
+    }
+
+
+@contexttype
 class MonitorContextType(ContextType):
     type = 'monitor'
     indexed_fields = {

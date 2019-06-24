@@ -120,6 +120,8 @@ def pytest_configure(config):
     if not hasattr(settings, 'SENTRY_OPTIONS'):
         settings.SENTRY_OPTIONS = {}
 
+    settings.SENTRY_SDK_CONFIG['environment'] = 'test'
+
     settings.SENTRY_OPTIONS.update(
         {
             'redis.clusters': {
@@ -157,7 +159,7 @@ def pytest_configure(config):
 
     from sentry.runner.initializer import (
         bootstrap_options, configure_structlog, initialize_receivers, fix_south,
-        bind_cache_to_option_store, setup_services
+        bind_cache_to_option_store, setup_services, configure_sdk
     )
 
     bootstrap_options(settings)
@@ -185,6 +187,17 @@ def pytest_configure(config):
     # disable DISALLOWED_IPS
     from sentry import http
     http.DISALLOWED_IPS = set()
+
+    # We only enable Sentry integration when a CI identifier is present otherwise we end
+    # up with local test runs reporting upstream to Sentry
+    build_identifier = os.environ.get("TRAVIS_BUILD") or os.environ.get("SENTRY_BUILD_ID")
+    if build_identifier:
+        import sentry_sdk
+        configure_sdk()
+        with sentry_sdk.configure_scope() as scope:
+            scope.set_context('build', {
+                'id': build_identifier,
+            })
 
 
 def register_extensions():
