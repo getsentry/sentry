@@ -3,12 +3,13 @@ import styled from 'react-emotion';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 
+import {PlaceholderText, SelectListItem, AddText, SidebarLabel} from '../styles';
+// eslint-disable-next-line no-unused-vars
+import {AggregationResult, Column} from './utils';
+
 const InlineSvg: any = require('app/components/inlineSvg').default;
 const Link: any = require('app/components/links/link').default;
 const Aggregation: any = require('./aggregation').default;
-
-import {PlaceholderText, SelectListItem, AddText, SidebarLabel} from '../styles';
-import {AggregationResult, Column} from './utils';
 
 type AggregationsProps = {
   value: AggregationResult[];
