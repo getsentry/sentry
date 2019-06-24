@@ -2,7 +2,6 @@ from __future__ import absolute_import
 
 from django.conf import settings
 from django.template import Library
-from six.moves.urllib.parse import urljoin
 
 from sentry import options
 from sentry.utils.assets import get_asset_url
