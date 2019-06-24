@@ -70,9 +70,9 @@ def get_files_for_list(file_list):
 
 def get_js_files(file_list=None, snapshots=False):
     if snapshots:
-        extensions = ('.js', '.jsx', '.jsx.snap', '.js.snap')
+        extensions = ('.js', '.jsx', '.ts', '.tsx', '.jsx.snap', '.js.snap')
     else:
-        extensions = ('.js', '.jsx')
+        extensions = ('.js', '.jsx', '.ts', '.tsx')
 
     if file_list is None:
         file_list = ['tests/js', 'src/sentry/static/sentry/app']
@@ -112,9 +112,9 @@ def js_lint(file_list=None, parseable=False, format=False):
     has_errors = False
     if js_file_list:
         if os.environ.get('CI'):
-            cmd = [eslint_wrapper_path, '--ext', '.js,.jsx']
+            cmd = [eslint_wrapper_path, '--ext', '.js,.jsx,.ts,.tsx']
         else:
-            cmd = [eslint_path, '--ext', '.js,.jsx']
+            cmd = [eslint_path, '--ext', '.js,.jsx,.ts,.tsx']
 
         if format:
             cmd.append('--fix')
