@@ -57,4 +57,4 @@ class OrganizationBuildDetails extends AsyncView {
   }
 }
 
-export default OrganizationMonitorDetails;
+export default OrganizationBuildDetails;
