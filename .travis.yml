@@ -121,7 +121,7 @@ base_acceptance: &acceptance_default
     - unzip ~/chromedriver_linux64.zip -d ~/
     - rm ~/chromedriver_linux64.zip
     - sudo install -m755 ~/chromedriver /usr/local/bin/
-    - node --version
+    - /usr/bin/env node --version
   before_script:
     - psql -c 'create database sentry;' -U postgres
 
