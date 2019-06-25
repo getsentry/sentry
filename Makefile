@@ -182,6 +182,15 @@ endif
 
 	@echo ""
 
+test-magic: node-version-check
+	sentry init
+	make build-platform-assets
+	@echo "--> Building static assets"
+	@$(WEBPACK) --display errors-only
+	@echo "--> Running magic tests"
+	py.test tests/test_automatically.py
+	@echo ""
+
 lint: lint-python lint-js
 
 lint-python:
@@ -227,6 +236,7 @@ travis-test-lint: lint-python lint-js
 .PHONY: travis-test-postgres travis-test-acceptance travis-test-snuba travis-test-symbolicator travis-test-js travis-test-cli travis-test-dist travis-test-riak
 travis-test-postgres: test-python
 travis-test-acceptance: test-acceptance
+travis-test-magic: test-magic
 travis-test-snuba: test-snuba
 travis-test-symbolicator: test-symbolicator
 travis-test-js: test-js
@@ -249,6 +259,7 @@ scan-python:
 
 travis-scan-postgres: travis-noop
 travis-scan-acceptance: travis-noop
+travis-scan-magic: travis-noop
 travis-scan-snuba: travis-noop
 travis-scan-symbolicator: travis-noop
 travis-scan-js: travis-noop
