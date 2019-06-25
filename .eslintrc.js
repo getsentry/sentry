@@ -16,9 +16,7 @@ module.exports = {
   overrides: [{
     files: ['*.ts', '*.tsx'],
     rules: {
-      '@typescript-eslint/no-unused-vars': ['error', {
-        args: 'none'
-      }],
+      '@typescript-eslint/no-unused-vars': 'off',
     },
-  }, ],
+  }],
 };
