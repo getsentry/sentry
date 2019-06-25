@@ -23,6 +23,7 @@ from sentry.signals import event_processed
 from sentry.tasks.sentry_apps import process_resource_change_bound
 from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics
+from sentry.utils.http import absolute_uri
 from sentry.utils.redis import redis_clusters
 from sentry.utils.safe import safe_execute
 from sentry.utils.sdk import configure_scope
@@ -309,10 +310,10 @@ def push_github_check(build):
     payload = {
         'name': 'sentry',
         'head_sha': build.commit_key,
-        'details_url': 'http://dev.getsentry.net:8000/organizations/{}/builds/{}/'.format(
+        'details_url': absolute_uri('/organizations/{}/builds/{}/'.format(
             build.organization.slug,
             build.guid,
-        ),
+        )),
         'external_id': six.text_type(build.id),
         'status': 'completed',
         'started_at': build.date_added.isoformat(),
