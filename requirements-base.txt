@@ -11,7 +11,6 @@ django-crispy-forms>=1.4.0,<1.5.0
 django-jsonfield>=0.9.13,<0.9.14
 django-picklefield>=0.3.0,<1.1.0
 django-sudo>=2.1.0,<3.0.0
-django-templatetag-sugar>=0.1.0
 Django>=1.8,<1.9
 djangorestframework>=2.4.8,<2.5.0
 email-reply-parser>=0.2.0,<0.3.0
