@@ -247,7 +247,7 @@ def post_process_group(event, is_new, is_regression, is_sample, is_new_group_env
 def index_build_context(event):
     from django.db import transaction
     from hashlib import sha1
-    from sentry.models import Build
+    from sentry.models import Build, BuildStatus
 
     context = event.data['contexts']['build']
 
@@ -266,6 +266,7 @@ def index_build_context(event):
             build_id_hash=sha1(context['id']).hexdigest(),
             commit_key=params.get('commit_key') or '',
             defaults=dict(
+                status=BuildStatus.NEEDS_APPROVED,
                 organization_id=event.project.organization_id,
                 build_id=context['id'],
                 **params
