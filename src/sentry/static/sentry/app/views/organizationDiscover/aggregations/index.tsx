@@ -7,11 +7,11 @@ import Link from 'app/components/links/link';
 
 import Aggregation from './aggregation';
 import {PlaceholderText, SelectListItem, AddText, SidebarLabel} from '../styles';
-import {SnubaResult, DiscoverBaseProps} from '../types';
+import {AggregationData, DiscoverBaseProps} from '../types';
 
 type AggregationsProps = DiscoverBaseProps & {
-  value: SnubaResult[];
-  onChange: (value: SnubaResult[]) => void;
+  value: AggregationData[];
+  onChange: (value: AggregationData[]) => void;
 };
 
 export default class Aggregations extends React.Component<AggregationsProps, any> {
@@ -25,7 +25,7 @@ export default class Aggregations extends React.Component<AggregationsProps, any
     this.props.onChange(aggregations);
   }
 
-  handleChange(val: SnubaResult, idx: number) {
+  handleChange(val: AggregationData, idx: number) {
     const aggregations = this.props.value.slice();
 
     aggregations[idx] = val;
@@ -53,7 +53,7 @@ export default class Aggregations extends React.Component<AggregationsProps, any
           <SelectListItem key={`${idx}_${aggregation[2]}`}>
             <Aggregation
               value={aggregation}
-              onChange={(val: SnubaResult) => this.handleChange(val, idx)}
+              onChange={(val: AggregationData) => this.handleChange(val, idx)}
               columns={columns}
               disabled={disabled}
             />

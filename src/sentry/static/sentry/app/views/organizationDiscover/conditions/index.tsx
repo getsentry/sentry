@@ -6,11 +6,11 @@ import Link from 'app/components/links/link';
 
 import Condition from './condition';
 import {PlaceholderText, SelectListItem, AddText, SidebarLabel} from '../styles';
-import {SnubaResult, DiscoverBaseProps} from '../types';
+import {ConditionData, DiscoverBaseProps} from '../types';
 
 type ConditionsProps = DiscoverBaseProps & {
-  value: SnubaResult[];
-  onChange: (value: SnubaResult[]) => void;
+  value: ConditionData[];
+  onChange: (value: ConditionData[]) => void;
 };
 
 export default class Conditions extends React.Component<ConditionsProps> {
@@ -24,7 +24,7 @@ export default class Conditions extends React.Component<ConditionsProps> {
     this.props.onChange(conditions);
   }
 
-  handleChange(val: SnubaResult, idx: number) {
+  handleChange(val: ConditionData, idx: number) {
     const conditions = this.props.value.slice();
 
     conditions[idx] = val;
@@ -52,7 +52,7 @@ export default class Conditions extends React.Component<ConditionsProps> {
           <SelectListItem key={`${idx}_${condition[2]}`}>
             <Condition
               value={condition}
-              onChange={(val: SnubaResult) => this.handleChange(val, idx)}
+              onChange={(val: ConditionData) => this.handleChange(val, idx)}
               columns={columns}
               disabled={disabled}
             />

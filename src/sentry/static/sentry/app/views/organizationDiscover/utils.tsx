@@ -3,10 +3,9 @@ import {isEqual, pick} from 'lodash';
 import moment from 'moment';
 import qs from 'query-string';
 
-// eslint-disable-next-line no-unused-vars
 import {isValidAggregation} from './aggregations/utils';
 import {NON_SNUBA_FIELDS} from './data';
-import {SnubaResult} from './types';
+import {AggregationData} from './types';
 
 const VALID_QUERY_KEYS = [
   'projects',
@@ -55,7 +54,7 @@ export function getOrderbyFields(queryBuilder: any): any {
   const query = queryBuilder.getInternal();
 
   // If there are valid aggregations, only allow summarized fields and aggregations in orderby
-  const validAggregations = query.aggregations.filter((agg: SnubaResult) =>
+  const validAggregations = query.aggregations.filter((agg: AggregationData) =>
     isValidAggregation(agg, columns)
   );
 
