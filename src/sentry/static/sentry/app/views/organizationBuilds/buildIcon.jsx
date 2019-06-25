@@ -6,9 +6,9 @@ const getBackgroundColor = p => {
   }
 
   return `background: ${
-    p.status === 'error'
+    p.status === 'needs_approved'
       ? p.theme.error
-      : p.status === 'ok'
+      : p.status === 'approved'
       ? p.theme.success
       : p.theme.disabled
   };`;

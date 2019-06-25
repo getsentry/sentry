@@ -307,7 +307,6 @@ def push_github_check(build):
         organizationintegration__organization=build.organization_id,
     )
     repo = 'getsentry/sentry'
-
     # https://developer.github.com/v3/checks/runs/#create-a-check-run
     payload = {
         'name': 'sentry',
