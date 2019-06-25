@@ -6,6 +6,7 @@ import qs from 'query-string';
 // eslint-disable-next-line no-unused-vars
 import {isValidAggregation} from './aggregations/utils';
 import {NON_SNUBA_FIELDS} from './data';
+import {SnubaResult} from './types';
 
 const VALID_QUERY_KEYS = [
   'projects',
@@ -31,7 +32,6 @@ export function getQueryFromQueryString(queryString: string): {[key: string]: st
       }
     }
   });
-
   return result;
 }
 
