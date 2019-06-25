@@ -1,6 +1,5 @@
 import React from 'react';
 import {Value} from 'react-select';
-import {Box} from 'grid-emotion';
 
 import {t} from 'app/locale';
 import SelectControl from 'app/components/forms/selectControl';
