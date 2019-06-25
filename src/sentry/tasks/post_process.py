@@ -281,7 +281,7 @@ def index_build_context(event):
         if fields_to_update:
             build.update(**fields_to_update)
 
-    if create_check or True:
+    if create_check or True and build.commit_key:
         push_github_check(build)
 
 
@@ -306,7 +306,6 @@ def push_github_check(build):
         organizationintegration__organization=build.organization_id,
     )
     repo = 'getsentry/sentry'
-
     payload = {
         'name': 'sentry',
         'head_sha': build.commit_key,
