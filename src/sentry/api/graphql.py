@@ -7,6 +7,9 @@ from django.utils import timezone
 from graphene_django import DjangoObjectType
 
 from sentry.api.event_search import get_snuba_query_args
+from sentry.api.bases.organization import OrganizationPermission
+from sentry.api.bases.group import GroupPermission
+from sentry.api.bases.project import ProjectPermission, ProjectEventPermission
 from sentry.models import Group, Organization, Project
 from sentry.models.event import SnubaEvent
 from sentry.utils.snuba import raw_query
@@ -26,6 +29,16 @@ class OrganizationType(DjangoObjectType):
                        'date_added', 'default_role', 'flags', 'project_set')
 
     status = graphene.Field(OrgStatus)
+
+    def resolve_project_set(parent, info):
+        projects = Project.objects.filter(
+            organization=parent,
+        )
+        permissions = ProjectPermission()
+        projects = filter(
+            lambda p: permissions.has_object_permission(
+                info.context, None, p), projects)
+        return projects
 
     def resolve_status(parent, info):
         return parent.status
@@ -48,6 +61,15 @@ class ProjectType(DjangoObjectType):
 
     def resolve_status(parent, info):
         return parent.status
+
+    def resolve_group_set(parent, info):
+        permissions = ProjectEventPermission()
+        if not permissions.has_object_permission(info.context, None, parent):
+            return []
+
+        return Group.objects.filter(
+            project=parent,
+        )
 
 
 class EventType(graphene.ObjectType):
@@ -81,7 +103,11 @@ class EventType(graphene.ObjectType):
         return self.get_tags()
 
     def resolve_issue(self, info):
-        return Group.objects.get(id=self.group_id)
+        g = Group.objects.get(id=self.group_id)
+        permissions = GroupPermission()
+        if not permissions.has_object_permission(info.context, None, g):
+            return None
+        return g
 
 
 class GroupType(graphene.Enum):
@@ -169,7 +195,14 @@ class Query(graphene.ObjectType):
         org = Organization.objects.get_from_cache(
             slug=slug,
         )
-        return org
+
+        if not org:
+            return None
+
+        permissions = OrganizationPermission()
+        has_permission = permissions.has_object_permission(info.context, None, org)
+
+        return org if has_permission else None
 
     def resolve_issue(self, info, **kwargs):
         id = kwargs.get('id')
@@ -183,7 +216,11 @@ class Query(graphene.ObjectType):
         project_id = kwargs.get('project_id')
         if not id or not project_id:
             return None
-        return SnubaEvent.get_event(project_id, id)
+        event = SnubaEvent.get_event(project_id, id)
+        permissions = GroupPermission()
+        g = Group.objects.get(id=event.group_id)
+        has_permission = permissions.has_object_permission(info.context, None, g)
+        return event if has_permission else None
 
 
 schema = graphene.Schema(query=Query)

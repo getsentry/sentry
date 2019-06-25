@@ -75,7 +75,6 @@ class SentryPermission(ScopedPermission):
 
     def determine_access(self, request, organization):
         from sentry.api.base import logger
-
         if request.user and request.user.is_authenticated() and request.auth:
             request.access = access.from_request(
                 request,

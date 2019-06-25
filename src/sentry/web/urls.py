@@ -11,7 +11,6 @@ from django.conf import settings
 from django.conf.urls import include, patterns, url
 from django.http import HttpResponse
 from django.views.generic import RedirectView
-from graphene_django.views import GraphQLView
 
 from sentry.web import api
 from sentry.web.frontend import accounts, admin, generic
@@ -95,18 +94,9 @@ if settings.DEBUG:
         name='sentry-dev-favicon'
     ))
 
-graphql_view = GraphQLView.as_view(graphiql=True)
-graphql_view.csrf_exempt = True
 
 urlpatterns += patterns(
     '',
-    # GraphQL
-    url(
-        r'^graphql',
-        graphql_view,
-        name='sentry-api-0-graphql',
-    ),
-
     # Store endpoints first since they are the most active
     url(r'^api/store/$', api.StoreView.as_view(), name='sentry-api-store'),
     url(

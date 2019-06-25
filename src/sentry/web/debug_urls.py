@@ -4,6 +4,7 @@ from django.conf.urls import patterns, url
 from django.views.generic import TemplateView
 
 import sentry.web.frontend.debug.mail
+from sentry.web.frontend.debug.debug_graphql import DebugGraphQLView
 
 from sentry.web.frontend.debug.debug_assigned_email import (
     DebugAssignedEmailView, DebugSelfAssignedEmailView, DebugSelfAssignedTeamEmailView
@@ -46,8 +47,10 @@ from sentry.web.frontend.debug.debug_oauth_authorize import (
     DebugOAuthAuthorizeErrorView,
 )
 
+
 urlpatterns = patterns(
     '',
+    url(r'^debug/graphql', DebugGraphQLView.as_view()),
     url(r'^debug/mail/alert/$', sentry.web.frontend.debug.mail.alert),
     url(r'^debug/mail/note/$', DebugNoteEmailView.as_view()),
     url(r'^debug/mail/new-release/$', DebugNewReleaseEmailView.as_view()),

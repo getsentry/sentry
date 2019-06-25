@@ -2,6 +2,7 @@ from __future__ import absolute_import, print_function
 
 from django.conf.urls import include, patterns, url
 
+from sentry.api.graphql_api import SentryGraphQLView
 from .endpoints.accept_project_transfer import AcceptProjectTransferEndpoint
 from .endpoints.organization_dashboards import OrganizationDashboardsEndpoint
 from .endpoints.relay_heartbeat import RelayHeartbeatEndpoint
@@ -242,6 +243,13 @@ from .endpoints.builtin_symbol_sources import BuiltinSymbolSourcesEndpoint
 
 urlpatterns = patterns(
     '',
+
+    # GraphQL
+    url(
+        r'^graphql',
+        SentryGraphQLView.as_view(),
+        name='sentry-api-0-graphql',
+    ),
 
     # Relay
     url(
