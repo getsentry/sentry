@@ -62,11 +62,11 @@ class MultipleEnvironmentSelector extends React.PureComponent {
   componentDidUpdate(prevProps, prevState) {
     // Need to sync state
     if (this.props.value !== prevProps.value) {
-      this.syncSelectedStateFriomProps();
+      this.syncSelectedStateFromProps();
     }
   }
 
-  syncSelectedStateFriomProps = () =>
+  syncSelectedStateFromProps = () =>
     this.setState({selectedEnvs: new Set(this.props.value)});
 
   /**

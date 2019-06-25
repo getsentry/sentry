@@ -58,14 +58,9 @@ describe('MultipleEnvironmentSelector', function() {
     expect(onChange).toHaveBeenCalledTimes(3);
     expect(onChange).toHaveBeenLastCalledWith(envs, expect.anything());
 
-    // console.log(wrapper.find('MultipleSelectorSubmitRow').debug());
     wrapper
       .find('MultipleSelectorSubmitRow button[aria-label="Apply"]')
       .simulate('click');
-    // wrapper
-    // .find('MultipleEnvironmentSelector')
-    // .instance()
-    // .doUpdate();
     expect(onUpdate).toHaveBeenCalledWith();
   });
 
