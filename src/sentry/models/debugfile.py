@@ -15,7 +15,6 @@ import uuid
 import time
 import errno
 import shutil
-import zipfile
 import hashlib
 import logging
 import tempfile
@@ -30,7 +29,6 @@ from sentry.db.models import FlexibleForeignKey, Model, sane_repr, BaseManager, 
 from sentry.models.file import File
 from sentry.reprocessing import resolve_processing_issue, \
     bump_reprocessing_revision
-from sentry.utils import json
 from sentry.utils.zip import safe_extract_zip
 
 
@@ -154,8 +152,8 @@ class ProjectDebugFile(Model):
             return '' if self.file_type == 'exe' else '.dSYM'
         if self.file_format == 'proguard':
             return '.txt'
-        if self.file_format == 'bundle':
-            return '.zip'
+        if self.file_format == 'sourcebundle':
+            return '.src.zip'
         if self.file_format == 'elf':
             return '' if self.file_type == 'exe' else '.debug'
         if self.file_format == 'pe':
@@ -202,7 +200,7 @@ def create_dif_from_id(project, meta, fileobj=None, file=None):
     """
     if meta.file_format == 'proguard':
         object_name = 'proguard-mapping'
-    elif meta.file_format in ('bundle', 'macho', 'elf', 'pdb', 'pe'):
+    elif meta.file_format in ('sourcebundle', 'macho', 'elf', 'pdb', 'pe'):
         object_name = meta.name
     elif meta.file_format == 'breakpad':
         object_name = meta.name[:-4] if meta.name.endswith('.sym') else meta.name
@@ -349,25 +347,6 @@ def detect_dif_from_path(path, name=None, debug_id=None):
             name=name,
             data=data,
         )]
-
-    try:
-        with open(path, 'rb') as f:
-            zip = zipfile.Zip(f)
-            try:
-                manifest = json.loads(zip.read('manifest.json'))
-            except KeyError:
-                pass
-            else:
-                return [DifMeta(
-                    file_format='bundle',
-                    arch='any',
-                    path=path,
-                    debug_id=manifest['debug_id'],
-                    name=manifest['object_name'],
-                    data={'features': ['source']}
-                )]
-    except zipfile.BadZipFile:
-        pass
 
     # native debug information files (MachO, ELF or Breakpad)
     try:
