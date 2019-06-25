@@ -186,8 +186,8 @@ const alphaSortFromKey = function(keyExtractor) {
   };
 };
 
-const transformPlatformsToList = function({platforms}) {
-  return Object.keys(platforms)
+const transformPlatformsToList = ({platforms}) =>
+  Object.keys(platforms)
     .map(platformId => {
       const integrationMap = platforms[platformId];
       const integrations = Object.keys(integrationMap)
@@ -210,32 +210,33 @@ const transformPlatformsToList = function({platforms}) {
       };
     })
     .sort(alphaSortFromKey(item => item.name));
-};
 
 const fetchIntegrationDocsPlatforms =
   IS_TEST || IS_STORYBOOK
-    ? function(callback) {
+    ? callback =>
         fs.readFile(
           path.join(__dirname, 'tests/fixtures/integration-docs/_platforms.json'),
           callback
-        );
-      }
-    : function(callback) {
-        const req = https.get(PLATFORMS_URL, res => {
-          let buffer = '';
-          res
-            .on('data', data => (buffer += data))
-            .on('end', () =>
-              callback(
-                null,
-                JSON.stringify({
-                  platforms: transformPlatformsToList(JSON.parse(buffer)),
-                })
-              )
-            );
-        });
-        req.on('error', callback);
-      };
+        )
+    : callback =>
+        https
+          .get(PLATFORMS_URL, res => {
+            res.setEncoding('utf8');
+            let buffer = '';
+            res
+              .on('data', data => {
+                buffer += data;
+              })
+              .on('end', () =>
+                callback(
+                  null,
+                  JSON.stringify({
+                    platforms: transformPlatformsToList(JSON.parse(buffer)),
+                  })
+                )
+              );
+          })
+          .on('error', callback);
 
 /**
  * Explicit codesplitting cache groups
