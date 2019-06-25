@@ -447,8 +447,12 @@ class Factories(object):
         return useremail
 
     @staticmethod
-    def create_event(group, event_id=None, normalize=True, **kwargs):
+    def create_event(group=None, project=None, event_id=None, normalize=True, **kwargs):
         # XXX: Do not use this method for new tests! Prefer `store_event`.
+        if group is None and project is not None:
+            group = Factories.create_group(project=project)
+        elif group is None:
+            raise ValueError('Missing `group` or `project` argument')
         if event_id is None:
             event_id = uuid4().hex
         kwargs.setdefault('project', group.project)

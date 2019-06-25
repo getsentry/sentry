@@ -102,6 +102,9 @@ class FeatureSet(object):
 
         items = []
         for event in events:
+            # TODO: how we index events?
+            if not event.group:
+                continue
             for label, features in self.extract(event).items():
                 if scope is None:
                     scope = self.__get_scope(event.project)
