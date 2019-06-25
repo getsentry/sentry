@@ -39,7 +39,7 @@ class OrganizationBuildDetails extends AsyncView {
   };
 
   renderBody() {
-    const {build2} = this.state;
+    const {build} = this.state;
     const showModal = false;
     return (
       <React.Fragment>
