@@ -1,22 +1,17 @@
 import * as React from 'react';
-import styled from 'react-emotion';
 import {t} from 'app/locale';
-import space from 'app/styles/space';
 
 import InlineSvg from 'app/components/inlineSvg';
 
+import Aggregation from './aggregation';
 import {PlaceholderText, SelectListItem, AddText, SidebarLabel} from '../styles';
-// eslint-disable-next-line no-unused-vars
-import {AggregationResult, Column} from './utils';
+import {SnubaResult, DiscoverBaseProps} from '../types';
 
 const Link: any = require('app/components/links/link').default;
-const Aggregation: any = require('./aggregation').default;
 
-type AggregationsProps = {
-  value: AggregationResult[];
-  onChange: (value: AggregationResult[]) => void;
-  columns: Column[];
-  disabled: boolean;
+type AggregationsProps = DiscoverBaseProps & {
+  value: SnubaResult[];
+  onChange: (value: SnubaResult[]) => void;
 };
 
 export default class Aggregations extends React.Component<AggregationsProps, any> {
@@ -30,7 +25,7 @@ export default class Aggregations extends React.Component<AggregationsProps, any
     this.props.onChange(aggregations);
   }
 
-  handleChange(val: AggregationResult, idx: number) {
+  handleChange(val: SnubaResult, idx: number) {
     const aggregations = this.props.value.slice();
 
     aggregations[idx] = val;
@@ -58,7 +53,7 @@ export default class Aggregations extends React.Component<AggregationsProps, any
           <SelectListItem key={`${idx}_${aggregation[2]}`}>
             <Aggregation
               value={aggregation}
-              onChange={(val: AggregationResult) => this.handleChange(val, idx)}
+              onChange={(val: SnubaResult) => this.handleChange(val, idx)}
               columns={columns}
               disabled={disabled}
             />
