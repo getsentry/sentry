@@ -10,7 +10,8 @@ import Pill from 'app/components/pill';
 import ToolbarHeader from 'app/components/toolbarHeader';
 import {t} from 'app/locale';
 // import SentryTypes from 'app/sentryTypes';
-import withApi from 'app/utils/withApi'; 
+import withApi from 'app/utils/withApi';
+
 class EventStackExchange extends React.Component {
   static propTypes = {
     api: PropTypes.object.isRequired,
@@ -71,7 +72,9 @@ class EventStackExchange extends React.Component {
         <Box w={[8 / 12, 8 / 12, 6 / 12]} mx={1} flex="1">
           <div>{question.title}</div>
           <Pills className="no-margin">
-            {question.tags.map(tag => <Pill key={tag} name={tag} />)}
+            {question.tags.map(tag => (
+              <Pill key={tag} name={tag} />
+            ))}
           </Pills>
         </Box>
         <Flex w={[40, 60, 80, 80]} mx={2} justify="flex-end">
