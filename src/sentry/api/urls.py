@@ -206,6 +206,7 @@ from .endpoints.sentry_app_components import SentryAppComponentsEndpoint, \
 from .endpoints.sentry_app_details import SentryAppDetailsEndpoint
 from .endpoints.sentry_app_authorizations import SentryAppAuthorizationsEndpoint
 from .endpoints.shared_group_details import SharedGroupDetailsEndpoint
+from .endpoints.stack_exchange import StackExchangeEndpoint
 from .endpoints.system_health import SystemHealthEndpoint
 from .endpoints.system_options import SystemOptionsEndpoint
 from .endpoints.team_avatar import TeamAvatarEndpoint
@@ -1437,6 +1438,12 @@ urlpatterns = patterns(
         r'^wizard/(?P<wizard_hash>[^\/]+)/$',
         SetupWizard.as_view(),
         name='sentry-api-0-project-wizard'
+    ),
+
+    url(
+        r'^stackexchange/search/$',
+        StackExchangeEndpoint.as_view(),
+        name='stack-exchange-api-0-search'
     ),
 
     # Catch all

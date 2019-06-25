@@ -13,6 +13,7 @@ import EventAttachments from 'app/components/events/eventAttachments';
 import EventCause from 'app/components/events/eventCause';
 import EventContextSummary from 'app/components/events/contextSummary';
 import EventContexts from 'app/components/events/contexts';
+import EventStackExchange from 'app/components/events/stackExchange';
 import EventDataSection from 'app/components/events/eventDataSection';
 import EventDevice from 'app/components/events/device';
 import EventErrors from 'app/components/events/errors';
@@ -173,6 +174,7 @@ class EventEntries extends React.Component {
           orgId={orgId}
           projectId={project.slug}
         />
+        {<EventStackExchange event={event} />}
         {this.renderEntries()}
         {hasContext && <EventContexts group={group} event={event} />}
         {!objectIsEmpty(event.context) && <EventExtraData event={event} />}
