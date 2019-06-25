@@ -1,7 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
-import {Flex} from 'grid-emotion';
 
 import {t} from 'app/locale';
 import SelectControl from 'app/components/forms/selectControl';
@@ -57,7 +56,7 @@ export default class Orderby extends React.Component {
     return (
       <React.Fragment>
         <SidebarLabel className="control-label">{t('Order by')}</SidebarLabel>
-        <Flex>
+        <Container>
           <OrderbyField>
             <SelectControl
               name="orderbyField"
@@ -76,11 +75,15 @@ export default class Orderby extends React.Component {
               disabled={disabled}
             />
           </OrderbyValue>
-        </Flex>
+        </Container>
       </React.Fragment>
     );
   }
 }
+
+const Container = styled('div')`
+  display: flex;
+`;
 
 const OrderbyField = styled('div')`
   width: calc(100% / 3 * 2);

@@ -1,9 +1,10 @@
 import React from 'react';
 import {Value} from 'react-select';
 import PropTypes from 'prop-types';
-import {Box} from 'grid-emotion';
+import styled from 'react-emotion';
 import {t} from 'app/locale';
 import SelectControl from 'app/components/forms/selectControl';
+import space from 'app/styles/space';
 
 import {getInternal, getExternal, isValidCondition, ignoreCase} from './utils';
 import {CONDITION_OPERATORS, ARRAY_FIELD_PREFIXES} from '../data';
@@ -196,7 +197,7 @@ export default class Condition extends React.Component {
 
   render() {
     return (
-      <Box w={1}>
+      <Box>
         <SelectControl
           innerRef={ref => (this.select = ref)}
           value={getInternal(this.props.value)}
@@ -226,3 +227,8 @@ export default class Condition extends React.Component {
     );
   }
 }
+
+const Box = styled('div')`
+  width: 100%;
+  margin-right: ${space(1)};
+`;

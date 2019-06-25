@@ -1,6 +1,5 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import {Box} from 'grid-emotion';
 
 import Link from 'app/components/links/link';
 import InlineSvg from 'app/components/inlineSvg';
@@ -59,11 +58,11 @@ export default class Aggregations extends React.Component {
               columns={columns}
               disabled={disabled}
             />
-            <Box ml={1}>
+            <div>
               <a onClick={() => this.removeRow(idx)}>
                 <InlineSvg src="icon-circle-close" height="38px" />
               </a>
-            </Box>
+            </div>
           </SelectListItem>
         ))}
       </div>

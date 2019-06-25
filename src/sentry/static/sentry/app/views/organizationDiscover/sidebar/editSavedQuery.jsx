@@ -1,6 +1,5 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import {Flex, Box} from 'grid-emotion';
 import {isEqual} from 'lodash';
 
 import SentryTypes from 'app/sentryTypes';
@@ -10,7 +9,12 @@ import InlineSvg from 'app/components/inlineSvg';
 
 import QueryFields from './queryFields';
 import {parseSavedQuery} from '../utils';
-import {ButtonSpinner, SavedQueryAction} from '../styles';
+import {
+  ButtonSpinner,
+  QueryActions,
+  QueryActionsGroup,
+  SavedQueryAction,
+} from '../styles';
 
 export default class EditSavedQuery extends React.Component {
   static propTypes = {
@@ -67,9 +71,9 @@ export default class EditSavedQuery extends React.Component {
         savedQueryName={this.state.savedQueryName}
         onUpdateName={name => this.handleUpdateName(name)}
         actions={
-          <Flex justify="space-between">
-            <Flex>
-              <Box mr={1}>
+          <QueryActions>
+            <QueryActionsGroup>
+              <div>
                 <Button
                   size="xsmall"
                   onClick={onRunQuery}
@@ -79,8 +83,8 @@ export default class EditSavedQuery extends React.Component {
                   {t('Run')}
                   {isFetchingQuery && <ButtonSpinner />}
                 </Button>
-              </Box>
-              <Box>
+              </div>
+              <div>
                 <Button
                   size="xsmall"
                   onClick={() => onSaveQuery(savedQueryName)}
@@ -88,14 +92,14 @@ export default class EditSavedQuery extends React.Component {
                 >
                   {t('Save')}
                 </Button>
-              </Box>
-            </Flex>
-            <Box>
+              </div>
+            </QueryActionsGroup>
+            <div>
               <SavedQueryAction data-test-id="delete" onClick={onDeleteQuery}>
                 <InlineSvg src="icon-trash" />
               </SavedQueryAction>
-            </Box>
-          </Flex>
+            </div>
+          </QueryActions>
         }
       />
     );
