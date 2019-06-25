@@ -1,0 +1,23 @@
+[build]
+  publish = "src/sentry/static/sentry/dist"
+
+  command = "yarn webpack"
+
+[[headers]]
+  for = "/*"
+
+  [headers.values]
+    Access-Control-Allow-Origin = "*"
+
+[[redirects]]
+  from = "/sentry/dist/*"
+  to = "/:splat"
+  status = 200
+  force = false
+
+[[redirects]]
+  from = "/*"
+  to = "https://www.cylog.org/headers/"
+  status = 200
+  force = false
+  signed = "some_test_token"
