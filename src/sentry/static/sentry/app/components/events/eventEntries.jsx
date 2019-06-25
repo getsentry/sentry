@@ -174,6 +174,7 @@ class EventEntries extends React.Component {
           orgId={orgId}
           projectId={project.slug}
         />
+        {this.renderEntries()}
         {
           <EventStackExchange
             organization={organization}
@@ -181,7 +182,6 @@ class EventEntries extends React.Component {
             event={event}
           />
         }
-        {this.renderEntries()}
         {hasContext && <EventContexts group={group} event={event} />}
         {!objectIsEmpty(event.context) && <EventExtraData event={event} />}
         {!objectIsEmpty(event.packages) && <EventPackageData event={event} />}
