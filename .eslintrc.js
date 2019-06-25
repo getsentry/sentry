@@ -13,4 +13,12 @@ module.exports = {
     jest: true,
   },
   rules: {},
+  overrides: [{
+    files: ['*.ts', '*.tsx'],
+    rules: {
+      '@typescript-eslint/no-unused-vars': ['error', {
+        args: 'none'
+      }],
+    },
+  }, ],
 };
