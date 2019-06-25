@@ -16,11 +16,11 @@
     <tr>
       <td class="avatar-column">
         {% if author.get_avatar_type == 'upload' %}
-          <img class="avatar" src="{% profile_photo_url author.id size 48 %}">
+          <img class="avatar" src="{% profile_photo_url author.id 48 %}">
         {% elif author.get_avatar_type == 'letter_avatar' %}
-          {% email_avatar author.get_display_name author.get_label size 48 try_gravatar False %}
+          {% email_avatar author.get_display_name author.get_label 48 False %}
         {% else %}
-          {% email_avatar author.get_display_name author.get_label size 48 %}
+          {% email_avatar author.get_display_name author.get_label 48 %}
         {% endif %}
       </td>
       <td class="notch-column">
