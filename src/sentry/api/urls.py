@@ -1007,6 +1007,11 @@ urlpatterns = patterns(
         name='sentry-api-0-event-owners'
     ),
     url(
+        r'^projects/(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/events/(?P<event_id>[\w-]+)/stackexchange/$',
+        StackExchangeEndpoint.as_view(),
+        name='sentry-api-0-event-stackexchange'
+    ),
+    url(
         r'^projects/(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/files/dsyms/$',
         DebugFilesEndpoint.as_view(),
         name='sentry-api-0-dsym-files'
@@ -1284,11 +1289,6 @@ urlpatterns = patterns(
         r'^(?:issues|groups)/(?P<issue_id>\d+)/stats/$',
         GroupStatsEndpoint.as_view(),
         name='sentry-api-0-group-stats'
-    ),
-    url(
-        r'^(?:issues|groups)/(?P<issue_id>\d+)/stackexchange/$',
-        StackExchangeEndpoint.as_view(),
-        name='stack-exchange-api-0-search'
     ),
     url(
         r'^(?:issues|groups)/(?P<issue_id>\d+)/tags/$',

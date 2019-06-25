@@ -15,7 +15,8 @@ import withApi from 'app/utils/withApi';
 class EventStackExchange extends React.Component {
   static propTypes = {
     api: PropTypes.object.isRequired,
-    group: SentryTypes.Group.isRequired,
+    organization: SentryTypes.Organization.isRequired,
+    project: SentryTypes.Project.isRequired,
     event: SentryTypes.Event.isRequired,
   };
 
@@ -39,26 +40,30 @@ class EventStackExchange extends React.Component {
 
   fetchData = () => {
     console.log('props', this.props);
-    const {group} = this.props;
 
-    this.props.api.request(`/issues/${group.id}/stackexchange/`, {
-      success: data => {
-        console.log('response', data.items);
+    const {api, project, organization, event} = this.props;
 
-        if (!this._isMounted) {
-          return;
-        }
+    api.request(
+      `/projects/${organization.slug}/${project.slug}/events/${event.id}/stackexchange/`,
+      {
+        success: data => {
+          console.log('response', data.items);
 
-        this.setState({
-          questions: data.items,
-        });
-      },
-      error: err => {
-        // TODO: refactor this
-        console.log('oh crap its broken');
-        console.log(err);
-      },
-    });
+          if (!this._isMounted) {
+            return;
+          }
+
+          this.setState({
+            questions: data.items,
+          });
+        },
+        error: err => {
+          // TODO: refactor this
+          console.log('oh crap its broken');
+          console.log(err);
+        },
+      }
+    );
   };
 
   renderHeaders() {
