@@ -22,6 +22,7 @@ class EventStackExchange extends React.Component {
 
   state = {
     questions: [],
+    loading: true,
   };
 
   // eslint-disable-next-line react/sort-comp
@@ -39,28 +40,35 @@ class EventStackExchange extends React.Component {
   }
 
   fetchData = () => {
-    console.log('props', this.props);
-
     const {api, project, organization, event} = this.props;
+
+    this.setState({
+      loading: true,
+    });
 
     api.request(
       `/projects/${organization.slug}/${project.slug}/events/${event.id}/stackexchange/`,
       {
         success: data => {
-          console.log('response', data.items);
-
           if (!this._isMounted) {
             return;
           }
 
           this.setState({
             questions: data.items,
+            loading: false,
           });
         },
         error: err => {
           // TODO: refactor this
           console.log('oh crap its broken');
           console.log(err);
+
+          this.setState({
+            loading: false,
+            questions: [],
+            error: err,
+          });
         },
       }
     );
@@ -110,6 +118,14 @@ class EventStackExchange extends React.Component {
   }
 
   render() {
+    if (this.state.loading) {
+      return null;
+    }
+
+    if (this.state.questions.length <= 0) {
+      return null;
+    }
+
     return (
       <div className="extra-data box">
         <div className="box-header">
