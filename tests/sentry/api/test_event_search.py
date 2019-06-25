@@ -1148,6 +1148,20 @@ class GetSnubaQueryArgsTest(TestCase):
             },
         }
 
+    def test_project_name(self):
+        p1 = self.create_project(organization=self.organization)
+        p2 = self.create_project(organization=self.organization)
+
+        params = {
+            'project_id': [p1.id, p2.id],
+        }
+        assert get_snuba_query_args('project.name:{}'.format(p1.slug), params) == {
+            'conditions': [['project_id', '=', p1.id]],
+            'filter_keys': {
+                'project_id': [p1.id, p2.id],
+            }
+        }
+
 
 class ConvertEndpointParamsTests(TestCase):
     def test_simple(self):
