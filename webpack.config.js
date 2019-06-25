@@ -2,6 +2,7 @@
 /*eslint import/no-nodejs-modules:0 */
 const path = require('path');
 const fs = require('fs');
+const https = require('https');
 const webpack = require('webpack');
 const babelConfig = require('./babel.config');
 const ExtractTextPlugin = require('mini-css-extract-plugin');
@@ -12,6 +13,7 @@ const FixStyleOnlyEntriesPlugin = require('webpack-fix-style-only-entries');
 
 const {env} = process;
 
+const PLATFORMS_URL = 'https://docs.sentry.io/_platforms/_index.json';
 const IS_PRODUCTION = env.NODE_ENV === 'production';
 const IS_TEST = env.NODE_ENV === 'test' || env.TEST_SUITE;
 const IS_STORYBOOK = env.STORYBOOK_BUILD === '1';
@@ -168,6 +170,73 @@ class OptionalLocaleChunkPlugin {
   }
 }
 
+const alphaSortFromKey = function(keyExtractor) {
+  return function(a, b) {
+    const nameA = keyExtractor(a);
+    const nameB = keyExtractor(b);
+    if (nameA < nameB) {
+      return -1;
+    }
+    if (nameA > nameB) {
+      return 1;
+    }
+
+    // names must be equal
+    return 0;
+  };
+};
+
+const transformPlatformsToList = function({platforms}) {
+  return Object.keys(platforms)
+    .map(platformId => {
+      const integrationMap = platforms[platformId];
+      const integrations = Object.keys(integrationMap)
+        .sort(alphaSortFromKey(key => integrationMap[key].name))
+        .map(integrationId => {
+          const {name, type, doc_link: link} = integrationMap[integrationId];
+          const id =
+            integrationId === '_self' ? platformId : `${platformId}-${integrationId}`;
+          return {
+            id,
+            name,
+            type,
+            link,
+          };
+        });
+      return {
+        id: platformId,
+        name: integrationMap._self.name,
+        integrations,
+      };
+    })
+    .sort(alphaSortFromKey(item => item.name));
+};
+
+const fetchIntegrationDocsPlatforms =
+  IS_TEST || IS_STORYBOOK
+    ? function(callback) {
+        fs.readFile(
+          path.join(__dirname, 'tests/fixtures/integration-docs/_platforms.json'),
+          callback
+        );
+      }
+    : function(callback) {
+        const req = https.get(PLATFORMS_URL, res => {
+          let buffer = '';
+          res
+            .on('data', data => (buffer += data))
+            .on('end', () =>
+              callback(
+                null,
+                JSON.stringify({
+                  platforms: transformPlatformsToList(JSON.parse(buffer)),
+                })
+              )
+            );
+        });
+        req.on('error', callback);
+      };
+
 /**
  * Explicit codesplitting cache groups
  */
@@ -280,10 +349,6 @@ const appConfig = {
       app: path.join(staticPrefix, 'app'),
       'app-test': path.join(__dirname, 'tests', 'js'),
       'sentry-locale': path.join(__dirname, 'src', 'sentry', 'locale'),
-      'integration-docs-platforms':
-        IS_TEST || IS_STORYBOOK
-          ? path.join(__dirname, 'tests/fixtures/integration-docs/_platforms.json')
-          : path.join(__dirname, 'src/sentry/integration-docs/_platforms.json'),
     },
     modules: ['node_modules'],
     extensions: ['.jsx', '.js', '.json'],
@@ -300,6 +365,13 @@ const appConfig = {
       maxAsyncRequests: 7,
       cacheGroups,
     },
+  },
+  externals: function(context, request, callback) {
+    if (request === 'integration-docs-platforms') {
+      fetchIntegrationDocsPlatforms(callback);
+    } else {
+      callback();
+    }
   },
   devtool: IS_PRODUCTION ? 'source-map' : 'cheap-module-eval-source-map',
 };
