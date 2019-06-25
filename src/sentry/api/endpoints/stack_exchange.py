@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 import requests
+import six
 
 from rest_framework.response import Response
 
@@ -26,36 +27,40 @@ class StackExchangeEndpoint(ProjectEndpoint):
         if event is None:
             return Response({'detail': 'Event not found'}, status=404)
 
-        exception_interface = event.get_interface('exception')
+        for interface in six.itervalues(event.interfaces):
 
-        if not hasattr(exception_interface, 'to_string'):
-            return Response({'detail': 'No results'}, status=404)
+            if not hasattr(interface, 'to_string'):
+                continue
 
-        exception_string = exception_interface.to_string(event)
+            interface_string = interface.to_string(event)
 
-        if not exception_string:
-            return Response({'detail': 'No results'}, status=404)
+            # capture the first line
 
-        # capture the first line of the exception_string
-        exception_string = exception_string.splitlines()[0].strip()
+            interface_strings = interface_string.splitlines()
 
-        # for interface in six.itervalues(event.interfaces):
-        #     import logging
-        #     logging.info("interface: %s", interface.to_string(event))
-        #     exception_body = interface.to_email_html(event)
+            if len(interface_strings) <= 0:
+                continue
 
-        import logging
-        logging.info("exception: %s", exception_string)
+            interface_string = interface_strings[0].strip()
 
-        # query stackoverflow
+            if not interface_string:
+                return Response({'detail': 'No results'}, status=404)
 
-        query_params = {
-            'q': exception_string,
-            'order': 'desc',
-            'sort': 'votes',
-            'site': 'stackoverflow',
-        }
+            import logging
+            logging.info("interface_string: %s", interface_string)
 
-        response = requests.get('https://{}'.format(STACK_EXCHANGE_SEARCH_API), params=query_params)
+            # query stackoverflow
 
-        return Response(response.json(), status=200)
+            query_params = {
+                'q': interface_string,
+                'order': 'desc',
+                'sort': 'votes',
+                'site': 'stackoverflow',
+            }
+
+            response = requests.get('https://{}'.format(STACK_EXCHANGE_SEARCH_API), params=query_params)
+
+            return Response(response.json(), status=200)
+
+        # nothing was queried to stackoverflow
+        return Response({'detail': 'No results'}, status=404)
