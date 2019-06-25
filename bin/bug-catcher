@@ -310,7 +310,9 @@ class Crawler {
   const initialUrl = new URL(argv.url);
   const screenshots = './.artifacts/screenshots';
 
-  if (!fs.statSync(screenshots)) {
+  try {
+    fs.statSync(screenshots);
+  } catch (err) {}
     fs.mkdirSync(screenshots, {recursive: true});
   }
 
