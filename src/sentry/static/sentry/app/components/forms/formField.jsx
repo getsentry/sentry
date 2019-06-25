@@ -89,7 +89,7 @@ export default class FormField extends React.PureComponent {
     if (defined(props.error)) {
       return props.error;
     }
-    return form?.errors[props.name] || null;
+    return (form && form.errors[props.name]) || null;
   }
 
   getId() {
