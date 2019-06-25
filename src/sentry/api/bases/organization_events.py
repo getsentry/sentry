@@ -37,6 +37,23 @@ class Direction(Enum):
 class OrganizationEventsEndpointBase(OrganizationEndpoint):
     def get_snuba_query_args(self, request, organization, params):
         query = request.GET.get('query')
+
+        group_ids = request.GET.getlist('group')
+        if group_ids:
+            try:
+                group_ids = set(map(int, filter(None, group_ids)))
+            except ValueError:
+                raise OrganizationEventsError('Invalid group parameter. Values must be numbers')
+
+            projects = Project.objects.filter(
+                organization=organization,
+                group__id__in=group_ids,
+            ).distinct()
+            if any(p for p in projects if not request.access.has_project_access(p)):
+                raise PermissionDenied
+            params['issue.id'] = list(group_ids)
+            params['project_id'] = list(set([p.id for p in projects] + params['project_id']))
+
         try:
             snuba_args = get_snuba_query_args(query=query, params=params)
         except InvalidSearchQuery as exc:
