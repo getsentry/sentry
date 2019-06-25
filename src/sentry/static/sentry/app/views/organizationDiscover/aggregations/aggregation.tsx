@@ -1,29 +1,40 @@
-import React from 'react';
-import {Value} from 'react-select';
-import PropTypes from 'prop-types';
+import * as React from 'react';
 
-import SelectControl from 'app/components/forms/selectControl';
 import {t} from 'app/locale';
-
-import {getInternal, getExternal} from './utils';
+import {AggregationResult, Column, getInternal, getExternal} from './utils';
 import {PlaceholderText} from '../styles';
 import {ARRAY_FIELD_PREFIXES} from '../data';
 
-export default class Aggregation extends React.Component {
-  static propTypes = {
-    value: PropTypes.array.isRequired,
-    onChange: PropTypes.func.isRequired,
-    columns: PropTypes.array.isRequired,
-    disabled: PropTypes.bool,
-  };
+const Value: any = require('react-select').Value;
+const Box: any = require('grid-emotion').Box;
+const SelectControl: any = require('app/components/forms/selectControl').default;
 
-  constructor(props) {
-    super(props);
-    this.state = {
-      inputValue: '',
-      isOpen: false,
-    };
-  }
+type AggregationProps = {
+  value: AggregationResult;
+  onChange: (value: AggregationResult | string) => void;
+  columns: Column[];
+  disabled: boolean;
+};
+
+type AggregationState = {
+  // react-select
+  inputValue: any;
+  isOpen: boolean;
+};
+
+const initalState = {
+  inputValue: '',
+  isOpen: false,
+};
+
+export default class Aggregation extends React.Component<
+  AggregationProps,
+  AggregationState
+> {
+  // This is the ref of the inner react-select component
+  private select: any;
+
+  state = initalState;
 
   getOptions() {
     const currentValue = getInternal(this.props.value);
@@ -65,7 +76,7 @@ export default class Aggregation extends React.Component {
     this.select.focus();
   }
 
-  handleChange = option => {
+  handleChange = (option: any) => {
     if (option.value === 'uniq' || option.value === 'avg') {
       this.setState({inputValue: option.value}, this.focus);
     } else {
@@ -83,12 +94,14 @@ export default class Aggregation extends React.Component {
     }
   };
 
-  inputRenderer = props => {
-    const onChange = evt => {
-      if (evt.target.value === '') {
+  inputRenderer = (props: AggregationProps) => {
+    const onChange = (evt: any) => {
+      if (evt && evt.target && evt.target.value === '') {
         // React select won't trigger an onChange event when a value is completely
         // cleared, so we'll force this before calling onChange
-        this.setState({inputValue: evt.target.value}, props.onChange(evt));
+        this.setState({inputValue: evt.target.value}, () => {
+          props.onChange(evt);
+        });
       } else {
         props.onChange(evt);
       }
@@ -105,7 +118,7 @@ export default class Aggregation extends React.Component {
     );
   };
 
-  valueComponent = props => {
+  valueComponent = (props: AggregationProps) => {
     if (this.state.isOpen) {
       return null;
     }
@@ -113,7 +126,7 @@ export default class Aggregation extends React.Component {
     return <Value {...props} />;
   };
 
-  handleInputChange = value => {
+  handleInputChange = (value: any) => {
     this.setState({
       inputValue: value,
     });
@@ -123,7 +136,7 @@ export default class Aggregation extends React.Component {
     return (
       <div>
         <SelectControl
-          innerRef={ref => (this.select = ref)}
+          innerRef={(ref: any) => (this.select = ref)}
           value={getInternal(this.props.value)}
           placeholder={
             <PlaceholderText>{t('Add aggregation function...')}</PlaceholderText>
