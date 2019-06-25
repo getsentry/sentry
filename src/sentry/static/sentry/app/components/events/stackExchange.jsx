@@ -31,7 +31,6 @@ class EventStackExchange extends React.Component {
   componentDidMount() {
     this._isMounted = true;
 
-    // TODO: track loading state
     this.fetchData();
   }
 
