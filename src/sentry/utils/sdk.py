@@ -125,7 +125,7 @@ def configure_sdk():
             scope.set_context('build', {
                 'id': build_identifier,
                 'name': os.environ.get('TRAVIS_COMMIT_MESSAGE'),
-                'commit': os.environ('TRAVIS_PULL_REQUEST_SHA') or os.environ.get('TRAVIS_COMMIT'),
+                'commit': os.environ.get('TRAVIS_PULL_REQUEST_SHA') or os.environ.get('TRAVIS_COMMIT'),
             })
 
 
