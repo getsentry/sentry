@@ -97,7 +97,7 @@ exports[`BookmarkStar renders 1`] = `
         onClick={[Function]}
         src="icon-star-small-filled"
       >
-        <StyledSvg
+        <Styled(svg)
           className="css-fl9x15-Star e5ekdrk0"
           height="1em"
           isBookmarked={false}
@@ -106,7 +106,7 @@ exports[`BookmarkStar renders 1`] = `
           width="1em"
         >
           <svg
-            className="e5ekdrk0 css-1b9wx8m-StyledSvg-Star e2idor0"
+            className="e5ekdrk0 css-1tlmf56-Star"
             height="1em"
             onClick={[Function]}
             viewBox={Object {}}
@@ -117,7 +117,7 @@ exports[`BookmarkStar renders 1`] = `
               xlinkHref="#test"
             />
           </svg>
-        </StyledSvg>
+        </Styled(svg)>
       </InlineSvg>
     </Star>
   </BookmarkStar>

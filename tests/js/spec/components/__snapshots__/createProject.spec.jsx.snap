@@ -336,13 +336,13 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
               <InlineSvg
                 src="icon-search"
               >
-                <StyledSvg
+                <Styled(svg)
                   height="1em"
                   viewBox={Object {}}
                   width="1em"
                 >
                   <svg
-                    className="css-ryh69w-StyledSvg e2idor0"
+                    className="css-9ywbij"
                     height="1em"
                     viewBox={Object {}}
                     width="1em"
@@ -352,7 +352,7 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
                       xlinkHref="#test"
                     />
                   </svg>
-                </StyledSvg>
+                </Styled(svg)>
               </InlineSvg>
               <input
                 label="Filter Platforms"
@@ -1560,14 +1560,14 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
                                                   size="16px"
                                                   src="icon-circle-add"
                                                 >
-                                                  <StyledSvg
+                                                  <Styled(svg)
                                                     className="css-1ov3rcq-StyledInlineSvg e12ma6z3"
                                                     height="16px"
                                                     viewBox={Object {}}
                                                     width="16px"
                                                   >
                                                     <svg
-                                                      className="e12ma6z3 css-1jjmnki-StyledSvg-StyledInlineSvg e2idor0"
+                                                      className="e12ma6z3 css-1m5a3fp-StyledInlineSvg"
                                                       height="16px"
                                                       viewBox={Object {}}
                                                       width="16px"
@@ -1577,7 +1577,7 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
                                                         xlinkHref="#test"
                                                       />
                                                     </svg>
-                                                  </StyledSvg>
+                                                  </Styled(svg)>
                                                 </InlineSvg>
                                               </StyledInlineSvg>
                                             </span>
@@ -1911,13 +1911,13 @@ exports[`CreateProject should fill in platform name if its provided by url 1`] =
               <InlineSvg
                 src="icon-search"
               >
-                <StyledSvg
+                <Styled(svg)
                   height="1em"
                   viewBox={Object {}}
                   width="1em"
                 >
                   <svg
-                    className="css-ryh69w-StyledSvg e2idor0"
+                    className="css-9ywbij"
                     height="1em"
                     viewBox={Object {}}
                     width="1em"
@@ -1927,7 +1927,7 @@ exports[`CreateProject should fill in platform name if its provided by url 1`] =
                       xlinkHref="#test"
                     />
                   </svg>
-                </StyledSvg>
+                </Styled(svg)>
               </InlineSvg>
               <input
                 label="Filter Platforms"
@@ -2165,14 +2165,14 @@ exports[`CreateProject should fill in platform name if its provided by url 1`] =
                                             size="12px"
                                             src="icon-circle-close"
                                           >
-                                            <StyledSvg
+                                            <Styled(svg)
                                               className="css-1ov3rcq-StyledInlineSvg e12ma6z3"
                                               height="12px"
                                               viewBox={Object {}}
                                               width="12px"
                                             >
                                               <svg
-                                                className="e12ma6z3 css-1jjmnki-StyledSvg-StyledInlineSvg e2idor0"
+                                                className="e12ma6z3 css-1m5a3fp-StyledInlineSvg"
                                                 height="12px"
                                                 viewBox={Object {}}
                                                 width="12px"
@@ -2182,7 +2182,7 @@ exports[`CreateProject should fill in platform name if its provided by url 1`] =
                                                   xlinkHref="#test"
                                                 />
                                               </svg>
-                                            </StyledSvg>
+                                            </Styled(svg)>
                                           </InlineSvg>
                                         </StyledInlineSvg>
                                       </span>
@@ -2541,14 +2541,14 @@ exports[`CreateProject should fill in platform name if its provided by url 1`] =
                                                   size="16px"
                                                   src="icon-circle-add"
                                                 >
-                                                  <StyledSvg
+                                                  <Styled(svg)
                                                     className="css-1ov3rcq-StyledInlineSvg e12ma6z3"
                                                     height="16px"
                                                     viewBox={Object {}}
                                                     width="16px"
                                                   >
                                                     <svg
-                                                      className="e12ma6z3 css-1jjmnki-StyledSvg-StyledInlineSvg e2idor0"
+                                                      className="e12ma6z3 css-1m5a3fp-StyledInlineSvg"
                                                       height="16px"
                                                       viewBox={Object {}}
                                                       width="16px"
@@ -2558,7 +2558,7 @@ exports[`CreateProject should fill in platform name if its provided by url 1`] =
                                                         xlinkHref="#test"
                                                       />
                                                     </svg>
-                                                  </StyledSvg>
+                                                  </Styled(svg)>
                                                 </InlineSvg>
                                               </StyledInlineSvg>
                                             </span>
@@ -2892,13 +2892,13 @@ exports[`CreateProject should fill in project name if its empty when platform is
               <InlineSvg
                 src="icon-search"
               >
-                <StyledSvg
+                <Styled(svg)
                   height="1em"
                   viewBox={Object {}}
                   width="1em"
                 >
                   <svg
-                    className="css-ryh69w-StyledSvg e2idor0"
+                    className="css-9ywbij"
                     height="1em"
                     viewBox={Object {}}
                     width="1em"
@@ -2908,7 +2908,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
                       xlinkHref="#test"
                     />
                   </svg>
-                </StyledSvg>
+                </Styled(svg)>
               </InlineSvg>
               <input
                 label="Filter Platforms"
@@ -3046,14 +3046,14 @@ exports[`CreateProject should fill in project name if its empty when platform is
                                             size="12px"
                                             src="icon-circle-close"
                                           >
-                                            <StyledSvg
+                                            <Styled(svg)
                                               className="css-1ov3rcq-StyledInlineSvg e12ma6z3"
                                               height="12px"
                                               viewBox={Object {}}
                                               width="12px"
                                             >
                                               <svg
-                                                className="e12ma6z3 css-1jjmnki-StyledSvg-StyledInlineSvg e2idor0"
+                                                className="e12ma6z3 css-1m5a3fp-StyledInlineSvg"
                                                 height="12px"
                                                 viewBox={Object {}}
                                                 width="12px"
@@ -3063,7 +3063,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
                                                   xlinkHref="#test"
                                                 />
                                               </svg>
-                                            </StyledSvg>
+                                            </Styled(svg)>
                                           </InlineSvg>
                                         </StyledInlineSvg>
                                       </span>
@@ -4222,14 +4222,14 @@ exports[`CreateProject should fill in project name if its empty when platform is
                                                   size="16px"
                                                   src="icon-circle-add"
                                                 >
-                                                  <StyledSvg
+                                                  <Styled(svg)
                                                     className="css-1ov3rcq-StyledInlineSvg e12ma6z3"
                                                     height="16px"
                                                     viewBox={Object {}}
                                                     width="16px"
                                                   >
                                                     <svg
-                                                      className="e12ma6z3 css-1jjmnki-StyledSvg-StyledInlineSvg e2idor0"
+                                                      className="e12ma6z3 css-1m5a3fp-StyledInlineSvg"
                                                       height="16px"
                                                       viewBox={Object {}}
                                                       width="16px"
@@ -4239,7 +4239,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
                                                         xlinkHref="#test"
                                                       />
                                                     </svg>
-                                                  </StyledSvg>
+                                                  </Styled(svg)>
                                                 </InlineSvg>
                                               </StyledInlineSvg>
                                             </span>

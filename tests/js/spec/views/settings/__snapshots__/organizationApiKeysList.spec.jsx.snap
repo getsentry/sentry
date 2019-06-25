@@ -163,14 +163,14 @@ exports[`OrganizationApiKeysList renders 1`] = `
                                             size="12px"
                                             src="icon-circle-add"
                                           >
-                                            <StyledSvg
+                                            <Styled(svg)
                                               className="css-1ov3rcq-StyledInlineSvg e12ma6z3"
                                               height="12px"
                                               viewBox={Object {}}
                                               width="12px"
                                             >
                                               <svg
-                                                className="e12ma6z3 css-1jjmnki-StyledSvg-StyledInlineSvg e2idor0"
+                                                className="e12ma6z3 css-1m5a3fp-StyledInlineSvg"
                                                 height="12px"
                                                 viewBox={Object {}}
                                                 width="12px"
@@ -180,7 +180,7 @@ exports[`OrganizationApiKeysList renders 1`] = `
                                                   xlinkHref="#test"
                                                 />
                                               </svg>
-                                            </StyledSvg>
+                                            </Styled(svg)>
                                           </InlineSvg>
                                         </StyledInlineSvg>
                                       </span>

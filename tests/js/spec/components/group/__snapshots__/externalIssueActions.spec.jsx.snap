@@ -182,14 +182,14 @@ exports[`ExternalIssueActions with no external issues linked renders 1`] = `
                         className="css-jn9d7y-IntegrationIcon e1vaar1z1"
                         src="icon-github"
                       >
-                        <StyledSvg
+                        <Styled(svg)
                           className="css-jn9d7y-IntegrationIcon e1vaar1z1"
                           height="1em"
                           viewBox={Object {}}
                           width="1em"
                         >
                           <svg
-                            className="e1vaar1z1 css-ihls3x-StyledSvg-IntegrationIcon e2idor0"
+                            className="e1vaar1z1 css-1k0dt98-IntegrationIcon"
                             height="1em"
                             viewBox={Object {}}
                             width="1em"
@@ -199,7 +199,7 @@ exports[`ExternalIssueActions with no external issues linked renders 1`] = `
                               xlinkHref="#test"
                             />
                           </svg>
-                        </StyledSvg>
+                        </Styled(svg)>
                       </InlineSvg>
                     </IntegrationIcon>
                     <IntegrationLink
@@ -231,7 +231,7 @@ exports[`ExternalIssueActions with no external issues linked renders 1`] = `
             onClick={[Function]}
             src="icon-close"
           >
-            <StyledSvg
+            <Styled(svg)
               className="css-100fxiy-OpenCloseIcon e1vaar1z3"
               height="1em"
               isLinked={null}
@@ -240,7 +240,7 @@ exports[`ExternalIssueActions with no external issues linked renders 1`] = `
               width="1em"
             >
               <svg
-                className="e1vaar1z3 css-3kdvxo-StyledSvg-OpenCloseIcon e2idor0"
+                className="e1vaar1z3 css-1tfdbcw-OpenCloseIcon"
                 height="1em"
                 onClick={[Function]}
                 viewBox={Object {}}
@@ -251,7 +251,7 @@ exports[`ExternalIssueActions with no external issues linked renders 1`] = `
                   xlinkHref="#test"
                 />
               </svg>
-            </StyledSvg>
+            </Styled(svg)>
           </InlineSvg>
         </OpenCloseIcon>
       </div>
