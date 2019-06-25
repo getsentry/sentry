@@ -14,7 +14,7 @@
         <li><a href="{% absolute_uri '/manage/queue/' %}">{% trans "Queue" %}</a></li>
         <li><a href="{% absolute_uri '/manage/status/environment/' %}">{% trans "Environment" %}</a></li>
         <li><a href="{% absolute_uri '/manage/status/packages/' %}">{% trans "Packages" %}</a></li>
-        <li{% block admin-nav-mail %}{% endblock %}><a href="{% url 'sentry-admin-mail-status' %}">{% trans "Mail" %}</a></li>
+        <li><a href="{% absolute_uri '/manage/status/mail/' %}">{% trans "Mail" %}</a></li>
         <li><a href="{% absolute_uri '/manage/settings/' %}">{% trans "Settings" %}</a></li>
         <li><a href="{% absolute_uri '/manage/status/warnings/' %}">{% trans "Warnings" %}</a></li>
     </ul>

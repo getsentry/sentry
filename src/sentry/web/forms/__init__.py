@@ -71,10 +71,6 @@ class RemoveUserForm(forms.Form):
     )
 
 
-class TestEmailForm(forms.Form):
-    pass
-
-
 class NewNoteForm(forms.Form):
     text = forms.CharField(
         widget=forms.Textarea(attrs={'rows': '1',

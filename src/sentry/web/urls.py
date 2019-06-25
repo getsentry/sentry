@@ -307,10 +307,6 @@ urlpatterns += patterns(
     url(r'^account/', generic_react_page_view),
     url(r'^onboarding/', generic_react_page_view),
 
-    # Admin
-    url(r'^manage/status/mail/$', admin.status_mail,
-        name='sentry-admin-mail-status'),
-
     # Admin - Users
     url(r'^manage/users/new/$', admin.create_new_user,
         name='sentry-admin-new-user'),

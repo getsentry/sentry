@@ -22,7 +22,7 @@ from sentry.plugins import plugins
 from sentry.utils.email import send_mail
 from sentry.utils.http import absolute_uri
 from sentry.web.decorators import requires_admin
-from sentry.web.forms import (ChangeUserForm, NewUserForm, RemoveUserForm, TestEmailForm)
+from sentry.web.forms import (ChangeUserForm, NewUserForm, RemoveUserForm)
 from sentry.utils import auth
 from sentry.web.helpers import render_to_response, render_to_string
 
@@ -149,34 +149,3 @@ def remove_user(request, user_id):
     })
 
     return render_to_response('sentry/admin/users/remove.html', context, request)
-
-
-@requires_admin
-@csrf_protect
-def status_mail(request):
-    form = TestEmailForm(request.POST or None)
-
-    if form.is_valid():
-        body = """This email was sent as a request to test the Sentry outbound email configuration."""
-        try:
-            send_mail(
-                '%s Test Email' % (options.get('mail.subject-prefix'), ),
-                body,
-                options.get('mail.from'), [request.user.email],
-                fail_silently=False
-            )
-        except Exception as e:
-            form.errors['__all__'] = [six.text_type(e)]
-
-    return render_to_response(
-        'sentry/admin/status/mail.html', {
-            'form': form,
-            'mail_host': options.get('mail.host'),
-            'mail_password': bool(options.get('mail.password')),
-            'mail_username': options.get('mail.username'),
-            'mail_port': options.get('mail.port'),
-            'mail_use_tls': options.get('mail.use-tls'),
-            'mail_from': options.get('mail.from'),
-            'mail_list_namespace': options.get('mail.list-namespace'),
-        }, request
-    )
