@@ -119,11 +119,13 @@ def configure_sdk():
         **options
     )
 
-    build_identifier = os.environ.get("TRAVIS_BUILD") or os.environ.get("SENTRY_BUILD_ID")
+    build_identifier = os.environ.get("TRAVIS_BUILD_ID") or os.environ.get("SENTRY_BUILD_ID")
     if build_identifier:
         with sentry_sdk.configure_scope() as scope:
             scope.set_context('build', {
                 'id': build_identifier,
+                'name': os.environ.get('TRAVIS_COMMIT_MESSAGE'),
+                'commit': os.environ.get('TRAVIS_COMMIT'),
             })
 
 
