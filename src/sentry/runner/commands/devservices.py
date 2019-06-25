@@ -3,6 +3,7 @@ from __future__ import absolute_import, print_function
 import os
 import click
 from six import text_type
+from itertools import chain
 
 
 def get_docker_client():
@@ -35,18 +36,6 @@ def ensure_interface(ports):
     return rv
 
 
-class SetType(click.ParamType):
-    name = 'set'
-
-    def convert(self, value, param, ctx):
-        if value is None:
-            return set()
-        return set(value.split(','))
-
-
-Set = SetType()
-
-
 @click.group()
 def devservices():
     """
@@ -58,10 +47,12 @@ def devservices():
 
 @devservices.command()
 @click.option('--project', default='sentry')
-@click.option('--exclude', type=Set, help='Services to ignore and not run.')
+@click.option('--exclude', multiple=True, help='Services to ignore and not run.')
 def up(project, exclude):
     "Run/update dependent services."
     os.environ['SENTRY_SKIP_BACKEND_VALIDATION'] = '1'
+
+    exclude = set(chain.from_iterable(x.split(',') for x in exclude))
 
     from sentry.runner import configure
     configure()
