@@ -83,6 +83,14 @@ class EventStackExchange extends React.Component {
     return (
       <Sticky>
         <StyledFlex py={1}>
+          <Box w={16} mx={2} className="align-right">
+            <object
+              type="image/svg+xml"
+              width="20"
+              height="20"
+              data="https://cdn.sstatic.net/Sites/stackoverflow/company/img/logos/so/so-icon.svg?v=f13ebeedfa9e"
+            />
+          </Box>
           <Box w={[8 / 12, 8 / 12, 6 / 12]} mx={1} flex="1">
             <ToolbarHeader>{t('Question')}</ToolbarHeader>
           </Box>
