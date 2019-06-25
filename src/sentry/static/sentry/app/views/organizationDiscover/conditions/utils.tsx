@@ -1,6 +1,6 @@
 import moment from 'moment';
 
-import {Column, SnubaResult} from '../types';
+import {Column, ConditionData} from '../types';
 import {CONDITION_OPERATORS} from '../data';
 
 const specialConditions = new Set(['IS NULL', 'IS NOT NULL']);
@@ -14,7 +14,7 @@ const specialConditions = new Set(['IS NULL', 'IS NOT NULL']);
  * @param cols.type Type of column
  * @returns True if valid condition, false if not
  */
-export function isValidCondition(condition: SnubaResult, cols: Column[]) {
+export function isValidCondition(condition: ConditionData, cols: Column[]) {
   const allOperators = new Set(CONDITION_OPERATORS);
   const columns = new Set(cols.map(({name}) => name));
 
@@ -37,7 +37,7 @@ export function isValidCondition(condition: SnubaResult, cols: Column[]) {
  *
  * @param external Condition in external Snuba format
  */
-export function getInternal(external: SnubaResult) {
+export function getInternal(external: ConditionData): string {
   return external.join(' ').trim();
 }
 
@@ -48,8 +48,8 @@ export function getInternal(external: SnubaResult) {
  * @param cols List of columns with name and type e.g. {name: 'message', type: 'string}
  * @returns {Array} condition Condition in external Snuba format
  */
-export function getExternal(internal: string = '', columns: Column[]): SnubaResult {
-  const external: SnubaResult = [null, null, null];
+export function getExternal(internal: string = '', columns: Column[]): ConditionData {
+  const external: ConditionData = [null, null, null];
 
   // Validate column
   const colValue = internal.split(' ')[0];

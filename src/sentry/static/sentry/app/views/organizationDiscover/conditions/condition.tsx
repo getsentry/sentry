@@ -11,14 +11,14 @@ import {CONDITION_OPERATORS, ARRAY_FIELD_PREFIXES} from '../data';
 import {PlaceholderText} from '../styles';
 import {
   DiscoverBaseProps,
-  SnubaResult,
+  ConditionData,
   ReactSelectState,
   ReactSelectValue,
 } from '../types';
 
 type ConditionProps = DiscoverBaseProps & {
-  value: SnubaResult;
-  onChange: (value: SnubaResult) => void;
+  value: ConditionData;
+  onChange: (value: ConditionData) => void;
 };
 
 const initalState = {

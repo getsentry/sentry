@@ -6,7 +6,7 @@ import SelectControl from 'app/components/forms/selectControl';
 
 import {getInternal, getExternal} from './utils';
 import {
-  SnubaResult,
+  AggregationData,
   ReactSelectState,
   DiscoverBaseProps,
   ReactSelectValue,
@@ -15,8 +15,8 @@ import {PlaceholderText} from '../styles';
 import {ARRAY_FIELD_PREFIXES} from '../data';
 
 type AggregationProps = DiscoverBaseProps & {
-  value: SnubaResult;
-  onChange: (value: SnubaResult) => void;
+  value: AggregationData;
+  onChange: (value: AggregationData) => void;
 };
 
 const initalState = {

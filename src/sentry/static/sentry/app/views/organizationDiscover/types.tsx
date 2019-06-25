@@ -1,8 +1,19 @@
-export type SnubaResult = [
+export type AggregationData = [
   string | null,
   string | null,
   string | number | boolean | null
 ];
+
+export type ConditionData = [
+  string | null,
+  string | null,
+  string | number | boolean | null
+];
+
+export type SnubaResult = {
+  data: any[];
+  meta: any;
+};
 
 export type Column = {
   name: string;
