@@ -1,5 +1,6 @@
-import moment from 'moment';
+import * as moment from 'moment';
 
+import {Column, SnubaResult} from '../types';
 import {CONDITION_OPERATORS} from '../data';
 
 const specialConditions = new Set(['IS NULL', 'IS NOT NULL']);
@@ -7,23 +8,24 @@ const specialConditions = new Set(['IS NULL', 'IS NOT NULL']);
 /**
  * Returns true if a condition is valid and false if not
  *
- * @param {Array} condition Condition in external Snuba format
- * @param {Object} cols List of column objects
- * @param {String} cols.name Column name
- * @param {String} cols.type Type of column
- * @returns {Boolean} True if valid condition, false if not
+ * @param condition Condition in external Snuba format
+ * @param cols List of column objects
+ * @param cols.name Column name
+ * @param cols.type Type of column
+ * @returns True if valid condition, false if not
  */
-export function isValidCondition(condition, cols) {
+export function isValidCondition(condition: SnubaResult, cols: Column[]) {
   const allOperators = new Set(CONDITION_OPERATORS);
   const columns = new Set(cols.map(({name}) => name));
 
-  const isColValid = columns.has(condition[0]);
-  const isOperatorValid = allOperators.has(condition[1]);
+  const isColValid = columns.has(condition[0] || '');
+  const isOperatorValid = allOperators.has(`${condition[1]}`);
 
-  const colType = (cols.find(col => col.name === condition[0]) || {}).type;
+  const foundCol = cols.find(col => col.name === condition[0]);
+  const colType = (foundCol && foundCol.type) || {};
 
   const isValueValid =
-    specialConditions.has(condition[1]) ||
+    specialConditions.has(`${condition[1]}`) ||
     (colType === 'datetime' && condition[2] !== null) ||
     colType === typeof condition[2];
 
@@ -33,24 +35,21 @@ export function isValidCondition(condition, cols) {
 /***
  * Converts external Snuba format to internal format for dropdown
  *
- * @param {Array} condition Condition in external Snuba format
- * @param {Array} cols List of columns with name and type e.g. {name: 'message', type: 'string}
- * @returns {String}
+ * @param external Condition in external Snuba format
  */
-export function getInternal(external) {
+export function getInternal(external: SnubaResult) {
   return external.join(' ').trim();
 }
 
 /***
  * Converts internal dropdown format to external Snuba format
  *
- * @param {String} internal Condition in internal format
- * @param {Array} {Array} cols List of columns with name and type e.g. {name: 'message', type: 'string}
+ * @param internal Condition in internal format
+ * @param cols List of columns with name and type e.g. {name: 'message', type: 'string}
  * @returns {Array} condition Condition in external Snuba format
  */
-export function getExternal(internal, columns) {
-  internal = internal || '';
-  const external = [null, null, null];
+export function getExternal(internal: string = '', columns: Column[]): SnubaResult {
+  const external: SnubaResult = [null, null, null];
 
   // Validate column
   const colValue = internal.split(' ')[0];
@@ -60,7 +59,7 @@ export function getExternal(internal, columns) {
 
   // Validate operator
   const remaining = (external[0] !== null
-    ? internal.replace(external[0], '')
+    ? internal.replace(external[0]!, '')
     : internal
   ).trim();
 
@@ -76,17 +75,18 @@ export function getExternal(internal, columns) {
   }
 
   // Validate value and convert to correct type
-  if (external[0] && external[1] && !specialConditions.has(external[1])) {
+  if (external[0] && external[1] && !specialConditions.has(`${external[1]}`)) {
     const strStart = `${external[0]} ${external[1]} `;
 
     if (internal.startsWith(strStart)) {
       external[2] = internal.replace(strStart, '');
     }
 
-    const type = columns.find(({name}) => name === colValue).type;
+    const foundCol = columns.find(({name}) => name === colValue);
+    const type = foundCol && foundCol.type;
 
     if (type === 'number') {
-      const num = parseInt(external[2], 10);
+      const num = parseInt(`${external[2]}`, 10);
       external[2] = !isNaN(num) ? num : null;
     }
 
@@ -100,7 +100,7 @@ export function getExternal(internal, columns) {
     }
 
     if (type === 'datetime') {
-      const date = moment.utc(external[2]);
+      const date = moment.utc(`${external[2]}`);
       external[2] = date.isValid() ? date.format('YYYY-MM-DDTHH:mm:ss') : null;
     }
   }
@@ -112,11 +112,10 @@ export function getExternal(internal, columns) {
  * Transform casing of condition operators to uppercase. Applies to the operators
  * IS NULL, IS NOT NULL, LIKE and NOT LIKE
  *
- * @param {String} input Condition string as input by user
- * @returns {String}
+ * @param input Condition string as input by user
  */
 
-export function ignoreCase(input = '') {
+export function ignoreCase(input: string = '') {
   const colName = input.split(' ')[0];
 
   // Strip column name from the start

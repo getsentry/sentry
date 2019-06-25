@@ -1,7 +1,13 @@
 import * as React from 'react';
 
 import {t} from 'app/locale';
-import {AggregationResult, Column, getInternal, getExternal} from './utils';
+import {getInternal, getExternal} from './utils';
+import {
+  SnubaResult,
+  ReactSelectState,
+  DiscoverBaseProps,
+  ReactSelectValue,
+} from '../types';
 import {PlaceholderText} from '../styles';
 import {ARRAY_FIELD_PREFIXES} from '../data';
 
@@ -9,17 +15,9 @@ const Value: any = require('react-select').Value;
 const Box: any = require('grid-emotion').Box;
 const SelectControl: any = require('app/components/forms/selectControl').default;
 
-type AggregationProps = {
-  value: AggregationResult;
-  onChange: (value: AggregationResult | string) => void;
-  columns: Column[];
-  disabled: boolean;
-};
-
-type AggregationState = {
-  // react-select
-  inputValue: any;
-  isOpen: boolean;
+type AggregationProps = DiscoverBaseProps & {
+  value: SnubaResult;
+  onChange: (value: SnubaResult) => void;
 };
 
 const initalState = {
@@ -29,7 +27,7 @@ const initalState = {
 
 export default class Aggregation extends React.Component<
   AggregationProps,
-  AggregationState
+  ReactSelectState
 > {
   // This is the ref of the inner react-select component
   private select: any;
@@ -45,7 +43,7 @@ export default class Aggregation extends React.Component<
   filterOptions = () => {
     const input = this.state.inputValue;
 
-    let optionList = [
+    let optionList: Array<ReactSelectValue> = [
       {value: 'count', label: 'count'},
       {value: 'uniq', label: 'uniq(...)'},
       {value: 'avg', label: 'avg(...)'},

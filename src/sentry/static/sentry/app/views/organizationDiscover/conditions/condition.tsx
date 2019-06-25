@@ -1,38 +1,43 @@
-import React from 'react';
-import {Value} from 'react-select';
-import PropTypes from 'prop-types';
+import * as React from 'react';
 import styled from 'react-emotion';
 import {t} from 'app/locale';
-import SelectControl from 'app/components/forms/selectControl';
 import space from 'app/styles/space';
 
 import {getInternal, getExternal, isValidCondition, ignoreCase} from './utils';
 import {CONDITION_OPERATORS, ARRAY_FIELD_PREFIXES} from '../data';
 import {PlaceholderText} from '../styles';
+import {
+  DiscoverBaseProps,
+  SnubaResult,
+  ReactSelectState,
+  ReactSelectValue,
+} from '../types';
 
-export default class Condition extends React.Component {
-  static propTypes = {
-    value: PropTypes.array.isRequired,
-    onChange: PropTypes.func.isRequired,
-    columns: PropTypes.arrayOf(
-      PropTypes.shape({name: PropTypes.string, type: PropTypes.string})
-    ).isRequired,
-    disabled: PropTypes.bool,
-  };
+const Value: any = require('react-select').Value;
+const Box: any = require('grid-emotion').Box;
+const SelectControl: any = require('app/components/forms/selectControl').default;
 
-  constructor(props) {
-    super(props);
-    this.state = {
-      inputValue: '',
-      isOpen: false,
-    };
-  }
+type ConditionProps = DiscoverBaseProps & {
+  value: SnubaResult;
+  onChange: (value: SnubaResult) => void;
+};
+
+const initalState = {
+  inputValue: '',
+  isOpen: false,
+};
+
+export default class Condition extends React.Component<ConditionProps, ReactSelectState> {
+  // This is the ref of the inner react-select component
+  private select: any;
+
+  state = initalState;
 
   focus() {
     this.select.focus();
   }
 
-  handleChange = option => {
+  handleChange = (option: any) => {
     const external = getExternal(option.value, this.props.columns);
 
     if (isValidCondition(external, this.props.columns)) {
@@ -41,7 +46,9 @@ export default class Condition extends React.Component {
           inputValue: '',
           isOpen: false,
         },
-        this.props.onChange(external)
+        () => {
+          this.props.onChange(external);
+        }
       );
 
       return;
@@ -70,7 +77,7 @@ export default class Condition extends React.Component {
     return shouldDisplayValue ? [{label: currentValue, value: currentValue}] : [];
   }
 
-  getConditionsForColumn(colName) {
+  getConditionsForColumn(colName: string) {
     const column = this.props.columns.find(({name}) => name === colName);
     const colType = column ? column.type : 'string';
     const numberOnlyOperators = new Set(['>', '<', '>=', '<=']);
@@ -91,7 +98,7 @@ export default class Condition extends React.Component {
     });
   }
 
-  filterOptions = options => {
+  filterOptions = (options: ReactSelectValue[]) => {
     const input = this.state.inputValue;
 
     let optionList = options;
@@ -113,7 +120,7 @@ export default class Condition extends React.Component {
     }
 
     if (hasSelectedColumn && !hasSelectedOperator) {
-      const selectedColumn = external[0];
+      const selectedColumn = `${external[0]}`;
       optionList = this.getConditionsForColumn(selectedColumn).map(op => {
         const value = `${selectedColumn} ${op}`;
         return {
@@ -126,17 +133,19 @@ export default class Condition extends React.Component {
     return optionList.filter(({label}) => label.includes(input));
   };
 
-  isValidNewOption = ({label}) => {
+  isValidNewOption = ({label}: ReactSelectValue) => {
     label = ignoreCase(label);
     return isValidCondition(getExternal(label, this.props.columns), this.props.columns);
   };
 
-  inputRenderer = props => {
-    const onChange = evt => {
+  inputRenderer = (props: ConditionProps) => {
+    const onChange = (evt: any) => {
       if (evt.target.value === '') {
         // React select won't trigger an onChange event when a value is completely
         // cleared, so we'll force this before calling onChange
-        this.setState({inputValue: evt.target.value}, props.onChange(evt));
+        this.setState({inputValue: evt.target.value}, () => {
+          props.onChange(evt);
+        });
       } else {
         props.onChange(evt);
       }
@@ -153,7 +162,7 @@ export default class Condition extends React.Component {
     );
   };
 
-  valueComponent = props => {
+  valueComponent = (props: ConditionProps) => {
     if (this.state.inputValue) {
       return null;
     }
@@ -161,12 +170,12 @@ export default class Condition extends React.Component {
     return <Value {...props} />;
   };
 
-  shouldKeyDownEventCreateNewOption = keyCode => {
+  shouldKeyDownEventCreateNewOption = (keyCode: number) => {
     const createKeyCodes = new Set([13, 9]); // ENTER, TAB
     return createKeyCodes.has(keyCode);
   };
 
-  handleInputChange = value => {
+  handleInputChange = (value: string) => {
     this.setState({
       inputValue: ignoreCase(value),
     });
@@ -174,7 +183,7 @@ export default class Condition extends React.Component {
     return value;
   };
 
-  handleBlur = evt => {
+  handleBlur = (evt: any) => {
     const external = getExternal(evt.target.value, this.props.columns);
     const isValid = isValidCondition(external, this.props.columns);
     if (isValid) {
@@ -182,12 +191,14 @@ export default class Condition extends React.Component {
         {
           inputValue: '',
         },
-        this.props.onChange(external)
+        () => {
+          this.props.onChange(external);
+        }
       );
     }
   };
 
-  newOptionCreator = ({label, labelKey, valueKey}) => {
+  newOptionCreator = ({label, labelKey, valueKey}: any) => {
     label = ignoreCase(label);
     return {
       [valueKey]: label,
@@ -199,7 +210,7 @@ export default class Condition extends React.Component {
     return (
       <Box>
         <SelectControl
-          innerRef={ref => (this.select = ref)}
+          innerRef={(ref: any) => (this.select = ref)}
           value={getInternal(this.props.value)}
           placeholder={<PlaceholderText>{t('Add condition...')}</PlaceholderText>}
           options={this.getOptions()}
@@ -218,7 +229,7 @@ export default class Condition extends React.Component {
           onInputChange={this.handleInputChange}
           onBlur={this.handleBlur}
           creatable={true}
-          promptTextCreator={text => text}
+          promptTextCreator={(text: string) => text}
           shouldKeyDownEventCreateNewOption={this.shouldKeyDownEventCreateNewOption}
           disabled={this.props.disabled}
           newOptionCreator={this.newOptionCreator}
