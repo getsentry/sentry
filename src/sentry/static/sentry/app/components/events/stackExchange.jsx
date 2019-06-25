@@ -20,11 +20,6 @@ class EventStackExchange extends React.Component {
     event: SentryTypes.Event.isRequired,
   };
 
-  constructor(...args) {
-    super(...args);
-    this.renderStackExchangeQuestion = this.renderStackExchangeQuestion.bind(this);
-  }
-
   state = {
     questions: [],
     loading: true,
@@ -111,7 +106,7 @@ class EventStackExchange extends React.Component {
     return doc.documentElement.textContent;
   }
 
-  renderStackExchangeQuestion(question) {
+  renderStackExchangeQuestion = question => {
     return (
       <Group key={question.question_id} py={1} px={0} align="center">
         <Box w={[8 / 12, 8 / 12, 6 / 12]} mx={1} flex="1">
@@ -139,7 +134,7 @@ class EventStackExchange extends React.Component {
         </Flex>
       </Group>
     );
-  }
+  };
 
   render() {
     if (this.state.loading) {
