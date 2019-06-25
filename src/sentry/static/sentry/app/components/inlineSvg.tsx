@@ -1,4 +1,4 @@
-import * as React from 'react';
+import React from 'react';
 import styled from 'react-emotion';
 
 const InlineSvg = ({src, size, width, height, ...props}: PropTypes) => {

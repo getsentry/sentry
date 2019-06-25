@@ -1,6 +1,10 @@
-import * as React from 'react';
+import React from 'react';
+import {Value} from 'react-select';
+import {Box} from 'grid-emotion';
 
 import {t} from 'app/locale';
+import SelectControl from 'app/components/forms/selectControl';
+
 import {getInternal, getExternal} from './utils';
 import {
   SnubaResult,
@@ -10,10 +14,6 @@ import {
 } from '../types';
 import {PlaceholderText} from '../styles';
 import {ARRAY_FIELD_PREFIXES} from '../data';
-
-const Value: any = require('react-select').Value;
-const Box: any = require('grid-emotion').Box;
-const SelectControl: any = require('app/components/forms/selectControl').default;
 
 type AggregationProps = DiscoverBaseProps & {
   value: SnubaResult;

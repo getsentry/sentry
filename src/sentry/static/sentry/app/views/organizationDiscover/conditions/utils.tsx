@@ -1,4 +1,4 @@
-import * as moment from 'moment';
+import moment from 'moment';
 
 import {Column, SnubaResult} from '../types';
 import {CONDITION_OPERATORS} from '../data';
