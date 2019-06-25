@@ -11,6 +11,7 @@ def test_the_magic(db, live_server, default_user, default_group, default_event):
     settings.SENTRY_OPTIONS['system.url-prefix'] = live_server.url
     settings.SENTRY_OPTIONS['beacon.anonymous'] = True
     settings.SENTRY_OPTIONS['sentry:version-configured'] = sentry.get_version()
+    settings.SENTRY_OPTIONS['system.admin-email'] = default_user.email
     cmd = os.path.join(os.path.dirname(__file__), os.pardir, 'bin', 'bug-catcher')
     subprocess.check_call([
         cmd,
