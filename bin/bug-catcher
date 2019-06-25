@@ -312,7 +312,7 @@ class Crawler {
 
   try {
     fs.statSync(screenshots);
-  } catch (err) {}
+  } catch (err) {
     fs.mkdirSync(screenshots, {recursive: true});
   }
 

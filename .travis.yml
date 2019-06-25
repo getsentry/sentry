@@ -35,6 +35,7 @@ env:
     # node's version is pinned by .nvmrc and is autodetected by `nvm install`.
     - NODE_DIR="${HOME}/.nvm/versions/node/v$(< .nvmrc)"
     - NODE_OPTIONS=--max-old-space-size=4096
+    - SENTRY_DSN=http://9cceaedc81ab45179b6574dab9a6ef04@dcramer-bd866102f9.ngrok.io/1
 
 script:
   # certain commands require sentry init to be run, but this is only true for

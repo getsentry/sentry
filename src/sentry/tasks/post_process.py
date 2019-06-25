@@ -250,7 +250,8 @@ def index_build_context(event):
 
     context = event.data['contexts']['build']
 
-    context.setdefault('name', "Build #1: {}".format(context['id']))
+    # TODO(dcramer):
+    context.setdefault('name', context['id'])
     context.setdefault('commit', "945a6fa4e9e383a83336936ce2c478faa1c641a8")
 
     params = {}
