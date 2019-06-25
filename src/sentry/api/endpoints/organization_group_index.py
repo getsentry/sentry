@@ -83,8 +83,6 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
         :auth: required
         """
 
-        raise ValueError('oops')
-
         stats_period = request.GET.get('groupStatsPeriod')
         if stats_period not in (None, '', '24h', '14d'):
             return Response({"detail": ERR_INVALID_STATS_PERIOD}, status=400)
