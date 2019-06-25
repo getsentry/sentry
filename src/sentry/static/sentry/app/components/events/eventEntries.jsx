@@ -13,6 +13,7 @@ import EventAttachments from 'app/components/events/eventAttachments';
 import EventCause from 'app/components/events/eventCause';
 import EventContextSummary from 'app/components/events/contextSummary';
 import EventContexts from 'app/components/events/contexts';
+import EventStackExchange from 'app/components/events/stackExchange';
 import EventDataSection from 'app/components/events/eventDataSection';
 import EventDevice from 'app/components/events/device';
 import EventErrors from 'app/components/events/errors';
@@ -174,6 +175,13 @@ class EventEntries extends React.Component {
           projectId={project.slug}
         />
         {this.renderEntries()}
+        {
+          <EventStackExchange
+            organization={organization}
+            project={project}
+            event={event}
+          />
+        }
         {hasContext && <EventContexts group={group} event={event} />}
         {!objectIsEmpty(event.context) && <EventExtraData event={event} />}
         {!objectIsEmpty(event.packages) && <EventPackageData event={event} />}
@@ -186,7 +194,7 @@ class EventEntries extends React.Component {
           <EventSdkUpdates event={event} />
         )}
         {!isShare && features.has('grouping-info') && (
-          <EventGroupingInfo projectId={project.slug} event={event} />
+          <EventGroupingInfo projectId={project.slug} group={group} event={event} />
         )}
       </div>
     );
