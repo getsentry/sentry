@@ -344,7 +344,7 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
                   width="1em"
                 >
                   <svg
-                    className="css-ryh69w-StyledSvg e2idor0"
+                    className="css-ryh69w-StyledSvg enyz4ql0"
                     height="1em"
                     viewBox={Object {}}
                     width="1em"
@@ -1572,7 +1572,7 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
                                                     width="16px"
                                                   >
                                                     <svg
-                                                      className="e12ma6z3 css-1jjmnki-StyledSvg-StyledInlineSvg e2idor0"
+                                                      className="e12ma6z3 css-1jjmnki-StyledSvg-StyledInlineSvg enyz4ql0"
                                                       height="16px"
                                                       viewBox={Object {}}
                                                       width="16px"
@@ -1925,7 +1925,7 @@ exports[`CreateProject should fill in platform name if its provided by url 1`] =
                   width="1em"
                 >
                   <svg
-                    className="css-ryh69w-StyledSvg e2idor0"
+                    className="css-ryh69w-StyledSvg enyz4ql0"
                     height="1em"
                     viewBox={Object {}}
                     width="1em"
@@ -2183,7 +2183,7 @@ exports[`CreateProject should fill in platform name if its provided by url 1`] =
                                               width="12px"
                                             >
                                               <svg
-                                                className="e12ma6z3 css-1jjmnki-StyledSvg-StyledInlineSvg e2idor0"
+                                                className="e12ma6z3 css-1jjmnki-StyledSvg-StyledInlineSvg enyz4ql0"
                                                 height="12px"
                                                 viewBox={Object {}}
                                                 width="12px"
@@ -2562,7 +2562,7 @@ exports[`CreateProject should fill in platform name if its provided by url 1`] =
                                                     width="16px"
                                                   >
                                                     <svg
-                                                      className="e12ma6z3 css-1jjmnki-StyledSvg-StyledInlineSvg e2idor0"
+                                                      className="e12ma6z3 css-1jjmnki-StyledSvg-StyledInlineSvg enyz4ql0"
                                                       height="16px"
                                                       viewBox={Object {}}
                                                       width="16px"
@@ -2915,7 +2915,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
                   width="1em"
                 >
                   <svg
-                    className="css-ryh69w-StyledSvg e2idor0"
+                    className="css-ryh69w-StyledSvg enyz4ql0"
                     height="1em"
                     viewBox={Object {}}
                     width="1em"
@@ -3073,7 +3073,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
                                               width="12px"
                                             >
                                               <svg
-                                                className="e12ma6z3 css-1jjmnki-StyledSvg-StyledInlineSvg e2idor0"
+                                                className="e12ma6z3 css-1jjmnki-StyledSvg-StyledInlineSvg enyz4ql0"
                                                 height="12px"
                                                 viewBox={Object {}}
                                                 width="12px"
@@ -4252,7 +4252,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
                                                     width="16px"
                                                   >
                                                     <svg
-                                                      className="e12ma6z3 css-1jjmnki-StyledSvg-StyledInlineSvg e2idor0"
+                                                      className="e12ma6z3 css-1jjmnki-StyledSvg-StyledInlineSvg enyz4ql0"
                                                       height="16px"
                                                       viewBox={Object {}}
                                                       width="16px"

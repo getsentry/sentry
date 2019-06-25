@@ -106,7 +106,7 @@ exports[`BookmarkStar renders 1`] = `
           width="1em"
         >
           <svg
-            className="e5ekdrk0 css-1b9wx8m-StyledSvg-Star e2idor0"
+            className="e5ekdrk0 css-1b9wx8m-StyledSvg-Star enyz4ql0"
             height="1em"
             onClick={[Function]}
             viewBox={Object {}}

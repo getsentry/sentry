@@ -485,7 +485,7 @@ exports[`RuleBuilder renders 1`] = `
             width="1em"
           >
             <svg
-              className="e1hyuoc78 css-1uv43pt-StyledSvg-Divider e2idor0"
+              className="e1hyuoc78 css-1uv43pt-StyledSvg-Divider enyz4ql0"
               height="1em"
               viewBox={Object {}}
               width="1em"
@@ -1066,7 +1066,7 @@ exports[`RuleBuilder renders 1`] = `
                                   width="12px"
                                 >
                                   <svg
-                                    className="e12ma6z3 css-1jjmnki-StyledSvg-StyledInlineSvg e2idor0"
+                                    className="e12ma6z3 css-1jjmnki-StyledSvg-StyledInlineSvg enyz4ql0"
                                     height="12px"
                                     viewBox={Object {}}
                                     width="12px"
@@ -1185,7 +1185,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                 width="1em"
               >
                 <svg
-                  className="e1hyuoc74 css-1i6gwke-StyledSvg-AddIcon e2idor0"
+                  className="e1hyuoc74 css-1i6gwke-StyledSvg-AddIcon enyz4ql0"
                   height="1em"
                   viewBox={Object {}}
                   width="1em"
@@ -1236,7 +1236,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                 width="1em"
               >
                 <svg
-                  className="e1hyuoc74 css-1i6gwke-StyledSvg-AddIcon e2idor0"
+                  className="e1hyuoc74 css-1i6gwke-StyledSvg-AddIcon enyz4ql0"
                   height="1em"
                   viewBox={Object {}}
                   width="1em"
@@ -1287,7 +1287,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                 width="1em"
               >
                 <svg
-                  className="e1hyuoc74 css-1i6gwke-StyledSvg-AddIcon e2idor0"
+                  className="e1hyuoc74 css-1i6gwke-StyledSvg-AddIcon enyz4ql0"
                   height="1em"
                   viewBox={Object {}}
                   width="1em"
@@ -1338,7 +1338,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                 width="1em"
               >
                 <svg
-                  className="e1hyuoc74 css-1i6gwke-StyledSvg-AddIcon e2idor0"
+                  className="e1hyuoc74 css-1i6gwke-StyledSvg-AddIcon enyz4ql0"
                   height="1em"
                   viewBox={Object {}}
                   width="1em"
@@ -1788,7 +1788,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
             width="1em"
           >
             <svg
-              className="e1hyuoc78 css-1uv43pt-StyledSvg-Divider e2idor0"
+              className="e1hyuoc78 css-1uv43pt-StyledSvg-Divider enyz4ql0"
               height="1em"
               viewBox={Object {}}
               width="1em"
@@ -2910,7 +2910,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                                   width="12px"
                                 >
                                   <svg
-                                    className="e12ma6z3 css-1jjmnki-StyledSvg-StyledInlineSvg e2idor0"
+                                    className="e12ma6z3 css-1jjmnki-StyledSvg-StyledInlineSvg enyz4ql0"
                                     height="12px"
                                     viewBox={Object {}}
                                     width="12px"

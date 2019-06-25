@@ -182,7 +182,7 @@ exports[`ExternalIssueActions with no external issues linked renders 1`] = `
                         width="1em"
                       >
                         <svg
-                          className="e1vaar1z1 css-ihls3x-StyledSvg-IntegrationIcon e2idor0"
+                          className="e1vaar1z1 css-ihls3x-StyledSvg-IntegrationIcon enyz4ql0"
                           height="1em"
                           viewBox={Object {}}
                           width="1em"
@@ -232,7 +232,7 @@ exports[`ExternalIssueActions with no external issues linked renders 1`] = `
               width="1em"
             >
               <svg
-                className="e1vaar1z3 css-3kdvxo-StyledSvg-OpenCloseIcon e2idor0"
+                className="e1vaar1z3 css-3kdvxo-StyledSvg-OpenCloseIcon enyz4ql0"
                 height="1em"
                 onClick={[Function]}
                 viewBox={Object {}}
