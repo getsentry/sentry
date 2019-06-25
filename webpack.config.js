@@ -2,6 +2,7 @@
 /*eslint import/no-nodejs-modules:0 */
 const path = require('path');
 const fs = require('fs');
+const https = require('https');
 const webpack = require('webpack');
 const babelConfig = require('./babel.config');
 const OptionalLocaleChunkPlugin = require('./build-utils/optional-locale-chunk-plugin');
@@ -13,6 +14,7 @@ const LodashModuleReplacementPlugin = require('lodash-webpack-plugin');
 const FixStyleOnlyEntriesPlugin = require('webpack-fix-style-only-entries');
 
 const {env} = process;
+const PLATFORMS_URL = 'https://docs.sentry.io/_platforms/_index.json';
 const IS_PRODUCTION = env.NODE_ENV === 'production';
 const IS_TEST = env.NODE_ENV === 'test' || env.TEST_SUITE;
 const IS_STORYBOOK = env.STORYBOOK_BUILD === '1';
@@ -275,6 +277,13 @@ const appConfig = {
       maxAsyncRequests: 7,
       cacheGroups,
     },
+  },
+  externals: function(context, request, callback) {
+    if (request === 'integration-docs-platforms') {
+      fetchIntegrationDocsPlatforms(callback);
+    } else {
+      callback();
+    }
   },
   devtool: IS_PRODUCTION ? 'source-map' : 'cheap-module-eval-source-map',
 };
