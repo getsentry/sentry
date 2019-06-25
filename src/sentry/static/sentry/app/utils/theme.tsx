@@ -1,8 +1,6 @@
 import CHART_PALETTE from 'app/constants/chartPalette';
 
-const theme = {
-  breakpoints: ['768px', '992px', '1200px'],
-
+const colors = {
   // Colors
   offWhite: '#FAF9FB',
   offWhite2: '#E7E1EC',
@@ -71,6 +69,107 @@ const theme = {
 
   background: '#fff',
   placeholderBackground: '#f5f5f5',
+};
+
+const warning = {
+  backgroundLight: colors.yellowLightest,
+  background: colors.yellowDarkest,
+  border: colors.yellowDark,
+  iconColor: colors.yellowDark,
+};
+
+const alert = {
+  muted: {
+    backgroundLight: colors.offWhite,
+    background: colors.gray1,
+    border: colors.gray6,
+  },
+  info: {
+    backgroundLight: colors.blueLightest,
+    border: colors.blueLight,
+    iconColor: colors.blue,
+    background: colors.blue,
+  },
+  warning,
+  //alias warn to warning
+  warn: warning,
+  success: {
+    backgroundLight: colors.greenLightest,
+    border: colors.green,
+    iconColor: colors.greenDark,
+    background: colors.green,
+  },
+  error: {
+    backgroundLight: colors.redLightest,
+    border: colors.redLight,
+    textLight: colors.redLight,
+    iconColor: colors.red,
+    background: colors.red,
+  },
+  beta: {
+    background: `linear-gradient(90deg, ${colors.pink}, ${colors.purple})`,
+  },
+};
+
+const aliases = {
+  textColor: colors.gray5,
+  success: colors.green,
+  error: colors.red,
+  disabled: colors.gray1,
+};
+
+const button = {
+  borderRadius: '3px',
+
+  default: {
+    color: '#2f2936',
+    colorActive: '#161319',
+    background: colors.white,
+    backgroundActive: colors.white,
+    border: '#d8d2de',
+    borderActive: '#c9c0d1',
+  },
+  primary: {
+    color: colors.white,
+    background: colors.purple,
+    backgroundActive: '#4e3fb4',
+    border: '#3d328e',
+    borderActive: '#352b7b',
+  },
+  success: {
+    color: colors.white,
+    background: '#3fa372',
+    backgroundActive: colors.green,
+    border: '#7ccca5',
+    borderActive: '#7ccca5',
+  },
+  danger: {
+    color: colors.white,
+    background: colors.red,
+    backgroundActive: '#bf2a1d',
+    border: '#bf2a1d',
+    borderActive: '#7d1c13',
+  },
+  link: {
+    color: colors.blue,
+    background: 'transparent',
+    // border: '#3d328e',
+    backgroundActive: 'transparent',
+    // borderActive: '#352b7b',
+  },
+  disabled: {
+    color: aliases.disabled,
+    border: '#e3e5e6',
+    borderActive: '#e3e5e6',
+    background: colors.white,
+    backgroundActive: colors.white,
+  },
+};
+
+const theme = {
+  breakpoints: ['768px', '992px', '1200px'],
+
+  ...colors,
 
   // Try to keep these ordered plz
   zIndex: {
@@ -142,123 +241,36 @@ const theme = {
     lineHeightHeading: '1.15',
     lineHeightBody: '1.4',
   },
-};
 
-// Aliases
-theme.textColor = theme.gray5;
-theme.success = theme.green;
-theme.error = theme.red;
-theme.disabled = theme.gray1;
+  // Aliases
+  ...aliases,
 
-theme.alert = {
-  muted: {
-    backgroundLight: theme.offWhite,
-    background: theme.gray1,
-    border: theme.gray6,
-  },
-  info: {
-    backgroundLight: theme.blueLightest,
-    border: theme.blueLight,
-    iconColor: theme.blue,
-    background: theme.blue,
-  },
-  warning: {
-    backgroundLight: theme.yellowLightest,
-    background: theme.yellowDarkest,
-    border: theme.yellowDark,
-    iconColor: theme.yellowDark,
-  },
-  success: {
-    backgroundLight: theme.greenLightest,
-    border: theme.green,
-    iconColor: theme.greenDark,
-    background: theme.green,
-  },
-  error: {
-    backgroundLight: theme.redLightest,
-    border: theme.redLight,
-    textLight: theme.redLight,
-    iconColor: theme.red,
-    background: theme.red,
-  },
-  beta: {
-    background: `linear-gradient(90deg, ${theme.pink}, ${theme.purple})`,
-  },
-};
+  ...alert,
+  ...button,
 
-//alias warn to warning
-theme.alert.warn = theme.alert.warning;
+  charts: {
+    colors: CHART_PALETTE[CHART_PALETTE.length - 1],
 
-theme.button = {
-  borderRadius: '3px',
+    // We have an array that maps `number + 1` --> list of `number` colors
+    getColorPalette: (length: number) =>
+      CHART_PALETTE[Math.min(CHART_PALETTE.length - 1, length + 1)],
 
-  default: {
-    color: '#2f2936',
-    colorActive: '#161319',
-    background: theme.white,
-    backgroundActive: theme.white,
-    border: '#d8d2de',
-    borderActive: '#c9c0d1',
+    previousPeriod: colors.gray1,
+    symbolSize: 6,
   },
-  primary: {
-    color: theme.white,
-    background: theme.purple,
-    backgroundActive: '#4e3fb4',
-    border: '#3d328e',
-    borderActive: '#352b7b',
-  },
-  success: {
-    color: theme.white,
-    background: '#3fa372',
-    backgroundActive: theme.green,
-    border: '#7ccca5',
-    borderActive: '#7ccca5',
-  },
-  danger: {
-    color: theme.white,
-    background: theme.red,
-    backgroundActive: '#bf2a1d',
-    border: '#bf2a1d',
-    borderActive: '#7d1c13',
-  },
-  link: {
-    color: theme.blue,
-    background: 'transparent',
-    // border: '#3d328e',
-    backgroundActive: 'transparent',
-    // borderActive: '#352b7b',
-  },
-  disabled: {
-    color: theme.disabled,
-    border: '#e3e5e6',
-    borderActive: '#e3e5e6',
-    background: theme.white,
-    backgroundActive: theme.white,
-  },
-};
 
-theme.charts = {
-  colors: CHART_PALETTE[CHART_PALETTE.length - 1],
+  diff: {
+    removedRow: '#fcefee',
+    addedRow: '#f5fbf8',
+    removed: '#f7ceca',
+    added: '#d8f0e4',
+  },
 
-  // We have an array that maps `number + 1` --> list of `number` colors
-  getColorPalette: length =>
-    CHART_PALETTE[Math.min(CHART_PALETTE.length - 1, length + 1)],
-
-  previousPeriod: theme.gray1,
-  symbolSize: 6,
-};
-
-theme.diff = {
-  removedRow: '#fcefee',
-  addedRow: '#f5fbf8',
-  removed: '#f7ceca',
-  added: '#d8f0e4',
-};
-
-// Similarity spectrum used in "Similar Issues" in group details
-theme.similarity = {
-  empty: '#e2dee6',
-  colors: ['#ec5e44', '#f38259', '#f9a66d', '#98b480', '#57be8c'],
+  // Similarity spectrum used in "Similar Issues" in group details
+  similarity: {
+    empty: '#e2dee6',
+    colors: ['#ec5e44', '#f38259', '#f9a66d', '#98b480', '#57be8c'],
+  },
 };
 
 export default theme;
