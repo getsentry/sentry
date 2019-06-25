@@ -61,8 +61,6 @@ class AuthIndexEndpoint(Endpoint):
         if not request.user.is_authenticated():
             return Response(status=status.HTTP_400_BAD_REQUEST)
 
-        raise ValueError('oops')
-
         # If 2fa login is enabled then we cannot sign in with username and
         # password through this api endpoint.
         if Authenticator.objects.user_has_2fa(request.user):
