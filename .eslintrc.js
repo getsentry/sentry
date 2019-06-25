@@ -18,6 +18,9 @@ module.exports = {
     rules: {
       '@typescript-eslint/no-unused-vars': 'off',
       'no-unused-vars': 'off',
+
+      // https://github.com/yannickcr/eslint-plugin-react/issues/2066
+      'react/sort-comp': 'warn',
     },
   }],
 };
