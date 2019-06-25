@@ -1,4 +1,3 @@
-import {Flex, Box} from 'grid-emotion';
 import {keyframes} from 'emotion';
 import React from 'react';
 import styled from 'react-emotion';
@@ -16,11 +15,13 @@ import ExternalLink from 'app/components/links/externalLink';
 
 const HEADER_HEIGHT = 60;
 
-export const DiscoverWrapper = styled(Flex)`
+export const DiscoverWrapper = styled('div')`
+  display: flex;
   flex: 1;
 `;
 
-export const DiscoverContainer = styled(Flex)`
+export const DiscoverContainer = styled('div')`
+  display: flex;
   width: 100%;
   height: 100vh;
   position: relative;
@@ -84,20 +85,17 @@ export const DownloadCsvButton = styled(Button)`
   }
 `;
 
-export const Sidebar = styled(props => (
-  <Flex {...props} direction="column" w={[300, 300, 300, 360]} />
-))`
+export const Sidebar = styled('div')`
+  display: flex;
+  flex-direction: column;
   border-right: 1px solid ${p => p.theme.borderDark};
   background: #fff;
   min-width: 320px;
   position: relative;
   padding-top: ${HEADER_HEIGHT}px;
-`;
-
-export const QueryFieldsSidebar = styled(Flex)`
-  height: 100%;
-  flex-direction: column;
-  justify-content: flex-start;
+  @media (min-width: ${theme.breakpoints[2]}) {
+    width: 360px;
+  }
 `;
 
 export const DocsSeparator = styled('div')`
@@ -135,14 +133,16 @@ export const DocsIcon = styled(InlineSvg)`
   margin-right: 8px;
 `;
 
-export const Body = styled(Flex)`
+export const Body = styled('div')`
+  display: flex;
   flex: 1;
   flex-direction: column;
   overflow: hidden;
   padding-top: ${HEADER_HEIGHT}px;
 `;
 
-export const BodyContent = styled(Flex)`
+export const BodyContent = styled('div')`
+  display: flex;
   flex: 1;
   flex-direction: column;
   padding: ${space(3)} ${space(4)} ${space(4)} ${space(4)};
@@ -151,7 +151,8 @@ export const BodyContent = styled(Flex)`
   background: ${p => p.theme.whiteDark};
 `;
 
-export const LoadingContainer = styled(Flex)`
+export const LoadingContainer = styled('div')`
+  display: flex;
   flex: 1;
   align-items: center;
   height: 100%;
@@ -167,7 +168,8 @@ export const PlaceholderText = styled('div')`
   font-size: 15px;
 `;
 
-export const HeadingContainer = styled(Flex)`
+export const HeadingContainer = styled('div')`
+  display: flex;
   min-width: 70px;
   margin: ${space(1)} 0 ${space(2)};
   align-items: center;
@@ -177,7 +179,10 @@ export const Fieldset = styled('fieldset')`
   margin: ${space(2)} ${space(3)};
 `;
 
-export const SelectListItem = styled(Flex)`
+export const SelectListItem = styled('div')`
+  display: grid;
+  grid-template-columns: auto ${space(2)};
+  grid-gap: ${space(1)};
   margin-top: ${space(0.5)};
 `;
 
@@ -222,12 +227,13 @@ export const ButtonSpinner = styled('div')`
   margin-left: 4px;
 `;
 
-export const ResultSummary = styled(Box)`
+export const ResultSummary = styled('div')`
   color: ${p => p.theme.gray6};
   font-size: ${p => p.theme.fontSizeSmall};
 `;
 
-export const ResultSummaryAndButtons = styled(Flex)`
+export const ResultSummaryAndButtons = styled('div')`
+  display: flex;
   justify-content: space-between;
 `;
 
@@ -246,7 +252,7 @@ export const ChartWrapper = styled(Panel)`
   padding: ${space(3)} ${space(2)};
 `;
 
-export const ChartNote = styled(Box)`
+export const ChartNote = styled('div')`
   text-align: center;
   font-size: ${p => p.theme.fontSizeMedium};
   color: ${p => p.theme.gray3};
@@ -299,7 +305,8 @@ export const QueryPanelContainer = styled('div')`
   overflow-y: scroll;
 `;
 
-export const QueryPanelTitle = styled(Flex)`
+export const QueryPanelTitle = styled('div')`
+  display: flex;
   justify-content: space-between;
   align-items: center;
   padding: 0 ${space(4)};
@@ -309,4 +316,16 @@ export const QueryPanelTitle = styled(Flex)`
 
 export const QueryPanelCloseLink = styled(Link)`
   color: ${p => p.theme.gray6};
+`;
+
+export const QueryActions = styled('div')`
+  display: grid;
+  grid-auto-flow: column;
+  justify-content: space-between;
+`;
+
+export const QueryActionsGroup = styled('div')`
+  display: grid;
+  grid-auto-flow: column;
+  grid-gap: ${space(1)};
 `;

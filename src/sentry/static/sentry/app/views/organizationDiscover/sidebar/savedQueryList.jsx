@@ -1,6 +1,5 @@
 import React from 'react';
 import moment from 'moment';
-import {Flex} from 'grid-emotion';
 
 import SentryTypes from 'app/sentryTypes';
 import getDynamicText from 'app/utils/getDynamicText';
@@ -11,6 +10,7 @@ import {t, tct} from 'app/locale';
 import {fetchSavedQueries} from '../utils';
 import {
   Fieldset,
+  LoadingContainer,
   SavedQueryList,
   SavedQueryListItem,
   SavedQueryLink,
@@ -72,9 +72,9 @@ export default class SavedQueries extends React.Component {
   renderLoading() {
     return (
       <Fieldset>
-        <Flex justify="center">
+        <LoadingContainer>
           <LoadingIndicator mini />
-        </Flex>
+        </LoadingContainer>
       </Fieldset>
     );
   }
