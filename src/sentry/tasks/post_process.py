@@ -305,7 +305,7 @@ def push_github_check(build):
         name='getsentry',
         organizationintegration__organization=build.organization_id,
     )
-    repo = 'getsentry/nothing-to-see-here'
+    repo = 'getsentry/sentry'
 
     payload = {
         'name': 'sentry',
