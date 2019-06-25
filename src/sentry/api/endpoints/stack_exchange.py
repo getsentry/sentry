@@ -56,6 +56,7 @@ class StackExchangeEndpoint(ProjectEndpoint):
                 'order': 'desc',
                 'sort': 'votes',
                 'site': 'stackoverflow',
+                'tagged': event.platform
             }
 
             response = requests.get('https://{}'.format(STACK_EXCHANGE_SEARCH_API), params=query_params)
