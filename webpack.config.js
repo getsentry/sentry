@@ -18,7 +18,6 @@ const PLATFORMS_URL = 'https://docs.sentry.io/_platforms/_index.json';
 const IS_PRODUCTION = env.NODE_ENV === 'production';
 const IS_TEST = env.NODE_ENV === 'test' || env.TEST_SUITE;
 const IS_STORYBOOK = env.STORYBOOK_BUILD === '1';
-
 const WEBPACK_MODE = IS_PRODUCTION ? 'production' : 'development';
 
 // HMR proxying
@@ -142,7 +141,59 @@ const localeRestrictionPlugins = [
   ),
 ];
 
+const transformPlatformsToList = function({platforms}) {
+  return Object.keys(platforms)
+    .map(platformId => {
+      const integrationMap = platforms[platformId];
+      const integrations = Object.keys(integrationMap)
+        .sort(alphaSortFromKey(key => integrationMap[key].name))
+        .map(integrationId => {
+          const {name, type, doc_link: link} = integrationMap[integrationId];
+          const id =
+            integrationId === '_self' ? platformId : `${platformId}-${integrationId}`;
+          return {
+            id,
+            name,
+            type,
+            link,
+          };
+        });
+      return {
+        id: platformId,
+        name: integrationMap._self.name,
+        integrations,
+      };
+    })
+    .sort(alphaSortFromKey(item => item.name));
+};
+
+const fetchIntegrationDocsPlatforms =
+  IS_TEST || IS_STORYBOOK
+    ? function(callback) {
+        fs.readFile(
+          path.join(__dirname, 'tests/fixtures/integration-docs/_platforms.json'),
+          callback
+        );
+      }
+    : function(callback) {
+        const req = https.get(PLATFORMS_URL, res => {
+          let buffer = '';
+          res
+            .on('data', data => (buffer += data))
+            .on('end', () =>
+              callback(
+                null,
+                JSON.stringify({
+                  platforms: transformPlatformsToList(JSON.parse(buffer)),
+                })
+              )
+            );
+        });
+        req.on('error', callback);
+      };
+
 /**
+>>>>>>> Bring back IS_STORYBOOK logic
  * Explicit codesplitting cache groups
  */
 const cacheGroups = {
