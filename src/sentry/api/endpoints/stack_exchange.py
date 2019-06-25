@@ -28,6 +28,9 @@ class StackExchangeEndpoint(ProjectEndpoint):
 
         exception_interface = event.get_interface('exception')
 
+        if not hasattr(exception_interface, 'to_string'):
+            return Response({'detail': 'No results'}, status=404)
+
         exception_string = exception_interface.to_string(event)
 
         if not exception_string:
