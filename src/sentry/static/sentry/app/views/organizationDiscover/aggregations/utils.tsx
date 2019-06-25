@@ -17,7 +17,7 @@ export type Column = {
  */
 export function isValidAggregation(
   aggregation: AggregationResult,
-  cols: [{name: string; type: string}]
+  cols: Column[]
 ): boolean {
   const columns = new Set(cols.map(({name}) => name));
   const [func, col] = aggregation;
