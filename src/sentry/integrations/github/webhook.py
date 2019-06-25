@@ -54,7 +54,7 @@ class Webhook(object):
                 'github.missing-integration',
                 extra={
                     'action': event.get('action'),
-                    'repository': event.get('repository'),
+                    'repository': event.get('repository')['full_name'],
                     'external_id': external_id,
                 }
             )
