@@ -174,7 +174,7 @@ class EventEntries extends React.Component {
           orgId={orgId}
           projectId={project.slug}
         />
-        {<EventStackExchange event={event} />}
+        {<EventStackExchange group={group} event={event} />}
         {this.renderEntries()}
         {hasContext && <EventContexts group={group} event={event} />}
         {!objectIsEmpty(event.context) && <EventExtraData event={event} />}
@@ -188,7 +188,7 @@ class EventEntries extends React.Component {
           <EventSdkUpdates event={event} />
         )}
         {!isShare && features.has('grouping-info') && (
-          <EventGroupingInfo projectId={project.slug} event={event} />
+          <EventGroupingInfo projectId={project.slug} group={group} event={event} />
         )}
       </div>
     );

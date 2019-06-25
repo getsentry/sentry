@@ -1286,6 +1286,11 @@ urlpatterns = patterns(
         name='sentry-api-0-group-stats'
     ),
     url(
+        r'^(?:issues|groups)/(?P<issue_id>\d+)/stackexchange/$',
+        StackExchangeEndpoint.as_view(),
+        name='stack-exchange-api-0-search'
+    ),
+    url(
         r'^(?:issues|groups)/(?P<issue_id>\d+)/tags/$',
         GroupTagsEndpoint.as_view(),
         name='sentry-api-0-group-tags'
@@ -1438,12 +1443,6 @@ urlpatterns = patterns(
         r'^wizard/(?P<wizard_hash>[^\/]+)/$',
         SetupWizard.as_view(),
         name='sentry-api-0-project-wizard'
-    ),
-
-    url(
-        r'^stackexchange/search/$',
-        StackExchangeEndpoint.as_view(),
-        name='stack-exchange-api-0-search'
     ),
 
     # Catch all

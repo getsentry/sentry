@@ -9,40 +9,57 @@ import Pills from 'app/components/pills';
 import Pill from 'app/components/pill';
 import ToolbarHeader from 'app/components/toolbarHeader';
 import {t} from 'app/locale';
-// import SentryTypes from 'app/sentryTypes';
+import SentryTypes from 'app/sentryTypes';
 import withApi from 'app/utils/withApi';
 
 class EventStackExchange extends React.Component {
   static propTypes = {
     api: PropTypes.object.isRequired,
-    // event: SentryTypes.Event.isRequired,
+    group: SentryTypes.Group.isRequired,
+    event: SentryTypes.Event.isRequired,
   };
 
-  constructor(...args) {
-    super(...args);
-    this.state = {
-      questions: [],
-    };
-  }
+  state = {
+    questions: [],
+  };
+
+  // eslint-disable-next-line react/sort-comp
+  _isMounted = false;
 
   componentDidMount() {
+    this._isMounted = true;
+
+    // TODO: track loading state
     this.fetchData();
   }
 
-  fetchData() {
-    this.props.api.request('/stackexchange/search/', {
+  componentWillUnmount() {
+    this._isMounted = false;
+  }
+
+  fetchData = () => {
+    console.log('props', this.props);
+    const {group} = this.props;
+
+    this.props.api.request(`/issues/${group.id}/stackexchange/`, {
       success: data => {
-        console.log(data.items);
+        console.log('response', data.items);
+
+        if (!this._isMounted) {
+          return;
+        }
+
         this.setState({
           questions: data.items,
         });
       },
       error: err => {
+        // TODO: refactor this
         console.log('oh crap its broken');
         console.log(err);
       },
     });
-  }
+  };
 
   renderHeaders() {
     return (

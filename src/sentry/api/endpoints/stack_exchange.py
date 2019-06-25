@@ -3,14 +3,19 @@ import json
 
 from rest_framework.response import Response
 
-from sentry.api.base import Endpoint
-from sentry.api.permissions import ScopedPermission
+from sentry.api.bases import GroupEndpoint
+# from sentry.api.permissions import ScopedPermission
 
 
-class StackExchangeEndpoint(Endpoint):
-    permission_classes = (ScopedPermission, )
+class StackExchangeEndpoint(GroupEndpoint):
+    # permission_classes = (ScopedPermission, )
 
-    def get(self, request):
+    def get(self, request, group):
+        # TODO: add docstrings
+
+        import logging
+        logging.error("group: %s", group)
+
         return Response(thing, status=200)
 
 
