@@ -292,8 +292,12 @@ class Result extends React.Component {
               <Pagination
                 previous={baseQuery.previous}
                 next={baseQuery.next}
-                getNextPage={() => onFetchPage('next')}
-                getPreviousPage={() => onFetchPage('previous')}
+                getNextPage={() => {
+                  onFetchPage('next');
+                }}
+                getPreviousPage={() => {
+                  onFetchPage('previous');
+                }}
               />
             )}
           </ResultSummaryAndButtons>
