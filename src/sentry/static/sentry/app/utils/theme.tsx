@@ -245,8 +245,8 @@ const theme = {
   // Aliases
   ...aliases,
 
-  ...alert,
-  ...button,
+  alert,
+  button,
 
   charts: {
     colors: CHART_PALETTE[CHART_PALETTE.length - 1],
