@@ -2,6 +2,7 @@
 
 const argv = require('yargs').argv;
 
+const fs = require('fs');
 const puppeteer = require('puppeteer');
 const URL = require('url').URL;
 const EventEmitter = require('events');
@@ -267,7 +268,7 @@ class Crawler {
       }
 
       if (this.screenshots) {
-        let fileName = url.replace(/(\.|\/|:|%|#)/g, '_');
+        let fileName = new URL(url).pathname.replace(/(\.|\/|:|%|#)/g, '_');
         if (fileName.length > 100) {
           fileName = fileName.substring(0, 100);
         }
@@ -307,10 +308,16 @@ class Crawler {
 
 (async () => {
   const initialUrl = new URL(argv.url);
+  const screenshots = './.artifacts/screenshots';
+
+  if (!fs.statSync(screenshots)) {
+    fs.mkdirSync(screenshots, {recursive: true});
+  }
+
   const crawler = new Crawler({
     domains: [initialUrl.host],
     maxConcurrency: 3,
-    screenshots: './.artifacts/screenshots',
+    screenshots,
     formConfigs: {
       [`http://${initialUrl.host}/auth/login/`]: {
         fields: {
@@ -321,6 +328,7 @@ class Crawler {
       },
     },
   });
+
   await crawler.init();
   await crawler.queue(argv.url);
   await crawler.onIdle();
