@@ -7,24 +7,18 @@ sentry.web.frontend.admin
 """
 from __future__ import absolute_import, print_function
 
-import logging
-import uuid
-
 import six
 from django.core.context_processors import csrf
-from django.db import transaction
 from django.http import HttpResponse, HttpResponseRedirect
 from django.views.decorators.csrf import csrf_protect
 
-from sentry import options
 from sentry.models import Project, User
 from sentry.plugins import plugins
-from sentry.utils.email import send_mail
 from sentry.utils.http import absolute_uri
 from sentry.web.decorators import requires_admin
-from sentry.web.forms import (ChangeUserForm, NewUserForm, RemoveUserForm)
+from sentry.web.forms import (ChangeUserForm, RemoveUserForm)
 from sentry.utils import auth
-from sentry.web.helpers import render_to_response, render_to_string
+from sentry.web.helpers import render_to_response
 
 
 def configure_plugin(request, slug):
@@ -44,54 +38,6 @@ def configure_plugin(request, slug):
             'view': view,
         }, request
     )
-
-
-@requires_admin
-@transaction.atomic
-@csrf_protect
-def create_new_user(request):
-    form = NewUserForm(
-        request.POST or None, initial={
-            'send_welcome_mail': True,
-            'create_project': True,
-        }
-    )
-    if form.is_valid():
-        user = form.save(commit=False)
-
-        # create a random password
-        password = uuid.uuid4().hex
-        user.set_password(password)
-
-        user.save()
-
-        if form.cleaned_data['send_welcome_mail']:
-            context = {
-                'username': user.username,
-                'password': password,
-                'url': absolute_uri(auth.get_login_url()),
-            }
-            body = render_to_string('sentry/emails/welcome_mail.txt', context, request)
-
-            try:
-                send_mail(
-                    '%s Welcome to Sentry' % (options.get('mail.subject-prefix'), ),
-                    body,
-                    options.get('mail.from'), [user.email],
-                    fail_silently=False
-                )
-            except Exception as e:
-                logger = logging.getLogger('sentry.mail.errors')
-                logger.exception(e)
-
-        return HttpResponseRedirect(absolute_uri('/manage/users/'))
-
-    context = {
-        'form': form,
-    }
-    context.update(csrf(request))
-
-    return render_to_response('sentry/admin/users/new.html', context, request)
 
 
 @requires_admin

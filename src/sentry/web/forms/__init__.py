@@ -19,17 +19,6 @@ class BaseUserForm(forms.ModelForm):
     name = forms.CharField(required=True, label=_('Name'))
 
 
-class NewUserForm(BaseUserForm):
-    send_welcome_mail = forms.BooleanField(
-        required=False,
-        help_text=_("Send this user a welcome email which will contain their generated password.")
-    )
-
-    class Meta:
-        fields = ('name', 'username', 'email')
-        model = User
-
-
 class ChangeUserForm(BaseUserForm):
     is_staff = forms.BooleanField(
         required=False,
