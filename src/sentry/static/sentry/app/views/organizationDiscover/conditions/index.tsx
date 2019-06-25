@@ -1,5 +1,4 @@
 import React from 'react';
-import {Box} from 'grid-emotion';
 
 import InlineSvg from 'app/components/inlineSvg';
 import {t} from 'app/locale';
