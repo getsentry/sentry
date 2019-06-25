@@ -1,7 +1,10 @@
-import * as React from 'react';
+import React from 'react';
+import {Value} from 'react-select';
 import styled from 'react-emotion';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
+
+import SelectControl from 'app/components/forms/selectControl';
 
 import {getInternal, getExternal, isValidCondition, ignoreCase} from './utils';
 import {CONDITION_OPERATORS, ARRAY_FIELD_PREFIXES} from '../data';
@@ -12,10 +15,6 @@ import {
   ReactSelectState,
   ReactSelectValue,
 } from '../types';
-
-const Value: any = require('react-select').Value;
-const Box: any = require('grid-emotion').Box;
-const SelectControl: any = require('app/components/forms/selectControl').default;
 
 type ConditionProps = DiscoverBaseProps & {
   value: SnubaResult;

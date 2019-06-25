@@ -1,14 +1,13 @@
-import * as React from 'react';
+import React from 'react';
+import {Box} from 'grid-emotion';
 
 import InlineSvg from 'app/components/inlineSvg';
 import {t} from 'app/locale';
+import Link from 'app/components/links/link';
 
 import Condition from './condition';
 import {PlaceholderText, SelectListItem, AddText, SidebarLabel} from '../styles';
 import {SnubaResult, DiscoverBaseProps} from '../types';
-
-const Link: any = require('app/components/links/link').default;
-const Box: any = require('grid-emotion').Box;
 
 type ConditionsProps = DiscoverBaseProps & {
   value: SnubaResult[];

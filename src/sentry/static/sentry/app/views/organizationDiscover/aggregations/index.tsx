@@ -1,13 +1,13 @@
-import * as React from 'react';
+import React from 'react';
+
 import {t} from 'app/locale';
 
 import InlineSvg from 'app/components/inlineSvg';
+import Link from 'app/components/links/link';
 
 import Aggregation from './aggregation';
 import {PlaceholderText, SelectListItem, AddText, SidebarLabel} from '../styles';
 import {SnubaResult, DiscoverBaseProps} from '../types';
-
-const Link: any = require('app/components/links/link').default;
 
 type AggregationsProps = DiscoverBaseProps & {
   value: SnubaResult[];
