@@ -22,11 +22,11 @@ export default function handleXhrErrorResponse(message) {
     }
 
     // Ignore sudo-required errors
-    if (responseJSON?.detail?.code === 'sudo-required') {
+    if (responseJSON.detail && responseJSON.detail.code === 'sudo-required') {
       return;
     }
 
-    if (typeof responseJSON?.detail?.message === 'string') {
+    if (responseJSON.detail && typeof responseJSON.detail.message === 'string') {
       Sentry.withScope(scope => {
         scope.setExtra('status', resp.status);
         scope.setExtra('detail', responseJSON.detail);

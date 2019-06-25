@@ -56,7 +56,10 @@ class ProjectDetailsInner extends React.Component {
   };
 
   getProjectId = () => {
-    return this.state.project?.id;
+    if (this.state.project) {
+      return this.state.project.id;
+    }
+    return null;
   };
 
   hasProjectId = () => {
@@ -65,7 +68,10 @@ class ProjectDetailsInner extends React.Component {
   };
 
   getOrganizationId = () => {
-    return this.state.project?.organization?.id;
+    if (this.state.project) {
+      return this.state.project.organization.id;
+    }
+    return null;
   };
 
   render() {
@@ -124,7 +130,7 @@ const redirectDeprecatedProjectRoute = generateRedirectRoute => {
             }
 
             if (!hasProjectId) {
-              if (error?.status === 404) {
+              if (error && error.status === 404) {
                 return (
                   <Alert type="error">
                     {t('The project you were looking for was not found.')}

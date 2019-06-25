@@ -27,8 +27,8 @@ class OrganizationProjects extends AsyncView {
 
   componentWillReceiveProps(nextProps, nextContext) {
     super.componentWillReceiveProps(nextProps, nextContext);
-    const searchQuery = nextProps?.location?.query?.query;
-    if (searchQuery !== this.props?.location?.query?.query) {
+    const searchQuery = nextProps.location.query.query;
+    if (searchQuery !== this.props.location.query.query) {
       this.setState({searchQuery});
     }
   }
@@ -41,7 +41,7 @@ class OrganizationProjects extends AsyncView {
         `/organizations/${orgId}/projects/`,
         {
           query: {
-            query: this.props?.location?.query?.query,
+            query: this.props.location.query.query,
           },
         },
       ],
@@ -62,7 +62,7 @@ class OrganizationProjects extends AsyncView {
   getDefaultState() {
     return {
       ...super.getDefaultState(),
-      searchQuery: this.props?.location?.query?.query || '',
+      searchQuery: this.props.location.query.query || '',
     };
   }
 

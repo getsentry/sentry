@@ -2,6 +2,11 @@
 
 exports[`OrganizationProjects Should render the projects in the store 1`] = `
 <WithOrganizationMockWrapper
+  location={
+    Object {
+      "query": Object {},
+    }
+  }
   params={
     Object {
       "orgId": "org-slug",
@@ -9,6 +14,11 @@ exports[`OrganizationProjects Should render the projects in the store 1`] = `
   }
 >
   <OrganizationProjects
+    location={
+      Object {
+        "query": Object {},
+      }
+    }
     organization={
       Object {
         "access": Array [

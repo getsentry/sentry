@@ -37,7 +37,7 @@ export default class CommitRow extends React.Component {
           <Message>{this.renderMessage(message)}</Message>
           <Meta>
             {tct('[author] committed [timeago]', {
-              author: <strong>{author?.name || t('Unknown author')}</strong>,
+              author: <strong>{(author && author.name) || t('Unknown author')}</strong>,
               timeago: <TimeSince date={dateCreated} />,
             })}
           </Meta>

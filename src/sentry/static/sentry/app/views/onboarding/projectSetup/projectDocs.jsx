@@ -96,7 +96,8 @@ class ProjectDocs extends React.Component {
    */
   get missingExampleWarning() {
     const {loadedPlatform, platformDocs} = this.state;
-    const missingExample = platformDocs?.html?.includes(INCOMPLETE_DOC_FLAG);
+    const missingExample =
+      platformDocs && platformDocs.html.includes(INCOMPLETE_DOC_FLAG);
 
     if (!missingExample) {
       return null;
@@ -110,7 +111,7 @@ class ProjectDocs extends React.Component {
            yet! If you have trouble sending your first event be sure to consult
            the [docsLink:full documentation] for [platform].`,
           {
-            docsLink: <ExternalLink href={platformDocs?.link} />,
+            docsLink: <ExternalLink href={platformDocs && platformDocs.link} />,
             platform: platforms.find(p => p.id === loadedPlatform).name,
           }
         )}
@@ -145,7 +146,7 @@ class ProjectDocs extends React.Component {
               <Button
                 external
                 onClick={this.handleFullDocsClick}
-                href={platformDocs?.link}
+                href={platformDocs && platformDocs.link}
                 size="small"
               >
                 {t('Full Documentation')}

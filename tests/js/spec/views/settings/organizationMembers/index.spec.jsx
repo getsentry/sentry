@@ -27,6 +27,7 @@ describe('OrganizationMembers', function() {
     onSendInvite: () => {},
     onRemove: () => {},
     onLeave: () => {},
+    location: {query: {}},
   };
   const organization = TestStubs.Organization({
     access: ['member:admin', 'org:admin'],
@@ -371,7 +372,6 @@ describe('OrganizationMembers', function() {
     const wrapper = mount(
       <OrganizationMembers
         {...defaultProps}
-        location={{}}
         params={{
           orgId: 'org-id',
         }}

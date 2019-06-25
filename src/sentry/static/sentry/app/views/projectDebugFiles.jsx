@@ -74,7 +74,7 @@ class ProjectDebugSymbols extends AsyncComponent {
       [
         'debugFiles',
         `/projects/${orgId}/${projectId}/files/dsyms/`,
-        {query: {query: this.props?.location?.query?.query}},
+        {query: {query: this.props.location.query.query}},
       ],
     ];
 
