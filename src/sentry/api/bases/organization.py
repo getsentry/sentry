@@ -172,7 +172,7 @@ class OrganizationEndpoint(Endpoint):
         :param include_all_accessible: Whether to factor the organization
         allow_joinleave flag into permission checks. We should ideally
         standardize how this is used and remove this parameter.
-        :return: A list of project ids, or raises PermissionDenied.
+        :return: A list of Project objects, or raises PermissionDenied.
         """
         project_ids = set(map(int, request.GET.getlist('project')))
 
@@ -286,6 +286,10 @@ class OrganizationReleasesBaseEndpoint(OrganizationEndpoint):
     permission_classes = (OrganizationReleasePermission, )
 
     def get_projects(self, request, organization):
+        """
+        Get all projects the current user or API token has access to. More
+        detail in the parent class's method of the same name.
+        """
         has_valid_api_key = False
         if isinstance(request.auth, ApiKey):
             if request.auth.organization_id != organization.id:
@@ -295,7 +299,7 @@ class OrganizationReleasesBaseEndpoint(OrganizationEndpoint):
 
         if not (
             has_valid_api_key
-            or getattr(request, 'user', None) and request.user.is_authenticated()
+            or (getattr(request, 'user', None) and request.user.is_authenticated())
         ):
             return []
 
@@ -307,6 +311,10 @@ class OrganizationReleasesBaseEndpoint(OrganizationEndpoint):
         )
 
     def has_release_permission(self, request, organization, release):
+        """
+        Does the given request have permission to access this release, based
+        on the projects to which the release is attached?
+        """
         return ReleaseProject.objects.filter(
             release=release,
             project__in=self.get_projects(request, organization),
