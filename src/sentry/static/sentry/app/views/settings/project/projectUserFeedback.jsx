@@ -61,6 +61,8 @@ class ProjectUserFeedbackSettings extends AsyncView {
   renderBody() {
     const {orgId, projectId} = this.props.params;
 
+    return 'This is definitely invalid';
+
     return (
       <div>
         <SettingsPageHeader title={t('User Feedback')} />

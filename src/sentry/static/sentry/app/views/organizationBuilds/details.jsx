@@ -4,6 +4,7 @@ import AsyncView from 'app/views/asyncView';
 import {Panel, PanelHeader} from 'app/components/panels';
 import {t} from 'app/locale';
 
+import BuildEvent from './event';
 import BuildHeader from './buildHeader';
 import BuildIssues from './buildIssues';
 
@@ -38,7 +39,8 @@ class OrganizationBuildDetails extends AsyncView {
   };
 
   renderBody() {
-    const {build} = this.state;
+    const {build2} = this.state;
+    const showModal = false;
     return (
       <React.Fragment>
         <BuildHeader
@@ -52,6 +54,8 @@ class OrganizationBuildDetails extends AsyncView {
 
           <BuildIssues build={build} orgId={this.props.params.orgId} />
         </Panel>
+
+        {showModal && <BuildEvent orgId={this.props.params.orgId} build={build} />}
       </React.Fragment>
     );
   }

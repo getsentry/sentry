@@ -1,0 +1,323 @@
+#!/usr/bin/env node
+
+const argv = require('yargs').argv;
+
+const puppeteer = require('puppeteer');
+const URL = require('url').URL;
+const EventEmitter = require('events');
+
+const PAGE_OPTIONS = {
+  timeout: 30000,
+  waitUntil: 'networkidle2',
+};
+
+const DEFAULT_ARGS = [
+  '--disable-setuid-sandbox',
+  '--no-sandbox',
+  '--blink-settings=imagesEnabled=false',
+];
+
+// Ported from http://en.cppreference.com/w/cpp/algorithm/lower_bound
+function lowerBound(array, value, comp) {
+  let first = 0;
+  let count = array.length;
+  while (count > 0) {
+    const step = (count / 2) | 0;
+    let it = first + step;
+    if (comp(array[it], value) <= 0) {
+      it += 1;
+      first = it;
+      count -= step + 1;
+    } else {
+      count = step;
+    }
+  }
+  return first;
+}
+
+class SessionCache {
+  init() {
+    this._storage = new Map();
+    return Promise.resolve();
+  }
+
+  clear() {
+    this._storage.clear();
+    return Promise.resolve();
+  }
+
+  close() {
+    return Promise.resolve();
+  }
+
+  get(key) {
+    return Promise.resolve(this._storage.get(key) || null);
+  }
+
+  set(key, value) {
+    this._storage.set(key, value);
+    return Promise.resolve();
+  }
+
+  enqueue(key, value, priority) {
+    const queue = this._storage.get(key) || [];
+    const item = {value, priority};
+    if (queue.length && queue[queue.length - 1].priority >= priority) {
+      queue.push(item);
+      this._storage.set(key, queue);
+      return Promise.resolve();
+    }
+    const index = lowerBound(queue, item, (a, b) => b.priority - a.priority);
+    queue.splice(index, 0, item);
+    this._storage.set(key, queue);
+    return Promise.resolve();
+  }
+
+  dequeue(key) {
+    const queue = this._storage.get(key) || [];
+    this._storage.set(key, queue);
+    const item = queue.shift();
+    if (!item) return Promise.resolve(null);
+    return Promise.resolve(item.value);
+  }
+
+  size(key) {
+    const queue = this._storage.get(key);
+    if (!queue) return Promise.resolve(0);
+    return Promise.resolve(queue.length);
+  }
+
+  remove(key) {
+    this._storage.delete(key);
+    return Promise.resolve();
+  }
+}
+
+const KEY = 'queue';
+const INTERVAL = 200;
+
+class PriorityQueue extends EventEmitter {
+  constructor(options) {
+    super();
+    this._cache = options.cache;
+    this._maxConcurrency = options.maxConcurrency || Infinity;
+    this._isPaused = false;
+    this._pendingCount = 0;
+    this._resolveIdle = () => {};
+  }
+
+  init() {
+    this._watch();
+  }
+
+  end() {
+    this._unwatch();
+  }
+
+  async push(...args) {
+    const priority = args.pop();
+    await this._cache.enqueue(KEY, args, priority);
+    this._pull();
+  }
+
+  pause() {
+    this._isPaused = true;
+    this._unwatch();
+    this._resolveIdle();
+  }
+
+  resume() {
+    if (!this._isPaused) return;
+    this._isPaused = false;
+    this._watch();
+    this._pull();
+  }
+
+  isPaused() {
+    return this._isPaused;
+  }
+
+  pending() {
+    return this._pendingCount;
+  }
+
+  size() {
+    return this._cache.size(KEY);
+  }
+
+  onIdle() {
+    return new Promise(resolve => {
+      this._resolveIdle = resolve;
+    });
+  }
+
+  emitAsync(event, ...args) {
+    const promises = [];
+    this.listeners(event).forEach(listener => {
+      promises.push(listener(...args));
+    });
+    return Promise.all(promises);
+  }
+
+  async _pull() {
+    if (this._isPaused) return;
+    if (this._pendingCount >= this._maxConcurrency) return;
+    this._pendingCount += 1;
+    const args = await this._cache.dequeue(KEY);
+    if (!args) {
+      this._pendingCount -= 1;
+      if (this._pendingCount === 0) this._resolveIdle();
+      return;
+    }
+    await this.emitAsync('pull', ...args);
+    this._pendingCount -= 1;
+    this._pull();
+  }
+
+  _watch() {
+    this._unwatch();
+    this._interval = setInterval(() => {
+      this._pull();
+    }, INTERVAL);
+  }
+
+  _unwatch() {
+    clearInterval(this._interval);
+  }
+}
+
+class Crawler {
+  constructor(options) {
+    this.userAgent =
+      options.userAgent ||
+      'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/67.0.3239.108 Safari/537.36';
+    this.domains = options.domains ? new Set(options.domains) : null;
+    this._browser = null;
+    this._cache = new SessionCache();
+    this._queue = new PriorityQueue({
+      cache: this._cache,
+      maxConcurrency: 5,
+    });
+    this._count = 0;
+    this._visited = new Set();
+    this._queue.on('pull', (_options, previousUrl) =>
+      this._request(_options, previousUrl)
+    );
+    this._formConfigs = options.formConfigs || {};
+  }
+
+  async init() {
+    await this._cache.init();
+    this._queue.init();
+  }
+
+  async getBrowser() {
+    if (this._browser) return this._browser;
+    this._browser = await puppeteer.launch({
+      args: DEFAULT_ARGS,
+      headless: true,
+      ignoreHTTPSErrors: true,
+    });
+    return this._browser;
+  }
+
+  async close() {
+    this._queue.end();
+    await this._cache.clear();
+    await this._cache.close();
+    if (!this._browser) return;
+    await this._browser.close();
+    this._browser = null;
+  }
+
+  async queue(url, options = {}) {
+    this._visited.add(url);
+    this._queue.push(url, options, 0);
+  }
+
+  async _request(url, options) {
+    this._count += 1;
+
+    console.log(`${this._count}. ${url}`);
+
+    const browser = await this.getBrowser();
+    const page = await browser.newPage();
+    await page.setUserAgent(this.userAgent);
+
+    try {
+      await page.goto(url, {...PAGE_OPTIONS});
+      await this._discoverLinks(page);
+
+      const formData = this._formConfigs[url];
+      if (formData) {
+        await Promise.all(
+          Object.keys(formData.fields).map(fieldName => {
+            page.$eval(
+              fieldName,
+              (el, fieldValue) => (el.value = fieldValue),
+              formData.fields[fieldName]
+            );
+          })
+        );
+        // https://github.com/GoogleChrome/puppeteer/issues/1412
+        page.click(formData.submitElement);
+        await page.waitForNavigation({...PAGE_OPTIONS});
+        await this._discoverLinks(page);
+      }
+
+      // let fileName = url.replace(/(\.|\/|:|%|#)/g, '_');
+      // if (fileName.length > 100) {
+      //     fileName = fileName.substring(0, 100);
+      // }
+      // await page.screenshot({ path: `./screenshots/${fileName}.jpeg`, fullPage: true });
+    } catch (err) {
+      console.error(`An error occured on url: ${url}`, err);
+    } finally {
+      await page.close();
+    }
+  }
+
+  async onIdle() {
+    await this._queue.onIdle();
+  }
+
+  async _discoverLinks(page) {
+    const links = await page.$$eval('a', nodes => nodes.map(n => n.href));
+    links.forEach(link => {
+      if (!link) return;
+      link = link.split('#')[0];
+      const linkDomain = new URL(link).host;
+      if (this._isDomainAllowed(linkDomain) && !this._visited.has(link)) {
+        this.queue(link);
+      }
+    });
+  }
+
+  _isDomainAllowed(domain) {
+    if (!this.domains) return true;
+    return this.domains.has(domain);
+  }
+}
+
+(async () => {
+  const initialUrl = new URL(argv.url);
+  const crawler = new Crawler({
+    domains: [initialUrl.host],
+    formConfigs: {
+      [`http://${initialUrl.host}/auth/login/`]: {
+        fields: {
+          '#id_username': argv.username,
+          '#id_password': argv.password,
+        },
+        submitElement: 'button[type=submit]',
+      },
+    },
+  });
+  await crawler.init();
+  await crawler.queue(argv.url);
+  await crawler.onIdle();
+  await crawler.close();
+})().catch(err => {
+  console.error(err);
+  process.exit(1);
+});

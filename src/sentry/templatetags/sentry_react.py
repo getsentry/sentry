@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 import sentry
+import os
 
 from django import template
 from django.conf import settings
@@ -140,8 +141,12 @@ def get_react_config(context):
         'sentryConfig': {
             'dsn': get_public_dsn(),
             'release': version_info['build'],
+            'environment': settings.SENTRY_SDK_CONFIG['environment'],
             'whitelistUrls': list(settings.ALLOWED_HOSTS),
         },
+        'buildData': {
+            'id': os.environ.get("TRAVIS_BUILD") or os.environ.get("SENTRY_BUILD_ID") or '',
+        }
     }
     if user and user.is_authenticated():
         context.update({

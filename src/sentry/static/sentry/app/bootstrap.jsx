@@ -44,6 +44,11 @@ Sentry.configureScope(scope => {
   if (window.__SENTRY__VERSION) {
     scope.setTag('sentry_version', window.__SENTRY__VERSION);
   }
+  if (window.__SENTRY_BUILD) {
+    scope.setContext('build', {
+      id: window.__SENTRY_BUILD,
+    });
+  }
 });
 
 // -----------------------------------------------------------------

@@ -188,16 +188,7 @@ def pytest_configure(config):
     from sentry import http
     http.DISALLOWED_IPS = set()
 
-    # We only enable Sentry integration when a CI identifier is present otherwise we end
-    # up with local test runs reporting upstream to Sentry
-    build_identifier = os.environ.get("TRAVIS_BUILD") or os.environ.get("SENTRY_BUILD_ID")
-    if build_identifier:
-        import sentry_sdk
-        configure_sdk()
-        with sentry_sdk.configure_scope() as scope:
-            scope.set_context('build', {
-                'id': build_identifier,
-            })
+    configure_sdk()
 
 
 def register_extensions():
