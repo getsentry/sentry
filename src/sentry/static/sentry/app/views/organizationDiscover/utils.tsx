@@ -3,6 +3,7 @@ import {isEqual, pick} from 'lodash';
 import moment from 'moment';
 import qs from 'query-string';
 
+// eslint-disable-next-line no-unused-vars
 import {AggregationResult, isValidAggregation} from './aggregations/utils';
 import {NON_SNUBA_FIELDS} from './data';
 
