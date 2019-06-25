@@ -7,7 +7,7 @@ const URL = require('url').URL;
 const EventEmitter = require('events');
 
 const PAGE_OPTIONS = {
-  timeout: 30000,
+  timeout: 10000,
   waitUntil: 'networkidle2',
 };
 
@@ -192,11 +192,12 @@ class Crawler {
       options.userAgent ||
       'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/67.0.3239.108 Safari/537.36';
     this.domains = options.domains ? new Set(options.domains) : null;
+    this.screenshots = options.screenshots || null;
     this._browser = null;
     this._cache = new SessionCache();
     this._queue = new PriorityQueue({
       cache: this._cache,
-      maxConcurrency: 5,
+      maxConcurrency: options.maxConcurrency || 5,
     });
     this._count = 0;
     this._visited = new Set();
@@ -265,11 +266,16 @@ class Crawler {
         await this._discoverLinks(page);
       }
 
-      // let fileName = url.replace(/(\.|\/|:|%|#)/g, '_');
-      // if (fileName.length > 100) {
-      //     fileName = fileName.substring(0, 100);
-      // }
-      // await page.screenshot({ path: `./screenshots/${fileName}.jpeg`, fullPage: true });
+      if (this.screenshots) {
+        let fileName = url.replace(/(\.|\/|:|%|#)/g, '_');
+        if (fileName.length > 100) {
+          fileName = fileName.substring(0, 100);
+        }
+        await page.screenshot({
+          path: `${this.screenshots}/${fileName}.jpeg`,
+          fullPage: true,
+        });
+      }
     } catch (err) {
       console.error(`An error occured on url: ${url}`, err);
     } finally {
@@ -303,6 +309,8 @@ class Crawler {
   const initialUrl = new URL(argv.url);
   const crawler = new Crawler({
     domains: [initialUrl.host],
+    maxConcurrency: 3,
+    screenshots: './.artifacts/screenshots',
     formConfigs: {
       [`http://${initialUrl.host}/auth/login/`]: {
         fields: {
