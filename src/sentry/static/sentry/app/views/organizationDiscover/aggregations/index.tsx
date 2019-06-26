@@ -16,7 +16,8 @@ type AggregationsProps = DiscoverBaseProps & {
 
 export default class Aggregations extends React.Component<AggregationsProps, any> {
   addRow() {
-    this.props.onChange([...this.props.value, [null, null, null]]);
+    const aggregations: any[] = [...this.props.value, [null, null, null]];
+    this.props.onChange(aggregations);
   }
 
   removeRow(idx: number) {

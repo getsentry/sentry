@@ -294,7 +294,7 @@ export default function createQueryBuilder(initial = {}, organization: Organizat
    * @param {String} Type to fetch - currently either byDay or base
    * @returns {Object} Modified query to be run for that type
    */
-  function getQueryByType(originalQuery: Query, type: string) {
+  function getQueryByType(originalQuery: any, type: string): Query {
     if (type === 'byDayQuery') {
       return {
         ...originalQuery,
@@ -309,7 +309,7 @@ export default function createQueryBuilder(initial = {}, organization: Organizat
     // so we can generate links
     if (type === 'baseQuery') {
       return (originalQuery.fields || []).some(
-        field => field === 'id' || field === 'issue.id'
+        (field: string) => field === 'id' || field === 'issue.id'
       )
         ? {
             ...originalQuery,
@@ -337,7 +337,7 @@ export default function createQueryBuilder(initial = {}, organization: Organizat
    * @param {Object} [q] optional query to reset to
    * @returns {Void}
    */
-  function reset(q: Query = {}) {
+  function reset(q: any) {
     const [validProjects, invalidProjects] = partition(q.projects || [], project =>
       defaultProjectIds.includes(project)
     );
