@@ -7,17 +7,20 @@ from django import template
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
 from django.contrib.messages import get_messages
+from django.db.models import F
+
 from pkg_resources import parse_version
 
 from sentry import features, options
 from sentry.api.serializers.base import serialize
 from sentry.api.serializers.models.user import DetailedUserSerializer
 from sentry.auth.superuser import is_active_superuser
+from sentry.cache import default_cache
+from sentry.models import ProjectKey
 from sentry.utils import auth, json
 from sentry.utils.email import is_smtp_enabled
 from sentry.utils.assets import get_asset_url
 from sentry.utils.support import get_support_mail
-from sentry.templatetags.sentry_dsn import get_public_dsn
 
 register = template.Library()
 
@@ -71,6 +74,34 @@ def _get_statuspage():
     return {'id': id, 'api_host': settings.STATUS_PAGE_API_HOST}
 
 
+def _get_project_key(project_id):
+    try:
+        return ProjectKey.objects.filter(
+            project=project_id,
+            roles=F('roles').bitor(ProjectKey.roles.store),
+        )[0]
+    except IndexError:
+        return None
+
+
+def get_public_dsn():
+    if settings.SENTRY_FRONTEND_DSN:
+        return settings.SENTRY_FRONTEND_DSN
+
+    project_id = settings.SENTRY_FRONTEND_PROJECT or settings.SENTRY_PROJECT
+    cache_key = 'dsn:%s' % (project_id, )
+
+    result = default_cache.get(cache_key)
+    if result is None:
+        key = _get_project_key(project_id)
+        if key:
+            result = key.dsn_public
+        else:
+            result = ''
+        default_cache.set(cache_key, result, 60)
+    return result
+
+
 @register.simple_tag(takes_context=True)
 def get_react_config(context):
     if 'request' in context:
@@ -112,6 +143,8 @@ def get_react_config(context):
     if is_superuser:
         needs_upgrade = _needs_upgrade()
 
+    sentry_dsn = get_public_dsn()
+
     context = {
         'singleOrganization': settings.SENTRY_SINGLE_ORGANIZATION,
         'supportEmail': get_support_mail(),
@@ -120,7 +153,7 @@ def get_react_config(context):
         'features': enabled_features,
         'distPrefix': get_asset_url('sentry', 'dist/'),
         'needsUpgrade': needs_upgrade,
-        'dsn': get_public_dsn(),
+        'dsn': sentry_dsn,
         'statuspage': _get_statuspage(),
         'messages': [{
             'message': msg.message,
@@ -139,7 +172,7 @@ def get_react_config(context):
         'userIdentity': user_identity,
         'csrfCookieName': settings.CSRF_COOKIE_NAME,
         'sentryConfig': {
-            'dsn': get_public_dsn(),
+            'dsn': sentry_dsn,
             'release': version_info['build'],
             'environment': settings.SENTRY_SDK_CONFIG['environment'],
             'whitelistUrls': list(settings.ALLOWED_HOSTS),
