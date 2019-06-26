@@ -241,7 +241,7 @@ class Crawler {
     this._queue.on('pull', (_options, previousUrl) =>
       this._request(_options, previousUrl)
     );
-    this._formConfigs = options.formConfigs || {};
+    this._formConfigs = options.formConfigs || [];
   }
 
   async init() {
@@ -294,8 +294,9 @@ class Crawler {
 
     await this._discoverLinks(page);
 
-    const formData = this._formConfigs[url];
+    const formData = this._formConfigs.find(x => url.match(x.url));
     if (formData) {
+      console.info('  -> Doing the human thing with form data');
       await Promise.all(
         Object.keys(formData.fields).map(fieldName => {
           page.$eval(
@@ -386,17 +387,16 @@ class Crawler {
     domains: allowedDomains,
     maxConcurrency,
     screenshots,
-    formConfigs: {
-      // TODO(dcramer): we'd like to support any login prefix so having
-      // these be regexp patterns would be a bit win
-      [`http://${initialUrl.host}/auth/login/sentry/`]: {
+    formConfigs: [
+      {
+        url: /\/auth\/login\/([^\/]+\/)?$/i,
         fields: {
           '#id_username': argv.username,
           '#id_password': argv.password,
         },
         submitElement: 'button[type=submit]',
       },
-    },
+    ],
   });
 
   console.log('Automating Humans...');
