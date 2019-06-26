@@ -9,14 +9,46 @@ const EventEmitter = require('events');
 const os = require('os');
 
 const PAGE_OPTIONS = {
-  timeout: 15000,
-  waitUntil: 'networkidle0',
+  timeout: 25000,
+  waitUntil: 'networkidle2',
 };
 
 const DEFAULT_ARGS = [
   '--disable-setuid-sandbox',
   '--no-sandbox',
   '--blink-settings=imagesEnabled=false',
+];
+
+const BLOCKED_RESOURCE_TYPES = [
+  'image',
+  'media',
+  'font',
+  'texttrack',
+  'object',
+  'beacon',
+  'imageset',
+];
+
+const SKIPPED_RESOURCES = [
+  'quantserve',
+  'adzerk',
+  'doubleclick',
+  'adition',
+  'exelator',
+  'sharethrough',
+  'cdn.api.twitter',
+  'google-analytics',
+  'googletagmanager',
+  'google',
+  'fontawesome',
+  'facebook',
+  'analytics',
+  'optimizely',
+  'clicktale',
+  'mixpanel',
+  'zedo',
+  'clicksor',
+  'tiqcdn',
 ];
 
 // Ported from http://en.cppreference.com/w/cpp/algorithm/lower_bound
@@ -246,7 +278,20 @@ class Crawler {
 
     const browser = await this.getBrowser();
     const page = await browser.newPage();
+    await page.setRequestInterception(true);
     await page.setUserAgent(this.userAgent);
+
+    page.on('request', request => {
+      const requestUrl = request._url.split('?')[0].split('#')[0];
+      if (
+        BLOCKED_RESOURCE_TYPES.indexOf(request.resourceType()) !== -1 ||
+        SKIPPED_RESOURCES.some(resource => requestUrl.indexOf(resource) !== -1)
+      ) {
+        request.abort();
+      } else {
+        request.continue();
+      }
+    });
 
     try {
       await page.goto(url, {...PAGE_OPTIONS});
@@ -323,9 +368,11 @@ class Crawler {
     fs.mkdirSync(screenshots, {recursive: true});
   }
 
+  const maxConcurrency = argv.concurrency || os.cpus().length - 1;
+
   const crawler = new Crawler({
     domains: [initialUrl.host],
-    maxConcurrency: argv.concurrency || os.cpus().length - 1,
+    maxConcurrency,
     screenshots,
     formConfigs: {
       [`http://${initialUrl.host}/auth/login/`]: {
@@ -337,6 +384,12 @@ class Crawler {
       },
     },
   });
+
+  console.log('Automating Humans...');
+  console.log(`-> maxConcurrency: ${maxConcurrency}`);
+  console.log(`-> initialUrl: ${argv.url}`);
+  console.log(`-> screenshots: ${screenshots}`);
+  console.log('');
 
   await crawler.init();
   await crawler.queue(argv.url);
