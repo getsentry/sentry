@@ -105,11 +105,24 @@ class EventStackExchange extends React.Component {
   }
 
   renderStackExchangeQuestion = question => {
+    const hasAcceptedAnswer = !!question.accepted_answer_id;
+
+    // if there is an accepted answer, we link to it, otherwise, we link to the
+    // stackoverflow question
+    const question_link = hasAcceptedAnswer
+      ? `https://stackoverflow.com/a/${question.accepted_answer_id}`
+      : question.link;
+
     return (
       <Group key={question.question_id} py={1} px={0} align="center">
         <Box w={[8 / 12, 8 / 12, 6 / 12]} mx={1} flex="1">
           <QuestionWrapper>
-            <a href={question.link} target="_blank" rel="noopener noreferrer">
+            {hasAcceptedAnswer && (
+              <div style={{color: '#57be8c'}}>
+                <span className="icon-checkmark" />
+              </div>
+            )}
+            <a href={question_link} target="_blank" rel="noopener noreferrer">
               {this.decode(question.title)}
             </a>
           </QuestionWrapper>
@@ -127,9 +140,6 @@ class EventStackExchange extends React.Component {
             ))}
           </StyledTags>
         </Box>
-        <Flex w={16} mx={2} justify="flex-end" style={{color: '#57be8c'}}>
-          {question.is_answered && <span className="icon-checkmark" />}
-        </Flex>
         <Flex w={[40, 60, 80, 80]} mx={2} justify="flex-end">
           <StyledCount value={question.answer_count} />
         </Flex>
@@ -243,8 +253,13 @@ const ButtonListControls = styled(ButtonList)`
 `;
 
 const QuestionWrapper = styled('div')`
+  display: flex;
   padding-top: ${space(1)};
   padding-bottom: ${space(1)};
+
+  > * + * {
+    margin-left: ${space(1)};
+  }
 `;
 
 export default withApi(EventStackExchange);
