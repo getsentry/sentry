@@ -66,6 +66,7 @@ from sentry.utils.pubsub import QueuedPublisherService, KafkaPublisher
 from sentry.utils.safe import safe_execute
 from sentry.web.helpers import render_to_response
 from sentry.web.relay_config import get_full_relay_config
+from sentry.web.client_config import get_client_config
 
 logger = logging.getLogger('sentry')
 minidumps_logger = logging.getLogger('sentry.minidumps')
@@ -999,6 +1000,12 @@ class UnrealView(StoreView):
 class StoreSchemaView(BaseView):
     def get(self, request, **kwargs):
         return HttpResponse(json.dumps(schemas.EVENT_SCHEMA), content_type='application/json')
+
+
+class ClientConfigView(BaseView):
+    def get(self, request, **kwargs):
+        return HttpResponse(json.dumps(get_client_config(request)),
+                            content_type='application/json')
 
 
 class SecurityReportView(StoreView):
