@@ -7,13 +7,8 @@ const path = require('path');
 const PLATFORMS_URL = 'https://docs.sentry.io/_platforms/_index.json';
 const DOCS_INDEX_PATH = 'src/sentry/integration-docs/_platforms.json';
 
-const alphaSortFromKey = function(keyExtractor) {
-  return function(a, b) {
-    const nameA = keyExtractor(a);
-    const nameB = keyExtractor(b);
-    return nameA.localeCompare(nameB);
-  };
-};
+const alphaSortFromKey = keyExtractor => (a, b) =>
+  keyExtractor(a).localeCompare(keyExtractor(b));
 
 const transformPlatformsToList = ({platforms}) =>
   Object.keys(platforms)
@@ -25,12 +20,8 @@ const transformPlatformsToList = ({platforms}) =>
           const {name, type, doc_link: link} = integrationMap[integrationId];
           const id =
             integrationId === '_self' ? platformId : `${platformId}-${integrationId}`;
-          return {
-            id,
-            name,
-            type,
-            link,
-          };
+
+          return {id, name, type, link};
         });
       return {
         id: platformId,

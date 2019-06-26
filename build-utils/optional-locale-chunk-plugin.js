@@ -8,7 +8,7 @@
  * locale chunks, just the one the user has enabled.
  *
  * This plugin removes the locale chunks from the app entrypoint's immediate
- * chunk dependants list, ensuring the the compiled entrypoint will execute
+ * chunk dependants list, ensuring that the compiled entrypoint will execute
  * *without* all locale chunks loaded.
  */
 const PLUGIN_NAME = 'OptionalLocaleChunkPlugin';
