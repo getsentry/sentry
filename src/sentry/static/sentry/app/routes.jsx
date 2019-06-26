@@ -720,6 +720,34 @@ function routes() {
           }
           component={errorHandler(LazyLoad)}
         />
+        <Route
+          path="status/mail/"
+          componentPromise={() =>
+            import(/* webpackChunkName: "AdminMail" */ 'app/views/admin/adminMail')
+          }
+          component={errorHandler(LazyLoad)}
+        />
+        <Route
+          path="status/environment/"
+          componentPromise={() =>
+            import(/* webpackChunkName: "AdminEnvironment" */ 'app/views/admin/adminEnvironment')
+          }
+          component={errorHandler(LazyLoad)}
+        />
+        <Route
+          path="status/packages/"
+          componentPromise={() =>
+            import(/* webpackChunkName: "AdminPackages" */ 'app/views/admin/adminPackages')
+          }
+          component={errorHandler(LazyLoad)}
+        />
+        <Route
+          path="status/warnings/"
+          componentPromise={() =>
+            import(/* webpackChunkName: "AdminWarnings" */ 'app/views/admin/adminWarnings')
+          }
+          component={errorHandler(LazyLoad)}
+        />
         {hook('routes:admin')}
       </Route>
       <Redirect from="/share/group/:shareId/" to="/share/issue/:shareId/" />

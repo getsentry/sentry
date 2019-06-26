@@ -51,19 +51,21 @@ export default class AdminLayout extends React.Component {
                     <ListLink index={true} to="/manage/quotas/">
                       Quotas
                     </ListLink>
-                    <li>
-                      <a href="/manage/status/environment/">Environment</a>
-                    </li>
-                    <li>
-                      <a href="/manage/status/packages/">Packages</a>
-                    </li>
-                    <li>
-                      <a href="/manage/status/mail/">Mail</a>
-                    </li>
-                    <ListLink to="/manage/settings/">Settings</ListLink>
-                    <li>
-                      <a href="/manage/status/warnings/">Warnings</a>
-                    </li>
+                    <ListLink index={true} to="/manage/status/environment/">
+                      Environment
+                    </ListLink>
+                    <ListLink index={true} to="/manage/status/packages/">
+                      Packages
+                    </ListLink>
+                    <ListLink index={true} to="/manage/status/mail/">
+                      Mail
+                    </ListLink>
+                    <ListLink index={true} to="/manage/settings/">
+                      Settings
+                    </ListLink>
+                    <ListLink index={true} to="/manage/status/warnings/">
+                      Warnings
+                    </ListLink>
                   </ul>
 
                   <h6 className="nav-header">Manage</h6>
