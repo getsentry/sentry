@@ -49,6 +49,8 @@ const SKIPPED_RESOURCES = [
   'zedo',
   'clicksor',
   'tiqcdn',
+  // broken atm
+  '/manage/queue/',
 ];
 
 // Ported from http://en.cppreference.com/w/cpp/algorithm/lower_bound
