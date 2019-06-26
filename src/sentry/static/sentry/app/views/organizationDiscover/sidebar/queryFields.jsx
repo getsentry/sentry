@@ -1,6 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import {Flex} from 'grid-emotion';
+import styled from 'react-emotion';
 
 import SentryTypes from 'app/sentryTypes';
 import {t} from 'app/locale';
@@ -16,7 +16,6 @@ import {
   Fieldset,
   PlaceholderText,
   SidebarLabel,
-  QueryFieldsSidebar,
   DocsSeparator,
   StyledInlineSvg,
   DiscoverDocs,
@@ -52,10 +51,10 @@ export default class QueryFields extends React.Component {
 
   optionRenderer = ({label, isTag}) => {
     return (
-      <Flex align="center">
+      <Option>
         {label}
         {isTag && <Badge text="tag" />}
-      </Flex>
+      </Option>
     );
   };
 
@@ -84,7 +83,7 @@ export default class QueryFields extends React.Component {
     }));
 
     return (
-      <QueryFieldsSidebar>
+      <div>
         {savedQuery && (
           <Fieldset>
             <React.Fragment>
@@ -159,7 +158,12 @@ export default class QueryFields extends React.Component {
             <StyledInlineSvg src="icon-chevron-right" size="1em" />
           </DiscoverDocs>
         </DocsLink>
-      </QueryFieldsSidebar>
+      </div>
     );
   }
 }
+
+const Option = styled('div')`
+  display: flex;
+  align-items: center;
+`;
