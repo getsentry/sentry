@@ -58,7 +58,7 @@ class BroadcastDetailsEndpoint(Endpoint):
         if not validator.is_valid():
             return self.respond(validator.errors, status=400)
 
-        result = validator.object
+        result = validator.validated_data
 
         update_kwargs = {}
         if result.get('title'):

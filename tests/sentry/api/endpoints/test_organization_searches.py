@@ -237,4 +237,4 @@ class CreateOrganizationSearchesTest(APITestCase):
             query='',
         )
         assert resp.status_code == 400
-        assert 'This field is required' in resp.data['query'][0]
+        assert 'This field may not be blank.' == resp.data['query'][0]

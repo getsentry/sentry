@@ -134,23 +134,24 @@ class ProjectUserReportsEndpoint(ProjectEndpoint, EnvironmentMixin):
         if not serializer.is_valid():
             return self.respond(serializer.errors, status=400)
 
-        report = serializer.object
+        report = serializer.validated_data
+
         # XXX(dcramer): enforce case insensitivty by coercing this to a lowercase string
-        report.event_id = report.event_id.lower()
-        report.project = project
+        report['event_id'] = report['event_id'].lower()
+        report['project'] = project
 
         # TODO(dcramer): we should probably create the user if they dont
         # exist, and ideally we'd also associate that with the event
         euser = self.find_event_user(report)
-        if euser and not euser.name and report.name:
-            euser.update(name=report.name)
+        if euser and not euser.name and report['name']:
+            euser.update(name=report['name'])
         if euser:
-            report.event_user_id = euser.id
+            report['event_user_id'] = euser.id
 
-        event = Event.objects.from_event_id(report.event_id, project.id)
+        event = Event.objects.from_event_id(report['event_id'], project.id)
         if not event:
             try:
-                report.group = Group.objects.from_event_id(project, report.event_id)
+                report['group'] = Group.objects.from_event_id(project, report['event_id'])
             except Group.DoesNotExist:
                 pass
         else:
@@ -160,12 +161,12 @@ class ProjectUserReportsEndpoint(ProjectEndpoint, EnvironmentMixin):
                 return self.respond(
                     {'detail': 'Feedback for this event cannot be modified.'}, status=409)
 
-            report.environment = event.get_environment()
-            report.group = event.group
+            report['environment'] = event.get_environment()
+            report['group'] = event.group
 
         try:
             with transaction.atomic():
-                report.save()
+                report_instance = UserReport.objects.create(**report)
         except IntegrityError:
             # There was a duplicate, so just overwrite the existing
             # row with the new one. The only way this ever happens is
@@ -174,8 +175,8 @@ class ProjectUserReportsEndpoint(ProjectEndpoint, EnvironmentMixin):
             # more reasonable than just hard erroring and is more
             # expected.
             existing_report = UserReport.objects.get(
-                project=report.project,
-                event_id=report.event_id,
+                project=report['project'],
+                event_id=report['event_id'],
             )
 
             # if the existing report was submitted more than 5 minutes ago, we dont
@@ -185,38 +186,38 @@ class ProjectUserReportsEndpoint(ProjectEndpoint, EnvironmentMixin):
                     {'detail': 'Feedback for this event cannot be modified.'}, status=409)
 
             existing_report.update(
-                name=report.name,
-                email=report.email,
-                comments=report.comments,
+                name=report['name'],
+                email=report['email'],
+                comments=report['comments'],
                 date_added=timezone.now(),
                 event_user_id=euser.id if euser else None,
             )
-            report = existing_report
+            report_instance = existing_report
 
         else:
-            if report.group:
-                report.notify()
+            if report_instance.group:
+                report_instance.notify()
 
-        user_feedback_received.send(project=report.project, group=report.group, sender=self)
+        user_feedback_received.send(project=report_instance.project, group=report_instance.group, sender=self)
 
-        return self.respond(serialize(report, request.user, UserReportWithGroupSerializer(
+        return self.respond(serialize(report_instance, request.user, UserReportWithGroupSerializer(
             environment_func=self._get_environment_func(
                 request, project.organization_id)
         )))
 
-    def find_event_user(self, report):
+    def find_event_user(self, report_data):
         try:
             event = Event.objects.get(
-                group_id=report.group_id,
-                event_id=report.event_id,
+                group_id=report_data.get('group_id'),
+                event_id=report_data['event_id'],
             )
         except Event.DoesNotExist:
-            if not report.email:
+            if not report_data.get('email'):
                 return None
             try:
                 return EventUser.objects.filter(
-                    project_id=report.project_id,
-                    email=report.email,
+                    project_id=report_data['project'].id,
+                    email=report_data['email'],
                 )[0]
             except IndexError:
                 return None
@@ -227,7 +228,7 @@ class ProjectUserReportsEndpoint(ProjectEndpoint, EnvironmentMixin):
 
         try:
             return EventUser.for_tags(
-                project_id=report.project_id,
+                project_id=report_data['project'].id,
                 values=[tag],
             )[tag]
         except KeyError:

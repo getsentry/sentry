@@ -1,7 +1,10 @@
 from __future__ import absolute_import
 
 from django.utils.translation import ugettext_lazy as _
-from rest_framework.serializers import WritableField, ValidationError
+from rest_framework.serializers import (
+    Field,
+    ValidationError,
+)
 from sentry.utils import json
 
 # JSONField taken from Django rest framework version 3.9.0
@@ -10,12 +13,12 @@ from sentry.utils import json
 # for more information
 
 
-class JSONField(WritableField):
+class JSONField(Field):
     default_error_messages = {
         'invalid': _('Value must be valid JSON.')
     }
 
-    def from_native(self, data):
+    def to_internal_value(self, data):
         try:
             json.dumps(data)
         except (TypeError, ValueError):

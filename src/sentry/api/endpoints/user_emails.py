@@ -81,7 +81,7 @@ class UserEmailsEndpoint(UserEndpoint):
         if not validator.is_valid():
             return self.respond(validator.errors, status=400)
 
-        result = validator.object
+        result = validator.validated_data
         email = result['email'].lower().strip()
 
         try:
@@ -119,7 +119,7 @@ class UserEmailsEndpoint(UserEndpoint):
         if not validator.is_valid():
             return self.respond(validator.errors, status=400)
 
-        result = validator.object
+        result = validator.validated_data
         old_email = user.email.lower()
         new_email = result['email'].lower()
 
@@ -209,7 +209,7 @@ class UserEmailsEndpoint(UserEndpoint):
         if not validator.is_valid():
             return self.respond(validator.errors, status=400)
 
-        email = validator.object['email']
+        email = validator.validated_data['email']
         primary_email = UserEmail.get_primary_email(user)
         del_email = UserEmail.objects.filter(user=user, email__iexact=email).first()
 

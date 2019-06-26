@@ -120,6 +120,7 @@ matrix:
       name: 'Linter'
       env: TEST_SUITE=lint
       install:
+        - python setup.py install_egg_info
         - SENTRY_LIGHT_BUILD=1 pip install -U -e ".[dev,tests,optional]"
         - find "$NODE_DIR" -type d -empty -delete
         - nvm install

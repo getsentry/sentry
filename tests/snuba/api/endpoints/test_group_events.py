@@ -372,4 +372,7 @@ class GroupEventsTest(APITestCase, SnubaTestCase):
             url = u'/api/0/issues/{}/events/?query={}'.format(group.id, query)
             response = self.client.get(url, format='json')
             assert response.status_code == 400
-            assert response.content == '{"detail": "Boolean search operator OR and AND not allowed in this search."}'
+            assert response.data == {
+                'detail':
+                'Boolean search operator OR and AND not allowed in this search.',
+            }

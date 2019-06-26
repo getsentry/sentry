@@ -40,15 +40,14 @@ class TeamSerializer(serializers.ModelSerializer):
         model = Team
         fields = ('name', 'slug')
 
-    def validate_slug(self, attrs, source):
-        value = attrs[source]
+    def validate_slug(self, value):
         qs = Team.objects.filter(
             slug=value,
-            organization=self.object.organization,
-        ).exclude(id=self.object.id)
+            organization=self.instance.organization,
+        ).exclude(id=self.instance.id)
         if qs.exists():
             raise serializers.ValidationError('The slug "%s" is already in use.' % (value, ))
-        return attrs
+        return value
 
 
 class TeamDetailsEndpoint(TeamEndpoint):

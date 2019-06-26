@@ -18,7 +18,7 @@ from sentry.incidents.logic import (
 
 
 class CommentSerializer(serializers.Serializer):
-    comment = serializers.CharField(required=False)
+    comment = serializers.CharField(required=True)
 
 
 class CommentDetailsEndpoint(IncidentEndpoint):
@@ -77,7 +77,7 @@ class OrganizationIncidentCommentDetailsEndpoint(CommentDetailsEndpoint):
 
         serializer = CommentSerializer(data=request.DATA)
         if serializer.is_valid():
-            result = serializer.object
+            result = serializer.validated_data
 
             try:
                 comment = update_comment(

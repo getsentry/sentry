@@ -3,22 +3,23 @@ from __future__ import absolute_import
 from base64 import b64decode
 from django.conf import settings
 from rest_framework import serializers
-from rest_framework.exceptions import APIException
 from PIL import Image
 from six import BytesIO
+
+from sentry.api.exceptions import SentryAPIException
 
 MIN_DIMENSION = 256
 
 MAX_DIMENSION = 1024
 
 
-class ImageTooLarge(APIException):
+class ImageTooLarge(SentryAPIException):
     status_code = 413
     default_detail = 'Image too large'
     default_code = 'too_large'
 
 
-class AvatarField(serializers.WritableField):
+class AvatarField(serializers.Field):
     def __init__(
         self,
         max_size=settings.SENTRY_MAX_AVATAR_SIZE,
@@ -31,12 +32,12 @@ class AvatarField(serializers.WritableField):
         self.min_dimension = min_dimension
         self.max_dimension = max_dimension
 
-    def to_native(self, obj):
-        if not obj:
+    def to_representation(self, value):
+        if not value:
             return ''
-        return obj.getvalue()
+        return value.getvalue()
 
-    def from_native(self, data):
+    def to_internal_value(self, data):
         if not data:
             return None
         data = b64decode(data)

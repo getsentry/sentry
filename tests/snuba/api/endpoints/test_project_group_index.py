@@ -1140,7 +1140,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
             format='json'
         )
         assert response.status_code == 400
-        assert response.data['statusDetails'][0]['inCommit'][0]['commit']
+        assert response.data['statusDetails']['inCommit']['commit'][0] == 'Unable to find the given commit.'
 
     def test_set_unresolved(self):
         release = self.create_release(project=self.project, version='abc')

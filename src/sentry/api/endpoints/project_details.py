@@ -16,9 +16,12 @@ from sentry.utils.data_filters import FilterTypes
 from sentry.api.base import DocSection
 from sentry.api.bases.project import ProjectEndpoint, ProjectPermission
 from sentry.api.decorators import sudo_required
+from sentry.api.fields.empty_integer import EmptyIntegerField
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.project import DetailedProjectSerializer
-from sentry.api.serializers.rest_framework import ListField, OriginField
+from sentry.api.serializers.rest_framework.list import EmptyListField
+from sentry.api.serializers.rest_framework.list import ListField
+from sentry.api.serializers.rest_framework.origin import OriginField
 from sentry.constants import RESERVED_PROJECT_SLUGS
 from sentry.lang.native.symbolicator import parse_sources, InvalidSourcesError
 from sentry.models import (
@@ -89,62 +92,58 @@ class ProjectAdminSerializer(ProjectMemberSerializer):
     digestsMaxDelay = serializers.IntegerField(min_value=60, max_value=3600)
     subjectPrefix = serializers.CharField(max_length=200)
     subjectTemplate = serializers.CharField(max_length=200)
-    securityToken = serializers.RegexField(r'^[-a-zA-Z0-9+/=\s]+$', max_length=255)
-    securityTokenHeader = serializers.RegexField(r'^[a-zA-Z0-9_\-]+$', max_length=20)
+    securityToken = serializers.RegexField(
+        r'^[-a-zA-Z0-9+/=\s]+$', max_length=255, allow_blank=True)
+    securityTokenHeader = serializers.RegexField(
+        r'^[a-zA-Z0-9_\-]+$', max_length=20, allow_blank=True)
     verifySSL = serializers.BooleanField(required=False)
 
-    defaultEnvironment = serializers.CharField(required=False, allow_none=True)
+    defaultEnvironment = serializers.CharField(required=False, allow_null=True, allow_blank=True)
     dataScrubber = serializers.BooleanField(required=False)
     dataScrubberDefaults = serializers.BooleanField(required=False)
     sensitiveFields = ListField(child=serializers.CharField(), required=False)
     safeFields = ListField(child=serializers.CharField(), required=False)
     storeCrashReports = serializers.BooleanField(required=False)
-    relayPiiConfig = serializers.CharField(required=False)
+    relayPiiConfig = serializers.CharField(required=False, allow_blank=True, allow_null=True)
     builtinSymbolSources = ListField(child=serializers.CharField(), required=False)
-    symbolSources = serializers.CharField(required=False)
+    symbolSources = serializers.CharField(required=False, allow_blank=True, allow_null=True)
     scrubIPAddresses = serializers.BooleanField(required=False)
-    groupingConfig = serializers.CharField(required=False)
-    groupingEnhancements = serializers.CharField(required=False)
-    groupingEnhancementsBase = serializers.CharField(required=False)
-    fingerprintingRules = serializers.CharField(required=False)
+    groupingConfig = serializers.CharField(required=False, allow_blank=True, allow_null=True)
+    groupingEnhancements = serializers.CharField(required=False, allow_blank=True, allow_null=True)
+    groupingEnhancementsBase = serializers.CharField(
+        required=False,
+        allow_blank=True,
+        allow_null=True,
+    )
+    fingerprintingRules = serializers.CharField(required=False, allow_blank=True, allow_null=True)
     scrapeJavaScript = serializers.BooleanField(required=False)
-    allowedDomains = ListField(child=OriginField(), required=False)
-    resolveAge = serializers.IntegerField(required=False)
-    platform = serializers.CharField(required=False)
+    allowedDomains = EmptyListField(child=OriginField(allow_blank=True), required=False)
+    resolveAge = EmptyIntegerField(required=False, allow_null=True)
+    platform = serializers.CharField(required=False, allow_null=True, allow_blank=True)
     copy_from_project = serializers.IntegerField(required=False)
 
-    def validate_digestsMinDelay(self, attrs, source):
-        max_delay = attrs['digestsMaxDelay'] if 'digestsMaxDelay' in attrs else self.context['project'].get_option(
+    def validate(self, data):
+        max_delay = data['digestsMaxDelay'] if 'digestsMaxDelay' in data else self.context['project'].get_option(
             'digests:mail:maximum_delay')
-
-        # allow min to be set if max is not set
-        if max_delay is not None and attrs[source] > max_delay:
-            raise serializers.ValidationError(
-                'The minimum delay on digests must be lower than the maximum.'
-            )
-        return attrs
-
-    def validate_digestsMaxDelay(self, attrs, source):
-        min_delay = attrs['digestsMinDelay'] if 'digestsMinDelay' in attrs else self.context['project'].get_option(
+        min_delay = data['digestsMinDelay'] if 'digestsMinDelay' in data else self.context['project'].get_option(
             'digests:mail:minimum_delay')
 
-        # allows max to be set if min is not set
-        if min_delay is not None and attrs[source] < min_delay:
+        if min_delay is not None and max_delay and max_delay is not None and min_delay > max_delay:
             raise serializers.ValidationError(
-                'The maximum delay on digests must be higher than the minimum.'
+                {'digestsMinDelay': 'The minimum delay on digests must be lower than the maximum.'}
             )
-        return attrs
 
-    def validate_allowedDomains(self, attrs, source):
-        attrs[source] = filter(bool, attrs[source])
-        if len(attrs[source]) == 0:
+        return data
+
+    def validate_allowedDomains(self, value):
+        value = filter(bool, value)
+        if len(value) == 0:
             raise serializers.ValidationError(
                 'Empty value will block all requests, use * to accept from all domains'
             )
-        return attrs
+        return value
 
-    def validate_slug(self, attrs, source):
-        slug = attrs[source]
+    def validate_slug(self, slug):
         if slug in RESERVED_PROJECT_SLUGS:
             raise serializers.ValidationError(
                 'The slug "%s" is reserved and not allowed.' %
@@ -156,13 +155,13 @@ class ProjectAdminSerializer(ProjectMemberSerializer):
         ).exclude(id=project.id).first()
         if other is not None:
             raise serializers.ValidationError(
-                'Another project (%s) is already using that slug' % other.name
+                'Another project (%s) is already using that slug' % other.name,
             )
-        return attrs
+        return slug
 
-    def validate_relayPiiConfig(self, attrs, source):
-        if not attrs[source]:
-            return attrs
+    def validate_relayPiiConfig(self, value):
+        if not value:
+            return value
 
         from sentry import features
 
@@ -175,11 +174,11 @@ class ProjectAdminSerializer(ProjectMemberSerializer):
             raise serializers.ValidationError(
                 'Organization does not have the relay feature enabled'
             )
-        return attrs
+        return value
 
-    def validate_builtinSymbolSources(self, attrs, source):
-        if not attrs[source]:
-            return attrs
+    def validate_builtinSymbolSources(self, value):
+        if not value:
+            return value
 
         from sentry import features
         organization = self.context['project'].organization
@@ -193,12 +192,11 @@ class ProjectAdminSerializer(ProjectMemberSerializer):
                 'Organization is not allowed to set symbol sources'
             )
 
-        return attrs
+        return value
 
-    def validate_symbolSources(self, attrs, source):
-        sources_json = attrs[source]
+    def validate_symbolSources(self, sources_json):
         if not sources_json:
-            return attrs
+            return sources_json
 
         from sentry import features
         organization = self.context['project'].organization
@@ -214,37 +212,35 @@ class ProjectAdminSerializer(ProjectMemberSerializer):
 
         try:
             sources = parse_sources(sources_json.strip())
-            attrs[source] = json.dumps(sources) if sources else ''
+            sources_json = json.dumps(sources) if sources else ''
         except InvalidSourcesError as e:
             raise serializers.ValidationError(e.message)
 
-        return attrs
+        return sources_json
 
-    def validate_groupingEnhancements(self, attrs, source):
-        if not attrs[source]:
-            return attrs
+    def validate_groupingEnhancements(self, value):
+        if not value:
+            return value
 
         try:
-            Enhancements.from_config_string(attrs[source])
+            Enhancements.from_config_string(value)
         except InvalidEnhancerConfig as e:
             raise serializers.ValidationError(e.message)
 
-        return attrs
+        return value
 
-    def validate_fingerprintingRules(self, attrs, source):
-        if not attrs[source]:
-            return attrs
+    def validate_fingerprintingRules(self, value):
+        if not value:
+            return value
 
         try:
-            FingerprintingRules.from_config_string(attrs[source])
+            FingerprintingRules.from_config_string(value)
         except InvalidFingerprintingConfig as e:
             raise serializers.ValidationError(e.message)
 
-        return attrs
+        return value
 
-    def validate_copy_from_project(self, attrs, source):
-        other_project_id = attrs[source]
-
+    def validate_copy_from_project(self, other_project_id):
         try:
             other_project = Project.objects.filter(
                 id=other_project_id,
@@ -267,7 +263,7 @@ class ProjectAdminSerializer(ProjectMemberSerializer):
                     'Project settings cannot be copied from a project with a team you do not have write access to.'
                 )
 
-        return attrs
+        return other_project_id
 
 
 class RelaxedProjectPermission(ProjectPermission):
@@ -368,11 +364,11 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
 
-        result = serializer.object
+        result = serializer.validated_data
 
         if not has_project_write:
             # options isn't part of the serializer, but should not be editable by members
-            for key in chain(six.iterkeys(ProjectAdminSerializer.base_fields), ['options']):
+            for key in chain(six.iterkeys(ProjectAdminSerializer().fields), ['options']):
                 if request.DATA.get(key) and not result.get(key):
                     return Response(
                         {

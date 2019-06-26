@@ -5,9 +5,10 @@ import six
 from collections import defaultdict
 
 from sentry.api.bases.user import UserEndpoint
+from sentry.api.fields.empty_integer import EmptyIntegerField
+from sentry.api.serializers import serialize, Serializer
 from sentry.models import UserOption, UserOptionValue
 
-from sentry.api.serializers import serialize, Serializer
 
 from rest_framework.response import Response
 
@@ -75,11 +76,21 @@ class UserNotificationsSerializer(Serializer):
 
 
 class UserNotificationDetailsSerializer(serializers.Serializer):
-    deployNotifications = serializers.IntegerField(required=False, min_value=2, max_value=4)
+    deployNotifications = EmptyIntegerField(
+        required=False,
+        min_value=2,
+        max_value=4,
+        allow_null=True,
+    )
     personalActivityNotifications = serializers.BooleanField(required=False)
     selfAssignOnResolve = serializers.BooleanField(required=False)
     subscribeByDefault = serializers.BooleanField(required=False)
-    workflowNotifications = serializers.IntegerField(required=False, min_value=0, max_value=2)
+    workflowNotifications = EmptyIntegerField(
+        required=False,
+        min_value=0,
+        max_value=2,
+        allow_null=True,
+    )
 
 
 class UserNotificationDetailsEndpoint(UserEndpoint):
@@ -91,9 +102,9 @@ class UserNotificationDetailsEndpoint(UserEndpoint):
         serializer = UserNotificationDetailsSerializer(data=request.DATA)
 
         if serializer.is_valid():
-            for key in serializer.object:
+            for key in serializer.validated_data:
                 db_key = USER_OPTION_SETTINGS[key]['key']
-                val = six.text_type(int(serializer.object[key]))
+                val = six.text_type(int(serializer.validated_data[key]))
                 (uo, created) = UserOption.objects.get_or_create(
                     user=user, key=db_key, project=None, organization=None)
                 uo.update(value=val)

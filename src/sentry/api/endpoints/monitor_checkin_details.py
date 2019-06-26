@@ -7,8 +7,9 @@ from rest_framework import serializers
 from sentry import features
 from sentry.api.authentication import DSNAuthentication
 from sentry.api.base import Endpoint
-from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.bases.project import ProjectPermission
+from sentry.api.exceptions import ResourceDoesNotExist
+from sentry.api.fields.empty_integer import EmptyIntegerField
 from sentry.api.serializers import serialize
 from sentry.models import Monitor, MonitorCheckIn, CheckInStatus, MonitorStatus, Project, ProjectKey, ProjectStatus
 from sentry.utils.sdk import configure_scope
@@ -22,7 +23,7 @@ class CheckInSerializer(serializers.Serializer):
             ('in_progress', CheckInStatus.IN_PROGRESS),
         ),
     )
-    duration = serializers.IntegerField(required=False)
+    duration = EmptyIntegerField(required=False, allow_null=True)
 
 
 class MonitorCheckInDetailsEndpoint(Endpoint):
@@ -111,7 +112,7 @@ class MonitorCheckInDetailsEndpoint(Endpoint):
         if not serializer.is_valid():
             return self.respond(serializer.errors, status=400)
 
-        result = serializer.object
+        result = serializer.validated_data
 
         current_datetime = timezone.now()
         params = {
