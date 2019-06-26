@@ -32,7 +32,7 @@ class StoreV7(BaseChangeset):
         if not self.public_key:
             raise ChangesetError('Missing public key')
 
-        result = serializer.object
+        result = serializer.validated_data
 
         try:
             Project.objects.filter(

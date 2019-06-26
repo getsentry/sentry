@@ -1,6 +1,8 @@
 from __future__ import absolute_import
 
 from datetime import datetime, timedelta
+
+import pytz
 from django.utils import timezone
 from django.core.urlresolvers import reverse
 from exam import fixture
@@ -690,8 +692,9 @@ class ProjectReleaseCreateCommitPatch(ReleaseCommitPatchTest):
         )
 
         assert response.status_code == 400
-        assert response.data == {
-            'commits': [u'patch_set: type: Commit patch_set type Z is not supported.']}
+        assert dict(response.data) == {
+            'commits': {'patch_set': {'type': ['Commit patch_set type Z is not supported.']}},
+        }
 
 
 class ReleaseSerializerTest(TestCase):
@@ -720,12 +723,12 @@ class ReleaseSerializerTest(TestCase):
         assert sorted(serializer.fields.keys()) == sorted(
             ['version', 'owner', 'ref', 'url', 'dateReleased', 'commits'])
 
-        result = serializer.object
+        result = serializer.validated_data
         assert result['version'] == self.version
         assert result['owner'] == self.user
         assert result['ref'] == self.ref
         assert result['url'] == self.url
-        assert result['dateReleased'] == datetime(1000, 10, 10, 6, 6)
+        assert result['dateReleased'] == datetime(1000, 10, 10, 6, 6, tzinfo=pytz.UTC)
         assert result['commits'] == self.commits
 
     def test_fields_not_required(self):

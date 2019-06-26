@@ -149,11 +149,10 @@ class InCommitValidator(serializers.Serializer):
     commit = serializers.CharField(required=True)
     repository = serializers.CharField(required=True)
 
-    def validate_repository(self, attrs, source):
-        value = attrs[source]
+    def validate_repository(self, value):
         project = self.context['project']
         try:
-            attrs[source] = Repository.objects.get(
+            value = Repository.objects.get(
                 organization_id=project.organization_id,
                 name=value,
             )
@@ -161,7 +160,7 @@ class InCommitValidator(serializers.Serializer):
             raise serializers.ValidationError(
                 'Unable to find the given repository.'
             )
-        return attrs
+        return value
 
     def validate(self, attrs):
         attrs = super(InCommitValidator, self).validate(attrs)
@@ -199,12 +198,11 @@ class StatusDetailsValidator(serializers.Serializer):
     # in minutes, max of one week
     ignoreUserWindow = serializers.IntegerField(max_value=7 * 24 * 60)
 
-    def validate_inRelease(self, attrs, source):
-        value = attrs[source]
+    def validate_inRelease(self, value):
         project = self.context['project']
         if value == 'latest':
             try:
-                attrs[source] = Release.objects.filter(
+                value = Release.objects.filter(
                     projects=project,
                     organization_id=project.organization_id,
                 ).extra(select={
@@ -216,7 +214,7 @@ class StatusDetailsValidator(serializers.Serializer):
                 )
         else:
             try:
-                attrs[source] = Release.objects.get(
+                value = Release.objects.get(
                     projects=project,
                     organization_id=project.organization_id,
                     version=value,
@@ -225,12 +223,12 @@ class StatusDetailsValidator(serializers.Serializer):
                 raise serializers.ValidationError(
                     'Unable to find a release with the given version.'
                 )
-        return attrs
+        return value
 
-    def validate_inNextRelease(self, attrs, source):
+    def validate_inNextRelease(self, value):
         project = self.context['project']
         try:
-            attrs[source] = Release.objects.filter(
+            value = Release.objects.filter(
                 projects=project,
                 organization_id=project.organization_id,
             ).extra(select={
@@ -240,7 +238,7 @@ class StatusDetailsValidator(serializers.Serializer):
             raise serializers.ValidationError(
                 'No release data present in the system to form a basis for \'Next Release\''
             )
-        return attrs
+        return value
 
 
 class GroupValidator(serializers.Serializer):
@@ -265,8 +263,7 @@ class GroupValidator(serializers.Serializer):
     # TODO(dcramer): remove in 9.0
     snoozeDuration = serializers.IntegerField()
 
-    def validate_assignedTo(self, attrs, source):
-        value = attrs[source]
+    def validate_assignedTo(self, value):
         if value and value.type is User and not self.context['project'].member_set.filter(
                 user_id=value.id).exists():
             raise serializers.ValidationError(
@@ -277,7 +274,7 @@ class GroupValidator(serializers.Serializer):
             raise serializers.ValidationError(
                 'Cannot assign to a team without access to the project')
 
-        return attrs
+        return value
 
     def validate(self, attrs):
         attrs = super(GroupValidator, self).validate(attrs)
@@ -472,7 +469,7 @@ def update_groups(request, projects, organization_id, search_fn):
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
 
-    result = dict(serializer.object)
+    result = dict(serializer.validated_data)
 
     # so we won't have to requery for each group
     project_lookup = {p.id: p for p in projects}

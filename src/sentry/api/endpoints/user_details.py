@@ -53,26 +53,25 @@ class UserOptionsSerializer(serializers.Serializer):
 
 
 class BaseUserSerializer(serializers.ModelSerializer):
-    def validate_username(self, attrs, source):
-        value = attrs[source]
-        if User.objects.filter(username__iexact=value).exclude(id=self.object.id).exists():
+    def validate_username(self, value):
+        if User.objects.filter(username__iexact=value).exclude(id=self.instance.id).exists():
             raise serializers.ValidationError('That username is already in use.')
-        return attrs
+        return value
 
     def validate(self, attrs):
         attrs = super(BaseUserSerializer, self).validate(attrs)
 
-        if self.object.email == self.object.username:
-            if attrs.get('username', self.object.email) != self.object.email:
+        if self.instance.email == self.instance.username:
+            if attrs.get('username', self.instance.email) != self.instance.email:
                 # ... this probably needs to handle newsletters and such?
                 attrs.setdefault('email', attrs['username'])
 
         return attrs
 
-    def restore_object(self, attrs, instance=None):
-        instance = super(BaseUserSerializer, self).restore_object(attrs, instance)
-        instance.is_active = attrs.get('isActive', instance.is_active)
-        return instance
+    def update(self, instance, validated_data):
+        if 'isActive' not in validated_data:
+            validated_data['isActive'] = instance.is_active
+        return super(BaseUserSerializer, self).update(instance, validated_data)
 
 
 class UserSerializer(BaseUserSerializer):
@@ -151,7 +150,7 @@ class UserDetailsEndpoint(UserEndpoint):
             'clock24Hours': 'clock_24_hours',
         }
 
-        options_result = serializer_options.object
+        options_result = serializer_options.validated_data
 
         for key in key_map:
             if key in options_result:
@@ -196,7 +195,7 @@ class UserDetailsEndpoint(UserEndpoint):
             })
 
         avail_org_slugs = set([o['organization'].slug for o in org_results])
-        orgs_to_remove = set(serializer.object.get('organizations')).intersection(avail_org_slugs)
+        orgs_to_remove = set(serializer.validated_data.get('organizations')).intersection(avail_org_slugs)
 
         for result in org_results:
             if result['single_owner']:

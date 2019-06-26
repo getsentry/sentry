@@ -22,12 +22,11 @@ class WidgetDataSourceSerializer(serializers.Serializer):
     type = serializers.CharField(required=True)
     order = serializers.IntegerField(required=True)
 
-    def validate_type(self, attrs, source):
-        type = attrs[source]
+    def validate_type(self, type):
         if type not in WidgetDataSourceTypes.TYPE_NAMES:
             raise ValidationError('Widget data source type %s not recognized.' % type)
-        attrs[source] = WidgetDataSourceTypes.get_id_for_type_name(type)
-        return attrs
+        type = WidgetDataSourceTypes.get_id_for_type_name(type)
+        return type
 
     def validate(self, data):
         super(WidgetDataSourceSerializer, self).validate(data)
@@ -50,10 +49,8 @@ class WidgetSerializer(serializers.Serializer):
         allow_null=True,
     )
 
-    def validate_displayType(self, attrs, source):
-        display_type = attrs[source]
+    def validate_displayType(self, display_type):
         if display_type not in WidgetDisplayTypes.TYPE_NAMES:
             raise ValidationError('Widget displayType %s not recognized.' % display_type)
 
-        attrs[source] = WidgetDisplayTypes.get_id_for_type_name(display_type)
-        return attrs
+        return WidgetDisplayTypes.get_id_for_type_name(display_type)
