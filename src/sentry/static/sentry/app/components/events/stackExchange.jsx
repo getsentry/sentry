@@ -16,6 +16,7 @@ import space from 'app/styles/space';
 import GuideAnchor from 'app/components/assistant/guideAnchor';
 import DropdownAutoComplete from 'app/components/dropdownAutoComplete';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
+import LoadingIndicator from 'app/components/loadingIndicator';
 
 class GenerateQuery extends React.Component {
   static propTypes = {
@@ -204,23 +205,11 @@ class StackExchangeSites extends React.Component {
     return this.props.children(childProps);
   }
 }
-class EventStackExchange extends React.PureComponent {
+class StackExchangeResults extends React.PureComponent {
+  Results;
   static propTypes = {
-    // api: PropTypes.object.isRequired,
-    // organization: SentryTypes.Organization.isRequired,
-    // project: SentryTypes.Project.isRequired,
     event: SentryTypes.Event.isRequired,
-
     query: PropTypes.string.isRequired,
-
-    // TODO: remove me
-    // menuList: PropTypes.arrayOf(
-    //   PropTypes.shape({
-    //     value: PropTypes.object.isRequired,
-    //     searchKey: PropTypes.string.isRequired,
-    //     label: PropTypes.object.isRequired,
-    //   }).isRequired
-    // ).isRequired,
 
     currentSite: PropTypes.shape({
       name: PropTypes.string.isRequired,
@@ -228,9 +217,6 @@ class EventStackExchange extends React.PureComponent {
       icon: PropTypes.string.isRequired,
       site_url: PropTypes.string.isRequired,
     }).isRequired,
-
-    // TODO: remove me
-    // onSelect: PropTypes.func.isRequired,
   };
 
   state = {
@@ -296,86 +282,6 @@ class EventStackExchange extends React.PureComponent {
         });
       });
   };
-
-  // ___fetchData = () => {
-  //   const {api, project, organization, event} = this.props;
-
-  //   this.setState({
-  //     loading: true,
-  //   });
-
-  //   api.request(
-  //     `/projects/${organization.slug}/${project.slug}/events/${event.id}/stackexchange/`,
-  //     {
-  //       success: data => {
-  //         if (!this._isMounted) {
-  //           return;
-  //         }
-
-  //         const params = {
-  //           q: data.query,
-  //           order: 'desc',
-  //           sort: 'relevance',
-  //           site: this.props.currentSite.api_site_parameter,
-  //           tagged: event.platform,
-  //         };
-
-  //         const request = {
-  //           url: `https://api.stackexchange.com/2.2/search/advanced?${queryString.stringify(
-  //             params
-  //           )}`,
-  //           method: 'GET',
-  //         };
-
-  //         // We can't use the API client here since the URL is not scoped under the
-  //         // API endpoints (which the client prefixes)
-  //         $.ajax(request)
-  //           .then(results => {
-  //             if (!this._isMounted) {
-  //               return;
-  //             }
-
-  //             this.setState({
-  //               query: data.query,
-  //               questions: results.items,
-  //               loading: false,
-  //               error: null,
-  //             });
-  //           })
-  //           .fail(err => {
-  //             if (!this._isMounted) {
-  //               return;
-  //             }
-
-  //             this.setState({
-  //               query: '',
-  //               questions: [],
-  //               loading: false,
-  //               error: err,
-  //             });
-  //           });
-
-  //         // this.setState({
-  //         //   query: data.query,
-  //         //   questions: data.results.items,
-  //         //   loading: false,
-  //         // });
-  //       },
-  //       error: err => {
-  //         if (!this._isMounted) {
-  //           return;
-  //         }
-
-  //         this.setState({
-  //           query: '',
-  //           questions: [],
-  //           loading: false,
-  //           error: err,
-  //         });
-  //       },
-  //     }
-  //   );
-  // };
 
   renderHeaders() {
     return (
@@ -448,6 +354,7 @@ class EventStackExchange extends React.PureComponent {
   };
 
   renderAskOnStackOverflow() {
+    const {query} = this.props;
     const {platform} = this.props.event;
 
     return (
@@ -455,7 +362,7 @@ class EventStackExchange extends React.PureComponent {
         className="btn btn-default btn-sm"
         href={`${
           this.props.currentSite.site_url
-        }/questions/ask?tags=${platform}&title=${encodeURIComponent(this.state.query)}`}
+        }/questions/ask?tags=${platform}&title=${encodeURIComponent(query)}`}
         rel="noopener noreferrer"
         target="_blank"
       >
@@ -467,7 +374,7 @@ class EventStackExchange extends React.PureComponent {
   renderSeeMoreResults() {
     const {platform} = this.props.event;
 
-    const query = `[${platform}] ${this.state.query}`;
+    const query = `[${platform}] ${this.props.query}`;
 
     return (
       <a
@@ -484,6 +391,14 @@ class EventStackExchange extends React.PureComponent {
   renderBody = () => {
     const top3 = this.state.questions.slice(0, 3);
 
+    if (this.state.loading) {
+      return (
+        <EmptyMessage>
+          <LoadingIndicator mini>Loading</LoadingIndicator>
+        </EmptyMessage>
+      );
+    }
+
     if (top3.length <= 0) {
       return <EmptyMessage>{t('No results')}</EmptyMessage>;
     }
@@ -492,10 +407,6 @@ class EventStackExchange extends React.PureComponent {
   };
 
   render() {
-    if (this.state.loading) {
-      return null;
-    }
-
     if (!!this.state.error) {
       return null;
     }
@@ -515,7 +426,7 @@ class EventStackExchange extends React.PureComponent {
   }
 }
 
-const Foobar = props => {
+const StackExchange = props => {
   const {api, organization, project, event} = props;
 
   return (
@@ -550,12 +461,13 @@ const Foobar = props => {
                       </DropdownAutoComplete>
                     </h3>
 
-                    <EventStackExchange
+                    <StackExchangeResults
                       key={currentSite.api_site_parameter}
                       sites={sites}
                       menuList={menuList}
                       onSelect={onSelect}
                       currentSite={currentSite}
+                      query={query}
                       {...props}
                     />
                   </div>
@@ -567,6 +479,13 @@ const Foobar = props => {
       }}
     </GenerateQuery>
   );
+};
+
+StackExchange.propTypes = {
+  api: PropTypes.object.isRequired,
+  organization: SentryTypes.Organization.isRequired,
+  project: SentryTypes.Project.isRequired,
+  event: SentryTypes.Event.isRequired,
 };
 
 const Group = styled(PanelItem)`
@@ -620,4 +539,4 @@ const QuestionWrapper = styled('div')`
   }
 `;
 
-export default withApi(Foobar);
+export default withApi(StackExchange);
