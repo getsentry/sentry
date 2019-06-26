@@ -144,9 +144,7 @@ def get_react_config(context):
             'environment': settings.SENTRY_SDK_CONFIG['environment'],
             'whitelistUrls': list(settings.ALLOWED_HOSTS),
         },
-        'buildData': {
-            'id': os.environ.get("TRAVIS_BUILD") or os.environ.get("SENTRY_BUILD_ID") or '',
-        }
+        'buildData': os.environ.get("TRAVIS_BUILD") or os.environ.get("SENTRY_BUILD_ID") or '',
     }
     if user and user.is_authenticated():
         context.update({
