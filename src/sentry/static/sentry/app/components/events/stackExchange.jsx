@@ -4,13 +4,12 @@ import PropTypes from 'prop-types';
 import styled from 'react-emotion';
 
 import Count from 'app/components/count';
-import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
-import Pills from 'app/components/pills';
-import Pill from 'app/components/pill';
+import {Panel, PanelBody, PanelItem} from 'app/components/panels';
 import ToolbarHeader from 'app/components/toolbarHeader';
 import {t} from 'app/locale';
 import SentryTypes from 'app/sentryTypes';
 import withApi from 'app/utils/withApi';
+import space from 'app/styles/space';
 
 class EventStackExchange extends React.Component {
   static propTypes = {
@@ -139,18 +138,16 @@ class EventStackExchange extends React.Component {
     const {title, platform} = this.props.event;
 
     return (
-      <StyledText>
-        <a
-          className="btn btn-default btn-sm"
-          href={`https://stackoverflow.com/questions/ask?tags=${platform}&title=${encodeURIComponent(
-            title
-          )}`}
-          rel="noopener noreferrer"
-          target="_blank"
-        >
-          Don't see your issue? Ask on Stackoverflow!
-        </a>
-      </StyledText>
+      <a
+        className="btn btn-default btn-sm"
+        href={`https://stackoverflow.com/questions/ask?tags=${platform}&title=${encodeURIComponent(
+          title
+        )}`}
+        rel="noopener noreferrer"
+        target="_blank"
+      >
+        Don't see your issue? Ask on Stackoverflow!
+      </a>
     );
   }
 
@@ -160,16 +157,14 @@ class EventStackExchange extends React.Component {
     const query = `[${platform}] ${title}`;
 
     return (
-      <StyledText>
-        <a
-          className="btn btn-default btn-sm"
-          href={`https://stackoverflow.com/search?q=${encodeURIComponent(query)}`}
-          rel="noopener noreferrer"
-          target="_blank"
-        >
-          See more results
-        </a>
-      </StyledText>
+      <a
+        className="btn btn-default btn-sm"
+        href={`https://stackoverflow.com/search?q=${encodeURIComponent(query)}`}
+        rel="noopener noreferrer"
+        target="_blank"
+      >
+        See more results
+      </a>
     );
   }
 
@@ -192,8 +187,10 @@ class EventStackExchange extends React.Component {
             {this.renderHeaders()}
             <PanelBody>{top3.map(this.renderStackExchangeQuestion)}</PanelBody>
           </Panel>
-          {this.renderAskOnStackOverflow()}
-          {this.renderSeeMoreResults()}
+          <ButtonListControls>
+            {this.renderAskOnStackOverflow()}
+            {this.renderSeeMoreResults()}
+          </ButtonListControls>
         </div>
       </div>
     );
@@ -223,16 +220,20 @@ const StyledCount = styled(Count)`
   color: ${p => p.theme.gray3};
 `;
 
-const StyledTags = styled('div')`
-  float: left;
-  position: relative;
-  margin-top: 8px;
-  margin-bottom: 8px;
+const ButtonList = styled('div')`
+  > * + * {
+    margin-left: ${space(1)};
+  }
 `;
 
-const StyledText = styled('div')`
-  float: right;
-  margin-bottom: 8px;
+const StyledTags = styled(ButtonList)`
+  margin-top: ${space(1)};
+  margin-bottom: ${space(1)};
+`;
+
+const ButtonListControls = styled(ButtonList)`
+  margin-top: -${space(1)};
+  margin-bottom: ${space(3)};
 `;
 
 export default withApi(EventStackExchange);
