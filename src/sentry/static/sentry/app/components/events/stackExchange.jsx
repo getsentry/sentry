@@ -369,41 +369,16 @@ class EventStackExchange extends React.PureComponent {
     }
 
     return (
-      <div className="extra-data box">
-        <div className="box-header">
-          <a href="#stackexchange" className="permalink">
-            <em className="icon-anchor" />
-          </a>
-          <GuideAnchor target="stackexchange" type="text" />
-          <h3>
-            <DropdownAutoComplete
-              items={this.props.menuList}
-              alignMenu="left"
-              onSelect={this.props.onSelect}
-            >
-              {({isOpen, selectedItem}) => {
-                return selectedItem ? (
-                  selectedItem.label
-                ) : (
-                  <span>
-                    <img height="20" width="20" src={this.props.currentSite.icon} />{' '}
-                    {String(this.props.currentSite.name)}
-                  </span>
-                );
-              }}
-            </DropdownAutoComplete>
-          </h3>
-
-          <Panel>
-            {this.renderHeaders()}
-            {this.renderBody()}
-          </Panel>
-          <ButtonListControls>
-            {this.renderAskOnStackOverflow()}
-            {this.renderSeeMoreResults()}
-          </ButtonListControls>
-        </div>
-      </div>
+      <React.Fragment>
+        <Panel>
+          {this.renderHeaders()}
+          {this.renderBody()}
+        </Panel>
+        <ButtonListControls>
+          {this.renderAskOnStackOverflow()}
+          {this.renderSeeMoreResults()}
+        </ButtonListControls>
+      </React.Fragment>
     );
   }
 }
@@ -413,14 +388,41 @@ const Foobar = props => {
     <StackExchangeSites>
       {({sites, menuList, onSelect, currentSite}) => {
         return (
-          <EventStackExchange
-            key={currentSite.api_site_parameter}
-            sites={sites}
-            menuList={menuList}
-            onSelect={onSelect}
-            currentSite={currentSite}
-            {...props}
-          />
+          <div className="extra-data box">
+            <div className="box-header">
+              <a href="#stackexchange" className="permalink">
+                <em className="icon-anchor" />
+              </a>
+              <GuideAnchor target="stackexchange" type="text" />
+              <h3>
+                <DropdownAutoComplete
+                  items={menuList}
+                  alignMenu="left"
+                  onSelect={onSelect}
+                >
+                  {({isOpen, selectedItem}) => {
+                    return selectedItem ? (
+                      selectedItem.label
+                    ) : (
+                      <span>
+                        <img height="20" width="20" src={currentSite.icon} />{' '}
+                        {String(currentSite.name)}
+                      </span>
+                    );
+                  }}
+                </DropdownAutoComplete>
+              </h3>
+
+              <EventStackExchange
+                key={currentSite.api_site_parameter}
+                sites={sites}
+                menuList={menuList}
+                onSelect={onSelect}
+                currentSite={currentSite}
+                {...props}
+              />
+            </div>
+          </div>
         );
       }}
     </StackExchangeSites>
