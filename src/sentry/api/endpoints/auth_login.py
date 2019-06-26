@@ -15,9 +15,10 @@ from sentry.utils.hashlib import md5_text
 from sentry.api.base import Endpoint
 from sentry.web.forms.accounts import AuthenticationForm
 from sentry.web.frontend.auth_login import additional_context
+from sentry.web.frontend.base import OrganizationMixin
 
 
-class AuthLoginEndpoint(Endpoint):
+class AuthLoginEndpoint(Endpoint, OrganizationMixin):
     # Disable authentication and permission requirements.
     authentication_classes = []
     permission_classes = []
@@ -27,12 +28,12 @@ class AuthLoginEndpoint(Endpoint):
         Get context required to show a login page.
         Registration is handled elsewhere.
         """
-        next_uri = self.get_next_uri(request, *args, **kwargs)
+        next_uri = self.get_next_uri(request)
         if request.user.is_authenticated():
             # if the user is a superuser, but not 'superuser authenticated'
             # we allow them to re-authenticate to gain superuser status
             if not request.user.is_superuser or is_active_superuser(request):
-                return self.handle_authenticated(request, *args, **kwargs)
+                return self.handle_authenticated(request)
 
         # we always reset the state on GET so you dont end up at an odd location
         auth.initiate_login(request, next_uri)
@@ -54,7 +55,25 @@ class AuthLoginEndpoint(Endpoint):
 
         return response
 
-    def get_next_uri(self, request, *args, **kwargs):
+    def handle_authenticated(self, request):
+        next_uri = self.get_next_uri(request)
+        if auth.is_valid_redirect(next_uri, host=request.get_host()):
+            return Response({'nextUri': next_uri})
+        return Response({'nextUri': self.org_redirect_url(request)})
+
+    def org_redirect_url(self, request):
+        from sentry import features
+
+        # TODO(dcramer): deal with case when the user cannot create orgs
+        organization = self.get_active_organization(request)
+
+        if organization:
+            return organization.get_url()
+        if not features.has('organizations:create'):
+            return '/auth/login'
+        return '/organizations/new/'
+
+    def get_next_uri(self, request):
         next_uri_fallback = None
         if request.session.get('_next') is not None:
             next_uri_fallback = request.session.pop('_next')
@@ -116,7 +135,9 @@ class AuthLoginEndpoint(Endpoint):
             if not user.is_active:
                 return self.redirect(reverse('sentry-reactivate-account'))
 
-            return Response({'nextUri': auth.get_login_redirect(request)})
+            return Response({
+                'nextUri': auth.get_login_redirect(request, self.org_redirect_url(request))
+            })
         else:
             metrics.incr(
                 'login.attempt',

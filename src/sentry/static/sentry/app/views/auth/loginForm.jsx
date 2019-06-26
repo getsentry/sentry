@@ -26,8 +26,13 @@ class AuthLoginForm extends React.Component {
         method: 'POST',
         data,
       });
+      onSuccess(data);
       browserHistory.push({pathname: response.nextUri});
     } catch (e) {
+      if (!e.responseJSON) {
+        onError(e);
+        return;
+      }
       let message = e.responseJSON.detail;
       if (e.responseJSON.errors.__all__) {
         message = e.responseJSON.errors.__all__;
