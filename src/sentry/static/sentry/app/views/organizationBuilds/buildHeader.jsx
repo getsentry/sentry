@@ -39,11 +39,11 @@ export default class BuildHeader extends Component {
     return (
       <div className="release-details">
         <div className="row">
-          <div className="col-sm-8 col-xs-8">
+          <div className="col-md-8 col-sm-9 col-xs-9">
             <h3>{t('Build Details')}</h3>
             <div className="release-meta">{build.name}</div>
           </div>
-          <div className="col-sm-2">
+          <div className="col-md-1 col-sm-2">
             <h6 className="nav-header">{t('Errors')}</h6>
             <div className="release-meta">{build.totalEvents.toLocaleString()}</div>
           </div>
