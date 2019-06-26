@@ -91,6 +91,7 @@ class StackExchangeSites extends React.Component {
     return this.state.sites.map(site => {
       return {
         value: site,
+        searchKey: site.name,
         label: (
           <span>
             <img height="20" width="20" src={site.icon_url} /> {String(site.name)}
