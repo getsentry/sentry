@@ -130,6 +130,7 @@ class EventStackExchange extends React.PureComponent {
     menuList: PropTypes.arrayOf(
       PropTypes.shape({
         value: PropTypes.object.isRequired,
+        searchKey: PropTypes.string.isRequired,
         label: PropTypes.object.isRequired,
       }).isRequired
     ).isRequired,
