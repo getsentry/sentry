@@ -23,7 +23,6 @@ from sentry.signals import event_processed
 from sentry.tasks.sentry_apps import process_resource_change_bound
 from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics
-from sentry.utils.http import absolute_uri
 from sentry.utils.redis import redis_clusters
 from sentry.utils.safe import safe_execute
 from sentry.utils.sdk import configure_scope
@@ -247,7 +246,7 @@ def post_process_group(event, is_new, is_regression, is_sample, is_new_group_env
 def index_build_context(event):
     from django.db import transaction
     from hashlib import sha1
-    from sentry.models import Build, BuildStatus
+    from sentry.models import Build, BuildStatus, GitHubCheckRun
 
     context = event.data['contexts']['build']
 
@@ -272,63 +271,15 @@ def index_build_context(event):
                 **params
             ),
         )
-        create_check = created
         fields_to_update = {}
         for key, value in params.items():
             if getattr(build, key) != value:
                 fields_to_update[key] = value
-                if key == 'commit_key':
-                    create_check = True
         if fields_to_update:
             build.update(**fields_to_update)
 
-    if create_check or True and build.commit_key:
-        push_github_check(build)
-
-
-def push_github_check(build):
-    import six
-    from django.utils import timezone
-    from sentry.models import Integration, BuildStatus
-    from sentry.integrations.github.client import GitHubAppsClient
-
-    # getting the repo(s) is tough...
-    # likely you'd:
-    # - look up the release
-    # - look up each repo connected to the release
-    # - push a HEAD_SHA for each connected repo
-    # that means Build needs connected to a Release
-    # ...and it means Releases need created during Builds
-    # ...and we dont care about doing actual work during hack week
-    # so GOOOOOOOD BYEEEE
-    integration = Integration.objects.get(
-        provider='github',
-        name='getsentry',
-        organizationintegration__organization=build.organization_id,
-    )
-    repo = 'getsentry/sentry'
-    # https://developer.github.com/v3/checks/runs/#create-a-check-run
-    payload = {
-        'name': 'sentry',
-        'head_sha': build.commit_key,
-        'details_url': absolute_uri('/organizations/{}/builds/{}/'.format(
-            build.organization.slug,
-            build.guid,
-        )),
-        'external_id': six.text_type(build.id),
-        'status': 'completed',
-        'started_at': build.date_added.isoformat(),
-        'conclusion': 'success' if build.status == BuildStatus.APPROVED else 'failure',
-        'completed_at': timezone.now().isoformat(),
-        'output': {
-            'title': build.name,
-            'summary': 'hello',
-        }
-    }
-    client = GitHubAppsClient(integration=integration)
-    client.post('/repos/{}/check-runs'.format(repo), data=payload, headers={
-        'Accept': 'application/vnd.github.antiope-preview+json',
-    })
+    if build.commit_key:
+        GitHubCheckRun.push(build)
 
 
 def process_snoozes(group):

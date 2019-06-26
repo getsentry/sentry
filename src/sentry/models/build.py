@@ -37,6 +37,7 @@ class Build(Model):
         default=BuildStatus.NEEDS_APPROVED,
         choices=BuildStatus.as_choices(),
     )
+    approved_by_id = BoundedPositiveIntegerField(db_index=True, null=True)
     new_issues = BoundedPositiveIntegerField(default=0)
     total_issues = BoundedPositiveIntegerField(default=0)
     total_events = BoundedPositiveIntegerField(default=0)

@@ -1,16 +1,36 @@
 import PropTypes from 'prop-types';
-import React from 'react';
+import React, {Component} from 'react';
 
 import {t} from 'app/locale';
+import {Client} from 'app/api';
 import SentryTypes from 'app/sentryTypes';
+import Button from 'app/components/button';
 
-import BuildIcon from './buildIcon';
-
-export default class BuildHeader extends React.Component {
+export default class BuildHeader extends Component {
   static propTypes = {
-    orgId: PropTypes.string.isRequired,
     build: SentryTypes.Build.isRequired,
     onUpdate: PropTypes.func,
+  };
+
+  componentWillMount() {
+    this.api = new Client();
+  }
+
+  componentWillUnmount() {
+    this.api.clear();
+  }
+
+  changeStatus = newStatus => {
+    this.api
+      .request(`/builds/${this.props.build.id}/`, {
+        method: 'PUT',
+        data: {
+          status: newStatus,
+        },
+      })
+      .then(result => {
+        this.props.onUpdate(result);
+      });
   };
 
   render() {
@@ -25,7 +45,24 @@ export default class BuildHeader extends React.Component {
           </div>
           <div className="col-sm-2">
             <h6 className="nav-header">{t('Status')}</h6>
-            <BuildIcon status={build.status} size={16} />
+            {build.status === 'needs_approved' && (
+              <Button
+                priority="success"
+                size="small"
+                onClick={() => this.changeStatus('approved')}
+              >
+                Approve
+              </Button>
+            )}
+            {build.status === 'approved' && (
+              <Button
+                priority="danger"
+                size="small"
+                onClick={() => this.changeStatus('needs_approved')}
+              >
+                Unapprove
+              </Button>
+            )}
           </div>
         </div>
       </div>

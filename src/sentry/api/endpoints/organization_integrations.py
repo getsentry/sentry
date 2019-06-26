@@ -12,8 +12,6 @@ class OrganizationIntegrationsEndpoint(OrganizationEndpoint):
     permission_classes = (OrganizationIntegrationsPermission, )
 
     def get(self, request, organization):
-        raise ValueError('oops')
-
         integrations = OrganizationIntegration.objects.filter(
             organization=organization,
             status=ObjectStatus.VISIBLE,

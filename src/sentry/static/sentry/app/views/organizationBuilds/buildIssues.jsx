@@ -24,7 +24,6 @@ export default class BuildIssues extends AsyncComponent {
   renderBody() {
     return (
       <Panel style={{border: 0, borderRadius: 0, marginBottom: 0}}>
-        <button>CLICK ME TO REVIEW THESE REALLY BAD BUGS</button>
         <PanelBody className="issue-list">
           {this.state.issueList.map(issue => {
             return (

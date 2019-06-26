@@ -49,6 +49,12 @@ class OrganizationBuildDetails extends AsyncView {
           onUpdate={this.onUpdate}
         />
 
+        {build.approvedBy && (
+          <div className="box">
+            <p>This build was approved by {build.approvedBy.name}.</p>
+          </div>
+        )}
+
         <Panel style={{paddingBottom: 0}}>
           <PanelHeader>{t('Identified Issues')}</PanelHeader>
 
