@@ -49,7 +49,6 @@ export const Config = PropTypes.shape({
   invitesEnabled: PropTypes.bool,
   isAuthenticated: PropTypes.bool,
   isOnPremise: PropTypes.bool,
-  mediaUrl: PropTypes.string,
   messages: PropTypes.array,
   needsUpgrade: PropTypes.bool,
   privacyUrl: PropTypes.string,

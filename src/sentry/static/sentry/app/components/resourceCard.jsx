@@ -3,7 +3,6 @@ import PropTypes from 'prop-types';
 import styled from 'react-emotion';
 
 import {analytics} from 'app/utils/analytics';
-import ConfigStore from 'app/stores/configStore';
 import ExternalLink from 'app/components/links/externalLink';
 import {Panel} from 'app/components/panels';
 
@@ -11,7 +10,7 @@ export default class ResourceCard extends React.Component {
   static propTypes = {
     title: PropTypes.string.isRequired,
     link: PropTypes.string.isRequired,
-    imgUrl: PropTypes.string.isRequired,
+    imgUrl: PropTypes.oneOfType([PropTypes.string, PropTypes.object]).isRequired,
   };
 
   recordClick = () => {
@@ -20,14 +19,13 @@ export default class ResourceCard extends React.Component {
   };
 
   render() {
-    const mediaUrl = ConfigStore.get('mediaUrl');
     const {title, link, imgUrl} = this.props;
 
     return (
       <ResourceCardWrapper onClick={this.recordClick}>
         <StyledLink href={link}>
           <div className="m-b-1">
-            <img src={mediaUrl + imgUrl} alt={title} />
+            <img src={imgUrl} alt={title} />
           </div>
           <StyledTitle>{title}</StyledTitle>
         </StyledLink>
