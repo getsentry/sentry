@@ -13,6 +13,17 @@ export type Query = {
   conditions?: ConditionData[];
   orderby?: string;
   limit?: number;
+  range?: string;
+  start?: string;
+  end?: string;
+};
+
+export type SavedQuery = Query & {
+  id: string;
+  name: string;
+  dateCreated: string;
+  dateUpdated: string;
+  createdBy?: string;
 };
 
 export type Result = {
