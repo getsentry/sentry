@@ -6,6 +6,7 @@ const fs = require('fs');
 const puppeteer = require('puppeteer');
 const URL = require('url').URL;
 const EventEmitter = require('events');
+const os = require('os');
 
 const PAGE_OPTIONS = {
   timeout: 10000,
@@ -324,7 +325,7 @@ class Crawler {
 
   const crawler = new Crawler({
     domains: [initialUrl.host],
-    maxConcurrency: argv.concurrency || 3,
+    maxConcurrency: argv.concurrency || os.cpus().length - 1,
     screenshots,
     formConfigs: {
       [`http://${initialUrl.host}/auth/login/`]: {
