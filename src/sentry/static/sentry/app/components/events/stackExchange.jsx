@@ -136,11 +136,38 @@ class EventStackExchange extends React.Component {
   };
 
   renderAskOnStackOverflow() {
-    const title = this.props.event.title;
+    const {title, platform} = this.props.event;
+
     return (
       <StyledText>
-        <a href={`https://stackoverflow.com/questions/ask?title=${title}`}>
+        <a
+          className="btn btn-default btn-sm"
+          href={`https://stackoverflow.com/questions/ask?tags=${platform}&title=${encodeURIComponent(
+            title
+          )}`}
+          rel="noopener noreferrer"
+          target="_blank"
+        >
           Don't see your issue? Ask on Stackoverflow!
+        </a>
+      </StyledText>
+    );
+  }
+
+  renderSeeMoreResults() {
+    const {title, platform} = this.props.event;
+
+    const query = `[${platform}] ${title}`;
+
+    return (
+      <StyledText>
+        <a
+          className="btn btn-default btn-sm"
+          href={`https://stackoverflow.com/search?q=${encodeURIComponent(query)}`}
+          rel="noopener noreferrer"
+          target="_blank"
+        >
+          See more results
         </a>
       </StyledText>
     );
@@ -166,6 +193,7 @@ class EventStackExchange extends React.Component {
             <PanelBody>{top3.map(this.renderStackExchangeQuestion)}</PanelBody>
           </Panel>
           {this.renderAskOnStackOverflow()}
+          {this.renderSeeMoreResults()}
         </div>
       </div>
     );

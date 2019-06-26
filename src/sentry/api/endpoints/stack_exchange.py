@@ -54,7 +54,7 @@ class StackExchangeEndpoint(ProjectEndpoint):
             query_params = {
                 'q': interface_string,
                 'order': 'desc',
-                'sort': 'votes',
+                'sort': 'relevance',
                 'site': 'stackoverflow',
                 'tagged': event.platform
             }
