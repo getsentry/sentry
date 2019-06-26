@@ -3,6 +3,7 @@ import Papa from 'papaparse';
 import React from 'react';
 import styled from 'react-emotion';
 
+import {AggregationData, Query, Result, SnubaResult} from '../types';
 import {NUMBER_OF_SERIES_BY_DAY} from '../data';
 
 const CHART_KEY = '__CHART_KEY__';
@@ -11,21 +12,21 @@ const CHART_KEY = '__CHART_KEY__';
  * Returns data formatted for basic line and bar charts, with each aggregation
  * representing a series.
  *
- * @param {Array} data Data returned from Snuba
- * @param {Object} query Query state corresponding to data
+ * @param data Data returned from Snuba
+ * @param query Query state corresponding to data
  * @returns {Array}
  */
-export function getChartData(data, query) {
+export function getChartData(data: any[], query: any) {
   const {fields} = query;
 
-  return query.aggregations.map(aggregation => {
+  return query.aggregations.map((aggregation: AggregationData) => {
     return {
       seriesName: aggregation[2],
       animation: false,
       data: data.map(res => {
         return {
           value: res[aggregation[2]],
-          name: fields.map(field => `${field} ${res[field]}`).join(' '),
+          name: fields.map((field: string) => `${field} ${res[field]}`).join(' '),
         };
       }),
     };
@@ -36,19 +37,26 @@ export function getChartData(data, query) {
  * Returns data formatted for widgets, with each aggregation representing a series.
  * Includes each aggregation's series relative percentage to total within that aggregation.
  *
- * @param {Array} data Data returned from Snuba
- * @param {Object} query Query state corresponding to data
- * @param {Object} options Options object
- * @param {Boolean} options.includePercentages Include percentages data
+ * @param data Data returned from Snuba
+ * @param query Query state corresponding to data
+ * @param options Options object
+ * @param options.includePercentages Include percentages data
  * @returns {Array}
  */
-export function getChartDataForWidget(data, query, options = {}) {
+type SeriesData = {
+  value: string;
+  name: string;
+  fieldValues: string[];
+  percentage?: number;
+};
+
+export function getChartDataForWidget(data: any[], query: any, options: any = {}) {
   const {fields} = query;
 
   const totalsBySeries = new Map();
 
   if (options.includePercentages) {
-    query.aggregations.forEach(aggregation => {
+    query.aggregations.forEach((aggregation: AggregationData) => {
       totalsBySeries.set(
         aggregation[2],
         data.reduce((acc, res) => {
@@ -59,15 +67,15 @@ export function getChartDataForWidget(data, query, options = {}) {
     });
   }
 
-  return query.aggregations.map(aggregation => {
+  return query.aggregations.map((aggregation: AggregationData) => {
     const total = options.includePercentages && totalsBySeries.get(aggregation[2]);
     return {
       seriesName: aggregation[2],
       data: data.map(res => {
-        const obj = {
+        const obj: SeriesData = {
           value: res[aggregation[2]],
-          name: fields.map(field => `${res[field]}`).join(', '),
-          fieldValues: fields.map(field => res[field]),
+          name: fields.map((field: string) => `${res[field]}`).join(', '),
+          fieldValues: fields.map((field: string) => res[field]),
         };
 
         if (options.includePercentages && total) {
@@ -91,7 +99,7 @@ export function getChartDataForWidget(data, query, options = {}) {
  * @param {Object} [options.fieldLabelMap] (default: false) Maps value from Snuba to a defined label
  * @returns {Array}
  */
-export function getChartDataByDay(rawData, query, options = {}) {
+export function getChartDataByDay(rawData: any[], query: any, options: any = {}) {
   // We only chart the first aggregation for now
   const aggregate = query.aggregations[0][2];
 
@@ -109,10 +117,10 @@ export function getChartDataByDay(rawData, query, options = {}) {
   const dates = [...new Set(rawData.map(entry => formatDate(entry.time)))].reverse();
 
   // Temporarily store series as object with series names as keys
-  const seriesHash = getEmptySeriesHash(top10Series, dates, options);
+  const seriesHash: any = getEmptySeriesHash(top10Series, dates);
 
   // Insert data into series if it's in a top 10 series
-  data.forEach(row => {
+  data.forEach((row: any) => {
     const key = row[CHART_KEY];
 
     const dateIdx = dates.indexOf(formatDate(row.time));
@@ -137,7 +145,7 @@ export function getChartDataByDay(rawData, query, options = {}) {
  * @param {String} current visualization from querystring
  * @returns {String}
  */
-export function getVisualization(data, current = 'table') {
+export function getVisualization(data: any, current = 'table') {
   const {baseQuery, byDayQuery} = data;
 
   if (!byDayQuery.data && ['line-by-day', 'bar-by-day'].includes(current)) {
@@ -158,7 +166,7 @@ export function getVisualization(data, current = 'table') {
  * @param {Object} baseQuery data
  * @returns {String}
  */
-export function getRowsPageRange(baseQuery) {
+export function getRowsPageRange(baseQuery: Result): string {
   const dataLength = baseQuery.data.data.length;
 
   if (!dataLength) {
@@ -173,17 +181,17 @@ export function getRowsPageRange(baseQuery) {
 
 // Return placeholder empty series object with all series and dates listed and
 // all values set to null
-function getEmptySeriesHash(seriesSet, dates, options = {}) {
-  const output = {};
+function getEmptySeriesHash(seriesSet: any, dates: number[]) {
+  const output: any = {};
 
   [...seriesSet].forEach(series => {
-    output[series] = getEmptySeries(dates, options);
+    output[series] = getEmptySeries(dates);
   });
 
   return output;
 }
 
-function getEmptySeries(dates, options) {
+function getEmptySeries(dates: number[]) {
   return dates.map(date => {
     return {
       value: 0,
@@ -193,7 +201,11 @@ function getEmptySeries(dates, options) {
 }
 
 // Get the top series ranked by latest time / largest aggregate
-function getTopSeries(data, aggregate, limit = NUMBER_OF_SERIES_BY_DAY) {
+function getTopSeries(
+  data: any,
+  aggregate: string,
+  limit: number = NUMBER_OF_SERIES_BY_DAY
+) {
   const allData = orderBy(data, ['time', aggregate], ['desc', 'desc']);
 
   const orderedData = [
@@ -208,7 +220,7 @@ function getTopSeries(data, aggregate, limit = NUMBER_OF_SERIES_BY_DAY) {
   return new Set(limit <= 0 ? orderedData : orderedData.slice(0, limit));
 }
 
-function getDataWithKeys(data, query, options = {}) {
+function getDataWithKeys(data: any[], query: Query, options = {}) {
   const {aggregations, fields} = query;
   // We only chart the first aggregation for now
   const aggregate = aggregations[0][2];
@@ -231,14 +243,14 @@ function getDataWithKeys(data, query, options = {}) {
   });
 }
 
-function formatDate(datetime) {
+function formatDate(datetime: number) {
   return datetime * 1000;
 }
 
 // Converts a value to a string for the chart label. This could
 // potentially cause incorrect grouping, e.g. if the value null and string
 // 'null' are both present in the same series they will be merged into 1 value
-function getLabel(value, options) {
+function getLabel(value: any, options: any) {
   if (typeof value === 'object') {
     try {
       value = JSON.stringify(value);
@@ -260,11 +272,11 @@ function getLabel(value, options) {
  * the "discover" result table. Only expected to handle the 4 types that we
  * would expect to be present in Snuba data - string, number, null and array
  *
- * @param {*} val Value to display in table cell
- * @param {Number} idx Index if part of array
- * @returns {Object} Formatted cell contents
+ * @param val Value to display in table cell
+ * @param idx Index if part of array
+ * @returns Formatted cell contents
  */
-export function getDisplayValue(val, idx) {
+export function getDisplayValue(val: any, idx: number) {
   if (typeof val === 'string') {
     return <DarkGray key={idx}>{`"${val}"`}</DarkGray>;
   }
@@ -281,7 +293,7 @@ export function getDisplayValue(val, idx) {
     return (
       <span>
         [
-        {val.map(getDisplayValue).reduce((acc, curr, arrayIdx) => {
+        {val.map(getDisplayValue).reduce((acc: any, curr, arrayIdx) => {
           if (arrayIdx !== 0) {
             return [...acc, ',', curr];
           }
@@ -305,7 +317,7 @@ export function getDisplayValue(val, idx) {
  * @param {*} val Value to display in table cell
  * @returns {String} Cell contents as string
  */
-export function getDisplayText(val) {
+export function getDisplayText(val: any): string {
   if (typeof val === 'string') {
     return `"${val}"`;
   }
@@ -341,7 +353,7 @@ const DarkGray = styled('span')`
  * @param {String} result.meta Result metadata from Snuba
  * @returns {Void}
  */
-export function downloadAsCsv(result) {
+export function downloadAsCsv(result: SnubaResult) {
   const {meta, data} = result;
   const headings = meta.map(({name}) => name);
 
@@ -357,7 +369,7 @@ export function downloadAsCsv(result) {
   window.location.assign(encodedDataUrl);
 }
 
-function disableMacros(value) {
+function disableMacros(value: string | null | boolean | number) {
   const unsafeCharacterRegex = /^[\=\+\-\@]/;
 
   if (typeof value === 'string' && `${value}`.match(unsafeCharacterRegex)) {

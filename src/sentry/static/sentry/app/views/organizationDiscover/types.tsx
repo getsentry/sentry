@@ -1,8 +1,4 @@
-export type AggregationData = [
-  string | null,
-  string | null,
-  string | number | boolean | null
-];
+export type AggregationData = [string | null, string | null, string];
 
 export type ConditionData = [
   string | null,
@@ -12,16 +8,24 @@ export type ConditionData = [
 
 export type Query = {
   projects?: number[];
-  fields?: string[];
-  aggregations?: AggregationData[];
+  fields: string[];
+  aggregations: AggregationData[];
   conditions?: ConditionData[];
   orderby?: string;
   limit?: number;
 };
 
+export type Result = {
+  data: SnubaResult;
+  query: Query;
+  current: any;
+  next?: any;
+  prev?: any;
+};
+
 export type SnubaResult = {
   data: any[];
-  meta: any;
+  meta: {name: string}[];
 };
 
 export type Column = {
