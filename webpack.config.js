@@ -5,7 +5,7 @@ const fs = require('fs');
 const webpack = require('webpack');
 const babelConfig = require('./babel.config');
 const OptionalLocaleChunkPlugin = require('./build-utils/optional-locale-chunk-plugin');
-const fetchIntegrationDocsPlatforms = require('./build-utils/integration-docs');
+const IntegrationDocsFetchPlugin = require('./build-utils/integration-docs-fetch-plugin');
 const ExtractTextPlugin = require('mini-css-extract-plugin');
 const CompressionPlugin = require('compression-webpack-plugin');
 const OptimizeCssAssetsPlugin = require('optimize-css-assets-webpack-plugin');
@@ -14,6 +14,8 @@ const FixStyleOnlyEntriesPlugin = require('webpack-fix-style-only-entries');
 
 const {env} = process;
 const IS_PRODUCTION = env.NODE_ENV === 'production';
+const IS_TEST = env.NODE_ENV === 'test' || env.TEST_SUITE;
+const IS_STORYBOOK = env.STORYBOOK_BUILD === '1';
 
 const WEBPACK_MODE = IS_PRODUCTION ? 'production' : 'development';
 
@@ -273,15 +275,19 @@ const appConfig = {
       cacheGroups,
     },
   },
-  externals: function(context, request, callback) {
-    if (request === 'integration-docs-platforms') {
-      fetchIntegrationDocsPlatforms(__dirname, callback);
-    } else {
-      callback();
-    }
-  },
   devtool: IS_PRODUCTION ? 'source-map' : 'cheap-module-eval-source-map',
 };
+
+if (IS_TEST || IS_STORYBOOK) {
+  appConfig.resolve.alias['integration-docs-platforms'] = path.join(
+    __dirname,
+    'tests/fixtures/integration-docs/_platforms.json'
+  );
+} else {
+  const plugin = new IntegrationDocsFetchPlugin({basePath: __dirname});
+  appConfig.plugins.push(plugin);
+  appConfig.resolve.alias['integration-docs-platforms'] = plugin.modulePath;
+}
 
 /**
  * Legacy CSS Webpack appConfig for Django-powered views.

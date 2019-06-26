@@ -100,5 +100,4 @@ module.exports = {
       app: staticPath,
     }),
   },
-  externals: appConfig.externals,
 };

@@ -5,11 +5,7 @@ const https = require('https');
 const path = require('path');
 
 const PLATFORMS_URL = 'https://docs.sentry.io/_platforms/_index.json';
-const DOCS_FIXTURE_PATH = 'tests/fixtures/integration-docs/_platforms.json';
-
-const {env} = process;
-const IS_TEST = env.NODE_ENV === 'test' || env.TEST_SUITE;
-const IS_STORYBOOK = env.STORYBOOK_BUILD === '1';
+const DOCS_INDEX_PATH = 'src/sentry/integration-docs/_platforms.json';
 
 const alphaSortFromKey = function(keyExtractor) {
   return function(a, b) {
@@ -52,33 +48,36 @@ const transformPlatformsToList = ({platforms}) =>
     })
     .sort(alphaSortFromKey(item => item.name));
 
-let __cache = null;
+class IntegrationDocsFetchPlugin {
+  constructor({basePath}) {
+    this.modulePath = path.join(basePath, DOCS_INDEX_PATH);
+  }
+  apply(compiler) {
+    compiler.hooks.beforeRun.tapAsync(
+      'IntegrationDocsFetchPlugin',
+      (compilation, callback) => {
+        https
+          .get(PLATFORMS_URL, res => {
+            res.setEncoding('utf8');
+            let buffer = '';
+            res
+              .on('data', data => {
+                buffer += data;
+              })
+              .on('end', () =>
+                fs.writeFile(
+                  this.modulePath,
+                  JSON.stringify({
+                    platforms: transformPlatformsToList(JSON.parse(buffer)),
+                  }),
+                  callback
+                )
+              );
+          })
+          .on('error', callback);
+      }
+    );
+  }
+}
 
-const fromLocal = (basePath, callback) =>
-  fs.readFile(path.join(basePath, DOCS_FIXTURE_PATH), (err, contents) =>
-    callback(err, (__cache = contents))
-  );
-
-const fromRemote = (_basePath, callback) =>
-  https
-    .get(PLATFORMS_URL, res => {
-      res.setEncoding('utf8');
-      let buffer = '';
-      res
-        .on('data', data => {
-          buffer += data;
-        })
-        .on('end', () =>
-          callback(
-            null,
-            (__cache = JSON.stringify({
-              platforms: transformPlatformsToList(JSON.parse(buffer)),
-            }))
-          )
-        );
-    })
-    .on('error', callback);
-
-const fetcher = IS_TEST || IS_STORYBOOK ? fromLocal : fromRemote;
-module.exports = (basePath, callback) =>
-  __cache !== null ? __cache : fetcher(basePath, callback);
+module.exports = IntegrationDocsFetchPlugin;
