@@ -91,10 +91,10 @@ module.exports = {
     }),
   ],
   resolve: {
-    plugins: appConfig.resolve.plugins,
     extensions: appConfig.resolve.extensions,
     alias: Object.assign({}, appConfig.resolve.alias, {
       app: staticPath,
     }),
   },
+  externals: appConfig.externals,
 };
