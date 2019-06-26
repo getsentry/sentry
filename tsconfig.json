@@ -1,0 +1,22 @@
+{
+    "extends": "./node_modules/@sentry/typescript/tsconfig.json",
+    "compilerOptions": {
+        "noUnusedLocals": true,
+        "noUnusedParameters": true,
+        "strict": true,
+        "declaration": false,
+        "declarationMap": false,
+        "allowJs": true,
+        "esModuleInterop": true,
+        "module": "commonjs",
+        "jsx": "react",
+        "baseUrl": ".",
+        "outDir": "src/sentry/static/sentry/dist",
+        "paths": {
+            "app/*": ["src/sentry/static/sentry/app/*"]
+        },
+    },
+    "include": [
+        "src"
+    ]
+}

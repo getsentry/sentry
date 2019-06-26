@@ -32,6 +32,10 @@ module.exports = {
         enforce: 'pre',
       },
       {
+        test: /\.tsx?$/,
+        loader: 'ts-loader',
+      },
+      {
         test: /\.po$/,
         loader: 'po-catalog-loader',
         query: {

@@ -171,6 +171,12 @@ const appConfig = {
         },
       },
       {
+        test: /\.tsx?$/,
+        include: [staticPrefix],
+        exclude: /(vendor|node_modules|dist)/,
+        loader: 'ts-loader',
+      },
+      {
         test: /\.po$/,
         use: {
           loader: 'po-catalog-loader',
@@ -252,7 +258,7 @@ const appConfig = {
       'sentry-locale': path.join(__dirname, 'src', 'sentry', 'locale'),
     },
     modules: ['node_modules'],
-    extensions: ['.jsx', '.js', '.json'],
+    extensions: ['.jsx', '.js', '.json', '.ts', '.tsx'],
   },
   output: {
     path: distPath,
