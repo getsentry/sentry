@@ -30,10 +30,24 @@ class OrganizationType(DjangoObjectType):
 
     status = graphene.Field(OrgStatus)
 
-    def resolve_project_set(parent, info):
-        projects = Project.objects.filter(
-            organization=parent,
-        )
+    project_set = graphene.Field(
+        graphene.List('sentry.api.graphql.ProjectType'),
+        slug=graphene.String()
+    )
+
+    def resolve_project_set(parent, info, **kwargs):
+        slug = kwargs['slug']
+
+        if slug:
+            projects = Project.objects.filter(
+                organization=parent,
+                slug=slug,
+            )
+        else:
+            projects = Project.objects.filter(
+                organization=parent,
+            )
+
         permissions = ProjectPermission()
         projects = filter(
             lambda p: permissions.has_object_permission(
@@ -57,19 +71,32 @@ class ProjectType(DjangoObjectType):
         only_fields = ('id', 'slug', 'name', 'date_added', 'status',
                        'platform', 'organization', 'group_set')
 
-    status = graphene.Field(ProjectStatusType)
+    group_set = graphene.Field(
+        graphene.List('sentry.api.graphql.IssueType'),
+        id=graphene.Int()
+    )
+
+    status = graphene.Field(
+        ProjectStatusType)
 
     def resolve_status(parent, info):
         return parent.status
 
-    def resolve_group_set(parent, info):
+    def resolve_group_set(parent, info, **kwargs):
+        id = kwargs['id']
         permissions = ProjectEventPermission()
         if not permissions.has_object_permission(info.context, None, parent):
             return []
 
-        return Group.objects.filter(
-            project=parent,
-        )
+        if id:
+            return Group.objects.filter(
+                project=parent,
+                id=id,
+            )
+        else:
+            return Group.objects.filter(
+                project=parent,
+            )
 
 
 class EventType(graphene.ObjectType):
