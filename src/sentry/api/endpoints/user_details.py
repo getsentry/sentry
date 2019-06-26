@@ -133,10 +133,9 @@ class UserDetailsEndpoint(UserEndpoint):
             serializer_cls = AdminUserSerializer
         else:
             serializer_cls = UserSerializer
-        serializer = serializer_cls(user, data=request.DATA, partial=True)
+        serializer = serializer_cls(user, data=request.data, partial=True)
 
-        serializer_options = UserOptionsSerializer(
-            data=request.DATA.get('options', {}), partial=True)
+        serializer_options = UserOptionsSerializer(data=request.data.get('options', {}), partial=True)
 
         # This serializer should NOT include privileged fields e.g. password
         if not serializer.is_valid() or not serializer_options.is_valid():
@@ -175,7 +174,7 @@ class UserDetailsEndpoint(UserEndpoint):
         :auth required:
         """
 
-        serializer = OrganizationsSerializer(data=request.DATA)
+        serializer = OrganizationsSerializer(data=request.data)
 
         if not serializer.is_valid():
             return Response(status=status.HTTP_400_BAD_REQUEST)

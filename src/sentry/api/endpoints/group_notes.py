@@ -37,7 +37,7 @@ class GroupNotesEndpoint(GroupEndpoint):
 
     def post(self, request, group):
         serializer = NoteSerializer(
-            data=request.DATA,
+            data=request.data,
             context={
                 'organization_id': group.organization.id,
                 'projects': [group.project],

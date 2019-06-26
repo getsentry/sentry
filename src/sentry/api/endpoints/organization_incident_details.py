@@ -46,7 +46,7 @@ class OrganizationIncidentDetailsEndpoint(IncidentEndpoint):
         return Response(data)
 
     def put(self, request, organization, incident):
-        serializer = IncidentSerializer(data=request.DATA)
+        serializer = IncidentSerializer(data=request.data)
         if serializer.is_valid():
             result = serializer.validated_data
 

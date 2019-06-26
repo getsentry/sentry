@@ -33,7 +33,7 @@ class OrganizationDiscoverSavedQueriesEndpoint(OrganizationEndpoint):
         if not features.has('organizations:discover', organization, actor=request.user):
             return self.respond(status=404)
 
-        serializer = DiscoverSavedQuerySerializer(data=request.DATA, context={
+        serializer = DiscoverSavedQuerySerializer(data=request.data, context={
             'organization': organization,
         })
 

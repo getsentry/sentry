@@ -87,7 +87,7 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
             return Response(
                 {'detail': MISSING_FEATURE_MESSAGE}, status=400)
 
-        external_issue_id = request.DATA.get('externalIssue')
+        external_issue_id = request.data.get('externalIssue')
         if not external_issue_id:
             return Response({'externalIssue': ['Issue ID is required']}, status=400)
 
@@ -107,7 +107,7 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
 
         installation = integration.get_installation(organization_id)
         try:
-            data = installation.get_issue(external_issue_id, data=request.DATA)
+            data = installation.get_issue(external_issue_id, data=request.data)
         except IntegrationFormError as exc:
             return Response(exc.field_errors, status=400)
         except IntegrationError as exc:
@@ -137,9 +137,9 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
         else:
             external_issue.update(**defaults)
 
-        installation.store_issue_last_defaults(group.project_id, request.DATA)
+        installation.store_issue_last_defaults(group.project_id, request.data)
         try:
-            installation.after_link_issue(external_issue, data=request.DATA)
+            installation.after_link_issue(external_issue, data=request.data)
         except IntegrationFormError as exc:
             return Response(exc.field_errors, status=400)
         except IntegrationError as exc:
@@ -192,7 +192,7 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
 
         installation = integration.get_installation(organization_id)
         try:
-            data = installation.create_issue(request.DATA)
+            data = installation.create_issue(request.data)
         except IntegrationFormError as exc:
             return Response(exc.field_errors, status=400)
         except IntegrationError as exc:
@@ -229,7 +229,7 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
                 user=request.user,
                 sender=self.__class__,
             )
-        installation.store_issue_last_defaults(group.project_id, request.DATA)
+        installation.store_issue_last_defaults(group.project_id, request.data)
 
         self.create_issue_activity(request, group, installation, external_issue)
 

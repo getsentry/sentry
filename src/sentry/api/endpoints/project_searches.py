@@ -51,7 +51,7 @@ class ProjectSearchesEndpoint(ProjectEndpoint):
             }}
 
         """
-        serializer = SavedSearchSerializer(data=request.DATA)
+        serializer = SavedSearchSerializer(data=request.data)
 
         if serializer.is_valid():
             result = serializer.validated_data

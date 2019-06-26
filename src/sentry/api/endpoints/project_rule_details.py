@@ -50,7 +50,7 @@ class ProjectRuleDetailsEndpoint(ProjectEndpoint):
 
         serializer = RuleSerializer(
             context={'project': project},
-            data=request.DATA,
+            data=request.data,
             partial=True
         )
 
