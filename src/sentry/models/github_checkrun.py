@@ -1,5 +1,6 @@
 from __future__ import absolute_import, print_function
 
+import logging
 import six
 
 from django.utils import timezone
@@ -43,6 +44,11 @@ class GitHubCheckRun(Model):
             )
         except cls.DoesNotExist:
             run = None
+
+        if run:
+            logging.getLogger('sentry').info('github.check-run.update')
+        else:
+            logging.getLogger('sentry').info('github.check-run.create')
 
         repo = 'getsentry/sentry'
         # https://developer.github.com/v3/checks/runs/#create-a-check-run
