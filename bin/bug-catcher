@@ -9,8 +9,8 @@ const EventEmitter = require('events');
 const os = require('os');
 
 const PAGE_OPTIONS = {
-  timeout: 10000,
-  waitUntil: 'networkidle2',
+  timeout: 15000,
+  waitUntil: 'networkidle0',
 };
 
 const DEFAULT_ARGS = [
