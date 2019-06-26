@@ -108,20 +108,26 @@ class EventStackExchange extends React.Component {
     return (
       <Group key={question.question_id} py={1} px={0} align="center">
         <Box w={[8 / 12, 8 / 12, 6 / 12]} mx={1} flex="1">
-          <div>
+          <QuestionWrapper>
             <a href={question.link} target="_blank" rel="noopener noreferrer">
               {this.decode(question.title)}
             </a>
-          </div>
+          </QuestionWrapper>
           <StyledTags>
             {question.tags.map(tag => (
-              <a style={{cursor: 'default'}} className="btn btn-default btn-sm" key={tag}>
+              <a
+                className="btn btn-default btn-sm"
+                key={tag}
+                href={`https://stackoverflow.com/questions/tagged/${tag}`}
+                rel="noopener noreferrer"
+                target="_blank"
+              >
                 {tag}
               </a>
             ))}
           </StyledTags>
         </Box>
-        <Flex w={16} mx={2} justify="flex-end">
+        <Flex w={16} mx={2} justify="flex-end" style={{color: '#57be8c'}}>
           {question.is_answered && <span className="icon-checkmark" />}
         </Flex>
         <Flex w={[40, 60, 80, 80]} mx={2} justify="flex-end">
@@ -234,6 +240,11 @@ const StyledTags = styled(ButtonList)`
 const ButtonListControls = styled(ButtonList)`
   margin-top: -${space(1)};
   margin-bottom: ${space(3)};
+`;
+
+const QuestionWrapper = styled('div')`
+  padding-top: ${space(1)};
+  padding-bottom: ${space(1)};
 `;
 
 export default withApi(EventStackExchange);
