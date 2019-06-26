@@ -307,19 +307,7 @@ urlpatterns += patterns(
     url(r'^account/', generic_react_page_view),
     url(r'^onboarding/', generic_react_page_view),
 
-    # Admin
-    url(r'^manage/status/environment/$',
-        admin.status_env, name='sentry-admin-status'),
-    url(r'^manage/status/packages/$', admin.status_packages,
-        name='sentry-admin-packages-status'),
-    url(r'^manage/status/mail/$', admin.status_mail,
-        name='sentry-admin-mail-status'),
-    url(r'^manage/status/warnings/$', admin.status_warnings,
-        name='sentry-admin-warnings-status'),
-
     # Admin - Users
-    url(r'^manage/users/new/$', admin.create_new_user,
-        name='sentry-admin-new-user'),
     url(r'^manage/users/(?P<user_id>\d+)/$',
         admin.edit_user, name='sentry-admin-edit-user'),
     url(
