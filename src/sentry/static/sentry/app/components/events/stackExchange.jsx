@@ -198,7 +198,7 @@ class EventStackExchange extends React.Component {
     return (
       <div className="extra-data box">
         <div className="box-header">
-          <h3>StackExchange</h3>
+          <h3>{t('Stackoverflow')}</h3>
           <Panel>
             {this.renderHeaders()}
             <PanelBody>{top3.map(this.renderStackExchangeQuestion)}</PanelBody>
@@ -254,6 +254,8 @@ const ButtonListControls = styled(ButtonList)`
 
 const QuestionWrapper = styled('div')`
   display: flex;
+  align-items: center;
+
   padding-top: ${space(1)};
   padding-bottom: ${space(1)};
 
