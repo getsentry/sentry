@@ -59,7 +59,7 @@ class GitHubCheckRun(Model):
             'conclusion': 'success' if build.status == BuildStatus.APPROVED else 'failure',
             'completed_at': timezone.now().isoformat(),
             'output': {
-                'title': 'Sentry Report',
+                'title': 'Issues detected',
                 'summary': 'There were a total of {} errors automatically identified.'.format(
                     build.total_events,
                 ),
