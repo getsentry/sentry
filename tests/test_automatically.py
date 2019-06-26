@@ -4,7 +4,7 @@ import os
 import subprocess
 import pytest
 
-from sentry.testutils import Factories
+from sentry.testutils.factories import Factories
 
 
 class BugCatcher(object):
