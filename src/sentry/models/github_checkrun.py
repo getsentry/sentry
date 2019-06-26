@@ -65,7 +65,7 @@ class GitHubCheckRun(Model):
             'conclusion': 'success' if build.status == BuildStatus.APPROVED else 'failure',
             'completed_at': timezone.now().isoformat(),
             'output': {
-                'title': 'Issues approved' if build.status == BuildStatus.APPROVED else 'Issues detected',
+                'title': 'You have approval to break things' if build.status == BuildStatus.APPROVED else 'Issues detected',
                 'summary': 'There were a total of {} errors automatically identified.'.format(
                     build.total_events,
                 ),
