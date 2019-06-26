@@ -88,7 +88,9 @@ class OrganizationBuilds extends AsyncView {
             <Box w={100} mr={2} className="align-center">
               Errors
             </Box>
-            <Box w={160}>When</Box>
+            <Box w={160} className="align-right">
+              When
+            </Box>
           </PanelHeader>
           <PanelBody>
             {this.state.buildList.map(build => {
@@ -105,7 +107,7 @@ class OrganizationBuilds extends AsyncView {
                   <Box w={100} mr={2} className="align-center">
                     {build.totalEvents.toLocaleString()}
                   </Box>
-                  <Box w={160}>
+                  <Box w={160} className="align-right">
                     <TimeSince date={build.dateCreated} />
                   </Box>
                 </PanelItem>
