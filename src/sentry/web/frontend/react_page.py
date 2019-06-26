@@ -59,3 +59,11 @@ class ReactPageView(OrganizationView, ReactMixin):
 class GenericReactPageView(BaseView, ReactMixin):
     def handle(self, request, **kwargs):
         return self.handle_react(request)
+
+
+class AnonymousReactPageView(BaseView, ReactMixin):
+    auth_required = False
+    csrf_protect = False
+
+    def handle(self, request, **kwargs):
+        return self.handle_react(request)

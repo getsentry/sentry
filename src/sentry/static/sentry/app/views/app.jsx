@@ -110,7 +110,9 @@ class App extends React.Component {
     $(document).ajaxError(function(evt, jqXHR) {
       // TODO: Need better way of identifying anonymous pages
       //       that don't trigger redirect
-      const pageAllowsAnon = /^\/share\//.test(window.location.pathname);
+      const pageAllowsAnon =
+        /^\/share\//.test(window.location.pathname) ||
+        /^\/auth\/login\//.test(window.location.pathname);
 
       // Ignore error unless it is a 401
       if (!jqXHR || jqXHR.status !== 401 || pageAllowsAnon) {

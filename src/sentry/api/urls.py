@@ -15,6 +15,7 @@ from .endpoints.api_applications import ApiApplicationsEndpoint
 from .endpoints.api_application_details import ApiApplicationDetailsEndpoint
 from .endpoints.api_authorizations import ApiAuthorizationsEndpoint
 from .endpoints.api_tokens import ApiTokensEndpoint
+from .endpoints.auth_login import AuthLoginEndpoint
 from .endpoints.assistant import AssistantEndpoint
 from .endpoints.auth_index import AuthIndexEndpoint
 from .endpoints.authenticator_index import AuthenticatorIndexEndpoint
@@ -317,6 +318,7 @@ urlpatterns = patterns(
 
     # Auth
     url(r'^auth/$', AuthIndexEndpoint.as_view(), name='sentry-api-0-auth'),
+    url(r'^auth/login$', AuthLoginEndpoint.as_view(), name='sentry-api-0-auth-login'),
 
     # List Authentiactors
     url(r'^authenticators/$',
