@@ -5,19 +5,20 @@ import {Panel} from 'app/components/panels';
 import {addLoadingMessage, removeIndicator} from 'app/actionCreators/indicator';
 import {t, tn} from 'app/locale';
 import Access from 'app/components/acl/access';
-import withApi from 'app/utils/withApi';
-import withOrganization from 'app/utils/withOrganization';
+import AutoSelectText from 'app/components/autoSelectText';
 import Button from 'app/components/button';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
 import Form from 'app/views/settings/components/forms/form';
 import JsonForm from 'app/views/settings/components/forms/jsonForm';
 import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
+import SentryTypes from 'app/sentryTypes';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import TextBlock from 'app/views/settings/components/text/textBlock';
 import TimeSince from 'app/components/timeSince';
 import formGroups from 'app/data/forms/processingIssues';
-import SentryTypes from 'app/sentryTypes';
+import withApi from 'app/utils/withApi';
+import withOrganization from 'app/utils/withOrganization';
 
 const MESSAGES = {
   native_no_crashed_thread: t('No crashed thread found in crash report'),
@@ -322,12 +323,9 @@ class ProjectProcessingIssues extends React.Component {
                   "Paste this command into your shell and we'll attempt to upload the missing symbols from your machine:"
                 )}
               </label>
-              <div
-                className="form-control disabled auto-select"
-                style={{marginBottom: 6}}
-              >
+              <AutoSelectText className="form-control disabled" style={{marginBottom: 6}}>
                 curl -sL {fixLink} | bash
-              </div>
+              </AutoSelectText>
             </div>
           </div>
         </div>
