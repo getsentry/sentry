@@ -101,28 +101,6 @@
     {% block header %}
     {% endblock %}
 
-    {% if organization and ACCESS.org_read %}
-    {% block sub-header %}
-    <div class="sub-header flex flex-container flex-vertically-centered">
-      <div>
-        <div id="blk_projectselect"></div>
-        {% block header_nav %}{% endblock %}
-        <script>
-        $(function(){
-          ReactDOM.render(React.createFactory(SentryApp.ProjectSelector)({
-            organization: {% serialize_detailed_org organization %},
-            projectId: {% if project %}'{{ project.slug }}'{% else %}null{% endif %},
-          }), document.getElementById('blk_projectselect'));
-        });
-        </script>
-      </div>
-      <div class="align-right project-actions">
-        {% block header_action %}{% endblock %}
-      </div>
-    </div>
-    {% endblock %}
-    {% endif %}
-
     <div class="container">
       {% block above_content %}{% endblock %}
       <div class="content">
@@ -161,15 +139,6 @@
       </div>
     </footer>
   </div>
-
-  <script type="text/javascript">
-  $(function() {
-    // This is duplicated from <ProjectSelector>
-    $('.project-dropdown').on('shown.bs.dropdown', function(event){
-      $(event.target).find('input[type=text]').focus();
-    });
-  });
-  </script>
   {% endblock %}
 
   {% block scripts_bottom %}{% endblock %}
