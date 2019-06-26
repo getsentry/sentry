@@ -4,6 +4,7 @@ import PropTypes from 'prop-types';
 import styled from 'react-emotion';
 import $ from 'jquery';
 import queryString from 'query-string';
+import _ from 'lodash';
 
 import Count from 'app/components/count';
 import {Panel, PanelBody, PanelItem} from 'app/components/panels';
@@ -15,6 +16,89 @@ import space from 'app/styles/space';
 import GuideAnchor from 'app/components/assistant/guideAnchor';
 import DropdownAutoComplete from 'app/components/dropdownAutoComplete';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
+
+class GenerateQuery extends React.Component {
+  static propTypes = {
+    api: PropTypes.object.isRequired,
+    organization: SentryTypes.Organization.isRequired,
+    project: SentryTypes.Project.isRequired,
+    event: SentryTypes.Event.isRequired,
+  };
+
+  state = {
+    query: '',
+    loading: true,
+    error: null,
+  };
+
+  // eslint-disable-next-line react/sort-comp
+  _isMounted = false;
+
+  componentDidMount() {
+    this._isMounted = true;
+
+    this.fetchData();
+  }
+
+  componentWillUnmount() {
+    this._isMounted = false;
+  }
+
+  fetchData = () => {
+    const {api, project, organization, event} = this.props;
+
+    this.setState({
+      loading: true,
+    });
+
+    api.request(
+      `/projects/${organization.slug}/${project.slug}/events/${event.id}/stackexchange/`,
+      {
+        success: data => {
+          if (!this._isMounted) {
+            return;
+          }
+
+          const query = _.get(data, ['query'], '');
+
+          this.setState({
+            query: _.isString(query) ? query : '',
+            loading: false,
+            error: null,
+          });
+        },
+        error: err => {
+          if (!this._isMounted) {
+            return;
+          }
+
+          this.setState({
+            query: '',
+            questions: [],
+            loading: false,
+            error: err,
+          });
+        },
+      }
+    );
+  };
+
+  render() {
+    if (this.state.loading) {
+      return null;
+    }
+
+    if (!!this.state.error) {
+      return null;
+    }
+
+    const childProps = {
+      query: this.state.query,
+    };
+
+    return this.props.children(childProps);
+  }
+}
 
 class StackExchangeSites extends React.Component {
   state = {
@@ -122,18 +206,21 @@ class StackExchangeSites extends React.Component {
 }
 class EventStackExchange extends React.PureComponent {
   static propTypes = {
-    api: PropTypes.object.isRequired,
-    organization: SentryTypes.Organization.isRequired,
-    project: SentryTypes.Project.isRequired,
+    // api: PropTypes.object.isRequired,
+    // organization: SentryTypes.Organization.isRequired,
+    // project: SentryTypes.Project.isRequired,
     event: SentryTypes.Event.isRequired,
 
-    menuList: PropTypes.arrayOf(
-      PropTypes.shape({
-        value: PropTypes.object.isRequired,
-        searchKey: PropTypes.string.isRequired,
-        label: PropTypes.object.isRequired,
-      }).isRequired
-    ).isRequired,
+    query: PropTypes.string.isRequired,
+
+    // TODO: remove me
+    // menuList: PropTypes.arrayOf(
+    //   PropTypes.shape({
+    //     value: PropTypes.object.isRequired,
+    //     searchKey: PropTypes.string.isRequired,
+    //     label: PropTypes.object.isRequired,
+    //   }).isRequired
+    // ).isRequired,
 
     currentSite: PropTypes.shape({
       name: PropTypes.string.isRequired,
@@ -142,11 +229,11 @@ class EventStackExchange extends React.PureComponent {
       site_url: PropTypes.string.isRequired,
     }).isRequired,
 
-    onSelect: PropTypes.func.isRequired,
+    // TODO: remove me
+    // onSelect: PropTypes.func.isRequired,
   };
 
   state = {
-    query: '',
     questions: [],
     loading: true,
     error: null,
@@ -166,84 +253,129 @@ class EventStackExchange extends React.PureComponent {
   }
 
   fetchData = () => {
-    const {api, project, organization, event} = this.props;
+    const {query, event} = this.props;
 
-    this.setState({
-      loading: true,
-    });
+    const params = {
+      q: query,
+      order: 'desc',
+      sort: 'relevance',
+      site: this.props.currentSite.api_site_parameter,
+      tagged: event.platform,
+    };
 
-    api.request(
-      `/projects/${organization.slug}/${project.slug}/events/${event.id}/stackexchange/`,
-      {
-        success: data => {
-          if (!this._isMounted) {
-            return;
-          }
+    const request = {
+      url: `https://api.stackexchange.com/2.2/search/advanced?${queryString.stringify(
+        params
+      )}`,
+      method: 'GET',
+    };
 
-          const params = {
-            q: data.query,
-            order: 'desc',
-            sort: 'relevance',
-            site: this.props.currentSite.api_site_parameter,
-            tagged: event.platform,
-          };
+    // We can't use the API client here since the URL is not scoped under the
+    // API endpoints (which the client prefixes)
+    $.ajax(request)
+      .then(results => {
+        if (!this._isMounted) {
+          return;
+        }
 
-          const request = {
-            url: `https://api.stackexchange.com/2.2/search/advanced?${queryString.stringify(
-              params
-            )}`,
-            method: 'GET',
-          };
+        this.setState({
+          questions: results.items,
+          loading: false,
+          error: null,
+        });
+      })
+      .fail(err => {
+        if (!this._isMounted) {
+          return;
+        }
 
-          // We can't use the API client here since the URL is not scoped under the
-          // API endpoints (which the client prefixes)
-          $.ajax(request)
-            .then(results => {
-              if (!this._isMounted) {
-                return;
-              }
-
-              this.setState({
-                query: data.query,
-                questions: results.items,
-                loading: false,
-                error: null,
-              });
-            })
-            .fail(err => {
-              if (!this._isMounted) {
-                return;
-              }
-
-              this.setState({
-                query: '',
-                questions: [],
-                loading: false,
-                error: err,
-              });
-            });
-
-          // this.setState({
-          //   query: data.query,
-          //   questions: data.results.items,
-          //   loading: false,
-          // });
-        },
-        error: err => {
-          if (!this._isMounted) {
-            return;
-          }
-
-          this.setState({
-            query: '',
-            questions: [],
-            loading: false,
-            error: err,
-          });
-        },
-      }
-    );
+        this.setState({
+          questions: [],
+          loading: false,
+          error: err,
+        });
+      });
   };
+
+  // ___fetchData = () => {
+  //   const {api, project, organization, event} = this.props;
+
+  //   this.setState({
+  //     loading: true,
+  //   });
+
+  //   api.request(
+  //     `/projects/${organization.slug}/${project.slug}/events/${event.id}/stackexchange/`,
+  //     {
+  //       success: data => {
+  //         if (!this._isMounted) {
+  //           return;
+  //         }
+
+  //         const params = {
+  //           q: data.query,
+  //           order: 'desc',
+  //           sort: 'relevance',
+  //           site: this.props.currentSite.api_site_parameter,
+  //           tagged: event.platform,
+  //         };
+
+  //         const request = {
+  //           url: `https://api.stackexchange.com/2.2/search/advanced?${queryString.stringify(
+  //             params
+  //           )}`,
+  //           method: 'GET',
+  //         };
+
+  //         // We can't use the API client here since the URL is not scoped under the
+  //         // API endpoints (which the client prefixes)
+  //         $.ajax(request)
+  //           .then(results => {
+  //             if (!this._isMounted) {
+  //               return;
+  //             }
+
+  //             this.setState({
+  //               query: data.query,
+  //               questions: results.items,
+  //               loading: false,
+  //               error: null,
+  //             });
+  //           })
+  //           .fail(err => {
+  //             if (!this._isMounted) {
+  //               return;
+  //             }
+
+  //             this.setState({
+  //               query: '',
+  //               questions: [],
+  //               loading: false,
+  //               error: err,
+  //             });
+  //           });
+
+  //         // this.setState({
+  //         //   query: data.query,
+  //         //   questions: data.results.items,
+  //         //   loading: false,
+  //         // });
+  //       },
+  //       error: err => {
+  //         if (!this._isMounted) {
+  //           return;
+  //         }
+
+  //         this.setState({
+  //           query: '',
+  //           questions: [],
+  //           loading: false,
+  //           error: err,
+  //         });
+  //       },
+  //     }
+  //   );
+  // };
 
   renderHeaders() {
     return (
@@ -384,48 +516,56 @@ class EventStackExchange extends React.PureComponent {
 }
 
 const Foobar = props => {
-  return (
-    <StackExchangeSites>
-      {({sites, menuList, onSelect, currentSite}) => {
-        return (
-          <div className="extra-data box">
-            <div className="box-header">
-              <a href="#stackexchange" className="permalink">
-                <em className="icon-anchor" />
-              </a>
-              <GuideAnchor target="stackexchange" type="text" />
-              <h3>
-                <DropdownAutoComplete
-                  items={menuList}
-                  alignMenu="left"
-                  onSelect={onSelect}
-                >
-                  {({isOpen, selectedItem}) => {
-                    return selectedItem ? (
-                      selectedItem.label
-                    ) : (
-                      <span>
-                        <img height="20" width="20" src={currentSite.icon} />{' '}
-                        {String(currentSite.name)}
-                      </span>
-                    );
-                  }}
-                </DropdownAutoComplete>
-              </h3>
+  const {api, organization, project, event} = props;
 
-              <EventStackExchange
-                key={currentSite.api_site_parameter}
-                sites={sites}
-                menuList={menuList}
-                onSelect={onSelect}
-                currentSite={currentSite}
-                {...props}
-              />
-            </div>
-          </div>
+  return (
+    <GenerateQuery {...{api, organization, project, event}}>
+      {({query}) => {
+        return (
+          <StackExchangeSites>
+            {({sites, menuList, onSelect, currentSite}) => {
+              return (
+                <div className="extra-data box">
+                  <div className="box-header">
+                    <a href="#stackexchange" className="permalink">
+                      <em className="icon-anchor" />
+                    </a>
+                    <GuideAnchor target="stackexchange" type="text" />
+                    <h3>
+                      <DropdownAutoComplete
+                        items={menuList}
+                        alignMenu="left"
+                        onSelect={onSelect}
+                      >
+                        {({isOpen, selectedItem}) => {
+                          return selectedItem ? (
+                            selectedItem.label
+                          ) : (
+                            <span>
+                              <img height="20" width="20" src={currentSite.icon} />{' '}
+                              {String(currentSite.name)}
+                            </span>
+                          );
+                        }}
+                      </DropdownAutoComplete>
+                    </h3>
+
+                    <EventStackExchange
+                      key={currentSite.api_site_parameter}
+                      sites={sites}
+                      menuList={menuList}
+                      onSelect={onSelect}
+                      currentSite={currentSite}
+                      {...props}
+                    />
+                  </div>
+                </div>
+              );
+            }}
+          </StackExchangeSites>
         );
       }}
-    </StackExchangeSites>
+    </GenerateQuery>
   );
 };
 
