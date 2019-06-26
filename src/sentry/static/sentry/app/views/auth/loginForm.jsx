@@ -19,10 +19,10 @@ class AuthLoginForm extends React.Component {
     errors: {},
   };
 
-  handleLoginSubmit = async (data, onSuccess, onError) => {
+  handleSubmit = async (data, onSuccess, onError) => {
     const {api} = this.props;
     try {
-      const response = await api.requestPromise('/auth/login', {
+      const response = await api.requestPromise('/auth/login/', {
         method: 'POST',
         data,
       });
@@ -56,7 +56,7 @@ class AuthLoginForm extends React.Component {
           <div className="auth-form-column">
             <Form
               submitLabel={t('Continue')}
-              onSubmit={this.handleLoginSubmit}
+              onSubmit={this.handleSubmit}
               footerClass="auth-footer"
               errorMessage={errorMessage}
               extraButton={
@@ -65,7 +65,6 @@ class AuthLoginForm extends React.Component {
                 </a>
               }
             >
-              <input type="hidden" name="op" value="login" />
               <TextField
                 name="username"
                 placeholder={t('username or email')}

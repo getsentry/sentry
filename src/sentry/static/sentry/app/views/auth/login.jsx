@@ -5,6 +5,7 @@ import {t} from 'app/locale';
 import withApi from 'app/utils/withApi';
 
 import AuthLoginForm from './loginForm';
+import AuthSsoForm from './ssoForm';
 
 class AuthLogin extends React.Component {
   static propTypes = {
@@ -33,6 +34,7 @@ class AuthLogin extends React.Component {
     try {
       const response = await api.requestPromise('/auth/login');
       this.setState({
+        serverHostname: response.serverHostname,
         githubLoginLink: response.github_login_link,
         vstsLoginLink: response.vsts_login_link,
         canRegister: response.canRegister,
@@ -41,36 +43,6 @@ class AuthLogin extends React.Component {
     } catch (e) {
       // Swallow as this isn't critical stuff.
     }
-  }
-
-  renderSso() {
-    return null;
-    /*
-    return (
-    <div class="tab-pane{% if op == "sso" %} active{% endif %}" id="sso">
-      <div class="auth-container">
-        <div class="auth-form-column">
-          <form class="form-stacked" method="post">
-            {% csrf_token %}
-
-            <input type="hidden" name="op" value="sso" />
-
-            <div class="control-group required">
-              <div class="controls">
-                <label class="control-label">{% trans "Organization ID" %}</label>
-                <input type="text" class="form-control" name="organization" placeholder="acme" required>
-                <p class="help-block">Your ID is the slug after the hostname. e.g. <code>{{ server_hostname }}/<strong>acme</strong>/</code> is <code>acme</code>.</p>
-              </div>
-            </div>
-            <div class="auth-footer m-t-1">
-              <button class="btn btn-primary">{% trans "Continue" %}</button>
-            </div>
-          </form>
-        </div>
-      </div>
-    </div>
-    );
-    */
   }
 
   renderRegister() {
@@ -126,7 +98,13 @@ class AuthLogin extends React.Component {
   }
 
   render() {
-    const {activeTab, canRegister, githubLoginLink, vstsLoginLink} = this.state;
+    const {
+      activeTab,
+      serverHostname,
+      canRegister,
+      githubLoginLink,
+      vstsLoginLink,
+    } = this.state;
     const {api} = this.props;
     return (
       <React.Fragment>
@@ -139,13 +117,13 @@ class AuthLogin extends React.Component {
               </a>
             </li>
             {canRegister && (
-              <li className={activeTab == 'register' ? 'active' : ''}>
+              <li className={activeTab === 'register' ? 'active' : ''}>
                 <a href="#register" onClick={e => this.handleSetTab('register', e)}>
                   {t('Register')}
                 </a>
               </li>
             )}
-            <li className={activeTab == 'sso' ? 'active' : ''}>
+            <li className={activeTab === 'sso' ? 'active' : ''}>
               <a href="#sso" onClick={e => this.handleSetTab('sso', e)}>
                 {t('Single Sign-On')}
               </a>
@@ -160,7 +138,7 @@ class AuthLogin extends React.Component {
               vstsLoginLink={vstsLoginLink}
             />
           )}
-          {activeTab === 'sso' && this.renderSso()}
+          {activeTab === 'sso' && <AuthSsoForm api={api} hostname={serverHostname} />}
           {activeTab === 'register' && this.renderRegister()}
         </div>
       </React.Fragment>
