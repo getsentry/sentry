@@ -39,32 +39,32 @@ export default class AdminLayout extends React.Component {
                 <div className="col-md-2">
                   <h6 className="nav-header">System</h6>
                   <ul className="nav nav-stacked">
-                    <ListLink index={true} to="/manage/">
+                    <ListLink index to="/manage/">
                       Overview
                     </ListLink>
-                    <ListLink index={true} to="/manage/buffer/">
+                    <ListLink index to="/manage/buffer/">
                       Buffer
                     </ListLink>
-                    <ListLink index={true} to="/manage/queue/">
+                    <ListLink index to="/manage/queue/">
                       Queue
                     </ListLink>
-                    <ListLink index={true} to="/manage/quotas/">
+                    <ListLink index to="/manage/quotas/">
                       Quotas
                     </ListLink>
-                    <ListLink index={true} to="/manage/status/environment/">
+                    <ListLink index to="/manage/status/environment/">
                       Environment
                     </ListLink>
-                    <ListLink index={true} to="/manage/status/packages/">
+                    <ListLink index to="/manage/status/packages/">
                       Packages
                     </ListLink>
-                    <ListLink index={true} to="/manage/status/mail/">
+                    <ListLink index to="/manage/status/mail/">
                       Mail
                     </ListLink>
-                    <ListLink index={true} to="/manage/settings/">
-                      Settings
-                    </ListLink>
-                    <ListLink index={true} to="/manage/status/warnings/">
+                    <ListLink index to="/manage/status/warnings/">
                       Warnings
+                    </ListLink>
+                    <ListLink index to="/manage/settings/">
+                      Settings
                     </ListLink>
                   </ul>
 
