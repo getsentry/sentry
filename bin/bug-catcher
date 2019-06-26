@@ -267,7 +267,7 @@ class Crawler {
   }
 
   async queue(url, options = {}) {
-    this._visited.add(url);
+    this._visited.add(url.split('?')[0]);
     this._queue.push(url, options, 0);
   }
 
@@ -295,6 +295,7 @@ class Crawler {
 
     try {
       await page.goto(url, {...PAGE_OPTIONS});
+
       await this._discoverLinks(page);
 
       const formData = this._formConfigs[url];
@@ -313,6 +314,9 @@ class Crawler {
         await page.waitForNavigation({...PAGE_OPTIONS});
         await this._discoverLinks(page);
       }
+
+      // ideally at this point we'd invalidate visisted links *if* cookies
+      // have changed
 
       if (this.screenshots) {
         let fileName = new URL(url).pathname.replace(/(\.|\/|:|%|#)/g, '_');
