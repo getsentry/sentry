@@ -1,20 +1,20 @@
-import * as Sentry from '@sentry/browser';
-
 import {browserHistory} from 'react-router';
 import React from 'react';
+import * as Sentry from '@sentry/browser';
 
-import {resendMemberInvite, updateMember} from 'app/actionCreators/members';
+import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
+import {removeAuthenticator} from 'app/actionCreators/account';
+import {resendMemberInvite, updateMember} from 'app/actionCreators/members';
 import {t, tct} from 'app/locale';
 import AsyncView from 'app/views/asyncView';
+import AutoSelectText from 'app/components/autoSelectText';
 import Button from 'app/components/button';
 import Confirm from 'app/components/confirm';
 import DateTime from 'app/components/dateTime';
 import Field from 'app/views/settings/components/forms/field';
 import IndicatorStore from 'app/stores/indicatorStore';
 import NotFound from 'app/components/errors/notFound';
-import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
-import {removeAuthenticator} from 'app/actionCreators/account';
 import SentryTypes from 'app/sentryTypes';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import TeamSelect from 'app/views/settings/components/teamSelect';
@@ -23,12 +23,12 @@ import recreateRoute from 'app/utils/recreateRoute';
 
 import RoleSelect from './inviteMember/roleSelect';
 
+const MULTIPLE_ORGS = t('Cannot be reset since user is in more than one organization');
 const NOT_ENROLLED = t('Not enrolled in two-factor authentication');
 const NO_PERMISSION = t('You do not have permission to perform this action');
 const TWO_FACTOR_REQUIRED = t(
   'Cannot be reset since two-factor is required for this organization'
 );
-const MULTIPLE_ORGS = t('Cannot be reset since user is in more than one organization');
 
 class OrganizationMemberDetail extends AsyncView {
   static contextTypes = {
@@ -263,14 +263,11 @@ class OrganizationMemberDetail extends AsyncView {
                 <div className="form-actions">
                   <div className="control-group">
                     <label>{t('Invite Link')}</label>
-                    <div className="controls">
-                      <code
-                        className="auto-select form-control"
-                        style={{overflow: 'auto'}}
-                      >
+                    <AutoSelectText className="controls">
+                      <code className="form-control" style={{overflow: 'auto'}}>
                         {inviteLink}
                       </code>
-                    </div>
+                    </AutoSelectText>
                     <p className="help-block">
                       This unique invite link may only be used by this member.
                     </p>
