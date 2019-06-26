@@ -323,7 +323,7 @@ class Crawler {
       const requestUrl = request._url.split('?')[0].split('#')[0];
       if (
         BLOCKED_RESOURCE_TYPES.indexOf(request.resourceType()) !== -1 ||
-        SKIPPED_RESOURCES.some(resource => requestUrl.indexOf(resource) !== -1)
+        SKIPPED_RESOURCES.some(r => requestUrl.indexOf(r) !== -1)
       ) {
         request.abort();
       } else if (!this._isDomainAllowed(new URL(requestUrl).host)) {
@@ -358,7 +358,11 @@ class Crawler {
       if (!link) return;
       link = link.split('#')[0];
       const linkDomain = new URL(link).host;
-      if (this._isDomainAllowed(linkDomain) && !this._visited.has(link)) {
+      if (
+        this._isDomainAllowed(linkDomain) &&
+        !this._visited.has(link) &&
+        SKIPPED_RESOURCES.some(r => link.indexOf(r) !== -1)
+      ) {
         this.queue(link);
       }
     });
