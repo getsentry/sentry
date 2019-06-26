@@ -9,7 +9,7 @@ from sentry.api.bases.project import ProjectEndpoint
 from sentry.models import Event, SnubaEvent
 
 
-STACK_EXCHANGE_SEARCH_API = 'api.stackexchange.com/2.2/search/advanced'
+# STACK_EXCHANGE_SEARCH_API = 'api.stackexchange.com/2.2/search/advanced'
 
 
 class StackExchangeEndpoint(ProjectEndpoint):

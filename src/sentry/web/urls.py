@@ -619,6 +619,8 @@ urlpatterns += patterns(
         name='sentry-project-event-redirect'
     ),
 
+    url(r'^blank/$', lambda r: HttpResponse(status=200)),
+
     # Legacy
     url(r'/$', react_page_view),
 )

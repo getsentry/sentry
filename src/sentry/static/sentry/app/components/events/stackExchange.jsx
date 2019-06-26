@@ -191,9 +191,9 @@ class StackExchangeSites extends React.Component {
       return null;
     }
 
-    if (!!this.state.error) {
-      return null;
-    }
+    // if (!!this.state.error) {
+    //   return null;
+    // }
 
     const childProps = {
       sites: this.state.sites,
@@ -407,9 +407,9 @@ class StackExchangeResults extends React.PureComponent {
   };
 
   render() {
-    if (!!this.state.error) {
-      return null;
-    }
+    // if (!!this.state.error) {
+    //   return null;
+    // }
 
     return (
       <React.Fragment>
@@ -426,60 +426,156 @@ class StackExchangeResults extends React.PureComponent {
   }
 }
 
-const StackExchange = props => {
-  const {api, organization, project, event} = props;
+class Settings extends React.Component {
+  handleAuthenticate = event => {
+    event.preventDefault();
 
-  return (
-    <GenerateQuery {...{api, organization, project, event}}>
-      {({query}) => {
-        return (
-          <StackExchangeSites>
-            {({sites, menuList, onSelect, currentSite}) => {
-              return (
-                <div className="extra-data box">
-                  <div className="box-header">
-                    <a href="#stackexchange" className="permalink">
-                      <em className="icon-anchor" />
-                    </a>
-                    <GuideAnchor target="stackexchange" type="text" />
-                    <h3>
-                      <DropdownAutoComplete
-                        items={menuList}
-                        alignMenu="left"
+    console.log('handleAuthenticate');
+
+    // eslint-disable-next-line no-undef
+    SE.authenticate({
+      success: data => {
+        console.log('auth::success', data);
+      },
+      error: data => {
+        console.log('auth::error', data);
+      },
+      scope: ['no_expiry'],
+      networkUsers: true,
+    });
+  };
+
+  render() {
+    return (
+      <Panel>
+        <Sticky>
+          <StyledFlex py={1}>
+            <Box w={[8 / 12, 8 / 12, 6 / 12]} mx={1} flex="1">
+              <ToolbarHeader>{t('Settings')}</ToolbarHeader>
+            </Box>
+          </StyledFlex>
+        </Sticky>
+        <EmptyMessage>
+          <a href="#authenticate" onClick={this.handleAuthenticate}>
+            Authenticate
+          </a>
+        </EmptyMessage>
+      </Panel>
+    );
+  }
+}
+
+class StackExchange extends React.Component {
+  state = {
+    view: 'results',
+    ready: false,
+  };
+
+  setView = nextView => {
+    this.setState({
+      view: nextView,
+    });
+  };
+
+  componentDidMount() {
+    // eslint-disable-next-line no-undef
+    SE.init({
+      clientId: 15653,
+      key: '6065CS6mUaSWL)Vv)Spfgg((',
+      channelUrl: 'http://dev.getsentry.net:8000/blank/',
+      complete: data => {
+        console.log('SE.init', data);
+        this.setState({
+          ready: true,
+        });
+      },
+    });
+  }
+
+  render() {
+    if (!this.state.ready) {
+      return null;
+    }
+
+    const {api, organization, project, event} = this.props;
+
+    return (
+      <GenerateQuery {...{api, organization, project, event}}>
+        {({query}) => {
+          return (
+            <StackExchangeSites>
+              {({sites, menuList, onSelect, currentSite}) => {
+                return (
+                  <div className="extra-data box">
+                    <div className="box-header" id="stackexchange">
+                      <a href="#stackexchange" className="permalink">
+                        <em className="icon-anchor" />
+                      </a>
+                      <GuideAnchor target="stackexchange" type="text" />
+                      <h3>
+                        <DropdownAutoComplete
+                          items={menuList}
+                          alignMenu="left"
+                          onSelect={onSelect}
+                        >
+                          {({isOpen, selectedItem}) => {
+                            return selectedItem ? (
+                              selectedItem.label
+                            ) : (
+                              <span>
+                                <img height="20" width="20" src={currentSite.icon} />{' '}
+                                {String(currentSite.name)}
+                              </span>
+                            );
+                          }}
+                        </DropdownAutoComplete>
+                      </h3>
+                      <div className="btn-group" style={{marginLeft: 10}}>
+                        <a
+                          className={
+                            (this.state.view === 'results' ? 'active' : '') +
+                            ' btn btn-default btn-sm'
+                          }
+                          onClick={() => this.setView('results')}
+                        >
+                          {t('Results')}
+                        </a>
+                        <a
+                          className={
+                            (this.state.view === 'settings' ? 'active' : '') +
+                            ' btn btn-default btn-sm'
+                          }
+                          onClick={() => this.setView('settings')}
+                        >
+                          {t('Settings')}
+                        </a>
+                      </div>
+                    </div>
+
+                    <Display visible={this.state.view === 'settings'}>
+                      <Settings />
+                    </Display>
+                    <Display visible={this.state.view === 'results'}>
+                      <StackExchangeResults
+                        key={currentSite.api_site_parameter}
+                        sites={sites}
+                        menuList={menuList}
                         onSelect={onSelect}
-                      >
-                        {({isOpen, selectedItem}) => {
-                          return selectedItem ? (
-                            selectedItem.label
-                          ) : (
-                            <span>
-                              <img height="20" width="20" src={currentSite.icon} />{' '}
-                              {String(currentSite.name)}
-                            </span>
-                          );
-                        }}
-                      </DropdownAutoComplete>
-                    </h3>
-
-                    <StackExchangeResults
-                      key={currentSite.api_site_parameter}
-                      sites={sites}
-                      menuList={menuList}
-                      onSelect={onSelect}
-                      currentSite={currentSite}
-                      query={query}
-                      {...props}
-                    />
+                        currentSite={currentSite}
+                        query={query}
+                        {...this.props}
+                      />
+                    </Display>
                   </div>
-                </div>
-              );
-            }}
-          </StackExchangeSites>
-        );
-      }}
-    </GenerateQuery>
-  );
-};
+                );
+              }}
+            </StackExchangeSites>
+          );
+        }}
+      </GenerateQuery>
+    );
+  }
+}
 
 StackExchange.propTypes = {
   api: PropTypes.object.isRequired,
@@ -537,6 +633,12 @@ const QuestionWrapper = styled('div')`
   > * + * {
     margin-left: ${space(1)};
   }
+`;
+
+const Display = styled('div')`
+  ${props => {
+    return `display: ${props.visible ? 'block' : 'none'};`;
+  }};
 `;
 
 export default withApi(StackExchange);
