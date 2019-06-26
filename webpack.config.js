@@ -2,9 +2,10 @@
 /*eslint import/no-nodejs-modules:0 */
 const path = require('path');
 const fs = require('fs');
-const https = require('https');
 const webpack = require('webpack');
 const babelConfig = require('./babel.config');
+const OptionalLocaleChunkPlugin = require('./build-utils/optional-locale-chunk-plugin');
+const IntegrationDocsResolver = require('./build-utils/integration-docs-resolver');
 const ExtractTextPlugin = require('mini-css-extract-plugin');
 const CompressionPlugin = require('compression-webpack-plugin');
 const OptimizeCssAssetsPlugin = require('optimize-css-assets-webpack-plugin');
@@ -13,10 +14,10 @@ const FixStyleOnlyEntriesPlugin = require('webpack-fix-style-only-entries');
 
 const {env} = process;
 
-const PLATFORMS_URL = 'https://docs.sentry.io/_platforms/_index.json';
-const IS_PRODUCTION = env.NODE_ENV === 'production';
 const IS_TEST = env.NODE_ENV === 'test' || env.TEST_SUITE;
 const IS_STORYBOOK = env.STORYBOOK_BUILD === '1';
+const IS_PRODUCTION = env.NODE_ENV === 'production';
+
 const WEBPACK_MODE = IS_PRODUCTION ? 'production' : 'development';
 
 // HMR proxying
@@ -141,104 +142,6 @@ const localeRestrictionPlugins = [
 ];
 
 /**
- * When our locales are codesplit into cache groups, webpack expects that all
- * chunks *must* be loaded before the main entrypoint can be executed. However,
- * since we will only be using one locale at a time we do not want to load all
- * locale chunks, just the one the user has enabled.
- *
- * This plugin removes the locale chunks from the app entrypoint's immediate
- * chunk dependants list, ensuring the the compiled entrypoint will execute
- * *without* all locale chunks loaded.
- */
-const pluginName = 'OptionalLocaleChunkPlugin';
-
-const clearLocaleChunks = chunks =>
-  chunks
-    .filter(chunk => chunk.name !== 'app')
-    .forEach(chunk => {
-      const mainGroup = Array.from(chunk.groupsIterable)[0];
-      mainGroup.chunks = mainGroup.chunks.filter(
-        c => c.name && !c.name.startsWith('locale')
-      );
-    });
-
-class OptionalLocaleChunkPlugin {
-  apply(compiler) {
-    compiler.hooks.compilation.tap(pluginName, compilation =>
-      compilation.hooks.afterOptimizeChunks.tap(pluginName, clearLocaleChunks)
-    );
-  }
-}
-
-const alphaSortFromKey = function(keyExtractor) {
-  return function(a, b) {
-    const nameA = keyExtractor(a);
-    const nameB = keyExtractor(b);
-    if (nameA < nameB) {
-      return -1;
-    }
-    if (nameA > nameB) {
-      return 1;
-    }
-
-    // names must be equal
-    return 0;
-  };
-};
-
-const transformPlatformsToList = ({platforms}) =>
-  Object.keys(platforms)
-    .map(platformId => {
-      const integrationMap = platforms[platformId];
-      const integrations = Object.keys(integrationMap)
-        .sort(alphaSortFromKey(key => integrationMap[key].name))
-        .map(integrationId => {
-          const {name, type, doc_link: link} = integrationMap[integrationId];
-          const id =
-            integrationId === '_self' ? platformId : `${platformId}-${integrationId}`;
-          return {
-            id,
-            name,
-            type,
-            link,
-          };
-        });
-      return {
-        id: platformId,
-        name: integrationMap._self.name,
-        integrations,
-      };
-    })
-    .sort(alphaSortFromKey(item => item.name));
-
-const fetchIntegrationDocsPlatforms =
-  IS_TEST || IS_STORYBOOK
-    ? callback =>
-        fs.readFile(
-          path.join(__dirname, 'tests/fixtures/integration-docs/_platforms.json'),
-          callback
-        )
-    : callback =>
-        https
-          .get(PLATFORMS_URL, res => {
-            res.setEncoding('utf8');
-            let buffer = '';
-            res
-              .on('data', data => {
-                buffer += data;
-              })
-              .on('end', () =>
-                callback(
-                  null,
-                  JSON.stringify({
-                    platforms: transformPlatformsToList(JSON.parse(buffer)),
-                  })
-                )
-              );
-          })
-          .on('error', callback);
-
-/**
  * Explicit codesplitting cache groups
  */
 const cacheGroups = {
@@ -346,6 +249,12 @@ const appConfig = {
     ...localeRestrictionPlugins,
   ],
   resolve: {
+    plugins: [
+      new IntegrationDocsResolver({
+        baseDir: __dirname,
+        local: IS_TEST || IS_STORYBOOK,
+      }),
+    ],
     alias: {
       app: path.join(staticPrefix, 'app'),
       'app-test': path.join(__dirname, 'tests', 'js'),
@@ -366,13 +275,6 @@ const appConfig = {
       maxAsyncRequests: 7,
       cacheGroups,
     },
-  },
-  externals: function(context, request, callback) {
-    if (request === 'integration-docs-platforms') {
-      fetchIntegrationDocsPlatforms(callback);
-    } else {
-      callback();
-    }
   },
   devtool: IS_PRODUCTION ? 'source-map' : 'cheap-module-eval-source-map',
 };
