@@ -5,6 +5,7 @@ import {t} from 'app/locale';
 import {Client} from 'app/api';
 import SentryTypes from 'app/sentryTypes';
 import Button from 'app/components/button';
+import Count from 'app/components/count';
 
 export default class BuildHeader extends Component {
   static propTypes = {
@@ -43,9 +44,9 @@ export default class BuildHeader extends Component {
             <h3>{t('Build Details')}</h3>
             <div className="release-meta">{build.name}</div>
           </div>
-          <div className="col-md-1 col-sm-2">
+          <div className="count col-md-1 col-sm-2 align-right">
             <h6 className="nav-header">{t('Errors')}</h6>
-            <div className="release-meta">{build.totalEvents.toLocaleString()}</div>
+            <Count className="count" value={build.totalEvents} />
           </div>
           <div className="col-sm-2">
             <h6 className="nav-header">{t('Action')}</h6>
