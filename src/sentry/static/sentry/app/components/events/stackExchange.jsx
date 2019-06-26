@@ -12,19 +12,142 @@ import {t} from 'app/locale';
 import SentryTypes from 'app/sentryTypes';
 import withApi from 'app/utils/withApi';
 import space from 'app/styles/space';
+import GuideAnchor from 'app/components/assistant/guideAnchor';
+import DropdownAutoComplete from 'app/components/dropdownAutoComplete';
+import EmptyMessage from 'app/views/settings/components/emptyMessage';
 
-class EventStackExchange extends React.Component {
+class StackExchangeSites extends React.Component {
+  state = {
+    sites: [],
+    loading: true,
+    error: null,
+    currentSite: {
+      name: 'Stack Overflow',
+      api_site_parameter: 'stackoverflow',
+      icon: 'https://cdn.sstatic.net/Sites/stackoverflow/img/apple-touch-icon.png',
+      site_url: 'https://stackoverflow.com',
+    },
+  };
+
+  // eslint-disable-next-line react/sort-comp
+  _isMounted = false;
+
+  componentDidMount() {
+    this._isMounted = true;
+
+    this.fetchData();
+  }
+
+  componentWillUnmount() {
+    this._isMounted = false;
+  }
+
+  fetchData = () => {
+    const request = {
+      url: 'https://api.stackexchange.com/2.2/sites',
+      method: 'GET',
+    };
+
+    // We can't use the API client here since the URL is not scoped under the
+    // API endpoints (which the client prefixes)
+    $.ajax(request)
+      .then(results => {
+        if (!this._isMounted) {
+          return;
+        }
+
+        this.setState({
+          sites: results.items,
+          loading: false,
+          error: null,
+        });
+      })
+      .fail(err => {
+        if (!this._isMounted) {
+          return;
+        }
+
+        this.setState({
+          sites: [],
+          loading: false,
+          error: err,
+        });
+      });
+  };
+
+  onSelect = ({value}) => {
+    const site = value;
+    this.setState({
+      currentSite: {
+        name: site.name,
+        api_site_parameter: site.api_site_parameter,
+        icon: site.icon_url,
+        site_url: site.site_url,
+      },
+    });
+  };
+
+  generateMenuList = () => {
+    return this.state.sites.map(site => {
+      return {
+        value: site,
+        label: (
+          <span>
+            <img height="20" width="20" src={site.icon_url} /> {String(site.name)}
+          </span>
+        ),
+      };
+    });
+  };
+
+  render() {
+    if (this.state.loading) {
+      return null;
+    }
+
+    if (!!this.state.error) {
+      return null;
+    }
+
+    const childProps = {
+      sites: this.state.sites,
+      menuList: this.generateMenuList(),
+      onSelect: this.onSelect,
+      currentSite: this.state.currentSite,
+    };
+
+    return this.props.children(childProps);
+  }
+}
+class EventStackExchange extends React.PureComponent {
   static propTypes = {
     api: PropTypes.object.isRequired,
     organization: SentryTypes.Organization.isRequired,
     project: SentryTypes.Project.isRequired,
     event: SentryTypes.Event.isRequired,
+
+    menuList: PropTypes.arrayOf(
+      PropTypes.shape({
+        value: PropTypes.object.isRequired,
+        label: PropTypes.object.isRequired,
+      }).isRequired
+    ).isRequired,
+
+    currentSite: PropTypes.shape({
+      name: PropTypes.string.isRequired,
+      api_site_parameter: PropTypes.string.isRequired,
+      icon: PropTypes.string.isRequired,
+      site_url: PropTypes.string.isRequired,
+    }).isRequired,
+
+    onSelect: PropTypes.func.isRequired,
   };
 
   state = {
     query: '',
     questions: [],
     loading: true,
+    error: null,
   };
 
   // eslint-disable-next-line react/sort-comp
@@ -59,7 +182,7 @@ class EventStackExchange extends React.Component {
             q: data.query,
             order: 'desc',
             sort: 'relevance',
-            site: 'stackoverflow',
+            site: this.props.currentSite.api_site_parameter,
             tagged: event.platform,
           };
 
@@ -74,17 +197,26 @@ class EventStackExchange extends React.Component {
           // API endpoints (which the client prefixes)
           $.ajax(request)
             .then(results => {
+              if (!this._isMounted) {
+                return;
+              }
+
               this.setState({
                 query: data.query,
                 questions: results.items,
                 loading: false,
+                error: null,
               });
             })
             .fail(err => {
+              if (!this._isMounted) {
+                return;
+              }
+
               this.setState({
                 query: '',
-                loading: false,
                 questions: [],
+                loading: false,
                 error: err,
               });
             });
@@ -96,10 +228,14 @@ class EventStackExchange extends React.Component {
           // });
         },
         error: err => {
+          if (!this._isMounted) {
+            return;
+          }
+
           this.setState({
             query: '',
-            loading: false,
             questions: [],
+            loading: false,
             error: err,
           });
         },
@@ -111,14 +247,6 @@ class EventStackExchange extends React.Component {
     return (
       <Sticky>
         <StyledFlex py={1}>
-          <Box w={16} mx={2} className="align-right">
-            <object
-              type="image/svg+xml"
-              width="20"
-              height="20"
-              data="https://cdn.sstatic.net/Sites/stackoverflow/company/img/logos/so/so-icon.svg?v=f13ebeedfa9e"
-            />
-          </Box>
           <Box w={[8 / 12, 8 / 12, 6 / 12]} mx={1} flex="1">
             <ToolbarHeader>{t('Question')}</ToolbarHeader>
           </Box>
@@ -145,7 +273,7 @@ class EventStackExchange extends React.Component {
     // if there is an accepted answer, we link to it, otherwise, we link to the
     // stackoverflow question
     const question_link = hasAcceptedAnswer
-      ? `https://stackoverflow.com/a/${question.accepted_answer_id}`
+      ? `${this.props.currentSite.site_url}/a/${question.accepted_answer_id}`
       : question.link;
 
     return (
@@ -166,7 +294,7 @@ class EventStackExchange extends React.Component {
               <a
                 className="btn btn-default btn-sm"
                 key={tag}
-                href={`https://stackoverflow.com/questions/tagged/${tag}`}
+                href={`${this.props.currentSite.site_url}/questions/tagged/${tag}`}
                 rel="noopener noreferrer"
                 target="_blank"
               >
@@ -191,13 +319,13 @@ class EventStackExchange extends React.Component {
     return (
       <a
         className="btn btn-default btn-sm"
-        href={`https://stackoverflow.com/questions/ask?tags=${platform}&title=${encodeURIComponent(
-          this.state.query
-        )}`}
+        href={`${
+          this.props.currentSite.site_url
+        }/questions/ask?tags=${platform}&title=${encodeURIComponent(this.state.query)}`}
         rel="noopener noreferrer"
         target="_blank"
       >
-        Don't see your issue? Ask on Stackoverflow!
+        {t(`Don't see your issue? Ask on ${this.props.currentSite.name}!`)}
       </a>
     );
   }
@@ -210,7 +338,7 @@ class EventStackExchange extends React.Component {
     return (
       <a
         className="btn btn-default btn-sm"
-        href={`https://stackoverflow.com/search?q=${encodeURIComponent(query)}`}
+        href={`${this.props.currentSite.site_url}/search?q=${encodeURIComponent(query)}`}
         rel="noopener noreferrer"
         target="_blank"
       >
@@ -219,24 +347,54 @@ class EventStackExchange extends React.Component {
     );
   }
 
+  renderBody = () => {
+    const top3 = this.state.questions.slice(0, 3);
+
+    if (top3.length <= 0) {
+      return <EmptyMessage>{t('No results')}</EmptyMessage>;
+    }
+
+    return <PanelBody>{top3.map(this.renderStackExchangeQuestion)}</PanelBody>;
+  };
+
   render() {
     if (this.state.loading) {
       return null;
     }
 
-    if (this.state.questions.length <= 0) {
+    if (!!this.state.error) {
       return null;
     }
-
-    const top3 = this.state.questions.slice(0, 3);
 
     return (
       <div className="extra-data box">
         <div className="box-header">
-          <h3>{t('Stackoverflow')}</h3>
+          <a href="#stackexchange" className="permalink">
+            <em className="icon-anchor" />
+          </a>
+          <GuideAnchor target="stackexchange" type="text" />
+          <h3>
+            <DropdownAutoComplete
+              items={this.props.menuList}
+              alignMenu="left"
+              onSelect={this.props.onSelect}
+            >
+              {({isOpen, selectedItem}) => {
+                return selectedItem ? (
+                  selectedItem.label
+                ) : (
+                  <span>
+                    <img height="20" width="20" src={this.props.currentSite.icon} />{' '}
+                    {String(this.props.currentSite.name)}
+                  </span>
+                );
+              }}
+            </DropdownAutoComplete>
+          </h3>
+
           <Panel>
             {this.renderHeaders()}
-            <PanelBody>{top3.map(this.renderStackExchangeQuestion)}</PanelBody>
+            {this.renderBody()}
           </Panel>
           <ButtonListControls>
             {this.renderAskOnStackOverflow()}
@@ -247,6 +405,25 @@ class EventStackExchange extends React.Component {
     );
   }
 }
+
+const Foobar = props => {
+  return (
+    <StackExchangeSites>
+      {({sites, menuList, onSelect, currentSite}) => {
+        return (
+          <EventStackExchange
+            key={currentSite.api_site_parameter}
+            sites={sites}
+            menuList={menuList}
+            onSelect={onSelect}
+            currentSite={currentSite}
+            {...props}
+          />
+        );
+      }}
+    </StackExchangeSites>
+  );
+};
 
 const Group = styled(PanelItem)`
   line-height: 1.1;
@@ -299,4 +476,4 @@ const QuestionWrapper = styled('div')`
   }
 `;
 
-export default withApi(EventStackExchange);
+export default withApi(Foobar);
