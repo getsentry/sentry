@@ -34,6 +34,10 @@ const transformPlatformsToList = ({platforms}) =>
 class IntegrationDocsFetchPlugin {
   constructor({basePath}) {
     this.modulePath = path.join(basePath, DOCS_INDEX_PATH);
+    const moduleDir = path.dirname(this.modulePath);
+    if (!fs.existsSync(moduleDir)) {
+      fs.mkdirSync(moduleDir, {recursive: true});
+    }
   }
 
   apply(compiler) {
