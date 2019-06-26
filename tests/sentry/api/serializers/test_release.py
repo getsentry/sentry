@@ -463,7 +463,7 @@ class ReleaseRefsSerializerTest(TestCase):
 
         assert not serializer.is_valid()
         assert serializer.errors == {
-            'refs': ['non_field_errors: No input provided'],
+            'refs': ['This field may not be null.'],
         }
 
         # test good refs

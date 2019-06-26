@@ -118,7 +118,7 @@ class OrganizationMonitorsEndpoint(OrganizationEndpoint):
         if not validator.is_valid():
             return self.respond(validator.errors, status=400)
 
-        result = validator.data
+        result = validator.validated_data
 
         monitor = Monitor.objects.create(
             project_id=result['project'].id,

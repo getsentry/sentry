@@ -7,11 +7,11 @@ from sentry.models import Project
 ValidationError = serializers.ValidationError
 
 
-class ProjectField(serializers.WritableField):
-    def to_native(self, obj):
-        return obj
+class ProjectField(serializers.Field):
+    def to_representation(self, value):
+        return value
 
-    def from_native(self, data):
+    def to_internal_value(self, data):
         try:
             project = Project.objects.get(
                 organization=self.context['organization'],

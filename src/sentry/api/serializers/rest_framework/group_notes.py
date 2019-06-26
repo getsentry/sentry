@@ -10,4 +10,4 @@ from sentry.api.serializers.rest_framework.mentions import MentionsMixin
 class NoteSerializer(serializers.Serializer, MentionsMixin):
     text = serializers.CharField()
     mentions = ListField(child=ActorField(), required=False)
-    external_id = serializers.CharField(allow_none=True, required=False)
+    external_id = serializers.CharField(allow_null=True, required=False)

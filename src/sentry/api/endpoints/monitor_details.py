@@ -51,7 +51,7 @@ class MonitorDetailsEndpoint(MonitorEndpoint):
         if not validator.is_valid():
             return self.respond(validator.errors, status=400)
 
-        result = validator.data
+        result = validator.save()
 
         params = {}
         if 'name' in result:

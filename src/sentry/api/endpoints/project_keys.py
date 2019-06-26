@@ -28,9 +28,9 @@ def create_key_scenario(runner):
 
 
 class KeySerializer(serializers.Serializer):
-    name = serializers.CharField(max_length=200, required=False)
-    public = serializers.RegexField(r'^[a-f0-9]{32}$', required=False)
-    secret = serializers.RegexField(r'^[a-f0-9]{32}$', required=False)
+    name = serializers.CharField(max_length=200, required=False, allow_blank=True, allow_null=True)
+    public = serializers.RegexField(r'^[a-f0-9]{32}$', required=False, allow_null=True)
+    secret = serializers.RegexField(r'^[a-f0-9]{32}$', required=False, allow_null=True)
 
 
 class ProjectKeysEndpoint(ProjectEndpoint):
@@ -90,7 +90,7 @@ class ProjectKeysEndpoint(ProjectEndpoint):
         serializer = KeySerializer(data=request.DATA)
 
         if serializer.is_valid():
-            result = serializer.object
+            result = serializer.validated_data
 
             key = ProjectKey.objects.create(
                 project=project,

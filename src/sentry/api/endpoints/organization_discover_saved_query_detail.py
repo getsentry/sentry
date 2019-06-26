@@ -46,7 +46,7 @@ class OrganizationDiscoverSavedQueryDetailEndpoint(OrganizationEndpoint):
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
 
-        data = serializer.object
+        data = serializer.validated_data
 
         model.update(
             organization=organization,

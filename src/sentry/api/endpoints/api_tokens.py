@@ -37,7 +37,7 @@ class ApiTokensEndpoint(Endpoint):
         serializer = ApiTokenSerializer(data=request.DATA)
 
         if serializer.is_valid():
-            result = serializer.object
+            result = serializer.validated_data
 
             token = ApiToken.objects.create(
                 user=request.user,

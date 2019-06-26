@@ -78,7 +78,7 @@ class OrganizationRecentSearchesEndpoint(OrganizationEndpoint):
         serializer = RecentSearchSerializer(data=request.DATA)
 
         if serializer.is_valid():
-            result = serializer.object
+            result = serializer.validated_data
 
             created = RecentSearch.objects.create_or_update(
                 organization=organization,

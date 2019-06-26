@@ -2,6 +2,8 @@ from __future__ import absolute_import
 import unittest
 from mock import patch
 from datetime import datetime
+
+import pytz
 from django.core.urlresolvers import reverse
 
 from sentry.constants import MAX_VERSION_LENGTH
@@ -679,7 +681,7 @@ class ReleaseDeleteTest(APITestCase):
             }
         )
         assert response.status_code == 400
-        assert response.data == {'commits': ['id: This field is required.']}
+        assert response.data == {'commits': {'id': ['This field is required.']}}
 
 
 class ReleaseSerializerTest(unittest.TestCase):
@@ -728,10 +730,10 @@ class ReleaseSerializerTest(unittest.TestCase):
         assert sorted(serializer.fields.keys()) == sorted(
             ['ref', 'url', 'dateReleased', 'commits', 'headCommits', 'refs'])
 
-        result = serializer.object
+        result = serializer.validated_data
         assert result['ref'] == self.ref
         assert result['url'] == self.url
-        assert result['dateReleased'] == datetime(1000, 10, 10, 6, 6)
+        assert result['dateReleased'] == datetime(1000, 10, 10, 6, 6, tzinfo=pytz.UTC)
         assert result['commits'] == self.commits
         assert result['headCommits'] == self.headCommits
         assert result['refs'] == self.refs

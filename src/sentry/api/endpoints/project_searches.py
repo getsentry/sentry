@@ -54,7 +54,7 @@ class ProjectSearchesEndpoint(ProjectEndpoint):
         serializer = SavedSearchSerializer(data=request.DATA)
 
         if serializer.is_valid():
-            result = serializer.object
+            result = serializer.validated_data
 
             with transaction.atomic():
                 try:

@@ -5,6 +5,7 @@ from rest_framework import serializers
 
 from sentry.api.authentication import DSNAuthentication
 from sentry.api.bases.monitor import MonitorEndpoint
+from sentry.api.fields.empty_integer import EmptyIntegerField
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.models import Monitor, MonitorCheckIn, MonitorStatus, CheckInStatus, ProjectKey
@@ -18,7 +19,7 @@ class CheckInSerializer(serializers.Serializer):
             ('in_progress', CheckInStatus.IN_PROGRESS),
         ),
     )
-    duration = serializers.IntegerField(required=False)
+    duration = EmptyIntegerField(required=False, allow_null=True)
 
 
 class MonitorCheckInsEndpoint(MonitorEndpoint):
@@ -69,7 +70,7 @@ class MonitorCheckInsEndpoint(MonitorEndpoint):
         if not serializer.is_valid():
             return self.respond(serializer.errors, status=400)
 
-        result = serializer.object
+        result = serializer.validated_data
 
         with transaction.atomic():
             checkin = MonitorCheckIn.objects.create(

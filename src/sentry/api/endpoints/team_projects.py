@@ -33,8 +33,8 @@ def create_project_scenario(runner):
 
 class ProjectSerializer(serializers.Serializer):
     name = serializers.CharField(max_length=64, required=True)
-    slug = serializers.RegexField(r'^[a-z0-9_\-]+$', max_length=50, required=False)
-    platform = serializers.CharField(required=False)
+    slug = serializers.RegexField(r'^[a-z0-9_\-]+$', max_length=50, required=False, allow_null=True)
+    platform = serializers.CharField(required=False, allow_blank=True, allow_null=True)
 
 
 # While currently the UI suggests teams are a parent of a project, in reality
@@ -131,7 +131,7 @@ class TeamProjectsEndpoint(TeamEndpoint, EnvironmentMixin):
         serializer = ProjectSerializer(data=request.DATA)
 
         if serializer.is_valid():
-            result = serializer.object
+            result = serializer.validated_data
 
             try:
                 with transaction.atomic():

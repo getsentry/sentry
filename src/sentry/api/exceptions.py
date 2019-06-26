@@ -15,6 +15,10 @@ class SentryAPIException(APIException):
     message = ''
 
     def __init__(self, code=None, message=None, detail=None, **kwargs):
+        # Note that we no longer call the base `__init__` here. This is because
+        # DRF now forces all detail messages that subclass `APIException` to a
+        # string, which breaks our format.
+        # https://www.django-rest-framework.org/community/3.0-announcement/#miscellaneous-notes
         if detail is None:
             detail = {
                 'code': code or self.code,
@@ -22,7 +26,7 @@ class SentryAPIException(APIException):
                 'extra': kwargs,
             }
 
-        super(SentryAPIException, self).__init__(detail=detail)
+        self.detail = {'detail': detail}
 
 
 class ProjectMoved(SentryAPIException):
@@ -64,7 +68,7 @@ class SudoRequired(SentryAPIException):
         super(SudoRequired, self).__init__(username=user.username)
 
 
-class TwoFactorRequired(APIException):
+class TwoFactorRequired(SentryAPIException):
     status_code = status.HTTP_401_UNAUTHORIZED
     code = '2fa-required'
     message = 'Organization requires two-factor authentication to be enabled'

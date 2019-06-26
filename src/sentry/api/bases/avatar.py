@@ -59,7 +59,7 @@ class AvatarMixin(object):
         if not serializer.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-        result = serializer.object
+        result = serializer.validated_data
 
         self.model.save_avatar(
             relation={self.object_type: obj},

@@ -33,7 +33,7 @@ class TestListField(TestCase):
 
         serializer = DummySerializer(data=data)
         assert serializer.is_valid()
-        assert serializer.object == {
+        assert serializer.validated_data == {
             'a_field': [{
                 'b_field': 'abcdefg',
                 'd_field': 'gfedcba',
@@ -47,9 +47,7 @@ class TestListField(TestCase):
 
         serializer = DummySerializer(data=data)
         assert not serializer.is_valid()
-        assert serializer.errors == {
-            'a_field': ['non_field_errors: No input provided'],
-        }
+        assert serializer.errors == {'a_field': ['This field may not be null.']}
 
     def test_child_validates(self):
         data = {
@@ -60,7 +58,7 @@ class TestListField(TestCase):
 
         serializer = DummySerializer(data=data)
         assert not serializer.is_valid()
-        assert serializer.errors == {'a_field': [u'd_field: This field is required.']}
+        assert serializer.errors == {'a_field': {'d_field': ['This field is required.']}}
 
 
 class TestActorField(TestCase):
@@ -72,8 +70,8 @@ class TestActorField(TestCase):
         serializer = DummySerializer(data=data)
         assert serializer.is_valid()
 
-        assert serializer.object['actor_field'].type == User
-        assert serializer.object['actor_field'].id == 1
+        assert serializer.validated_data['actor_field'].type == User
+        assert serializer.validated_data['actor_field'].id == 1
 
     def test_legacy_user_fallback(self):
         data = {
@@ -83,8 +81,8 @@ class TestActorField(TestCase):
         serializer = DummySerializer(data=data)
         assert serializer.is_valid()
 
-        assert serializer.object['actor_field'].type == User
-        assert serializer.object['actor_field'].id == 1
+        assert serializer.validated_data['actor_field'].type == User
+        assert serializer.validated_data['actor_field'].id == 1
 
     def test_team(self):
         data = {
@@ -93,8 +91,8 @@ class TestActorField(TestCase):
 
         serializer = DummySerializer(data=data)
         assert serializer.is_valid()
-        assert serializer.object['actor_field'].type == Team
-        assert serializer.object['actor_field'].id == 1
+        assert serializer.validated_data['actor_field'].type == Team
+        assert serializer.validated_data['actor_field'].id == 1
 
     def test_validates(self):
         data = {

@@ -15,20 +15,21 @@ from sentry.ownership.grammar import parse_rules, dump_schema, ParseError
 
 
 class ProjectOwnershipSerializer(serializers.Serializer):
-    raw = serializers.CharField()
+    raw = serializers.CharField(allow_blank=True)
     fallthrough = serializers.BooleanField()
     autoAssignment = serializers.BooleanField()
 
-    def validate_raw(self, attrs, source):
-        if not attrs[source].strip():
+    def validate(self, attrs):
+        if not attrs.get('raw', '').strip():
             return attrs
         try:
-            rules = parse_rules(attrs[source])
+            rules = parse_rules(attrs['raw'])
         except ParseError as e:
             raise serializers.ValidationError(
-                u'Parse error: %r (line %d, column %d)' % (
+                {'raw': u'Parse error: %r (line %d, column %d)' % (
                     e.expr.name, e.line(), e.column()
-                ))
+                )}
+            )
 
         schema = dump_schema(rules)
 
@@ -45,7 +46,7 @@ class ProjectOwnershipSerializer(serializers.Serializer):
 
         if bad_actors:
             raise serializers.ValidationError(
-                u'Invalid rule owners: {}'.format(", ".join(bad_actors))
+                {'raw': u'Invalid rule owners: {}'.format(", ".join(bad_actors))}
             )
 
         attrs['schema'] = schema
@@ -55,18 +56,18 @@ class ProjectOwnershipSerializer(serializers.Serializer):
         ownership = self.context['ownership']
 
         changed = False
-        if 'raw' in self.object:
-            raw = self.object['raw']
+        if 'raw' in self.validated_data:
+            raw = self.validated_data['raw']
             if not raw.strip():
                 raw = None
 
             if ownership.raw != raw:
                 ownership.raw = raw
-                ownership.schema = self.object.get('schema')
+                ownership.schema = self.validated_data.get('schema')
                 changed = True
 
-        if 'fallthrough' in self.object:
-            fallthrough = self.object['fallthrough']
+        if 'fallthrough' in self.validated_data:
+            fallthrough = self.validated_data['fallthrough']
             if ownership.fallthrough != fallthrough:
                 ownership.fallthrough = fallthrough
                 changed = True
@@ -83,7 +84,7 @@ class ProjectOwnershipSerializer(serializers.Serializer):
         return ownership
 
     def __modify_auto_assignment(self, ownership):
-        auto_assignment = self.object.get('autoAssignment')
+        auto_assignment = self.validated_data.get('autoAssignment')
 
         if auto_assignment is None:
             return False

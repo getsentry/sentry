@@ -7,6 +7,8 @@ from datetime import (
     datetime,
     timedelta,
 )
+
+import pytz
 from django.core.urlresolvers import reverse
 from exam import fixture
 
@@ -1401,15 +1403,15 @@ class ReleaseSerializerWithProjectsTest(TestCase):
             'projects': self.projects,
         })
 
-        assert serializer.is_valid()
+        assert serializer.is_valid(), serializer.errors
         assert sorted(serializer.fields.keys()) == sorted(
             ['version', 'owner', 'ref', 'url', 'dateReleased', 'commits', 'headCommits', 'refs', 'projects'])
-        result = serializer.object
+        result = serializer.validated_data
         assert result['version'] == self.version
         assert result['owner'] == self.user
         assert result['ref'] == self.ref
         assert result['url'] == self.url
-        assert result['dateReleased'] == datetime(1000, 10, 10, 6, 6)
+        assert result['dateReleased'] == datetime(1000, 10, 10, 6, 6, tzinfo=pytz.UTC)
         assert result['commits'] == self.commits
         assert result['headCommits'] == self.headCommits
         assert result['refs'] == self.refs
@@ -1421,7 +1423,7 @@ class ReleaseSerializerWithProjectsTest(TestCase):
             'projects': self.projects,
         })
         assert serializer.is_valid()
-        result = serializer.object
+        result = serializer.validated_data
         assert result['version'] == self.version
         assert result['projects'] == self.projects
 
@@ -1533,7 +1535,7 @@ class ReleaseHeadCommitSerializerTest(TestCase):
         assert serializer.is_valid()
         assert sorted(serializer.fields.keys()) == sorted(
             ['commit', 'previousCommit', 'repository'])
-        result = serializer.object
+        result = serializer.validated_data
         assert result['commit'] == self.commit
         assert result['previousCommit'] == self.prev_commit
         assert result['repository'] == self.repo_name

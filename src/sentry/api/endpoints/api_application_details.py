@@ -31,14 +31,20 @@ class ApiApplicationSerializer(serializers.Serializer):
     homepageUrl = serializers.URLField(
         max_length=255,
         required=False,
+        allow_null=True,
+        allow_blank=True,
     )
     termsUrl = serializers.URLField(
         max_length=255,
         required=False,
+        allow_null=True,
+        allow_blank=True,
     )
     privacyUrl = serializers.URLField(
         max_length=255,
         required=False,
+        allow_null=True,
+        allow_blank=True,
     )
 
 
@@ -71,7 +77,7 @@ class ApiApplicationDetailsEndpoint(Endpoint):
         serializer = ApiApplicationSerializer(data=request.DATA, partial=True)
 
         if serializer.is_valid():
-            result = serializer.object
+            result = serializer.validated_data
             kwargs = {}
             if 'name' in result:
                 kwargs['name'] = result['name']

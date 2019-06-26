@@ -12,7 +12,7 @@ django-jsonfield>=0.9.13,<0.9.14
 django-picklefield>=0.3.0,<1.1.0
 django-sudo>=2.1.0,<3.0.0
 Django>=1.8,<1.9
-djangorestframework>=2.4.8,<2.5.0
+djangorestframework==3.0.5
 email-reply-parser>=0.2.0,<0.3.0
 enum34>=1.1.6,<1.2.0
 exam>=0.5.1

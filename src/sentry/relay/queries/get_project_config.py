@@ -18,7 +18,7 @@ class GetProjectConfig(BaseQuery):
         if not serializer.is_valid():
             raise InvalidQuery(str(serializer.errors).splitlines()[0])
 
-        result = serializer.object
+        result = serializer.validated_data
 
         try:
             project = Project.objects.filter(

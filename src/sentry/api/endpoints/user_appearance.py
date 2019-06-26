@@ -79,7 +79,7 @@ class UserAppearanceEndpoint(UserEndpoint):
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
 
-        result = serializer.object
+        result = serializer.validated_data
 
         # map API keys to keys in model
         key_map = {

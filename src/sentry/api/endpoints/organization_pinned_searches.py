@@ -21,12 +21,12 @@ class OrganizationSearchSerializer(serializers.Serializer):
     type = serializers.IntegerField(required=True)
     query = serializers.CharField(required=True)
 
-    def validate_type(self, attrs, source):
+    def validate_type(self, value):
         try:
-            SearchType(attrs[source])
+            SearchType(value)
         except ValueError as e:
             raise serializers.ValidationError(six.text_type(e))
-        return attrs
+        return value
 
 
 class OrganizationPinnedSearchEndpoint(OrganizationEndpoint):
@@ -36,7 +36,7 @@ class OrganizationPinnedSearchEndpoint(OrganizationEndpoint):
         serializer = OrganizationSearchSerializer(data=request.DATA)
 
         if serializer.is_valid():
-            result = serializer.object
+            result = serializer.validated_data
             SavedSearch.objects.create_or_update(
                 organization=organization,
                 name=PINNED_SEARCH_NAME,

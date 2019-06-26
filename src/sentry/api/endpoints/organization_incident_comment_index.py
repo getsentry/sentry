@@ -18,7 +18,7 @@ from sentry.incidents.models import IncidentActivityType
 class CommentSerializer(serializers.Serializer, MentionsMixin):
     comment = serializers.CharField(required=True)
     mentions = ListField(child=ActorField(), required=False)
-    external_id = serializers.CharField(allow_none=True, required=False)
+    external_id = serializers.CharField(allow_null=True, required=False)
 
 
 class OrganizationIncidentCommentIndexEndpoint(IncidentEndpoint):
@@ -32,14 +32,14 @@ class OrganizationIncidentCommentIndexEndpoint(IncidentEndpoint):
         if serializer.is_valid():
             mentions = extract_user_ids_from_mentions(
                 organization.id,
-                serializer.object.get('mentions', []),
+                serializer.validated_data.get('mentions', []),
             )
             mentioned_user_ids = mentions['users'] | mentions['team_users']
             activity = create_incident_activity(
                 incident,
                 IncidentActivityType.COMMENT,
                 user=request.user,
-                comment=serializer.object['comment'],
+                comment=serializer.validated_data['comment'],
                 mentioned_user_ids=mentioned_user_ids,
             )
             return Response(serialize(activity, request.user), status=201)

@@ -67,7 +67,7 @@ class ProjectServiceHookDetailsEndpoint(ProjectEndpoint):
         if not validator.is_valid():
             return self.respond(validator.errors, status=status.HTTP_400_BAD_REQUEST)
 
-        result = validator.object
+        result = validator.validated_data
 
         updates = {}
         if result.get('events') is not None:
