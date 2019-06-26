@@ -10,7 +10,7 @@ from sentry.models import Group, Project
 
 class SentryAppInstallationExternalIssuesEndpoint(SentryAppInstallationBaseEndpoint):
     def post(self, request, installation):
-        data = request.DATA.copy()
+        data = request.data.copy()
 
         if not set(['groupId', 'action', 'uri']).issubset(data.keys()):
             return Response(status=400)

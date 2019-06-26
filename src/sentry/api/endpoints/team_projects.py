@@ -128,7 +128,7 @@ class TeamProjectsEndpoint(TeamEndpoint, EnvironmentMixin):
                             not provided a slug is generated from the name.
         :auth: required
         """
-        serializer = ProjectSerializer(data=request.DATA)
+        serializer = ProjectSerializer(data=request.data)
 
         if serializer.is_valid():
             result = serializer.validated_data

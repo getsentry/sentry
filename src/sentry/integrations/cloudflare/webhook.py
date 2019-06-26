@@ -37,7 +37,7 @@ class CloudflareTokenAuthentication(TokenAuthentication):
         # are ok with it.
         request.body = six.text_type(request.body)
         try:
-            token = request.DATA['authentications']['account']['token']['token']
+            token = request.data['authentications']['account']['token']['token']
         except KeyError:
             return None
         return self.authenticate_credentials(request, token)
@@ -229,7 +229,7 @@ class CloudflareWebhookEndpoint(Endpoint):
 
         payload = request.body
         try:
-            data = request.DATA
+            data = request.data
         except (ValueError, TypeError):
             logger.error('cloudflare.webhook.invalid-json', extra=logging_data)
             return Response(status=400)

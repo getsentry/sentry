@@ -75,7 +75,7 @@ class OrganizationIncidentCommentDetailsEndpoint(CommentDetailsEndpoint):
         :auth: required
         """
 
-        serializer = CommentSerializer(data=request.DATA)
+        serializer = CommentSerializer(data=request.data)
         if serializer.is_valid():
             result = serializer.validated_data
 

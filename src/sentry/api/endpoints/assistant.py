@@ -56,13 +56,13 @@ class AssistantEndpoint(Endpoint):
             'useful' (optional): true / false,
         }
         """
-        serializer = AssistantSerializer(data=request.DATA, partial=True)
+        serializer = AssistantSerializer(data=request.data, partial=True)
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
 
-        guide_id = request.DATA['guide_id']
-        status = request.DATA['status']
-        useful = request.DATA.get('useful')
+        guide_id = request.data['guide_id']
+        status = request.data['status']
+        useful = request.data.get('useful')
 
         fields = {}
         if useful is not None:

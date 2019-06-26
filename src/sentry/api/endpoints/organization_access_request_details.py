@@ -104,7 +104,7 @@ class OrganizationAccessRequestDetailsEndpoint(OrganizationEndpoint):
         if not self._can_access(request, access_request):
             return Response(status=403)
 
-        serializer = AccessRequestSerializer(data=request.DATA, partial=True)
+        serializer = AccessRequestSerializer(data=request.data, partial=True)
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
 

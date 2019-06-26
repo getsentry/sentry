@@ -27,7 +27,7 @@ class IntegrationRepositoryProvider(object):
 
     def dispatch(self, request, organization, **kwargs):
         try:
-            config = self.get_repository_data(organization, request.DATA)
+            config = self.get_repository_data(organization, request.data)
             result = self.build_repository_config(
                 organization=organization,
                 data=config,

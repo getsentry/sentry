@@ -338,7 +338,7 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
         :param boolean isPublic: sets the issue to public or private.
         :auth: required
         """
-        discard = request.DATA.get('discard')
+        discard = request.data.get('discard')
 
         # TODO(dcramer): we need to implement assignedTo in the bulk mutation
         # endpoint
@@ -351,7 +351,7 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
                 params={
                     'id': group.id,
                 },
-                data=request.DATA,
+                data=request.data,
                 request=request,
             )
         except client.ApiError as e:

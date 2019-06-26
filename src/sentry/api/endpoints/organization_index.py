@@ -212,7 +212,7 @@ class OrganizationIndexEndpoint(Endpoint):
                 status=429
             )
 
-        serializer = OrganizationSerializer(data=request.DATA)
+        serializer = OrganizationSerializer(data=request.data)
 
         if serializer.is_valid():
             result = serializer.validated_data

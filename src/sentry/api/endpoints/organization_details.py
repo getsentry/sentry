@@ -352,7 +352,7 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
         was_pending_deletion = organization.status in DELETION_STATUSES
 
         serializer = serializer_cls(
-            data=request.DATA,
+            data=request.data,
             partial=True,
             context={
                 'organization': organization,
