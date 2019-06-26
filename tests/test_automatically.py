@@ -2,9 +2,30 @@ from __future__ import absolute_import
 
 import os
 import subprocess
+import pytest
+
+from sentry.testutils import Factories
 
 
-def test_the_magic(db, live_server, default_user, default_group, default_event):
+class BugCatcher(object):
+    def __init__(self, live_server):
+        self.live_server = live_server
+
+    def run(self, as_user=None):
+        args = [
+            os.path.join(os.path.dirname(__file__), os.pardir, 'bin', 'bug-catcher'),
+            '--url', self.live_server.url + '/',
+        ]
+        if as_user:
+            args.extend([
+                '--username', as_user.username,
+                '--password', 'admin',
+            ])
+        subprocess.check_call(args, env=os.environ)
+
+
+@pytest.fixture
+def magic(db, live_server, default_user):
     from django.conf import settings
     # this is def gonna be unstable/hacky
     import sentry
@@ -12,10 +33,13 @@ def test_the_magic(db, live_server, default_user, default_group, default_event):
     settings.SENTRY_OPTIONS['beacon.anonymous'] = True
     settings.SENTRY_OPTIONS['sentry:version-configured'] = sentry.get_version()
     settings.SENTRY_OPTIONS['system.admin-email'] = default_user.email
-    cmd = os.path.join(os.path.dirname(__file__), os.pardir, 'bin', 'bug-catcher')
-    subprocess.check_call([
-        cmd,
-        '--url', live_server.url + '/',
-        '--username', default_user.username,
-        '--password', 'admin',
-    ], env=os.environ)
+    return BugCatcher(live_server)
+
+
+def test_superuser(magic, default_user, default_group, default_event):
+    magic.run(as_user=default_user)
+
+
+def test_boring_user(magic, default_user, default_group, default_event):
+    user = Factories.create_user(is_superuser=False)
+    magic.run(as_user=user)
