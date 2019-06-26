@@ -1,0 +1,26 @@
+[build]
+  publish = "src/sentry/static/sentry/dist"
+  command = "yarn webpack"
+
+[[headers]]
+  for = "/*"
+
+  [headers.values]
+    Access-Control-Allow-Origin = "*"
+
+[[redirects]]
+  from = "/sentry/dist/*"
+  to = "/:splat"
+  status = 200
+  force = false
+
+[[redirects]]
+  from = "/api/*"
+  to = "https://tunnel.evanpurkhiser.com/api/:splat"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200

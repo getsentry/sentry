@@ -11,6 +11,7 @@ const CompressionPlugin = require('compression-webpack-plugin');
 const OptimizeCssAssetsPlugin = require('optimize-css-assets-webpack-plugin');
 const LodashModuleReplacementPlugin = require('lodash-webpack-plugin');
 const FixStyleOnlyEntriesPlugin = require('webpack-fix-style-only-entries');
+const CopyPlugin = require('copy-webpack-plugin');
 
 const {env} = process;
 const IS_PRODUCTION = env.NODE_ENV === 'production';
@@ -237,6 +238,10 @@ const appConfig = {
      * Extract CSS into separate files.
      */
     new ExtractTextPlugin(),
+    /**
+     * Genreate a index.html file used for running the app in pure SPA mode.
+     */
+    new CopyPlugin([{from: path.join(staticPrefix, 'app', 'index.html')}]),
     /**
      * Defines environemnt specific flags.
      */
