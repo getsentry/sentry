@@ -20,6 +20,7 @@ class EventStackExchange extends React.Component {
   };
 
   state = {
+    query: '',
     questions: [],
     loading: true,
   };
@@ -53,7 +54,8 @@ class EventStackExchange extends React.Component {
           }
 
           this.setState({
-            questions: data.items,
+            query: data.query,
+            questions: data.results.items,
             loading: false,
           });
         },
@@ -63,6 +65,7 @@ class EventStackExchange extends React.Component {
           console.log(err);
 
           this.setState({
+            query: '',
             loading: false,
             questions: [],
             error: err,
@@ -151,13 +154,13 @@ class EventStackExchange extends React.Component {
   };
 
   renderAskOnStackOverflow() {
-    const {title, platform} = this.props.event;
+    const {platform} = this.props.event;
 
     return (
       <a
         className="btn btn-default btn-sm"
         href={`https://stackoverflow.com/questions/ask?tags=${platform}&title=${encodeURIComponent(
-          title
+          this.state.query
         )}`}
         rel="noopener noreferrer"
         target="_blank"
@@ -168,9 +171,9 @@ class EventStackExchange extends React.Component {
   }
 
   renderSeeMoreResults() {
-    const {title, platform} = this.props.event;
+    const {platform} = this.props.event;
 
-    const query = `[${platform}] ${title}`;
+    const query = `[${platform}] ${this.state.query}`;
 
     return (
       <a

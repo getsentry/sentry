@@ -61,7 +61,10 @@ class StackExchangeEndpoint(ProjectEndpoint):
 
             response = requests.get('https://{}'.format(STACK_EXCHANGE_SEARCH_API), params=query_params)
 
-            return Response(response.json(), status=200)
+            return Response({
+                'query': interface_string,
+                'results': response.json()
+            }, status=200)
 
         # nothing was queried to stackoverflow
         return Response({'detail': 'No results'}, status=404)
