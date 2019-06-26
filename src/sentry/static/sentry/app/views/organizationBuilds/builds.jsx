@@ -6,16 +6,14 @@ import {Box} from 'grid-emotion';
 
 import AsyncView from 'app/views/asyncView';
 import BetaTag from 'app/components/betaTag';
-import Button from 'app/components/button';
 import {getParams} from 'app/views/organizationEvents/utils/getParams';
-import {Panel, PanelBody, PanelItem} from 'app/components/panels';
+import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
 import {PageHeader} from 'app/styles/organization';
 import PageHeading from 'app/components/pageHeading';
 import TimeSince from 'app/components/timeSince';
 import Pagination from 'app/components/pagination';
 import SentryTypes from 'app/sentryTypes';
 import SearchBar from 'app/components/searchBar';
-import space from 'app/styles/space';
 import withOrganization from 'app/utils/withOrganization';
 import {t} from 'app/locale';
 
@@ -85,6 +83,11 @@ class OrganizationBuilds extends AsyncView {
           />
         </PageHeader>
         <Panel>
+          <PanelHeader>
+            <Box flex="1" mr={2} />
+            <Box>Errors</Box>
+            <Box>When</Box>
+          </PanelHeader>
           <PanelBody>
             {this.state.buildList.map(build => {
               return (
@@ -97,6 +100,7 @@ class OrganizationBuilds extends AsyncView {
                       {build.name}
                     </Link>
                   </Box>
+                  <Box>{build.totalEvents.toLocaleString()}</Box>
                   <Box>
                     <TimeSince date={build.dateCreated} />
                   </Box>
