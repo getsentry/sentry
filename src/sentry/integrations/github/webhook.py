@@ -422,7 +422,7 @@ class GitHubWebhookBase(View):
         if not handler:
             logger.warn('github.webhook.unhandled-event', extra=dict(
                 event_type=event_type,
-                **self.get_logging_data()
+                **(self.get_logging_data() or {})
             ))
             return HttpResponse(status=204)
 
