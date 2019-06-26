@@ -22,7 +22,7 @@ export default class BuildHeader extends Component {
 
   changeStatus = newStatus => {
     this.api
-      .request(`/builds/${this.props.build.id}/`, {
+      .requestPromise(`/builds/${this.props.build.id}/`, {
         method: 'PUT',
         data: {
           status: newStatus,

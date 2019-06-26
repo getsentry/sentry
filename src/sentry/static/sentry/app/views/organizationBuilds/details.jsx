@@ -1,6 +1,7 @@
 import React from 'react';
 
 import AsyncView from 'app/views/asyncView';
+import Alert from 'app/components/alert';
 import {Panel, PanelHeader} from 'app/components/panels';
 import {t} from 'app/locale';
 
@@ -50,9 +51,9 @@ class OrganizationBuildDetails extends AsyncView {
         />
 
         {build.approvedBy && (
-          <div className="box">
-            <p>This build was approved by {build.approvedBy.name}.</p>
-          </div>
+          <Alert type="info" icon="icon-circle-info">
+            This build was approved by <strong>{build.approvedBy.name}</strong>.
+          </Alert>
         )}
 
         <Panel style={{paddingBottom: 0}}>

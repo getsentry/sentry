@@ -64,6 +64,8 @@ class BuildDetailsEndpoint(BuildEndpoint):
 
         params = {}
         if 'status' in result:
+            if result['status'] == BuildStatus.APPROVED != build.status and request.user.is_authenticated():
+                params['approved_by_id'] = request.user.id
             params['status'] = result['status']
 
         if params:
