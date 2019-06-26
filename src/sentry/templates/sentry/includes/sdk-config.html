@@ -8,6 +8,6 @@
     whitelistUrls: {% convert_to_json ALLOWED_HOSTS %}
   };
   window.__SENTRY__USER = {% get_user_context request %} || undefined;
-  window.__SENTRY_BUILD = '{% sentry_build %}';
+  window.__SENTRY__BUILD = '{% sentry_build %}';
 
 </script>
