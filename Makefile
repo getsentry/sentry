@@ -171,7 +171,6 @@ test-symbolicator:
 
 test-acceptance: node-version-check
 	sentry init
-	make build-platform-assets
 	@echo "--> Building static assets"
 	@$(WEBPACK) --display errors-only
 	@echo "--> Running acceptance tests"
