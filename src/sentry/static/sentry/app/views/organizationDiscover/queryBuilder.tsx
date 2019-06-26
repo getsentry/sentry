@@ -12,6 +12,14 @@ import ConfigStore from 'app/stores/configStore';
 import MissingProjectWarningModal from './missingProjectWarningModal';
 import {COLUMNS, PROMOTED_TAGS, SPECIAL_TAGS, HIDDEN_TAGS} from './data';
 import {isValidAggregation} from './aggregations/utils';
+import {
+  AggregationData,
+  Column,
+  Query,
+  Project,
+  Organization,
+  SnubaResult,
+} from './types';
 
 const API_LIMIT = 10000;
 
@@ -24,7 +32,7 @@ const DEFAULTS = {
   limit: 1000,
 };
 
-function applyDefaults(query) {
+function applyDefaults(query: any) {
   Object.entries(DEFAULTS).forEach(([key, value]) => {
     if (!(key in query)) {
       query[key] = value;
@@ -38,7 +46,7 @@ function applyDefaults(query) {
  * It applies sensible defaults if query parameters are not provided on
  * initialization.
  */
-export default function createQueryBuilder(initial = {}, organization) {
+export default function createQueryBuilder(initial = {}, organization: Organization) {
   const api = new Client();
   let query = applyDefaults(initial);
 
@@ -58,7 +66,7 @@ export default function createQueryBuilder(initial = {}, organization) {
   );
 
   const columns = COLUMNS.map(col => ({...col, isTag: false}));
-  let tags = [];
+  let tags: Column[] = [];
 
   return {
     getInternal,
@@ -81,6 +89,10 @@ export default function createQueryBuilder(initial = {}, organization) {
    * @returns {Promise<Void>}
    */
   function load() {
+    type TagData = {
+      tags_key: string;
+    };
+
     return fetch({
       projects: projectsToFetchTags,
       fields: ['tags_key'],
@@ -89,16 +101,16 @@ export default function createQueryBuilder(initial = {}, organization) {
       range: '90d',
       turbo: true,
     })
-      .then(res => {
+      .then((res: SnubaResult) => {
         tags = res.data
-          .filter(tag => !HIDDEN_TAGS.includes(tag.tags_key))
-          .map(tag => {
-            const type = SPECIAL_TAGS[tags.tags_key] || 'string';
+          .filter((tag: TagData) => !HIDDEN_TAGS.includes(tag.tags_key))
+          .map((tag: TagData) => {
+            const type = SPECIAL_TAGS[tag.tags_key] || 'string';
             return {name: tag.tags_key, type, isTag: true};
           });
       })
-      .catch(err => {
-        tags = PROMOTED_TAGS.map(tag => {
+      .catch(() => {
+        tags = PROMOTED_TAGS.map((tag: string) => {
           const type = SPECIAL_TAGS[tag] || 'string';
           return {name: tag, type, isTag: true};
         });
@@ -160,11 +172,11 @@ export default function createQueryBuilder(initial = {}, organization) {
    * @param {*} value Value to update field to
    * @returns {Void}
    */
-  function updateField(field, value) {
+  function updateField(field: string, value: any) {
     query[field] = value;
 
     // Ignore non valid aggregations (e.g. user halfway inputting data)
-    const validAggregations = query.aggregations.filter(agg =>
+    const validAggregations = query.aggregations.filter((agg: AggregationData) =>
       isValidAggregation(agg, getColumns())
     );
 
@@ -173,7 +185,7 @@ export default function createQueryBuilder(initial = {}, organization) {
       getColumns().find(f => f.name === orderbyField) !== undefined;
     const hasOrderFieldInSelectedFields = query.fields.includes(orderbyField);
     const hasOrderFieldInAggregations = query.aggregations.some(
-      agg => orderbyField === agg[2]
+      (agg: AggregationData) => orderbyField === agg[2]
     );
 
     const hasInvalidOrderbyField = validAggregations.length
@@ -224,12 +236,12 @@ export default function createQueryBuilder(initial = {}, organization) {
     }
 
     return api
-      .requestPromise(endpoint, {includeAllArgs: true, method: 'POST', data})
+      .requestPromise(endpoint, {includeAllArgs: true, method: 'POST', data} as any)
       .then(([responseData, _, utils]) => {
         responseData.pageLinks = utils.getResponseHeader('Link');
         return responseData;
       })
-      .catch(err => {
+      .catch(() => {
         throw new Error(t('An error occurred'));
       });
   }
@@ -261,7 +273,7 @@ export default function createQueryBuilder(initial = {}, organization) {
       return Promise.reject(new Error('Start date cannot be after end date'));
     }
 
-    return api.requestPromise(endpoint, {method: 'POST', data}).catch(() => {
+    return api.requestPromise(endpoint, {method: 'POST', data} as any).catch(() => {
       throw new Error(t('Error with query'));
     });
   }
@@ -282,7 +294,7 @@ export default function createQueryBuilder(initial = {}, organization) {
    * @param {String} Type to fetch - currently either byDay or base
    * @returns {Object} Modified query to be run for that type
    */
-  function getQueryByType(originalQuery, type) {
+  function getQueryByType(originalQuery: Query, type: string) {
     if (type === 'byDayQuery') {
       return {
         ...originalQuery,
@@ -296,7 +308,9 @@ export default function createQueryBuilder(initial = {}, organization) {
     // If id or issue.id is present in query fields, always fetch the project.id
     // so we can generate links
     if (type === 'baseQuery') {
-      return originalQuery.fields.some(field => field === 'id' || field === 'issue.id')
+      return (originalQuery.fields || []).some(
+        field => field === 'id' || field === 'issue.id'
+      )
         ? {
             ...originalQuery,
             fields: uniq([...originalQuery.fields, 'project.id']),
@@ -323,13 +337,13 @@ export default function createQueryBuilder(initial = {}, organization) {
    * @param {Object} [q] optional query to reset to
    * @returns {Void}
    */
-  function reset(q = {}) {
+  function reset(q: Query = {}) {
     const [validProjects, invalidProjects] = partition(q.projects || [], project =>
       defaultProjectIds.includes(project)
     );
 
     if (invalidProjects.length) {
-      openModal(deps => (
+      openModal((deps: any) => (
         <MissingProjectWarningModal
           organization={organization}
           validProjects={validProjects}
@@ -345,6 +359,6 @@ export default function createQueryBuilder(initial = {}, organization) {
   }
 }
 
-function getProjectIds(projects) {
+function getProjectIds(projects: Project[]) {
   return projects.map(project => parseInt(project.id, 10));
 }

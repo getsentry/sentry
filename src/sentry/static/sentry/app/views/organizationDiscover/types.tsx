@@ -10,6 +10,15 @@ export type ConditionData = [
   string | number | boolean | null
 ];
 
+export type Query = {
+  projects?: number[];
+  fields?: string[];
+  aggregations?: AggregationData[];
+  conditions?: ConditionData[];
+  orderby?: string;
+  limit?: number;
+};
+
 export type SnubaResult = {
   data: any[];
   meta: any;
@@ -34,4 +43,15 @@ export type ReactSelectValue = {
 export type DiscoverBaseProps = {
   columns: Column[];
   disabled: boolean;
+};
+
+export type Organization = {
+  id: string;
+  slug: string;
+  projects: any[];
+  access: string[];
+};
+
+export type Project = {
+  id: string;
 };
