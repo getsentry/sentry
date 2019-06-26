@@ -177,7 +177,7 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, Environment
                            ``commit`` may contain a range in the form of ``previousCommit..commit``
         :auth: required
         """
-        serializer = ReleaseSerializerWithProjects(data=request.DATA)
+        serializer = ReleaseSerializerWithProjects(data=request.data)
 
         if serializer.is_valid():
             result = serializer.validated_data

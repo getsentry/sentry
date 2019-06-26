@@ -80,7 +80,7 @@ class OrganizationRepositoriesEndpoint(OrganizationEndpoint):
     def post(self, request, organization):
         if not request.user.is_authenticated():
             return Response(status=401)
-        provider_id = request.DATA.get('provider')
+        provider_id = request.data.get('provider')
 
         if provider_id is not None and provider_id.startswith('integrations:'):
             try:

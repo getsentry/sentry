@@ -77,7 +77,7 @@ class UserEmailsEndpoint(UserEndpoint):
         :auth required:
         """
 
-        validator = EmailValidator(data=request.DATA)
+        validator = EmailValidator(data=request.data)
         if not validator.is_valid():
             return self.respond(validator.errors, status=400)
 
@@ -115,7 +115,7 @@ class UserEmailsEndpoint(UserEndpoint):
         :auth required:
         """
 
-        validator = EmailValidator(data=request.DATA)
+        validator = EmailValidator(data=request.data)
         if not validator.is_valid():
             return self.respond(validator.errors, status=400)
 
@@ -205,7 +205,7 @@ class UserEmailsEndpoint(UserEndpoint):
         :param string email: email to remove
         :auth required:
         """
-        validator = EmailValidator(data=request.DATA)
+        validator = EmailValidator(data=request.data)
         if not validator.is_valid():
             return self.respond(validator.errors, status=400)
 

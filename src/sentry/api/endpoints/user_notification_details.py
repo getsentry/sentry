@@ -99,7 +99,7 @@ class UserNotificationDetailsEndpoint(UserEndpoint):
         return Response(serialized)
 
     def put(self, request, user):
-        serializer = UserNotificationDetailsSerializer(data=request.DATA)
+        serializer = UserNotificationDetailsSerializer(data=request.data)
 
         if serializer.is_valid():
             for key in serializer.validated_data:

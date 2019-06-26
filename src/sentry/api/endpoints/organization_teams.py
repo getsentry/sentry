@@ -134,7 +134,7 @@ class OrganizationTeamsEndpoint(OrganizationEndpoint):
                             name.
         :auth: required
         """
-        serializer = TeamSerializer(data=request.DATA)
+        serializer = TeamSerializer(data=request.data)
 
         if serializer.is_valid():
             result = serializer.validated_data

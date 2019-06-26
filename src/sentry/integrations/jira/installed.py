@@ -19,7 +19,7 @@ class JiraInstalledEndpoint(Endpoint):
         return super(JiraInstalledEndpoint, self).dispatch(request, *args, **kwargs)
 
     def post(self, request, *args, **kwargs):
-        state = request.DATA
+        state = request.data
         data = JiraIntegrationProvider().build_integration(state)
         integration = ensure_integration('jira', data)
 

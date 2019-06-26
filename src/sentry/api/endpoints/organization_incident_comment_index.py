@@ -26,7 +26,7 @@ class OrganizationIncidentCommentIndexEndpoint(IncidentEndpoint):
 
     def post(self, request, organization, incident):
         serializer = CommentSerializer(
-            data=request.DATA,
+            data=request.data,
             context={'projects': incident.projects.all(), 'organization_id': organization.id},
         )
         if serializer.is_valid():

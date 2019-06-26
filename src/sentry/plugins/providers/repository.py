@@ -49,7 +49,7 @@ class RepositoryProvider(ProviderMixin):
         if request.method == 'GET':
             return Response(fields)
 
-        validator = ConfigValidator(fields, request.DATA)
+        validator = ConfigValidator(fields, request.data)
         if not validator.is_valid():
             return Response(
                 {

@@ -257,14 +257,14 @@ class IssueTrackingPlugin2(Plugin):
         if request.method == 'GET':
             return Response(fields)
 
-        errors = self.validate_form(fields, request.DATA)
+        errors = self.validate_form(fields, request.data)
         if errors:
             return Response({'error_type': 'validation', 'errors': errors}, status=400)
 
         try:
             issue = self.create_issue(
                 group=group,
-                form_data=request.DATA,
+                form_data=request.data,
                 request=request,
             )
         except Exception as e:
@@ -281,7 +281,7 @@ class IssueTrackingPlugin2(Plugin):
                 GroupMeta.objects.unset_value(group, meta_name)
 
         issue_information = {
-            'title': issue.get('title') or request.DATA.get('title') or self._get_issue_label_compat(group, issue),
+            'title': issue.get('title') or request.data.get('title') or self._get_issue_label_compat(group, issue),
             'provider': self.get_title(),
             'location': self._get_issue_url_compat(group, issue),
             'label': self._get_issue_label_compat(group, issue),
@@ -323,22 +323,22 @@ class IssueTrackingPlugin2(Plugin):
             return self.handle_api_error(e)
         if request.method == 'GET':
             return Response(fields)
-        errors = self.validate_form(fields, request.DATA)
+        errors = self.validate_form(fields, request.data)
         if errors:
             return Response({'error_type': 'validation', 'errors': errors}, status=400)
 
         try:
             issue = self.link_issue(
                 group=group,
-                form_data=request.DATA,
+                form_data=request.data,
                 request=request,
             ) or {}
         except Exception as e:
             return self.handle_api_error(e)
 
         # HACK(dcramer): maintain data for legacy issues
-        if 'id' not in issue and 'issue_id' in request.DATA:
-            issue['id'] = request.DATA['issue_id']
+        if 'id' not in issue and 'issue_id' in request.data:
+            issue['id'] = request.data['issue_id']
 
         issue_field_map = self.get_issue_field_map()
         for key, meta_name in six.iteritems(issue_field_map):

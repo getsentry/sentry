@@ -109,7 +109,7 @@ class OrganizationMonitorsEndpoint(OrganizationEndpoint):
         :auth: required
         """
         validator = MonitorValidator(
-            data=request.DATA,
+            data=request.data,
             context={
                 'organization': organization,
                 'access': request.access,

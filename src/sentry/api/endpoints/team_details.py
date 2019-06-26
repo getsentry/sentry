@@ -88,7 +88,7 @@ class TeamDetailsEndpoint(TeamEndpoint):
                             and available.
         :auth: required
         """
-        serializer = TeamSerializer(team, data=request.DATA, partial=True)
+        serializer = TeamSerializer(team, data=request.data, partial=True)
         if serializer.is_valid():
             team = serializer.save()
 

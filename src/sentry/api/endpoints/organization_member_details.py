@@ -138,7 +138,7 @@ class OrganizationMemberDetailsEndpoint(OrganizationEndpoint):
             raise ResourceDoesNotExist
 
         serializer = OrganizationMemberSerializer(
-            data=request.DATA, partial=True)
+            data=request.data, partial=True)
 
         if not serializer.is_valid():
             return Response(status=400)

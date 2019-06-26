@@ -49,7 +49,7 @@ class ProjectRulesEndpoint(ProjectEndpoint):
         """
         serializer = RuleSerializer(
             context={'project': project},
-            data=request.DATA,
+            data=request.data,
         )
 
         if serializer.is_valid():

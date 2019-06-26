@@ -462,7 +462,7 @@ def update_groups(request, projects, organization_id, search_fn):
     # because of the assignee validation. Punting on this for now.
     for project in projects:
         serializer = GroupValidator(
-            data=request.DATA,
+            data=request.data,
             partial=True,
             context={'project': project},
         )

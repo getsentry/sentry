@@ -19,7 +19,7 @@ class SlackRequestTest(TestCase):
         super(SlackRequestTest, self).setUp()
 
         self.request = mock.Mock()
-        self.request.DATA = {
+        self.request.data = {
             'type': 'foo',
             'team_id': 'T001',
             'channel': {'id': '1'},
@@ -46,7 +46,7 @@ class SlackRequestTest(TestCase):
         }
 
     def test_disregards_None_logging_values(self):
-        self.request.DATA['api_app_id'] = None
+        self.request.data['api_app_id'] = None
 
         assert self.slack_request.logging_data == {
             'slack_team_id': 'T001',
@@ -68,13 +68,13 @@ class SlackRequestTest(TestCase):
             assert e.status == 400
 
     def test_validates_token(self):
-        self.request.DATA['token'] = 'notthetoken'
+        self.request.data['token'] = 'notthetoken'
 
         with self.assertRaises(SlackRequestError):
             self.slack_request.validate()
 
     def test_returns_401_on_invalid_token(self):
-        self.request.DATA['token'] = 'notthetoken'
+        self.request.data['token'] = 'notthetoken'
 
         with self.assertRaises(SlackRequestError) as e:
             self.slack_request.validate()
@@ -91,7 +91,7 @@ class SlackEventRequestTest(TestCase):
         super(SlackEventRequestTest, self).setUp()
 
         self.request = mock.Mock()
-        self.request.DATA = {
+        self.request.data = {
             'type': 'foo',
             'team_id': 'T001',
             'event_id': 'E1',
@@ -106,7 +106,7 @@ class SlackEventRequestTest(TestCase):
         return SlackEventRequest(self.request)
 
     def test_ignores_event_validation_on_challenge_request(self):
-        self.request.DATA = {
+        self.request.data = {
             'token': options.get('slack.verification-token'),
             'challenge': 'abc123',
             'type': 'url_verification',
@@ -117,7 +117,7 @@ class SlackEventRequestTest(TestCase):
         self.slack_request.validate()
 
     def test_is_challenge(self):
-        self.request.DATA = {
+        self.request.data = {
             'token': options.get('slack.verification-token'),
             'challenge': 'abc123',
             'type': 'url_verification',
@@ -126,13 +126,13 @@ class SlackEventRequestTest(TestCase):
         assert self.slack_request.is_challenge()
 
     def test_validate_missing_event(self):
-        self.request.DATA.pop('event')
+        self.request.data.pop('event')
 
         with self.assertRaises(SlackRequestError):
             self.slack_request.validate()
 
     def test_validate_missing_event_type(self):
-        self.request.DATA['event'] = {}
+        self.request.data['event'] = {}
 
         with self.assertRaises(SlackRequestError):
             self.slack_request.validate()
@@ -146,7 +146,7 @@ class SlackActionRequestTest(TestCase):
         super(SlackActionRequestTest, self).setUp()
 
         self.request = mock.Mock()
-        self.request.DATA = {
+        self.request.data = {
             'payload': json.dumps({
                 'type': 'foo',
                 'team': {'id': 'T001'},
@@ -168,13 +168,13 @@ class SlackActionRequestTest(TestCase):
         assert self.slack_request.callback_data == {'issue': 'I1'}
 
     def test_validates_existence_of_payload(self):
-        self.request.DATA.pop('payload')
+        self.request.data.pop('payload')
 
         with self.assertRaises(SlackRequestError):
             self.slack_request.validate()
 
     def test_validates_payload_json(self):
-        self.request.DATA['payload'] = 'notjson'
+        self.request.data['payload'] = 'notjson'
 
         with self.assertRaises(SlackRequestError):
             self.slack_request.validate()

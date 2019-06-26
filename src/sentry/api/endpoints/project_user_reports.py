@@ -130,7 +130,7 @@ class ProjectUserReportsEndpoint(ProjectEndpoint, EnvironmentMixin):
         if hasattr(request.auth, 'project_id') and project.id != request.auth.project_id:
             return self.respond(status=400)
 
-        serializer = UserReportSerializer(data=request.DATA)
+        serializer = UserReportSerializer(data=request.data)
         if not serializer.is_valid():
             return self.respond(serializer.errors, status=400)
 

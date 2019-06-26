@@ -74,7 +74,7 @@ class ApiApplicationDetailsEndpoint(Endpoint):
         except ApiApplication.DoesNotExist:
             raise ResourceDoesNotExist
 
-        serializer = ApiApplicationSerializer(data=request.DATA, partial=True)
+        serializer = ApiApplicationSerializer(data=request.data, partial=True)
 
         if serializer.is_valid():
             result = serializer.validated_data

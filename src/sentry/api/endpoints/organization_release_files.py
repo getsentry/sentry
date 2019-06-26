@@ -124,7 +124,7 @@ class OrganizationReleaseFilesEndpoint(OrganizationReleasesBaseEndpoint):
 
         fileobj = request.FILES['file']
 
-        full_name = request.DATA.get('name', fileobj.name)
+        full_name = request.data.get('name', fileobj.name)
         if not full_name or full_name == 'file':
             return Response({'detail': 'File name must be specified'}, status=400)
 
@@ -137,7 +137,7 @@ class OrganizationReleaseFilesEndpoint(OrganizationReleasesBaseEndpoint):
                 }, status=400
             )
 
-        dist_name = request.DATA.get('dist')
+        dist_name = request.data.get('dist')
         dist = None
         if dist_name:
             dist = release.add_dist(dist_name)
@@ -145,7 +145,7 @@ class OrganizationReleaseFilesEndpoint(OrganizationReleasesBaseEndpoint):
         headers = {
             'Content-Type': fileobj.content_type,
         }
-        for headerval in request.DATA.getlist('header') or ():
+        for headerval in request.data.getlist('header') or ():
             try:
                 k, v = headerval.split(':', 1)
             except ValueError:

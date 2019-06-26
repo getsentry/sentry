@@ -354,7 +354,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
             serializer_cls = ProjectMemberSerializer
 
         serializer = serializer_cls(
-            data=request.DATA,
+            data=request.data,
             partial=True,
             context={
                 'project': project,
@@ -369,7 +369,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         if not has_project_write:
             # options isn't part of the serializer, but should not be editable by members
             for key in chain(six.iterkeys(ProjectAdminSerializer().fields), ['options']):
-                if request.DATA.get(key) and not result.get(key):
+                if request.data.get(key) and not result.get(key):
                     return Response(
                         {
                             'detail': ['You do not have permission to perform this action.']
@@ -526,7 +526,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
 
         # TODO(dcramer): rewrite options to use standard API config
         if has_project_write:
-            options = request.DATA.get('options', {})
+            options = request.data.get('options', {})
             if 'sentry:origins' in options:
                 project.update_option(
                     'sentry:origins', clean_newline_inputs(

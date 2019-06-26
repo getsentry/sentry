@@ -23,7 +23,7 @@ class SlugsUpdateEndpoint(OrganizationEndpoint):
         :param slugs: a dictionary of project IDs to their intended slugs.
         :auth: required
         """
-        slugs = request.DATA.get('slugs', {})
+        slugs = request.data.get('slugs', {})
         for project_id, slug in six.iteritems(slugs):
             slug = slug.lower()
             try:

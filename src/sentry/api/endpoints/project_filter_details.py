@@ -27,7 +27,7 @@ class ProjectFilterDetailsEndpoint(ProjectEndpoint):
         else:
             raise ResourceDoesNotExist  # could not find filter with the requested id
 
-        serializer = current_filter.spec.serializer_cls(data=request.DATA, partial=True)
+        serializer = current_filter.spec.serializer_cls(data=request.data, partial=True)
 
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)

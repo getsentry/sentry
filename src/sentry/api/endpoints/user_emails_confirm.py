@@ -53,7 +53,7 @@ class UserEmailsConfirmEndpoint(UserEndpoint):
             return self.respond({'detail': 'You have made too many email confirmation requests. Please try again later.', },
                                 status=status.HTTP_429_TOO_MANY_REQUESTS)
 
-        serializer = EmailSerializer(data=request.DATA)
+        serializer = EmailSerializer(data=request.data)
 
         if not serializer.is_valid():
             return InvalidEmailResponse()

@@ -104,7 +104,7 @@ class ProjectReleasesEndpoint(ProjectEndpoint, EnvironmentMixin):
                                       the current time is assumed.
         :auth: required
         """
-        serializer = ReleaseWithVersionSerializer(data=request.DATA)
+        serializer = ReleaseWithVersionSerializer(data=request.data)
 
         if serializer.is_valid():
             result = serializer.validated_data

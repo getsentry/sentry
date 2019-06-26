@@ -134,7 +134,7 @@ class OrganizationDashboardDetailsEndpoint(OrganizationDashboardEndpoint):
         :auth: required
         """
         serializer = DashboardWithWidgetsSerializer(
-            data=request.DATA,
+            data=request.data,
             context={'dashboard_id': dashboard.id}
         )
 

@@ -54,7 +54,7 @@ class BroadcastDetailsEndpoint(Endpoint):
 
     def put(self, request, broadcast_id):
         broadcast = self._get_broadcast(request, broadcast_id)
-        validator = self._get_validator(request)(data=request.DATA, partial=True)
+        validator = self._get_validator(request)(data=request.data, partial=True)
         if not validator.is_valid():
             return self.respond(validator.errors, status=400)
 

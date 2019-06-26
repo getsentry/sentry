@@ -48,7 +48,7 @@ class GroupNotesDetailsEndpoint(GroupEndpoint):
         except Activity.DoesNotExist:
             raise ResourceDoesNotExist
 
-        serializer = NoteSerializer(data=request.DATA)
+        serializer = NoteSerializer(data=request.data)
 
         if serializer.is_valid():
             # Would be nice to have a last_modified timestamp we could bump here

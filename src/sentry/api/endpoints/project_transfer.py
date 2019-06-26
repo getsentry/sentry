@@ -50,7 +50,7 @@ class ProjectTransferEndpoint(ProjectEndpoint):
                 status=status.HTTP_403_FORBIDDEN
             )
 
-        email = request.DATA.get('email')
+        email = request.data.get('email')
 
         if email is None:
             return Response(status=status.HTTP_400_BAD_REQUEST)

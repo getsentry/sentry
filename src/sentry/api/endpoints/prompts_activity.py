@@ -64,7 +64,7 @@ class PromptsActivityEndpoint(Endpoint):
 
     def put(self, request):
         serializer = PromptsActivitySerializer(
-            data=request.DATA,
+            data=request.data,
         )
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
@@ -74,7 +74,7 @@ class PromptsActivityEndpoint(Endpoint):
         status = serialized['status']
 
         required_fields = PROMPTS[feature]['required_fields']
-        fields = {k: request.DATA.get(k) for k in required_fields}
+        fields = {k: request.data.get(k) for k in required_fields}
 
         if any(elem is None for elem in fields.values()):
             return Response({'detail': 'Missing required field'}, status=400)

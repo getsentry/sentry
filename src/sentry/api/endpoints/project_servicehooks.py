@@ -117,7 +117,7 @@ class ProjectServiceHooksEndpoint(ProjectEndpoint):
                 'detail': ['You do not have that feature enabled']
             }, status=403)
 
-        validator = ServiceHookValidator(data=request.DATA)
+        validator = ServiceHookValidator(data=request.data)
         if not validator.is_valid():
             return self.respond(validator.errors, status=status.HTTP_400_BAD_REQUEST)
 

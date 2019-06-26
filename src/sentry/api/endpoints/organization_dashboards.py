@@ -54,7 +54,7 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
                                           dashboards belongs to.
         :param string title: the title of the dashboard.
         """
-        serializer = DashboardSerializer(data=request.DATA)
+        serializer = DashboardSerializer(data=request.data)
 
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
