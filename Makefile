@@ -188,7 +188,7 @@ test-magic: node-version-check
 	@echo "--> Building static assets"
 	@$(WEBPACK) --display errors-only
 	@echo "--> Running magic tests"
-	py.test tests/test_automatically.py
+	py.test tests/test_automatically.py --capture=no
 	@echo ""
 
 lint: lint-python lint-js
