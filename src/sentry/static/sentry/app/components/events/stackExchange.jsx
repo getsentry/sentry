@@ -135,6 +135,17 @@ class EventStackExchange extends React.Component {
     );
   };
 
+  renderAskOnStackOverflow() {
+    const title = this.props.event.title;
+    return (
+      <StyledText>
+        <a href={`https://stackoverflow.com/questions/ask?title=${title}`}>
+          Don't see your issue? Ask on Stackoverflow!
+        </a>
+      </StyledText>
+    );
+  }
+
   render() {
     if (this.state.loading) {
       return null;
@@ -154,6 +165,7 @@ class EventStackExchange extends React.Component {
             {this.renderHeaders()}
             <PanelBody>{top3.map(this.renderStackExchangeQuestion)}</PanelBody>
           </Panel>
+          {this.renderAskOnStackOverflow()}
         </div>
       </div>
     );
@@ -187,6 +199,11 @@ const StyledTags = styled('div')`
   float: left;
   position: relative;
   margin-top: 8px;
+  margin-bottom: 8px;
+`;
+
+const StyledText = styled('div')`
+  float: right;
   margin-bottom: 8px;
 `;
 
