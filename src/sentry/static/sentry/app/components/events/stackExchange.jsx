@@ -2,6 +2,8 @@ import React from 'react';
 import {Flex, Box} from 'grid-emotion';
 import PropTypes from 'prop-types';
 import styled from 'react-emotion';
+import $ from 'jquery';
+import queryString from 'query-string';
 
 import Count from 'app/components/count';
 import {Panel, PanelBody, PanelItem} from 'app/components/panels';
@@ -53,17 +55,47 @@ class EventStackExchange extends React.Component {
             return;
           }
 
-          this.setState({
-            query: data.query,
-            questions: data.results.items,
-            loading: false,
-          });
+          const params = {
+            q: data.query,
+            order: 'desc',
+            sort: 'relevance',
+            site: 'stackoverflow',
+            tagged: event.platform,
+          };
+
+          const request = {
+            url: `https://api.stackexchange.com/2.2/search/advanced?${queryString.stringify(
+              params
+            )}`,
+            method: 'GET',
+          };
+
+          // We can't use the API client here since the URL is not scoped under the
+          // API endpoints (which the client prefixes)
+          $.ajax(request)
+            .then(results => {
+              this.setState({
+                query: data.query,
+                questions: results.items,
+                loading: false,
+              });
+            })
+            .fail(err => {
+              this.setState({
+                query: '',
+                loading: false,
+                questions: [],
+                error: err,
+              });
+            });
+
+          // this.setState({
+          //   query: data.query,
+          //   questions: data.results.items,
+          //   loading: false,
+          // });
         },
         error: err => {
-          // TODO: refactor this
-          console.log('oh crap its broken');
-          console.log(err);
-
           this.setState({
             query: '',
             loading: false,

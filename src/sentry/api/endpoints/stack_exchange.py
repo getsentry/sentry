@@ -1,5 +1,5 @@
 from __future__ import absolute_import
-import requests
+# import requests
 import six
 
 from rest_framework.response import Response
@@ -51,19 +51,19 @@ class StackExchangeEndpoint(ProjectEndpoint):
 
             # query stackoverflow
 
-            query_params = {
-                'q': interface_string,
-                'order': 'desc',
-                'sort': 'relevance',
-                'site': 'stackoverflow',
-                'tagged': event.platform
-            }
+            # query_params = {
+            #     'q': interface_string,
+            #     'order': 'desc',
+            #     'sort': 'relevance',
+            #     'site': 'stackoverflow',
+            #     'tagged': event.platform
+            # }
 
-            response = requests.get('https://{}'.format(STACK_EXCHANGE_SEARCH_API), params=query_params)
+            # response = requests.get('https://{}'.format(STACK_EXCHANGE_SEARCH_API), params=query_params)
 
             return Response({
                 'query': interface_string,
-                'results': response.json()
+                # 'results': response.json()
             }, status=200)
 
         # nothing was queried to stackoverflow
