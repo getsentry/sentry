@@ -117,7 +117,6 @@ def get_react_config(context):
         'urlPrefix': options.get('system.url-prefix'),
         'version': version_info,
         'features': enabled_features,
-        'mediaUrl': get_asset_url('sentry', ''),
         'distPrefix': get_asset_url('sentry', 'dist/'),
         'needsUpgrade': needs_upgrade,
         'dsn': get_public_dsn(),
