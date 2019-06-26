@@ -12,6 +12,7 @@ const alphaSortFromKey = function(keyExtractor) {
     const nameA = keyExtractor(a);
     const nameB = keyExtractor(b);
     return nameA.localeCompare(nameB);
+  };
 };
 
 const transformPlatformsToList = ({platforms}) =>
@@ -43,6 +44,7 @@ class IntegrationDocsFetchPlugin {
   constructor({basePath}) {
     this.modulePath = path.join(basePath, DOCS_INDEX_PATH);
   }
+
   apply(compiler) {
     compiler.hooks.beforeRun.tapAsync(
       'IntegrationDocsFetchPlugin',
