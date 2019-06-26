@@ -85,7 +85,7 @@ class OrganizationBuilds extends AsyncView {
         <Panel>
           <PanelHeader>
             <Box flex="1" mr={2} />
-            <Box w={160} mr={2}>
+            <Box w={100} mr={2} className="align-center">
               Errors
             </Box>
             <Box w={160}>When</Box>
@@ -102,7 +102,7 @@ class OrganizationBuilds extends AsyncView {
                       {build.name}
                     </Link>
                   </Box>
-                  <Box w={160} mr={2}>
+                  <Box w={100} mr={2} className="align-center">
                     {build.totalEvents.toLocaleString()}
                   </Box>
                   <Box w={160}>
