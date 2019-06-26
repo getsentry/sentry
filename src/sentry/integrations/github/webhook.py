@@ -408,8 +408,10 @@ class GitHubWebhookBase(View):
             )
             return HttpResponse(status=400)
 
+        event_type = request.META['HTTP_X_GITHUB_EVENT']
+
         try:
-            handler = self.get_handler(request.META['HTTP_X_GITHUB_EVENT'])
+            handler = self.get_handler(event_type)
         except KeyError:
             logger.error(
                 'github.webhook.missing-event',
@@ -418,6 +420,10 @@ class GitHubWebhookBase(View):
             return HttpResponse(status=400)
 
         if not handler:
+            logger.warn('github.webhook.unhandled-event', extra=dict(
+                event_type=event_type,
+                **self.get_logging_data()
+            ))
             return HttpResponse(status=204)
 
         try:
