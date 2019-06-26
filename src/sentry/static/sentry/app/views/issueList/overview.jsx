@@ -23,7 +23,6 @@ import {fetchOrgMembers, indexMembersByProject} from 'app/actionCreators/members
 import {fetchOrganizationTags, fetchTagValues} from 'app/actionCreators/tags';
 import {getUtcDateString} from 'app/utils/dates';
 import {t} from 'app/locale';
-import ConfigStore from 'app/stores/configStore';
 import CursorPoller from 'app/utils/cursorPoller';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
 import ErrorRobot from 'app/components/errorRobot';
@@ -526,19 +525,12 @@ const IssueList = createReactClass({
   },
 
   renderGroupNodes(ids, groupStatsPeriod) {
-    // Restrict this guide to only show for new users (joined < 30 days)
-    // and add guide anchor only to the first issue
-    const userDateJoined = new Date(ConfigStore.get('user').dateJoined);
-    const dateCutoff = new Date();
-    dateCutoff.setDate(dateCutoff.getDate() - 30);
-
     const topIssue = ids[0];
     const {memberList} = this.state;
 
     const {orgId} = this.props.params;
     const groupNodes = ids.map(id => {
-      const hasGuideAnchor = userDateJoined > dateCutoff && id === topIssue;
-
+      const hasGuideAnchor = id === topIssue;
       const group = GroupStore.get(id);
       let members = null;
       if (group && group.project) {

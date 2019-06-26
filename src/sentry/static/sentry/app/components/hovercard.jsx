@@ -41,6 +41,14 @@ class Hovercard extends React.Component {
      * Position tooltip should take relative to the child element
      */
     position: PropTypes.oneOf(VALID_DIRECTIONS),
+    /**
+     * If set, is used INSTEAD OF the hover action to determine whether the hovercard is shown
+     */
+    show: PropTypes.bool,
+    /**
+     * Color of the arrow tip
+     */
+    tipColor: PropTypes.string,
   };
 
   static defaultProps = {
@@ -90,8 +98,9 @@ class Hovercard extends React.Component {
       header,
       body,
       position,
+      show,
+      tipColor,
     } = this.props;
-    const {visible} = this.state;
 
     // Maintain the hovercard class name for BC with less styles
     const cx = classNames('hovercard', className);
@@ -106,19 +115,31 @@ class Hovercard extends React.Component {
       },
     };
 
+    let visible;
+    const containerProps = {
+      'aria-describedby': this.tooltipId,
+      className: containerClassName,
+    };
+    const hovercardProps = {
+      withHeader: !!header,
+      className: cx,
+    };
+
+    if (show === true || show === false) {
+      visible = show;
+    } else {
+      visible = this.state.visible;
+      containerProps.onMouseEnter = hovercardProps.onMouseEnter = this.handleToggleOn;
+      containerProps.onMouseLeave = hovercardProps.onMouseLeave = this.handleToggleOff;
+    }
+
     return (
       <Manager>
         <Reference>
           {({ref}) => (
-            <Container
-              innerRef={ref}
-              aria-describedby={this.tooltipId}
-              onMouseEnter={this.handleToggleOn}
-              onMouseLeave={this.handleToggleOff}
-              className={containerClassName}
-            >
+            <span ref={ref} {...containerProps}>
               {this.props.children}
-            </Container>
+            </span>
           )}
         </Reference>
         {visible &&
@@ -126,14 +147,11 @@ class Hovercard extends React.Component {
             <Popper placement={position} modifiers={modifiers}>
               {({ref, style, placement, arrowProps}) => (
                 <StyledHovercard
-                  innerRef={ref}
                   visible={visible}
-                  withHeader={!!header}
+                  innerRef={ref}
                   style={style}
                   placement={placement}
-                  onMouseEnter={this.handleToggleOn}
-                  onMouseLeave={this.handleToggleOff}
-                  className={cx}
+                  {...hovercardProps}
                 >
                   {header && <Header>{header}</Header>}
                   {body && <Body className={bodyClassName}>{body}</Body>}
@@ -141,6 +159,7 @@ class Hovercard extends React.Component {
                     innerRef={arrowProps.ref}
                     style={arrowProps.style}
                     placement={placement}
+                    tipColor={tipColor}
                   />
                 </StyledHovercard>
               )}
@@ -204,10 +223,6 @@ const StyledHovercard = styled('div')`
   ${p => (p.placement === 'right' ? 'margin-left: 15px' : '')};
 `;
 
-const Container = styled('span')`
-  position: relative;
-`;
-
 const Header = styled('div')`
   font-size: 14px;
   background: ${p => p.theme.offWhite};
@@ -263,7 +278,7 @@ const HovercardArrow = styled('span')`
   &::after {
     border: 10px solid transparent;
     /* stylelint-disable-next-line property-no-unknown */
-    border-${getTipDirection}-color: ${getTipColor};
+    border-${getTipDirection}-color: ${p => p.tipColor || getTipColor()};
   }
 `;
 

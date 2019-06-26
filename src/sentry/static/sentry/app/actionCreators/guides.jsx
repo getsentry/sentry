@@ -1,6 +1,6 @@
 import {Client} from 'app/api';
 import GuideActions from 'app/actions/guideActions';
-import {analytics} from 'app/utils/analytics';
+import {trackAnalyticsEvent} from 'app/utils/analytics';
 
 const api = new Client();
 
@@ -29,22 +29,31 @@ export function closeGuide() {
   GuideActions.closeGuide();
 }
 
-export function recordFinish(guideId, useful) {
+export function dismissGuide(guideId, step, org) {
+  recordDismiss(guideId, step, org);
+  closeGuide();
+}
+
+export function recordFinish(guideId, org) {
   api.request('/assistant/', {
     method: 'PUT',
     data: {
       guide_id: guideId,
       status: 'viewed',
-      useful,
     },
   });
-  analytics('assistant.guide_finished', {
+  const data = {
+    eventKey: 'assistant.guide_finished',
+    eventName: 'Assistant Guide Finished',
     guide: guideId,
-    useful,
-  });
+  };
+  if (org) {
+    data.organization_id = parseInt(org.id, 10);
+  }
+  trackAnalyticsEvent(data);
 }
 
-export function recordDismiss(guideId, step) {
+export function recordDismiss(guideId, step, org) {
   api.request('/assistant/', {
     method: 'PUT',
     data: {
@@ -52,8 +61,14 @@ export function recordDismiss(guideId, step) {
       status: 'dismissed',
     },
   });
-  analytics('assistant.guide_dismissed', {
+  const data = {
+    eventKey: 'assistant.guide_dismissed',
+    eventName: 'Assistant Guide Dismissed',
     guide: guideId,
     step,
-  });
+  };
+  if (org) {
+    data.organization_id = parseInt(org.id, 10);
+  }
+  trackAnalyticsEvent(data);
 }
