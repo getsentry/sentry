@@ -18,4 +18,5 @@ def test_the_magic(db, live_server, default_user, default_group, default_event):
         '--url', live_server.url + '/',
         '--username', default_user.username,
         '--password', 'admin',
+        '--concurrency', '1',
     ], env=os.environ)

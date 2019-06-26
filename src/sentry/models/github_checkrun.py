@@ -60,8 +60,8 @@ class GitHubCheckRun(Model):
             'completed_at': timezone.now().isoformat(),
             'output': {
                 'title': 'Sentry Report',
-                'summary': 'There were {} issues detected.'.format(
-                    0
+                'summary': 'There were a total of {} errors automatically identified.'.format(
+                    build.total_events,
                 ),
             }
         }

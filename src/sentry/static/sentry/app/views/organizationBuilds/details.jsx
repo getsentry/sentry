@@ -52,7 +52,7 @@ class OrganizationBuildDetails extends AsyncView {
 
         {build.approvedBy && (
           <Alert type="info" icon="icon-circle-info">
-            This build was approved by <strong>{build.approvedBy.name}</strong>.
+            This bugs were approved by <strong>{build.approvedBy.name}</strong>.
           </Alert>
         )}
 

@@ -39,12 +39,16 @@ export default class BuildHeader extends Component {
     return (
       <div className="release-details">
         <div className="row">
-          <div className="col-sm-10 col-xs-10">
+          <div className="col-sm-8 col-xs-8">
             <h3>{t('Build Details')}</h3>
             <div className="release-meta">{build.name}</div>
           </div>
           <div className="col-sm-2">
-            <h6 className="nav-header">{t('Status')}</h6>
+            <h6 className="nav-header">{t('Errors')}</h6>
+            <div className="release-meta">{build.totalEvents.toLocaleString()}</div>
+          </div>
+          <div className="col-sm-2">
+            <h6 className="nav-header">{t('Action')}</h6>
             {build.status === 'needs_approved' && (
               <Button
                 priority="success"

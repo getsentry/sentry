@@ -318,7 +318,7 @@ class Crawler {
 
   const crawler = new Crawler({
     domains: [initialUrl.host],
-    maxConcurrency: 3,
+    maxConcurrency: argv.concurrency || 3,
     screenshots,
     formConfigs: {
       [`http://${initialUrl.host}/auth/login/`]: {

@@ -245,6 +245,7 @@ def post_process_group(event, is_new, is_regression, is_sample, is_new_group_env
 
 def index_build_context(event):
     from django.db import transaction
+    from django.db.models import F
     from hashlib import sha1
     from sentry.models import Build, BuildStatus, GitHubCheckRun
 
@@ -268,10 +269,13 @@ def index_build_context(event):
                 status=BuildStatus.NEEDS_APPROVED,
                 organization_id=event.project.organization_id,
                 build_id=context['id'],
+                total_events=1,
                 **params
             ),
         )
         fields_to_update = {}
+        if not created:
+            fields_to_update['total_events'] = F('total_events') + 1
         for key, value in params.items():
             if getattr(build, key) != value:
                 fields_to_update[key] = value
