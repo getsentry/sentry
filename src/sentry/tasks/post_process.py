@@ -251,14 +251,13 @@ def index_build_context(event):
 
     context = event.data['contexts']['build']
 
-    # TODO(dcramer):
-    context.setdefault('name', context['id'])
-
-    params = {}
+    params = {
+        # always reset the status
+        'status': BuildStatus.NEEDS_APPROVED,
+        'name': context.get('name') or context['id'],
+    }
     if context.get('commit'):
         params['commit_key'] = context['commit']
-    if context.get('name'):
-        params['name'] = context['name']
 
     with transaction.atomic():
         build, created = Build.objects.get_or_create(
@@ -266,7 +265,6 @@ def index_build_context(event):
             build_id_hash=sha1(context['id']).hexdigest(),
             commit_key=params.get('commit_key') or '',
             defaults=dict(
-                status=BuildStatus.NEEDS_APPROVED,
                 organization_id=event.project.organization_id,
                 build_id=context['id'],
                 total_events=1,
