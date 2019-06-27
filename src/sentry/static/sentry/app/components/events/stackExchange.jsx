@@ -533,12 +533,10 @@ class Settings extends React.Component {
 
   receiveMessage = event => {
     if (event.origin !== window.location.origin) {
-      console.log('wrong origin');
       return;
     }
 
     if (event.source !== this.popup) {
-      console.log('wrong window');
       return;
     }
 
@@ -547,9 +545,6 @@ class Settings extends React.Component {
         this.popup.close();
         this.popup = null;
 
-        const access_token = localStorage.getItem('stackexchange_access_token');
-        console.log('access_token', access_token);
-
         this.props.hasAuthenticated();
       }
     }
@@ -557,8 +552,6 @@ class Settings extends React.Component {
 
   handleAuthenticate = event => {
     event.preventDefault();
-
-    console.log('handleAuthenticate');
 
     const params = {
       client_id: '15653',
