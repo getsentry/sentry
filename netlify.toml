@@ -26,13 +26,11 @@
   from = "/sentry/dist/*"
   to = "/:splat"
   status = 200
-  force = false
 
 [[redirects]]
   from = "/api/*"
   to = "https://sentry.io/api/:splat"
   status = 200
-  headers = {Referer = "https://sentry.io/"}
 
 [[redirects]]
   from = "/just/login"
