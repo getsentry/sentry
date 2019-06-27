@@ -113,7 +113,7 @@ class App extends React.Component {
     });
 
     // eslint-disable-next-line  no-undef
-    const buildData = netlifyBuild;
+    const buildData = window.netlifyBuild || null;
 
     if (buildData) {
       const {commitRef, reviewId, repoUrl} = buildData;

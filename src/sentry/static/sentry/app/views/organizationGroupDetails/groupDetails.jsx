@@ -180,7 +180,7 @@ const GroupDetails = createReactClass({
     const group = this.state.group;
 
     if (!group) {
-      return 'Sentry';
+      return 'Santry';
     }
 
     switch (group.type) {

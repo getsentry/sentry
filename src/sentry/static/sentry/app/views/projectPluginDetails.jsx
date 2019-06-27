@@ -25,7 +25,7 @@ class ProjectPluginDetails extends AsyncView {
     if (plugin && plugin.name) {
       return plugin.name;
     } else {
-      return 'Sentry';
+      return 'Santry';
     }
   }
 

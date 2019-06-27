@@ -134,7 +134,7 @@ const ProjectContext = createReactClass({
     if (this.state.project) {
       return this.state.project.slug;
     }
-    return 'Sentry';
+    return 'Santry';
   },
 
   onProjectChange(projectIds) {

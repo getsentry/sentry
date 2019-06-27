@@ -185,7 +185,7 @@ class SettingsIndex extends React.Component {
                     </li>
                     <li>
                       <ExternalHomeLink href={LINKS.DOCUMENTATION_CLI}>
-                        {t('Sentry CLI')}
+                        {t('Santry CLI')}
                       </ExternalHomeLink>
                     </li>
                   </ul>
@@ -214,7 +214,7 @@ class SettingsIndex extends React.Component {
                     </li>
                     <li>
                       <ExternalHomeLink href={LINKS.GITHUB_ISSUES}>
-                        {t('Sentry on GitHub')}
+                        {t('Santry on GitHub')}
                       </ExternalHomeLink>
                     </li>
                     <li>

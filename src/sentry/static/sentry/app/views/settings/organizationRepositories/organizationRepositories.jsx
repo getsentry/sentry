@@ -76,7 +76,7 @@ export default class OrganizationRepositories extends React.Component {
             <Box mb={1}>
               <HeroIcon src="icon-commit" />
             </Box>
-            <h3>{t('Sentry is better with commit data')}</h3>
+            <h3>{t('Santry is better with commit data')}</h3>
             <TextBlock>
               {t(
                 'Adding one or more repositories will enable enhanced releases and the ability to resolve Sentry Issues via git message.'

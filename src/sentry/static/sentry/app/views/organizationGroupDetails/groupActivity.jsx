@@ -158,7 +158,7 @@ class GroupActivity extends React.Component {
             </ActivityItem>
 
             {group.activity.map(item => {
-              const authorName = item.user ? item.user.name : 'Sentry';
+              const authorName = item.user ? item.user.name : 'Santry';
 
               if (item.type === 'note') {
                 return (
