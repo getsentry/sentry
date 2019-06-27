@@ -27,6 +27,7 @@ class Outcome(IntEnum):
     FILTERED = 1
     RATE_LIMITED = 2
     INVALID = 3
+    ABUSE = 4
 
 
 outcomes = settings.KAFKA_TOPICS[settings.KAFKA_OUTCOMES]

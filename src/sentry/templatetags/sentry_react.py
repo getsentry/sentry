@@ -19,7 +19,6 @@ from sentry.cache import default_cache
 from sentry.models import ProjectKey
 from sentry.utils import auth, json
 from sentry.utils.email import is_smtp_enabled
-from sentry.utils.assets import get_asset_url
 from sentry.utils.support import get_support_mail
 
 register = template.Library()
@@ -102,6 +101,19 @@ def get_public_dsn():
     return result
 
 
+def get_user_context(request):
+    user = getattr(request, 'user', None)
+    result = {'ip_address': request.META['REMOTE_ADDR']}
+    if user and user.is_authenticated():
+        result.update({
+            'email': user.email,
+            'id': user.id,
+        })
+        if user.name:
+            result['name'] = user.name
+    return result
+
+
 @register.simple_tag(takes_context=True)
 def get_react_config(context):
     if 'request' in context:
@@ -110,25 +122,12 @@ def get_react_config(context):
         messages = get_messages(request)
         session = getattr(request, 'session', None)
         is_superuser = is_active_superuser(request)
-        language_code = getattr(request, 'LANGUAGE_CODE', 'en')
+        user_context = get_user_context(request)
     else:
         user = None
         messages = []
         is_superuser = False
-        language_code = 'en'
-
-    # User identity is used by the sentry SDK
-    if request and user:
-        user_identity = {'ip_address': request.META['REMOTE_ADDR']}
-        if user and user.is_authenticated():
-            user_identity.update({
-                'email': user.email,
-                'id': user.id,
-            })
-            if user.name:
-                user_identity['name'] = user.name
-    else:
-        user_identity = {}
+        user_context = {}
 
     enabled_features = []
     if features.has('organizations:create', actor=user):
@@ -145,13 +144,14 @@ def get_react_config(context):
 
     sentry_dsn = get_public_dsn()
 
+    build_id = os.environ.get("TRAVIS_BUILD") or os.environ.get("SENTRY_BUILD_ID") or ''
+
     context = {
         'singleOrganization': settings.SENTRY_SINGLE_ORGANIZATION,
         'supportEmail': get_support_mail(),
         'urlPrefix': options.get('system.url-prefix'),
         'version': version_info,
         'features': enabled_features,
-        'distPrefix': get_asset_url('sentry', 'dist/'),
         'needsUpgrade': needs_upgrade,
         'dsn': sentry_dsn,
         'statuspage': _get_statuspage(),
@@ -168,8 +168,6 @@ def get_react_config(context):
         # It should only be used on a fresh browser nav to a path where an
         # organization is not in context
         'lastOrganization': session['activeorg'] if session and 'activeorg' in session else None,
-        'languageCode': language_code,
-        'userIdentity': user_identity,
         'csrfCookieName': settings.CSRF_COOKIE_NAME,
         'sentryConfig': {
             'dsn': sentry_dsn,
@@ -177,7 +175,10 @@ def get_react_config(context):
             'environment': settings.SENTRY_SDK_CONFIG['environment'],
             'whitelistUrls': list(settings.ALLOWED_HOSTS),
         },
-        'buildData': os.environ.get("TRAVIS_BUILD") or os.environ.get("SENTRY_BUILD_ID") or '',
+        'buildContext': {
+            'id': build_id
+        } if build_id else None,
+        'userContext': user_context,
     }
     if user and user.is_authenticated():
         context.update({

@@ -33,7 +33,10 @@
   <title>{% block title %}Sentry{% endblock %}</title>
 
   <script>
+    window.csrfCookieName = '{{ CSRF_COOKIE_NAME }}';
+    window.__sentryGlobalStaticPrefix = '{% asset_url "sentry" "dist/" %}';
     window.__initialData = {% get_react_config %};
+    window.__languageCode = {{ request.LANGUAGE_CODE|to_json|safe }};
   </script>
 
   {% block scripts %}
