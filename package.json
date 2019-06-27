@@ -26,6 +26,7 @@
     "@types/papaparse": "^4.5.11",
     "@types/react": "^16.7.0",
     "@types/react-bootstrap": "0.32.0",
+    "@types/react-document-title": "^2.0.3",
     "@types/react-dom": "^16.7.0",
     "@types/react-router": "^3.0.20",
     "@types/react-virtualized": "^9.20.1",

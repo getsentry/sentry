@@ -19,13 +19,13 @@ import {Organization, SavedQuery} from '../types';
 
 type SavedQueriesProps = {
   organization: Organization;
-  savedQuery?: SavedQuery;
+  savedQuery: SavedQuery | null;
 };
 
 type SavedQueriesState = {
   isLoading: boolean;
   data: SavedQuery[];
-  topSavedQuery?: SavedQuery;
+  topSavedQuery: SavedQuery | null;
 };
 
 export default class SavedQueries extends React.Component<

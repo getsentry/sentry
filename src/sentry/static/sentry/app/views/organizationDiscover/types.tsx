@@ -74,3 +74,14 @@ export type Organization = {
 export type Project = {
   id: string;
 };
+
+export type GlobalSelection = {
+  projects: number[];
+  environments: string[];
+  datetime: {
+    start: string;
+    end: string;
+    period: string;
+    utc: boolean;
+  };
+};

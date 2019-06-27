@@ -44,8 +44,8 @@ type Props = {
   location: any;
   params: any;
   queryBuilder: any;
-  // savedQuery is provided if it's a saved query
-  savedQuery?: SavedQuery;
+  // savedQuery is not null if it's a saved query
+  savedQuery: SavedQuery | null;
   isEditingSavedQuery: boolean;
   updateSavedQueryData: (q: SavedQuery) => void;
   view: string;

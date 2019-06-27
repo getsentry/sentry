@@ -40,7 +40,7 @@ import {SavedQuery} from '../types';
 type ResultProps = {
   data: any;
   location: any;
-  savedQuery?: SavedQuery; // Provided if it's a saved search
+  savedQuery: SavedQuery | null; // Provided if it's a saved search
   onFetchPage: (nextOrPrev: string) => void;
   onToggleEdit: () => void;
   utc: boolean;

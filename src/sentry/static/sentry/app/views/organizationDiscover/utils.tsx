@@ -5,7 +5,7 @@ import qs from 'query-string';
 
 import {isValidAggregation} from './aggregations/utils';
 import {NON_SNUBA_FIELDS} from './data';
-import {AggregationData} from './types';
+import {AggregationData, SavedQuery} from './types';
 
 const VALID_QUERY_KEYS = [
   'projects',
@@ -121,13 +121,13 @@ export function queryHasChanged(prev: string, next: string): boolean {
  * Takes a saved query and strips associated query metadata in order to match
  * our internal representation of queries.
  */
-export function parseSavedQuery(savedQuery: any): any {
+export function parseSavedQuery(savedQuery: any): SavedQuery {
   // eslint-disable-next-line no-unused-vars
   const {id, name, dateCreated, dateUpdated, createdBy, ...query} = savedQuery;
   return query;
 }
 
-export function fetchSavedQuery(organization: any, queryId: any): any {
+export function fetchSavedQuery(organization: any, queryId: string): any {
   const api = new Client();
   const endpoint = `/organizations/${organization.slug}/discover/saved/${queryId}/`;
 
