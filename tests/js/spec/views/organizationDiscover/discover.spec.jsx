@@ -549,7 +549,9 @@ describe('Discover', function() {
       queryBuilder.fetchWithoutLimit = jest.fn(() => mockResponse);
     });
 
-    it('renders example queries', function() {
+    it.only('renders example queries', function() {
+      console.log(wrapper.debug());
+
       const queries = wrapper.find('IntroContainer').find('ExampleQuery');
       expect(queries).toHaveLength(3);
       expect(queries.first().text()).toContain('Events by stack filename');
