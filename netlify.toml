@@ -34,6 +34,11 @@
   status = 200
 
 [[redirects]]
+  from = "/auth/login/?post"
+  to = "https://sentry.io/auth/login"
+  status = 200
+
+[[redirects]]
   from = "/*"
   to = "/index.html"
   status = 200

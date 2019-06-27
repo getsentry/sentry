@@ -26,7 +26,7 @@ class AuthLoginForm extends React.Component {
     formData.append('username', data.username);
     formData.append('password', data.password);
     try {
-      const response = await fetch('/auth/login/', {
+      const response = await fetch('/auth/login/?post', {
         method: 'POST',
         redirect: 'manual',
         body: formData,
