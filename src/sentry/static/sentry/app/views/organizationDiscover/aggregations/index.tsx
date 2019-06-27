@@ -14,7 +14,7 @@ type AggregationsProps = DiscoverBaseProps & {
   onChange: (value: Aggregation[]) => void;
 };
 
-export default class Aggregations extends React.Component<AggregationsProps, any> {
+export default class Aggregations extends React.Component<AggregationsProps> {
   addRow() {
     const aggregations: any[] = [...this.props.value, [null, null, null]];
     this.props.onChange(aggregations);

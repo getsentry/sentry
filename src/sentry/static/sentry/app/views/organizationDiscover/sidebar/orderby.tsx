@@ -5,7 +5,7 @@ import {t} from 'app/locale';
 import SelectControl from 'app/components/forms/selectControl';
 import space from 'app/styles/space';
 import {SidebarLabel} from '../styles';
-import {DiscoverBaseProps, ReactSelectValue} from '../types';
+import {DiscoverBaseProps, ReactSelectOption} from '../types';
 
 type OrderbyProps = DiscoverBaseProps & {
   value: string;
@@ -63,7 +63,7 @@ export default class Orderby extends React.Component<OrderbyProps> {
               name="orderbyField"
               options={columns}
               value={field}
-              onChange={(val: ReactSelectValue) => this.updateField(val.value)}
+              onChange={(val: ReactSelectOption) => this.updateField(val.value)}
               disabled={disabled}
             />
           </OrderbyField>
@@ -72,7 +72,7 @@ export default class Orderby extends React.Component<OrderbyProps> {
               name="orderbyDirection"
               options={[{value: 'asc', label: 'asc'}, {value: 'desc', label: 'desc'}]}
               value={direction}
-              onChange={(val: ReactSelectValue) => this.updateDirection(val.value)}
+              onChange={(val: ReactSelectOption) => this.updateDirection(val.value)}
               disabled={disabled}
             />
           </OrderbyValue>

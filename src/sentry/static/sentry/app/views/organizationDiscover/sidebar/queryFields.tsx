@@ -24,7 +24,7 @@ import {
 import Orderby from './orderby';
 import {NON_CONDITIONS_FIELDS} from '../data';
 import {getOrderbyFields} from '../utils';
-import {SavedQuery, ReactSelectValue} from '../types';
+import {SavedQuery, ReactSelectOption} from '../types';
 import {QueryBuilder} from '../queryBuilder';
 
 // TODO: Find better way to use wrong styled components
@@ -52,7 +52,7 @@ export default class QueryFields extends React.Component<QueryFieldsProps> {
     return <PlaceholderText>{text}</PlaceholderText>;
   };
 
-  optionRenderer = ({label, isTag}: ReactSelectValue) => {
+  optionRenderer = ({label, isTag}: ReactSelectOption) => {
     return (
       <Option>
         {label}
@@ -113,7 +113,7 @@ export default class QueryFields extends React.Component<QueryFieldsProps> {
             options={fieldOptions}
             optionRenderer={this.optionRenderer}
             value={currentQuery.fields}
-            onChange={(val: ReactSelectValue[]) =>
+            onChange={(val: ReactSelectOption[]) =>
               onUpdateField('fields', val.map(({value}) => value))
             }
             clearable={true}

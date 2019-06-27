@@ -9,11 +9,16 @@ import SelectControl from 'app/components/forms/selectControl';
 import {getInternal, getExternal, isValidCondition, ignoreCase} from './utils';
 import {CONDITION_OPERATORS, ARRAY_FIELD_PREFIXES} from '../data';
 import {PlaceholderText} from '../styles';
-import {DiscoverBaseProps, Condition, ReactSelectState, ReactSelectValue} from '../types';
+import {DiscoverBaseProps, Condition, ReactSelectOption} from '../types';
 
 type ConditionProps = DiscoverBaseProps & {
   value: Condition;
   onChange: (value: Condition) => void;
+};
+
+type ConditionState = {
+  inputValue: string;
+  isOpen: boolean;
 };
 
 const initalState = {
@@ -23,7 +28,7 @@ const initalState = {
 
 export default class ConditionRow extends React.Component<
   ConditionProps,
-  ReactSelectState
+  ConditionState
 > {
   // This is the ref of the inner react-select component
   private select: any;
@@ -34,7 +39,7 @@ export default class ConditionRow extends React.Component<
     this.select.focus();
   }
 
-  handleChange = (option: any) => {
+  handleChange = (option: ReactSelectOption) => {
     const external = getExternal(option.value, this.props.columns);
 
     if (isValidCondition(external, this.props.columns)) {
@@ -95,7 +100,7 @@ export default class ConditionRow extends React.Component<
     });
   }
 
-  filterOptions = (options: ReactSelectValue[]) => {
+  filterOptions = (options: ReactSelectOption[]) => {
     const input = this.state.inputValue;
 
     let optionList = options;
@@ -130,7 +135,7 @@ export default class ConditionRow extends React.Component<
     return optionList.filter(({label}) => label.includes(input));
   };
 
-  isValidNewOption = ({label}: ReactSelectValue) => {
+  isValidNewOption = ({label}: ReactSelectOption) => {
     label = ignoreCase(label);
     return isValidCondition(getExternal(label, this.props.columns), this.props.columns);
   };

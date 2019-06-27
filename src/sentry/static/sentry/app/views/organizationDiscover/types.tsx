@@ -44,12 +44,7 @@ export type Column = {
   isTag?: boolean;
 };
 
-export type ReactSelectState = {
-  inputValue: string;
-  isOpen: boolean;
-};
-
-export type ReactSelectValue = {
+export type ReactSelectOption = {
   label: string;
   value: string;
   isTag?: boolean;

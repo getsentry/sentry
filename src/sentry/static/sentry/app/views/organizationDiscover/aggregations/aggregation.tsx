@@ -5,18 +5,18 @@ import {t} from 'app/locale';
 import SelectControl from 'app/components/forms/selectControl';
 
 import {getInternal, getExternal} from './utils';
-import {
-  Aggregation,
-  ReactSelectState,
-  DiscoverBaseProps,
-  ReactSelectValue,
-} from '../types';
+import {Aggregation, DiscoverBaseProps, ReactSelectOption} from '../types';
 import {PlaceholderText} from '../styles';
 import {ARRAY_FIELD_PREFIXES} from '../data';
 
 type AggregationProps = DiscoverBaseProps & {
   value: Aggregation;
   onChange: (value: Aggregation) => void;
+};
+
+type AggregationState = {
+  inputValue: string;
+  isOpen: boolean;
 };
 
 const initalState = {
@@ -26,7 +26,7 @@ const initalState = {
 
 export default class AggregationRow extends React.Component<
   AggregationProps,
-  ReactSelectState
+  AggregationState
 > {
   // This is the ref of the inner react-select component
   private select: any;
@@ -42,7 +42,7 @@ export default class AggregationRow extends React.Component<
   filterOptions = () => {
     const input = this.state.inputValue;
 
-    let optionList: Array<ReactSelectValue> = [
+    let optionList: Array<ReactSelectOption> = [
       {value: 'count', label: 'count'},
       {value: 'uniq', label: 'uniq(...)'},
       {value: 'avg', label: 'avg(...)'},
@@ -73,7 +73,7 @@ export default class AggregationRow extends React.Component<
     this.select.focus();
   }
 
-  handleChange = (option: any) => {
+  handleChange = (option: ReactSelectOption) => {
     if (option.value === 'uniq' || option.value === 'avg') {
       this.setState({inputValue: option.value}, this.focus);
     } else {
@@ -123,7 +123,7 @@ export default class AggregationRow extends React.Component<
     return <Value {...props} />;
   };
 
-  handleInputChange = (value: any) => {
+  handleInputChange = (value: string) => {
     this.setState({
       inputValue: value,
     });

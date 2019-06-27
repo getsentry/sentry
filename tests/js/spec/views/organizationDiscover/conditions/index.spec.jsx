@@ -17,7 +17,7 @@ describe('Conditions', function() {
   describe('render()', function() {
     it('renders conditions', function() {
       wrapper.setProps({value: conditions});
-      expect(wrapper.find('Condition')).toHaveLength(2);
+      expect(wrapper.find('ConditionRow')).toHaveLength(2);
     });
 
     it('renders empty text if no conditions', function() {
