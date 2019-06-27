@@ -6,11 +6,7 @@ const puppeteer = require('puppeteer');
 const URL = require('url').URL;
 const EventEmitter = require('events');
 const os = require('os');
-//const sleep = require('util').promisify(setTimeout);
-const http = require('http'),
-  https = require('https'),
-  connect = require('connect'),
-  httpProxy = require('http-proxy');
+const sleep = require('util').promisify(setTimeout);
 
 const PAGE_OPTIONS = {
   timeout: 30000,
@@ -356,6 +352,7 @@ class Crawler {
       await page.goto(url, {...PAGE_OPTIONS});
       await this._processPage(page, url);
     } catch (err) {
+      await sleep(3000000);
       // TODO(dcramer): if this throws a ERR_PROXY_CONNECTION_FAILED error we need to abort
       this._errors.push([url, err]);
       console.error(`An error occured on url: ${url}`, err);
@@ -416,48 +413,28 @@ class Proxy {
   }
 
   async init() {
-    const selects = [
-      {
-        query: 'body',
-        func: node => {
-          const stm = node.createStream({outer: false});
-
-          let html = '';
-          stm.on('data', data => {
-            html += data;
-          });
-
-          stm.on('end', () => {
-            //Print out the tag you can also parse it or regex if you want
-            // process.stdout.write('tag:   ' + html + '\n');
-            // process.stdout.write('end:   ' + node.name + '\n');
-
-            //Now on the write side of the stream write some data using .end()
-            //N.B. if end isn't called it will just hang.
-            stm.end(this.getSentryBinding() + html);
-          });
-        },
-      },
-    ];
-
-    const proxy = httpProxy.createProxyServer({
-      target: this.url,
-      agent: this.url.indexOf('https') === 0 ? https.globalAgent : http.globalAgent,
-      headers: {host: new URL(this.url).host},
+    this._server = await this.makeProxy();
+    this._server.onError((ctx, err, errorKind) => {
+      var url = ctx && ctx.clientToProxyRequest ? ctx.clientToProxyRequest.url : '';
+      console.error(errorKind + ' on ' + url + ':', err);
     });
 
-    const app = connect();
-    app.use(require('harmon')([], selects, true));
-    app.use((req, res) => {
-      try {
-        proxy.web(req, res);
-      } catch (err) {
-        console.error('HIT THE ERROR222', err);
+    this._server.onRequest((ctx, callback) => {
+      console.log(ctx.clientToProxyRequest.headers.host, new URL(this.url).host);
+      if (ctx.clientToProxyRequest.headers.host == new URL(this.url).host) {
+        ctx.onResponseData((ctx, chunk, callback) => {
+          console.log(
+            chunk.toString().replace(/(<body[^>]+)>/g, `$1${this.getSentryBinding()}`)
+          );
+          chunk = new Buffer(
+            chunk.toString().replace(/(<body[^>]+)>/g, `$1${this.getSentryBinding()}`)
+          );
+          // console.log(chunk.toString());
+          return callback(null, chunk);
+        });
       }
+      return callback();
     });
-
-    this._server = http.createServer(app);
-    this._server.listen(this.port);
   }
 
   async close() {
@@ -465,6 +442,49 @@ class Proxy {
       this._server.close();
       this._server = null;
     }
+  }
+
+  async makeProxy() {
+    const Proxy = require('http-mitm-proxy');
+    const {promisify} = require('util');
+    const {exec} = require('child_process');
+
+    const execPromise = promisify(exec);
+
+    // LINUX
+    // const nssDbPath = os.homedir() + '/.pki/nssdb';
+    // try {
+    //   fs.statSync(nssDbPath);
+    // } catch (err) {
+    //   fs.mkdirSync(nssDbPath, {recursive: true});
+    //   await execPromise('certutil -d sql:$HOME/.pki/nssdb -N --empty-password');
+    // }
+
+    const proxy = Proxy();
+    proxy.use(Proxy.wildcard);
+    proxy.use(Proxy.gunzip);
+    return new Promise((resolve, reject) => {
+      proxy.listen({port: this.port, silent: !this.debug}, async err => {
+        if (err) return reject(err);
+        // Add CA certificate to chromium and return initialize proxy object
+        await execPromise(
+          'openssl x509 -outform der -in ./.http-mitm-proxy/certs/ca.pem -out ./.http-mitm-proxy/certs/ca.crt'
+        );
+        await execPromise(
+          'security add-certificate ./.http-mitm-proxy/certs/ca.crt || exit 0'
+        );
+        // await execPromise(
+        //   'security add-trusted-cert ./.http-mitm-proxy/certs/ca.crt || exit 0'
+        // );
+        resolve(proxy);
+        // LINUX
+        // execPromise(
+        //   'certutil -d sql:$HOME/.pki/nssdb -A -t "C,," -n mitm-ca -i ./.http-mitm-proxy/certs/ca.pem'
+        // )
+        //   .then(() => resolve(proxy))
+        //   .catch(reject);
+      });
+    });
   }
 
   getSentryBinding() {
