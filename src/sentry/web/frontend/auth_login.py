@@ -81,21 +81,20 @@ class AuthLoginView(BaseView):
             initial=initial,
         )
 
-    def can_register(self, request, *args, **kwargs):
+    def can_register(self, request):
         return bool(auth.has_user_registration() or request.session.get('can_register'))
 
-    def get_next_uri(self, request, *args, **kwargs):
+    def get_next_uri(self, request):
         next_uri_fallback = None
         if request.session.get('_next') is not None:
             next_uri_fallback = request.session.pop('_next')
         return request.GET.get(REDIRECT_FIELD_NAME, next_uri_fallback)
 
-    def respond_login(self, request, context, *args, **kwargs):
+    def respond_login(self, request, context):
         return self.respond('sentry/login.html', context)
 
-    def handle_basic_auth(self, request, organization=None, *args, **kwargs):
-        can_register = self.can_register(
-            request, organization=organization, *args, **kwargs)
+    def handle_basic_auth(self, request, organization=None):
+        can_register = self.can_register(request)
 
         op = request.POST.get('op')
 
@@ -194,10 +193,10 @@ class AuthLoginView(BaseView):
         }
         context.update(additional_context.run_callbacks(request))
 
-        return self.respond_login(request, context, organization=organization, *args, **kwargs)
+        return self.respond_login(request, context)
 
-    def handle_authenticated(self, request, *args, **kwargs):
-        next_uri = self.get_next_uri(request, *args, **kwargs)
+    def handle_authenticated(self, request):
+        next_uri = self.get_next_uri(request)
         if auth.is_valid_redirect(next_uri, host=request.get_host()):
             return self.redirect(next_uri)
         return self.redirect_to_org(request)
@@ -209,12 +208,12 @@ class AuthLoginView(BaseView):
 
     # XXX(dcramer): OAuth provider hooks this view
     def get(self, request, *args, **kwargs):
-        next_uri = self.get_next_uri(request, *args, **kwargs)
+        next_uri = self.get_next_uri(request)
         if request.user.is_authenticated():
             # if the user is a superuser, but not 'superuser authenticated'
             # we allow them to re-authenticate to gain superuser status
             if not request.user.is_superuser or is_active_superuser(request):
-                return self.handle_authenticated(request, *args, **kwargs)
+                return self.handle_authenticated(request)
 
         request.session.set_test_cookie()
 
@@ -254,4 +253,4 @@ class AuthLoginView(BaseView):
 
             return HttpResponseRedirect(next_uri)
 
-        return self.handle_basic_auth(request, *args, **kwargs)
+        return self.handle_basic_auth(request)
