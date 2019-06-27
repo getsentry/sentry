@@ -377,6 +377,32 @@ if (USE_HOT_MODULE_RELOAD) {
         next();
       }),
   };
+
+  // TODO(epurkhsier): turn this on to test the frontend app the same way it is
+  // deployed onto netlify. That is, run the sentry backend without watchers
+  //
+  //   sentry devserver --no-watchers
+  //
+  // and then start the webpack dev server with this enabled. You'll have to
+  // specify some ports to get it to work right.
+  //
+  //   SENTRY_BACKEND_PORT=8000 SENTRY_WEBPACK_PROXY_PORT=8001 yarn dev-server
+  //
+  // You can then see the sentry frontend at http://localhost:8001
+  if (false) {
+    // TODO(epurkhiser): SPA mode
+    appConfig.devServer = {
+      ...appConfig.devServer,
+
+      publicPath: '/sentry/dist',
+      historyApiFallback: {
+        rewrites: [{from: /^\/.*$/, to: '/sentry/dist/index.html'}],
+      },
+      proxy: {
+        '/api/': `http://localhost:${SENTRY_BACKEND_PORT}/`,
+      },
+    };
+  }
 }
 
 const minificationPlugins = [
