@@ -1,8 +1,6 @@
-import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
 
-import SentryTypes from 'app/sentryTypes';
 import {t} from 'app/locale';
 import TextField from 'app/components/forms/textField';
 import NumberField from 'app/components/forms/numberField';
@@ -26,19 +24,24 @@ import {
 import Orderby from './orderby';
 import {NON_CONDITIONS_FIELDS} from '../data';
 import {getOrderbyFields} from '../utils';
+import {SavedQuery, ReactSelectValue} from '../types';
+import {QueryBuilder} from '../queryBuilder';
 
-export default class QueryFields extends React.Component {
-  static propTypes = {
-    queryBuilder: PropTypes.object.isRequired,
-    onUpdateField: PropTypes.func.isRequired,
-    actions: PropTypes.node.isRequired,
-    isLoading: PropTypes.bool.isRequired,
-    // savedQuery, savedQueryName, and onUpdateName are provided only when it's a saved search
-    savedQuery: SentryTypes.DiscoverSavedQuery,
-    savedQueryName: PropTypes.string,
-    onUpdateName: PropTypes.func,
-  };
+// TODO: Find better way to use wrong styled components
+const DocsLinkAny = DocsLink as any;
 
+type QueryFieldsProps = {
+  queryBuilder: QueryBuilder;
+  onUpdateField: (filedType: string, value: any) => void;
+  actions: any;
+  isLoading: boolean;
+  // savedQuery, savedQueryName, and onUpdateName are provided only when it's a saved search
+  savedQuery?: SavedQuery;
+  savedQueryName?: string;
+  onUpdateName?: (name: string) => void;
+};
+
+export default class QueryFields extends React.Component<QueryFieldsProps> {
   getSummarizePlaceholder = () => {
     const {queryBuilder} = this.props;
     const query = queryBuilder.getInternal();
@@ -49,7 +52,7 @@ export default class QueryFields extends React.Component {
     return <PlaceholderText>{text}</PlaceholderText>;
   };
 
-  optionRenderer = ({label, isTag}) => {
+  optionRenderer = ({label, isTag}: ReactSelectValue) => {
     return (
       <Option>
         {label}
@@ -94,7 +97,7 @@ export default class QueryFields extends React.Component {
                 name="name"
                 value={getDynamicText({value: savedQueryName, fixed: 'query name'})}
                 placeholder={t('Saved search name')}
-                onChange={val => onUpdateName(val)}
+                onChange={(val: string) => onUpdateName && onUpdateName(val)}
               />
             </React.Fragment>
           </Fieldset>
@@ -110,7 +113,9 @@ export default class QueryFields extends React.Component {
             options={fieldOptions}
             optionRenderer={this.optionRenderer}
             value={currentQuery.fields}
-            onChange={val => onUpdateField('fields', val.map(({value}) => value))}
+            onChange={(val: ReactSelectValue[]) =>
+              onUpdateField('fields', val.map(({value}) => value))
+            }
             clearable={true}
             disabled={isLoading}
           />
@@ -145,19 +150,21 @@ export default class QueryFields extends React.Component {
             label={<SidebarLabel>{t('Limit')}</SidebarLabel>}
             placeholder="#"
             value={currentQuery.limit}
-            onChange={val => onUpdateField('limit', typeof val === 'number' ? val : null)}
+            onChange={(val: unknown) =>
+              onUpdateField('limit', typeof val === 'number' ? val : null)
+            }
             disabled={isLoading}
           />
         </Fieldset>
         <Fieldset>{actions}</Fieldset>
         <DocsSeparator />
-        <DocsLink href="https://docs.sentry.io/product/discover/">
+        <DocsLinkAny href="https://docs.sentry.io/product/discover/">
           <DiscoverDocs>
             <DocsIcon src="icon-docs" />
             <DocsLabel>{t('Discover Documentation')}</DocsLabel>
             <StyledInlineSvg src="icon-chevron-right" size="1em" />
           </DiscoverDocs>
-        </DocsLink>
+        </DocsLinkAny>
       </div>
     );
   }

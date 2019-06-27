@@ -41,12 +41,28 @@ function applyDefaults(query: any) {
   return query;
 }
 
+export interface QueryBuilder {
+  load(): void;
+  getInternal: () => any;
+  getExternal: () => any;
+  updateField: (field: string, value: any) => void;
+  fetch: (data?: any, cursor?: string) => Promise<any>;
+  fetchWithoutLimit: (data?: any) => Promise<any>;
+  cancelRequests(): void;
+  getQueryByType(originalQuery: any, type: string): Query;
+  getColumns(): Column[];
+  reset(q: any): void;
+}
+
 /**
  * This function is responsible for storing and managing updates to query state,
  * It applies sensible defaults if query parameters are not provided on
  * initialization.
  */
-export default function createQueryBuilder(initial = {}, organization: Organization) {
+export default function createQueryBuilder(
+  initial = {},
+  organization: Organization
+): QueryBuilder {
   const api = new Client();
   let query = applyDefaults(initial);
 

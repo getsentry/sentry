@@ -1,4 +1,5 @@
 import {analytics} from 'app/utils/analytics';
+import {Organization, Query} from './types';
 
 /**
  * Takes an organization and query and tracks in Redash as discover.query.
@@ -8,8 +9,8 @@ import {analytics} from 'app/utils/analytics';
  * @param {Object} query Query that is sent to Snuba
  * @returns {Void}
  */
-export function trackQuery(organization, query) {
-  const data = {
+export function trackQuery(organization: Organization, query: Query) {
+  const data: Query = {
     org_id: parseInt(organization.id, 10),
     projects: query.projects,
     fields: query.fields,
@@ -21,13 +22,15 @@ export function trackQuery(organization, query) {
     data.limit = query.limit;
   }
 
-  data.conditions = query.conditions.map(condition => {
-    return [
-      condition[0],
-      condition[1],
-      typeof condition[2] === 'string' ? '[REDACTED]' : condition[2],
-    ];
-  });
+  data.conditions =
+    query.conditions &&
+    query.conditions.map(condition => {
+      return [
+        condition[0],
+        condition[1],
+        typeof condition[2] === 'string' ? '[REDACTED]' : condition[2],
+      ];
+    });
 
   analytics('discover.query', data);
 }

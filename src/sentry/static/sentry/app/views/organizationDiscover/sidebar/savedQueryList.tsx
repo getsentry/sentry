@@ -1,7 +1,6 @@
 import React from 'react';
 import moment from 'moment';
 
-import SentryTypes from 'app/sentryTypes';
 import getDynamicText from 'app/utils/getDynamicText';
 
 import LoadingIndicator from 'app/components/loadingIndicator';
@@ -16,24 +15,40 @@ import {
   SavedQueryLink,
   SavedQueryUpdated,
 } from '../styles';
+import {Organization, SavedQuery} from '../types';
 
-export default class SavedQueries extends React.Component {
-  static propTypes = {
-    organization: SentryTypes.Organization.isRequired,
-    // provided if it's a saved query
-    savedQuery: SentryTypes.DiscoverSavedQuery,
-  };
+// TODO: Find better way to use wrong styled components
+const SavedQueryListItemAny = SavedQueryListItem as any;
 
-  constructor(props) {
+type SavedQueriesProps = {
+  organization: Organization;
+  savedQuery: SavedQuery;
+};
+
+type SavedQueriesState = {
+  isLoading: boolean;
+  data: SavedQuery[];
+  topSavedQuery: SavedQuery;
+};
+
+export default class SavedQueries extends React.Component<
+  SavedQueriesProps,
+  SavedQueriesState
+> {
+  constructor(props: SavedQueriesProps) {
     super(props);
-    this.state = {isLoading: true, data: [], topSavedQuery: props.savedQuery};
+    this.state = {
+      isLoading: true,
+      data: [],
+      topSavedQuery: props.savedQuery,
+    };
   }
 
   componentDidMount() {
     this.fetchAll();
   }
 
-  componentWillReceiveProps(nextProps) {
+  componentWillReceiveProps(nextProps: SavedQueriesProps) {
     // Refetch on deletion
     if (!nextProps.savedQuery && this.props.savedQuery !== nextProps.savedQuery) {
       this.fetchAll();
@@ -61,7 +76,7 @@ export default class SavedQueries extends React.Component {
 
   fetchAll() {
     fetchSavedQueries(this.props.organization)
-      .then(data => {
+      .then((data: SavedQuery[]) => {
         this.setState({isLoading: false, data});
       })
       .catch(() => {
@@ -83,13 +98,13 @@ export default class SavedQueries extends React.Component {
     return <Fieldset>{t('No saved queries')}</Fieldset>;
   }
 
-  renderListItem(query) {
+  renderListItem(query: SavedQuery) {
     const {savedQuery} = this.props;
 
     const {id, name, dateUpdated} = query;
     const {organization} = this.props;
     return (
-      <SavedQueryListItem key={id} isActive={savedQuery && savedQuery.id === id}>
+      <SavedQueryListItemAny key={id} isActive={savedQuery && savedQuery.id === id}>
         <SavedQueryLink to={`/organizations/${organization.slug}/discover/saved/${id}/`}>
           {getDynamicText({value: name, fixed: 'saved query'})}
           <SavedQueryUpdated>
@@ -101,7 +116,7 @@ export default class SavedQueries extends React.Component {
             })}
           </SavedQueryUpdated>
         </SavedQueryLink>
-      </SavedQueryListItem>
+      </SavedQueryListItemAny>
     );
   }
 

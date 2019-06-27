@@ -1,11 +1,9 @@
-import PropTypes from 'prop-types';
 import React from 'react';
 import {browserHistory} from 'react-router';
 
 import Button from 'app/components/button';
 import {t, tct} from 'app/locale';
 import {addSuccessMessage, addErrorMessage} from 'app/actionCreators/indicator';
-import SentryTypes from 'app/sentryTypes';
 
 import QueryFields from './queryFields';
 import {createSavedQuery, generateQueryName} from '../utils';
@@ -15,25 +13,27 @@ import {
   QueryActionsGroup,
   QueryFieldsContainer,
 } from '../styles';
+import {Organization, SavedQuery} from '../types';
+import {QueryBuilder} from '../queryBuilder';
 
-export default class NewQuery extends React.Component {
-  static propTypes = {
-    organization: SentryTypes.Organization,
-    queryBuilder: PropTypes.object.isRequired,
-    onRunQuery: PropTypes.func.isRequired,
-    onReset: PropTypes.func.isRequired,
-    onUpdateField: PropTypes.func.isRequired,
-    isFetchingQuery: PropTypes.bool.isRequired,
-    isLoading: PropTypes.bool.isRequired,
-  };
+type NewQueryProps = {
+  organization: Organization;
+  queryBuilder: QueryBuilder;
+  onRunQuery: () => void;
+  onReset: () => void;
+  onUpdateField: () => void;
+  isFetchingQuery: boolean;
+  isLoading: boolean;
+};
 
+export default class NewQuery extends React.Component<NewQueryProps> {
   saveQuery() {
     const {organization, queryBuilder} = this.props;
     const savedQueryName = generateQueryName();
     const data = {...queryBuilder.getInternal(), name: savedQueryName};
 
     createSavedQuery(organization, data)
-      .then(savedQuery => {
+      .then((savedQuery: SavedQuery) => {
         addSuccessMessage(tct('Successfully saved query [name]', {name: savedQueryName}));
         browserHistory.push({
           pathname: `/organizations/${organization.slug}/discover/saved/${
@@ -42,7 +42,7 @@ export default class NewQuery extends React.Component {
           query: {editing: true},
         });
       })
-      .catch(err => {
+      .catch((err: any) => {
         const message = (err && err.detail) || t('Could not save query');
         addErrorMessage(message);
       });

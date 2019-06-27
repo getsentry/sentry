@@ -1,4 +1,3 @@
-import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
 
@@ -6,46 +5,48 @@ import {t} from 'app/locale';
 import SelectControl from 'app/components/forms/selectControl';
 import space from 'app/styles/space';
 import {SidebarLabel} from '../styles';
+import {DiscoverBaseProps, ReactSelectValue} from '../types';
 
-export default class Orderby extends React.Component {
-  static propTypes = {
-    value: PropTypes.string.isRequired,
-    columns: PropTypes.array.isRequired,
-    onChange: PropTypes.func.isRequired,
-    disabled: PropTypes.bool,
-  };
+type OrderbyProps = DiscoverBaseProps & {
+  value: string;
+  onChange: (value: string) => void;
+};
 
-  updateField(field) {
+type OrderbyValue = {
+  direction: string;
+  field: string;
+};
+
+export default class Orderby extends React.Component<OrderbyProps> {
+  updateField(field: any) {
     const orderby = this.getInternal(this.props.value);
     orderby.field = field;
     this.props.onChange(this.getExternal(orderby));
   }
 
-  updateDirection(direction) {
+  updateDirection(direction: string) {
     const orderby = this.getInternal(this.props.value);
     orderby.direction = direction;
     this.props.onChange(this.getExternal(orderby));
   }
 
   /**
-   * @param {Object} value Object containing orderby information
-   * @returns {String}
+   * @param value Object containing orderby information
    */
-  getExternal(value) {
+  getExternal(value: OrderbyValue) {
     return `${value.direction === 'desc' ? '-' : ''}${value.field}`;
   }
 
   /**
-   * @param {String} value String containing orderby information
-   * @returns {Object}
+   * @param value String containing orderby information
    */
-  getInternal(value) {
+  getInternal(value: string) {
     const direction = value.startsWith('-') ? 'desc' : 'asc';
     const field = value.replace(/^-/, '');
     return {
       direction,
       field,
-    };
+    } as OrderbyValue;
   }
 
   render() {
@@ -62,7 +63,7 @@ export default class Orderby extends React.Component {
               name="orderbyField"
               options={columns}
               value={field}
-              onChange={val => this.updateField(val.value)}
+              onChange={(val: ReactSelectValue) => this.updateField(val.value)}
               disabled={disabled}
             />
           </OrderbyField>
@@ -71,7 +72,7 @@ export default class Orderby extends React.Component {
               name="orderbyDirection"
               options={[{value: 'asc', label: 'asc'}, {value: 'desc', label: 'desc'}]}
               value={direction}
-              onChange={val => this.updateDirection(val.value)}
+              onChange={(val: ReactSelectValue) => this.updateDirection(val.value)}
               disabled={disabled}
             />
           </OrderbyValue>
