@@ -78,25 +78,10 @@ def get_react_config(context):
         messages = get_messages(request)
         session = getattr(request, 'session', None)
         is_superuser = is_active_superuser(request)
-        language_code = getattr(request, 'LANGUAGE_CODE', 'en')
     else:
         user = None
         messages = []
         is_superuser = False
-        language_code = 'en'
-
-    # User identity is used by the sentry SDK
-    if request and user:
-        user_identity = {'ip_address': request.META['REMOTE_ADDR']}
-        if user and user.is_authenticated():
-            user_identity.update({
-                'email': user.email,
-                'id': user.id,
-            })
-            if user.name:
-                user_identity['name'] = user.name
-    else:
-        user_identity = {}
 
     enabled_features = []
     if features.has('organizations:create', actor=user):
@@ -117,7 +102,6 @@ def get_react_config(context):
         'urlPrefix': options.get('system.url-prefix'),
         'version': version_info,
         'features': enabled_features,
-        'distPrefix': get_asset_url('sentry', 'dist/'),
         'needsUpgrade': needs_upgrade,
         'dsn': get_public_dsn(),
         'statuspage': _get_statuspage(),
@@ -134,14 +118,6 @@ def get_react_config(context):
         # It should only be used on a fresh browser nav to a path where an
         # organization is not in context
         'lastOrganization': session['activeorg'] if session and 'activeorg' in session else None,
-        'languageCode': language_code,
-        'userIdentity': user_identity,
-        'csrfCookieName': settings.CSRF_COOKIE_NAME,
-        'sentryConfig': {
-            'dsn': get_public_dsn(),
-            'release': version_info['build'],
-            'whitelistUrls': list(settings.ALLOWED_HOSTS),
-        },
     }
     if user and user.is_authenticated():
         context.update({
