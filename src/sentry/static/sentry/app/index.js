@@ -1,6 +1,6 @@
 import '@babel/polyfill';
 
-const BOOTSTRAP_URL = '/api/client-config/';
+const BOOTSTRAP_URL = '/api/client-config';
 
 const bootApplication = data => {
   const {distPrefix, csrfCookieName, sentryConfig, userIdentity} = data;
