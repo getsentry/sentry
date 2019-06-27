@@ -55,6 +55,12 @@ const SKIPPED_RESOURCES = [
   '/manage/queue/',
 ];
 
+function isLinkAllowed(link, domainList) {
+  if (!domainList) return true;
+  const domain = new URL(link).host;
+  return domainList.find(d => ('.' + domain).indexOf('.' + d) !== -1);
+}
+
 // Ported from http://en.cppreference.com/w/cpp/algorithm/lower_bound
 function lowerBound(array, value, comp) {
   let first = 0;
@@ -231,7 +237,7 @@ class Crawler {
     this.userAgent =
       options.userAgent ||
       'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/67.0.3239.108 Safari/537.36';
-    this.domains = options.domains ? new Set(options.domains) : null;
+    this.domains = options.domains || [];
     this.screenshots = options.screenshots || null;
     this.proxy = options.proxy || null;
     this.headless = options.headless !== false;
@@ -339,7 +345,7 @@ class Crawler {
         SKIPPED_RESOURCES.some(r => requestUrl.indexOf(r) !== -1)
       ) {
         request.abort();
-      } else if (!this._isDomainAllowed(new URL(requestUrl).host)) {
+      } else if (!this._isLinkAllowed(requestUrl)) {
         request.abort();
       } else {
         request.continue();
@@ -378,9 +384,8 @@ class Crawler {
     links.forEach(link => {
       if (!link) return;
       link = link.split('#')[0];
-      const linkDomain = new URL(link).host;
       if (
-        this._isDomainAllowed(linkDomain) &&
+        this._isLinkAllowed(link) &&
         !this._visited.has(link) &&
         !SKIPPED_RESOURCES.some(r => link.indexOf(r) !== -1)
       ) {
@@ -395,9 +400,8 @@ class Crawler {
     return false;
   }
 
-  _isDomainAllowed(domain) {
-    if (!this.domains) return true;
-    return this.domains.has(domain);
+  _isLinkAllowed(link) {
+    return isLinkAllowed(link, this.domains);
   }
 }
 
@@ -408,6 +412,7 @@ class Proxy {
     this.buildId = options.buildId;
     this.port = options.port || 8063;
     this.sentryVersion = options.sentryVersion || '5.4.3';
+    this.domains = options.domains || [];
 
     this._process = null;
   }
@@ -420,7 +425,14 @@ class Proxy {
     });
 
     this._server.onRequest((ctx, callback) => {
-      if (ctx.clientToProxyRequest.headers.host == new URL(this.url).host) {
+      if (
+        isLinkAllowed(
+          `http${ctx.isSSL ? 's' : ''}://${ctx.clientToProxyRequest.headers.host}/${
+            ctx.clientToProxyRequest.url
+          }`,
+          this.domains
+        )
+      ) {
         ctx.onResponseData((ctx, chunk, callback) => {
           chunk = new Buffer(
             chunk.toString().replace(/(<body[^>]+)>/g, `$1${this.getSentryBinding()}`)
@@ -525,6 +537,7 @@ Sentry.configureScope(function(scope) {
     dsn: argv.dsn,
     buildId: argv.buildId,
     debug: argv.debug,
+    domains: allowedDomains,
   });
 
   const crawler = new Crawler({
