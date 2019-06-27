@@ -141,6 +141,22 @@ const localeRestrictionPlugins = [
   ),
 ];
 
+const alphaSortFromKey = function(keyExtractor) {
+  return function(a, b) {
+    const nameA = keyExtractor(a);
+    const nameB = keyExtractor(b);
+    if (nameA < nameB) {
+      return -1;
+    }
+    if (nameA > nameB) {
+      return 1;
+    }
+
+    // names must be equal
+    return 0;
+  };
+};
+
 const transformPlatformsToList = function({platforms}) {
   return Object.keys(platforms)
     .map(platformId => {
@@ -193,7 +209,6 @@ const fetchIntegrationDocsPlatforms =
       };
 
 /**
->>>>>>> Bring back IS_STORYBOOK logic
  * Explicit codesplitting cache groups
  */
 const cacheGroups = {
