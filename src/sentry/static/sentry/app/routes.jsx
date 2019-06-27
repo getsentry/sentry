@@ -655,6 +655,22 @@ function routes() {
         <IndexRoute component={errorHandler(AuthLogin)} />
       </Route>
 
+      <Route path="/account/recover/" component={errorHandler(AuthLayout)}>
+        <IndexRoute
+          componentPromise={() =>
+            import(/* webpackChunkName: "AccountsRecover" */ 'app/views/accounts/recover')
+          }
+          component={errorHandler(LazyLoad)}
+        />
+        <Route
+          path="confirm/:userId/:hash/"
+          componentPromise={() =>
+            import(/* webpackChunkName: "AccountsRecover" */ 'app/views/accounts/recoverConfirm')
+          }
+          component={errorHandler(LazyLoad)}
+        />
+      </Route>
+
       <Redirect from="/account/" to="/settings/account/details/" />
 
       <Route

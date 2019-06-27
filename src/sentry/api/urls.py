@@ -11,6 +11,8 @@ from .endpoints.relay_index import RelayIndexEndpoint
 from .endpoints.relay_details import RelayDetailsEndpoint
 from .endpoints.relay_register import RelayRegisterChallengeEndpoint, \
     RelayRegisterResponseEndpoint
+from .endpoints.account_recover import AccountRecoverEndpoint
+from .endpoints.account_recover_confirm import AccountRecoverConfirmEndpoint
 from .endpoints.api_applications import ApiApplicationsEndpoint
 from .endpoints.api_application_details import ApiApplicationDetailsEndpoint
 from .endpoints.api_authorizations import ApiAuthorizationsEndpoint
@@ -321,6 +323,10 @@ urlpatterns = patterns(
     url(r'^auth/$', AuthIndexEndpoint.as_view(), name='sentry-api-0-auth'),
     url(r'^auth/login/$', AuthLoginEndpoint.as_view(), name='sentry-api-0-auth-login'),
     url(r'^auth/sso_locate/$', AuthSsoLocateEndpoint.as_view(), name='sentry-api-0-auth-sso-locate'),
+    url(r'^account/recover/$', AccountRecoverEndpoint.as_view(), name='sentry-api-0-account-recover'),
+    url(r'^account/recover/confirm/$',
+        AccountRecoverConfirmEndpoint.as_view(),
+        name='sentry-api-0-account-recover-confim'),
 
     # List Authentiactors
     url(r'^authenticators/$',

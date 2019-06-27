@@ -229,10 +229,14 @@ urlpatterns += patterns(
         accounts.confirm_email,
         name='sentry-account-confirm-email'
     ),
-    url(r'^account/recover/$', accounts.recover, name='sentry-account-recover'),
+    url(
+        r'^account/recover/$',
+        anonymous_react_page_view,
+        name='sentry-account-recover'
+    ),
     url(
         r'^account/recover/confirm/(?P<user_id>[\d]+)/(?P<hash>[0-9a-zA-Z]+)/$',
-        accounts.recover_confirm,
+        anonymous_react_page_view,
         name='sentry-account-recover-confirm'
     ),
     url(

@@ -32,7 +32,7 @@ class AuthLogin extends React.Component {
   async fetchData() {
     const {api} = this.props;
     try {
-      const response = await api.requestPromise('/auth/login');
+      const response = await api.requestPromise('/auth/login/');
       this.setState({
         serverHostname: response.serverHostname,
         githubLoginLink: response.github_login_link,
