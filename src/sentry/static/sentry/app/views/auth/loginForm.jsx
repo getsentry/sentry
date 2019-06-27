@@ -21,12 +21,26 @@ class AuthLoginForm extends React.Component {
   };
 
   handleSubmit = async (data, onSuccess, onError) => {
-    const {api} = this.props;
+    const formData = new FormData();
+    formData.append('op', 'login');
+    formData.append('username', data.username);
+    formData.append('password', data.password);
     try {
-      const response = await api.requestPromise('/auth/login/', {
+      const response = await fetch('/auth/login/', {
         method: 'POST',
-        data,
+        redirect: 'manual',
+        body: formData,
       });
+      if (response.status === 302) {
+        document.location = response.headers.get('Location');
+      } else {
+        const err = new Error('Login failed.');
+        err.responseJSON = {
+          detail: 'Invalid username or password.',
+          errors: {},
+        };
+        throw err;
+      }
       onSuccess(data);
 
       // TODO(epurkhiser): There is more we need to do to setup the user. but
