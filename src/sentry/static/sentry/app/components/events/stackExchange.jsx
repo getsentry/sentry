@@ -266,7 +266,7 @@ class StackExchangeResults extends React.PureComponent {
     };
 
     const request = generateRequest({
-      url: `https://api.stackexchange.com/2.2/search/advanced`,
+      url: 'https://api.stackexchange.com/2.2/search/advanced',
       method: 'GET',
       params,
     });
@@ -555,7 +555,7 @@ class Settings extends React.Component {
 
   renderAuthenticationMessage = () => {
     if (this.state.authenticated) {
-      return <span>{t(`You are authenticated`)}</span>;
+      return <span>{t('You are authenticated')}</span>;
     }
 
     return (
