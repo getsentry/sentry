@@ -17,6 +17,7 @@ import GuideAnchor from 'app/components/assistant/guideAnchor';
 import DropdownAutoComplete from 'app/components/dropdownAutoComplete';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
 import LoadingIndicator from 'app/components/loadingIndicator';
+import ConsolidatedScopes from 'app/utils/consolidatedScopes';
 
 const generateRequest = input => {
   const {params = {}, ...request} = input;
@@ -441,13 +442,70 @@ class StackExchangeResults extends React.PureComponent {
 }
 
 class Settings extends React.Component {
+  state = {
+    authenticated: false,
+  };
+
   popup = null;
 
+  // eslint-disable-next-line react/sort-comp
+  _isMounted = false;
+
   componentDidMount() {
+    this._isMounted = true;
+
     window.addEventListener('message', this.receiveMessage, false);
+
+    const expected_access_token = localStorage.getItem('stackexchange_access_token');
+
+    if (expected_access_token) {
+      const request = generateRequest({
+        url: `https://api.stackexchange.com/2.2/access-tokens/${expected_access_token}`,
+        method: 'GET',
+      });
+
+      $.ajax(request)
+        .then(results => {
+          if (!this._isMounted) {
+            return;
+          }
+
+          const actual_access_token = _.get(results, 'items');
+
+          console.log('authcheck', results);
+          console.log('actual_access_token', actual_access_token);
+
+          const authenticated = actual_access_token === expected_access_token;
+
+          this.setState({
+            authenticated,
+          });
+        })
+        .fail(err => {
+          if (!this._isMounted) {
+            return;
+          }
+
+          const object = {a: [{b: {c: 3}}]};
+
+          console.log(_.get(object, ['a', '0', 'b', 'c']));
+
+          const error_id = _.get(err, 'responseJSON.error_id');
+
+          console.log('error_id', error_id);
+          console.log('error_id', err.responseJSON.raw);
+
+          console.log('authcheck err', err);
+
+          this.setState({
+            authenticated: false,
+          });
+        });
+    }
   }
 
   componentWillUnmount() {
+    this._isMounted = false;
     window.removeEventListener('message', this.receiveMessage, false);
   }
 
@@ -480,7 +538,7 @@ class Settings extends React.Component {
 
     const params = {
       client_id: '15653',
-      redirect_uri: 'http://localhost:8000/implicitoauth/',
+      redirect_uri: `${window.location.origin}/implicitoauth/`,
       scope: 'no_expiry',
     };
 
@@ -495,6 +553,18 @@ class Settings extends React.Component {
     );
   };
 
+  renderAuthenticationMessage = () => {
+    if (this.state.authenticated) {
+      return <span>{t(`You are authenticated`)}</span>;
+    }
+
+    return (
+      <a href="#authenticate" onClick={this.handleAuthenticate}>
+        Authenticate through StackExchange
+      </a>
+    );
+  };
+
   render() {
     return (
       <Panel>
@@ -505,11 +575,7 @@ class Settings extends React.Component {
             </Box>
           </StyledFlex>
         </Sticky>
-        <EmptyMessage>
-          <a href="#authenticate" onClick={this.handleAuthenticate}>
-            Authenticate
-          </a>
-        </EmptyMessage>
+        <EmptyMessage>{this.renderAuthenticationMessage()}</EmptyMessage>
       </Panel>
     );
   }
