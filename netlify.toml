@@ -37,6 +37,8 @@
   from = "/just/*"
   to = "https://sentry.io/auth/:splat"
   status = 200
+  headers = {Referer = "https://sentry.io/auth/login"}
+
 
 [[redirects]]
   from = "/*"

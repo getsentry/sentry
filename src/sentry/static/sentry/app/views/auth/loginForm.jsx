@@ -40,7 +40,7 @@ class AuthLoginForm extends React.Component {
         body: formData,
       });
       if (response.status === 302) {
-        document.location = response.headers.get('Location');
+        document.location = '/organizations/default';
       } else {
         const err = new Error('Login failed.');
         err.responseJSON = {
