@@ -1,22 +1,27 @@
 #!/usr/bin/env node
 
 const argv = require('yargs').argv;
-
 const fs = require('fs');
 const puppeteer = require('puppeteer');
 const URL = require('url').URL;
 const EventEmitter = require('events');
 const os = require('os');
+//const sleep = require('util').promisify(setTimeout);
+const http = require('http'),
+  https = require('https'),
+  connect = require('connect'),
+  httpProxy = require('http-proxy');
 
 const PAGE_OPTIONS = {
-  timeout: 25000,
-  waitUntil: 'networkidle0',
+  timeout: 30000,
+  waitUntil: 'networkidle2',
 };
 
 const DEFAULT_ARGS = [
   '--disable-setuid-sandbox',
   '--no-sandbox',
   '--blink-settings=imagesEnabled=false',
+  '--proxy-bypass-list=browser.sentry-cdn.com;sentry.io',
 ];
 
 const BLOCKED_RESOURCE_TYPES = [
@@ -79,7 +84,9 @@ class SessionCache {
   }
 
   clear() {
-    this._storage.clear();
+    if (this._storage) {
+      this._storage.clear();
+    }
     return Promise.resolve();
   }
 
@@ -230,6 +237,9 @@ class Crawler {
       'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/67.0.3239.108 Safari/537.36';
     this.domains = options.domains ? new Set(options.domains) : null;
     this.screenshots = options.screenshots || null;
+    this.proxy = options.proxy || null;
+    this.headless = options.headless !== false;
+
     this._browser = null;
     this._errors = [];
     this._cache = new SessionCache();
@@ -252,9 +262,13 @@ class Crawler {
 
   async getBrowser() {
     if (this._browser) return this._browser;
+    let args = [...DEFAULT_ARGS];
+    if (this.proxy) {
+      args.push(`--proxy-server=${this.proxy}`);
+    }
     this._browser = await puppeteer.launch({
-      args: DEFAULT_ARGS,
-      headless: true,
+      args: args,
+      headless: this.headless,
       ignoreHTTPSErrors: true,
     });
     return this._browser;
@@ -279,8 +293,6 @@ class Crawler {
     // have changed
 
     const url = initialUrl || page.url();
-    this._count += 1;
-    console.log(`${this._count}. ${url}`);
 
     if (this.screenshots) {
       let fileName = new URL(url).pathname.replace(/(\.|\/|:|%|#)/g, '_');
@@ -310,6 +322,8 @@ class Crawler {
       // https://github.com/GoogleChrome/puppeteer/issues/1412
       page.click(formData.submitElement);
       await page.waitForNavigation({...PAGE_OPTIONS});
+      this._count += 1;
+      console.log(`${this._count}. ${page.url()}`);
       await this._processPage(page);
     }
   }
@@ -322,7 +336,9 @@ class Crawler {
 
     page.on('request', request => {
       const requestUrl = request._url.split('?')[0].split('#')[0];
-      if (
+      if (this._isSentryResource(requestUrl)) {
+        request.continue();
+      } else if (
         BLOCKED_RESOURCE_TYPES.indexOf(request.resourceType()) !== -1 ||
         SKIPPED_RESOURCES.some(r => requestUrl.indexOf(r) !== -1)
       ) {
@@ -335,9 +351,12 @@ class Crawler {
     });
 
     try {
+      this._count += 1;
+      console.log(`${this._count}. ${url}`);
       await page.goto(url, {...PAGE_OPTIONS});
       await this._processPage(page, url);
     } catch (err) {
+      // TODO(dcramer): if this throws a ERR_PROXY_CONNECTION_FAILED error we need to abort
       this._errors.push([url, err]);
       console.error(`An error occured on url: ${url}`, err);
     } finally {
@@ -349,8 +368,12 @@ class Crawler {
     await this._queue.onIdle();
   }
 
+  errors() {
+    return this._errors;
+  }
+
   hasErrors() {
-    return this._errors.length;
+    return !!this._errors.length;
   }
 
   async _discoverLinks(page) {
@@ -369,9 +392,102 @@ class Crawler {
     });
   }
 
+  _isSentryResource(url) {
+    if (url.indexOf('https://browser.sentry-cdn.com') === 0) return true;
+    if (url.indexOf('https://sentry.io/api/') === 0) return true;
+    return false;
+  }
+
   _isDomainAllowed(domain) {
     if (!this.domains) return true;
     return this.domains.has(domain);
+  }
+}
+
+class Proxy {
+  constructor(options) {
+    this.url = options.url;
+    this.dsn = options.dsn;
+    this.buildId = options.buildId;
+    this.port = options.port || 8063;
+    this.sentryVersion = options.sentryVersion || '5.4.3';
+
+    this._process = null;
+  }
+
+  async init() {
+    const selects = [
+      {
+        query: 'body',
+        func: node => {
+          const stm = node.createStream({outer: false});
+
+          let html = '';
+          stm.on('data', data => {
+            html += data;
+          });
+
+          stm.on('end', () => {
+            //Print out the tag you can also parse it or regex if you want
+            // process.stdout.write('tag:   ' + html + '\n');
+            // process.stdout.write('end:   ' + node.name + '\n');
+
+            //Now on the write side of the stream write some data using .end()
+            //N.B. if end isn't called it will just hang.
+            stm.end(this.getSentryBinding() + html);
+          });
+        },
+      },
+    ];
+
+    const proxy = httpProxy.createProxyServer({
+      target: this.url,
+      agent: this.url.indexOf('https') === 0 ? https.globalAgent : http.globalAgent,
+      headers: {host: new URL(this.url).host},
+    });
+
+    const app = connect();
+    app.use(require('harmon')([], selects, true));
+    app.use((req, res) => {
+      try {
+        proxy.web(req, res);
+      } catch (err) {
+        console.error('HIT THE ERROR222', err);
+      }
+    });
+
+    this._server = http.createServer(app);
+    this._server.listen(this.port);
+  }
+
+  async close() {
+    if (this._server) {
+      this._server.close();
+      this._server = null;
+    }
+  }
+
+  getSentryBinding() {
+    return `
+<script src="https://browser.sentry-cdn.com/${
+      this.sentryVersion
+    }/bundle.min.js" crossorigin="anonymous"></script>
+<script>
+Sentry.init({
+  dsn: ${JSON.stringify(this.dsn)},
+  environment: 'test'
+});
+Sentry.configureScope(function(scope) {
+  scope.setContext("build", {
+    id: ${JSON.stringify(this.buildId)}
+  });
+});
+</script>
+`;
+  }
+
+  address() {
+    return `localhost:${this.port}`;
   }
 }
 
@@ -388,10 +504,19 @@ class Crawler {
   const maxConcurrency = argv.concurrency || os.cpus().length - 1;
   const allowedDomains = [initialUrl.host];
 
+  const proxy = new Proxy({
+    url: argv.url,
+    dsn: argv.dsn,
+    buildId: argv.buildId,
+    debug: argv.debug,
+  });
+
   const crawler = new Crawler({
     domains: allowedDomains,
+    proxy: proxy.address(),
     maxConcurrency,
     screenshots,
+    headless: !argv.debug,
     formConfigs: [
       {
         url: /\/auth\/login\/([^\/]+\/)?$/i,
@@ -404,18 +529,32 @@ class Crawler {
     ],
   });
 
-  console.log('Automating Humans...');
-  console.log(`-> screenshots: ${screenshots}`);
-  console.log(`-> maxConcurrency: ${maxConcurrency}`);
-  console.log(`-> initialUrl: ${argv.url}`);
-  console.log(`-> allowedDomains: ${allowedDomains}`);
-  console.log('');
+  try {
+    console.log('Automating Humans...');
+    console.log(`-> screenshots: ${screenshots}`);
+    console.log(`-> maxConcurrency: ${maxConcurrency}`);
+    console.log(`-> initialUrl: ${argv.url}`);
+    console.log(`-> allowedDomains: ${allowedDomains}`);
+    console.log(`-> proxy: ${proxy.address()}`);
+    console.log('');
 
-  await crawler.init();
-  await crawler.queue(argv.url);
-  await crawler.onIdle();
-  await crawler.close();
-  if (crawler.hasErrors()) process.exit(1);
+    await proxy.init();
+    await crawler.init();
+    await crawler.queue(argv.url);
+    await crawler.onIdle();
+    await crawler.close();
+  } finally {
+    await proxy.close();
+    await crawler.close();
+  }
+  const errors = crawler.errors();
+  if (errors.length) {
+    console.error(`There were ${errors.length} error(s) encountered:`);
+    errors.forEach(([url, error]) => {
+      console.error(`  ${url}: ${error}`);
+    });
+    process.exit(1);
+  }
 })().catch(err => {
   console.error(err);
   process.exit(1);
