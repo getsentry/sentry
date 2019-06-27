@@ -17,7 +17,6 @@ import GuideAnchor from 'app/components/assistant/guideAnchor';
 import DropdownAutoComplete from 'app/components/dropdownAutoComplete';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
 import LoadingIndicator from 'app/components/loadingIndicator';
-import ConsolidatedScopes from 'app/utils/consolidatedScopes';
 
 const generateRequest = input => {
   const {params = {}, ...request} = input;
@@ -122,6 +121,10 @@ class StackExchangeSites extends React.Component {
     sites: [],
     loading: true,
     error: null,
+
+    authenticated: false,
+    ready: false,
+
     currentSite: {
       name: 'Stack Overflow',
       api_site_parameter: 'stackoverflow',
@@ -133,15 +136,71 @@ class StackExchangeSites extends React.Component {
   // eslint-disable-next-line react/sort-comp
   _isMounted = false;
 
-  componentDidMount() {
+  async componentDidMount() {
     this._isMounted = true;
 
-    this.fetchData();
+    const authenticated = await this.checkAccessToken();
+
+    const statePayload = await this.fetchData();
+
+    // eslint-disable-next-line react/no-did-mount-set-state
+    this.setState({
+      authenticated,
+      ready: true,
+      ...statePayload,
+    });
   }
 
   componentWillUnmount() {
     this._isMounted = false;
   }
+
+  checkAccessToken = () => {
+    // returns true if user is authenticated, false otherwise
+    return new Promise(resolve => {
+      const expected_access_token = localStorage.getItem('stackexchange_access_token');
+
+      if (!expected_access_token) {
+        localStorage.removeItem('stackexchange_access_token');
+        resolve(false);
+        return;
+      }
+
+      const request = generateRequest({
+        url: `https://api.stackexchange.com/2.2/access-tokens/${expected_access_token}`,
+        method: 'GET',
+      });
+
+      $.ajax(request)
+        .then(results => {
+          if (!this._isMounted) {
+            return;
+          }
+
+          const actual_access_token = _.get(results, ['items', '0', 'access_token']);
+
+          const authenticated = actual_access_token === expected_access_token;
+
+          resolve(authenticated);
+          return;
+        })
+        .fail(err => {
+          if (!this._isMounted) {
+            return;
+          }
+
+          const error_id = _.get(err, 'responseJSON.error_id');
+
+          if (error_id === 403) {
+            // invalid access token
+            localStorage.removeItem('stackexchange_access_token');
+          }
+
+          resolve(false);
+          return;
+        });
+    });
+  };
 
   fetchData = () => {
     const request = generateRequest({
@@ -149,31 +208,35 @@ class StackExchangeSites extends React.Component {
       method: 'GET',
     });
 
-    // We can't use the API client here since the URL is not scoped under the
-    // API endpoints (which the client prefixes)
-    $.ajax(request)
-      .then(results => {
-        if (!this._isMounted) {
-          return;
-        }
+    return new Promise(resolve => {
+      // We can't use the API client here since the URL is not scoped under the
+      // API endpoints (which the client prefixes)
+      $.ajax(request)
+        .then(results => {
+          if (!this._isMounted) {
+            return;
+          }
 
-        this.setState({
-          sites: results.items,
-          loading: false,
-          error: null,
-        });
-      })
-      .fail(err => {
-        if (!this._isMounted) {
+          resolve({
+            sites: results.items,
+            loading: false,
+            error: null,
+          });
           return;
-        }
+        })
+        .fail(err => {
+          if (!this._isMounted) {
+            return;
+          }
 
-        this.setState({
-          sites: [],
-          loading: false,
-          error: err,
+          resolve({
+            sites: [],
+            loading: false,
+            error: err,
+          });
+          return;
         });
-      });
+    });
   };
 
   onSelect = ({value}) => {
@@ -202,20 +265,28 @@ class StackExchangeSites extends React.Component {
     });
   };
 
+  hasAuthenticated = () => {
+    this.setState({
+      authenticated: true,
+    });
+  };
+
   render() {
     if (this.state.loading) {
       return null;
     }
 
-    // if (!!this.state.error) {
-    //   return null;
-    // }
+    if (!!this.state.error) {
+      return null;
+    }
 
     const childProps = {
       sites: this.state.sites,
       menuList: this.generateMenuList(),
       onSelect: this.onSelect,
       currentSite: this.state.currentSite,
+      authenticated: this.state.authenticated,
+      hasAuthenticated: this.hasAuthenticated,
     };
 
     return this.props.children(childProps);
@@ -442,66 +513,17 @@ class StackExchangeResults extends React.PureComponent {
 }
 
 class Settings extends React.Component {
-  state = {
-    authenticated: false,
+  propTypes = {
+    authenticated: PropTypes.bool.isRequired,
+    hasAuthenticated: PropTypes.func.isRequired,
   };
 
   popup = null;
-
-  // eslint-disable-next-line react/sort-comp
-  _isMounted = false;
 
   componentDidMount() {
     this._isMounted = true;
 
     window.addEventListener('message', this.receiveMessage, false);
-
-    const expected_access_token = localStorage.getItem('stackexchange_access_token');
-
-    if (expected_access_token) {
-      const request = generateRequest({
-        url: `https://api.stackexchange.com/2.2/access-tokens/${expected_access_token}`,
-        method: 'GET',
-      });
-
-      $.ajax(request)
-        .then(results => {
-          if (!this._isMounted) {
-            return;
-          }
-
-          const actual_access_token = _.get(results, 'items');
-
-          console.log('authcheck', results);
-          console.log('actual_access_token', actual_access_token);
-
-          const authenticated = actual_access_token === expected_access_token;
-
-          this.setState({
-            authenticated,
-          });
-        })
-        .fail(err => {
-          if (!this._isMounted) {
-            return;
-          }
-
-          const object = {a: [{b: {c: 3}}]};
-
-          console.log(_.get(object, ['a', '0', 'b', 'c']));
-
-          const error_id = _.get(err, 'responseJSON.error_id');
-
-          console.log('error_id', error_id);
-          console.log('error_id', err.responseJSON.raw);
-
-          console.log('authcheck err', err);
-
-          this.setState({
-            authenticated: false,
-          });
-        });
-    }
   }
 
   componentWillUnmount() {
@@ -527,6 +549,8 @@ class Settings extends React.Component {
 
         const access_token = localStorage.getItem('stackexchange_access_token');
         console.log('access_token', access_token);
+
+        this.props.hasAuthenticated();
       }
     }
   };
@@ -554,7 +578,7 @@ class Settings extends React.Component {
   };
 
   renderAuthenticationMessage = () => {
-    if (this.state.authenticated) {
+    if (this.props.authenticated) {
       return <span>{t('You are authenticated')}</span>;
     }
 
@@ -600,7 +624,14 @@ class StackExchange extends React.Component {
         {({query}) => {
           return (
             <StackExchangeSites>
-              {({sites, menuList, onSelect, currentSite}) => {
+              {({
+                sites,
+                menuList,
+                onSelect,
+                currentSite,
+                authenticated,
+                hasAuthenticated,
+              }) => {
                 return (
                   <div className="extra-data box">
                     <div className="box-header" id="stackexchange">
@@ -649,7 +680,10 @@ class StackExchange extends React.Component {
                     </div>
 
                     <Display visible={this.state.view === 'settings'}>
-                      <Settings />
+                      <Settings
+                        authenticated={authenticated}
+                        hasAuthenticated={hasAuthenticated}
+                      />
                     </Display>
                     <Display visible={this.state.view === 'results'}>
                       <StackExchangeResults
