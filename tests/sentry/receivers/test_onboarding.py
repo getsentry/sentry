@@ -284,13 +284,11 @@ class OrganizationOnboardingTaskTest(TestCase):
         first_event_received.send(
             project=project,
             event=event,
-            group=event.group,
             sender=type(project),
         )
         first_event_received.send(
             project=second_project,
             event=second_event,
-            group=second_event.group,
             sender=type(second_project),
         )
         member_joined.send(member=member, organization=self.organization, sender=type(member))
