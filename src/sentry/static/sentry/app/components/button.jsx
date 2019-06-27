@@ -40,6 +40,10 @@ class Button extends React.Component {
      */
     borderless: PropTypes.bool,
     /**
+     * Text aligment, takes justify-content properties.
+     */
+    align: PropTypes.oneOf(['center', 'left', 'right']),
+    /**
      * Label for screen-readers (`aria-label`).
      * `children` will be used by default (only if it is a string), but this property takes priority.
      */
@@ -54,6 +58,7 @@ class Button extends React.Component {
 
   static defaultProps = {
     disabled: false,
+    align: 'center',
   };
 
   // Intercept onClick and propagate
@@ -90,6 +95,7 @@ class Button extends React.Component {
       children,
       label,
       borderless,
+      align,
       priority,
       disabled,
       tooltipProps,
@@ -121,7 +127,12 @@ class Button extends React.Component {
         onClick={this.handleClick}
         role="button"
       >
-        <ButtonLabel size={size} priority={priority} borderless={borderless}>
+        <ButtonLabel
+          align={align}
+          size={size}
+          priority={priority}
+          borderless={borderless}
+        >
           {icon && (
             <Icon size={size} hasChildren={!!children}>
               <StyledInlineSvg
@@ -277,12 +288,12 @@ const getLabelPadding = ({size, priority, borderless}) => {
   }
 };
 
-const ButtonLabel = styled(({size, priority, borderless, ...props}) => (
+const ButtonLabel = styled(({size, priority, borderless, align, ...props}) => (
   <span {...props} />
 ))`
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: ${p => p.align};
   padding: ${getLabelPadding};
 `;
 

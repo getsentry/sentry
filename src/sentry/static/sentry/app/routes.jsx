@@ -6,6 +6,8 @@ import HookOrDefault from 'app/components/hookOrDefault';
 import HookStore from 'app/stores/hookStore';
 import LazyLoad from 'app/components/lazyLoad';
 import NewProject from 'app/views/projectInstall/newProject';
+import AuthLayout from 'app/views/auth/layout';
+import AuthLogin from 'app/views/auth/login';
 import OnboardingConfigure from 'app/views/onboarding/configure';
 import OnboardingNewProject from 'app/views/onboarding/newProject';
 import OnboardingWizard from 'app/views/onboarding/wizard';
@@ -648,6 +650,26 @@ function routes() {
           )
         }
       />
+
+      <Route path="/auth/login/" component={errorHandler(AuthLayout)}>
+        <IndexRoute component={errorHandler(AuthLogin)} />
+      </Route>
+
+      <Route path="/account/recover/" component={errorHandler(AuthLayout)}>
+        <IndexRoute
+          componentPromise={() =>
+            import(/* webpackChunkName: "AccountsRecover" */ 'app/views/accounts/recover')
+          }
+          component={errorHandler(LazyLoad)}
+        />
+        <Route
+          path="confirm/:userId/:hash/"
+          componentPromise={() =>
+            import(/* webpackChunkName: "AccountsRecover" */ 'app/views/accounts/recoverConfirm')
+          }
+          component={errorHandler(LazyLoad)}
+        />
+      </Route>
 
       <Redirect from="/account/" to="/settings/account/details/" />
 

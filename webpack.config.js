@@ -11,6 +11,7 @@ const CompressionPlugin = require('compression-webpack-plugin');
 const OptimizeCssAssetsPlugin = require('optimize-css-assets-webpack-plugin');
 const LodashModuleReplacementPlugin = require('lodash-webpack-plugin');
 const FixStyleOnlyEntriesPlugin = require('webpack-fix-style-only-entries');
+const CopyPlugin = require('copy-webpack-plugin');
 
 const {env} = process;
 const IS_PRODUCTION = env.NODE_ENV === 'production';
@@ -24,6 +25,13 @@ const SENTRY_BACKEND_PORT = env.SENTRY_BACKEND_PORT;
 const SENTRY_WEBPACK_PROXY_PORT = env.SENTRY_WEBPACK_PROXY_PORT;
 const USE_HOT_MODULE_RELOAD =
   !IS_PRODUCTION && SENTRY_BACKEND_PORT && SENTRY_WEBPACK_PROXY_PORT;
+
+// Netlify deploy preview build data
+const NETLIFY_BUILD_DATA = env.REPOSITORY_URL && {
+  commitRef: env.COMMIT_REF,
+  reviewId: env.REVIEW_ID,
+  repoUrl: env.REPOSITORY_URL,
+};
 
 // this is set by setup.py sdist
 const staticPrefix = path.join(__dirname, 'src/sentry/static/sentry');
@@ -238,6 +246,10 @@ const appConfig = {
      */
     new ExtractTextPlugin(),
     /**
+     * Genreate a index.html file used for running the app in pure SPA mode.
+     */
+    new CopyPlugin([{from: path.join(staticPrefix, 'app', 'index.html')}]),
+    /**
      * Defines environemnt specific flags.
      */
     new webpack.DefinePlugin({
@@ -245,6 +257,7 @@ const appConfig = {
         NODE_ENV: JSON.stringify(env.NODE_ENV),
         IS_PERCY: JSON.stringify(env.CI && !!env.PERCY_TOKEN && !!env.TRAVIS),
       },
+      netlifyBuild: JSON.stringify(NETLIFY_BUILD_DATA),
     }),
     /**
      * See above for locale chunks. These plugins help with that
@@ -364,6 +377,32 @@ if (USE_HOT_MODULE_RELOAD) {
         next();
       }),
   };
+
+  // TODO(epurkhsier): turn this on to test the frontend app the same way it is
+  // deployed onto netlify. That is, run the sentry backend without watchers
+  //
+  //   sentry devserver --no-watchers
+  //
+  // and then start the webpack dev server with this enabled. You'll have to
+  // specify some ports to get it to work right.
+  //
+  //   SENTRY_BACKEND_PORT=8000 SENTRY_WEBPACK_PROXY_PORT=8001 yarn dev-server
+  //
+  // You can then see the sentry frontend at http://localhost:8001
+  if (false) {
+    // TODO(epurkhiser): SPA mode
+    appConfig.devServer = {
+      ...appConfig.devServer,
+
+      publicPath: '/sentry/dist',
+      historyApiFallback: {
+        rewrites: [{from: /^\/.*$/, to: '/sentry/dist/index.html'}],
+      },
+      proxy: {
+        '/api/': `http://localhost:${SENTRY_BACKEND_PORT}/`,
+      },
+    };
+  }
 }
 
 const minificationPlugins = [

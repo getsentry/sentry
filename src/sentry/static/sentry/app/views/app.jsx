@@ -1,21 +1,23 @@
 import $ from 'jquery';
 import {ThemeProvider} from 'emotion-theming';
 import {Tracing} from '@sentry/integrations';
+import {browserHistory} from 'react-router';
+import {get, isEqual} from 'lodash';
 import {getCurrentHub} from '@sentry/browser';
 import {injectGlobal} from 'emotion';
 import Cookies from 'js-cookie';
 import PropTypes from 'prop-types';
 import React from 'react';
 import keydown from 'react-keydown';
-import {get, isEqual} from 'lodash';
 
 import {openCommandPalette} from 'app/actionCreators/modal';
-import {t} from 'app/locale';
+import {t, tct} from 'app/locale';
 import AlertActions from 'app/actions/alertActions';
 import Alerts from 'app/components/alerts';
 import AssistantHelper from 'app/components/assistant/helper';
 import ConfigStore from 'app/stores/configStore';
 import ErrorBoundary from 'app/components/errorBoundary';
+import ExternalLink from 'app/components/links/externalLink';
 import GlobalModal from 'app/components/globalModal';
 import HookStore from 'app/stores/hookStore';
 import Indicators from 'app/components/indicators';
@@ -27,6 +29,9 @@ import getRouteStringFromRoutes from 'app/utils/getRouteStringFromRoutes';
 import theme from 'app/utils/theme';
 import withApi from 'app/utils/withApi';
 import withConfig from 'app/utils/withConfig';
+
+// TODO: Need better way of identifying anonymous pages that don't trigger redirect
+const ALLOWED_ANON_PAGES = [/^\/share\//, /^\/auth\/login\//, /^\/account\/recover/];
 
 function getAlertTypeForProblem(problem) {
   switch (problem.severity) {
@@ -107,10 +112,35 @@ class App extends React.Component {
       });
     });
 
+    // eslint-disable-next-line  no-undef
+    const buildData = netlifyBuild;
+
+    if (buildData) {
+      const {commitRef, reviewId, repoUrl} = buildData;
+      const repoName = repoUrl.match(/\w+\/\w+\/?$/)[0];
+
+      AlertActions.addAlert({
+        message: tct('You are viewing a frontend deploy preview of [pullLink] ([sha])', {
+          pullLink: (
+            <ExternalLink href={`${repoUrl}/pull/${reviewId}`}>
+              {t('%s#%s', repoName, reviewId)}
+            </ExternalLink>
+          ),
+          sha: (
+            <ExternalLink href={`${repoUrl}/commit/${commitRef}`}>
+              @{commitRef.slice(0, 6)}
+            </ExternalLink>
+          ),
+        }),
+        type: 'info',
+        neverExpire: true,
+      });
+    }
+
     $(document).ajaxError(function(evt, jqXHR) {
-      // TODO: Need better way of identifying anonymous pages
-      //       that don't trigger redirect
-      const pageAllowsAnon = /^\/share\//.test(window.location.pathname);
+      const pageAllowsAnon = ALLOWED_ANON_PAGES.find(regex =>
+        regex.test(window.location.pathname)
+      );
 
       // Ignore error unless it is a 401
       if (!jqXHR || jqXHR.status !== 401 || pageAllowsAnon) {
@@ -132,10 +162,9 @@ class App extends React.Component {
         return;
       }
 
-      // Otherwise, user has become unauthenticated; reload URL, and let Django
-      // redirect to login page
+      // Otherwise, the user has become unauthenticated. Send them to auth
       Cookies.set('session_expired', 1);
-      window.location.reload();
+      browserHistory.replace('/auth/login/');
     });
 
     const user = ConfigStore.get('user');

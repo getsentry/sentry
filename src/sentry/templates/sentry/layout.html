@@ -27,9 +27,9 @@
 
   <link rel="mask-icon" sizes="any" href="{% absolute_asset_url "sentry" "images/icons/sentry-glyph-black.svg" %}" color="#FB4226">
 
-  {% block css %}
   <link href="{% asset_url "sentry" "dist/sentry.css" %}" rel="stylesheet"/>
-  {% endblock %}
+
+  {% block css %}{% endblock %}
 
   <title>{% block title %}Sentry{% endblock %}</title>
 
@@ -47,9 +47,6 @@
     window.adblockSuspected = true;
   </script>
   <script src="{% asset_url 'sentry' 'js/ads.js' %}"></script>
-  {% endblock %}
-
-  {% block meta %}
   {% endblock %}
 </head>
 
@@ -94,14 +91,8 @@
     {% include "sentry/partial/alerts.html" %}
     {% endblock %}
 
-    {% block header %}
-    {% endblock %}
-
     <div class="container">
-      {% block above_content %}{% endblock %}
       <div class="content">
-        {% block content_before %}
-        {% endblock %}
         {% block content %}
         <div class="row" id="blk_content">
           <div class="col-md-2">
@@ -114,16 +105,12 @@
           </div>
         </div>
         {% endblock %}
-
-        {% block content_after %}
-        {% endblock %}
       </div>
     </div>
     <footer>
       <div class="container">
         {% block footer %}
         <div class="pull-right">
-          {% block support_link %}{% endblock %}
           <a href="https://docs.sentry.io/hosted/api/">{% trans "API" %}</a>
           <a href="https://docs.sentry.io">{% trans "Docs" %}</a>
           <a href="https://github.com/getsentry/sentry" rel="noreferrer">{% trans "Contribute" %}</a>
