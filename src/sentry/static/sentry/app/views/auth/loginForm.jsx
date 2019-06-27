@@ -38,6 +38,9 @@ class AuthLoginForm extends React.Component {
       const response = await fetch('/just/login', {
         method: 'POST',
         redirect: 'manual',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
         body: payload,
       });
       if (response.status === 302) {
