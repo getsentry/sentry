@@ -35,9 +35,9 @@ ERR_FILE_EXISTS = 'A file matching this debug identifier already exists'
 
 
 def upload_from_request(request, project):
-    if 'file' not in request.FILES:
+    if 'file' not in request.data:
         return Response({'detail': 'Missing uploaded file'}, status=400)
-    fileobj = request.FILES['file']
+    fileobj = request.data['file']
     files = create_files_from_dif_zip(fileobj, project=project)
     return Response(serialize(files, request.user), status=201)
 
