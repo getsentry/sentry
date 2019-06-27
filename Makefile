@@ -184,6 +184,7 @@ endif
 
 test-magic: node-version-check
 	sentry init
+	npm install git+https://git@github.com/getsentry/inhuman.git
 	make build-platform-assets
 	@echo "--> Building static assets"
 	@$(WEBPACK) --display errors-only

@@ -13,8 +13,8 @@ class BugCatcher(object):
 
     def run(self, as_user=None):
         args = [
-            os.path.join(os.path.dirname(__file__), os.pardir, 'bin', 'bug-catcher'),
-            '--url', self.live_server.url + '/',
+            os.path.join(os.path.dirname(__file__), os.pardir, 'node_modules', '.bin', 'inhuman'),
+            self.live_server.url + '/',
         ]
         if as_user:
             args.extend([
