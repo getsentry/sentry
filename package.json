@@ -21,6 +21,7 @@
     "@sentry/integrations": "^5.4.2",
     "@sentry/typescript": "^5.3.0",
     "@types/lodash": "^4.14.134",
+    "@types/prop-types": "^15.7.1",
     "@types/react-dom": "^16.8.4",
     "algoliasearch": "^3.32.0",
     "babel-core": "^7.0.0-bridge.0",
