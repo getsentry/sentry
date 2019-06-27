@@ -34,7 +34,7 @@ class AuthLoginForm extends React.Component {
       }, {}).sc
     );
     try {
-      const response = await fetch('/auth/login', {
+      const response = await fetch('/just/login', {
         method: 'POST',
         redirect: 'manual',
         body: formData,
