@@ -1,8 +1,6 @@
-import PropTypes from 'prop-types';
 import React from 'react';
 import {isEqual} from 'lodash';
 
-import SentryTypes from 'app/sentryTypes';
 import Button from 'app/components/button';
 import {t} from 'app/locale';
 import InlineSvg from 'app/components/inlineSvg';
@@ -15,27 +13,36 @@ import {
   QueryActionsGroup,
   SavedQueryAction,
 } from '../styles';
+import {QueryBuilder} from '../queryBuilder';
+import {SavedQuery} from '../types';
 
-export default class EditSavedQuery extends React.Component {
-  static propTypes = {
-    queryBuilder: PropTypes.object.isRequired,
-    onRunQuery: PropTypes.func.isRequired,
-    savedQuery: SentryTypes.DiscoverSavedQuery,
-    onUpdateField: PropTypes.func.isRequired,
-    onDeleteQuery: PropTypes.func.isRequired,
-    onSaveQuery: PropTypes.func.isRequired,
-    isFetchingQuery: PropTypes.bool.isRequired,
-    isLoading: PropTypes.bool.isRequired,
-  };
+type EditSavedQueryProps = {
+  queryBuilder: QueryBuilder;
+  onRunQuery: () => void;
+  savedQuery: SavedQuery;
+  onUpdateField: () => void;
+  onDeleteQuery: () => void;
+  onSaveQuery: (name: string) => void;
+  isFetchingQuery: boolean;
+  isLoading: boolean;
+};
 
-  constructor(props) {
+type EditSavedQueryState = {
+  savedQueryName: string;
+};
+
+export default class EditSavedQuery extends React.Component<
+  EditSavedQueryProps,
+  EditSavedQueryState
+> {
+  constructor(props: EditSavedQueryProps) {
     super(props);
     this.state = {
       savedQueryName: props.savedQuery.name,
     };
   }
 
-  handleUpdateName(savedQueryName) {
+  handleUpdateName(savedQueryName: string) {
     this.setState({savedQueryName});
   }
 

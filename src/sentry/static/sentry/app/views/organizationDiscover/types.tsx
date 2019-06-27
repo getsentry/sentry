@@ -7,6 +7,7 @@ export type ConditionData = [
 ];
 
 export type Query = {
+  org_id?: number;
   projects?: number[];
   fields: string[];
   aggregations: AggregationData[];
@@ -55,6 +56,7 @@ export type ReactSelectState = {
 export type ReactSelectValue = {
   label: string;
   value: string;
+  isTag?: boolean;
 };
 
 export type DiscoverBaseProps = {
