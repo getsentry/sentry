@@ -4,13 +4,18 @@ import _ from 'lodash';
 
 import SentryTypes from 'app/sentryTypes';
 
-class GenerateQuery extends React.Component {
-  static propTypes = {
-    api: PropTypes.object.isRequired,
-    organization: SentryTypes.Organization.isRequired,
-    project: SentryTypes.Project.isRequired,
-    event: SentryTypes.Event.isRequired,
-  };
+const userPropTypes = {
+  children: PropTypes.func.isRequired,
+  api: PropTypes.object.isRequired,
+  organization: SentryTypes.Organization.isRequired,
+  project: SentryTypes.Project.isRequired,
+  event: SentryTypes.Event.isRequired,
+};
+
+type GenerateQueryProps = PropTypes.InferProps<typeof userPropTypes>;
+
+class GenerateQuery extends React.Component<GenerateQueryProps> {
+  static propTypes = userPropTypes;
 
   state = {
     query: '',
