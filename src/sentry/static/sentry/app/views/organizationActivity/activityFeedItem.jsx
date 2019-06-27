@@ -317,7 +317,7 @@ class ActivityItem extends React.Component {
     );
 
     const author = {
-      name: item.user ? item.user.name : 'Sentry',
+      name: item.user ? item.user.name : 'Santry',
       avatar,
     };
 

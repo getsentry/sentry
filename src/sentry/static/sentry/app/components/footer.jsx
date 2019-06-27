@@ -20,7 +20,7 @@ const Footer = () => {
             href="https://github.com/getsentry/sentry"
             rel="noreferrer"
           >
-            {t('Contribute')}
+            {t('Gimme Code')}
           </a>
           {config.isOnPremise && (
             <a className="hidden-xs" href="/out/">
@@ -30,7 +30,7 @@ const Footer = () => {
         </div>
         {config.isOnPremise && (
           <div className="version pull-left">
-            {'Sentry '}
+            {'Santry '}
             <DynamicWrapper fixed="Acceptance Test" value={config.version.current} />
           </div>
         )}

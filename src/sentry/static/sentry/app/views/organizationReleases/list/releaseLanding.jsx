@@ -37,7 +37,7 @@ const cards = [
   {
     title: t('Suspect Commits'),
     message: t(
-      'Sentry suggests which commit caused an issue and who is likely responsible so you can triage'
+      'Santry suggests which commit caused an issue and who is likely responsible so you can triage'
     ),
     component: StyledSuggestedAssignees,
   },

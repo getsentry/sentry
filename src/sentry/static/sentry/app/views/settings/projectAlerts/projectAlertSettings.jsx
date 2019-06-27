@@ -107,7 +107,7 @@ export default class ProjectAlertSettings extends AsyncView {
                 renderHeader={() => (
                   <PanelAlert type="info">
                     {t(
-                      'Sentry will automatically digest alerts sent ' +
+                      'Santry will automatically digest alerts sent ' +
                         'by some services to avoid flooding your inbox ' +
                         'with individual issue notifications. To control ' +
                         'how frequently notifications are delivered, use ' +

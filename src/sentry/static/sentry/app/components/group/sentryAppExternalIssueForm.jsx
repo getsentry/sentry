@@ -103,7 +103,7 @@ class SentryAppExternalIssueForm extends React.Component {
         const queryParams = {referrer: this.props.sentryAppInstallation.sentryApp.name};
         const url = addQueryParamsToExistingUrl(group.permalink, queryParams);
         const shortId = group.shortId;
-        return t('Sentry Issue: [%s](%s)%s', shortId, url, stacktrace);
+        return t('Santry Issue: [%s](%s)%s', shortId, url, stacktrace);
       default:
         return '';
     }

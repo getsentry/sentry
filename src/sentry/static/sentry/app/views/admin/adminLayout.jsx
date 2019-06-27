@@ -25,7 +25,7 @@ export default class AdminLayout extends React.Component {
   }
 
   getTitle = () => {
-    return 'Sentry Admin';
+    return 'Santry Admin';
   };
 
   render() {

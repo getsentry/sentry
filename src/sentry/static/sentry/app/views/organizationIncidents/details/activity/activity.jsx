@@ -127,7 +127,7 @@ class Activity extends React.Component {
                 <DateDivider>{title}</DateDivider>
                 {activitiesForDate &&
                   activitiesForDate.map(activity => {
-                    const authorName = activity.user ? activity.user.name : 'Sentry';
+                    const authorName = activity.user ? activity.user.name : 'Santry';
 
                     if (activity.type === INCIDENT_ACTIVITY_TYPE.COMMENT) {
                       return (
