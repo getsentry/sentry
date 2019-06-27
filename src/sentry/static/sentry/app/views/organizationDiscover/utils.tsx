@@ -5,7 +5,7 @@ import qs from 'query-string';
 
 import {isValidAggregation} from './aggregations/utils';
 import {NON_SNUBA_FIELDS} from './data';
-import {AggregationData, SavedQuery} from './types';
+import {Aggregation, SavedQuery} from './types';
 
 const VALID_QUERY_KEYS = [
   'projects',
@@ -54,7 +54,7 @@ export function getOrderbyFields(queryBuilder: any): any {
   const query = queryBuilder.getInternal();
 
   // If there are valid aggregations, only allow summarized fields and aggregations in orderby
-  const validAggregations = query.aggregations.filter((agg: AggregationData) =>
+  const validAggregations = query.aggregations.filter((agg: Aggregation) =>
     isValidAggregation(agg, columns)
   );
 

@@ -12,14 +12,7 @@ import ConfigStore from 'app/stores/configStore';
 import MissingProjectWarningModal from './missingProjectWarningModal';
 import {COLUMNS, PROMOTED_TAGS, SPECIAL_TAGS, HIDDEN_TAGS} from './data';
 import {isValidAggregation} from './aggregations/utils';
-import {
-  AggregationData,
-  Column,
-  Query,
-  Project,
-  Organization,
-  SnubaResult,
-} from './types';
+import {Aggregation, Column, Query, Project, Organization, SnubaResult} from './types';
 
 const API_LIMIT = 10000;
 
@@ -192,7 +185,7 @@ export default function createQueryBuilder(
     query[field] = value;
 
     // Ignore non valid aggregations (e.g. user halfway inputting data)
-    const validAggregations = query.aggregations.filter((agg: AggregationData) =>
+    const validAggregations = query.aggregations.filter((agg: Aggregation) =>
       isValidAggregation(agg, getColumns())
     );
 
@@ -201,7 +194,7 @@ export default function createQueryBuilder(
       getColumns().find(f => f.name === orderbyField) !== undefined;
     const hasOrderFieldInSelectedFields = query.fields.includes(orderbyField);
     const hasOrderFieldInAggregations = query.aggregations.some(
-      (agg: AggregationData) => orderbyField === agg[2]
+      (agg: Aggregation) => orderbyField === agg[2]
     );
 
     const hasInvalidOrderbyField = validAggregations.length

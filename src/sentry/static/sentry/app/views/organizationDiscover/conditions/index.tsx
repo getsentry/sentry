@@ -4,13 +4,13 @@ import InlineSvg from 'app/components/inlineSvg';
 import {t} from 'app/locale';
 import Link from 'app/components/links/link';
 
-import Condition from './condition';
+import ConditionRow from './condition';
 import {PlaceholderText, SelectListItem, AddText, SidebarLabel} from '../styles';
-import {ConditionData, DiscoverBaseProps} from '../types';
+import {Condition, DiscoverBaseProps} from '../types';
 
 type ConditionsProps = DiscoverBaseProps & {
-  value: ConditionData[];
-  onChange: (value: ConditionData[]) => void;
+  value: Condition[];
+  onChange: (value: [any, any, any][]) => void;
 };
 
 export default class Conditions extends React.Component<ConditionsProps> {
@@ -24,7 +24,7 @@ export default class Conditions extends React.Component<ConditionsProps> {
     this.props.onChange(conditions);
   }
 
-  handleChange(val: ConditionData, idx: number) {
+  handleChange(val: Condition, idx: number) {
     const conditions = this.props.value.slice();
 
     conditions[idx] = val;
@@ -50,9 +50,9 @@ export default class Conditions extends React.Component<ConditionsProps> {
         )}
         {value.map((condition, idx) => (
           <SelectListItem key={`${idx}_${condition[2]}`}>
-            <Condition
+            <ConditionRow
               value={condition}
-              onChange={(val: ConditionData) => this.handleChange(val, idx)}
+              onChange={(val: Condition) => this.handleChange(val, idx)}
               columns={columns}
               disabled={disabled}
             />

@@ -3,7 +3,7 @@ import Papa from 'papaparse';
 import React from 'react';
 import styled from 'react-emotion';
 
-import {AggregationData, Query, Result, SnubaResult} from '../types';
+import {Aggregation, Query, Result, SnubaResult} from '../types';
 import {NUMBER_OF_SERIES_BY_DAY} from '../data';
 
 const CHART_KEY = '__CHART_KEY__';
@@ -19,7 +19,7 @@ const CHART_KEY = '__CHART_KEY__';
 export function getChartData(data: any[], query: any) {
   const {fields} = query;
 
-  return query.aggregations.map((aggregation: AggregationData) => {
+  return query.aggregations.map((aggregation: Aggregation) => {
     return {
       seriesName: aggregation[2],
       animation: false,
@@ -56,7 +56,7 @@ export function getChartDataForWidget(data: any[], query: any, options: any = {}
   const totalsBySeries = new Map();
 
   if (options.includePercentages) {
-    query.aggregations.forEach((aggregation: AggregationData) => {
+    query.aggregations.forEach((aggregation: Aggregation) => {
       totalsBySeries.set(
         aggregation[2],
         data.reduce((acc, res) => {
@@ -67,7 +67,7 @@ export function getChartDataForWidget(data: any[], query: any, options: any = {}
     });
   }
 
-  return query.aggregations.map((aggregation: AggregationData) => {
+  return query.aggregations.map((aggregation: Aggregation) => {
     const total = options.includePercentages && totalsBySeries.get(aggregation[2]);
     return {
       seriesName: aggregation[2],

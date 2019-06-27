@@ -6,7 +6,7 @@ import SelectControl from 'app/components/forms/selectControl';
 
 import {getInternal, getExternal} from './utils';
 import {
-  AggregationData,
+  Aggregation,
   ReactSelectState,
   DiscoverBaseProps,
   ReactSelectValue,
@@ -15,8 +15,8 @@ import {PlaceholderText} from '../styles';
 import {ARRAY_FIELD_PREFIXES} from '../data';
 
 type AggregationProps = DiscoverBaseProps & {
-  value: AggregationData;
-  onChange: (value: AggregationData) => void;
+  value: Aggregation;
+  onChange: (value: Aggregation) => void;
 };
 
 const initalState = {
@@ -24,7 +24,7 @@ const initalState = {
   isOpen: false,
 };
 
-export default class Aggregation extends React.Component<
+export default class AggregationRow extends React.Component<
   AggregationProps,
   ReactSelectState
 > {

@@ -1,6 +1,6 @@
 import moment from 'moment';
 
-import {Column, ConditionData} from '../types';
+import {Column, Condition} from '../types';
 import {CONDITION_OPERATORS} from '../data';
 
 const specialConditions = new Set(['IS NULL', 'IS NOT NULL']);
@@ -37,7 +37,7 @@ export function isValidCondition(condition: [any, any, any], cols: Column[]): bo
  *
  * @param external Condition in external Snuba format
  */
-export function getInternal(external: ConditionData): string {
+export function getInternal(external: Condition): string {
   return external.join(' ').trim();
 }
 
@@ -48,8 +48,8 @@ export function getInternal(external: ConditionData): string {
  * @param cols List of columns with name and type e.g. {name: 'message', type: 'string}
  * @returns {Array} condition Condition in external Snuba format
  */
-export function getExternal(internal: string = '', columns: Column[]): ConditionData {
-  const external: ConditionData = [null, null, null];
+export function getExternal(internal: string = '', columns: Column[]): Condition {
+  const external: [any, any, any] = [null, null, null];
 
   // Validate column
   const colValue = internal.split(' ')[0];

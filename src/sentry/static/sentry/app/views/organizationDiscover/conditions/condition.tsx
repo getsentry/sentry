@@ -9,16 +9,11 @@ import SelectControl from 'app/components/forms/selectControl';
 import {getInternal, getExternal, isValidCondition, ignoreCase} from './utils';
 import {CONDITION_OPERATORS, ARRAY_FIELD_PREFIXES} from '../data';
 import {PlaceholderText} from '../styles';
-import {
-  DiscoverBaseProps,
-  ConditionData,
-  ReactSelectState,
-  ReactSelectValue,
-} from '../types';
+import {DiscoverBaseProps, Condition, ReactSelectState, ReactSelectValue} from '../types';
 
 type ConditionProps = DiscoverBaseProps & {
-  value: ConditionData;
-  onChange: (value: ConditionData) => void;
+  value: Condition;
+  onChange: (value: Condition) => void;
 };
 
 const initalState = {
@@ -26,7 +21,10 @@ const initalState = {
   isOpen: false,
 };
 
-export default class Condition extends React.Component<ConditionProps, ReactSelectState> {
+export default class ConditionRow extends React.Component<
+  ConditionProps,
+  ReactSelectState
+> {
   // This is the ref of the inner react-select component
   private select: any;
 

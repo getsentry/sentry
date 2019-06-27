@@ -1,17 +1,13 @@
-export type AggregationData = [string | null, string | null, string];
+export type Aggregation = [string, string | null, string];
 
-export type ConditionData = [
-  string | null,
-  string | null,
-  string | number | boolean | null
-];
+export type Condition = [string, string | null, string | number | boolean | null];
 
 export type Query = {
   org_id?: number;
   projects?: number[];
   fields: string[];
-  aggregations: AggregationData[];
-  conditions?: ConditionData[];
+  aggregations: Aggregation[];
+  conditions?: Condition[];
   orderby?: string;
   limit?: number;
   range?: string;

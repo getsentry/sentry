@@ -1,4 +1,4 @@
-import {Column, AggregationData} from '../types';
+import {Column, Aggregation} from '../types';
 
 /**
  * Returns true if an aggregation is valid and false if not
@@ -9,10 +9,7 @@ import {Column, AggregationData} from '../types';
  * @param cols.type Type of column
  * @returns True if valid aggregation, false if not
  */
-export function isValidAggregation(
-  aggregation: AggregationData,
-  cols: Column[]
-): boolean {
+export function isValidAggregation(aggregation: Aggregation, cols: Column[]): boolean {
   const columns = new Set(cols.map(({name}) => name));
   const [func, col] = aggregation;
 
@@ -44,7 +41,7 @@ export function isValidAggregation(
  * @param external Aggregation in external Snuba format
  * @return Aggregation in internal format
  */
-export function getInternal(external: AggregationData): string {
+export function getInternal(external: Aggregation): string {
   const [func, col] = external;
 
   if (!func) {
@@ -87,7 +84,7 @@ function getAlias(columnName: string): string {
  * @param internal Aggregation in internal format
  * @return Aggregation in external Snuba format
  */
-export function getExternal(internal: string): AggregationData {
+export function getExternal(internal: string): Aggregation {
   const uniqRegex = /^uniq\((.+)\)$/;
   const avgRegex = /^avg\((.+)\)$/;
 
