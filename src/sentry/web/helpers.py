@@ -27,6 +27,7 @@ def get_default_context(request, existing_context=None, team=None):
     from sentry.plugins import plugins
 
     context = {
+        'CSRF_COOKIE_NAME': settings.CSRF_COOKIE_NAME,
         'URL_PREFIX': options.get('system.url-prefix'),
         'SINGLE_ORGANIZATION': settings.SENTRY_SINGLE_ORGANIZATION,
         'PLUGINS': plugins,
