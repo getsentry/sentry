@@ -225,6 +225,7 @@ const appConfig = {
       currying: true, // these are enabled to support lodash/fp/ features
       flattening: true, // used by a dependency of react-mentions
       shorthands: true,
+      paths: true,
     }),
     /**
      * jQuery must be provided in the global scope specifically and only for
