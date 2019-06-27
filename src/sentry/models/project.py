@@ -28,6 +28,7 @@ from sentry.db.mixin import PendingDeletionMixin, delete_pending_deletion_option
 from sentry.db.models import (
     BaseManager, BoundedPositiveIntegerField, FlexibleForeignKey, Model, sane_repr
 )
+from sentry.db.models.graphql_base import GraphQLModel, GraphQLConfig
 from sentry.db.models.utils import slugify_instance
 from sentry.utils.colors import get_hashed_color
 from sentry.utils.http import absolute_uri
@@ -82,11 +83,19 @@ class ProjectManager(BaseManager):
         return sorted(project_list, key=lambda x: x.name.lower())
 
 
-class Project(Model, PendingDeletionMixin):
+class Project(GraphQLModel, PendingDeletionMixin):
     """
     Projects are permission based namespaces which generally
     are the top level entry point for all data.
     """
+    graphql_config = GraphQLConfig(
+        type_name='project',
+        only_fields=('id', 'slug', 'name', 'date_added', 'status',
+                     'platform', 'organization', 'group_set'),
+        filter_fields=('slug', 'platform'),
+        permission_policy='sentry.api.bases.project.ProjectEventPermission',
+    )
+
     __core__ = True
 
     slug = models.SlugField(null=True)

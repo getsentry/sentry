@@ -3,7 +3,6 @@ from __future__ import absolute_import
 from sentry.db.models.graphql_base import RootCardinality
 import graphene
 from graphene_django.types import construct_fields
-from graphene_django.registry import get_global_registry
 from types import MethodType
 
 
@@ -17,11 +16,8 @@ class QueryMaster(graphene.ObjectType):
                 return c.MODEL_CLASS.resolve_all(info, **kwargs)
 
             config = c.GRAPHQL_CONFIG
-            type_name = config['type_name']
-            if config['filter_fields']:
-                filter_fields = build_filter_fields(c.MODEL_CLASS, config['filter_fields'])
-            else:
-                filter_fields = {}
+            type_name = config.type_name
+            filter_fields = build_filter_fields(c.MODEL_CLASS, config.filter_fields)
 
             setattr(
                 cls,
@@ -29,9 +25,9 @@ class QueryMaster(graphene.ObjectType):
                 graphene.Field(c, **filter_fields),
             )
             resolver_name = 'resolve_%s' % type_name
-            if config['root_cardinality'] == RootCardinality.SINGLE:
+            if config.root_cardinality == RootCardinality.SINGLE:
                 root_resolver = resolve_single
-            elif config['root_cardinality'] == RootCardinality.MULTIPLE:
+            elif config.root_cardinality == RootCardinality.MULTIPLE:
                 root_resolver = resolve_multi
             else:
                 raise
@@ -42,4 +38,51 @@ class QueryMaster(graphene.ObjectType):
 
 def build_filter_fields(model_class, filter_field_names):
     fields = construct_fields(model_class, get_global_registry(), filter_field_names, [])
+    for field in fields.values():
+        # TODO: this is horrendous. There must be a more reasonable way to do this
+        # without rewriting the whole graphene
+        if 'required' in field.kwargs:
+            field.kwargs['required'] = False
     return fields
+
+
+class SentryRegistry(object):
+    """
+    A copy paste of the django-graphene one to skip the assertion on the type
+    """
+
+    def __init__(self):
+        self._registry = {}
+        self._field_registry = {}
+
+    def register(self, cls):
+        assert cls._meta.registry == self, "Registry for a Model have to match."
+        # assert self.get_type_for_model(cls._meta.model) == cls, (
+        #     'Multiple DjangoObjectTypes registered for "{}"'.format(cls._meta.model)
+        # )
+        if not getattr(cls._meta, "skip_registry", False):
+            self._registry[cls._meta.model] = cls
+
+    def get_type_for_model(self, model):
+        return self._registry.get(model)
+
+    def register_converted_field(self, field, converted):
+        self._field_registry[field] = converted
+
+    def get_converted_field(self, field):
+        return self._field_registry.get(field)
+
+
+registry = None
+
+
+def get_global_registry():
+    global registry
+    if not registry:
+        registry = SentryRegistry()
+    return registry
+
+
+def reset_global_registry():
+    global registry
+    registry = None

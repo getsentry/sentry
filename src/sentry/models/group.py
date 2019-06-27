@@ -26,8 +26,9 @@ from sentry.constants import (
 )
 from sentry.db.models import (
     BaseManager, BoundedBigIntegerField, BoundedIntegerField, BoundedPositiveIntegerField,
-    FlexibleForeignKey, GzippedDictField, Model, sane_repr
+    FlexibleForeignKey, GzippedDictField, sane_repr
 )
+from sentry.db.models.graphql_base import GraphQLModel, GraphQLConfig
 from sentry.utils.http import absolute_uri
 from sentry.utils.numbers import base32_decode, base32_encode
 from sentry.utils.strings import strip, truncatechars
@@ -235,10 +236,20 @@ class GroupManager(BaseManager):
         )
 
 
-class Group(Model):
+class Group(GraphQLModel):
     """
     Aggregated message which summarizes a set of Events.
     """
+    graphql_config = GraphQLConfig(
+        type_name='group',
+        only_fields=('id', 'short_id', 'message', 'culprit', 'logger', 'level',
+                     'platform', 'project', 'times_seen', 'last_seen', 'first_seen',
+                     'resolved_at', 'active_at', 'time_spent_total',
+                     'time_spent_count', 'status'),
+        filter_fields=('level', 'id'),
+        permission_policy='sentry.api.bases.group.GroupPermission'
+    )
+
     __core__ = False
 
     project = FlexibleForeignKey('sentry.Project', null=True)
