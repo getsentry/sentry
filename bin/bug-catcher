@@ -420,12 +420,8 @@ class Proxy {
     });
 
     this._server.onRequest((ctx, callback) => {
-      console.log(ctx.clientToProxyRequest.headers.host, new URL(this.url).host);
       if (ctx.clientToProxyRequest.headers.host == new URL(this.url).host) {
         ctx.onResponseData((ctx, chunk, callback) => {
-          console.log(
-            chunk.toString().replace(/(<body[^>]+)>/g, `$1${this.getSentryBinding()}`)
-          );
           chunk = new Buffer(
             chunk.toString().replace(/(<body[^>]+)>/g, `$1${this.getSentryBinding()}`)
           );
