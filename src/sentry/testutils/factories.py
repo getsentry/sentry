@@ -451,7 +451,7 @@ class Factories(object):
         # XXX: Do not use this method for new tests! Prefer `store_event`.
         if event_id is None:
             event_id = uuid4().hex
-        kwargs.setdefault('project', group.project)
+        kwargs.setdefault('project', project if project else group.project)
         kwargs.setdefault('data', copy.deepcopy(DEFAULT_EVENT_DATA))
         kwargs.setdefault('platform', kwargs['data'].get('platform', 'python'))
         kwargs.setdefault('message', kwargs['data'].get('message', 'message'))
@@ -497,11 +497,12 @@ class Factories(object):
         )
 
         event = Event(event_id=event_id, group=group, **kwargs)
-        EventMapping.objects.create(
-            project_id=event.project.id,
-            event_id=event_id,
-            group=group,
-        )
+        if group:
+            EventMapping.objects.create(
+                project_id=event.project.id,
+                event_id=event_id,
+                group=group,
+            )
         # emulate EventManager refs
         event.data.bind_ref(event)
         event.save()
