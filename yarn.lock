@@ -1724,6 +1724,13 @@
   resolved "https://registry.yarnpkg.com/@types/q/-/q-1.5.1.tgz#48fd98c1561fe718b61733daed46ff115b496e18"
   integrity sha512-eqz8c/0kwNi/OEHQfvIuJVLTst3in0e7uTKeuY+WL/zfKn0xVujOTp42bS/vUUokhK5P2BppLd9JXMOMHcgbjA==
 
+"@types/react-bootstrap@0.32.0":
+  version "0.32.0"
+  resolved "https://registry.yarnpkg.com/@types/react-bootstrap/-/react-bootstrap-0.32.0.tgz#33045e24b4994adc597bbf091a8eeef6446134cb"
+  integrity sha512-dp3IGlAka1L25PyiTxdamvkEb2V/ARuTNj0vmz4e803y1rnrXUVrzVHvwsVrx5Nae7VfRTcm2GoiSn5VESTwpw==
+  dependencies:
+    "@types/react" "*"
+
 "@types/react-dom@^16.7.0":
   version "16.8.4"
   resolved "https://registry.yarnpkg.com/@types/react-dom/-/react-dom-16.8.4.tgz#7fb7ba368857c7aa0f4e4511c4710ca2c5a12a88"

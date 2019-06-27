@@ -1,5 +1,4 @@
 import React from 'react';
-import PropTypes from 'prop-types';
 import styled from 'react-emotion';
 
 import {tct, t} from 'app/locale';
@@ -9,11 +8,14 @@ import Button from 'app/components/button';
 import {Panel} from 'app/components/panels';
 import space from 'app/styles/space';
 
-export default class Intro extends React.Component {
-  static propTypes = {
-    updateQuery: PropTypes.func.isRequired,
-  };
+type IntroProps = {
+  updateQuery: (query: any) => void;
+};
 
+// TODO: any
+const ExternalLinkAny = ExternalLink as any;
+
+export default class Intro extends React.Component<IntroProps> {
   getExampleQueries() {
     return [
       {
@@ -59,7 +61,7 @@ export default class Intro extends React.Component {
               `Getting started? Try running one of the example queries below.
             To learn more about how to use the query builder, [docs:see the docs].`,
               {
-                docs: <ExternalLink href="https://docs.sentry.io/product/discover/" />,
+                docs: <ExternalLinkAny href="https://docs.sentry.io/product/discover/" />,
               }
             )}
           </TextBlock>
@@ -71,7 +73,12 @@ export default class Intro extends React.Component {
                   <ExampleQueryDescription>{description}</ExampleQueryDescription>
                 </div>
                 <div>
-                  <Button size="small" onClick={() => this.props.updateQuery(query)}>
+                  <Button
+                    size="small"
+                    onClick={() => {
+                      this.props.updateQuery(query);
+                    }}
+                  >
                     {t('Run')}
                   </Button>
                 </div>
