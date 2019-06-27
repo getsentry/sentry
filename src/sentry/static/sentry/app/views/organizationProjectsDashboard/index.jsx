@@ -80,7 +80,7 @@ class Dashboard extends React.Component {
               to={`/organizations/${organization.slug}/projects/new/`}
               icon="icon-circle-add"
             >
-              {t('Create Project')}
+              {t('Make New Project')}
             </Button>
           </ProjectsHeader>
         )}
