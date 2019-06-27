@@ -349,6 +349,7 @@ urlpatterns += patterns(
         ),
     url(r'^out/$', OutView.as_view()),
 
+    url(r'^implicitoauth/$', react_page_view, name='sentry-implicit-oauth'),
     url(r'^accept-transfer/$', react_page_view, name='sentry-accept-project-transfer'),
     # User settings use generic_react_page_view, while any view
     # acting on behalf of an organization should use react_page_view

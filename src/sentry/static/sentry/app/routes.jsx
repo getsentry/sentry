@@ -36,6 +36,7 @@ import RouteNotFound from 'app/views/routeNotFound';
 import SettingsProjectProvider from 'app/views/settings/components/settingsProjectProvider';
 import SettingsWrapper from 'app/views/settings/components/settingsWrapper';
 import errorHandler from 'app/utils/errorHandler';
+import ImplicitOauth from 'app/views/implicit_oauth';
 
 function appendTrailingSlash(nextState, replace) {
   const lastChar = nextState.location.pathname.slice(-1);
@@ -625,6 +626,7 @@ function routes() {
 
   return (
     <Route path="/" component={errorHandler(App)}>
+      <Route path="/implicitoauth/" component={errorHandler(ImplicitOauth)} />
       <Route
         path="/accept-transfer/"
         componentPromise={() =>
@@ -632,6 +634,7 @@ function routes() {
         }
         component={errorHandler(LazyLoad)}
       />
+
       <Route
         path="/extensions/external-install/:providerId/:installationId"
         componentPromise={() =>

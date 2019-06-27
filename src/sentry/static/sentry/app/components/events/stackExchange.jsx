@@ -18,6 +18,21 @@ import DropdownAutoComplete from 'app/components/dropdownAutoComplete';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
 import LoadingIndicator from 'app/components/loadingIndicator';
 
+const generateRequest = input => {
+  const {params = {}, ...request} = input;
+
+  const access_token = localStorage.getItem('stackexchange_access_token');
+
+  if (access_token) {
+    params.access_token = access_token;
+    params.key = '6065CS6mUaSWL)Vv)Spfgg((';
+  }
+
+  request.url = `${request.url}?${queryString.stringify(params)}`;
+
+  return request;
+};
+
 class GenerateQuery extends React.Component {
   static propTypes = {
     api: PropTypes.object.isRequired,
@@ -128,10 +143,10 @@ class StackExchangeSites extends React.Component {
   }
 
   fetchData = () => {
-    const request = {
+    const request = generateRequest({
       url: 'https://api.stackexchange.com/2.2/sites',
       method: 'GET',
-    };
+    });
 
     // We can't use the API client here since the URL is not scoped under the
     // API endpoints (which the client prefixes)
@@ -249,12 +264,11 @@ class StackExchangeResults extends React.PureComponent {
       tagged: event.platform,
     };
 
-    const request = {
-      url: `https://api.stackexchange.com/2.2/search/advanced?${queryString.stringify(
-        params
-      )}`,
+    const request = generateRequest({
+      url: `https://api.stackexchange.com/2.2/search/advanced`,
       method: 'GET',
-    };
+      params,
+    });
 
     // We can't use the API client here since the URL is not scoped under the
     // API endpoints (which the client prefixes)
@@ -427,22 +441,58 @@ class StackExchangeResults extends React.PureComponent {
 }
 
 class Settings extends React.Component {
+  popup = null;
+
+  componentDidMount() {
+    window.addEventListener('message', this.receiveMessage, false);
+  }
+
+  componentWillUnmount() {
+    window.removeEventListener('message', this.receiveMessage, false);
+  }
+
+  receiveMessage = event => {
+    if (event.origin !== window.location.origin) {
+      console.log('wrong origin');
+      return;
+    }
+
+    if (event.source !== this.popup) {
+      console.log('wrong window');
+      return;
+    }
+
+    if (event.data === 'stackexchange_implicit_oauth_flow_done') {
+      if (this.popup) {
+        this.popup.close();
+        this.popup = null;
+
+        const access_token = localStorage.getItem('stackexchange_access_token');
+        console.log('access_token', access_token);
+      }
+    }
+  };
+
   handleAuthenticate = event => {
     event.preventDefault();
 
     console.log('handleAuthenticate');
 
-    // eslint-disable-next-line no-undef
-    SE.authenticate({
-      success: data => {
-        console.log('auth::success', data);
-      },
-      error: data => {
-        console.log('auth::error', data);
-      },
-      scope: ['no_expiry'],
-      networkUsers: true,
-    });
+    const params = {
+      client_id: '15653',
+      redirect_uri: 'http://localhost:8000/implicitoauth/',
+      scope: 'no_expiry',
+    };
+
+    const AUTHORIZATION_URL = `https://stackoverflow.com/oauth/dialog?${queryString.stringify(
+      params
+    )}`;
+
+    this.popup = window.open(
+      AUTHORIZATION_URL,
+      'Login to StackExchange',
+      'width=800,height=600'
+    );
   };
 
   render() {
@@ -468,7 +518,6 @@ class Settings extends React.Component {
 class StackExchange extends React.Component {
   state = {
     view: 'results',
-    ready: false,
   };
 
   setView = nextView => {
@@ -477,26 +526,7 @@ class StackExchange extends React.Component {
     });
   };
 
-  componentDidMount() {
-    // eslint-disable-next-line no-undef
-    SE.init({
-      clientId: 15653,
-      key: '6065CS6mUaSWL)Vv)Spfgg((',
-      channelUrl: 'http://dev.getsentry.net:8000/blank/',
-      complete: data => {
-        console.log('SE.init', data);
-        this.setState({
-          ready: true,
-        });
-      },
-    });
-  }
-
   render() {
-    if (!this.state.ready) {
-      return null;
-    }
-
     const {api, organization, project, event} = this.props;
 
     return (
