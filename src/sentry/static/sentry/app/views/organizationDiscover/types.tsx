@@ -36,7 +36,9 @@ export type Result = {
 
 export type SnubaResult = {
   data: any[];
-  meta: {name: string}[];
+  meta: {name: string; type: string}[];
+  timing: any;
+  error?: any;
 };
 
 export type Column = {

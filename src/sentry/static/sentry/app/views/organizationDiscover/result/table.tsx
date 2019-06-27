@@ -1,9 +1,7 @@
 import React from 'react';
 import {MultiGrid, AutoSizer} from 'react-virtualized';
-import PropTypes from 'prop-types';
 import styled from 'react-emotion';
 import {t} from 'app/locale';
-import SentryTypes from 'app/sentryTypes';
 import Link from 'app/components/links/link';
 import Tooltip from 'app/components/tooltip';
 import Panel from 'app/components/panels/panel';
@@ -11,6 +9,7 @@ import EmptyStateWarning from 'app/components/emptyStateWarning';
 import withOrganization from 'app/utils/withOrganization';
 
 import {getDisplayValue, getDisplayText} from './utils';
+import {Organization, Query, SnubaResult} from '../types';
 
 const TABLE_ROW_HEIGHT = 30;
 const TABLE_ROW_BORDER = 1;
@@ -22,20 +21,20 @@ const MIN_VISIBLE_ROWS = 6;
 const MAX_VISIBLE_ROWS = 30;
 const OTHER_ELEMENTS_HEIGHT = 70; // pagination buttons, query summary
 
+type Props = {
+  organization: Organization;
+  data: SnubaResult;
+  query: Query;
+  height?: number;
+  width?: number;
+};
+
 /**
  * Renders results in a table as well as a query summary (timing, rows returned)
  * from any Snuba result
  */
-class ResultTable extends React.Component {
-  static propTypes = {
-    organization: SentryTypes.Organization.isRequired,
-    data: PropTypes.object.isRequired,
-    query: PropTypes.object.isRequired,
-    height: PropTypes.number,
-    width: PropTypes.number,
-  };
-
-  componentDidUpdate(prevProps) {
+class ResultTable extends React.Component<Props> {
+  componentDidUpdate(prevProps: Props) {
     if (this.props.data.meta !== prevProps.data.meta) {
       this.grid.recomputeGridSize();
     }
@@ -45,7 +44,20 @@ class ResultTable extends React.Component {
     }
   }
 
-  getCellRenderer = cols => ({key, rowIndex, columnIndex, style}) => {
+  private grid: any;
+  private canvas: any;
+
+  getCellRenderer = (cols: any[]) => ({
+    key,
+    rowIndex,
+    columnIndex,
+    style,
+  }: {
+    key: string;
+    rowIndex: number;
+    columnIndex: number;
+    style: any;
+  }) => {
     const {
       data: {data, meta},
     } = this.props;
@@ -86,7 +98,7 @@ class ResultTable extends React.Component {
     );
   };
 
-  getEventLink = event => {
+  getEventLink = (event: {'project.id': string; id: string}) => {
     const {slug, projects} = this.props.organization;
     const projectSlug = projects.find(project => project.id === `${event['project.id']}`)
       .slug;
@@ -102,7 +114,7 @@ class ResultTable extends React.Component {
     );
   };
 
-  getIssueLink = event => {
+  getIssueLink = (event: any) => {
     const {slug} = this.props.organization;
     const basePath = `/organizations/${slug}/`;
 
@@ -120,13 +132,13 @@ class ResultTable extends React.Component {
   // rows of data. Since this might be expensive, we'll only do this if there\
   // are less than 20 columns of data to check in total.
   // Adds an empty column at the end with the remaining table width if any.
-  getColumnWidths = tableWidth => {
+  getColumnWidths = (tableWidth: number) => {
     const {
       data: {data},
     } = this.props;
     const cols = this.getColumnList();
 
-    const widths = [];
+    const widths: number[] = [];
 
     if (cols.length < 20) {
       cols.forEach(col => {
@@ -167,7 +179,7 @@ class ResultTable extends React.Component {
     return widths;
   };
 
-  getRowHeight = (rowIndex, columnsToCheck) => {
+  getRowHeight = (rowIndex: number, columnsToCheck: string[]) => {
     const {
       data: {data},
     } = this.props;
@@ -206,7 +218,7 @@ class ResultTable extends React.Component {
     return meta.filter(({name}) => fields.has(name));
   };
 
-  measureText = (text, isHeader) => {
+  measureText = (text: string, isHeader: boolean) => {
     // Create canvas once in order to measure column widths
     if (!this.canvas) {
       this.canvas = document.createElement('canvas');
@@ -220,7 +232,7 @@ class ResultTable extends React.Component {
     return Math.ceil(context.measureText(text).width) + 5;
   };
 
-  getMaxVisibleRows = elementHeight => {
+  getMaxVisibleRows = (elementHeight?: number) => {
     if (!elementHeight) {
       return MIN_VISIBLE_ROWS;
     }
@@ -259,12 +271,15 @@ class ResultTable extends React.Component {
               // Since calculating row height might be expensive, we'll only
               // perform the check against a subset of columns (where col width
               // has exceeded the max value)
-              const columnsToCheck = columnWidths.reduce((acc, colWidth, idx) => {
-                if (colWidth === MAX_COL_WIDTH) {
-                  acc.push(cols[idx].name);
-                }
-                return acc;
-              }, []);
+              const columnsToCheck: string[] = columnWidths.reduce(
+                (acc: string[], colWidth, idx) => {
+                  if (colWidth === MAX_COL_WIDTH) {
+                    acc.push(cols[idx].name);
+                  }
+                  return acc;
+                },
+                []
+              );
 
               return (
                 <MultiGrid
@@ -304,8 +319,8 @@ class ResultTable extends React.Component {
 export {ResultTable};
 export default withOrganization(ResultTable);
 
-const Grid = styled(({visibleRows, ...props}) => <div {...props} />)`
-  height: ${p =>
+const Grid = styled('div')`
+  height: ${(p: {visibleRows: number}) =>
     p.visibleRows * TABLE_ROW_HEIGHT_WITH_BORDER +
     2}px; /* cell height + cell border + top and bottom Panel border */
   overflow: hidden;
@@ -313,10 +328,10 @@ const Grid = styled(({visibleRows, ...props}) => <div {...props} />)`
   .ReactVirtualized__Grid {
     outline: none;
   }
-`;
+` as any;
 
 const Cell = styled('div')`
-  ${p => !p.isOddRow && `background-color: ${p.theme.whiteDark};`} ${p =>
+  ${(p: any) => !p.isOddRow && `background-color: ${p.theme.whiteDark};`} ${p =>
     `text-align: ${p.align};`} overflow: scroll;
   font-size: 14px;
   line-height: ${TABLE_ROW_HEIGHT}px;
@@ -332,7 +347,7 @@ const Cell = styled('div')`
   }
 
   -ms-overflow-style: -ms-autohiding-scrollbar;
-`;
+` as any;
 
 const TableHeader = styled(Cell)`
   background: ${p => p.theme.offWhite};
@@ -342,4 +357,4 @@ const TableHeader = styled(Cell)`
   &:first-of-type {
     border-top-left-radius: 3px;
   }
-`;
+` as any;

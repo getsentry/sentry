@@ -276,7 +276,7 @@ function getLabel(value: any, options: any) {
  * @param idx Index if part of array
  * @returns Formatted cell contents
  */
-export function getDisplayValue(val: any, idx: number) {
+export function getDisplayValue(val: any, idx?: number): React.ReactElement {
   if (typeof val === 'string') {
     return <DarkGray key={idx}>{`"${val}"`}</DarkGray>;
   }
