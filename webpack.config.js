@@ -26,6 +26,13 @@ const SENTRY_WEBPACK_PROXY_PORT = env.SENTRY_WEBPACK_PROXY_PORT;
 const USE_HOT_MODULE_RELOAD =
   !IS_PRODUCTION && SENTRY_BACKEND_PORT && SENTRY_WEBPACK_PROXY_PORT;
 
+// Netlify deploy preview build data
+const NETLIFY_BUILD_DATA = env.REPOSITORY_URL && {
+  commitRef: env.COMMIT_REF,
+  reviewId: env.REVIEW_ID,
+  repoUrl: env.REPOSITORY_URL,
+};
+
 // this is set by setup.py sdist
 const staticPrefix = path.join(__dirname, 'src/sentry/static/sentry');
 const distPath = env.SENTRY_STATIC_DIST_PATH || path.join(staticPrefix, 'dist');
@@ -250,6 +257,7 @@ const appConfig = {
         NODE_ENV: JSON.stringify(env.NODE_ENV),
         IS_PERCY: JSON.stringify(env.CI && !!env.PERCY_TOKEN && !!env.TRAVIS),
       },
+      netlifyBuild: JSON.stringify(NETLIFY_BUILD_DATA),
     }),
     /**
      * See above for locale chunks. These plugins help with that
