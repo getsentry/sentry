@@ -265,6 +265,10 @@ const appConfig = {
      */
     new OptionalLocaleChunkPlugin(),
     ...localeRestrictionPlugins,
+
+    new CopyPlugin([
+      {from: path.join(staticPrefix, 'api'), to: path.join(distPath, 'api', '')},
+    ]),
   ],
   resolve: {
     alias: {

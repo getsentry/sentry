@@ -8,6 +8,20 @@
   [headers.values]
     Access-Control-Allow-Origin = "*"
 
+[[headers]]
+  for = "/api/client-config"
+
+  [headers.values]
+    Access-Control-Allow-Origin = "*"
+    Content-Type = "application/json"
+
+[[headers]]
+  for = "/api/*"
+
+  [headers.values]
+    Access-Control-Allow-Origin = "*"
+    Access-Control-Allow-Credentials = "true"
+
 [[redirects]]
   from = "/sentry/dist/*"
   to = "/:splat"
@@ -16,9 +30,8 @@
 
 [[redirects]]
   from = "/api/*"
-  to = "https://tunnel.evanpurkhiser.com/api/:splat"
+  to = "https://sentry.io/api/:splat"
   status = 200
-  force = true
 
 [[redirects]]
   from = "/*"
