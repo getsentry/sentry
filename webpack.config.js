@@ -11,6 +11,7 @@ const CompressionPlugin = require('compression-webpack-plugin');
 const OptimizeCssAssetsPlugin = require('optimize-css-assets-webpack-plugin');
 const LodashModuleReplacementPlugin = require('lodash-webpack-plugin');
 const FixStyleOnlyEntriesPlugin = require('webpack-fix-style-only-entries');
+const CopyPlugin = require('copy-webpack-plugin');
 
 const {env} = process;
 const IS_PRODUCTION = env.NODE_ENV === 'production';
@@ -239,6 +240,12 @@ const appConfig = {
      */
     new ExtractTextPlugin(),
     /**
+     * Genreate a index.html file used for running the app in pure client mode.
+     * This is currently used for PR deploy previews, where only the frontend
+     * is deployed.
+     */
+    new CopyPlugin([{from: path.join(staticPrefix, 'app', 'index.html')}]),
+    /**
      * Defines environemnt specific flags.
      */
     new webpack.DefinePlugin({
@@ -337,6 +344,8 @@ const legacyCssConfig = {
 
 // Dev only! Hot module reloading
 if (USE_HOT_MODULE_RELOAD) {
+  const backendAddress = `http://localhost:${SENTRY_BACKEND_PORT}/`;
+
   appConfig.plugins.push(new webpack.HotModuleReplacementPlugin());
   appConfig.devServer = {
     headers: {
@@ -356,15 +365,33 @@ if (USE_HOT_MODULE_RELOAD) {
       ignored: ['node_modules'],
     },
     publicPath: '/_webpack',
-    proxy: {
-      '!/_webpack': `http://localhost:${SENTRY_BACKEND_PORT}/`,
-    },
+    proxy: {'!/_webpack': backendAddress},
     before: app =>
       app.use((req, res, next) => {
         req.url = req.url.replace(/^\/_static\/[^\/]+\/sentry\/dist/, '/_webpack');
         next();
       }),
   };
+
+  // XXX(epurkhiser): Sentry (development) can be run in an experimental
+  // pure-SPA mode, where ONLY /api* requests are proxied directly to the API
+  // backend, otherwise ALL requests are rewritten to a development index.html.
+  // Thus completely seperating the frontend from serving any pages through the
+  // backend.
+  //
+  // THIS IS EXPERIMENTAL. Various sentry pages still rely on django to serve
+  // html views.
+  appConfig.devServer = !env.SENTRY_EXPERIMENTAL_SPA
+    ? appConfig.devServer
+    : {
+        ...appConfig.devServer,
+        before: () => undefined,
+        publicPath: '/_assets',
+        proxy: {'/api/': backendAddress},
+        historyApiFallback: {
+          rewrites: [{from: /^\/.*$/, to: '/_assets/index.html'}],
+        },
+      };
 }
 
 const minificationPlugins = [
