@@ -1,6 +1,12 @@
 import queryString from 'query-string';
 
-export const generateRequest = input => {
+type GenerateRequestInput = {
+  url: string;
+  method: string;
+  params: {[s: string]: string};
+};
+
+export const generateRequest = (input: GenerateRequestInput) => {
   const {params = {}, ...request} = input;
 
   const access_token = localStorage.getItem('stackexchange_access_token');
