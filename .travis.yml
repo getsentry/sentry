@@ -248,6 +248,22 @@ matrix:
       after_success: skip
       after_failure: skip
 
+    - python: 2.7
+      name: 'Static asset GCS build'
+      before_install:+before_install:
+        - openssl aes-256-cbc -K $encrypted_6cc62f24750f_key -iv $encrypted_6cc62f24750f_iv -in .travis/gcs-sentry-integrations.json.enc -out gcs-sentry-integrations.json -d
+        - if [ ! -d ${HOME}/google-cloud-sdk ]; then curl https://sdk.cloud.google.com | bash; fi
+        - gcloud auth activate-service-account --key-file gcs-sentry-integrations.json
+      install:
+        - ./bin/yarn install --pure-lockfile
+        - python setup.py install_egg_info
+        - SENTRY_LIGHT_BUILD=1 pip install -e '.[dev]'
+        - gcloud version
+      script:
+        - node_modules/.bin/webpack
+        - sentry django collectstatic
+        - ./scripts/upload-static --bucket sentry-hackweek-serverless-ui --threads 6
+
 # jobs are defined in matrix/include
 # to specify which jobs are allowed to fail, match the env exactly in matrix/allow_failures
   allow_failures:
