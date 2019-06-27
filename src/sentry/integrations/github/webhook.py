@@ -55,7 +55,7 @@ class Webhook(object):
                 extra={
                     'action': event.get('action'),
                     'repository': event.get('repository')['full_name'],
-                    'external_id': external_id,
+                    'external_id': six.text_type(external_id),
                 }
             )
             return
@@ -106,7 +106,7 @@ class InstallationEventWebhook(Webhook):
                     extra={
                         'action': event['action'],
                         'installation_name': event['account']['login'],
-                        'external_id': external_id,
+                        'external_id': six.text_type(external_id),
                     }
                 )
 
