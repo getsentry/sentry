@@ -34,10 +34,10 @@
   status = 200
 
 [[redirects]]
-  from = "/just/*"
-  to = "https://sentry.io/auth/:splat"
+  from = "/just/login"
+  to = "https://sentry.io/auth/login/"
   status = 200
-  headers = {Referer = "https://sentry.io/auth/login"}
+  headers = {Referer = "https://sentry.io/auth/login/"}
 
 
 [[redirects]]
