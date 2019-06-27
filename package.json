@@ -20,6 +20,7 @@
     "@sentry/browser": "^5.4.2",
     "@sentry/integrations": "^5.4.2",
     "@sentry/typescript": "^5.3.0",
+    "@types/jquery": "2",
     "@types/lodash": "^4.14.134",
     "@types/prop-types": "^15.7.1",
     "@types/react-dom": "^16.8.4",
