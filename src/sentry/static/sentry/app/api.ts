@@ -14,7 +14,9 @@ import GroupActions from 'app/actions/groupActions';
 import createRequestError from 'app/utils/requestError/createRequestError';
 
 export class Request {
-  constructor(xhr) {
+  xhr: JQueryXHR;
+  alive: boolean;
+  constructor(xhr: JQueryXHR) {
     this.xhr = xhr;
     this.alive = true;
   }
@@ -59,6 +61,8 @@ export function paramsToQueryArgs(params) {
 }
 
 export class Client {
+  baseUrl: string;
+  activeRequests: {};
   constructor(options) {
     if (isUndefined(options)) {
       options = {};
