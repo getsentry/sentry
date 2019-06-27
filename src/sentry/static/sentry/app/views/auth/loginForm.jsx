@@ -25,6 +25,14 @@ class AuthLoginForm extends React.Component {
     formData.append('op', 'login');
     formData.append('username', data.username);
     formData.append('password', data.password);
+    formData.append(
+      'csrfmiddlewaretoken',
+      document.cookie.split(';').reduce((res, cookie) => {
+        const [key, value] = cookie.split('=');
+        res[key] = value;
+        return res;
+      }, {}).sc
+    );
     try {
       const response = await fetch('/auth/login', {
         method: 'POST',
