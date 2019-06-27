@@ -51,7 +51,7 @@ const SharedGroupDetails = createReactClass({
     if (this.state.group) {
       return this.state.group.title;
     }
-    return 'Sentry';
+    return 'Santry';
   },
 
   fetchData() {
