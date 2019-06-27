@@ -23,7 +23,8 @@ from django.utils.functional import cached_property
 from sentry import roles
 from sentry.app import locks
 from sentry.constants import RESERVED_ORGANIZATION_SLUGS, RESERVED_PROJECT_SLUGS
-from sentry.db.models import (BaseManager, BoundedPositiveIntegerField, Model, sane_repr)
+from sentry.db.models import (BaseManager, BoundedPositiveIntegerField, sane_repr)
+from sentry.db.models.graphql_base import GraphQLModel, RootCardinality
 from sentry.db.models.utils import slugify_instance
 from sentry.utils.http import absolute_uri
 from sentry.utils.retries import TimedRetryPolicy
@@ -95,11 +96,19 @@ class OrganizationManager(BaseManager):
         return [r.organization for r in results]
 
 
-class Organization(Model):
+class Organization(GraphQLModel):
     """
     An organization represents a group of individuals which maintain ownership of projects.
     """
     __core__ = True
+
+    graphql_config = {
+        'type_name': 'organization',
+        'root_cardinality': RootCardinality.SINGLE,
+        'only_fields': ('slug', 'name', 'status',
+                        'date_added', 'default_role', 'flags', 'project_set'),
+        'filter_fields': ('slug',)
+    }
 
     name = models.CharField(max_length=64)
     slug = models.SlugField(unique=True)

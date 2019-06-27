@@ -6,10 +6,13 @@ from datetime import timedelta
 from django.utils import timezone
 from graphene_django import DjangoObjectType
 
+from sentry.api.graphql_query import QueryMaster
 from sentry.api.event_search import get_snuba_query_args
-from sentry.api.bases.organization import OrganizationPermission
+# from sentry.api.bases.organization import OrganizationPermission
 from sentry.api.bases.group import GroupPermission
-from sentry.api.bases.project import ProjectPermission, ProjectEventPermission
+# from sentry.api.bases.project import ProjectPermission, ProjectEventPermission
+from sentry.api.bases.project import ProjectEventPermission
+from sentry.api.graphql_type import SentryGraphQLType
 from sentry.models import Group, Organization, Project
 from sentry.models.event import SnubaEvent
 from sentry.utils.snuba import raw_query
@@ -22,40 +25,40 @@ class OrgStatus(graphene.Enum):
     DELETION_IN_PROGRESS = 2
 
 
-class OrganizationType(DjangoObjectType):
-    class Meta:
-        model = Organization
-        only_fields = ('slug', 'name', 'status',
-                       'date_added', 'default_role', 'flags', 'project_set')
-
-    status = graphene.Field(OrgStatus)
-
-    project_set = graphene.Field(
-        graphene.List('sentry.api.graphql.ProjectType'),
-        slug=graphene.String()
-    )
-
-    def resolve_project_set(parent, info, **kwargs):
-        slug = kwargs['slug']
-
-        if slug:
-            projects = Project.objects.filter(
-                organization=parent,
-                slug=slug,
-            )
-        else:
-            projects = Project.objects.filter(
-                organization=parent,
-            )
-
-        permissions = ProjectPermission()
-        projects = filter(
-            lambda p: permissions.has_object_permission(
-                info.context, None, p), projects)
-        return projects
-
-    def resolve_status(parent, info):
-        return parent.status
+# class OrganizationType(SentryGraphQLType):
+#    class Meta:
+#        model = Organization
+#        only_fields = ('slug', 'name', 'status',
+#                       'date_added', 'default_role', 'flags', 'project_set')
+#
+#    status = graphene.Field(OrgStatus)
+#
+#    project_set = graphene.Field(
+#        graphene.List('sentry.api.graphql.ProjectType'),
+#        slug=graphene.String()
+#    )
+#
+#    def resolve_project_set(parent, info, **kwargs):
+#        slug = kwargs['slug']
+#
+#        if slug:
+#            projects = Project.objects.filter(
+#                organization=parent,
+#                slug=slug,
+#            )
+#        else:
+#            projects = Project.objects.filter(
+#                organization=parent,
+#            )
+#
+#        permissions = ProjectPermission()
+#        projects = filter(
+#            lambda p: permissions.has_object_permission(
+#                info.context, None, p), projects)
+#        return projects
+#
+#    def resolve_status(parent, info):
+#        return parent.status
 
 
 class ProjectStatusType(graphene.Enum):
@@ -199,55 +202,66 @@ class IssueType(DjangoObjectType):
         return [SnubaEvent(row) for row in ret['data']]
 
 
-class Query(graphene.ObjectType):
-    organization = graphene.Field(
-        OrganizationType,
-        slug=graphene.String(),  # Slug is probably its own type
-    )
-    issue = graphene.Field(
-        IssueType,
-        id=graphene.String(),
-    )
-    event = graphene.Field(
-        EventType,
-        id=graphene.String(),
-        project_id=graphene.Int(),
-    )
+# class Query(graphene.ObjectType):
+#    organization = graphene.Field(
+#        OrganizationType,
+#        slug=graphene.String(),  # Slug is probably its own type
+#    )
+#    issue = graphene.Field(
+#        IssueType,
+#        id=graphene.String(),
+#    )
+#    event = graphene.Field(
+#        EventType,
+#        id=graphene.String(),
+#        project_id=graphene.Int(),
+#    )
+#
+#    def resolve_organization(self, info, **kwargs):
+#        slug = kwargs.get('slug')
+#        if not slug:
+#            return None
+#
+#        org = Organization.objects.get_from_cache(
+#            slug=slug,
+#        )
+#
+#        if not org:
+#            return None
+#
+#        permissions = OrganizationPermission()
+#        has_permission = permissions.has_object_permission(info.context, None, org)
+#
+#        return org if has_permission else None
+#
+#    def resolve_issue(self, info, **kwargs):
+#        id = kwargs.get('id')
+#        if not id:
+#            return None
+#
+#        return Group.objects.get(id=id)
+#
+#    def resolve_event(self, info, **kwargs):
+#        id = kwargs.get('id')
+#        project_id = kwargs.get('project_id')
+#        if not id or not project_id:
+#            return None
+#        event = SnubaEvent.get_event(project_id, id)
+#        permissions = GroupPermission()
+#        g = Group.objects.get(id=event.group_id)
+#        has_permission = permissions.has_object_permission(info.context, None, g)
+#        return event if has_permission else None
 
-    def resolve_organization(self, info, **kwargs):
-        slug = kwargs.get('slug')
-        if not slug:
-            return None
+class OrganizationType(SentryGraphQLType):
+    class Meta:
+        model = Organization
 
-        org = Organization.objects.get_from_cache(
-            slug=slug,
-        )
 
-        if not org:
-            return None
-
-        permissions = OrganizationPermission()
-        has_permission = permissions.has_object_permission(info.context, None, org)
-
-        return org if has_permission else None
-
-    def resolve_issue(self, info, **kwargs):
-        id = kwargs.get('id')
-        if not id:
-            return None
-
-        return Group.objects.get(id=id)
-
-    def resolve_event(self, info, **kwargs):
-        id = kwargs.get('id')
-        project_id = kwargs.get('project_id')
-        if not id or not project_id:
-            return None
-        event = SnubaEvent.get_event(project_id, id)
-        permissions = GroupPermission()
-        g = Group.objects.get(id=event.group_id)
-        has_permission = permissions.has_object_permission(info.context, None, g)
-        return event if has_permission else None
+class Query(QueryMaster):
+    from sentry.api.graphql import OrganizationType
+    graphql_types = [
+        OrganizationType
+    ]
 
 
 schema = graphene.Schema(query=Query)
