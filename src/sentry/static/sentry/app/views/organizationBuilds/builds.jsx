@@ -14,6 +14,7 @@ import TimeSince from 'app/components/timeSince';
 import Pagination from 'app/components/pagination';
 import SentryTypes from 'app/sentryTypes';
 import SearchBar from 'app/components/searchBar';
+import Truncate from 'app/components/truncate';
 import withOrganization from 'app/utils/withOrganization';
 import {t} from 'app/locale';
 
@@ -101,7 +102,7 @@ class OrganizationBuilds extends AsyncView {
                   </Box>
                   <Box flex="1" mr={2}>
                     <Link to={`/organizations/${organization.slug}/builds/${build.id}/`}>
-                      {build.name}
+                      <Truncate value={build.name} />
                     </Link>
                   </Box>
                   <Box w={100} mr={2} className="align-center">
