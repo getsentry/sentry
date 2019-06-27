@@ -4,7 +4,7 @@ export type Condition = [string, string | null, string | number | boolean | null
 
 export type Query = {
   org_id?: number;
-  projects?: number[];
+  projects: number[];
   fields: string[];
   aggregations: Aggregation[];
   conditions?: Condition[];
@@ -26,9 +26,9 @@ export type SavedQuery = Query & {
 export type Result = {
   data: SnubaResult;
   query: Query;
-  current: any;
-  next?: any;
-  prev?: any;
+  current: string;
+  next?: string;
+  prev?: string;
 };
 
 export type SnubaResult = {

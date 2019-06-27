@@ -50,7 +50,7 @@ type SeriesData = {
   percentage?: number;
 };
 
-export function getChartDataForWidget(data: any[], query: any, options: any = {}) {
+export function getChartDataForWidget(data: any[], query: Query, options: any = {}): any {
   const {fields} = query;
 
   const totalsBySeries = new Map();
@@ -99,7 +99,7 @@ export function getChartDataForWidget(data: any[], query: any, options: any = {}
  * @param {Object} [options.fieldLabelMap] (default: false) Maps value from Snuba to a defined label
  * @returns {Array}
  */
-export function getChartDataByDay(rawData: any[], query: any, options: any = {}) {
+export function getChartDataByDay(rawData: any[], query: Query, options: any = {}): any {
   // We only chart the first aggregation for now
   const aggregate = query.aggregations[0][2];
 
@@ -141,11 +141,10 @@ export function getChartDataByDay(rawData: any[], query: any, options: any = {})
 
 /**
  * Given result data and the location query, return the correct visualization
- * @param {Object} data data object for result
- * @param {String} current visualization from querystring
- * @returns {String}
+ * @param data data object for result
+ * @param current visualization from querystring
  */
-export function getVisualization(data: any, current = 'table') {
+export function getVisualization(data: any, current = 'table'): string {
   const {baseQuery, byDayQuery} = data;
 
   if (!byDayQuery.data && ['line-by-day', 'bar-by-day'].includes(current)) {
@@ -181,7 +180,7 @@ export function getRowsPageRange(baseQuery: Result): string {
 
 // Return placeholder empty series object with all series and dates listed and
 // all values set to null
-function getEmptySeriesHash(seriesSet: any, dates: number[]) {
+function getEmptySeriesHash(seriesSet: any, dates: number[]): any {
   const output: any = {};
 
   [...seriesSet].forEach(series => {
@@ -205,7 +204,7 @@ function getTopSeries(
   data: any,
   aggregate: string,
   limit: number = NUMBER_OF_SERIES_BY_DAY
-) {
+): any {
   const allData = orderBy(data, ['time', aggregate], ['desc', 'desc']);
 
   const orderedData = [
@@ -220,7 +219,7 @@ function getTopSeries(
   return new Set(limit <= 0 ? orderedData : orderedData.slice(0, limit));
 }
 
-function getDataWithKeys(data: any[], query: Query, options = {}) {
+function getDataWithKeys(data: any[], query: Query, options = {}): any {
   const {aggregations, fields} = query;
   // We only chart the first aggregation for now
   const aggregate = aggregations[0][2];
@@ -243,14 +242,14 @@ function getDataWithKeys(data: any[], query: Query, options = {}) {
   });
 }
 
-function formatDate(datetime: number) {
+function formatDate(datetime: number): number {
   return datetime * 1000;
 }
 
 // Converts a value to a string for the chart label. This could
 // potentially cause incorrect grouping, e.g. if the value null and string
 // 'null' are both present in the same series they will be merged into 1 value
-function getLabel(value: any, options: any) {
+function getLabel(value: any, options: any): string {
   if (typeof value === 'object') {
     try {
       value = JSON.stringify(value);

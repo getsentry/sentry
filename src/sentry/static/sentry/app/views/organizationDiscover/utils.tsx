@@ -5,7 +5,7 @@ import qs from 'query-string';
 
 import {isValidAggregation} from './aggregations/utils';
 import {NON_SNUBA_FIELDS} from './data';
-import {Aggregation, SavedQuery} from './types';
+import {Aggregation, Column, ReactSelectOption, SavedQuery} from './types';
 
 const VALID_QUERY_KEYS = [
   'projects',
@@ -21,7 +21,7 @@ const VALID_QUERY_KEYS = [
 
 export function getQueryFromQueryString(queryString: string): {[key: string]: any} {
   const queryKeys = new Set([...VALID_QUERY_KEYS, 'utc']);
-  const result: {[key: string]: string} = {};
+  const result: {[key: string]: any} = {};
   const parsedQuery = queryString.replace(/^\?|\/$/g, '').split('&');
   parsedQuery.forEach((item: string) => {
     if (item.includes('=')) {
@@ -35,7 +35,7 @@ export function getQueryFromQueryString(queryString: string): {[key: string]: an
 }
 
 export function getQueryStringFromQuery(
-  query: {[key: string]: string},
+  query: {[key: string]: any},
   queryParams: object = {}
 ): string {
   const queryProperties = Object.entries(query).map(
@@ -49,7 +49,7 @@ export function getQueryStringFromQuery(
   return `?${queryProperties.sort().join('&')}`;
 }
 
-export function getOrderbyFields(queryBuilder: any): any {
+export function getOrderbyFields(queryBuilder: any): ReactSelectOption[] {
   const columns = queryBuilder.getColumns();
   const query = queryBuilder.getInternal();
 
@@ -62,7 +62,7 @@ export function getOrderbyFields(queryBuilder: any): any {
 
   const hasFields = query.fields.length > 0;
 
-  const columnOptions = columns.reduce((acc: any, {name}: any) => {
+  const columnOptions = columns.reduce((acc: ReactSelectOption[], {name}: Column) => {
     if (hasAggregations) {
       const isInvalidField = hasFields && !query.fields.includes(name);
       if (!hasFields || isInvalidField) {
@@ -79,8 +79,11 @@ export function getOrderbyFields(queryBuilder: any): any {
   }, []);
 
   const aggregationOptions = validAggregations
-    .map((aggregation: any) => aggregation[2])
-    .reduce((acc: any, agg: any) => [...acc, {value: agg, label: agg}], []);
+    .map((aggregation: Aggregation) => aggregation[2])
+    .reduce(
+      (acc: Aggregation[], agg: Aggregation) => [...acc, {value: agg, label: agg}],
+      []
+    );
 
   return [...columnOptions, ...aggregationOptions];
 }
@@ -127,7 +130,7 @@ export function parseSavedQuery(savedQuery: any): SavedQuery {
   return query;
 }
 
-export function fetchSavedQuery(organization: any, queryId: string): any {
+export function fetchSavedQuery(organization: any, queryId: string): Promise<any> {
   const api = new Client();
   const endpoint = `/organizations/${organization.slug}/discover/saved/${queryId}/`;
 
@@ -136,7 +139,7 @@ export function fetchSavedQuery(organization: any, queryId: string): any {
   } as any); // TODO: Remove as any
 }
 
-export function fetchSavedQueries(organization: any): any {
+export function fetchSavedQueries(organization: any): Promise<any> {
   const api = new Client();
   const endpoint = `/organizations/${organization.slug}/discover/saved/`;
 
@@ -145,7 +148,7 @@ export function fetchSavedQueries(organization: any): any {
   } as any); // TODO: Remove as any
 }
 
-export function createSavedQuery(organization: any, data: any): any {
+export function createSavedQuery(organization: any, data: any): Promise<any> {
   const api = new Client();
 
   const endpoint = `/organizations/${organization.slug}/discover/saved/`;
@@ -155,7 +158,7 @@ export function createSavedQuery(organization: any, data: any): any {
   } as any); // TODO: Remove as any
 }
 
-export function updateSavedQuery(organization: any, id: any, data: any): any {
+export function updateSavedQuery(organization: any, id: any, data: any): Promise<any> {
   const api = new Client();
   const endpoint = `/organizations/${organization.slug}/discover/saved/${id}/`;
 
@@ -165,7 +168,7 @@ export function updateSavedQuery(organization: any, id: any, data: any): any {
   } as any); // TODO: Remove as any
 }
 
-export function deleteSavedQuery(organization: any, id: any): any {
+export function deleteSavedQuery(organization: any, id: any): Promise<any> {
   const api = new Client();
   const endpoint = `/organizations/${organization.slug}/discover/saved/${id}/`;
 

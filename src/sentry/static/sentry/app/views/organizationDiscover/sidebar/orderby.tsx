@@ -5,9 +5,11 @@ import {t} from 'app/locale';
 import SelectControl from 'app/components/forms/selectControl';
 import space from 'app/styles/space';
 import {SidebarLabel} from '../styles';
-import {DiscoverBaseProps, ReactSelectOption} from '../types';
+import {ReactSelectOption} from '../types';
 
-type OrderbyProps = DiscoverBaseProps & {
+type OrderbyProps = {
+  columns: ReactSelectOption[];
+  disabled: boolean;
   value: string;
   onChange: (value: string) => void;
 };

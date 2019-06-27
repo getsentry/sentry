@@ -214,7 +214,7 @@ class Result extends React.Component<ResultProps, ResultState> {
       byDayQuery.data && getChartDataByDay(byDayQuery.data.data, byDayQuery.query);
 
     const legendData = byDayChartData
-      ? {data: byDayChartData.map(entry => entry.seriesName), truncate: 80}
+      ? {data: byDayChartData.map((entry: any) => entry.seriesName), truncate: 80}
       : null;
 
     const tooltipOptions = {
