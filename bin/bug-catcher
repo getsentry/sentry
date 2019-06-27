@@ -359,7 +359,7 @@ class Crawler {
       if (
         this._isDomainAllowed(linkDomain) &&
         !this._visited.has(link) &&
-        SKIPPED_RESOURCES.some(r => link.indexOf(r) !== -1)
+        !SKIPPED_RESOURCES.some(r => link.indexOf(r) !== -1)
       ) {
         this.queue(link);
       }
