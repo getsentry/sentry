@@ -43,8 +43,9 @@ class AuthLoginForm extends React.Component {
         },
         body: payload,
       });
-      if (response.status === 302) {
-        document.location = '/organizations/default';
+      if (response.status === 0) {
+        // means a redirect
+        document.location = '/settings/account/details/';
       } else {
         const err = new Error('Login failed.');
         err.responseJSON = {
