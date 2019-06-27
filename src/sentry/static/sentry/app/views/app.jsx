@@ -28,6 +28,9 @@ import theme from 'app/utils/theme';
 import withApi from 'app/utils/withApi';
 import withConfig from 'app/utils/withConfig';
 
+// TODO: Need better way of identifying anonymous pages that don't trigger redirect
+const ALLOWED_ANON_PAGES = [/^\/share\//, /^\/auth\/login\//];
+
 function getAlertTypeForProblem(problem) {
   switch (problem.severity) {
     case 'critical':
@@ -108,11 +111,9 @@ class App extends React.Component {
     });
 
     $(document).ajaxError(function(evt, jqXHR) {
-      // TODO: Need better way of identifying anonymous pages
-      //       that don't trigger redirect
-      const pageAllowsAnon =
-        /^\/share\//.test(window.location.pathname) ||
-        /^\/auth\/login\//.test(window.location.pathname);
+      const pageAllowsAnon = ALLOWED_ANON_PAGES.find(regex =>
+        regex.test(window.location.pathname)
+      );
 
       // Ignore error unless it is a 401
       if (!jqXHR || jqXHR.status !== 401 || pageAllowsAnon) {
@@ -134,10 +135,9 @@ class App extends React.Component {
         return;
       }
 
-      // Otherwise, user has become unauthenticated; reload URL, and let Django
-      // redirect to login page
+      // Otherwise, the user has become unauthenticated. Send them to auth
       Cookies.set('session_expired', 1);
-      window.location.reload();
+      window.location.assign('/auth/login/');
     });
 
     const user = ConfigStore.get('user');

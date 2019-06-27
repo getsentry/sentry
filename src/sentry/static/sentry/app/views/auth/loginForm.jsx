@@ -1,11 +1,12 @@
-import React from 'react';
-import PropTypes from 'prop-types';
 import {browserHistory} from 'react-router';
+import PropTypes from 'prop-types';
+import React from 'react';
 
+import {t} from 'app/locale';
+import ConfigStore from 'app/stores/configStore';
 import Form from 'app/components/forms/form';
 import PasswordField from 'app/components/forms/passwordField';
 import TextField from 'app/components/forms/textField';
-import {t} from 'app/locale';
 
 class AuthLoginForm extends React.Component {
   static propTypes = {
@@ -27,6 +28,11 @@ class AuthLoginForm extends React.Component {
         data,
       });
       onSuccess(data);
+
+      // TODO(epurkhiser): There is more we need to do to setup the user. but
+      // definitely primarily we need to init our user.
+      ConfigStore.set('user', response.user);
+
       browserHistory.push({pathname: response.nextUri});
     } catch (e) {
       if (!e.responseJSON) {

@@ -13,6 +13,8 @@ from sentry.models import Organization
 from sentry.utils import auth, metrics
 from sentry.utils.hashlib import md5_text
 from sentry.api.base import Endpoint
+from sentry.api.serializers.base import serialize
+from sentry.api.serializers.models.user import DetailedUserSerializer
 from sentry.web.forms.accounts import AuthenticationForm
 from sentry.web.frontend.auth_login import additional_context
 from sentry.web.frontend.base import OrganizationMixin
@@ -57,9 +59,13 @@ class AuthLoginEndpoint(Endpoint, OrganizationMixin):
 
     def handle_authenticated(self, request):
         next_uri = self.get_next_uri(request)
-        if auth.is_valid_redirect(next_uri, host=request.get_host()):
-            return Response({'nextUri': next_uri})
-        return Response({'nextUri': self.org_redirect_url(request)})
+
+        if not auth.is_valid_redirect(next_uri, host=request.get_host()):
+            next_uri = self.org_redirect_url(request)
+
+        return Response({
+            'nextUri': next_uri,
+        })
 
     def org_redirect_url(self, request):
         from sentry import features
@@ -135,9 +141,12 @@ class AuthLoginEndpoint(Endpoint, OrganizationMixin):
             if not user.is_active:
                 return self.redirect(reverse('sentry-reactivate-account'))
 
-            return Response({
-                'nextUri': auth.get_login_redirect(request, self.org_redirect_url(request))
-            })
+            context = {
+                'nextUri': auth.get_login_redirect(request, self.org_redirect_url(request)),
+                'user': serialize(user, user, DetailedUserSerializer()),
+            }
+
+            return Response(context)
         else:
             metrics.incr(
                 'login.attempt',
