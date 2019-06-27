@@ -81,7 +81,7 @@ if (window.__initialData) {
   });
 
   Sentry.configureScope(scope => {
-    let {userContext, sentryVersion, buildContext} = window.__initialData;
+    const {userContext, sentryVersion, buildContext} = window.__initialData;
     if (userContext) {
       scope.setUser(userContext);
     }
@@ -121,9 +121,7 @@ const render = Component => {
 // zxcvbn, a relatively byte-heavy password strength estimation library. Load
 // it on demand.
 async function loadPasswordStrength(callback) {
-  const module = await import(
-    /* webpackChunkName: "passwordStrength" */ 'app/components/passwordStrength'
-  );
+  const module = await import(/* webpackChunkName: "passwordStrength" */ 'app/components/passwordStrength');
   callback(module);
 }
 
