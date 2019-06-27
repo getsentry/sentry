@@ -21,23 +21,24 @@ class AuthLoginForm extends React.Component {
   };
 
   handleSubmit = async (data, onSuccess, onError) => {
-    const formData = new FormData();
-    formData.append('op', 'login');
-    formData.append('username', data.username);
-    formData.append('password', data.password);
-    formData.append(
-      'csrfmiddlewaretoken',
-      document.cookie.split(';').reduce((res, cookie) => {
+    const formData = {
+      op: 'login',
+      username: data.username,
+      password: data.password,
+      csrfmiddlewaretoken: document.cookie.split(';').reduce((res, cookie) => {
         const [key, value] = cookie.split('=');
         res[key] = value;
         return res;
-      }, {}).sc
-    );
+      }, {}).sc,
+    };
+    const payload = Object.keys(formData)
+      .map(key => encodeURIComponent(key) + '=' + encodeURIComponent(formData[key]))
+      .join('&');
     try {
       const response = await fetch('/just/login', {
         method: 'POST',
         redirect: 'manual',
-        body: formData,
+        body: payload,
       });
       if (response.status === 302) {
         document.location = '/organizations/default';
