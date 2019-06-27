@@ -5,6 +5,7 @@ from django.contrib.auth import REDIRECT_FIELD_NAME
 from django.core.urlresolvers import reverse
 from rest_framework.response import Response
 
+from sentry import newsletter
 from sentry.app import ratelimiter
 from sentry.auth.superuser import is_active_superuser
 from sentry.constants import WARN_SESSION_EXPIRED
@@ -93,6 +94,7 @@ class AuthLoginEndpoint(Endpoint, OrganizationMixin):
         context = {
             'serverHostname': get_server_hostname(),
             'canRegister': self.can_register(request),
+            'hasNewsletter': newsletter.is_enabled(),
         }
         if session_expired:
             context['warning'] = WARN_SESSION_EXPIRED

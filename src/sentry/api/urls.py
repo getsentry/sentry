@@ -20,6 +20,7 @@ from .endpoints.api_tokens import ApiTokensEndpoint
 from .endpoints.assistant import AssistantEndpoint
 from .endpoints.auth_index import AuthIndexEndpoint
 from .endpoints.auth_login import AuthLoginEndpoint
+from .endpoints.auth_register import AuthRegisterEndpoint
 from .endpoints.auth_sso_locate import AuthSsoLocateEndpoint
 from .endpoints.authenticator_index import AuthenticatorIndexEndpoint
 from .endpoints.broadcast_details import BroadcastDetailsEndpoint
@@ -322,6 +323,7 @@ urlpatterns = patterns(
     # Login, sso lookup and password reset.
     url(r'^auth/$', AuthIndexEndpoint.as_view(), name='sentry-api-0-auth'),
     url(r'^auth/login/$', AuthLoginEndpoint.as_view(), name='sentry-api-0-auth-login'),
+    url(r'^auth/register/$', AuthRegisterEndpoint.as_view(), name='sentry-api-0-auth-register'),
     url(r'^auth/sso_locate/$', AuthSsoLocateEndpoint.as_view(), name='sentry-api-0-auth-sso-locate'),
     url(r'^account/recover/$', AccountRecoverEndpoint.as_view(), name='sentry-api-0-account-recover'),
     url(r'^account/recover/confirm/$',

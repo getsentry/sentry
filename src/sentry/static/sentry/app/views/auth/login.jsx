@@ -6,6 +6,7 @@ import withApi from 'app/utils/withApi';
 
 import AuthLoginForm from './loginForm';
 import AuthSsoForm from './ssoForm';
+import AuthRegisterForm from './registerForm';
 
 class AuthLogin extends React.Component {
   static propTypes = {
@@ -38,6 +39,7 @@ class AuthLogin extends React.Component {
         githubLoginLink: response.github_login_link,
         vstsLoginLink: response.vsts_login_link,
         canRegister: response.canRegister,
+        hasNewsletter: response.hasNewsletter,
         warning: response.warning,
       });
     } catch (e) {
@@ -45,61 +47,10 @@ class AuthLogin extends React.Component {
     }
   }
 
-  renderRegister() {
-    return null;
-    /*
-    return (
-
-    <div class="tab-pane{% if op == "register" %} active{% endif %}" id="register">
-      <div class="auth-container">
-        <div class="auth-form-column">
-          <form class="form-stacked" action="" method="post" autocomplete="off">
-            {% csrf_token %}
-
-            <input type="hidden" name="op" value="register" />
-
-            {{ register_form|as_crispy_errors }}
-
-            {% for field in register_form %}
-              {% if not field.name == 'subscribe' %}
-                {{ field|as_crispy_field }}
-              {% endif %}
-            {% endfor %}
-
-            {% if register_form.subscribe %}
-              {% with register_form.subscribe as field %}
-                <fieldset class="{% if field.errors %}is-invalid{% endif %} boolean-radio-select">
-                  <label> {{ field.label }}</label>
-                  <div class="help-block">{{ field.help_text }}</div>
-                  <div class="inputs-list radio">
-                    {{ field }}
-                    {% if field.errors %}
-                      {% for error in field.errors %}
-                        <p class="form-text"><small>{{ error }}</small></p>
-                      {% endfor %}
-                    {% endif %}
-                  </div>
-                </fieldset>
-              {% endwith %}
-            {% endif %}
-
-            <div class="auth-footer m-t-1">
-              <button type="submit" class="btn btn-primary">{% trans "Continue" %}</button>
-              <a class="secondary" href="https://sentry.io/privacy/" target="_blank">
-                {% trans "Privacy Policy" %}
-              </a>
-            </div>
-          </form>
-        </div>
-      </div>
-    </div>
-    );
-    */
-  }
-
   render() {
     const {
       activeTab,
+      hasNewsletter,
       serverHostname,
       canRegister,
       githubLoginLink,
@@ -139,7 +90,9 @@ class AuthLogin extends React.Component {
             />
           )}
           {activeTab === 'sso' && <AuthSsoForm api={api} hostname={serverHostname} />}
-          {activeTab === 'register' && this.renderRegister()}
+          {activeTab === 'register' && (
+            <AuthRegisterForm api={api} hasNewsletter={hasNewsletter} />
+          )}
         </div>
       </React.Fragment>
     );
