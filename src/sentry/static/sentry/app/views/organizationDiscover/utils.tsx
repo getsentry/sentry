@@ -19,7 +19,7 @@ const VALID_QUERY_KEYS = [
   'limit',
 ];
 
-export function getQueryFromQueryString(queryString: string): {[key: string]: string} {
+export function getQueryFromQueryString(queryString: string): {[key: string]: any} {
   const queryKeys = new Set([...VALID_QUERY_KEYS, 'utc']);
   const result: {[key: string]: string} = {};
   const parsedQuery = queryString.replace(/^\?|\/$/g, '').split('&');

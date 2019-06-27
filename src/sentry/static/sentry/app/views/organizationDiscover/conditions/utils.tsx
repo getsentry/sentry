@@ -14,7 +14,7 @@ const specialConditions = new Set(['IS NULL', 'IS NOT NULL']);
  * @param cols.type Type of column
  * @returns True if valid condition, false if not
  */
-export function isValidCondition(condition: ConditionData, cols: Column[]) {
+export function isValidCondition(condition: [any, any, any], cols: Column[]): boolean {
   const allOperators = new Set(CONDITION_OPERATORS);
   const columns = new Set(cols.map(({name}) => name));
 

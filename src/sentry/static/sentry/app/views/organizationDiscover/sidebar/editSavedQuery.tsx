@@ -20,7 +20,7 @@ type EditSavedQueryProps = {
   queryBuilder: QueryBuilder;
   onRunQuery: () => void;
   savedQuery: SavedQuery;
-  onUpdateField: () => void;
+  onUpdateField: (field: string, value: any) => void;
   onDeleteQuery: () => void;
   onSaveQuery: (name: string) => void;
   isFetchingQuery: boolean;

@@ -21,7 +21,7 @@ type NewQueryProps = {
   queryBuilder: QueryBuilder;
   onRunQuery: () => void;
   onReset: () => void;
-  onUpdateField: () => void;
+  onUpdateField: (field: string, value: any) => void;
   isFetchingQuery: boolean;
   isLoading: boolean;
 };

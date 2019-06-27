@@ -1,5 +1,4 @@
 import {browserHistory} from 'react-router';
-import PropTypes from 'prop-types';
 import React from 'react';
 import moment from 'moment';
 
@@ -8,7 +7,6 @@ import {getUtcDateString} from 'app/utils/dates';
 import {t, tct} from 'app/locale';
 import {updateProjects, updateDateTime} from 'app/actionCreators/globalSelection';
 import PageHeading from 'app/components/pageHeading';
-import SentryTypes from 'app/sentryTypes';
 
 import {
   DiscoverContainer,
@@ -39,26 +37,38 @@ import ResultLoading from './result/loading';
 import SavedQueryList from './sidebar/savedQueryList';
 import createResultManager from './resultManager';
 
-export default class OrganizationDiscover extends React.Component {
-  static propTypes = {
-    organization: SentryTypes.Organization.isRequired,
-    location: PropTypes.object.isRequired,
-    queryBuilder: PropTypes.object.isRequired,
-    // savedQuery and isEditingSavedQuery are provided if it's a saved query
-    savedQuery: SentryTypes.DiscoverSavedQuery,
-    isEditingSavedQuery: PropTypes.bool,
-    updateSavedQueryData: PropTypes.func.isRequired,
-    view: PropTypes.oneOf(['query', 'saved']),
-    toggleEditMode: PropTypes.func.isRequired,
-    isLoading: PropTypes.bool.isRequired,
-    utc: PropTypes.bool,
-  };
+import {Organization, SavedQuery} from './types';
 
+type Props = {
+  organization: Organization;
+  location: any;
+  params: any;
+  queryBuilder: any;
+  // savedQuery is provided if it's a saved query
+  savedQuery?: SavedQuery;
+  isEditingSavedQuery: boolean;
+  updateSavedQueryData: (q: SavedQuery) => void;
+  view: string;
+  toggleEditMode: () => void;
+  isLoading: boolean;
+  utc: boolean;
+};
+
+type State = {
+  resultManager: any;
+  data: any;
+  isFetchingQuery: boolean;
+  isEditingSavedQuery: boolean;
+  savedQueryName: string | null;
+  view: string;
+};
+
+export default class OrganizationDiscover extends React.Component<Props, State> {
   static defaultProps = {
     utc: true,
   };
 
-  constructor(props) {
+  constructor(props: Props) {
     super(props);
     const resultManager = createResultManager(props.queryBuilder);
     this.state = {
@@ -71,7 +81,7 @@ export default class OrganizationDiscover extends React.Component {
     };
   }
 
-  componentWillReceiveProps(nextProps) {
+  componentWillReceiveProps(nextProps: Props) {
     const {
       queryBuilder,
       location: {search},
@@ -129,8 +139,8 @@ export default class OrganizationDiscover extends React.Component {
 
       // These props come from URL string, so will always be in UTC
       updateDateTime({
-        start: (start && new Date(moment.utc(start).local())) || null,
-        end: (end && new Date(moment.utc(end).local())) || null,
+        start: (start && new Date(moment.utc(start).local() as any)) || null,
+        end: (end && new Date(moment.utc(end).local() as any)) || null,
         period: range || null,
         utc: typeof utc !== 'undefined' ? utc : null,
       });
@@ -139,23 +149,33 @@ export default class OrganizationDiscover extends React.Component {
     }
   }
 
-  updateProjects = val => {
+  updateProjects = (val: number[]): void => {
     this.updateField('projects', val);
     updateProjects(val);
   };
 
-  getDateTimeFields = ({period, start, end, utc}) => ({
+  getDateTimeFields = ({
+    period,
+    start,
+    end,
+    utc,
+  }: {
+    period: string;
+    start: string;
+    end: string;
+    utc: boolean;
+  }) => ({
     range: period || null,
     utc: typeof utc !== 'undefined' ? utc : null,
     start: (start && getUtcDateString(start)) || null,
     end: (end && getUtcDateString(end)) || null,
   });
 
-  changeTime = datetime => {
+  changeTime = (datetime: any) => {
     this.updateFields(this.getDateTimeFields(datetime));
   };
 
-  updateDateTime = datetime => {
+  updateDateTime = (datetime: any) => {
     const {start, end, range, utc} = this.getDateTimeFields(datetime);
 
     updateDateTime({
@@ -168,23 +188,23 @@ export default class OrganizationDiscover extends React.Component {
   };
 
   // Called when global selection header changes dates
-  updateDateTimeAndRun = datetime => {
+  updateDateTimeAndRun = (datetime: any) => {
     this.updateDateTime(datetime);
     this.runQuery();
   };
 
-  updateField = (field, value) => {
+  updateField = (field: string, value: any) => {
     this.props.queryBuilder.updateField(field, value);
     this.forceUpdate();
   };
 
-  updateFields = query => {
+  updateFields = (query: any) => {
     Object.entries(query).forEach(([field, value]) => {
       this.updateField(field, value);
     });
   };
 
-  updateAndRunQuery = query => {
+  updateAndRunQuery = (query: any) => {
     this.updateFields(query);
     this.runQuery();
   };
@@ -198,11 +218,11 @@ export default class OrganizationDiscover extends React.Component {
 
     // Strip any invalid conditions and aggregations
     const {conditions, aggregations} = queryBuilder.getInternal();
-    const filteredConditions = conditions.filter(condition =>
+    const filteredConditions = conditions.filter((condition: [any, any, any]) =>
       isValidCondition(condition, queryBuilder.getColumns())
     );
 
-    const filteredAggregations = aggregations.filter(aggregation =>
+    const filteredAggregations = aggregations.filter((aggregation: [any, any, any]) =>
       isValidAggregation(aggregation, queryBuilder.getColumns())
     );
 
@@ -218,7 +238,7 @@ export default class OrganizationDiscover extends React.Component {
 
     resultManager
       .fetchAll()
-      .then(data => {
+      .then((data: any) => {
         const shouldRedirect = !this.props.params.savedQueryId;
 
         if (shouldRedirect) {
@@ -242,28 +262,28 @@ export default class OrganizationDiscover extends React.Component {
           isFetchingQuery: false,
         });
       })
-      .catch(err => {
+      .catch((err: any) => {
         const message = (err && err.message) || t('An error occurred');
         addErrorMessage(message);
         this.setState({isFetchingQuery: false});
       });
   };
 
-  onFetchPage = nextOrPrev => {
+  onFetchPage = (nextOrPrev: string) => {
     this.setState({isFetchingQuery: true});
     return this.state.resultManager
       .fetchPage(nextOrPrev)
-      .then(data => {
+      .then((data: any) => {
         this.setState({data, isFetchingQuery: false});
       })
-      .catch(err => {
+      .catch((err: any) => {
         const message = (err && err.message) || t('An error occurred');
         addErrorMessage(message);
         this.setState({isFetchingQuery: false});
       });
   };
 
-  toggleSidebar = view => {
+  toggleSidebar = (view: string) => {
     if (view !== this.state.view) {
       this.setState({view});
       browserHistory.replace({
@@ -298,11 +318,11 @@ export default class OrganizationDiscover extends React.Component {
     const {organization, savedQuery} = this.props;
     const {resultManager} = this.state;
 
-    deleteSavedQuery(organization, savedQuery.id)
+    deleteSavedQuery(organization, savedQuery!.id)
       .then(() => {
         addSuccessMessage(
           tct('Successfully deleted query [name]', {
-            name: savedQuery.name,
+            name: savedQuery!.name,
           })
         );
         resultManager.reset();
@@ -314,14 +334,14 @@ export default class OrganizationDiscover extends React.Component {
       });
   };
 
-  updateSavedQuery = name => {
+  updateSavedQuery = (name: string) => {
     const {queryBuilder, savedQuery, organization, toggleEditMode} = this.props;
     const query = queryBuilder.getInternal();
 
     const data = {...query, name};
 
-    updateSavedQuery(organization, savedQuery.id, data)
-      .then(resp => {
+    updateSavedQuery(organization, savedQuery!.id, data)
+      .then((resp: SavedQuery) => {
         addSuccessMessage(t('Updated query'));
         toggleEditMode(); // Return to read-only mode
         this.props.updateSavedQueryData(resp);
@@ -409,7 +429,6 @@ export default class OrganizationDiscover extends React.Component {
                 isFetchingQuery={isFetchingQuery}
                 onUpdateField={this.updateField}
                 onRunQuery={this.runQuery}
-                onReset={this.reset}
                 onDeleteQuery={this.deleteSavedQuery}
                 onSaveQuery={this.updateSavedQuery}
                 isLoading={isLoading}

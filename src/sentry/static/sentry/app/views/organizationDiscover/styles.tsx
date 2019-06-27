@@ -161,7 +161,7 @@ export const LoadingContainer = styled('div')`
 export const SidebarTabs = styled(props => <NavTabs {...props} underlined={true} />)`
   padding: ${space(3)} ${space(3)} 0;
   margin: 0;
-`;
+` as any;
 
 export const PlaceholderText = styled('div')`
   color: ${p => p.theme.gray6};
@@ -276,12 +276,12 @@ export const SavedQueryList = styled(Panel)`
   overflow: hidden;
 `;
 
-export const SavedQueryListItem = styled(({isActive, ...props}) => (
+export const SavedQueryListItem = styled(({isActive, ...props}: any) => (
   <PanelItem {...props} />
 ))`
   flex-direction: column;
   padding: 0;
-  background-color: ${p => (p.isActive ? p.theme.whiteDark : p.theme.white)};
+  background-color: ${(p: any) => (p.isActive ? p.theme.whiteDark : p.theme.white)};
 `;
 
 export const SavedQueryLink = styled(Link)`

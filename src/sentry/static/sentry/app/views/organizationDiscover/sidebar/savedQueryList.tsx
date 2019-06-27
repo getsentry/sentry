@@ -17,18 +17,15 @@ import {
 } from '../styles';
 import {Organization, SavedQuery} from '../types';
 
-// TODO: Find better way to use wrong styled components
-const SavedQueryListItemAny = SavedQueryListItem as any;
-
 type SavedQueriesProps = {
   organization: Organization;
-  savedQuery: SavedQuery;
+  savedQuery?: SavedQuery;
 };
 
 type SavedQueriesState = {
   isLoading: boolean;
   data: SavedQuery[];
-  topSavedQuery: SavedQuery;
+  topSavedQuery?: SavedQuery;
 };
 
 export default class SavedQueries extends React.Component<
@@ -57,7 +54,7 @@ export default class SavedQueries extends React.Component<
     // Update query in the list with new data
     if (nextProps.savedQuery && nextProps.savedQuery !== this.props.savedQuery) {
       const data = this.state.data.map(savedQuery =>
-        savedQuery.id === nextProps.savedQuery.id ? nextProps.savedQuery : savedQuery
+        savedQuery.id === nextProps.savedQuery!.id ? nextProps.savedQuery! : savedQuery
       );
       this.setState({data});
     }
@@ -104,7 +101,7 @@ export default class SavedQueries extends React.Component<
     const {id, name, dateUpdated} = query;
     const {organization} = this.props;
     return (
-      <SavedQueryListItemAny key={id} isActive={savedQuery && savedQuery.id === id}>
+      <SavedQueryListItem key={id} isActive={savedQuery && savedQuery.id === id}>
         <SavedQueryLink to={`/organizations/${organization.slug}/discover/saved/${id}/`}>
           {getDynamicText({value: name, fixed: 'saved query'})}
           <SavedQueryUpdated>
@@ -116,7 +113,7 @@ export default class SavedQueries extends React.Component<
             })}
           </SavedQueryUpdated>
         </SavedQueryLink>
-      </SavedQueryListItemAny>
+      </SavedQueryListItem>
     );
   }
 
