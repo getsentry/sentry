@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 from django import template
+from django.http import HttpRequest
 
 from sentry.auth.access import from_user, NoAccess
 from sentry.api.serializers.base import serialize as serialize_func
@@ -42,3 +43,39 @@ def serialize_detailed_org(context, obj):
     )
 
     return convert_to_json(context)
+
+
+@register.simple_tag
+def get_user_context(request, escape=False):
+    if isinstance(request, HttpRequest):
+        user = getattr(request, 'user', None)
+        result = {'ip_address': request.META['REMOTE_ADDR']}
+        if user and user.is_authenticated():
+            result.update({
+                'email': user.email,
+                'id': user.id,
+            })
+            if user.name:
+                result['name'] = user.name
+    else:
+        result = {}
+    return convert_to_json(result)
+
+
+@register.simple_tag
+def get_build_context():
+    import os
+    build_identifier = os.environ.get("TRAVIS_BUILD_ID") or os.environ.get("SENTRY_BUILD_ID")
+    if build_identifier:
+        return convert_to_json({
+            'id': build_identifier,
+            'name': os.environ.get('TRAVIS_COMMIT_MESSAGE'),
+            'commit': os.environ.get('TRAVIS_PULL_REQUEST_SHA') or os.environ.get('TRAVIS_COMMIT'),
+        })
+    return 'null'
+
+
+@register.simple_tag
+def sentry_env():
+    from django.conf import settings
+    return settings.SENTRY_SDK_CONFIG['environment']

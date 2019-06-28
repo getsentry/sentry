@@ -46,6 +46,9 @@ Sentry.configureScope(scope => {
   if (window.__SENTRY__VERSION) {
     scope.setTag('sentry_version', window.__SENTRY__VERSION);
   }
+  if (window.__SENTRY__BUILD) {
+    scope.setContext('build', window.__SENTRY__BUILD);
+  }
 });
 
 // -----------------------------------------------------------------
@@ -63,35 +66,6 @@ jQuery.ajaxSetup({
 // App setup
 if (window.__initialData) {
   ConfigStore.loadInitialData(window.__initialData, window.__languageCode);
-
-  // SDK INIT  --------------------------------------------------------
-  // window.__SENTRY__OPTIONS will be emmited by sdk-config.html before loading this script
-  Sentry.init({
-    ...window.__initialData.sentryConfig,
-    integrations: [
-      new ExtraErrorData({
-        // 6 is arbitrary, seems like a nice number
-        depth: 6,
-      }),
-      new Tracing({
-        tracingOrigins: ['localhost', 'sentry.io', /^\//],
-        autoStartOnDomReady: false,
-      }),
-    ],
-  });
-
-  Sentry.configureScope(scope => {
-    const {userContext, sentryVersion, buildContext} = window.__initialData;
-    if (userContext) {
-      scope.setUser(userContext);
-    }
-    if (sentryVersion) {
-      scope.setTag('sentry_version', sentryVersion);
-    }
-    if (buildContext) {
-      scope.setContext('build', buildContext);
-    }
-  });
 }
 
 // these get exported to a global variable, which is important as its the only

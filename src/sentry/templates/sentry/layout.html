@@ -1,6 +1,7 @@
 {% load i18n %}
 {% load sentry_api %}
 {% load sentry_avatars %}
+{% load sentry_dsn %}
 {% load sentry_assets %}
 {% load sentry_features %}
 {% load sentry_helpers %}
@@ -40,6 +41,7 @@
   </script>
 
   {% block scripts %}
+  {% include "sentry/includes/sdk-config.html" %}
   {% locale_js_include %}
   <script src="{% asset_url "sentry" "dist/vendor.js" %}"{% crossorigin %}></script>
   <script src="{% asset_url "sentry" "dist/app.js" %}"{% crossorigin %}></script>
