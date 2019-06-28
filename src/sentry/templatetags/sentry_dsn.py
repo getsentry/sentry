@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+import os
+
 from django import template
 from django.conf import settings
 from django.db.models import F
@@ -23,6 +25,9 @@ def _get_project_key(project_id):
 def get_public_dsn():
     if settings.SENTRY_FRONTEND_DSN:
         return settings.SENTRY_FRONTEND_DSN
+
+    if os.environ.get('SENTRY_DSN'):
+        return os.environ['SENTRY_DSN']
 
     project_id = settings.SENTRY_FRONTEND_PROJECT or settings.SENTRY_PROJECT
     cache_key = 'dsn:%s' % (project_id, )
