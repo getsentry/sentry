@@ -17,7 +17,7 @@ class BugCatcher(object):
             self.live_server.url + '/',
             '--screenshots', '.artifacts/screenshots/',
             '--wait-until', 'networkidle0',
-
+            '--block', '/manage/quotas',
         ]
         if as_user:
             args.extend([
