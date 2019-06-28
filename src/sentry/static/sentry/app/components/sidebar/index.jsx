@@ -510,7 +510,6 @@ const StyledSidebar = styled('div')`
   background: ${p => p.theme.sidebar.background};
   color: ${p => p.theme.sidebar.color};
   line-height: 1;
-  padding: 12px 0 2px; /* Allows for 32px avatars  */
   width: ${p => p.theme.sidebar.expandedWidth};
   position: fixed;
   top: 0;
@@ -585,7 +584,6 @@ const PrimaryItems = styled('div')`
 
 const SidebarSection = styled(SidebarSectionGroup)`
   ${p => !p.noMargin && `margin: ${space(1)} 0`};
-  padding: 0 19px;
 
   @media (max-width: ${p => p.theme.breakpoints[0]}) {
     margin: 0;
