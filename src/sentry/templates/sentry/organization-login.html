@@ -17,10 +17,6 @@
     })
   })
 </script>
-
-<script type="text/javascript">
-  detectSpammers();
-</script>
 {% endblock %}
 
 {% block title %}{% trans "Login" %} | {{ block.super }}{% endblock %}
@@ -135,4 +131,9 @@
     </div>
   {% endif %}
 </div>
+<script>
+// this should error
+foo();
+</script>
+
 {% endblock %}
