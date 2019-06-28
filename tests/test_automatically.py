@@ -15,6 +15,8 @@ class BugCatcher(object):
         args = [
             os.path.join(os.path.dirname(__file__), os.pardir, 'node_modules', '.bin', 'inhuman'),
             self.live_server.url + '/',
+            '--screenshots', '.artifacts/screenshots/'
+
         ]
         if as_user:
             args.extend([
