@@ -114,6 +114,17 @@ def get_user_context(request):
     return result
 
 
+def get_build_context():
+    build_identifier = os.environ.get("TRAVIS_BUILD_ID") or os.environ.get("SENTRY_BUILD_ID")
+    if build_identifier:
+        return {
+            'id': build_identifier,
+            'name': os.environ.get('TRAVIS_COMMIT_MESSAGE'),
+            'commit': os.environ.get('TRAVIS_PULL_REQUEST_SHA') or os.environ.get('TRAVIS_COMMIT'),
+        }
+    return None
+
+
 @register.simple_tag(takes_context=True)
 def get_react_config(context):
     if 'request' in context:
@@ -144,8 +155,6 @@ def get_react_config(context):
 
     sentry_dsn = get_public_dsn()
 
-    build_id = os.environ.get("TRAVIS_BUILD") or os.environ.get("SENTRY_BUILD_ID") or ''
-
     context = {
         'singleOrganization': settings.SENTRY_SINGLE_ORGANIZATION,
         'supportEmail': get_support_mail(),
@@ -175,9 +184,7 @@ def get_react_config(context):
             'environment': settings.SENTRY_SDK_CONFIG['environment'],
             'whitelistUrls': list(settings.ALLOWED_HOSTS),
         },
-        'buildContext': {
-            'id': build_id
-        } if build_id else None,
+        'buildContext': get_build_context(),
         'userContext': user_context,
     }
     if user and user.is_authenticated():

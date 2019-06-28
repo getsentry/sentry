@@ -89,9 +89,7 @@ if (window.__initialData) {
       scope.setTag('sentry_version', sentryVersion);
     }
     if (buildContext) {
-      scope.setContext('build', {
-        id: buildContext,
-      });
+      scope.setContext('build', buildContext);
     }
   });
 }
