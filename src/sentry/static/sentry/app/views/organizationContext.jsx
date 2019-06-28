@@ -150,13 +150,17 @@ const OrganizationContext = createReactClass({
         }
         OrganizationEnvironmentsStore.loadInitialData(environments);
 
-        this.setState({
-          organization: data,
-          loading: false,
-          error: false,
-          errorType: null,
-          hooks,
-        });
+        setTimeout(
+          () =>
+            this.setState({
+              organization: data,
+              loading: false,
+              error: false,
+              errorType: null,
+              hooks,
+            }),
+          3000
+        );
       })
       .catch(err => {
         let errorType = null;
