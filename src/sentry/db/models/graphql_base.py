@@ -12,25 +12,78 @@ class RootCardinality(IntEnum):
     MULTIPLE = 2
 
 
-class GraphQLConfig(object):
+class GraphQLBaseConfig(object):
+    def __init__(self,
+                 type_name,
+                 edges=None,
+                 permission_policy=None,
+                 filter_fields=(),
+                 root_cardinality=RootCardinality.NONE,
+                 ):
+        self.type_name = type_name
+        self.filter_fields = filter_fields
+        self.root_cardinality = root_cardinality
+        self.permission_policy = permission_policy
+        self.edges = edges or {}
+
+
+class GraphQLDjangoConfig(GraphQLBaseConfig):
     def __init__(self,
                  type_name,
                  only_fields,
+                 edges=None,
                  permission_policy=None,
                  filter_fields=(),
                  exclude_fields=(),
                  root_cardinality=RootCardinality.NONE,
+                 enum_mapping=None,
                  ):
-        self.type_name = type_name
+        super(GraphQLDjangoConfig, self).__init__(
+            type_name=type_name,
+            edges=edges,
+            permission_policy=permission_policy,
+            filter_fields=filter_fields,
+            root_cardinality=root_cardinality,
+        )
+        self.enum_mapping = enum_mapping or {}
         self.only_fields = only_fields
-        self.filter_fields = filter_fields
         self.exclude_fields = exclude_fields
-        self.root_cardinality = root_cardinality
-        self.permission_policy = permission_policy
 
 
-class GraphQLModel(Model):
+class GraphQLSimpleConfig(GraphQLBaseConfig):
+    def __init__(self,
+                 type_name,
+                 fields_desc,
+                 permission_policy=None,
+                 filter_fields=(),
+                 root_cardinality=RootCardinality.NONE,
+                 ):
+        super(GraphQLSimpleConfig, self).__init__(
+            type_name=type_name,
+            permission_policy=permission_policy,
+            filter_fields=filter_fields,
+            root_cardinality=root_cardinality,
+        )
+        self.fields_desc = fields_desc
+
+
+class GraphQLModelBase(object):
     graphql_config = None
+
+    @classmethod
+    def resolve_single(cls, info, **kwargs):
+        raise NotImplemented("You need to implement resolve_single to make it work")
+
+    @classmethod
+    def resolve_all(cls, info, **kwargs):
+        raise NotImplemented("You need to implement resolve_all to make it work")
+
+    @classmethod
+    def resolve_fk(cls, identity, info, **kwargs):
+        raise NotImplemented("You need to implement resolve_fk to make it work")
+
+
+class GraphQLModel(Model, GraphQLModelBase):
 
     class Meta:
         abstract = True

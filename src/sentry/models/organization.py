@@ -24,7 +24,7 @@ from sentry import roles
 from sentry.app import locks
 from sentry.constants import RESERVED_ORGANIZATION_SLUGS, RESERVED_PROJECT_SLUGS
 from sentry.db.models import (BaseManager, BoundedPositiveIntegerField, sane_repr)
-from sentry.db.models.graphql_base import GraphQLModel, GraphQLConfig, RootCardinality
+from sentry.db.models.graphql_base import GraphQLModel, GraphQLDjangoConfig, RootCardinality
 from sentry.db.models.utils import slugify_instance
 from sentry.utils.http import absolute_uri
 from sentry.utils.retries import TimedRetryPolicy
@@ -102,13 +102,16 @@ class Organization(GraphQLModel):
     """
     __core__ = True
 
-    graphql_config = GraphQLConfig(
+    graphql_config = GraphQLDjangoConfig(
         type_name='organization',
         only_fields=('slug', 'name', 'status',
                      'date_added', 'default_role', 'flags', 'project_set'),
         filter_fields=('slug',),
         root_cardinality=RootCardinality.SINGLE,
         permission_policy='sentry.api.bases.organization.OrganizationPermission',
+        enum_mapping={
+            'status': OrganizationStatus,
+        }
     )
 
     name = models.CharField(max_length=64)

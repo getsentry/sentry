@@ -2,12 +2,14 @@ from __future__ import absolute_import
 from django.db import models
 from django.utils.functional import SimpleLazyObject
 
+from functools import partial
 from graphene.types.objecttype import ObjectType
 from graphene_django.utils import is_valid_django_model, get_model_fields
 from graphene.types.utils import yank_fields_from_attrs
 from graphene_django.types import construct_fields, DjangoObjectTypeOptions
-from sentry.api.graphql_query import get_global_registry, SentryRegistry, build_filter_fields
-from graphene import Field, List
+from sentry.api.graphql_query import build_filter_fields
+from sentry.api.graphql_registry import get_global_registry, SentryRegistry
+from graphene import Field, List, Enum
 from types import MethodType
 
 
@@ -47,6 +49,10 @@ class SentryGraphQLType(ObjectType):
         django_fields = yank_fields_from_attrs(fields, _as=Field)
         super_class = super(cls, cls)
         super_class.__process_fk__(model, config.only_fields, config.exclude_fields)
+        super_class.__process_edges__(model, config.edges)
+
+        for key, enum_def in config.enum_mapping.items():
+            super_class.__process_enum__(key, enum_def)
 
         if not _meta:
             _meta = DjangoObjectTypeOptions(cls)
@@ -68,6 +74,60 @@ class SentryGraphQLType(ObjectType):
 
     def resolve_id(self, info):
         return self.pk
+
+    @classmethod
+    def __process_enum__(cls, field_name, enum_type):
+        field_def = Enum(
+            enum_type.__name__,
+            [(e.name, e.value) for e in enum_type]
+        )
+        setattr(
+            cls,
+            field_name,
+            Field(field_def),
+        )
+
+        def resolve_enum(field_name, parent, info):
+            return getattr(parent, field_name)
+
+        setattr(
+            cls,
+            "resolve_%s" % (field_name),
+            MethodType(partial(resolve_enum, field_name), None, cls)
+        )
+
+    @classmethod
+    def __process_edges__(cls, model, edges):
+        for name, edge in edges.items():
+            fk_model = edge['model']
+            if not hasattr(fk_model, 'graphql_config'):
+                continue
+
+            filter_fields = fk_model.graphql_config.filter_fields
+            fields_def = fk_model.graphql_config.fields_desc
+            resolved_filter_fields = {k: v for k, v in fields_def.items() if k in filter_fields}
+            graphql_type_name = edge['type']
+
+            def resolve_multi(self, info, **kwargs):
+                identity = {
+                    edge['key'][0]: self,
+                }
+                return fk_model.resolve_fk(identity, info, **kwargs)
+
+            if resolved_filter_fields:
+                setattr(
+                    cls,
+                    name,
+                    Field(List(graphql_type_name), **resolved_filter_fields),
+                )
+            else:
+                setattr(
+                    cls,
+                    name,
+                    Field(List(graphql_type_name)),
+                )
+            resolver_name = 'resolve_%s' % name
+            setattr(cls, resolver_name, MethodType(resolve_multi, None, cls))
 
     @classmethod
     def __process_fk__(cls, model, only_fields, exclude_fields):

@@ -24,11 +24,12 @@ from sentry import eventtypes, tagstore, options
 from sentry.constants import (
     DEFAULT_LOGGER_NAME, EVENT_ORDERING_KEY, LOG_LEVELS, MAX_CULPRIT_LENGTH
 )
+from sentry.models.event import SnubaEvent
 from sentry.db.models import (
     BaseManager, BoundedBigIntegerField, BoundedIntegerField, BoundedPositiveIntegerField,
     FlexibleForeignKey, GzippedDictField, sane_repr
 )
-from sentry.db.models.graphql_base import GraphQLModel, GraphQLConfig
+from sentry.db.models.graphql_base import GraphQLModel, GraphQLDjangoConfig, RootCardinality
 from sentry.utils.http import absolute_uri
 from sentry.utils.numbers import base32_decode, base32_encode
 from sentry.utils.strings import strip, truncatechars
@@ -240,14 +241,22 @@ class Group(GraphQLModel):
     """
     Aggregated message which summarizes a set of Events.
     """
-    graphql_config = GraphQLConfig(
+    graphql_config = GraphQLDjangoConfig(
         type_name='group',
         only_fields=('id', 'short_id', 'message', 'culprit', 'logger', 'level',
                      'platform', 'project', 'times_seen', 'last_seen', 'first_seen',
                      'resolved_at', 'active_at', 'time_spent_total',
                      'time_spent_count', 'status'),
         filter_fields=('level', 'id'),
-        permission_policy='sentry.api.bases.group.GroupPermission'
+        permission_policy='sentry.api.bases.group.GroupPermission',
+        root_cardinality=RootCardinality.MULTIPLE,
+        edges={
+            'event_set': {
+                'type': 'sentry.api.graphql.EventType',
+                'model': SnubaEvent,
+                'key': ('group', 'group_id'),
+            }
+        },
     )
 
     __core__ = False

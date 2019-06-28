@@ -13,16 +13,17 @@ from sentry.api.graphql_query import QueryMaster
 # from sentry.api.bases.project import ProjectPermission, ProjectEventPermission
 # from sentry.api.bases.project import ProjectEventPermission
 from sentry.api.graphql_type import SentryGraphQLType
+from sentry.api.graphql_simple import SentryGraphQLSimpleType
 from sentry.models import Group, Organization, Project
-# from sentry.models.event import SnubaEvent
+from sentry.models.event import SnubaEvent
 # from sentry.utils.snuba import raw_query
 import graphene
 
 
-class OrgStatus(graphene.Enum):
-    ACTIVE = 0
-    PENDING_DELETION = 1
-    DELETION_IN_PROGRESS = 2
+# class OrgStatus(graphene.Enum):
+#    ACTIVE = 0
+#    PENDING_DELETION = 1
+#    DELETION_IN_PROGRESS = 2
 
 
 # class OrganizationType(SentryGraphQLType):
@@ -267,10 +268,19 @@ class GroupType(SentryGraphQLType):
         model = Group
 
 
+class EventType(SentryGraphQLSimpleType):
+    class Meta:
+        model = SnubaEvent
+
+
 class Query(QueryMaster):
     from sentry.api.graphql import OrganizationType
+    from sentry.api.graphql import GroupType
+    from sentry.api.graphql import EventType
     graphql_types = [
         OrganizationType,
+        GroupType,
+        EventType,
     ]
 
 

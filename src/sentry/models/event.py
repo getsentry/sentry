@@ -11,6 +11,9 @@ import six
 import string
 import warnings
 import pytz
+import graphene
+
+from datetime import timedelta
 
 from collections import OrderedDict
 from datetime import datetime
@@ -24,6 +27,7 @@ from semaphore.processing import StoreNormalizer
 
 from sentry import eventtypes
 from sentry.constants import EVENT_ORDERING_KEY
+from sentry.db.models.graphql_base import GraphQLSimpleConfig, RootCardinality
 from sentry.db.models import (
     BoundedBigIntegerField,
     BoundedIntegerField,
@@ -32,6 +36,7 @@ from sentry.db.models import (
     NodeField,
     sane_repr
 )
+from sentry.db.models.graphql_base import GraphQLModelBase
 from sentry.db.models.manager import EventManager, SnubaEventManager
 from sentry.interfaces.base import get_interfaces
 from sentry.utils import json
@@ -413,7 +418,7 @@ class EventCommon(object):
         return self.title
 
 
-class SnubaEvent(EventCommon):
+class SnubaEvent(EventCommon, GraphQLModelBase):
     """
         An event backed by data stored in snuba.
 
@@ -422,6 +427,27 @@ class SnubaEvent(EventCommon):
         fetched from nodestore and bound to the data property in the same way
         as a regular Event.
     """
+
+    graphql_config = GraphQLSimpleConfig(
+        type_name='event',
+        permission_policy='sentry.api.bases.events.EventPermission',
+        root_cardinality=RootCardinality.MULTIPLE,
+        fields_desc={
+            'id': graphene.String(),
+            'group_id': graphene.Int(),
+            'title': graphene.String(),
+            'size': graphene.Int(),
+            'dist': graphene.String(),
+            'message': graphene.String(),
+            'location': graphene.String(),
+            'culprit': graphene.String(),
+            'user': graphene.String(),
+            'event_type': graphene.String(),
+            'platform': graphene.String(),
+            'tags': graphene.List(graphene.String),
+        },
+        filter_fields=('id', 'group_id', 'location')
+    )
 
     # The minimal list of columns we need to get from snuba to bootstrap an
     # event. If the client is planning on loading the entire event body from
@@ -458,6 +484,35 @@ class SnubaEvent(EventCommon):
     objects = SnubaEventManager()
 
     __repr__ = sane_repr('project_id', 'group_id')
+
+    @classmethod
+    def resolve_all(cls, info, **kwargs):
+        return []
+
+    @classmethod
+    def resolve_fk(cls, identity, info, **kwargs):
+        from sentry.api.event_search import get_snuba_query_args
+        from sentry.utils.snuba import raw_query
+        default_end = timezone.now()
+        default_start = default_end - timedelta(days=90)
+        group_id = identity['group'].id
+        params = {
+            'issue.id': [group_id],
+            # 'project_id': [self.project_id],
+            'start': default_start,
+            'end': default_end,
+        }
+        params = dict(params, **kwargs)
+        snuba_args = get_snuba_query_args(None, params)
+        snuba_cols = SnubaEvent.minimal_columns
+        ret = raw_query(
+            selected_columns=snuba_cols,
+            orderby='-timestamp',
+            referrer='api.graphql',
+            **snuba_args
+        )
+        ret = [SnubaEvent(row) for row in ret['data']]
+        return ret
 
     @classmethod
     def get_event(cls, project_id, event_id, snuba_cols=selected_columns):

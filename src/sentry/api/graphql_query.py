@@ -1,7 +1,10 @@
 from __future__ import absolute_import
 
 from sentry.db.models.graphql_base import RootCardinality
+from sentry.api.graphql_registry import get_global_registry
 import graphene
+
+from functools import partial
 from graphene_django.types import construct_fields
 from types import MethodType
 
@@ -9,26 +12,39 @@ from types import MethodType
 class QueryMaster(graphene.ObjectType):
     def __init_subclass__(cls, **meta_options):
         for c in cls.graphql_types:
-            def resolve_single(self, info, **kwargs):
+
+            def resolve_single(c, self, info, **kwargs):
                 return c.MODEL_CLASS.resolve_single(info, **kwargs)
 
-            def resolve_multi(self, info, **kwargs):
+            def resolve_multi(c, self, info, **kwargs):
                 return c.MODEL_CLASS.resolve_all(info, **kwargs)
 
             config = c.GRAPHQL_CONFIG
             type_name = config.type_name
-            filter_fields = build_filter_fields(c.MODEL_CLASS, config.filter_fields)
+
+            from sentry.api.graphql_type import SentryGraphQLType
+            if issubclass(c, SentryGraphQLType):
+                filter_fields = build_filter_fields(c.MODEL_CLASS, config.filter_fields)
+            else:
+                filter_fields = config.filter_fields
+                fields_def = config.fields_desc
+                filter_fields = {k: v for k, v in fields_def.items() if k in filter_fields}
+
+            if config.root_cardinality == RootCardinality.SINGLE:
+                type_cls = graphene.Field(c, **filter_fields)
+            else:
+                type_cls = graphene.Field(graphene.List(c), **filter_fields)
 
             setattr(
                 cls,
                 type_name,
-                graphene.Field(c, **filter_fields),
+                type_cls,
             )
             resolver_name = 'resolve_%s' % type_name
             if config.root_cardinality == RootCardinality.SINGLE:
-                root_resolver = resolve_single
+                root_resolver = partial(resolve_single, c)
             elif config.root_cardinality == RootCardinality.MULTIPLE:
-                root_resolver = resolve_multi
+                root_resolver = partial(resolve_multi, c)
             else:
                 raise
 
@@ -44,45 +60,3 @@ def build_filter_fields(model_class, filter_field_names):
         if 'required' in field.kwargs:
             field.kwargs['required'] = False
     return fields
-
-
-class SentryRegistry(object):
-    """
-    A copy paste of the django-graphene one to skip the assertion on the type
-    """
-
-    def __init__(self):
-        self._registry = {}
-        self._field_registry = {}
-
-    def register(self, cls):
-        assert cls._meta.registry == self, "Registry for a Model have to match."
-        # assert self.get_type_for_model(cls._meta.model) == cls, (
-        #     'Multiple DjangoObjectTypes registered for "{}"'.format(cls._meta.model)
-        # )
-        if not getattr(cls._meta, "skip_registry", False):
-            self._registry[cls._meta.model] = cls
-
-    def get_type_for_model(self, model):
-        return self._registry.get(model)
-
-    def register_converted_field(self, field, converted):
-        self._field_registry[field] = converted
-
-    def get_converted_field(self, field):
-        return self._field_registry.get(field)
-
-
-registry = None
-
-
-def get_global_registry():
-    global registry
-    if not registry:
-        registry = SentryRegistry()
-    return registry
-
-
-def reset_global_registry():
-    global registry
-    registry = None
