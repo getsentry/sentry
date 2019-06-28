@@ -21,6 +21,7 @@ addons:
     packages:
       - libxmlsec1-dev
       - libgeoip-dev
+      - libnss3-tools
   chrome: stable
 
 env:
