@@ -7,7 +7,6 @@ from django.conf import settings
 from django.db import connections, transaction
 from django.db.utils import OperationalError, ProgrammingError
 from django.db.models.signals import post_migrate, post_save
-
 from functools import wraps
 from pkg_resources import parse_version as Version
 
@@ -35,12 +34,12 @@ def handle_db_failure(func):
     return wrapped
 
 
-def create_default_projects(app_config, verbosity=2, **kwargs):
-    if app_config and app_config.name != "sentry":
+def create_default_projects(app_config, verbosity, **kwargs):
+    if app_config and app_config.name != 'sentry':
         return
 
     try:
-        app_config.get_model("Project")
+        app_config.get_model('Project')
     except LookupError:
         return
 
@@ -138,7 +137,9 @@ def freeze_option_epoch_for_project(instance, created, app=None, **kwargs):
 # Anything that relies on default objects that may not exist with default
 # fields should be wrapped in handle_db_failure
 post_migrate.connect(
-    handle_db_failure(create_default_projects), dispatch_uid="create_default_project", weak=False
+    handle_db_failure(create_default_projects),
+    dispatch_uid="create_default_project",
+    weak=False,
 )
 
 post_save.connect(
