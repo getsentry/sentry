@@ -7,7 +7,7 @@ import six
 from datetime import datetime, timedelta
 from django.conf import settings
 from django.db import models
-from django.db.models.loading import get_model
+from django.apps import apps
 
 from .fields import JSONField
 from .utils import setting
@@ -209,4 +209,4 @@ class UserSocialAuth(models.Model):
 
     @classmethod
     def user_model(cls):
-        return get_model(*AUTH_USER_MODEL.split('.'))
+        return apps.get_model(*AUTH_USER_MODEL.split('.'))
