@@ -6937,7 +6937,7 @@ inherits@2.0.3:
 
 "inhuman@git+https://git@github.com/getsentry/inhuman.git":
   version "0.1.0"
-  resolved "git+https://git@github.com/getsentry/inhuman.git#6474a38abf5e3df9ab75156e6daf47a78ce2a5c4"
+  resolved "git+https://git@github.com/getsentry/inhuman.git#a9faef7ab69760f7d4c5211d42ae5250236df0c1"
   dependencies:
     http-mitm-proxy "^0.7.0"
     puppeteer "^1.18.1"
