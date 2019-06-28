@@ -2,6 +2,19 @@ html {
   height: 100%;
 }
 
+@keyframes tilt {
+  0%,
+  100% {
+    transform: rotate(0deg) scale(1);
+  }
+  25% {
+    transform: rotate(1deg) scale(1.006);
+  }
+  50% {
+    transform: rotate(-1deg) scale(0.995);
+  }
+}
+
 body {
   margin: 0;
   font-size: 16px;
@@ -11,7 +24,7 @@ body {
   -webkit-font-smoothing: antialiased;
   overflow-x: hidden;
   font-family: 'Comic Sans MS' !important;
-  transform: rotate(1deg) scale(1.006);
+  animation: tilt 5s infinite ease-in-out;
 
   &.body-sidebar {
     padding-left: @sidebar-expanded-width;
