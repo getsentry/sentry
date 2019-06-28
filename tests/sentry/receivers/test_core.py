@@ -2,6 +2,7 @@
 
 from __future__ import absolute_import
 
+from django.apps import apps
 from django.conf import settings
 
 from sentry.models import (Organization, Project, ProjectKey, Team, User)
@@ -16,7 +17,7 @@ class CreateDefaultProjectsTest(TestCase):
         Team.objects.filter(slug='sentry').delete()
         Project.objects.filter(id=settings.SENTRY_PROJECT).delete()
 
-        create_default_projects(created_models=[Project])
+        create_default_projects(apps.get_app_config('sentry'), 2)
 
         project = Project.objects.get(id=settings.SENTRY_PROJECT)
         assert project.public is False
@@ -30,14 +31,14 @@ class CreateDefaultProjectsTest(TestCase):
         assert pk.roles.store
 
         # ensure that we dont hit an error here
-        create_default_projects(created_models=[Project])
+        create_default_projects(apps.get_app_config('sentry'), 2)
 
     def test_without_user(self):
         User.objects.filter(is_superuser=True).delete()
         Team.objects.filter(slug='sentry').delete()
         Project.objects.filter(id=settings.SENTRY_PROJECT).delete()
 
-        create_default_projects(created_models=[Project])
+        create_default_projects(apps.get_app_config('sentry'), 2)
 
         project = Project.objects.get(id=settings.SENTRY_PROJECT)
         assert project.public is False
@@ -51,4 +52,4 @@ class CreateDefaultProjectsTest(TestCase):
         assert pk.roles.store
 
         # ensure that we dont hit an error here
-        create_default_projects(created_models=[Project])
+        create_default_projects(apps.get_app_config('sentry'), 2)
