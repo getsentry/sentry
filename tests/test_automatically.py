@@ -18,6 +18,8 @@ class BugCatcher(object):
             '--screenshots', '.artifacts/screenshots/',
             '--wait-until', 'networkidle0',
             '--block', '/manage/quotas',
+            '--block', '/manage/queue',
+            '--block', '/manage/buffer',
         ]
         if as_user:
             args.extend([
