@@ -90,13 +90,14 @@ class AuthLoginView(BaseView):
             next_uri_fallback = request.session.pop('_next')
         return request.GET.get(REDIRECT_FIELD_NAME, next_uri_fallback)
 
-    def respond_login(self, request, context):
+    def respond_login(self, request, context, **kwargs):
         return self.respond('sentry/login.html', context)
 
-    def handle_basic_auth(self, request, organization=None):
+    def handle_basic_auth(self, request, **kwargs):
         can_register = self.can_register(request)
 
         op = request.POST.get('op')
+        organization = kwargs.pop('organization', None)
 
         if not op:
             # Detect that we are on the register page by url /register/ and
@@ -193,7 +194,7 @@ class AuthLoginView(BaseView):
         }
         context.update(additional_context.run_callbacks(request))
 
-        return self.respond_login(request, context)
+        return self.respond_login(request, context, **kwargs)
 
     def handle_authenticated(self, request):
         next_uri = self.get_next_uri(request)
@@ -207,7 +208,7 @@ class AuthLoginView(BaseView):
         return super(AuthLoginView, self).handle(request, *args, **kwargs)
 
     # XXX(dcramer): OAuth provider hooks this view
-    def get(self, request, *args, **kwargs):
+    def get(self, request, **kwargs):
         next_uri = self.get_next_uri(request)
         if request.user.is_authenticated():
             # if the user is a superuser, but not 'superuser authenticated'
@@ -231,7 +232,7 @@ class AuthLoginView(BaseView):
             messages.add_message(request, messages.WARNING,
                                  WARN_SESSION_EXPIRED)
 
-        response = self.handle_basic_auth(request, *args, **kwargs)
+        response = self.handle_basic_auth(request, **kwargs)
 
         if session_expired:
             response.delete_cookie('session_expired')
@@ -239,7 +240,7 @@ class AuthLoginView(BaseView):
         return response
 
     # XXX(dcramer): OAuth provider hooks this view
-    def post(self, request, *args, **kwargs):
+    def post(self, request, **kwargs):
         op = request.POST.get('op')
         if op == 'sso' and request.POST.get('organization'):
             auth_provider = self.get_auth_provider(
@@ -253,4 +254,4 @@ class AuthLoginView(BaseView):
 
             return HttpResponseRedirect(next_uri)
 
-        return self.handle_basic_auth(request)
+        return self.handle_basic_auth(request, **kwargs)
