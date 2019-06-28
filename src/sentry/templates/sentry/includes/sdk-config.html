@@ -5,7 +5,7 @@
     dsn: '{% public_dsn %}',
     environment: '{% sentry_env %}',
     release: '{{ sentry_version.build }}',
-    whitelistUrls: {% convert_to_json ALLOWED_HOSTS %}
+    whitelistUrls: {% sentry_whitelist_urls %}
   };
   window.__SENTRY__USER = {% get_user_context request %} || undefined;
   window.__SENTRY__BUILD = {% get_build_context %} || undefined;

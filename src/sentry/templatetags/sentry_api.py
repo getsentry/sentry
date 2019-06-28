@@ -1,6 +1,6 @@
-from __future__ import absolute_import
 
 from django import template
+from django.conf import settings
 from django.http import HttpRequest
 
 from sentry.auth.access import from_user, NoAccess
@@ -79,3 +79,10 @@ def get_build_context():
 def sentry_env():
     from django.conf import settings
     return settings.SENTRY_SDK_CONFIG['environment']
+
+
+@register.simple_tag
+def sentry_whitelist_urls():
+    if not settings.ALLOWED_HOSTS or '*' in settings.ALLOWED_HOSTS:
+        return 'null'
+    return convert_to_json(list(settings.ALLOWED_HOSTS))
