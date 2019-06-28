@@ -3,7 +3,6 @@ export type Aggregation = [string, string | null, string];
 export type Condition = [string, string | null, string | number | boolean | null];
 
 export type Query = {
-  org_id?: number;
   projects: number[];
   fields: string[];
   aggregations: Aggregation[];

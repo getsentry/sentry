@@ -10,7 +10,7 @@ import {Organization, Query} from './types';
  * @returns {Void}
  */
 export function trackQuery(organization: Organization, query: Query) {
-  const data: Query = {
+  const data: Query & {org_id: number} = {
     org_id: parseInt(organization.id, 10),
     projects: query.projects,
     fields: query.fields,
