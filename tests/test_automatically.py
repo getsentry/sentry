@@ -38,10 +38,10 @@ def magic(db, live_server, default_user):
     return BugCatcher(live_server)
 
 
-def test_superuser(magic, default_user, default_group, default_event):
-    magic.run(as_user=default_user)
-
-
 def test_boring_user(magic, default_user, default_group, default_event):
     user = Factories.create_user(is_superuser=False)
     magic.run(as_user=user)
+
+
+def test_superuser(magic, default_user, default_group, default_event):
+    magic.run(as_user=default_user)
