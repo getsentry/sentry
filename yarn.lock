@@ -4663,7 +4663,7 @@ deepmerge@1.3.2:
   resolved "https://registry.yarnpkg.com/deepmerge/-/deepmerge-1.3.2.tgz#1663691629d4dbfe364fa12a2a4f0aa86aa3a050"
   integrity sha1-FmNpFinU2/42T6EqKk8KqGqjoFA=
 
-deepmerge@^2.0.1:
+deepmerge@^2.0.1, deepmerge@^2.1.0:
   version "2.2.1"
   resolved "https://registry.yarnpkg.com/deepmerge/-/deepmerge-2.2.1.tgz#5d3ff22a01c00f645405a2fbc17d0778a1801170"
   integrity sha512-R9hc1Xa/NOBi9WRVUWg19rl1UB7Tt4kuPd+thNJgFZoxXsTz7ncaPaeIm+40oSGuP33DfMb4sZt1QIGiJzC4EA==
@@ -6937,10 +6937,13 @@ inherits@2.0.3:
 
 "inhuman@git+https://git@github.com/getsentry/inhuman.git":
   version "0.1.0"
-  resolved "git+https://git@github.com/getsentry/inhuman.git#03fada9b031d6378fe477ec71b6623d153adb6b0"
+  resolved "git+https://git@github.com/getsentry/inhuman.git#3e5fb71be676683d0006a523c75452c3cb28661a"
   dependencies:
     http-mitm-proxy "^0.7.0"
     puppeteer "^1.18.1"
+    puppeteer-extra "^2.1.3"
+    puppeteer-extra-plugin-anonymize-ua "^2.1.4"
+    puppeteer-extra-plugin-stealth "^2.2.2"
     yargs "^13.2.4"
 
 ini@^1.3.4, ini@^1.3.5, ini@~1.3.0:
@@ -8588,7 +8591,7 @@ meow@^4.0.0:
     redent "^2.0.0"
     trim-newlines "^2.0.0"
 
-merge-deep@^3.0.2:
+merge-deep@^3.0.1, merge-deep@^3.0.2:
   version "3.0.2"
   resolved "https://registry.yarnpkg.com/merge-deep/-/merge-deep-3.0.2.tgz#f39fa100a4f1bd34ff29f7d2bf4508fbb8d83ad2"
   integrity sha512-T7qC8kg4Zoti1cFd8Cr0M+qaZfOwjlPDEdZIIPPB2JZctjaPM4fX+i7HOId69tAti2fvO6X5ldfYUONDODsrkA==
@@ -10615,6 +10618,39 @@ punycode@^2.1.0, punycode@^2.1.1:
   version "2.1.1"
   resolved "https://registry.yarnpkg.com/punycode/-/punycode-2.1.1.tgz#b58b010ac40c22c5657616c8d2c2c02c7bf479ec"
   integrity sha512-XRsRjdf+j5ml+y/6GKHPZbrF/8p2Yga0JPtdqTIY2Xe5ohJPD9saDJJLPvp9+NSBprVvevdXZybnj2cv8OEd0A==
+
+puppeteer-extra-plugin-anonymize-ua@^2.1.4:
+  version "2.1.4"
+  resolved "https://registry.yarnpkg.com/puppeteer-extra-plugin-anonymize-ua/-/puppeteer-extra-plugin-anonymize-ua-2.1.4.tgz#827b9917a481550017392fed311e670e62d8064a"
+  integrity sha512-AAxicMHX3AbsBvWgMQEqaIy7vqH+pzzh/HZ4+bdXiZExPm1dTUNq7Kmvog2xfY4bdQO+bQkk+Qtfr1dOQ0KRyg==
+  dependencies:
+    debug "^3.1.0"
+    puppeteer-extra-plugin "^3.0.4"
+
+puppeteer-extra-plugin-stealth@^2.2.2:
+  version "2.2.2"
+  resolved "https://registry.yarnpkg.com/puppeteer-extra-plugin-stealth/-/puppeteer-extra-plugin-stealth-2.2.2.tgz#208290aa01797814f9e3b787cb9d52bb0cb92423"
+  integrity sha512-tVf+M0U4VAht/q2vNlf1eGGeCFzK9q0vTHnuCEXHf06mu7ukUe1J060s6kij5r7Fv51UsTcXnMa069oSXvYSOw==
+  dependencies:
+    debug "^3.1.0"
+    puppeteer-extra-plugin "^3.0.4"
+    puppeteer-extra-plugin-anonymize-ua "^2.1.4"
+
+puppeteer-extra-plugin@^3.0.4:
+  version "3.0.4"
+  resolved "https://registry.yarnpkg.com/puppeteer-extra-plugin/-/puppeteer-extra-plugin-3.0.4.tgz#7301d811a9b7eeff991f2a8dc610fa6690fdc4b0"
+  integrity sha512-qgb5pmyNWI64PHtvRG1MjxEL7S3wAouDeqWklpg+/1jnxsbhRJsoi91SEg4U4Ji+rEOn28kTVM9O4KTXJ1PQ1Q==
+  dependencies:
+    debug "^3.1.0"
+    merge-deep "^3.0.1"
+
+puppeteer-extra@^2.1.3:
+  version "2.1.3"
+  resolved "https://registry.yarnpkg.com/puppeteer-extra/-/puppeteer-extra-2.1.3.tgz#5d0417bba8f9727afafdbbc26f21e0fed249b682"
+  integrity sha512-RjQp3BkjzkY8JgTcHUsu4RdFcqE3AdTzUquRC9WBUZXRXbSgSXI1CtEmNG7OcxorScXNUTKEbY7Z13xtQVkHnQ==
+  dependencies:
+    debug "^3.1.0"
+    deepmerge "^2.1.0"
 
 puppeteer@^1.18.1:
   version "1.18.1"
