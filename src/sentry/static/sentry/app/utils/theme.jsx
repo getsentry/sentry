@@ -121,8 +121,8 @@ const theme = {
   },
 
   sidebar: {
-    background: '#2f2936',
-    color: '#9586a5',
+    background: '#8c5496',
+    color: '#ffffff',
     divider: '#493e54',
     badgeSize: '22px',
     smallBadgeSize: '11px',
