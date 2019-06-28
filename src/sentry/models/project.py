@@ -90,7 +90,7 @@ class Project(GraphQLModel, PendingDeletionMixin):
     """
     graphql_config = GraphQLDjangoConfig(
         type_name='project',
-        only_fields=('id', 'slug', 'name', 'date_added', 'status',
+        only_fields=('id', 'slug', 'name', 'date_added',
                      'platform', 'organization', 'group_set'),
         filter_fields=('slug', 'platform'),
         permission_policy='sentry.api.bases.project.ProjectEventPermission',

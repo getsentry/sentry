@@ -77,9 +77,13 @@ class SentryGraphQLType(ObjectType):
 
     @classmethod
     def __process_enum__(cls, field_name, enum_type):
+
+        content = [(n, v) for n, v in enum_type.__dict__.items()
+                   if (not (n.startswith('_')) and isinstance(v, int))]
         field_def = Enum(
             enum_type.__name__,
-            [(e.name, e.value) for e in enum_type]
+            # [(e.name, e.value) for e in enum_type]
+            content
         )
         setattr(
             cls,

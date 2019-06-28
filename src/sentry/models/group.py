@@ -246,7 +246,7 @@ class Group(GraphQLModel):
         only_fields=('id', 'short_id', 'message', 'culprit', 'logger', 'level',
                      'platform', 'project', 'times_seen', 'last_seen', 'first_seen',
                      'resolved_at', 'active_at', 'time_spent_total',
-                     'time_spent_count', 'status'),
+                     'time_spent_count'),
         filter_fields=('level', 'id'),
         permission_policy='sentry.api.bases.group.GroupPermission',
         root_cardinality=RootCardinality.MULTIPLE,
@@ -257,6 +257,9 @@ class Group(GraphQLModel):
                 'key': ('group', 'group_id'),
             }
         },
+        enum_mapping={
+            'status': GroupStatus,
+        }
     )
 
     __core__ = False

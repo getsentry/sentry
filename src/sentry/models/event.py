@@ -11,7 +11,6 @@ import six
 import string
 import warnings
 import pytz
-import graphene
 
 from datetime import timedelta
 
@@ -428,6 +427,7 @@ class SnubaEvent(EventCommon, GraphQLModelBase):
         as a regular Event.
     """
 
+    import graphene
     graphql_config = GraphQLSimpleConfig(
         type_name='event',
         permission_policy='sentry.api.bases.events.EventPermission',
