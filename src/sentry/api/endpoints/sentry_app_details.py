@@ -26,6 +26,30 @@ class SentryAppDetailsEndpoint(SentryAppBaseEndpoint):
 
             return Response(status=404)
 
+        data = {
+            'user': request.user,
+            'sentry_app': sentry_app,
+            'name': request.json_body.get('name'),
+            'status': request.json_body.get('status'),
+            'author': request.json_body.get('author'),
+            'webhookUrl': request.json_body.get('webhookUrl'),
+            'redirectUrl': request.json_body.get('redirectUrl'),
+            'isAlertable': request.json_body.get('isAlertable'),
+            'scopes': request.json_body.get('scopes'),
+            'events': request.json_body.get('events'),
+            'schema': request.json_body.get('schema'),
+            'overview': request.json_body.get('overview'),
+        }
+
+        if data.get('events'):
+            if ('error' in data['events']) and not features.has('organizations:integrations-event-hooks',
+                                                                sentry_app.owner,
+                                                                actor=request.user):
+
+                return Response({"non_field_errors": [
+                    "Your organization does not have access to the 'error' resource subscription.",
+                ]}, status=403)
+
         serializer = SentryAppSerializer(
             sentry_app,
             data=request.data,

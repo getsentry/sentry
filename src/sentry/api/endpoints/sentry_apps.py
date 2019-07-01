@@ -2,6 +2,7 @@ from __future__ import absolute_import
 
 from rest_framework.response import Response
 
+from sentry import features
 from sentry.auth.superuser import is_active_superuser
 from sentry.api.bases import SentryAppsBaseEndpoint
 from sentry.api.paginator import OffsetPaginator
@@ -66,6 +67,15 @@ class SentryAppsEndpoint(SentryAppsBaseEndpoint):
             'schema': request.json_body.get('schema', {}),
             'overview': request.json_body.get('overview'),
         }
+
+        if data.get('events'):
+            if ('error' in data['events']) and not features.has('organizations:integrations-event-hooks',
+                                                                organization,
+                                                                actor=request.user):
+
+                return Response({"non_field_errors": [
+                    "Your organization does not have access to the 'error' resource subscription.",
+                ]}, status=403)
 
         serializer = SentryAppSerializer(data=data)
 

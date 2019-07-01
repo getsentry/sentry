@@ -7,13 +7,16 @@ import styled from 'react-emotion';
 import Checkbox from 'app/components/checkbox';
 import Tooltip from 'app/components/tooltip';
 import {Flex} from 'grid-emotion';
+import withOrganization from 'app/utils/withOrganization';
+import SentryTypes from 'app/sentryTypes';
 
-export default class SubscriptionBox extends React.Component {
+class SubscriptionBox extends React.Component {
   static propTypes = {
     resource: PropTypes.string.isRequired,
     disabled: PropTypes.bool.isRequired,
     checked: PropTypes.bool.isRequired,
     onChange: PropTypes.func.isRequired,
+    organization: SentryTypes.Organization,
   };
 
   constructor(...args) {
@@ -31,9 +34,16 @@ export default class SubscriptionBox extends React.Component {
   };
 
   render() {
-    const {resource, disabled} = this.props;
+    const {resource, organization} = this.props;
+    const features = new Set(organization.features);
+    let disabled = this.props.disabled;
+    let message = `Must have at least 'Read' permissions enabled for ${resource}`;
     const {checked} = this.state;
-    const message = `Must have at least 'Read' permissions enabled for ${resource}`;
+    if (resource === 'error' && !features.has('integrations-event-hooks')) {
+      disabled = true;
+      message =
+        'Your organization does not have access to the error subscription resource.';
+    }
     return (
       <React.Fragment>
         <SubscriptionGridItemWrapper key={resource}>
@@ -60,6 +70,9 @@ export default class SubscriptionBox extends React.Component {
     );
   }
 }
+
+export {SubscriptionBox};
+export default withOrganization(SubscriptionBox);
 
 const SubscriptionInfo = styled(Flex)`
   flex-direction: column;
