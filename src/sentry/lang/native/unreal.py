@@ -1,28 +1,24 @@
 from __future__ import absolute_import
-from symbolic import Unreal4Crash
 from sentry.lang.native.minidump import MINIDUMP_ATTACHMENT_TYPE
 from sentry.models import UserReport
 from sentry.utils.safe import set_path, setdefault_path
 
 
-def process_unreal_crash(payload, user_id, environment, event):
-    """Initial processing of the event from the Unreal Crash Reporter data.
-    Processes the raw bytes of the unreal crash by returning a Unreal4Crash"""
+def merge_unreal_user(event, user_id):
+    """
+    Merges user information from the unreal "UserId" into the event payload.
+    """
 
-    event['environment'] = environment
-
-    if user_id:
-        # https://github.com/EpicGames/UnrealEngine/blob/f509bb2d6c62806882d9a10476f3654cf1ee0634/Engine/Source/Programs/CrashReportClient/Private/CrashUpload.cpp#L769
-        parts = user_id.split('|', 2)
-        login_id, epic_account_id, machine_id = parts + [''] * (3 - len(parts))
-        event['user'] = {
-            'id': login_id if login_id else user_id,
-        }
-        if epic_account_id:
-            set_path(event, 'tags', 'epic_account_id', value=epic_account_id)
-        if machine_id:
-            set_path(event, 'tags', 'machine_id', value=machine_id)
-    return Unreal4Crash.from_bytes(payload)
+    # https://github.com/EpicGames/UnrealEngine/blob/f509bb2d6c62806882d9a10476f3654cf1ee0634/Engine/Source/Programs/CrashReportClient/Private/CrashUpload.cpp#L769
+    parts = user_id.split('|', 2)
+    login_id, epic_account_id, machine_id = parts + [''] * (3 - len(parts))
+    event['user'] = {
+        'id': login_id if login_id else user_id,
+    }
+    if epic_account_id:
+        set_path(event, 'tags', 'epic_account_id', value=epic_account_id)
+    if machine_id:
+        set_path(event, 'tags', 'machine_id', value=machine_id)
 
 
 def unreal_attachment_type(unreal_file):

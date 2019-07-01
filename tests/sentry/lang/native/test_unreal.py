@@ -1,10 +1,11 @@
 from __future__ import absolute_import
 import os
 
+from symbolic import Unreal4Crash
 
 from sentry.testutils import TestCase
 from sentry.lang.native.minidump import MINIDUMP_ATTACHMENT_TYPE
-from sentry.lang.native.unreal import process_unreal_crash, unreal_attachment_type, \
+from sentry.lang.native.unreal import merge_unreal_user, unreal_attachment_type, \
     merge_unreal_context_event, merge_unreal_logs_event, merge_apple_crash_report
 from sentry.models import UserReport
 
@@ -32,14 +33,6 @@ def get_unreal_crash_apple_file():
     return get_fixture_path('unreal_crash_apple')
 
 
-def test_process_minidump():
-    with open(get_unreal_crash_file(), 'rb') as f:
-        unreal_crash = process_unreal_crash(f.read(), None, None, {})
-        process_state = unreal_crash.process_minidump()
-        assert 115 == process_state.module_count
-        assert 54 == process_state.thread_count
-
-
 def test_unreal_attachment_type_minidump():
     file = MockFile("minidump")
     assert unreal_attachment_type(file) == MINIDUMP_ATTACHMENT_TYPE
@@ -58,9 +51,10 @@ class MockFile(TestCase):
 class UnrealIntegrationTest(TestCase):
     def test_merge_unreal_context_event(self):
         with open(get_unreal_crash_file(), 'rb') as f:
-            event = {'event_id': MOCK_EVENT_ID}
+            event = {'event_id': MOCK_EVENT_ID, 'environment': 'Production'}
             user_id = 'ebff51ef3c4878627823eebd9ff40eb4|2e7d369327054a448be6c8d3601213cb|C52DC39D-DAF3-5E36-A8D3-BF5F53A5D38F'
-            unreal_crash = process_unreal_crash(f.read(), user_id, 'Production', event)
+            merge_unreal_user(event, user_id)
+            unreal_crash = Unreal4Crash.from_bytes(f.read())
             merge_unreal_context_event(unreal_crash.get_context(), event, self.project)
             self.insta_snapshot(event)
 
@@ -135,8 +129,8 @@ class UnrealIntegrationTest(TestCase):
 
     def test_merge_unreal_logs_event(self):
         with open(get_unreal_crash_file(), 'rb') as f:
-            event = {'event_id': MOCK_EVENT_ID}
-            unreal_crash = process_unreal_crash(f.read(), None, None, event)
+            event = {'event_id': MOCK_EVENT_ID, 'environment': None}
+            unreal_crash = Unreal4Crash.from_bytes(f.read())
             merge_unreal_logs_event(unreal_crash.get_logs(), event)
             breadcrumbs = event['breadcrumbs']['values']
             assert len(breadcrumbs) == 100
@@ -149,7 +143,7 @@ class UnrealIntegrationTest(TestCase):
 
     def test_merge_apple_crash_report(self):
         with open(get_unreal_crash_apple_file(), 'rb') as f:
-            event = {'event_id': MOCK_EVENT_ID}
-            unreal_crash = process_unreal_crash(f.read(), None, None, event)
+            event = {'event_id': MOCK_EVENT_ID, 'environment': None}
+            unreal_crash = Unreal4Crash.from_bytes(f.read())
             merge_apple_crash_report(unreal_crash.get_apple_crash_report(), event)
             self.insta_snapshot(event)

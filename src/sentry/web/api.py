@@ -26,7 +26,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views.generic.base import View as BaseView
 from functools import wraps
 from querystring_parser import parser
-from symbolic import ProcessMinidumpError, Unreal4Error
+from symbolic import ProcessMinidumpError, Unreal4Crash, Unreal4Error
 
 from sentry import features, quotas
 from sentry.attachments import CachedAttachment
@@ -39,7 +39,7 @@ from sentry.event_manager import EventManager
 from sentry.interfaces import schemas
 from sentry.interfaces.base import get_interface
 from sentry.lang.native.unreal import (
-    process_unreal_crash, merge_apple_crash_report,
+    merge_unreal_user, merge_apple_crash_report,
     unreal_attachment_type, merge_unreal_context_event, merge_unreal_logs_event,
 )
 
@@ -326,7 +326,12 @@ class APIView(BaseView):
             )
 
         if not auth.client:
-            track_outcome(relay_config.organization_id, relay_config.project_id, None, Outcome.INVALID, "auth_client")
+            track_outcome(
+                relay_config.organization_id,
+                relay_config.project_id,
+                None,
+                Outcome.INVALID,
+                "auth_client")
             raise APIError("Client did not send 'client' identifier")
 
         return auth
@@ -381,7 +386,8 @@ class APIView(BaseView):
             )
 
             # if the project id is not directly specified get it from the authentication information
-            project_id = _get_project_id_from_request(project_id, request, self.auth_helper_cls, helper)
+            project_id = _get_project_id_from_request(
+                project_id, request, self.auth_helper_cls, helper)
 
             relay_config = get_full_relay_config(project_id)
 
@@ -560,7 +566,8 @@ class StoreView(APIView):
         """Mutate the given EventManager. Hook for subtypes of StoreView (CSP)"""
         pass
 
-    def process(self, request, project, key, auth, helper, data, relay_config, attachments=None, **kwargs):
+    def process(self, request, project, key, auth, helper,
+                data, relay_config, attachments=None, **kwargs):
         metrics.incr('events.total', skip_internal=False)
 
         project_id = relay_config.project_id
@@ -827,7 +834,8 @@ class MinidumpView(StoreView):
         ))
 
         # Append all other files as generic attachments.
-        # RaduW 4 Jun 2019 always sent attachments for minidump (does not use event-attachments feature)
+        # RaduW 4 Jun 2019 always sent attachments for minidump (does not use
+        # event-attachments feature)
         for name, file in six.iteritems(request_files):
             if name == 'upload_file_minidump':
                 continue
@@ -918,10 +926,17 @@ class UnrealView(StoreView):
         is_apple_crash_report = False
 
         attachments = []
-        event = {'event_id': uuid.uuid4().hex}
+        event = {
+            'event_id': uuid.uuid4().hex,
+            'environment': request.GET.get('AppEnvironment'),
+        }
+
+        user_id = request.GET.get('UserID')
+        if user_id:
+            merge_unreal_user(event, user_id)
+
         try:
-            unreal = process_unreal_crash(request.body, request.GET.get(
-                'UserID'), request.GET.get('AppEnvironment'), event)
+            unreal = Unreal4Crash.from_bytes(request.body)
 
             apple_crash_report = unreal.get_apple_crash_report()
             if apple_crash_report:
