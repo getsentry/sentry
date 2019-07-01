@@ -3,9 +3,9 @@ from __future__ import absolute_import
 import logging
 from distutils.version import LooseVersion
 from django.conf import settings
+from django.core.cache import cache
 
 from sentry.net.http import Session
-from sentry.cache import default_cache
 from sentry.utils.safe import get_path
 
 logger = logging.getLogger(__name__)
@@ -256,7 +256,7 @@ SDK_SUPPORTED_MODULES = [
 
 
 def get_sdk_index():
-    value = default_cache.get(SDK_INDEX_CACHE_KEY)
+    value = cache.get(SDK_INDEX_CACHE_KEY)
     if value is not None:
         return value
 
@@ -275,7 +275,7 @@ def get_sdk_index():
         logger.exception("Failed to fetch version index from release registry")
         json = {}
 
-    default_cache.set(SDK_INDEX_CACHE_KEY, json, 3600)
+    cache.set(SDK_INDEX_CACHE_KEY, json, 3600)
     return json
 
 

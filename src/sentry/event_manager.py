@@ -13,6 +13,7 @@ import six
 
 from datetime import datetime, timedelta
 from django.conf import settings
+from django.core.cache import cache
 from django.db import connection, IntegrityError, router, transaction
 from django.db.models import Func
 from django.utils import timezone
@@ -49,7 +50,6 @@ from sentry.plugins import plugins
 from sentry.signals import event_discarded, event_saved, first_event_received
 from sentry.tasks.integrations import kick_off_status_syncs
 from sentry.utils import metrics
-from sentry.utils.cache import default_cache
 from sentry.utils.canonical import CanonicalKeyDict
 from sentry.utils.contexts_normalization import normalize_user_agent
 from sentry.utils.data_filters import (
@@ -943,7 +943,7 @@ class EventManager(object):
             project.id,
             euser.hash,
         )
-        euser_id = default_cache.get(cache_key)
+        euser_id = cache.get(cache_key)
         if euser_id is None:
             try:
                 with transaction.atomic(using=router.db_for_write(EventUser)):
@@ -963,7 +963,7 @@ class EventManager(object):
                             name=user_data['name'],
                         )
                     e_userid = euser.id
-                default_cache.set(cache_key, e_userid, 3600)
+                cache.set(cache_key, e_userid, 3600)
         return euser
 
     def _find_hashes(self, project, hash_list):
