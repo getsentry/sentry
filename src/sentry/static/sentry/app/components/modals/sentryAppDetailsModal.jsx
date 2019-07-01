@@ -9,6 +9,7 @@ import PluginIcon from 'app/plugins/components/pluginIcon';
 import SentryTypes from 'app/sentryTypes';
 import space from 'app/styles/space';
 import {t} from 'app/locale';
+import marked from 'app/utils/marked';
 
 export default class SentryAppDetailsModal extends React.Component {
   static propTypes = {
@@ -32,7 +33,7 @@ export default class SentryAppDetailsModal extends React.Component {
           </Flex>
         </Flex>
 
-        <Description>{sentryApp.overview}</Description>
+        <Description dangerouslySetInnerHTML={{__html: marked(sentryApp.overview)}} />
 
         <Metadata>
           <Author flex={1}>{t('By %s', sentryApp.author)}</Author>
