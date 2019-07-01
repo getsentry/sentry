@@ -15,6 +15,7 @@ from sentry.incidents.models import (
     IncidentActivityType,
     IncidentGroup,
     IncidentProject,
+    IncidentSnapshot,
     IncidentSeen,
     IncidentStatus,
     IncidentSubscription,
@@ -111,7 +112,7 @@ def update_incident_status(incident, status, user=None, comment=None):
     """
     Updates the status of an Incident and write an IncidentActivity row to log
     the change. When the status is CLOSED we also set the date closed to the
-    current time and (todo) take a snapshot of the current incident state.
+    current time and take a snapshot of the current incident state.
     """
     if incident.status == status.value:
         # If the status isn't actually changing just no-op.
@@ -135,15 +136,19 @@ def update_incident_status(incident, status, user=None, comment=None):
         }
         if status == IncidentStatus.CLOSED:
             kwargs['date_closed'] = timezone.now()
-            # TODO: Take a snapshot of the current state once we implement
-            # snapshots
         elif status == IncidentStatus.OPEN:
             # If we're moving back out of closed status then unset the closed
             # date
             kwargs['date_closed'] = None
-            # TODO: Delete snapshot? Not sure if needed
+            # Remove the snapshot since it's only used after the incident is
+            # closed.
+            IncidentSnapshot.objects.filter(incident=incident).delete()
 
         incident.update(**kwargs)
+
+        if status == IncidentStatus.CLOSED:
+            create_incident_snapshot(incident)
+
         analytics.record(
             'incident.status_change',
             incident_id=incident.id,
@@ -251,6 +256,26 @@ def delete_comment(activity):
     return activity.delete()
 
 
+def create_incident_snapshot(incident):
+    """
+    Creates a snapshot of an incident. This includes the count of unique users
+    and total events, plus a time series snapshot of the entire incident.
+    """
+    assert incident.status == IncidentStatus.CLOSED.value
+    event_stats_snapshot = create_event_stat_snapshot(
+        incident,
+        incident.date_started,
+        incident.date_closed,
+    )
+    aggregates = get_incident_aggregates(incident)
+    return IncidentSnapshot.objects.create(
+        incident=incident,
+        event_stats_snapshot=event_stats_snapshot,
+        unique_users=aggregates['unique_users'],
+        total_events=aggregates['count'],
+    )
+
+
 def create_event_stat_snapshot(incident, start, end):
     """
     Creates an event stats snapshot for an incident in a given period of time.
@@ -354,6 +379,42 @@ def bulk_get_incident_aggregates(query_params_list):
     ]
     results = bulk_raw_query(snuba_params_list, referrer='incidents.get_incident_aggregates')
     return [result['data'][0] for result in results]
+
+
+def bulk_get_incident_stats(incidents):
+    """
+    Returns bulk stats for a list of incidents. This includes unique user count,
+    total event count and event stats.
+    """
+    closed = [i for i in incidents if i.status == IncidentStatus.CLOSED.value]
+    incident_stats = {}
+    snapshots = IncidentSnapshot.objects.filter(incident__in=closed)
+    for snapshot in snapshots:
+        event_stats = snapshot.event_stats_snapshot
+        incident_stats[snapshot.incident_id] = {
+            'event_stats': SnubaTSResult(
+                event_stats.snuba_values,
+                event_stats.start,
+                event_stats.end,
+                event_stats.period,
+            ),
+            'total_events': snapshot.total_events,
+            'unique_users': snapshot.unique_users,
+        }
+
+    to_fetch = [i for i in incidents if i.id not in incident_stats]
+    if to_fetch:
+        query_params_list = bulk_build_incident_query_params(to_fetch)
+        all_event_stats = bulk_get_incident_event_stats(to_fetch, query_params_list)
+        all_aggregates = bulk_get_incident_aggregates(query_params_list)
+        for incident, event_stats, aggregates in zip(to_fetch, all_event_stats, all_aggregates):
+            incident_stats[incident.id] = {
+                'event_stats': event_stats,
+                'total_events': aggregates['count'],
+                'unique_users': aggregates['unique_users'],
+            }
+
+    return [incident_stats[incident.id] for incident in incidents]
 
 
 def subscribe_to_incident(incident, user):
