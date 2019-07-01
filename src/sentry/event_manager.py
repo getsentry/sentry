@@ -886,7 +886,7 @@ class EventManager(object):
             if not project.first_event:
                 project.update(first_event=date)
                 first_event_received.send_robust(
-                    project=project, group=group, event=event, sender=Project)
+                    project=project, event=event, sender=Project)
 
         eventstream.insert(
             group=group,
