@@ -108,8 +108,12 @@ SOURCES_SCHEMA = {
 }
 
 
+def _task_id_cache_key_for_event(project_id, event_id):
+    return u'symbolicator:{1}:{0}'.format(project_id, event_id)
+
+
 class Symbolicator(object):
-    def __init__(self, project, task_id_cache_key):
+    def __init__(self, project, event_id):
         symbolicator_options = options.get('symbolicator.options')
         base_url = symbolicator_options['url'].rstrip('/')
         assert base_url
@@ -117,11 +121,12 @@ class Symbolicator(object):
         self.sess = SymbolicatorSession(
             url=base_url,
             project_id=six.text_type(project.id),
+            event_id=six.text_type(event_id),
             timeout=SYMBOLICATOR_TIMEOUT,
             sources=get_sources_for_project(project)
         )
 
-        self.task_id_cache_key = task_id_cache_key
+        self.task_id_cache_key = _task_id_cache_key_for_event(project.id, event_id)
 
     def _process(self, create_task):
         task_id = default_cache.get(self.task_id_cache_key)
@@ -282,9 +287,10 @@ def get_sources_for_project(project):
 
 
 class SymbolicatorSession(object):
-    def __init__(self, url=None, sources=None, project_id=None, timeout=None):
+    def __init__(self, url=None, sources=None, project_id=None, event_id=None, timeout=None):
         self.url = url
         self.project_id = project_id
+        self.event_id = event_id
         self.sources = sources or []
         self.timeout = timeout
         self.session = None
@@ -318,6 +324,7 @@ class SymbolicatorSession(object):
 
         # required for load balancing
         kwargs.setdefault('headers', {})['x-sentry-project-id'] = self.project_id
+        kwargs.setdefault('headers', {})['x-sentry-event-id'] = self.event_id
 
         attempts = 0
         wait = 0.5
