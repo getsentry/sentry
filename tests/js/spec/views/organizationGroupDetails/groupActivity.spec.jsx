@@ -1,24 +1,28 @@
 import React from 'react';
-import {mount} from 'enzyme';
 
-import {initializeOrg} from 'app-test/helpers/initializeOrg';
 import {GroupActivity} from 'app/views/organizationGroupDetails/groupActivity';
-import NoteInput from 'app/components/activity/note/input';
+import {initializeOrg} from 'app-test/helpers/initializeOrg';
+import {mount} from 'enzyme';
 import ConfigStore from 'app/stores/configStore';
 import GroupStore from 'app/stores/groupStore';
+import NoteInput from 'app/components/activity/note/input';
+import ProjectsStore from 'app/stores/projectsStore';
 
 describe('GroupActivity', function() {
+  const project = TestStubs.Project();
   const group = TestStubs.Group({
     id: '1337',
     activity: [
       {type: 'note', id: 'note-1', data: {text: 'Test Note'}, user: TestStubs.User()},
     ],
-    project: TestStubs.Project(),
+    project,
   });
   const {organization, routerContext} = initializeOrg({
     group,
   });
+
   beforeEach(function() {
+    ProjectsStore.loadInitialData([project]);
     jest.spyOn(ConfigStore, 'get').mockImplementation(key => {
       if (key === 'user') {
         return {

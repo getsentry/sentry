@@ -70,9 +70,8 @@ class Activity extends React.Component {
     } = this.props;
 
     const noteProps = {
-      memberList: [],
-      teams: [],
       minHeight: 80,
+      projectSlugs: (incident && incident.projects) || [],
       ...this.props.noteInputProps,
     };
     const activitiesByDate = groupBy(activities, ({dateCreated}) =>
@@ -95,7 +94,6 @@ class Activity extends React.Component {
               placeholder={t(
                 'Leave a comment, paste a tweet, or link any other relevant information about this Incident...'
               )}
-              sessionUser={me}
               {...noteProps}
             />
           )}

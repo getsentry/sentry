@@ -7,8 +7,8 @@ import Chart from 'app/views/organizationIncidents/details/chart';
 import IdBadge from 'app/components/idBadge';
 import Link from 'app/components/links/link';
 import NavTabs from 'app/components/navTabs';
-import Projects from 'app/utils/projects';
 import Placeholder from 'app/components/placeholder';
+import Projects from 'app/utils/projects';
 import SeenByList from 'app/components/seenByList';
 import SentryTypes from 'app/sentryTypes';
 import SideHeader from 'app/views/organizationIncidents/details/sideHeader';
@@ -50,6 +50,7 @@ export default class DetailsBody extends React.Component {
             </StyledNavTabs>
             <Activity
               params={params}
+              incident={incident}
               incidentStatus={!loading ? incident.status : null}
             />
           </PageContent>
